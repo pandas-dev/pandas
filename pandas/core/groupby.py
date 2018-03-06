@@ -1366,12 +1366,15 @@ class GroupBy(_GroupBy):
         # rather be moved to the underlying function calls
         try:
             demeaned = np.abs(self.shift(0) - self.transform('mean'))
-            demeaned = demeaned.set_index(self.grouper.labels)
+            demeaned.index = self.grouper.labels
             agg = demeaned.groupby(demeaned.index)
         except TypeError:
             raise DataError('No numeric types to aggregate')
 
-        return agg.mean().set_index(self.grouper.result_index)
+        result = agg.mean()
+        result.index = self.grouper.result_index
+
+        return result
 
     @Substitution(name='groupby')
     @Appender(_doc_template)

@@ -2131,27 +2131,36 @@ class TestGroupBy(MixIn):
         result = getattr(df.groupby('key'), agg_func)(skipna=skipna)
         assert_frame_equal(result, exp_df)
 
+    @pytest.mark.parametrize("obj", [Series, DataFrame])
     @pytest.mark.parametrize("test_mi", [True, False])
     @pytest.mark.parametrize("dtype", ['int', 'float'])
-    def test_groupby_mad(self, test_mi, dtype):
+    def test_groupby_mad(self, obj, test_mi, dtype):
         vals = np.array(range(10)).astype(dtype)
         df = DataFrame({'key': ['a'] * 5 + ['b'] * 5, 'val': vals})
-        exp_df = DataFrame({'val': [1.2, 1.2]}, index=pd.Index(['a', 'b'],
-                                                               name='key'))
 
+        idx = pd.Index(['a', 'b'], name='key')
+        exp = obj([1.2, 1.2], index=idx)
         grping = ['key']
+
         if test_mi:
             df = df.append(df)  # Double the size of the frame
             df['newcol'] = ['foo'] * 10 + ['bar'] * 10
             grping.append('newcol')
 
-            mi = pd.MultiIndex.from_product((exp_df.index.values,
+            mi = pd.MultiIndex.from_product((exp.index.values,
                                              ['bar', 'foo']),
                                             names=['key', 'newcol'])
-            exp_df = exp_df.append(exp_df).set_index(mi)
+            exp = exp.append(exp)
+            exp.index = mi
 
-        result = df.groupby(grping).mad()
-        tm.assert_frame_equal(result, exp_df)
+        if obj is Series:
+            exp.name = 'val'
+            result = df.groupby(grping)['val'].mad()
+            tm.assert_series_equal(result, exp)
+        else:
+            exp = exp.rename(columns={0: 'val'})
+            result = df.groupby(grping).mad()
+            tm.assert_frame_equal(result, exp)
 
     @pytest.mark.parametrize("vals", [
         ['foo'] * 10, [True] * 10])
