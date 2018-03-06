@@ -30,7 +30,8 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_dict_like)
 
-from pandas.core.algorithms import factorize, take_1d, unique1d
+from pandas.core.algorithms import (
+    factorize, take_1d, unique1d, _factorize_array)
 from pandas.core.accessor import PandasDelegate
 from pandas.core.base import (PandasObject,
                               NoNewAttributesMixin, _shared_docs)
@@ -2069,13 +2070,11 @@ class Categorical(ExtensionArray, PandasObject):
             take_codes = sorted(take_codes)
         return cat.set_categories(cat.categories.take(take_codes))
 
-    def factorize(self, sort=False, na_sentinel=-1):
+    def factorize(self, na_sentinel=-1):
         """Encode the Categorical as an enumerated type.
 
         Parameters
         ----------
-        sort : boolean, default False
-            Sort by values
         na_sentinel: int, default -1
             Value to mark "not found"
 
@@ -2110,21 +2109,16 @@ class Categorical(ExtensionArray, PandasObject):
         [a, b]
         Categories (2, object): [a, b]
         """
-        from pandas.core.algorithms import _factorize_array, take_1d
 
         codes = self.codes.astype('int64')
+        codes[codes == -1] = iNaT
         # We set missing codes, normally -1, to iNaT so that the
         # Int64HashTable treats them as missing values.
-        codes[codes == -1] = iNaT
         labels, uniques = _factorize_array(codes, check_nulls=True,
                                            na_sentinel=na_sentinel)
         uniques = self._constructor(self.categories.take(uniques),
                                     categories=self.categories,
                                     ordered=self.ordered)
-        if sort:
-            order = uniques.argsort()
-            labels = take_1d(order, labels, fill_value=na_sentinel)
-            uniques = uniques.take(order)
         return labels, uniques
 
     def equals(self, other):
