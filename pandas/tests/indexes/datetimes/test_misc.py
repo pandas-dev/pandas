@@ -271,7 +271,9 @@ class TestDatetime64(object):
             assert dti.weekday_name[day] == eng_name
             assert dti.day_name(locale=time_locale)[day] == name
             ts = Timestamp(datetime(2016, 4, day))
-            assert ts.weekday_name == eng_name
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                assert ts.weekday_name == eng_name
             assert ts.day_name(locale=time_locale) == name
         dti = dti.append(DatetimeIndex([pd.NaT]))
         assert np.isnan(dti.day_name(locale=time_locale)[-1])

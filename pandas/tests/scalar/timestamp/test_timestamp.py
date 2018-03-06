@@ -105,7 +105,7 @@ class TestTimestampProperties(object):
     def test_names(self, data, time_locale):
         # GH 17354
         # Test .weekday_name, .day_name(), .month_name
-        with tm.assert_produces_warning(DeprecationWarning,
+        with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             assert data.weekday_name == 'Monday'
         if time_locale is None:
