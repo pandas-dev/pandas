@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import timedelta
+import operator
+
 import pytest
 import numpy as np
 
@@ -9,6 +11,7 @@ from pandas import (Timedelta,
                     period_range, Period, PeriodIndex,
                     _np_version_under1p10)
 import pandas.core.indexes.period as period
+from pandas.core import ops
 from pandas.errors import PerformanceWarning
 
 
@@ -255,6 +258,18 @@ class TestPeriodIndexComparisons(object):
 
 
 class TestPeriodIndexArithmetic(object):
+
+    # -------------------------------------------------------------
+    # Invalid Operations
+
+    @pytest.mark.parametrize('other', [3.14, np.array([2.0, 3.0])])
+    @pytest.mark.parametrize('op', [operator.add, ops.radd,
+                                    operator.sub, ops.rsub])
+    def test_pi_add_sub_float(self, op, other):
+        dti = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq='D')
+        pi = dti.to_period('D')
+        with pytest.raises(TypeError):
+            op(pi, other)
 
     # -----------------------------------------------------------------
     # __add__/__sub__ with ndarray[datetime64] and ndarray[timedelta64]
