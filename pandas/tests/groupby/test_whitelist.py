@@ -12,7 +12,7 @@ from pandas.compat import lrange, product
 
 AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
                  'mad', 'std', 'var', 'sem']
-AGG_FUNCTIONS_WITH_SKIPNA = ['skew', 'mad']
+AGG_FUNCTIONS_WITH_SKIPNA = ['skew']
 
 df_whitelist = frozenset([
     'last',

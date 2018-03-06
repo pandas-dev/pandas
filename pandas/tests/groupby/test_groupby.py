@@ -9,6 +9,7 @@ from datetime import datetime
 from pandas import (date_range, bdate_range, Timestamp,
                     Index, MultiIndex, DataFrame, Series,
                     concat, Panel, DatetimeIndex, read_csv)
+from pandas.core.base import DataError
 from pandas.core.dtypes.missing import isna
 from pandas.errors import UnsupportedFunctionCall, PerformanceWarning
 from pandas.util.testing import (assert_frame_equal, assert_index_equal,
@@ -1300,17 +1301,6 @@ class TestGroupBy(MixIn):
         g = df.groupby('A')
         gni = df.groupby('A', as_index=False)
 
-        # mad
-        expected = DataFrame([[0], [np.nan]], columns=['B'], index=[1, 3])
-        expected.index.name = 'A'
-        result = g.mad()
-        assert_frame_equal(result, expected)
-
-        expected = DataFrame([[0., 0.], [0, np.nan]], columns=['A', 'B'],
-                             index=[0, 1])
-        result = gni.mad()
-        assert_frame_equal(result, expected)
-
         # describe
         expected_index = pd.Index([1, 3], name='A')
         expected_col = pd.MultiIndex(levels=[['B'],
@@ -2141,14 +2131,26 @@ class TestGroupBy(MixIn):
         result = getattr(df.groupby('key'), agg_func)(skipna=skipna)
         assert_frame_equal(result, exp_df)
 
+    @pytest.mark.parametrize("test_mi", [True, False])
     @pytest.mark.parametrize("dtype", ['int', 'float'])
-    def test_groupby_mad(self, dtype):
+    def test_groupby_mad(self, test_mi, dtype):
         vals = np.array(range(10)).astype(dtype)
         df = DataFrame({'key': ['a'] * 5 + ['b'] * 5, 'val': vals})
         exp_df = DataFrame({'val': [1.2, 1.2]}, index=pd.Index(['a', 'b'],
                                                                name='key'))
 
-        result = df.groupby('key').mad()
+        grping = ['key']
+        if test_mi:
+            df = df.append(df)  # Double the size of the frame
+            df['newcol'] = ['foo'] * 10 + ['bar'] * 10
+            grping.append('newcol')
+
+            mi = pd.MultiIndex.from_product((exp_df.index.values,
+                                             ['bar', 'foo']),
+                                            names=['key', 'newcol'])
+            exp_df = exp_df.append(exp_df).set_index(mi)
+
+        result = df.groupby(grping).mad()
         tm.assert_frame_equal(result, exp_df)
 
     @pytest.mark.parametrize("vals", [
@@ -2156,11 +2158,12 @@ class TestGroupBy(MixIn):
     def test_groupby_mad_raises(self, vals):
         df = DataFrame({'key': ['a'] * 5 + ['b'] * 5, 'val': vals})
 
-        with tm.assert_raises_regex(TypeError, "Invalid type for mad"):
+        with tm.assert_raises_regex(DataError,
+                                    "No numeric types to aggregate"):
             df.groupby('key').mad()
 
     def test_groupby_mad_skipna(self):
-        df = DataFrame({'key': ['a'] * 5 + ['b'] * 5, 'val': vals})
+        df = DataFrame({'key': ['a'] * 5 + ['b'] * 5, 'val': range(10)})
         with tm.assert_raises_regex(
                 NotImplementedError, "'skipna=False' not yet implemented"):
             df.groupby('key').mad(skipna=False)

@@ -1355,6 +1355,26 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
+    def mad(self, skipna=True):
+        if not skipna:
+            raise NotImplementedError("'skipna=False' not yet implemented")
+
+        if self.axis != 0:
+            return self.apply(lambda x: x.mad(axis=self.axis))
+
+        # Wrap in a try..except. Ideally this wouldn't be required here but
+        # rather be moved to the underlying function calls
+        try:
+            demeaned = np.abs(self.shift(0) - self.transform('mean'))
+            demeaned = demeaned.set_index(self.grouper.labels)
+            agg = demeaned.groupby(demeaned.index)
+        except TypeError:
+            raise DataError('No numeric types to aggregate')
+
+        return agg.mean().set_index(self.grouper.result_index)
+
+    @Substitution(name='groupby')
+    @Appender(_doc_template)
     def sem(self, ddof=1):
         """
         Compute standard error of the mean of groups, excluding missing values
