@@ -2233,17 +2233,23 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> month_starts = pd.date_range('1/1/2011', periods=5, freq='MS')
+        Put the first 5 month starts of 2011 into an index.
 
-        Shift by 10 days.
+        >>> month_starts = pd.date_range('1/1/2011', periods=5, freq='MS')
+        >>> month_starts
+        DatetimeIndex(['2011-01-01', '2011-02-01', '2011-03-01', '2011-04-01',
+                       '2011-05-01'],
+                      dtype='datetime64[ns]', freq='MS')
+
+        Shift the index by 10 days.
 
         >>> month_starts.shift(10, freq='D')
         DatetimeIndex(['2011-01-11', '2011-02-11', '2011-03-11', '2011-04-11',
                        '2011-05-11'],
                       dtype='datetime64[ns]', freq=None)
 
-        The default value of `freq` is the `freq` attribute of the index;
-        in this example it is 'MS' (month start).
+        The default value of `freq` is the `freq` attribute of the index,
+        which is 'MS' (month start) in this example.
 
         >>> month_starts.shift(10)
         DatetimeIndex(['2011-11-01', '2011-12-01', '2012-01-01', '2012-02-01',
