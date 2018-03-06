@@ -731,6 +731,8 @@ Deprecations
 - The ``order`` parameter of :func:`factorize` is deprecated and will be removed in a future release (:issue:`19727`)
 - :attr:`Timestamp.weekday_name`, :attr:`DatetimeIndex.weekday_name`, and :attr:`Series.dt.weekday_name` are deprecated in favor of :meth:`Timestamp.day_name`, :meth:`DatetimeIndex.day_name`, and :meth:`Series.dt.day_name` (:issue:`12806`)
 
+- ``pandas.tseries.plotting.tsplot`` is deprecated. Use :func:`Series.plot` instead (:issue:`18627`)
+
 .. _whatsnew_0230.prior_deprecations:
 
 Removal of prior version deprecations/changes

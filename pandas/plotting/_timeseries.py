@@ -23,6 +23,7 @@ from pandas.plotting._converter import (TimeSeries_DateLocator,
 
 
 def tsplot(series, plotf, ax=None, **kwargs):
+    import warnings
     """
     Plots a Series on the given Matplotlib axes or the current axes
 
@@ -35,7 +36,14 @@ def tsplot(series, plotf, ax=None, **kwargs):
     _____
     Supports same kwargs as Axes.plot
 
+
+    .. deprecated:: 0.23.0
+       Use Series.plot() instead
     """
+    warnings.warn("'tsplot' is deprecated and will be removed in a "
+                  "future version. Please use Series.plot() instead.",
+                  FutureWarning, stacklevel=2)
+
     # Used inferred freq is possible, need a test case for inferred
     if ax is None:
         import matplotlib.pyplot as plt

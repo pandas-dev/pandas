@@ -100,6 +100,15 @@ class TestTSPlot(TestPlotBase):
 
         pytest.raises(TypeError, df['A'].plot)
 
+    def test_tsplot_deprecated(self):
+        from pandas.tseries.plotting import tsplot
+
+        _, ax = self.plt.subplots()
+        ts = tm.makeTimeSeries()
+
+        with tm.assert_produces_warning(FutureWarning):
+            tsplot(ts, self.plt.Axes.plot, ax=ax)
+
     @pytest.mark.slow
     def test_tsplot(self):
         from pandas.tseries.plotting import tsplot
