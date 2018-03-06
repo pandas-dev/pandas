@@ -899,45 +899,58 @@ class _Rolling_and_Expanding(_Rolling):
         return self._apply('roll_skew', 'skew',
                            check_minp=_require_min_periods(3), **kwargs)
 
-    _shared_docs['kurt'] = dedent("""Calculate unbiased %(name)s kurtosis.
+    _shared_docs['kurt'] = dedent("""
+    Calculate unbiased %(name)s kurtosis.
 
-    This function uses Fisher's definition of kurtosis (kurtosis of normal
-    == 0.0) without bias.
+    This function uses Fisher's definition of kurtosis without bias.
+
+    Parameters
+    ----------
+    kwargs : Needs Review
 
     Returns
     -------
-    same type as input
+    Series or DataFrame (matches input)
+        Like-indexed object containing the result of function application
 
     See Also
     --------
-    scipy.stats.kurtosis
-    pandas.DataFrame.kurtosis
+    pandas.Series.%(name)s
+    pandas.DataFrame.%(name)s
     pandas.Series.kurtosis
+    pandas.DataFrame.kurtosis
+    scipy.stats.skew
+    scipy.stats.kurtosis
 
     Notes
     -----
-    A minimum of 4 periods is required for the rolling calculation
+    A minimum of 4 periods is required for the rolling calculation.
 
     Examples
     --------
-    >>> arr = [1, 2, 3, 4, 5]
+    The below example will show a rolling calculation with a window size of
+    four matching the equivalent function call using `scipy.stats`.
+
+    >>> arr = [1, 2, 3, 4, 999]
     >>> import scipy.stats
-    >>> scipy.stats.kurtosis(arr, bias=False)
-    -1.2000000000000004
+    >>> print("{0:.6f}".format(scipy.stats.kurtosis(arr[:-1], bias=False)))
+    -1.200000
+    >>> print("{0:.6f}".format(scipy.stats.kurtosis(arr[1:], bias=False)))
+    3.999946
 
     >>> df = pd.DataFrame(arr)
-    >>> df.rolling(5).kurt()
-        0
-    0  NaN
-    1  NaN
-    2  NaN
-    3  NaN
-    4 -1.2
+    >>> df.rolling(4).kurt()
+              0
+    0       NaN
+    1       NaN
+    2       NaN
+    3 -1.200000
+    4  3.999946
     """)
 
-    def kurt(self):
+    def kurt(self, **kwargs):
         return self._apply('roll_kurt', 'kurt',
-                           check_minp=_require_min_periods(4))
+                           check_minp=_require_min_periods(4), **kwargs)
 
     _shared_docs['quantile'] = dedent("""
     %(name)s quantile
