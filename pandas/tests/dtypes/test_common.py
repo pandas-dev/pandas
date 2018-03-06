@@ -139,7 +139,6 @@ def test_is_object():
 def test_is_sparse(check_scipy):
     assert com.is_sparse(pd.SparseArray([1, 2, 3]))
     assert com.is_sparse(pd.SparseSeries([1, 2, 3]))
-    assert com.is_sparse(pd.SparseDataFrame([1, 2, 3]))
 
     assert not com.is_sparse(np.array([1, 2, 3]))
 

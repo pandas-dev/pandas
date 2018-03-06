@@ -987,7 +987,6 @@ Sparse
 - Bug in :class:`SparseDataFrame.to_csv` causing exception (:issue:`19384`)
 - Bug in :class:`SparseSeries.memory_usage` which caused segfault by accessing non sparse elements (:issue:`19368`)
 - Bug in constructing a ``SparseArray``: if ``data`` is a scalar and ``index`` is defined it will coerce to ``float64`` regardless of scalar's dtype. (:issue:`19163`)
-- Bug in :func:`is_sparse` which would report a ``SparseDataFrame`` as not sparse.
 
 Reshaping
 ^^^^^^^^^
