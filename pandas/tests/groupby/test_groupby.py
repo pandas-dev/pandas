@@ -9,6 +9,7 @@ from datetime import datetime
 from pandas import (date_range, bdate_range, Timestamp,
                     Index, MultiIndex, DataFrame, Series,
                     concat, Panel, DatetimeIndex, read_csv)
+from pandas.core.dtypes.missing import isna
 from pandas.errors import UnsupportedFunctionCall, PerformanceWarning
 from pandas.util.testing import (assert_frame_equal, assert_index_equal,
                                  assert_series_equal, assert_almost_equal)
@@ -2115,6 +2116,30 @@ class TestGroupBy(MixIn):
             result = getattr(df.groupby('key'), fill_method)(limit=limit)
             exp = DataFrame({'key': keys, 'val': _exp_vals})
             assert_frame_equal(result, exp)
+
+    @pytest.mark.parametrize("agg_func", ['any', 'all'])
+    @pytest.mark.parametrize("skipna", [True, False])
+    @pytest.mark.parametrize("vals", [
+        ['foo', 'bar', 'baz'], ['foo', '', ''], ['', '', ''],
+        [1, 2, 3], [1, 0, 0], [0, 0, 0],
+        [1., 2., 3.], [1., 0., 0.], [0., 0., 0.],
+        [True, True, True], [True, False, False], [False, False, False],
+        [np.nan, np.nan, np.nan]
+    ])
+    def test_groupby_bool_aggs(self, agg_func, skipna, vals):
+        df = DataFrame({'key': ['a'] * 3 + ['b'] * 3, 'val': vals * 2})
+
+        # Figure out expectation using Python builtin
+        exp = getattr(compat.builtins, agg_func)(vals)
+
+        # edge case for missing data with skipna and 'any'
+        if skipna and all(isna(vals)) and agg_func == 'any':
+            exp = False
+
+        exp_df = DataFrame([exp] * 2, columns=['val'], index=pd.Index(
+            ['a', 'b'], name='key'))
+        result = getattr(df.groupby('key'), agg_func)(skipna=skipna)
+        assert_frame_equal(result, exp_df)
 
     def test_dont_clobber_name_column(self):
         df = DataFrame({'key': ['a', 'a', 'a', 'b', 'b', 'b'],

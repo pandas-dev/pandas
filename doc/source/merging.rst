@@ -152,7 +152,7 @@ functionality below.
 Set logic on the other axes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When gluing together multiple ``DataFrame``s, you have a choice of how to handle 
+When gluing together multiple DataFrames, you have a choice of how to handle
 the other axes (other than the one being concatenated). This can be done in 
 the following three ways:
 
@@ -636,7 +636,7 @@ key combination:
 
 Here is a more complicated example with multiple join keys. Only the keys 
 appearing in ``left`` and ``right`` are present (the intersection), since 
-``how='inner'```by default.
+``how='inner'`` by default.
 
 .. ipython:: python
 
@@ -721,7 +721,7 @@ either the left or right tables, the values in the joined table will be
           labels=['left', 'right'], vertical=False);
    plt.close('all');
 
-Here is another example with duplicate join keys in ``DataFrame``s:
+Here is another example with duplicate join keys in DataFrames:
 
 .. ipython:: python
 
