@@ -125,7 +125,8 @@ class Docstring:
 
     @property
     def doc_parameters(self):
-        return self.doc['Parameters']
+        return {name: (type_, ''.join(desc))
+                for name, type_, desc in self.doc['Parameters']}
 
     @property
     def signature_parameters(self):
@@ -145,11 +146,7 @@ class Docstring:
     def parameter_mismatches(self):
         errs = []
         signature_params = self.signature_parameters
-        if self.doc_parameters:
-            doc_params = list(zip(*self.doc_parameters))[0]
-        else:
-            doc_params = []
-
+        doc_params = list(self.doc_parameters)
         missing = set(signature_params) - set(doc_params)
         if missing:
             errs.append('Parameters {!r} not documented'.format(missing))
@@ -168,9 +165,16 @@ class Docstring:
     def correct_parameters(self):
         return not bool(self.parameter_mismatches)
 
+    def parameter_type(self, param):
+        return self.doc_parameters[param][0]
+
+    def parameter_desc(self, param):
+        return self.doc_parameters[param][1]
+
     @property
     def see_also(self):
-        return self.doc['See Also']
+        return {name: ''.join(desc)
+                for name, desc, _ in self.doc['See Also']}
 
     @property
     def examples(self):
@@ -210,24 +214,34 @@ class Docstring:
 def get_api_items():
     api_fname = os.path.join(BASE_PATH, 'doc', 'source', 'api.rst')
 
+    previous_line = current_section = current_subsection = ''
     position = None
     with open(api_fname) as f:
         for line in f:
+            line = line.strip()
+            if len(line) == len(previous_line):
+                if set(line) == set('-'):
+                    current_section = previous_line
+                    continue
+                if set(line) == set('~'):
+                    current_subsection = previous_line
+                    continue
+
             if line.startswith('.. currentmodule::'):
                 current_module = line.replace('.. currentmodule::', '').strip()
                 continue
 
-            if line == '.. autosummary::\n':
+            if line == '.. autosummary::':
                 position = 'autosummary'
                 continue
 
             if position == 'autosummary':
-                if line == '\n':
+                if line == '':
                     position = 'items'
                     continue
 
             if position == 'items':
-                if line == '\n':
+                if line == '':
                     position = None
                     continue
                 item = line.strip()
@@ -235,7 +249,10 @@ def get_api_items():
                 for part in item.split('.'):
                     func = getattr(func, part)
 
-                yield '.'.join([current_module, item]), func
+                yield ('.'.join([current_module, item]), func,
+                       current_section, current_subsection)
+
+            previous_line = line
 
 
 def validate_all():
@@ -252,7 +269,7 @@ def validate_all():
                      'Has examples',
                      'Shared code with'])
     seen = {}
-    for func_name, func in get_api_items():
+    for func_name, func, section, subsection in get_api_items():
         obj_type = type(func).__name__
         original_callable = _to_original_callable(func)
         if original_callable is None:
@@ -263,6 +280,8 @@ def validate_all():
             shared_code = seen.get(key, '')
             seen[key] = func_name
             writer.writerow([func_name,
+                             section,
+                             subsection,
                              obj_type,
                              doc.source_file_name,
                              doc.source_file_def_line,
@@ -304,7 +323,8 @@ def validate_one(func_name):
 
     errs = []
     if not doc.summary:
-        errs.append('No summary found')
+        errs.append('No summary found (a short summary in a single line '
+                    'should be present at the beginning of the docstring)')
     else:
         if not doc.summary[0].isupper():
             errs.append('Summary does not start with capital')
@@ -318,6 +338,25 @@ def validate_one(func_name):
         errs.append('No extended summary found')
 
     param_errs = doc.parameter_mismatches
+    for param in doc.doc_parameters:
+        if not doc.parameter_type(param):
+            param_errs.append('Parameter "{}" has no type'.format(param))
+        else:
+            if doc.parameter_type(param)[-1] == '.':
+                param_errs.append('Parameter "{}" type '
+                                  'should not finish with "."'.format(param))
+
+        if not doc.parameter_desc(param):
+            param_errs.append('Parameter "{}" '
+                              'has no description'.format(param))
+        else:
+            if not doc.parameter_desc(param)[0].isupper():
+                param_errs.append('Parameter "{}" description '
+                                  'should start with '
+                                  'capital letter'.format(param))
+            if doc.parameter_desc(param)[-1] != '.':
+                param_errs.append('Parameter "{}" description '
+                                  'should finish with "."'.format(param))
     if param_errs:
         errs.append('Errors in parameters section')
         for param_err in param_errs:
