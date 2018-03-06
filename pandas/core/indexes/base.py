@@ -2223,20 +2223,37 @@ class Index(IndexOpsMixin, PandasObject):
             can be positive or negative (default is 1).
         freq : pandas.DateOffset, pandas.Timedelta or string
             Frequency increment to shift by (default is None).
-            Offset aliases are valid strings, e.g., 'EOM'.
+            If None, the index is shifted by its own `freq` attribute.
+            Offset aliases are valid strings, e.g., 'D', 'W', 'M' etc.
 
-        See Also
+        Returns
+        -------
+        pandas.Index
+            shifted index
+
+        Examples
         --------
-        DatetimeIndex.shift : an implementation of shift.
-        PeriodIndex.shift : an implementation of shift.
-        TimedeltaIndex.shift : an implementation of shift.
+        >>> month_starts = pd.date_range('1/1/2011', periods=5, freq='MS')
+
+        Shift by 10 days.
+
+        >>> month_starts.shift(10, freq='D')
+        DatetimeIndex(['2011-01-11', '2011-02-11', '2011-03-11', '2011-04-11',
+                       '2011-05-11'],
+                      dtype='datetime64[ns]', freq=None)
+
+        The default value of `freq` is the `freq` attribute of the index;
+        in this example it is 'MS' (month start).
+
+        >>> month_starts.shift(10)
+        DatetimeIndex(['2011-11-01', '2011-12-01', '2012-01-01', '2012-02-01',
+                       '2012-03-01'],
+                      dtype='datetime64[ns]', freq='MS')
 
         Notes
         -----
-        Must be overridden in child classes.
-        h
-        Implemented in datetime-like index classes,
-        e.g., DatetimeIndex, PeriodIndex and TimedeltaIndex.
+        This method is only implemented for datetime-like index classes,
+        i.e., DatetimeIndex, PeriodIndex and TimedeltaIndex.
         """
         raise NotImplementedError("Not supported for type %s" %
                                   type(self).__name__)
