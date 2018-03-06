@@ -116,8 +116,9 @@ class NDFrame(PandasObject, SelectionMixin):
                        '__array_interface__']
     _internal_names_set = set(_internal_names)
     _accessors = frozenset([])
-    _deprecations = frozenset(['as_blocks', 'blocks',
-                               'consolidate', 'convert_objects', 'is_copy'])
+    _deprecations = frozenset(['as_blocks', 'add_prefix', 'add_suffix',
+                               'blocks', 'consolidate', 'convert_objects',
+                               'is_copy'])
     _metadata = []
     _is_copy = None
 
@@ -802,6 +803,11 @@ class NDFrame(PandasObject, SelectionMixin):
         1    2
         4    3
         dtype: int64
+        >>> s.rename('index_{}'.format)  # function, changes labels
+        index_0    1
+        index_1    2
+        index_2    3
+        dtype: object
         >>> s.rename({1: 3, 2: 5})  # mapping, changes labels
         0    1
         3    2
@@ -825,11 +831,11 @@ class NDFrame(PandasObject, SelectionMixin):
         We *highly* recommend using keyword arguments to clarify your
         intent.
 
-        >>> df.rename(index=str, columns={"A": "a", "B": "c"})
-           a  c
-        0  1  4
-        1  2  5
-        2  3  6
+        >>> df.rename(index="index_{}".format, columns={"A": "a", "B": "c"})
+                 a  c
+        index_0  1  4
+        index_1  2  5
+        index_2  3  6
 
         >>> df.rename(index=str, columns={"A": "a", "C": "c"})
            a  B
@@ -2963,6 +2969,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def add_prefix(self, prefix):
         """
+        DEPRECATED: Use ``obj.rename(columns=lambda x: 'prefix_'+str(x))`` or
+        similar instead.
+
         Concatenate prefix string with panel items names.
 
         Parameters
@@ -2972,13 +2981,21 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         with_prefix : type of caller
+
+        See Also:
+        ---------
+        rename : Alter axes labels.
         """
+        warnings.warn("'.add_prefix' is deprecated and will be removed in a "
+                      "future version. Use '.rename' instead",
+                      FutureWarning, stacklevel=2)
         new_data = self._data.add_prefix(prefix)
         return self._constructor(new_data).__finalize__(self)
 
     def add_suffix(self, suffix):
         """
-        Concatenate suffix string with panel items names.
+        DEPRECATED: Use ``obj.rename(columns=lambda x: 'prefix_'+str(x))`` or
+        similar instead. Concatenate suffix string with panel items names.
 
         Parameters
         ----------
@@ -2987,7 +3004,13 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         with_suffix : type of caller
+
+        See Also:
+        ---------
+        rename : Alter axes labels.
         """
+        warnings.warn("'add_suffix' is deprecated and will be removed in a "
+                      "future version.", FutureWarning, stacklevel=2)
         new_data = self._data.add_suffix(suffix)
         return self._constructor(new_data).__finalize__(self)
 

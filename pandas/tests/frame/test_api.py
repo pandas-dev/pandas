@@ -77,21 +77,25 @@ class SharedWithSparse(object):
                 tm.assert_almost_equal(result, expected)
 
     def test_add_prefix_suffix(self):
-        with_prefix = self.frame.add_prefix('foo#')
-        expected = pd.Index(['foo#%s' % c for c in self.frame.columns])
-        tm.assert_index_equal(with_prefix.columns, expected)
+        with tm.assert_produces_warning(FutureWarning):
+            with_prefix = self.frame.add_prefix('foo#')
+            expected = pd.Index(['foo#%s' % c for c in self.frame.columns])
+            tm.assert_index_equal(with_prefix.columns, expected)
 
-        with_suffix = self.frame.add_suffix('#foo')
-        expected = pd.Index(['%s#foo' % c for c in self.frame.columns])
-        tm.assert_index_equal(with_suffix.columns, expected)
+        with tm.assert_produces_warning(FutureWarning):
+            with_suffix = self.frame.add_suffix('#foo')
+            expected = pd.Index(['%s#foo' % c for c in self.frame.columns])
+            tm.assert_index_equal(with_suffix.columns, expected)
 
-        with_pct_prefix = self.frame.add_prefix('%')
-        expected = pd.Index(['%{}'.format(c) for c in self.frame.columns])
-        tm.assert_index_equal(with_pct_prefix.columns, expected)
+        with tm.assert_produces_warning(FutureWarning):
+            with_pct_prefix = self.frame.add_prefix('%')
+            expected = pd.Index(['%{}'.format(c) for c in self.frame.columns])
+            tm.assert_index_equal(with_pct_prefix.columns, expected)
 
-        with_pct_suffix = self.frame.add_suffix('%')
-        expected = pd.Index(['{}%'.format(c) for c in self.frame.columns])
-        tm.assert_index_equal(with_pct_suffix.columns, expected)
+        with tm.assert_produces_warning(FutureWarning):
+            with_pct_suffix = self.frame.add_suffix('%')
+            expected = pd.Index(['{}%'.format(c) for c in self.frame.columns])
+            tm.assert_index_equal(with_pct_suffix.columns, expected)
 
     def test_get_axis(self):
         f = self.frame

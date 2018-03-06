@@ -88,15 +88,13 @@ will be completed:
    df2.A                  df2.bool
    df2.abs                df2.boxplot
    df2.add                df2.C
-   df2.add_prefix         df2.clip
-   df2.add_suffix         df2.clip_lower
-   df2.align              df2.clip_upper
-   df2.all                df2.columns
-   df2.any                df2.combine
-   df2.append             df2.combine_first
-   df2.apply              df2.compound
-   df2.applymap           df2.consolidate
-   df2.D
+   df2.align              df2.clip
+   df2.all                df2.clip_lower
+   df2.any                df2.clip_upper
+   df2.append             df2.columns
+   df2.apply              df2.combine
+   df2.applymap           df2.combine_first
+   df2.B                  df2.compound
 
 As you can see, the columns ``A``, ``B``, ``C``, and ``D`` are automatically
 tab completed. ``E`` is there as well; the rest of the attributes have been
