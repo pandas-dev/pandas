@@ -313,7 +313,7 @@ Other Enhancements
 - Add/delete ``str/dt/cat`` accessors dynamically from ``__dir__``. (:issue:`9910`)
 - Add ``normalize`` as a ``dt`` accessor method. (:issue:`10047`)
 
-- ``DataFrame`` and ``Series`` now have ``_constructor_expanddim`` property as overridable constructor for one higher dimensionality data. This should be used only when it is really needed, see :ref:`here <ref-subclassing-pandas>`
+- ``DataFrame`` and ``Series`` now have ``_constructor_expanddim`` property as overridable constructor for one higher dimensionality data. This should be used only when it is really needed, see :ref:`here <extending.subclassing-pandas>`
 
 - ``pd.lib.infer_dtype`` now returns ``'bytes'`` in Python 3 where appropriate. (:issue:`10032`)
 
