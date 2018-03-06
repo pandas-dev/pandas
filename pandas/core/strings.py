@@ -900,18 +900,16 @@ def str_findall(arr, pat, flags=0):
     """
     Find all occurrences of pattern or regular expression in the Series/Index.
 
-    Equivalent to apply :func:`re.findall` to all the elements in the
+    Equivalent to applying :func:`re.findall` to all the elements in the
     Series/Index.
 
     Parameters
     ----------
-    pat : str
+    pat : string
         Pattern or regular expression.
     flags : int
         re module flags, e.g. re.IGNORECASE (default is 0, which means
         no flags).
-    kwargs
-        These parameters will be ignored.
 
     Returns
     -------
@@ -921,27 +919,36 @@ def str_findall(arr, pat, flags=0):
 
     See Also
     --------
-    extractall : For each subject string in the Series, extract groups \
-    from all matches of regular expression pat.
+    extractall : For each subject string in the Series, extract groups
+        from all matches of regular expression pattern.
     count : Count occurrences of pattern in each string of the Series/Index.
-    re.findall: Return all non-overlapping matches of pattern in string, \
-    as a list of strings.
+    re.findall: Return all non-overlapping matches of pattern in string,
+        as a list of strings.
 
     Examples
     --------
 
     >>> s = pd.Series(['Lion', 'Monkey', 'Rabbit'])
+
+    The search for the pattern `Monkey` returns one match:
+
     >>> s.str.findall('Monkey')
     0          []
     1    [Monkey]
     2          []
     dtype: object
 
+    On the other hand, the search for the pattern 'MONKEY' doesn't return any
+    match:
+
     >>> s.str.findall('MONKEY')
     0    []
     1    []
     2    []
     dtype: object
+
+    Flags can be added to the regular expression. For instance, to find the
+    pattern `MONKEY` ignoring the case:
 
     >>> import re
     >>> s.str.findall('MONKEY', flags=re.IGNORECASE)
@@ -950,17 +957,26 @@ def str_findall(arr, pat, flags=0):
     2          []
     dtype: object
 
+    When the pattern matches more than one string in the Series, all matches
+    are returned:
+
     >>> s.str.findall('on')
     0    [on]
     1    [on]
     2      []
     dtype: object
 
+    Regular expressions are supported too. For instance, the search for all the
+    strings ending with the word `on` is shown next:
+
     >>> s.str.findall('on$')
     0    [on]
     1      []
     2      []
     dtype: object
+
+    If the pattern is found more than once in the same string, then a list of
+    strings is returned:
 
     >>> s.str.findall('b')
     0        []
