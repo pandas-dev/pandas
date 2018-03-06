@@ -906,7 +906,7 @@ class _Rolling_and_Expanding(_Rolling):
 
     Parameters
     ----------
-    kwargs : Needs Review
+    kwargs : Under Review
 
     Returns
     -------
@@ -937,7 +937,6 @@ class _Rolling_and_Expanding(_Rolling):
     -1.200000
     >>> print("{0:.6f}".format(scipy.stats.kurtosis(arr[1:], bias=False)))
     3.999946
-
     >>> df = pd.DataFrame(arr)
     >>> df.rolling(4).kurt()
               0
