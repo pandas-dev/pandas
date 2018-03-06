@@ -1868,7 +1868,7 @@ class Index(IndexOpsMixin, PandasObject):
     def take(self, indices, axis=0, allow_fill=True,
              fill_value=None, **kwargs):
         """
-        return a new %(klass)s of the values selected by the indices
+        return a new Index of the values selected by the indices
 
         For internal compatibility with numpy arrays.
 
@@ -2705,7 +2705,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        target : %(target_klass)s
+        target : array-like or Index
         method : {None, 'pad'/'ffill', 'backfill'/'bfill', 'nearest'}, optional
             * default: exact matches only.
             * pad / ffill: find the PREVIOUS index value if no exact match.
@@ -2868,7 +2868,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        target : %(target_klass)s
+        target : array-like or Index
 
         Returns
         -------
@@ -3914,7 +3914,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        filled : %(klass)s
+        filled : Index of the same type
         """
         self._assert_can_do_op(value)
         if self.hasnans:
