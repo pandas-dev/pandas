@@ -910,8 +910,9 @@ class _Rolling_and_Expanding(_Rolling):
 
     Returns
     -------
-    Series or DataFrame (matches input)
-        Like-indexed object containing the result of function application
+    Series or DataFrame
+        Returned object type is dictated by the caller of the %(name)s
+            calculation
 
     See Also
     --------
@@ -932,19 +933,20 @@ class _Rolling_and_Expanding(_Rolling):
     four matching the equivalent function call using `scipy.stats`.
 
     >>> arr = [1, 2, 3, 4, 999]
+    >>> fmt = "{0:.6f}"  # limit the printed precision to 6 digits
     >>> import scipy.stats
-    >>> print("{0:.6f}".format(scipy.stats.kurtosis(arr[:-1], bias=False)))
+    >>> print(fmt.format(scipy.stats.kurtosis(arr[:-1], bias=False)))
     -1.200000
-    >>> print("{0:.6f}".format(scipy.stats.kurtosis(arr[1:], bias=False)))
+    >>> print(fmt.format(scipy.stats.kurtosis(arr[1:], bias=False)))
     3.999946
-    >>> df = pd.DataFrame(arr)
-    >>> df.rolling(4).kurt()
-              0
-    0       NaN
-    1       NaN
-    2       NaN
-    3 -1.200000
-    4  3.999946
+    >>> ser = pd.Series(arr)
+    >>> ser.rolling(4).kurt()
+    0         NaN
+    1         NaN
+    2         NaN
+    3   -1.200000
+    4    3.999946
+    dtype: float64
     """)
 
     def kurt(self, **kwargs):
