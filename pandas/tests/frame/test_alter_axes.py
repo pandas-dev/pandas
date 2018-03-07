@@ -451,46 +451,63 @@ class TestDataFrameAlterAxes(TestData):
         assert no_return is None
         assert_frame_equal(result, expected)
 
-#     def test_rename_axis_warns(self):
-#         # https://github.com/pandas-dev/pandas/issues/17833
-#         df = pd.DataFrame({"A": [1, 2], "B": [1, 2]})
-#         with tm.assert_produces_warning(FutureWarning) as w:
-#             df.rename_axis(id, axis=0)
-#             assert 'rename' in str(w[0].message)
-# 
-#         with tm.assert_produces_warning(FutureWarning) as w:
-#             df.rename_axis({0: 10, 1: 20}, axis=0)
-#             assert 'rename' in str(w[0].message)
-# 
-#         with tm.assert_produces_warning(FutureWarning) as w:
-#             df.rename_axis(id, axis=1)
-#             assert 'rename' in str(w[0].message)
-# 
-#         with tm.assert_produces_warning(FutureWarning) as w:
-#             df['A'].rename_axis(id)
-#             assert 'rename' in str(w[0].message)
+    def test_rename_axis_warns(self):
+        # https://github.com/pandas-dev/pandas/issues/17833
+        df = pd.DataFrame({"A": [1, 2], "B": [1, 2]})
+        with tm.assert_produces_warning(FutureWarning) as w:
+            df.rename_axis(id, axis=0)
+            assert 'rename' in str(w[0].message)
+
+        with tm.assert_produces_warning(FutureWarning) as w:
+            df.rename_axis({0: 10, 1: 20}, axis=0)
+            assert 'rename' in str(w[0].message)
+
+        with tm.assert_produces_warning(FutureWarning) as w:
+            df.rename_axis(id, axis=1)
+            assert 'rename' in str(w[0].message)
+
+        with tm.assert_produces_warning(FutureWarning) as w:
+            df['A'].rename_axis(id)
+            assert 'rename' in str(w[0].message)
 
     def test_rename_axis_mapper(self):
-        mi = pd.MultiIndex.from_product([['a', 'b', 'c'], [1, 2]],
-                                        names=['ll', 'nn'])
-
-        df = pd.DataFrame({'x': [i for i in range(len(mi))],
-                           'y' : [i*10 for i in range(len(mi))]},
-                          index=mi)
+        # GH 19978
+        mi = MultiIndex.from_product([['a', 'b', 'c'], [1, 2]],
+                                     names=['ll', 'nn'])
+        df = DataFrame({'x': [i for i in range(len(mi))],
+                        'y': [i * 10 for i in range(len(mi))]},
+                       index=mi)
         result = df.rename_axis('cols', axis=1)
-        tm.assert_index_equal(result.columns, 
-                              pd.Index(['x', 'y'], name='cols'))
-        
-        result = result.rename_axis({'cols' : 'new'}, axis=1)
-        tm.assert_index_equal(result.columns, 
-                              pd.Index(['x', 'y'], name='new'))
-        
-        result = df.rename_axis({'ll' : 'foo'})
+        tm.assert_index_equal(result.columns,
+                              Index(['x', 'y'], name='cols'))
+
+        result = result.rename_axis(columns={'cols': 'new'}, axis=1)
+        tm.assert_index_equal(result.columns,
+                              Index(['x', 'y'], name='new'))
+
+        result = df.rename_axis(index={'ll': 'foo'})
         assert result.index.names == ['foo', 'nn']
-        
-        result = df.rename_axis(str.upper, axis=0)
+
+        result = df.rename_axis(index=str.upper, axis=0)
         assert result.index.names == ['LL', 'NN']
-        
+
+        result = df.rename_axis(index=['foo', 'goo'])
+        assert result.index.names == ['foo', 'goo']
+
+        sdf = df.reset_index().set_index('nn').drop(columns=['ll', 'y'])
+        result = sdf.rename_axis(index='foo', columns='meh')
+        assert result.index.name == 'foo'
+        assert result.columns.name == 'meh'
+
+        with tm.assert_raises_regex(TypeError, 'Must pass'):
+            df.rename_axis(index='wrong')
+
+        with tm.assert_raises_regex(ValueError, 'Length of names'):
+            df.rename_axis(index=['wrong'])
+
+        with tm.assert_raises_regex(TypeError, 'bogus'):
+            df.rename_axis(bogus=None)
+
     def test_rename_multiindex(self):
 
         tuples_index = [('foo1', 'bar1'), ('foo2', 'bar2')]

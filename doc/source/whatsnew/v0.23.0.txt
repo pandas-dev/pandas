@@ -340,6 +340,7 @@ Other Enhancements
 - Added option ``display.html.use_mathjax`` so `MathJax <https://www.mathjax.org/>`_ can be disabled when rendering tables in ``Jupyter`` notebooks (:issue:`19856`, :issue:`19824`)
 - :meth:`Timestamp.month_name`, :meth:`DatetimeIndex.month_name`, and :meth:`Series.dt.month_name` are now available (:issue:`12805`)
 - :meth:`Timestamp.day_name` and :meth:`DatetimeIndex.day_name` are now available to return day names with a specified locale (:issue:`12806`)
+- :func:`DataFrame.rename_axis` supports ``index`` and ``columns`` arguments and :func:`Series.rename_axis` supports ``index`` argument (:issue:`19978`)
 
 .. _whatsnew_0230.api_breaking:
 

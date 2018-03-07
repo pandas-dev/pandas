@@ -748,9 +748,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
     # ----------------------------------------------------------------------
     # Rename
-    
+
     # renamer function if passed a dict
-    def _get_rename_function(mapper):
+    def _get_rename_function(self, mapper):
         if isinstance(mapper, (dict, ABCSeries)):
 
             def f(x):
@@ -912,16 +912,20 @@ class NDFrame(PandasObject, SelectionMixin):
 
     rename.__doc__ = _shared_docs['rename']
 
-    def rename_axis(self, s=None, **kwargs):
+    def rename_axis(self, mapper=None, **kwargs):
         """Alter the name of the index or name of index backing the
         columns.
 
         Parameters
         ----------
-        s, index, columns : dict-like or function, optional
+        mapper : scalar, list-like, optional
+            Value to set the axis name attribute.
+        index, columns : scalar, list-like, dict-like or function, optional
             dict-like or functions transformations to apply to
-            that axis' values. Use either ``s`` and ``axis`` to
-            specify the axis to target with ``s``, or ``index`` 
+            that axis' values.
+
+            Use either ``mapper`` and ``axis`` to
+            specify the axis to target with ``mapper``, or ``index``
             and/or ``columns``.
         axis : int or string, default 0
         copy : boolean, default True
@@ -938,21 +942,21 @@ class NDFrame(PandasObject, SelectionMixin):
         the axis *labels* by passing a mapping or scalar. This behavior is
         deprecated and will be removed in a future version. Use ``rename``
         instead.
-        
+
         ``DataFrame.rename_axis`` supports two calling conventions
 
         * ``(index=index_mapper, columns=columns_mapper, ...)``
-        * ``(s, axis={'index', 'columns'}, ...)``
+        * ``(mapper, axis={'index', 'columns'}, ...)``
 
         The first calling convention will only modify the names of
         the index and/or the names of the index backing the columns.
         In this case, the parameter ``copy`` is ignored.
-        
+
         The second calling convention will modify the names of the
-        the corresponding index if s is a list or a scalar.
-        However, if s is dict-like or a function, it will use the 
-        deprecated behavior of modifying the axis *labels*. 
-        
+        the corresponding index if mapper is a list or a scalar.
+        However, if mapper is dict-like or a function, it will use the
+        deprecated behavior of modifying the axis *labels*.
+
         We *highly* recommend using keyword arguments to clarify your
         intent.
 
@@ -978,11 +982,47 @@ class NDFrame(PandasObject, SelectionMixin):
         1    2  5
         2    3  6
 
+        >>> mi = pd.MultiIndex.from_product([['a', 'b', 'c'], [1, 2]],
+                                            names=['let','num'])
+        >>> df = pd.DataFrame({'x': [i for i in range(len(mi))],
+                               'y' : [i*10 for i in range(len(mi))]},
+                               index=mi)
+        >>> df.rename_axis(index={'num' : 'n'})
+               x   y
+        let n
+        a   1  0   0
+            2  1  10
+        b   1  2  20
+            2  3  30
+        c   1  4  40
+            2  5  50
+
+        >>> cdf = df.rename_axis(columns='col')
+        >>> cdf
+        col      x   y
+        let num
+        a   1    0   0
+            2    1  10
+        b   1    2  20
+            2    3  30
+        c   1    4  40
+            2    5  50
+
+        >>> cdf.rename_axis(columns=str.upper)
+        COL      x   y
+        let num
+        a   1    0   0
+            2    1  10
+        b   1    2  20
+            2    3  30
+        c   1    4  40
+            2    5  50
+
         """
         axes, kwargs = self._construct_axes_from_arguments((), kwargs)
         copy = kwargs.pop('copy', True)
         inplace = kwargs.pop('inplace', False)
-        axis = kwargs.pop('axis', None)
+        axis = kwargs.pop('axis', 0)
         if axis is not None:
             axis = self._get_axis_number(axis)
 
@@ -990,20 +1030,22 @@ class NDFrame(PandasObject, SelectionMixin):
             raise TypeError('rename_axis() got an unexpected keyword '
                             'argument "{0}"'.format(list(kwargs.keys())[0]))
         inplace = validate_bool_kwarg(inplace, 'inplace')
-       
-        if (s is not None):
-            # Use old behavior if a scalar or list
-            non_mapper = is_scalar(s) or (is_list_like(s) and not
-                                          is_dict_like(s))
+
+        if (mapper is not None):
+            # Use v0.23 behavior if a scalar or list
+            non_mapper = is_scalar(mapper) or (is_list_like(mapper) and not
+                                               is_dict_like(mapper))
             if non_mapper:
-                return self._set_axis_name(s, axis=axis, inplace=inplace)
+                return self._set_axis_name(mapper, axis=axis, inplace=inplace)
             else:
+                # Deprecated (v0.21) behavior is if mapper is specified,
+                # and not a list or scalar, then call rename
                 msg = ("Using 'rename_axis' to alter labels is deprecated. "
                        "Use '.rename' instead")
                 warnings.warn(msg, FutureWarning, stacklevel=2)
                 axis = self._get_axis_name(axis)
                 d = {'copy': copy, 'inplace': inplace}
-                d[axis] = s
+                d[axis] = mapper
                 return self.rename(**d)
         else:
             # Use new behavior.  Means that index and/or columns
@@ -1014,9 +1056,14 @@ class NDFrame(PandasObject, SelectionMixin):
                 v = axes.get(self._AXIS_NAMES[axis])
                 if v is None:
                     continue
-                f = self._get_rename_function(v)
-                curnames = self._get_axis(axis).names
-                newnames = [f(name) for name in curnames]
+                non_mapper = is_scalar(v) or (is_list_like(v) and not
+                                              is_dict_like(v))
+                if non_mapper:
+                    newnames = v
+                else:
+                    f = self._get_rename_function(v)
+                    curnames = self._get_axis(axis).names
+                    newnames = [f(name) for name in curnames]
                 result._set_axis_name(newnames, axis=axis,
                                       inplace=True)
             if not inplace:

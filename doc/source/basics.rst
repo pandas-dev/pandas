@@ -1465,10 +1465,25 @@ for altering the ``Series.name`` attribute.
 
    s.rename("scalar-name")
 
+The Panel class has a related :meth:`~Panel.rename` class which can rename
+any of its three axes.
+
 .. _basics.rename_axis:
 
-The Panel class has a related :meth:`~Panel.rename_axis` class which can rename
-any of its three axes.
+.. versionadded:: 0.23.0
+
+The methods :meth:`~DataFrame.rename_axis` and :meth:`~Series.rename_axis`
+allow specific names of a `MultiIndex` to be changed (as opposed to the
+labels).
+
+.. ipython:: python
+
+   df = pd.DataFrame({'x': [1,2,3,4,5,6], 'y': [10,20,30,40,50,60]},
+                     index=pd.MultiIndex.from_product([['a','b','c'],[1,2]],
+                     names=['let','num']))
+   df
+   df.rename_axis(index={'let': 'abc'})
+   df.rename_axis(index=str.upper)
 
 .. _basics.iteration:
 

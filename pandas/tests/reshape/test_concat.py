@@ -1402,7 +1402,7 @@ class TestConcatenate(ConcatenateBase):
             panel2 = make_panel()
 
             panel2 = panel2.rename(major_axis=dict((x, "%s_1" % x)
-                                             for x in panel2.major_axis))
+                                                   for x in panel2.major_axis))
 
             panel3 = panel2.rename(major_axis=lambda x: '%s_1' % x)
             panel3 = panel3.rename(minor_axis=lambda x: '%s_1' % x)
