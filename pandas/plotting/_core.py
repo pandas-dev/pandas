@@ -2537,6 +2537,15 @@ class SeriesPlotMethods(BasePlotMethods):
         Returns
         -------
         axes : matplotlib.AxesSubplot or np.array of them
+
+        Examples
+        --------
+
+        .. plot::
+            :context: close-figs
+
+            >>> s = pd.Series([1, 3, 2])
+            >>> s.plot.line()
         """
         return self(kind='line', **kwds)
 
