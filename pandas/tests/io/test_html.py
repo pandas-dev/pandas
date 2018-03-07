@@ -674,6 +674,22 @@ class TestReadHtml(ReadHtmlMixin):
         result = self.read_html(data, 'Arizona', header=1)[0]
         assert result['sq mi'].dtype == np.dtype('float64')
 
+    @pytest.mark.parametrize("displayed_only,exp", [
+        (True, DataFrame(["foo"])), (False, DataFrame(["foofoo"]))])
+    def test_displayed_only(self, displayed_only, exp):
+        data = StringIO("""<html>
+          <body>
+            <table>
+              <tr>
+                <td>foo<span style="display:none">foo</span></td>
+              </tr>
+            </table>
+          </body>
+        </html>""")
+        result = self.read_html(data, displayed_only=displayed_only)
+
+        tm.assert_frame_equal(result, exp)
+
     def test_decimal_rows(self):
 
         # GH 12907
