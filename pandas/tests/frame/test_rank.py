@@ -268,54 +268,32 @@ class TestRank(TestData):
             _check2d(frame, results[method], method=method, axis=axis)
 
 
-# GH15630, pct should be on 100% basis when method='dense'
-@pytest.mark.parametrize('frame, exp', [
-    ([['2012', 'B', 3], ['2012', 'A', 2], ['2012', 'A', 1]],
-        [[1., 1., 1.], [1., 0.5, 2. / 3], [1., 0.5, 1. / 3]])])
-def test_rank_dense_pct(frame, exp):
-    df = DataFrame(frame)
-    result = df.rank(method='dense', pct=True)
+@pytest.mark.parametrize(
+    "method,exp", [("dense",
+                    [[1., 1., 1.],
+                     [1., 0.5, 2. / 3],
+                     [1., 0.5, 1. / 3]]),
+                   ("min",
+                    [[1. / 3, 1., 1.],
+                     [1. / 3, 1. / 3, 2. / 3],
+                     [1. / 3, 1. / 3, 1. / 3]]),
+                   ("max",
+                    [[1., 1., 1.],
+                     [1., 2. / 3, 2. / 3],
+                     [1., 2. / 3, 1. / 3]]),
+                   ("average",
+                    [[2. / 3, 1., 1.],
+                     [2. / 3, 0.5, 2. / 3],
+                     [2. / 3, 0.5, 1. / 3]]),
+                   ("first",
+                    [[1. / 3, 1., 1.],
+                     [2. / 3, 1. / 3, 2. / 3],
+                     [3. / 3, 2. / 3, 1. / 3]])])
+def test_rank_pct_true(method, exp):
+    # see gh-15630.
+
+    df = DataFrame([[2012, 66, 3], [2012, 65, 2], [2012, 65, 1]])
+    result = df.rank(method=method, pct=True)
+
     expected = DataFrame(exp)
-    assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize('frame, exp', [
-    ([['2012', 'B', 3], ['2012', 'A', 2], ['2012', 'A', 1]],
-        [[1. / 3, 1., 1.], [1. / 3, 1. / 3, 2. / 3],
-         [1. / 3, 1. / 3, 1. / 3]])])
-def test_rank_min_pct(frame, exp):
-    df = DataFrame(frame)
-    result = df.rank(method='min', pct=True)
-    expected = DataFrame(exp)
-    assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize('frame, exp', [
-    ([['2012', 'B', 3], ['2012', 'A', 2], ['2012', 'A', 1]],
-        [[1., 1., 1.], [1., 2. / 3, 2. / 3], [1., 2. / 3, 1. / 3]])])
-def test_rank_max_pct(frame, exp):
-    df = DataFrame(frame)
-    result = df.rank(method='max', pct=True)
-    expected = DataFrame(exp)
-    assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize('frame, exp', [
-    ([['2012', 'B', 3], ['2012', 'A', 2], ['2012', 'A', 1]],
-        [[2. / 3, 1., 1.], [2. / 3, 0.5, 2. / 3], [2. / 3, 0.5, 1. / 3]])])
-def test_rank_average_pct(frame, exp):
-    df = DataFrame(frame)
-    result = df.rank(method='average', pct=True)
-    expected = DataFrame(exp)
-    assert_frame_equal(result, expected)
-
-
-@pytest.mark.parametrize('frame, exp', [
-    ([[2012, 66, 3], [2012, 65, 2], [2012, 65, 1]],
-        [[1. / 3, 1., 1.], [2. / 3, 1. / 3, 2. / 3],
-         [3. / 3, 2. / 3, 1. / 3]])])
-def test_rank_first_pct(frame, exp):
-    df = DataFrame(frame)
-    result = df.rank(method='first', pct=True)
-    expected = DataFrame(exp)
-    assert_frame_equal(result, expected)
+    tm.assert_frame_equal(result, expected)
