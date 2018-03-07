@@ -40,7 +40,7 @@ from distutils.version import LooseVersion
 from pandas import (Series, DataFrame, Panel,
                     SparseSeries, SparseDataFrame,
                     Index, MultiIndex, bdate_range, to_msgpack,
-                    date_range, period_range,
+                    date_range, period_range, timedelta_range,
                     Timestamp, NaT, Categorical, Period)
 from pandas.tseries.offsets import (
     DateOffset, Hour, Minute, Day,
@@ -116,7 +116,18 @@ def create_data():
 
     index = dict(int=Index(np.arange(10)),
                  date=date_range('20130101', periods=10),
-                 period=period_range('2013-01-01', freq='M', periods=10))
+                 period=period_range('2013-01-01', freq='M', periods=10),
+                 float=Index(np.arange(10, dtype=np.float64)),
+                 uint=Index(np.arange(10, dtype=np.uint64)),
+                 timedelta=timedelta_range('00:00:00', freq='30T', periods=10))
+
+    if _loose_version >= LooseVersion('0.18'):
+        from pandas import RangeIndex
+        index['range'] = RangeIndex(10)
+
+    if _loose_version >= LooseVersion('0.21'):
+        from pandas import interval_range
+        index['interval'] = interval_range(0, periods=10)
 
     mi = dict(reg2=MultiIndex.from_tuples(
         tuple(zip(*[[u'bar', u'bar', u'baz', u'baz', u'foo',
@@ -276,6 +287,9 @@ def create_msgpack_data():
     del data['frame']['cat_onecol']
     del data['frame']['cat_and_float']
     del data['scalars']['period']
+    if _loose_version < LooseVersion('0.23.0'):
+        del data['index']['interval']
+    del data['offsets']
     return _u(data)
 
 

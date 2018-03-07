@@ -4,8 +4,15 @@ import pandas as pd
 import pandas.util.testing as tm
 from pandas.core.internals import ExtensionBlock
 
+from .base import BaseExtensionTests
 
-class BaseConstructorsTests(object):
+
+class BaseConstructorsTests(BaseExtensionTests):
+
+    def test_array_from_scalars(self, data):
+        scalars = [data[0], data[1], data[2]]
+        result = data._constructor_from_sequence(scalars)
+        assert isinstance(result, type(data))
 
     def test_series_constructor(self, data):
         result = pd.Series(data)

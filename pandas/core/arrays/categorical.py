@@ -364,6 +364,10 @@ class Categorical(ExtensionArray, PandasObject):
         self._dtype = self._dtype.update_dtype(dtype)
         self._codes = coerce_indexer_dtype(codes, dtype.categories)
 
+    @classmethod
+    def _constructor_from_sequence(cls, scalars):
+        return cls(scalars)
+
     @property
     def categories(self):
         """The categories of this categorical.
@@ -521,7 +525,7 @@ class Categorical(ExtensionArray, PandasObject):
                 cats = to_timedelta(inferred_categories, errors='coerce')
 
         if known_categories:
-            # recode from observation oder to dtype.categories order
+            # recode from observation order to dtype.categories order
             categories = dtype.categories
             codes = _recode_for_categories(inferred_codes, cats, categories)
         elif not cats.is_monotonic_increasing:

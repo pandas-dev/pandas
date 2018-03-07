@@ -204,10 +204,8 @@ class Panel(NDFrame):
                                for k, v in compat.iteritems(data)
                                if k in haxis)
         else:
-            ks = list(data.keys())
-            if not isinstance(data, OrderedDict):
-                ks = com._try_sort(ks)
-            haxis = Index(ks)
+            keys = com._dict_keys_to_ordered_list(data)
+            haxis = Index(keys)
 
         for k, v in compat.iteritems(data):
             if isinstance(v, dict):
@@ -1527,8 +1525,8 @@ Panel._setup_axes(axes=['items', 'major_axis', 'minor_axis'], info_axis=0,
                   slicers={'major_axis': 'index',
                            'minor_axis': 'columns'})
 
-ops.add_special_arithmetic_methods(Panel, **ops.panel_special_funcs)
-ops.add_flex_arithmetic_methods(Panel, **ops.panel_flex_funcs)
+ops.add_special_arithmetic_methods(Panel)
+ops.add_flex_arithmetic_methods(Panel)
 Panel._add_numeric_operations()
 
 

@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 from pandas.core.arrays import ExtensionArray
 from pandas.core.dtypes.base import ExtensionDtype
+from pandas.core.dtypes.common import _ensure_platform_int
 
 
 class DecimalDtype(ExtensionDtype):
@@ -30,6 +31,10 @@ class DecimalArray(ExtensionArray):
         values = np.asarray(values, dtype=object)
 
         self.values = values
+
+    @classmethod
+    def _constructor_from_sequence(cls, scalars):
+        return cls(scalars)
 
     def __getitem__(self, item):
         if isinstance(item, numbers.Integral):
@@ -68,6 +73,7 @@ class DecimalArray(ExtensionArray):
     def take(self, indexer, allow_fill=True, fill_value=None):
         mask = indexer == -1
 
+        indexer = _ensure_platform_int(indexer)
         out = self.values.take(indexer)
         out[mask] = self._na_value
 

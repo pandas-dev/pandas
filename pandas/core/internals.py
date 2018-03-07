@@ -2600,12 +2600,12 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
     def _maybe_coerce_values(self, values):
         """Input validation for values passed to __init__. Ensure that
-        we have datetime64ns, coercing if nescessary.
+        we have datetime64ns, coercing if necessary.
 
-        Parametetrs
-        -----------
+        Parameters
+        ----------
         values : array-like
-            Must be convertable to datetime64
+            Must be convertible to datetime64
 
         Returns
         -------
@@ -2760,12 +2760,12 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
 
     def _maybe_coerce_values(self, values, dtype=None):
         """Input validation for values passed to __init__. Ensure that
-        we have datetime64TZ, coercing if nescessary.
+        we have datetime64TZ, coercing if necessary.
 
         Parametetrs
         -----------
         values : array-like
-            Must be convertable to datetime64
+            Must be convertible to datetime64
         dtype : string or DatetimeTZDtype, optional
             Does a shallow copy to this tz
 
@@ -2904,6 +2904,35 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         new_values = self.values._shallow_copy(new_values)
         return [self.make_block_same_class(new_values,
                                            placement=self.mgr_locs)]
+
+    def diff(self, n, axis=0, mgr=None):
+        """1st discrete difference
+
+        Parameters
+        ----------
+        n : int, number of periods to diff
+        axis : int, axis to diff upon. default 0
+        mgr : default None
+
+        Return
+        ------
+        A list with a new TimeDeltaBlock.
+
+        Note
+        ----
+        The arguments here are mimicking shift so they are called correctly
+        by apply.
+        """
+        if axis == 0:
+            # Cannot currently calculate diff across multiple blocks since this
+            # function is invoked via apply
+            raise NotImplementedError
+        new_values = (self.values - self.shift(n, axis=axis)[0].values).asi8
+
+        # Reshape the new_values like how algos.diff does for timedelta data
+        new_values = new_values.reshape(1, len(new_values))
+        new_values = new_values.astype('timedelta64[ns]')
+        return [TimeDeltaBlock(new_values, placement=self.mgr_locs.indexer)]
 
     def concat_same_type(self, to_concat, placement=None):
         """
