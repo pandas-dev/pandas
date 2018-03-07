@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 
 from pandas import Series, DataFrame, IntervalIndex, Interval
-from pandas.compat import product
 import pandas.util.testing as tm
 
 
@@ -12,21 +11,31 @@ class TestIntervalIndex(object):
     def setup_method(self, method):
         self.s = Series(np.arange(5), IntervalIndex.from_breaks(np.arange(6)))
 
-    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
+    # TODO: add overlapping/non-monotonic tests
     def test_loc_with_scalar(self):
+
+        # loc with single label / list of labels:
+        #   - Intervals: only exact matches
+        #   - scalars: those that contain it
 
         s = self.s
 
-        expected = s.iloc[:3]
-        tm.assert_series_equal(expected, s.loc[:3])
-        tm.assert_series_equal(expected, s.loc[:2.5])
-        tm.assert_series_equal(expected, s.loc[0.1:2.5])
-        tm.assert_series_equal(expected, s.loc[-1:3])
+        assert s.loc[1] == 0
+        assert s.loc[1.5] == 1
+        assert s.loc[2] == 1
+
+        # TODO with __getitem__ same rules as loc, or positional ?
+        # assert s[1] == 0
+        # assert s[1.5] == 1
+        # assert s[2] == 1
 
         expected = s.iloc[1:4]
         tm.assert_series_equal(expected, s.loc[[1.5, 2.5, 3.5]])
         tm.assert_series_equal(expected, s.loc[[2, 3, 4]])
         tm.assert_series_equal(expected, s.loc[[1.5, 3, 4]])
+
+        expected = s.iloc[[1, 1, 2, 1]]
+        tm.assert_series_equal(expected, s.loc[[1.5, 2, 2.5, 1.5]])
 
         expected = s.iloc[2:5]
         tm.assert_series_equal(expected, s.loc[s >= 2])
@@ -51,9 +60,8 @@ class TestIntervalIndex(object):
         tm.assert_series_equal(expected, s[s >= 2])
 
     # TODO: check this behavior is consistent with test_interval_new.py
-    @pytest.mark.parametrize('direction, closed',
-                             product(('increasing', 'decreasing'),
-                                     ('left', 'right', 'neither', 'both')))
+    @pytest.mark.parametrize('direction', ['increasing', 'decreasing'])
+    @pytest.mark.parametrize('closed', ['left', 'right', 'neither', 'both'])
     def test_nonoverlapping_monotonic(self, direction, closed):
         tpls = [(0, 1), (2, 3), (4, 5)]
         if direction == 'decreasing':
@@ -181,7 +189,6 @@ class TestIntervalIndex(object):
         with pytest.raises(KeyError):
             s.loc[[Interval(3, 5)]]
 
-    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_non_unique(self):
 
         idx = IntervalIndex.from_tuples([(1, 3), (3, 7)])

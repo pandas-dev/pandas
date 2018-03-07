@@ -19,47 +19,67 @@ class TestIntervalIndex(object):
         tm.assert_numpy_array_equal(lidx, lidx_expected)
         tm.assert_numpy_array_equal(ridx, ridx_expected)
 
-    @pytest.mark.parametrize("idx_side", ['right', 'left', 'both', 'neither'])
-    @pytest.mark.parametrize("side", ['right', 'left', 'both', 'neither'])
-    def test_get_loc_interval(self, idx_side, side):
+    def check_get_loc_result(self, idx, key, correct):
+        """
+        helper function to check the result for get_loc related tests
 
-        idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=idx_side)
+        Parameters
+        ----------
 
-        for bound in [[0, 1], [1, 2], [2, 3], [3, 4],
-                      [0, 2], [2.5, 3], [-1, 4]]:
-            # if get_loc is supplied an interval, it should only search
-            # for exact matches, not overlaps or covers, else KeyError.
-            if idx_side == side:
-                if bound == [0, 1]:
-                    assert idx.get_loc(Interval(0, 1, closed=side)) == 0
-                elif bound == [2, 3]:
-                    assert idx.get_loc(Interval(2, 3, closed=side)) == 1
-                else:
-                    with pytest.raises(KeyError):
-                        idx.get_loc(Interval(*bound, closed=side))
-            else:
-                with pytest.raises(KeyError):
-                    idx.get_loc(Interval(*bound, closed=side))
+        idx: IntervalIndex
+            IntervalIndex over which get_loc checks will be run
 
-    @pytest.mark.parametrize("idx_side", ['right', 'left', 'both', 'neither'])
-    @pytest.mark.parametrize("scalar", [-0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5])
-    def test_get_loc_scalar(self, idx_side, scalar):
+        key: scalar or Interval
 
-        # correct = {side: {query: answer}}.
-        # If query is not in the dict, that query should raise a KeyError
-        correct = {'right': {0.5: 0, 1: 0, 2.5: 1, 3: 1},
-                   'left': {0: 0, 0.5: 0, 2: 1, 2.5: 1},
-                   'both': {0: 0, 0.5: 0, 1: 0, 2: 1, 2.5: 1, 3: 1},
-                   'neither': {0.5: 0, 2.5: 1}}
-
-        idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=idx_side)
-
-        # if get_loc is supplied a scalar, it should return the index of
-        # the interval which contains the scalar, or KeyError.
-        if scalar in correct[idx_side].keys():
-            assert idx.get_loc(scalar) == correct[idx_side][scalar]
+        correct: dict
+            dictionary of the form {key: expected} denoting the expected loc's
+            to be returned for each given key; keys not in the dictionary are
+            assumed to raise a KeyError
+        """
+        expected = correct.get(key, None)
+        if expected is None:
+            # no expected in dict means KeyError
+            with pytest.raises(KeyError):
+                idx.get_loc(key)
+        elif isinstance(expected, list):
+            # multiple loc's returned -> numpy array
+            expected = np.array(expected, dtype='int64')
+            result = idx.get_loc(key)
+            tm.assert_numpy_array_equal(result, expected)
         else:
-            pytest.raises(KeyError, idx.get_loc, scalar)
+            # otherwise single loc returned as an integer
+            result = idx.get_loc(key)
+            assert result == expected
+
+    @pytest.mark.parametrize('ii_closed', ['right', 'left', 'both', 'neither'])
+    @pytest.mark.parametrize('iv_closed', ['right', 'left', 'both', 'neither'])
+    @pytest.mark.parametrize('iv_tuple', [
+        (-2, -1), (-1, 0.5), (0, 1), (0.25, 0.75), (0, 2), (0, 3), (1, 3),
+        (2, 3), (2.5, 4), (4, 5)], ids=str)
+    def test_get_loc_interval(self, ii_closed, iv_closed, iv_tuple):
+        """
+        if get_loc is supplied an interval, it should only search for exact
+        matches, not overlaps or covers, else KeyError
+        """
+        # construct interval to test against
+        iv = Interval(iv_tuple[0], iv_tuple[1], iv_closed)
+
+        # non-overlapping monotonic
+        idx = IntervalIndex.from_tuples([(0, 1), (2, 3)], closed=ii_closed)
+        correct = {Interval(0, 1, ii_closed): 0, Interval(2, 3, ii_closed): 1}
+        self.check_get_loc_result(idx, iv, correct)
+
+        # non-monotonic with dupes
+        idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (0, 1)],
+                                        closed=ii_closed)
+        correct = {Interval(0, 1, ii_closed): [0, 2],
+                   Interval(2, 3, ii_closed): 1}
+        self.check_get_loc_result(idx, iv, correct)
+
+        # overlapping
+        idx = IntervalIndex.from_tuples([(0, 2), (1, 3)], closed=ii_closed)
+        correct = {Interval(0, 2, ii_closed): 0, Interval(1, 3, ii_closed): 1}
+        self.check_get_loc_result(idx, iv, correct)
 
     def test_slice_locs_with_interval(self):
 
@@ -138,30 +158,6 @@ class TestIntervalIndex(object):
         assert index.slice_locs(3, 1) == (1, 2)
         assert index.slice_locs(3, 4) == (1, 0)
         assert index.slice_locs(0, 4) == (3, 0)
-
-    @pytest.mark.parametrize("query", [[0, 1], [0, 2], [0, 3],
-                                       [3, 1], [3, 4], [0, 4]])
-    def test_slice_locs_with_ints_and_floats_fails(self, query):
-
-        # increasing overlapping
-        index = IntervalIndex.from_tuples([(0, 2), (1, 3), (2, 4)])
-        pytest.raises(KeyError, index.slice_locs, query)
-
-        # decreasing overlapping
-        index = IntervalIndex.from_tuples([(2, 4), (1, 3), (0, 2)])
-        pytest.raises(KeyError, index.slice_locs, query)
-
-        # sorted duplicates
-        index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4)])
-        pytest.raises(KeyError, index.slice_locs, query)
-
-        # unsorted duplicates
-        index = IntervalIndex.from_tuples([(0, 2), (2, 4), (0, 2)])
-        pytest.raises(KeyError, index.slice_locs, query)
-
-        # another unsorted duplicates
-        index = IntervalIndex.from_tuples([(0, 2), (0, 2), (2, 4), (1, 3)])
-        pytest.raises(KeyError, index.slice_locs, query)
 
     @pytest.mark.parametrize("query", [
         Interval(1, 3, closed='right'),
@@ -303,13 +299,13 @@ class TestIntervalIndex(object):
         assert index.contains(0.5)
         assert index.contains(1)
 
-        assert index.contains(Interval(0, 1), closed='right')
-        assert not index.contains(Interval(0, 1), closed='left')
-        assert not index.contains(Interval(0, 1), closed='both')
-        assert not index.contains(Interval(0, 2), closed='right')
+        assert index.contains(Interval(0, 1, closed='right'))
+        assert not index.contains(Interval(0, 1, closed='left'))
+        assert not index.contains(Interval(0, 1, closed='both'))
+        assert not index.contains(Interval(0, 2, closed='right'))
 
-        assert not index.contains(Interval(0, 3), closed='right')
-        assert not index.contains(Interval(1, 3), closed='right')
+        assert not index.contains(Interval(0, 3, closed='right'))
+        assert not index.contains(Interval(1, 3, closed='right'))
 
         assert not index.contains(20)
         assert not index.contains(-20)

@@ -62,34 +62,6 @@ class TestIntervalIndex(object):
         with pytest.raises(KeyError):
             s[Interval(5, 6)]
 
-    def test_loc_with_scalar(self):
-
-        # loc with single label / list of labels:
-        #   - Intervals: only exact matches
-        #   - scalars: those that contain it
-
-        s = self.s
-
-        assert s.loc[1] == 0
-        assert s.loc[1.5] == 1
-        assert s.loc[2] == 1
-
-        # TODO with __getitem__ same rules as loc, or positional ?
-        # assert s[1] == 0
-        # assert s[1.5] == 1
-        # assert s[2] == 1
-
-        expected = s.iloc[1:4]
-        tm.assert_series_equal(expected, s.loc[[1.5, 2.5, 3.5]])
-        tm.assert_series_equal(expected, s.loc[[2, 3, 4]])
-        tm.assert_series_equal(expected, s.loc[[1.5, 3, 4]])
-
-        expected = s.iloc[[1, 1, 2, 1]]
-        tm.assert_series_equal(expected, s.loc[[1.5, 2, 2.5, 1.5]])
-
-        expected = s.iloc[2:5]
-        tm.assert_series_equal(expected, s.loc[s >= 2])
-
     def test_loc_with_slices(self):
 
         # loc with slices:
@@ -213,18 +185,6 @@ class TestIntervalIndex(object):
         # TODO KeyError is the appropriate error?
         with pytest.raises(KeyError):
             s.loc[1:4]
-
-    def test_non_unique(self):
-
-        idx = IntervalIndex.from_tuples([(1, 3), (3, 7)])
-        s = pd.Series(range(len(idx)), index=idx)
-
-        result = s.loc[Interval(1, 3)]
-        assert result == 0
-
-        result = s.loc[[Interval(1, 3)]]
-        expected = s.iloc[0:1]
-        tm.assert_series_equal(expected, result)
 
     def test_non_unique_moar(self):
 
