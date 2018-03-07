@@ -1124,6 +1124,23 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         DataFrame
             DataFrame containing the original Index data.
+
+        Examples
+        --------
+        >>> idx = pd.Index(['Ant', 'Bear', 'Cow'])
+        >>> idx.to_frame()
+                0
+        Ant    Ant
+        Bear  Bear
+        Cow    Cow
+
+        By default, the original Index is reused. To enforce a new Index:
+
+        >>> idx.to_frame(index=False)
+            0
+        0   Ant
+        1  Bear
+        2   Cow
         """
 
         from pandas import DataFrame
