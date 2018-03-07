@@ -364,8 +364,8 @@ class GroupByMethods(object):
             key = date_range('1/1/2011', periods=size, freq='s')
 
         df = DataFrame({'values': values, 'key': key})
-        self.as_group_method =  getattr(df.groupby('key')['values'], method)
-        self.as_field_method =  getattr(df.groupby('values')['key'], method)
+        self.as_group_method = getattr(df.groupby('key')['values'], method)
+        self.as_field_method = getattr(df.groupby('values')['key'], method)
 
     def time_dtype_as_group(self, dtype, method):
         self.as_group_method()
