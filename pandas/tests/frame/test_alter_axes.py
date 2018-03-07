@@ -301,7 +301,7 @@ class TestDataFrameAlterAxes(TestData):
 
     def test_set_index_dst(self):
         di = pd.date_range('2006-10-29 00:00:00', periods=3,
-                           req='H', tz='US/Pacific')
+                           freq='H', tz='US/Pacific')
 
         df = pd.DataFrame(data={'a': [0, 1, 2], 'b': [3, 4, 5]},
                           index=di).reset_index()
