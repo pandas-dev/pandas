@@ -33,9 +33,6 @@ class TestDataFrameReplace(TestData):
         tsframe.replace(nan, 0, inplace=True)
         assert_frame_equal(tsframe, self.tsframe.fillna(0))
 
-        pytest.raises(TypeError, self.tsframe.replace, nan, inplace=True)
-        pytest.raises(TypeError, self.tsframe.replace, nan)
-
         # mixed type
         mf = self.mixed_frame
         mf.iloc[5:20, mf.columns.get_loc('foo')] = nan
@@ -720,7 +717,6 @@ class TestDataFrameReplace(TestData):
         assert_frame_equal(expected, result)
 
     def test_replace_value_is_none(self):
-        pytest.raises(TypeError, self.tsframe.replace, nan)
         orig_value = self.tsframe.iloc[0, 0]
         orig2 = self.tsframe.iloc[1, 0]
 
@@ -1072,3 +1068,36 @@ class TestDataFrameReplace(TestData):
 
         assert_frame_equal(df, df.replace({'b': {}}))
         assert_frame_equal(df, df.replace(Series({'b': {}})))
+
+    @pytest.mark.parametrize("to_replace, method, expected", [
+        (0, 'bfill', {'A': [1, 1, 2],
+                      'B': [5, nan, 7],
+                      'C': ['a', 'b', 'c']}),
+        (nan, 'bfill', {'A': [0, 1, 2],
+                        'B': [5.0, 7.0, 7.0],
+                        'C': ['a', 'b', 'c']}),
+        ('d', 'ffill', {'A': [0, 1, 2],
+                        'B': [5, nan, 7],
+                        'C': ['a', 'b', 'c']}),
+        ([0, 2], 'bfill', {'A': [1, 1, 2],
+                           'B': [5, nan, 7],
+                           'C': ['a', 'b', 'c']}),
+        ([1, 2], 'pad', {'A': [0, 0, 0],
+                         'B': [5, nan, 7],
+                         'C': ['a', 'b', 'c']}),
+        ((1, 2), 'bfill', {'A': [0, 2, 2],
+                           'B': [5, nan, 7],
+                           'C': ['a', 'b', 'c']}),
+        (['b', 'c'], 'ffill', {'A': [0, 1, 2],
+                               'B': [5, nan, 7],
+                               'C': ['a', 'a', 'a']}),
+    ])
+    def test_replace_method(self, to_replace, method, expected):
+        # GH 19632
+        df = DataFrame({'A': [0, 1, 2],
+                        'B': [5, nan, 7],
+                        'C': ['a', 'b', 'c']})
+
+        result = df.replace(to_replace=to_replace, value=None, method=method)
+        expected = DataFrame(expected)
+        assert_frame_equal(result, expected)
