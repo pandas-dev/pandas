@@ -698,8 +698,7 @@ class Index(IndexOpsMixin, PandasObject):
         """Repeat elements of an Index.
 
         Returns a new index where each element of the current index
-        is repeated consecutively a given number of times. Can be used
-        to create an index that quickly summarizes data (see Examples).
+        is repeated consecutively a given number of times.
 
         Parameters
         ----------
@@ -725,22 +724,6 @@ class Index(IndexOpsMixin, PandasObject):
         Int64Index([1, 1, 2, 2, 3, 3], dtype='int64')
         >>> idx.repeat(3)
         Int64Index([1, 1, 1, 2, 2, 2, 3, 3, 3], dtype='int64')
-
-        >>> idx = pd.Index([1, 2, 3]). repeat(2)
-        >>> df = pd.DataFrame([5, 6, 7, 3, 4, 1], index=idx)
-        >>> df
-           0
-        1  5
-        1  6
-        2  7
-        2  3
-        3  4
-        3  1
-        >>> df.groupby(level=0).mean()
-             0
-        1  5.5
-        2  5.0
-        3  2.5
         """
         nv.validate_repeat(args, kwargs)
         return self._shallow_copy(self._values.repeat(repeats))
