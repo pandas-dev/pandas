@@ -231,7 +231,7 @@ class AggFunctions(object):
 
     goal_time = 0.2
 
-    def setup_cache(self):
+    def setup_cache():
         N = 10**5
         fac1 = np.array(['A', 'B', 'C'], dtype='O')
         fac2 = np.array(['one', 'two'], dtype='O')
@@ -338,15 +338,16 @@ class GroupByMethods(object):
 
     goal_time = 0.2
 
-    param_names = ['dtype', 'method']
+    param_names = ['dtype', 'method', 'application']
     params = [['int', 'float', 'object', 'datetime'],
               ['all', 'any', 'bfill', 'count', 'cumcount', 'cummax', 'cummin',
                'cumprod', 'cumsum', 'describe', 'ffill', 'first', 'head',
                'last', 'mad', 'max', 'min', 'median', 'mean', 'nunique',
                'pct_change', 'prod', 'rank', 'sem', 'shift', 'size', 'skew',
-               'std', 'sum', 'tail', 'unique', 'value_counts', 'var']]
+               'std', 'sum', 'tail', 'unique', 'value_counts', 'var'],
+              ['direct', 'transformation']]
 
-    def setup(self, dtype, method):
+    def setup(self, dtype, method, application):
         if method in method_blacklist.get(dtype, {}):
             raise NotImplementedError  # skip benchmark
         ngroups = 1000
@@ -364,13 +365,23 @@ class GroupByMethods(object):
             key = date_range('1/1/2011', periods=size, freq='s')
 
         df = DataFrame({'values': values, 'key': key})
-        self.as_group_method = getattr(df.groupby('key')['values'], method)
-        self.as_field_method = getattr(df.groupby('values')['key'], method)
 
-    def time_dtype_as_group(self, dtype, method):
+        if application == 'transform':
+            if method == 'describe':
+                raise NotImplementedError
+
+            self.as_group_method = lambda: df.groupby(
+                'key')['values'].transform(method)
+            self.as_field_method = lambda: df.groupby(
+                'values')['key'].transform(method)
+        else:
+            self.as_group_method = getattr(df.groupby('key')['values'], method)
+            self.as_field_method = getattr(df.groupby('values')['key'], method)
+
+    def time_dtype_as_group(self, dtype, method, application):
         self.as_group_method()
 
-    def time_dtype_as_field(self, dtype, method):
+    def time_dtype_as_field(self, dtype, method, application):
         self.as_field_method()
 
 
