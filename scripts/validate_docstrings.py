@@ -200,7 +200,7 @@ class Docstring:
     def parameter_mismatches(self):
         errs = []
         signature_params = self.signature_parameters
-        doc_params = list(self.doc_parameters)
+        doc_params = tuple(self.doc_parameters)
         missing = set(signature_params) - set(doc_params)
         if missing:
             errs.append('Parameters {!r} not documented'.format(missing))
