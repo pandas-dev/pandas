@@ -907,9 +907,8 @@ def str_findall(arr, pat, flags=0):
     ----------
     pat : string
         Pattern or regular expression.
-    flags : int
-        re module flags, e.g. re.IGNORECASE (default is 0, which means
-        no flags).
+    flags : int (default 0)
+        `re` module flags, e.g. `re.IGNORECASE`.
 
     Returns
     -------
@@ -919,11 +918,13 @@ def str_findall(arr, pat, flags=0):
 
     See Also
     --------
-    extractall : For each subject string in the Series, extract groups
-        from all matches of regular expression pattern.
-    count : Count occurrences of pattern in each string of the Series/Index.
-    re.findall: Return all non-overlapping matches of pattern in string,
-        as a list of strings.
+    count : Count occurrences of pattern or regular expression in each string
+        of the Series/Index.
+    extractall : For each string in the Series, extract groups from all matches
+        of regular expression and return a DataFrame with one row for each
+        match and one column for each group.
+    re.findall: Return all non-overlapping matches of pattern or regular
+        expression in string, as a list of strings.
 
     Examples
     --------
@@ -938,7 +939,7 @@ def str_findall(arr, pat, flags=0):
     2          []
     dtype: object
 
-    On the other hand, the search for the pattern 'MONKEY' doesn't return any
+    On the other hand, the search for the pattern `MONKEY` doesn't return any
     match:
 
     >>> s.str.findall('MONKEY')
@@ -947,8 +948,8 @@ def str_findall(arr, pat, flags=0):
     2    []
     dtype: object
 
-    Flags can be added to the regular expression. For instance, to find the
-    pattern `MONKEY` ignoring the case:
+    Flags can be added to the pattern or regular expression. For instance,
+    to find the pattern `MONKEY` ignoring the case:
 
     >>> import re
     >>> s.str.findall('MONKEY', flags=re.IGNORECASE)
