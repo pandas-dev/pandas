@@ -997,17 +997,6 @@ class TestIndex(Base):
         index += '_x'
         assert 'a_x' in index
 
-    def test_difference_type(self):
-        # GH 9943 9862
-        # If taking difference of a set and itself, it
-        # needs to preserve the type of the index
-        skip_index_keys = ['repeats']
-        for key, id in self.indices.items():
-            if key not in skip_index_keys:
-                result = id.difference(id)
-                expected = self.create_empty_index(id)
-                tm.assert_index_equal(result, expected)
-
     def test_difference(self):
 
         first = self.strIndex[5:20]

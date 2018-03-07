@@ -2454,13 +2454,6 @@ class Index(IndexOpsMixin, PandasObject):
             taken.name = None
         return taken
 
-    def _create_empty_index(self, name):
-        """
-        Returns an empty index.  Overridden as necessary by
-        subclasses that have different constructors.
-        """
-        return self.__class__([], name=name)
-
     def difference(self, other):
         """
         Return a new Index with elements from the index that are not in
@@ -2489,7 +2482,7 @@ class Index(IndexOpsMixin, PandasObject):
         self._assert_can_do_setop(other)
 
         if self.equals(other):
-            return self._create_empty_index(get_op_result_name(self, other))
+            return Index([], name=self.name)
 
         other, result_name = self._convert_can_do_setop(other)
 

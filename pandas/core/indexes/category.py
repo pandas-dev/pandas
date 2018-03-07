@@ -723,13 +723,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         codes = np.concatenate((codes[:loc], code, codes[loc:]))
         return self._create_from_codes(codes)
 
-    def _create_empty_index(self, name):
-        """
-        Returns an empty index using categories and ordered of self
-        """
-        return CategoricalIndex([], categories=self.categories,
-                                ordered=self.ordered, name=name)
-
     def _concat(self, to_concat, name):
         # if calling index is category, don't check dtype of others
         return CategoricalIndex._concat_same_dtype(self, to_concat, name)

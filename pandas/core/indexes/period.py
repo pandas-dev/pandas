@@ -963,12 +963,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                              'target index size')
         return self._maybe_convert_timedelta(tolerance)
 
-    def _create_empty_index(self, name):
-        """
-        Returns an empty index using freq of self
-        """
-        return PeriodIndex([], freq=self.freq, name=name)
-
     def insert(self, loc, item):
         if not isinstance(item, Period) or self.freq != item.freq:
             return self.astype(object).insert(loc, item)

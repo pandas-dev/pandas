@@ -479,12 +479,6 @@ class RangeIndex(Int64Index):
     def _concat_same_dtype(self, indexes, name):
         return _concat._concat_rangeindex_same_dtype(indexes).rename(name)
 
-    def _create_empty_index(self, name):
-        """
-        Returns an empty index using step size of self
-        """
-        return RangeIndex(start=None, stop=None, step=self._step, name=name)
-
     def __len__(self):
         """
         return the length of the RangeIndex
