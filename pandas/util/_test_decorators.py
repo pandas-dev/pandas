@@ -89,6 +89,17 @@ def _skip_if_mpl_1_5():
             mod.use("Agg", warn=False)
 
 
+def _skip_if_mpl_2_2():
+    mod = safe_import("matplotlib")
+
+    if mod:
+        v = mod.__version__
+        if LooseVersion(v) > LooseVersion('2.1.2'):
+            return True
+        else:
+            mod.use("Agg", warn=False)
+
+
 def _skip_if_has_locale():
     lang, _ = locale.getlocale()
     if lang is not None:
@@ -151,6 +162,8 @@ skip_if_no_mpl = pytest.mark.skipif(_skip_if_no_mpl(),
                                     reason="Missing matplotlib dependency")
 skip_if_mpl_1_5 = pytest.mark.skipif(_skip_if_mpl_1_5(),
                                      reason="matplotlib 1.5")
+xfail_if_mpl_2_2 = pytest.mark.xfail(_skip_if_mpl_2_2(),
+                                     reason="matplotlib 2.2")
 skip_if_32bit = pytest.mark.skipif(is_platform_32bit(),
                                    reason="skipping for 32 bit")
 skip_if_windows = pytest.mark.skipif(is_platform_windows(),
