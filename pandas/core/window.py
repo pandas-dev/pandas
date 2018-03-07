@@ -416,11 +416,11 @@ class Window(_Window):
     A ragged (meaning not-a-regular frequency), time-indexed DataFrame
 
     >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]},
-    ....:                 index = [pd.Timestamp('20130101 09:00:00'),
-    ....:                          pd.Timestamp('20130101 09:00:02'),
-    ....:                          pd.Timestamp('20130101 09:00:03'),
-    ....:                          pd.Timestamp('20130101 09:00:05'),
-    ....:                          pd.Timestamp('20130101 09:00:06')])
+    ...                   index = [pd.Timestamp('20130101 09:00:00'),
+    ...                            pd.Timestamp('20130101 09:00:02'),
+    ...                            pd.Timestamp('20130101 09:00:03'),
+    ...                            pd.Timestamp('20130101 09:00:05'),
+    ...                            pd.Timestamp('20130101 09:00:06')])
 
     >>> df
                            B

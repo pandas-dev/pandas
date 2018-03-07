@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import pandas.compat as compat
 from pandas.core.dtypes.common import (
-    is_object_dtype, is_datetimetz,
+    is_object_dtype, is_datetimetz, is_datetime64_dtype,
     needs_i8_conversion)
 import pandas.util.testing as tm
 from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex,
@@ -296,14 +296,21 @@ class TestIndexOps(Ops):
                 # result = None != o  # noqa
                 # assert result.iat[0]
                 # assert result.iat[1]
+                if (is_datetime64_dtype(o) or is_datetimetz(o)):
+                    # Following DatetimeIndex (and Timestamp) convention,
+                    # inequality comparisons with Series[datetime64] raise
+                    with pytest.raises(TypeError):
+                        None > o
+                    with pytest.raises(TypeError):
+                        o > None
+                else:
+                    result = None > o
+                    assert not result.iat[0]
+                    assert not result.iat[1]
 
-                result = None > o
-                assert not result.iat[0]
-                assert not result.iat[1]
-
-                result = o < None
-                assert not result.iat[0]
-                assert not result.iat[1]
+                    result = o < None
+                    assert not result.iat[0]
+                    assert not result.iat[1]
 
     def test_ndarray_compat_properties(self):
 
@@ -1217,10 +1224,11 @@ def test_values_consistent(array, expected_type, dtype):
     (pd.DatetimeIndex(['2017-01-01T00:00:00'], tz="US/Eastern"),
      np.array(['2017-01-01T05:00:00'], dtype='M8[ns]')),
     (pd.TimedeltaIndex([10**10]), np.array([10**10], dtype='m8[ns]')),
-    pytest.mark.xfail(reason='PeriodArray not implemented')((
+    pytest.param(
         pd.PeriodIndex(['2017', '2018'], freq='D'),
         np.array([17167, 17532]),
-    )),
+        marks=pytest.mark.xfail(reason="PeriodArray Not implemented")
+    ),
 ])
 def test_ndarray_values(array, expected):
     l_values = pd.Series(array)._ndarray_values

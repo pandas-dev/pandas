@@ -353,6 +353,12 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             attrs['freq'] = 'infer'
         return attrs
 
+    def _add_offset(self, other):
+        assert not isinstance(other, Tick)
+        raise TypeError("cannot add the type {typ} to a {cls}"
+                        .format(typ=type(other).__name__,
+                                cls=type(self).__name__))
+
     def _add_delta(self, delta):
         """
         Add a timedelta-like, Tick, or TimedeltaIndex-like object
@@ -414,16 +420,13 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     def _add_datelike(self, other):
         # adding a timedeltaindex to a datetimelike
         from pandas import Timestamp, DatetimeIndex
-
-        if other is NaT:
-            # GH#19124 pd.NaT is treated like a timedelta
-            return self._nat_new()
-        elif isinstance(other, (DatetimeIndex, np.ndarray)):
+        if isinstance(other, (DatetimeIndex, np.ndarray)):
             # if other is an ndarray, we assume it is datetime64-dtype
             # defer to implementation in DatetimeIndex
             other = DatetimeIndex(other)
             return other + self
         else:
+            assert other is not NaT
             other = Timestamp(other)
             i8 = self.asi8
             result = checked_add_with_arr(i8, other.value,
@@ -432,14 +435,9 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             return DatetimeIndex(result)
 
     def _sub_datelike(self, other):
-        # GH#19124 Timedelta - datetime is not in general well-defined.
-        # We make an exception for pd.NaT, which in this case quacks
-        # like a timedelta.
-        if other is NaT:
-            return self._nat_new()
-        else:
-            raise TypeError("cannot subtract a datelike from a {cls}"
-                            .format(cls=type(self).__name__))
+        assert other is not NaT
+        raise TypeError("cannot subtract a datelike from a {cls}"
+                        .format(cls=type(self).__name__))
 
     def _addsub_offset_array(self, other, op):
         # Add or subtract Array-like of DateOffset objects

@@ -42,6 +42,10 @@ class SparseSeries(Series):
     Parameters
     ----------
     data : {array-like, Series, SparseSeries, dict}
+        .. versionchanged :: 0.23.0
+           If data is a dict, argument order is maintained for Python 3.6
+           and later.
+
     kind : {'block', 'integer'}
     fill_value : float
         Code for missing value. Defaults depends on dtype.
@@ -216,12 +220,6 @@ class SparseSeries(Series):
         warnings.warn("'from_array' is deprecated and will be removed in a "
                       "future version. Please use the pd.SparseSeries(..) "
                       "constructor instead.", FutureWarning, stacklevel=2)
-        return cls._from_array(arr, index=index, name=name, copy=copy,
-                               fill_value=fill_value, fastpath=fastpath)
-
-    @classmethod
-    def _from_array(cls, arr, index=None, name=None, copy=False,
-                    fill_value=None, fastpath=False):
         return cls(arr, index=index, name=name, copy=copy,
                    fill_value=fill_value, fastpath=fastpath)
 

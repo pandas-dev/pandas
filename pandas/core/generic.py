@@ -18,6 +18,7 @@ from pandas.core.dtypes.common import (
     is_number,
     is_integer, is_bool,
     is_bool_dtype,
+    is_categorical_dtype,
     is_numeric_dtype,
     is_datetime64_dtype,
     is_timedelta64_dtype,
@@ -211,9 +212,8 @@ class NDFrame(PandasObject, SelectionMixin):
         """ add the string-like attributes from the info_axis.
         If info_axis is a MultiIndex, it's first level values are used.
         """
-        additions = set(
-            [c for c in self._info_axis.unique(level=0)[:100]
-             if isinstance(c, string_types) and isidentifier(c)])
+        additions = {c for c in self._info_axis.unique(level=0)[:100]
+                     if isinstance(c, string_types) and isidentifier(c)}
         return super(NDFrame, self)._dir_additions().union(additions)
 
     @property
@@ -4429,19 +4429,27 @@ class NDFrame(PandasObject, SelectionMixin):
                 if col_name not in self:
                     raise KeyError('Only a column name can be used for the '
                                    'key in a dtype mappings argument.')
-            from pandas import concat
             results = []
             for col_name, col in self.iteritems():
                 if col_name in dtype:
                     results.append(col.astype(dtype[col_name], copy=copy))
                 else:
                     results.append(results.append(col.copy() if copy else col))
-            return concat(results, axis=1, copy=False)
 
-        # else, only a single dtype is given
-        new_data = self._data.astype(dtype=dtype, copy=copy, errors=errors,
-                                     **kwargs)
-        return self._constructor(new_data).__finalize__(self)
+        elif is_categorical_dtype(dtype) and self.ndim > 1:
+            # GH 18099: columnwise conversion to categorical
+            results = (self[col].astype(dtype, copy=copy) for col in self)
+
+        else:
+            # else, only a single dtype is given
+            new_data = self._data.astype(dtype=dtype, copy=copy, errors=errors,
+                                         **kwargs)
+            return self._constructor(new_data).__finalize__(self)
+
+        # GH 19920: retain column metadata after concat
+        result = pd.concat(results, axis=1, copy=False)
+        result.columns = self.columns
+        return result
 
     def copy(self, deep=True):
         """
@@ -4706,7 +4714,7 @@ class NDFrame(PandasObject, SelectionMixin):
         if axis is None:
             axis = 0
         axis = self._get_axis_number(axis)
-        method = missing.clean_fill_method(method)
+
         from pandas import DataFrame
         if value is None:
 
@@ -4727,7 +4735,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
             # 3d
             elif self.ndim == 3:
-
                 # fill in 2d chunks
                 result = {col: s.fillna(method=method, value=value)
                           for col, s in self.iteritems()}
@@ -4737,7 +4744,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
             else:
                 # 2d or less
-                method = missing.clean_fill_method(method)
                 new_data = self._data.interpolate(method=method, axis=axis,
                                                   limit=limit, inplace=inplace,
                                                   coerce=True,
@@ -7760,7 +7766,8 @@ level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
     particular level, collapsing into a %(name1)s
 ddof : int, default 1
-    degrees of freedom
+    Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
+    where N represents the number of elements.
 numeric_only : boolean, default None
     Include only float, int, boolean columns. If None, will attempt to use
     everything, then use only numeric data. Not implemented for Series.

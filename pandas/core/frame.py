@@ -60,6 +60,7 @@ from pandas.core.dtypes.common import (
     is_iterator,
     is_sequence,
     is_named_tuple)
+from pandas.core.dtypes.concat import _get_sliced_frame_result_type
 from pandas.core.dtypes.missing import isna, notna
 
 
@@ -115,8 +116,8 @@ _shared_doc_kwargs = dict(
             - if `axis` is 1 or `'columns'` then `by` may contain column
               levels and/or index labels
 
-        .. versionchanged:: 0.23.0
-           Allow specifying index or column level names.""",
+            .. versionchanged:: 0.23.0
+               Allow specifying index or column level names.""",
     versionadded_to_excel='',
     optional_labels="""labels : array-like, optional
             New labels / index to conform the axis specified by 'axis' to.""",
@@ -251,6 +252,11 @@ class DataFrame(NDFrame):
     ----------
     data : numpy ndarray (structured or homogeneous), dict, or DataFrame
         Dict can contain Series, arrays, constants, or list-like objects
+
+        .. versionchanged :: 0.23.0
+           If data is a dict, argument order is maintained for Python 3.6
+           and later.
+
     index : Index or array-like
         Index to use for resulting frame. Will default to RangeIndex if
         no indexing information part of input data and no index provided
@@ -459,9 +465,7 @@ class DataFrame(NDFrame):
                 arrays.append(v)
 
         else:
-            keys = list(data.keys())
-            if not isinstance(data, OrderedDict):
-                keys = com._try_sort(keys)
+            keys = com._dict_keys_to_ordered_list(data)
             columns = data_names = Index(keys)
             arrays = [data[k] for k in keys]
 
@@ -957,8 +961,8 @@ class DataFrame(NDFrame):
                 {'col1': [1, 2], 'col2': [0.5, 0.75]}, index=['a', 'b'])
         >>> df
            col1  col2
-        a     1   0.1
-        b     2   0.2
+        a     1   0.50
+        b     2   0.75
         >>> df.to_dict()
         {'col1': {'a': 1, 'b': 2}, 'col2': {'a': 0.5, 'b': 0.75}}
 
@@ -2166,8 +2170,7 @@ class DataFrame(NDFrame):
 
                 if index_len and not len(values):
                     values = np.array([np.nan] * index_len, dtype=object)
-                result = self._constructor_sliced._from_array(
-                    values, index=self.index, name=label, fastpath=True)
+                result = self._box_col_values(values, label)
 
                 # this is a cached value, mark it so
                 result._set_as_cached(label, self)
@@ -2563,8 +2566,8 @@ class DataFrame(NDFrame):
 
     def _box_col_values(self, values, items):
         """ provide boxed values for a column """
-        return self._constructor_sliced._from_array(values, index=self.index,
-                                                    name=items, fastpath=True)
+        klass = _get_sliced_frame_result_type(values, self)
+        return klass(values, index=self.index, name=items, fastpath=True)
 
     def __setitem__(self, key, value):
         key = com._apply_if_callable(key, self)
