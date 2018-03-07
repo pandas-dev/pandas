@@ -1117,7 +1117,7 @@ class Index(IndexOpsMixin, PandasObject):
         Parameters
         ----------
         index : boolean
-            Set the index of the returned DataFrame as the original Index 
+            Set the index of the returned DataFrame as the original Index
             (default True).
 
         Returns
