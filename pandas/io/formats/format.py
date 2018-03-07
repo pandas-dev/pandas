@@ -986,13 +986,12 @@ class LatexFormatter(TableFormatter):
             # sum up columns to multicolumns
             crow = self._format_multicolumn(crow, ilevels)
         if (i >= nlevels and self.fmt.index and self.multirow and
-                    ilevels > 1):
+                ilevels > 1):
             # sum up rows to multirows
             crow = self._format_multirow(crow, ilevels, i, strrows)
         return crow
 
     def _escape_row(self, row):
-        print(row)
         def null_replace(x):
             if not x or x == '{}':
                 return '{}'
@@ -1003,7 +1002,9 @@ class LatexFormatter(TableFormatter):
             for k, v in LatexFormatter.ESCAPE_MAPPING.items():
                 x = x.replace(k, v)
             return x
-        return [escape_item(null_replace(x)) if self.fmt.kwds.get('escape', True) and x and x != '{}' else null_replace(x) for x in row]
+        return [escape_item(null_replace(x))
+                if self.fmt.kwds.get('escape', True)
+                and x and x != '{}' else null_replace(x) for x in row]
 
     def _format_multicolumn(self, row, ilevels):
         r"""
@@ -1087,11 +1088,13 @@ class LatexFormatter(TableFormatter):
             lev2 = lev.format()
             blank = ' ' * len(lev2[0])
             # display column names in last index-column
-            if any(self.frame.columns.names) and i == (self.frame.index.nlevels - 1):
+            if any(self.frame.columns.names) \
+                    and i == (self.frame.index.nlevels - 1):
                 lev3 = [x if x else '{}' for x in self.frame.columns.names]
             else:
                 lev3 = [blank] * self.frame.columns.nlevels
-            if any(map(lambda x: False if x is None else True, self.frame.index.names)):
+            if any(map(lambda x: False if x is None else True,
+                       self.frame.index.names)):
                 if lev.name:
                     lev3.append(u'{name}'.format(name=lev.name))
                 else:
@@ -1099,8 +1102,8 @@ class LatexFormatter(TableFormatter):
             current_idx_val = None
             for level_idx in self.frame.index.labels[i]:
                 if ((previous_lev3 is None or
-                         previous_lev3[len(lev3)].isspace()) and
-                            lev2[level_idx] == current_idx_val):
+                        previous_lev3[len(lev3)].isspace())
+                        and lev2[level_idx] == current_idx_val):
                     # same index as above row and left index was the same
                     lev3.append(blank)
                 else:

@@ -624,7 +624,7 @@ AA &  BB \\
 
     def test_to_latex_multiindex_non_string(self):
         # GH 19981
-        df = pd.DataFrame([[1, 2, 3]]*2).set_index([0, 1])
+        df = pd.DataFrame([[1, 2, 3]] * 2).set_index([0, 1])
         observed = df.to_latex()
         expected = r"""\begin{tabular}{llr}
 \toprule
