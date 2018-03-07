@@ -907,7 +907,7 @@ def str_findall(arr, pat, flags=0):
     ----------
     pat : string
         Pattern or regular expression.
-    flags : int (default 0)
+    flags : int, default 0
         `re` module flags, e.g. `re.IGNORECASE`.
 
     Returns
