@@ -351,8 +351,10 @@ Some other important things to know about the docs:
 
       pandoc doc/source/contributing.rst -t markdown_github > CONTRIBUTING.md
 
-The utility script ``scripts/api_rst_coverage.py`` can be used to compare
-the list of methods documented in ``doc/source/api.rst`` (which is used to generate
+The utility script ``scripts/validate_docstrings.py`` can be used to get a csv
+summary of the API documentation. And also validate common errors in the docstring
+of a specific class, function or method. The summary also compares the list of
+methods documented in ``doc/source/api.rst`` (which is used to generate
 the `API Reference <http://pandas.pydata.org/pandas-docs/stable/api.html>`_ page)
 and the actual public methods.
 This will identify methods documented in ``doc/source/api.rst`` that are not actually

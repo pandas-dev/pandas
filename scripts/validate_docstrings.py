@@ -20,10 +20,10 @@ import re
 import functools
 import argparse
 import contextlib
+import textwrap
 import inspect
 import importlib
 import doctest
-import pydoc
 try:
     from io import StringIO
 except ImportError:
@@ -40,6 +40,28 @@ from numpydoc.docscrape import NumpyDocString
 
 
 PRIVATE_CLASSES = ['NDFrame', 'IndexOpsMixin']
+
+
+def _load_obj(obj_name):
+    for maxsplit in range(1, obj_name.count('.') + 1):
+        # TODO when py3 only replace by: module, *func_parts = ...
+        func_name_split = obj_name.rsplit('.', maxsplit=maxsplit)
+        module = func_name_split[0]
+        func_parts = func_name_split[1:]
+        try:
+            obj = importlib.import_module(module)
+        except ImportError:
+            pass
+        else:
+            continue
+
+    if 'module' not in locals():
+        raise ImportError('No module can be imported '
+                          'from "{}"'.format(obj_name))
+
+    for part in func_parts:
+        obj = getattr(obj, part)
+    return obj
 
 
 def _to_original_callable(obj):
@@ -75,7 +97,7 @@ class Docstring:
     def __init__(self, method_name, method_obj):
         self.method_name = method_name
         self.method_obj = method_obj
-        self.raw_doc = pydoc.getdoc(method_obj)
+        self.raw_doc = method_obj.__doc__ or ''
         self.doc = NumpyDocString(self.raw_doc)
 
     def __len__(self):
@@ -103,9 +125,31 @@ class Docstring:
         return url
 
     @property
-    def first_line_blank(self):
+    def start_blank_lines(self):
+        i = None
         if self.raw_doc:
-            return not bool(self.raw_doc.split('\n')[0].strip())
+            for i, row in enumerate(self.raw_doc.split('\n')):
+                if row.strip():
+                    break
+        return i
+
+    @property
+    def end_blank_lines(self):
+        i = None
+        if self.raw_doc:
+            for i, row in enumerate(reversed(self.raw_doc.split('\n'))):
+                if row.strip():
+                    break
+        return i
+
+    @property
+    def double_blank_lines(self):
+        prev = True
+        for row in self.raw_doc.split('\n'):
+            if not prev and not row.strip():
+                return True
+            prev = row.strip()
+        return False
 
     @property
     def summary(self):
@@ -130,14 +174,17 @@ class Docstring:
 
     @property
     def signature_parameters(self):
-        if not (inspect.isfunction(self.method_obj)
-                or inspect.isclass(self.method_obj)):
+        try:
+            signature = inspect.signature(self.method_obj)
+        except ValueError:
+            # Some objects, mainly in C extensions do not support introspection
+            # of the signature
             return tuple()
         if (inspect.isclass(self.method_obj)
                 and self.method_name.split('.')[-1] in {'dt', 'str', 'cat'}):
             # accessor classes have a signature, but don't want to show this
             return tuple()
-        params = tuple(inspect.signature(self.method_obj).parameters.keys())
+        params = tuple(signature.parameters.keys())
         if params and params[0] in ('self', 'cls'):
             return params[1:]
         return params
@@ -255,73 +302,91 @@ def get_api_items():
             previous_line = line
 
 
+def _csv_row(func_name, func_obj, section, subsection, in_api, seen={}):
+    obj_type = type(func_obj).__name__
+    original_callable = _to_original_callable(func_obj)
+    if original_callable is None:
+        return [func_name, obj_type] + [''] * 12, ''
+    else:
+        doc = Docstring(func_name, original_callable)
+        key = doc.source_file_name, doc.source_file_def_line
+        shared_code = seen.get(key, '')
+        return [func_name,
+                obj_type,
+                in_api,
+                int(doc.deprecated),
+                section,
+                subsection,
+                doc.source_file_name,
+                doc.source_file_def_line,
+                doc.github_url,
+                int(bool(doc.summary)),
+                int(bool(doc.extended_summary)),
+                int(doc.correct_parameters),
+                int(bool(doc.examples)),
+                shared_code], key
+
+
 def validate_all():
     writer = csv.writer(sys.stdout)
-    writer.writerow(['Function or method',
-                     'Type',
-                     'File',
-                     'Code line',
-                     'GitHub link',
-                     'Is deprecated',
-                     'Has summary',
-                     'Has extended summary',
-                     'Parameters ok',
-                     'Has examples',
-                     'Shared code with'])
+    cols = ('Function or method',
+            'Type',
+            'In API doc',
+            'Is deprecated',
+            'Section',
+            'Subsection',
+            'File',
+            'Code line',
+            'GitHub link',
+            'Has summary',
+            'Has extended summary',
+            'Parameters ok',
+            'Has examples',
+            'Shared code with')
+    writer.writerow(cols)
     seen = {}
-    for func_name, func, section, subsection in get_api_items():
-        obj_type = type(func).__name__
-        original_callable = _to_original_callable(func)
-        if original_callable is None:
-            writer.writerow([func_name, obj_type] + [''] * 9)
-        else:
-            doc = Docstring(func_name, original_callable)
-            key = doc.source_file_name, doc.source_file_def_line
-            shared_code = seen.get(key, '')
-            seen[key] = func_name
-            writer.writerow([func_name,
-                             section,
-                             subsection,
-                             obj_type,
-                             doc.source_file_name,
-                             doc.source_file_def_line,
-                             doc.github_url,
-                             int(doc.deprecated),
-                             int(bool(doc.summary)),
-                             int(bool(doc.extended_summary)),
-                             int(doc.correct_parameters),
-                             int(bool(doc.examples)),
-                             shared_code])
+    api_items = list(get_api_items())
+    for func_name, func, section, subsection in api_items:
+        row, key = _csv_row(func_name, func, section, subsection,
+                            in_api=1, seen=seen)
+        seen[key] = func_name
+        writer.writerow(row)
+
+    api_item_names = set(list(zip(*api_items))[0])
+    for class_ in (pandas.Series, pandas.DataFrame, pandas.Panel):
+        for member in inspect.getmembers(class_):
+            func_name = 'pandas.{}.{}'.format(class_.__name__, member[0])
+            if (not member[0].startswith('_') and
+                    func_name not in api_item_names):
+                func = _load_obj(func_name)
+                row, key = _csv_row(func_name, func, section='', subsection='',
+                                    in_api=0)
+                writer.writerow(row)
 
     return 0
 
 
 def validate_one(func_name):
-    for maxsplit in range(1, func_name.count('.') + 1):
-        # TODO when py3 only replace by: module, *func_parts = ...
-        func_name_split = func_name.rsplit('.', maxsplit=maxsplit)
-        module = func_name_split[0]
-        func_parts = func_name_split[1:]
-        try:
-            func_obj = importlib.import_module(module)
-        except ImportError:
-            pass
-        else:
-            continue
-
-    if 'module' not in locals():
-        raise ImportError('No module can be imported '
-                          'from "{}"'.format(func_name))
-
-    for part in func_parts:
-        func_obj = getattr(func_obj, part)
-
+    func_obj = _load_obj(func_name)
     doc = Docstring(func_name, func_obj)
 
     sys.stderr.write(_output_header('Docstring ({})'.format(func_name)))
-    sys.stderr.write('{}\n'.format(doc.raw_doc))
+    sys.stderr.write('{}\n'.format(textwrap.dedent(doc.raw_doc)))
 
     errs = []
+    if doc.start_blank_lines != 1:
+        errs.append('Docstring text (summary) should start in the line '
+                    'immediately after the opening quotes (not in the same '
+                    'line, or leaving a blank line in between)')
+    if doc.end_blank_lines != 1:
+        errs.append('Closing quotes should be placed in the line after '
+                    'the last text in the docstring (do not close the '
+                    'quotes in the same line as the text, or leave a '
+                    'blank line between the last text and the quotes)')
+    if doc.double_blank_lines:
+        errs.append('Use only one blank line to separate sections or '
+                    'paragraphs')
+
     if not doc.summary:
         errs.append('No summary found (a short summary in a single line '
                     'should be present at the beginning of the docstring)')
@@ -367,6 +432,13 @@ def validate_one(func_name):
         errs.append('Private classes ({}) should not be mentioned in public '
                     'docstring.'.format(mentioned_errs))
 
+    if not doc.see_also:
+        errs.append('See Also section not found')
+    else:
+        for rel_name, rel_desc in doc.see_also:
+            if not rel_desc:
+                errs.append('Missing description for '
+                            'See Also "{}" reference'.format(rel_name))
     examples_errs = ''
     if not doc.examples:
         errs.append('No examples section found')
