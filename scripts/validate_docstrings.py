@@ -18,9 +18,10 @@ import sys
 import csv
 import re
 import functools
+import collections
 import argparse
 import contextlib
-import textwrap
+import pydoc
 import inspect
 import importlib
 import doctest
@@ -98,10 +99,15 @@ class Docstring:
         self.method_name = method_name
         self.method_obj = method_obj
         self.raw_doc = method_obj.__doc__ or ''
-        self.doc = NumpyDocString(self.raw_doc)
+        self.clean_doc = pydoc.getdoc(self.method_obj)
+        self.doc = NumpyDocString(self.clean_doc)
 
     def __len__(self):
         return len(self.raw_doc)
+
+    @property
+    def is_function_or_method(self):
+        return inspect.isfunction(self.method_obj)
 
     @property
     def source_file_name(self):
@@ -169,20 +175,21 @@ class Docstring:
 
     @property
     def doc_parameters(self):
-        return {name: (type_, ''.join(desc))
-                for name, type_, desc in self.doc['Parameters']}
+        return collections.OrderedDict((name, (type_, ''.join(desc)))
+                                       for name, type_, desc
+                                       in self.doc['Parameters'])
 
     @property
     def signature_parameters(self):
-        try:
-            signature = inspect.signature(self.method_obj)
-        except ValueError:
-            # Some objects, mainly in C extensions do not support introspection
-            # of the signature
-            return tuple()
         if (inspect.isclass(self.method_obj)
                 and self.method_name.split('.')[-1] in {'dt', 'str', 'cat'}):
             # accessor classes have a signature, but don't want to show this
+            return tuple()
+        try:
+            signature = inspect.signature(self.method_obj)
+        except (TypeError, ValueError):
+            # Some objects, mainly in C extensions do not support introspection
+            # of the signature
             return tuple()
         params = tuple(signature.parameters.keys())
         if params and params[0] in ('self', 'cls'):
@@ -220,8 +227,9 @@ class Docstring:
 
     @property
     def see_also(self):
-        return {name: ''.join(desc)
-                for name, desc, _ in self.doc['See Also']}
+        return collections.OrderedDict((name, ''.join(desc))
+                                       for name, desc, _
+                                       in self.doc['See Also'])
 
     @property
     def examples(self):
@@ -371,7 +379,7 @@ def validate_one(func_name):
     doc = Docstring(func_name, func_obj)
 
     sys.stderr.write(_output_header('Docstring ({})'.format(func_name)))
-    sys.stderr.write('{}\n'.format(textwrap.dedent(doc.raw_doc)))
+    sys.stderr.write('{}\n'.format(doc.clean_doc))
 
     errs = []
     if doc.start_blank_lines != 1:
@@ -395,7 +403,8 @@ def validate_one(func_name):
             errs.append('Summary does not start with capital')
         if doc.summary[-1] != '.':
             errs.append('Summary does not end with dot')
-        if doc.summary.split(' ')[0][-1] == 's':
+        if (doc.is_function_or_method and
+                doc.summary.split(' ')[0][-1] == 's'):
             errs.append('Summary must start with infinitive verb, '
                         'not third person (e.g. use "Generate" instead of '
                         '"Generates")')
@@ -435,7 +444,7 @@ def validate_one(func_name):
     if not doc.see_also:
         errs.append('See Also section not found')
     else:
-        for rel_name, rel_desc in doc.see_also:
+        for rel_name, rel_desc in doc.see_also.items():
             if not rel_desc:
                 errs.append('Missing description for '
                             'See Also "{}" reference'.format(rel_name))
