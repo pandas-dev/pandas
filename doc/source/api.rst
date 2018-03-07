@@ -551,7 +551,6 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.weekofyear
    Series.dt.dayofweek
    Series.dt.weekday
-   Series.dt.weekday_name
    Series.dt.dayofyear
    Series.dt.quarter
    Series.dt.is_month_start
@@ -581,6 +580,8 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.round
    Series.dt.floor
    Series.dt.ceil
+   Series.dt.month_name
+   Series.dt.day_name
 
 **Timedelta Properties**
 
@@ -1723,7 +1724,6 @@ Time/Date Components
    DatetimeIndex.week
    DatetimeIndex.dayofweek
    DatetimeIndex.weekday
-   DatetimeIndex.weekday_name
    DatetimeIndex.quarter
    DatetimeIndex.tz
    DatetimeIndex.freq
@@ -1759,6 +1759,8 @@ Time-specific operations
    DatetimeIndex.round
    DatetimeIndex.floor
    DatetimeIndex.ceil
+   DatetimeIndex.month_name
+   DatetimeIndex.day_name
 
 Conversion
 ~~~~~~~~~~
@@ -1940,7 +1942,6 @@ Properties
     Timestamp.tzinfo
     Timestamp.value
     Timestamp.week
-    Timestamp.weekday_name
     Timestamp.weekofyear
     Timestamp.year
 
@@ -1954,6 +1955,7 @@ Methods
     Timestamp.combine
     Timestamp.ctime
     Timestamp.date
+    Timestamp.day_name
     Timestamp.dst
     Timestamp.floor
     Timestamp.freq
@@ -1963,6 +1965,7 @@ Methods
     Timestamp.isocalendar
     Timestamp.isoformat
     Timestamp.isoweekday
+    Timestamp.month_name
     Timestamp.normalize
     Timestamp.now
     Timestamp.replace

@@ -352,6 +352,12 @@ class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
             attrs['freq'] = 'infer'
         return attrs
 
+    def _add_offset(self, other):
+        assert not isinstance(other, Tick)
+        raise TypeError("cannot add the type {typ} to a {cls}"
+                        .format(typ=type(other).__name__,
+                                cls=type(self).__name__))
+
     def _add_delta(self, delta):
         """
         Add a timedelta-like, Tick, or TimedeltaIndex-like object

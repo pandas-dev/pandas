@@ -116,8 +116,8 @@ _shared_doc_kwargs = dict(
             - if `axis` is 1 or `'columns'` then `by` may contain column
               levels and/or index labels
 
-        .. versionchanged:: 0.23.0
-           Allow specifying index or column level names.""",
+            .. versionchanged:: 0.23.0
+               Allow specifying index or column level names.""",
     versionadded_to_excel='',
     optional_labels="""labels : array-like, optional
             New labels / index to conform the axis specified by 'axis' to.""",
@@ -252,6 +252,11 @@ class DataFrame(NDFrame):
     ----------
     data : numpy ndarray (structured or homogeneous), dict, or DataFrame
         Dict can contain Series, arrays, constants, or list-like objects
+
+        .. versionchanged :: 0.23.0
+           If data is a dict, argument order is maintained for Python 3.6
+           and later.
+
     index : Index or array-like
         Index to use for resulting frame. Will default to RangeIndex if
         no indexing information part of input data and no index provided
@@ -460,9 +465,7 @@ class DataFrame(NDFrame):
                 arrays.append(v)
 
         else:
-            keys = list(data.keys())
-            if not isinstance(data, OrderedDict):
-                keys = com._try_sort(keys)
+            keys = com._dict_keys_to_ordered_list(data)
             columns = data_names = Index(keys)
             arrays = [data[k] for k in keys]
 

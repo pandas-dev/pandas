@@ -115,6 +115,9 @@ class DatetimeLikeArray(object):
     def _sub_period(self, other):
         return NotImplemented
 
+    def _add_offset(self, offset):
+        raise com.AbstractMethodError(self)
+
     def _add_delta(self, other):
         return NotImplemented
 
