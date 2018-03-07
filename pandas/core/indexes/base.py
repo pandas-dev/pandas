@@ -1122,7 +1122,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        DataFrame : a DataFrame containing the original Index data.
+        DataFrame
+            DataFrame containing the original Index data.
         """
 
         from pandas import DataFrame
