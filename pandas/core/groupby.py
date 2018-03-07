@@ -3305,6 +3305,7 @@ class SeriesGroupBy(GroupBy):
         klass='Series',
         versionadded=''))
     def aggregate(self, func_or_funcs, *args, **kwargs):
+
         _level = kwargs.pop('_level', None)
         if isinstance(func_or_funcs, compat.string_types):
             return getattr(self, func_or_funcs)(*args, **kwargs)

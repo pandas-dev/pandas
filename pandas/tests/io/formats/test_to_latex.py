@@ -621,3 +621,38 @@ AA &  BB \\
 \end{tabular}
 """ % tuple(list(col_names) + [idx_names_row])
         assert observed == expected
+
+    def test_to_latex_multiindex_non_string(self):
+        # GH 19981
+        df = pd.DataFrame([[1, 2, 3]]*2).set_index([0, 1])
+        observed = df.to_latex()
+        expected = r"""\begin{tabular}{llr}
+\toprule
+  &   &  2 \\
+{} & 1 &    \\
+\midrule
+1 & 2 &  3 \\
+  &   &  3 \\
+\bottomrule
+\end{tabular}
+"""
+        assert observed == expected
+
+    def test_to_latex_missing_rows(self):
+        # GH 18669
+        mi = pd.MultiIndex.from_product([[1, 2], [3, 4]], names=['', None])
+        df = pd.DataFrame(-1, index=mi, columns=range(4))
+        observed = df.to_latex()
+        expected = r"""\begin{tabular}{llrrrr}
+\toprule
+  &   &  0 &  1 &  2 &  3 \\
+\midrule
+{} & {} &    &    &    &    \\
+1 & 3 & -1 & -1 & -1 & -1 \\
+  & 4 & -1 & -1 & -1 & -1 \\
+2 & 3 & -1 & -1 & -1 & -1 \\
+  & 4 & -1 & -1 & -1 & -1 \\
+\bottomrule
+\end{tabular}
+"""
+        assert observed == expected

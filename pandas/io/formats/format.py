@@ -48,6 +48,7 @@ import numpy as np
 
 import csv
 from functools import partial
+import pdb
 
 common_docstring = """
     Parameters
@@ -870,6 +871,16 @@ class LatexFormatter(TableFormatter):
     HTMLFormatter
     """
 
+    ESCAPE_MAPPING = {'_': '\\_',
+                      '%': '\\%',
+                      '$': '\\$',
+                      '#': '\\#',
+                      '{': '\\{',
+                      '}': '\\}',
+                      '~': '\\textasciitilde',
+                      '^': '\\textasciicircum',
+                      '&': '\\&'}
+
     def __init__(self, formatter, column_format=None, longtable=False,
                  multicolumn=False, multicolumn_format=None, multirow=False):
         self.fmt = formatter
@@ -881,12 +892,10 @@ class LatexFormatter(TableFormatter):
         self.multicolumn_format = multicolumn_format
         self.multirow = multirow
 
-    def write_result(self, buf):
+    def _build_str_cols(self):
         """
-        Render a DataFrame to a LaTeX tabular/longtable environment output.
+        Builds the string representation of the columns
         """
-
-        # string representation of the columns
         if len(self.frame.columns) == 0 or len(self.frame.index) == 0:
             info_line = (u('Empty {name}\nColumns: {col}\nIndex: {idx}')
                          .format(name=type(self.frame).__name__,
@@ -896,43 +905,17 @@ class LatexFormatter(TableFormatter):
         else:
             strcols = self.fmt._to_str_columns()
 
+        # reestablish the MultiIndex that has been joined by _to_str_column
+        if self.fmt.index and isinstance(self.frame.index, MultiIndex):
+            strcols = self._rebuild_multi_index(strcols)
+        return strcols
+
+    def _build_col_format(self):
         def get_col_type(dtype):
             if issubclass(dtype.type, np.number):
                 return 'r'
             else:
                 return 'l'
-
-        # reestablish the MultiIndex that has been joined by _to_str_column
-        if self.fmt.index and isinstance(self.frame.index, MultiIndex):
-            clevels = self.frame.columns.nlevels
-            strcols.pop(0)
-            name = any(self.frame.index.names)
-            cname = any(self.frame.columns.names)
-            lastcol = self.frame.index.nlevels - 1
-            previous_lev3 = None
-            for i, lev in enumerate(self.frame.index.levels):
-                lev2 = lev.format()
-                blank = ' ' * len(lev2[0])
-                # display column names in last index-column
-                if cname and i == lastcol:
-                    lev3 = [x if x else '{}' for x in self.frame.columns.names]
-                else:
-                    lev3 = [blank] * clevels
-                if name:
-                    lev3.append(lev.name)
-                current_idx_val = None
-                for level_idx in self.frame.index.labels[i]:
-                    if ((previous_lev3 is None or
-                        previous_lev3[len(lev3)].isspace()) and
-                            lev2[level_idx] == current_idx_val):
-                        # same index as above row and left index was the same
-                        lev3.append(blank)
-                    else:
-                        # different value than above or left index different
-                        lev3.append(lev2[level_idx])
-                        current_idx_val = lev2[level_idx]
-                strcols.insert(i, lev3)
-                previous_lev3 = lev3
 
         column_format = self.column_format
         if column_format is None:
@@ -945,19 +928,22 @@ class LatexFormatter(TableFormatter):
                             compat.string_types):  # pragma: no cover
             raise AssertionError('column_format must be str or unicode, '
                                  'not {typ}'.format(typ=type(column_format)))
+        return column_format
 
-        if not self.longtable:
-            buf.write('\\begin{{tabular}}{{{fmt}}}\n'
-                      .format(fmt=column_format))
-            buf.write('\\toprule\n')
-        else:
-            buf.write('\\begin{{longtable}}{{{fmt}}}\n'
-                      .format(fmt=column_format))
-            buf.write('\\toprule\n')
+    def write_result(self, buf):
+        """
+        Render a DataFrame to a LaTeX tabular/longtable environment output.
+        """
 
-        ilevels = self.frame.index.nlevels
-        clevels = self.frame.columns.nlevels
-        nlevels = clevels
+        strcols = self._build_str_cols()
+        column_format = self._build_col_format()
+        table_type = 'longtable' if self.longtable else 'tabular'
+
+        buf.write('\\begin{{{typ}}}{{{fmt}}}\n'
+                  .format(fmt=column_format, typ=table_type))
+        buf.write('\\toprule\n')
+
+        nlevels = self.frame.columns.nlevels
         if any(self.frame.index.names):
             nlevels += 1
         strrows = list(zip(*strcols))
@@ -975,28 +961,8 @@ class LatexFormatter(TableFormatter):
                     buf.write('\\endfoot\n\n')
                     buf.write('\\bottomrule\n')
                     buf.write('\\endlastfoot\n')
-            if self.fmt.kwds.get('escape', True):
-                # escape backslashes first
-                crow = [(x.replace('\\', '\\textbackslash').replace('_', '\\_')
-                         .replace('%', '\\%').replace('$', '\\$')
-                         .replace('#', '\\#').replace('{', '\\{')
-                         .replace('}', '\\}').replace('~', '\\textasciitilde')
-                         .replace('^', '\\textasciicircum').replace('&', '\\&')
-                         if (x and x != '{}') else '{}') for x in row]
-            else:
-                crow = [x if x else '{}' for x in row]
-            if self.bold_rows and self.fmt.index:
-                # bold row labels
-                crow = ['\\textbf{{{x}}}'.format(x=x)
-                        if j < ilevels and x.strip() not in ['', '{}'] else x
-                        for j, x in enumerate(crow)]
-            if i < clevels and self.fmt.header and self.multicolumn:
-                # sum up columns to multicolumns
-                crow = self._format_multicolumn(crow, ilevels)
-            if (i >= nlevels and self.fmt.index and self.multirow and
-                    ilevels > 1):
-                # sum up rows to multirows
-                crow = self._format_multirow(crow, ilevels, i, strrows)
+
+            crow = self._build_row(i, row, strrows)
             buf.write(' & '.join(crow))
             buf.write(' \\\\\n')
             if self.multirow and i < len(strrows) - 1:
@@ -1004,9 +970,41 @@ class LatexFormatter(TableFormatter):
 
         if not self.longtable:
             buf.write('\\bottomrule\n')
-            buf.write('\\end{tabular}\n')
-        else:
-            buf.write('\\end{longtable}\n')
+        buf.write('\\end{{{typ}}}\n'.format(typ=table_type))
+
+    def _build_row(self, i, row, strrows):
+        crow = self._escape_row(row)
+        ilevels = self.frame.index.nlevels
+        clevels = nlevels = self.frame.columns.nlevels
+        if any(self.frame.index.names):
+            nlevels += 1
+        if self.bold_rows and self.fmt.index:
+            # bold row labels
+            crow = ['\\textbf{{{x}}}'.format(x=x)
+                    if j < ilevels and x.strip() not in ['', '{}'] else x
+                    for j, x in enumerate(crow)]
+        if i < clevels and self.fmt.header and self.multicolumn:
+            # sum up columns to multicolumns
+            crow = self._format_multicolumn(crow, ilevels)
+        if (i >= nlevels and self.fmt.index and self.multirow and
+                    ilevels > 1):
+            # sum up rows to multirows
+            crow = self._format_multirow(crow, ilevels, i, strrows)
+        return crow
+
+    def _escape_row(self, row):
+        print(row)
+        def null_replace(x):
+            if not x or x == '{}':
+                return '{}'
+            return x
+
+        def escape_item(x):
+            x = x.replace('\\', '\\textbackslash')
+            for k, v in LatexFormatter.ESCAPE_MAPPING.items():
+                x = x.replace(k, v)
+            return x
+        return [escape_item(null_replace(x)) if self.fmt.kwds.get('escape', True) and x and x != '{}' else null_replace(x) for x in row]
 
     def _format_multicolumn(self, row, ilevels):
         r"""
@@ -1082,6 +1080,37 @@ class LatexFormatter(TableFormatter):
                           .format(cl=cl[1], icol=icol))
         # remove entries that have been written to buffer
         self.clinebuf = [x for x in self.clinebuf if x[0] != i]
+
+    def _rebuild_multi_index(self, strcols):
+        strcols.pop(0)
+        previous_lev3 = None
+        for i, lev in enumerate(self.frame.index.levels):
+            lev2 = lev.format()
+            blank = ' ' * len(lev2[0])
+            # display column names in last index-column
+            if any(self.frame.columns.names) and i == (self.frame.index.nlevels - 1):
+                lev3 = [x if x else '{}' for x in self.frame.columns.names]
+            else:
+                lev3 = [blank] * self.frame.columns.nlevels
+            if any(map(lambda x: False if x is None else True, self.frame.index.names)):
+                if lev.name:
+                    lev3.append(u'{name}'.format(name=lev.name))
+                else:
+                    lev3.append(lev.name)
+            current_idx_val = None
+            for level_idx in self.frame.index.labels[i]:
+                if ((previous_lev3 is None or
+                         previous_lev3[len(lev3)].isspace()) and
+                            lev2[level_idx] == current_idx_val):
+                    # same index as above row and left index was the same
+                    lev3.append(blank)
+                else:
+                    # different value than above or left index different
+                    lev3.append(lev2[level_idx])
+                    current_idx_val = lev2[level_idx]
+            strcols.insert(i, lev3)
+            previous_lev3 = lev3
+        return strcols
 
 
 class HTMLFormatter(TableFormatter):
