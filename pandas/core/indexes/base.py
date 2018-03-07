@@ -1127,17 +1127,18 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx = pd.Index(['Ant', 'Bear', 'Cow'])
+        >>> idx = pd.Index(['Ant', 'Bear', 'Cow'], name='animal')
         >>> idx.to_frame()
-                0
-        Ant    Ant
-        Bear  Bear
-        Cow    Cow
+            animal
+        animal       
+        Ant       Ant
+        Bear     Bear
+        Cow       Cow
 
         By default, the original Index is reused. To enforce a new Index:
 
         >>> idx.to_frame(index=False)
-            0
+            animal
         0   Ant
         1  Bear
         2   Cow
