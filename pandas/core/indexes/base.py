@@ -1110,13 +1110,14 @@ class Index(IndexOpsMixin, PandasObject):
         return Series(self._to_embed(), index=index, name=name)
 
     def to_frame(self, index=True):
-        """Create a DataFrame with a column containing the Index.
+        """
+        Create a DataFrame with a column containing the Index.
 
         .. versionadded:: 0.21.0
 
         Parameters
         ----------
-        index : boolean (default True)
+        index : boolean, default True
             Set the index of the returned DataFrame as the original Index.
 
         Returns
