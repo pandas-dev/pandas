@@ -1041,6 +1041,7 @@ class TestTSPlot(TestPlotBase):
         _, ax = self.plt.subplots()
         _check_plot_works(df.plot, ax=ax)
 
+    @td.xfail_if_mpl_2_2
     @pytest.mark.slow
     def test_time(self):
         t = datetime(1, 1, 1, 3, 30, 0)
@@ -1356,10 +1357,10 @@ class TestTSPlot(TestPlotBase):
         values = [datetime(1677, 1, 1, 12), datetime(1677, 1, 2, 12)]
         ax.plot(values)
 
+    @td.xfail_if_mpl_2_2
     @pytest.mark.skip(
         is_platform_mac(),
         "skip on mac for precision display issue on older mpl")
-    @pytest.mark.xfail(reason="suspect on mpl 2.2.2")
     def test_format_timedelta_ticks_narrow(self):
 
         if self.mpl_ge_2_0_0:
@@ -1381,10 +1382,10 @@ class TestTSPlot(TestPlotBase):
         for l, l_expected in zip(labels, expected_labels):
             assert l.get_text() == l_expected
 
+    @td.xfail_if_mpl_2_2
     @pytest.mark.skip(
         is_platform_mac(),
         "skip on mac for precision display issue on older mpl")
-    @pytest.mark.xfail(reason="suspect on mpl 2.2.2")
     def test_format_timedelta_ticks_wide(self):
 
         if self.mpl_ge_2_0_0:
