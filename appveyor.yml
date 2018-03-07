@@ -73,7 +73,7 @@ install:
   - cmd: conda info -a
 
   # create our env
-  - cmd: conda create -n pandas python=%PYTHON_VERSION% cython pytest>=3.1.0 pytest-xdist
+  - cmd: conda create -n pandas python=%PYTHON_VERSION% cython pytest>=3.1.0
   - cmd: activate pandas
   - cmd: pip install moto
   - SET REQ=ci\requirements-%PYTHON_VERSION%_WIN.run
