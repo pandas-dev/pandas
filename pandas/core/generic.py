@@ -748,6 +748,20 @@ class NDFrame(PandasObject, SelectionMixin):
 
     # ----------------------------------------------------------------------
     # Rename
+    
+    # renamer function if passed a dict
+    def _get_rename_function(mapper):
+        if isinstance(mapper, (dict, ABCSeries)):
+
+            def f(x):
+                if x in mapper:
+                    return mapper[x]
+                else:
+                    return x
+        else:
+            f = mapper
+
+        return f
 
     # TODO: define separate funcs for DataFrame, Series and Panel so you can
     # get completion on keyword arguments.
@@ -874,20 +888,6 @@ class NDFrame(PandasObject, SelectionMixin):
         if com._count_not_none(*axes.values()) == 0:
             raise TypeError('must pass an index to rename')
 
-        # renamer function if passed a dict
-        def _get_rename_function(mapper):
-            if isinstance(mapper, (dict, ABCSeries)):
-
-                def f(x):
-                    if x in mapper:
-                        return mapper[x]
-                    else:
-                        return x
-            else:
-                f = mapper
-
-            return f
-
         self._consolidate_inplace()
         result = self if inplace else self.copy(deep=copy)
 
@@ -896,7 +896,7 @@ class NDFrame(PandasObject, SelectionMixin):
             v = axes.get(self._AXIS_NAMES[axis])
             if v is None:
                 continue
-            f = _get_rename_function(v)
+            f = self._get_rename_function(v)
 
             baxis = self._get_block_manager_axis(axis)
             if level is not None:
@@ -964,13 +964,18 @@ class NDFrame(PandasObject, SelectionMixin):
         if non_mapper:
             return self._set_axis_name(mapper, axis=axis, inplace=inplace)
         else:
-            msg = ("Using 'rename_axis' to alter labels is deprecated. "
-                   "Use '.rename' instead")
-            warnings.warn(msg, FutureWarning, stacklevel=2)
-            axis = self._get_axis_name(axis)
-            d = {'copy': copy, 'inplace': inplace}
-            d[axis] = mapper
-            return self.rename(**d)
+#             msg = ("Using 'rename_axis' to alter labels is deprecated. "
+#                    "Use '.rename' instead")
+#             warnings.warn(msg, FutureWarning, stacklevel=2)
+#             axis = self._get_axis_name(axis)
+#             d = {'copy': copy, 'inplace': inplace}
+#             d[axis] = mapper
+#             return self.rename(**d)
+            f = self._get_rename_function(mapper)
+            curnames = self._get_axis(axis).names
+            newnames = [f(name) for name in curnames]
+            return self._set_axis_name(newnames, axis=axis, inplace=inplace)
+            
 
     def _set_axis_name(self, name, axis=0, inplace=False):
         """

@@ -451,25 +451,46 @@ class TestDataFrameAlterAxes(TestData):
         assert no_return is None
         assert_frame_equal(result, expected)
 
-    def test_rename_axis_warns(self):
-        # https://github.com/pandas-dev/pandas/issues/17833
-        df = pd.DataFrame({"A": [1, 2], "B": [1, 2]})
-        with tm.assert_produces_warning(FutureWarning) as w:
-            df.rename_axis(id, axis=0)
-            assert 'rename' in str(w[0].message)
+#     def test_rename_axis_warns(self):
+#         # https://github.com/pandas-dev/pandas/issues/17833
+#         df = pd.DataFrame({"A": [1, 2], "B": [1, 2]})
+#         with tm.assert_produces_warning(FutureWarning) as w:
+#             df.rename_axis(id, axis=0)
+#             assert 'rename' in str(w[0].message)
+# 
+#         with tm.assert_produces_warning(FutureWarning) as w:
+#             df.rename_axis({0: 10, 1: 20}, axis=0)
+#             assert 'rename' in str(w[0].message)
+# 
+#         with tm.assert_produces_warning(FutureWarning) as w:
+#             df.rename_axis(id, axis=1)
+#             assert 'rename' in str(w[0].message)
+# 
+#         with tm.assert_produces_warning(FutureWarning) as w:
+#             df['A'].rename_axis(id)
+#             assert 'rename' in str(w[0].message)
 
-        with tm.assert_produces_warning(FutureWarning) as w:
-            df.rename_axis({0: 10, 1: 20}, axis=0)
-            assert 'rename' in str(w[0].message)
+    def test_rename_axis_mapper(self):
+        mi = pd.MultiIndex.from_product([['a', 'b', 'c'], [1, 2]],
+                                        names=['ll', 'nn'])
 
-        with tm.assert_produces_warning(FutureWarning) as w:
-            df.rename_axis(id, axis=1)
-            assert 'rename' in str(w[0].message)
-
-        with tm.assert_produces_warning(FutureWarning) as w:
-            df['A'].rename_axis(id)
-            assert 'rename' in str(w[0].message)
-
+        df = pd.DataFrame({'x': [i for i in range(len(mi))],
+                           'y' : [i*10 for i in range(len(mi))]},
+                          index=mi)
+        result = df.rename_axis('cols', axis=1)
+        tm.assert_index_equal(result.columns, 
+                              pd.Index(['x', 'y'], name='cols'))
+        
+        result = result.rename_axis({'cols' : 'new'}, axis=1)
+        tm.assert_index_equal(result.columns, 
+                              pd.Index(['x', 'y'], name='new'))
+        
+        result = df.rename_axis({'ll' : 'foo'})
+        assert result.index.names == ['foo', 'nn']
+        
+        result = df.rename_axis(str.upper, axis=0)
+        assert result.index.names == ['LL', 'NN']
+        
     def test_rename_multiindex(self):
 
         tuples_index = [('foo1', 'bar1'), ('foo2', 'bar2')]
