@@ -1072,17 +1072,6 @@ class TestIndex(Base):
         assert tm.equalContents(result, expected)
         assert result.name == 'new_name'
 
-    def test_intersection_difference(self):
-        # Test that the intersection of an index with an
-        # empty index produces the same index as the difference
-        # of an index with itself.  Test for all types
-        skip_index_keys = ['repeats']
-        for key, id in self.indices.items():
-            if key not in skip_index_keys:
-                inter = id.intersection(self.create_empty_index(id))
-                diff = id.difference(id)
-                tm.assert_index_equal(inter, diff)
-
     def test_is_numeric(self):
         assert not self.dateIndex.is_numeric()
         assert not self.strIndex.is_numeric()
