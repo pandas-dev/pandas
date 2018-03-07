@@ -911,8 +911,8 @@ class _Rolling_and_Expanding(_Rolling):
     Returns
     -------
     Series or DataFrame
-        Returned object type is dictated by the caller of the %(name)s
-            calculation
+        Returned object type is determined by the caller of the %(name)s
+        calculation
 
     See Also
     --------
@@ -939,8 +939,8 @@ class _Rolling_and_Expanding(_Rolling):
     -1.200000
     >>> print(fmt.format(scipy.stats.kurtosis(arr[1:], bias=False)))
     3.999946
-    >>> ser = pd.Series(arr)
-    >>> ser.rolling(4).kurt()
+    >>> s = pd.Series(arr)
+    >>> s.rolling(4).kurt()
     0         NaN
     1         NaN
     2         NaN
