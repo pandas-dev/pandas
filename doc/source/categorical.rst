@@ -177,7 +177,7 @@ are consistent among all columns.
 .. note::
 
     To perform table-wise conversion, where all labels in the entire ``DataFrame`` are used as
-    categories for each column, the ``categories`` parameter can be determined programatically by
+    categories for each column, the ``categories`` parameter can be determined programmatically by
     ``categories = pd.unique(df.values.ravel())``.
 
 If you already have ``codes`` and ``categories``, you can use the 

@@ -4757,7 +4757,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
             keys=self._selected_obj.columns, axis=1)
 
     def _fill(self, direction, limit=None):
-        """Overriden method to join grouped columns in output"""
+        """Overridden method to join grouped columns in output"""
         res = super(DataFrameGroupBy, self)._fill(direction, limit=limit)
         output = collections.OrderedDict(
             (grp.name, grp.grouper) for grp in self.grouper.groupings)
