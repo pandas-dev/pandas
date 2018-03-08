@@ -30,6 +30,7 @@ from pandas.compat import (StringIO, lzip, map, zip, u)
 
 from pandas.io.formats.html import HTMLFormatter
 from pandas.io.formats.latex import LatexFormatter
+from pandas.io.formats.csv import CSVFormatter
 
 from pandas.io.formats.terminal import get_terminal_size
 from pandas.core.config import get_option, set_option

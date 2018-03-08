@@ -48,6 +48,11 @@ def get_level_lengths(levels, sentinel=''):
 
 
 def buffer_put_lines(buf, lines):
+    """
+    Appends lines to a buffer
+    :param buf: the buffer to write to
+    :param lines: the lines to append
+    """
     if any(isinstance(x, compat.text_type) for x in lines):
         lines = [compat.text_type(x) for x in lines]
     buf.write('\n'.join(lines))
