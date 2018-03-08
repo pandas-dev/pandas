@@ -81,25 +81,44 @@ cdef class Interval(IntervalMixin):
 
     Parameters
     ----------
-    left : value
-        Left bound for the interval
-    right : value
-        Right bound for the interval
+    left : orderable object
+        Left bound for the interval.
+    right : orderable object
+        Right bound for the interval.
     closed : {'left', 'right', 'both', 'neither'}, default 'right'
         Whether the interval is closed on the left-side, right-side, both or
-        neither
+        neither.
+    
+    Notes
+    -----
+    You must be able to compare the parameters **left** and **right**,
+    and they must satisfy **left <= right**. 
 
     Examples
     --------
+    The examples below show how you can build Intervals of various types
+    of elements. In particular a numeric interval, a time interval and
+    finally a string interval. Given an Interval you can check whether 
+    an element belongs to it.
+
     >>> iv = pd.Interval(left=0, right=5)
     >>> iv
     Interval(0, 5, closed='right')
     >>> 2.5 in iv
     True
-
+    >>> shifted_iv = iv + 3
+    >>> shifted_iv 
+    Interval(3, 8, closed='right')
+    
     >>> year_2017 = pd.Interval(pd.Timestamp('2017-01-01'),
     ...                         pd.Timestamp('2017-12-31'), closed='both')
     >>> pd.Timestamp('2017-01-01 00:00') in year_2017
+    True
+    >>> year_2017.length
+    Timedelta('364 days 00:00:00')
+
+    >>> volume_1 = pd.Interval('Ant','Dog',closed='both')
+    >>> 'Bee' in volume_1
     True
 
     See Also
