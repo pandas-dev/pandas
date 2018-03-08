@@ -25,6 +25,11 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         include_lowest=False):
     """
     Return indices of half-open `bins` to which each value of `x` belongs.
+
+    Use `cut` when you need to segment and sort data values into bins or 
+    buckets of data. This function is also useful for going from a continuous
+    variable to a categorical variable. For example, `cut` could convert ages
+    to groups of age ranges.
     
     Parameters
     ----------
@@ -74,10 +79,6 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
 
     Notes
     -----
-    The `cut` function is useful for going from a continuous variable to
-    a categorical variable. For example, `cut` could convert ages to groups
-    of age ranges.
-
     Any NA values will be NA in the result. Out of bounds values will be NA in
     the resulting pandas.Categorical object.
 
@@ -95,7 +96,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     Categories (3, object): [good < medium < bad]
 
     >>> pd.cut(np.ones(5), 4, labels=False)
-    array([1, 1, 1, 1, 1])
+    array([1, 1, 1, 1, 1], dtype=int64)
     """
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
 
