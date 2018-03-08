@@ -906,7 +906,8 @@ class _Rolling_and_Expanding(_Rolling):
 
     Parameters
     ----------
-    kwargs : Under Review
+    **kwargs
+        Under Review.
 
     Returns
     -------
