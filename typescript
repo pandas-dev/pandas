@@ -1,135 +1,0 @@
-Script started on 2018-03-06 11:15:57+0530
-[1m[7m#[27m[1m[0m                                                                                ]2;root@localhost: /home/ihackpy/Panda/pandas-dir]1;..da/pandas-dir[0m[27m[24m[J[01;32m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [K[?1h=[?2004hlls[?1l>[?2004l
-]2;ls --color=tty]1;lsappveyor.yml  [0m[01;34mconda.recipe[0m  [01;34mpandas[0m            setup.cfg        [01;32mtest.sh[0m
-[01;34masv_bench[0m     [01;34mdoc[0m           pyproject.toml    [01;32msetup.py[0m         tox.ini
-AUTHORS.md    LICENSE       README.md         test.bat         typescript
-[01;34mci[0m            [01;34mLICENSES[0m      RELEASE.md        test_fast.bat    versioneer.py
-circle.yml    Makefile      [01;32mrelease_stats.sh[0m  [01;32mtest_fast.sh[0m
-codecov.yml   MANIFEST.in   [01;34mscripts[0m           [01;32mtest_rebuild.sh[0m
-[1m[7m#[27m[1m[0m                                                                                ]2;root@localhost: /home/ihackpy/Panda/pandas-dir]1;..da/pandas-dir[0m[27m[24m[J[01;32m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [K[?1h=[?2004hccd..[?1l>[?2004l
-]2;cd..]1;cd..zsh: command not found: cd..
-[1m[7m#[27m[1m[0m                                                                                ]2;root@localhost: /home/ihackpy/Panda/pandas-dir]1;..da/pandas-dir[0m[27m[24m[J[01;31m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [K[?1h=[?2004hccd ..[?1l>[?2004l
-]2;cd ..]1;cd[1m[7m#[27m[1m[0m                                                                                ]2;root@localhost: /home/ihackpy/Panda]1;..ihackpy/Panda[0m[27m[24m[J[01;32m➜  [36mPanda[00m [K[?1h=[?2004hlls[?1l>[?2004l
-]2;ls --color=tty]1;ls[0m[01;34mpandas-dir[0m
-[1m[7m#[27m[1m[0m                                                                                ]2;root@localhost: /home/ihackpy/Panda]1;..ihackpy/Panda[0m[27m[24m[J[01;32m➜  [36mPanda[00m [K[?1h=[?2004hssource[1m [0m[0m .pan        s  zzsh[?1l>[?2004l
-]2;zsh]1;zsh[1m[7m#[27m[1m[0m                                                                                ]2;root@localhost: /home/ihackpy/Panda]1;..ihackpy/Panda[0m[27m[24m[J[01;32m➜  [36mPanda[00m [K[?1h=[?2004hlls[?1l>[?2004l
-]2;ls --color=tty]1;ls[0m[01;34mpandas-dir[0m
-[1m[7m#[27m[1m[0m                                                                                ]2;root@localhost: /home/ihackpy/Panda]1;..ihackpy/Panda[0m[27m[24m[J[01;32m➜  [36mPanda[00m [K[?1h=[?2004hssource[1m [0m[0m ~/.pa    [?1l>[?2004l
-]2;source ~]1;source[1m[7m#[27m[1m[0m                                                                                ]2;root@localhost: /home/ihackpy/Panda]1;..ihackpy/Panda[0m[27m[24m[J[01;32m➜  [36mPanda[00m [K[?1h=[?2004hssource[1m [0m[0m .
-zsh: do you wish to see all 116 possibilities (58 lines)? p[J[A[0m[27m[24m[9Csource .[Ka panda          s  ccd ..[?1l>[?2004l
-[J]2;cd ..]1;cd[1m[7m#[27m[1m[0m                                                                                ]2;root@localhost: /home/ihackpy]1;/home/ihackpy[0m[27m[24m[J[01;32m➜  [36mihackpy[00m [K[?1h=[?2004hlls[?1l>[?2004l
-]2;ls --color=tty]1;lscore              [0m[01;31mFirefoxSetup.tar.bz2[0m  [34;42mPanda[0m        README.md        [01;34mzeolearn[0m
-[01;34mDesktop[0m           [01;34mflask_form[0m            [01;34mphp_learn[0m    [01;34mreal_world_code[0m  [01;34mzsh_font[0m
-[01;34mdjango-outreachy[0m  mozilla.pdf           [01;34mPictures[0m     [01;34mTemplates[0m
-[01;34mDocuments[0m         [01;34mMusic[0m                 [01;34mPublic[0m       [01;34mtensor[0m
-[01;34mDownloads[0m         [01;34mmusic-django[0m          [01;34mpython_form[0m  [01;34mVideos[0m
-[1m[7m#[27m[1m[0m                                                                                ]2;root@localhost: /home/ihackpy]1;/home/ihackpy[0m[27m[24m[J[01;32m➜  [36mihackpy[00m [K[?1h=[?2004hssource[1m [0m[0m .pandasenv[1m/[0m[0m/spip-selfcheck.json[1m [0m[0m                   
-[J[01;34mbin[0m/                [J[01;34minclude[0m/            [J[01;34mlib[0m/                [Jpip-selfcheck.json[J[A[0m[27m[24m[11Csource .pandasenv/[Kbin[1m/[0m
-[J[7mbin/              [0m  [J[01;34minclude[0m/            [J[01;34mlib[0m/                [Jpip-selfcheck.json[J[A[0m[27m[24m[11Csource .pandasenv/bin[1m/[0m[K
-[7mbin/              [0m  [7mbin/              [0m  [A[0m[27m[24m[11Csource .pandasenv/bin[1m/[0m[K
-[J[A[33C[0m/
-[J[0mactivate           [01;32measy_install[0m*      [01;32mpip3[0m*              [01;36mpython3.6[0m@       
-activate.csh       [01;32measy_install-3.6[0m*  [01;32mpip3.6[0m*            [01;32mpython-config[0m*   
-activate.fish      [01;32mf2py[0m*              [01;36mpython[0m@            [01;32mwheel[0m*           
-[Jactivate_this.py   [J[01;32mpip[0m*               [J[01;32mpython3[0m*           [J                 [4A[0m[27m[24m[11Csource .pandasenv/bin/[Kactivate
-[7mactivate         [0m  [01;32measy_install[0m*      [01;32mpip3[0m*              [01;36mpython3.6[0m@       [K
-activate.csh       [01;32measy_install-3.6[0m*  [01;32mpip3.6[0m*            [01;32mpython-config[0m*   [K
-activate.fish      [01;32mf2py[0m*              [01;36mpython[0m@            [01;32mwheel[0m*           [K
-[Jactivate_this.py   [J[01;32mpip[0m*               [J[01;32mpython3[0m*           [J                 [4A[0m[27m[24m[11Csource .pandasenv/bin/activate[K
-[7mactivate         [0m  [7mactivate         [0m  [A[0m[27m[24m[11Csource .pandasenv/bin/activate[K
-[J[A[41C[1m [0m[0m \ [?1l>[?2004l
-[J]2;source .pandasenv/bin/activate]1;source[1m[7m#[27m[1m[0m                                                                                ]2;root@localhost: /home/ihackpy]1;/home/ihackpy[0m[27m[24m[J(.pandasenv) [01;32m➜  [36mihackpy[00m [K[?1h=[?2004hppanP[2Cda[1m/[0m[0m [?1l>[?2004l
-]2;Panda]1;Panda[1m[7m#[27m[1m[0m                                                                                ]2;root@localhost: /home/ihackpy/Panda]1;..ihackpy/Panda[0m[27m[24m[J(.pandasenv) [01;32m➜  [36mPanda[00m [K[?1h=[?2004hlls[?1l>[?2004l
-]2;ls --color=tty]1;ls[0m[01;34mpandas-dir[0m
-[1m[7m#[27m[1m[0m                                                                                ]2;root@localhost: /home/ihackpy/Panda]1;..ihackpy/Panda[0m[27m[24m[J(.pandasenv) [01;32m➜  [36mPanda[00m [K[?1h=[?2004hppandas-dir[1m/[0m[0m [?1l>[?2004l
-]2;pandas-dir]1;pandas-dir[1m[7m#[27m[1m[0m                                                                                ]2;root@localhost: /home/ihackpy/Panda/pandas-dir]1;..da/pandas-dir[0m[27m[24m[J(.pandasenv) [01;32m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [K[?1h=[?2004hlls[?1l>[?2004l
-]2;ls --color=tty]1;lsappveyor.yml  [0m[01;34mconda.recipe[0m  [01;34mpandas[0m            setup.cfg        [01;32mtest.sh[0m
-[01;34masv_bench[0m     [01;34mdoc[0m           pyproject.toml    [01;32msetup.py[0m         tox.ini
-AUTHORS.md    LICENSE       README.md         test.bat         typescript
-[01;34mci[0m            [01;34mLICENSES[0m      RELEASE.md        test_fast.bat    versioneer.py
-circle.yml    Makefile      [01;32mrelease_stats.sh[0m  [01;32mtest_fast.sh[0m
-codecov.yml   MANIFEST.in   [01;34mscripts[0m           [01;32mtest_rebuild.sh[0m
-[1m[7m#[27m[1m[0m                                                                                ]2;root@localhost: /home/ihackpy/Panda/pandas-dir]1;..da/pandas-dir[0m[27m[24m[J(.pandasenv) [01;32m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [K[?1h=[?2004hggit status[1m [0m[0m [?1l>[?2004l
-]2;git status]1;gitOn branch docstringhead
-Untracked files:
-  (use "git add <file>..." to include in what will be committed)
-
-	[31mtypescript[m
-
-nothing added to commit but untracked files present (use "git add" to track)
-[1m[7m#[27m[1m[0m                                                                                ]2;root@localhost: /home/ihackpy/Panda/pandas-dir]1;..da/pandas-dir[0m[27m[24m[J(.pandasenv) [01;32m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [K[?1h=[?2004hggit check
-[0mcheck-attr       -- display gitattributes information
-check-ignore     -- debug gitignore/exclude files
-check-mailmap    -- show canonical names and email addresses of contacts
-check-ref-format -- ensure that a reference name is well formed
-checkout         -- checkout branch or paths to working tree
-[Jcheckout-index   -- copy files from index to working directory[J[6A[0m[27m[24m[49Cgit check[Kou
-[J[A[60Ct ty           g  lls[?1l>[?2004l
-[J]2;ls --color=tty]1;lsappveyor.yml  [0m[01;34mconda.recipe[0m  [01;34mpandas[0m            setup.cfg        [01;32mtest.sh[0m
-[01;34masv_bench[0m     [01;34mdoc[0m           pyproject.toml    [01;32msetup.py[0m         tox.ini
-AUTHORS.md    LICENSE       README.md         test.bat         typescript
-[01;34mci[0m            [01;34mLICENSES[0m      RELEASE.md        test_fast.bat    versioneer.py
-circle.yml    Makefile      [01;32mrelease_stats.sh[0m  [01;32mtest_fast.sh[0m
-codecov.yml   MANIFEST.in   [01;34mscripts[0m           [01;32mtest_rebuild.sh[0m
-[1m[7m#[27m[1m[0m                                                                                ]2;root@localhost: /home/ihackpy/Panda/pandas-dir]1;..da/pandas-dir[0m[27m[24m[J(.pandasenv) [01;32m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [K[?1h=[?2004hsscr
-[0mscreendump                              scrollkeeper-get-extended-content-list
-SCREEN_NO                               scrollkeeper-get-index-from-docpath   
-script                                  scrollkeeper-get-toc-from-docpath     
-scriptreplay                            scrollkeeper-get-toc-from-id          
-[01;34mscripts[0m/                                scrollkeeper-install                  
-scrollkeeper-config                     scrollkeeper-preinstall               
-scrollkeeper-extract                    scrollkeeper-rebuilddb                
-scrollkeeper-gen-seriesid               scrollkeeper-uninstall                
-scrollkeeper-get-cl                     scrollkeeper-update                   
-[Jscrollkeeper-get-content-list           [J                                      [10A[0m[27m[24m[49Cscr[Keendump
-[7mscreendump                            [0m  scrollkeeper-get-extended-content-list[K
-SCREEN_NO                               scrollkeeper-get-index-from-docpath   [K
-script                                  scrollkeeper-get-toc-from-docpath     [K
-scriptreplay                            scrollkeeper-get-toc-from-id          [K
-[01;34mscripts[0m/                                scrollkeeper-install                  [K
-scrollkeeper-config                     scrollkeeper-preinstall               [K
-scrollkeeper-extract                    scrollkeeper-rebuilddb                [K
-scrollkeeper-gen-seriesid               scrollkeeper-uninstall                [K
-scrollkeeper-get-cl                     scrollkeeper-update                   [K
-[Jscrollkeeper-get-content-list           [J                                      [10A[0m[27m[24m[49Cscreendump[K
-[7mscreendump                            [0m  [7mscreendump                            [0m  [A[0m[27m[24m[49Cscreendump[K[10DSCREEN_NO[1m=[0m
-[0mscreendump                              [1B[7mSCREEN_NO                             [0m  [A[A[0m[27m[24m[49CSCREEN_NO[1m=[0m[K[10Dscript   [0m 
-[1B[0mSCREEN_NO                               [1B[7mscript                                [0m  [3A[0m[27m[24m[49Cscript[Kreplay
-[2B[0mscript                                  [1B[7mscriptreplay                          [0m  [4A[0m[27m[24m[49Cscriptreplay[Ks[1m/[0m    
-[3B[0mscriptreplay                            [1B[7mscripts/                              [0m  [5A[0m[27m[24m[49Cscripts[1m/[0m[K
-[J[A[57C[0m [?1l>[?2004l
-[J]2;scripts]1;scripts[1m[7m#[27m[1m[0m                                                                                ]2;root@localhost: /home/ihackpy/Panda/pandas-dir/scripts]1;..s-dir/scripts[0m[27m[24m[J(.pandasenv) [01;32m➜  [36mscripts[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [K[?1h=[?2004hlls[?1l>[?2004l
-]2;ls --color=tty]1;ls[0m[01;32mannounce.py[0m                [01;32mfind_commits_touching_func.py[0m
-[01;32mapi_rst_coverage.py[0m        [01;32mfind_undoc_args.py[0m
-[01;32mbuild_dist_for_release.sh[0m  [01;32mlist_future_warnings.sh[0m
-[01;32mbuild_dist.sh[0m              [01;32mmerge-pr.py[0m
-[01;32mconvert_deps.py[0m            [01;32mvalidate_docstrings.py[0m
-[1m[7m#[27m[1m[0m                                                                                ]2;root@localhost: /home/ihackpy/Panda/pandas-dir/scripts]1;..s-dir/scripts[0m[27m[24m[J(.pandasenv) [01;32m➜  [36mscripts[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [K[?1h=[?2004hvvalidlocale[1m [0m[0m          v  vvalidate[8D-validate[9Dvalidate [9D[1C[1C[1C[1C[1C[1C[1C[1C_docstrings.py [0m[27m[24m[J(.pandasenv) [01;32m➜  [36mscripts[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m validate_docstrings.py [0m[27m[24m[J(.pandasenv) [01;32m➜  [36mscripts[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m validate_docstrings.py[K[1C[0m[27m[24m[J�?'�Uvalidate_docstrings.py [0m[27m[24m[J(.pandasenv) [01;32m➜  [36mscripts[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m validate_docstrings.py[K[1C[0m[27m[24m[J�?'�Uvalidate_docstrings.py [0m[27m[24m[J(.pandasenv) [01;32m➜  [36mscripts[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m validate_docstrings.py  [K[A[0m[27m[24m[J�?'�Uvalidate_docstrings.py 
-[K[A[28C[0m[27m[24m[J(.pandasenv) [01;32m➜  [36mscripts[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m validate_docstrings.py[K[1C[A[0m[27m[24m[J�?'�Uvalidate_docstrings.py 
-[K[A[28C[0m[27m[24m[J(.pandasenv) [01;32m➜  [36mscripts[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m validate_docstrings.py[K[1C[A[0m[27m[24m[J(.pandasenv) [01;32m➜  [36mscripts[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m validate_docstrings.py [A[0m[27m[24m[J�?'�Uvalidate_docstrings.py 
-[K[A[28C[0m[27m[24m[J(.pandasenv) [01;32m➜  [36mscripts[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m validate_docstrings.py[K[1C[A[0m[27m[24m[J�?'�Uvalidate_docstrings.py 
-[K[A[28C[0m[27m[24m[J(.pandasenv) [01;32m➜  [36mscripts[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m validate_docstrings.py[K[1C[A[0m[27m[24m[J(.pandasenv) [01;32m➜  [36mscripts[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m validate_docstrings.py [A[0m[27m[24m[J(.pandasenv) [01;32m➜  [36mscripts[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m validate_docstrings.py [A[0m[27m[24m[J(.pandasenv) [01;32m➜  [36mscripts[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m validate_docstrings.py [A[0m[27m[24m[J(.pandasenv) [01;32m➜  [36mscripts[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m validate_docstrings.py [A[0m[27m[24m[J(.pandasenv) [01;32m➜  [36mscripts[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m validate_docstrings.py [A[0m[27m[24m[J�?'�Uvalidate_docstrings.py 
-[K[A[28C[0m[27m[24m[J(.pandasenv) [01;32m➜  [36mscripts[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m validate_docstrings.py[K[1C[A[0m[27m[24m[J�?'�Uvalidate_docstrings.py 
-[K[A[28C[0m[27m[24m[J(.pandasenv) [01;32m➜  [36mscripts[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m validate_docstrings.py[K[1C[A[0m[27m[24m[J(.pandasenv) [01;32m➜  [36mscripts[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m validate_docstrings.py [A[0m[27m[24m[J(.pandasenv) [01;32m➜  [36mscripts[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m validate_docstrings.py [A[0m[27m[24m[J(.pandasenv) [01;32m➜  [36mscripts[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m validate_docstrings.py pandas.DatetimeIndex.tz_localize[?1l>[?2004l
-]2;validate_docstrings.py pandas.DatetimeIndex.tz_localize]1;validate_docstrings.pyzsh: command not found: validate_docstrings.py
-[1m[7m#[27m[1m[0m                                                          ]2;root@localhost: /home/ihackpy/Panda/pandas-dir/scripts]1;..s-dir/scripts[0m[27m[24m[J(.pandasenv) [01;31m➜  [36mscripts[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [K[?1h=[?2004hccd ..[?1l>[?2004l
-]2;cd ..]1;cd[1m[7m#[27m[1m[0m                                                          ]2;root@localhost: /home/ihackpy/Panda/pandas-dir]1;..da/pandas-dir[0m[27m[24m[J(.pandasenv) [01;32m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [K[?1h=[?2004hsscripts[1m/[0m[0m/v [Kaalidate_docstrings.py[1m [0m[0m pandas.DatetimeIndex.tz_localize[?1l>[?2004l
-]2;scripts/validate_docstrings.py pandas.DatetimeIndex.tz_localize]1;scripts/validate_docstrings.pyTraceback (most recent call last):
-  File "/home/ihackpy/Panda/pandas-dir/pandas/__init__.py", line 26, in <module>
-    from pandas._libs import (hashtable as _hashtable,
-  File "/home/ihackpy/Panda/pandas-dir/pandas/_libs/__init__.py", line 4, in <module>
-    from .tslib import iNaT, NaT, Timestamp, Timedelta, OutOfBoundsDatetime
-ModuleNotFoundError: No module named 'pandas._libs.tslib'
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "scripts/validate_docstrings.py", line 36, in <module>
-    import pandas
-  File "/home/ihackpy/Panda/pandas-dir/pandas/__init__.py", line 35, in <module>
-    "the C extensions first.".format(module))
-ImportError: C extension: No module named 'pandas._libs.tslib' not built. If you want to import pandas from the source directory, you may need to run 'python setup.py build_ext --inplace --force' to build the C extensions first.
-[1m[7m#[27m[1m[0m                                                          ]2;root@localhost: /home/ihackpy/Panda/pandas-dir]1;..da/pandas-dir[0m[27m[24m[J(.pandasenv) [01;31m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [K[?1h=[?2004h[0m[27m[24m[J(.pandasenv) [01;31m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [0m[27m[24m[J(.pandasenv) [01;31m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [0m[27m[24m[J(.pandasenv) [01;31m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [0m[27m[24m[J(.pandasenv) [01;31m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [0m[27m[24m[J(.pandasenv) [01;31m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [0m[27m[24m[J�rJ'�U[0m[27m[24m[J(.pandasenv) [01;31m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [K[0m[27m[24m[J(.pandasenv) [01;31m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [0m[27m[24m[J(.pandasenv) [01;31m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [0m[27m[24m[J(.pandasenv) [01;31m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [0m[27m[24m[J(.pandasenv) [01;31m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [0m[27m[24m[J(.pandasenv) [01;31m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [0m[27m[24m[J(.pandasenv) [01;31m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [0m[27m[24m[J(.pandasenv) [01;31m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [0m[27m[24m[J�rJ'�U[0m[27m[24m[J(.pandasenv) [01;31m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [K[0m[27m[24m[J�rJ'�U[0m[27m[24m[J(.pandasenv) [01;31m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [K[0m[27m[24m[J(.pandasenv) [01;31m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [0m[27m[24m[J(.pandasenv) [01;31m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [0m[27m[24m[J�rJ'�U[0m[27m[24m[J(.pandasenv) [01;31m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [K[0m[27m[24m[J�rJ'�U[0m[27m[24m[J(.pandasenv) [01;31m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [K[0m[27m[24m[J�rJ'�U[0m[27m[24m[J(.pandasenv) [01;31m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [K[0m[27m[24m[J�rJ'�U[0m[27m[24m[J(.pandasenv) [01;31m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [K[0m[27m[24m[J�rJ'�U[0m[27m[24m[J(.pandasenv) [01;31m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [K[0m[27m[24m[J�rJ'�U[0m[27m[24m[J(.pandasenv) [01;31m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [K[0m[27m[24m[J�rJ'�U[0m[27m[24m[J(.pandasenv) [01;31m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [K[0m[27m[24m[J(.pandasenv) [01;31m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [0m[27m[24m[J(.pandasenv) [01;31m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [0m[27m[24m[J(.pandasenv) [01;31m➜  [36mpandas-dir[00m [01;34mgit:([31mdocstringhead[34m) [33m✗[00m [?2004l
-[1m[7m#[27m[1m[0m                                                                                                  ]2;root@localhost: /home/ihackpy/Panda]1;..ihackpy/Panda[0m[27m[24m[J[01;31m➜  [36mPanda[00m [K[?1h=[?2004h[?2004l
-
-Script done on 2018-03-06 12:01:54+0530
