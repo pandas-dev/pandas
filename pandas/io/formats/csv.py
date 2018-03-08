@@ -5,9 +5,6 @@ Module for formatting output data into CSV files.
 
 from __future__ import print_function
 
-import csv
-import numpy as np
-
 from pandas.core.dtypes.missing import notna
 from pandas.core.index import Index, MultiIndex
 from pandas import compat
@@ -18,6 +15,9 @@ from pandas.io.common import (_get_handle, UnicodeWriter, _expand_user,
 from pandas._libs import writers as libwriters
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
+
+import csv as csvlib
+import numpy as np
 
 
 class CSVFormatter(object):
@@ -49,10 +49,10 @@ class CSVFormatter(object):
         self.compression = compression
 
         if quoting is None:
-            quoting = csv.QUOTE_MINIMAL
+            quoting = csvlib.QUOTE_MINIMAL
         self.quoting = quoting
 
-        if quoting == csv.QUOTE_NONE:
+        if quoting == csvlib.QUOTE_NONE:
             # prevents crash in _csv
             quotechar = None
         self.quotechar = quotechar
@@ -143,7 +143,7 @@ class CSVFormatter(object):
                                  escapechar=self.escapechar,
                                  quotechar=self.quotechar)
             if encoding == 'ascii':
-                self.writer = csv.writer(f, **writer_kwargs)
+                self.writer = csvlib.writer(f, **writer_kwargs)
             else:
                 writer_kwargs['encoding'] = encoding
                 self.writer = UnicodeWriter(f, **writer_kwargs)
