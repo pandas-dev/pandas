@@ -28,9 +28,9 @@ from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas import compat
 from pandas.compat import (StringIO, lzip, map, zip, u)
 
-from pandas.io.formats.html import HTMLFormatter
-from pandas.io.formats.latex import LatexFormatter
-from pandas.io.formats.csv import CSVFormatter
+from pandas.io.formats.html_format import HTMLFormatter
+from pandas.io.formats.latex_format import LatexFormatter
+from pandas.io.formats.csv_format import CSVFormatter
 
 from pandas.io.formats.terminal import get_terminal_size
 from pandas.core.config import get_option, set_option
