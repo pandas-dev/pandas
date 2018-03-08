@@ -47,7 +47,7 @@ def get_level_lengths(levels, sentinel=''):
     return result
 
 
-def _put_lines(buf, lines):
+def buffer_put_lines(buf, lines):
     if any(isinstance(x, compat.text_type) for x in lines):
         lines = [compat.text_type(x) for x in lines]
     buf.write('\n'.join(lines))

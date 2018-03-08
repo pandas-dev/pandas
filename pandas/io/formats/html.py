@@ -16,7 +16,7 @@ from pandas.compat import (lzip, range, map, zip, u,
 from pandas.core.config import get_option
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.formats.common import get_level_lengths, \
-    TableFormatter, _put_lines
+    TableFormatter, buffer_put_lines
 
 
 class HTMLFormatter(TableFormatter):
@@ -189,7 +189,7 @@ class HTMLFormatter(TableFormatter):
         if self.notebook:
             self.write('</div>')
 
-        _put_lines(buf, self.elements)
+        buffer_put_lines(buf, self.elements)
 
     def _write_header(self, indent):
         truncate_h = self.fmt.truncate_h
