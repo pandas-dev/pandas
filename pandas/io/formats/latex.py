@@ -25,7 +25,7 @@ class LatexFormatter(TableFormatter):
     longtable : boolean, default False
         Use a longtable environment instead of tabular.
 
-    See also
+    See Also
     --------
     HTMLFormatter
     """
