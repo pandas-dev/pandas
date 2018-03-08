@@ -7,11 +7,11 @@ pandas docstring guide
 About docstrings and standards
 ------------------------------
 
-A Python docstring is a string used to document a Python function or method,
-so programmers can understand what it does without having to read the details
-of the implementation.
+A Python docstring is a string used to document a Python module, class,
+function or method, so programmers can understand what it does without having
+to read the details of the implementation.
 
-Also, it is a commonn practice to generate online (html) documentation
+Also, it is a common practice to generate online (html) documentation
 automatically from docstrings. `Sphinx <http://www.sphinx-doc.org>`_ serves
 this purpose.
 
@@ -91,22 +91,33 @@ General rules
 ~~~~~~~~~~~~~
 
 Docstrings must be defined with three double-quotes. No blank lines should be
-left before or after the docstring. The text starts immediately after the
-opening quotes (not in the next line). The closing quotes have their own line
+left before or after the docstring. The text starts in the next line after the
+opening quotes. The closing quotes have their own line
 (meaning that they are not at the end of the last sentence).
+
+In rare occasions reST styles like bold text or itallics will be used in
+docstrings, but is it common to have inline code, which is presented between
+backticks. It is considered inline code:
+
+- The name of a parameter
+- Python code, a module, function, built-in, type, literal... (e.g. `os`, `list`, `numpy.abs`, `datetime.date`, `True`)
+- A pandas class (in the form ``:class:`~pandas.Series```)
+- A pandas method (in the form ``:meth:`pandas.Series.sum```)
+- A pandas function (in the form ``:func:`pandas.to_datetime```)
 
 **Good:**
 
 .. code-block:: python
 
-    def func():
-        """Some function.
-
-        With a good docstring.
+    def add_values(arr):
         """
-        foo = 1
-        bar = 2
-        return foo + bar
+        Add the values in `arr`.
+
+        This is equivalent to Python `sum` of :meth:`pandas.Series.sum`.
+
+        Some sections are omitted here for simplicity.
+        """
+        return sum(arr)
 
 **Bad:**
 
@@ -114,19 +125,18 @@ opening quotes (not in the next line). The closing quotes have their own line
 
     def func():
 
-        """
-        Some function.
+        """Some function.
 
         With several mistakes in the docstring.
-        
+
         It has a blank like after the signature `def func():`.
-        
-        The text 'Some function' should go in the same line as the
-        opening quotes of the docstring, not in the next line.
-        
+
+        The text 'Some function' should go in the line after the
+        opening quotes of the docstring, not in the same line.
+
         There is a blank line between the docstring and the first line
         of code `foo = 1`.
-        
+
         The closing quotes should be in the next line, not in this one."""
 
         foo = 1
@@ -141,16 +151,18 @@ Section 1: Short summary
 The short summary is a single sentence that express what the function does in a
 concise way.
 
-The short summary must start with a verb infinitive, end with a dot, and fit in
-a single line. It needs to express what the function does without providing
-details.
+The short summary must start with a capital letter, end with a dot, and fit in
+a single line. It needs to express what the object does without providing
+details. For functions and methods, the short summary must start with an
+infinitive verb.
 
 **Good:**
 
 .. code-block:: python
 
     def astype(dtype):
-        """Cast Series type.
+        """
+        Cast Series type.
 
         This section will provide further details.
         """
@@ -161,28 +173,32 @@ details.
 .. code-block:: python
 
     def astype(dtype):
-        """Casts Series type.
+        """
+        Casts Series type.
 
         Verb in third-person of the present simple, should be infinitive.
         """
         pass
 
     def astype(dtype):
-        """Method to cast Series type.
+        """
+        Method to cast Series type.
 
         Does not start with verb.
         """
         pass
 
     def astype(dtype):
-        """Cast Series type
+        """
+        Cast Series type
 
         Missing dot at the end.
         """
         pass
 
     def astype(dtype):
-        """Cast Series type from its current type to the new type defined in
+        """
+        Cast Series type from its current type to the new type defined in
         the parameter dtype.
 
         Summary is too verbose and doesn't fit in a single line.
@@ -201,10 +217,14 @@ go in other sections.
 A blank line is left between the short summary and the extended summary. And
 every paragraph in the extended summary is finished by a dot.
 
+The extended summary should provide details on why the function is useful and
+their use cases, if it is not too generic.
+
 .. code-block:: python
 
     def unstack():
-        """Pivot a row index to columns.
+        """
+        Pivot a row index to columns.
 
         When using a multi-index, a level can be pivoted so each value in
         the index becomes a column. This is especially useful when a subindex
@@ -238,12 +258,20 @@ required to have a line with the parameter description, which is indented, and
 can have multiple lines. The description must start with a capital letter, and
 finish with a dot.
 
-Keyword arguments with a default value, the default will be listed in brackets
-at the end of the description (before the dot). The exact form of the
-description in this case would be "Description of the arg (default is X).". In
-some cases it may be useful to explain what the default argument means, which
-can be added after a comma "Description of the arg (default is -1, which means
-all cpus).".
+For keyword arguments with a default value, the default will be listed after a
+comma at the end of the type. The exact form of the type in this case will be
+"int, default 0". In some cases it may be useful to explain what the default
+argument means, which can be added after a comma "int, default -1, meaning all
+cpus".
+
+In cases where the default value is `None`, meaning that the value will not be
+used. Instead of "str, default None" is preferred "str, optional".
+When `None` is a value being used, we will keep the form "str, default None".
+For example, in `df.to_csv(compression=None)`, `None` is not a value being used,
+but means that compression is optional, and no compression is being used if not
+provided. In this case we will use `str, optional`. Only in cases like
+`func(value=None)` and `None` is being used in the same way as `0` or `foo`
+would be used, then we will specify "str, int or None, default None".
 
 **Good:**
 
@@ -251,7 +279,8 @@ all cpus).".
 
     class Series:
         def plot(self, kind, color='blue', **kwargs):
-            """Generate a plot.
+            """
+            Generate a plot.
 
             Render the data in the Series as a matplotlib plot of the
             specified kind.
@@ -260,8 +289,8 @@ all cpus).".
             ----------
             kind : str
                 Kind of matplotlib plot.
-            color : str
-                Color name or rgb code (default is 'blue').
+            color : str, default 'blue'
+                Color name or rgb code.
             **kwargs
                 These parameters will be passed to the matplotlib plotting
                 function.
@@ -274,14 +303,15 @@ all cpus).".
 
     class Series:
         def plot(self, kind, **kwargs):
-            """Generate a plot.
+            """
+            Generate a plot.
 
             Render the data in the Series as a matplotlib plot of the
             specified kind.
 
             Note the blank line between the parameters title and the first
-            parameter. Also, not that after the name of the parameter `kind`
-            and before the colo, a space is missing.
+            parameter. Also, note that after the name of the parameter `kind`
+            and before the colon, a space is missing.
 
             Also, note that the parameter descriptions do not start with a
             capital letter, and do not finish with a dot.
@@ -302,26 +332,33 @@ Parameter types
 ^^^^^^^^^^^^^^^
 
 When specifying the parameter types, Python built-in data types can be used
-directly:
+directly (the Python type is preferred to the more verbose string, integer,
+boolean, etc):
 
 - int
 - float
 - str
 - bool
 
-For complex types, define the subtypes:
+For complex types, define the subtypes. For `dict` and `tuple`, as more than
+one type is present, we use the brackets to help read the type (curly brackets
+for `dict` and normal brackets for `tuple`):
 
-- list of [int]
+- list of int
 - dict of {str : int}
 - tuple of (str, int, int)
-- set of {str}
+- tuple of (str,)
+- set of str
 
-In case there are just a set of values allowed, list them in curly brackets
-and separated by commas (followed by a space). If one of them is the default
-value of a keyword argument, it should be listed first.:
+In case where there are just a set of values allowed, list them in curly
+brackets and separated by commas (followed by a space). If the values are
+ordinal and they have an order, list them in this order. Otherwuse, list
+the default value first, if there is one:
 
 - {0, 10, 25}
 - {'simple', 'advanced'}
+- {'low', 'medium', 'high'}
+- {'cat', 'dog', 'bird'}
 
 If the type is defined in a Python module, the module must be specified:
 
@@ -357,7 +394,7 @@ last two types, that need to be separated by the word 'or':
 - float, decimal.Decimal or None
 - str or list of str
 
-If None is one of the accepted values, it always needs to be the last in
+If `None` is one of the accepted values, it always needs to be the last in
 the list.
 
 .. _docstring.returns:
@@ -384,9 +421,10 @@ For example, with a single value:
 .. code-block:: python
 
     def sample():
-        """Generate and return a random number.
+        """
+        Generate and return a random number.
 
-        The value is sampled from a continuos uniform distribution between
+        The value is sampled from a continuous uniform distribution between
         0 and 1.
 
         Returns
@@ -401,7 +439,8 @@ With more than one value:
 .. code-block:: python
 
     def random_letters():
-        """Generate and return a sequence of random letters.
+        """
+        Generate and return a sequence of random letters.
 
         The length of the returned string is also random, and is also
         returned.
@@ -423,9 +462,10 @@ If the method yields its value:
 .. code-block:: python
 
     def sample_values():
-        """Generate an infinite sequence of random numbers.
+        """
+        Generate an infinite sequence of random numbers.
 
-        The values are sampled from a continuos uniform distribution between
+        The values are sampled from a continuous uniform distribution between
         0 and 1.
 
         Yields
@@ -441,9 +481,9 @@ If the method yields its value:
 Section 5: See Also
 ~~~~~~~~~~~~~~~~~~~
 
-This is an optional section, used to let users know about pandas functionality
-related to the one being documented. While optional, this section should exist
-in most cases, unless no related methods or functions can be found at all.
+This section is used to let users know about pandas functionality
+related to the one being documented. In rare cases, if no related methods
+or functions can be found at all, this section can be skipped.
 
 An obvious example would be the `head()` and `tail()` methods. As `tail()` does
 the equivalent as `head()` but at the end of the `Series` or `DataFrame`
@@ -487,7 +527,7 @@ the one referencing. The description must also finish with a dot.
 Note that in "Returns" and "Yields", the description is located in the
 following line than the type. But in this section it is located in the same
 line, with a colon in between. If the description does not fit in the same
-line, it can continue in the next ones, but it has to be indenteted in them.
+line, it can continue in the next ones, but it has to be indented in them.
 
 For example:
 
@@ -507,7 +547,9 @@ For example:
 
             See Also
             --------
-            tail : Return the last 5 elements of the Series.
+            Series.tail : Return the last 5 elements of the Series.
+            Series.iloc : Return a slice of the elements in the Series,
+                which can also be used to return the first or last n.
             """
             return self.iloc[:5]
 
@@ -602,6 +644,10 @@ A simple example could be:
             """
             return self.iloc[:n]
 
+The examples should be as concise as possible. In cases where the complexity of
+the function requires long examples, is recommended to use blocks with headers
+in bold. Use double star \*\* to make a text bold, like in \*\*this example\*\*.
+
 .. _docstring.example_conventions:
 
 Conventions for the examples
@@ -623,22 +669,24 @@ the standard library go first, followed by third-party libraries (like
 matplotlib).
 
 When illustrating examples with a single `Series` use the name `s`, and if
-illustrating with a single `DataFrame` use the name `df`. If a set of
-homogeneous `Series` or `DataFrame` is used, name them `s1`, `s2`, `s3`...
-or `df1`, `df2`, `df3`... If the data is not homogeneous, and more than
-one structure is needed, name them with something meaningful, for example
-`df_main` and `df_to_join`.
+illustrating with a single `DataFrame` use the name `df`. For indices, `idx`
+is the preferred name. If a set of homogeneous `Series` or `DataFrame` is used,
+name them `s1`, `s2`, `s3`...  or `df1`, `df2`, `df3`... If the data is not
+homogeneous, and more than one structure is needed, name them with something
+meaningful, for example `df_main` and `df_to_join`.
 
 Data used in the example should be as compact as possible. The number of rows
-is recommended to be 4, unless the example requires a larger number. As for
-example in the head method, where it requires to be higher than 5, to show
-the example with the default values.
+is recommended to be around 4, but make it a number that makes sense for the
+specific example. For example in the `head` method, it requires to be higher
+than 5, to show the example with the default values. If doing the `mean`,
+we could use something like `[1, 2, 3]`, so it is easy to see that the
+value returned is the mean.
 
-Avoid using data without interpretation, like a matrix of random numbers
-with columns A, B, C, D... And instead use a meaningful example, which makes
-it easier to understand the concept. Unless required by the example, use
-names of animals, to keep examples consistent. And numerical properties of
-them.
+For more complex examples (groupping for example), avoid using data without
+interpretation, like a matrix of random numbers with columns A, B, C, D...
+And instead use a meaningful example, which makes it easier to understand the
+concept. Unless required by the example, use names of animals, to keep examples
+consistent. And numerical properties of them.
 
 When calling the method, keywords arguments `head(n=3)` are preferred to
 positional arguments `head(3)`.
@@ -647,23 +695,111 @@ positional arguments `head(3)`.
 
 .. code-block:: python
 
-    def method():
-        """A sample DataFrame method.
+    class Series:
+        def mean(self):
+            """
+            Compute the mean of the input.
 
-        Examples
-        --------
-        >>> df = pd.DataFrame([389., 24., 80.5, numpy.nan]
-        ...                   columns=('max_speed'),
-        ...                   index=['falcon', 'parrot', 'lion', 'monkey'])
-        """
-        pass
+            Examples
+            --------
+            >>> s = pd.Series([1, 2, 3])
+            >>> s.mean()
+            2
+            """
+            pass
+
+
+        def fillna(self, value):
+            """
+            Replace missing values by `value`.
+
+            Examples
+            --------
+            >>> s = pd.Series([1, np.nan, 3])
+            >>> s.fillna(0)
+            [1, 0, 3]
+            """
+            pass
+
+        def groupby_mean(self):
+            """
+            Group by index and return mean.
+
+            Examples
+            --------
+            >>> s = pd.Series([380., 370., 24., 26],
+            ...               name='max_speed',
+            ...               index=['falcon', 'falcon', 'parrot', 'parrot'])
+            >>> s.groupby_mean()
+            index
+            falcon    375.0
+            parrot     25.0
+            Name: max_speed, dtype: float64
+            """
+            pass
+
+        def contains(self, pattern, case_sensitive=True, na=numpy.nan):
+            """
+            Return whether each value contains `pattern`.
+
+            In this case, we are illustrating how to use sections, even
+            if the example is simple enough and does not require them.
+
+            Examples
+            --------
+            >>> s = pd.Series('Antelope', 'Lion', 'Zebra', numpy.nan)
+            >>> s.contains(pattern='a')
+            0    False
+            1    False
+            2     True
+            3      NaN
+            dtype: bool
+
+            **Case sensitivity**
+
+            With `case_sensitive` set to `False` we can match `a` with both
+            `a` and `A`:
+
+            >>> s.contains(pattern='a', case_sensitive=False)
+            0     True
+            1    False
+            2     True
+            3      NaN
+            dtype: bool
+
+            **Missing values**
+
+            We can fill missing values in the output using the `na` parameter:
+
+            >>> s.contains(pattern='a', na=False)
+            0    False
+            1    False
+            2     True
+            3    False
+            dtype: bool
+            """
+            pass
 
 **Bad:**
 
 .. code-block:: python
 
-    def method():
-        """A sample DataFrame method.
+    def method(foo=None, bar=None):
+        """
+        A sample DataFrame method.
+
+        Do not import numpy and pandas.
+
+        Try to use meaningful data, when it makes the example easier
+        to understand.
+
+        Try to avoid positional arguments like in `df.method(1)`. They
+        can be all right if previously defined with a meaningful name,
+        like in `present_value(interest_rate)`, but avoid them otherwise.
+
+        When presenting the behavior with different parameters, do not place
+        all the calls one next to the other. Instead, add a short sentence
+        explaining what the example shows.
 
         Examples
         --------
@@ -671,5 +807,39 @@ positional arguments `head(3)`.
         >>> import pandas as pd
         >>> df = pd.DataFrame(numpy.random.randn(3, 3),
         ...                   columns=('a', 'b', 'c'))
+        >>> df.method(1)
+        21
+        >>> df.method(bar=14)
+        123
         """
         pass
+
+
+.. _docstring.example_plots:
+
+Plots in examples
+^^^^^^^^^^^^^^^^^
+
+There are some methods in pandas returning plots. To render the plots generated
+by the examples in the documentation, the `.. plot::` directive exists.
+
+To use it, place the next code after the "Examples" header as shown below. The
+plot will be generated automatically when building the documentation.
+
+.. code-block:: python
+
+    class Series:
+        def plot(self):
+            """
+            Generate a plot with the `Series` data.
+
+            Examples
+            --------
+
+            .. plot::
+                :context: close-figs
+
+            >>> s = pd.Series([1, 2, 3])
+            >>> s.plot()
+            """
+            pass
