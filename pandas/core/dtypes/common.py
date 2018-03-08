@@ -120,7 +120,8 @@ def is_object_dtype(arr_or_dtype):
 
 
 def is_sparse(arr):
-    """Check whether an array-like is a pandas sparse array.
+    """
+    Check whether an array-like is a 1-D pandas sparse array.
 
     Check that the one-dimensional array-like is a pandas sparse array.
     Returns True if it is a pandas sparse array, not another type of
@@ -128,37 +129,43 @@ def is_sparse(arr):
 
     Parameters
     ----------
-    arr : array-like (1-D)
+    arr : array-like
         Array-like to check.
 
     Returns
     -------
-    boolean
+    bool
         Whether or not the array-like is a pandas sparse array.
 
     See Also
     --------
     DataFrame.to_sparse : Convert DataFrame to a SparseDataFrame.
     Series.to_sparse : Convert Series to SparseSeries.
+    Series.to_dense : Return dense representation of a Series.
 
     Examples
     --------
-    >>> is_sparse(np.array([1, 2, 3]))
-    False
-    >>> is_sparse(pd.SparseArray([1, 2, 3]))
+    Returns `True` if the parameter is a 1-D pandas sparse array.
+
+    >>> is_sparse(pd.SparseArray([0, 0, 1, 0]))
     True
-    >>> is_sparse(pd.SparseSeries([1, 2, 3]))
+    >>> is_sparse(pd.SparseSeries([0, 0, 1, 0]))
     True
 
-    This function checks only for pandas sparse array instances, so
-    sparse arrays from other libraries will return False.
+    Returns `False` if the parameter is not sparse.
+    
+    >>> is_sparse(np.array([0, 0, 1, 0]))
+    False
+    >>> is_sparse(pd.Series([0, 1, 0, 0]))
+    False
+
+    Returns `False` if the parameter is not a pandas sparse array.
 
     >>> from scipy.sparse import bsr_matrix
-    >>> is_sparse(bsr_matrix([1, 2, 3]))
+    >>> is_sparse(bsr_matrix([0, 1, 0, 0]))
     False
 
-    This function checks that 1 dimensional arrays are sparse.
-    It will not identify that a `SparseDataFrame` as sparse.
+    Returns `False` if the parameter has more than one dimension.
 
     >>> df = pd.SparseDataFrame([389., 24., 80.5, np.nan],
                                 columns=['max_speed'],
