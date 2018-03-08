@@ -1937,10 +1937,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                      mapping={True: 'infer', False: 'raise'})
     def tz_localize(self, tz, ambiguous='raise', errors='raise'):
         """
-        DatetimeIndex.tz_localize used for Localize tz-naive DatetimeIndex.
-
-	tz_localize method is use to convert naive DatetimeIndex into any other localize
-	DatetimeIndex 
+	DatetimeIndex.tz_localize used for Localize tz-naive DatetimeIndex.
+	
+	tz_localize method is use to convert naive DatetimeIndex into any other 
+	localize DatetimeIndex 
 
 
         Parameters
@@ -1948,7 +1948,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         tz : string, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time. Corresponding timestamps would be converted to
             time zone of the TimeSeries.
-            None will remove timezone holding local time
+            None will remove timezone holding local time.
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
             - 'infer' will attempt to infer fall dst-transition hours based on
               order
@@ -1974,10 +1974,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
 	Examples
     	--------
-    	In the example below, We put the date range from 01 March 2018 to 08 March 2018
-	& convert this to US/Eastern Time zone
+    	In the example below, We put the date range from 01 March 2018 to 
+	08 March 2018 & convert this to US/Eastern Time zone
  
-    	>>> import pandas as pd
     	>>> df = pd.date_range('2018-03-01', '2018-03-08')
     	>>> df
 	DatetimeIndex(['2018-03-01', '2018-03-02', '2018-03-03', '2018-03-04',
@@ -1993,7 +1992,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         Raises
         ------
         TypeError
-            If the DatetimeIndex is tz-aware and tz is not None
+            If the DatetimeIndex is tz-aware and tz is not None.
         """
         if self.tz is not None:
             if tz is None:
