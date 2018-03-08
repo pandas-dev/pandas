@@ -1841,7 +1841,7 @@ class DataFrame(NDFrame):
             - If False, never show counts.
 
         """
-        from pandas.io.formats.format import _put_lines
+        from pandas.io.formats.common import _put_lines
 
         if buf is None:  # pragma: no cover
             buf = sys.stdout
