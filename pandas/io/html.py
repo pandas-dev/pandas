@@ -405,7 +405,7 @@ class _HtmlFrameParser(object):
         if not self.displayed_only:
             return tbl_list
 
-        return [x for x in tbl_list if not "display:none" in
+        return [x for x in tbl_list if "display:none" not in
                 getattr(x, attr_name).get('style', '').replace(" ", "")]
 
 
