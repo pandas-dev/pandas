@@ -1841,7 +1841,7 @@ class DataFrame(NDFrame):
             - If False, never show counts.
 
         """
-        from pandas.io.formats.common import _put_lines
+        from pandas.io.formats.common import buffer_put_lines
 
         if buf is None:  # pragma: no cover
             buf = sys.stdout
@@ -1853,7 +1853,7 @@ class DataFrame(NDFrame):
 
         if len(self.columns) == 0:
             lines.append('Empty %s' % type(self).__name__)
-            _put_lines(buf, lines)
+            buffer_put_lines(buf, lines)
             return
 
         cols = self.columns
@@ -1940,7 +1940,7 @@ class DataFrame(NDFrame):
             mem_usage = self.memory_usage(index=True, deep=deep).sum()
             lines.append("memory usage: %s\n" %
                          _sizeof_fmt(mem_usage, size_qualifier))
-        _put_lines(buf, lines)
+        buffer_put_lines(buf, lines)
 
     def memory_usage(self, index=True, deep=False):
         """Memory usage of DataFrame columns.
