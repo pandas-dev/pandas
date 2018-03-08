@@ -416,11 +416,11 @@ class Window(_Window):
     A ragged (meaning not-a-regular frequency), time-indexed DataFrame
 
     >>> df = pd.DataFrame({'B': [0, 1, 2, np.nan, 4]},
-    ....:                 index = [pd.Timestamp('20130101 09:00:00'),
-    ....:                          pd.Timestamp('20130101 09:00:02'),
-    ....:                          pd.Timestamp('20130101 09:00:03'),
-    ....:                          pd.Timestamp('20130101 09:00:05'),
-    ....:                          pd.Timestamp('20130101 09:00:06')])
+    ...                   index = [pd.Timestamp('20130101 09:00:00'),
+    ...                            pd.Timestamp('20130101 09:00:02'),
+    ...                            pd.Timestamp('20130101 09:00:03'),
+    ...                            pd.Timestamp('20130101 09:00:05'),
+    ...                            pd.Timestamp('20130101 09:00:06')])
 
     >>> df
                            B
@@ -899,7 +899,53 @@ class _Rolling_and_Expanding(_Rolling):
         return self._apply('roll_skew', 'skew',
                            check_minp=_require_min_periods(3), **kwargs)
 
-    _shared_docs['kurt'] = """Unbiased %(name)s kurtosis"""
+    _shared_docs['kurt'] = dedent("""
+    Calculate unbiased %(name)s kurtosis.
+
+    This function uses Fisher's definition of kurtosis without bias.
+
+    Parameters
+    ----------
+    kwargs : Under Review
+
+    Returns
+    -------
+    Series or DataFrame (matches input)
+        Like-indexed object containing the result of function application
+
+    See Also
+    --------
+    pandas.Series.%(name)s
+    pandas.DataFrame.%(name)s
+    pandas.Series.kurtosis
+    pandas.DataFrame.kurtosis
+    scipy.stats.skew
+    scipy.stats.kurtosis
+
+    Notes
+    -----
+    A minimum of 4 periods is required for the rolling calculation.
+
+    Examples
+    --------
+    The below example will show a rolling calculation with a window size of
+    four matching the equivalent function call using `scipy.stats`.
+
+    >>> arr = [1, 2, 3, 4, 999]
+    >>> import scipy.stats
+    >>> print("{0:.6f}".format(scipy.stats.kurtosis(arr[:-1], bias=False)))
+    -1.200000
+    >>> print("{0:.6f}".format(scipy.stats.kurtosis(arr[1:], bias=False)))
+    3.999946
+    >>> df = pd.DataFrame(arr)
+    >>> df.rolling(4).kurt()
+              0
+    0       NaN
+    1       NaN
+    2       NaN
+    3 -1.200000
+    4  3.999946
+    """)
 
     def kurt(self, **kwargs):
         return self._apply('roll_kurt', 'kurt',
@@ -1221,7 +1267,6 @@ class Rolling(_Rolling_and_Expanding):
         return super(Rolling, self).skew(**kwargs)
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['kurt'])
     def kurt(self, **kwargs):
         return super(Rolling, self).kurt(**kwargs)
@@ -1461,7 +1506,6 @@ class Expanding(_Rolling_and_Expanding):
         return super(Expanding, self).skew(**kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['kurt'])
     def kurt(self, **kwargs):
         return super(Expanding, self).kurt(**kwargs)
