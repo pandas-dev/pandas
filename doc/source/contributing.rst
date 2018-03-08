@@ -467,7 +467,7 @@ A single docstring can be tested using the ``validate_docstrings.py`` script
 Alternatively, you can use ``pytest --doctests-module pandas/core/series.py``
 to run all doctests of the ``Series`` class.
 
-Getting this tests to pass can however sometimes be tricky. Here are some
+Getting this tests to pass can sometimes be tricky. Here are some
 attention points:
 
 * Import all needed libraries (except for pandas and numpy, those are already
@@ -476,7 +476,7 @@ attention points:
 
 * Try to avoid using random data.
 
-* If you have a code lines that wraps multiple lines, you need to use '...'
+* If you have a code snippet that wraps multiple lines, you need to use '...'
   on the continued lines:
 
   ::
@@ -492,6 +492,20 @@ attention points:
 
   It is essential to include the "Traceback (most recent call last):", but for
   the actual error only the error name is sufficient.
+
+* If there is a small part of the result that can vary (e.g. a hash in an object
+  represenation), you can use ``...`` to represent this part.
+
+  If you want to show that ``s.plot()`` returns a matplotlib AxesSubplot object,
+  this will fail the doctest::
+
+    >>> s.plot()
+    <matplotlib.axes._subplots.AxesSubplot at 0x7efd0c0b0690>
+
+  However, you can do (notice the comment that needs to be added)::
+
+    >>> s.plot()  # doctest: +ELLIPSIS
+    <matplotlib.axes._subplots.AxesSubplot at ...>
 
 
 .. _contributing.code:
