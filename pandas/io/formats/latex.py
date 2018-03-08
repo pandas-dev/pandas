@@ -11,6 +11,7 @@ from pandas.compat import (range, map, zip, u)
 from pandas.io.formats.common import TableFormatter
 import numpy as np
 
+
 class LatexFormatter(TableFormatter):
     """ Used to render a DataFrame to a LaTeX tabular/longtable environment
     output.

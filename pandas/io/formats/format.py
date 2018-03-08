@@ -30,14 +30,13 @@ from pandas.compat import (StringIO, lzip, map, zip, u)
 
 from pandas.io.formats.html import HTMLFormatter
 from pandas.io.formats.latex import LatexFormatter
-from pandas.io.formats.csv import CSVFormatter
 
 from pandas.io.formats.terminal import get_terminal_size
 from pandas.core.config import get_option, set_option
 from pandas.io.common import (_expand_user, _stringify_path)
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
-from pandas._libs import lib, writers as libwriters
-from pandas.io.formats.common import TableFormatter, _binify, _put_lines
+from pandas._libs import lib
+from pandas.io.formats.common import TableFormatter
 
 from pandas._libs.tslib import (iNaT, Timestamp, Timedelta,
                                 format_array_from_datetime)
@@ -350,6 +349,7 @@ def _get_adjustment():
         return EastAsianTextAdjustment()
     else:
         return TextAdjustment()
+
 
 class DataFrameFormatter(TableFormatter):
     """
@@ -1384,6 +1384,7 @@ def _trim_zeros(str_floats, na_rep='NaN'):
     # leave one 0 after the decimal points if need be.
     return [x + "0" if x.endswith('.') and x != na_rep else x for x in trimmed]
 
+
 def _has_names(index):
     if isinstance(index, MultiIndex):
         return com._any_not_none(*index.names)
@@ -1501,3 +1502,23 @@ def set_eng_float_format(accuracy=3, use_eng_prefix=False):
 
     set_option("display.float_format", EngFormatter(accuracy, use_eng_prefix))
     set_option("display.column_space", max(12, accuracy + 9))
+
+
+def _binify(cols, line_width):
+    adjoin_width = 1
+    bins = []
+    curr_width = 0
+    i_last_column = len(cols) - 1
+    for i, w in enumerate(cols):
+        w_adjoined = w + adjoin_width
+        curr_width += w_adjoined
+        if i_last_column == i:
+            wrap = curr_width + 1 > line_width and i > 0
+        else:
+            wrap = curr_width + 2 > line_width and i > 0
+        if wrap:
+            bins.append(i)
+            curr_width = w_adjoined
+
+    bins.append(len(cols))
+    return bins

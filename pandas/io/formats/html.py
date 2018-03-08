@@ -14,9 +14,10 @@ from pandas import compat
 from pandas.compat import (lzip, range, map, zip, u,
                            OrderedDict, unichr)
 from pandas.core.config import get_option
-from pandas.io.formats.common import TableFormatter, _put_lines
 from pandas.io.formats.printing import pprint_thing
-from pandas.io.formats.common import get_level_lengths
+from pandas.io.formats.common import get_level_lengths, \
+    TableFormatter, _put_lines
+
 
 class HTMLFormatter(TableFormatter):
 

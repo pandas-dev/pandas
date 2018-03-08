@@ -12,7 +12,7 @@ from pandas.compat import (StringIO, range, zip)
 
 from pandas.io.common import (_get_handle, UnicodeWriter, _expand_user,
                               _stringify_path)
-from pandas._libs import lib, writers as libwriters
+from pandas._libs import writers as libwriters
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
 import numpy as np
