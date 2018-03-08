@@ -139,11 +139,9 @@ def _dt_index_cmp(opname, cls):
             result = func(np.asarray(other))
             result = com._values_from_object(result)
 
-            if isinstance(other, Index):
-                o_mask = other.values.view('i8') == libts.iNaT
-            else:
-                o_mask = other.view('i8') == libts.iNaT
-
+            # Make sure to pass an array to result[...]; indexing with
+            # Series breaks with older version of numpy
+            o_mask = np.array(isna(other))
             if o_mask.any():
                 result[o_mask] = nat_result
 
@@ -234,7 +232,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     week
     dayofweek
     weekday
-    weekday_name
     quarter
     tz
     freq
@@ -263,6 +260,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     to_pydatetime
     to_series
     to_frame
+    month_name
+    day_name
 
     Notes
     -----
@@ -321,7 +320,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     _datetimelike_methods = ['to_period', 'tz_localize',
                              'tz_convert',
                              'normalize', 'strftime', 'round', 'floor',
-                             'ceil']
+                             'ceil', 'month_name', 'day_name']
 
     _is_numeric_dtype = False
     _infer_as_myclass = True
@@ -854,22 +853,11 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             raise Exception("invalid pickle state")
     _unpickle_compat = __setstate__
 
-    def _add_datelike(self, other):
-        # adding a timedeltaindex to a datetimelike
-        if other is libts.NaT:
-            return self._nat_new(box=True)
-        raise TypeError("cannot add {0} and {1}"
-                        .format(type(self).__name__,
-                                type(other).__name__))
-
     def _sub_datelike(self, other):
-        # subtract a datetime from myself, yielding a TimedeltaIndex
-        from pandas import TimedeltaIndex
-
+        # subtract a datetime from myself, yielding a ndarray[timedelta64[ns]]
         if isinstance(other, (DatetimeIndex, np.ndarray)):
             # if other is an ndarray, we assume it is datetime64-dtype
             other = DatetimeIndex(other)
-
             # require tz compat
             if not self._has_same_tz(other):
                 raise TypeError("{cls} subtraction must have the same "
@@ -877,9 +865,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                                 .format(cls=type(self).__name__))
             result = self._sub_datelike_dti(other)
         elif isinstance(other, (datetime, np.datetime64)):
+            assert other is not libts.NaT
             other = Timestamp(other)
             if other is libts.NaT:
-                result = self._nat_new(box=False)
+                return self - libts.NaT
             # require tz compat
             elif not self._has_same_tz(other):
                 raise TypeError("Timestamp subtraction must have the same "
@@ -894,7 +883,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             raise TypeError("cannot subtract {cls} and {typ}"
                             .format(cls=type(self).__name__,
                                     typ=type(other).__name__))
-        return TimedeltaIndex(result)
+        return result.view('timedelta64[ns]')
 
     def _sub_datelike_dti(self, other):
         """subtraction of two DatetimeIndexes"""
@@ -907,7 +896,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         if self.hasnans or other.hasnans:
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = libts.iNaT
-        return new_values.view('i8')
+        return new_values.view('timedelta64[ns]')
 
     def _maybe_update_attributes(self, attrs):
         """ Update Index attributes (e.g. freq) depending on op """
@@ -944,8 +933,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             if not isinstance(delta, TimedeltaIndex):
                 delta = TimedeltaIndex(delta)
             new_values = self._add_delta_tdi(delta)
-        elif isinstance(delta, DateOffset):
-            new_values = self._add_offset(delta).asi8
         else:
             new_values = self.astype('O') + delta
 
@@ -956,6 +943,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         return result
 
     def _add_offset(self, offset):
+        assert not isinstance(offset, Tick)
         try:
             if self.tz is not None:
                 values = self.tz_localize(None)
@@ -964,12 +952,13 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             result = offset.apply_index(values)
             if self.tz is not None:
                 result = result.tz_localize(self.tz)
-            return result
 
         except NotImplementedError:
             warnings.warn("Non-vectorized DateOffset being applied to Series "
                           "or DatetimeIndex", PerformanceWarning)
-            return self.astype('O') + offset
+            result = self.astype('O') + offset
+
+        return DatetimeIndex(result, freq='infer')
 
     def _format_native_types(self, na_rep='NaT', date_format=None, **kwargs):
         from pandas.io.formats.format import _get_format_datetime64_from_values
@@ -1734,7 +1723,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     weekday_name = _field_accessor(
         'weekday_name',
         'weekday_name',
-        "The name of day in a week (ex: Friday)\n\n.. versionadded:: 0.18.1")
+        "The name of day in a week (ex: Friday)\n\n.. deprecated:: 0.23.0")
 
     dayofyear = _field_accessor('dayofyear', 'doy',
                                 "The ordinal day of the year")
@@ -2117,6 +2106,58 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                              self.microsecond / 3600.0 / 1e+6 +
                              self.nanosecond / 3600.0 / 1e+9
                              ) / 24.0)
+
+    def month_name(self, locale=None):
+        """
+        Return the month names of the DateTimeIndex with specified locale.
+
+        Parameters
+        ----------
+        locale : string, default None (English locale)
+            locale determining the language in which to return the month name
+
+        Returns
+        -------
+        month_names : Index
+            Index of month names
+
+        .. versionadded:: 0.23.0
+        """
+        values = self.asi8
+        if self.tz is not None:
+            if self.tz is not utc:
+                values = self._local_timestamps()
+
+        result = fields.get_date_name_field(values, 'month_name',
+                                            locale=locale)
+        result = self._maybe_mask_results(result)
+        return Index(result, name=self.name)
+
+    def day_name(self, locale=None):
+        """
+        Return the day names of the DateTimeIndex with specified locale.
+
+        Parameters
+        ----------
+        locale : string, default None (English locale)
+            locale determining the language in which to return the day name
+
+        Returns
+        -------
+        month_names : Index
+            Index of day names
+
+        .. versionadded:: 0.23.0
+        """
+        values = self.asi8
+        if self.tz is not None:
+            if self.tz is not utc:
+                values = self._local_timestamps()
+
+        result = fields.get_date_name_field(values, 'day_name',
+                                            locale=locale)
+        result = self._maybe_mask_results(result)
+        return Index(result, name=self.name)
 
 
 DatetimeIndex._add_comparison_methods()

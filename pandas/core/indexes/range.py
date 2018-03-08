@@ -53,6 +53,10 @@ class RangeIndex(Int64Index):
     Index : The base pandas Index type
     Int64Index : Index of int64 data
 
+    Attributes
+    ----------
+    None
+
     Methods
     -------
     from_range
