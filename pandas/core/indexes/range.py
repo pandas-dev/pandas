@@ -422,9 +422,8 @@ class RangeIndex(Int64Index):
         union : Index
         """
         self._assert_can_do_setop(other)
-        is_corner_case, corner_result = self._union_corner_case(other)
-        if is_corner_case:
-            return corner_result
+        if len(other) == 0 or self.equals(other) or len(self) == 0:
+            return super(RangeIndex, self).union(other)
 
         if isinstance(other, RangeIndex):
             start_s, step_s = self._start, self._step

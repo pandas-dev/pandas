@@ -547,9 +547,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         """
         self._assert_can_do_setop(other)
 
-        is_corner_case, corner_result = self._union_corner_case(other)
-        if is_corner_case:
-            return corner_result
+        if len(other) == 0 or self.equals(other) or len(self) == 0:
+            return super(TimedeltaIndex, self).union(other)
 
         if not isinstance(other, TimedeltaIndex):
             try:

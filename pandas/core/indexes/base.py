@@ -2274,26 +2274,6 @@ class Index(IndexOpsMixin, PandasObject):
             return self._shallow_copy(name=name)
         return self
 
-    def _union_corner_case(self, other):
-        """
-        If self or other have no length, or self and other
-        are the same, then return self, after reconciling names
-
-        Returns
-        -------
-        Tuple of (is_corner, result), where is_corner is True if
-        it is a corner case, and result is the reconciled result
-
-        """
-        # GH 9943 9862
-        if len(other) == 0 or self.equals(other):
-            return (True, self._get_reconciled_name_object(other))
-
-        if len(self) == 0:
-            return (True, other._get_reconciled_name_object(self))
-
-        return (False, None)
-
     def union(self, other):
         """
         Form the union of two Index objects and sorts if possible.
@@ -2318,9 +2298,11 @@ class Index(IndexOpsMixin, PandasObject):
         self._assert_can_do_setop(other)
         other = _ensure_index(other)
 
-        is_corner_case, corner_result = self._union_corner_case(other)
-        if is_corner_case:
-            return corner_result
+        if len(other) == 0 or self.equals(other):
+            return self._get_reconciled_name_object(other)
+
+        if len(self) == 0:
+            return other._get_reconciled_name_object(self)
 
         # TODO: is_dtype_union_equal is a hack around
         # 1. buggy set ops with duplicates (GH #13432)

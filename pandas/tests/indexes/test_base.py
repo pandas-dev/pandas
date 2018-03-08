@@ -708,52 +708,51 @@ class TestIndex(Base):
         assert len(res) == 0
 
     @pytest.mark.parametrize(
-        'ftype, fname, stype, sname, expected_name',
+        'fname, sname, expected_name',
         [
-            ('copy', 'A', 'copy', 'A', 'A'),
-            ('copy', 'A', 'copy', 'B', None),
-            ('copy', 'A', 'copy', None, None),
-            ('copy', 'A', 'empty', 'A', 'A'),
-            ('copy', 'A', 'empty', 'B', None),
-            ('copy', 'A', 'empty', None, None),
-            ('copy', None, 'copy', 'B', None),
-            ('copy', None, 'copy', None, None),
-            ('copy', None, 'empty', 'B', None),
-            ('copy', None, 'empty', None, None),
-            ('empty', 'A', 'copy', 'A', 'A'),
-            ('empty', 'A', 'copy', 'B', None),
-            ('empty', 'A', 'copy', None, None),
-            ('empty', 'A', 'empty', 'A', 'A'),
-            ('empty', 'A', 'empty', 'B', None),
-            ('empty', 'A', 'empty', None, None),
-            ('empty', None, 'empty', 'B', None),
-            ('empty', None, 'empty', None, None)
+            ('A', 'A', 'A'),
+            ('A', 'B', None),
+            ('A', None, None),
+            (None, 'B', None),
+            (None, None, None),
         ])
-    def test_corner_union(self, ftype, fname, stype,
-                          sname, expected_name):
+    def test_corner_union(self, fname, sname, expected_name):
         # GH 9943 9862
         # Test unions with various name combinations
         # Do not test MultiIndex
 
         skip_index_keys = ['tuples', 'repeats']
         for key, id in self.indices.items():
-            if key not in skip_index_keys:
-                if ftype == 'copy':
-                    first = id.copy()
-                else:
-                    first = id.drop(id)
-                first = first.set_names(fname)
-                if stype == 'copy':
-                    second = id.copy()
-                else:
-                    second = id.drop(id)
-                second = second.set_names(sname)
-                union = first.union(second)
-                if (ftype == 'empty') and (stype == 'empty'):
-                    expected = id.drop(id).set_names(expected_name)
-                else:
-                    expected = id.copy().set_names(expected_name)
-                tm.assert_index_equal(union, expected)
+            if key in skip_index_keys:
+                continue
+
+            # Test copy.union(copy)
+            first = id.copy().set_names(fname)
+            second = id.copy().set_names(sname)
+            union = first.union(second)
+            expected = id.copy().set_names(expected_name)
+            tm.assert_index_equal(union, expected)
+
+            # Test copy.union(empty)
+            first = id.copy().set_names(fname)
+            second = id.drop(id).set_names(sname)
+            union = first.union(second)
+            expected = id.copy().set_names(expected_name)
+            tm.assert_index_equal(union, expected)
+
+            # Test empty.union(copy)
+            first = id.drop(id).set_names(fname)
+            second = id.copy().set_names(sname)
+            union = first.union(second)
+            expected = id.copy().set_names(expected_name)
+            tm.assert_index_equal(union, expected)
+
+            # Test empty.union(empty)
+            first = id.drop(id).set_names(fname)
+            second = id.drop(id).set_names(sname)
+            union = first.union(second)
+            expected = id.drop(id).set_names(expected_name)
+            tm.assert_index_equal(union, expected)
 
     def test_chained_union(self):
         # Chained unions handles names correctly

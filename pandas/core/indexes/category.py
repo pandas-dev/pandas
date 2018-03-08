@@ -303,9 +303,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     def _wrap_setop_result(self, other, result):
         name = get_op_result_name(self, other)
-        return self._simple_new(result, name=name,
-                                categories=self.categories,
-                                ordered=self.ordered)
+        return self._shallow_copy(result, name=name)
 
     def get_values(self):
         """ return the underlying data as an ndarray """

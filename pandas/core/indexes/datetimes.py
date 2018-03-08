@@ -1138,9 +1138,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         """
         self._assert_can_do_setop(other)
 
-        is_corner_case, corner_result = self._union_corner_case(other)
-        if is_corner_case:
-            return corner_result
+        if len(other) == 0 or self.equals(other) or len(self) == 0:
+            return super(DatetimeIndex, self).union(other)
 
         if not isinstance(other, DatetimeIndex):
             try:
@@ -1343,7 +1342,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         name = get_op_result_name(self, other)
         if not timezones.tz_compare(self.tz, other.tz):
             raise ValueError('Passed item and index have different timezone')
-        return self._simple_new(result, name=name, freq=None, tz=self.tz)
+        return self._shallow_copy(result, name=name, freq=None, tz=self.tz)
 
     def intersection(self, other):
         """
