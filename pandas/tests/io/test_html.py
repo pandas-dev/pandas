@@ -676,19 +676,24 @@ class TestReadHtml(ReadHtmlMixin):
 
     @pytest.mark.parametrize("displayed_only,exp0,exp1", [
         (True, DataFrame(["foo"]), None),
-        (False, DataFrame(["foofoo"]), DataFrame(["foofoo"]))])
+        (False, DataFrame(["foo  bar  baz  qux"]), DataFrame(["foo"]))])
     def test_displayed_only(self, displayed_only, exp0, exp1):
         # GH 20027
         data = StringIO("""<html>
           <body>
             <table>
               <tr>
-                <td>foo<span style="display:none">foo</span></td>
+                <td>
+                  foo
+                  <span style="display:none;text-align:center">bar</span>
+                  <span style="display:none">baz</span>
+                  <span style="display: none">qux</span>
+                </td>
               </tr>
             </table>
             <table style="display: none">
               <tr>
-                <td>foo<span>foo</span></td>
+                <td>foo</td>
               </tr>
             </table>
           </body>
@@ -926,19 +931,24 @@ class TestReadHtmlLxml(ReadHtmlMixin):
 
     @pytest.mark.parametrize("displayed_only,exp0,exp1", [
         (True, DataFrame(["foo"]), None),
-        (False, DataFrame(["foofoo"]), DataFrame(["foofoo"]))])
+        (False, DataFrame(["foo  bar  baz  qux"]), DataFrame(["foo"]))])
     def test_displayed_only(self, displayed_only, exp0, exp1):
         # GH 20027
         data = StringIO("""<html>
           <body>
             <table>
               <tr>
-                <td>foo<span style="display:none">foo</span></td>
+                <td>
+                  foo
+                  <span style="display:none;text-align:center">bar</span>
+                  <span style="display:none">baz</span>
+                  <span style="display: none">qux</span>
+                </td>
               </tr>
             </table>
             <table style="display: none">
               <tr>
-                <td>foo<span>foo</span></td>
+                <td>foo</td>
               </tr>
             </table>
           </body>

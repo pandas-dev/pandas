@@ -405,8 +405,8 @@ class _HtmlFrameParser(object):
         if not self.displayed_only:
             return tbl_list
 
-        return [x for x in tbl_list if not ("display:none" in getattr(
-            x, attr_name).get('style', '').replace(' ', ''))]
+        return [x for x in tbl_list if not "display:none" in
+                getattr(x, attr_name).get('style', '').replace(" ", "")]
 
 
 class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
@@ -565,9 +565,13 @@ class _LxmlFrameParser(_HtmlFrameParser):
         tables = self._handle_hidden_tables(tables, "attrib")
         if self.displayed_only:
             for table in tables:
-                for elem in table.xpath(
-                        './/*[contains(@style, "display:none")]'):
-                    elem.getparent().remove(elem)
+                # lxml utilizes XPATH 1.0 which does not have regex
+                # support. As a result, we find all elements with a style
+                # attribute and iterate them to check for display:none
+                for elem in table.xpath('.//*[@style]'):
+                    if "display:none" in elem.attrib.get(
+                            "style", "").replace(" ", ""):
+                        elem.getparent().remove(elem)
 
         if not tables:
             raise ValueError("No tables found matching regex {patt!r}"
