@@ -445,6 +445,7 @@ class TestPeriodIndexArithmetic(object):
         tm.assert_index_equal(result, exp)
 
     def test_pi_sub_isub_pi(self):
+        # GH#20049
         # previously raised TypeError (GH#14164), before that
         # performed set operation.  See discussion in GH#13077
         rng = pd.period_range('1/1/2000', freq='D', periods=5)

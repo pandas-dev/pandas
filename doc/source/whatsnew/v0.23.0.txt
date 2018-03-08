@@ -710,7 +710,7 @@ Other API Changes
 - ``Categorical.fillna`` now validates its ``value`` and ``method`` keyword arguments. It now raises when both or none are specified, matching the behavior of :meth:`Series.fillna` (:issue:`19682`)
 - ``pd.to_datetime('today')`` now returns a datetime, consistent with ``pd.Timestamp('today')``; previously ``pd.to_datetime('today')`` returned a ``.normalized()`` datetime (:issue:`19935`)
 - :func:`Series.str.replace` now takes an optional `regex` keyword which, when set to ``False``, uses literal string replacement rather than regex replacement (:issue:`16808`)
-- :class:`PeriodIndex` subtraction of another ``PeriodIndex`` will now return a numeric ``Index`` instead of raising a ``TypeErrorr`` (:issue:`?????`)
+- :class:`PeriodIndex` subtraction of another ``PeriodIndex`` will now return a numeric ``Index`` instead of raising a ``TypeErrorr`` (:issue:`20049`)
 
 .. _whatsnew_0230.deprecations:
 

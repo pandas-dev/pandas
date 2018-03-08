@@ -310,7 +310,7 @@ class TestTimedeltaIndexArithmetic(object):
     @pytest.mark.parametrize('pi_freq', ['D', 'W', 'Q', 'H'])
     @pytest.mark.parametrize('tdi_freq', [None, 'H'])
     def test_dti_sub_pi(self, tdi_freq, pi_freq, op):
-        # subtracting PeriodIndex should raise TypeError
+        # GH#20049 subtracting PeriodIndex should raise TypeError
         tdi = pd.TimedeltaIndex(['1 hours', '2 hours'], freq=tdi_freq)
         dti = pd.Timestamp('2018-03-07 17:16:40') + tdi
         pi = dti.to_period(pi_freq)
