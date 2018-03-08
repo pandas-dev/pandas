@@ -1706,15 +1706,16 @@ def _plot(data, x=None, y=None, subplots=False,
         plot_obj = klass(data, subplots=subplots, ax=ax, kind=kind, **kwds)
     else:
         if isinstance(data, ABCDataFrame):
+            new_data = data.copy()  # don't modify until necessary
             if x is not None:
                 if is_integer(x) and not data.columns.holds_integer():
                     x = data.columns[x]
                 elif not isinstance(data[x], ABCSeries):
                     raise ValueError("x must be a label or position")
-                data = data.set_index(x)
+                new_data = data.set_index(x)
 
             if y is not None:
-                int_cols = is_integer(y) or any(is_integer(col) for col in y)
+                int_cols = is_integer(y) or all(is_integer(col) for col in y)
                 if int_cols and not data.columns.holds_integer():
                     y = data.columns[y]
                 elif not isinstance(data[y], (ABCSeries, ABCDataFrame)):
@@ -1723,7 +1724,7 @@ def _plot(data, x=None, y=None, subplots=False,
                     )
 
                 label_kw = kwds['label'] if 'label' in kwds else False
-                new_data = data[y].copy()  # Don't modify
+                new_data = new_data[y].copy()
 
                 if isinstance(data[y], ABCSeries):
                     label_name = label_kw or y
@@ -1745,7 +1746,7 @@ def _plot(data, x=None, y=None, subplots=False,
                             kwds[kw] = data[kwds[kw]]
                         except (IndexError, KeyError, TypeError):
                             pass
-                data = new_data
+            data = new_data
         plot_obj = klass(data, subplots=subplots, ax=ax, kind=kind, **kwds)
 
     plot_obj.generate()
