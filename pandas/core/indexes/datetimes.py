@@ -1937,15 +1937,18 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                      mapping={True: 'infer', False: 'raise'})
     def tz_localize(self, tz, ambiguous='raise', errors='raise'):
         """
-        Localize tz-naive DatetimeIndex to given time zone (using
-        pytz/dateutil), or remove timezone from tz-aware DatetimeIndex
+        DatetimeIndex.tz_localize used for Localize tz-naive DatetimeIndex.
+
+	tz_localize method is use to convert naive DatetimeIndex into any other localize
+	DatetimeIndex 
+
 
         Parameters
         ----------
         tz : string, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time. Corresponding timestamps would be converted to
             time zone of the TimeSeries.
-            None will remove timezone holding local time.
+            None will remove timezone holding local time
         ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
             - 'infer' will attempt to infer fall dst-transition hours based on
               order
@@ -1964,18 +1967,33 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
             .. versionadded:: 0.19.0
 
-        infer_dst : boolean, default False
-            .. deprecated:: 0.15.0
-               Attempt to infer fall dst-transition hours based on order
 
         Returns
         -------
         localized : DatetimeIndex
 
+	Examples
+    	--------
+    	In the example below, We put the date range from 01 March 2018 to 08 March 2018
+	& convert this to US/Eastern Time zone
+ 
+    	>>> import pandas as pd
+    	>>> df = pd.date_range('2018-03-01', '2018-03-08')
+    	>>> df
+	DatetimeIndex(['2018-03-01', '2018-03-02', '2018-03-03', '2018-03-04',
+               '2018-03-05', '2018-03-06', '2018-03-07', '2018-03-08'],
+              dtype='datetime64[ns]', freq='D')
+    	>>> df.tz_localize(tz='US/Eastern')
+	DatetimeIndex(['2018-03-01 00:00:00-05:00', '2018-03-02 00:00:00-05:00',
+               '2018-03-03 00:00:00-05:00', '2018-03-04 00:00:00-05:00',
+               '2018-03-05 00:00:00-05:00', '2018-03-06 00:00:00-05:00',
+               '2018-03-07 00:00:00-05:00', '2018-03-08 00:00:00-05:00'],
+              dtype='datetime64[ns, US/Eastern]', freq='D')
+
         Raises
         ------
         TypeError
-            If the DatetimeIndex is tz-aware and tz is not None.
+            If the DatetimeIndex is tz-aware and tz is not None
         """
         if self.tz is not None:
             if tz is None:
