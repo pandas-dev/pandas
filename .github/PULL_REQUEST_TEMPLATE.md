@@ -7,7 +7,7 @@ an unrelated PR):
 - [ ] The html version looks good: `python doc/make.py --single <your-function-or-method>`
 - [ ] It has been proofread on language by another sprint participant
 
-Please include below the output of the validation script in the details tag:
+Please include the output of the validation script under the details tag below:
 
 <details>
 
