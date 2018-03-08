@@ -246,16 +246,16 @@ changes in this branch specific to one bug or feature so it is clear
 what the branch brings to *pandas*. You can have many shiny-new-features
 and switch in between them using the git checkout command.
 
-To update this branch, you need to retrieve the changes from the master branch::
+When creating this branch, make sure your master branch is up to date with
+the latest upstream master version. To update your local master branch, you
+can do::
 
-    git fetch upstream
-    git rebase upstream/master
+    git checkout master
+    git pull upstream master --ff-only
 
-This will replay your commits on top of the latest pandas git master.  If this
-leads to merge conflicts, you must resolve these before submitting your pull
-request.  If you have uncommitted changes, you will need to ``stash`` them prior
-to updating.  This will effectively store your changes and they can be reapplied
-after updating.
+When you want to update the feature branch with changes in master after
+you created the branch, check the section on
+:ref:`updating a PR <contributing.update-pr>`.
 
 .. _contributing.documentation:
 
@@ -1021,6 +1021,8 @@ release.  To submit a pull request:
 This request then goes to the repository maintainers, and they will review
 the code. 
 
+.. _contributing.update-pr:
+
 Updating your pull request
 --------------------------
 
@@ -1053,7 +1055,12 @@ for an explanation on how to do this.
 Once the conflicts are merged and the files where the conflicts were solved are
 added, you can run ``git commit`` to save those fixes.
 
-Now you can update your pull request by pushing to the branch on GitHub::
+If you have uncommitted changes at the moment you want to update the branch with
+master, you will need to ``stash`` them prior to updating.  This will effectively
+store your changes and they can be reapplied after updating.
+
+After the feature branch has been update locally, you can now update your pull
+request by pushing to the branch on GitHub::
 
     git push origin shiny-new-feature
 
