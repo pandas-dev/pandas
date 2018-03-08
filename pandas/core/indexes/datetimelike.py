@@ -871,6 +871,8 @@ class DatetimeIndexOpsMixin(object):
                 return DatetimeIndex(other) - self
             elif (is_datetime64_any_dtype(self) and hasattr(other, 'dtype') and
                   not is_datetime64_any_dtype(other)):
+                # GH#19959 datetime - datetime is well-defined as timedelta,
+                # but any other type - datetime is not well-defined.
                 raise TypeError("cannot subtract {cls} from {typ}"
                                 .format(cls=type(self).__name__,
                                         typ=type(other).__name__))
