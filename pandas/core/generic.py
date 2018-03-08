@@ -751,6 +751,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
     # renamer function if passed a dict
     def _get_rename_function(self, mapper):
+        """
+        Returns a function that will map names/labels, dependent if mapper
+        is a dict, Series or just a function.
+        """
         if isinstance(mapper, (dict, ABCSeries)):
 
             def f(x):
@@ -913,8 +917,7 @@ class NDFrame(PandasObject, SelectionMixin):
     rename.__doc__ = _shared_docs['rename']
 
     def rename_axis(self, mapper=None, **kwargs):
-        """Alter the name of the index or name of index backing the
-        columns.
+        """Alter the name of the index or name of index backing the columns.
 
         Parameters
         ----------
