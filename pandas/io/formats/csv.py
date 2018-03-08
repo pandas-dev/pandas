@@ -5,6 +5,9 @@ Module for formatting output data into CSV files.
 
 from __future__ import print_function
 
+import csv
+import numpy as np
+
 from pandas.core.dtypes.missing import notna
 from pandas.core.index import Index, MultiIndex
 from pandas import compat
@@ -15,9 +18,6 @@ from pandas.io.common import (_get_handle, UnicodeWriter, _expand_user,
 from pandas._libs import writers as libwriters
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex
-import numpy as np
-
-import csv
 
 
 class CSVFormatter(object):
