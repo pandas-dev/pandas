@@ -46,7 +46,7 @@ PRIVATE_CLASSES = ['NDFrame', 'IndexOpsMixin']
 def _load_obj(obj_name):
     for maxsplit in range(1, obj_name.count('.') + 1):
         # TODO when py3 only replace by: module, *func_parts = ...
-        func_name_split = obj_name.rsplit('.', maxsplit=maxsplit)
+        func_name_split = obj_name.rsplit('.', maxsplit)
         module = func_name_split[0]
         func_parts = func_name_split[1:]
         try:
@@ -186,12 +186,11 @@ class Docstring:
             # accessor classes have a signature, but don't want to show this
             return tuple()
         try:
-            signature = inspect.signature(self.method_obj)
+            params = self.method_obj.__code__.co_varnames
         except (TypeError, ValueError):
             # Some objects, mainly in C extensions do not support introspection
             # of the signature
             return tuple()
-        params = tuple(signature.parameters.keys())
         if params and params[0] in ('self', 'cls'):
             return params[1:]
         return params
@@ -264,8 +263,7 @@ class Docstring:
         error_msgs = ''
         for test in finder.find(self.raw_doc, self.method_name, globs=context):
             f = StringIO()
-            with contextlib.redirect_stdout(f):
-                runner.run(test)
+            runner.run(test, out=f)
             error_msgs += f.getvalue()
         return error_msgs
 
