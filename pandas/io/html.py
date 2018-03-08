@@ -387,6 +387,27 @@ class _HtmlFrameParser(object):
             res = self._parse_tr(table)
         return self._parse_raw_data(res)
 
+    def _handle_hidden_tables(self, tbl_list, attr_name):
+        """Returns list of tables, potentially removing hidden elements
+
+        Parameters
+        ----------
+        tbl_list : list of Tag or list of Element
+            Type of list elements will vary depending upon parser used
+        attr_name : str
+            Name of the accessor for retrieving HTML attributes
+
+        Returns
+        -------
+        list of Tag or list of Element
+            Return type matches `tbl_list`
+        """
+        if not self.displayed_only:
+            return tbl_list
+
+        return [x for x in tbl_list if not ("display:none" in getattr(
+            x, attr_name).get('style', '').replace(' ', ''))]
+
 
 class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
     """HTML to DataFrame parser that uses BeautifulSoup under the hood.
@@ -438,15 +459,10 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
 
         result = []
         unique_tables = set()
-
-        if self.displayed_only:
-            # Remove any hidden tables
-            tables = [x for x in tables if not (
-                "display:none" in x.attrs.get('style', '').replace(' ', ''))]
+        tables = self._handle_hidden_tables(tables, "attrs")
 
         for table in tables:
             if self.displayed_only:
-                import re
                 for elem in table.find_all(
                         style=re.compile(r"display:\s*none")):
                     elem.decompose()
@@ -546,10 +562,8 @@ class _LxmlFrameParser(_HtmlFrameParser):
 
         tables = doc.xpath(xpath_expr, namespaces=_re_namespace)
 
+        tables = self._handle_hidden_tables(tables, "attrib")
         if self.displayed_only:
-            # Remove any hidden tables
-            tables = [x for x in tables if not (
-                "display:none" in x.attrib.get('style', '').replace(' ', ''))]
             for table in tables:
                 for elem in table.xpath(
                         './/*[contains(@style, "display:none")]'):
