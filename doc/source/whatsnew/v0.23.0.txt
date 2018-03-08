@@ -338,8 +338,11 @@ Other Enhancements
 - For subclassed ``DataFrames``, :func:`DataFrame.apply` will now preserve the ``Series`` subclass (if defined) when passing the data to the applied function (:issue:`19822`)
 - :func:`DataFrame.from_dict` now accepts a ``columns`` argument that can be used to specify the column names when ``orient='index'`` is used (:issue:`18529`)
 - Added option ``display.html.use_mathjax`` so `MathJax <https://www.mathjax.org/>`_ can be disabled when rendering tables in ``Jupyter`` notebooks (:issue:`19856`, :issue:`19824`)
+- :func:`DataFrame.replace` now supports the ``method`` parameter, which can be used to specify the replacement method when ``to_replace`` is a scalar, list or tuple and ``value`` is ``None`` (:issue:`19632`)
 - :meth:`Timestamp.month_name`, :meth:`DatetimeIndex.month_name`, and :meth:`Series.dt.month_name` are now available (:issue:`12805`)
 - :meth:`Timestamp.day_name` and :meth:`DatetimeIndex.day_name` are now available to return day names with a specified locale (:issue:`12806`)
+- :meth:`DataFrame.to_sql` now performs a multivalue insert if the underlying connection supports itk rather than inserting row by row.
+  ``SQLAlchemy`` dialects supporting multivalue inserts include: ``mysql``, ``postgresql``, ``sqlite`` and any dialect with ``supports_multivalues_insert``. (:issue:`14315`, :issue:`8953`)
 - :func:`DataFrame.rename_axis` supports ``index`` and ``columns`` arguments and :func:`Series.rename_axis` supports ``index`` argument (:issue:`19978`)
 
 .. _whatsnew_0230.api_breaking:
@@ -731,6 +734,8 @@ Deprecations
 - The ``reduce`` parameter of ``.apply()`` is deprecated in favor of ``result_type='reduce'`` (:issue:`18577`)
 - The ``order`` parameter of :func:`factorize` is deprecated and will be removed in a future release (:issue:`19727`)
 - :attr:`Timestamp.weekday_name`, :attr:`DatetimeIndex.weekday_name`, and :attr:`Series.dt.weekday_name` are deprecated in favor of :meth:`Timestamp.day_name`, :meth:`DatetimeIndex.day_name`, and :meth:`Series.dt.day_name` (:issue:`12806`)
+
+- ``pandas.tseries.plotting.tsplot`` is deprecated. Use :func:`Series.plot` instead (:issue:`18627`)
 
 .. _whatsnew_0230.prior_deprecations:
 
