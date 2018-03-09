@@ -2738,7 +2738,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         >>> s = pd.Series(object())
         >>> s
-        0    <object object at 0x118acf230>
+        0    <object object at ...>
         dtype: object
         >>> s.memory_usage()
         88
