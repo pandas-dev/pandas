@@ -262,7 +262,7 @@ class Docstring:
         error_msgs = ''
         for test in finder.find(self.raw_doc, self.method_name, globs=context):
             f = StringIO()
-            runner.run(test, out=f)
+            runner.run(test, out=f.write)
             error_msgs += f.getvalue()
         return error_msgs
 
