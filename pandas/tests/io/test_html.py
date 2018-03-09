@@ -93,8 +93,21 @@ def test_bs4_version_fails():
                          flavor='bs4')
 
 
+def test_invalid_flavor():
+    url = 'google.com'
+    with pytest.raises(ValueError):
+        read_html(url, 'google', flavor='not a* valid**++ flaver')
+
+def test_same_ordering():
+    _skip_if_none_of(['bs4', 'lxml', 'html5lib'])
+    filename = os.path.join(DATA_PATH, 'valid_markup.html')
+    dfs_lxml = read_html(filename, index_col=0, flavor=['lxml'])
+    dfs_bs4 = read_html(filename, index_col=0, flavor=['bs4'])
+    assert_framelist_equal(dfs_lxml, dfs_bs4)
+
+
 @pytest.mark.parametrize("flavor", [
-    'bs4'], scope="class")
+    'bs4', 'lxml'], scope="class")
 class TestReadHtml(object):
     spam_data = os.path.join(DATA_PATH, 'spam.html')
     spam_data_kwargs = {}
@@ -147,7 +160,6 @@ class TestReadHtml(object):
         df1 = self.read_html(self.spam_data, '.*Water.*')
         df2 = self.read_html(self.spam_data, 'Unit')
         assert_framelist_equal(df1, df2)
-
         assert df1[0].iloc[0, 0] == 'Proximates'
         assert df1[0].columns[0] == 'Nutrient'
 
@@ -779,69 +791,7 @@ class TestReadHtml(object):
         html_df = read_html(html, )[0]
         tm.assert_frame_equal(expected_df, html_df)
 
-
-def _lang_enc(filename):
-    return os.path.splitext(os.path.basename(filename))[0].split('_')
-
-
-class TestReadHtmlEncoding(object):
-    files = glob.glob(os.path.join(DATA_PATH, 'html_encoding', '*.html'))
-    flavor = 'bs4'
-
-    @classmethod
-    def setup_class(cls):
-        _skip_if_none_of((cls.flavor, 'html5lib'))
-
-    def read_html(self, *args, **kwargs):
-        kwargs['flavor'] = self.flavor
-        return read_html(*args, **kwargs)
-
-    def read_filename(self, f, encoding):
-        return self.read_html(f, encoding=encoding, index_col=0)
-
-    def read_file_like(self, f, encoding):
-        with open(f, 'rb') as fobj:
-            return self.read_html(BytesIO(fobj.read()), encoding=encoding,
-                                  index_col=0)
-
-    def read_string(self, f, encoding):
-        with open(f, 'rb') as fobj:
-            return self.read_html(fobj.read(), encoding=encoding, index_col=0)
-
-    def test_encode(self):
-        assert self.files, 'no files read from the data folder'
-        for f in self.files:
-            _, encoding = _lang_enc(f)
-            try:
-                from_string = self.read_string(f, encoding).pop()
-                from_file_like = self.read_file_like(f, encoding).pop()
-                from_filename = self.read_filename(f, encoding).pop()
-                tm.assert_frame_equal(from_string, from_file_like)
-                tm.assert_frame_equal(from_string, from_filename)
-            except Exception:
-                # seems utf-16/32 fail on windows
-                if is_platform_windows():
-                    if '16' in encoding or '32' in encoding:
-                        continue
-                    raise
-
-
-class TestReadHtmlEncodingLxml(TestReadHtmlEncoding):
-    flavor = 'lxml'
-
-    @classmethod
-    def setup_class(cls):
-        super(TestReadHtmlEncodingLxml, cls).setup_class()
-        _skip_if_no(cls.flavor)
-
-
-class TestReadHtmlLxml(object):
-    flavor = 'lxml'
-
-    @classmethod
-    def setup_class(cls):
-        _skip_if_no('lxml')
-
+    @pytest.mark.xfail
     def test_data_fail(self):
         from lxml.etree import XMLSyntaxError
         spam_data = os.path.join(DATA_PATH, 'spam.html')
@@ -861,7 +811,6 @@ class TestReadHtmlLxml(object):
 
     @pytest.mark.slow
     def test_fallback_success(self):
-        _skip_if_none_of(('bs4', 'html5lib'))
         banklist_data = os.path.join(DATA_PATH, 'banklist.html')
         self.read_html(banklist_data, '.*Water.*', flavor=['lxml', 'html5lib'])
 
@@ -891,136 +840,102 @@ class TestReadHtmlLxml(object):
 
     def test_computer_sales_page(self):
         data = os.path.join(DATA_PATH, 'computer_sales_page.html')
-        self.read_html(data, header=[0, 1])
+        self.read_html(data, header=[1, 2])
 
+    @pytest.mark.parametrize("f", glob.glob(
+        os.path.join(DATA_PATH, 'html_encoding', '*.html')))
+    def test_encode(self, f):
+        _, encoding = os.path.splitext(os.path.basename(f))[0].split('_')
 
-def test_invalid_flavor():
-    url = 'google.com'
-    with pytest.raises(ValueError):
-        read_html(url, 'google', flavor='not a* valid**++ flaver')
-
-
-def get_elements_from_file(url, element='table'):
-    _skip_if_none_of(('bs4', 'html5lib'))
-    url = file_path_to_url(url)
-    from bs4 import BeautifulSoup
-    with urlopen(url) as f:
-        soup = BeautifulSoup(f, features='html5lib')
-    return soup.find_all(element)
-
-
-@pytest.mark.slow
-def test_bs4_finds_tables():
-    filepath = os.path.join(DATA_PATH, "spam.html")
-    with warnings.catch_warnings():
-        warnings.filterwarnings('ignore')
-        assert get_elements_from_file(filepath, 'table')
-
-
-def get_lxml_elements(url, element):
-    _skip_if_no('lxml')
-    from lxml.html import parse
-    doc = parse(url)
-    return doc.xpath('.//{0}'.format(element))
-
-
-@pytest.mark.slow
-def test_lxml_finds_tables():
-    filepath = os.path.join(DATA_PATH, "spam.html")
-    assert get_lxml_elements(filepath, 'table')
-
-
-@pytest.mark.slow
-def test_lxml_finds_tbody():
-    filepath = os.path.join(DATA_PATH, "spam.html")
-    assert get_lxml_elements(filepath, 'tbody')
-
-
-def test_same_ordering():
-    _skip_if_none_of(['bs4', 'lxml', 'html5lib'])
-    filename = os.path.join(DATA_PATH, 'valid_markup.html')
-    dfs_lxml = read_html(filename, index_col=0, flavor=['lxml'])
-    dfs_bs4 = read_html(filename, index_col=0, flavor=['bs4'])
-    assert_framelist_equal(dfs_lxml, dfs_bs4)
-
-
-class ErrorThread(threading.Thread):
-    def run(self):
         try:
-            super(ErrorThread, self).run()
-        except Exception as e:
-            self.err = e
-        else:
-            self.err = None
+            with open(f, 'rb') as fobj:
+                from_string = self.read_html(fobj.read(), encoding=encoding,
+                                             index_col=0).pop()
+
+            with open(f, 'rb') as fobj:
+                from_file_like = self.read_html(BytesIO(fobj.read()),
+                                                encoding=encoding,
+                                                index_col=0).pop()
+
+            from_filename = self.read_html(f, encoding=encoding,
+                                           index_col=0).pop()
+            tm.assert_frame_equal(from_string, from_file_like)
+            tm.assert_frame_equal(from_string, from_filename)
+        except Exception:
+            # seems utf-16/32 fail on windows
+            if is_platform_windows():
+                if '16' in encoding or '32' in encoding:
+                    pytest.skip()
+                raise
+
+    def test_parse_failure_unseekable(self):
+        # Issue #17975
+
+        if self.read_html.keywords.get('flavor') == 'lxml':
+            pytest.skip("Not applicable for lxml")
+
+        class UnseekableStringIO(StringIO):
+            def seekable(self):
+                return False
+
+        bad = UnseekableStringIO('''
+            <table><tr><td>spam<foobr />eggs</td></tr></table>''')
+
+        assert self.read_html(bad)
+
+        with pytest.raises(ValueError,
+                           match='passed a non-rewindable file object'):
+            self.read_html(bad)
+
+    def test_parse_failure_rewinds(self):
+        # Issue #17975
+
+        class MockFile(object):
+            def __init__(self, data):
+                self.data = data
+                self.at_end = False
+
+            def read(self, size=None):
+                data = '' if self.at_end else self.data
+                self.at_end = True
+                return data
+
+            def seek(self, offset):
+                self.at_end = False
+
+            def seekable(self):
+                return True
+
+        good = MockFile('<table><tr><td>spam<br />eggs</td></tr></table>')
+        bad = MockFile('<table><tr><td>spam<foobr />eggs</td></tr></table>')
+
+        assert self.read_html(good)
+        assert self.read_html(bad)
 
 
-@pytest.mark.slow
-def test_importcheck_thread_safety():
-    # see gh-16928
+    @pytest.mark.slow
+    def test_importcheck_thread_safety(self):
+        # see gh-16928
 
-    # force import check by reinitalising global vars in html.py
-    pytest.importorskip('lxml')
-    reload(pandas.io.html)
+        class ErrorThread(threading.Thread):
+            def run(self):
+                try:
+                    super(ErrorThread, self).run()
+                except Exception as e:
+                    self.err = e
+                else:
+                    self.err = None
 
-    filename = os.path.join(DATA_PATH, 'valid_markup.html')
-    helper_thread1 = ErrorThread(target=read_html, args=(filename,))
-    helper_thread2 = ErrorThread(target=read_html, args=(filename,))
+        # force import check by reinitalising global vars in html.py
+        reload(pandas.io.html)
 
-    helper_thread1.start()
-    helper_thread2.start()
+        filename = os.path.join(DATA_PATH, 'valid_markup.html')
+        helper_thread1 = ErrorThread(target=self.read_html, args=(filename,))
+        helper_thread2 = ErrorThread(target=self.read_html, args=(filename,))
 
-    while helper_thread1.is_alive() or helper_thread2.is_alive():
-        pass
-    assert None is helper_thread1.err is helper_thread2.err
+        helper_thread1.start()
+        helper_thread2.start()
 
-
-def test_parse_failure_unseekable():
-    # Issue #17975
-    _skip_if_no('lxml')
-    _skip_if_no('bs4')
-
-    class UnseekableStringIO(StringIO):
-        def seekable(self):
-            return False
-
-    good = UnseekableStringIO('''
-        <table><tr><td>spam<br />eggs</td></tr></table>''')
-    bad = UnseekableStringIO('''
-        <table><tr><td>spam<foobr />eggs</td></tr></table>''')
-
-    assert read_html(good)
-    assert read_html(bad, flavor='bs4')
-
-    bad.seek(0)
-
-    with pytest.raises(ValueError,
-                       match='passed a non-rewindable file object'):
-        read_html(bad)
-
-
-def test_parse_failure_rewinds():
-    # Issue #17975
-    _skip_if_no('lxml')
-    _skip_if_no('bs4')
-
-    class MockFile(object):
-        def __init__(self, data):
-            self.data = data
-            self.at_end = False
-
-        def read(self, size=None):
-            data = '' if self.at_end else self.data
-            self.at_end = True
-            return data
-
-        def seek(self, offset):
-            self.at_end = False
-
-        def seekable(self):
-            return True
-
-    good = MockFile('<table><tr><td>spam<br />eggs</td></tr></table>')
-    bad = MockFile('<table><tr><td>spam<foobr />eggs</td></tr></table>')
-
-    assert read_html(good)
-    assert read_html(bad)
+        while helper_thread1.is_alive() or helper_thread2.is_alive():
+            pass
+        assert None is helper_thread1.err is helper_thread2.err

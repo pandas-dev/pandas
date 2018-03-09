@@ -510,8 +510,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
         return row.xpath('.//td|.//th')
 
     def _parse_tr(self, table):
-        expr = './/tr[normalize-space()]'
-        return table.xpath(expr)
+        return table.xpath('.//tr')
 
     def _parse_tables(self, doc, match, kwargs):
         pattern = match.pattern
@@ -551,18 +550,19 @@ class _LxmlFrameParser(_HtmlFrameParser):
         """
         from lxml.html import parse, fromstring, HTMLParser
         from lxml.etree import XMLSyntaxError
-
-        parser = HTMLParser(recover=False, encoding=self.encoding)
+        parser = HTMLParser(recover=True, encoding=self.encoding)
 
         try:
+            _io = self.io
+            if _is_url(_io):
+                _io = urlopen(_io)
             # try to parse the input in the simplest way
-            r = parse(self.io, parser=parser)
-
+            r = parse(_io, parser=parser)
             try:
                 r = r.getroot()
             except AttributeError:
                 pass
-        except (UnicodeDecodeError, IOError):
+        except (UnicodeDecodeError, IOError) as e:
             # if the input is a blob of html goop
             if not _is_url(self.io):
                 r = fromstring(self.io, parser=parser)
@@ -572,17 +572,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
                 except AttributeError:
                     pass
             else:
-                # not a url
-                scheme = parse_url(self.io).scheme
-                if scheme not in _valid_schemes:
-                    # lxml can't parse it
-                    msg = (('{invalid!r} is not a valid url scheme, valid '
-                            'schemes are {valid}')
-                           .format(invalid=scheme, valid=_valid_schemes))
-                    raise ValueError(msg)
-                else:
-                    # something else happened: maybe a faulty connection
-                    raise
+                raise e
         else:
             if not hasattr(r, 'text_content'):
                 raise XMLSyntaxError("no text parsed from document", 0, 0, 0)
@@ -602,12 +592,21 @@ class _LxmlFrameParser(_HtmlFrameParser):
         thead = table.xpath(expr)
         res = []
         if thead:
-            trs = self._parse_tr(thead[0])
-            for tr in trs:
-                cols = [_remove_whitespace(x.text_content()) for x in
-                        self._parse_td(tr)]
+            # Grab any directly descending table headers first
+            ths = thead[0].xpath('./th')
+            if ths:
+                cols = [_remove_whitespace(x.text_content()) for x in ths]
                 if any(col != '' for col in cols):
                     res.append(cols)
+            else:
+                trs = self._parse_tr(thead[0])
+
+                for tr in trs:
+                    cols = [_remove_whitespace(x.text_content()) for x in
+                            self._parse_td(tr)]
+
+                    if any(col != '' for col in cols):
+                        res.append(cols)
         return res
 
     def _parse_raw_tfoot(self, table):
