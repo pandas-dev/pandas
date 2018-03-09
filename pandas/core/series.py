@@ -2696,28 +2696,50 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self.reindex(index=labels, **kwargs)
 
     def memory_usage(self, index=True, deep=False):
-        """Memory usage of the Series
+        """
+        Return the memory usage of the Series.
+
+        The memory usage can optionally include the contribution of
+        the index and of elements of `object` dtype.
 
         Parameters
         ----------
-        index : bool
-            Specifies whether to include memory usage of Series index
-        deep : bool
-            Introspect the data deeply, interrogate
-            `object` dtypes for system-level memory consumption
+        index : bool, default True
+            Specifies whether to include memory usage of Series index.
+        deep : bool, default False
+            Specifies whether to introspect the data deeply, interrogate
+            `object` dtypes for system-level memory consumption, and include
+            it in the returned value.
 
         Returns
         -------
-        scalar bytes of memory consumed
-
-        Notes
-        -----
-        Memory usage does not include memory consumed by elements that
-        are not components of the array if deep=False
+        int
+            Bytes of memory consumed.
 
         See Also
         --------
-        numpy.ndarray.nbytes
+        numpy.ndarray.nbytes : Total bytes consumed by the elements of the
+            array.
+
+        Examples
+        --------
+
+        >>> s = pd.Series(range(3))
+        >>> s.memory_usage()
+        104
+
+        Not including the index gives the size of the rest of the data:
+
+        >>> s.memory_usage(index=False)
+        24
+
+        The memory footprint of `object` values is ignored by default:
+
+        >>> s = pd.Series(object())
+        >>> s.memory_usage()
+        88
+        >>> s.memory_usage(deep=True)  # Footprint of object() included
+        104
         """
         v = super(Series, self).memory_usage(deep=deep)
         if index:
