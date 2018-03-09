@@ -289,12 +289,12 @@ def _coerce_to_type(x):
 
     if is_datetime64tz_dtype(x):
         dtype = x.dtype
-    elif is_timedelta64_dtype(x):
-        x = to_timedelta(x)
-        dtype = np.timedelta64
     elif is_datetime64_dtype(x):
         x = to_datetime(x)
         dtype = np.datetime64
+    elif is_timedelta64_dtype(x):
+        x = to_timedelta(x)
+        dtype = np.timedelta64
 
     if dtype is not None:
         # GH 19768: force NaT to NaN during integer conversion
@@ -380,6 +380,8 @@ def _preprocess_for_cut(x):
         series_index = x.index
         name = x.name
 
+    # Check that the passed array is a Pandas or Numpy object
+    # We don't want to strip away a Pandas data-type here (e.g. datetimetz)
     ndim = getattr(x, 'ndim', None)
     if ndim is None:
         x = np.asarray(x)
