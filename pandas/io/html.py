@@ -166,6 +166,8 @@ class _HtmlFrameParser(object):
     displayed_only : bool
         Whether or not items with "display:none" should be ignored
 
+        .. versionadded:: 0.23.0
+
     Attributes
     ----------
     io : str or file-like
@@ -177,6 +179,14 @@ class _HtmlFrameParser(object):
     attrs : dict-like
         A dictionary of valid table attributes to use to search for table
         elements.
+
+    encoding : str
+        Encoding to be used by parser
+
+    displayed_only : bool
+        Whether or not items with "display:none" should be ignored
+
+        .. versionadded:: 0.23.0
 
     Notes
     -----
