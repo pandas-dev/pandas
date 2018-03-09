@@ -64,8 +64,8 @@ of a data set in Stata.
 ~~~~~~~~~
 
 Every ``DataFrame`` and ``Series`` has an ``Index`` -- labels on the
-*rows* of the data. Stata does not have an exactly analogous concept. A data set's
-row are essentially unlabeled, other than an implicit integer index that can be
+*rows* of the data. Stata does not have an exactly analogous concept. In Stata, a data set's
+rows are essentially unlabeled, other than an implicit integer index that can be
 accessed with ``_n``.
 
 In pandas, if no index is specified, an integer index is also used by default
@@ -123,7 +123,7 @@ If the ``tips.csv`` file is in the current working directory, we can import it a
 
    import delimited tips.csv
 
-The pandas method is :func:`read_csv`, which works similarly. It will automatically download
+The pandas method is :func:`read_csv`, which works similarly. Additionally, it will automatically download
 the data set if presented with a url.
 
 .. ipython:: python
@@ -191,6 +191,7 @@ the column from the data set.
 
    replace total_bill = total_bill - 2
    generate new_bill = total_bill / 2
+   drop new_bill
 
 pandas provides similar vectorized operations by
 specifying the individual ``Series`` in the ``DataFrame``.
@@ -202,8 +203,6 @@ drops a column from the ``DataFrame``.
    tips['total_bill'] = tips['total_bill'] - 2
    tips['new_bill'] = tips['total_bill'] / 2
    tips.head()
-
-.. ipython:: python
 
    tips = tips.drop('new_bill', axis=1)
 
@@ -256,8 +255,10 @@ date/datetime columns.
 
    generate date1 = mdy(1, 15, 2013)
    generate date2 = date("Feb152015", "MDY")
+
    generate date1_year = year(date1)
    generate date2_month = month(date2)
+
    * shift date to beginning of next month
    generate date1_next = mdy(month(date1) + 1, 1, year(date1)) if month(date1) != 12
    replace date1_next = mdy(1, 1, year(date1) + 1) if month(date1) == 12
