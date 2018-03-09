@@ -705,7 +705,7 @@ class Index(IndexOpsMixin, PandasObject):
         ----------
         repeats : int
             The number of repetitions for each element.
-        kwargs : keyword, value pairs
+        **kwargs
             Additional keywords have no effect but might be accepted for
             compatibility with numpy.
 
