@@ -65,7 +65,7 @@ in the ``DATA`` step.
 
 Every ``DataFrame`` and ``Series`` has an ``Index`` - which are labels on the
 *rows* of the data. SAS does not have an exactly analogous concept. A data set's
-row are essentially unlabeled, other than an implicit integer index that can be
+rows are essentially unlabeled, other than an implicit integer index that can be
 accessed during the ``DATA`` step (``_N_``).
 
 In pandas, if no index is specified, an integer index is also used by default
