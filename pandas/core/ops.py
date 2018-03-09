@@ -542,7 +542,7 @@ c  1.0
 d  NaN
 >>> b = pd.DataFrame(dict(one=[1, np.nan, 1, np.nan],
 ...                       two=[np.nan, 2, np.nan, 2]),
-...                  index=['a', 'b', 'd', 'e'])
+...                   index=['a', 'b', 'd', 'e'])
 >>> b
    one  two
 a  1.0  NaN
