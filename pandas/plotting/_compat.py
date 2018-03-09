@@ -17,6 +17,7 @@ def _mpl_version(version, op):
 
     return inner
 
+
 _mpl_ge_1_2_1 = _mpl_version('1.2.1', operator.ge)
 _mpl_le_1_2_1 = _mpl_version('1.2.1', operator.le)
 _mpl_ge_1_3_1 = _mpl_version('1.3.1', operator.ge)
