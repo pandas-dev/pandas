@@ -22,7 +22,7 @@ from pandas.core import common as com, algorithms
 import pandas.core.nanops as nanops
 import pandas._libs.lib as lib
 from pandas.compat.numpy import (function as nv, _np_version_under1p10,
-                                _np_version_under1p12)
+                                 _np_version_under1p12)
 from pandas.compat import PYPY
 from pandas.util._decorators import (Appender, cache_readonly,
                                      deprecate_kwarg, Substitution)
