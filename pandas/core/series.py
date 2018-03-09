@@ -2705,9 +2705,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         index : bool, default True
-            Specifies whether to include memory usage of Series index.
+            Specifies whether to include the memory usage of the Series index.
         deep : bool, default False
-            Specifies whether to introspect the data deeply, interrogate
+            If True, introspect the data deeply by interrogating
             `object` dtypes for system-level memory consumption, and include
             it in the returned value.
 
@@ -2728,7 +2728,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> s.memory_usage()
         104
 
-        Not including the index gives the size of the rest of the data:
+        Not including the index gives the size of the rest of the data, which
+        is necessarily smaller:
 
         >>> s.memory_usage(index=False)
         24
@@ -2736,6 +2737,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         The memory footprint of `object` values is ignored by default:
 
         >>> s = pd.Series(object())
+        >>> s
+        0    <object object at 0x118acf230>
+        dtype: object
         >>> s.memory_usage()
         88
         >>> s.memory_usage(deep=True)  # Footprint of object() included
