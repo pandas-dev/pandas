@@ -1770,11 +1770,36 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     def normalize(self):
         """
-        Return DatetimeIndex with times to midnight. Length is unaltered
+        Convert times to midnight.
+
+        When using DatetimeIndex, the time can be converted to midnight i.e.
+        00:00:00. This is useful in cases, when the time does not matter.
+        Length is unaltered. The timezones are unaffected.
 
         Returns
         -------
         normalized : DatetimeIndex
+
+        See Also
+        --------
+        DatetimeIndex.floor : Floor the DatetimeIndex to the specified freq.
+        DatetimeIndex.ceil : Ceil the DatetimeIndex to the specified freq.
+        DatetimeIndex.round : Round the DatetimeIndex to the specified freq.
+
+        Examples
+        --------
+        >>> df = pd.DatetimeIndex(start='2014-08-01 10:00', freq='H',
+        ...                       periods=3, tz='Asia/Calcutta')
+        >>> df
+        DatetimeIndex(['2014-08-01 10:00:00+05:30',
+                       '2014-08-01 11:00:00+05:30',
+                       '2014-08-01 12:00:00+05:30'],
+                        dtype='datetime64[ns, Asia/Calcutta]', freq='H')
+        >>> df.normalize()
+        DatetimeIndex(['2014-08-01 00:00:00+05:30',
+                       '2014-08-01 00:00:00+05:30',
+                       '2014-08-01 00:00:00+05:30'],
+                       dtype='datetime64[ns, Asia/Calcutta]', freq=None)
         """
         new_values = conversion.date_normalize(self.asi8, self.tz)
         return DatetimeIndex(new_values, freq='infer', name=self.name,
