@@ -562,7 +562,7 @@ class SparseSeries(Series):
         return self._constructor(new_data, sparse_index=self.sp_index,
                                  fill_value=self.fill_value).__finalize__(self)
 
-    @Appender(generic._shared_docs['reindex'] % _shared_doc_kwargs)
+    @Appender(generic.NDFrame.reindex.__doc__ % _shared_doc_kwargs)
     def reindex(self, index=None, method=None, copy=True, limit=None,
                 **kwargs):
 
@@ -591,7 +591,7 @@ class SparseSeries(Series):
                                  sparse_index=new_index,
                                  fill_value=self.fill_value).__finalize__(self)
 
-    @Appender(generic._shared_docs['take'])
+    @Appender(generic.NDFrame.take.__doc__)
     def take(self, indices, axis=0, convert=None, *args, **kwargs):
         if convert is not None:
             msg = ("The 'convert' parameter is deprecated "

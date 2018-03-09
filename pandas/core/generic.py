@@ -487,7 +487,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return new_axes
 
-    _shared_docs['set_axis'] = """Assign desired index to given axis
+    def set_axis(self, labels, axis=0, inplace=None):
+        """Assign desired index to given axis
 
         Parameters
         ----------
@@ -547,9 +548,6 @@ class NDFrame(PandasObject, SelectionMixin):
         2  3   6
 
         """
-
-    @Appender(_shared_docs['set_axis'] % dict(klass='NDFrame'))
-    def set_axis(self, labels, axis=0, inplace=None):
         if is_scalar(labels):
             warnings.warn(
                 'set_axis now takes "labels" as first argument, and '
@@ -577,7 +575,8 @@ class NDFrame(PandasObject, SelectionMixin):
         self._data.set_axis(axis, labels)
         self._clear_item_cache()
 
-    _shared_docs['transpose'] = """
+    def transpose(self, *args, **kwargs):
+        """
         Permute the dimensions of the %(klass)s
 
         Parameters
@@ -596,9 +595,6 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         y : same as input
         """
-
-    @Appender(_shared_docs['transpose'] % _shared_doc_kwargs)
-    def transpose(self, *args, **kwargs):
 
         # construct the args
         axes, kwargs = self._construct_axes_from_arguments(args, kwargs,
@@ -749,9 +745,8 @@ class NDFrame(PandasObject, SelectionMixin):
     # ----------------------------------------------------------------------
     # Rename
 
-    # TODO: define separate funcs for DataFrame, Series and Panel so you can
-    # get completion on keyword arguments.
-    _shared_docs['rename'] = """
+    def rename(self, *args, **kwargs):
+        """
         Alter axes input function or functions. Function / dict values must be
         unique (1-to-1). Labels not contained in a dict / Series will be left
         as-is. Extra labels listed don't throw an error. Alternatively, change
@@ -759,13 +754,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        %(optional_mapper)s
         %(axes)s : scalar, list-like, dict-like or function, optional
             Scalar or list-like will alter the ``Series.name`` attribute,
             and raise on DataFrame or Panel.
             dict-like or functions are transformations to apply to
             that axis' values
-        %(optional_axis)s
         copy : boolean, default True
             Also copy underlying data
         inplace : boolean, default False
@@ -853,12 +846,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See the :ref:`user guide <basics.rename>` for more.
         """
-
-    @Appender(_shared_docs['rename'] % dict(axes='axes keywords for this'
-                                            ' object', klass='NDFrame',
-                                            optional_mapper='',
-                                            optional_axis=''))
-    def rename(self, *args, **kwargs):
         axes, kwargs = self._construct_axes_from_arguments(args, kwargs)
         copy = kwargs.pop('copy', True)
         inplace = kwargs.pop('inplace', False)
@@ -909,8 +896,6 @@ class NDFrame(PandasObject, SelectionMixin):
             self._update_inplace(result._data)
         else:
             return result.__finalize__(self)
-
-    rename.__doc__ = _shared_docs['rename']
 
     def rename_axis(self, mapper, axis=0, copy=True, inplace=False):
         """Alter the name of the index or columns.
@@ -2060,7 +2045,13 @@ class NDFrame(PandasObject, SelectionMixin):
                                 coords=coords,
                                 )
 
-    _shared_docs['to_latex'] = r"""
+    def to_latex(self, buf=None, columns=None, col_space=None, header=True,
+                 index=True, na_rep='NaN', formatters=None, float_format=None,
+                 sparsify=None, index_names=True, bold_rows=False,
+                 column_format=None, longtable=None, escape=None,
+                 encoding=None, decimal='.', multicolumn=None,
+                 multicolumn_format=None, multirow=None):
+        r"""
         Render an object to a tabular environment table. You can splice
         this into a LaTeX document. Requires \\usepackage{booktabs}.
 
@@ -2111,18 +2102,7 @@ class NDFrame(PandasObject, SelectionMixin):
             The default will be read from the pandas config module.
 
             .. versionadded:: 0.20.0
-            """
-
-    @Substitution(header='Write out the column names. If a list of strings '
-                         'is given, it is assumed to be aliases for the '
-                         'column names.')
-    @Appender(_shared_docs['to_latex'] % _shared_doc_kwargs)
-    def to_latex(self, buf=None, columns=None, col_space=None, header=True,
-                 index=True, na_rep='NaN', formatters=None, float_format=None,
-                 sparsify=None, index_names=True, bold_rows=False,
-                 column_format=None, longtable=None, escape=None,
-                 encoding=None, decimal='.', multicolumn=None,
-                 multicolumn_format=None, multirow=None):
+        """
         # Get defaults from the pandas config
         if self.ndim == 1:
             self = self.to_frame()
@@ -2454,7 +2434,8 @@ class NDFrame(PandasObject, SelectionMixin):
         except KeyError:
             pass
 
-    _shared_docs['_take'] = """
+    def _take(self, indices, axis=0, convert=True, is_copy=True):
+        """
         Return the elements in the given *positional* indices along an axis.
 
         This means that we are not indexing according to actual values in
@@ -2490,9 +2471,6 @@ class NDFrame(PandasObject, SelectionMixin):
         numpy.ndarray.take
         numpy.take
         """
-
-    @Appender(_shared_docs['_take'])
-    def _take(self, indices, axis=0, convert=True, is_copy=True):
         self._consolidate_inplace()
 
         if convert:
@@ -2510,7 +2488,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return result
 
-    _shared_docs['take'] = """
+    def take(self, indices, axis=0, convert=None, is_copy=True, **kwargs):
+        """
         Return the elements in the given *positional* indices along an axis.
 
         This means that we are not indexing according to actual values in
@@ -2587,9 +2566,6 @@ class NDFrame(PandasObject, SelectionMixin):
         numpy.ndarray.take
         numpy.take
         """
-
-    @Appender(_shared_docs['take'])
-    def take(self, indices, axis=0, convert=None, is_copy=True, **kwargs):
         if convert is not None:
             msg = ("The 'convert' parameter is deprecated "
                    "and will be removed in a future version.")
@@ -2991,7 +2967,9 @@ class NDFrame(PandasObject, SelectionMixin):
         new_data = self._data.add_suffix(suffix)
         return self._constructor(new_data).__finalize__(self)
 
-    _shared_docs['sort_values'] = """
+    def sort_values(self, by=None, axis=0, ascending=True, inplace=False,
+                    kind='quicksort', na_position='last'):
+        """
         Sort by the values along either axis
 
         Parameters
@@ -3076,17 +3054,12 @@ class NDFrame(PandasObject, SelectionMixin):
         0   A    2    0
         1   A    1    1
         """
-
-    def sort_values(self, by=None, axis=0, ascending=True, inplace=False,
-                    kind='quicksort', na_position='last'):
-        """
-        NOT IMPLEMENTED: do not call this method, as sorting values is not
-        supported for Panel objects and will raise an error.
-        """
         raise NotImplementedError("sort_values has not been implemented "
                                   "on Panel or Panel4D objects.")
 
-    _shared_docs['sort_index'] = """
+    def sort_index(self, axis=0, level=None, ascending=True, inplace=False,
+                   kind='quicksort', na_position='last', sort_remaining=True):
+        """
         Sort object by labels (along an axis)
 
         Parameters
@@ -3114,10 +3087,6 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         sorted_obj : %(klass)s
         """
-
-    @Appender(_shared_docs['sort_index'] % dict(axes="axes", klass="NDFrame"))
-    def sort_index(self, axis=0, level=None, ascending=True, inplace=False,
-                   kind='quicksort', na_position='last', sort_remaining=True):
         inplace = validate_bool_kwarg(inplace, 'inplace')
         axis = self._get_axis_number(axis)
         axis_name = self._get_axis_name(axis)
@@ -3135,7 +3104,8 @@ class NDFrame(PandasObject, SelectionMixin):
         new_axis = labels.take(sort_index)
         return self.reindex(**{axis_name: new_axis})
 
-    _shared_docs['reindex'] = """
+    def reindex(self, *args, **kwargs):
+        """
         Conform %(klass)s to new index with optional filling logic, placing
         NA/NaN in locations having no value in the previous index. A new object
         is produced unless the new index is equivalent to the current one and
@@ -3331,14 +3301,8 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         reindexed : %(klass)s
         """
-
-    # TODO: Decide if we care about having different examples for different
-    #       kinds
-
-    @Appender(_shared_docs['reindex'] % dict(axes="axes", klass="NDFrame",
-                                             optional_labels="",
-                                             optional_axis=""))
-    def reindex(self, *args, **kwargs):
+        # TODO: Decide if we care about having different examples for different
+        # kinds
 
         # construct the args
         axes, kwargs = self._construct_axes_from_arguments(args, kwargs)

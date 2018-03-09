@@ -1885,7 +1885,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # ----------------------------------------------------------------------
     # Reindexing, sorting
 
-    @Appender(generic._shared_docs['sort_values'] % _shared_doc_kwargs)
+    @Appender(generic.NDFrame.sort_values.__doc__ % _shared_doc_kwargs)
     def sort_values(self, axis=0, ascending=True, inplace=False,
                     kind='quicksort', na_position='last'):
 
@@ -1947,7 +1947,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         else:
             return result.__finalize__(self)
 
-    @Appender(generic._shared_docs['sort_index'] % _shared_doc_kwargs)
+    @Appender(generic.NDFrame.sort_index.__doc__ % _shared_doc_kwargs)
     def sort_index(self, axis=0, level=None, ascending=True, inplace=False,
                    kind='quicksort', na_position='last', sort_remaining=True):
 
@@ -2656,7 +2656,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return self._set_name(index, inplace=kwargs.get('inplace'))
         return super(Series, self).rename(index=index, **kwargs)
 
-    @Appender(generic._shared_docs['reindex'] % _shared_doc_kwargs)
+    @Appender(generic.NDFrame.reindex.__doc__ % _shared_doc_kwargs)
     def reindex(self, index=None, **kwargs):
         return super(Series, self).reindex(index=index, **kwargs)
 
@@ -2724,7 +2724,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             v += self.index.memory_usage(deep=deep)
         return v
 
-    @Appender(generic._shared_docs['_take'])
+    @Appender(generic.NDFrame._take.__doc__)
     def _take(self, indices, axis=0, convert=True, is_copy=False):
         if convert:
             indices = maybe_convert_indices(indices, len(self._get_axis(axis)))
