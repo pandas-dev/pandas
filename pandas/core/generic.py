@@ -7785,12 +7785,9 @@ Returns
 
 _bool_doc = """
 %(desc)s
+
 Returns True if one (or more) elements are non-zero,
 not-empty or not-False.
-
-Also note that a series consisting of different
-data types returns the first occurence of the
-non-zero, not-empty or not-False element.
 
 Parameters
 ----------
@@ -7814,18 +7811,14 @@ Returns
 
 Examples
 --------
->>> s1 = pd.Series([1,2,3])
+>>> s1 = pd.Series([1, 2, 3])
 >>> s1.any()
 True
 
 >>> import numpy as np
->>> s2 = pd.Series([np.NaN,np.NaN,np.NaN])
+>>> s2 = pd.Series([np.NaN, np.NaN, np.NaN])
 >>> s2.any()
 False
-
->>> s3 = pd.Series([1,2,3,"Hobbit"])
->>> s3.any()
-1
 """
 
 _cnum_doc = """
