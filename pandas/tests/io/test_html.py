@@ -6,6 +6,8 @@ import re
 import threading
 import warnings
 
+from functools import partial
+
 
 # imports needed for Python 3.x but will fail under Python 2.x
 try:
@@ -91,24 +93,19 @@ def test_bs4_version_fails():
                          flavor='bs4')
 
 
-class ReadHtmlMixin(object):
-
-    def read_html(self, *args, **kwargs):
-        kwargs.setdefault('flavor', self.flavor)
-        return read_html(*args, **kwargs)
-
-
-class TestReadHtml(ReadHtmlMixin):
-    flavor = 'bs4'
+@pytest.mark.parametrize("flavor", [
+    'bs4'], scope="class")
+class TestReadHtml(object):
     spam_data = os.path.join(DATA_PATH, 'spam.html')
     spam_data_kwargs = {}
     if PY3:
         spam_data_kwargs['encoding'] = 'UTF-8'
     banklist_data = os.path.join(DATA_PATH, 'banklist.html')
 
-    @classmethod
-    def setup_class(cls):
-        _skip_if_none_of(('bs4', 'html5lib'))
+    @pytest.fixture(autouse=True, scope="function")
+    def set_defaults(self, flavor, request):
+        self.read_html = partial(read_html, flavor=flavor)
+        yield
 
     def test_to_html_compat(self):
         df = mkdf(4, 3, data_gen_f=lambda *args: rand(), c_idx_names=False,
@@ -838,7 +835,7 @@ class TestReadHtmlEncodingLxml(TestReadHtmlEncoding):
         _skip_if_no(cls.flavor)
 
 
-class TestReadHtmlLxml(ReadHtmlMixin):
+class TestReadHtmlLxml(object):
     flavor = 'lxml'
 
     @classmethod
