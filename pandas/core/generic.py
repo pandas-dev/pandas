@@ -212,9 +212,8 @@ class NDFrame(PandasObject, SelectionMixin):
         """ add the string-like attributes from the info_axis.
         If info_axis is a MultiIndex, it's first level values are used.
         """
-        additions = set(
-            [c for c in self._info_axis.unique(level=0)[:100]
-             if isinstance(c, string_types) and isidentifier(c)])
+        additions = {c for c in self._info_axis.unique(level=0)[:100]
+                     if isinstance(c, string_types) and isidentifier(c)}
         return super(NDFrame, self)._dir_additions().union(additions)
 
     @property
@@ -4887,7 +4886,10 @@ class NDFrame(PandasObject, SelectionMixin):
             ``to_replace`` must be ``None``.
         method : string, optional, {'pad', 'ffill', 'bfill'}
             The method to use when for replacement, when ``to_replace`` is a
-            ``list``.
+            scalar, list or tuple and ``value`` is None.
+
+        .. versionchanged:: 0.23.0
+           Added to DataFrame
 
         See Also
         --------
@@ -5056,6 +5058,10 @@ class NDFrame(PandasObject, SelectionMixin):
                 to_replace = [to_replace]
 
             if isinstance(to_replace, (tuple, list)):
+                if isinstance(self, pd.DataFrame):
+                    return self.apply(_single_replace,
+                                      args=(to_replace, method, inplace,
+                                            limit))
                 return _single_replace(self, to_replace, method, inplace,
                                        limit)
 
@@ -7767,7 +7773,8 @@ level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
     particular level, collapsing into a %(name1)s
 ddof : int, default 1
-    degrees of freedom
+    Delta Degrees of Freedom. The divisor used in calculations is N - ddof,
+    where N represents the number of elements.
 numeric_only : boolean, default None
     Include only float, int, boolean columns. If None, will attempt to use
     everything, then use only numeric data. Not implemented for Series.
