@@ -55,8 +55,8 @@ class ParserWarning(Warning):
     """
     Warning raised when reading a file that doesn't use the default parser.
 
-    Thrown by `pd.read_csv` and `pd.read_table` when it is
-    necessary to change parsers, generally from 'c' to 'python'.
+    Thrown by `pd.read_csv` and `pd.read_table` when it is necessary to
+    change parsers, generally from 'c' to 'python'.
 
     It happens due to lack of support or functionality for parsing
     particular attributes of a CSV file with the requested engine.
