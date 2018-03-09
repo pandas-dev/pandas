@@ -7,17 +7,13 @@ an unrelated PR):
 - [ ] The html version looks good: `python doc/make.py --single <your-function-or-method>`
 - [ ] It has been proofread on language by another sprint participant
 
-Please include the output of the validation script under the details tag below:
-
-<details>
+Please include the output of the validation script below between the "```" ticks:
 
 ```
 # paste output of "scripts/validate_docstrings.py <your-function-or-method>" here
 # between the "```" (remove this comment, but keep the "```")
 
 ```
-
-</details>
 
 If the validation script still gives errors, but you think there is a good reason
 to deviate in this case (and there are certainly such cases), please state this
