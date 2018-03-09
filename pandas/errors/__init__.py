@@ -70,6 +70,11 @@ class ParserWarning(Warning):
     The warning can be avoided by adding `engine='python'` as a parameter
     in `pd.read_csv` and `pd.read_table` methods.
 
+    See Also
+    --------
+    pd.read_csv : Read CSV (comma-separated) file into DataFrame.
+    pd.read_table : Read general delimited file into DataFrame.
+
     Examples
     --------
     Using a `sep` in `pd.read_csv` other than a single character:
