@@ -13,6 +13,7 @@ Please include the output of the validation script under the details tag below:
 
 ```
 # paste output of "scripts/validate_docstrings.py <your-function-or-method>" here
+# between the "```" (remove this comment, but keep the "```")
 
 ```
 
@@ -23,7 +24,7 @@ to deviate in this case (and there are certainly such cases), please state this
 explicitly.
 
 
-Checklist for other PRs:
+Checklist for other PRs (remove this part if you are doing a PR for the pandas documentation sprint):
 
 - [ ] closes #xxxx
 - [ ] tests added / passed
