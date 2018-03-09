@@ -507,7 +507,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
 
     if is_categorical_dtype(values):
         values = getattr(values, '_values', values)
-        labels, uniques = values.factorize(sort=sort)
+        labels, uniques = values.factorize()
         dtype = original.dtype
     else:
         values, dtype, _ = _ensure_data(values)
@@ -516,8 +516,14 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
                                            na_sentinel=na_sentinel,
                                            size_hint=size_hint)
 
-        if sort and len(uniques) > 0:
-            from pandas.core.sorting import safe_sort
+    if sort and len(uniques) > 0:
+        from pandas.core.sorting import safe_sort
+        try:
+            order = uniques.argsort()
+            labels = take_1d(order, labels, fill_value=na_sentinel)
+            uniques = uniques.take(order)
+        except TypeError:
+            # Mixed types, where uniques.argsort fails.
             uniques, labels = safe_sort(uniques, labels,
                                         na_sentinel=na_sentinel,
                                         assume_unique=True)

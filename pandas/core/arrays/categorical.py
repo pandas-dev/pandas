@@ -2069,7 +2069,7 @@ class Categorical(ExtensionArray, PandasObject):
             take_codes = sorted(take_codes)
         return cat.set_categories(cat.categories.take(take_codes))
 
-    def factorize(self, sort=False, na_sentinel=-1):
+    def factorize(self, na_sentinel=-1):
         """Encode the Categorical as an enumerated type.
 
         Parameters
@@ -2110,7 +2110,7 @@ class Categorical(ExtensionArray, PandasObject):
         [a, b]
         Categories (2, object): [a, b]
         """
-        from pandas.core.algorithms import _factorize_array, take_1d
+        from pandas.core.algorithms import _factorize_array
 
         codes = self.codes.astype('int64')
         codes[codes == -1] = iNaT
@@ -2121,10 +2121,6 @@ class Categorical(ExtensionArray, PandasObject):
         uniques = self._constructor(self.categories.take(uniques),
                                     categories=self.categories,
                                     ordered=self.ordered)
-        if sort:
-            order = uniques.argsort()
-            labels = take_1d(order, labels, fill_value=na_sentinel)
-            uniques = uniques.take(order)
         return labels, uniques
 
     def equals(self, other):
