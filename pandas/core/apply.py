@@ -191,7 +191,7 @@ class FrameApply(object):
 
         for i, col in enumerate(target.columns):
             res = self.f(target[col])
-            ares = np. asarray(res).ndim
+            ares = np.asarray(res).ndim
 
             # must be a scalar or 1d
             if ares > 1:

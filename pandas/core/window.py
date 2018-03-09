@@ -906,21 +906,23 @@ class _Rolling_and_Expanding(_Rolling):
 
     Parameters
     ----------
-    kwargs : Under Review
+    **kwargs
+        Under Review.
 
     Returns
     -------
-    Series or DataFrame (matches input)
-        Like-indexed object containing the result of function application
+    Series or DataFrame
+        Returned object type is determined by the caller of the %(name)s
+        calculation
 
     See Also
     --------
-    pandas.Series.%(name)s
-    pandas.DataFrame.%(name)s
-    pandas.Series.kurtosis
-    pandas.DataFrame.kurtosis
-    scipy.stats.skew
-    scipy.stats.kurtosis
+    Series.%(name)s : Calling object with Series data
+    DataFrame.%(name)s : Calling object with DataFrames
+    Series.kurt : Equivalent method for Series
+    DataFrame.kurt : Equivalent method for DataFrame
+    scipy.stats.skew : Third moment of a probability density
+    scipy.stats.kurtosis : Reference SciPy method
 
     Notes
     -----
@@ -932,19 +934,20 @@ class _Rolling_and_Expanding(_Rolling):
     four matching the equivalent function call using `scipy.stats`.
 
     >>> arr = [1, 2, 3, 4, 999]
+    >>> fmt = "{0:.6f}"  # limit the printed precision to 6 digits
     >>> import scipy.stats
-    >>> print("{0:.6f}".format(scipy.stats.kurtosis(arr[:-1], bias=False)))
+    >>> print(fmt.format(scipy.stats.kurtosis(arr[:-1], bias=False)))
     -1.200000
-    >>> print("{0:.6f}".format(scipy.stats.kurtosis(arr[1:], bias=False)))
+    >>> print(fmt.format(scipy.stats.kurtosis(arr[1:], bias=False)))
     3.999946
-    >>> df = pd.DataFrame(arr)
-    >>> df.rolling(4).kurt()
-              0
-    0       NaN
-    1       NaN
-    2       NaN
-    3 -1.200000
-    4  3.999946
+    >>> s = pd.Series(arr)
+    >>> s.rolling(4).kurt()
+    0         NaN
+    1         NaN
+    2         NaN
+    3   -1.200000
+    4    3.999946
+    dtype: float64
     """)
 
     def kurt(self, **kwargs):
