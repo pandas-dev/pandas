@@ -233,6 +233,31 @@ class TestGroupBy(MixIn):
             lambda x: x['time'][x['value'].idxmax()])
         assert_series_equal(result, expected)
 
+    def test_apply_trivial(self):
+        # GH 20066
+        def gen_one_df(start=0):
+            df_this = pd.DataFrame({'key' : ['a', 'a', 'b', 'b', 'a'],
+                                    'data' : [1.0,2.0,3.0,4.0,5.0] }, columns=['key', 'data'])[start:]
+            return df_this
+
+        expected = pd.concat([gen_one_df(1), gen_one_df(1)], axis=1, keys=['float64', 'object'])
+        result = df.groupby([str(x) for x in df.dtypes], axis=1).apply(lambda x: gen_one_df(1))
+
+        assert_frame_equal(result, expected)
+
+    @pytest.mark.xfail(reason="didn't work yet")
+    def test_apply_trivial_fail(self):
+        # GH 20066
+        def gen_one_df(start=0):
+            df_this = pd.DataFrame({'key' : ['a', 'a', 'b', 'b', 'a'],
+                                    'data' : [1.0,2.0,3.0,4.0,5.0] }, columns=['key', 'data'])[start:]
+            return df_this
+
+        expected = pd.concat([gen_one_df(), gen_one_df()], axis=1, keys=['float64', 'object'])
+        result = df.groupby([str(x) for x in df.dtypes], axis=1).apply(lambda x: gen_one_df())
+
+        assert_frame_equal(result, expected)
+
     def test_time_field_bug(self):
         # Test a fix for the following error related to GH issue 11324 When
         # non-key fields in a group-by dataframe contained time-based fields
