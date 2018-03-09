@@ -1937,7 +1937,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                      mapping={True: 'infer', False: 'raise'})
     def tz_localize(self, tz, ambiguous='raise', errors='raise'):
         """
-        Convert aware Datetime index to TimeZone naive Datetime index.
+        Convert aware to naive.
 
         Localize timezone-naive DatetimeIndex to given time zone,
         or remove timezone from timezone aware DatetimeIndex.
@@ -1966,6 +1966,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
             .. versionadded:: 0.19.0
 
+        infer_dst : boolean, default False
+            .. deprecated:: 0.15.0
+               Attempt to infer fall dst-transition hours based on order
+
 
         Returns
         -------
@@ -1978,14 +1982,14 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         >>> df = pd.date_range('2018-03-01', '2018-03-05')
         >>> df
-        DatetimeIndex(['2018-03-01', '2018-03-02', '2018-03-03', '2018-03-04',
-               '2018-03-05'],
-              dtype='datetime64[ns]', freq='D')
+        DatetimeIndex(['2018-03-01', '2018-03-02', '2018-03-03',
+        '2018-03-04', '2018-03-05'],
+        dtype='datetime64[ns]', freq='D')
         >>> df.tz_localize(tz='US/Eastern')
         DatetimeIndex(['2018-03-01 00:00:00-05:00',
         '2018-03-02 00:00:00-05:00', '2018-03-03 00:00:00-05:00',
         '2018-03-04 00:00:00-05:00', '2018-03-05 00:00:00-05:00'],
-              dtype='datetime64[ns, US/Eastern]', freq='D')
+        dtype='datetime64[ns, US/Eastern]', freq='D')
 
         Raises
         ------
