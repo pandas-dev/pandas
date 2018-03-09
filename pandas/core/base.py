@@ -21,7 +21,8 @@ from pandas.errors import AbstractMethodError
 from pandas.core import common as com, algorithms
 import pandas.core.nanops as nanops
 import pandas._libs.lib as lib
-from pandas.compat.numpy import function as nv, _np_version_under1p10
+from pandas.compat.numpy import (function as nv, _np_version_under1p10,
+                                _np_version_under1p12)
 from pandas.compat import PYPY
 from pandas.util._decorators import (Appender, cache_readonly,
                                      deprecate_kwarg, Substitution)
@@ -203,13 +204,15 @@ class SelectionMixin(object):
         np.min: 'min',
         np.nanmin: 'min',
         np.cumprod: 'cumprod',
-        np.nancumprod: 'cumprod',
         np.cumsum: 'cumsum',
-        np.nancumsum: 'cumsum'
     }
 
     if not _np_version_under1p10:
         _cython_table[np.nanprod] = 'prod'
+
+    if not _np_version_under1p12:
+        _cython_table[np.nancumprod] = 'cumprod'
+        _cython_table[np.nancumsum] = 'cumsum'
 
     @property
     def _selection_name(self):

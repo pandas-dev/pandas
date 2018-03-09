@@ -1024,9 +1024,7 @@ class TestNumpyNaNFunctions(object):
         (np.var, np.nanvar),
         (np.median, np.nanmedian),
         (np.max, np.nanmax),
-        (np.min, np.nanmin),
-        (np.cumprod, np.nancumprod),
-        (np.cumsum, np.nancumsum)
+        (np.min, np.nanmin)
     ])
     def test_np_nan_functions(self, standard, nan_method):
         self.compare_method_output(self.test_series, standard, nan_method)
@@ -1036,6 +1034,15 @@ class TestNumpyNaNFunctions(object):
     def test_np_nanprod(self):
         self.compare_method_output(self.test_series, np.prod, np.nanprod)
         self.compare_method_output(self.test_df, np.prod, np.nanprod)
+
+    @td.skip_if_no("numpy", min_version="1.12.0")
+    @pytest.mark.parametrize("standard, nan_method", [
+        (np.cumprod, np.nancumprod),
+        (np.cumsum, np.nancumsum)
+    ])
+    def test_np_nancumprod(self, standard, nan_method):
+        self.compare_method_output(self.test_series, standard, nan_method)
+        self.compare_method_output(self.test_df, standard, nan_method)
 
 
 def test_use_bottleneck():
