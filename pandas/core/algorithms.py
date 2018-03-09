@@ -499,8 +499,8 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     # 3.) Maybe boxing the output in an Index
     #
     # Step 2 is dispatched to extension types (like Categorical). They are
-    # responsible only for factorization and sorting if necessary. All
-    # data coercion and boxing should happen here.
+    # responsible only for factorization. All data coercion, sorting and boxing
+    # should happen here.
 
     values = _ensure_arraylike(values)
     original = values
