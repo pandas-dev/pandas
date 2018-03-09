@@ -4241,7 +4241,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         numpy.ndarray
-            The values of the NDFrame
+            The values of the DataFrame
 
         Examples
         --------
