@@ -917,10 +917,10 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    pandas.Series.%(name)s : Calling object with Series data
-    pandas.DataFrame.%(name)s : Calling object with DataFrames
-    pandas.Series.kurtosis : Similar method for Series
-    pandas.DataFrame.kurtosis : Similar method for DataFrame
+    Series.%(name)s : Calling object with Series data
+    DataFrame.%(name)s : Calling object with DataFrames
+    Series.kurt : Like method for Series
+    DataFrame.kurt : Like method for DataFrame
     scipy.stats.skew : Third moment of a probability density
     scipy.stats.kurtosis : Reference SciPy method
 
