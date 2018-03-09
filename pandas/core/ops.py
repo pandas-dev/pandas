@@ -513,14 +513,14 @@ Parameters
 other : Series, DataFrame, or constant
 axis : {{0, 1, 'index', 'columns'}}
     For Series input, axis to match Series index on
+level : int or name
+    Broadcast across a level, matching Index values on the
+    passed MultiIndex level
 fill_value : None or float value, default None
     Fill existing missing (NaN) values, and any new element needed for
     successful DataFrame alignment, with this value before computation.
     If data in both corresponding DataFrame locations is missing
     the result will be missing
-level : int or name
-    Broadcast across a level, matching Index values on the
-    passed MultiIndex level
 
 Notes
 -----
