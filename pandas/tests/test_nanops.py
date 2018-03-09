@@ -1036,13 +1036,15 @@ class TestNumpyNaNFunctions(object):
         self.compare_method_output(self.test_df, np.prod, np.nanprod)
 
     @td.skip_if_no("numpy", min_version="1.12.0")
-    @pytest.mark.parametrize("standard, nan_method", [
-        (np.cumprod, np.nancumprod),
-        (np.cumsum, np.nancumsum)
-    ])
-    def test_np_nancumprod(self, standard, nan_method):
-        self.compare_method_output(self.test_series, standard, nan_method)
-        self.compare_method_output(self.test_df, standard, nan_method)
+    def test_np_nancumprod(self):
+        # Not using pytest params as fails at build time
+        methods = [
+            (np.cumprod, np.nancumprod),
+            (np.cumsum, np.nancumsum)
+        ]
+        for standard, nan_method in methods:
+            self.compare_method_output(self.test_series, standard, nan_method)
+            self.compare_method_output(self.test_df, standard, nan_method)
 
 
 def test_use_bottleneck():
