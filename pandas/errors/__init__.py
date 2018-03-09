@@ -53,10 +53,37 @@ class EmptyDataError(ValueError):
 
 class ParserWarning(Warning):
     """
-    Warning that is raised in `pd.read_csv` whenever it is necessary
-    to change parsers (generally from 'c' to 'python') contrary to the
-    one specified by the user due to lack of support or functionality for
-    parsing particular attributes of a CSV file with the requested engine.
+    Warning raised in `pd.read_csv` and `pd.read_table` when it is
+    necessary to change parsers, generally from 'c' to 'python'.
+    
+    It happens due to lack of support or functionality for parsing
+    particular attributes of a CSV file with the requested engine.
+
+    Currently, C-unsupported options include the following parameters:
+
+    1. `sep` other than a single character (e.g. regex separators)
+    2. `skipfooter` higher than 0
+    3. `sep=None` with `delim_whitespace=False`
+
+    The warning can be avoided by adding `engine='python'` as a parameter
+    in `pd.read_csv` and `pd.read_table` methods.
+
+    Examples
+    --------
+    Using a `sep` in `pd.read_csv` other than a single character:
+
+    >>> import io
+    >>> csv = u'''a;b;c
+    ...           1;1,8
+    ...           1;2,1'''
+    >>> df = pd.read_csv(io.StringIO(csv), sep='[;,]')
+    Traceback (most recent call last):
+    ...
+    ParserWarning: Falling back to the 'python' engine...
+
+    Adding `engine='python'` to `pd.read_csv` removes the Warning:
+
+    >>> df = pd.read_csv(io.StringIO(csv), sep='[;,]', engine='python')
     """
 
 
