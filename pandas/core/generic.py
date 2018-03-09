@@ -4233,9 +4233,9 @@ class NDFrame(PandasObject, SelectionMixin):
     @property
     def values(self):
         """
-        Generate and return a Numpy representation of NDFrame.
+        Return a Numpy representation of the DataFrame.
 
-        Only the values in the NDFrame will be returned, the axes labels will
+        Only the values in the DataFrame will be returned, the axes labels will
         be removed.
 
         Returns
