@@ -28,19 +28,19 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     """
     Return indices of half-open `bins` to which each value of `x` belongs.
 
-    Use `cut` when you need to segment and sort data values into bins or 
+    Use `cut` when you need to segment and sort data values into bins or
     buckets of data. This function is also useful for going from a continuous
     variable to a categorical variable. For example, `cut` could convert ages
     to groups of age ranges.
-    
+
     Parameters
     ----------
     x : array-like
         Input array to be binned. It has to be 1-dimensional.
     bins : int, sequence of scalars, or pandas.IntervalIndex
         If `bins` is an int, defines the number of equal-width bins in the
-        range of `x`. The range of `x` is extended by .1% on each side to 
-        include the min or max values of `x`. 
+        range of `x`. The range of `x` is extended by .1% on each side to
+        include the min or max values of `x`.
         If `bins` is a sequence, defines the bin edges allowing for
         non-uniform bin width. No extension of the range of `x` is done.
     right : bool, optional, default 'True'
@@ -61,23 +61,24 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
 
     Returns
     -------
-    out : pandas.Categorical or Series, or array of integers if `labels` is 'False'
-        The return type depends on the input. If the input is a Series, a Series
-        of type category is returned. Else - pandas.Categorical is returned. 
-        `Bins` are represented as categories when categorical data is returned.
+    out : pandas.Categorical or Series, or array of int if `labels` is 'False'
+        The return type depends on the input.
+        If the input is a Series, a Series of type category is returned.
+        Else - pandas.Categorical is returned. `Bins` are represented as
+        categories when categorical data is returned.
     bins : numpy.ndarray of floats
         Returned only if `retbins` is 'True'.
-    
+
     See Also
     --------
-    qcut : Discretize variable into equal-sized buckets based on rank 
+    qcut : Discretize variable into equal-sized buckets based on rank
         or based on sample quantiles.
-    pandas.Categorical : Represents a categorical variable in 
+    pandas.Categorical : Represents a categorical variable in
         classic R / S-plus fashion.
     Series : One-dimensional ndarray with axis labels (including time series).
-    pandas.IntervalIndex : Immutable Index implementing an ordered, sliceable set.
-        IntervalIndex represents an Index of intervals that are all closed on the 
-        same side.
+    pandas.IntervalIndex : Immutable Index implementing an ordered,
+        sliceable set. IntervalIndex represents an Index of intervals that
+        are all closed on the same side.
 
     Notes
     -----
