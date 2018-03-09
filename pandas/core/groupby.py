@@ -191,6 +191,63 @@ _apply_docs = dict(
     dtype: int64
     """)
 
+_numeric_operations_doc_template = """
+    Compute %(f)s of group values.
+
+    For multiple groupings, the result index will be a
+    :class:`~pandas.MultiIndex`.
+
+    Parameters
+    ----------
+    kwargs : dict
+        Optional keyword arguments to pass to `%(f)s`.
+
+    Returns
+    -------
+    Series or DataFrame
+
+    {examples}
+    {see_also}
+    """
+
+_numeric_operations_examples = dict(
+    max="""Examples
+    --------
+    Grouping by one column.
+
+    >>> df = pd.DataFrame({'A': 'a b b b'.split(), 'B': [1,2,2,3], 'C': [4,5,6,7]})
+    >>> df
+       A  B  C
+    0  a  1  4
+    1  b  2  5
+    2  b  2  6
+    3  b  3  7
+    >>> g = df.groupby('A')
+    >>> g.max()
+       B  C
+    A
+    a  1  4
+    b  3  7
+
+    Grouping by more than one column results in :class:`~pandas.DataFrame` with a 
+    :class:`~pandas.MultiIndex`.
+
+    >>> g = df.groupby(['A', 'B'])
+    >>> g.max()
+         C
+    A B
+    a 1  4
+    b 2  6
+      3  7
+    """  # noqa
+)
+
+_numeric_operations_see_also = """See Also
+    --------
+    pandas.Series.%(name)s: groupby method of Series
+    pandas.DataFrame.%(name)s: groupby method of DataFrame
+    pandas.Panel.%(name)s: groupby method of Panel"""
+
 _pipe_template = """\
 Apply a function ``func`` with arguments to this %(klass)s object and return
 the function's result.
@@ -1387,11 +1444,13 @@ class GroupBy(_GroupBy):
                              numeric_only=True, _convert=False,
                              min_count=-1):
 
-            _local_template = "Compute %(f)s of group values"
-
             @Substitution(name='groupby', f=name)
-            @Appender(_doc_template)
-            @Appender(_local_template)
+            @Appender(
+                _numeric_operations_doc_template.format(
+                    examples=_numeric_operations_examples.get(name, ''),
+                    see_also=_numeric_operations_see_also
+                ),
+            )
             def f(self, **kwargs):
                 if 'numeric_only' not in kwargs:
                     kwargs['numeric_only'] = numeric_only
