@@ -4232,7 +4232,35 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @property
     def values(self):
-        """Numpy representation of NDFrame
+        """
+        Generate and return a Numpy representation of NDFrame.
+
+        Only the values in the NDFrame will be returned, the axes labels will
+        be removed.
+
+        Returns
+        -------
+        numpy.ndarray
+            The values of the NDFrame
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([('falcon', 'bird',    389.0),
+        ...                    ('parrot', 'bird',     24.0),
+        ...                    ('lion',   'mammal',   80.5),
+        ...                    ('monkey', 'mammal', np.nan)],
+        ...                   columns=('name', 'class', 'max_speed'))
+        >>> df
+             name   class  max_speed
+        0  falcon    bird      389.0
+        1  parrot    bird       24.0
+        2    lion  mammal       80.5
+        3  monkey  mammal        NaN
+        >>> df.values
+        array([['falcon', 'bird', 389.0],
+               ['parrot', 'bird', 24.0],
+               ['lion', 'mammal', 80.5],
+               ['monkey', 'mammal', nan]], dtype=object)
 
         Notes
         -----
