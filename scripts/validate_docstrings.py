@@ -175,9 +175,9 @@ class Docstring:
 
     @property
     def doc_parameters(self):
-        return collections.OrderedDict((name.strip('*'), (type_, ''.join(desc)))
-                                       for name, type_, desc
-                                       in self.doc['Parameters'])
+        return collections.OrderedDict(
+            (name.strip('*'), (type_, ''.join(desc)))
+            for name, type_, desc in self.doc['Parameters'])
 
     @property
     def signature_parameters(self):
