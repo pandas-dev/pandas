@@ -477,7 +477,7 @@ result : DataFrame
 Examples
 --------
 >>> a = pd.DataFrame([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'],
-                     columns=['one'])
+...                  columns=['one'])
 >>> a
    one
 a  1.0
@@ -485,8 +485,8 @@ b  1.0
 c  1.0
 d  NaN
 >>> b = pd.DataFrame(dict(one=[1, np.nan, 1, np.nan],
-                          two=[np.nan, 2, np.nan, 2]),
-                     index=['a', 'b', 'd', 'e'])
+...                       two=[np.nan, 2, np.nan, 2]),
+...                 index=['a', 'b', 'd', 'e'])
 >>> b
    one  two
 a  1.0  NaN
@@ -533,7 +533,7 @@ result : DataFrame
 Examples
 --------
 >>> a = pd.DataFrame([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'],
-                     columns=['one'])
+...                  columns=['one'])
 >>> a
    one
 a  1.0
@@ -541,8 +541,8 @@ b  1.0
 c  1.0
 d  NaN
 >>> b = pd.DataFrame(dict(one=[1, np.nan, 1, np.nan],
-                          two=[np.nan, 2, np.nan, 2]),
-                     index=['a', 'b', 'd', 'e'])
+...                       two=[np.nan, 2, np.nan, 2]),
+...                  index=['a', 'b', 'd', 'e'])
 >>> b
    one  two
 a  1.0  NaN
