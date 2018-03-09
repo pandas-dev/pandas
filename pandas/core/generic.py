@@ -4235,8 +4235,8 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return a Numpy representation of the DataFrame.
 
-        Only the values in the DataFrame will be returned, the axes labels will
-        be removed.
+        Only the values in the DataFrame will be returned, the axes labels
+        will be removed.
 
         Returns
         -------
@@ -4271,8 +4271,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         e.g. If the dtypes are float16 and float32, dtype will be upcast to
         float32.  If dtypes are int32 and uint8, dtype will be upcast to
-        int32. By :func:`numpy.find_common_type` convention, mixing int64 and uint64
-        will result in a flot64 dtype.
+        int32. By :func:`numpy.find_common_type` convention, mixing int64
+        and uint64 will result in a flot64 dtype.
         """
         self._consolidate_inplace()
         return self._data.as_array(transpose=self._AXIS_REVERSED)
