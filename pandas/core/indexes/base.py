@@ -695,7 +695,8 @@ class Index(IndexOpsMixin, PandasObject):
     # ops compat
     @deprecate_kwarg(old_arg_name='n', new_arg_name='repeats')
     def repeat(self, repeats, *args, **kwargs):
-        """Repeat elements of an Index.
+        """
+        Repeat elements of an Index.
 
         Returns a new index where each element of the current index
         is repeated consecutively a given number of times.
