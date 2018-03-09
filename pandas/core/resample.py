@@ -519,12 +519,14 @@ one pass, you can do
 
     def backfill(self, limit=None):
         """
-        Backward fill the values
+        Backward fill the values.
+
+        Resample datetimelike data and fill backwards missing values if any.
 
         Parameters
         ----------
         limit : integer, optional
-            limit of how many values to fill
+            Limit of how many values to fill.
 
         Returns
         -------
@@ -532,8 +534,31 @@ one pass, you can do
 
         See Also
         --------
-        Series.fillna
-        DataFrame.fillna
+        Series.fillna : Fill NA/NaN values in the Series using the specified
+            method, which can be 'backfill'.
+        DataFrame.fillna : Fill NA/NaN values in the DataFrame using the
+            specified method, which can be 'backfill'.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2, 3],
+        ...               index=pd.date_range('20180101', periods=3, freq='h'))
+        >>> s
+        2018-01-01 00:00:00    1
+        2018-01-01 01:00:00    2
+        2018-01-01 02:00:00    3
+        Freq: H, dtype: int64
+        >>> s.resample('15min').backfill(limit=2)
+        2018-01-01 00:00:00    1.0
+        2018-01-01 00:15:00    NaN
+        2018-01-01 00:30:00    2.0
+        2018-01-01 00:45:00    2.0
+        2018-01-01 01:00:00    2.0
+        2018-01-01 01:15:00    NaN
+        2018-01-01 01:30:00    3.0
+        2018-01-01 01:45:00    3.0
+        2018-01-01 02:00:00    3.0
+        Freq: 15T, dtype: float64
         """
         return self._upsample('backfill', limit=limit)
     bfill = backfill
