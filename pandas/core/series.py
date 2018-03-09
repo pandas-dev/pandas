@@ -2965,6 +2965,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return super(Series, self).notna()
 
     @Appender(generic._shared_docs['notna'] % _shared_doc_kwargs)
+    """
+    Appends shared_docs with generic tag
+    """
     def notnull(self):
         return super(Series, self).notnull()
 
@@ -3025,6 +3028,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @Appender(generic._shared_docs['valid_index'] % {
         'position': 'last', 'klass': 'Series'})
     def last_valid_index(self):
+        """
+        Return label for last non-NA/null value
+        """
         if len(self) == 0:
             return None
 
