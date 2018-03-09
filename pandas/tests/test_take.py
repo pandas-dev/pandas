@@ -9,7 +9,7 @@ import pandas.util.testing as tm
 from pandas._libs.tslib import iNaT
 
 
-class TestTake(tm.TestCase):
+class TestTake(object):
     # standard incompatible fill error
     fill_error = re.compile("Incompatible type for fill_value")
 
@@ -32,7 +32,7 @@ class TestTake(tm.TestCase):
                 expected[3] = np.nan
                 tm.assert_almost_equal(out, expected)
             else:
-                with tm.assertRaisesRegexp(TypeError, self.fill_error):
+                with tm.assert_raises_regex(TypeError, self.fill_error):
                     algos.take_1d(data, indexer, out=out)
                 # no exception o/w
                 data.take(indexer, out=out)
@@ -123,7 +123,8 @@ class TestTake(tm.TestCase):
                 tm.assert_almost_equal(out1, expected1)
             else:
                 for i, out in enumerate([out0, out1]):
-                    with tm.assertRaisesRegexp(TypeError, self.fill_error):
+                    with tm.assert_raises_regex(TypeError,
+                                                self.fill_error):
                         algos.take_nd(data, indexer, out=out, axis=i)
                     # no exception o/w
                     data.take(indexer, out=out, axis=i)
@@ -235,7 +236,8 @@ class TestTake(tm.TestCase):
                 tm.assert_almost_equal(out2, expected2)
             else:
                 for i, out in enumerate([out0, out1, out2]):
-                    with tm.assertRaisesRegexp(TypeError, self.fill_error):
+                    with tm.assert_raises_regex(TypeError,
+                                                self.fill_error):
                         algos.take_nd(data, indexer, out=out, axis=i)
                     # no exception o/w
                     data.take(indexer, out=out, axis=i)
@@ -348,24 +350,24 @@ class TestTake(tm.TestCase):
 
         result = algos.take_1d(arr, [0, 2, 2, 1])
         expected = arr.take([0, 2, 2, 1])
-        self.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
         result = algos.take_1d(arr, [0, 2, -1])
-        self.assertEqual(result.dtype, np.object_)
+        assert result.dtype == np.object_
 
     def test_2d_bool(self):
         arr = np.array([[0, 1, 0], [1, 0, 1], [0, 1, 1]], dtype=bool)
 
         result = algos.take_nd(arr, [0, 2, 2, 1])
         expected = arr.take([0, 2, 2, 1], axis=0)
-        self.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
         result = algos.take_nd(arr, [0, 2, 2, 1], axis=1)
         expected = arr.take([0, 2, 2, 1], axis=1)
-        self.assert_numpy_array_equal(result, expected)
+        tm.assert_numpy_array_equal(result, expected)
 
         result = algos.take_nd(arr, [0, 2, -1])
-        self.assertEqual(result.dtype, np.object_)
+        assert result.dtype == np.object_
 
     def test_2d_float32(self):
         arr = np.random.randn(4, 3).astype(np.float32)

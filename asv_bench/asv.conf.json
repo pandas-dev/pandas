@@ -26,7 +26,7 @@
     // The Pythons you'd like to test against.  If not provided, defaults
     // to the current version of Python used to run `asv`.
     // "pythons": ["2.7", "3.4"],
-    "pythons": ["2.7"],
+    "pythons": ["3.6"],
 
     // The matrix of dependencies to test.  Each key is the name of a
     // package (in PyPI) and the values are version numbers.  An empty
@@ -46,12 +46,14 @@
         "numexpr": [],
         "pytables": [null, ""],  // platform dependent, see excludes below
         "tables": [null, ""],
-        "libpython": [null, ""],
         "openpyxl": [],
         "xlsxwriter": [],
         "xlrd": [],
         "xlwt": [],
         "pytest": [],
+        // If using Windows with python 2.7 and want to build using the
+        // mingw toolchain (rather than MSVC), uncomment the following line.
+        // "libpython": [],
     },
 
     // Combinations of libraries/python versions can be excluded/included
@@ -80,10 +82,6 @@
         {"environment_type": "conda", "pytables": null},
         {"environment_type": "(?!conda).*", "tables": null},
         {"environment_type": "(?!conda).*", "pytables": ""},
-        // On conda&win32, install libpython
-        {"sys_platform": "(?!win32).*", "libpython": ""},
-        {"environment_type": "conda", "sys_platform": "win32", "libpython": null},
-        {"environment_type": "(?!conda).*", "libpython": ""}
     ],
     "include": [],
 
@@ -119,8 +117,10 @@
     // with results. If the commit is `null`, regression detection is
     // skipped for the matching benchmark.
     //
-    // "regressions_first_commits": {
-    //    "some_benchmark": "352cdf",  // Consider regressions only after this commit
-    //    "another_benchmark": null,   // Skip regression detection altogether
-    // }
+    "regressions_first_commits": {
+        ".*": "v0.20.0"
+    },
+    "regression_thresholds": {
+        ".*": 0.05
+    }
 }

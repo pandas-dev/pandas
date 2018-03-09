@@ -1,6 +1,8 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+import pytest
+
 import numpy as np
 import pandas as pd
 import pandas._libs.lib as lib
@@ -9,8 +11,7 @@ import pandas.util.testing as tm
 from .common import TestData
 
 
-class TestSeriesReplace(TestData, tm.TestCase):
-
+class TestSeriesReplace(TestData):
     def test_replace(self):
         N = 100
         ser = pd.Series(np.random.randn(N))
@@ -36,18 +37,18 @@ class TestSeriesReplace(TestData, tm.TestCase):
         # replace list with a single value
         rs = ser.replace([np.nan, 'foo', 'bar'], -1)
 
-        self.assertTrue((rs[:5] == -1).all())
-        self.assertTrue((rs[6:10] == -1).all())
-        self.assertTrue((rs[20:30] == -1).all())
-        self.assertTrue((pd.isnull(ser[:5])).all())
+        assert (rs[:5] == -1).all()
+        assert (rs[6:10] == -1).all()
+        assert (rs[20:30] == -1).all()
+        assert (pd.isna(ser[:5])).all()
 
         # replace with different values
         rs = ser.replace({np.nan: -1, 'foo': -2, 'bar': -3})
 
-        self.assertTrue((rs[:5] == -1).all())
-        self.assertTrue((rs[6:10] == -2).all())
-        self.assertTrue((rs[20:30] == -3).all())
-        self.assertTrue((pd.isnull(ser[:5])).all())
+        assert (rs[:5] == -1).all()
+        assert (rs[6:10] == -2).all()
+        assert (rs[20:30] == -3).all()
+        assert (pd.isna(ser[:5])).all()
 
         # replace with different values with 2 lists
         rs2 = ser.replace([np.nan, 'foo', 'bar'], [-1, -2, -3])
@@ -56,9 +57,9 @@ class TestSeriesReplace(TestData, tm.TestCase):
         # replace inplace
         ser.replace([np.nan, 'foo', 'bar'], -1, inplace=True)
 
-        self.assertTrue((ser[:5] == -1).all())
-        self.assertTrue((ser[6:10] == -1).all())
-        self.assertTrue((ser[20:30] == -1).all())
+        assert (ser[:5] == -1).all()
+        assert (ser[6:10] == -1).all()
+        assert (ser[20:30] == -1).all()
 
         ser = pd.Series([np.nan, 0, np.inf])
         tm.assert_series_equal(ser.replace(np.nan, 0), ser.fillna(0))
@@ -73,11 +74,11 @@ class TestSeriesReplace(TestData, tm.TestCase):
         tm.assert_series_equal(ser.replace(np.nan, 0), ser.fillna(0))
 
         # malformed
-        self.assertRaises(ValueError, ser.replace, [1, 2, 3], [np.nan, 0])
+        pytest.raises(ValueError, ser.replace, [1, 2, 3], [np.nan, 0])
 
         # make sure that we aren't just masking a TypeError because bools don't
         # implement indexing
-        with tm.assertRaisesRegexp(TypeError, 'Cannot compare types .+'):
+        with tm.assert_raises_regex(TypeError, 'Cannot compare types .+'):
             ser.replace([1, 2], [np.nan, 0])
 
         ser = pd.Series([0, 1, 2, 3, 4])
@@ -118,7 +119,7 @@ class TestSeriesReplace(TestData, tm.TestCase):
 
         # make sure things don't get corrupted when fillna call fails
         s = ser.copy()
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             s.replace([1, 2, 3], inplace=True, method='crash_cymbal')
         tm.assert_series_equal(s, ser)
 
@@ -132,8 +133,8 @@ class TestSeriesReplace(TestData, tm.TestCase):
             tm.assert_series_equal(expected, r)
             tm.assert_series_equal(expected, sc)
 
-        # should NOT upcast to float
-        e = pd.Series([0, 1, 2, 3, 4])
+        # MUST upcast to float
+        e = pd.Series([0., 1., 2., 3., 4.])
         tr, v = [3], [3.0]
         check_replace(tr, v, e)
 
@@ -152,8 +153,8 @@ class TestSeriesReplace(TestData, tm.TestCase):
         tr, v = [3, 4], [3.5, pd.Timestamp('20130101')]
         check_replace(tr, v, e)
 
-        # casts to float
-        e = pd.Series([0, 1, 2, 3.5, 1])
+        # casts to object
+        e = pd.Series([0, 1, 2, 3.5, True], dtype='object')
         tr, v = [3, 4], [3.5, True]
         check_replace(tr, v, e)
 
@@ -185,7 +186,7 @@ class TestSeriesReplace(TestData, tm.TestCase):
 
     def test_replace_with_dict_with_bool_keys(self):
         s = pd.Series([True, False, True])
-        with tm.assertRaisesRegexp(TypeError, 'Cannot compare types .+'):
+        with tm.assert_raises_regex(TypeError, 'Cannot compare types .+'):
             s.replace({'asdf': 'asdb', True: 'yes'})
 
     def test_replace2(self):
@@ -199,18 +200,18 @@ class TestSeriesReplace(TestData, tm.TestCase):
         # replace list with a single value
         rs = ser.replace([np.nan, 'foo', 'bar'], -1)
 
-        self.assertTrue((rs[:5] == -1).all())
-        self.assertTrue((rs[6:10] == -1).all())
-        self.assertTrue((rs[20:30] == -1).all())
-        self.assertTrue((pd.isnull(ser[:5])).all())
+        assert (rs[:5] == -1).all()
+        assert (rs[6:10] == -1).all()
+        assert (rs[20:30] == -1).all()
+        assert (pd.isna(ser[:5])).all()
 
         # replace with different values
         rs = ser.replace({np.nan: -1, 'foo': -2, 'bar': -3})
 
-        self.assertTrue((rs[:5] == -1).all())
-        self.assertTrue((rs[6:10] == -2).all())
-        self.assertTrue((rs[20:30] == -3).all())
-        self.assertTrue((pd.isnull(ser[:5])).all())
+        assert (rs[:5] == -1).all()
+        assert (rs[6:10] == -2).all()
+        assert (rs[20:30] == -3).all()
+        assert (pd.isna(ser[:5])).all()
 
         # replace with different values with 2 lists
         rs2 = ser.replace([np.nan, 'foo', 'bar'], [-1, -2, -3])
@@ -218,12 +219,33 @@ class TestSeriesReplace(TestData, tm.TestCase):
 
         # replace inplace
         ser.replace([np.nan, 'foo', 'bar'], -1, inplace=True)
-        self.assertTrue((ser[:5] == -1).all())
-        self.assertTrue((ser[6:10] == -1).all())
-        self.assertTrue((ser[20:30] == -1).all())
+        assert (ser[:5] == -1).all()
+        assert (ser[6:10] == -1).all()
+        assert (ser[20:30] == -1).all()
 
     def test_replace_with_empty_dictlike(self):
         # GH 15289
         s = pd.Series(list('abcd'))
         tm.assert_series_equal(s, s.replace(dict()))
         tm.assert_series_equal(s, s.replace(pd.Series([])))
+
+    def test_replace_string_with_number(self):
+        # GH 15743
+        s = pd.Series([1, 2, 3])
+        result = s.replace('2', np.nan)
+        expected = pd.Series([1, 2, 3])
+        tm.assert_series_equal(expected, result)
+
+    def test_replace_unicode_with_number(self):
+        # GH 15743
+        s = pd.Series([1, 2, 3])
+        result = s.replace(u'2', np.nan)
+        expected = pd.Series([1, 2, 3])
+        tm.assert_series_equal(expected, result)
+
+    def test_replace_mixed_types_with_string(self):
+        # Testing mixed
+        s = pd.Series([1, 2, 3, '4', 4, 5])
+        result = s.replace([2, '4'], np.nan)
+        expected = pd.Series([1, np.nan, 3, np.nan, 4, 5])
+        tm.assert_series_equal(expected, result)

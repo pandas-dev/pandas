@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 from numpy.random import randint
+from textwrap import dedent
 
 import pytest
 import pandas as pd
@@ -10,24 +11,24 @@ from pandas import read_clipboard
 from pandas import get_option
 from pandas.util import testing as tm
 from pandas.util.testing import makeCustomDataframe as mkdf
-from pandas.util.clipboard.exceptions import PyperclipException
+from pandas.io.clipboard.exceptions import PyperclipException
+from pandas.io.clipboard import clipboard_set
 
 
 try:
     DataFrame({'A': [1, 2]}).to_clipboard()
     _DEPS_INSTALLED = 1
-except PyperclipException:
+except (PyperclipException, RuntimeError):
     _DEPS_INSTALLED = 0
 
 
 @pytest.mark.single
 @pytest.mark.skipif(not _DEPS_INSTALLED,
                     reason="clipboard primitives not installed")
-class TestClipboard(tm.TestCase):
+class TestClipboard(object):
 
     @classmethod
-    def setUpClass(cls):
-        super(TestClipboard, cls).setUpClass()
+    def setup_class(cls):
         cls.data = {}
         cls.data['string'] = mkdf(5, 3, c_idx_type='s', r_idx_type='i',
                                   c_idx_names=[None], r_idx_names=[None])
@@ -62,8 +63,7 @@ class TestClipboard(tm.TestCase):
         cls.data_types = list(cls.data.keys())
 
     @classmethod
-    def tearDownClass(cls):
-        super(TestClipboard, cls).tearDownClass()
+    def teardown_class(cls):
         del cls.data_types, cls.data
 
     def check_round_trip_frame(self, data_type, excel=None, sep=None,
@@ -91,8 +91,8 @@ class TestClipboard(tm.TestCase):
             self.check_round_trip_frame(dt)
 
     def test_read_clipboard_infer_excel(self):
-        from textwrap import dedent
-        from pandas.util.clipboard import clipboard_set
+        # gh-19010: avoid warnings
+        clip_kwargs = dict(engine="python")
 
         text = dedent("""
             John James	Charlie Mingus
@@ -100,10 +100,10 @@ class TestClipboard(tm.TestCase):
             4	Harry Carney
             """.strip())
         clipboard_set(text)
-        df = pd.read_clipboard()
+        df = pd.read_clipboard(**clip_kwargs)
 
         # excel data is parsed correctly
-        self.assertEqual(df.iloc[1][1], 'Harry Carney')
+        assert df.iloc[1][1] == 'Harry Carney'
 
         # having diff tab counts doesn't trigger it
         text = dedent("""
@@ -112,7 +112,7 @@ class TestClipboard(tm.TestCase):
             3  4
             """.strip())
         clipboard_set(text)
-        res = pd.read_clipboard()
+        res = pd.read_clipboard(**clip_kwargs)
 
         text = dedent("""
             a  b
@@ -120,16 +120,16 @@ class TestClipboard(tm.TestCase):
             3  4
             """.strip())
         clipboard_set(text)
-        exp = pd.read_clipboard()
+        exp = pd.read_clipboard(**clip_kwargs)
 
         tm.assert_frame_equal(res, exp)
 
     def test_invalid_encoding(self):
         # test case for testing invalid encoding
         data = self.data['string']
-        with tm.assertRaises(ValueError):
+        with pytest.raises(ValueError):
             data.to_clipboard(encoding='ascii')
-        with tm.assertRaises(NotImplementedError):
+        with pytest.raises(NotImplementedError):
             pd.read_clipboard(encoding='ascii')
 
     def test_round_trip_valid_encodings(self):

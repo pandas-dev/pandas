@@ -1,28 +1,76 @@
-from numpy cimport ndarray
+from numpy cimport ndarray, NPY_C_CONTIGUOUS, NPY_F_CONTIGUOUS
 cimport numpy as cnp
+cnp.import_array()
+
 cimport cpython
+from cpython cimport PyTypeObject
+
+cdef extern from "Python.h":
+    # Note: importing extern-style allows us to declare these as nogil
+    # functions, whereas `from cpython cimport` does not.
+    bint PyUnicode_Check(object obj) nogil
+    bint PyString_Check(object obj) nogil
+    bint PyBool_Check(object obj) nogil
+    bint PyFloat_Check(object obj) nogil
+    bint PyComplex_Check(object obj) nogil
+    bint PyObject_TypeCheck(object obj, PyTypeObject* type) nogil
+
+
+cdef extern from "numpy/arrayobject.h":
+    PyTypeObject PyFloatingArrType_Type
+
+cdef extern from "numpy/ndarrayobject.h":
+    PyTypeObject PyTimedeltaArrType_Type
+    PyTypeObject PyDatetimeArrType_Type
+    PyTypeObject PyComplexFloatingArrType_Type
+    PyTypeObject PyBoolArrType_Type
+
+    bint PyArray_IsIntegerScalar(obj) nogil
+    bint PyArray_Check(obj) nogil
+
+# --------------------------------------------------------------------
+# Type Checking
+
+cdef inline bint is_string_object(object obj) nogil:
+    return PyString_Check(obj) or PyUnicode_Check(obj)
+
+
+cdef inline bint is_integer_object(object obj) nogil:
+    return not PyBool_Check(obj) and PyArray_IsIntegerScalar(obj)
+
+
+cdef inline bint is_float_object(object obj) nogil:
+    return (PyFloat_Check(obj) or
+            (PyObject_TypeCheck(obj, &PyFloatingArrType_Type)))
+
+
+cdef inline bint is_complex_object(object obj) nogil:
+    return (PyComplex_Check(obj) or
+            PyObject_TypeCheck(obj, &PyComplexFloatingArrType_Type))
+
+
+cdef inline bint is_bool_object(object obj) nogil:
+    return (PyBool_Check(obj) or
+            PyObject_TypeCheck(obj, &PyBoolArrType_Type))
+
+
+cdef inline bint is_timedelta64_object(object obj) nogil:
+    return PyObject_TypeCheck(obj, &PyTimedeltaArrType_Type)
+
+
+cdef inline bint is_datetime64_object(object obj) nogil:
+    return PyObject_TypeCheck(obj, &PyDatetimeArrType_Type)
+
+# --------------------------------------------------------------------
 
 cdef extern from "numpy_helper.h":
-    inline void set_array_owndata(ndarray ao)
-    inline void set_array_not_contiguous(ndarray ao)
+    void set_array_not_contiguous(ndarray ao)
 
-    inline int is_integer_object(object)
-    inline int is_float_object(object)
-    inline int is_complex_object(object)
-    inline int is_bool_object(object)
-    inline int is_string_object(object)
-    inline int is_datetime64_object(object)
-    inline int is_timedelta64_object(object)
-    inline int assign_value_1d(ndarray, Py_ssize_t, object) except -1
-    inline cnp.int64_t get_nat()
-    inline object get_value_1d(ndarray, Py_ssize_t)
-    inline int floatify(object, double*) except -1
-    inline char *get_c_string(object)
-    inline object char_to_string(char*)
-    inline void transfer_object_column(char *dst, char *src, size_t stride,
-                                       size_t length)
-    object sarr_from_data(cnp.dtype, int length, void* data)
-    inline object unbox_if_zerodim(object arr)
+    int assign_value_1d(ndarray, Py_ssize_t, object) except -1
+    cnp.int64_t get_nat()
+    object get_value_1d(ndarray, Py_ssize_t)
+    char *get_c_string(object) except NULL
+    object char_to_string(char*)
 
 ctypedef fused numeric:
     cnp.int8_t
@@ -55,7 +103,8 @@ cdef extern from "headers/stdint.h":
 cdef inline object get_value_at(ndarray arr, object loc):
     cdef:
         Py_ssize_t i, sz
-        void* data_ptr
+        int casted
+
     if is_float_object(loc):
         casted = int(loc)
         if casted == loc:
@@ -100,8 +149,6 @@ cdef inline set_value_at(ndarray arr, object loc, object value):
 
     set_value_at_unsafe(arr, loc, value)
 
-cdef inline int is_contiguous(ndarray arr):
-    return cnp.PyArray_CHKFLAGS(arr, cnp.NPY_C_CONTIGUOUS)
 
 cdef inline is_array(object o):
     return cnp.PyArray_Check(o)
@@ -109,15 +156,6 @@ cdef inline is_array(object o):
 cdef inline bint _checknull(object val):
     try:
         return val is None or (cpython.PyFloat_Check(val) and val != val)
-    except ValueError:
-        return False
-
-cdef inline bint _checknull_old(object val):
-    import numpy as np
-    cdef double INF = <double> np.inf
-    cdef double NEGINF = -INF
-    try:
-        return val is None or (cpython.PyFloat_Check(val) and (val != val or val == INF or val == NEGINF))
     except ValueError:
         return False
 

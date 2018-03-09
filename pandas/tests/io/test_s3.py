@@ -1,10 +1,8 @@
-from pandas.util import testing as tm
-
-from pandas.io.common import _is_s3_url
+from pandas.io.common import is_s3_url
 
 
-class TestS3URL(tm.TestCase):
+class TestS3URL(object):
 
     def test_is_s3_url(self):
-        self.assertTrue(_is_s3_url("s3://pandas/somethingelse.com"))
-        self.assertFalse(_is_s3_url("s4://pandas/somethingelse.com"))
+        assert is_s3_url("s3://pandas/somethingelse.com")
+        assert not is_s3_url("s4://pandas/somethingelse.com")

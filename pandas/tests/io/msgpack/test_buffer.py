@@ -1,12 +1,13 @@
 # coding: utf-8
 
 from pandas.io.msgpack import packb, unpackb
+from .common import frombytes
 
 
 def test_unpack_buffer():
     from array import array
     buf = array('b')
-    buf.fromstring(packb((b'foo', b'bar')))
+    frombytes(buf, packb((b'foo', b'bar')))
     obj = unpackb(buf, use_list=1)
     assert [b'foo', b'bar'] == obj
 

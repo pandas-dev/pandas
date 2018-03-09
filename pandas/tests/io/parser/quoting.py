@@ -20,29 +20,29 @@ class QuotingTests(object):
         # Python 2.x: "...must be an 1-character..."
         # Python 3.x: "...must be a 1-character..."
         msg = '"quotechar" must be a(n)? 1-character string'
-        tm.assertRaisesRegexp(TypeError, msg, self.read_csv,
-                              StringIO(data), quotechar='foo')
+        tm.assert_raises_regex(TypeError, msg, self.read_csv,
+                               StringIO(data), quotechar='foo')
 
         msg = 'quotechar must be set if quoting enabled'
-        tm.assertRaisesRegexp(TypeError, msg, self.read_csv,
-                              StringIO(data), quotechar=None,
-                              quoting=csv.QUOTE_MINIMAL)
+        tm.assert_raises_regex(TypeError, msg, self.read_csv,
+                               StringIO(data), quotechar=None,
+                               quoting=csv.QUOTE_MINIMAL)
 
         msg = '"quotechar" must be string, not int'
-        tm.assertRaisesRegexp(TypeError, msg, self.read_csv,
-                              StringIO(data), quotechar=2)
+        tm.assert_raises_regex(TypeError, msg, self.read_csv,
+                               StringIO(data), quotechar=2)
 
     def test_bad_quoting(self):
         data = '1,2,3'
 
         msg = '"quoting" must be an integer'
-        tm.assertRaisesRegexp(TypeError, msg, self.read_csv,
-                              StringIO(data), quoting='foo')
+        tm.assert_raises_regex(TypeError, msg, self.read_csv,
+                               StringIO(data), quoting='foo')
 
         # quoting must in the range [0, 3]
         msg = 'bad "quoting" value'
-        tm.assertRaisesRegexp(TypeError, msg, self.read_csv,
-                              StringIO(data), quoting=5)
+        tm.assert_raises_regex(TypeError, msg, self.read_csv,
+                               StringIO(data), quoting=5)
 
     def test_quote_char_basic(self):
         data = 'a,b,c\n1,2,"cat"'
@@ -68,13 +68,13 @@ class QuotingTests(object):
         # sanity checks
         msg = 'quotechar must be set if quoting enabled'
 
-        tm.assertRaisesRegexp(TypeError, msg, self.read_csv,
-                              StringIO(data), quotechar=None,
-                              quoting=csv.QUOTE_MINIMAL)
+        tm.assert_raises_regex(TypeError, msg, self.read_csv,
+                               StringIO(data), quotechar=None,
+                               quoting=csv.QUOTE_MINIMAL)
 
-        tm.assertRaisesRegexp(TypeError, msg, self.read_csv,
-                              StringIO(data), quotechar='',
-                              quoting=csv.QUOTE_MINIMAL)
+        tm.assert_raises_regex(TypeError, msg, self.read_csv,
+                               StringIO(data), quotechar='',
+                               quoting=csv.QUOTE_MINIMAL)
 
         # no errors should be raised if quoting is None
         expected = DataFrame([[1, 2, 3]],

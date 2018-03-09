@@ -3,7 +3,7 @@ import pandas as pd
 import pandas.util.testing as tm
 
 
-class TestSparseArrayArithmetics(tm.TestCase):
+class TestSparseArrayArithmetics(object):
 
     _base = np.array
     _klass = pd.SparseArray
@@ -67,9 +67,9 @@ class TestSparseArrayArithmetics(tm.TestCase):
             self._assert((b_dense ** a).to_dense(), b_dense ** a_dense)
 
     def _check_bool_result(self, res):
-        tm.assertIsInstance(res, self._klass)
-        self.assertEqual(res.dtype, np.bool)
-        self.assertIsInstance(res.fill_value, bool)
+        assert isinstance(res, self._klass)
+        assert res.dtype == np.bool
+        assert isinstance(res.fill_value, bool)
 
     def _check_comparison_ops(self, a, b, a_dense, b_dense):
         with np.errstate(invalid='ignore'):
@@ -274,30 +274,30 @@ class TestSparseArrayArithmetics(tm.TestCase):
 
         for kind in ['integer', 'block']:
             a = self._klass(values, dtype=dtype, kind=kind)
-            self.assertEqual(a.dtype, dtype)
+            assert a.dtype == dtype
             b = self._klass(rvalues, dtype=dtype, kind=kind)
-            self.assertEqual(b.dtype, dtype)
+            assert b.dtype == dtype
 
             self._check_numeric_ops(a, b, values, rvalues)
             self._check_numeric_ops(a, b * 0, values, rvalues * 0)
 
             a = self._klass(values, fill_value=0, dtype=dtype, kind=kind)
-            self.assertEqual(a.dtype, dtype)
+            assert a.dtype == dtype
             b = self._klass(rvalues, dtype=dtype, kind=kind)
-            self.assertEqual(b.dtype, dtype)
+            assert b.dtype == dtype
 
             self._check_numeric_ops(a, b, values, rvalues)
 
             a = self._klass(values, fill_value=0, dtype=dtype, kind=kind)
-            self.assertEqual(a.dtype, dtype)
+            assert a.dtype == dtype
             b = self._klass(rvalues, fill_value=0, dtype=dtype, kind=kind)
-            self.assertEqual(b.dtype, dtype)
+            assert b.dtype == dtype
             self._check_numeric_ops(a, b, values, rvalues)
 
             a = self._klass(values, fill_value=1, dtype=dtype, kind=kind)
-            self.assertEqual(a.dtype, dtype)
+            assert a.dtype == dtype
             b = self._klass(rvalues, fill_value=2, dtype=dtype, kind=kind)
-            self.assertEqual(b.dtype, dtype)
+            assert b.dtype == dtype
             self._check_numeric_ops(a, b, values, rvalues)
 
     def test_int_array_comparison(self):
@@ -364,24 +364,24 @@ class TestSparseArrayArithmetics(tm.TestCase):
             for kind in ['integer', 'block']:
                 a = self._klass(values, kind=kind)
                 b = self._klass(rvalues, kind=kind)
-                self.assertEqual(b.dtype, rdtype)
+                assert b.dtype == rdtype
 
                 self._check_numeric_ops(a, b, values, rvalues)
                 self._check_numeric_ops(a, b * 0, values, rvalues * 0)
 
                 a = self._klass(values, kind=kind, fill_value=0)
                 b = self._klass(rvalues, kind=kind)
-                self.assertEqual(b.dtype, rdtype)
+                assert b.dtype == rdtype
                 self._check_numeric_ops(a, b, values, rvalues)
 
                 a = self._klass(values, kind=kind, fill_value=0)
                 b = self._klass(rvalues, kind=kind, fill_value=0)
-                self.assertEqual(b.dtype, rdtype)
+                assert b.dtype == rdtype
                 self._check_numeric_ops(a, b, values, rvalues)
 
                 a = self._klass(values, kind=kind, fill_value=1)
                 b = self._klass(rvalues, kind=kind, fill_value=2)
-                self.assertEqual(b.dtype, rdtype)
+                assert b.dtype == rdtype
                 self._check_numeric_ops(a, b, values, rvalues)
 
     def test_mixed_array_comparison(self):
@@ -394,24 +394,24 @@ class TestSparseArrayArithmetics(tm.TestCase):
             for kind in ['integer', 'block']:
                 a = self._klass(values, kind=kind)
                 b = self._klass(rvalues, kind=kind)
-                self.assertEqual(b.dtype, rdtype)
+                assert b.dtype == rdtype
 
                 self._check_comparison_ops(a, b, values, rvalues)
                 self._check_comparison_ops(a, b * 0, values, rvalues * 0)
 
                 a = self._klass(values, kind=kind, fill_value=0)
                 b = self._klass(rvalues, kind=kind)
-                self.assertEqual(b.dtype, rdtype)
+                assert b.dtype == rdtype
                 self._check_comparison_ops(a, b, values, rvalues)
 
                 a = self._klass(values, kind=kind, fill_value=0)
                 b = self._klass(rvalues, kind=kind, fill_value=0)
-                self.assertEqual(b.dtype, rdtype)
+                assert b.dtype == rdtype
                 self._check_comparison_ops(a, b, values, rvalues)
 
                 a = self._klass(values, kind=kind, fill_value=1)
                 b = self._klass(rvalues, kind=kind, fill_value=2)
-                self.assertEqual(b.dtype, rdtype)
+                assert b.dtype == rdtype
                 self._check_comparison_ops(a, b, values, rvalues)
 
 

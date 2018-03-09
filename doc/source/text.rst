@@ -99,7 +99,7 @@ Elements in the split lists can be accessed using ``get`` or ``[]`` notation:
    s2.str.split('_').str.get(1)
    s2.str.split('_').str[1]
 
-Easy to expand this to return a DataFrame using ``expand``.
+It is easy to expand this to return a DataFrame using ``expand``.
 
 .. ipython:: python
 
@@ -118,8 +118,8 @@ i.e., from the end of the string to the beginning of the string:
 
    s2.str.rsplit('_', expand=True, n=1)
 
-Methods like ``replace`` and ``findall`` take `regular expressions
-<https://docs.python.org/2/library/re.html>`__, too:
+``replace`` by default replaces `regular expressions
+<https://docs.python.org/3/library/re.html>`__:
 
 .. ipython:: python
 
@@ -146,11 +146,24 @@ following code will cause trouble because of the regular expression meaning of
    # We need to escape the special character (for >1 len patterns)
    dollars.str.replace(r'-\$', '-')
 
-The ``replace`` method can also take a callable as replacement. It is called 
-on every ``pat`` using :func:`re.sub`. The callable should expect one 
-positional argument (a regex object) and return a string.
+.. versionadded:: 0.23.0
+
+If you do want literal replacement of a string (equivalent to
+:meth:`str.replace`), you can set the optional ``regex`` parameter to
+``False``, rather than escaping each character. In this case both ``pat``
+and ``repl`` must be strings:
+
+.. ipython:: python
+
+    # These lines are equivalent
+    dollars.str.replace(r'-\$', '-')
+    dollars.str.replace('-$', '-', regex=False)
 
 .. versionadded:: 0.20.0
+
+The ``replace`` method can also take a callable as replacement. It is called
+on every ``pat`` using :func:`re.sub`. The callable should expect one
+positional argument (a regex object) and return a string.
 
 .. ipython:: python
 
@@ -164,11 +177,11 @@ positional argument (a regex object) and return a string.
    repl = lambda m: m.group('two').swapcase()
    pd.Series(['Foo Bar Baz', np.nan]).str.replace(pat, repl)
 
+.. versionadded:: 0.20.0
+
 The ``replace`` method also accepts a compiled regular expression object
 from :func:`re.compile` as a pattern. All flags should be included in the
 compiled regular expression object.
-
-.. versionadded:: 0.20.0
 
 .. ipython:: python
 
@@ -185,6 +198,7 @@ regular expression object will raise a ``ValueError``.
     In [1]: s3.str.replace(regex_pat, 'XX-XX ', flags=re.IGNORECASE)
     ---------------------------------------------------------------------------
     ValueError: case and flags cannot be set when pat is a compiled regex
+
 
 Indexing with ``.str``
 ----------------------
@@ -211,8 +225,6 @@ Extracting Substrings
 Extract first match in each subject (extract)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. versionadded:: 0.13.0
-
 .. warning::
 
    In version 0.18.0, ``extract`` gained the ``expand`` argument. When
@@ -220,10 +232,11 @@ Extract first match in each subject (extract)
    ``DataFrame``, depending on the subject and regular expression
    pattern (same behavior as pre-0.18.0). When ``expand=True`` it
    always returns a ``DataFrame``, which is more consistent and less
-   confusing from the perspective of a user.
+   confusing from the perspective of a user. ``expand=True`` is the
+   default since version 0.23.0.
 
 The ``extract`` method accepts a `regular expression
-<https://docs.python.org/2/library/re.html>`__ with at least one
+<https://docs.python.org/3/library/re.html>`__ with at least one
 capture group.
 
 Extracting a regular expression with more than one group returns a
@@ -270,7 +283,7 @@ It returns a Series if ``expand=False``.
    pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)', expand=False)
 
 Calling on an ``Index`` with a regex with exactly one capture group
-returns a ``DataFrame`` with one column if ``expand=True``,
+returns a ``DataFrame`` with one column if ``expand=True``.
 
 .. ipython:: python
 
@@ -372,33 +385,20 @@ You can check whether elements contain a pattern:
 
 .. ipython:: python
 
-   pattern = r'[a-z][0-9]'
+   pattern = r'[0-9][a-z]'
    pd.Series(['1', '2', '3a', '3b', '03c']).str.contains(pattern)
 
-or match a pattern:
-
+Or whether elements match a pattern:
 
 .. ipython:: python
 
-   pd.Series(['1', '2', '3a', '3b', '03c']).str.match(pattern, as_indexer=True)
+   pd.Series(['1', '2', '3a', '3b', '03c']).str.match(pattern)
 
 The distinction between ``match`` and ``contains`` is strictness: ``match``
 relies on strict ``re.match``, while ``contains`` relies on ``re.search``.
 
-.. warning::
-
-   In previous versions, ``match`` was for *extracting* groups,
-   returning a not-so-convenient Series of tuples. The new method ``extract``
-   (described in the previous section) is now preferred.
-
-   This old, deprecated behavior of ``match`` is still the default. As
-   demonstrated above, use the new behavior by setting ``as_indexer=True``.
-   In this mode, ``match`` is analogous to ``contains``, returning a boolean
-   Series. The new behavior will become the default behavior in a future
-   release.
-
 Methods like ``match``, ``contains``, ``startswith``, and ``endswith`` take
- an extra ``na`` argument so missing values can be considered True or False:
+an extra ``na`` argument so missing values can be considered True or False:
 
 .. ipython:: python
 
@@ -446,7 +446,7 @@ Method Summary
     :meth:`~Series.str.join`;Join strings in each element of the Series with passed separator
     :meth:`~Series.str.get_dummies`;Split strings on the delimiter returning DataFrame of dummy variables
     :meth:`~Series.str.contains`;Return boolean array if each string contains pattern/regex
-    :meth:`~Series.str.replace`;Replace occurrences of pattern/regex with some other string or the return value of a callable given the occurrence
+    :meth:`~Series.str.replace`;Replace occurrences of pattern/regex/string with some other string or the return value of a callable given the occurrence
     :meth:`~Series.str.repeat`;Duplicate values (``s.str.repeat(3)`` equivalent to ``x * 3``)
     :meth:`~Series.str.pad`;"Add whitespace to left, right, or both sides of strings"
     :meth:`~Series.str.center`;Equivalent to ``str.center``

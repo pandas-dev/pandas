@@ -2,16 +2,16 @@
 # cython: boundscheck=False, initializedcheck=False
 
 import numpy as np
-cimport numpy as np
-from numpy cimport uint8_t, uint16_t, int8_t, int64_t
+cimport numpy as cnp
+from numpy cimport uint8_t, uint16_t, int8_t, int64_t, ndarray
 import sas_constants as const
 
 # rle_decompress decompresses data using a Run Length Encoding
 # algorithm.  It is partially documented here:
 #
 # https://cran.r-project.org/web/packages/sas7bdat/vignettes/sas7bdat.pdf
-cdef np.ndarray[uint8_t, ndim=1] rle_decompress(
-        int result_length, np.ndarray[uint8_t, ndim=1] inbuff):
+cdef ndarray[uint8_t, ndim=1] rle_decompress(
+        int result_length, ndarray[uint8_t, ndim=1] inbuff):
 
     cdef:
         uint8_t control_byte, x
@@ -101,10 +101,12 @@ cdef np.ndarray[uint8_t, ndim=1] rle_decompress(
                 result[rpos] = 0x00
                 rpos += 1
         else:
-            raise ValueError("unknown control byte: %v", control_byte)
+            raise ValueError("unknown control byte: {byte}"
+                             .format(byte=control_byte))
 
     if len(result) != result_length:
-        raise ValueError("RLE: %v != %v", (len(result), result_length))
+        raise ValueError("RLE: {got} != {expect}".format(got=len(result),
+                                                         expect=result_length))
 
     return np.asarray(result)
 
@@ -112,8 +114,8 @@ cdef np.ndarray[uint8_t, ndim=1] rle_decompress(
 # rdc_decompress decompresses data using the Ross Data Compression algorithm:
 #
 # http://collaboration.cmc.ec.gc.ca/science/rpn/biblio/ddj/Website/articles/CUJ/1992/9210/ross/ross.htm
-cdef np.ndarray[uint8_t, ndim=1] rdc_decompress(
-        int result_length, np.ndarray[uint8_t, ndim=1] inbuff):
+cdef ndarray[uint8_t, ndim=1] rdc_decompress(
+        int result_length, ndarray[uint8_t, ndim=1] inbuff):
 
     cdef:
         uint8_t cmd
@@ -185,7 +187,8 @@ cdef np.ndarray[uint8_t, ndim=1] rdc_decompress(
             raise ValueError("unknown RDC command")
 
     if len(outbuff) != result_length:
-        raise ValueError("RDC: %v != %v\n", len(outbuff), result_length)
+        raise ValueError("RDC: {got} != {expect}\n"
+                         .format(got=len(outbuff), expect=result_length))
 
     return np.asarray(outbuff)
 
@@ -223,8 +226,8 @@ cdef class Parser(object):
         int subheader_pointer_length
         int current_page_type
         bint is_little_endian
-        np.ndarray[uint8_t, ndim=1] (*decompress)(
-            int result_length, np.ndarray[uint8_t, ndim=1] inbuff)
+        ndarray[uint8_t, ndim=1] (*decompress)(
+            int result_length, ndarray[uint8_t, ndim=1] inbuff)
         object parser
 
     def __init__(self, object parser):
@@ -258,7 +261,8 @@ cdef class Parser(object):
                 self.column_types[j] = column_type_string
             else:
                 raise ValueError("unknown column type: "
-                                 "%s" % self.parser.columns[j].ctype)
+                                 "{typ}"
+                                 .format(typ=self.parser.columns[j].ctype))
 
         # compression
         if parser.compression == const.rle_compression:
@@ -378,8 +382,8 @@ cdef class Parser(object):
                         return True
                 return False
             else:
-                raise ValueError("unknown page type: %s",
-                                 self.current_page_type)
+                raise ValueError("unknown page type: {typ}"
+                                 .format(typ=self.current_page_type))
 
     cdef void process_byte_array_with_data(self, int offset, int length):
 
@@ -387,7 +391,7 @@ cdef class Parser(object):
             Py_ssize_t j
             int s, k, m, jb, js, current_row
             int64_t lngt, start, ct
-            np.ndarray[uint8_t, ndim=1] source
+            ndarray[uint8_t, ndim=1] source
             int64_t[:] column_types
             int64_t[:] lengths
             int64_t[:] offsets

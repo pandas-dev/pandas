@@ -19,7 +19,7 @@ from pandas.compat import StringIO, BytesIO
 from pandas.io.parsers import read_csv, read_fwf, EmptyDataError
 
 
-class TestFwfParsing(tm.TestCase):
+class TestFwfParsing(object):
 
     def test_fwf(self):
         data_expected = """\
@@ -67,10 +67,11 @@ class TestFwfParsing(tm.TestCase):
             StringIO(data3), colspecs=colspecs, delimiter='~', header=None)
         tm.assert_frame_equal(df, expected)
 
-        with tm.assertRaisesRegexp(ValueError, "must specify only one of"):
+        with tm.assert_raises_regex(ValueError,
+                                    "must specify only one of"):
             read_fwf(StringIO(data3), colspecs=colspecs, widths=[6, 10, 10, 7])
 
-        with tm.assertRaisesRegexp(ValueError, "Must specify either"):
+        with tm.assert_raises_regex(ValueError, "Must specify either"):
             read_fwf(StringIO(data3), colspecs=None, widths=None)
 
     def test_BytesIO_input(self):
@@ -93,9 +94,9 @@ foo2,12,13,14,15
 bar2,12,13,14,15
 """
 
-        with tm.assertRaisesRegexp(TypeError,
-                                   'column specifications must be a list or '
-                                   'tuple.+'):
+        with tm.assert_raises_regex(TypeError,
+                                    'column specifications must '
+                                    'be a list or tuple.+'):
             pd.io.parsers.FixedWidthReader(StringIO(data),
                                            {'a': 1}, ',', '#')
 
@@ -109,8 +110,9 @@ foo2,12,13,14,15
 bar2,12,13,14,15
 """
 
-        with tm.assertRaisesRegexp(TypeError,
-                                   'Each column specification must be.+'):
+        with tm.assert_raises_regex(TypeError,
+                                    'Each column specification '
+                                    'must be.+'):
             read_fwf(StringIO(data), [('a', 1)])
 
     def test_fwf_colspecs_None(self):
@@ -164,7 +166,7 @@ bar2,12,13,14,15
 
         for c in df.columns:
             res = df.loc[:, c]
-            self.assertTrue(len(res))
+            assert len(res)
 
     def test_fwf_for_uint8(self):
         data = """1421302965.213420    PRI=3 PGN=0xef00      DST=0x17 SRC=0x28    04 154 00 00 00 00 00 127
@@ -243,7 +245,7 @@ MyColumn
    a
    b"""
         for arg in [True, False]:
-            with tm.assertRaises(TypeError):
+            with pytest.raises(TypeError):
                 read_fwf(StringIO(data), header=arg)
 
     def test_full_file(self):
@@ -289,7 +291,7 @@ Account                 Name  Balance     CreditLimit   AccountCreated
         tm.assert_frame_equal(expected, read_fwf(StringIO(test)))
 
     def test_full_file_with_spaces_and_missing(self):
-        # File with spaces and missing values in columsn
+        # File with spaces and missing values in columns
         test = """
 Account               Name    Balance     CreditLimit   AccountCreated
 101                           10000.00                       1/17/1998
@@ -401,5 +403,34 @@ AA   BBB  C
 78   901  2
 """.strip()
 
-        with tm.assertRaises(EmptyDataError):
+        with pytest.raises(EmptyDataError):
             read_fwf(StringIO(test), skiprows=3)
+
+    def test_whitespace_preservation(self):
+        # Addresses Issue #16772
+        data_expected = """
+ a ,bbb
+ cc,dd """
+        expected = read_csv(StringIO(data_expected), header=None)
+
+        test_data = """
+ a bbb
+ ccdd """
+        result = read_fwf(StringIO(test_data), widths=[3, 3],
+                          header=None, skiprows=[0], delimiter="\n\t")
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_default_delimiter(self):
+        data_expected = """
+a,bbb
+cc,dd"""
+        expected = read_csv(StringIO(data_expected), header=None)
+
+        test_data = """
+a \tbbb
+cc\tdd """
+        result = read_fwf(StringIO(test_data), widths=[3, 3],
+                          header=None, skiprows=[0])
+
+        tm.assert_frame_equal(result, expected)

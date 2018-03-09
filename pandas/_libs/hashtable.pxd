@@ -31,13 +31,6 @@ cdef class PyObjectHashTable(HashTable):
     cpdef get_item(self, object val)
     cpdef set_item(self, object key, Py_ssize_t val)
 
-cdef class MultiIndexHashTable(HashTable):
-    cdef:
-        kh_uint64_t *table
-        object mi
-
-    cpdef get_item(self, object val)
-    cpdef set_item(self, object key, Py_ssize_t val)
 
 cdef class StringHashTable(HashTable):
     cdef kh_str_t *table
@@ -52,6 +45,7 @@ cdef struct Int64VectorData:
 cdef class Int64Vector:
     cdef Int64VectorData *data
     cdef ndarray ao
+    cdef bint external_view_exists
 
     cdef resize(self)
     cpdef to_array(self)

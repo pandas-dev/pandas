@@ -216,6 +216,7 @@ contained the values ``[0, 3]``.
 **New behavior**:
 
 .. ipython:: python
+   :okwarning:
 
    pd.read_csv(StringIO(data), names=names)
 
@@ -268,7 +269,7 @@ Categorical Concatenation
 
   .. ipython:: python
 
-      from pandas.types.concat import union_categoricals
+      from pandas.api.types import union_categoricals
       a = pd.Categorical(["b", "c"])
       b = pd.Categorical(["a", "b"])
       union_categoricals([a, b])
@@ -377,7 +378,7 @@ For ``MultiIndex``, values are dropped if any level is missing by default. Speci
 Google BigQuery Enhancements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- The :func:`read_gbq` method has gained the ``dialect`` argument to allow users to specify whether to use BigQuery's legacy SQL or BigQuery's standard SQL. See the :ref:`docs <io.bigquery_reader>` for more details (:issue:`13615`).
+- The :func:`read_gbq` method has gained the ``dialect`` argument to allow users to specify whether to use BigQuery's legacy SQL or BigQuery's standard SQL. See the `docs <https://pandas-gbq.readthedocs.io/en/latest/reading.html>`__ for more details (:issue:`13615`).
 - The :func:`~DataFrame.to_gbq` method now allows the DataFrame column order to differ from the destination table schema (:issue:`11359`).
 
 .. _whatsnew_0190.errstate:
@@ -479,7 +480,7 @@ Other enhancements
      df.resample('M', on='date').sum()
      df.resample('M', level='d').sum()
 
-- The ``.get_credentials()`` method of ``GbqConnector`` can now first try to fetch `the application default credentials <https://developers.google.com/identity/protocols/application-default-credentials>`__. See the :ref:`docs <io.bigquery_authentication>` for more details (:issue:`13577`).
+- The ``.get_credentials()`` method of ``GbqConnector`` can now first try to fetch `the application default credentials <https://developers.google.com/identity/protocols/application-default-credentials>`__. See the docs for more details (:issue:`13577`).
 - The ``.tz_localize()`` method of ``DatetimeIndex`` and ``Timestamp`` has gained the ``errors`` keyword, so you can potentially coerce nonexistent timestamps to ``NaT``. The default behavior remains to raising a ``NonExistentTimeError`` (:issue:`13057`)
 - ``.to_hdf/read_hdf()`` now accept path objects (e.g. ``pathlib.Path``, ``py.path.local``) for the file path (:issue:`11773`)
 - The ``pd.read_csv()`` with ``engine='python'`` has gained support for the
@@ -1412,7 +1413,7 @@ Performance Improvements
 - Improved performance of ``factorize`` of datetime with timezone (:issue:`13750`)
 - Improved performance of by lazily creating indexing hashtables on larger Indexes (:issue:`14266`)
 - Improved performance of ``groupby.groups`` (:issue:`14293`)
-- Unecessary materializing of a MultiIndex when introspecting for memory usage (:issue:`14308`)
+- Unnecessary materializing of a MultiIndex when introspecting for memory usage (:issue:`14308`)
 
 .. _whatsnew_0190.bug_fixes:
 
@@ -1453,7 +1454,7 @@ Bug Fixes
 - Bug in ``.tz_localize`` with ``dateutil.tz.tzlocal`` may return incorrect result (:issue:`13583`)
 - Bug in ``DatetimeTZDtype`` dtype with ``dateutil.tz.tzlocal`` cannot be regarded as valid dtype (:issue:`13583`)
 - Bug in ``pd.read_hdf()`` where attempting to load an HDF file with a single dataset, that had one or more categorical columns, failed unless the key argument was set to the name of the dataset. (:issue:`13231`)
-- Bug in ``.rolling()`` that allowed a negative integer window in contruction of the ``Rolling()`` object, but would later fail on aggregation (:issue:`13383`)
+- Bug in ``.rolling()`` that allowed a negative integer window in construction of the ``Rolling()`` object, but would later fail on aggregation (:issue:`13383`)
 - Bug in ``Series`` indexing with tuple-valued data and a numeric index (:issue:`13509`)
 - Bug in printing ``pd.DataFrame`` where unusual elements with the ``object`` dtype were causing segfaults (:issue:`13717`)
 - Bug in ranking ``Series`` which could result in segfaults (:issue:`13445`)

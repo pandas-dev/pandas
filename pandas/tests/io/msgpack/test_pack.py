@@ -1,14 +1,15 @@
 # coding: utf-8
 
-import unittest
+import pytest
 
 import struct
+
 from pandas import compat
 from pandas.compat import u, OrderedDict
 from pandas.io.msgpack import packb, unpackb, Unpacker, Packer
 
 
-class TestPack(unittest.TestCase):
+class TestPack(object):
 
     def check(self, data, use_list=False):
         re = unpackb(packb(data), use_list=use_list)
@@ -64,12 +65,12 @@ class TestPack(unittest.TestCase):
         assert re == "abcdef"
 
     def testStrictUnicodeUnpack(self):
-        self.assertRaises(UnicodeDecodeError, unpackb, packb(b'abc\xeddef'),
-                          encoding='utf-8', use_list=1)
+        pytest.raises(UnicodeDecodeError, unpackb, packb(b'abc\xeddef'),
+                      encoding='utf-8', use_list=1)
 
     def testStrictUnicodePack(self):
-        self.assertRaises(UnicodeEncodeError, packb, compat.u("abc\xeddef"),
-                          encoding='ascii', unicode_errors='strict')
+        pytest.raises(UnicodeEncodeError, packb, compat.u("abc\xeddef"),
+                      encoding='ascii', unicode_errors='strict')
 
     def testIgnoreErrorsPack(self):
         re = unpackb(
@@ -79,7 +80,7 @@ class TestPack(unittest.TestCase):
         assert re == compat.u("abcdef")
 
     def testNoEncoding(self):
-        self.assertRaises(TypeError, packb, compat.u("abc"), encoding=None)
+        pytest.raises(TypeError, packb, compat.u("abc"), encoding=None)
 
     def testDecodeBinary(self):
         re = unpackb(packb("abc"), encoding=None, use_list=1)
@@ -131,7 +132,7 @@ class TestPack(unittest.TestCase):
         bio.seek(0)
         unpacker = Unpacker(bio)
         for size in sizes:
-            assert unpacker.unpack() == dict((i, i * 2) for i in range(size))
+            assert unpacker.unpack() == {i: i * 2 for i in range(size)}
 
     def test_odict(self):
         seq = [(b'one', 1), (b'two', 2), (b'three', 3), (b'four', 4)]

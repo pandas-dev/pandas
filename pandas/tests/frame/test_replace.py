@@ -2,6 +2,8 @@
 
 from __future__ import print_function
 
+import pytest
+
 from datetime import datetime
 import re
 
@@ -21,7 +23,7 @@ import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData
 
 
-class TestDataFrameReplace(tm.TestCase, TestData):
+class TestDataFrameReplace(TestData):
 
     def test_replace_inplace(self):
         self.tsframe['A'][:5] = nan
@@ -30,9 +32,6 @@ class TestDataFrameReplace(tm.TestCase, TestData):
         tsframe = self.tsframe.copy()
         tsframe.replace(nan, 0, inplace=True)
         assert_frame_equal(tsframe, self.tsframe.fillna(0))
-
-        self.assertRaises(TypeError, self.tsframe.replace, nan, inplace=True)
-        self.assertRaises(TypeError, self.tsframe.replace, nan)
 
         # mixed type
         mf = self.mixed_frame
@@ -546,7 +545,7 @@ class TestDataFrameReplace(tm.TestCase, TestData):
         expec = DataFrame({'a': ['a', 1, 2, 3], 'b': mix['b'], 'c': mix['c']})
         res = df.replace(0, 'a')
         assert_frame_equal(res, expec)
-        self.assertEqual(res.a.dtype, np.object_)
+        assert res.a.dtype == np.object_
 
     def test_replace_regex_metachar(self):
         metachars = '[]', '()', r'\d', r'\w', r'\s'
@@ -718,7 +717,6 @@ class TestDataFrameReplace(tm.TestCase, TestData):
         assert_frame_equal(expected, result)
 
     def test_replace_value_is_none(self):
-        self.assertRaises(TypeError, self.tsframe.replace, nan)
         orig_value = self.tsframe.iloc[0, 0]
         orig2 = self.tsframe.iloc[1, 0]
 
@@ -779,7 +777,7 @@ class TestDataFrameReplace(tm.TestCase, TestData):
         # bools
         df = DataFrame({'bools': [True, False, True]})
         result = df.replace(False, True)
-        self.assertTrue(result.values.all())
+        assert result.values.all()
 
         # complex blocks
         df = DataFrame({'complex': [1j, 2j, 3j]})
@@ -795,7 +793,7 @@ class TestDataFrameReplace(tm.TestCase, TestData):
         expected = DataFrame({'datetime64': Index([now] * 3)})
         assert_frame_equal(result, expected)
 
-    def test_replace_input_formats(self):
+    def test_replace_input_formats_listlike(self):
         # both dicts
         to_rep = {'A': np.nan, 'B': 0, 'C': ''}
         values = {'A': 0, 'B': -1, 'C': 'missing'}
@@ -811,15 +809,6 @@ class TestDataFrameReplace(tm.TestCase, TestData):
         expected = DataFrame({'A': [np.nan, 5, np.inf], 'B': [5, 2, 0],
                               'C': ['', 'asdf', 'fd']})
         assert_frame_equal(result, expected)
-
-        # dict to scalar
-        filled = df.replace(to_rep, 0)
-        expected = {}
-        for k, v in compat.iteritems(df):
-            expected[k] = v.replace(to_rep[k], 0)
-        assert_frame_equal(filled, DataFrame(expected))
-
-        self.assertRaises(TypeError, df.replace, to_rep, [np.nan, 0, ''])
 
         # scalar to dict
         values = {'A': 0, 'B': -1, 'C': 'missing'}
@@ -840,7 +829,21 @@ class TestDataFrameReplace(tm.TestCase, TestData):
             expected.replace(to_rep[i], values[i], inplace=True)
         assert_frame_equal(result, expected)
 
-        self.assertRaises(ValueError, df.replace, to_rep, values[1:])
+        pytest.raises(ValueError, df.replace, to_rep, values[1:])
+
+    def test_replace_input_formats_scalar(self):
+        df = DataFrame({'A': [np.nan, 0, np.inf], 'B': [0, 2, 5],
+                        'C': ['', 'asdf', 'fd']})
+
+        # dict to scalar
+        to_rep = {'A': np.nan, 'B': 0, 'C': ''}
+        filled = df.replace(to_rep, 0)
+        expected = {}
+        for k, v in compat.iteritems(df):
+            expected[k] = v.replace(to_rep[k], 0)
+        assert_frame_equal(filled, DataFrame(expected))
+
+        pytest.raises(TypeError, df.replace, to_rep, [np.nan, 0, ''])
 
         # list to scalar
         to_rep = [np.nan, 0, '']
@@ -911,7 +914,7 @@ class TestDataFrameReplace(tm.TestCase, TestData):
 
     def test_replace_with_dict_with_bool_keys(self):
         df = DataFrame({0: [True, False], 1: [False, True]})
-        with tm.assertRaisesRegexp(TypeError, 'Cannot compare types .+'):
+        with tm.assert_raises_regex(TypeError, 'Cannot compare types .+'):
             df.replace({'asdf': 'asdb', True: 'yes'})
 
     def test_replace_truthy(self):
@@ -922,7 +925,8 @@ class TestDataFrameReplace(tm.TestCase, TestData):
 
     def test_replace_int_to_int_chain(self):
         df = DataFrame({'a': lrange(1, 5)})
-        with tm.assertRaisesRegexp(ValueError, "Replacement not allowed .+"):
+        with tm.assert_raises_regex(ValueError,
+                                    "Replacement not allowed .+"):
             df.replace({'a': dict(zip(range(1, 5), range(2, 6)))})
 
     def test_replace_str_to_str_chain(self):
@@ -930,7 +934,8 @@ class TestDataFrameReplace(tm.TestCase, TestData):
         astr = a.astype(str)
         bstr = np.arange(2, 6).astype(str)
         df = DataFrame({'a': astr})
-        with tm.assertRaisesRegexp(ValueError, "Replacement not allowed .+"):
+        with tm.assert_raises_regex(ValueError,
+                                    "Replacement not allowed .+"):
             df.replace({'a': dict(zip(astr, bstr))})
 
     def test_replace_swapping_bug(self):
@@ -969,7 +974,7 @@ class TestDataFrameReplace(tm.TestCase, TestData):
                            'out_augmented_MAY_2011.json',
                            'out_augmented_AUG_2011.json',
                            'out_augmented_JAN_2011.json'], columns=['fname'])
-        tm.assert_equal(set(df.fname.values), set(d['fname'].keys()))
+        assert set(df.fname.values) == set(d['fname'].keys())
         expected = DataFrame({'fname': [d['fname'][k]
                                         for k in df.fname.values]})
         result = df.replace(d)
@@ -992,7 +997,7 @@ class TestDataFrameReplace(tm.TestCase, TestData):
                            'out_augmented_MAY_2011.json',
                            'out_augmented_AUG_2011.json',
                            'out_augmented_JAN_2011.json'], columns=['fname'])
-        tm.assert_equal(set(df.fname.values), set(d['fname'].keys()))
+        assert set(df.fname.values) == set(d['fname'].keys())
         expected = DataFrame({'fname': [d['fname'][k]
                                         for k in df.fname.values]})
         result = df.replace(d)
@@ -1063,3 +1068,36 @@ class TestDataFrameReplace(tm.TestCase, TestData):
 
         assert_frame_equal(df, df.replace({'b': {}}))
         assert_frame_equal(df, df.replace(Series({'b': {}})))
+
+    @pytest.mark.parametrize("to_replace, method, expected", [
+        (0, 'bfill', {'A': [1, 1, 2],
+                      'B': [5, nan, 7],
+                      'C': ['a', 'b', 'c']}),
+        (nan, 'bfill', {'A': [0, 1, 2],
+                        'B': [5.0, 7.0, 7.0],
+                        'C': ['a', 'b', 'c']}),
+        ('d', 'ffill', {'A': [0, 1, 2],
+                        'B': [5, nan, 7],
+                        'C': ['a', 'b', 'c']}),
+        ([0, 2], 'bfill', {'A': [1, 1, 2],
+                           'B': [5, nan, 7],
+                           'C': ['a', 'b', 'c']}),
+        ([1, 2], 'pad', {'A': [0, 0, 0],
+                         'B': [5, nan, 7],
+                         'C': ['a', 'b', 'c']}),
+        ((1, 2), 'bfill', {'A': [0, 2, 2],
+                           'B': [5, nan, 7],
+                           'C': ['a', 'b', 'c']}),
+        (['b', 'c'], 'ffill', {'A': [0, 1, 2],
+                               'B': [5, nan, 7],
+                               'C': ['a', 'a', 'a']}),
+    ])
+    def test_replace_method(self, to_replace, method, expected):
+        # GH 19632
+        df = DataFrame({'A': [0, 1, 2],
+                        'B': [5, nan, 7],
+                        'C': ['a', 'b', 'c']})
+
+        result = df.replace(to_replace=to_replace, value=None, method=method)
+        expected = DataFrame(expected)
+        assert_frame_equal(result, expected)

@@ -20,13 +20,20 @@ New features
   - `Series.sort`, `DataFrame.sort`, and `DataFrame.sort_index` can now be
     specified in a per-column manner to support multiple sort orders (:issue:`928`)
 
-    .. ipython:: python
-        :okwarning:
+    .. code-block:: ipython
 
-        df = DataFrame(np.random.randint(0, 2, (6, 3)), columns=['A', 'B', 'C'])
+       In [2]:  df = DataFrame(np.random.randint(0, 2, (6, 3)), columns=['A', 'B', 'C'])
 
-        df.sort(['A', 'B'], ascending=[1, 0])
+       In [3]: df.sort(['A', 'B'], ascending=[1, 0])
 
+       Out[3]:
+          A  B  C
+       3  0  1  1
+       4  0  1  1
+       2  0  0  1
+       0  1  0  0
+       1  1  0  0
+       5  1  0  0
 
   - `DataFrame.rank` now supports additional argument values for the
     `na_option` parameter so missing values can be assigned either the largest
@@ -73,7 +80,7 @@ New features
 	   df.where(df>0,-df)
 
 	Furthermore, `where` now aligns the input boolean condition (ndarray or DataFrame), such that partial selection
-	with setting is possible. This is analagous to partial setting via `.ix` (but on the contents rather than the axis labels)
+	with setting is possible. This is analogous to partial setting via `.ix` (but on the contents rather than the axis labels)
 
 	.. ipython:: python
 

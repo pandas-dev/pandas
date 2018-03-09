@@ -37,6 +37,586 @@ analysis / manipulation tool available in any language.
 * Binary installers on PyPI: http://pypi.python.org/pypi/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.22.0
+-------------
+
+**Release date:** December 29, 2017
+
+This is a major release from 0.21.1 and includes a single, API-breaking change.
+We recommend that all users upgrade to this version after carefully reading the
+release note.
+
+The only changes are:
+
+- The sum of an empty or all-*NA* ``Series`` is now ``0``
+- The product of an empty or all-*NA* ``Series`` is now ``1``
+- We've added a ``min_count`` parameter to ``.sum()`` and ``.prod()`` controlling
+  the minimum number of valid values for the result to be valid. If fewer than
+  ``min_count`` non-*NA* values are present, the result is *NA*. The default is
+  ``0``. To return ``NaN``, the 0.21 behavior, use ``min_count=1``.
+
+See the :ref:`v0.22.0 Whatsnew <whatsnew_0220>` overview for further explanation
+of all the places in the library this affects.
+
+pandas 0.21.1
+-------------
+
+**Release date:** December 12, 2017
+
+This is a minor bug-fix release in the 0.21.x series and includes some small
+regression fixes, bug fixes and performance improvements. We recommend that all
+users upgrade to this version.
+
+Highlights include:
+
+- Temporarily restore matplotlib datetime plotting functionality. This should
+  resolve issues for users who relied implicitly on pandas to plot datetimes
+  with matplotlib. See :ref:`here <whatsnew_0211.special>`.
+- Improvements to the Parquet IO functions introduced in 0.21.0. See
+  :ref:`here <whatsnew_0211.enhancements.parquet>`.
+
+See the :ref:`v0.21.1 Whatsnew <whatsnew_0211>` overview for an extensive list
+of all the changes for 0.21.1.
+
+Thanks
+~~~~~~
+
+A total of 46 people contributed to this release.  People with a "+" by their
+names contributed a patch for the first time.
+
+Contributors
+============
+
+* Aaron Critchley +
+* Alex Rychyk
+* Alexander Buchkovsky +
+* Alexander Michael Schade +
+* Chris Mazzullo
+* Cornelius Riemenschneider +
+* Dave Hirschfeld +
+* David Fischer +
+* David Stansby +
+* Dror Atariah +
+* Eric Kisslinger +
+* Hans +
+* Ingolf Becker +
+* Jan Werkmann +
+* Jeff Reback
+* Joris Van den Bossche
+* Jörg Döpfert +
+* Kevin Kuhl +
+* Krzysztof Chomski +
+* Leif Walsh
+* Licht Takeuchi
+* Manraj Singh +
+* Matt Braymer-Hayes +
+* Michael Waskom +
+* Mie~~~ +
+* Peter Hoffmann +
+* Robert Meyer +
+* Sam Cohan +
+* Sietse Brouwer +
+* Sven +
+* Tim Swast
+* Tom Augspurger
+* Wes Turner
+* William Ayd +
+* Yee Mey +
+* bolkedebruin +
+* cgohlke
+* derestle-htwg +
+* fjdiod +
+* gabrielclow +
+* gfyoung
+* ghasemnaddaf +
+* jbrockmendel
+* jschendel
+* miker985 +
+* topper-123
+
+pandas 0.21.0
+-------------
+
+**Release date:** October 27, 2017
+
+This is a major release from 0.20.3 and includes a number of API changes,
+deprecations, new features, enhancements, and performance improvements along
+with a large number of bug fixes. We recommend that all users upgrade to this
+version.
+
+Highlights include:
+
+- Integration with `Apache Parquet <https://parquet.apache.org/>`__, including a new top-level :func:`read_parquet` function and :meth:`DataFrame.to_parquet` method, see :ref:`here <whatsnew_0210.enhancements.parquet>`.
+- New user-facing :class:`pandas.api.types.CategoricalDtype` for specifying
+  categoricals independent of the data, see :ref:`here <whatsnew_0210.enhancements.categorical_dtype>`.
+- The behavior of ``sum`` and ``prod`` on all-NaN Series/DataFrames is now consistent and no longer depends on whether `bottleneck <http://berkeleyanalytics.com/bottleneck>`__ is installed, and ``sum`` and ``prod`` on empty Series now return NaN instead of 0, see :ref:`here <whatsnew_0210.api_breaking.bottleneck>`.
+- Compatibility fixes for pypy, see :ref:`here <whatsnew_0210.pypy>`.
+- Additions to the ``drop``, ``reindex`` and ``rename`` API to make them more consistent, see :ref:`here <whatsnew_0210.enhancements.drop_api>`.
+- Addition of the new methods ``DataFrame.infer_objects`` (see :ref:`here <whatsnew_0210.enhancements.infer_objects>`) and ``GroupBy.pipe`` (see :ref:`here <whatsnew_0210.enhancements.GroupBy_pipe>`).
+- Indexing with a list of labels, where one or more of the labels is missing, is deprecated and will raise a KeyError in a future version, see :ref:`here <whatsnew_0210.api_breaking.loc>`.
+
+See the :ref:`v0.21.0 Whatsnew <whatsnew_0210>` overview for an extensive list
+of all enhancements and bugs that have been fixed in 0.21.0
+
+Thanks
+~~~~~~
+
+A total of 206 people contributed to this release.  People with a "+" by their
+names contributed a patch for the first time.
+
+Contributors
+============
+
+* 3553x +
+* Aaron Barber
+* Adam Gleave +
+* Adam Smith +
+* AdamShamlian +
+* Adrian Liaw +
+* Alan Velasco +
+* Alan Yee +
+* Alex B +
+* Alex Lubbock +
+* Alex Marchenko +
+* Alex Rychyk +
+* Amol K +
+* Andreas Winkler
+* Andrew +
+* Andrew 亮
+* André Jonasson +
+* Becky Sweger
+* Berkay +
+* Bob Haffner +
+* Bran Yang
+* Brian Tu +
+* Brock Mendel +
+* Carol Willing +
+* Carter Green +
+* Chankey Pathak +
+* Chris
+* Chris Billington
+* Chris Filo Gorgolewski +
+* Chris Kerr
+* Chris M +
+* Chris Mazzullo +
+* Christian Prinoth
+* Christian Stade-Schuldt
+* Christoph Moehl +
+* DSM
+* Daniel Chen +
+* Daniel Grady
+* Daniel Himmelstein
+* Dave Willmer
+* David Cook
+* David Gwynne
+* David Read +
+* Dillon Niederhut +
+* Douglas Rudd
+* Eric Stein +
+* Eric Wieser +
+* Erik Fredriksen
+* Florian Wilhelm +
+* Floris Kint +
+* Forbidden Donut
+* Gabe F +
+* Giftlin +
+* Giftlin Rajaiah +
+* Giulio Pepe +
+* Guilherme Beltramini
+* Guillem Borrell +
+* Hanmin Qin +
+* Hendrik Makait +
+* Hugues Valois
+* Hussain Tamboli +
+* Iva Miholic +
+* Jan Novotný +
+* Jan Rudolph
+* Jean Helie +
+* Jean-Baptiste Schiratti +
+* Jean-Mathieu Deschenes
+* Jeff Knupp +
+* Jeff Reback
+* Jeff Tratner
+* JennaVergeynst
+* JimStearns206
+* Joel Nothman
+* John W. O'Brien
+* Jon Crall +
+* Jon Mease
+* Jonathan J. Helmus +
+* Joris Van den Bossche
+* JosephWagner
+* Juarez Bochi
+* Julian Kuhlmann +
+* Karel De Brabandere
+* Kassandra Keeton +
+* Keiron Pizzey +
+* Keith Webber
+* Kernc
+* Kevin Sheppard
+* Kirk Hansen +
+* Licht Takeuchi +
+* Lucas Kushner +
+* Mahdi Ben Jelloul +
+* Makarov Andrey +
+* Malgorzata Turzanska +
+* Marc Garcia +
+* Margaret Sy +
+* MarsGuy +
+* Matt Bark +
+* Matthew Roeschke
+* Matti Picus
+* Mehmet Ali "Mali" Akmanalp
+* Michael Gasvoda +
+* Michael Penkov +
+* Milo +
+* Morgan Stuart +
+* Morgan243 +
+* Nathan Ford +
+* Nick Eubank
+* Nick Garvey +
+* Oleg Shteynbuk +
+* P-Tillmann +
+* Pankaj Pandey
+* Patrick Luo
+* Patrick O'Melveny
+* Paul Reidy +
+* Paula +
+* Peter Quackenbush
+* Peter Yanovich +
+* Phillip Cloud
+* Pierre Haessig
+* Pietro Battiston
+* Pradyumna Reddy Chinthala
+* Prasanjit Prakash
+* RobinFiveWords
+* Ryan Hendrickson
+* Sam Foo
+* Sangwoong Yoon +
+* Simon Gibbons +
+* SimonBaron
+* Steven Cutting +
+* Sudeep +
+* Sylvia +
+* T N +
+* Telt
+* Thomas A Caswell
+* Tim Swast +
+* Tom Augspurger
+* Tong SHEN
+* Tuan +
+* Utkarsh Upadhyay +
+* Vincent La +
+* Vivek +
+* WANG Aiyong
+* WBare
+* Wes McKinney
+* XF +
+* Yi Liu +
+* Yosuke Nakabayashi +
+* aaron315 +
+* abarber4gh +
+* aernlund +
+* agustín méndez +
+* andymaheshw +
+* ante328 +
+* aviolov +
+* bpraggastis
+* cbertinato +
+* cclauss +
+* chernrick
+* chris-b1
+* dkamm +
+* dwkenefick
+* economy
+* faic +
+* fding253 +
+* gfyoung
+* guygoldberg +
+* hhuuggoo +
+* huashuai +
+* ian
+* iulia +
+* jaredsnyder
+* jbrockmendel +
+* jdeschenes
+* jebob +
+* jschendel +
+* keitakurita
+* kernc +
+* kiwirob +
+* kjford
+* linebp
+* lloydkirk
+* louispotok +
+* majiang +
+* manikbhandari +
+* matthiashuschle +
+* mattip
+* maxwasserman +
+* mjlove12 +
+* nmartensen +
+* pandas-docs-bot +
+* parchd-1 +
+* philipphanemann +
+* rdk1024 +
+* reidy-p +
+* ri938
+* ruiann +
+* rvernica +
+* s-weigand +
+* scotthavard92 +
+* skwbc +
+* step4me +
+* tobycheese +
+* topper-123 +
+* tsdlovell
+* ysau +
+* zzgao +
+
+
+pandas 0.20.0 / 0.20.1
+----------------------
+
+**Release date:** May 5, 2017
+
+
+This is a major release from 0.19.2 and includes a number of API changes, deprecations, new features,
+enhancements, and performance improvements along with a large number of bug fixes. We recommend that all
+users upgrade to this version.
+
+Highlights include:
+
+- New ``.agg()`` API for Series/DataFrame similar to the groupby-rolling-resample API's, see :ref:`here <whatsnew_0200.enhancements.agg>`
+- Integration with the ``feather-format``, including a new top-level ``pd.read_feather()`` and ``DataFrame.to_feather()`` method, see :ref:`here <io.feather>`.
+- The ``.ix`` indexer has been deprecated, see :ref:`here <whatsnew_0200.api_breaking.deprecate_ix>`
+- ``Panel`` has been deprecated, see :ref:`here <whatsnew_0200.api_breaking.deprecate_panel>`
+- Addition of an ``IntervalIndex`` and ``Interval`` scalar type, see :ref:`here <whatsnew_0200.enhancements.intervalindex>`
+- Improved user API when grouping by index levels in ``.groupby()``, see :ref:`here <whatsnew_0200.enhancements.groupby_access>`
+- Improved support for ``UInt64`` dtypes, see :ref:`here <whatsnew_0200.enhancements.uint64_support>`
+- A new orient for JSON serialization, ``orient='table'``, that uses the Table Schema spec and that gives the possibility for a more interactive repr in the Jupyter Notebook, see :ref:`here <whatsnew_0200.enhancements.table_schema>`
+- Experimental support for exporting styled DataFrames (``DataFrame.style``) to Excel, see :ref:`here <whatsnew_0200.enhancements.style_excel>`
+- Window binary corr/cov operations now return a MultiIndexed ``DataFrame`` rather than a ``Panel``, as ``Panel`` is now deprecated, see :ref:`here <whatsnew_0200.api_breaking.rolling_pairwise>`
+- Support for S3 handling now uses ``s3fs``, see :ref:`here <whatsnew_0200.api_breaking.s3>`
+- Google BigQuery support now uses the ``pandas-gbq`` library, see :ref:`here <whatsnew_0200.api_breaking.gbq>`
+
+See the :ref:`v0.20.1 Whatsnew <whatsnew_0200>` overview for an extensive list
+of all enhancements and bugs that have been fixed in 0.20.1.
+
+
+.. note::
+
+   This is a combined release for 0.20.0 and 0.20.1.
+   Version 0.20.1 contains one additional change for backwards-compatibility with downstream projects using pandas' ``utils`` routines. (:issue:`16250`)
+
+Thanks
+~~~~~~
+
+- abaldenko
+- Adam J. Stewart
+- Adrian
+- adrian-stepien
+- Ajay Saxena
+- Akash Tandon
+- Albert Villanova del Moral
+- Aleksey Bilogur
+- alexandercbooth
+- Alexis Mignon
+- Amol Kahat
+- Andreas Winkler
+- Andrew Kittredge
+- Anthonios Partheniou
+- Arco Bast
+- Ashish Singal
+- atbd
+- bastewart
+- Baurzhan Muftakhidinov
+- Ben Kandel
+- Ben Thayer
+- Ben Welsh
+- Bill Chambers
+- bmagnusson
+- Brandon M. Burroughs
+- Brian
+- Brian McFee
+- carlosdanielcsantos
+- Carlos Souza
+- chaimdemulder
+- Chris
+- chris-b1
+- Chris Ham
+- Christopher C. Aycock
+- Christoph Gohlke
+- Christoph Paulik
+- Chris Warth
+- Clemens Brunner
+- DaanVanHauwermeiren
+- Daniel Himmelstein
+- Dave Willmer
+- David Cook
+- David Gwynne
+- David Hoffman
+- David Krych
+- dickreuter
+- Diego Fernandez
+- Dimitris Spathis
+- discort
+- Dmitry L
+- Dody Suria Wijaya
+- Dominik Stanczak
+- Dr-Irv
+- Dr. Irv
+- dr-leo
+- D.S. McNeil
+- dubourg
+- dwkenefick
+- Elliott Sales de Andrade
+- Ennemoser Christoph
+- Francesc Alted
+- Fumito Hamamura
+- funnycrab
+- gfyoung
+- Giacomo Ferroni
+- goldenbull
+- Graham R. Jeffries
+- Greg Williams
+- Guilherme Beltramini
+- Guilherme Samora
+- Hao Wu
+- Harshit Patni
+- hesham.shabana@hotmail.com
+- Ilya V. Schurov
+- Iván Vallés Pérez
+- Jackie Leng
+- Jaehoon Hwang
+- James Draper
+- James Goppert
+- James McBride
+- James Santucci
+- Jan Schulz
+- Jeff Carey
+- Jeff Reback
+- JennaVergeynst
+- Jim
+- Jim Crist
+- Joe Jevnik
+- Joel Nothman
+- John
+- John Tucker
+- John W. O'Brien
+- John Zwinck
+- jojomdt
+- Jonathan de Bruin
+- Jonathan Whitmore
+- Jon Mease
+- Jon M. Mease
+- Joost Kranendonk
+- Joris Van den Bossche
+- Joshua Bradt
+- Julian Santander
+- Julien Marrec
+- Jun Kim
+- Justin Solinsky
+- Kacawi
+- Kamal Kamalaldin
+- Kerby Shedden
+- Kernc
+- Keshav Ramaswamy
+- Kevin Sheppard
+- Kyle Kelley
+- Larry Ren
+- Leon Yin
+- linebp
+- Line Pedersen
+- Lorenzo Cestaro
+- Luca Scarabello
+- Lukasz
+- Mahmoud Lababidi
+- manu
+- manuels
+- Mark Mandel
+- Matthew Brett
+- Matthew Roeschke
+- mattip
+- Matti Picus
+- Matt Roeschke
+- maxalbert
+- Maximilian Roos
+- mcocdawc
+- Michael Charlton
+- Michael Felt
+- Michael Lamparski
+- Michiel Stock
+- Mikolaj Chwalisz
+- Min RK
+- Miroslav Šedivý
+- Mykola Golubyev
+- Nate Yoder
+- Nathalie Rud
+- Nicholas Ver Halen
+- Nick Chmura
+- Nolan Nichols
+- nuffe
+- Pankaj Pandey
+- paul-mannino
+- Pawel Kordek
+- pbreach
+- Pete Huang
+- Peter
+- Peter Csizsek
+- Petio Petrov
+- Phil Ruffwind
+- Pietro Battiston
+- Piotr Chromiec
+- Prasanjit Prakash
+- Robert Bradshaw
+- Rob Forgione
+- Robin
+- Rodolfo Fernandez
+- Roger Thomas
+- Rouz Azari
+- Sahil Dua
+- sakkemo
+- Sam Foo
+- Sami Salonen
+- Sarah Bird
+- Sarma Tangirala
+- scls19fr
+- Scott Sanderson
+- Sebastian Bank
+- Sebastian Gsänger
+- Sébastien de Menten
+- Shawn Heide
+- Shyam Saladi
+- sinhrks
+- Sinhrks
+- Stephen Rauch
+- stijnvanhoey
+- Tara Adiseshan
+- themrmax
+- the-nose-knows
+- Thiago Serafim
+- Thoralf Gutierrez
+- Thrasibule
+- Tobias Gustafsson
+- Tom Augspurger
+- tomrod
+- Tong Shen
+- Tong SHEN
+- TrigonaMinima
+- tzinckgraf
+- Uwe
+- wandersoncferreira
+- watercrossing
+- wcwagner
+- Wes Turner
+- Wiktor Tomczak
+- WillAyd
+- xgdgsc
+- Yaroslav Halchenko
+- Yimeng Zhang
+- yui-knk
+
 
 pandas 0.19.2
 -------------
@@ -1055,7 +1635,7 @@ performance improvements along with a large number of bug fixes.
 
 Highlights include:
 
-- Drop support for numpy < 1.7.0 (:issue:`7711`)
+- Drop support for NumPy < 1.7.0 (:issue:`7711`)
 - The ``Categorical`` type was integrated as a first-class pandas type, see :ref:`here <whatsnew_0150.cat>`
 - New scalar type ``Timedelta``, and a new index type ``TimedeltaIndex``, see :ref:`here <whatsnew_0150.timedeltaindex>`
 - New DataFrame default display for ``df.info()`` to include memory usage, see :ref:`Memory Usage <whatsnew_0150.memory>`
@@ -1452,7 +2032,7 @@ Bug Fixes
 - Bug in Series.xs with a multi-index (:issue:`6018`)
 - Bug in Series construction of mixed type with datelike and an integer (which should result in
   object type and not automatic conversion) (:issue:`6028`)
-- Possible segfault when chained indexing with an object array under numpy 1.7.1 (:issue:`6026`, :issue:`6056`)
+- Possible segfault when chained indexing with an object array under NumPy 1.7.1 (:issue:`6026`, :issue:`6056`)
 - Bug in setting using fancy indexing a single element with a non-scalar (e.g. a list),
   (:issue:`6043`)
 - ``to_sql`` did not respect ``if_exists`` (:issue:`4110` :issue:`4304`)
@@ -1463,7 +2043,7 @@ Bug Fixes
 - Fixed missing arg validation in get_options_data (:issue:`6105`)
 - Bug in assignment with duplicate columns in a frame where the locations
   are a slice (e.g. next to each other) (:issue:`6120`)
-- Bug in propogating _ref_locs during construction of a DataFrame with dups
+- Bug in propagating _ref_locs during construction of a DataFrame with dups
   index/columns (:issue:`6121`)
 - Bug in ``DataFrame.apply`` when using mixed datelike reductions (:issue:`6125`)
 - Bug in ``DataFrame.append`` when appending a row with different columns (:issue:`6129`)
@@ -1476,7 +2056,7 @@ Bug Fixes
 - Bug in ``HDFStore`` on appending a dataframe with multi-indexed columns to
   an existing table (:issue:`6167`)
 - Consistency with dtypes in setting an empty DataFrame (:issue:`6171`)
-- Bug in  selecting on a multi-index ``HDFStore`` even in the presence of under
+- Bug in selecting on a multi-index ``HDFStore`` even in the presence of under
   specified column spec (:issue:`6169`)
 - Bug in ``nanops.var`` with ``ddof=1`` and 1 elements would sometimes return ``inf``
   rather than ``nan`` on some platforms (:issue:`6136`)
@@ -1597,7 +2177,7 @@ Improvements to existing features
 - allow DataFrame constructor to accept more list-like objects, e.g. list of
   ``collections.Sequence`` and ``array.Array`` objects (:issue:`3783`,
   :issue:`4297`, :issue:`4851`), thanks @lgautier
-- DataFrame constructor now accepts a numpy masked record array
+- DataFrame constructor now accepts a NumPy masked record array
   (:issue:`3478`), thanks @jnothman
 - ``__getitem__`` with ``tuple`` key (e.g., ``[:, 2]``) on ``Series``
   without ``MultiIndex`` raises ``ValueError`` (:issue:`4759`, :issue:`4837`)
@@ -1817,8 +2397,8 @@ API Changes
   support ``pow`` or ``mod`` with non-scalars. (:issue:`3765`)
 - Arithmetic func factories are now passed real names (suitable for using
   with super) (:issue:`5240`)
-- Provide numpy compatibility with 1.7 for a calling convention like
-  ``np.prod(pandas_object)`` as numpy call with additional keyword args
+- Provide NumPy compatibility with 1.7 for a calling convention like
+  ``np.prod(pandas_object)`` as NumPy call with additional keyword args
   (:issue:`4435`)
 - Provide __dir__ method (and local context) for tab completion / remove
   ipython completers code (:issue:`4501`)
@@ -1857,7 +2437,7 @@ API Changes
 - The refactoring involving``Series`` deriving from ``NDFrame`` breaks ``rpy2<=2.3.8``. an Issue
   has been opened against rpy2 and a workaround is detailed in :issue:`5698`. Thanks @JanSchulz.
 - ``Series.argmin`` and ``Series.argmax`` are now aliased to ``Series.idxmin`` and ``Series.idxmax``.
-  These return the *index* of the  min or max element respectively. Prior to 0.13.0 these would return
+  These return the *index* of the min or max element respectively. Prior to 0.13.0 these would return
   the position of the min / max element (:issue:`6214`)
 
 Internal Refactoring
@@ -1901,7 +2481,7 @@ See :ref:`Internal Refactoring<whatsnew_0130.refactoring>`
 - Series now inherits from ``NDFrame`` rather than directly from ``ndarray``.
   There are several minor changes that affect the API.
 
- - numpy functions that do not support the array interface will now return
+ - NumPy functions that do not support the array interface will now return
    ``ndarrays`` rather than series, e.g. ``np.diff``, ``np.ones_like``,
    ``np.where``
  - ``Series(0.5)`` would previously return the scalar ``0.5``, this is no
@@ -2070,7 +2650,7 @@ Bug Fixes
 - Fix bug in having a rhs of ``np.timedelta64`` or ``np.offsets.DateOffset``
   when operating with datetimes (:issue:`4532`)
 - Fix arithmetic with series/datetimeindex and ``np.timedelta64`` not working
-  the same (:issue:`4134`) and buggy timedelta in numpy 1.6 (:issue:`4135`)
+  the same (:issue:`4134`) and buggy timedelta in NumPy 1.6 (:issue:`4135`)
 - Fix bug in ``pd.read_clipboard`` on windows with PY3 (:issue:`4561`); not
   decoding properly
 - ``tslib.get_period_field()`` and ``tslib.get_period_field_arr()`` now raise
@@ -2111,7 +2691,7 @@ Bug Fixes
 - Bug with reindexing on the index with a non-unique index will now raise
   ``ValueError`` (:issue:`4746`)
 - Bug in setting with ``loc/ix`` a single indexer with a multi-index axis and
-  a numpy array, related to (:issue:`3777`)
+  a NumPy array, related to (:issue:`3777`)
 - Bug in concatenation with duplicate columns across dtypes not merging with
   axis=0 (:issue:`4771`, :issue:`4975`)
 - Bug in ``iloc`` with a slice index failing (:issue:`4771`)
@@ -2314,7 +2894,7 @@ Improvements to existing features
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Fixed various issues with internal pprinting code, the repr() for various objects
-  including TimeStamp and Index now produces valid python code strings and
+  including TimeStamp and Index now produces valid Python code strings and
   can be used to recreate the object, (:issue:`3038`, :issue:`3379`, :issue:`3251`, :issue:`3460`)
 - ``convert_objects`` now accepts a ``copy`` parameter (defaults to ``True``)
 - ``HDFStore``
@@ -2338,7 +2918,7 @@ Improvements to existing features
 - clipboard functions use pyperclip (no dependencies on Windows, alternative
   dependencies offered for Linux) (:issue:`3837`).
 - Plotting functions now raise a ``TypeError`` before trying to plot anything
-  if the associated objects have have a dtype of ``object`` (:issue:`1818`,
+  if the associated objects have a dtype of ``object`` (:issue:`1818`,
   :issue:`3572`, :issue:`3911`, :issue:`3912`), but they will try to convert object
   arrays to numeric arrays if possible so that you can still plot, for example, an
   object array with floats. This happens before any drawing takes place which
@@ -2378,7 +2958,7 @@ API Changes
     to enable alternate encodings (:issue:`3750`)
   - enable support for ``iterator/chunksize`` with ``read_hdf``
 - The repr() for (Multi)Index now obeys display.max_seq_items rather
-  then numpy threshold print options. (:issue:`3426`, :issue:`3466`)
+  then NumPy threshold print options. (:issue:`3426`, :issue:`3466`)
 - Added mangle_dupe_cols option to read_table/csv, allowing users
   to control legacy behaviour re dupe cols (A, A.1, A.2 vs A, A ) (:issue:`3468`)
   Note: The default value will change in 0.12 to the "no mangle" behaviour,
@@ -2445,8 +3025,8 @@ API Changes
   as ``Index``, ``Categorical``, ``GroupBy``, ``SparseList``, and
   ``SparseArray`` (+ their base classes). Currently, ``PandasObject``
   provides string methods (from ``StringMixin``). (:issue:`4090`, :issue:`4092`)
-- New ``StringMixin`` that, given a ``__unicode__`` method, gets python 2 and
-  python 3 compatible string methods (``__str__``, ``__bytes__``, and
+- New ``StringMixin`` that, given a ``__unicode__`` method, gets Python 2 and
+  Python 3 compatible string methods (``__str__``, ``__bytes__``, and
   ``__repr__``). Plus string safety throughout. Now employed in many places
   throughout the pandas library. (:issue:`4090`, :issue:`4092`)
 
@@ -2517,7 +3097,7 @@ Bug Fixes
 - Fixed bug where a time-series was being selected in preference to an actual column name
   in a frame (:issue:`3594`)
 - Make secondary_y work properly for bar plots (:issue:`3598`)
-- Fix modulo and integer division on Series,DataFrames to act similary to ``float`` dtypes to return
+- Fix modulo and integer division on Series,DataFrames to act similarly to ``float`` dtypes to return
   ``np.nan`` or ``np.inf`` as appropriate (:issue:`3590`)
 - Fix incorrect dtype on groupby with ``as_index=False`` (:issue:`3610`)
 - Fix ``read_csv/read_excel`` to correctly encode identical na_values, e.g. ``na_values=[-999.0,-999]``
@@ -2559,7 +3139,7 @@ Bug Fixes
   two integer arrays with at least 10000 cells total (:issue:`3764`)
 - Indexing with a string with seconds resolution not selecting from a time index (:issue:`3925`)
 - csv parsers would loop infinitely if ``iterator=True`` but no ``chunksize`` was
-  specified (:issue:`3967`), python parser failing with ``chunksize=1``
+  specified (:issue:`3967`), Python parser failing with ``chunksize=1``
 - Fix index name not propagating when using ``shift``
 - Fixed dropna=False being ignored with multi-index stack (:issue:`3997`)
 - Fixed flattening of columns when renaming MultiIndex columns DataFrame (:issue:`4004`)
@@ -2721,7 +3301,7 @@ API Changes
   - all timedelta like objects will be correctly assigned to ``timedelta64``
     with mixed ``NaN`` and/or ``NaT`` allowed
 
-- arguments to DataFrame.clip were inconsistent to numpy and Series clipping
+- arguments to DataFrame.clip were inconsistent to NumPy and Series clipping
   (:issue:`2747`)
 - util.testing.assert_frame_equal now checks the column and index names (:issue:`2964`)
 - Constructors will now return a more informative ValueError on failures
@@ -2780,7 +3360,7 @@ Bug Fixes
   - Series ops with a Timestamp on the rhs was throwing an exception (:issue:`2898`)
     added tests for Series ops with datetimes,timedeltas,Timestamps, and datelike
     Series on both lhs and rhs
-  - Fixed subtle timedelta64 inference issue on py3 & numpy 1.7.0 (:issue:`3094`)
+  - Fixed subtle timedelta64 inference issue on py3 & NumPy 1.7.0 (:issue:`3094`)
   - Fixed some formatting issues on timedelta when negative
   - Support null checking on timedelta64, representing (and formatting) with NaT
   - Support setitem with np.nan value, converts to NaT
@@ -2820,11 +3400,11 @@ Bug Fixes
 - Fixed bug in reshape if not passed correct input, now raises TypeError (:issue:`2719`)
 - Fixed a bug where Series ctor did not respect ordering if OrderedDict passed in (:issue:`3282`)
 - Fix NameError issue on RESO_US (:issue:`2787`)
-- Allow selection in an *unordered* timeseries to work similary
+- Allow selection in an *unordered* timeseries to work similarly
   to an *ordered* timeseries (:issue:`2437`).
 - Fix implemented ``.xs`` when called with ``axes=1`` and a level parameter (:issue:`2903`)
 - Timestamp now supports the class method fromordinal similar to datetimes (:issue:`3042`)
-- Fix issue with indexing a series with a boolean key and specifiying a 1-len list on the rhs (:issue:`2745`)
+- Fix issue with indexing a series with a boolean key and specifying a 1-len list on the rhs (:issue:`2745`)
   or a list on the rhs (:issue:`3235`)
 - Fixed bug in groupby apply when kernel generate list of arrays having unequal len (:issue:`1738`)
 - fixed handling of rolling_corr with center=True which could produce corr>1 (:issue:`3155`)
@@ -2975,7 +3555,7 @@ Bug Fixes
 - Upconvert datetime + datetime64 values when concatenating frames (:issue:`2624`)
 - Raise a more helpful error message in merge operations when one DataFrame
   has duplicate columns (:issue:`2649`)
-- Fix partial date parsing issue occuring only when code is run at EOM
+- Fix partial date parsing issue occurring only when code is run at EOM
   (:issue:`2618`)
 - Prevent MemoryError when using counting sort in sortlevel with
   high-cardinality MultiIndex objects (:issue:`2684`)
@@ -3393,7 +3973,7 @@ Bug Fixes
 - Don't lose tzinfo when passing DatetimeIndex as DataFrame column (:issue:`1682`)
 - Fix tz conversion with time zones that haven't had any DST transitions since
   first date in the array (:issue:`1673`)
-- Fix field access with  UTC->local conversion on unsorted arrays (:issue:`1756`)
+- Fix field access with UTC->local conversion on unsorted arrays (:issue:`1756`)
 - Fix isnull handling of array-like (list) inputs (:issue:`1755`)
 - Fix regression in handling of Series in Series constructor (:issue:`1671`)
 - Fix comparison of Int64Index with DatetimeIndex (:issue:`1681`)
@@ -3502,7 +4082,7 @@ Bug Fixes
   columns (:issue:`1943`)
 - Fix time zone localization bug causing improper fields (e.g. hours) in time
   zones that have not had a UTC transition in a long time (:issue:`1946`)
-- Fix errors when parsing and working with with fixed offset timezones
+- Fix errors when parsing and working with fixed offset timezones
   (:issue:`1922`, :issue:`1928`)
 - Fix text parser bug when handling UTC datetime objects generated by
   dateutil (:issue:`1693`)
@@ -3803,7 +4383,7 @@ Bug Fixes
   error (:issue:`1090`)
 - Consistently set name on groupby pieces (:issue:`184`)
 - Treat dict return values as Series in GroupBy.apply (:issue:`823`)
-- Respect column selection for DataFrame in in GroupBy.transform (:issue:`1365`)
+- Respect column selection for DataFrame in GroupBy.transform (:issue:`1365`)
 - Fix MultiIndex partial indexing bug (:issue:`1352`)
 - Enable assignment of rows in mixed-type DataFrame via .ix (:issue:`1432`)
 - Reset index mapping when grouping Series in Cython (:issue:`1423`)
@@ -3945,7 +4525,7 @@ Bug Fixes
 - Fix na-filling handling in mixed-type DataFrame (:issue:`910`)
 - Fix to DataFrame.set_value with non-existant row/col (:issue:`911`)
 - Fix malformed block in groupby when excluding nuisance columns (:issue:`916`)
-- Fix inconsistant NA handling in dtype=object arrays (:issue:`925`)
+- Fix inconsistent NA handling in dtype=object arrays (:issue:`925`)
 - Fix missing center-of-mass computation in ewmcov (:issue:`862`)
 - Don't raise exception when opening read-only HDF5 file (:issue:`847`)
 - Fix possible out-of-bounds memory access in 0-length Series (:issue:`917`)
@@ -3994,7 +4574,7 @@ Bug Fixes
 - Add clearer error message in csv parser (:issue:`835`)
 - Fix loss of fractional seconds in HDFStore (:issue:`513`)
 - Fix DataFrame join where columns have datetimes (:issue:`787`)
-- Work around numpy performance issue in take (:issue:`817`)
+- Work around NumPy performance issue in take (:issue:`817`)
 - Improve comparison operations for NA-friendliness (:issue:`801`)
 - Fix indexing operation for floating point values (:issue:`780`, :issue:`798`)
 - Fix groupby case resulting in malformed dataframe (:issue:`814`)
@@ -4460,7 +5040,7 @@ New Features
 - Add `melt` function to `pandas.core.reshape`
 - Add `level` parameter to group by level in Series and DataFrame
   descriptive statistics (:issue:`313`)
-- Add `head` and `tail` methods to Series, analogous to to DataFrame (PR
+- Add `head` and `tail` methods to Series, analogous to DataFrame (PR
   :issue:`296`)
 - Add `Series.isin` function which checks if each value is contained in a
   passed sequence (:issue:`289`)
@@ -4815,9 +5395,9 @@ pandas 0.4.3
 
 **Release date:** 10/9/2011
 
-is is largely a bugfix release from 0.4.2 but also includes a handful of new
-d enhanced features. Also, pandas can now be installed and used on Python 3
-hanks Thomas Kluyver!).
+This is largely a bugfix release from 0.4.2 but also includes a handful of new
+and enhanced features. Also, pandas can now be installed and used on Python 3
+(thanks Thomas Kluyver!).
 
 New Features
 ~~~~~~~~~~~~
@@ -4880,9 +5460,9 @@ pandas 0.4.2
 
 **Release date:** 10/3/2011
 
-is is a performance optimization release with several bug fixes. The new
-t64Index and new merging / joining Cython code and related Python
-frastructure are the main new additions
+This is a performance optimization release with several bug fixes. The new
+Int64Index and new merging / joining Cython code and related Python
+infrastructure are the main new additions
 
 New Features
 ~~~~~~~~~~~~
@@ -4957,7 +5537,7 @@ pandas 0.4.1
 
 **Release date:** 9/25/2011
 
-is is primarily a bug fix release but includes some new features and
+This is primarily a bug fix release but includes some new features and
 improvements
 
 New Features
@@ -5242,7 +5822,7 @@ API Changes
   `offset` argument for everything. So you can still pass a time rule string
   to `offset`
 - Added optional `encoding` argument to `read_csv`, `read_table`, `to_csv`,
-  `from_csv` to handle unicode in python 2.x
+  `from_csv` to handle unicode in Python 2.x
 
 Bug Fixes
 ~~~~~~~~~

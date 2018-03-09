@@ -26,7 +26,7 @@ Enhancements
 The ``pd.merge_asof()``, added in 0.19.0, gained some improvements:
 
 - ``pd.merge_asof()`` gained ``left_index``/``right_index`` and ``left_by``/``right_by`` arguments (:issue:`14253`)
-- ``pd.merge_asof()`` can take multiple columns in ``by`` parameter and has specialized dtypes for better performace (:issue:`13936`)
+- ``pd.merge_asof()`` can take multiple columns in ``by`` parameter and has specialized dtypes for better performance (:issue:`13936`)
 
 
 .. _whatsnew_0192.performance:
@@ -62,7 +62,7 @@ Bug Fixes
 - Bug in ``pd.to_numeric`` where a 0 was not unsigned on a ``downcast='unsigned'`` argument (:issue:`14401`)
 - Bug in plotting regular and irregular timeseries using shared axes
   (``sharex=True`` or ``ax.twinx()``) (:issue:`13341`, :issue:`14322`).
-- Bug in not propogating exceptions in parsing invalid datetimes, noted in python 3.6 (:issue:`14561`)
+- Bug in not propagating exceptions in parsing invalid datetimes, noted in python 3.6 (:issue:`14561`)
 - Bug in resampling a ``DatetimeIndex`` in local TZ, covering a DST change, which would raise ``AmbiguousTimeError`` (:issue:`14682`)
 - Bug in indexing that transformed ``RecursionError`` into ``KeyError`` or ``IndexingError`` (:issue:`14554`)
 - Bug in ``HDFStore`` when writing a ``MultiIndex`` when using ``data_columns=True`` (:issue:`14435`)

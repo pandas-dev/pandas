@@ -1,16 +1,16 @@
+import pytest
+
 from datetime import time, timedelta
 import numpy as np
 
 import pandas as pd
 import pandas.util.testing as tm
 from pandas.util.testing import assert_series_equal
-from pandas import (Series, Timedelta, to_timedelta, isnull,
-                    TimedeltaIndex)
+from pandas import Series, to_timedelta, isna, TimedeltaIndex
 from pandas._libs.tslib import iNaT
 
 
-class TestTimedeltas(tm.TestCase):
-    _multiprocess_can_split_ = True
+class TestTimedeltas(object):
 
     def test_to_timedelta(self):
         def conv(v):
@@ -18,19 +18,18 @@ class TestTimedeltas(tm.TestCase):
 
         d1 = np.timedelta64(1, 'D')
 
-        self.assertEqual(to_timedelta('1 days 06:05:01.00003', box=False),
-                         conv(d1 + np.timedelta64(6 * 3600 +
-                                                  5 * 60 + 1, 's') +
-                              np.timedelta64(30, 'us')))
-        self.assertEqual(to_timedelta('15.5us', box=False),
-                         conv(np.timedelta64(15500, 'ns')))
+        assert (to_timedelta('1 days 06:05:01.00003', box=False) ==
+                conv(d1 + np.timedelta64(6 * 3600 + 5 * 60 + 1, 's') +
+                     np.timedelta64(30, 'us')))
+        assert (to_timedelta('15.5us', box=False) ==
+                conv(np.timedelta64(15500, 'ns')))
 
         # empty string
         result = to_timedelta('', box=False)
-        self.assertEqual(result.astype('int64'), iNaT)
+        assert result.astype('int64') == iNaT
 
         result = to_timedelta(['', ''])
-        self.assertTrue(isnull(result).all())
+        assert isna(result).all()
 
         # pass thru
         result = to_timedelta(np.array([np.timedelta64(1, 's')]))
@@ -40,7 +39,7 @@ class TestTimedeltas(tm.TestCase):
         # ints
         result = np.timedelta64(0, 'ns')
         expected = to_timedelta(0, box=False)
-        self.assertEqual(result, expected)
+        assert result == expected
 
         # Series
         expected = Series([timedelta(days=1), timedelta(days=1, seconds=1)])
@@ -57,12 +56,12 @@ class TestTimedeltas(tm.TestCase):
         v = timedelta(seconds=1)
         result = to_timedelta(v, box=False)
         expected = np.timedelta64(timedelta(seconds=1))
-        self.assertEqual(result, expected)
+        assert result == expected
 
         v = np.timedelta64(timedelta(seconds=1))
         result = to_timedelta(v, box=False)
         expected = np.timedelta64(timedelta(seconds=1))
-        self.assertEqual(result, expected)
+        assert result == expected
 
         # arrays of various dtypes
         arr = np.array([1] * 5, dtype='int64')
@@ -111,19 +110,18 @@ class TestTimedeltas(tm.TestCase):
 
         # bad value for errors parameter
         msg = "errors must be one of"
-        tm.assertRaisesRegexp(ValueError, msg, to_timedelta,
-                              ['foo'], errors='never')
+        tm.assert_raises_regex(ValueError, msg, to_timedelta,
+                               ['foo'], errors='never')
 
         # these will error
-        self.assertRaises(ValueError, lambda: to_timedelta([1, 2], unit='foo'))
-        self.assertRaises(ValueError, lambda: to_timedelta(1, unit='foo'))
+        pytest.raises(ValueError, lambda: to_timedelta([1, 2], unit='foo'))
+        pytest.raises(ValueError, lambda: to_timedelta(1, unit='foo'))
 
         # time not supported ATM
-        self.assertRaises(ValueError, lambda: to_timedelta(time(second=1)))
-        self.assertTrue(to_timedelta(
-            time(second=1), errors='coerce') is pd.NaT)
+        pytest.raises(ValueError, lambda: to_timedelta(time(second=1)))
+        assert to_timedelta(time(second=1), errors='coerce') is pd.NaT
 
-        self.assertRaises(ValueError, lambda: to_timedelta(['foo', 'bar']))
+        pytest.raises(ValueError, lambda: to_timedelta(['foo', 'bar']))
         tm.assert_index_equal(TimedeltaIndex([pd.NaT, pd.NaT]),
                               to_timedelta(['foo', 'bar'], errors='coerce'))
 
@@ -133,8 +131,7 @@ class TestTimedeltas(tm.TestCase):
 
         # gh-13613: these should not error because errors='ignore'
         invalid_data = 'apple'
-        self.assertEqual(invalid_data, to_timedelta(
-            invalid_data, errors='ignore'))
+        assert invalid_data == to_timedelta(invalid_data, errors='ignore')
 
         invalid_data = ['apple', '1 days']
         tm.assert_numpy_array_equal(
@@ -171,32 +168,7 @@ class TestTimedeltas(tm.TestCase):
         assert_series_equal(actual, expected)
 
         actual = pd.to_timedelta(np.nan)
-        self.assertEqual(actual.value, timedelta_NaT.astype('int64'))
+        assert actual.value == timedelta_NaT.astype('int64')
 
         actual = pd.to_timedelta(pd.NaT)
-        self.assertEqual(actual.value, timedelta_NaT.astype('int64'))
-
-    def test_to_timedelta_on_nanoseconds(self):
-        # GH 9273
-        result = Timedelta(nanoseconds=100)
-        expected = Timedelta('100ns')
-        self.assertEqual(result, expected)
-
-        result = Timedelta(days=1, hours=1, minutes=1, weeks=1, seconds=1,
-                           milliseconds=1, microseconds=1, nanoseconds=1)
-        expected = Timedelta(694861001001001)
-        self.assertEqual(result, expected)
-
-        result = Timedelta(microseconds=1) + Timedelta(nanoseconds=1)
-        expected = Timedelta('1us1ns')
-        self.assertEqual(result, expected)
-
-        result = Timedelta(microseconds=1) - Timedelta(nanoseconds=1)
-        expected = Timedelta('999ns')
-        self.assertEqual(result, expected)
-
-        result = Timedelta(microseconds=1) + 5 * Timedelta(nanoseconds=-2)
-        expected = Timedelta('990ns')
-        self.assertEqual(result, expected)
-
-        self.assertRaises(TypeError, lambda: Timedelta(nanoseconds='abc'))
+        assert actual.value == timedelta_NaT.astype('int64')

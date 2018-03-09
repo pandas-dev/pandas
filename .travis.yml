@@ -1,22 +1,25 @@
 sudo: false
 language: python
+# Default Python version is usually 2.7
+python: 3.5
 
-# To turn off cached miniconda, cython files and compiler cache comment out the
-# USE_CACHE=true line for the build in the matrix below. To delete caches go to
-# https://travis-ci.org/OWNER/REPOSITORY/caches or run
+# To turn off cached cython files and compiler cache
+# set NOCACHE-true
+# To delete caches go to https://travis-ci.org/OWNER/REPOSITORY/caches or run
 # travis cache --delete inside the project directory from the travis command line client
-# The cash directories will be deleted if anything in ci/ changes in a commit
+# The cache directories will be deleted if anything in ci/ changes in a commit
 cache:
+ ccache: true
  directories:
-  - $HOME/miniconda # miniconda cache
   - $HOME/.cache # cython cache
   - $HOME/.ccache # compiler cache
 
 env:
   global:
-
-  # pandas-docs-travis GH
-  - secure: "YvvTc+FrSYHgdxqoxn9s8VOaCWjvZzlkaf6k55kkmQqCYR9dPiLMsot1F96/N7o3YlD1s0znPQCak93Du8HHi/8809zAXloTaMSZrWz4R4qn96xlZFRE88O/w/Z1t3VVYpKX3MHlCggBc8MtXrqmvWKJMAqXyysZ4TTzoiJDPvE="
+    # create a github personal access token
+    # cd pandas-dev/pandas
+    # travis encrypt 'PANDAS_GH_TOKEN=personal_access_token' -r pandas-dev/pandas
+    - secure: "EkWLZhbrp/mXJOx38CHjs7BnjXafsqHtwxPQrqWy457VDFWhIY1DMnIR/lOWG+a20Qv52sCsFtiZEmMfUjf0pLGXOqurdxbYBGJ7/ikFLk9yV2rDwiArUlVM9bWFnFxHvdz9zewBH55WurrY4ShZWyV+x2dWjjceWG5VpWeI6sA="
 
 git:
     # for cloning
@@ -24,189 +27,87 @@ git:
 
 matrix:
     fast_finish: true
+    exclude:
+      # Exclude the default Python 3.5 build
+      - python: 3.5
     include:
-    - language: objective-c
-      os: osx
-      compiler: clang
-      osx_image: xcode6.4
+    - os: osx
+      language: generic
       env:
-        - PYTHON_VERSION=3.5
-        - JOB_NAME: "35_osx"
-        - TEST_ARGS="--skip-slow --skip-network"
-        - BUILD_TYPE=conda
-        - JOB_TAG=_OSX
-        - TRAVIS_PYTHON_VERSION=3.5
-        - CACHE_NAME="35_osx"
-        - USE_CACHE=true
-    - python: 2.7
+        - JOB="3.5_OSX" TEST_ARGS="--skip-slow --skip-network"
+    - dist: trusty
       env:
-        - PYTHON_VERSION=2.7
-        - JOB_NAME: "27_slow_nnet_LOCALE"
-        - TEST_ARGS="--only-slow --skip-network"
-        - LOCALE_OVERRIDE="zh_CN.UTF-8"
-        - FULL_DEPS=true
-        - JOB_TAG=_LOCALE
-        - CACHE_NAME="27_slow_nnet_LOCALE"
-        - USE_CACHE=true
+        - JOB="2.7_LOCALE" LOCALE_OVERRIDE="zh_CN.UTF-8" SLOW=true
       addons:
         apt:
           packages:
           - language-pack-zh-hans
-    - python: 2.7
+    - dist: trusty
       env:
-        - PYTHON_VERSION=2.7
-        - JOB_NAME: "27_nslow"
-        - TEST_ARGS="--skip-slow"
-        - FULL_DEPS=true
-        - CLIPBOARD_GUI=gtk2
-        - LINT=true
-        - CACHE_NAME="27_nslow"
-        - USE_CACHE=true
+        - JOB="2.7" TEST_ARGS="--skip-slow" LINT=true
       addons:
         apt:
           packages:
           - python-gtk2
-    - python: 3.5
+    # In allow_failures
+    - dist: trusty
       env:
-        - PYTHON_VERSION=3.5
-        - JOB_NAME: "35_nslow"
-        - TEST_ARGS="--skip-slow --skip-network"
-        - FULL_DEPS=true
-        - CLIPBOARD=xsel
-        - COVERAGE=true
-        - CACHE_NAME="35_nslow"
-#        - USE_CACHE=true # Don't use cache for 35_nslow
+        - JOB="3.6" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate" CONDA_FORGE=true COVERAGE=true
+    # In allow_failures
+    - dist: trusty
+      env:
+        - JOB="2.7_SLOW" SLOW=true
+    # In allow_failures
+    - dist: trusty
+      env:
+        - JOB="3.6_NUMPY_DEV" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate"
       addons:
         apt:
           packages:
           - xsel
-    - python: 3.6
+    # In allow_failures
+    - dist: trusty
       env:
-        - PYTHON_VERSION=3.6
-        - JOB_NAME: "36"
-        - TEST_ARGS="--skip-slow --skip-network"
-        - PANDAS_TESTING_MODE="deprecate"
-      addons:
-        apt:
-          packages:
-          - libatlas-base-dev
-          - gfortran
-#    In allow_failures
-    - python: 2.7
-      env:
-        - PYTHON_VERSION=2.7
-        - JOB_NAME: "27_slow"
-        - JOB_TAG=_SLOW
-        - TEST_ARGS="--only-slow --skip-network"
-        - FULL_DEPS=true
-        - CACHE_NAME="27_slow"
-        - USE_CACHE=true
-#    In allow_failures
-    - python: 2.7
-      env:
-        - PYTHON_VERSION=2.7
-        - JOB_NAME: "27_build_test_conda"
-        - JOB_TAG=_BUILD_TEST
-        - TEST_ARGS="--skip-slow"
-        - FULL_DEPS=true
-        - BUILD_TEST=true
-        - CACHE_NAME="27_build_test_conda"
-        - USE_CACHE=true
-#    In allow_failures
-    - python: 3.5
-      env:
-        - PYTHON_VERSION=3.5
-        - JOB_NAME: "35_numpy_dev"
-        - JOB_TAG=_NUMPY_DEV
-        - TEST_ARGS="--skip-slow --skip-network"
-        - PANDAS_TESTING_MODE="deprecate"
-        - CACHE_NAME="35_numpy_dev"
-        - USE_CACHE=true
-      addons:
-        apt:
-          packages:
-          - libatlas-base-dev
-          - gfortran
-#    In allow_failures
-    - python: 3.5
-      env:
-        - PYTHON_VERSION=3.5
-        - JOB_NAME: "doc_build"
-        - FULL_DEPS=true
-        - DOC_BUILD=true
-        - JOB_TAG=_DOC_BUILD
-        - CACHE_NAME="doc_build"
-        - USE_CACHE=true
+        - JOB="3.6_DOC" DOC=true
     allow_failures:
-      - python: 2.7
+      - dist: trusty
         env:
-        - PYTHON_VERSION=2.7
-        - JOB_NAME: "27_slow"
-        - JOB_TAG=_SLOW
-        - TEST_ARGS="--only-slow --skip-network"
-        - FULL_DEPS=true
-        - CACHE_NAME="27_slow"
-        - USE_CACHE=true
-      - python: 2.7
+          - JOB="2.7_SLOW" SLOW=true
+      - dist: trusty
         env:
-        - PYTHON_VERSION=2.7
-        - JOB_NAME: "27_build_test_conda"
-        - JOB_TAG=_BUILD_TEST
-        - TEST_ARGS="--skip-slow"
-        - FULL_DEPS=true
-        - BUILD_TEST=true
-        - CACHE_NAME="27_build_test_conda"
-        - USE_CACHE=true
-      - python: 3.5
-        env:
-          - PYTHON_VERSION=3.5
-          - JOB_NAME: "35_numpy_dev"
-          - JOB_TAG=_NUMPY_DEV
-          - TEST_ARGS="--skip-slow --skip-network"
-          - PANDAS_TESTING_MODE="deprecate"
-          - CACHE_NAME="35_numpy_dev"
-          - USE_CACHE=true
+          - JOB="3.6_NUMPY_DEV" TEST_ARGS="--skip-slow --skip-network" PANDAS_TESTING_MODE="deprecate"
         addons:
           apt:
             packages:
-            - libatlas-base-dev
-            - gfortran
-      - python: 3.5
+            - xsel
+      - dist: trusty
         env:
-        - PYTHON_VERSION=3.5
-        - JOB_NAME: "doc_build"
-        - FULL_DEPS=true
-        - DOC_BUILD=true
-        - JOB_TAG=_DOC_BUILD
-        - CACHE_NAME="doc_build"
-        - USE_CACHE=true
+          - JOB="3.6_DOC" DOC=true
 
 before_install:
   - echo "before_install"
+  # set non-blocking IO on travis
+  # https://github.com/travis-ci/travis-ci/issues/8920#issuecomment-352661024
+  - python -c 'import os,sys,fcntl; flags = fcntl.fcntl(sys.stdout, fcntl.F_GETFL); fcntl.fcntl(sys.stdout, fcntl.F_SETFL, flags&~os.O_NONBLOCK);'
   - source ci/travis_process_gbq_encryption.sh
-  - echo $VIRTUAL_ENV
   - export PATH="$HOME/miniconda3/bin:$PATH"
   - df -h
-  - date
   - pwd
   - uname -a
-  - python -V
   - git --version
   - git tag
-  - ci/before_install_travis.sh
-  - export DISPLAY=:99.0
 
 install:
   - echo "install start"
-  - ci/check_cache.sh
   - ci/prep_cython_cache.sh
   - ci/install_travis.sh
   - ci/submit_cython_cache.sh
   - echo "install done"
 
 before_script:
-  - source activate pandas && pip install codecov
   - ci/install_db_travis.sh
+  - export DISPLAY=":99.0"
+  - ci/before_script_travis.sh
 
 script:
   - echo "script start"
@@ -214,15 +115,20 @@ script:
   - ci/script_single.sh
   - ci/script_multi.sh
   - ci/lint.sh
+  - echo "checking imports"
+  - source activate pandas && python ci/check_imports.py
   - echo "script done"
 
 after_success:
-  - source activate pandas && codecov
+  -  ci/upload_coverage.sh
 
 after_script:
   - echo "after_script start"
-  - ci/install_test.sh
-  - source activate pandas && python -c "import pandas; pandas.show_versions();"
-  - ci/print_skipped.py /tmp/single.xml
-  - ci/print_skipped.py /tmp/multiple.xml
+  - source activate pandas && pushd /tmp && python -c "import pandas; pandas.show_versions();" && popd
+  - if [ -e /tmp/single.xml ]; then
+    ci/print_skipped.py /tmp/single.xml;
+    fi
+  - if [ -e /tmp/multiple.xml ]; then
+    ci/print_skipped.py /tmp/multiple.xml;
+    fi
   - echo "after_script done"

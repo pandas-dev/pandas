@@ -17,10 +17,11 @@ Reference for binary data compression:
 import pandas as pd
 from pandas import compat
 from pandas.io.common import get_filepath_or_buffer, BaseIterator
+from pandas.errors import EmptyDataError
 import numpy as np
 import struct
 import pandas.io.sas.sas_constants as const
-from pandas.io.sas.libsas import Parser
+from pandas.io.sas._sas import Parser
 
 
 class _subheader_pointer(object):
@@ -44,8 +45,8 @@ class SAS7BDATReader(BaseIterator):
     index : column identifier, defaults to None
         Column to use as index.
     convert_dates : boolean, defaults to True
-        Attempt to convert dates to Pandas datetime values.  Note all
-        SAS date formats are supported.
+        Attempt to convert dates to Pandas datetime values.  Note that
+        some rarely used SAS date formats may be unsupported.
     blank_missing : boolean, defaults to True
         Convert empty strings to missing values (SAS uses blanks to
         indicate missing character variables).
@@ -89,7 +90,7 @@ class SAS7BDATReader(BaseIterator):
         self._current_row_on_page_index = 0
         self._current_row_in_file_index = 0
 
-        self._path_or_buf, _, _ = get_filepath_or_buffer(path_or_buf)
+        self._path_or_buf, _, _, _ = get_filepath_or_buffer(path_or_buf)
         if isinstance(self._path_or_buf, compat.string_types):
             self._path_or_buf = open(self._path_or_buf, 'rb')
             self.handle = self._path_or_buf
@@ -594,6 +595,10 @@ class SAS7BDATReader(BaseIterator):
         elif nrows is None:
             nrows = self.row_count
 
+        if len(self.column_types) == 0:
+            self.close()
+            raise EmptyDataError("No columns to parse from file")
+
         if self._current_row_in_file_index >= self.row_count:
             return None
 
@@ -655,9 +660,15 @@ class SAS7BDATReader(BaseIterator):
                 rslt[name] = self._byte_chunk[jb, :].view(
                     dtype=self.byte_order + 'd')
                 rslt[name] = np.asarray(rslt[name], dtype=np.float64)
-                if self.convert_dates and (self.column_formats[j] == "MMDDYY"):
-                    epoch = pd.datetime(1960, 1, 1)
-                    rslt[name] = epoch + pd.to_timedelta(rslt[name], unit='d')
+                if self.convert_dates:
+                    unit = None
+                    if self.column_formats[j] in const.sas_date_formats:
+                        unit = 'd'
+                    elif self.column_formats[j] in const.sas_datetime_formats:
+                        unit = 's'
+                    if unit:
+                        rslt[name] = pd.to_datetime(rslt[name], unit=unit,
+                                                    origin="1960-01-01")
                 jb += 1
             elif self.column_types[j] == b's':
                 rslt[name] = self._string_chunk[js, :]

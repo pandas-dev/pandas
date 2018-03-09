@@ -1,36 +1,60 @@
-from pandas import DataFrame
+import pytest
 import numpy as np
 import json
 
 import pandas.util.testing as tm
-from pandas import compat
+from pandas import compat, Index, DataFrame
 
 from pandas.io.json import json_normalize
 from pandas.io.json.normalize import nested_to_record
 
 
-def _assert_equal_data(left, right):
-    if not left.columns.equals(right.columns):
-        left = left.reindex(columns=right.columns)
+@pytest.fixture
+def deep_nested():
+    # deeply nested data
+    return [{'country': 'USA',
+             'states': [{'name': 'California',
+                         'cities': [{'name': 'San Francisco',
+                                     'pop': 12345},
+                                    {'name': 'Los Angeles',
+                                     'pop': 12346}]
+                         },
+                        {'name': 'Ohio',
+                         'cities': [{'name': 'Columbus',
+                                     'pop': 1234},
+                                    {'name': 'Cleveland',
+                                     'pop': 1236}]}
+                        ]
+             },
+            {'country': 'Germany',
+             'states': [{'name': 'Bayern',
+                         'cities': [{'name': 'Munich', 'pop': 12347}]
+                         },
+                        {'name': 'Nordrhein-Westfalen',
+                         'cities': [{'name': 'Duesseldorf', 'pop': 1238},
+                                    {'name': 'Koeln', 'pop': 1239}]}
+                        ]
+             }
+            ]
 
-    tm.assert_frame_equal(left, right)
+
+@pytest.fixture
+def state_data():
+    return [
+        {'counties': [{'name': 'Dade', 'population': 12345},
+                      {'name': 'Broward', 'population': 40000},
+                      {'name': 'Palm Beach', 'population': 60000}],
+         'info': {'governor': 'Rick Scott'},
+         'shortname': 'FL',
+         'state': 'Florida'},
+        {'counties': [{'name': 'Summit', 'population': 1234},
+                      {'name': 'Cuyahoga', 'population': 1337}],
+         'info': {'governor': 'John Kasich'},
+         'shortname': 'OH',
+         'state': 'Ohio'}]
 
 
-class TestJSONNormalize(tm.TestCase):
-
-    def setUp(self):
-        self.state_data = [
-            {'counties': [{'name': 'Dade', 'population': 12345},
-                          {'name': 'Broward', 'population': 40000},
-                          {'name': 'Palm Beach', 'population': 60000}],
-             'info': {'governor': 'Rick Scott'},
-             'shortname': 'FL',
-             'state': 'Florida'},
-            {'counties': [{'name': 'Summit', 'population': 1234},
-                          {'name': 'Cuyahoga', 'population': 1337}],
-             'info': {'governor': 'John Kasich'},
-             'shortname': 'OH',
-             'state': 'Ohio'}]
+class TestJSONNormalize(object):
 
     def test_simple_records(self):
         recs = [{'a': 1, 'b': 2, 'c': 3},
@@ -43,21 +67,21 @@ class TestJSONNormalize(tm.TestCase):
 
         tm.assert_frame_equal(result, expected)
 
-    def test_simple_normalize(self):
-        result = json_normalize(self.state_data[0], 'counties')
-        expected = DataFrame(self.state_data[0]['counties'])
+    def test_simple_normalize(self, state_data):
+        result = json_normalize(state_data[0], 'counties')
+        expected = DataFrame(state_data[0]['counties'])
         tm.assert_frame_equal(result, expected)
 
-        result = json_normalize(self.state_data, 'counties')
+        result = json_normalize(state_data, 'counties')
 
         expected = []
-        for rec in self.state_data:
+        for rec in state_data:
             expected.extend(rec['counties'])
         expected = DataFrame(expected)
 
         tm.assert_frame_equal(result, expected)
 
-        result = json_normalize(self.state_data, 'counties', meta='state')
+        result = json_normalize(state_data, 'counties', meta='state')
         expected['state'] = np.array(['Florida', 'Ohio']).repeat([3, 2])
 
         tm.assert_frame_equal(result, expected)
@@ -67,33 +91,30 @@ class TestJSONNormalize(tm.TestCase):
         expected = DataFrame()
         tm.assert_frame_equal(result, expected)
 
-    def test_more_deeply_nested(self):
-        data = [{'country': 'USA',
-                 'states': [{'name': 'California',
-                             'cities': [{'name': 'San Francisco',
-                                         'pop': 12345},
-                                        {'name': 'Los Angeles',
-                                         'pop': 12346}]
-                             },
-                            {'name': 'Ohio',
-                             'cities': [{'name': 'Columbus',
-                                         'pop': 1234},
-                                        {'name': 'Cleveland',
-                                         'pop': 1236}]}
-                            ]
-                 },
-                {'country': 'Germany',
-                 'states': [{'name': 'Bayern',
-                             'cities': [{'name': 'Munich', 'pop': 12347}]
-                             },
-                            {'name': 'Nordrhein-Westfalen',
-                             'cities': [{'name': 'Duesseldorf', 'pop': 1238},
-                                        {'name': 'Koeln', 'pop': 1239}]}
-                            ]
-                 }
-                ]
+    def test_simple_normalize_with_separator(self, deep_nested):
+        # GH 14883
+        result = json_normalize({'A': {'A': 1, 'B': 2}})
+        expected = DataFrame([[1, 2]], columns=['A.A', 'A.B'])
+        tm.assert_frame_equal(result.reindex_like(expected), expected)
 
-        result = json_normalize(data, ['states', 'cities'],
+        result = json_normalize({'A': {'A': 1, 'B': 2}}, sep='_')
+        expected = DataFrame([[1, 2]], columns=['A_A', 'A_B'])
+        tm.assert_frame_equal(result.reindex_like(expected), expected)
+
+        result = json_normalize({'A': {'A': 1, 'B': 2}}, sep=u'\u03c3')
+        expected = DataFrame([[1, 2]], columns=[u'A\u03c3A', u'A\u03c3B'])
+        tm.assert_frame_equal(result.reindex_like(expected), expected)
+
+        result = json_normalize(deep_nested, ['states', 'cities'],
+                                meta=['country', ['states', 'name']],
+                                sep='_')
+        expected = Index(['name', 'pop',
+                          'country', 'states_name']).sort_values()
+        assert result.columns.sort_values().equals(expected)
+
+    def test_more_deeply_nested(self, deep_nested):
+
+        result = json_normalize(deep_nested, ['states', 'cities'],
                                 meta=['country', ['states', 'name']])
         # meta_prefix={'states': 'state_'})
 
@@ -143,26 +164,41 @@ class TestJSONNormalize(tm.TestCase):
                  'data': [{'foo': 'something', 'bar': 'else'},
                           {'foo': 'something2', 'bar': 'else2'}]}]
 
-        self.assertRaises(ValueError, json_normalize, data,
-                          'data', meta=['foo', 'bar'])
+        with pytest.raises(ValueError):
+            json_normalize(data, 'data', meta=['foo', 'bar'])
 
         result = json_normalize(data, 'data', meta=['foo', 'bar'],
                                 meta_prefix='meta')
 
         for val in ['metafoo', 'metabar', 'foo', 'bar']:
-            self.assertTrue(val in result)
+            assert val in result
 
-    def test_record_prefix(self):
-        result = json_normalize(self.state_data[0], 'counties')
-        expected = DataFrame(self.state_data[0]['counties'])
+    def test_meta_parameter_not_modified(self):
+        # GH 18610
+        data = [{'foo': 'hello',
+                 'bar': 'there',
+                 'data': [{'foo': 'something', 'bar': 'else'},
+                          {'foo': 'something2', 'bar': 'else2'}]}]
+
+        COLUMNS = ['foo', 'bar']
+        result = json_normalize(data, 'data', meta=COLUMNS,
+                                meta_prefix='meta')
+
+        assert COLUMNS == ['foo', 'bar']
+        for val in ['metafoo', 'metabar', 'foo', 'bar']:
+            assert val in result
+
+    def test_record_prefix(self, state_data):
+        result = json_normalize(state_data[0], 'counties')
+        expected = DataFrame(state_data[0]['counties'])
         tm.assert_frame_equal(result, expected)
 
-        result = json_normalize(self.state_data, 'counties',
+        result = json_normalize(state_data, 'counties',
                                 meta='state',
                                 record_prefix='county_')
 
         expected = []
-        for rec in self.state_data:
+        for rec in state_data:
             expected.extend(rec['counties'])
         expected = DataFrame(expected)
         expected = expected.rename(columns=lambda x: 'county_' + x)
@@ -191,7 +227,7 @@ class TestJSONNormalize(tm.TestCase):
         tm.assert_frame_equal(result, expected)
 
 
-class TestNestedToRecord(tm.TestCase):
+class TestNestedToRecord(object):
 
     def test_flat_stays_flat(self):
         recs = [dict(flat1=1, flat2=2),
@@ -200,7 +236,7 @@ class TestNestedToRecord(tm.TestCase):
 
         result = nested_to_record(recs)
         expected = recs
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_one_level_deep_flattens(self):
         data = dict(flat1=1,
@@ -211,7 +247,7 @@ class TestNestedToRecord(tm.TestCase):
                     'dict1.d': 2,
                     'flat1': 1}
 
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_nested_flattens(self):
         data = dict(flat1=1,
@@ -227,7 +263,7 @@ class TestNestedToRecord(tm.TestCase):
                     'nested.e.c': 1,
                     'nested.e.d': 2}
 
-        self.assertEqual(result, expected)
+        assert result == expected
 
     def test_json_normalize_errors(self):
         # GH14583: If meta keys are not always present
@@ -277,12 +313,12 @@ class TestNestedToRecord(tm.TestCase):
                     'price': {0: '0', 1: '0', 2: '0', 3: '0'},
                     'symbol': {0: 'AAPL', 1: 'GOOG', 2: 'AAPL', 3: 'GOOG'}}
 
-        self.assertEqual(j.fillna('').to_dict(), expected)
+        assert j.fillna('').to_dict() == expected
 
-        self.assertRaises(KeyError,
-                          json_normalize, data=i['Trades'],
-                          record_path=[['general', 'stocks']],
-                          meta=[['general', 'tradeid'],
-                                ['general', 'trade_version']],
-                          errors='raise'
-                          )
+        pytest.raises(KeyError,
+                      json_normalize, data=i['Trades'],
+                      record_path=[['general', 'stocks']],
+                      meta=[['general', 'tradeid'],
+                            ['general', 'trade_version']],
+                      errors='raise'
+                      )

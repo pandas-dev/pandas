@@ -1,7 +1,9 @@
 from __future__ import print_function
 import array
+
 import pandas.io.msgpack as msgpack
 from pandas.io.msgpack import ExtType
+from .common import frombytes, tobytes
 
 
 def test_pack_ext_type():
@@ -42,15 +44,15 @@ def test_extension_type():
         print('default called', obj)
         if isinstance(obj, array.array):
             typecode = 123  # application specific typecode
-            data = obj.tostring()
+            data = tobytes(obj)
             return ExtType(typecode, data)
-        raise TypeError("Unknwon type object %r" % (obj, ))
+        raise TypeError("Unknown type object %r" % (obj, ))
 
     def ext_hook(code, data):
         print('ext_hook called', code, data)
         assert code == 123
         obj = array.array('d')
-        obj.fromstring(data)
+        frombytes(obj, data)
         return obj
 
     obj = [42, b'hello', array.array('d', [1.1, 2.2, 3.3])]
