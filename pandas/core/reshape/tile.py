@@ -323,7 +323,7 @@ def _convert_bin_to_numeric_type(bins, dtype):
             bins = to_timedelta(bins).view(np.int64)
         else:
             raise ValueError("bins must be of timedelta64 dtype")
-    elif is_datetime64_dtype(dtype):
+    elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
         if bins_dtype in ['datetime', 'datetime64']:
             bins = to_datetime(bins).view(np.int64)
         else:

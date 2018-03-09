@@ -514,14 +514,13 @@ class TestDatelike(object):
         tm.assert_series_equal(Series(result), expected)
 
     @pytest.mark.parametrize('bins', [
-        3, [Timestamp('2013-01-01 04:57:07.200000').value,
-            Timestamp('2013-01-01 21:00:00').value,
-            Timestamp('2013-01-02 13:00:00').value,
-            Timestamp('2013-01-03 05:00:00').value]])
+        3, [Timestamp('2013-01-01 04:57:07.200000'),
+            Timestamp('2013-01-01 21:00:00'),
+            Timestamp('2013-01-02 13:00:00'),
+            Timestamp('2013-01-03 05:00:00')]])
     @pytest.mark.parametrize('box', [list, np.array, Index, Series])
     def test_datetimetz_cut(self, bins, box):
         # GH 19872
-        # TODO: Remove .value from parameters once #19891 is addressed
         tz = 'US/Eastern'
         s = Series(date_range('20130101', periods=3, tz=tz))
         if not isinstance(bins, int):
