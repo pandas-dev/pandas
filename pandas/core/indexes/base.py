@@ -1472,20 +1472,21 @@ class Index(IndexOpsMixin, PandasObject):
 
     def is_categorical(self):
         """
-        Check if the index type is categorical.
+        Check if the Index type is categorical.
 
-        The given object must be a pandas dataframe or pandas Series.
+        The given object must be a pandas DataFrame or pandas Series.
 
         Returns
-        ----------
+        -------
         boolean
             True if index is categorical.
 
         Examples
         --------
-        >>> s = pd.Series(["Watermelon","Orange","Apple",
+        >>> s = pd.Series(["Watermelon", "Orange", "Apple",
         ...                 "Watermelon"]).astype('category')
-        >>> df = pd.DataFrame({'Weight (grams)':[2000,230,160,1300]}, index=s)
+        >>> df = pd.DataFrame({'Weight (grams)': [2000, 230, 160, 1300]},
+        ...                     index=s)
         >>> df
                     Weight (grams)
         Watermelon            2000
@@ -1495,14 +1496,14 @@ class Index(IndexOpsMixin, PandasObject):
         >>> df.index.is_categorical()
         True
 
-        >>> df = pd.Series(["Peter","Adam","Elisabeth","Margareth"])
-        >>> df
+        >>> s = pd.Series(["Peter", "Adam", "Elisabeth", "Margareth"])
+        >>> s
         0        Peter
         1         Adam
         2    Elisabeth
         3    Margareth
         dtype: object
-        >>> df.index.is_categorical()
+        >>> s.index.is_categorical()
         False
         """
         return self.inferred_type in ['categorical']
