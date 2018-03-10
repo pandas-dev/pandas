@@ -3660,9 +3660,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def tail(self, n=5):
         """
-        Return the last n rows.
+        Return the last `n` rows.
 
-        This function returns last n rows from the object based on the
+        This function returns last `n` rows from the object based on the
         underlying index. It is useful for quickly verifying data,
         for example, after sorting or appending rows.
 
@@ -3674,11 +3674,11 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         obj_tail : type of caller
-            The last n rows of the caller object.
+            The last `n` rows of the caller object.
 
         See Also
         --------
-        pandas.DataFrame.head : Returns the first n rows.
+        pandas.DataFrame.head : Return the first `n` rows.
 
         Examples
         --------
