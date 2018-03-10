@@ -1002,7 +1002,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def reset_index(self, level=None, drop=False, name=None, inplace=False):
         """
-        Reset the index of the Serie.
+        Reset the index of the Series.
         
         For an Index, the index name will be used (if set), 
         otherwise a default index or level_0 (if index is already taken) 
@@ -1108,7 +1108,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         If level parameter is not set, all levels are removed
         from the Index.
-        
+
         >>> s2.reset_index()
              a    b  0
         0  bar  one  0
