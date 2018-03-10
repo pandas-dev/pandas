@@ -2128,50 +2128,79 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
                xrot=None, ylabelsize=None, yrot=None, ax=None, sharex=False,
                sharey=False, figsize=None, layout=None, bins=10, **kwds):
     """
-    Draw histogram of the DataFrame's series using matplotlib / pylab.
+    Draw histogram of the DataFrame's columns using matplotlib.
+
+    A histogram is a representation of the distribution of data.
+    This function wraps the matplotlib histogram function for each series in
+    the DataFrame. It returns an array with a plot for each histogram.
 
     Parameters
     ----------
     data : DataFrame
+        The pandas object holding the data.
     column : string or sequence
-        If passed, will be used to limit data to a subset of columns
+        If passed, will be used to limit data to a subset of columns.
     by : object, optional
-        If passed, then used to form histograms for separate groups
+        If passed, then used to form histograms for separate groups.
     grid : boolean, default True
-        Whether to show axis grid lines
+        Whether to show axis grid lines.
     xlabelsize : int, default None
-        If specified changes the x-axis label size
+        If specified changes the x-axis label size.
     xrot : float, default None
-        rotation of x axis labels
+        Rotation of x axis labels. For example, a value of 90 displays the
+        x labels rotated 90 degrees clockwise.
     ylabelsize : int, default None
-        If specified changes the y-axis label size
+        If specified changes the y-axis label size.
     yrot : float, default None
-        rotation of y axis labels
-    ax : matplotlib axes object, default None
+        Rotation of y axis labels. For example, a value of 90 displays the
+        y labels rotated 90 degrees clockwise.
+    ax : Matplotlib axes object, default None
+        The axes to plot the histogram on.
     sharex : boolean, default True if ax is None else False
         In case subplots=True, share x axis and set some x axis labels to
         invisible; defaults to True if ax is None otherwise False if an ax
-        is passed in; Be aware, that passing in both an ax and sharex=True
-        will alter all x axis labels for all subplots in a figure!
+        is passed in.
+        Note that passing in both an ax and sharex=True will alter all x axis
+        labels for all subplots in a figure.
     sharey : boolean, default False
         In case subplots=True, share y axis and set some y axis labels to
-        invisible
+        invisible.
     figsize : tuple
-        The size of the figure to create in inches by default
+        The size in inches of the figure to create. Uses the value in
+        `matplotlib.rcParams` by default.
     layout : tuple, optional
-        Tuple of (rows, columns) for the layout of the histograms
+        Tuple of (rows, columns) for the layout of the histograms.
     bins : integer or sequence, default 10
         Number of histogram bins to be used. If an integer is given, bins + 1
         bin edges are calculated and returned. If bins is a sequence, gives
         bin edges, including left edge of first bin and right edge of last
         bin. In this case, bins is returned unmodified.
-    `**kwds` : other plotting keyword arguments
-        To be passed to hist function
+    kwds : optional
+        All other plotting keyword arguments to be passed to
+        matplotlib's boxplot function.
+
+    Returns
+    -------
+    axes : matplotlib.AxesSubplot or numpy.ndarray of them
 
     See Also
     --------
     matplotlib.axes.Axes.hist : Plot a histogram using matplotlib.
 
+    Examples
+    --------
+
+    .. plot::
+        :context: close-figs
+
+        This example draws a histogram based on the length and width of
+        some animals, displayed in three bins
+
+        >>> df = pd.DataFrame({
+        ...     'length': [1.5, 0.5, 1.2, 0.9, 3],
+        ...     'width': [0.7, 0.2, 0.15, 0.2, 1.1]
+        ...     }, index= ['pig', 'rabbit', 'duck', 'chicken', 'horse'])
+        >>> hist = df.hist(bins=3)
     """
     _converter._WARN = False
     if by is not None:
