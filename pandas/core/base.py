@@ -801,7 +801,28 @@ class IndexOpsMixin(object):
         return nanops.nanargmax(self.values)
 
     def min(self):
-        """ The minimum value of the object """
+        """
+        Return the minimum value of the Index object.
+
+        Returns
+        -------
+        scalar or object
+            minimum value
+
+        See Also
+        --------
+        Index.max : Return the maximum value of the object.
+
+        Examples
+        --------
+        >>> idx = pd.Index([3, 2, 1])
+        >>> idx.min()
+        1
+
+        >>> idx = pd.Index(['c', 'b', 'a'])
+        >>> idx.min()
+        'a'
+        """
         return nanops.nanmin(self.values)
 
     def argmin(self, axis=None):
