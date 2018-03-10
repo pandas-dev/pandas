@@ -7801,8 +7801,7 @@ level : int or level name, default None
 bool_only : boolean, default None
     Include only boolean columns. If None, will attempt to use everything,
     then use only boolean data. Not implemented for Series.
-**kwargs :
-    Additional keywords have no effect but might be accepted for
+**kwargs : Additional keywords have no effect but might be accepted for
     compatibility with numpy.
 
 Returns
