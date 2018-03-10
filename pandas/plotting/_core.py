@@ -2781,7 +2781,7 @@ class FramePlotMethods(BasePlotMethods):
 
         Parameters
         ----------
-        by : str
+        by : str or sequence
             Column in the DataFrame to group by.
         bins : int, default 10
             Number of histogram bins to be used.
