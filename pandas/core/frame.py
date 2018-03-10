@@ -5873,7 +5873,7 @@ class DataFrame(NDFrame):
 
     def mode(self, axis=0, numeric_only=False):
         """
-        Gets the mode(s) of each element along the axis selected. Adds a row
+        Get the mode(s) of each element along the axis selected. Adds a row
         for each mode per label, fills in gaps with nan.
 
         Note that there could be multiple values returned for the selected
@@ -5885,23 +5885,64 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            * 0 or 'index' : get mode of each column
-            * 1 or 'columns' : get mode of each row
+            The axis to iterate over while searching for the mode.
+            To find the mode for each column, iterate over rows (`axis=0`, default behaviour).
+            To find the mode for each row, iterate over columns (`axis=1`).
         numeric_only : boolean, default False
-            if True, only apply to numeric columns
+            If True, only apply to numeric dimensions.
 
         Returns
         -------
         modes : DataFrame (sorted)
+            A DataFrame containing the modes. 
+            If `axis=0`, there will be one column per column in the original DataFrame, with as many rows as there are modes.
+            If `axis=1`, there will be one row per row in the original DataFrame, with as many columns as there are modes. 
+
+        See Also
+        --------
+        Series.mode : Return the highest frequency value in a Series. 
+        Series.value_counts : Returns a Series with all occuring values as indices and the number of occurences as values. 
 
         Examples
         --------
-        >>> df = pd.DataFrame({'A': [1, 2, 1, 2, 1, 2, 3]})
-        >>> df.mode()
-           A
-        0  1
-        1  2
+
+        `mode`` returns a DataFrame, and there will be multiple rows if there is more than one mode. 
+
+        >>> grades = pd.DataFrame({ 
+        ...     'Science': [80,70,80,75,80,75,85,90,80,70], 
+        ...     'Math': [70,70,75,75,80,80,85,85,90,90] 
+        ... })
+        >>> grades.apply(lambda x: x.value_counts())
+            Science  Math
+        70        2     2
+        75        2     2
+        80        4     2
+        85        1     2
+        90        1     2
+        >>> grades.mode()
+           Science  Math
+        0     80.0    70
+        1      NaN    75
+        2      NaN    80
+        3      NaN    85
+        4      NaN    90
+
+        Use ``axis=1`` to apply mode over columns (get the mode of each row)
+
+        >>> student_grades = pd.DataFrame.from_dict({
+        ...     'Alice': [80,85,90,85,95],
+        ...     'Bob': [70,80,80,75,90]
+        ... }, 'index')
+        >>> student_grades
+                0   1   2   3   4
+        Alice  80  85  90  85  95
+        Bob    70  80  80  75  90
+        >>> student_grades.mode(axis=1)
+                0
+        Alice  85
+        Bob    80
         """
+        
         data = self if not numeric_only else self._get_numeric_data()
 
         def f(s):
