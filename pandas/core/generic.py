@@ -5537,9 +5537,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        bool of type %(klass)s
-            Mask of True/False values for each element in %(klass)s that
-            indicates whether an element is not an NA value
+        %(klass)s
+            Mask of bool values for each element in %(klass)s that
+            indicates whether an element is not an NA value.
 
         See Also
         --------
