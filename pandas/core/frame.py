@@ -4851,7 +4851,7 @@ class DataFrame(NDFrame):
                by result_type='broadcast'.
 
         raw : boolean, default False
-            * `False` : passes each row or column into a Series to the
+            * `False` : passes each row or column as a Series to the
               function.
             * `True` : the passed function will receive ndarray objects
               instead.
