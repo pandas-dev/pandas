@@ -1595,7 +1595,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
     To write a %(klass)s to an excel .xlsx file it is necessary to first create
     an ExcelWriter object with a target file name, and specify a sheet in the
-    file to write to.
+    file to write to. Multiple sheets may be written to by
+    specifying unique sheet_name. With all data written to the file it is
+    necessary to save the changes. Note that creating an ExcelWriter object
+    with a file name that already exists will result in the contents of the
+    existing file being erased.
 
     Parameters
     ----------
@@ -1664,8 +1668,11 @@ class NDFrame(PandasObject, SelectionMixin):
     to the existing workbook.  This can be used to save different
     DataFrames to one workbook:
 
+    >>> writer2 = pd.ExcelWriter('output2.xlsx', engine='xlsxwriter')
+    >>> df1.to_excel(writer2, sheet_name='Sheet1')
     >>> df2 = df1.copy()
-    >>> df2.to_excel(writer,'Sheet2')
+    >>> df2.to_excel(writer2, sheet_name='Sheet2')
+    >>> writer2.save()
 
     For compatibility with to_csv, to_excel serializes lists and dicts to
     strings before writing.
