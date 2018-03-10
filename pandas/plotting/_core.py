@@ -2885,13 +2885,11 @@ class FramePlotMethods(BasePlotMethods):
         .. plot::
             :context: close-figs
 
-            >>> from sklearn.datasets import load_iris
-            >>> iris = load_iris()
-            >>> df = pd.DataFrame(iris.data[:,:2],
-            ...                   columns=iris.feature_names[:2])
-            >>> df['species'] = load_iris().target
-            >>> f = df.plot.scatter(x='sepal length (cm)',
-            ...                     y='sepal width (cm)',
+            >>> df = pd.DataFrame([[5.1, 3.5, 0], [4.9, 3.0, 0], [7.0, 3.2, 1],
+            ...                    [6.4, 3.2, 1], [5.9, 3.0, 2]],
+            ...                   columns = ['length', 'width', 'species'])
+            >>> f = df.plot.scatter(x='length',
+            ...                     y='width',
             ...                     c='species',
             ...                     colormap='viridis')
         """
