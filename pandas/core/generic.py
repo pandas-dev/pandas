@@ -5618,36 +5618,42 @@ class NDFrame(PandasObject, SelectionMixin):
         Examples
         --------
         >>> df
-                  0         1
-        0  0.335232 -1.256177
-        1 -1.367855  0.746646
-        2  0.027753 -1.176076
-        3  0.230930 -0.679613
-        4  1.261967  0.570967
+            a   b   c
+        0   1   4   7
+        1   2   5   8
+        2   3   6   9001
 
-        >>> df.clip(-1.0, 0.5)
-                  0         1
-        0  0.335232 -1.000000
-        1 -1.000000  0.500000
-        2  0.027753 -1.000000
-        3  0.230930 -0.679613
-        4  0.500000  0.500000
 
-        >>> t
-        0   -0.3
-        1   -0.2
-        2   -0.1
-        3    0.0
-        4    0.1
-        dtype: float64
+        >>> df.clip( lower = 1 , upper = 9 )
+            a   b   c
+        0   1   4   7
+        1   2   5   8
+        2   3   6   9
 
-        >>> df.clip(t, t + 1, axis=0)
-                  0         1
-        0  0.335232 -0.300000
-        1 -0.200000  0.746646
-        2  0.027753 -0.100000
-        3  0.230930  0.000000
-        4  1.100000  0.570967
+        
+        You can clip each column with different thresholds by passing a Series to the lower/upper argument.
+
+        >>> df
+              A   B
+        foo  -19  1
+        bar   12 100
+        bizz -5  -5
+        
+        >>> df.clip( lower = pd.Series({'A': -10, 'B': 10}) , axis = 1 )
+
+              A   B
+        foo  -10 10
+        bar   12 100
+        bizz -5  10
+
+        Use the axis argument to clip by column or rows.
+
+        >>> df.clip( lower = pd.Series({'foo':-10,'bar':0, 'bizz':10}) , axis = 0 )
+             A   B
+        foo  -10 1
+        bar   12 100
+        bizz  10 10
+
         """
         if isinstance(self, ABCPanel):
             raise NotImplementedError("clip is not supported yet for panels")
