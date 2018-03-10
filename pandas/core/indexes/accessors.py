@@ -161,8 +161,8 @@ class TimedeltaProperties(Properties):
         Return array of Timedeltas as `datetime.timedelta`.
 
         Python's standard `datetime` library uses a different representation to
-        what pandas for differences between times. This method converts a Series
-        of pandas Timedeltas to `datetime.timedelta` format with
+        what pandas for differences between times. This method converts a
+        Series of pandas Timedeltas to `datetime.timedelta` format with
         the same length as the original Series.
 
         Returns
