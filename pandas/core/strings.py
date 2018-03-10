@@ -221,12 +221,12 @@ def str_count(arr, pat, flags=0):
     -----
     Some characters need to be escaped when passing in pat.
     eg. '$' has a special meaning in regex and must be escaped when finding
-    specifinally this char.
+    specifically this char.
 
     Examples
     --------
     Take a look at
-    `this link <https://docs.python.org/3/howto/regex.html#compilation-flags>`_ 
+    `this link <https://docs.python.org/3/howto/regex.html#compilation-flags>`_
     for the list of all possible flags that can be used.
 
     >>> s = pd.Series(['A', 'B', 'Aaba', 'Baca', np.nan, 'CABA', 'cat'])
