@@ -2583,9 +2583,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Align two Series on their axes with the
         specified join method for each axis Index.
 
-        The result is a tuple containing two Series with the same indexes. Using
-        `join`, one can specifiy if the union or intersection of the indexes are
-        retained or whether to keep the index of the first or second Series.
+        The result is a tuple containing two Series with the same indexes.
+        Using `join`, one can specifiy if the union or intersection of the
+        indexes are retained or whether to keep the index of the first or
+        second Series.
 
         Align supports MultiIndexing, `level` can be used to select which index
         that is used for alignment.
@@ -2631,7 +2632,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See also
         --------
-        reindex : Conform Series to new index with optional filling logic.    
+        reindex : Conform Series to new index with optional filling logic.
 
         Examples
         --------
