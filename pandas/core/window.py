@@ -877,9 +877,7 @@ class _Rolling_and_Expanding(_Rolling):
 
     >>> import pandas as pd
     >>> import numpy as np
-
     >>> s = pd.Series(np.arange(5))
-
     >>> s.rolling(3).median()
     0    NaN
     1    NaN
@@ -1280,7 +1278,6 @@ class Rolling(_Rolling_and_Expanding):
         return super(Rolling, self).mean(*args, **kwargs)
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['median'])
     def median(self, **kwargs):
         return super(Rolling, self).median(**kwargs)
@@ -1519,7 +1516,6 @@ class Expanding(_Rolling_and_Expanding):
         return super(Expanding, self).mean(*args, **kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['median'])
     def median(self, **kwargs):
         return super(Expanding, self).median(**kwargs)
