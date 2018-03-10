@@ -2772,20 +2772,47 @@ class FramePlotMethods(BasePlotMethods):
 
     def hist(self, by=None, bins=10, **kwds):
         """
-        Histogram
+        Draw one histogram of the DataFrame's Series using matplotlib.
+
+        A histogram is a representation of the distribution of data.
+        This function groups the values of all given Series in the DataFrame
+        into bins, and draws all bins in only one matplotlib.AxesSubplot. This
+        is useful when the DataFrame's Series are in a similar scale.
 
         Parameters
         ----------
-        by : string or sequence
+        by : str
             Column in the DataFrame to group by.
-        bins: integer, default 10
-            Number of histogram bins to be used
-        `**kwds` : optional
-            Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
+        bins : int, default 10
+            Number of histogram bins to be used.
+        **kwds : optional
+            Parameters to pass on to :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
         axes : matplotlib.AxesSubplot or np.array of them
+
+        See Also
+        --------
+        :meth:`pandas.DataFrame.hist` : Draw histograms per DataFrame's Series.
+        :meth:`pandas.Series.hist` : Draw a histogram with Series' data.
+
+        Examples
+        --------
+
+        When using values between 0 and 3, calling hist() with bins = 3 will
+        create three bins: one that groups values between 0 and 1, another
+        for values between 1 and 2, and another for values between 2 and 3.
+        We use alpha parameter to be able to see overlapping columns.
+
+        .. plot::
+            :context: close-figs
+
+            >>> df = pd.DataFrame({
+            ...     'length': [ 1.5, 0.5, 1.2, 0.9, 3],
+            ...     'width': [ 0.7, 0.2, 0.15, 0.2,  1.1]
+            ...     }, index= ['pig', 'rabbit', 'duck', 'chicken', 'horse'])
+            >>> hist = df.plot.hist(bins = 3, xticks = range(4), alpha = 0.5)
         """
         return self(kind='hist', by=by, bins=bins, **kwds)
 
