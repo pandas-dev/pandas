@@ -91,8 +91,8 @@ cdef class Interval(IntervalMixin):
 
     Notes
     -----
-    You must be able to compare the parameters `left` and `right`,
-    and they must satisfy ``left <= right``.
+    The parameters `left` and `right` must be from the `same` type,you must be
+    able to `compare` them and they must satisfy ``left <= right``.
 
     Examples
     --------
@@ -150,8 +150,9 @@ cdef class Interval(IntervalMixin):
     --------
     IntervalIndex : An Index of Interval objects that are all closed on the
                     same side.
-    cut, qcut : Convert arrays of continuous data into Categoricals/Series of
-                Interval.
+    cut : Return indices of half-open bins.
+    qcut : Discretize variable into equal-sized buckets based on rank or
+           based on sample quantiles.
     """
     _typ = "interval"
 
