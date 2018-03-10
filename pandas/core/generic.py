@@ -5471,7 +5471,7 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         bool of type %(klass)s
             Mask of True/False values for each element in %(klass)s that
-            indicates whether an element is an NA value
+            indicates whether an element is an NA value.
 
         See Also
         --------

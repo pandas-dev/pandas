@@ -1156,7 +1156,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx = pd.Index(['Ant', 'Bear', 'Cow'], name='animal')
         >>> idx.to_frame()
             animal
-        animal       
+        animal
         Ant       Ant
         Bear     Bear
         Cow       Cow
@@ -2022,48 +2022,18 @@ class Index(IndexOpsMixin, PandasObject):
 
     def isna(self):
         """
-        Detect missing values.
-
-        Return a boolean same-sized object indicating if the values are NA.
-        NA values, such as None or :attr:`numpy.NaN`, get mapped to True
-        values.
-        Everything else get mapped to False values. Characters such as empty
-        strings `''` or :attr:`numpy.inf` are not considered NA values
-        (unless you set :attr:`pandas.options.mode.use_inf_as_na` `= True`).
+        Detect missing values
 
         .. versionadded:: 0.20.0
 
         Returns
         -------
-        numpy.ndarray
-            A boolean array of whether my values are NA
+        a boolean array of whether my values are NA
 
         See also
         --------
-        pandas.Index.isnull : alias of isna
-        pandas.Index.notna : boolean inverse of isna
-        pandas.Index.dropna : omit entries with missing values
+        isnull : alias of isna
         pandas.isna : top-level isna
-
-        Examples
-        --------
-        Show which entries in a pandas.Index are NA. The result is a
-        array.
-
-        >>> idx = pd.Index([5.2, 6.0, np.NaN])
-        >>> idx
-        Float64Index([5.2, 6.0, nan], dtype='float64')
-        >>> idx.isna()
-        array([False, False,  True])
-
-        Empty strings are not considered NA values. None is considered a NA
-        value.
-
-        >>> idx = pd.Index(['black', '', 'red', None])
-        >>> idx
-        Index(['black', '', 'red', None], dtype='object')
-        >>> idx.isna()
-        array([False, False, False,  True])
         """
         return self._isnan
     isnull = isna
