@@ -1732,16 +1732,16 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         'is_month_end',
         'is_month_end',
         """
-        Return a boolean indicating if the date is the last day of the month.
+        Return a boolean indicating whether the date is the last day of the month.
 
         Returns
         -------
-        is_month_end : Series of boolean
+        is_month_end : Series of boolean.
 
         See Also
         --------
-        is_month_start : Returns a boolean indicating if the date is the first day 
-                       of the month.
+        is_month_start : Return a boolean indicating whether the date is
+            the first day of the month.
 
         Examples
         --------
@@ -1751,7 +1751,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         1   2018-02-28
         2   2018-03-01
         dtype: datetime64[ns]
-        >>> dates.dt.is_month_start
+        >>> dates.dt.is_month_end
         0    False
         1    True
         2    False
