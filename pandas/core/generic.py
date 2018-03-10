@@ -5655,6 +5655,7 @@ class NDFrame(PandasObject, SelectionMixin):
         bizz  10 10
 
         """
+        
         if isinstance(self, ABCPanel):
             raise NotImplementedError("clip is not supported yet for panels")
 
