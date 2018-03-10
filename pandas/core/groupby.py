@@ -124,7 +124,8 @@ _apply_docs = dict(
     --------
     pipe : Apply function to the full GroupBy object instead of to each
         group.
-    aggregate, transform
+    aggregate : Apply aggregate function to the GroupBy object. 
+    transform : Apply function column-by-column to the GroupBy object.
     """,
     dataframe_examples="""
     >>> df = pd.DataFrame({'A': 'a a b'.split(), 'B': [1,2,3], 'C': [4,6, 5]})
