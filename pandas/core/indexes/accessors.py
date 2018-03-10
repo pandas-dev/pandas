@@ -158,13 +158,15 @@ class TimedeltaProperties(Properties):
 
     def to_pytimedelta(self):
         """
+        Return array of Timedeltas as `datetime.timedelta`.
+
         Return an array of the Timedeltas in `datetime.timedelta` format with
         the same length as the original Series.
 
         Returns
         -------
         a : numpy.ndarray
-            1D array containing data with `datetime.timedelta` type
+            1D array containing data with `datetime.timedelta` type.
 
         Examples
         --------
