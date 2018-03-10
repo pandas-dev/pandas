@@ -1326,18 +1326,26 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def idxmin(self, axis=None, skipna=True, *args, **kwargs):
         """
-        Index *label* of the first occurrence of minimum of values.
+        Index label of the first occurrence of minimum of values.
+
+        Look for the first occurence of maximum of values and return the
+        index label. When data contains NA/null values, return nan.
 
         Parameters
         ----------
         skipna : boolean, default True
             Exclude NA/null values. If the entire Series is NA, the result
             will be NA.
+        axis : int, default 0
+            Redundant for application on series.
+        *args, **kwargs :
+            Additional keywors have no effect but might be accepted
+            for compatibility with numpy.
 
         Raises
         ------
         ValueError
-            * If the Series is empty
+            If the Series is empty
 
         Returns
         -------
@@ -1351,8 +1359,28 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        DataFrame.idxmin
-        numpy.ndarray.argmin
+        numpy.ndarray.argmin : Return indices of the minimum values
+            along the given axis.
+        DataFrame.idxmin : Return index of first occurrence of minimum
+            over requested axis.
+        Series.idxmax : Return index *label* of the first occurrence
+            of maximum of values.
+
+        Examples
+        --------
+        >>> s = pd.Series(data=[1,None,4,1], index=['A','B','C','D'])
+        >>> s
+        A    1.0
+        B    NaN
+        C    4.0
+        D    1.0
+        dtype: float64
+
+        >>> s.idxmin()
+        'A'
+
+        s.idxmin(skipna=False)
+        nan
         """
         skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
         i = nanops.nanargmin(com._values_from_object(self), skipna=skipna)
@@ -1360,20 +1388,28 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return np.nan
         return self.index[i]
 
-    def idxmax(self, axis=None, skipna=True, *args, **kwargs):
+    def idxmax(self, axis=0, skipna=True, *args, **kwargs):
         """
-        Index *label* of the first occurrence of maximum of values.
+        Return index label of the first occurrence of maximum of values.
+
+        Look for the first occurence of maximum of values and return the
+        index label. When data contains NA/null values, return nan.
 
         Parameters
         ----------
         skipna : boolean, default True
             Exclude NA/null values. If the entire Series is NA, the result
             will be NA.
+        axis : int, default 0
+            Redundant for application on series.
+        *args, **kwargs :
+            Additional keywors have no effect but might be accepted
+            for compatibility with numpy.
 
         Raises
         ------
         ValueError
-            * If the Series is empty
+            If the Series is empty
 
         Returns
         -------
@@ -1387,8 +1423,29 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        DataFrame.idxmax
-        numpy.ndarray.argmax
+        numpy.ndarray.argmax : Return indices of the maximum values
+            along the given axis.
+        DataFrame.idxmax : Return index of first occurrence of maximum
+            over requested axis.
+        Series.idxmin : Return index *label* of the first occurrence
+            of minimum of values.
+
+        Examples
+        --------
+        >>> s = pd.Series(data=[1,None,4,3,4], index=['A','B','C','D','E'])
+        >>> s
+        A    1.0
+        B    NaN
+        C    4.0
+        D    3.0
+        E    4.0
+        dtype: float64
+
+        >>> s.idxmax()
+        'C'
+
+        s.idxmax(skipna=False)
+        nan
         """
         skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
         i = nanops.nanargmax(com._values_from_object(self), skipna=skipna)
