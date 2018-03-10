@@ -5548,10 +5548,9 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Trim values at input threshold(s).
 
-        Truncates values below and above specified thresholds.
-        Thresholds can be singular values or array like, and in
-        the latter case the truncation is performed element-wise
-        in the specified axis.
+        Assigns values outside boundary to boundary values. Thresholds
+        can be singular values or array like, and in the latter case
+        the clipping is performed element-wise in the specified axis.
 
         Parameters
         ----------
@@ -5566,19 +5565,19 @@ class NDFrame(PandasObject, SelectionMixin):
         inplace : boolean, default False
             Whether to perform the operation in place on the data
                 .. versionadded:: 0.21.0.
-        args : iterable, optional
-            Arguments to pass to the function.
-        kwargs : mapping, optional
-            Keyworded arguments to pass to the function.
+        *args, **kwargs
+            Additional keywords have no effect but might be accepted
+            for compatibility with numpy.
 
         See Also
         --------
-        clip_lower : Clips values below specified threshold(s).
-        clip_upper : Clips values above specified threshold(s).
+        clip_lower : Clip values below specified threshold(s).
+        clip_upper : Clip values above specified threshold(s).
 
         Returns
         -------
-        clipped : Series
+        `pandas.Series`
+            Series with the values outside the clip boundaries replaced
 
         Examples
         --------
