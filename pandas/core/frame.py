@@ -4818,66 +4818,82 @@ class DataFrame(NDFrame):
 
     def apply(self, func, axis=0, broadcast=None, raw=False, reduce=None,
               result_type=None, args=(), **kwds):
-        """Applies function along an axis of the DataFrame.
+        """
+        Apply a function along an axis of the `Series`.
 
-        Objects passed to functions are Series objects having index
-        either the DataFrame's index (axis=0) or the columns (axis=1).
-        Final return type depends on the return type of the applied function,
-        or on the `result_type` argument.
+        Objects passed to the function are `Series` objects having as index
+        either the DataFrame's index (`axis=0`)
+        or the DataFrame's columns (`axis=1`).
+        If `result_type` is None, the final return type is the return
+        type of the applied function.
+        Otherwise, it depends on the `result_type` argument.
 
         Parameters
         ----------
         func : function
-            Function to apply to each column/row
+            Function to apply to each column or row.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            * 0 or 'index': apply function to each column
-            * 1 or 'columns': apply function to each row
+            Axis along which the function is applied:
+
+            * 0 or 'index': apply function to each column.
+            * 1 or 'columns': apply function to each row.
         broadcast : boolean, optional
-            For aggregation functions, return object of same size with values
-            propagated
+            Only relevant for aggregation functions:
+
+            * `False` or `None` : returns a `Series` whose length is the length
+              of the index or the number of columns (based on the `axis`
+              parameter)
+            * `True` : results will be broadcast to the original shape
+              of the frame, the original index and columns will be retained.
 
             .. deprecated:: 0.23.0
                This argument will be removed in a future version, replaced
                by result_type='broadcast'.
 
         raw : boolean, default False
-            If False, convert each row or column into a Series. If raw=True the
-            passed function will receive ndarray objects instead. If you are
-            just applying a NumPy reduction function this will achieve much
-            better performance
+            * `False` : passes each row or column into a `Series` to the
+              function.
+            * `True` : the passed function will receive ndarray objects
+              instead.
+            If you are just applying a NumPy reduction function this will
+            achieve much better performance.
         reduce : boolean or None, default None
-            Try to apply reduction procedures. If the DataFrame is empty,
-            apply will use reduce to determine whether the result should be a
-            Series or a DataFrame. If reduce is None (the default), apply's
-            return value will be guessed by calling func an empty Series (note:
-            while guessing, exceptions raised by func will be ignored). If
-            reduce is True a Series will always be returned, and if False a
-            DataFrame will always be returned.
+            Try to apply reduction procedures. If the `DataFrame` is empty,
+            :meth:`apply` will use reduce to determine whether the result
+            should be a `Series` or a `DataFrame`. If reduce is None (the
+            default), :meth:`apply`'s return value will be guessed by calling
+            func on an empty `Series`
+            (note: while guessing, exceptions raised by `func` will be
+            ignored).
+            If reduce is True a `Series` will always be returned, and if
+            `False` a `DataFrame` will always be returned.
 
-            .. deprecated:: 0.23.0
+            .. deprecated:: 0.23.0.
                This argument will be removed in a future version, replaced
                by result_type='reduce'.
 
-        result_type : {'expand', 'reduce', 'broadcast, None}
-            These only act when axis=1 {columns}:
+        result_type : {'expand', 'reduce', 'broadcast', None}
+            These only act when `axis=1` (columns):
 
             * 'expand' : list-like results will be turned into columns.
-            * 'reduce' : return a Series if possible rather than expanding
-              list-like results. This is the opposite to 'expand'.
+            * 'reduce' : returns a `Series` if possible rather than expanding
+              list-like results. This is the opposite of 'expand'.
             * 'broadcast' : results will be broadcast to the original shape
-              of the frame, the original index & columns will be retained.
+              of the `DataFrame`, the original index and columns will be
+              retained.
 
-            The default behaviour (None) depends on the return value of the
-            applied function: list-like results will be returned as a Series
-            of those. However if the apply function returns a Series these
+            The default behaviour (`None`) depends on the return value of the
+            applied function: list-like results will be returned as a `Series`
+            of those. However if the apply function returns a `Series` these
             are expanded to columns.
 
-            .. versionadded:: 0.23.0
+            .. versionadded:: 0.23.0.
 
         args : tuple
             Positional arguments to pass to function in addition to the
-            array/series
-        Additional keyword arguments will be passed as keywords to the function
+            array/series.
+        kwds :
+            Additional keyword arguments to pass as keywords to the function.
 
         Notes
         -----
@@ -4941,6 +4957,7 @@ class DataFrame(NDFrame):
         3    [1, 2]
         4    [1, 2]
         5    [1, 2]
+        dtype: object
 
         Passing result_type='expand' will expand list-like results
         to columns of a Dataframe
@@ -4958,7 +4975,7 @@ class DataFrame(NDFrame):
         ``result_type='expand'``. The resulting column names
         will be the Series index.
 
-        >>> df.apply(lambda x: Series([1, 2], index=['foo', 'bar']), axis=1)
+        >>> df.apply(lambda x: pd.Series([1, 2], index=['foo', 'bar']), axis=1)
            foo  bar
         0    1    2
         1    1    2
