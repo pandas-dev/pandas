@@ -5400,40 +5400,61 @@ class NDFrame(PandasObject, SelectionMixin):
     # Timeseries methods Methods
 
     def asof(self, where, subset=None):
-        """
-        The last row without any NaN is taken (or the last row without
-        NaN considering only the subset of columns in the case of a DataFrame)
+		"""
+		Take the last row without any NaN 
 
-        .. versionadded:: 0.19.0 For DataFrame
+		Or the last row without
+		NaN considering only the subset of columns in the case of a DataFrame
 
-        If there is no good value, NaN is returned for a Series
-        a Series of NaN values for a DataFrame
+		.. versionadded:: 0.19.0 For DataFrame
 
-        Parameters
-        ----------
-        where : date or array of dates
-        subset : string or list of strings, default None
-           if not None use these columns for NaN propagation
+		If there is no good value, NaN is returned for a Series
+		a Series of NaN values for a DataFrame
 
-        Notes
-        -----
-        Dates are assumed to be sorted
-        Raises if this is not the case
+		Parameters
+		----------
+		where : date or array of dates
+		subset : string or list of strings, default None
+		   if not None use these columns for NaN propagation
 
-        Returns
-        -------
-        where is scalar
+		Notes
+		-----
+		Dates are assumed to be sorted
+		Raises if this is not the case
 
-          - value or NaN if input is Series
-          - Series if input is DataFrame
+		Returns
+		-------
+		where is scalar
 
-        where is Index: same shape object as input
+		  - value or NaN if input is Series
+		  - Series if input is DataFrame
 
-        See Also
-        --------
-        merge_asof
+		where is Index: same shape object as input
 
-        """
+		See Also
+		--------
+		merge_asof
+
+		Examples
+		--------
+		>>> import pandas as pd
+		>>> from datetime import datetime
+
+		>>> names = ['curupira', 'saci', 'boitata', 'tupa',  float('NaN'), 'cuca']
+		>>> dates = [datetime.strptime('20130101', '%Y%m%d'), 
+		...          datetime.strptime('20140101', '%Y%m%d'),
+		...          datetime.strptime('20140101', '%Y%m%d'),
+		...          datetime.strptime('20150101', '%Y%m%d'),
+		...          datetime.strptime('20150101', '%Y%m%d'),
+		...          datetime.strptime('20160101', '%Y%m%d')]
+		>>> mySeries = pd.Series(data=names, index=dates)
+		>>> mySeries.asof(datetime.strptime('20150102', '%Y%m%d'))
+		`tupa`
+		>>> mySeries.asof(datetime.strptime('20190201', '%Y%m%d'))
+		`cuca``
+		>>> mySeries.asof(datetime.strptime('20120201', '%Y%m%d'))
+		nan		
+		"""
 
         if isinstance(where, compat.string_types):
             from pandas import to_datetime
