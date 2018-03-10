@@ -1413,10 +1413,13 @@ class _LocationIndexer(_NDFrameIndexer):
 
 
 class _LocIndexer(_LocationIndexer):
-    """Purely label-location based indexer for selection by label.
+    """
+    Selects a group of rows and columns by label(s) or a boolean array.
 
     ``.loc[]`` is primarily label based, but may also be used with a
-    boolean array.
+    boolean array. Note that if no row or column labels are specified
+    the labels will default to the integers 0 to n - 1, with n being
+    the number of rows/columns, respectively.
 
     Allowed inputs are:
 
@@ -1426,7 +1429,7 @@ class _LocIndexer(_LocationIndexer):
     - A list or array of labels, e.g. ``['a', 'b', 'c']``.
     - A slice object with labels, e.g. ``'a':'f'`` (note that contrary
       to usual python slices, **both** the start and the stop are included!).
-    - A boolean array.
+    - A boolean array, e.g. [True, False, True].
     - A ``callable`` function with one argument (the calling Series, DataFrame
       or Panel) and that returns valid output for indexing (one of the above)
 
@@ -1434,6 +1437,45 @@ class _LocIndexer(_LocationIndexer):
 
     See more at :ref:`Selection by Label <indexing.label>`
 
+    See Also
+    --------
+    at : Selects a single value for a row/column label pair
+    iat : Selects a single value for a row/column pair by integer position
+    iloc : Selects group of rows and columns by integer position(s)
+
+    Examples
+    --------
+    >>> df = pd.DataFrame([[12, 2, 3], [0, 4, 1], [10, 20, 30]],
+    ...      index=['r0', 'r1', 'r2'], columns=['c0', 'c1', 'c2'])
+    >>> df
+        c0  c1  c2
+    r0  12   2   3
+    r1   0   4   1
+    r2  10  20  30
+    >>> df.loc['r1']
+    c0    0
+    c1    4
+    c2    1
+    Name: r1, dtype: int64
+    >>> df.loc[['r1', 'r2']]
+        c0  c1  c2
+    r1   0   4   1
+    r2  10  20  30
+    >>> df.loc['r0', 'c1']
+    2
+    >>> df.loc['r0':'r1', 'c0']
+    r0    12
+    r1     0
+    Name: c0, dtype: int64
+    >>> df.loc[[False, False, True]]
+        c0  c1  c2
+    r2  10  20  30
+    >>> df.loc[df['c1'] > 10]
+        c0  c1  c2
+    r2  10  20  30
+    >>> df.loc[df['c1'] > 10, ['c0', 'c2']]
+        c0  c2
+    r2  10  30
     """
 
     _valid_types = ("labels (MUST BE IN THE INDEX), slices of labels (BOTH "
