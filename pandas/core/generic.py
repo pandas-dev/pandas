@@ -5617,6 +5617,8 @@ class NDFrame(PandasObject, SelectionMixin):
         inplace : boolean, default False
             Whether to perform the operation in place on the data
                 .. versionadded:: 0.21.0.
+        args : dictionary of arguments arguments passed to pandas.compat.numpy
+        kwargs : dictionary of keyword arguments passed to pandas.compat.numpy
 
         Returns
         -------
