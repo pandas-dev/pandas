@@ -3038,7 +3038,7 @@ class DataFrame(NDFrame):
     def drop(self, labels=None, axis=0, index=None, columns=None,
              level=None, inplace=False, errors='raise'):
         """
-        Drop rows or columns.
+        Drop specified labels from rows or columns.
 
         Remove rows or columns by specifying label names and corresponding
         axis, or by specifying directly index or column names. When using a

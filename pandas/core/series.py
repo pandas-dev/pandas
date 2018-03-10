@@ -2695,7 +2695,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Series.reindex : Return only specified index labels of Series.
         Series.dropna : Return series without null values.
         Series.drop_duplicates : Return Series with duplicate values removed.
-        DataFrame.drop : Drop rows or columns
+        DataFrame.drop : Drop specified labels from rows or columns.
 
         Raises
         ------
