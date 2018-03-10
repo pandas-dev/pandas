@@ -2375,20 +2375,23 @@ class DataFrame(NDFrame):
             return new_data
 
     def eval(self, expr, inplace=False, **kwargs):
-        """Evaluate an expression in the context of the calling DataFrame
-        instance.
+        """
+        Evaluate expression in the context of the calling DataFrame instance.
+
+        Evaluates a string describing operations on dataframe columns.  This
+        allows `eval` to run arbitrary code, but remember to sanitize your
+        inputs.
 
         Parameters
         ----------
-        expr : string
+        expr : str
             The expression string to evaluate.
         inplace : bool, default False
             If the expression contains an assignment, whether to perform the
             operation inplace and mutate the existing DataFrame. Otherwise,
             a new DataFrame is returned.
 
-            .. versionadded:: 0.18.0
-
+            .. versionadded:: 0.18.0.
         kwargs : dict
             See the documentation for :func:`~pandas.eval` for complete details
             on the keyword arguments accepted by
@@ -2396,13 +2399,17 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        ret : ndarray, scalar, or pandas object
+        ndarray, scalar, or pandas object
+            The result of the evaluation.
 
         See Also
         --------
-        pandas.DataFrame.query
-        pandas.DataFrame.assign
-        pandas.eval
+        pandas.DataFrame.query : Evaluates a boolean expression to query the
+            columns of a frame.
+        pandas.DataFrame.assign : Can evaluate an expression or function to
+            create new values for a column.
+        pandas.eval : Evaluate a Python expression as a string using various
+            backends.
 
         Notes
         -----
@@ -2412,11 +2419,43 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> from numpy.random import randn
-        >>> from pandas import DataFrame
-        >>> df = pd.DataFrame(randn(10, 2), columns=list('ab'))
-        >>> df.eval('a + b')
-        >>> df.eval('c = a + b')
+        >>> df = pd.DataFrame({'A': range(1, 6), 'B': range(10, 0, -2)})
+        >>> df
+           A   B
+        0  1  10
+        1  2   8
+        2  3   6
+        3  4   4
+        4  5   2
+        >>> df.eval('A + B')
+        0    11
+        1    10
+        2     9
+        3     8
+        4     7
+        dtype: int64
+        >>> df.eval('C = A + B')
+           A   B   C
+        0  1  10  11
+        1  2   8  10
+        2  3   6   9
+        3  4   4   8
+        4  5   2   7
+        >>> df
+           A   B
+        0  1  10
+        1  2   8
+        2  3   6
+        3  4   4
+        4  5   2
+        >>> df.eval('C = A + B', inplace=True)
+        >>> df
+           A   B   C
+        0  1  10  11
+        1  2   8  10
+        2  3   6   9
+        3  4   4   8
+        4  5   2   7
         """
         from pandas.core.computation.eval import eval as _eval
 
