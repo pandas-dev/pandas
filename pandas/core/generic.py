@@ -1911,15 +1911,15 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> engine = create_engine('sqlite:///example.db', echo=False)
         >>> gen_names = lambda ids: ["User" + str(x) for x in ids]
         >>> gen_users = lambda ids: {"id": ids, "name" : gen_names(ids)}
-        >>> df=pd.DataFrame(gen_users(list(range(3))))
+        >>> df = pd.DataFrame(gen_users(list(range(3))))
         >>> # create a table from scratch with 3 rows
-        >>> df.to_sql('users',con=engine,if_exists='replace')
-        >>> df1=pd.DataFrame(gen_users(list(range(3,5))))
+        >>> df.to_sql('users', con=engine, if_exists='replace')
+        >>> df1 = pd.DataFrame(gen_users(list(range(3, 5))))
         >>> # 2 new rows inserted
-        >>> df1.to_sql('users',con=engine,if_exists='append')
+        >>> df1.to_sql('users', con=engine, if_exists='append')
         >>> # table will be recreated and 5 rows inserted
-        >>> df=pd.concat([df,df1],ignore_index=True)
-        >>> df.to_sql('users',con=engine,if_exists='replace')
+        >>> df = pd.concat([df, df1], ignore_index=True)
+        >>> df.to_sql('users', con=engine, if_exists='replace')
         """
         from pandas.io import sql
         sql.to_sql(self, name, con, schema=schema, if_exists=if_exists,
