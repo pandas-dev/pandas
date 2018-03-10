@@ -5017,18 +5017,18 @@ class DataFrame(NDFrame):
         Examples
         --------
 
-        >>> df = pd.DataFrame(np.random.randn(3, 3))
+        >>> df = pd.DataFrame(np.random.RandomState(0).randn(3, 3))
         >>> df
-            0         1          2
-        0  -0.029638  1.081563   1.280300
-        1   0.647747  0.831136  -1.549481
-        2   0.513416 -0.884417   0.195343
+                  0         1         2
+        0  1.764052  0.400157  0.978738
+        1  2.240893  1.867558 -0.977278
+        2  0.950088 -0.151357 -0.103219
         >>> df = df.applymap(lambda x: '%.2f' % x)
         >>> df
-            0         1          2
-        0  -0.03      1.08       1.28
-        1   0.65      0.83      -1.55
-        2   0.51     -0.88       0.20
+              0      1      2
+        0  1.76   0.40   0.98
+        1  2.24   1.87  -0.98
+        2  0.95  -0.15  -0.10
 
         Returns
         -------
@@ -5037,7 +5037,6 @@ class DataFrame(NDFrame):
         See also
         --------
         DataFrame.apply : For operations on rows/columns
-
         """
 
         # if we have a dtype == 'M8[ns]', provide boxed values
