@@ -5607,7 +5607,11 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         lower : float or array_like, default None
+            Lower threshold for clipping.  Values smaller than upper will be
+            converted to lower.
         upper : float or array_like, default None
+            Upper threshold for clipping.  Values larger than upper will be
+            converted to upper.
         axis : int or string axis name, optional
             Align object with lower and upper along the given axis.
         inplace : boolean, default False
