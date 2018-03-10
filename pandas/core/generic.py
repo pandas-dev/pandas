@@ -1908,7 +1908,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Examples
         --------
         >>> from sqlalchemy import create_engine
-        >>> engine = create_engine('sqlite:///example.db', echo=False)
+        >>> engine = create_engine('sqlite://', echo=False)
         >>> df = pd.DataFrame({'name' : ['User 1', 'User 2', 'User 3']})
         >>> # create a table from scratch with 3 rows
         >>> df.to_sql('users', con=engine, if_exists='replace')
