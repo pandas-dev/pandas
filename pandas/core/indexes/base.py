@@ -1156,7 +1156,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx = pd.Index(['Ant', 'Bear', 'Cow'], name='animal')
         >>> idx.to_frame()
             animal
-        animal       
+        animal
         Ant       Ant
         Bear     Bear
         Cow       Cow
@@ -1471,6 +1471,40 @@ class Index(IndexOpsMixin, PandasObject):
         return is_object_dtype(self.dtype)
 
     def is_categorical(self):
+        """
+        Check if the index type is categorical.
+
+        The given object must be a pandas dataframe or pandas Series.
+
+        Returns
+        ----------
+        boolean
+            True if index is categorical.
+
+        Examples
+        --------
+        >>> s = pd.Series(["Watermelon","Orange","Apple",
+        ...                 "Watermelon"]).astype('category')
+        >>> df = pd.DataFrame({'Weight (grams)':[2000,230,160,1300]}, index=s)
+        >>> df
+                    Weight (grams)
+        Watermelon            2000
+        Orange                 230
+        Apple                  160
+        Watermelon            1300
+        >>> df.index.is_categorical()
+        True
+
+        >>> df = pd.Series(["Peter","Adam","Elisabeth","Margareth"])
+        >>> df
+        0        Peter
+        1         Adam
+        2    Elisabeth
+        3    Margareth
+        dtype: object
+        >>> df.index.is_categorical()
+        False
+        """
         return self.inferred_type in ['categorical']
 
     def is_interval(self):
