@@ -4045,8 +4045,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> idx = pd.Index(['lama', 'cow', 'lama', 'beetle', 'lama', 'hippo'])
 
-        With the 'keep' parameter, the selection behaviour of duplicated values
-        can be changed. The value 'first' keeps the first occurrence for each
+        The `keep` parameter controls  which duplicate values are removed.
+        The value 'first' keeps the first occurrence for each
         set of duplicated entries. The default value of keep is 'first'.
 
         >>> idx.drop_duplicates(keep='first')
