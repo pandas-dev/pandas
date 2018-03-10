@@ -30,7 +30,6 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
         protocol parameter is equivalent to setting its value to
         HIGHEST_PROTOCOL.
         
-
         .. [1] https://docs.python.org/3.1/library/pickle.html
         .. versionadded:: 0.21.0
 
@@ -48,7 +47,6 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
     finally:
         for _f in fh:
             _f.close()
-
 
 def read_pickle(path, compression='infer'):
     """
