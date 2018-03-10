@@ -5617,6 +5617,8 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         clipped : DataFrame/Series
+            Elements above or below the upper and lower thresholds converted to
+            threshold values.
 
         Notes
         -----
