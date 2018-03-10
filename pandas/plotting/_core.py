@@ -2852,22 +2852,48 @@ class FramePlotMethods(BasePlotMethods):
 
     def scatter(self, x, y, s=None, c=None, **kwds):
         """
-        Scatter plot
+        A scatter plot with point size *s* and color *c*.
+
+        The coordinates of each point *x,y* are defined by two dataframe
+        columns and filled circles are used to represent each point.
 
         Parameters
         ----------
-        x, y : label or position, optional
-            Coordinates for each point.
+        x : column name or column position
+            Horizontal and vertical coordinates of each point.
+        y : column name or column position
+            Vertical coordinates of each point.
         s : scalar or array_like, optional
             Size of each point.
-        c : label or position, optional
+        c : label, column name or column position, optional
             Color of each point.
-        `**kwds` : optional
+        kwds : optional
             Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
         axes : matplotlib.AxesSubplot or np.array of them
+
+        See Also
+        --------
+        matplotlib.pyplot.scatter : scatter plot using multiple input data
+            formats.
+
+        Examples
+        --------
+
+        .. plot::
+            :context: close-figs
+
+            >>> from sklearn.datasets import load_iris
+            >>> iris = load_iris()
+            >>> df = pd.DataFrame(iris.data[:,:2],
+            ...                   columns=iris.feature_names[:2])
+            >>> df['species'] = load_iris().target
+            >>> f = df.plot.scatter(x='sepal length (cm)',
+            ...                     y='sepal width (cm)',
+            ...                     c='species',
+            ...                     colormap='viridis')
         """
         return self(kind='scatter', x=x, y=y, c=c, s=s, **kwds)
 
