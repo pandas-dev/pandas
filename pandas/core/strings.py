@@ -1611,7 +1611,9 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, expand=expand)
 
     _shared_docs['str_partition'] = ("""
-    Split the string at the %(side)s occurrence of `sep`, and return 3 elements
+    Split the string at the %(side)s occurrence of `sep`.
+
+    This method splits the string at the %(side)s occurrence of `sep`, and return 3 elements
     containing the part before the separator, the separator itself,
     and the part after the separator.
     If the separator is not found, return %(return)s.
@@ -1621,8 +1623,8 @@ class StringMethods(NoNewAttributesMixin):
     pat : string, default whitespace
         String to split on.
     expand : bool, default True
-        * If True, return DataFrame/MultiIndex expanding dimensionality.
-        * If False, return Series/Index.
+        If True, return DataFrame/MultiIndex expanding dimensionality.
+        If False, return Series/Index.
 
     Returns
     -------
@@ -1635,7 +1637,8 @@ class StringMethods(NoNewAttributesMixin):
     Examples
     --------
 
-    >>> s = Series(['A_B_C', 'D_E_F', 'X'])
+    >>> s = pd.Series(['A_B_C', 'D_E_F', 'X'])
+    >>> s
     0    A_B_C
     1    D_E_F
     2        X
