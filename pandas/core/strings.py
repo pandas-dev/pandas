@@ -1613,9 +1613,9 @@ class StringMethods(NoNewAttributesMixin):
     _shared_docs['str_partition'] = ("""
     Split the string at the %(side)s occurrence of `sep`.
 
-    This method splits the string at the %(side)s occurrence of `sep`, and return 3 elements
-    containing the part before the separator, the separator itself,
-    and the part after the separator.
+    This method splits the string at the %(side)s occurrence of `sep`,
+    and return 3 elements containing the part before the separator,
+    the separator itself, and the part after the separator.
     If the separator is not found, return %(return)s.
 
     Parameters
