@@ -2305,7 +2305,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        :class:`~pandas.DataFrame`
+        DataFrame
             The transposed DataFrame.
 
         See Also
