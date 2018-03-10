@@ -1897,7 +1897,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         axis : {0 or ‘index’}, default 0
             Axis to direct sorting.
         ascending : bool, default True
-            Sort ascending (`True`) or descending (`False`).
+            If  `True` sort values into ascending order, otherwise descending.
         inplace : bool, default False
             If True, perform operation in-place.
         kind : {‘quicksort’, ‘mergesort’ or ‘heapsort’}, default ‘quicksort’
