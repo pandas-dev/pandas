@@ -15,7 +15,8 @@ import numpy as np
 
 from pandas.compat import lrange, product
 from pandas import (compat, isna, notna, DataFrame, Series,
-                    MultiIndex, date_range, Timestamp, Categorical)
+                    MultiIndex, date_range, Timestamp, Categorical,
+                    _np_version_under1p15)
 import pandas as pd
 import pandas.core.nanops as nanops
 import pandas.core.algorithms as algorithms
@@ -2057,6 +2058,9 @@ class TestDataFrameAnalytics(TestData):
             result = original
         tm.assert_frame_equal(result, expected, check_exact=True)
 
+    @pytest.mark.xfail(
+        not _np_version_under1p15,
+        reason="failing under numpy-dev gh-19976")
     @pytest.mark.parametrize("axis", [0, 1, None])
     def test_clip_against_frame(self, axis):
         df = DataFrame(np.random.randn(1000, 2))
