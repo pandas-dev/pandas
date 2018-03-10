@@ -2576,10 +2576,135 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return False
 
-    @Appender(generic._shared_docs['align'] % _shared_doc_kwargs)
     def align(self, other, join='outer', axis=None, level=None, copy=True,
               fill_value=None, method=None, limit=None, fill_axis=0,
               broadcast_axis=None):
+        """
+        Align two Series on their axes with the
+        specified join method for each axis Index.
+
+        The result is a tuple containing two Series with the same indexes. Using
+        `join`, one can specifiy if the union or intersection of the indexes are
+        retained or whether to keep the index of the first or second Series.
+
+        Align supports MultiIndexing, `level` can be used to select which index
+        that is used for alignment.
+
+        Parameters
+        ----------
+        other : DataFrame or Series
+            The Series object to align with.
+        join : {'outer', 'inner', 'left', 'right'}, default 'outer'
+            How to aggregate the indexes.
+        axis : allowed axis of the other object, default None
+            Align on index (0), columns (1), or both (None).
+        level : int or level name, default None
+            Broadcast across a level, matching Index values on the
+            passed MultiIndex level.
+        copy : boolean, default True
+            Always returns new objects. If copy=False and no reindexing is
+            required then original objects are returned.
+        fill_value : scalar, default np.NaN
+            Value to use for missing values. Defaults to NaN, but can be any
+            "compatible" value.
+        method : str, default None
+            Method to use for filling holes in reindexed Series
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill gap.
+        limit : int, default None
+            If method is specified, this is the maximum number of consecutive
+            NaN values to forward/backward fill. In other words, if there is
+            a gap with more than this number of consecutive NaNs, it will only
+            be partially filled. If method is not specified, this is the
+            maximum number of entries along the entire axis where NaNs will be
+            filled. Must be greater than 0 if not None.
+        fill_axis : {0, 'index'}, default 0
+            Filling axis, method and limit.
+        broadcast_axis : {0, 'index'}, default None
+            Broadcast values along this axis, if aligning two objects of
+            different dimensions.
+
+        Returns
+        -------
+        (left, right) : (Series, type of other)
+            Aligned objects
+
+        See also
+        --------
+        reindex : Conform Series to new index with optional filling logic.    
+
+        Examples
+        --------
+        >>> weights = pd.Series([2., 5., 999.], index=['ant', 'beetle', 'cow'],
+        ...                         name='weigth')
+        >>> height = pd.Series([0.1, 2, 34], index=['ant', 'cow', 'duck'],
+        ...                         name='weigth')
+
+        >>> weights.align(height)
+        (ant         2.0
+         beetle      5.0
+         cow       999.0
+         duck        NaN
+         Name: weigth, dtype: float64, ant        0.1
+         beetle     NaN
+         cow        2.0
+         duck      34.0
+         Name: weigth, dtype: float64)
+
+        By setting `join` to 'inner', only the intersection of the two indexes
+        is retained.
+
+        >>> weights.align(height, join='inner')
+        (ant      2.0
+         cow    999.0
+         Name: weigth, dtype: float64, ant    0.1
+         cow    2.0
+         Name: weigth, dtype: float64)
+
+        The missing values can be set by the parameter `fill_value`.
+
+        >>> weights.align(height, fill_value=-1)
+        (ant         2.0
+         beetle      5.0
+         cow       999.0
+         duck       -1.0
+         Name: weigth, dtype: float64, ant        0.1
+         beetle    -1.0
+         cow        2.0
+         duck      34.0
+         Name: weigth, dtype: float64)
+
+        This method can also deal with MultiIndexes.
+
+        >>> idx = pd.MultiIndex.from_tuples([('insect', 'herbivore'),
+        ...                                  ('insect', 'carnivore'),
+        ...                                  ('mammals', 'herbivore'),
+        ...                                  ('mammals', 'carnivore')])
+        >>> weights = pd.Series([1, 2, 59, 102], index=idx)
+        >>> s = pd.Series([1, 2], index=['herbivore', 'carnivore'])
+
+        >>> weights.align(s, level=0)
+        (insect   herbivore      1
+                  carnivore      2
+         mammals  herbivore     59
+                  carnivore    102
+         dtype: int64, insect   herbivore   NaN
+                  carnivore   NaN
+         mammals  herbivore   NaN
+                  carnivore   NaN
+         dtype: float64)
+
+        >>> weights.align(s, level=1)
+        (insect   herbivore      1
+                  carnivore      2
+         mammals  herbivore     59
+                  carnivore    102
+         dtype: int64, insect   herbivore    1
+                  carnivore    2
+         mammals  herbivore    1
+                  carnivore    2
+         dtype: int64)
+        """
         return super(Series, self).align(other, join=join, axis=axis,
                                          level=level, copy=copy,
                                          fill_value=fill_value, method=method,
