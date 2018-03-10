@@ -880,9 +880,9 @@ class _Rolling_and_Expanding(_Rolling):
 
     _shared_docs['var'] = dedent("""
     Calculate unbiased %(name)s variance.
-    
+
     Normalized by N-1 by default. This can be changed using the ddof argument.
-    
+
     Parameters
     ----------
     ddof : int, default 1
@@ -892,13 +892,13 @@ class _Rolling_and_Expanding(_Rolling):
         Under Review.
     kwargs
         Under Review.
-      
+
     Returns
     -------
     Series or DataFrame
         Returned object type is determined by the caller of the %(name)s
         calculation
-        
+
     See Also
     --------
     Series.%(name)s : Calling object with Series data
@@ -906,15 +906,15 @@ class _Rolling_and_Expanding(_Rolling):
     Series.var : Equivalent method for Series
     DataFrame.var : Equivalent method for DataFrame
     numpy.var : Equivalent method for Numpy array
-    
+
     Notes
     -----
     A minimum of 1 periods is required for the rolling calculation.
-      
+
     Examples
     --------
-    The below example will show a rolling example 
-    
+    The below example will show a rolling example
+
     >>> s = pd.Series((5,5,5,5,6,7,9,10,5,5,5,5))
     >>> s.rolling(3).var(1)
     0          NaN
