@@ -850,7 +850,50 @@ class _Rolling_and_Expanding(_Rolling):
         return self._apply('roll_mean', 'mean', **kwargs)
 
     _shared_docs['median'] = dedent("""
-    %(name)s median
+    Calculate the %(name)s median.
+
+    Parameters
+    ----------
+    **kwargs
+        Under Review.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returned object type is determined by the caller of the %(name)s
+        calculation
+
+    See Also
+    --------
+    Series.%(name)s : Calling object with Series data
+    DataFrame.%(name)s : Calling object with DataFrames
+    Series.median : Equivalent method for Series
+    DataFrame.median : Equivalent method for DataFrame
+
+    Examples
+    --------
+    The below example will show a rolling calculation with a window size of
+    three.
+
+    >>> import pandas as pd
+    >>> import numpy as np
+
+    >>> df = pd.DataFrame({
+    ...     'a': np.random.randn(10)
+    ... })
+
+    >>> df.rolling(3).median()
+        a
+    0 	NaN
+    1 	NaN
+    2 	0.447664
+    3 	0.896537
+    4 	0.896537
+    5 	0.896537
+    6 	0.387809
+    7 	-0.067098
+    8 	-0.209795
+    9 	-0.618871
     """)
 
     def median(self, **kwargs):
