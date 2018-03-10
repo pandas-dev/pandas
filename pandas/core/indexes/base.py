@@ -4035,6 +4035,9 @@ class Index(IndexOpsMixin, PandasObject):
         See Also
         --------
         Series.drop_duplicates : equivalent method on Series
+        DataFrame.drop_duplicates : equivalent method on DataFrame
+        Index.duplicated : related method on Index, indicating duplicate
+            Index values.
 
         Examples
         --------

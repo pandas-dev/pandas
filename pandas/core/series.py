@@ -1336,8 +1336,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         See Also
         --------
         Index.drop_duplicates : equivalent method on Index
-        DataFrame.drop_duplicates: equivalent method on DataFrame
-        Series.duplicated: related method on Series
+        DataFrame.drop_duplicates : equivalent method on DataFrame
+        Series.duplicated : related method on Series, indicating duplicate
+            Series values.
 
         Examples
         --------
