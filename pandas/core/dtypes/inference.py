@@ -37,11 +37,21 @@ def is_number(obj):
     is_number : bool
         Whether `obj` is a number or not.
 
+    See Also
+    --------
+    pandas.api.types.is_integer: checks a subgroup of numbers
+
     Examples
     --------
     >>> is_number(1)
     True
+    >>> is_number(7.15)
+    True
+    >>> is_number(False)
+    True
     >>> is_number("foo")
+    False
+    >>> is_number("5")
     False
     """
 
