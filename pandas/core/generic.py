@@ -7179,7 +7179,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def describe(self, percentiles=None, include=None, exclude=None):
         """
-        Generates descriptive statistics that summarize the central tendency,
+        Generate descriptive statistics that summarize the central tendency,
         dispersion and shape of a dataset's distribution, excluding
         ``NaN`` values.
 
@@ -7267,6 +7267,7 @@ class NDFrame(PandasObject, SelectionMixin):
         50%      2.0
         75%      2.5
         max      3.0
+        dtype: float64
 
         Describing a categorical ``Series``.
 
@@ -7315,18 +7316,18 @@ class NDFrame(PandasObject, SelectionMixin):
         Describing all columns of a ``DataFrame`` regardless of data type.
 
         >>> df.describe(include='all')
-                categorical  numeric object
-        count            3      3.0      3
-        unique           3      NaN      3
-        top              f      NaN      c
-        freq             1      NaN      1
-        mean           NaN      2.0    NaN
-        std            NaN      1.0    NaN
-        min            NaN      1.0    NaN
-        25%            NaN      1.5    NaN
-        50%            NaN      2.0    NaN
-        75%            NaN      2.5    NaN
-        max            NaN      3.0    NaN
+               object  numeric categorical
+        count       3      3.0           3
+        unique      3      NaN           3
+        top         c      NaN           f
+        freq        1      NaN           1
+        mean      NaN      2.0         NaN
+        std       NaN      1.0         NaN
+        min       NaN      1.0         NaN
+        25%       NaN      1.5         NaN
+        50%       NaN      2.0         NaN
+        75%       NaN      2.5         NaN
+        max       NaN      3.0         NaN
 
         Describing a column from a ``DataFrame`` by accessing it as
         an attribute.
@@ -7376,36 +7377,36 @@ class NDFrame(PandasObject, SelectionMixin):
         Excluding numeric columns from a ``DataFrame`` description.
 
         >>> df.describe(exclude=[np.number])
-               categorical object
-        count            3      3
-        unique           3      3
-        top              f      c
-        freq             1      1
+               object categorical
+        count       3           3
+        unique      3           3
+        top         c           f
+        freq        1           1
 
         Excluding object columns from a ``DataFrame`` description.
 
         >>> df.describe(exclude=[np.object])
-                categorical  numeric
-        count            3      3.0
-        unique           3      NaN
-        top              f      NaN
-        freq             1      NaN
-        mean           NaN      2.0
-        std            NaN      1.0
-        min            NaN      1.0
-        25%            NaN      1.5
-        50%            NaN      2.0
-        75%            NaN      2.5
-        max            NaN      3.0
+                numeric categorical
+        count       3.0           3
+        unique      NaN           3
+        top         NaN           f
+        freq        NaN           1
+        mean        2.0         NaN
+        std         1.0         NaN
+        min         1.0         NaN
+        25%         1.5         NaN
+        50%         2.0         NaN
+        75%         2.5         NaN
+        max         3.0         NaN
 
         See Also
         --------
-        DataFrame.count
-        DataFrame.max
-        DataFrame.min
-        DataFrame.mean
-        DataFrame.std
-        DataFrame.select_dtypes
+        DataFrame.count : Count number of non-NA/null observations
+        DataFrame.max : Maximum of the values in the object
+        DataFrame.min : Minimum of the values in the object
+        DataFrame.mean : Mean of the values
+        DataFrame.std : Standard deviation of the obersvations
+        DataFrame.select_dtypes : Subset of a DataFrame including/excluding columns based on their dtype
         """
         if self.ndim >= 3:
             msg = "describe is not implemented on Panel objects."
