@@ -4306,7 +4306,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         def _make_logical_function(name, desc, f):
             @Substitution(outname=name, desc=desc)
-            @Appender(_index_shared_docs['index_'+name])
+            @Appender(_index_shared_docs['index_' + name])
             @Appender(_doc)
             def logical_func(self, *args, **kwargs):
                 result = f(self.values)
