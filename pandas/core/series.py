@@ -1342,15 +1342,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         By default, for each set of duplicated values, the first occurrence is
         set on False and all others on True:
 
-        >>> animals = pd.Series(['lama', 'cow', 'lama',
-        ...                      'beetle', 'lama', 'hippo'])
+        >>> animals = pd.Series(['lama', 'cow', 'lama', 'beetle', 'lama'])
         >>> animals.duplicated()
         0    False
         1    False
         2     True
         3    False
         4     True
-        5    False
         dtype: bool
 
         which is equivalent to
@@ -1361,7 +1359,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2     True
         3    False
         4     True
-        5    False
         dtype: bool
 
         By using 'last', the last occurrence of each set of duplicated values
@@ -1373,7 +1370,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2     True
         3    False
         4    False
-        5    False
         dtype: bool
 
         By setting keep on ``False``, all duplicates are True:
@@ -1384,7 +1380,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2     True
         3    False
         4     True
-        5    False
         dtype: bool
 
         Returns
