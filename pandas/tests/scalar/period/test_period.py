@@ -5,6 +5,7 @@ import numpy as np
 from datetime import datetime, date, timedelta
 
 import pandas as pd
+from pandas import Timedelta
 import pandas.util.testing as tm
 import pandas.core.indexes.period as period
 from pandas.compat import text_type, iteritems
@@ -274,12 +275,14 @@ class TestPeriodProperties(object):
 
     def test_timestamp_mult(self):
         p = pd.Period('2011-01', freq='M')
-        assert p.to_timestamp(how='S') == pd.Timestamp('2011-01-01')
-        assert p.to_timestamp(how='E') == pd.Timestamp('2011-01-31')
+        assert p.to_timestamp(how='S') == Timestamp('2011-01-01')
+        expected = Timestamp('2011-02-01') - Timedelta(1, 'ns')
+        assert p.to_timestamp(how='E') == expected
 
         p = pd.Period('2011-01', freq='3M')
-        assert p.to_timestamp(how='S') == pd.Timestamp('2011-01-01')
-        assert p.to_timestamp(how='E') == pd.Timestamp('2011-03-31')
+        assert p.to_timestamp(how='S') == Timestamp('2011-01-01')
+        expected = Timestamp('2011-04-01') - Timedelta(1, 'ns')
+        assert p.to_timestamp(how='E') == expected
 
     def test_construction(self):
         i1 = Period('1/1/2005', freq='M')
@@ -611,19 +614,19 @@ class TestPeriodProperties(object):
         p = Period('1985', freq='A')
 
         result = p.to_timestamp('H', how='end')
-        expected = datetime(1985, 12, 31, 23)
+        expected = Timestamp(1986, 1, 1) - Timedelta(1, 'ns')
         assert result == expected
         result = p.to_timestamp('3H', how='end')
         assert result == expected
 
         result = p.to_timestamp('T', how='end')
-        expected = datetime(1985, 12, 31, 23, 59)
+        expected = Timestamp(1986, 1, 1) - Timedelta(1, 'ns')
         assert result == expected
         result = p.to_timestamp('2T', how='end')
         assert result == expected
 
         result = p.to_timestamp(how='end')
-        expected = datetime(1985, 12, 31)
+        expected = Timestamp(1986, 1, 1) - Timedelta(1, 'ns')
         assert result == expected
 
         expected = datetime(1985, 1, 1)

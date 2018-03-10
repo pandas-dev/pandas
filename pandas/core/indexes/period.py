@@ -2,7 +2,6 @@
 from datetime import datetime
 import numpy as np
 import warnings
-import pandas as pd
 
 from pandas.core import common as com
 from pandas.core.dtypes.common import (
@@ -504,7 +503,12 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
 
         end = how == 'E'
         if end:
-            return (self + 1).to_timestamp(how='start') - pd.Timedelta(1, 'ns')
+            if freq == 'B':
+                adjust = Timedelta(1, 'D') - Timedelta(1, 'ns')
+                return self.to_timestamp(how='start') + adjust
+            else:
+                adjust = Timedelta(1, 'ns')
+                return (self + 1).to_timestamp(how='start') - adjust
 
         if freq is None:
             base, mult = _gfc(self.freq)
@@ -515,7 +519,19 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         base, mult = _gfc(freq)
         new_data = self.asfreq(freq, how)
 
-        new_data = period.periodarr_to_dt64arr(new_data._values, base)
+        end = how == 'E'
+        if end:
+            indexer = np.where(new_data.notnull())
+            # move forward one period
+            new_data._values[indexer] += 1
+            ndarray_vals = new_data._ndarray_values
+            new_data = period.periodarr_to_dt64arr(ndarray_vals, base)
+            # subtract one nanosecond
+            new_data[indexer] -= 1
+        else:
+            ndarray_vals = new_data._ndarray_values
+            new_data = period.periodarr_to_dt64arr(ndarray_vals, base)
+
         return DatetimeIndex(new_data, freq='infer', name=self.name)
 
     @property

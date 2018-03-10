@@ -6,6 +6,7 @@ import pandas.core.indexes.period as period
 from pandas import Series, period_range, DataFrame, Period
 import pytest
 
+
 def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
 

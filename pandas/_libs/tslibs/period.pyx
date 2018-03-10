@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
-import pandas as pd
 from datetime import datetime, date, timedelta
 
 from cpython cimport (
@@ -35,6 +34,7 @@ cdef extern from "../src/datetime/np_datetime.h":
 cimport util
 from util cimport is_period_object, is_string_object, INT32_MIN
 
+from pandas._libs.tslib import Timedelta
 from timestamps import Timestamp
 from timezones cimport is_utc, is_tzlocal, get_dst_info
 from timedeltas cimport delta_to_nanoseconds
@@ -1224,7 +1224,7 @@ cdef class _Period(object):
 
         end = how == 'E'
         if end:
-            return (self + 1).to_timestamp(how='start') - pd.Timedelta(1, 'ns')
+            return (self + 1).to_timestamp(how='start') - Timedelta(1, 'ns')
 
         if freq is None:
             base, mult = get_freq_code(self.freq)
