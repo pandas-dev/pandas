@@ -1933,25 +1933,34 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         Examples
         --------
-        >>> dti = pd.DatetimeIndex(start='2014-08-01 09:00',
-        ...                       freq='H', periods=3, tz='Europe/Berlin')
-
-        >>> dti
-        DatetimeIndex(['2014-08-01 09:00:00+02:00',
-                       '2014-08-01 10:00:00+02:00',
-                       '2014-08-01 11:00:00+02:00'],
-                        dtype='datetime64[ns, Europe/Berlin]', freq='H')
-
         With the `tz` parameter, we can change the DatetimeIndex
         to other time zones:
 
-        >>> dti.tz_convert('US/Eastern')
+        >>> dti = pd.DatetimeIndex(start='2014-08-01 09:00',
+        ...                       freq='H', periods=3)
+
+        >>> dti
+        DatetimeIndex(['2014-08-01 09:00:00',
+                       '2014-08-01 10:00:00',
+                       '2014-08-01 11:00:00'],
+                        dtype='datetime64[ns]', freq='H')
+
+        >>> dti.tz_localize('Europe/Berlin').tz_convert('US/Eastern')
         DatetimeIndex(['2014-08-01 03:00:00-04:00',
                        '2014-08-01 04:00:00-04:00',
                        '2014-08-01 05:00:00-04:00'],
                         dtype='datetime64[ns, US/Eastern]', freq='H')
 
         With the `None` parameter, we can remove the timezone:
+
+        >>> dti = pd.DatetimeIndex(start='2014-08-01 09:00',freq='H',
+        ...                        periods=3, tz='Europe/Berlin')
+
+        >>> dti
+        DatetimeIndex(['2014-08-01 09:00:00+02:00',
+                       '2014-08-01 10:00:00+02:00',
+                       '2014-08-01 11:00:00+02:00'],
+                        dtype='datetime64[ns, Europe/Berlin]', freq='H')
 
         >>> dti.tz_convert(None)
         DatetimeIndex(['2014-08-01 07:00:00',
