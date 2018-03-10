@@ -1712,11 +1712,12 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     Return the week ordinal of the year. Note that there can be
     counter intuitive edge cases around a year change. For example
     the first of january could be in week 52 of the previous year.
-    Monday indicates the start of a new week.
+    Monday indicates the start of a new week. This method is available
+    on both Series with datetime values or DatetimeIndex.
 
     Returns
     -------
-    Series
+    ndarry
         Containing integers indicating the week number.
 
     See Also
