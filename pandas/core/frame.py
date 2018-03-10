@@ -1697,7 +1697,9 @@ class DataFrame(NDFrame):
 
         .. versionadded:: 0.21.0
 
-        Requires either fastparquet or pyarrow libraries.
+        This function writes the dataframe as a parquet file. You
+        can choose different parquet backends, and have the option
+        of compressing.
 
         Parameters
         ----------
@@ -1713,20 +1715,24 @@ class DataFrame(NDFrame):
         kwargs : dict
             Additional keyword arguments passed to the engine.
 
-        Examples
-        ----------
-        >>> df = pd.DataFrame(data={'col1': [1, 2], 'col2': [3, 4]})
-        >>> df.to_parquet('df.parquet.gzip', compression='gzip')
-
         Returns
         ----------
-        Nothing.
+        None
 
         See Also
         --------
         DataFrame.to_csv : write a csv file.
         DataFrame.to_sql : write to a sql table.
         DataFrame.to_hdf : write to hdf.
+
+        Notes
+        ----------
+        Requires either fastparquet or pyarrow libraries.
+
+        Examples
+        ----------
+        >>> df = pd.DataFrame(data={'col1': [1, 2], 'col2': [3, 4]})
+        >>> df.to_parquet('df.parquet.gzip', compression='gzip')
         """
         from pandas.io.parquet import to_parquet
         to_parquet(self, fname, engine,
