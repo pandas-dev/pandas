@@ -7909,6 +7909,7 @@ dtype: bool
 _all_see_also = """\
 See also
 --------
+pandas.Series.all : Return if all elements are True
 pandas.DataFrame.any : Return if one (or more) elements are True
 """
 
