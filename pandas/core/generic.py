@@ -7522,8 +7522,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         cls.any = _make_logical_function(
             cls, 'any', name, name2, axis_descr,
-            'Return whether any element is True over requested axis',
-            nanops.nanany)
+            _any_desc, nanops.nanany, _any_examples, _any_also)
         cls.all = _make_logical_function(
             cls, 'all', name, name2, axis_descr,
             'Return whether all elements are True over requested axis',
@@ -7535,6 +7534,7 @@ class NDFrame(PandasObject, SelectionMixin):
                       name1=name, name2=name2, axis_descr=axis_descr,
                       min_count='', examples='')
         @Appender(_num_doc)
+
         def mad(self, axis=None, skipna=None, level=None):
             if skipna is None:
                 skipna = True
@@ -7784,25 +7784,32 @@ Returns
 %(outname)s : %(name1)s or %(name2)s (if level specified)\n"""
 
 _bool_doc = """
-
 %(desc)s
 
 Parameters
 ----------
-axis : %(axis_descr)s
+axis : int, default 0
+    Select the axis which can be 0 for indices and
+    1 for columns.
 skipna : boolean, default True
     Exclude NA/null values. If an entire row/column is NA, the result
-    will be NA
+    will be NA.
 level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
-    particular level, collapsing into a %(name1)s
+    particular level, collapsing into a %(name1)s.
 bool_only : boolean, default None
     Include only boolean columns. If None, will attempt to use everything,
     then use only boolean data. Not implemented for Series.
 
 Returns
 -------
-%(outname)s : %(name1)s or %(name2)s (if level specified)\n"""
+%(outname)s : %(name1)s or %(name2)s (if level specified)
+
+%(examples)s
+%(see_also)s
+"""
+
+
 
 _cnum_doc = """
 
@@ -7825,6 +7832,48 @@ pandas.core.window.Expanding.%(accum_func_name)s : Similar functionality
 
 """
 
+_any_also = """\
+See Also
+--------
+pandas.DataFrame.all : Return whether all elements are True over requested axis."""
+
+_any_desc = """\
+Return whether any element is True over requested axis.
+
+One dimensional pandas.Series having boolean values will be returned. \
+Unlike pandas.DataFrame.all, pandas.DataFrame.any performs OR operation; \
+in other word, if any of the values along the specified axis is True, \
+pandas.DataFrame.any will return True."""
+
+_any_examples = """\
+Examples
+--------
+By default, any from an empty DataFrame is empty Series::
+
+    >> pd.DataFrame([]).any()
+    Series([], dtype: bool)
+
+Non-boolean values will always give True::
+
+    >> pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}).any()
+    A    True
+    B    True
+    dtype: bool
+
+It is performing OR along the specified axis::
+
+    >> pd.DataFrame({"A": [1, False, 3], "B": [4, 5, 6]}).any(axis=1)
+    0    True
+    1    True
+    2    True
+    dtype: bool
+
+    >> pd.DataFrame({"A": [1, False, 3], "B": [4, False, 6]}).any(axis=1)
+    0    True
+    1    False
+    2    True
+    dtype: bool
+"""
 
 _sum_examples = """\
 Examples
@@ -7985,10 +8034,12 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
     return set_function_name(cum_func, name, cls)
 
 
-def _make_logical_function(cls, name, name1, name2, axis_descr, desc, f):
+def _make_logical_function(cls, name, name1, name2, axis_descr, desc, f, examples='', see_also=''):
+    
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
-                  axis_descr=axis_descr)
+                  axis_descr=axis_descr, examples=examples, see_also=see_also)
     @Appender(_bool_doc)
+
     def logical_func(self, axis=None, bool_only=None, skipna=None, level=None,
                      **kwargs):
         nv.validate_logical_func(tuple(), kwargs, fname=name)
