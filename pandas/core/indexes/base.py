@@ -4273,11 +4273,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> index = pd.Index([1,2,3])
+        >>> index = pd.Index([1, 2, 3])
         >>> index.all()
         True
 
-        >>> index = pd.Index([0,1,2])
+        >>> index = pd.Index([0, 1, 2])
         >>> index.all()
         False
         """
@@ -4295,11 +4295,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> index = pd.Index([0,1,2])
+        >>> index = pd.Index([0, 1, 2])
         >>> index.any()
         True
 
-        >>> index = pd.Index([0,0,0])
+        >>> index = pd.Index([0, 0, 0])
         >>> index.any()
         False
         """
