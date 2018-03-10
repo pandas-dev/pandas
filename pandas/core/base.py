@@ -791,15 +791,16 @@ class IndexOpsMixin(object):
         Return the maximum value of the object.
 
         Return the maximum value of the object within the same type.
-        The DataFrame Index can be accessed using pandas.DataFrame.index.
 
         Returns
         -------
-        object
+        scalar
             Maximum value.
 
         See Also
         --------
+        Series.max : Return the maximum value of the object.
+        DataFrame.max : Return the maximum value of the object.
         Index.min : Return the minimum value of the object.
 
         Examples
