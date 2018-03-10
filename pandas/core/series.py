@@ -1885,7 +1885,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # ----------------------------------------------------------------------
     # Reindexing, sorting
 
-    #@Appender(generic._shared_docs['sort_values'] % _shared_doc_kwargs)
     def sort_values(self, axis=0, ascending=True, inplace=False,
                     kind='quicksort', na_position='last'):
         """
@@ -1938,7 +1937,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         **Sort values ascending order**
 
-        >>> s.sort_values(ascending= True)
+        >>> s.sort_values(ascending=True)
         1      1.0
         4      1.0
         5      2.0
@@ -1951,7 +1950,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         **Sort values descending order**
 
-        >>> s.sort_values(ascending= False)
+        >>> s.sort_values(ascending=False)
         3    323.0
         2    232.0
         7     45.0
@@ -1964,7 +1963,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         **Sort values inplace**
 
-        >>> s.sort_values(ascending= False, inplace= True)
+        >>> s.sort_values(ascending=False, inplace=True)
         >>> s
         3    323.0
         2    232.0
@@ -1978,7 +1977,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         **Sort values putting NAs first**
 
-        >>> s.sort_values(na_position= 'first')
+        >>> s.sort_values(na_position='first')
         0      NaN
         4      1.0
         1      1.0
