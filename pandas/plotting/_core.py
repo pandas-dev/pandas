@@ -2860,7 +2860,7 @@ class FramePlotMethods(BasePlotMethods):
         Parameters
         ----------
         x : column name or column position
-            Horizontal and vertical coordinates of each point.
+            Horizontal coordinates of each point.
         y : column name or column position
             Vertical coordinates of each point.
         s : scalar or array_like, optional
