@@ -2048,7 +2048,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        sorted_obj : Series
+        pandas.Series
+            The original Series sorted by the labels
 
         See Also
         --------
@@ -2098,10 +2099,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Specify index level to sort
 
         >>> import numpy as np
-        >>> arrays = [np.array(['qux', 'qux', 'foo', 'foo',\
-                                'baz', 'baz', 'bar', 'bar']),
-        ...           np.array(['two', 'one', 'two', 'one',\
-                                'two', 'one', 'two', 'one'])]
+        >>> arrays = [np.array(['qux', 'qux', 'foo', 'foo',
+        ...                     'baz', 'baz', 'bar', 'bar']),
+        ...           np.array(['two', 'one', 'two', 'one',
+        ...                     'two', 'one', 'two', 'one'])]
         >>> s = pd.Series([1, 2, 3, 4, 5, 6, 7, 8], index=arrays)
         >>> s.sort_index(level=1)
         bar  one    8
@@ -2117,10 +2118,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Does not sort by remaining levels when sorting by levels
 
         >>> import numpy as np
-        >>> arrays = [np.array(['qux', 'qux', 'foo', 'foo',\
-                                'baz', 'baz', 'bar', 'bar']),
-        ...           np.array(['two', 'one', 'two', 'one',\
-                                'two', 'one', 'two', 'one'])]
+        >>> arrays = [np.array(['qux', 'qux', 'foo', 'foo',
+        ...                     'baz', 'baz', 'bar', 'bar']),
+        ...           np.array(['two', 'one', 'two', 'one',
+        ...                     'two', 'one', 'two', 'one'])]
         >>> s = pd.Series([1, 2, 3, 4, 5, 6, 7, 8], index=arrays)
         >>> s.sort_index(level=1, sort_remaining=False)
         qux  one    2
@@ -2133,7 +2134,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         bar  two    7
         dtype: int64
         """
-        
         # TODO: this can be combined with DataFrame.sort_index impl as
         # almost identical
         inplace = validate_bool_kwarg(inplace, 'inplace')
