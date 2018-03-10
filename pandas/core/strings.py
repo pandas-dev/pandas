@@ -51,11 +51,16 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
     """
     Concatenate strings in the Series/Index with given separator.
 
+    This function concatenates elements of Series/Index and elements of lists or list-like objects having same length. 
+    The concatenation is done at corresponding indices of iterable specified by `Series` when two or 
+    more iterables are present. The final concatenation is done with a given `sep` and a string is returned.
+
     Parameters
     ----------
     others : list-like, or list of list-likes
-      If None, returns str concatenating strings of the Series
-    sep : string or None, default None
+        If None, returns str concatenating strings of the Series.
+    sep : string or None, default None.
+        If None, concatenates without any separator.
     na_rep : string or None, default None
         If None, NA in the series are ignored.
 
@@ -68,16 +73,16 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
     When ``na_rep`` is `None` (default behavior), NaN value(s)
     in the Series are ignored.
 
-    >>> Series(['a','b',np.nan,'c']).str.cat(sep=' ')
+    >>> pd.Series(['a','b',np.nan,'c']).str.cat(sep=' ')
     'a b c'
 
-    >>> Series(['a','b',np.nan,'c']).str.cat(sep=' ', na_rep='?')
+    >>> pd.Series(['a','b',np.nan,'c']).str.cat(sep=' ', na_rep='?')
     'a b ? c'
 
     If ``others`` is specified, corresponding values are
     concatenated with the separator. Result will be a Series of strings.
 
-    >>> Series(['a', 'b', 'c']).str.cat(['A', 'B', 'C'], sep=',')
+    >>> pd.Series(['a', 'b', 'c']).str.cat(['A', 'B', 'C'], sep=',')
     0    a,A
     1    b,B
     2    c,C
@@ -85,12 +90,12 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
 
     Otherwise, strings in the Series are concatenated. Result will be a string.
 
-    >>> Series(['a', 'b', 'c']).str.cat(sep=',')
+    >>> pd.Series(['a', 'b', 'c']).str.cat(sep=',')
     'a,b,c'
 
     Also, you can pass a list of list-likes.
 
-    >>> Series(['a', 'b']).str.cat([['x', 'y'], ['1', '2']], sep=',')
+    >>> pd.Series(['a', 'b']).str.cat([['x', 'y'], ['1', '2']], sep=',')
     0    a,x,1
     1    b,y,2
     dtype: object
