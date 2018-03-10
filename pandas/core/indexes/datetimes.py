@@ -2246,7 +2246,6 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
 
     Examples
     --------
-    >>> import pandas as pd
     >>> pd.date_range('2018-10-03', periods=2)
     DatetimeIndex(['2018-10-03', '2018-10-04'], dtype='datetime64[ns]',
                     freq='D')
