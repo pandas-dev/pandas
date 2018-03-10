@@ -5633,7 +5633,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'a':[1, 2, 3], 'b':[4, 5, 6], 'c':[7, 8, 9001]})
+        >>> df=pd.DataFrame({'a':[1, 2, 3], 'b':[4, 5, 6], 'c':[7, 8, 9001]})
         >>> df
             a   b   c
         0   1   4   7
@@ -5646,11 +5646,11 @@ class NDFrame(PandasObject, SelectionMixin):
         1   2   5   8
         2   3   6   9
 
-        You can clip each column with different thresholds by passing
+        You can clip each column or row with different thresholds by passing
         a ``Series`` to the lower/upper argument.
 
         >>> some_data = {'A':[-19, 12, -5],'B':[1, 100, -5]}
-        >>> df = pd.DataFrame(data=some_data, index=['foo', 'bar', 'bizz'])
+        >>> df=pd.DataFrame(data=some_data, index=['foo', 'bar', 'bizz'])
         >>> df
               A   B
         foo  -19  1
@@ -5674,6 +5674,18 @@ class NDFrame(PandasObject, SelectionMixin):
         foo  -10 1
         bar   12 100
         bizz  10 10
+
+        `Winsorizing <https://en.wikipedia.org/wiki/Winsorizing>`__ is a way
+        of removing outliers from data.  Columns of a DataFrame can be
+        winsorized by using clip.
+
+        >>> import numpy as np
+        >>> x=np.random.normal(size=(1000,3))
+        >>> df=pd.DataFrame(x, columns=['a','b','c'])
+        >>> #Winsorize columns at 5% and 95%
+        >>> U=df.quantile(0.95)
+        >>> L=df.quantile(0.5)
+        >>> winsorized_df=df.clip(lower=L, upper=U, axis = 1)
         """
         if isinstance(self, ABCPanel):
             raise NotImplementedError("clip is not supported yet for panels")
