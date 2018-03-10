@@ -4744,7 +4744,8 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        Series.diff: 1st discrete difference of object
+        DataFrame.pct_change: Percent change over given number of periods.
+        Series.diff: First discrete difference of object
 
         Examples
         --------
