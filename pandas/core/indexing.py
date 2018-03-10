@@ -1417,9 +1417,7 @@ class _LocIndexer(_LocationIndexer):
     Selects a group of rows and columns by label(s) or a boolean array.
 
     ``.loc[]`` is primarily label based, but may also be used with a
-    boolean array. Note that if no row or column labels are specified
-    the labels will default to the integers 0 to n - 1, with n being
-    the number of rows/columns, respectively.
+    boolean array.
 
     Allowed inputs are:
 
@@ -1429,19 +1427,19 @@ class _LocIndexer(_LocationIndexer):
     - A list or array of labels, e.g. ``['a', 'b', 'c']``.
     - A slice object with labels, e.g. ``'a':'f'`` (note that contrary
       to usual python slices, **both** the start and the stop are included!).
-    - A boolean array, e.g. [True, False, True].
+    - A boolean array of the same length as the axis being sliced,
+      e.g. ``[True, False, True]``.
     - A ``callable`` function with one argument (the calling Series, DataFrame
       or Panel) and that returns valid output for indexing (one of the above)
-
-    ``.loc`` will raise a ``KeyError`` when the items are not found.
 
     See more at :ref:`Selection by Label <indexing.label>`
 
     See Also
     --------
-    at : Selects a single value for a row/column label pair
-    iat : Selects a single value for a row/column pair by integer position
-    iloc : Selects group of rows and columns by integer position(s)
+    DateFrame.at : Access a single value for a row/column label pair
+    DateFrame.iat : Access a single value for a row/column pair by integer
+                    position
+    DateFrame.iloc : Access group of rows and columns by integer position(s)
 
     Examples
     --------
@@ -1452,30 +1450,82 @@ class _LocIndexer(_LocationIndexer):
     r0  12   2   3
     r1   0   4   1
     r2  10  20  30
+
+    Single label for row (note it would be faster to use ``DateFrame.at`` in
+    this case)
+
     >>> df.loc['r1']
     c0    0
     c1    4
     c2    1
     Name: r1, dtype: int64
+
+
+    Single label for row and column (note it would be faster to use
+    ``DateFrame.at`` in this case)
+
+    >>> df.loc['r0', 'c1']
+    2
+
+
+    A list of labels
+
     >>> df.loc[['r1', 'r2']]
         c0  c1  c2
     r1   0   4   1
     r2  10  20  30
-    >>> df.loc['r0', 'c1']
-    2
+
+    Slice with labels for row and single label for column. Note that
+    contrary to usual python slices, both the start and the stop are
+    included!
+
     >>> df.loc['r0':'r1', 'c0']
     r0    12
     r1     0
     Name: c0, dtype: int64
+
+
+    Boolean list with the same length as the row axis
+
     >>> df.loc[[False, False, True]]
         c0  c1  c2
     r2  10  20  30
+
+    Callable that returns valid output for indexing
+
     >>> df.loc[df['c1'] > 10]
         c0  c1  c2
     r2  10  20  30
+
+    Callable that returns valid output with column labels specified
+
     >>> df.loc[df['c1'] > 10, ['c0', 'c2']]
         c0  c2
     r2  10  30
+
+    Another example using integers for the index
+
+    >>> df = pd.DataFrame([[12, 2, 3], [0, 4, 1], [10, 20, 30]],
+    ...      index=[7, 8, 9], columns=['c0', 'c1', 'c2'])
+    >>> df
+        c0  c1  c2
+    7  12   2   3
+    8   0   4   1
+    9  10  20  30
+
+    Slice with integer labels for rows. Note that contrary to usual
+    python slices, both the start and the stop are included!
+
+    >>> df.loc[7:9]
+       c0  c1  c2
+    7  12   2   3
+    8   0   4   1
+    9  10  20  30
+
+    Raises
+    ------
+    KeyError:
+        when items are not found
     """
 
     _valid_types = ("labels (MUST BE IN THE INDEX), slices of labels (BOTH "
