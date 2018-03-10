@@ -5616,7 +5616,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        clipped : Series
+        clipped : DataFrame/Series
 
         Notes
         -----
@@ -5640,17 +5640,17 @@ class NDFrame(PandasObject, SelectionMixin):
         1   2   5   8
         2   3   6   9001
 
-        >>> df.clip(lower = 1, upper = 9)
+        >>> df.clip(lower=1, upper=9)
             a   b   c
         0   1   4   7
         1   2   5   8
         2   3   6   9
 
         You can clip each column with different thresholds by passing
-        a Series to the lower/upper argument.
+        a ``Series`` to the lower/upper argument.
 
         >>> some_data = {'A':[-19, 12, -5],'B':[1, 100, -5]}
-        >>> df = pd.DataFrame(data = some_data, index = ['foo', 'bar', 'bizz'])
+        >>> df = pd.DataFrame(data=some_data, index=['foo', 'bar', 'bizz'])
         >>> df
               A   B
         foo  -19  1
@@ -5660,7 +5660,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Use the axis argument to clip by column or rows.  Clip column A with
         lower threshold of -10 and column B has lower threshold of 10.
 
-        >>> df.clip(lower = pd.Series({'A':-10, 'B':10}), axis = 1)
+        >>> df.clip(lower=pd.Series({'A':-10, 'B':10}), axis=1)
               A   B
         foo  -10 10
         bar   12 100
@@ -5668,8 +5668,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Clip the foo, bar, and bizz rows with lower thresholds -10, 0, and 10.
 
-        >>> row_thresh = pd.Series({'foo':-10, 'bar':0, 'bizz':10})
-        >>> df.clip(lower = row_thresh ,axis = 0)
+        >>> row_thresh=pd.Series({'foo':-10, 'bar':0, 'bizz':10})
+        >>> df.clip(lower=row_thresh, axis=0)
              A   B
         foo  -10 1
         bar   12 100
