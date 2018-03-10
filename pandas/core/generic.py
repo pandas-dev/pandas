@@ -5638,19 +5638,19 @@ class NDFrame(PandasObject, SelectionMixin):
         Return copy of the input with values above given value(s) truncated.
 
         It truncates values above a certain threshold. Threshold can be a
-        single value or an array, in the latter case it performs the
-        truncation
+        single value or an array, in the latter case it performs the truncation
         element-wise.
 
         Parameters
         ----------
-        threshold : float or array_like
-            Maximum value allowed. All values above threshold will be
-            set to this value.
+        threshold : float or array-like
+            Maximum value allowed. All values above threshold will be set to
+            this value.
         axis : int or string axis name, optional
             Align object with threshold along the given axis.
-        inplace : boolean, default False
+        inplace : bool, default False
             Whether to perform the operation in place on the data.
+                .. versionadded:: 0.21.0.
 
         See Also
         --------
@@ -5663,39 +5663,33 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> s = pd.Series([1,2,3,4,5,6,7])
+        >>> s = pd.Series([1, 2, 3, 4, 5])
         >>> s
         0    1
         1    2
         2    3
         3    4
         4    5
-        5    6
-        6    7
         dtype: int64
 
-        >>> s.clip_upper(4)
+        >>> s.clip_upper(3)
         0    1
         1    2
         2    3
-        3    4
-        4    4
-        5    4
-        6    4
+        3    3
+        4    3
         dtype: int64
 
-        >>> t = [4,8,7,2,5,4,6]
+        >>> t = [5, 4, 3, 2, 1]
         >>> t
-        [4, 8, 7, 2, 5, 4, 6]
+        [5, 4, 3, 2, 1]
 
         >>> s.clip_upper(t)
         0    1
         1    2
         2    3
         3    2
-        4    5
-        5    4
-        6    6
+        4    1
         dtype: int64
         """
         return self._clip_with_one_bound(threshold, method=self.le,
@@ -5719,7 +5713,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        clip:
+        clip : Return input copy with values below/above thresholds truncated.
 
         Returns
         -------
@@ -5903,6 +5897,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         time : datetime.time or string
+        asof :
 
         Returns
         -------
