@@ -521,7 +521,11 @@ one pass, you can do
         """
         Backward fill the values.
 
-        Resample datetimelike data and fill backwards missing values if any.
+        In statistics, imputation is the process of replacing missing data with
+        substituted values. When resampling data, missing values may appear
+        (e.g., when the resampling frequency is higher than the original
+        frequency). The backward fill will replace NA values with the next
+        non-NA value in the sequence.
 
         Parameters
         ----------
@@ -530,7 +534,8 @@ one pass, you can do
 
         Returns
         -------
-        an upsampled Series
+        Series
+            An upsampled Series with backward filled NA values.
 
         See Also
         --------
@@ -538,6 +543,10 @@ one pass, you can do
             method, which can be 'backfill'.
         DataFrame.fillna : Fill NA/NaN values in the DataFrame using the
             specified method, which can be 'backfill'.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Imputation_(statistics)
 
         Examples
         --------
