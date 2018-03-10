@@ -3662,9 +3662,9 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return the last `n` rows.
 
-        This function returns last `n` rows from the object based on the
-        underlying index. It is useful for quickly verifying data,
-        for example, after sorting or appending rows.
+        This function returns last `n` rows from the object based on
+        position. It is useful for quickly verifying data, for example,
+        after sorting or appending rows.
 
         Parameters
         ----------
@@ -3706,7 +3706,7 @@ class NDFrame(PandasObject, SelectionMixin):
         7   whale
         8   zebra
 
-        Viewing the last n lines (three in this case)
+        Viewing the last `n` lines (three in this case)
 
         >>> df.tail(3)
           animal
