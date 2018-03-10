@@ -1904,47 +1904,48 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     def tz_convert(self, tz):
         """
-        A Method to Convert tz-aware DatetimeIndex from one time zone to another.
-	
-	When using DatetimeIndex providing with timezone
-	this method converts tz-aware DatetimeIndex using
-        pytz/dateutil.
+        Convert tz-aware DatetimeIndex from one
+        time zone to another.
+
+        When using DatetimeIndex providing with timezone this method
+        converts tz-aware DatetimeIndex using pytz/dateutil.
 
         Parameters
         ----------
         tz : string, pytz.timezone, dateutil.tz.tzfile or None
-            Time zone for time. Corresponding timestamps would be converted to
-            time zone of the TimeSeries.
+            Time zone for time.Corresponding timestamps would be converted
+            to time zone of the TimeSeries.
             None will remove timezone holding UTC time.
 
         Returns
         -------
         normalized : DatetimeIndex
-       
-	Raises
+
+        Raises
         -------
         TypeError
             If DatetimeIndex is tz-naive.
 
-	See Also
+        See Also
         --------
-        tz_localize : Localize tz-naive DatetimeIndex to given time zone (using pytz/dateutil),
-	    or remove timezone from tz-aware DatetimeIndex.
+        tz_localize : Localize tz-naive DatetimeIndex to given time zone
+            (using pytz/dateutil),or remove timezone from tz-aware
+            DatetimeIndex.
 
-	Examples
+        Examples
         --------
-	>>> datetime=pd.Series(pd.date_range('20180301',periods=3))
-	>>> datetime
-	0   2018-03-01
-	1   2018-03-02
-	2   2018-03-03
-	dtype: datetime64[ns]
+        >>> datetime=pd.Series(pd.date_range('20180301',periods=3))
+        >>> datetime
+        0   2018-03-01
+        1   2018-03-02
+        2   2018-03-03
+        dtype: datetime64[ns]
 
-	>>> datetime.dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
-	0   2018-02-28 19:00:00-05:00
-	1   2018-03-01 19:00:00-05:00
-	2   2018-03-02 19:00:00-05:00
-	dtype: datetime64[ns, US/Eastern]
+        >>> datetime.dt.tz_localize('UTC').dt.tz_convert('US/Eastern')
+        0   2018-02-28 19:00:00-05:00
+        1   2018-03-01 19:00:00-05:00
+        2   2018-03-02 19:00:00-05:00
+        dtype: datetime64[ns, US/Eastern]
         """
         tz = timezones.maybe_get_tz(tz)
 
