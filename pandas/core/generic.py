@@ -7523,11 +7523,10 @@ class NDFrame(PandasObject, SelectionMixin):
         cls.any = _make_logical_function(
             cls, 'any', name, name2, axis_descr,
             'Return whether any element is True over requested axis',
-            nanops.nanany)
+            nanops.nanany, '', '')
         cls.all = _make_logical_function(
-            cls, 'all', name, name2, axis_descr,
-            'Return whether all elements are True over requested axis',
-            nanops.nanall)
+            cls, 'all', name, name2, axis_descr, _all_doc,
+            nanops.nanall, _all_examples, _all_see_also)
 
         @Substitution(outname='mad',
                       desc="Return the mean absolute deviation of the values "
@@ -7784,7 +7783,6 @@ Returns
 %(outname)s : %(name1)s or %(name2)s (if level specified)\n"""
 
 _bool_doc = """
-
 %(desc)s
 
 Parameters
@@ -7792,17 +7790,58 @@ Parameters
 axis : %(axis_descr)s
 skipna : boolean, default True
     Exclude NA/null values. If an entire row/column is NA, the result
-    will be NA
+    will be NA.
 level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
-    particular level, collapsing into a %(name1)s
+    particular level, collapsing into a %(name1)s.
 bool_only : boolean, default None
     Include only boolean columns. If None, will attempt to use everything,
     then use only boolean data. Not implemented for Series.
 
 Returns
 -------
-%(outname)s : %(name1)s or %(name2)s (if level specified)\n"""
+%(outname)s : %(name1)s or %(name2)s (if level specified)
+
+%(examples)s
+%(see_also)s"""
+
+_all_doc = """\
+Return whether all elements are True over requested axis.
+
+Returns True if all elements along a dataframe
+axis are non-zero, not-empty or not-False.
+Also note that a series consisting of different data 
+types returns the first occurence of the non-zero, not-empty
+or not-False element."""
+
+_all_examples = """\
+Examples
+--------
+First create a pandas dataframe::
+    >>> d = {'col1': [True, True], 'col2': [True, False]}
+    >>> df = pd.DataFrame(data=d)
+    >>> df
+       col1   col2
+    0  True   True
+    1  True  False
+Default behaviour checks if column-wise values all return True
+    >>> df.all()
+    col1     True
+    col2    False
+    dtype: bool
+
+Adding axis=1 will check row-wise values
+    >>> df.all(axis=1)
+    0     True
+    1    False
+    dtype: bool
+"""
+
+_all_see_also = """\
+See also
+--------
+pandas.DataFrame.any : Checks if one (or more) items return True
+"""
 
 _cnum_doc = """
 
@@ -7985,9 +8024,9 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
     return set_function_name(cum_func, name, cls)
 
 
-def _make_logical_function(cls, name, name1, name2, axis_descr, desc, f):
+def _make_logical_function(cls, name, name1, name2, axis_descr, desc, f, examples, see_also):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
-                  axis_descr=axis_descr)
+                  axis_descr=axis_descr, examples=examples, see_also=see_also)
     @Appender(_bool_doc)
     def logical_func(self, axis=None, bool_only=None, skipna=None, level=None,
                      **kwargs):
