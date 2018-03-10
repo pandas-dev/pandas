@@ -120,12 +120,12 @@ _apply_docs = dict(
     Examples
     --------
     {examples}
-
     See also
     --------
     pipe : Apply function to the full GroupBy object instead of to each
         group.
-    aggregate, transform
+    aggregate : 
+    transform : 
     """,
     dataframe_examples="""
     >>> df = pd.DataFrame({'A': 'a a b'.split(), 'B': [1,2,3], 'C': [4,6, 5]})
