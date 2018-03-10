@@ -4837,7 +4837,7 @@ class DataFrame(NDFrame):
 
             * 0 or 'index': apply function to each column.
             * 1 or 'columns': apply function to each row.
-        broadcast : boolean, optional
+        broadcast : bool, optional
             Only relevant for aggregation functions:
 
             * `False` or `None` : returns a Series whose length is the length
@@ -4850,14 +4850,14 @@ class DataFrame(NDFrame):
                This argument will be removed in a future version, replaced
                by result_type='broadcast'.
 
-        raw : boolean, default False
+        raw : bool, default False
             * `False` : passes each row or column as a Series to the
               function.
             * `True` : the passed function will receive ndarray objects
               instead.
             If you are just applying a NumPy reduction function this will
             achieve much better performance.
-        reduce : boolean or `None`, default `None`
+        reduce : bool or `None`, default `None`
             Try to apply reduction procedures. If the `DataFrame` is empty,
             :meth:`apply` will use reduce to determine whether the result
             should be a Series or a `DataFrame`. If ``reduce is None`` (the
