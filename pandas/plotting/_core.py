@@ -2799,7 +2799,6 @@ class FramePlotMethods(BasePlotMethods):
 
         Examples
         --------
-
         When using values between 0 and 3, calling hist() with bins = 3 will
         create three bins: one that groups values between 0 and 1, another
         for values between 1 and 2, and another for values between 2 and 3.
