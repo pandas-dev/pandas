@@ -51,7 +51,7 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
     """
     Concatenate strings in the Series/Index with given separator.
 
-    This function concatenates elements of Series/Index and elements 
+    This function concatenates elements of Series/Index and elements
     of lists or list-like objects having same length.
     The concatenation is done at corresponding indices of
     iterable specified by `Series` when two or more iterables
@@ -66,7 +66,7 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
         If None, concatenates without any separator.
     na_rep : string or None, default None
         If None, NA in the series are ignored.
-        
+
     Returns
     -------
     concat : Series/Index of objects or str
