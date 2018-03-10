@@ -2740,7 +2740,7 @@ class FramePlotMethods(BasePlotMethods):
         """
         Make a horizontal bar plot.
 
-        A horizontal bar plot is a plot that presents categorical data with
+        A horizontal bar plot is a plot that presents quantitative data with
         rectangular bars with lengths proportional to the values that they
         represent. A bar plot shows comparisons among discrete categories. One
         axis of the plot shows the specific categories being compared, and the
@@ -2752,16 +2752,16 @@ class FramePlotMethods(BasePlotMethods):
             Column to be used for categories.
         y : label or position, optional
             Columns to be plotted from the DataFrame.
-        kwds : optional
+        kwds
             Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : matplotlib.AxesSubplot or np.array of them.
 
         See Also
         --------
-        pandas.DataFrame.plot.bar: Vertical bar plot
+        pandas.DataFrame.plot.bar: Vertical bar plot.
         pandas.DataFrame.plot : Make plots of DataFrame using matplotlib.
         matplotlib.axes.Axes.bar : Plot a vertical bar plot using matplotlib.
 
@@ -2772,8 +2772,8 @@ class FramePlotMethods(BasePlotMethods):
         .. plot::
             :context: close-figs
 
-            >>> df = pd.DataFrame({'lab':['A','B','C'], 'val':[10,30,20]})
-            >>> ax = df.plot.barh(x='lab',y='val')
+            >>> df = pd.DataFrame({'lab':['A', 'B', 'C'], 'val':[10, 30, 20]})
+            >>> ax = df.plot.barh(x='lab', y='val')
 
         Plot a whole DataFrame to a horizontal bar plot
 
