@@ -1320,9 +1320,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Return Series with duplicate values removed.
 
-        The drop_duplicates method can remove occurences or whole sets
-        of duplicated entries in a pandas.Series object.
-
         Parameters
         ----------
         keep : {'first', 'last', ``False``}, default 'first'

@@ -4021,9 +4021,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return Index with duplicate values removed.
 
-        The drop_duplicates method can remove occurences or whole sets
-        of duplicated entries in a pandas.Index object.
-
         Parameters
         ----------
         keep : {'first', 'last', ``False``}, default 'first'
