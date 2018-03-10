@@ -126,6 +126,31 @@ class DatetimeProperties(Properties):
     """
 
     def to_pydatetime(self):
+        """
+        Return DatetimeIndex as object ndarray of datetime.datetime objects.
+
+        This function converts the Pandas Series DatetimeIndex to
+        a ndarray object. These two types are different and hence
+        2 differnt functions.
+
+        Returns
+        -------
+        datetimes : ndarray
+
+        See Also
+        --------
+        pd.DatetimeIndex.to_pydatetime : Convert a Timestamp object to a native Python datetime object.
+        pd.date.dt.values.to_datetime : For an Index containing strings or datetime.datetime objects, attempt
+            conversion to DatetimeIndex.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'date': [pd.to_datetime('2018-03-10'), pd.to_datetime('2017-02-01')]})
+        >>> type(df)
+        <class 'pandas.core.frame.DataFrame'>
+        >>> type(df.date.dt.to_pydatetime())
+        <class 'numpy.ndarray'>
+        """
         return self._get_values().to_pydatetime()
 
     @property
