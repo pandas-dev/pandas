@@ -4341,27 +4341,31 @@ class DataFrame(NDFrame):
 
     def pivot(self, index=None, columns=None, values=None):
         """
+        Return reshaped DataFrame summarized by given index / column values.
+
         Reshape data (produce a "pivot" table) based on column values. Uses
         unique values from index / columns to form axes of the resulting
-        DataFrame.
+        DataFrame. This function don't support data aggregation, multiple
+        values will result in hierarchically indexed columns.
 
         Parameters
         ----------
         index : string or object, optional
             Column name to use to make new frame's index. If None, uses
             existing index.
-        columns : string or object
-            Column name to use to make new frame's columns
+        columns : string or object, optional
+            Column name to use to make new frame's columns.
         values : string or object, optional
             Column name to use for populating new frame's values. If not
             specified, all remaining columns will be used and the result will
-            have hierarchically indexed columns
+            have hierarchically indexed columns.
 
         Returns
         -------
-        pivoted : DataFrame
+        DataFrame
+            Returns reshaped DataFrame.
 
-        See also
+        See Also
         --------
         DataFrame.pivot_table : generalization of pivot that can handle
             duplicate values for one index/column pair
@@ -4377,8 +4381,8 @@ class DataFrame(NDFrame):
         --------
 
         >>> df = pd.DataFrame({'foo': ['one','one','one','two','two','two'],
-                               'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
-                               'baz': [1, 2, 3, 4, 5, 6]})
+        ...                    'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
+        ...                    'baz': [1, 2, 3, 4, 5, 6]})
         >>> df
             foo   bar  baz
         0   one   A    1
@@ -4389,16 +4393,16 @@ class DataFrame(NDFrame):
         5   two   C    6
 
         >>> df.pivot(index='foo', columns='bar', values='baz')
-             A   B   C
+        bar  A   B   C
+        foo
         one  1   2   3
         two  4   5   6
 
         >>> df.pivot(index='foo', columns='bar')['baz']
-             A   B   C
+        bar  A   B   C
+        foo
         one  1   2   3
         two  4   5   6
-
-
         """
         from pandas.core.reshape.reshape import pivot
         return pivot(self, index=index, columns=columns, values=values)
