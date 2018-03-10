@@ -547,6 +547,66 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return len(self._data)
 
     def view(self, dtype=None):
+        """
+        Create a new view of the Series.
+
+        This function will return a new Series with a view of the same
+        underlying values in memory, optionally reinterpreted with a new data
+        type. The new data type must preserve the same size in bytes as to not
+        cause index misalignment.
+
+        Series are instantiated with `dtype=float64` by default, so unlike
+        `numpy.array.view()` this function will not try to preserve the current
+        Series data type.
+
+        Parameters
+        ----------
+        dtype : data type
+            Data type object or one of their string representations.
+
+        Returns
+        -------
+        Series
+            A new Series object as a view of the same data in memory.
+
+        See Also
+        --------
+        numpy.ndarray.view : Return a new view of the same data in memory.
+
+        Examples
+        --------
+        >>> s = pd.Series([-2, -1, 0, 1, 2], dtype='int8')
+        >>> s
+        0   -2
+        1   -1
+        2    0
+        3    1
+        4    2
+        dtype: int8
+
+        The 8 bit signed integer representation of `-1` is `0b10000001`, but
+        the same bytes represent 255 if read as an 8 bit unsigned integer:
+
+        >>> us = s.view('uint8')
+        >>> us
+        0    254
+        1    255
+        2      0
+        3      1
+        4      2
+        dtype: uint8
+
+        The views share the same underlying values:
+
+        >>> us[0] = 128
+        >>> s
+        0   -128
+        1     -1
+        2      0
+        3      1
+        4      2
+        dtype: int8
+        """
         return self._constructor(self._values.view(dtype),
                                  index=self.index).__finalize__(self)
 
