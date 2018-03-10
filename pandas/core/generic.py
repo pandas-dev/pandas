@@ -7520,13 +7520,13 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         periods : int, default 1
-            Periods to shift for forming percent change
+            Periods to shift for forming percent change.
         fill_method : str, default 'pad'
-            How to handle NAs before computing percent changes
+            How to handle NAs before computing percent changes.
         limit : int, default None
-            The number of consecutive NAs to fill before stopping
+            The number of consecutive NAs to fill before stopping.
         freq : DateOffset, timedelta, or offset alias string, optional
-            Increment to use from time series API (e.g. 'M' or BDay())
+            Increment to use from time series API (e.g. 'M' or BDay()).
 
         Returns
         -------
