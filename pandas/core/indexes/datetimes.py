@@ -1059,7 +1059,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         """
         Cast to PeriodIndex at a particular frequency.
 
-        Converts DatetimeIndex  to periodIndex.
+        Converts DatetimeIndex to PeriodIndex.
 
         Parameters
         ----------
