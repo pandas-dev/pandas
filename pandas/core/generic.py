@@ -4241,7 +4241,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         numpy.ndarray
-            The values of the DataFrame
+            The values of the DataFrame.
 
         Examples
         --------
@@ -4296,9 +4296,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.DataFrame.from_records : Inverse operation; creating a 
-            DataFrame from an ndarray
-        pandas.DataFrame.keys : Retrieving the 'info axis' (column names)
+        pandas.DataFrame.index : Retrievie the index labels
         pandas.DataFrame.columns : Retrieving the column names
         """
         self._consolidate_inplace()
