@@ -857,13 +857,58 @@ class _Rolling_and_Expanding(_Rolling):
         return self._apply('roll_median_c', 'median', **kwargs)
 
     _shared_docs['std'] = dedent("""
-    %(name)s standard deviation
+    Calculate %(name)s standard deviation.
+
+    Normalized by N-1 by default. This can be changed using the ddof argument.
 
     Parameters
     ----------
     ddof : int, default 1
         Delta Degrees of Freedom.  The divisor used in calculations
-        is ``N - ddof``, where ``N`` represents the number of elements.""")
+        is ``N - ddof``, where ``N`` represents the number of elements.
+    args
+        Under Review.
+    kwargs
+        Under Review.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returned object type is determined by the caller of the %(name)s
+        calculation
+
+    See Also
+    --------
+    Series.%(name)s : Calling object with Series data
+    DataFrame.%(name)s : Calling object with DataFrames
+    Series.std : Equivalent method for Series
+    DataFrame.std : Equivalent method for DataFrame
+    numpy.std : Equivalent method for Numpy array
+
+    Notes
+    -----
+    A minimum of 1 periods is required for the rolling calculation.
+
+    Examples
+    --------
+    The below example will show a rolling example
+
+    >>> s = pd.Series((5,5,5,5,6,7,9,10,5,5,5,5))
+    >>> s.rolling(3).std(1)
+    0          NaN
+    1          NaN
+    2     0.000000
+    3     0.000000
+    4     0.577350
+    5     1.000000
+    6     1.527525
+    7     1.527525
+    8     2.645751
+    9     2.886751
+    10    0.000000
+    11    0.000000
+    dtype: float64
+    """)
 
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_window_func('std', args, kwargs)
@@ -1250,7 +1295,6 @@ class Rolling(_Rolling_and_Expanding):
         return super(Rolling, self).median(**kwargs)
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['std'])
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_rolling_func('std', args, kwargs)
@@ -1489,7 +1533,6 @@ class Expanding(_Rolling_and_Expanding):
         return super(Expanding, self).median(**kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['std'])
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_expanding_func('std', args, kwargs)
