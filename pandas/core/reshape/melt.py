@@ -22,6 +22,99 @@ from pandas.core.tools.numeric import to_numeric
                other='DataFrame.melt'))
 def melt(frame, id_vars=None, value_vars=None, var_name=None,
          value_name='value', col_level=None):
+    """
+    Convert a DataFrame from a wide format to a long format.
+    
+    Use this function to convert a DataFrame into a format where one 
+    or more columns are identifier variables (id_vars), while all other 
+    columns are measured variables (value_vars). The measured variables, 
+    which are initally in a wide format, are transformed to a long format 
+    with respect to the identifier variables.
+    
+    Parameters
+    ----------
+    frame : DataFrame
+        Two-dimensional labeled data structure.
+    id_vars : tuple, list, or ndarray, optional
+        Columns to use as identifier variables.
+    value_vars : tuple, list, or ndarray, optional
+        Columns to transform to a long format. If not specified, uses all 
+        columns not set as id_vars.       
+    var_name : scalar, default 'variable'
+        Name to use for the 'variable' column.
+    value_name : scalar, default 'value'
+        Name to use for the 'value' column.
+    col_level : int or string, optional
+        Level to use when the columns that are transformed are MultiIndex.
+        
+    Returns
+    -------
+    DataFrame
+        Two-dimensional labeled data structure.    
+    
+    See Also
+    --------
+    pandas.pivot_table : Create a spreadsheet-style pivot table as a DataFrame.
+    pandas.DataFrame.pivot : Reshape data based on column values.
+    
+    Examples
+    --------
+    >>> import pandas as pd
+    >>> df = pd.DataFrame({'A': {0: 'a', 1: 'b', 2: 'c'},
+    ...                    'B': {0: 1, 1: 3, 2: 5},
+    ...                    'C': {0: 2, 1: 4, 2: 6}})
+    >>> df
+       A  B  C
+    0  a  1  2
+    1  b  3  4
+    2  c  5  6
+    
+    >>> pd.melt(df, id_vars=['A'], value_vars=['B'])
+       A variable  value
+    0  a        B      1
+    1  b        B      3
+    2  c        B      5
+    
+    >>> pd.melt(df, id_vars=['A'], value_vars=['B', 'C'])
+       A variable  value
+    0  a        B      1
+    1  b        B      3
+    2  c        B      5
+    3  a        C      2
+    4  b        C      4
+    5  c        C      6
+    
+    The names of 'variable' and 'value' columns can be customized:
+    
+    >>> pd.melt(df, id_vars=['A'], value_vars=['B'],
+    ...         var_name='myVarname', value_name='myValname')
+       A myVarname  myValname
+    0  a         B          1
+    1  b         B          3
+    2  c         B          5
+    
+    If you have multi-index columns:
+    
+    >>> df.columns = [list('ABC'), list('DEF')]
+    >>> df
+       A  B  C
+       D  E  F
+    0  a  1  2
+    1  b  3  4
+    2  c  5  6
+    
+    >> pd.melt(df, col_level=0, id_vars=['A'], value_vars=['B'])
+       A variable  value
+    0  a        B      1
+    1  b        B      3
+    2  c        B      5
+    
+    >>> pd.melt(df, id_vars=[('A', 'D')], value_vars=[('B', 'E')])
+      (A, D) variable_0 variable_1  value
+    0      a          B          E      1
+    1      b          B          E      3
+    2      c          B          E      5 
+    """
     # TODO: what about the existing index?
     if id_vars is not None:
         if not is_list_like(id_vars):
