@@ -1081,7 +1081,8 @@ class Categorical(ExtensionArray, PandasObject):
             return cat
 
     def map(self, mapper):
-        """Apply mapper function to its categories (not codes).
+        """
+        Apply mapper function to its categories (not codes).
 
         Parameters
         ----------
