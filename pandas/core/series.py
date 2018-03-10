@@ -1890,21 +1890,24 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Sort by the Series values.
 
-        Sort (or order) a Series into ascending or descending order by some criterion.
+        Sort (or order) a Series in ascending or descending order by some
+        criterion.
 
         Parameters
         ----------
         axis : {0 or ‘index’}, default 0
-            Axis to direct sorting.
+            Axis to direct sorting. The value `index` is accepted for
+            compatibility with DataFrame.sort_values.
         ascending : bool, default True
-            If  `True` sort values into ascending order, otherwise descending.
+            If  `True` sort values in ascending order, otherwise descending.
         inplace : bool, default False
             If True, perform operation in-place.
         kind : {‘quicksort’, ‘mergesort’ or ‘heapsort’}, default ‘quicksort’
-            Choice of sorting algorithm. See also ndarray.np.sort [1]_ for more information. `mergesort` is the only stable
-            algorithm.
+            Choice of sorting algorithm. See also :func:`np.sort` for more
+             information. `mergesort` is the only stable  algorithm.
         na_position : {'first' or 'last'}, default 'last'
-             Argument `first` puts NaNs at the beginning, `last` puts NaNs at the end.
+             Argument `first` puts NaNs at the beginning, `last` puts NaNs at
+             the end.
 
         Returns
         -------
@@ -1917,76 +1920,76 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         DataFrame.sort_index : Sort DataFrame by indices.
         DataFrame.sort_values : Sort by the values along either axis.
 
-        References
-        ----------
-        .. [1] https://docs.scipy.org/doc/numpy/reference/generated/numpy.sort.html
-
         Examples
         --------
-        >>> s = pd.Series([np.nan, 1, 232, 323, 1, 2, 3, 45])
+        >>> s = pd.Series([np.nan, 1, 3, 5, 10])
         >>> s
-        0      NaN
-        1      1.0
-        2    232.0
-        3    323.0
-        4      1.0
-        5      2.0
-        6      3.0
-        7     45.0
+        0     NaN
+        1     1.0
+        2     3.0
+        3     5.0
+        4    10.0
         dtype: float64
 
-        Sort values ascending order
+        Sort values ascending order (default behaviour)
 
         >>> s.sort_values(ascending=True)
-        1      1.0
-        4      1.0
-        5      2.0
-        6      3.0
-        7     45.0
-        2    232.0
-        3    323.0
-        0      NaN
+        1     1.0
+        2     3.0
+        3     5.0
+        4    10.0
+        0     NaN
         dtype: float64
 
         Sort values descending order
 
         >>> s.sort_values(ascending=False)
-        3    323.0
-        2    232.0
-        7     45.0
-        6      3.0
-        5      2.0
-        4      1.0
-        1      1.0
-        0      NaN
+        4    10.0
+        3     5.0
+        2     3.0
+        1     1.0
+        0     NaN
         dtype: float64
 
         Sort values inplace
 
         >>> s.sort_values(ascending=False, inplace=True)
         >>> s
-        3    323.0
-        2    232.0
-        7     45.0
-        6      3.0
-        5      2.0
-        4      1.0
-        1      1.0
-        0      NaN
+        4    10.0
+        3     5.0
+        2     3.0
+        1     1.0
+        0     NaN
         dtype: float64
 
         Sort values putting NAs first
 
         >>> s.sort_values(na_position='first')
-        0      NaN
-        4      1.0
-        1      1.0
-        5      2.0
-        6      3.0
-        7     45.0
-        2    232.0
-        3    323.0
+        0     NaN
+        1     1.0
+        2     3.0
+        3     5.0
+        4    10.0
         dtype: float64
+
+        Sort a series of strings
+
+        >>> s = pd.Series(['z', 'b', 'd', 'a', 'c'])
+        >>> s
+        0    z
+        1    b
+        2    d
+        3    a
+        4    c
+        dtype: object
+
+        >>> s.sort_values()
+        3    a
+        1    b
+        4    c
+        2    d
+        0    z
+        dtype: object
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         axis = self._get_axis_number(axis)
