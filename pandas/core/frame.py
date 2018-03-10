@@ -4722,10 +4722,10 @@ class DataFrame(NDFrame):
 
     def diff(self, periods=1, axis=0):
         """
-        First discrete difference of object.
+        First discrete difference of element.
 
-        Calculates the difference of a DataFrame object compared with another
-        object in the DataFrame (default is object in same column of the
+        Calculates the difference of a DataFrame element compared with another
+        element in the DataFrame (default is element in same column of the
         previous row).
 
         Parameters
@@ -4742,22 +4742,27 @@ class DataFrame(NDFrame):
         -------
         diffed : DataFrame
 
+        See Also
+        --------
+        Series.diff
+
         Examples
         --------
         Difference with previous row
 
-        >>> df = pd.DataFrame([[1, 1, 1], [2, 1, 4], [3, 2, 9], [4, 3, 16],
-        ...            [5, 5, 25], [6, 8, 36]], columns=['Seq', 'Fib', 'Sqr'])
+        >>> df = pd.DataFrame({'a': [1, 2, 3, 4, 5, 6],
+        ...                    'b': [1, 1, 2, 3, 5, 8],
+        ...                    'c': [1, 4, 9, 16, 25, 36]})
         >>> df
-              Seq  Fib   Sqr
-           0  NaN  NaN   NaN
-           1  1.0  0.0   3.0
-           2  1.0  1.0   5.0
-           3  1.0  1.0   7.0
-           4  1.0  2.0   9.0
-           5  1.0  3.0  11.0
+           a  b   c
+        0  1  1   1
+        1  2  1   4
+        2  3  2   9
+        3  4  3  16
+        4  5  5  25
+        5  6  8  36
         >>> df.diff()
-           Seq  Fib   Sqr
+             a    b     c
         0  NaN  NaN   NaN
         1  1.0  0.0   3.0
         2  1.0  1.0   5.0
@@ -4768,18 +4773,18 @@ class DataFrame(NDFrame):
         Difference with previous column
 
         >>> df.diff(axis=1)
-           Seq  Fib   Sqr
-        0  NaN  0.0   0.0
-        1  NaN -1.0   3.0
-        2  NaN -1.0   7.0
-        3  NaN -1.0  13.0
-        4  NaN  0.0  20.0
-        5  NaN  2.0  28.0
+            a    b     c
+        0 NaN  0.0   0.0
+        1 NaN -1.0   3.0
+        2 NaN -1.0   7.0
+        3 NaN -1.0  13.0
+        4 NaN  0.0  20.0
+        5 NaN  2.0  28.0
 
         Difference with 3rd previous row
 
         >>> df.diff(periods=3)
-           Seq  Fib   Sqr
+             a    b     c
         0  NaN  NaN   NaN
         1  NaN  NaN   NaN
         2  NaN  NaN   NaN
@@ -4790,17 +4795,13 @@ class DataFrame(NDFrame):
         Difference with following row
 
         >>> df.diff(periods=-1)
-           Seq  Fib   Sqr
+             a    b     c
         0 -1.0  0.0  -3.0
         1 -1.0 -1.0  -5.0
         2 -1.0 -1.0  -7.0
         3 -1.0 -2.0  -9.0
         4 -1.0 -3.0 -11.0
         5  NaN  NaN   NaN
-
-        See Also
-        --------
-        Series.diff
         """
         bm_axis = self._get_block_manager_axis(axis)
         new_data = self._data.diff(n=periods, axis=bm_axis)
