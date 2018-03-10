@@ -7787,7 +7787,9 @@ _bool_doc = """
 
 Parameters
 ----------
-axis : %(axis_descr)s
+axis : int, default 0
+    Select the axis that you would like to analyze. For column-wise
+    (axis=0), for row-wise (axis=1).
 skipna : boolean, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA.
