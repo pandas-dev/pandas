@@ -1914,7 +1914,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         ----------
         tz : string, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time. Corresponding timestamps would be converted
-            to time zone of the TimeSeries.
+            to time zone of the DatetimeIndex.
             None will remove timezone holding UTC time.
 
         Returns
@@ -1928,9 +1928,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         See Also
         --------
-        tz_localize : Localize tz-naive DatetimeIndex to given time zone
-            (using pytz/dateutil), or remove timezone from tz-aware
-            DatetimeIndex.
+        tz_localize : Localize tz-naive DatetimeIndex to given time zone,
+                      or remove timezone from tz-aware DatetimeIndex.
 
         Examples
         --------
@@ -1943,7 +1942,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                        '2014-08-01 11:00:00+02:00'],
                         dtype='datetime64[ns, Europe/Berlin]', freq='H')
 
-        With the `tz` parameter, we can change DatetimeIndex
+        With the `tz` parameter, we can change the DatetimeIndex
         to other time zones:
 
         >>> data.tz_convert('US/Eastern')
@@ -1952,7 +1951,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                        '2014-08-01 05:00:00-04:00'],
                         dtype='datetime64[ns, US/Eastern]', freq='H')
 
-        With the `None` parameter, we can remove timezone:
+        With the `None` parameter, we can remove the timezone:
 
         >>> data.tz_convert(None)
         DatetimeIndex(['2014-08-01 07:00:00',
