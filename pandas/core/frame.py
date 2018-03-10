@@ -4892,7 +4892,7 @@ class DataFrame(NDFrame):
         args : tuple
             Positional arguments to pass to function in addition to the
             array/series.
-        kwds :
+        **kwds
             Additional keyword arguments to pass as keywords to the function.
 
         Notes
