@@ -2748,9 +2748,9 @@ class FramePlotMethods(BasePlotMethods):
 
         Parameters
         ----------
-        x : label or position, optional
+        x : label or position, default DataFrame.index
             Column to be used for categories.
-        y : label or position, optional
+        y : label or position, default All numeric columns in dataframe
             Columns to be plotted from the DataFrame.
         kwds
             Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
