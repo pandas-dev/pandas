@@ -1059,11 +1059,11 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         """
         Cast to PeriodIndex at a particular frequency.
 
-        Converts timestamps index to period.
+        Converts DatetimeIndex  to periodIndex.
 
         Parameters
         ----------
-        freq : string or pandas offset object,optional
+        freq : string or pandas offset object, optional
             One of pandas date offset string or corresponding objects.
 
         Returns
