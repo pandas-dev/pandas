@@ -4049,19 +4049,27 @@ class DataFrame(NDFrame):
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """
-        Add two DataFrame objects and do not propagate NaN values, so if for a
-        (column, time) one frame is missing a value, it will default to the
-        other frame's value (which might be NaN as well)
+        Combine with `other` DataFrame using `func` to merge columns.
+
+        Combines `self` DataFrame with `other` DataFrame using `func`
+        to merge columns. The row and column indexes of the resulting
+        DataFrame will be the union of the two. If `fill_value` is
+        specified, that value will be filled prior to the call to
+        `func`. If `overwrite` is `False`, columns in `self` that
+        do not exist in `other` will be preserved.
 
         Parameters
         ----------
         other : DataFrame
         func : function
             Function that takes two series as inputs and return a Series or a
-            scalar
-        fill_value : scalar value
+            scalar, used to merge the two dataframes column by columns
+        fill_value : scalar value, default None
+            The value to fill NaNs with prior to passing any column to the
+            merge func
         overwrite : boolean, default True
-            If True then overwrite values for common keys in the calling frame
+            If True, columns in `self` that do not exist in `other` will be
+            overwritten with NaNs
 
         Returns
         -------
@@ -4069,12 +4077,68 @@ class DataFrame(NDFrame):
 
         Examples
         --------
+        Combine using a simple function that chooses the smaller column.
+
         >>> df1 = DataFrame({'A': [0, 0], 'B': [4, 4]})
         >>> df2 = DataFrame({'A': [1, 1], 'B': [3, 3]})
-        >>> df1.combine(df2, lambda s1, s2: s1 if s1.sum() < s2.sum() else s2)
+        >>> take_smaller = lambda s1, s2: s1 if s1.sum() < s2.sum() else s2
+        >>> df1.combine(df2, take_smaller)
            A  B
         0  0  3
         1  0  3
+
+        Using `fill_value` fills Nones prior to passing the column to the
+        merge function.
+
+        >>> df1 = DataFrame({'A': [0, 0], 'B': [None, 4]})
+        >>> df2 = DataFrame({'A': [1, 1], 'B': [3, 3]})
+        >>> take_smaller = lambda s1, s2: s1 if s1.sum() < s2.sum() else s2
+        >>> df1.combine(df2, take_smaller, fill_value=-5)
+           A  B
+        0  0  -5
+        1  0  4
+
+        However, if the same element in both dataframes is None, that None
+        is preserved
+
+        >>> df1 = DataFrame({'A': [0, 0], 'B': [None, 4]})
+        >>> df2 = DataFrame({'A': [1, 1], 'B': [None, 3]})
+        >>> take_smaller = lambda s1, s2: s1 if s1.sum() < s2.sum() else s2
+        >>> df1.combine(df2, take_smaller, fill_value=-5)
+           A  B
+        0  0  NaN
+        1  0  3
+
+        Example that demonstrates the use of `overwrite` and behavior when
+        the axis differ between the dataframes.
+
+        >>> df1 = DataFrame({'A': [0, 0], 'B': [4, 4]})
+        >>> df2 = DataFrame({'B': [3, 3], 'C': [1, 1],}, index=[1, 2])
+        >>> take_smaller = lambda s1, s2: s1 if s1.sum() < s2.sum() else s2
+        >>> df1.combine(df2, take_smaller)
+           A    B    C
+        0  NaN  NaN  NaN
+        1  NaN  3.0  1.0
+        2  NaN  3.0  1.0
+
+        >>> df1.combine(df2, take_smaller, overwrite=False)
+           A    B    C
+        0  0.0  NaN  NaN
+        1  0.0  3.0  1.0
+        2  NaN  3.0  1.0
+
+        Demonstrating the preference of the passed in dataframe.
+        >>> df2.combine(df1, take_smaller)
+           A    B   C
+        0  0.0  NaN NaN
+        1  0.0  3.0 NaN
+        2  NaN  3.0 NaN
+
+        >>> df2.combine(df1, take_smaller, overwrite=False)
+           A    B   C
+        0  0.0  NaN NaN
+        1  0.0  3.0 1.0
+        2  NaN  3.0 1.0
 
         See Also
         --------
@@ -4095,7 +4159,6 @@ class DataFrame(NDFrame):
         # sorts if possible
         new_columns = this.columns.union(other.columns)
         do_fill = fill_value is not None
-
         result = {}
         for col in new_columns:
             series = this[col]
