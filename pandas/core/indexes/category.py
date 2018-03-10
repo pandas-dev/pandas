@@ -703,9 +703,12 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         CategoricalIndex(['first', 'second', 'third'], categories=['first',
                          'second', 'third'], ordered=False, dtype='category')
 
-        If a dictionary is used, if even a single category is not mapped by the
-        dictionary, the unmapped category is mapped to NA and the result is an
-        Index:
+        If the mapping is not bijective an Index is returned:
+        >>> idx.map({'a': 'first', 'b': 'second', 'c': 'first'})
+        Index(['first', 'second', 'first'], dtype='object')
+
+        If a dictionary is used, all unmapped categories are mapped to NA and
+        the result is an Index:
 
         >>> idx.map({'a': 'first', 'b': 'second'})
         Index(['first', 'second', nan], dtype='object')
