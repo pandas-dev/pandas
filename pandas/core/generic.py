@@ -1880,6 +1880,7 @@ class NDFrame(PandasObject, SelectionMixin):
             Specify the schema (if database flavor supports this). If None, use
             default schema.
         if_exists : {'fail', 'replace', 'append'}, default 'fail'
+            Accepted values:
             - fail: If table exists, do nothing.
             - replace: If table exists, drop it, recreate it, and insert data.
             - append: If table exists, insert data. Create if does not exist.
@@ -1900,6 +1901,10 @@ class NDFrame(PandasObject, SelectionMixin):
         --------
             None
 
+        References
+        --------
+        http://docs.sqlalchemy.org : Used for testing
+
         See Also
         --------
         pandas.read_sql_query : read a DataFrame from a table
@@ -1911,9 +1916,11 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> df = pd.DataFrame({'name' : ['User 1', 'User 2', 'User 3']})
         >>> # create a table from scratch with 3 rows
         >>> df.to_sql('users', con=engine, if_exists='replace')
+
         >>> df1 = pd.DataFrame({'name' : ['User 4', 'User 5']})
         >>> # 2 new rows inserted
         >>> df1.to_sql('users', con=engine, if_exists='append')
+
         >>> # table will be recreated and 5 rows inserted
         >>> df = pd.concat([df, df1], ignore_index=True)
         >>> df.to_sql('users', con=engine, if_exists='replace')
