@@ -1677,8 +1677,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     Examples
     --------
-    >>> from pandas import DataFrame, read_pickle
-    >>> original_df = DataFrame({"foo": range(5), "bar": range(5, 10)})
+    >>> original_df = pd.DataFrame({"foo": range(5), "bar": range(5, 10)})
     >>> original_df
        foo  bar
     0    0    5
@@ -1688,7 +1687,7 @@ class NDFrame(PandasObject, SelectionMixin):
     4    4    9
     >>> original_df.to_pickle("./dummy.pkl")
 
-    >>> unpickled_df = read_pickle("./dummy.pkl")
+    >>> unpickled_df = pd.read_pickle("./dummy.pkl")
     >>> unpickled_df
        foo  bar
     0    0    5
@@ -1696,6 +1695,10 @@ class NDFrame(PandasObject, SelectionMixin):
     2    2    7
     3    3    8
     4    4    9
+
+    See Also
+    --------
+    pandas.read_pickle
     """
 
     def to_json(self, path_or_buf=None, orient=None, date_format=None,
