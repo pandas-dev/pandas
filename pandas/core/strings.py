@@ -908,7 +908,8 @@ def str_findall(arr, pat, flags=0):
     pat : string
         Pattern or regular expression.
     flags : int, default 0
-        ``re`` module flags, e.g. `re.IGNORECASE`.
+        ``re`` module flags, e.g. `re.IGNORECASE` (default is 0, which means
+        no flags).
 
     Returns
     -------
@@ -931,7 +932,7 @@ def str_findall(arr, pat, flags=0):
 
     >>> s = pd.Series(['Lion', 'Monkey', 'Rabbit'])
 
-    The search for the pattern `Monkey` returns one match:
+    The search for the pattern 'Monkey' returns one match:
 
     >>> s.str.findall('Monkey')
     0          []
@@ -939,7 +940,7 @@ def str_findall(arr, pat, flags=0):
     2          []
     dtype: object
 
-    On the other hand, the search for the pattern `MONKEY` doesn't return any
+    On the other hand, the search for the pattern 'MONKEY' doesn't return any
     match:
 
     >>> s.str.findall('MONKEY')
@@ -949,7 +950,7 @@ def str_findall(arr, pat, flags=0):
     dtype: object
 
     Flags can be added to the pattern or regular expression. For instance,
-    to find the pattern `MONKEY` ignoring the case:
+    to find the pattern 'MONKEY' ignoring the case:
 
     >>> import re
     >>> s.str.findall('MONKEY', flags=re.IGNORECASE)
@@ -968,7 +969,7 @@ def str_findall(arr, pat, flags=0):
     dtype: object
 
     Regular expressions are supported too. For instance, the search for all the
-    strings ending with the word `on` is shown next:
+    strings ending with the word 'on' is shown next:
 
     >>> s.str.findall('on$')
     0    [on]
@@ -977,7 +978,7 @@ def str_findall(arr, pat, flags=0):
     dtype: object
 
     If the pattern is found more than once in the same string, then a list of
-    strings is returned:
+    multiple strings is returned:
 
     >>> s.str.findall('b')
     0        []
