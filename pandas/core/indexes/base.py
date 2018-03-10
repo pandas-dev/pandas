@@ -4017,7 +4017,6 @@ class Index(IndexOpsMixin, PandasObject):
         result = super(Index, self).unique()
         return self._shallow_copy(result)
 
-    #@Appender(base._shared_docs['drop_duplicates'] % _index_doc_kwargs)
     def drop_duplicates(self, keep='first'):
         """
         Return Index with duplicate values removed.
