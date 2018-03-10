@@ -2580,8 +2580,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
               fill_value=None, method=None, limit=None, fill_axis=0,
               broadcast_axis=None):
         """
-        Align two Series on their axes with the
-        specified join method for each axis Index.
+        Align two Series on their axes with the specified join method for each
+        axis Index.
 
         The result is a tuple containing two Series with the same indexes.
         Using `join`, one can specifiy if the union or intersection of the
@@ -2597,21 +2597,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             The Series object to align with.
         join : {'outer', 'inner', 'left', 'right'}, default 'outer'
             How to aggregate the indexes.
-        axis : allowed axis of the other object, default None
+        axis : axis : {0 or 'index', 1 or 'columns', None}, default None
             Align on index (0), columns (1), or both (None).
-        level : int or level name, default None
+        level : int or level name, optional
             Broadcast across a level, matching Index values on the
             passed MultiIndex level.
-        copy : boolean, default True
-            Always returns new objects. If copy=False and no reindexing is
+        copy : bool, default True
+            Always returns new objects. If False and no reindexing is
             required then original objects are returned.
         fill_value : scalar, default np.NaN
             Value to use for missing values. Defaults to NaN, but can be any
             "compatible" value.
         method : str, default None
-            Method to use for filling holes in reindexed Series
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap.
+            Method to use for filling holes in reindexed Series:
+                - pad / ffill: propagate last valid observation forward to next valid
+                - backfill / bfill: use next valid observation to fill gap.
         limit : int, default None
             If method is specified, this is the maximum number of consecutive
             NaN values to forward/backward fill. In other words, if there is
@@ -2621,7 +2621,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             filled. Must be greater than 0 if not None.
         fill_axis : {0, 'index'}, default 0
             Filling axis, method and limit.
-        broadcast_axis : {0, 'index'}, default None
+        broadcast_axis : {0, 'index'}, optional
             Broadcast values along this axis, if aligning two objects of
             different dimensions.
 
@@ -2637,9 +2637,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Examples
         --------
         >>> weights = pd.Series([2., 5., 999.], index=['ant', 'beetle', 'cow'],
-        ...                         name='weigth')
+        ...                      name='weigth')
         >>> height = pd.Series([0.1, 2, 34], index=['ant', 'cow', 'duck'],
-        ...                         name='weigth')
+        ...                      name='weigth')
 
         >>> weights.align(height)
         (ant         2.0
