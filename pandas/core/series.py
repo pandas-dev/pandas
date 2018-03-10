@@ -2765,28 +2765,54 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self.reindex(index=labels, **kwargs)
 
     def memory_usage(self, index=True, deep=False):
-        """Memory usage of the Series
+        """
+        Return the memory usage of the Series.
+
+        The memory usage can optionally include the contribution of
+        the index and of elements of `object` dtype.
 
         Parameters
         ----------
-        index : bool
-            Specifies whether to include memory usage of Series index
-        deep : bool
-            Introspect the data deeply, interrogate
-            `object` dtypes for system-level memory consumption
+        index : bool, default True
+            Specifies whether to include the memory usage of the Series index.
+        deep : bool, default False
+            If True, introspect the data deeply by interrogating
+            `object` dtypes for system-level memory consumption, and include
+            it in the returned value.
 
         Returns
         -------
-        scalar bytes of memory consumed
-
-        Notes
-        -----
-        Memory usage does not include memory consumed by elements that
-        are not components of the array if deep=False
+        int
+            Bytes of memory consumed.
 
         See Also
         --------
-        numpy.ndarray.nbytes
+        numpy.ndarray.nbytes : Total bytes consumed by the elements of the
+            array.
+        DataFrame.memory_usage : Bytes consumed by a DataFrame.
+
+        Examples
+        --------
+
+        >>> s = pd.Series(range(3))
+        >>> s.memory_usage()
+        104
+
+        Not including the index gives the size of the rest of the data, which
+        is necessarily smaller:
+
+        >>> s.memory_usage(index=False)
+        24
+
+        The memory footprint of `object` values is ignored by default:
+
+        >>> s = pd.Series(["a", "b"])
+        >>> s.values
+        array(['a', 'b'], dtype=object)
+        >>> s.memory_usage()
+        96
+        >>> s.memory_usage(deep=True)
+        212
         """
         v = super(Series, self).memory_usage(deep=deep)
         if index:
@@ -2814,20 +2840,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def isin(self, values):
         """
-        Return a boolean :class:`~pandas.Series` showing whether each element
-        in the :class:`~pandas.Series` is exactly contained in the passed
-        sequence of ``values``.
+        Check whether `values` are contained in Series.
+
+        Return a boolean Series showing whether each element in the Series
+        matches an element in the passed sequence of `values` exactly.
 
         Parameters
         ----------
         values : set or list-like
             The sequence of values to test. Passing in a single string will
             raise a ``TypeError``. Instead, turn a single string into a
-            ``list`` of one element.
+            list of one element.
 
             .. versionadded:: 0.18.1
 
-            Support for values as a set
+              Support for values as a set.
 
         Returns
         -------
@@ -2836,31 +2863,37 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Raises
         ------
         TypeError
-          * If ``values`` is a string
+          * If `values` is a string
 
         See Also
         --------
-        pandas.DataFrame.isin
+        pandas.DataFrame.isin : equivalent method on DataFrame
 
         Examples
         --------
 
-        >>> s = pd.Series(list('abc'))
-        >>> s.isin(['a', 'c', 'e'])
+        >>> s = pd.Series(['lama', 'cow', 'lama', 'beetle', 'lama',
+        ...                'hippo'], name='animal')
+        >>> s.isin(['cow', 'lama'])
+        0     True
+        1     True
+        2     True
+        3    False
+        4     True
+        5    False
+        Name: animal, dtype: bool
+
+        Passing a single string as ``s.isin('lama')`` will raise an error. Use
+        a list of one element instead:
+
+        >>> s.isin(['lama'])
         0     True
         1    False
         2     True
-        dtype: bool
-
-        Passing a single string as ``s.isin('a')`` will raise an error. Use
-        a list of one element instead:
-
-        >>> s.isin(['a'])
-        0     True
-        1    False
-        2    False
-        dtype: bool
-
+        3    False
+        4     True
+        5    False
+        Name: animal, dtype: bool
         """
         result = algorithms.isin(com._values_from_object(self), values)
         return self._constructor(result, index=self.index).__finalize__(self)
