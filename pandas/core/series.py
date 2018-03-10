@@ -2745,21 +2745,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def isin(self, values):
         """
-        Check whether ``values`` are contained in Series.
+        Check whether `values` are contained in Series.
 
         Return a boolean Series showing whether each element in the Series
-        matches an element in the passed sequence of ``values`` exactly.
+        matches an element in the passed sequence of `values` exactly.
 
         Parameters
         ----------
         values : set or list-like
             The sequence of values to test. Passing in a single string will
             raise a ``TypeError``. Instead, turn a single string into a
-            ``list`` of one element.
+            list of one element.
 
             .. versionadded:: 0.18.1
 
-            Support for values as a set.
+              Support for values as a set.
 
         Returns
         -------
@@ -2768,7 +2768,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Raises
         ------
         TypeError
-          * If ``values`` is a string
+          * If `values` is a string
 
         See Also
         --------
