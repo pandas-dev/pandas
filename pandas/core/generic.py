@@ -1937,26 +1937,21 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        excel : bool
-            Default setting for this argument is True.
-            If True, use the provided separator, writing in a csv format for
+        excel : bool, default True
+            - True, use the provided separator, writing in a csv format for
             allowing easy pasting into excel.
-            If False, write a string representation of the object to the
+            - False, write a string representation of the object to the
             clipboard.
         sep : str, default tab
             Field delimiter.
-        kwargs : optional
-            These parameters will be passed to either
-            :py:meth:`pandas.DataFrame.to_csv`
-            or :py:meth:`pandas.Series.to_csv` methods depending on the
-            Object type.
+        kwargs : optional -> **kwargs
+            These parameters will be passed to meth:`pandas.DataFrame.to_csv`
 
         See Also
         --------
-        pandas.core.frame.DataFrame.to_csv : Write a DataFrame to a
-            comma-separated values (csv) file.
-        pandas.core.series.Series.to_csv : Write a Series to a
-            comma-separated values (csv) file.
+        DataFrame.to_csv : Write a DataFrame to a comma-separated values
+        (csv) file.
+        read_clipboard : Read text from clipboard and pass to read_table.
 
         Notes
         -----
@@ -1972,8 +1967,8 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=['A', 'B', 'C'])
         >>> df.to_clipboard()
 
-        We can omit the the index by passing the keyword 'index' and setting
-         it to false.
+        We can omit the the index by passing the keyword `index` and setting
+        it to false.
 
         >>> df.to_clipboard(index=False)
         """
