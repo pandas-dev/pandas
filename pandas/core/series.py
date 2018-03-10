@@ -1320,8 +1320,80 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def drop_duplicates(self, keep='first', inplace=False):
         return super(Series, self).drop_duplicates(keep=keep, inplace=inplace)
 
-    @Appender(base._shared_docs['duplicated'] % _shared_doc_kwargs)
     def duplicated(self, keep='first'):
+        """
+        Indicate duplicate Series values 
+
+        Duplicated values are indicated as ``True`` values in the resulting
+        Series. Either all duplicates, all except the first or all except the 
+        last occurrence of duplicates can be indicated.
+
+        Parameters
+        ----------
+        keep : {'first', 'last', False}, default 'first'
+            - 'first' : Mark duplicates as ``True`` except for the first
+              occurrence.
+            - 'last' : Mark duplicates as ``True`` except for the last 
+              occurrence.
+            - ``False`` : Mark all duplicates as ``True``.
+        
+        Examples
+        --------
+        By default, for each set of duplicated values, the first occurrence is 
+        set on False and all others on True:
+
+        >>> animals = pd.Series(['lama', 'cow', 'lama', 
+        ...                      'beetle', 'lama', 'hippo'])
+        >>> animals.duplicated()
+        0    False
+        1    False
+        2     True
+        3    False
+        4     True
+        5    False
+        dtype: bool
+
+        which is equivalent to 
+
+        >>> animals.duplicated(keep='first')
+        0    False
+        1    False
+        2     True
+        3    False
+        4     True
+        5    False
+        dtype: bool
+
+        By using 'last', the last occurrence of each set of duplicated values is 
+        set on False and all others on True:
+
+        >>> animals.duplicated(keep='last')
+        0     True
+        1    False
+        2     True
+        3    False
+        4    False
+        5    False
+
+        By setting keep on ``False``, all duplicates are True:
+        
+        >>> animals.duplicated(keep=False)
+        0     True
+        1    False
+        2     True
+        3    False
+        4     True
+        5    False
+        dtype: bool
+        
+        Returns
+        -------
+        pandas.core.series.Series
+        
+        See Also
+        --------
+        pandas.Index.duplicated : equivalent method on pandas.Index
+        """
         return super(Series, self).duplicated(keep=keep)
 
     def idxmin(self, axis=None, skipna=True, *args, **kwargs):
