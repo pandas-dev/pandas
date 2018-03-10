@@ -4819,7 +4819,7 @@ class DataFrame(NDFrame):
     def apply(self, func, axis=0, broadcast=None, raw=False, reduce=None,
               result_type=None, args=(), **kwds):
         """
-        Apply function along an axis of the DataFrame.
+        Apply a function along an axis of the DataFrame.
 
         Objects passed to functions are Series objects having index
         either the DataFrame's index (axis=0) or the columns (axis=1).
@@ -4831,8 +4831,8 @@ class DataFrame(NDFrame):
         func : function
             Function to apply to each column/row.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            Axis along which the function is applied
-            * 0 or 'index': apply function to each column
+            Axis along which the function is applied.
+            * 0 or 'index': apply function to each column.
             * 1 or 'columns': apply function to each row.
         broadcast : boolean, optional
             For aggregation functions, return object of same size with values
@@ -4880,7 +4880,7 @@ class DataFrame(NDFrame):
             Positional arguments to pass to function in addition to the
             array/series.
 
-        kwds : dictionary
+        kwds :
             Additional keyword arguments will be passed as keywords to
             the function.
 
