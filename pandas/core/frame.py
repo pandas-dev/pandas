@@ -1815,7 +1815,7 @@ class DataFrame(NDFrame):
         """
         Concise summary of a DataFrame.
 
-        This method shows information about DataFrame type of index, columns
+        This method prints information about DataFrame: index dtype, columns
         dtypes, non-null values and memory usage.
 
         Parameters
@@ -1835,7 +1835,11 @@ class DataFrame(NDFrame):
             the `display.memory_usage` setting. True or False overrides
             the `display.memory_usage` setting. A value of 'deep' is equivalent
             of True, with deep introspection. Memory usage is shown in
-            human-readable units (base-2 representation).
+            human-readable units (base-2 representation). Without deep instrospection
+            a memory estimation is made based in column dtype and number of rows
+            assuming values consume the same memory amount for corresponding dtypes.
+            With deep memory introspection, a real memory usage calculation is performed
+            at the cost of computational resources.
         null_counts : boolean, default None
             Whether to show the non-null counts
 
@@ -1847,7 +1851,12 @@ class DataFrame(NDFrame):
         Returns
         -------
         None: NoneType
-            This method outputs a summary of a DataFrame and returns None.
+            This method prints a summary of a DataFrame and returns None.
+
+        See Also
+        --------
+
+        describe: Generate descriptive statistics of DataFrame columns.
 
         Examples
         --------
@@ -1880,24 +1889,36 @@ class DataFrame(NDFrame):
         dtypes: float64(1), int64(1), object(1)
         memory usage: 200.0+ bytes
 
-        >>> file = open("df_info.txt", "w", encoding="utf-8")
-        >>> df.info(buf=file)
-        >>> file.close()
+        >>> import io
+        >>> buffer = io.StringIO()
+        >>> df.info(buf=buffer)
+        >>> s = buffer.getvalue()
+        >>> with open("df_info.txt", "w", encoding="utf-8") as f:
+        ...     f.write(s)
+        260
 
-        >>> df.drop('text_col', axis=1, inplace=True)
-        >>> df.info(memory_usage='Deep')
+        >>> random_strings_array = np.random.choice(['a', 'b', 'c'], 10 ** 6)
+        >>> df = pd.DataFrame({'column_1': np.random.choice(['a', 'b', 'c'], 10 ** 6),
+        ...                    'column_2': np.random.choice(['a', 'b', 'c'], 10 ** 6),
+        ...                    'column_3': np.random.choice(['a', 'b', 'c'], 10 ** 6)})
+        >>> df.info()
         <class 'pandas.core.frame.DataFrame'>
-        RangeIndex: 5 entries, 0 to 4
-        Data columns (total 2 columns):
-        int_col      5 non-null int64
-        float_col    5 non-null float64
-        dtypes: float64(1), int64(1)
-        memory usage: 160.0 bytes
-
-        See Also
-        --------
-
-        describe: Generate descriptive statistics of DataFrame columns.
+        RangeIndex: 1000000 entries, 0 to 999999
+        Data columns (total 3 columns):
+        column_1    1000000 non-null object
+        column_2    1000000 non-null object
+        column_3    1000000 non-null object
+        dtypes: object(3)
+        memory usage: 22.9+ MB
+        >>> df.info(memory_usage='deep')
+        <class 'pandas.core.frame.DataFrame'>
+        RangeIndex: 1000000 entries, 0 to 999999
+        Data columns (total 3 columns):
+        column_1    1000000 non-null object
+        column_2    1000000 non-null object
+        column_3    1000000 non-null object
+        dtypes: object(3)
+        memory usage: 188.8 MB
         """
         from pandas.io.formats.format import _put_lines
 
