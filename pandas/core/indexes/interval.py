@@ -148,13 +148,17 @@ class IntervalIndex(IntervalMixin, Index):
     closed : {'left', 'right', 'both', 'neither'}, default 'right'
         Whether the intervals are closed on the left-side, right-side, both or
         neither.
-    name : object, optional
-        Name to be stored in the index.
-    copy : boolean, default False
-        Copy the meta-data.
     dtype : dtype or None, default None
         If None, dtype will be inferred.
-
+    copy : boolean, default False
+        Copy the meta-data.
+    name : object, optional
+        Name to be stored in the index.
+    fastpath : boolean, default False
+        Create IntervalIndex without verifying integrity.
+    verify_integrity : boolean, default True
+        Verify that the IntervalIndex is valid.
+        
         ..versionadded:: 0.23.0.
 
     Attributes
