@@ -7810,7 +7810,7 @@ Return whether all elements are True over requested axis.
 
 Returns True if all elements along a dataframe
 axis are non-zero, not-empty or not-False.
-Also note that a series consisting of different data 
+Also note that a series consisting of different data
 types returns the first occurence of the non-zero, not-empty
 or not-False element."""
 
@@ -7824,7 +7824,7 @@ First create a pandas dataframe::
        col1   col2
     0  True   True
     1  True  False
-    
+
 Default behaviour checks if column-wise values all return True
     >>> df.all()
     col1     True
@@ -8025,7 +8025,8 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
     return set_function_name(cum_func, name, cls)
 
 
-def _make_logical_function(cls, name, name1, name2, axis_descr, desc, f, examples, see_also):
+def _make_logical_function(cls, name, name1, name2, axis_descr, desc, f,
+                           examples, see_also):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
                   axis_descr=axis_descr, examples=examples, see_also=see_also)
     @Appender(_bool_doc)
