@@ -160,7 +160,9 @@ class TimedeltaProperties(Properties):
         """
         Return array of Timedeltas as `datetime.timedelta`.
 
-        Return an array of the Timedeltas in `datetime.timedelta` format with
+        Python's standard `datetime` library uses a different representation to
+        what pandas for differences between times. This method converts a Series
+        of pandas Timedeltas to `datetime.timedelta` format with
         the same length as the original Series.
 
         Returns
@@ -178,10 +180,15 @@ class TimedeltaProperties(Properties):
         3   3 days
         4   4 days
         dtype: timedelta64[ns]
+
         >>> s.dt.to_pytimedelta()
         array([datetime.timedelta(0), datetime.timedelta(1),
                datetime.timedelta(2), datetime.timedelta(3),
                datetime.timedelta(4)], dtype=object)
+
+        See Also
+        --------
+        datetime.timedelta
         """
         return self._get_values().to_pytimedelta()
 
