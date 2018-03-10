@@ -78,7 +78,7 @@ import pandas.core.algorithms as algorithms
 from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
                            OrderedDict, raise_with_traceback)
 from pandas import compat
-from pandas.compat import PY36
+from pandas.compat import PY36, cPickle as pkl
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (Appender, Substitution,
                                      rewrite_axis_style_signature)
@@ -1601,6 +1601,12 @@ class DataFrame(NDFrame):
         formatter.write(excel_writer, sheet_name=sheet_name, startrow=startrow,
                         startcol=startcol, freeze_panes=freeze_panes,
                         engine=engine)
+
+    @Appender(_shared_docs['to_pickle'] % _shared_doc_kwargs)
+    def to_pickle(self, path, compression='infer',
+                  protocol=pkl.HIGHEST_PROTOCOL):
+        return super(DataFrame, self).to_pickle(path, compression=compression,
+                                                protocol=protocol)
 
     def to_stata(self, fname, convert_dates=None, write_index=True,
                  encoding="latin-1", byteorder=None, time_stamp=None,
