@@ -1908,7 +1908,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         When using DatetimeIndex providing with timezone this method
         converts tz(timezone)-aware DatetimeIndex from one timezone
-        to another using pytz/dateutil.
+        to another.
 
         Parameters
         ----------
@@ -1934,32 +1934,31 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         Examples
         --------
-        >>> didx = pd.DatetimeIndex
-        (start='2014-08-01 09:00', freq='H', periods=10, tz='Europe/Berlin')
+        >>> data=pd.DatetimeIndex(start='2014-08-01 09:00',
+        ...                       freq='H', periods=3, tz='Europe/Berlin')
 
-        >>> didx
-        DatetimeIndex(['2014-08-01 09:00:00+02:00','2014-08-01 10:00:00+02:00',
-        '2014-08-01 11:00:00+02:00', '2014-08-01 12:00:00+02:00',
-        '2014-08-01 13:00:00+02:00', '2014-08-01 14:00:00+02:00',
-        '2014-08-01 15:00:00+02:00', '2014-08-01 16:00:00+02:00',
-        '2014-08-01 17:00:00+02:00', '2014-08-01 18:00:00+02:00'],
-        dtype='datetime64[ns, Europe/Berlin]', freq='H')
+        >>> data
+        DatetimeIndex(['2014-08-01 09:00:00+02:00',
+                       '2014-08-01 10:00:00+02:00',
+                       '2014-08-01 11:00:00+02:00'],
+                        dtype='datetime64[ns, Europe/Berlin]', freq='H')
 
-        >>> didx.tz_convert('US/Eastern')
-        DatetimeIndex(['2014-08-01 03:00:00-04:00','2014-08-01 04:00:00-04:00',
-        '2014-08-01 05:00:00-04:00', '2014-08-01 06:00:00-04:00',
-        '2014-08-01 07:00:00-04:00', '2014-08-01 08:00:00-04:00',
-        '2014-08-01 09:00:00-04:00', '2014-08-01 10:00:00-04:00',
-        '2014-08-01 11:00:00-04:00', '2014-08-01 12:00:00-04:00'],
-        dtype='datetime64[ns, US/Eastern]', freq='H')
+        With the `tz` parameter, we can change DatetimeIndex
+        to other time zones:
 
-        >>> didx.tz_convert(None)
-        DatetimeIndex(['2014-08-01 07:00:00','2014-08-01 08:00:00',
-        '2014-08-01 09:00:00', '2014-08-01 10:00:00',
-        '2014-08-01 11:00:00', '2014-08-01 12:00:00',
-        '2014-08-01 13:00:00', '2014-08-01 14:00:00',
-        '2014-08-01 15:00:00', '2014-08-01 16:00:00'],
-        dtype='datetime64[ns]', freq='H')
+        >>> data.tz_convert('US/Eastern')
+        DatetimeIndex(['2014-08-01 03:00:00-04:00',
+                       '2014-08-01 04:00:00-04:00',
+                       '2014-08-01 05:00:00-04:00'],
+                        dtype='datetime64[ns, US/Eastern]', freq='H')
+
+        With the `None` parameter, we can remove timezone:
+
+        >>> data.tz_convert(None)
+        DatetimeIndex(['2014-08-01 07:00:00',
+                       '2014-08-01 08:00:00',
+                       '2014-08-01 09:00:00'],
+                        dtype='datetime64[ns]', freq='H')
         """
         tz = timezones.maybe_get_tz(tz)
 
