@@ -948,8 +948,7 @@ class DataFrame(NDFrame):
 
         >>>  ser_A.dot(ser_B)
         22
-
-                """
+        """
         if isinstance(other, (Series, DataFrame)):
             common = self.columns.union(other.index)
             if (len(common) > len(self.columns) or
