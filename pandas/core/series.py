@@ -2745,9 +2745,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def isin(self, values):
         """
-        Return a boolean :class:`~pandas.Series` showing whether each element
-        in the :class:`~pandas.Series` is exactly contained in the passed
-        sequence of ``values``.
+        Return a boolean ``Series`` showing whether each element in the
+        ``Series`` is exactly contained in the passed sequence of ``values``.
 
         Parameters
         ----------
@@ -2758,7 +2757,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             .. versionadded:: 0.18.1
 
-            Support for values as a set
+            Support for values as a set.
 
         Returns
         -------
@@ -2771,7 +2770,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        pandas.DataFrame.isin
+        pandas.DataFrame.isin : equivalent method on DataFrame
 
         Examples
         --------
@@ -2791,7 +2790,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         1    False
         2    False
         dtype: bool
-
         """
         result = algorithms.isin(com._values_from_object(self), values)
         return self._constructor(result, index=self.index).__finalize__(self)
