@@ -4345,7 +4345,7 @@ class DataFrame(NDFrame):
 
         Reshape data (produce a "pivot" table) based on column values. Uses
         unique values from index / columns to form axes of the resulting
-        DataFrame. This function don't support data aggregation, multiple
+        DataFrame. This function does not support data aggregation, multiple
         values will result in hierarchically indexed columns.
 
         Parameters
