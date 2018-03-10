@@ -4026,7 +4026,8 @@ class Index(IndexOpsMixin, PandasObject):
         Indicate duplicate index values 
 
         Duplicated values are indicated as ``True`` values in the resulting
-        array.
+        array. Either all duplicates, all except the first or all except the 
+        last occurrence of duplicates can be indicated.
 
         Parameters
         ----------
