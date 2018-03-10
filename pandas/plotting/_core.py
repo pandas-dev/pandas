@@ -2790,7 +2790,7 @@ class FramePlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : matplotlib.AxesSubplot or np.array of them.
 
         See Also
         --------
