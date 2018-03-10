@@ -1903,23 +1903,28 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.io.sql.to_sql : this function will be called.
+        pandas.read_sql_query : read a DataFrame from a table
 
         Examples
         --------
         >>> from sqlalchemy import create_engine
         >>> engine = create_engine('sqlite:///example.db', echo=False)
-        >>> gen_names = lambda ids: ["User" + str(x) for x in ids]
-        >>> gen_users = lambda ids: {"id": ids, "name" : gen_names(ids)}
-        >>> df = pd.DataFrame(gen_users(list(range(3))))
+        >>> df = pd.DataFrame({'name' : ['User 1', 'User 2', 'User 3']})
         >>> # create a table from scratch with 3 rows
         >>> df.to_sql('users', con=engine, if_exists='replace')
-        >>> df1 = pd.DataFrame(gen_users(list(range(3, 5))))
+        >>> df1 = pd.DataFrame({'name' : ['User 4', 'User 5']})
         >>> # 2 new rows inserted
         >>> df1.to_sql('users', con=engine, if_exists='append')
         >>> # table will be recreated and 5 rows inserted
         >>> df = pd.concat([df, df1], ignore_index=True)
         >>> df.to_sql('users', con=engine, if_exists='replace')
+        >>> pd.read_sql_query("select * from users",con=engine)
+           index    name
+        0      0  User 1
+        1      1  User 2
+        2      2  User 3
+        3      3  User 4
+        4      4  User 5
         """
         from pandas.io import sql
         sql.to_sql(self, name, con, schema=schema, if_exists=if_exists,
