@@ -3961,54 +3961,6 @@ class NDFrame(PandasObject, SelectionMixin):
     aggregated : %(klass)s
     """)
 
-    _shared_docs['transform'] = ("""
-    Call function producing a like-indexed %(klass)s
-    and return a %(klass)s with the transformed values
-
-    .. versionadded:: 0.20.0
-
-    Parameters
-    ----------
-    func : callable, string, dictionary, or list of string/callables
-        To apply to column
-
-        Accepted Combinations are:
-
-        - string function name
-        - function
-        - list of functions
-        - dict of column names -> functions (or list of functions)
-
-    Returns
-    -------
-    transformed : %(klass)s
-
-    Examples
-    --------
-    >>> df = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'],
-    ...                   index=pd.date_range('1/1/2000', periods=10))
-    df.iloc[3:7] = np.nan
-
-    >>> df.transform(lambda x: (x - x.mean()) / x.std())
-                       A         B         C
-    2000-01-01  0.579457  1.236184  0.123424
-    2000-01-02  0.370357 -0.605875 -1.231325
-    2000-01-03  1.455756 -0.277446  0.288967
-    2000-01-04       NaN       NaN       NaN
-    2000-01-05       NaN       NaN       NaN
-    2000-01-06       NaN       NaN       NaN
-    2000-01-07       NaN       NaN       NaN
-    2000-01-08 -0.498658  1.274522  1.642524
-    2000-01-09 -0.540524 -1.012676 -0.828968
-    2000-01-10 -1.366388 -0.614710  0.005378
-
-    See also
-    --------
-    pandas.%(klass)s.aggregate
-    pandas.%(klass)s.apply
-
-    """)
-
     # ----------------------------------------------------------------------
     # Attribute access
 
@@ -4126,7 +4078,7 @@ class NDFrame(PandasObject, SelectionMixin):
         if inplace:
             self._consolidate_inplace()
         else:
-            f = lambda: self._data.consolidate()
+            def f(): return self._data.consolidate()
             cons_data = self._protect_consolidate(f)
             return self._constructor(cons_data).__finalize__(self)
 
@@ -4144,17 +4096,17 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @property
     def _is_mixed_type(self):
-        f = lambda: self._data.is_mixed_type
+        def f(): return self._data.is_mixed_type
         return self._protect_consolidate(f)
 
     @property
     def _is_numeric_mixed_type(self):
-        f = lambda: self._data.is_numeric_mixed_type
+        def f(): return self._data.is_numeric_mixed_type
         return self._protect_consolidate(f)
 
     @property
     def _is_datelike_mixed_type(self):
-        f = lambda: self._data.is_datelike_mixed_type
+        def f(): return self._data.is_datelike_mixed_type
         return self._protect_consolidate(f)
 
     def _check_inplace_setting(self, value):
@@ -7511,7 +7463,8 @@ class NDFrame(PandasObject, SelectionMixin):
             return getattr(grouped, name)(**kwargs)
         axis = self._get_axis_number(axis)
         method = getattr(type(self), name)
-        applyf = lambda x: method(x, axis=axis, skipna=skipna, **kwargs)
+
+        def applyf(x): return method(x, axis=axis, skipna=skipna, **kwargs)
         return grouped.aggregate(applyf)
 
     @classmethod
@@ -7659,6 +7612,203 @@ class NDFrame(PandasObject, SelectionMixin):
             minimum value in the object. This is the equivalent of the
             ``numpy.ndarray`` method ``ptp``.""",
             nanptp)
+
+    _shared_docs['transform'] = ("""
+    Call function on a Series resp. DataFrame
+    producing a like-indexed Series resp.
+    DataFrame with the transformed values.
+    
+    .. versionadded:: 0.20.0
+
+    Parameters
+    ----------
+    func : Function, dictionary, or list of functions
+
+        Function: Function to apply to the DataFrame/Series.
+
+        ``args``, and ``kwargs`` are passed into ``func``.
+
+        Accepted Combinations are:
+
+        - function
+        - list of functions
+        - dict of column names -> functions (or list of functions).
+
+    args : Iterable, optional
+        Positional arguments passed into ``func``.
+
+        Example of accepted value:
+
+        - axis: 0 (default) to apply func to columns
+
+                 1 to apply func to rows.
+
+    kwargs : Mapping, optional
+        A dictionary of keyword arguments passed into ``func``.
+
+    Returns
+    -------
+    transformed : Series or DataFrame (same as input)
+
+    Examples
+    --------
+    >>> df = pd.DataFrame(np.arange(30).reshape(10, 3), columns=['A', 'B', 'C'],
+    ...                   index=pd.date_range('1/1/2000', periods=10))
+    >>> df.iloc[3:7] = np.nan
+    >>> df
+                A     B     C
+    2000-01-01   0.0   1.0   2.0
+    2000-01-02   3.0   4.0   5.0
+    2000-01-03   6.0   7.0   8.0
+    2000-01-04   NaN   NaN   NaN
+    2000-01-05   NaN   NaN   NaN
+    2000-01-06   NaN   NaN   NaN
+    2000-01-07   NaN   NaN   NaN
+    2000-01-08  21.0  22.0  23.0
+    2000-01-09  24.0  25.0  26.0
+    2000-01-10  27.0  28.0  29.0
+
+    >>> df.transform(lambda x: (x - x.mean()) / x.std())
+                A         B         C
+    2000-01-01 -1.143001 -1.143001 -1.143001
+    2000-01-02 -0.889001 -0.889001 -0.889001
+    2000-01-03 -0.635001 -0.635001 -0.635001
+    2000-01-04       NaN       NaN       NaN
+    2000-01-05       NaN       NaN       NaN
+    2000-01-06       NaN       NaN       NaN
+    2000-01-07       NaN       NaN       NaN
+    2000-01-08  0.635001  0.635001  0.635001
+    2000-01-09  0.889001  0.889001  0.889001
+    2000-01-10  1.143001  1.143001  1.143001
+
+    >>> df.transform(lambda x: (x - x.mean()) / x.std(), axis=1)
+                A    B    C
+    2000-01-01 -1.0  0.0  1.0
+    2000-01-02 -1.0  0.0  1.0
+    2000-01-03 -1.0  0.0  1.0
+    2000-01-04  NaN  NaN  NaN
+    2000-01-05  NaN  NaN  NaN
+    2000-01-06  NaN  NaN  NaN
+    2000-01-07  NaN  NaN  NaN
+    2000-01-08 -1.0  0.0  1.0
+    2000-01-09 -1.0  0.0  1.0
+    2000-01-10 -1.0  0.0  1.0
+
+    >>> def f(s):
+    ...     "input is a Series"
+    ...     i = np.arange(s.size)
+    ...     return s + i
+
+    >>> df.transform(f)
+                A     B     C
+    2000-01-01   0.0   1.0   2.0
+    2000-01-02   4.0   5.0   6.0
+    2000-01-03   8.0   9.0  10.0
+    2000-01-04   NaN   NaN   NaN
+    2000-01-05   NaN   NaN   NaN
+    2000-01-06   NaN   NaN   NaN
+    2000-01-07   NaN   NaN   NaN
+    2000-01-08  28.0  29.0  30.0
+    2000-01-09  32.0  33.0  34.0
+    2000-01-10  36.0  37.0  38.0
+
+    >>> df.transform(f, axis=1)
+                A     B     C
+    2000-01-01   0.0   2.0   4.0
+    2000-01-02   3.0   5.0   7.0
+    2000-01-03   6.0   8.0  10.0
+    2000-01-04   NaN   NaN   NaN
+    2000-01-05   NaN   NaN   NaN
+    2000-01-06   NaN   NaN   NaN
+    2000-01-07   NaN   NaN   NaN
+    2000-01-08  21.0  23.0  25.0
+    2000-01-09  24.0  26.0  28.0
+    2000-01-10  27.0  29.0  31.0
+
+    >>> def log_T(s):
+    ...     return np.log(10 + s)
+    >>> def normalize_T(s):
+    ...     return (s - s.mean()) / s.std()
+
+    >>> dic = {
+    ...     'A': lambda x: x+1,
+    ...     'B': lambda x: x+2,
+    ... }
+    >>> df.transform(dic)
+               A     B
+    2000-01-01   1.0   3.0
+    2000-01-02   4.0   6.0
+    2000-01-03   7.0   9.0
+    2000-01-04   NaN   NaN
+    2000-01-05   NaN   NaN
+    2000-01-06   NaN   NaN
+    2000-01-07   NaN   NaN
+    2000-01-08  22.0  24.0
+    2000-01-09  25.0  27.0
+    2000-01-10  28.0  30.0
+
+    >>> dic = {'B': [log_T, normalize_T]}
+    >>> df.transform(dic)
+                    B
+                log_T normalize_T
+    2000-01-01  2.397895   -1.143001
+    2000-01-02  2.639057   -0.889001
+    2000-01-03  2.833213   -0.635001
+    2000-01-04       NaN         NaN
+    2000-01-05       NaN         NaN
+    2000-01-06       NaN         NaN
+    2000-01-07       NaN         NaN
+    2000-01-08  3.465736    0.635001
+    2000-01-09  3.555348    0.889001
+    2000-01-10  3.637586    1.143001
+
+    >>> df.transform([log_T, normalize_T])
+                    A                     B                     C            
+                log_T normalize_T     log_T normalize_T     log_T normalize_T
+    2000-01-01  2.302585   -1.143001  2.397895   -1.143001  2.484907   -1.143001
+    2000-01-02  2.564949   -0.889001  2.639057   -0.889001  2.708050   -0.889001
+    2000-01-03  2.772589   -0.635001  2.833213   -0.635001  2.890372   -0.635001
+    2000-01-04       NaN         NaN       NaN         NaN       NaN         NaN
+    2000-01-05       NaN         NaN       NaN         NaN       NaN         NaN
+    2000-01-06       NaN         NaN       NaN         NaN       NaN         NaN
+    2000-01-07       NaN         NaN       NaN         NaN       NaN         NaN
+    2000-01-08  3.433987    0.635001  3.465736    0.635001  3.496508    0.635001
+    2000-01-09  3.526361    0.889001  3.555348    0.889001  3.583519    0.889001
+    2000-01-10  3.610918    1.143001  3.637586    1.143001  3.663562    1.143001
+
+    >>> s = pd.Series(np.sin([3*x for x in range(10)]), name='A',
+    ...               index=pd.date_range('1/1/2000', periods=10))
+    >>> s
+    2000-01-01    0.000000
+    2000-01-02    0.141120
+    2000-01-03   -0.279415
+    2000-01-04    0.412118
+    2000-01-05   -0.536573
+    2000-01-06    0.650288
+    2000-01-07   -0.750987
+    2000-01-08    0.836656
+    2000-01-09   -0.905578
+    2000-01-10    0.956376
+    Freq: D, Name: A, dtype: float64
+
+    >>> s.transform(lambda x: (x - x.mean()) / x.std())
+    2000-01-01   -0.079098
+    2000-01-02    0.133921
+    2000-01-03   -0.500873
+    2000-01-04    0.542991
+    2000-01-05   -0.889050
+    2000-01-06    0.902506
+    2000-01-07   -1.212706
+    2000-01-08    1.183826
+    2000-01-09   -1.446060
+    2000-01-10    1.364543
+    Freq: D, Name: A, dtype: float64
+
+    See also
+    --------
+    pandas.DataFrame.aggregate : Perform aggregate type of operations.
+    pandas.DataFrame.apply : Apply general functions.
+    """)
 
     @classmethod
     def _add_series_or_dataframe_operations(cls):
