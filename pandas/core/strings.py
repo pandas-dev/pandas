@@ -633,21 +633,22 @@ def _str_extract_frame(arr, pat, flags=0):
 
 def str_extract(arr, pat, flags=0, expand=True):
     r"""
+    Return the match object corresponding to regex `pat`.
+
     For each subject string in the Series, extract groups from the
-    first match of regular expression pat.
+    first match of regular expression `pat`.
 
     Parameters
     ----------
     pat : string
-        Regular expression pattern with capturing groups
+        Regular expression pattern with capturing groups.
     flags : int, default 0 (no flags)
-        re module flags, e.g. re.IGNORECASE
+        Re module flags, e.g. re.IGNORECASE.
 
     expand : bool, default True
-        * If True, return DataFrame.
-        * If False, return Series/Index/DataFrame.
-
-        .. versionadded:: 0.18.0
+        If True, return DataFrame, else return Series/Index/DataFrame.
+        
+        .. versionadded:: 0.18.0.
 
     Returns
     -------
@@ -668,7 +669,7 @@ def str_extract(arr, pat, flags=0, expand=True):
     A pattern with two groups will return a DataFrame with two columns.
     Non-matches will be NaN.
 
-    >>> s = Series(['a1', 'b2', 'c3'])
+    >>> s = pd.Series(['a1', 'b2', 'c3'])
     >>> s.str.extract(r'([ab])(\d)')
          0    1
     0    a    1
@@ -707,7 +708,6 @@ def str_extract(arr, pat, flags=0, expand=True):
     1      2
     2    NaN
     dtype: object
-
     """
     if not isinstance(expand, bool):
         raise ValueError("expand must be True or False")
@@ -898,94 +898,23 @@ def str_join(arr, sep):
 
 def str_findall(arr, pat, flags=0):
     """
-    Find all occurrences of pattern or regular expression in the Series/Index.
-
-    Equivalent to applying :func:`re.findall` to all the elements in the
-    Series/Index.
+    Find all occurrences of pattern or regular expression in the
+    Series/Index. Equivalent to :func:`re.findall`.
 
     Parameters
     ----------
     pat : string
-        Pattern or regular expression.
-    flags : int, default 0
-        ``re`` module flags, e.g. `re.IGNORECASE` (default is 0, which means
-        no flags).
+        Pattern or regular expression
+    flags : int, default 0 (no flags)
+        re module flags, e.g. re.IGNORECASE
 
     Returns
     -------
-    Series/Index of lists of strings
-        All non-overlapping matches of pattern or regular expression in each
-        string of this Series/Index.
+    matches : Series/Index of lists
 
     See Also
     --------
-    count : Count occurrences of pattern or regular expression in each string
-        of the Series/Index.
-    extractall : For each string in the Series, extract groups from all matches
-        of regular expression and return a DataFrame with one row for each
-        match and one column for each group.
-    re.findall : The equivalent ``re`` function to all non-overlapping matches
-        of pattern or regular expression in string, as a list of strings.
-
-    Examples
-    --------
-
-    >>> s = pd.Series(['Lion', 'Monkey', 'Rabbit'])
-
-    The search for the pattern 'Monkey' returns one match:
-
-    >>> s.str.findall('Monkey')
-    0          []
-    1    [Monkey]
-    2          []
-    dtype: object
-
-    On the other hand, the search for the pattern 'MONKEY' doesn't return any
-    match:
-
-    >>> s.str.findall('MONKEY')
-    0    []
-    1    []
-    2    []
-    dtype: object
-
-    Flags can be added to the pattern or regular expression. For instance,
-    to find the pattern 'MONKEY' ignoring the case:
-
-    >>> import re
-    >>> s.str.findall('MONKEY', flags=re.IGNORECASE)
-    0          []
-    1    [Monkey]
-    2          []
-    dtype: object
-
-    When the pattern matches more than one string in the Series, all matches
-    are returned:
-
-    >>> s.str.findall('on')
-    0    [on]
-    1    [on]
-    2      []
-    dtype: object
-
-    Regular expressions are supported too. For instance, the search for all the
-    strings ending with the word 'on' is shown next:
-
-    >>> s.str.findall('on$')
-    0    [on]
-    1      []
-    2      []
-    dtype: object
-
-    If the pattern is found more than once in the same string, then a list of
-    multiple strings is returned:
-
-    >>> s.str.findall('b')
-    0        []
-    1        []
-    2    [b, b]
-    dtype: object
-
+    extractall : returns DataFrame with one column per capture group
     """
     regex = re.compile(pat, flags=flags)
     return _na_map(regex.findall, arr)
