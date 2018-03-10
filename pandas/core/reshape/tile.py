@@ -26,37 +26,41 @@ import numpy as np
 def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         include_lowest=False):
     """
-    Return indices of half-open `bins` to which each value of `x` belongs.
+    Bin `x` and return data about the bin to which each `x` value belongs.
 
-    Use `cut` when you need to segment and sort data values into bins or
-    buckets of data. This function is also useful for going from a continuous
-    variable to a categorical variable. For example, `cut` could convert ages
-    to groups of age ranges.
+    This function splits `x` into the specified number of equal-width half-
+    open bins. Based on the parameters specified and the input, returns
+    information about the half-open bins to which each value of `x` belongs
+    or the bins themselves.
+    Use `cut` when you need to segment and sort data values into bins. This
+    function is also useful for going from a continuous variable to a
+    categorical variable. For example, `cut` could convert ages to groups
+    of age ranges.
 
     Parameters
     ----------
     x : array-like
-        Input array to be binned. It has to be 1-dimensional.
+        The input array to be binned. Must be 1-dimensional.
     bins : int, sequence of scalars, or pandas.IntervalIndex
-        If `bins` is an int, defines the number of equal-width bins in the
-        range of `x`. The range of `x` is extended by .1% on each side to
-        include the min or max values of `x`.
-        If `bins` is a sequence, defines the bin edges allowing for
-        non-uniform bin width. No extension of the range of `x` is done.
-    right : bool, optional, default 'True'
+        If int, defines the number of equal-width bins in the range of `x`.
+        The range of `x` is extended by .1% on each side to include the min or
+        max values of `x`.
+        If a sequence, defines the bin edges allowing for non-uniform width.
+        No extension of the range of `x` is done.
+    right : bool, default 'True'
         Indicates whether the `bins` include the rightmost edge or not. If
         `right == True` (the default), then the `bins` [1,2,3,4] indicate
         (1,2], (2,3], (3,4].
     labels : array or bool, optional
-        Used as labels for the resulting `bins`. Must be of the same length as
-        the resulting `bins`. If False, returns only integer indicators of the
-        `bins`.
-    retbins : bool, optional, default 'False'
-        Whether to return the `bins` or not. Useful when `bins` is provided
+        Specifies the labels for the returned bins. Must be the same length as
+        the resulting bins. If False, returns only integer indicators of the
+        bins.
+    retbins : bool, default 'False'
+        Whether to return the bins or not. Useful when bins is provided
         as a scalar.
-    precision : int, optional, default '3'
-        The precision at which to store and display the `bins` labels.
-    include_lowest : bool, optional, default 'False'
+    precision : int, default '3'
+        The precision at which to store and display the bins labels.
+    include_lowest : bool, default 'False'
         Whether the first interval should be left-inclusive or not.
 
     Returns
@@ -64,10 +68,10 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     out : pandas.Categorical or Series, or array of int if `labels` is 'False'
         The return type depends on the input.
         If the input is a Series, a Series of type category is returned.
-        Else - pandas.Categorical is returned. `Bins` are represented as
+        Else - pandas.Categorical is returned. Bins are represented as
         categories when categorical data is returned.
     bins : numpy.ndarray of floats
-        Returned only if `retbins` is 'True'.
+        Returned when `retbins` is 'True'.
 
     See Also
     --------
@@ -87,10 +91,16 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
 
     Examples
     --------
-    >>> pd.cut(np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1]), 3, retbins=True)
+    >>> pd.cut(np.array([1,7,5,4,6,3]), 3)
     ... # doctest: +ELLIPSIS
-    ([(0.19, 3.367], (0.19, 3.367], (0.19, 3.367], (3.367, 6.533], ...
-    Categories (3, interval[float64]): [(0.19, 3.367] < (3.367, 6.533] ...
+    [(0.994, 3.0], (5.0, 7.0], (3.0, 5.0], (3.0, 5.0], (5.0, 7.0], ...
+    Categories (3, interval[float64]): [(0.994, 3.0] < (3.0, 5.0] ...
+
+    >>> pd.cut(np.array([1,7,5,4,6,3]), 3, retbins=True)
+    ... # doctest: +ELLIPSIS
+    ([(0.994, 3.0], (5.0, 7.0], (3.0, 5.0], (3.0, 5.0], (5.0, 7.0], ...
+    Categories (3, interval[float64]): [(0.994, 3.0] < (3.0, 5.0] ...
+    array([0.994, 3.   , 5.   , 7.   ]))
 
     >>> pd.cut(np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1]),
     ...        3, labels=["good", "medium", "bad"])
@@ -100,6 +110,17 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
 
     >>> pd.cut(np.ones(5), 4, labels=False)
     array([1, 1, 1, 1, 1], dtype=int64)
+
+    >>> s = pd.Series(np.array([2,4,6,8,10]), index=['a', 'b', 'c', 'd', 'e'])
+    >>> pd.cut(s, 3)
+    ... # doctest: +ELLIPSIS
+    a    (1.992, 4.667]
+    b    (1.992, 4.667]
+    c    (4.667, 7.333]
+    d     (7.333, 10.0]
+    e     (7.333, 10.0]
+    dtype: category
+    Categories (3, interval[float64]): [(1.992, 4.667] < (4.667, ...
     """
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
 
