@@ -918,12 +918,53 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @deprecate_kwarg(old_arg_name='reps', new_arg_name='repeats')
     def repeat(self, repeats, *args, **kwargs):
         """
-        Repeat elements of an Series. Refer to `numpy.ndarray.repeat`
-        for more information about the `repeats` argument.
+        Repeat elements of a Series.
+
+        Each element of the Series is repeated `repeats` times.
+
+        Parameters
+        ----------
+        repeats : int
+            The number of repetitions for each element.
+        *args, **kwargs
+            Additional keywords have no effect but might be accepted for
+            compatibility with numpy.
 
         See also
         --------
-        numpy.ndarray.repeat
+        Series.append : Concatenate two or more Series.
+        pandas.concat : Concatenate two or more DataFrames.
+        Index.repeat : Eqivalent function for Index.
+        numpy.repeat : Repeat elements of an array.
+
+        Returns
+        -------
+        Series
+            The repeated version of the Series.
+
+        Notes
+        -----
+        Unlike numpy.repeat, `axis` is not a valid argument.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'col1': ['A', 'B', 'C'], 'col2': [0, 1, 2]})
+        >>> df
+          col1  col2
+        0    A     0
+        1    B     1
+        2    C     2
+        >>> df.col1.repeat(3)
+        0    A
+        0    A
+        0    A
+        1    B
+        1    B
+        1    B
+        2    C
+        2    C
+        2    C
+        Name: col1, dtype: object
         """
         nv.validate_repeat(args, kwargs)
         new_index = self.index.repeat(repeats)
@@ -1316,77 +1357,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         return result
 
+    @Appender(base._shared_docs['drop_duplicates'] % _shared_doc_kwargs)
     def drop_duplicates(self, keep='first', inplace=False):
-        """
-        Return Series with duplicate values removed.
-
-        Parameters
-        ----------
-        keep : {'first', 'last', ``False``}, default 'first'
-            - 'first' : Drop duplicates except for the first occurrence.
-            - 'last' : Drop duplicates except for the last occurrence.
-            - ``False`` : Drop all duplicates.
-        inplace : boolean, default ``False``
-            If ``True``, performs operation inplace and returns None.
-
-        Returns
-        -------
-        deduplicated : Series
-
-        See Also
-        --------
-        Index.drop_duplicates : equivalent method on Index
-        DataFrame.drop_duplicates : equivalent method on DataFrame
-        Series.duplicated : related method on Series, indicating duplicate
-            Series values.
-
-        Examples
-        --------
-        Generate an Series with duplicated entries.
-
-        >>> s = pd.Series(['lama', 'cow', 'lama', 'beetle', 'lama', 'hippo'],
-        ...               name='animal')
-        >>> s
-        0      lama
-        1       cow
-        2      lama
-        3    beetle
-        4      lama
-        5     hippo
-        Name: animal, dtype: object
-
-        With the 'keep' parameter, the selection behaviour of duplicated values
-        can be changed. The value 'first' keeps the first occurrence for each
-        set of duplicated entries. The default value of keep is 'first'.
-
-        >>> s.drop_duplicates()
-        0      lama
-        1       cow
-        3    beetle
-        5     hippo
-        Name: animal, dtype: object
-
-        The value 'last' for parameter 'keep' keeps the last occurrence for
-        each set of duplicated entries.
-
-        >>> s.drop_duplicates(keep='last')
-        1       cow
-        3    beetle
-        4      lama
-        5     hippo
-        Name: animal, dtype: object
-
-        The value ``False`` for parameter 'keep' discards all sets of
-        duplicated entries. Setting the value of 'inplace' to ``True`` performs
-        the operation inplace and returns ``None``.
-
-        >>> s.drop_duplicates(keep=False, inplace=True)
-        >>> s
-        1       cow
-        3    beetle
-        5     hippo
-        Name: animal, dtype: object
-        """
         return super(Series, self).drop_duplicates(keep=keep, inplace=inplace)
 
     @Appender(base._shared_docs['duplicated'] % _shared_doc_kwargs)
@@ -2765,54 +2737,28 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self.reindex(index=labels, **kwargs)
 
     def memory_usage(self, index=True, deep=False):
-        """
-        Return the memory usage of the Series.
-
-        The memory usage can optionally include the contribution of
-        the index and of elements of `object` dtype.
+        """Memory usage of the Series
 
         Parameters
         ----------
-        index : bool, default True
-            Specifies whether to include the memory usage of the Series index.
-        deep : bool, default False
-            If True, introspect the data deeply by interrogating
-            `object` dtypes for system-level memory consumption, and include
-            it in the returned value.
+        index : bool
+            Specifies whether to include memory usage of Series index
+        deep : bool
+            Introspect the data deeply, interrogate
+            `object` dtypes for system-level memory consumption
 
         Returns
         -------
-        int
-            Bytes of memory consumed.
+        scalar bytes of memory consumed
+
+        Notes
+        -----
+        Memory usage does not include memory consumed by elements that
+        are not components of the array if deep=False
 
         See Also
         --------
-        numpy.ndarray.nbytes : Total bytes consumed by the elements of the
-            array.
-        DataFrame.memory_usage : Bytes consumed by a DataFrame.
-
-        Examples
-        --------
-
-        >>> s = pd.Series(range(3))
-        >>> s.memory_usage()
-        104
-
-        Not including the index gives the size of the rest of the data, which
-        is necessarily smaller:
-
-        >>> s.memory_usage(index=False)
-        24
-
-        The memory footprint of `object` values is ignored by default:
-
-        >>> s = pd.Series(["a", "b"])
-        >>> s.values
-        array(['a', 'b'], dtype=object)
-        >>> s.memory_usage()
-        96
-        >>> s.memory_usage(deep=True)
-        212
+        numpy.ndarray.nbytes
         """
         v = super(Series, self).memory_usage(deep=deep)
         if index:
@@ -2840,21 +2786,20 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def isin(self, values):
         """
-        Check whether `values` are contained in Series.
-
-        Return a boolean Series showing whether each element in the Series
-        matches an element in the passed sequence of `values` exactly.
+        Return a boolean :class:`~pandas.Series` showing whether each element
+        in the :class:`~pandas.Series` is exactly contained in the passed
+        sequence of ``values``.
 
         Parameters
         ----------
         values : set or list-like
             The sequence of values to test. Passing in a single string will
             raise a ``TypeError``. Instead, turn a single string into a
-            list of one element.
+            ``list`` of one element.
 
             .. versionadded:: 0.18.1
 
-              Support for values as a set.
+            Support for values as a set
 
         Returns
         -------
@@ -2863,37 +2808,31 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Raises
         ------
         TypeError
-          * If `values` is a string
+          * If ``values`` is a string
 
         See Also
         --------
-        pandas.DataFrame.isin : equivalent method on DataFrame
+        pandas.DataFrame.isin
 
         Examples
         --------
 
-        >>> s = pd.Series(['lama', 'cow', 'lama', 'beetle', 'lama',
-        ...                'hippo'], name='animal')
-        >>> s.isin(['cow', 'lama'])
-        0     True
-        1     True
-        2     True
-        3    False
-        4     True
-        5    False
-        Name: animal, dtype: bool
-
-        Passing a single string as ``s.isin('lama')`` will raise an error. Use
-        a list of one element instead:
-
-        >>> s.isin(['lama'])
+        >>> s = pd.Series(list('abc'))
+        >>> s.isin(['a', 'c', 'e'])
         0     True
         1    False
         2     True
-        3    False
-        4     True
-        5    False
-        Name: animal, dtype: bool
+        dtype: bool
+
+        Passing a single string as ``s.isin('a')`` will raise an error. Use
+        a list of one element instead:
+
+        >>> s.isin(['a'])
+        0     True
+        1    False
+        2    False
+        dtype: bool
+
         """
         result = algorithms.isin(com._values_from_object(self), values)
         return self._constructor(result, index=self.index).__finalize__(self)
