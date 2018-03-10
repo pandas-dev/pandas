@@ -10,15 +10,16 @@ from pandas.io.common import _get_handle, _infer_compression, _stringify_path
 
 def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
     """
-    Pickle (serialize) object to input file path
+    Pickle (serialize) object to input file path.
 
     Parameters
     ----------
     obj : any object
+        Any python object.
     path : string
         File path where the pickled pandas object will be stored.
     compression : {'infer', 'gzip', 'bz2', 'xz', None}, default 'infer'
-        a string representing the compression to use in the output file
+        A string representing the compression to use in the output file.
 
         .. versionadded:: 0.20.0
     protocol : int
@@ -35,24 +36,25 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
 
     Examples
     --------
+    >>> from pandas import DataFrame, read_pickle
     >>> original_df = DataFrame({"foo": range(5), "bar": range(5, 10)})
     >>> original_df
-       bar  foo
-    0    5    0
-    1    6    1
-    2    7    2
-    3    8    3
-    4    9    4
+       foo  bar
+    0    0    5
+    1    1    6
+    2    2    7
+    3    3    8
+    4    4    9
     >>> original_df.to_pickle("./dummy.pkl")
 
     >>> unpickled_df = read_pickle("./dummy.pkl")
     >>> unpickled_df
-       bar  foo
-    0    5    0
-    1    6    1
-    2    7    2
-    3    8    3
-    4    9    4
+       foo  bar
+    0    0    5
+    1    1    6
+    2    2    7
+    3    3    8
+    4    4    9
     """
     path = _stringify_path(path)
     inferred_compression = _infer_compression(path, compression)
@@ -71,7 +73,7 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
 def read_pickle(path, compression='infer'):
     """
     Load pickled pandas object (or any other pickled object) from the specified
-    file path
+    file path.
 
     Warning: Loading pickled data received from untrusted sources can be
     unsafe. See: https://docs.python.org/3/library/pickle.html
@@ -94,24 +96,25 @@ def read_pickle(path, compression='infer'):
 
     Examples
     --------
+    >>> from pandas import DataFrame, read_pickle
     >>> original_df = DataFrame({"foo": range(5), "bar": range(5, 10)})
     >>> original_df
-       bar  foo
-    0    5    0
-    1    6    1
-    2    7    2
-    3    8    3
-    4    9    4
+       foo  bar
+    0    0    5
+    1    1    6
+    2    2    7
+    3    3    8
+    4    4    9
     >>> original_df.to_pickle("./dummy.pkl")
 
     >>> unpickled_df = read_pickle("./dummy.pkl")
     >>> unpickled_df
-       bar  foo
-    0    5    0
-    1    6    1
-    2    7    2
-    3    8    3
-    4    9    4
+       foo  bar
+    0    0    5
+    1    1    6
+    2    2    7
+    3    3    8
+    4    4    9
     """
     path = _stringify_path(path)
     inferred_compression = _infer_compression(path, compression)
