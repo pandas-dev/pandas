@@ -3337,19 +3337,85 @@ class FramePlotMethods(BasePlotMethods):
 
     def area(self, x=None, y=None, **kwds):
         """
-        Area plot
+        Draw a stacked area plot.
+
+        An area plot displays quantitative data visually.
+        This function wraps the matplotlib area function.
 
         Parameters
         ----------
-        x, y : label or position, optional
-            Coordinates for each point.
-        `**kwds` : optional
+        x : label or position, optional
+            Index, coordinates for X axis.
+        y : label or position, optional
+            Index, coordinates for Y axis.
+        stacked : boolean, default True
+            Area plots are stacked by default. Set to False to create a
+            unstacked plot.
+        **kwds : optional
             Additional keyword arguments are documented in
             :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        matplotlib.axes.Axes or numpy.ndarray
+            Area plot, or array of area plots if subplots is True
+
+        See Also
+        --------
+        pandas.DataFrame.plot : Draw plots.
+
+        Examples
+        --------
+        Draw an area plot based on basic business metrics:
+
+        .. plot::
+            :context: close-figs
+
+            >>> df = pd.DataFrame({
+            ...     'sales': [3, 2, 3, 9, 10, 6],
+            ...     'signups': [5, 5, 6, 12, 14, 13],
+            ...     'visits': [20, 42, 28, 62, 81, 50],
+            ... })
+            >>> ax = df.plot.area()
+
+        Area plots are stacked by default. To produce an unstacked plot,
+        pass ``stacked=False``:
+
+        .. plot::
+            :context: close-figs
+
+            >>> df = pd.DataFrame({
+            ...     'sales': [3, 2, 3, 9, 10, 6],
+            ...     'signups': [5, 5, 6, 12, 14, 13],
+            ...     'visits': [20, 42, 28, 62, 81, 50],
+            ... })
+            >>> ax = df.plot.area(stacked=False)
+
+        Draw an area plot for each metric:
+
+        .. plot::
+            :context: close-figs
+
+            >>> df = pd.DataFrame({
+            ...     'sales': [3, 2, 3, 9, 10, 6],
+            ...     'signups': [5, 5, 6, 12, 14, 13],
+            ...     'visits': [20, 42, 28, 62, 81, 50],
+            ... })
+            >>> ax = df.plot.area(y='sales')
+            >>> ax = df.plot.area(y='signups')
+            >>> ax = df.plot.area(y='visits')
+
+        Draw with a different `x`:
+
+        .. plot::
+            :context: close-figs
+
+            >>> df = pd.DataFrame({
+            ...     'sales': [3, 2, 3],
+            ...     'visits': [20, 42, 28],
+            ...     'day': ['Monday', 'Tuesday', 'Wednesday'],
+            ... })
+            >>> ax = df.plot.area(x='day')
         """
         return self(kind='area', x=x, y=y, **kwds)
 
