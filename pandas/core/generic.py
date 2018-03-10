@@ -4275,7 +4275,29 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @property
     def dtypes(self):
-        """Return the dtypes in this object."""
+        """
+        Return the dtypes in this object.
+
+        Notes
+        -----
+        It returns a Series with the data type of each column.
+        If object contains data multiple dtypes in a single column,
+        dtypes will be chosen to accommodate all of the data types.
+        ``object`` is the most general.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'f': pd.np.random.rand(3),
+        ...                    'i': 1,
+        ...                    'd': pd.Timestamp('20180310'),
+        ...                    'o': 'foo'})
+        >>> df.dtypes
+        f           float64
+        i             int64
+        d    datetime64[ns]
+        o            object
+        dtype: object
+        """
         from pandas import Series
         return Series(self._data.get_dtypes(), index=self._info_axis,
                       dtype=np.object_)
@@ -4285,6 +4307,31 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return the ftypes (indication of sparse/dense and dtype)
         in this object.
+
+        Notes
+        -----
+        Sparse data should have the same dtypes as its dense representation
+
+        See Also
+        --------
+        dtypes, SparseDataFrame
+
+        Examples
+        --------
+        >>> arr = pd.np.random.randn(100, 4)
+        >>> arr[arr < .8] = pd.np.nan
+        >>> pd.DataFrame(arr).ftypes
+        0    float64:dense
+        1    float64:dense
+        2    float64:dense
+        3    float64:dense
+        dtype: object
+        >>> pd.SparseDataFrame(arr).ftypes
+        0    float64:sparse
+        1    float64:sparse
+        2    float64:sparse
+        3    float64:sparse
+        dtype: object
         """
         from pandas import Series
         return Series(self._data.get_ftypes(), index=self._info_axis,
