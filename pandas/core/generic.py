@@ -5692,7 +5692,7 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> x = np.random.normal(size=(1000,3))
         >>> U = df.quantile(0.95)
         >>> L = df.quantile(0.5)
-        >>> winsorized_df = df.clip(lower=L, upper=U, axis = 1)
+        >>> winsorized_df = df.clip(lower=L, upper=U, axis=1)
         """
         if isinstance(self, ABCPanel):
             raise NotImplementedError("clip is not supported yet for panels")
