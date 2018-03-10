@@ -843,10 +843,10 @@ class DataFrame(NDFrame):
         to be conformable for multiplication A(B) whenever the
         number of columns in A = the number of rows in B.
         (i.e. -  A is m × p and B is p × n)
-        
+
         Parameters
         ----------
-        other : DataFrame, matrix, or Series 
+        other : DataFrame, matrix, or Series
             Different combinations shown in examples below.
 
         Returns
@@ -856,7 +856,7 @@ class DataFrame(NDFrame):
 
         Raises
         ------
-        ValueError 
+        ValueError
             If the first dimension of A is not the same size as the
             secondi dimension of B.
 
@@ -869,84 +869,94 @@ class DataFrame(NDFrame):
         Two DataFrame objects:
 
         >>> df_A = pd.DataFrame([[1,2],[3,4]])
+        >>> df_A
            0  1
         0  1  2
         1  3  4
 
         >>> df_B = pd.DataFrame([[3,4],[1,2]])
+        >>> df_B
            0  1
-        0  3  4 
-        1  1  2 
+        0  3  4
+        1  1  2
 
         >>> df_A.dot(df_B)
-              0   1 
+              0   1
         0     5   8
         1    13   20
-        
+
         A DataFrame and a matrix object (returns DataFrame):
-        
+
         >>> df_A = pd.DataFrame([[1,2],[3,4]])
+        >>> df_A
            0  1
         0  1  2
         1  3  4
-       
+
         >>> mat_B = np.matrix('3 4 ; 1 2')
-        matix([[3, 4],
+        >>> mat_B
+        matrix([[3, 4],
                [1, 2]])
 
-        >>>  df_A.dot(mat_B)
-              0   1 
+        >>> df_A.dot(mat_B)
+              0   1
         0     5   8
         1    13   20
 
         A matrix object and a DataFrame (returns matrix):
 
         >>> mat_A = np.matrix('1 2 ; 3 4')
+        >>> mat_A
         matrix([[1, 2],
                 [3, 4]])
 
         >>> df_B = pd.DataFrame([[3,4],[1,2]])
+        >>> df_B
            0  1
-        0  3  4 
-        1  1  2 
+        0  3  4
+        1  1  2
 
         >>> mat_A.dot(df_B)
         matrix([[ 5,  8],
                 [13, 20]])
-        
+
         There is similar functionality using just matrices or Series.
 
         Two matrix objects:
-        
+
         >>> mat_A = np.matrix('1 2 ; 3 4')
+        >>> mat_A
         matrix([[1, 2],
                 [3, 4]])
 
         >>> mat_B = np.matrix('3 4 ; 1 2')
-        matix([[3, 4],
+        >>> mat_B
+        matrix([[3, 4],
                [1, 2]])
-        
-        >>>  mat_A.dot(mat_b)
+
+        >>> mat_A.dot(mat_B)
         matrix([[ 5,  8],
                 [13, 20]])
 
         Two Series objects:
 
         >>> ser_A = pd.Series(data=[1,2,3,4])
+        >>> ser_A
         0    1
         1    2
         2    3
         3    4
         dtype: int64
-        
+
         >>> ser_B = pd.Series(data=[3,4,1,2])
+        >>> ser_B
         0    3
         1    4
         2    1
         3    2
         dtype: int64
 
-        >>>  ser_A.dot(ser_B)
+        >>> ser_A.dot(ser_B)
         22
         """
         if isinstance(other, (Series, DataFrame)):
