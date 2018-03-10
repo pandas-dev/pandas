@@ -1932,7 +1932,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Copy object to the system clipboard.
 
-        Attempt to write text representation of object to the system clipboard.
+        Write a text representation of object to the system clipboard.
         This can be pasted into Excel, for example.
 
         Parameters
@@ -1972,7 +1972,7 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=['A', 'B', 'C'])
         >>> df.to_clipboard()
 
-        We can emit the the index by passing the keyword 'index'.
+        We can omit the the index by passing the keyword 'index' and setting it to false.
 
         >>> df.to_clipboard(index=False)
         """
