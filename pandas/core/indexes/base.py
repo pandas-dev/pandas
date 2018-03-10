@@ -4027,7 +4027,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Parameters
         ----------
-        keep : {'first', 'last', False}, default 'first'
+        keep : {'first', 'last', ``False``}, default 'first'
             - 'first' : Drop duplicates except for the first occurrence.
             - 'last' : Drop duplicates except for the last occurrence.
             - ``False`` : Drop all duplicates.
