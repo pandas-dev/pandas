@@ -4049,7 +4049,7 @@ class DataFrame(NDFrame):
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """
-        Perform series-wise combine with `other` DataFrame using given `func`
+        Perform series-wise combine with `other` DataFrame using given `func`.
 
         Combines `self` DataFrame with `other` DataFrame using `func`
         to merge columns. The row and column indexes of the resulting
@@ -4061,15 +4061,16 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         other : DataFrame
+            The DataFrame to merge column-wise.
         func : function
             Function that takes two series as inputs and return a Series or a
-            scalar, used to merge the two dataframes column by columns
+            scalar, used to merge the two dataframes column by columns.
         fill_value : scalar value, default None
             The value to fill NaNs with prior to passing any column to the
-            merge func
+            merge func.
         overwrite : boolean, default True
             If True, columns in `self` that do not exist in `other` will be
-            overwritten with NaNs
+            overwritten with NaNs.
 
         Returns
         -------
@@ -4078,7 +4079,7 @@ class DataFrame(NDFrame):
         Examples
         --------
         Combine using a simple function that chooses the smaller column.
-
+        >>> from pandas import DataFrame
         >>> df1 = DataFrame({'A': [0, 0], 'B': [4, 4]})
         >>> df2 = DataFrame({'A': [1, 1], 'B': [3, 3]})
         >>> take_smaller = lambda s1, s2: s1 if s1.sum() < s2.sum() else s2
@@ -4092,42 +4093,40 @@ class DataFrame(NDFrame):
 
         >>> df1 = DataFrame({'A': [0, 0], 'B': [None, 4]})
         >>> df2 = DataFrame({'A': [1, 1], 'B': [3, 3]})
-        >>> take_smaller = lambda s1, s2: s1 if s1.sum() < s2.sum() else s2
         >>> df1.combine(df2, take_smaller, fill_value=-5)
            A  B
-        0  0  -5
-        1  0  4
+        0  0  -5.0
+        1  0  4.0
 
         However, if the same element in both dataframes is None, that None
         is preserved
 
         >>> df1 = DataFrame({'A': [0, 0], 'B': [None, 4]})
         >>> df2 = DataFrame({'A': [1, 1], 'B': [None, 3]})
-        >>> take_smaller = lambda s1, s2: s1 if s1.sum() < s2.sum() else s2
         >>> df1.combine(df2, take_smaller, fill_value=-5)
            A  B
         0  0  NaN
-        1  0  3
+        1  0  3.0
 
         Example that demonstrates the use of `overwrite` and behavior when
         the axis differ between the dataframes.
 
         >>> df1 = DataFrame({'A': [0, 0], 'B': [4, 4]})
-        >>> df2 = DataFrame({'B': [3, 3], 'C': [1, 1],}, index=[1, 2])
-        >>> take_smaller = lambda s1, s2: s1 if s1.sum() < s2.sum() else s2
+        >>> df2 = DataFrame({'B': [3, 3], 'C': [-10, 1],}, index=[1, 2])
         >>> df1.combine(df2, take_smaller)
            A    B    C
         0  NaN  NaN  NaN
-        1  NaN  3.0  1.0
+        1  NaN  3.0  -10.0
         2  NaN  3.0  1.0
 
         >>> df1.combine(df2, take_smaller, overwrite=False)
            A    B    C
         0  0.0  NaN  NaN
-        1  0.0  3.0  1.0
+        1  0.0  3.0  -10.0
         2  NaN  3.0  1.0
 
         Demonstrating the preference of the passed in dataframe.
+        >>> df2 = DataFrame({'B': [3, 3], 'C': [1, 1],}, index=[1, 2])
         >>> df2.combine(df1, take_smaller)
            A    B   C
         0  0.0  NaN NaN
@@ -4223,7 +4222,7 @@ class DataFrame(NDFrame):
 
     def combine_first(self, other):
         """
-        Update NaN values with value in the same location in `other` DataFrame
+        Update null elements with value in the same location in `other`.
 
         Combine two DataFrame objects by filling null values in self DataFrame
         with non-null values from other DataFrame. The row and column indexes
@@ -4232,7 +4231,7 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         other : DataFrame
-            Provided DataFrame to use to fill null values
+            Provided DataFrame to use to fill null values.
 
         Returns
         -------
@@ -4242,13 +4241,13 @@ class DataFrame(NDFrame):
         --------
 
         df1's values prioritized, use values from df2 to fill holes:
-
+        >>> from pandas import DataFrame
         >>> df1 = DataFrame({'A': [None, 0], 'B': [None, 4]})
         >>> df2 = DataFrame({'A': [1, 1], 'B': [3, 3]})
         >>> df1.combine_first(df2)
            A  B
-        0  1  3
-        1  0  4
+        0  1.0  3.0
+        1  0.0  4.0
 
         Illustrate the behavior when the axis differ between the dataframes.
 
