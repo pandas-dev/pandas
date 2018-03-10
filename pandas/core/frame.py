@@ -1721,11 +1721,29 @@ class DataFrame(NDFrame):
     @Appender(fmt.docstring_to_string, indents=1)
     def to_string(self, buf=None, columns=None, col_space=None, header=True,
                   index=True, na_rep='NaN', formatters=None, float_format=None,
-                  sparsify=None, index_names=True, justify=None,
+                  sparsify=None, index_names=True,
                   line_width=None, max_rows=None, max_cols=None,
-                  show_dimensions=False):
+                  show_dimensions=False, justify=None):
         """
         Render a DataFrame to a console-friendly tabular output.
+
+        Convert DataFrame object into a string (or unicode) representation
+        which can be shown in command line interface.
+
+        See Also
+        --------
+        pandas.DataFrame.to_html
+            Convert dataframe to a html file.
+
+        Examples
+        --------
+        >>> d = {'col1' : [1, 2, 3], 'col2' : [4, 5, 6]}
+        >>> df = pd.DataFrame(d)
+        >>> print(df.to_string())
+           col1  col2
+        0     1     4
+        1     2     5
+        2     3     6
         """
 
         formatter = fmt.DataFrameFormatter(self, buf=buf, columns=columns,

@@ -53,35 +53,38 @@ common_docstring = """
     Parameters
     ----------
     buf : StringIO-like, optional
-        buffer to write to
-    columns : sequence, optional
-        the subset of columns to write; default None writes all columns
+        Buffer to write to.
+    columns : sequence, optional, default None
+        The subset of columns to write. The default None writes all columns.
     col_space : int, optional
-        the minimum width of each column
+        The minimum width of each column.
     header : bool, optional
-        %(header)s
-    index : bool, optional
-        whether to print index (row) labels, default True
-    na_rep : string, optional
-        string representation of NAN to use, default 'NaN'
-    formatters : list or dict of one-parameter functions, optional
-        formatter functions to apply to columns' elements by position or name,
-        default None. The result of each function must be a unicode string.
+        %(header)s.
+    index : bool, optional, default True
+        Whether to print index (row) labels.
+    na_rep : str, optional, default 'NaN'
+        String representation of NAN to use.
+    formatters : list or dict of one-parameter functions, optional, default None
+        Formatter functions to apply to columns' elements by position or name.
+        The result of each function must be a unicode string.
         List must be of length equal to the number of columns.
-    float_format : one-parameter function, optional
-        formatter function to apply to columns' elements if they are floats,
-        default None. The result of this function must be a unicode string.
-    sparsify : bool, optional
+    float_format : one-parameter function, optional, default None
+        Formatter function to apply to columns' elements if they are floats.
+        The result of this function must be a unicode string.
+    sparsify : bool, optional, default True
         Set to False for a DataFrame with a hierarchical index to print every
-        multiindex key at each row, default True
-    index_names : bool, optional
-        Prints the names of the indexes, default True
-    line_width : int, optional
-        Width to wrap a line in characters, default no wrap
-    table_id : str, optional
-        id for the <table> element create by to_html
-
-        .. versionadded:: 0.23.0"""
+        multiindex key at each row.
+    index_names : bool, optional, default True
+        Prints the names of the indexes.
+    line_width : int, optional, default no wrap
+        Width to wrap a line in characters.
+    max_rows : int, optional
+        Maximum number of rows to display in the console.
+    max_cols : int, optional
+        Maximum number of columns to display in the console.
+    show_dimensions : bool, default False
+        Display dataframe's dimensions (number of rows by number of columns).
+    """
 
 _VALID_JUSTIFY_PARAMETERS = ("left", "right", "center", "justify",
                              "justify-all", "start", "end", "inherit",
@@ -103,14 +106,14 @@ justify_docstring = """
         * inherit
         * match-parent
         * initial
-        * unset
+        * unset.
 """
 
 return_docstring = """
-
     Returns
     -------
-    formatted : string (or unicode, depending on data and options)"""
+    formatted : str (or unicode, depending on data and options)
+    """
 
 docstring_to_string = common_docstring + justify_docstring + return_docstring
 
