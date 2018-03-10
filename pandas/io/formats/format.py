@@ -64,7 +64,7 @@ common_docstring = """
         Whether to print index (row) labels.
     na_rep : str, optional, default 'NaN'
         String representation of NAN to use.
-    formatters : list or dict of one-parameter functions, optional, default None
+    formatters : list or dict of one-param. functions, optional, default None
         Formatter functions to apply to columns' elements by position or name.
         The result of each function must be a unicode string.
         List must be of length equal to the number of columns.
