@@ -958,7 +958,6 @@ class IndexOpsMixin(object):
 
         Examples
         --------
-
         >>> index = pd.Index([3, 1, 2, 3, 4, np.nan])
         >>> index.value_counts()
         3.0    2
