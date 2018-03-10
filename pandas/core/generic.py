@@ -1660,7 +1660,7 @@ class NDFrame(PandasObject, SelectionMixin):
     path : string
         File path where the pickled %(klass)s object will be stored.
     compression : {'infer', 'gzip', 'bz2', 'xz', None}, default 'infer'
-        a string representing the compression to use in the output file
+        A string representing the compression to use in the output file.
 
         .. versionadded:: 0.20.0
     protocol : int
@@ -1677,24 +1677,25 @@ class NDFrame(PandasObject, SelectionMixin):
 
     Examples
     --------
+    >>> from pandas import DataFrame, read_pickle
     >>> original_df = DataFrame({"foo": range(5), "bar": range(5, 10)})
     >>> original_df
-       bar  foo
-    0    5    0
-    1    6    1
-    2    7    2
-    3    8    3
-    4    9    4
+       foo  bar
+    0    0    5
+    1    1    6
+    2    2    7
+    3    3    8
+    4    4    9
     >>> original_df.to_pickle("./dummy.pkl")
 
     >>> unpickled_df = read_pickle("./dummy.pkl")
     >>> unpickled_df
-       bar  foo
-    0    5    0
-    1    6    1
-    2    7    2
-    3    8    3
-    4    9    4
+       foo  bar
+    0    0    5
+    1    1    6
+    2    2    7
+    3    3    8
+    4    4    9
     """
 
     def to_json(self, path_or_buf=None, orient=None, date_format=None,
