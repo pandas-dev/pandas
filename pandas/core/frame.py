@@ -1729,7 +1729,9 @@ class DataFrame(NDFrame):
 
         Notes
         -----
-        This function requires either the `fastparquet <https://pypi.python.org/pypi/fastparquet>`_ or `pyarrow <https://arrow.apache.org/docs/python/>`_ library.
+        This function requires either the `fastparquet
+        <https://pypi.python.org/pypi/fastparquet>`_ or `pyarrow
+        <https://arrow.apache.org/docs/python/>`_ library.
 
         Examples
         --------
