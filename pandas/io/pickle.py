@@ -124,6 +124,8 @@ def read_pickle(path, compression='infer'):
     See Also
     --------
     pandas.to_pickle,
+    pandas.DataFrame.to_pickle
+    pandas.Series.to_pickle
     pandas.read_hdf,
     pandas.read_sql,
     pandas.read_parquet
