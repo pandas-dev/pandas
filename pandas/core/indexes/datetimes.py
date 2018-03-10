@@ -1904,11 +1904,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     def tz_convert(self, tz):
         """
-        Convert tz-aware DatetimeIndex from one
-        time zone to another.
+        Convert tz(timezone)-aware DatetimeIndex using pytz/dateutil.
 
         When using DatetimeIndex providing with timezone this method
-        converts tz-aware DatetimeIndex using pytz/dateutil.
+        converts tz-aware DatetimeIndex from one timezone to another.
 
         Parameters
         ----------
