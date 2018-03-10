@@ -1931,15 +1931,22 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     def tz_convert(self, tz):
         """
+        Change time zone of Datetime series.
+
         Convert tz-aware DatetimeIndex from one time zone to another or remove
-        time zone information (using pytz/dateutil)
+        time zone information. The time zone can be specified using a string,
+        pytz or dateutil.
 
         Parameters
         ----------
-        tz : string, pytz.timezone, dateutil.tz.tzfile or None
+        tz : string, pytz.timezone, dateutil.tz.tzfile, None
             Time zone for time. Corresponding timestamps would be converted to
             time zone of the TimeSeries.
-            None will remove timezone holding UTC time.
+            None will remove timezone and return UTC timestamp.
+        args : iterable, optional
+            Additional arguments passed to the function.
+        kwargs : dict, optional
+            Additional keyword arguments passed to the function.
 
         Returns
         -------
@@ -1964,10 +1971,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         dtype: datetime64[ns, Europe/Amsterdam]
 
         >>> import pytz
-        >>> london = pytz.timezone('Europe/London')
-        >>> ts = pd.Series([pd.Timestamp("2018-01-01 00:00", tz=london)])
+        >>> pacific = pytz.timezone('US/Pacific')
+        >>> ts = pd.Series([pd.Timestamp("2018-01-01 01:00", tz=pacific)])
         >>> ts.dt.tz_convert(tz=None)
-        0   2018-01-01
+        0   2018-01-01 09:00:00
         dtype: datetime64[ns]
         """
         tz = timezones.maybe_get_tz(tz)
