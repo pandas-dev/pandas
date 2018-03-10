@@ -1716,8 +1716,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     Returns
     -------
-    ndarray of integers indicating the week number
-    
+    Series
+        Containing integers indicating the week number.
+
     See Also
     --------
     pandas.Series.dt.week : Identical method.
@@ -1739,7 +1740,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     7 2017-01-07     1   Saturday
     8 2017-01-08     1     Sunday
 
-    Note that `series.dt.week` and `series.dt.weekofyear` are the same.
+    Note `pandas.Series.dt.week`/`pandas.Series.dt.weekofyear` are the same.
 
     >>> s.dt.week
     0    52
