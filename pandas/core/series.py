@@ -1897,7 +1897,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         axis : {0 or ‘index’}, default 0
             Axis to direct sorting.
         ascending : bool, default True
-            Sort ascending (True) or descending (False).
+            Sort ascending (`True`) or descending (`False`).
         inplace : bool, default False
             If True, perform operation in-place.
         kind : {‘quicksort’, ‘mergesort’ or ‘heapsort’}, default ‘quicksort’
@@ -1908,7 +1908,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        sorted_obj : Series
+        Series
             Series ordered by values.
 
         See Also
@@ -1935,7 +1935,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         7     45.0
         dtype: float64
 
-        **Sort values ascending order**
+        Sort values ascending order
 
         >>> s.sort_values(ascending=True)
         1      1.0
@@ -1948,7 +1948,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         0      NaN
         dtype: float64
 
-        **Sort values descending order**
+        Sort values descending order
 
         >>> s.sort_values(ascending=False)
         3    323.0
@@ -1961,7 +1961,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         0      NaN
         dtype: float64
 
-        **Sort values inplace**
+        Sort values inplace
 
         >>> s.sort_values(ascending=False, inplace=True)
         >>> s
@@ -1975,7 +1975,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         0      NaN
         dtype: float64
 
-        **Sort values putting NAs first**
+        Sort values putting NAs first
 
         >>> s.sort_values(na_position='first')
         0      NaN
