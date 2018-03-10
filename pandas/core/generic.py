@@ -7154,8 +7154,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         >>> df = pd.DataFrame({
         ...     'a': [4, 5, 6, 7],
-        ...     'b': [10,20,30,40],
-        ...     'c': [100,50,-30,-50]
+        ...     'b': [10, 20, 30, 40],
+        ...     'c': [100, 50, -30, -50]
         ... })
         >>> df
              a    b    c
