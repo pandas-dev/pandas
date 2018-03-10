@@ -3669,12 +3669,12 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        obj_tail : type of caller
-            The last n rows of the caller object.
+        type of caller
+            The last `n` rows of the caller object.
 
         See Also
         --------
-        pandas.DataFrame.head
+        pandas.DataFrame.head : The first `n` rows of the caller object.
 
         Examples
         --------
