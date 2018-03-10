@@ -1592,7 +1592,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
     _shared_docs['to_excel'] = """
     Write %(klass)s to an excel sheet.
-    %(versionadded_to_excel)s
+
+    To write a %(klass)s to an excel .xlsx file it is necessary to first create
+    an ExcelWriter object with a target file name, and specify a sheet in the
+    file to write to.
+
     Parameters
     ----------
     excel_writer : string or ExcelWriter object
@@ -1636,22 +1640,32 @@ class NDFrame(PandasObject, SelectionMixin):
         Specifies the one-based bottommost row and rightmost column that
         is to be frozen.
 
-        .. versionadded:: 0.20.0
+        .. versionadded:: 0.20.0.
 
     Returns
     -------
     Nothing returned.
 
-    Notes
-    -----
+    See Also
+    --------
+    pd.read_excel
+
+    Examples
+    --------
+
+    >>> df1 = pd.DataFrame([['a', 'b'], ['c', 'd']],
+    ...                   index=['row 1', 'row 2'],
+    ...                   columns=['col 1', 'col 2'])
+    >>> writer = pd.ExcelWriter('output.xlsx', engine='xlsxwriter')
+    >>> df1.to_excel(writer, sheet_name='Sheet1')
+    >>> writer.save()
+
     If passing an existing ExcelWriter object, then the sheet will be added
     to the existing workbook.  This can be used to save different
     DataFrames to one workbook:
 
-    >>> writer = pd.ExcelWriter('output.xlsx')
-    >>> df1.to_excel(writer,'Sheet1')
+    >>> df2 = df1.copy()
     >>> df2.to_excel(writer,'Sheet2')
-    >>> writer.save()
 
     For compatibility with to_csv, to_excel serializes lists and dicts to
     strings before writing.
