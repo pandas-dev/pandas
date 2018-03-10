@@ -5661,8 +5661,9 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return copy of the input with values below given value(s) truncated.
 
-        It truncate values below a certain threshold. Threshold can be a single
-        value or an array, in the latter case it performs the truncation element-wise.
+        It truncates values below a certain threshold. Threshold can be a single
+        value or an array, in the latter case it performs the truncation
+        element-wise.
 
         Parameters
         ----------
@@ -5676,7 +5677,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        clip : Return copy of the input with values below and over given thresholds values truncated.
+        clip : Return copy of input with values below and above thresholds truncated.
 
         Returns
         -------
