@@ -117,14 +117,18 @@ cdef class Interval(IntervalMixin):
         Whether the interval is closed on the left-side, right-side, both or
         neither.
         A closed interval (in mathematics denoted by square brackets)
-        contains the edge points, i.e. the closed interval `[1, 5]` consists
-        of the points `1, 2, 3, 4, 5`.
+        contains its endpoints, i.e. the closed interval `[1, 5]` is
+        characterized by the conditions `1 <= x <= 5`. This is what
+        `closed='both'` stands for.
         An open interval (in mathematics denoted by parentheses) does not
-        contain the edge points, i.e. the open interval `(1, 5)` consists of
-        the points 2, 3, 4.
-        Intervals can also be half-open or half closed, i.e.
-        `[1,5) = 1, 2, 3, 4` and `(1, 5] = 2, 3, 4, 5`. See also the examples
-        section below.
+        contain its endpoints, i.e. the open interval `(1, 5)` is
+        characterized by the conditions `1 < x < 5`. This is what
+        `closed='neither'` stands for.
+        Intervals can also be half-open or half-closed, i.e.
+        `[1,5)` is described by `1 <= x < 5` (`closed='left'`) and `(1, 5]`
+        is described by `1 < x <= 5` (`closed='right'`).
+
+        See also the examples section below.
 
     Examples
     --------
@@ -136,6 +140,8 @@ cdef class Interval(IntervalMixin):
     >>> 0 in iv
     False
     >>> 5 in iv
+    True
+    >>> 0.0001 in iv
     True
 
     >>> year_2017 = pd.Interval(pd.Timestamp('2017-01-01'),
