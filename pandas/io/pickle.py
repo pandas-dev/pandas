@@ -17,7 +17,7 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
     obj : any object
         Any python object.
     path : string
-        File path where the pickled pandas object will be stored.
+        File path where the pickled object will be stored.
     compression : {'infer', 'gzip', 'bz2', 'xz', None}, default 'infer'
         A string representing the compression to use in the output file.
 
@@ -36,8 +36,7 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
 
     Examples
     --------
-    >>> from pandas import DataFrame, read_pickle
-    >>> original_df = DataFrame({"foo": range(5), "bar": range(5, 10)})
+    >>> original_df = pd.DataFrame({"foo": range(5), "bar": range(5, 10)})
     >>> original_df
        foo  bar
     0    0    5
@@ -45,9 +44,9 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
     2    2    7
     3    3    8
     4    4    9
-    >>> original_df.to_pickle("./dummy.pkl")
+    >>> pd.to_pickle(original_df, "./dummy.pkl")
 
-    >>> unpickled_df = read_pickle("./dummy.pkl")
+    >>> unpickled_df = pd.read_pickle("./dummy.pkl")
     >>> unpickled_df
        foo  bar
     0    0    5
@@ -55,6 +54,13 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
     2    2    7
     3    3    8
     4    4    9
+
+    See Also
+    --------
+    pandas.read_pickle
+    pandas.to_hdf
+    pandas.to_sql
+    pandas.to_parquet
     """
     path = _stringify_path(path)
     inferred_compression = _infer_compression(path, compression)
@@ -96,8 +102,7 @@ def read_pickle(path, compression='infer'):
 
     Examples
     --------
-    >>> from pandas import DataFrame, read_pickle
-    >>> original_df = DataFrame({"foo": range(5), "bar": range(5, 10)})
+    >>> original_df = pd.DataFrame({"foo": range(5), "bar": range(5, 10)})
     >>> original_df
        foo  bar
     0    0    5
@@ -105,9 +110,9 @@ def read_pickle(path, compression='infer'):
     2    2    7
     3    3    8
     4    4    9
-    >>> original_df.to_pickle("./dummy.pkl")
+    >>> pd.to_pickle(original_df, "./dummy.pkl")
 
-    >>> unpickled_df = read_pickle("./dummy.pkl")
+    >>> unpickled_df = pd.read_pickle("./dummy.pkl")
     >>> unpickled_df
        foo  bar
     0    0    5
@@ -115,6 +120,13 @@ def read_pickle(path, compression='infer'):
     2    2    7
     3    3    8
     4    4    9
+
+    See Also
+    --------
+    pandas.to_pickle,
+    pandas.read_hdf,
+    pandas.read_sql,
+    pandas.read_parquet
     """
     path = _stringify_path(path)
     inferred_compression = _infer_compression(path, compression)
