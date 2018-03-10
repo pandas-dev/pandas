@@ -92,8 +92,8 @@ from pandas.core.indexes.timedeltas import TimedeltaIndex
 import pandas.core.common as com
 import pandas.core.nanops as nanops
 import pandas.core.ops as ops
-import pandas.io.formats.format as fmt
 import pandas.io.formats.console as console
+import pandas.io.formats.format as fmt
 from pandas.io.formats.printing import pprint_thing
 import pandas.plotting._core as gfx
 
@@ -1567,18 +1567,19 @@ class DataFrame(NDFrame):
         else:
             tupleize_cols = False
 
-        formatter = fmt.CSVFormatter(self, path_or_buf,
-                                     line_terminator=line_terminator, sep=sep,
-                                     encoding=encoding,
-                                     compression=compression, quoting=quoting,
-                                     na_rep=na_rep, float_format=float_format,
-                                     cols=columns, header=header, index=index,
-                                     index_label=index_label, mode=mode,
-                                     chunksize=chunksize, quotechar=quotechar,
-                                     tupleize_cols=tupleize_cols,
-                                     date_format=date_format,
-                                     doublequote=doublequote,
-                                     escapechar=escapechar, decimal=decimal)
+        from pandas.io.formats.csv import CSVFormatter
+        formatter = CSVFormatter(self, path_or_buf,
+                                 line_terminator=line_terminator, sep=sep,
+                                 encoding=encoding,
+                                 compression=compression, quoting=quoting,
+                                 na_rep=na_rep, float_format=float_format,
+                                 cols=columns, header=header, index=index,
+                                 index_label=index_label, mode=mode,
+                                 chunksize=chunksize, quotechar=quotechar,
+                                 tupleize_cols=tupleize_cols,
+                                 date_format=date_format,
+                                 doublequote=doublequote,
+                                 escapechar=escapechar, decimal=decimal)
         formatter.save()
 
         if path_or_buf is None:

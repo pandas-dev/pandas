@@ -3,7 +3,6 @@
 Common helper methods used in different submodules of pandas.io.formats
 """
 
-from pandas.core.dtypes.common import is_integer
 from pandas import compat
 
 
@@ -61,25 +60,3 @@ def buffer_put_lines(buf, lines):
     if any(isinstance(x, compat.text_type) for x in lines):
         lines = [compat.text_type(x) for x in lines]
     buf.write('\n'.join(lines))
-
-
-class TableFormatter(object):
-
-    is_truncated = False
-    show_dimensions = None
-
-    @property
-    def should_show_dimensions(self):
-        return (self.show_dimensions is True or
-                (self.show_dimensions == 'truncate' and self.is_truncated))
-
-    def _get_formatter(self, i):
-        if isinstance(self.formatters, (list, tuple)):
-            if is_integer(i):
-                return self.formatters[i]
-            else:
-                return None
-        else:
-            if is_integer(i) and i not in self.columns:
-                i = self.columns[i]
-            return self.formatters.get(i, None)
