@@ -4049,7 +4049,7 @@ class DataFrame(NDFrame):
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """
-        Combine with `other` DataFrame using `func` to merge columns.
+        Perform series-wise combine with `other` DataFrame using given `func`
 
         Combines `self` DataFrame with `other` DataFrame using `func`
         to merge columns. The row and column indexes of the resulting
@@ -4223,13 +4223,16 @@ class DataFrame(NDFrame):
 
     def combine_first(self, other):
         """
-        Combine two DataFrame objects and default to non-null values in frame
-        calling the method. Result index columns will be the union of the
-        respective indexes and columns
+        Update null values with elements from another DataFrame.
+
+        Combine two DataFrame objects by filling null values in self DataFrame
+        with non-null values from other DataFrame. The row and column indexes of the resulting
+        DataFrame will be the union of the two.
 
         Parameters
         ----------
         other : DataFrame
+            Provided DataFrame to use to fill null values
 
         Returns
         -------
@@ -4237,13 +4240,25 @@ class DataFrame(NDFrame):
 
         Examples
         --------
+
         df1's values prioritized, use values from df2 to fill holes:
 
-        >>> df1 = pd.DataFrame([[1, np.nan]])
-        >>> df2 = pd.DataFrame([[3, 4]])
+        >>> df1 = DataFrame({'A': [None, 0], 'B': [None, 4]})
+        >>> df2 = DataFrame({'A': [1, 1], 'B': [3, 3]})
         >>> df1.combine_first(df2)
-           0    1
-        0  1  4.0
+           A  B
+        0  1  3
+        1  0  4
+
+        Illustrate the behavior when the axis differ between the dataframes.
+
+        >>> df1 = DataFrame({'A': [None, 0], 'B': [4, None]})
+        >>> df2 = DataFrame({'B': [3, 3], 'C': [1, 1],}, index=[1, 2])
+        >>> df1.combine_first(df2)
+           A    B    C
+        0  NaN  4.0  NaN
+        1  0.0  3.0  1.0
+        2  NaN  3.0  1.0
 
         See Also
         --------
