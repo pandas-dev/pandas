@@ -2240,9 +2240,9 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
     rng : DatetimeIndex
 
     See Also
-    ________
-    pandas.period_range : Return a fixed frequency PeriodIndex.
-    pandas.interval_range : Return a fixed frequency IntervalIndex.
+    --------
+    pd.period_range : Return a fixed frequency PeriodIndex.
+    pd.interval_range : Return a fixed frequency IntervalIndex.
 
     Examples
     --------
