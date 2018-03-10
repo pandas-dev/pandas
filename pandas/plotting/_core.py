@@ -2852,9 +2852,9 @@ class FramePlotMethods(BasePlotMethods):
 
     def scatter(self, x, y, s=None, c=None, **kwds):
         """
-        A scatter plot with point size *s* and color *c*.
+        A scatter plot with point size `s` and color `c`.
 
-        The coordinates of each point *x,y* are defined by two dataframe
+        The coordinates of each point `x,y` are defined by two dataframe
         columns and filled circles are used to represent each point.
 
         Parameters
