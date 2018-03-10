@@ -30,7 +30,7 @@ from pandas.core.accessor import DirNamesMixin
 
 _shared_docs = dict()
 _indexops_doc_kwargs = dict(klass='IndexOpsMixin', inplace='',
-                            unique='IndexOpsMixin')
+                            unique='IndexOpsMixin', duplicated='IndexOpsMixin')
 
 
 class StringMixin(object):
