@@ -7787,9 +7787,7 @@ _bool_doc = """
 
 Parameters
 ----------
-axis : int, default 0
-    Select the axis that you would like to analyze. For column-wise
-    (axis=0), for row-wise (axis=1).
+axis : %(axis_descr)s
 skipna : boolean, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA.
@@ -7799,6 +7797,9 @@ level : int or level name, default None
 bool_only : boolean, default None
     Include only boolean columns. If None, will attempt to use everything,
     then use only boolean data. Not implemented for Series.
+**kwargs : any, default None
+    Additional keywords have no fect but might be accepted for
+    compatibility with numpy.
 
 Returns
 -------
