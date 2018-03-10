@@ -7115,12 +7115,61 @@ class NDFrame(PandasObject, SelectionMixin):
     # Numeric Methods
     def abs(self):
         """
-        Return an object with absolute value taken--only applicable to objects
-        that are all numeric.
+        Return a Series/DataFrame with absolute numeric value of each object.
+
+        This function only applies to objects that are all numeric.
 
         Returns
         -------
-        abs: type of caller
+        abs
+            Series/DataFrame containing the absolute value of each object.
+
+        Notes
+        -----
+        For ``complex`` inputs, ``1.2 + 1j``, the absolute value is
+        :math:`\\sqrt{ a^2 + b^2 }`. See the Python
+
+        Examples
+        --------
+        Absolute numeric values in a ``Series``.
+
+        >>> s = pd.Series([-1.10, 2, -3.33, 4])
+        >>> s.abs()
+        0    1.10
+        1    2.00
+        2    3.33
+        3    4.00
+        dtype: float64
+
+        Absolute numeric values in a ``Series`` with ``complex`` numbers.
+
+        >>> s = pd.Series([1.2 + 1j])
+        >>> s.abs()
+        0    1.56205
+        dtype: float64
+
+        Select rows with data closest to certian value using argsort (from
+        `StackOverflow
+        <http://stackoverflow.com/questions/17758023/return-rows-in-a-dataframe-closest-to-a-user-defined-number>`__).
+
+        >>> df = pd.DataFrame({
+        ...     'a': [4, 5, 6, 7],
+        ...     'b': [10,20,30,40],
+        ...     'c': [100,50,-30,-50]
+        ... })
+        >>> df
+             a    b    c
+        0    4   10  100
+        1    5   20   50
+        2    6   30  -30
+        3    7   40  -50
+        >>> a_value = 43.0
+        >>> df.loc[(df.c - a_value).abs().argsort()]
+             a    b    c
+        1    5   20   50
+        0    4   10  100
+        2    6   30  -30
+        3    7   40  -50
         """
         return np.abs(self)
 
