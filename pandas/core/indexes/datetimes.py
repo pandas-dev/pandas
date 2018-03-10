@@ -1710,8 +1710,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     """
     The week ordinal of the year.
 
-    Return the week ordinal of the year. Note that there can be 
-    counter intuitive edge cases around the yearchange. For example, 
+    Return the week ordinal of the year. Note that there can be
+    counter intuitive edge cases around the yearchange. For example
     the first of january could be in week 52 of the previous year.
     Monday indicates the start of a new week.
 
@@ -1739,9 +1739,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     6 2017-01-06     1     Friday
     7 2017-01-07     1   Saturday
     8 2017-01-08     1     Sunday
-    
+
     Note what `series.dt.week` and `series.dt.weekofyear` are the same.
-    
+
     >>> s.dt.week
     0    52
     1    52
