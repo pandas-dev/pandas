@@ -5649,7 +5649,7 @@ class NDFrame(PandasObject, SelectionMixin):
         You can clip each column or row with different thresholds by passing
         a ``Series`` to the lower/upper argument.
 
-        >>> some_data = {'A':[-19, 12, -5],'B':[1, 100, -5]}
+        >>> some_data={'A':[-19, 12, -5],'B':[1, 100, -5]}
         >>> df=pd.DataFrame(data=some_data, index=['foo', 'bar', 'bizz'])
         >>> df
               A   B
