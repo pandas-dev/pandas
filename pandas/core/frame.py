@@ -4819,9 +4819,9 @@ class DataFrame(NDFrame):
     def apply(self, func, axis=0, broadcast=None, raw=False, reduce=None,
               result_type=None, args=(), **kwds):
         """
-        Apply a function along an axis of the `Series`.
+        Apply a function along an axis of the DataFrame.
 
-        Objects passed to the function are `Series` objects having as index
+        Objects passed to the function are Series objects having as index
         either the DataFrame's index (`axis=0`)
         or the DataFrame's columns (`axis=1`).
         If `result_type` is None, the final return type is the return
@@ -4840,7 +4840,7 @@ class DataFrame(NDFrame):
         broadcast : boolean, optional
             Only relevant for aggregation functions:
 
-            * `False` or `None` : returns a `Series` whose length is the length
+            * `False` or `None` : returns a Series whose length is the length
               of the index or the number of columns (based on the `axis`
               parameter)
             * `True` : results will be broadcast to the original shape
@@ -4851,7 +4851,7 @@ class DataFrame(NDFrame):
                by result_type='broadcast'.
 
         raw : boolean, default False
-            * `False` : passes each row or column into a `Series` to the
+            * `False` : passes each row or column into a Series to the
               function.
             * `True` : the passed function will receive ndarray objects
               instead.
@@ -4860,12 +4860,12 @@ class DataFrame(NDFrame):
         reduce : boolean or None, default None
             Try to apply reduction procedures. If the `DataFrame` is empty,
             :meth:`apply` will use reduce to determine whether the result
-            should be a `Series` or a `DataFrame`. If reduce is None (the
+            should be a Series or a `DataFrame`. If reduce is None (the
             default), :meth:`apply`'s return value will be guessed by calling
-            func on an empty `Series`
+            func on an empty Series
             (note: while guessing, exceptions raised by `func` will be
             ignored).
-            If reduce is True a `Series` will always be returned, and if
+            If reduce is True a Series will always be returned, and if
             `False` a `DataFrame` will always be returned.
 
             .. deprecated:: 0.23.0.
@@ -4876,15 +4876,15 @@ class DataFrame(NDFrame):
             These only act when `axis=1` (columns):
 
             * 'expand' : list-like results will be turned into columns.
-            * 'reduce' : returns a `Series` if possible rather than expanding
+            * 'reduce' : returns a Series if possible rather than expanding
               list-like results. This is the opposite of 'expand'.
             * 'broadcast' : results will be broadcast to the original shape
               of the `DataFrame`, the original index and columns will be
               retained.
 
             The default behaviour (`None`) depends on the return value of the
-            applied function: list-like results will be returned as a `Series`
-            of those. However if the apply function returns a `Series` these
+            applied function: list-like results will be returned as a Series
+            of those. However if the apply function returns a Series these
             are expanded to columns.
 
             .. versionadded:: 0.23.0.
