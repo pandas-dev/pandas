@@ -806,7 +806,7 @@ class IndexOpsMixin(object):
 
         Returns
         -------
-        scalar or object
+        Scalar or object.
             minimum value
 
         See Also
