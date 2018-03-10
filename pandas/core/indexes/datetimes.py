@@ -1710,9 +1710,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     _dayofweek_doc = """
     The day of the week with Monday=0, Sunday=6.
 
-    Return the day of the week. It is assumed the week starts on 
-    Monday, which is denoted by 0 and ends on Sunday which is denoted 
-    by 6. 
+    Return the day of the week. It is assumed the week starts on
+    Monday, which is denoted by 0 and ends on Sunday which is denoted
+    by 6.
 
     See Also
     --------
@@ -1726,8 +1726,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     Examples
     --------
     >>> dates = pd.date_range("2016-12-31", "2017-01-08", freq="D")
-    >>> series = pd.Series(dates)
-    >>> pd.DataFrame({'dt': series, 'num': series.dt.weekday, 'day':series.dt.strftime("%A")})
+    >>> s = pd.Series(dates)
+    >>> day_name = s.dt.strftime("%A")
+    >>> pd.DataFrame({'dt': s, 'num': s.dt.weekday, 'day': day_name})
               dt  num        day
     0 2016-12-31    5   Saturday
     1 2017-01-01    6     Sunday
@@ -1739,9 +1740,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     7 2017-01-07    5   Saturday
     8 2017-01-08    6     Sunday
 
-    Note what `series.dt.dayofweek` and `series.dt.weekday` are the same.
+    Note that `series.dt.dayofweek` and `series.dt.weekday` are the same.
 
-    >>> series.dt.dayofweek
+    >>> s.dt.dayofweek
     0    5
     1    6
     2    0
@@ -1752,7 +1753,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     7    5
     8    6
     dtype: int64
-    >>> series.dt.weekday
+    >>> s.dt.weekday
     0    5
     1    6
     2    0
