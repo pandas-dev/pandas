@@ -5601,34 +5601,34 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Trim values at input threshold(s).
 
-        Elements above the upper threshold will be changed to upper threshold.
-        Elements below the lower threshold will be changed to lower threshold.
+        Elements above/below the upper'lower thresholds will be changed to
+        upper/lower thresholds.
 
         Parameters
         ----------
-        lower : float or array_like, default None
-            Lower threshold for clipping.  Values smaller than upper will be
-            converted to lower.
-        upper : float or array_like, default None
-            Upper threshold for clipping.  Values larger than upper will be
-            converted to upper.
-        axis : int or string axis name, optional
+        lower : float, array-like or None, default None
+            Lower threshold for clipping.  Values smaller than `lower` will be
+            converted to `lower`.
+        upper : float, array-like or None, default None
+            Upper threshold for clipping.  Values larger than `upper` will be
+            converted to `upper`.
+        axis : {0 or 'index', 1 or 'columns', None}, default None
             Align object with lower and upper along the given axis.
         inplace : boolean, default False
             Whether to perform the operation in place on the data
                 .. versionadded:: 0.21.0.
-        args : dictionary of arguments arguments passed to pandas.compat.numpy
-        kwargs : dictionary of keyword arguments passed to pandas.compat.numpy
+        *args : arguments passed to pandas.compat.numpy
+        **kwargs : keyword arguments passed to pandas.compat.numpy
 
         Returns
         -------
-        clipped : DataFrame/Series
+        clipped : `Series` or `DataFrame`.
             Elements above or below the upper and lower thresholds converted to
             threshold values.
 
         Notes
         -----
-        Clipping data is a method for dealing with dubious elements.
+        Clipping data is a method for dealing with out-of-range elements.
         If some elements are too large or too small, clipping is one way to
         transform the data into a reasonable range.
 
@@ -5638,10 +5638,12 @@ class NDFrame(PandasObject, SelectionMixin):
             above given value(s) truncated.
         pandas.DataFrame.clip_lower : Return copy of input with values
             below given value(s) truncated.
+        pandas.Series.clip : Trim values at input threshold(s).
 
         Examples
         --------
-        >>> df=pd.DataFrame({'a':[1, 2, 3], 'b':[4, 5, 6], 'c':[7, 8, 9001]})
+        >>> some_data = {'a': [1, 2, 3], 'b': [4, 5, 6], 'c': [7, 8, 9001]}
+        >>> df = pd.DataFrame(some_data)
         >>> df
             a   b   c
         0   1   4   7
@@ -5657,8 +5659,8 @@ class NDFrame(PandasObject, SelectionMixin):
         You can clip each column or row with different thresholds by passing
         a ``Series`` to the lower/upper argument.
 
-        >>> some_data={'A':[-19, 12, -5],'B':[1, 100, -5]}
-        >>> df=pd.DataFrame(data=some_data, index=['foo', 'bar', 'bizz'])
+        >>> some_data = {'A': [-19, 12, -5], 'B': [1, 100, -5]}
+        >>> df = pd.DataFrame(data=some_data, index=['foo', 'bar', 'bizz'])
         >>> df
               A   B
         foo  -19  1
@@ -5668,7 +5670,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Use the axis argument to clip by column or rows.  Clip column A with
         lower threshold of -10 and column B has lower threshold of 10.
 
-        >>> df.clip(lower=pd.Series({'A':-10, 'B':10}), axis=1)
+        >>> df.clip(lower=pd.Series({'A': -10, 'B': 10}), axis=1)
               A   B
         foo  -10 10
         bar   12 100
@@ -5676,7 +5678,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Clip the foo, bar, and bizz rows with lower thresholds -10, 0, and 10.
 
-        >>> row_thresh=pd.Series({'foo':-10, 'bar':0, 'bizz':10})
+        >>> row_thresh = pd.Series({'foo': -10, 'bar': 0, 'bizz': 10})
         >>> df.clip(lower=row_thresh, axis=0)
              A   B
         foo  -10 1
@@ -5685,15 +5687,12 @@ class NDFrame(PandasObject, SelectionMixin):
 
         `Winsorizing <https://en.wikipedia.org/wiki/Winsorizing>`__ is a way
         of removing outliers from data.  Columns of a DataFrame can be
-        winsorized by using clip.
+        winsorized at 5th and 95th percentile by using clip.
 
-        >>> import numpy as np
-        >>> x=np.random.normal(size=(1000,3))
-        >>> df=pd.DataFrame(x, columns=['a','b','c'])
-        >>> #Winsorize columns at 5% and 95%
-        >>> U=df.quantile(0.95)
-        >>> L=df.quantile(0.5)
-        >>> winsorized_df=df.clip(lower=L, upper=U, axis = 1)
+        >>> x = np.random.normal(size=(1000,3))
+        >>> U = df.quantile(0.95)
+        >>> L = df.quantile(0.5)
+        >>> winsorized_df = df.clip(lower=L, upper=U, axis = 1)
         """
         if isinstance(self, ABCPanel):
             raise NotImplementedError("clip is not supported yet for panels")
