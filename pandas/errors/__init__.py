@@ -67,7 +67,6 @@ class DtypeWarning(Warning):
     ...                    'b':['b']*300000})
     >>> df.to_csv('test', sep='\t', index=False, na_rep='NA')
     >>> df2 = pd.read_csv('test', sep='\t')
-    Traceback (most recent call last):
     ...
     DtypeWarning: Columns (0) have mixed types...
 
