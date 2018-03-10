@@ -2289,7 +2289,48 @@ class DataFrame(NDFrame):
         return result
 
     def transpose(self, *args, **kwargs):
-        """Transpose index and columns"""
+        """
+        Transpose index and columns.
+
+        Reflect the dataframe over its main diagonal by writing rows as columns
+        and vice-versa.
+
+        Parameters
+        ----------
+        *args
+            These arguments will be passed to
+            :func:`pandas.compat.numpy.function.validate_transpose`.
+        **kwargs
+            Keyword arguments used to create the transposed DataFrame.
+
+        Returns
+        -------
+        :class:`~pandas.DataFrame`
+            The transposed DataFrame.
+
+        See Also
+        --------
+        numpy.transpose : Permute the dimensions of a given array.
+
+        Examples
+        --------
+        >>> d = {'col1': [1, 2], 'col2': [3, 4]}
+        >>> df = pd.DataFrame(data=d)
+        >>> df
+           col1  col2
+        0     1     3
+        1     2     4
+
+        >>> df.T
+              0  1
+        col1  1  2
+        col2  3  4
+
+        >>> df.transpose()
+              0  1
+        col1  1  2
+        col2  3  4
+        """
         nv.validate_transpose(args, dict())
         return super(DataFrame, self).transpose(1, 0, **kwargs)
 
