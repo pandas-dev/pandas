@@ -1941,12 +1941,15 @@ class NDFrame(PandasObject, SelectionMixin):
             Default setting for this argument is True.
             If True, use the provided separator, writing in a csv format for
             allowing easy pasting into excel.
-            If False, write a string representation of the object to the clipboard.
+            If False, write a string representation of the object to the
+            clipboard.
         sep : str, default tab
             Field delimiter.
         kwargs : optional
-            These parameters will be passed to either :py:meth:`pandas.DataFrame.to_csv`
-            or :py:meth:`pandas.Series.to_csv` methods depending on the Object type.
+            These parameters will be passed to either
+            :py:meth:`pandas.DataFrame.to_csv`
+            or :py:meth:`pandas.Series.to_csv` methods depending on the
+            Object type.
 
         Returns
         -------
@@ -1954,8 +1957,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.core.frame.DataFrame.to_csv : Write a DataFrame to a comma-separated values (csv) file.
-        pandas.core.series.Series.to_csv : Write a Series to a comma-separated values (csv) file.
+        pandas.core.frame.DataFrame.to_csv : Write a DataFrame to a
+        comma-separated values (csv) file.
+        pandas.core.series.Series.to_csv : Write a Series to a
+        comma-separated values (csv) file.
 
         Notes
         -----
