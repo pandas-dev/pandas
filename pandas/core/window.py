@@ -878,22 +878,15 @@ class _Rolling_and_Expanding(_Rolling):
     >>> import pandas as pd
     >>> import numpy as np
 
-    >>> df = pd.DataFrame({
-    ...     'a': np.random.randn(10)
-    ... })
+    >>> s = pd.Series(np.arange(5))
 
-    >>> df.rolling(3).median()
-        a
-    0 	NaN
-    1 	NaN
-    2 	0.447664
-    3 	0.896537
-    4 	0.896537
-    5 	0.896537
-    6 	0.387809
-    7 	-0.067098
-    8 	-0.209795
-    9 	-0.618871
+    >>> s.rolling(3).median()
+    0    NaN
+    1    NaN
+    2    1.0
+    3    2.0
+    4    3.0
+    dtype: float64
     """)
 
     def median(self, **kwargs):
