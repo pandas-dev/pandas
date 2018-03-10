@@ -2797,10 +2797,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return self.reindex(**d)
 
-
     def drop(self, labels=None, axis=0, index=None, columns=None, level=None,
              inplace=False, errors='raise'):
-             
+
         inplace = validate_bool_kwarg(inplace, 'inplace')
 
         if labels is not None:

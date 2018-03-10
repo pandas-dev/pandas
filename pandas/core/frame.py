@@ -3036,12 +3036,12 @@ class DataFrame(NDFrame):
                                         limit=limit, fill_value=fill_value)
 
     def drop(self, labels=None, axis=0, index=None, columns=None,
-                     level=None, inplace=False, errors='raise'):
+             level=None, inplace=False, errors='raise'):
         """
         Drop rows or columns.
 
-        Remove rows or columns by specifying label names and corresponding axis,
-        or by specifying directly index or column names. When using a
+        Remove rows or columns by specifying label names and corresponding
+        axis, or by specifying directly index or column names. When using a
         multi-index, labels on different levels can be removed by specifying
         the level name or int.
 
@@ -3075,8 +3075,8 @@ class DataFrame(NDFrame):
         --------
         DataFrame.dropna : Return DataFrame with labels on given axis omitted
             where (all or any) data are missing
-        DataFrame.drop_duplicates : Return DataFrame with duplicate rows removed,
-            optionally only considering certain columns
+        DataFrame.drop_duplicates : Return DataFrame with duplicate rows
+            removed, optionally only considering certain columns
 
         Raises
         ------
@@ -3120,12 +3120,13 @@ class DataFrame(NDFrame):
         ...                      labels=[[0, 0, 0, 1, 1, 1, 2, 2, 2],
         ...                              [0, 1, 2, 0, 1, 2, 0, 1, 2]])
         >>> df = pd.DataFrame(index=midx, columns=['big','small'],
-        ...                   data=[[45,30],[200,100],[1.5,1],[30,20],[250,150],
-        ...                         [1.5,0.8],[320,250],[1,0.8],[0.3,0.2]])
+        ...                   data=[[45,30],[200,100],[1.5,1],[30,20],
+                                    [250,150],[1.5,0.8],[320,250],[1,0.8],
+                                    [0.3,0.2]])
         >>> df
-        		        big 	small
+                        big 	small
         lama 	speed 	45.0 	30.0
-                weight 	200.0 	100.0
+                weight  200.0 	100.0
                 length 	1.5 	1.0
         cow 	speed 	30.0 	20.0
                 weight 	250.0 	150.0
@@ -3144,7 +3145,7 @@ class DataFrame(NDFrame):
                 length 	0.3
 
         >>> df.drop(index='length', level=1)
-        		        big 	small
+                        big 	small
         lama 	speed 	45.0 	30.0
                 weight 	200.0 	100.0
         cow 	speed 	30.0 	20.0

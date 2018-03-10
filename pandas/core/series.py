@@ -2661,7 +2661,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return super(Series, self).reindex(index=index, **kwargs)
 
     def drop(self, labels=None, axis=0, index=None, columns=None,
-                level=None, inplace=False, errors='raise'):
+             level=None, inplace=False, errors='raise'):
         """
         Return Series with specified index labels removed.
 
