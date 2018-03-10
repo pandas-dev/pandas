@@ -1727,7 +1727,32 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     is_month_start = _field_accessor(
         'is_month_start',
         'is_month_start',
-        "Logical indicating if first day of month (defined by frequency)")
+        """
+        Returns a boolean indicating if the date is the first day of the month.
+
+        Returns
+        -------
+        is_month_start : Series of boolean
+
+        See Also
+        --------
+        is_month_end : Returns a boolean indicating if the date is the last day of the month.
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> dates = pd.Series(pd.date_range("2018-02-27", periods = 3))
+        >>> dates
+        0   2018-02-27
+        1   2018-02-28
+        2   2018-03-01
+        dtype: datetime64[ns]
+        >>> dates.dt.is_month_start
+        0    False
+        1    False
+        2    True
+        dtype: bool
+        """)
     is_month_end = _field_accessor(
         'is_month_end',
         'is_month_end',
