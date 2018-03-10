@@ -99,9 +99,11 @@ _apply_docs = dict(
     func : function
         A callable that takes a {input} as its first argument, and
         returns a dataframe, a series or a scalar. In addition the
-        callable may take positional and keyword arguments
-    args, kwargs : tuple and dict
-        Optional positional and keyword arguments to pass to ``func``
+        callable may take positional and keyword arguments.
+    args : tuple
+        Optional positional and keyword arguments to pass to ``func``.
+    kwargs : dict
+        Optional positional and keyword arguments to pass to ``func``.
 
     Returns
     -------
@@ -136,7 +138,7 @@ _apply_docs = dict(
     its argument and returns a dataframe. ``apply`` combines the result for
     each group together into a new dataframe:
 
-    >>> g.apply(lambda x: x / x.sum())
+    >>> g[['B','C']].apply(lambda x: x / x.sum()) 
               B    C
     0  0.333333  0.4
     1  0.666667  0.6
@@ -146,7 +148,7 @@ _apply_docs = dict(
     its argument and returns a series.  ``apply`` combines the result for
     each group together into a new dataframe:
 
-    >>> g.apply(lambda x: x.max() - x.min())
+    >>> g[['B','C']].apply(lambda x: x.max() - x.min()) 
        B  C
     A
     a  1  2
