@@ -5400,62 +5400,60 @@ class NDFrame(PandasObject, SelectionMixin):
     # Timeseries methods Methods
 
     def asof(self, where, subset=None):
-		"""
-		Take the last row without any NaN 
+        """
+        Take the last row without any NaN. 
+        
+        Or the last row without NaN considering only the subset of columns in the case of a DataFrame.
+        If there is no matched value, NaN is returned for a Series a Series of NaN values for a DataFrame.
+        
+        .. versionadded:: 0.19.0 For DataFrame.
+        
+        Parameters
+        ----------
+        where : datetime
+            Date or array of dates.
+        subset : str
+            String or list of strings, default None if not None use these columns for NaN propagation.
 
-		Or the last row without
-		NaN considering only the subset of columns in the case of a DataFrame
+        Notes
+        -----
+        Dates are assumed to be sorted.
+        Raises if this is not the case.
 
-		.. versionadded:: 0.19.0 For DataFrame
+        Returns
+        -------
+        where is scalar
 
-		If there is no good value, NaN is returned for a Series
-		a Series of NaN values for a DataFrame
+        - value or NaN if input is Series.
+        - Series if input is DataFrame.
 
-		Parameters
-		----------
-		where : date or array of dates
-		subset : string or list of strings, default None
-		   if not None use these columns for NaN propagation
+        where is Index: same shape object as input.
 
-		Notes
-		-----
-		Dates are assumed to be sorted
-		Raises if this is not the case
+        See Also
+        --------
+        merge_asof : Perform an asof merge. This is similar to a left-join except that we match on nearest key rather than equal keys.
 
-		Returns
-		-------
-		where is scalar
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> from datetime import datetime
 
-		  - value or NaN if input is Series
-		  - Series if input is DataFrame
-
-		where is Index: same shape object as input
-
-		See Also
-		--------
-		merge_asof
-
-		Examples
-		--------
-		>>> import pandas as pd
-		>>> from datetime import datetime
-
-		>>> names = ['curupira', 'saci', 'boitata', 'tupa',  float('NaN'), 'cuca']
-		>>> dates = [datetime.strptime('20130101', '%Y%m%d'), 
-		...          datetime.strptime('20140101', '%Y%m%d'),
-		...          datetime.strptime('20140101', '%Y%m%d'),
-		...          datetime.strptime('20150101', '%Y%m%d'),
-		...          datetime.strptime('20150101', '%Y%m%d'),
-		...          datetime.strptime('20160101', '%Y%m%d')]
-		>>> mySeries = pd.Series(data=names, index=dates)
-		>>> mySeries.asof(datetime.strptime('20150102', '%Y%m%d'))
-		`tupa`
-		>>> mySeries.asof(datetime.strptime('20190201', '%Y%m%d'))
-		`cuca``
-		>>> mySeries.asof(datetime.strptime('20120201', '%Y%m%d'))
-		nan		
-		"""
-
+        >>> names = ['curupira', 'saci', 'boitata', 'tupa',  float('NaN'), 'cuca']
+        >>> dates = [datetime.strptime('20130101', '%Y%m%d'), 
+        ...          datetime.strptime('20140101', '%Y%m%d'),
+        ...          datetime.strptime('20140101', '%Y%m%d'),
+        ...          datetime.strptime('20150101', '%Y%m%d'),
+        ...          datetime.strptime('20150101', '%Y%m%d'),
+        ...          datetime.strptime('20160101', '%Y%m%d')]
+        >>> mySeries = pd.Series(data=names, index=dates)
+        >>> mySeries.asof(datetime.strptime('20150102', '%Y%m%d'))
+        'tupa'
+        >>> mySeries.asof(datetime.strptime('20190201', '%Y%m%d'))
+        'cuca'
+        >>> mySeries.asof(datetime.strptime('20120201', '%Y%m%d'))
+        nan
+        """
+        
         if isinstance(where, compat.string_types):
             from pandas import to_datetime
             where = to_datetime(where)
