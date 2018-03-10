@@ -4069,7 +4069,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        pandas.Series.duplicated : equivalent method on pandas.Series
+        pandas.Series.duplicated : Equivalent method on pandas.Series
+        pandas.DataFrame.duplicated : Equivalent method on pandas.DataFrame
+        pandas.Index.drop_duplicates : Remove duplicate values from Index
         """
         return super(Index, self).duplicated(keep=keep)
 
