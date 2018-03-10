@@ -99,39 +99,38 @@ class TimelikeOps(object):
 
         Notes
         -----
-        See the following link for possible `freq` values
-        and their descriptions.\n
-        https://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases
+        See :ref:`frequency aliases <timeseries.offset_aliases>` for
+        a list of possible `freq` values.
 
         Examples
         --------
         >>> rng = pd.date_range('1/1/2018 11:59:00', periods=3, freq='min')
         >>> rng
         DatetimeIndex(['2018-01-01 11:59:00', '2018-01-01 12:00:00',
-               '2018-01-01 12:01:00'],
-              dtype='datetime64[ns]', freq='T')
+                       '2018-01-01 12:01:00'],
+                       dtype='datetime64[ns]', freq='T')
         """)
 
     _round_example = (
         """>>> rng.round('H')
         DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
-               '2018-01-01 12:00:00'],
-              dtype='datetime64[ns]', freq=None)
+                       '2018-01-01 12:00:00'],
+                       dtype='datetime64[ns]', freq=None)
         """)
 
     _floor_example = (
         """>>> rng.floor('H')
         DatetimeIndex(['2018-01-01 11:00:00', '2018-01-01 12:00:00',
-               '2018-01-01 12:00:00'],
-              dtype='datetime64[ns]', freq=None)
+                       '2018-01-01 12:00:00'],
+                       dtype='datetime64[ns]', freq=None)
         """
     )
 
     _ceil_example = (
         """>>> rng.ceil('H')
         DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
-               '2018-01-01 13:00:00'],
-              dtype='datetime64[ns]', freq=None)
+                       '2018-01-01 13:00:00'],
+                       dtype='datetime64[ns]', freq=None)
         """
     )
 
