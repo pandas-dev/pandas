@@ -7869,7 +7869,7 @@ _all_doc = """\
 Return whether all elements are True over series or dataframe axis.
 
 Returns True if all elements within a series or along a dataframe
-axis or are non-zero, not-empty or not-False."""
+axis are non-zero, not-empty or not-False."""
 
 _all_examples = """\
 Examples
@@ -7909,8 +7909,8 @@ dtype: bool
 _all_see_also = """\
 See also
 --------
-pandas.Series.all : Return if all elements are True
-pandas.DataFrame.any : Return if one (or more) elements are True
+pandas.Series.all : Return True if all elements are True
+pandas.DataFrame.any : Return True if one (or more) elements are True
 """
 
 _cnum_doc = """
