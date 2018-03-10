@@ -1786,7 +1786,8 @@ class NDFrame(PandasObject, SelectionMixin):
                             index=index)
 
     def to_hdf(self, path_or_buf, key, **kwargs):
-        """Write the contained data to an HDF5 file using HDFStore.
+        """
+        Write the contained data to an HDF5 file using HDFStore.
 
         Parameters
         ----------
@@ -1834,6 +1835,42 @@ class NDFrame(PandasObject, SelectionMixin):
             If applying compression use the fletcher32 checksum
         dropna : boolean, default False.
             If true, ALL nan rows will not be written to store.
+
+        See Also
+        --------
+        DataFrame.to_csv : write out to a csv file.
+        DataFrame.to_sql : write to a sql table.
+        DataFrame.to_feather : write out feather-format for DataFrames.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]}, 
+        ...                   index=['a', 'b', 'c'])
+        >>> df.to_hdf('data.h5', key='df', mode='w')
+
+        We can append another object to the same file:
+
+        >>> s = pd.Series([1, 2, 3, 4])
+        >>> s.to_hdf('data.h5', key='s')
+
+        Reading from HDF file:
+
+        >>> pd.read_hdf('data.h5', 'df')
+        A  B
+        a  1  4
+        b  2  5
+        c  3  6
+        >>> pd.read_hdf('data.h5', 's'))
+        0    1
+        1    2
+        2    3
+        3    4
+        dtype: int64
+
+        Notes
+        -----
+        Learn more about `Hierarchical Data Format (HDF) 
+        <https://support.hdfgroup.org/HDF5/whatishdf5.html>`__.
         """
 
         from pandas.io import pytables
