@@ -229,3 +229,8 @@ def test_int_indexing():
     pytest.raises(KeyError, s.__getitem__, 5)
 
     pytest.raises(KeyError, s.__getitem__, 'c')
+
+
+def test_getitem_int64(test_data):
+    idx = np.int64(5)
+    assert test_data.ts[idx] == test_data.ts[5]

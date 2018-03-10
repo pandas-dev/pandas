@@ -9,8 +9,6 @@ from pandas.compat import lrange, range
 from pandas.util.testing import (assert_series_equal,
                                  assert_almost_equal)
 
-JOIN_TYPES = ['inner', 'outer', 'left', 'right']
-
 
 def test_iloc():
     s = Series(np.random.randn(10), index=lrange(0, 20, 2))
