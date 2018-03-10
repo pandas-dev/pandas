@@ -6888,29 +6888,33 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def truncate(self, before=None, after=None, axis=None, copy=True):
         """
-        Truncates a sorted DataFrame/Series before and/or after some
-        particular index value. If the axis contains only datetime values,
+        Truncate a DataFrame/Series before/after some index value.
+
+        If the axis contains only datetime values,
         before/after parameters are converted to datetime values.
 
         Parameters
         ----------
         before : date, string, int
-            Truncate all rows before this index value
+            Truncate all rows before this index value.
         after : date, string, int
-            Truncate all rows after this index value
+            Truncate all rows after this index value.
         axis : {0 or 'index', 1 or 'columns'}
-
-            * 0 or 'index': apply truncation to rows
-            * 1 or 'columns': apply truncation to columns
-
             Default is stat axis for given data type (0 for Series and
-            DataFrames, 1 for Panels)
+            DataFrames).
         copy : boolean, default is True,
-            return a copy of the truncated section
+            Return a copy of the truncated section.
 
         Returns
         -------
-        truncated : type of caller
+        type of caller
+            The truncated DataFrame/Series.
+
+        See Also
+        --------
+        DataFrame.truncate : Truncate a DataFrame before/after some index
+            value.
+        Series.truncate : Truncate a Series before/after some index value.
 
         Examples
         --------
