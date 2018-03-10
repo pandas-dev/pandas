@@ -1937,10 +1937,12 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                      mapping={True: 'infer', False: 'raise'})
     def tz_localize(self, tz, ambiguous='raise', errors='raise'):
         """
-        Convert aware to naive.
+        Localize tz-naive DatetimeIndex to tz-aware DatetimeIndex.
 
-        Localize timezone-naive DatetimeIndex to given time zone,
-        or remove timezone from timezone aware DatetimeIndex.
+        tz_localize() takes a naive datetime object and interprets it as if it
+        is in that timezone. It does not move the time to another timezone.
+        tz_localize function helps to switch b/w time zone aware and time zone
+        unaware objects.
 
         Parameters
         ----------
@@ -1978,18 +1980,22 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         Examples
         --------
         In the example below, We put the date range from 01 March 2018
-        to 08 March 2018 & convert this to US/Eastern Time zone
+        to 08 March 2018 & localize this to US/Eastern Time zone & again
+        we perform reverse operation where we remove tize zone & make it
+        tz-naive
 
         >>> df = pd.date_range('2018-03-01', '2018-03-05')
         >>> df
         DatetimeIndex(['2018-03-01', '2018-03-02', '2018-03-03',
-        '2018-03-04', '2018-03-05'],
-        dtype='datetime64[ns]', freq='D')
+        '2018-03-04', '2018-03-05'], dtype='datetime64[ns]', freq='D')
         >>> df.tz_localize(tz='US/Eastern')
         DatetimeIndex(['2018-03-01 00:00:00-05:00',
         '2018-03-02 00:00:00-05:00', '2018-03-03 00:00:00-05:00',
         '2018-03-04 00:00:00-05:00', '2018-03-05 00:00:00-05:00'],
         dtype='datetime64[ns, US/Eastern]', freq='D')
+        >>> df.tz_localize(None)
+        DatetimeIndex(['2018-03-01', '2018-03-02', '2018-03-03',
+        '2018-03-04', '2018-03-05'], dtype='datetime64[ns]', freq='D')
 
         Raises
         ------
