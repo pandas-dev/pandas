@@ -4855,8 +4855,8 @@ class DataFrame(NDFrame):
               function.
             * `True` : the passed function will receive ndarray objects
               instead.
-            If you are just applying a NumPy reduction function this will
-            achieve much better performance.
+              If you are just applying a NumPy reduction function this will
+              achieve much better performance.
         reduce : bool or `None`, default `None`
             Try to apply reduction procedures. If the `DataFrame` is empty,
             :meth:`apply` will use reduce to determine whether the result
