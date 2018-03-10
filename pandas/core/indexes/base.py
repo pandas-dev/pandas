@@ -1156,7 +1156,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx = pd.Index(['Ant', 'Bear', 'Cow'], name='animal')
         >>> idx.to_frame()
             animal
-        animal       
+        animal
         Ant       Ant
         Bear     Bear
         Cow       Cow
@@ -4026,7 +4026,7 @@ class Index(IndexOpsMixin, PandasObject):
         Indicate duplicate index values.
 
         Duplicated values are indicated as ``True`` values in the resulting
-        array. Either all duplicates, all except the first or all except the 
+        array. Either all duplicates, all except the first or all except the
         last occurrence of duplicates can be indicated.
 
         Parameters
@@ -4034,39 +4034,39 @@ class Index(IndexOpsMixin, PandasObject):
         keep : {'first', 'last', False}, default 'first'
             - 'first' : Mark duplicates as ``True`` except for the first
               occurrence.
-            - 'last' : Mark duplicates as ``True`` except for the last 
+            - 'last' : Mark duplicates as ``True`` except for the last
               occurrence.
             - ``False`` : Mark all duplicates as ``True``.
-        
+
         Examples
         --------
-        By default, for each set of duplicated values, the first occurrence is 
+        By default, for each set of duplicated values, the first occurrence is
         set on False and all others on True:
 
         >>> idx = pd.Index(['lama', 'cow', 'lama', 'beetle', 'lama', 'hippo'])
         >>> idx.duplicated()
         array([False, False,  True, False,  True, False], dtype=bool)
 
-        which is equivalent to 
+        which is equivalent to
 
         >>> idx.duplicated(keep='first')
         array([False, False,  True, False,  True, False], dtype=bool)
 
-        By using 'last', the last occurrence of each set of duplicated values is 
+        By using 'last', the last occurrence of each set of duplicated values is
         set on False and all others on True:
 
         >>> idx.duplicated(keep='last')
         array([ True, False,  True, False, False, False], dtype=bool)
 
         By setting keep on ``False``, all duplicates are True:
-        
+
         >>> idx.duplicated(keep=False)
         array([ True, False,  True, False,  True, False], dtype=bool)
-        
+
         Returns
         -------
         numpy.ndarray
-        
+
         See Also
         --------
         pandas.Series.duplicated : equivalent method on pandas.Series

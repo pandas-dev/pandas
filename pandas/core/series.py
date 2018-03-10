@@ -1325,7 +1325,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Indicate duplicate Series values.
 
         Duplicated values are indicated as ``True`` values in the resulting
-        Series. Either all duplicates, all except the first or all except the 
+        Series. Either all duplicates, all except the first or all except the
         last occurrence of duplicates can be indicated.
 
         Parameters
@@ -1333,16 +1333,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         keep : {'first', 'last', False}, default 'first'
             - 'first' : Mark duplicates as ``True`` except for the first
               occurrence.
-            - 'last' : Mark duplicates as ``True`` except for the last 
+            - 'last' : Mark duplicates as ``True`` except for the last
               occurrence.
             - ``False`` : Mark all duplicates as ``True``.
-        
+
         Examples
         --------
-        By default, for each set of duplicated values, the first occurrence is 
+        By default, for each set of duplicated values, the first occurrence is
         set on False and all others on True:
 
-        >>> animals = pd.Series(['lama', 'cow', 'lama', 
+        >>> animals = pd.Series(['lama', 'cow', 'lama',
         ...                      'beetle', 'lama', 'hippo'])
         >>> animals.duplicated()
         0    False
@@ -1353,7 +1353,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         5    False
         dtype: bool
 
-        which is equivalent to 
+        which is equivalent to
 
         >>> animals.duplicated(keep='first')
         0    False
@@ -1364,7 +1364,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         5    False
         dtype: bool
 
-        By using 'last', the last occurrence of each set of duplicated values is 
+        By using 'last', the last occurrence of each set of duplicated values is
         set on False and all others on True:
 
         >>> animals.duplicated(keep='last')
@@ -1377,7 +1377,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         dtype: bool
 
         By setting keep on ``False``, all duplicates are True:
-        
+
         >>> animals.duplicated(keep=False)
         0     True
         1    False
@@ -1386,11 +1386,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         4     True
         5    False
         dtype: bool
-        
+
         Returns
         -------
         pandas.core.series.Series
-        
+
         See Also
         --------
         pandas.Index.duplicated : equivalent method on pandas.Index
