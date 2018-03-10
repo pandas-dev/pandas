@@ -6596,9 +6596,10 @@ class NDFrame(PandasObject, SelectionMixin):
             return self._constructor(new_data).__finalize__(self)
 
     _shared_docs['where'] = ("""
-        Return an object of same shape as self and whose corresponding
-        entries are from self where `cond` is %(cond)s and otherwise are from
-        `other`.
+        Replace values that don't respect a `cond` condition.
+
+        Return an object of same shape as self with entries that
+        not satisfy a `cond` is %(cond)s are replaced by `other`.
 
         Parameters
         ----------
@@ -6623,23 +6624,26 @@ class NDFrame(PandasObject, SelectionMixin):
                 A callable can be used as other.
 
         inplace : boolean, default False
-            Whether to perform the operation in place on the data
-        axis : alignment axis if needed, default None
-        level : alignment level if needed, default None
-        errors : str, {'raise', 'ignore'}, default 'raise'
-            - ``raise`` : allow exceptions to be raised
-            - ``ignore`` : suppress exceptions. On error return original object
-
+            Whether to perform the operation in place on the data.
+        axis : int, default None
+            Alignment axis if needed.
+        level : int, default None
+            Alignment level if needed.
+        errors : str, {'raise', 'ignore'}, default `raise`
             Note that currently this parameter won't affect
             the results and will always coerce to a suitable dtype.
 
+            - `raise` : allow exceptions to be raised.
+            - `ignore` : suppress exceptions. On error return original object.
+
         try_cast : boolean, default False
-            try to cast the result back to the input type (if possible),
+            Try to cast the result back to the input type (if possible).
         raise_on_error : boolean, default True
             Whether to raise on invalid data types (e.g. trying to where on
-            strings)
+            strings).
 
             .. deprecated:: 0.21.0
+            Use `error`.
 
         Returns
         -------
@@ -6659,6 +6663,11 @@ class NDFrame(PandasObject, SelectionMixin):
         For further details and examples see the ``%(name)s`` documentation in
         :ref:`indexing <indexing.where_mask>`.
 
+        See Also
+        --------
+        :func:`DataFrame.%(name_other)s` : Return an object of same shape as
+            self
+
         Examples
         --------
         >>> s = pd.Series(range(5))
@@ -6668,6 +6677,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2    2.0
         3    3.0
         4    4.0
+        dtype: float64
 
         >>> s.mask(s > 0)
         0    0.0
@@ -6675,13 +6685,15 @@ class NDFrame(PandasObject, SelectionMixin):
         2    NaN
         3    NaN
         4    NaN
+        dtype: float64
 
         >>> s.where(s > 1, 10)
-        0    10.0
-        1    10.0
-        2    2.0
-        3    3.0
-        4    4.0
+        0    10
+        1    10
+        2    2
+        3    3
+        4    4
+        dtype: int64
 
         >>> df = pd.DataFrame(np.arange(10).reshape(-1, 2), columns=['A', 'B'])
         >>> m = df %% 3 == 0
@@ -6706,10 +6718,6 @@ class NDFrame(PandasObject, SelectionMixin):
         2  True  True
         3  True  True
         4  True  True
-
-        See Also
-        --------
-        :func:`DataFrame.%(name_other)s`
         """)
 
     @Appender(_shared_docs['where'] % dict(_shared_doc_kwargs, cond="True",
