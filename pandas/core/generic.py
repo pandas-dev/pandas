@@ -5582,23 +5582,24 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> data = {'0': [9, -3, 0, -1, 5], '1': [-2, -7, 6, 8, -5]}
+        >>> data = {'col_0': [9, -3, 0, -1, 5], 'col_1': [-2, -7, 6, 8, -5]}
         >>> df = pd.DataFrame(data)
         >>> df
-            0 	1
-        0 	9 	-2
-        1 	-3 	-7
-        2 	0 	6
-        3 	-1 	8
-        4 	5 	-5
+           col_0  col_1
+        0      9     -2
+        1     -3     -7
+        2      0      6
+        3     -1      8
+        4      5     -5
+
 
         >>> df.clip(-4, 6)
-            0 	1
-        0 	6 	-2
-        1 	-3 	-4
-        2 	0 	6
-        3 	-1 	6
-        4 	5 	-4
+           col_0  col_1
+        0      6     -2
+        1     -3     -4
+        2      0      6
+        3     -1      6
+        4      5     -4
 
         >>> t = pd.Series([2, -4, -1, 6, 3])
         >>> t
@@ -5610,12 +5611,13 @@ class NDFrame(PandasObject, SelectionMixin):
         dtype: int64
 
         >>> df.clip(t, t + 4, axis=0)
-            0 	1
-        0 	6 	2
-        1 	-3 	-4
-        2 	0 	3
-        3  	6 	8
-        4 	5 	3
+           col_0  col_1
+        0      6      2
+        1     -3     -4
+        2      0      3
+        3      6      8
+        4      5      3
+
         """
         if isinstance(self, ABCPanel):
             raise NotImplementedError("clip is not supported yet for panels")
