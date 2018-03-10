@@ -4744,7 +4744,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        Series.diff
+        Series.diff: 1st discrete difference of object
 
         Examples
         --------
