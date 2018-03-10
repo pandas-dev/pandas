@@ -4246,7 +4246,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Examples
         --------
         A DataFrame where all columns are the same type (e.g., int64) results
-        in an ndarray of the same type.
+        in an array of the same type.
 
         >>> df = pd.DataFrame({'age':    [ 3,  29],
         ...                    'height': [94, 170],
@@ -4255,13 +4255,18 @@ class NDFrame(PandasObject, SelectionMixin):
            age  height  weight
         0    3      94      31
         1   29     170     115
+        >>> df.dtypes
+        age       int64
+        height    int64
+        weight    int64
+        dtype: object
         >>> df.values
         array([[  3,  94,  31],
                [ 29, 170, 115]], dtype=int64)
 
         A DataFrame with mixed type columns(e.g., str/object, int64, float32)
-        results in an ndarray of the broadest type encompasing these mixed
-        types (e.g., object).
+        results in an ndarray of the broadest type that accommodates these
+        mixed types (e.g., object).
 
         >>> df2 = pd.DataFrame([('parrot',   24.0, 'second'),
         ...                     ('lion',     80.5, 1),
@@ -4291,7 +4296,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.DataFrame.from_records : Creating a DataFrame from an ndarray
+        pandas.DataFrame.from_records : Inverse operation; creating a 
+            DataFrame from an ndarray
         pandas.DataFrame.keys : Retrieving the 'info axis' (column names)
         pandas.DataFrame.columns : Retrieving the column names
         """
