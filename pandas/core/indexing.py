@@ -1414,7 +1414,7 @@ class _LocationIndexer(_NDFrameIndexer):
 
 class _LocIndexer(_LocationIndexer):
     """
-    Selects a group of rows and columns by label(s) or a boolean array.
+    Access a group of rows and columns by label(s) or a boolean array.
 
     ``.loc[]`` is primarily label based, but may also be used with a
     boolean array.
@@ -1460,13 +1460,11 @@ class _LocIndexer(_LocationIndexer):
     c2    1
     Name: r1, dtype: int64
 
-
     Single label for row and column (note it would be faster to use
     ``DateFrame.at`` in this case)
 
     >>> df.loc['r0', 'c1']
     2
-
 
     A list of labels
 
