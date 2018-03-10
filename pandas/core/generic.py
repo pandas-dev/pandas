@@ -1866,7 +1866,8 @@ class NDFrame(PandasObject, SelectionMixin):
         Write records stored in a DataFrame to a SQL database.
 
         This function inserts all rows of the dataframe into the given
-         table and recreates if if_exists='replace'.
+         table and recreates it if if_exists='replace'. Databases supported by
+         SQLAlchemy or DBAPI2 are also supported.
 
         Parameters
         ----------
@@ -1906,13 +1907,12 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> import pandas as pd
         >>> from sqlalchemy import create_engine
         >>> engine = create_engine('sqlite:///example.db', echo=False)
         >>> gen_names = lambda ids: ["User" + str(x) for x in ids]
         >>> gen_users = lambda ids: {"id": ids, "name" : gen_names(ids)}
         >>> df=pd.DataFrame(gen_users(list(range(3))))
-        >>> # create a table from scratch
+        >>> # create a table from scratch with 3 rows
         >>> df.to_sql('users',con=engine,if_exists='replace')
         >>> df1=pd.DataFrame(gen_users(list(range(3,5))))
         >>> # 2 new rows inserted
