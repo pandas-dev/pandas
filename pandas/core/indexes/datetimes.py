@@ -1712,7 +1712,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     Return the day of the week. It is assumed the week starts on
     Monday, which is denoted by 0 and ends on Sunday which is denoted
-    by 6.
+    by 6. This method is available on both Series with datetime
+    values or DatetimeIndex
 
     See Also
     --------
@@ -1721,6 +1722,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     Returns
     -------
+    Series
+        Containing integers indicating the week number.
+
     ndarray of integers indicating the day of the week
 
     Examples
@@ -1740,7 +1744,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     7 2017-01-07    5   Saturday
     8 2017-01-08    6     Sunday
 
-    Note that `series.dt.dayofweek` and `series.dt.weekday` are the same.
+    Note: `pandas.Series.dt.dayofweek`/`pandas.Series.dt.weekday` are the same.
 
     >>> s.dt.dayofweek
     0    5
