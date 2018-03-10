@@ -428,7 +428,7 @@ def validate_one(func_name):
             param_errs.append('Parameter "{}" '
                               'has no description'.format(param))
         else:
-            if not doc.parameter_desc(param)[0].isupper() and doc.parameter_desc(param)[0] != '-':
+            if not doc.parameter_desc(param)[0].isupper():
                 param_errs.append('Parameter "{}" description '
                                   'should start with '
                                   'capital letter'.format(param))
