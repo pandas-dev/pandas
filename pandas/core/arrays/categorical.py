@@ -1090,8 +1090,8 @@ class Categorical(ExtensionArray, PandasObject):
         the result is a Categorical which has the same order property as
         the original, otherwise an np.ndarray is returned.
 
-        If a dictionary or Series is used and any unmapped category is mapped
-        to NA. Note that if this happens an np.ndarray will be returned.
+        If a dictionary or Series is used any unmapped category is mapped to
+        NA. Note that if this happens an np.ndarray will be returned.
 
         Parameters
         ----------

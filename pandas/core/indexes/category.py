@@ -671,8 +671,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         the same order property as the original, otherwise an Index is
         returned.
 
-        If a dictionary or Series is used and any unmapped category is mapped
-        to NA. Note that if this happens an Index will be returned.
+        If a dictionary or Series is used any unmapped category is mapped to
+        NA. Note that if this happens an Index will be returned.
 
         Parameters
         ----------
@@ -681,13 +681,14 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         Returns
         -------
-        applied : CategoricalIndex or Index
+        CategoricalIndex or Index
+            Mapped index.
 
         See Also
         --------
-        Index.map : For applying a mapping correspondence on an Index.
-        Series.map : For applying a mapping correspondence on a Series.
-        Series.apply : For applying more complex functions on a Series.
+        Index.map : Apply a mapping correspondence on an Index.
+        Series.map : Apply a mapping correspondence on a Series.
+        Series.apply : Apply more complex functions on a Series.
         """
         return self._shallow_copy_with_infer(self.values.map(mapper))
 
