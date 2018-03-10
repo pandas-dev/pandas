@@ -55,14 +55,16 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
     of lists or list-like objects having same length.
     The concatenation is done at corresponding indices of
     iterable specified by `Series` when two or more iterables
-    are present. The final concatenation is done with a given `sep`
-    and a string is returned.
+    are present. If `others` is not being passed then
+    all values in the Series are concatenated in a single string.
+    The final concatenation is done with a given `sep`
+    and a string is returned, `sep` is optional.
 
     Parameters
     ----------
     others : list-like, or list of list-likes
         If None, returns str concatenating strings of the Series.
-    sep : string or None, default None.
+    sep : string or None, default None
         If None, concatenates without any separator.
     na_rep : string or None, default None
         If None, NA in the series are ignored.
@@ -71,12 +73,17 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
     -------
     concat : Series/Index of objects or str
 
+    See Also
+    --------
+    str_split : Split each string in the Series/Index
+
     Examples
     --------
     When ``na_rep`` is `None` (default behavior), NaN value(s)
     in the Series are ignored.
 
-    >>> pd.Series(['a','b',np.nan,'c']).str.cat(sep=' ')
+    >>> s = pd.Series(['a','b',np.nan,'c'])
+    >>> s.str.cat(sep=' ')
     'a b c'
 
     >>> pd.Series(['a','b',np.nan,'c']).str.cat(sep=' ', na_rep='?')
