@@ -1931,8 +1931,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     def tz_convert(self, tz):
         """
-        Convert tz-aware DatetimeIndex from one time zone to another (using
-        pytz/dateutil)
+        Convert tz-aware DatetimeIndex from one time zone to another or remove
+        time zone information (using pytz/dateutil)
 
         Parameters
         ----------
@@ -1949,6 +1949,26 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         ------
         TypeError
             If DatetimeIndex is tz-naive.
+
+        See Also
+        --------
+        tz_localize : Localize tz-naive DatetimeIndex to given time zone.
+
+        Examples
+        --------
+        >>> ts = pd.Series([pd.Timestamp("2018-01-01 00:00", tz="US/Eastern"),
+        ...                 pd.Timestamp("2018-02-01 23:00", tz="US/Eastern")])
+        >>> ts.dt.tz_convert("Europe/Amsterdam")
+        0   2018-01-01 06:00:00+01:00
+        1   2018-02-02 05:00:00+01:00
+        dtype: datetime64[ns, Europe/Amsterdam]
+
+        >>> import pytz
+        >>> london = pytz.timezone('Europe/London')
+        >>> ts = pd.Series([pd.Timestamp("2018-01-01 00:00", tz=london)])
+        >>> ts.dt.tz_convert(tz=None)
+        0   2018-01-01
+        dtype: datetime64[ns]
         """
         tz = timezones.maybe_get_tz(tz)
 
