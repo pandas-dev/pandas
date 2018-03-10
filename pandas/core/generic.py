@@ -3607,6 +3607,10 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return the first n rows.
 
+        This function returns rows for the object based on the underlying
+        index. It is useful for quickly testing if your object has the
+        right type of data in it.
+
         Parameters
         ----------
         n : int, default 5
@@ -3620,6 +3624,7 @@ class NDFrame(PandasObject, SelectionMixin):
         See Also
         --------
         pandas.DataFrame.tail
+            Returns the last n rows.
 
         Examples
         --------
