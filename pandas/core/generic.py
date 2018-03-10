@@ -487,13 +487,20 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return new_axes
 
-    _shared_docs['set_axis'] = """Assign desired index to given axis
+    _shared_docs['set_axis'] = """
+        Assign desired index to given axis.
+
+        Indexes for columns or rows can be changed by assigning
+        a list-like or Index.
 
         Parameters
         ----------
-        labels: list-like or Index
-            The values for the new index
-        axis : int or string, default 0
+        labels : list-like, Index
+            The values for the new index.
+
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            The value 0 indentify the rows, 1 identify the columns.
+
         inplace : boolean, default None
             Whether to return a new %(klass)s instance.
 
@@ -501,10 +508,10 @@ class NDFrame(PandasObject, SelectionMixin):
             in a future version, will default to False.  Use inplace=True
             explicitly rather than relying on the default.
 
-        .. versionadded:: 0.21.0
-            The signature is make consistent to the rest of the API.
-            Previously, the "axis" and "labels" arguments were respectively
-            the first and second positional arguments.
+            .. versionadded:: 0.21.0
+                The signature is make consistent to the rest of the API.
+                Previously, the "axis" and "labels" arguments were respectively
+                the first and second positional arguments.
 
         Returns
         -------
@@ -513,7 +520,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.NDFrame.rename
+        pandas.DataFrame.rename_axis : Alter the name of the index or columns.
 
         Examples
         --------
@@ -545,7 +552,6 @@ class NDFrame(PandasObject, SelectionMixin):
         0  1   4
         1  2   5
         2  3   6
-
         """
 
     @Appender(_shared_docs['set_axis'] % dict(klass='NDFrame'))
