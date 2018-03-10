@@ -1665,8 +1665,9 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         path_or_buf : the path or buffer to write the result string
-            if this is None, return the converted string
+            If this is None, return the converted string.
         orient : string
+            Indication of expected JSON string format.
 
             * Series
 
@@ -1692,16 +1693,18 @@ class NDFrame(PandasObject, SelectionMixin):
                 describing the data, and the data component is
                 like ``orient='records'``.
 
-                .. versionchanged:: 0.20.0
+                .. versionchanged:: 0.20.0.
 
         date_format : {None, 'epoch', 'iso'}
             Type of date conversion. `epoch` = epoch milliseconds,
             `iso` = ISO8601. The default depends on the `orient`. For
             `orient='table'`, the default is `'iso'`. For all other orients,
             the default is `'epoch'`.
-        double_precision : The number of decimal places to use when encoding
-            floating point values, default 10.
-        force_ascii : force encoded string to be ASCII, default True.
+        double_precision : int, default 10
+            The number of decimal places to use when encoding
+            floating point values.
+        force_ascii : boolean, default True
+            Force encoded string to be ASCII.
         date_unit : string, default 'ms' (milliseconds)
             The time unit to encode to, governs timestamp and ISO8601
             precision.  One of 's', 'ms', 'us', 'ns' for second, millisecond,
@@ -1715,20 +1718,20 @@ class NDFrame(PandasObject, SelectionMixin):
             throw ValueError if incorrect 'orient' since others are not list
             like.
 
-            .. versionadded:: 0.19.0
+            .. versionadded:: 0.19.0.
 
         compression : {None, 'gzip', 'bz2', 'xz'}
             A string representing the compression to use in the output file,
             only used when the first argument is a filename
 
-            .. versionadded:: 0.21.0
+            .. versionadded:: 0.21.0.
 
         index : boolean, default True
             Whether to include the index values in the JSON string. Not
             including the index (``index=False``) is only supported when
             orient is 'split' or 'table'.
 
-            .. versionadded:: 0.23.0
+            .. versionadded:: 0.23.0.
 
         Returns
         -------
@@ -1749,16 +1752,26 @@ class NDFrame(PandasObject, SelectionMixin):
           "index":["row 1","row 2"],
           "data":[["a","b"],["c","d"]]}'
 
-        Encoding/decoding a Dataframe using ``'index'`` formatted JSON:
-
-        >>> df.to_json(orient='index')
-        '{"row 1":{"col 1":"a","col 2":"b"},"row 2":{"col 1":"c","col 2":"d"}}'
-
         Encoding/decoding a Dataframe using ``'records'`` formatted JSON.
         Note that index labels are not preserved with this encoding.
 
         >>> df.to_json(orient='records')
         '[{"col 1":"a","col 2":"b"},{"col 1":"c","col 2":"d"}]'
+
+        Encoding/decoding a Dataframe using ``'index'`` formatted JSON:
+
+        >>> df.to_json(orient='index')
+        '{"row 1":{"col 1":"a","col 2":"b"},"row 2":{"col 1":"c","col 2":"d"}}'
+
+        Encoding/decoding a Dataframe using ``'columns'`` formatted JSON:
+
+        >>> df.to_json(orient='columns')
+        '{"col 1":{"row 1":"a","row 2":"c"},"col 2":{"row 1":"b","row 2":"d"}}'
+
+        Encoding/decoding a Dataframe using ``'values'`` formatted JSON:
+
+        >>> df.to_json(orient='values')
+        '[["a","b"],["c","d"]]'
 
         Encoding with Table Schema
 
