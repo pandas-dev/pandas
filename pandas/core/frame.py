@@ -5906,11 +5906,11 @@ class DataFrame(NDFrame):
         Examples
         --------
 
-        `mode`` returns a DataFrame, and there will be multiple rows if there is more than one mode. 
+        ``mode`` returns a DataFrame, and there will be multiple rows if there is more than one mode. 
 
         >>> grades = pd.DataFrame({ 
-        ...     'Science': [80,70,80,75,80,75,85,90,80,70], 
-        ...     'Math': [70,70,75,75,80,80,85,85,90,90] 
+        ...     'Science': [80, 70, 80, 75, 80, 75, 85, 90, 80, 70], 
+        ...     'Math': [70, 70, 75, 75, 80, 80, 85, 85, 90, 90] 
         ... })
         >>> grades.apply(lambda x: x.value_counts())
             Science  Math
@@ -5930,8 +5930,8 @@ class DataFrame(NDFrame):
         Use ``axis=1`` to apply mode over columns (get the mode of each row)
 
         >>> student_grades = pd.DataFrame.from_dict({
-        ...     'Alice': [80,85,90,85,95],
-        ...     'Bob': [70,80,80,75,90]
+        ...     'Alice': [80, 85, 90, 85, 95],
+        ...     'Bob': [70, 80, 80, 75, 90]
         ... }, 'index')
         >>> student_grades
                 0   1   2   3   4
