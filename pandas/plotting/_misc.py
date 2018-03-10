@@ -323,20 +323,45 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
 
 
 def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
-    """Bootstrap plot.
+    """
+    Bootstrap plot on mean, median and mid-range statistics.
+
+    The bootstrap plot is used to estimate the uncertainty of a statistic
+    by relaying on random sampling with replacement. This function will
+    generate bootstrapping plots for mean, median and mid-range statistics
+    for the given number of samples of the given size.
 
     Parameters
     ----------
-    series: Time series
-    fig: matplotlib figure object, optional
-    size: number of data points to consider during each sampling
-    samples: number of times the bootstrap procedure is performed
-    kwds: optional keyword arguments for plotting commands, must be accepted
-        by both hist and plot
+
+    series : pandas.Series
+        Pandas Series from where to get the samplings for the bootstrapping.
+    fig : matplotlib.figure.Figure, default None
+        If given, it will use the `fig` reference for plotting instead of
+        creating a new one with default parameters.
+    size : int, default 50
+        Number of data points to consider during each sampling. It must be
+        greater or equal than the length of the `series`.
+    samples : int, default 500
+        Number of times the bootstrap procedure is performed.
+    kwds : keywords
+        Options to pass to matplotlib plotting method.
 
     Returns
     -------
-    fig: matplotlib figure
+
+    fig : matplotlib.figure.Figure
+        Matplotlib figure
+
+    Examples
+    --------
+
+    .. plot::
+            :context: close-figs
+
+            >>> from random import uniform
+            >>> s = pd.Series([uniform(0, 1) for _ in range(100)])
+            >>> pd.plotting.bootstrap_plot(s)
     """
     import random
     import matplotlib.pyplot as plt
