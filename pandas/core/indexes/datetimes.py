@@ -1722,10 +1722,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     Returns
     -------
-    Series
-        Containing integers indicating the week number.
-
-    ndarray of integers indicating the day of the week
+    ndarray
+        Containing integers indicating the day number.
 
     Examples
     --------
