@@ -662,21 +662,22 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     def map(self, mapper):
         """
-        Map categories (not codes) using input correspondence (a dict,
-        Series, or function).
+        Map index values using input correspondence (a dict, Series, or
+        function).
 
-        Maps the categories of the index to new categories. If the mapping
-        correspondence maps each original category to a different new category
-        the result is a CategoricalIndex which has the same order property as
-        the original, otherwise an Index is returned.
+        Maps the values (their categories, not the codes) of the index to new
+        categories. If the mapping correspondence maps each original category
+        to a different new category the result is a CategoricalIndex which has
+        the same order property as the original, otherwise an Index is
+        returned.
 
         If a dictionary or Series is used and any unmapped category is mapped
         to NA. Note that if this happens an Index will be returned.
 
         Parameters
         ----------
-        mapper : callable
-            Function to be applied.
+        mapper : function, dict, or Series
+            Mapping correspondence.
 
         Returns
         -------
