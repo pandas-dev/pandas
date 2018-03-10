@@ -5875,7 +5875,7 @@ class DataFrame(NDFrame):
         """
         Get the mode(s) of each element along the axis selected. 
         
-        Adds a row for each mode per label, fills in gaps with NaN.
+        Adds a row for each mode per label, filling gaps with NaN.
 
         Parameters
         ----------
