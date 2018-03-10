@@ -1853,12 +1853,14 @@ class MultiIndex(Index):
         Parameters
         ----------
         level : list-like, int or str, default 0
-            If a string is given, must be a name of the level
+            If a string is given, must be a name of the level.
             If list-like must be names or ints of levels.
         ascending : boolean, default True
-            False to sort in descending order
-            Can also be a list to specify a directed ordering
-        sort_remaining : sort by the remaining levels after level.
+            False to sort in descending order.
+            Can also be a list to specify a directed ordering.
+        sort_remaining : boolean, default True
+            False to sort only the requested level.
+            True to sort also all the levels after the requested one.
 
         Returns
         -------
