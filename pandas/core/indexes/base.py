@@ -1723,8 +1723,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        :meth:`Index.duplicated` : Return boolean array denoting duplicate values.
-        :meth:`Index.drop_duplicates` : Return Index with duplicate values removed.
+        :meth:`Index.duplicated` : Return boolean array denoting duplicates.
+        :meth:`Index.drop_duplicates` : Return Index with duplicates removed.
 
         Examples
         --------
