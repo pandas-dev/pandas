@@ -406,31 +406,73 @@ def pivot(self, index=None, columns=None, values=None):
 
 def pivot_simple(index, columns, values):
     """
-    Produce 'pivot' table based on 3 columns of this DataFrame.
-    Uses unique values from index / columns and fills with values.
+    Reshape data from long to wide format to produce a pivot DataFrame.
+	
+    Use to create a wide format DataFrame based on an index column that serves
+	as the primary key and categorical variables that get transformed into
+	separate colums. The values in the new columns are populated based on the
+	`index` and `columns` parameters. 
 
     Parameters
     ----------
     index : ndarray
-        Labels to use to make new frame's index
+        Labels to use to create the index of the new frame.
     columns : ndarray
-        Labels to use to make new frame's columns
-    values : ndarray
-        Values to use for populating new frame's values
-
-    Notes
-    -----
-    Obviously, all 3 of the input arguments must have the same length
-
-    Returns
+        Labels to use to create the columns of the new frame.
+    values : ndarray, optional
+        Values to use to populate the new frame with data.
+	
+	Returns
     -------
     DataFrame
+		A wide format DataFrame, populated with data, indexed by the `index`
+		and `columns` parameters.
 
-    See also
+    See Also
     --------
-    DataFrame.pivot_table : generalization of pivot that can handle
-        duplicate values for one index/column pair
-    """
+    DataFrame.pivot_table : Create a spreadsheet-style pivot table as a
+		DataFrame to handle duplicate values for the index/column pair.
+		
+	DataFrame.melt : Reshape data from wide to long format to produce a pivot
+		DataFrame.
+	
+	pandas.MultiIndex : A multi-level, or hierarchical, index object for pandas 
+		objects.
+			
+	Notes
+    -----
+    Missing values for a defined column get displayed as NaN in the generated
+		pivot table.
+	
+	Values in the index column are set as an index column rather than as a data
+		column in the generated pivot table unless explicitly assigned to a new
+		data column.
+	
+	When the pivot table is defined using MultiIndex to create hierarchical
+		indexes, the top-level index is created from the value of the `value`
+		parameter, and the second-level index is created from the unique values
+		of the `column` parameter. 
+		
+	Examples
+	--------
+	>>> df = pd.DataFrame({'id':['dog','cat','dog','cat','parrot'],
+	...                 'measurements': ['weight','weight','age','age','age'],
+	...                 'measurements_value':[10.5,5.0,0.5,2,1]})
+	>>> df
+		id	measurements	measurements_value
+	0	dog	weight	10.5
+	1	cat	weight	5.0
+	2	dog	age	0.5
+	3	cat	age	2.0
+	4	parrot	age	1.0
+	>>> df.pivot(index="id", columns="measurements", values="measurements_value")
+	... # doctest: +ELLIPSIS
+	measurements	age	weight
+	id
+	cat	2.0	5.0
+	dog	0.5	10.5
+	parrot	1.0	NaN
+	"""
     if (len(index) != len(columns)) or (len(columns) != len(values)):
         raise AssertionError('Length of index, columns, and values must be the'
                              ' same')
