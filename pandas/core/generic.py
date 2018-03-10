@@ -5673,12 +5673,13 @@ class NDFrame(PandasObject, SelectionMixin):
         axis : int or string axis name, optional
             Align object with threshold along the given axis.
         inplace : boolean, default False
-            Whether to perform the operation in place on the data
-                .. versionadded:: 0.21.0.
+            Whether to perform the operation in place on the data.
+                .. versionadded:: 0.21.0
 
         See Also
         --------
-        clip : Return copy of input with values below and above thresholds truncated.
+        Series.clip : Return copy of input with values below and above thresholds truncated.
+        Series.clip_upper : Return copy of input with values above threshold truncated.
 
         Returns
         -------
@@ -5686,28 +5687,21 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
+        Series single threshold clipping
+
         >>> s = pd.Series([5, 6, 7, 8, 9])
-        >>> s
-        0    5
-        1    6
-        2    7
+        >>> s.clip_lower(8)
+        0    8
+        1    8
+        2    8
         3    8
         4    9
         dtype: int64
 
-        >>> s.clip_lower(4)
-        0    5
-        1    6
-        2    7
-        3    8
-        4    9
-        dtype: int64
+        Series clipping elementwise using an array of thresholds
 
-        >>> t = [4,8,7,2,5]
-        >>> t
-        [4, 8, 7, 2, 5]
-
-        >>> s.clip_lower(t)
+        >>> elemwise_thresholds = [4, 8, 7, 2, 5]
+        >>> s.clip_lower(elemwise_thresholds)
         0    5
         1    8
         2    7
