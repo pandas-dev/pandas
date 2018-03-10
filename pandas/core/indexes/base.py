@@ -4042,7 +4042,7 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
         Generate an pandas.Index with duplicate values.
-        
+
         >>> idx = pd.Index(['lama', 'cow', 'lama', 'beetle', 'lama', 'hippo'])
 
         With the 'keep' parameter, the selection behaviour of duplicated values
