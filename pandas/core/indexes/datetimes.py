@@ -2246,12 +2246,12 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
 
     Examples
     --------
-    >>> import pandas
-    >>> pandas.date_range('20181003', periods=2)
+    >>> import pandas as pd
+    >>> pd.date_range('2018-10-03', periods=2)
     DatetimeIndex(['2018-10-03', '2018-10-04'], dtype='datetime64[ns]',
                     freq='D')
 
-    >>> pandas.date_range(start='20180101', end='20180103')
+    >>> pd.date_range(start='2018-01-01', end='20180103')
     DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03'],
                     dtype='datetime64[ns]', freq='D')
     """
