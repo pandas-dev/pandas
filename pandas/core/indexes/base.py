@@ -4021,8 +4021,55 @@ class Index(IndexOpsMixin, PandasObject):
     def drop_duplicates(self, keep='first'):
         return super(Index, self).drop_duplicates(keep=keep)
 
-    @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)
     def duplicated(self, keep='first'):
+        """
+        Indicate duplicate index values 
+
+        Duplicated values are indicated as ``True`` values in the resulting
+        array.
+
+        Parameters
+        ----------
+        keep : {'first', 'last', False}, default 'first'
+            - 'first' : Mark duplicates as ``True`` except for the first
+              occurrence.
+            - 'last' : Mark duplicates as ``True`` except for the last 
+              occurrence.
+            - ``False`` : Mark all duplicates as ``True``.
+        
+        Examples
+        --------
+        By default, for each set of duplicated values, the first occurrence is 
+        set on False and all others on True:
+
+        >>> idx = pd.Index(['lama', 'cow', 'lama', 'beetle', 'lama', 'hippo'])
+        >>> idx.duplicated()
+        array([False, False,  True, False,  True, False])
+
+        which is equivalent to 
+
+        >>> idx.duplicated(keep='first')
+        array([False, False,  True, False,  True, False])
+
+        By using 'last', the last occurrence of each set of duplicated values is 
+        set on False and all others on True:
+
+        >>> idx.duplicated(keep='last')
+        array([ True, False,  True, False, False, False])
+
+        By setting keep on ``False``, all duplicates are True:
+        
+        >>> idx.duplicated(keep=False)
+        array([ True, False,  True, False,  True, False])
+        
+        Returns
+        -------
+        numpy.ndarray
+        
+        See Also
+        --------
+        pandas.Series.duplicated : equivalent method on pandas.Series
+        """
         return super(Index, self).duplicated(keep=keep)
 
     _index_shared_docs['fillna'] = """
