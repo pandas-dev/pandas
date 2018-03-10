@@ -5548,8 +5548,8 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Trim values at input threshold(s).
 
-	    Truncates values below and above specified thresholds.
-	    Thresholds can be singular values or array like, and in
+        Truncates values below and above specified thresholds.
+        Thresholds can be singular values or array like, and in
         the latter case the truncation is performed element-wise
         in the specified axis.
 
@@ -5559,7 +5559,7 @@ class NDFrame(PandasObject, SelectionMixin):
             Minimum threshold value. All values below this
             threshold will be set to it.
         upper : float or array_like, default None
-            Maximum threshold value. All values above this 
+            Maximum threshold value. All values above this
             threshold will be set to it.
         axis : int or string axis name, optional
             Align object with lower and upper along the given axis.
@@ -5573,8 +5573,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        clip_lower : Return copy of the input with values below given value(s) truncated.
-        clip_upper : Return copy of the input with values above given value(s) truncated.
+        clip_lower : Clips values below specified threshold(s).
+        clip_upper : Clips values above specified threshold(s).
 
         Returns
         -------
@@ -5585,7 +5585,7 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> data = {'0': [9, -3, 0, -1, 5], '1': [-2, -7, 6, 8, -5]}
         >>> df = pd.DataFrame(data)
         >>> df
-         	0 	1
+            0 	1
         0 	9 	-2
         1 	-3 	-7
         2 	0 	6
@@ -5610,7 +5610,7 @@ class NDFrame(PandasObject, SelectionMixin):
         dtype: int64
 
         >>> df.clip(t, t + 4, axis=0)
- 	        0 	1
+            0 	1
         0 	6 	2
         1 	-3 	-4
         2 	0 	3
