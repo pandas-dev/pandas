@@ -73,7 +73,7 @@ _unsortable_types = frozenset(('mixed', 'mixed-integer'))
 
 _index_doc_kwargs = dict(klass='Index', inplace='',
                          target_klass='Index',
-                         unique='Index', duplicated='np.ndarray')
+                         unique='Index')
 _index_shared_docs = dict()
 
 
