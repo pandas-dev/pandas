@@ -1710,6 +1710,42 @@ class Index(IndexOpsMixin, PandasObject):
                             kind=type(key)))
 
     def get_duplicates(self):
+        """
+        Extract duplicated index elements.
+
+        This function returns a sorted list of index elements which appear more
+        than once in the index.
+
+        Returns
+        -------
+        array-like
+            List of duplicated indices.
+
+        See Also
+        --------
+        :meth:`Index.duplicated` : Return boolean array denoting duplicate values.
+        :meth:`Index.drop_duplicates` : Return Index with duplicate values removed.
+
+        Examples
+        --------
+        >>> pd.Index([1, 2, 3, 4]).get_duplicates()
+        []
+        >>> pd.Index([1, 2, 2, 3, 3, 3, 4]).get_duplicates()
+        [2, 3]
+        >>> pd.Index([1, 2, 3, 2, 3, 4, 3]).get_duplicates()
+        [2, 3]
+        >>> pd.Index(['a', 'b', 'b', 'c', 'c', 'c', 'd']).get_duplicates()
+        ['b', 'c']
+        >>> dates = pd.to_datetime(['2018-01-01', '2018-01-02',
+        ...                         '2018-01-03', '2018-01-03'],
+        ...                        format='%Y-%m-%d')
+        >>> pd.Index(pd.to_datetime(dates, format='%Y-%m-%d')).get_duplicates()
+        DatetimeIndex(['2018-01-03'], dtype='datetime64[ns]', freq=None)
+
+        Notes
+        -----
+        Returns empty list in case all index elements are unique.
+        """
         from collections import defaultdict
         counter = defaultdict(lambda: 0)
         for k in self.values:
