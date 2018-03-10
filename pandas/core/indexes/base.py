@@ -4274,10 +4274,10 @@ class Index(IndexOpsMixin, PandasObject):
             return logical_func
 
         cls.all = _make_logical_function('all', 'Return whether all elements '
-                                                'are True',
+                                                'are True.',
                                          np.all)
         cls.any = _make_logical_function('any',
-                                         'Return whether any element is True',
+                                         'Return whether any element is True.',
                                          np.any)
 
     @classmethod
