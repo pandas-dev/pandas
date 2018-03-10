@@ -2721,18 +2721,85 @@ class FramePlotMethods(BasePlotMethods):
 
     def bar(self, x=None, y=None, **kwds):
         """
-        Vertical bar plot
+        Vertical bar plot.
+
+        A bar plot is a plot that presents categorical data with
+        rectangular bars with lengths proportional to the values that they
+        represent. A bar plot shows comparisons among discrete categories. One
+        axis of the plot shows the specific categories being compared, and the
+        other axis represents a measured value.
 
         Parameters
         ----------
-        x, y : label or position, optional
-            Coordinates for each point.
-        `**kwds` : optional
+        x : label or position, default None
+        y : label or position, default None
+            Allows plotting of one column versus another.
+        **kwds : optional
             Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
         axes : matplotlib.AxesSubplot or np.array of them
+
+        Examples
+        --------
+
+        Basic plot
+
+        .. plot::
+            :context: close-figs
+
+            >>> df = pd.DataFrame({'lab':['A','B','C'], 'val':[10,30,20]})
+            >>> ax = df.plot.bar(x='lab',y='val')
+
+
+        Plot a whole dataframe to a bar plot
+
+        .. plot::
+            :context: close-figs
+
+            >>> speed = [0.1, 17.5, 40, 48, 52, 69, 88]
+            >>> lifespan = [2, 8, 70, 1.5, 25, 12, 28]
+            >>> index = ['snail', 'pig', 'elephant',
+            ...          'rabbit', 'giraffe', 'coyote', 'horse']
+            >>> df = pd.DataFrame({'speed': speed,
+            ...                    'lifespan': lifespan}, index=index)
+            >>> ax = df.plot.bar()
+
+
+        Plot a column of the dataframe to a bar plot
+
+        .. plot::
+            :context: close-figs
+
+            >>> speed = [0.1, 17.5, 40, 48, 52, 69, 88]
+            >>> lifespan = [2, 8, 70, 1.5, 25, 12, 28]
+            >>> index = ['snail', 'pig', 'elephant',
+            ...          'rabbit', 'giraffe', 'coyote', 'horse']
+            >>> df = pd.DataFrame({'speed': speed,
+            ...                    'lifespan': lifespan}, index=index)
+            >>> ax = df.plot.bar(y='speed')
+
+
+        Plot only selected categories for the dataframe
+
+        .. plot::
+            :context: close-figs
+
+            >>> speed = [0.1, 17.5, 40, 48, 52, 69, 88]
+            >>> lifespan = [2, 8, 70, 1.5, 25, 12, 28]
+            >>> index = ['snail', 'pig', 'elephant',
+            ...          'rabbit', 'giraffe', 'coyote', 'horse']
+            >>> df = pd.DataFrame({'speed': speed,
+            ...          'lifespan': lifespan}, index=index)
+            >>> ax = df.plot.bar(x='lifespan')
+
+
+        See Also
+        --------
+        pandas.DataFrame.plot.barh : Horizontal bar plot.
+        pandas.DataFrame.plot : Make plots of DataFrame using matplotlib.
+        matplotlib.pyplot.bar : Make a bar plot.
         """
         return self(kind='bar', x=x, y=y, **kwds)
 
