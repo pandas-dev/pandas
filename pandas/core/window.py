@@ -859,23 +859,23 @@ class _Rolling_and_Expanding(_Rolling):
     _shared_docs['std'] = dedent("""
     Calculate %(name)s standard deviation.
 
-    Normalized by N-1 by default. This can be changed using the ddof argument.
+    Normalized by N-1 by default. This can be changed using the `ddof`
+    argument.
 
     Parameters
     ----------
     ddof : int, default 1
         Delta Degrees of Freedom.  The divisor used in calculations
         is ``N - ddof``, where ``N`` represents the number of elements.
-    args
+    *args
         Under Review.
-    kwargs
+    **kwargs
         Under Review.
 
     Returns
     -------
-    Series or DataFrame
-        Returned object type is determined by the caller of the %(name)s
-        calculation
+    Returns the same object type as determined by the caller of the %(name)s
+    calculation.
 
     See Also
     --------
@@ -891,10 +891,8 @@ class _Rolling_and_Expanding(_Rolling):
 
     Examples
     --------
-    The below example will show a rolling example
-
-    >>> s = pd.Series((5,5,5,5,6,7,9,10,5,5,5,5))
-    >>> s.rolling(3).std(1)
+    >>> s = pd.Series((5, 5, 5, 5, 6, 7, 9, 10, 5, 5, 5, 5))
+    >>> s.rolling(3).std()
     0          NaN
     1          NaN
     2     0.000000
@@ -907,6 +905,20 @@ class _Rolling_and_Expanding(_Rolling):
     9     2.886751
     10    0.000000
     11    0.000000
+    dtype: float64
+    >>> s.expanding(3).std()
+    0          NaN
+    1          NaN
+    2     0.000000
+    3     0.000000
+    4     0.447214
+    5     0.836660
+    6     1.527525
+    7     2.000000
+    8     1.936492
+    9     1.873796
+    10    1.814086
+    11    1.758098
     dtype: float64
     """)
 
