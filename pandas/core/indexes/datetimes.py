@@ -1712,8 +1712,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     Return the week ordinal of the year. Note that there can be 
     counter intuitive edge cases around the yearchange. For example, 
-    the first of january could be in week 52 of the previous year. 
-    Monday indicates the start of a new week. 
+    the first of january could be in week 52 of the previous year.
+    Monday indicates the start of a new week.
     
     See Also
     --------
@@ -1728,7 +1728,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     --------
     >>> dates = pd.date_range("2016-12-31", "2017-01-08", freq="D")
     >>> s = pd.Series(dates)
-    >>> pd.DataFrame({'date':s, 'week':s.dt.weekofyear, 'day':s.dt.strftime("%A")})
+    >>> pd.DataFrame({'date':s, 'week':s.dt.week, 'day':s.dt.strftime("%A")})
             date  week        day
     0 2016-12-31    52   Saturday
     1 2017-01-01    52     Sunday
