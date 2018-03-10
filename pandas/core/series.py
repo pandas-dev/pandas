@@ -918,12 +918,49 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     @deprecate_kwarg(old_arg_name='reps', new_arg_name='repeats')
     def repeat(self, repeats, *args, **kwargs):
         """
-        Repeat elements of an Series. Refer to `numpy.ndarray.repeat`
-        for more information about the `repeats` argument.
+        Repeat elements of a Series.
+
+        Each element of the Series is repeated 'repeats' times.
+
+        Parameters
+        ----------
+        repeats : int
+            The number of repetitions for each element.
+        *args
+            These parameters will be passed to a validation function.
+        **kwargs
+            These parameters will be passed to a validation function.
 
         See also
         --------
-        numpy.ndarray.repeat
+        Series.append : Concatenate two or more Series.
+        pandas.concat : Concatenate two or more DataFrames.
+        numpy.repeat : Repeat elements of an array.
+
+        Returns
+        -------
+        Series
+            The repeated version of the Series.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'col1' : ['A','B','C'],'col2' : [ 0 , 1 , 2 ]})
+        >>> df
+        col1  col2
+        0    A     0
+        1    B     1
+        2    C     2
+        >>> df.col1.repeat(3)
+        0    A
+        0    A
+        0    A
+        1    B
+        1    B
+        1    B
+        2    C
+        2    C
+        2    C
+        Name: col1, dtype: object
         """
         nv.validate_repeat(args, kwargs)
         new_index = self.index.repeat(repeats)
