@@ -1714,16 +1714,16 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     counter intuitive edge cases around the yearchange. For example, 
     the first of january could be in week 52 of the previous year.
     Monday indicates the start of a new week.
-    
+
     See Also
     --------
     pandas.Series.dt.week : Identical method.
     pandas.Series.dt.weekofyear : Identical method.
-    
+
     Returns
     -------
     ndarray of formatted strings
-    
+
     Examples
     --------
     >>> dates = pd.date_range("2016-12-31", "2017-01-08", freq="D")
