@@ -1231,6 +1231,7 @@ class DataFrame(NDFrame):
 
         Examples
         --------
+
         >>> df = pd.DataFrame({'col1': [1, 2], 'col2': [0.5, 0.75]}, index=['a', 'b'])
         >>> df
            col1  col2
@@ -1241,11 +1242,13 @@ class DataFrame(NDFrame):
                   dtype=[('index', 'O'), ('col1', '<i8'), ('col2', '<f8')])
 
         The index can be excluded from the record array:
+
         >>> df.to_records(index=False)
         rec.array([(1, 0.5 ), (2, 0.75)],
                   dtype=[('col1', '<i8'), ('col2', '<f8')])
 
-        By default, timestamps are converted to `datetime.datetime` objects
+        By default, timestamps are converted to `datetime.datetime` objects:
+
         >>> df.index = pd.date_range('2018-01-01 09:00', periods=2, freq='min')
         >>> df
                              col1  col2
@@ -1257,6 +1260,7 @@ class DataFrame(NDFrame):
                   dtype=[('index', 'O'), ('col1', '<i8'), ('col2', '<f8')])
 
         The timestamp conversion can be disabled to use NumPy datetime64 objects instead:
+
         >>> df.to_records(convert_datetime64=False)
         rec.array([('2018-01-01T09:00:00.000000000', 1, 0.5 ),
                    ('2018-01-01T09:01:00.000000000', 2, 0.75)],
