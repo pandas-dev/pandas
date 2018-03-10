@@ -527,6 +527,10 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         3    259200.0
         4    345600.0
         dtype: float64
+
+        See Also
+        --------
+        datetime.timedelta.total_seconds
         """
         return Index(self._maybe_mask_results(1e-9 * self.asi8),
                      name=self.name)
