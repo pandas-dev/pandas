@@ -2786,11 +2786,11 @@ class FramePlotMethods(BasePlotMethods):
         bins : int, default 10
             Number of histogram bins to be used.
         **kwds : optional
-            Parameters to pass on to :meth:`pandas.DataFrame.plot`.
+            Keyword arguments to pass on to :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them.
+        axes : matplotlib.AxesSubplot histogram.
 
         See Also
         --------
