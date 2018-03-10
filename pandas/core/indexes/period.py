@@ -148,12 +148,26 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         If periods is none, generated index will extend to first conforming
         period on or just past end argument
     year : int, array, or Series, default None
+        If not None requires a freq to be specified and either
+        month or quarter to be specified
     month : int, array, or Series, default None
+        If not None requires a freq and year to be specified
     quarter : int, array, or Series, default None
+        If quarter is not None the freq is required to be
+        quarterly Q or Q-DEC. it will be set to Q-DEC if not specified.
+        day, hour, minute, second are not used
     day : int, array, or Series, default None
+        If not None requires a freq, month, and year to be specified.
+        day defaults to 1 if year and month specified
     hour : int, array, or Series, default None
+        If not None requires a freq, month, and year to be specified.
+        hour will default to 0 if year and month specified
     minute : int, array, or Series, default None
+        If not None requires a freq, month, and year to be specified.
+        minute will default to 0 if year and month specified
     second : int, array, or Series, default None
+        If not None requires a freq, month, and year to be specified.
+        second will default to 0 if year and month specified
     tz : object, default None
         Timezone for converting datetime64 data to Periods
     dtype : str or PeriodDtype, default None
@@ -194,6 +208,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     >>> idx = PeriodIndex(year=year_arr, quarter=q_arr)
 
     >>> idx2 = PeriodIndex(start='2000', end='2010', freq='A')
+
+    >>> idx3 = PeriodIndex(year=[2000, 2001], month=[1, 2], second=[1, 2], freq='S')
 
     See Also
     ---------
