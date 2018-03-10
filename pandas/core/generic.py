@@ -1906,7 +1906,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         path : string
-            File path
+            File path where the pickled pandas object will be stored.
         compression : {'infer', 'gzip', 'bz2', 'xz', None}, default 'infer'
             a string representing the compression to use in the output file
 
@@ -1923,6 +1923,25 @@ class NDFrame(PandasObject, SelectionMixin):
             .. [1] https://docs.python.org/3/library/pickle.html
             .. versionadded:: 0.21.0
 
+        Examples
+        --------
+        >>> original_df = DataFrame({"foo": range(5), "bar": range(5, 10)})
+        >>> original_df
+           bar  foo
+        0    5    0
+        1    6    1
+        2    7    2
+        3    8    3
+        4    9    4
+        >>> original_df.to_pickle("./dummy.pkl")
+        >>> unpickled_df = read_pickle("./dummy.pkl")
+        >>> unpickled_df
+           bar  foo
+        0    5    0
+        1    6    1
+        2    7    2
+        3    8    3
+        4    9    4
         """
         from pandas.io.pickle import to_pickle
         return to_pickle(self, path, compression=compression,
