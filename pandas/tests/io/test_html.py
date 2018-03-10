@@ -7,7 +7,6 @@ import threading
 import warnings
 
 from functools import partial
-from importlib import reload
 from distutils.version import LooseVersion
 
 import pytest
@@ -18,7 +17,7 @@ from numpy.random import rand
 from pandas import (DataFrame, MultiIndex, read_csv, Timestamp, Index,
                     date_range, Series)
 from pandas.compat import (map, zip, StringIO, string_types, BytesIO,
-                           is_platform_windows, PY3)
+                           is_platform_windows, PY3, reload)
 from pandas.io.common import URLError, urlopen, file_path_to_url
 import pandas.io.html
 from pandas.io.html import read_html
