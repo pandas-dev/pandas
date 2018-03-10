@@ -2230,7 +2230,7 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
 
     Notes
     -----
-    Of the three parameters: ``start``, ``end``, and ``periods``, exactly two
+    Of the three parameters: ``start``, ``end`` and ``periods``, exactly two
     must be specified.
 
     To learn more about the frequency strings, please see `this link
