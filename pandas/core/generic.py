@@ -1903,7 +1903,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.read_sql_query : read a DataFrame from a table
+        pandas.read_sql : read a DataFrame from a table
 
         Examples
         --------
@@ -1927,7 +1927,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         >>> df = pd.concat([df, df1], ignore_index=True)
         >>> df.to_sql('users', con=engine, if_exists='replace')
-        >>> pd.read_sql_query("select * from users",con=engine)
+        >>> pd.read_sql("select * from users",con=engine)
            index    name
         0      0  User 1
         1      1  User 2
