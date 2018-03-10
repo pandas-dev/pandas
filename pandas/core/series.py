@@ -1003,12 +1003,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def reset_index(self, level=None, drop=False, name=None, inplace=False):
         """
         Reset the index of the Serie.
-
+        
+        For a standard index, the index name will be used (if set), 
+        otherwise a default index or `level_0` (if `index` is already taken) 
+        will be used.
         For a Series with multi-level index, return a new Series with labeling
         information in the columns under the index names, defaulting to
-        `level_0`, `level_1`, etc. if any are None. For a standard index,
-        the index name will be used (if set), otherwise a default
-        `index` or `level_0` (if `index` is already taken) will be used.
+        `level_0`, `level_1`, etc. if any are None. 
 
         Parameters
         ----------
