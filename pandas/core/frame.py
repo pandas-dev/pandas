@@ -2378,9 +2378,12 @@ class DataFrame(NDFrame):
         """
         Evaluate expression in the context of the calling DataFrame instance.
 
-        Evaluates a string describing operations on dataframe columns.  This
-        allows `eval` to run arbitrary code, but remember to sanitize your
-        inputs.
+        Evaluates a string describing operations on DataFrame columns (only,
+        not specific rows or elements).  This allows `eval` to run arbitrary
+        code, but remember to sanitize your inputs.
+
+        This function calls `pandas.eval()` and is likely to be slower than
+        it.
 
         Parameters
         ----------
@@ -2434,6 +2437,10 @@ class DataFrame(NDFrame):
         3     8
         4     7
         dtype: int64
+
+        Assignment is allowed and by default the original DataFrame is not
+        modified.
+
         >>> df.eval('C = A + B')
            A   B   C
         0  1  10  11
@@ -2448,6 +2455,9 @@ class DataFrame(NDFrame):
         2  3   6
         3  4   4
         4  5   2
+
+        Use inplace=True to modify the original DataFrame.
+
         >>> df.eval('C = A + B', inplace=True)
         >>> df
            A   B   C
