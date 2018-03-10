@@ -2210,23 +2210,23 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
     Parameters
     ----------
     start : string or datetime-like, default None
-        Left bound for generating dates
+        Left bound for generating dates.
     end : string or datetime-like, default None
-        Right bound for generating dates
+        Right bound for generating dates.
     periods : integer, default None
-        Number of periods to generate
+        Number of periods to generate.
     freq : string or DateOffset, default 'D' (calendar daily)
-        Frequency strings can have multiples, e.g. '5H'
+        Frequency strings can have multiples, e.g. '5H'.
     tz : string, default None
         Time zone name for returning localized DatetimeIndex, for example
-        Asia/Hong_Kong
+        Asia/Hong_Kong.
     normalize : bool, default False
-        Normalize start/end dates to midnight before generating date range
+        Normalize start/end dates to midnight before generating date range.
     name : string, default None
-        Name of the resulting DatetimeIndex
+        Name of the resulting DatetimeIndex.
     closed : string, default None
         Make the interval closed with respect to the given frequency to
-        the 'left', 'right', or both sides (None)
+        the 'left', 'right', or both sides (None).
 
     Notes
     -----
@@ -2239,6 +2239,27 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
     Returns
     -------
     rng : DatetimeIndex
+
+    Examples
+    --------
+    >>> pd1 = pd.date_range(start='1/1/2018', end='2/1/2018')
+    >>> pd1
+    DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03', '2018-01-04',
+               '2018-01-05', '2018-01-06', '2018-01-07', '2018-01-08',
+               '2018-01-09', '2018-01-10', '2018-01-11', '2018-01-12',
+               '2018-01-13', '2018-01-14', '2018-01-15', '2018-01-16',
+               '2018-01-17', '2018-01-18', '2018-01-19', '2018-01-20',
+               '2018-01-21', '2018-01-22', '2018-01-23', '2018-01-24',
+               '2018-01-25', '2018-01-26', '2018-01-27', '2018-01-28',
+               '2018-01-29', '2018-01-30', '2018-01-31', '2018-02-01'],
+              dtype='datetime64[ns]', freq='D')
+
+
+    >>> pd2 = pd.date_range(start='1/1/2018', periods=5)
+    >>> pd2
+    DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03', '2018-01-04',
+               '2018-01-05'],
+              dtype='datetime64[ns]', freq='D')
     """
     return DatetimeIndex(start=start, end=end, periods=periods,
                          freq=freq, tz=tz, normalize=normalize, name=name,
