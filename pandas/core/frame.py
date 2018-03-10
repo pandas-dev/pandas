@@ -1239,9 +1239,9 @@ class DataFrame(NDFrame):
         >>> df = pd.DataFrame({'A': [1, 2], 'B': [0.5, 0.75]},
         ...                   index=['a', 'b'])
         >>> df
-           A  B
-        a     1  0.50
-        b     2  0.75
+           A     B
+        a  1  0.50
+        b  2  0.75
         >>> df.to_records()
         rec.array([('a', 1, 0.5 ), ('b', 2, 0.75)],
                   dtype=[('index', 'O'), ('A', '<i8'), ('B', '<f8')])
@@ -1256,9 +1256,9 @@ class DataFrame(NDFrame):
 
         >>> df.index = pd.date_range('2018-01-01 09:00', periods=2, freq='min')
         >>> df
-                             A  B
-        2018-01-01 09:00:00     1  0.50
-        2018-01-01 09:01:00     2  0.75
+                             A     B
+        2018-01-01 09:00:00  1  0.50
+        2018-01-01 09:01:00  2  0.75
         >>> df.to_records()
         rec.array([(datetime.datetime(2018, 1, 1, 9, 0), 1, 0.5 ),
                    (datetime.datetime(2018, 1, 1, 9, 1), 2, 0.75)],
