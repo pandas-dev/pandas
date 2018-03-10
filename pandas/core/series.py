@@ -555,10 +555,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         type. The new data type must preserve the same size in bytes as to not
         cause index misalignment.
 
-        Series are instantiated with `dtype=float64` by default, so unlike
-        `numpy.array.view()` this function will not try to preserve the current
-        Series data type.
-
         Parameters
         ----------
         dtype : data type
@@ -571,7 +567,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        numpy.ndarray.view : Return a new view of the same data in memory.
+        numpy.ndarray.view : Equivalent numpy function to create a new view of
+            the same data in memory.
+
+        Notes
+        -----
+        Series are instantiated with `dtype=float64` by default. While
+        `numpy.ndarray.view()` will return a view with the same data type as
+        the original array, Series.view() will try using `float64` and may fail
+        if the original data type size in bytes is not the same.
 
         Examples
         --------
@@ -584,7 +588,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         4    2
         dtype: int8
 
-        The 8 bit signed integer representation of `-1` is `0b10000001`, but
+        The 8 bit signed integer representation of `-1` is `0b11111111`, but
         the same bytes represent 255 if read as an 8 bit unsigned integer:
 
         >>> us = s.view('uint8')
