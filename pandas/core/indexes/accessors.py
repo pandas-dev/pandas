@@ -139,9 +139,10 @@ class DatetimeProperties(Properties):
 
         See Also
         --------
-        pd.DatetimeIndex.to_pydatetime : Convert a Timestamp object to a native Python datetime object.
-        pd.date.dt.values.to_datetime : For an Index containing strings or datetime.datetime objects, attempt
-            conversion to DatetimeIndex.
+        pd.DatetimeIndex.to_pydatetime : Convert a Timestamp object to a native
+            Python datetime object.
+        pd.date.dt.values.to_datetime : For an Index containing strings or
+            datetime.datetime objects, attempt conversion to DatetimeIndex.
 
         Examples
         --------
