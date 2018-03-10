@@ -1697,10 +1697,12 @@ class DataFrame(NDFrame):
 
         .. versionadded:: 0.21.0
 
+        Requires either fastparquet or pyarrow libraries.
+
         Parameters
         ----------
         fname : str
-            string file path
+            String file path.
         engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
             Parquet library to use. If 'auto', then the option
             ``io.parquet.engine`` is used. The default ``io.parquet.engine``
@@ -1708,8 +1710,23 @@ class DataFrame(NDFrame):
             'pyarrow' is unavailable.
         compression : {'snappy', 'gzip', 'brotli', None}, default 'snappy'
             Name of the compression to use. Use ``None`` for no compression.
-        kwargs
-            Additional keyword arguments passed to the engine
+        kwargs : dict
+            Additional keyword arguments passed to the engine.
+
+        Examples
+        ----------
+        >>> df = pd.DataFrame(data={'col1': [1, 2], 'col2': [3, 4]})
+        >>> df.to_parquet('df.parquet.gzip', compression='gzip')
+
+        Returns
+        ----------
+        Nothing.
+
+        See Also
+        --------
+        DataFrame.to_csv : write a csv file.
+        DataFrame.to_sql : write to a sql table.
+        DataFrame.to_hdf : write to hdf.
         """
         from pandas.io.parquet import to_parquet
         to_parquet(self, fname, engine,
