@@ -159,12 +159,6 @@ class TimelikeOps(object):
                '2014-08-01 12:00:00'],
               dtype='datetime64[ns]', freq=None)
 
-
-        Raises
-        ------
-        TypeError
-            If the DatetimeIndex is tz-aware and tz is not None.
-
         """
         return self._round(freq, np.ceil)
 
