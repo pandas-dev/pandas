@@ -3039,13 +3039,57 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def dropna(self, axis=0, inplace=False, **kwargs):
         """
-        Return Series without null values
+        Remove missing values.
+
+        Return Series without NA values.
+
+        Parameters
+        ----------
+        axis : {0 or 'index'}, default 0
+            There is only one axis to drop values from.
+        inplace : boolean, default False
+            If True, do operation inplace and return None.
+        **kwargs
+            Not in use.
 
         Returns
         -------
-        valid : Series
-        inplace : boolean, default False
-            Do operation in place.
+        Series
+            Series with NA entries dropped from it.
+
+        See also
+        --------
+        isna: show missing values
+        notna : show existing (non-missing) values
+
+        Examples
+        --------
+        >>> ser = pd.Series([np.NaN, 2, pd.NaT, '', None, 'I stay'])
+        >>> ser
+        0       NaN
+        1         2
+        2       NaT
+        3
+        4      None
+        5    I stay
+        dtype: object
+
+        Drop NA values from a Series.
+
+        >>> ser.dropna()
+        1         2
+        3
+        5    I stay
+        dtype: object
+
+        Drop NA values from a Series and save it in the same variable.
+
+        >>> ser.dropna(inplace=True)
+        >>> ser
+        1         2
+        3
+        5    I stay
+        dtype: object
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         kwargs.pop('how', None)

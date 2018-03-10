@@ -3501,27 +3501,37 @@ class DataFrame(NDFrame):
     def dropna(self, axis=0, how='any', thresh=None, subset=None,
                inplace=False):
         """
+        Remove missing values.
+
         Return object with labels on given axis omitted where alternately any
-        or all of the data are missing
+        or all of the data are missing.
 
         Parameters
         ----------
         axis : {0 or 'index', 1 or 'columns'}, or tuple/list thereof
-            Pass tuple or list to drop on multiple axes
-        how : {'any', 'all'}
-            * any : if any NA values are present, drop that label
-            * all : if all values are NA, drop that label
+            Pass tuple or list to drop on multiple axes.
+        how : {'any', 'all'}, default 'any'
+            Determine if label is removed when we have at least one NA or all
+            NA.
+            * any : If any NA values are present, drop that label.
+            * all : If all values are NA, drop that label.
         thresh : int, default None
-            int value : require that many non-NA values
+            Require that many non-NA values.
         subset : array-like
             Labels along other axis to consider, e.g. if you are dropping rows
-            these would be a list of columns to include
+            these would be a list of columns to include.
         inplace : boolean, default False
             If True, do operation inplace and return None.
 
         Returns
         -------
-        dropped : DataFrame
+        DataFrame
+            DataFrame with NA entries dropped from it.
+
+        See also
+        --------
+        isna: show missing values
+        notna : show existing (non-missing) values
 
         Examples
         --------
@@ -3565,7 +3575,6 @@ class DataFrame(NDFrame):
              A    B   C  D
         0  NaN  2.0 NaN  0
         1  3.0  4.0 NaN  1
-
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if isinstance(axis, (tuple, list)):
