@@ -689,6 +689,26 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         Index.map : Apply a mapping correspondence on an Index.
         Series.map : Apply a mapping correspondence on a Series.
         Series.apply : Apply more complex functions on a Series.
+
+        Examples
+        --------
+        >>> idx = pd.CategoricalIndex(['a', 'b', 'c'])
+        >>> idx
+        CategoricalIndex(['a', 'b', 'c'], categories=['a', 'b', 'c'],
+                         ordered=False, dtype='category')
+        >>> idx.map(lambda x: x.upper())
+        CategoricalIndex(['A', 'B', 'C'], categories=['A', 'B', 'C'],
+                         ordered=False, dtype='category')
+        >>> idx.map({'a': 'first', 'b': 'second', 'c': 'third'})
+        CategoricalIndex(['first', 'second', 'third'], categories=['first',
+                         'second', 'third'], ordered=False, dtype='category')
+
+        If a dictionary is used, if even a single category is not mapped by the
+        dictionary, the unmapped category is mapped to NA and the result is an
+        Index:
+
+        >>> idx.map({'a': 'first', 'b': 'second'})
+        Index(['first', 'second', nan], dtype='object')
         """
         return self._shallow_copy_with_infer(self.values.map(mapper))
 
