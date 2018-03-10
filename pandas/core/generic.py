@@ -7468,7 +7468,8 @@ class NDFrame(PandasObject, SelectionMixin):
         axis = self._get_axis_number(axis)
         method = getattr(type(self), name)
 
-        def applyf(x): return method(x, axis=axis, skipna=skipna, **kwargs)
+        def applyf(x):
+            return method(x, axis=axis, skipna=skipna, **kwargs)
         return grouped.aggregate(applyf)
 
     @classmethod
@@ -7767,19 +7768,19 @@ class NDFrame(PandasObject, SelectionMixin):
     2000-01-09  3.555348    0.889001
     2000-01-10  3.637586    1.143001
 
-    >>> df.transform([log_T, normalize_T])
-                    A                     B                     C
-                log_T normalize_T     log_T normalize_T     log_T normalize_T
-    2000-01-01  2.302585   -1.143001  2.397895   -1.143001  2.484907   -1.14300
-    2000-01-02  2.564949   -0.889001  2.639057   -0.889001  2.708050   -0.88900
-    2000-01-03  2.772589   -0.635001  2.833213   -0.635001  2.890372   -0.63500
-    2000-01-04       NaN         NaN       NaN         NaN       NaN        NaN
-    2000-01-05       NaN         NaN       NaN         NaN       NaN        NaN
-    2000-01-06       NaN         NaN       NaN         NaN       NaN        NaN
-    2000-01-07       NaN         NaN       NaN         NaN       NaN        NaN
-    2000-01-08  3.433987    0.635001  3.465736    0.635001  3.496508    0.63500
-    2000-01-09  3.526361    0.889001  3.555348    0.889001  3.583519    0.88900
-    2000-01-10  3.610918    1.143001  3.637586    1.143001  3.663562    1.14300
+    >>> df[['A', 'B']].transform([log_T, normalize_T])
+                    A                     B            
+                log_T normalize_T     log_T normalize_T
+    2000-01-01  2.302585   -1.143001  2.397895   -1.143001
+    2000-01-02  2.564949   -0.889001  2.639057   -0.889001
+    2000-01-03  2.772589   -0.635001  2.833213   -0.635001
+    2000-01-04       NaN         NaN       NaN         NaN
+    2000-01-05       NaN         NaN       NaN         NaN
+    2000-01-06       NaN         NaN       NaN         NaN
+    2000-01-07       NaN         NaN       NaN         NaN
+    2000-01-08  3.433987    0.635001  3.465736    0.635001
+    2000-01-09  3.526361    0.889001  3.555348    0.889001
+    2000-01-10  3.610918    1.143001  3.637586    1.143001
 
     >>> s = pd.Series(np.sin([3*x for x in range(10)]), name='A',
     ...               index=pd.date_range('1/1/2000', periods=10))
