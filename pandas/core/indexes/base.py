@@ -4309,6 +4309,7 @@ class Index(IndexOpsMixin, PandasObject):
         See Also
         --------
         pandas.Index.any : Return whether any element is True.
+        pandas.Series.any : Return whether any element is True.
 
         Notes
         -----
@@ -4331,6 +4332,7 @@ class Index(IndexOpsMixin, PandasObject):
         See Also
         --------
         pandas.Index.all : Return whether all elements are True.
+        pandas.Series.all : Return whether all elements are True.
 
         Notes
         -----
