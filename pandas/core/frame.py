@@ -4858,15 +4858,15 @@ class DataFrame(NDFrame):
               If you are just applying a NumPy reduction function this will
               achieve much better performance.
         reduce : bool or `None`, default `None`
-            Try to apply reduction procedures. If the `DataFrame` is empty,
+            Try to apply reduction procedures. If the DataFrame is empty,
             :meth:`apply` will use `reduce` to determine whether the result
-            should be a Series or a `DataFrame`. If ``reduce is None`` (the
+            should be a Series or a DataFrame. If ``reduce is None`` (the
             default), :meth:`apply`'s return value will be guessed by calling
             `func` on an empty Series
             (note: while guessing, exceptions raised by `func` will be
             ignored).
             If ``reduce is True`` a Series will always be returned, and if
-            ``reduce is False`` a `DataFrame` will always be returned.
+            ``reduce is False`` a DataFrame will always be returned.
 
             .. deprecated:: 0.23.0.
                This argument will be removed in a future version, replaced
@@ -4879,7 +4879,7 @@ class DataFrame(NDFrame):
             * 'reduce' : returns a Series if possible rather than expanding
               list-like results. This is the opposite of 'expand'.
             * 'broadcast' : results will be broadcast to the original shape
-              of the `DataFrame`, the original index and columns will be
+              of the DataFrame, the original index and columns will be
               retained.
 
             The default behaviour (`None`) depends on the return value of the
