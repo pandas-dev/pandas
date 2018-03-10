@@ -2835,18 +2835,42 @@ class FramePlotMethods(BasePlotMethods):
 
     def pie(self, y=None, **kwds):
         """
-        Pie chart
+        Generate a pie plot.
+
+        A pie plot is a representation of the distribution of numerical data
+        in a DataFrame column. This function wraps the `matplotlib.pyplot.pie`
+        function for specified column. If no column reference is passed and
+        ``subplots`` argument is set to ``True``, an np.array of plots for
+        all DataFrame columns will be returned.
 
         Parameters
         ----------
-        y : label or position, optional
-            Column to plot.
-        `**kwds` : optional
+        y : str or int, optional
+            Label or position of the column to plot.
+            If not provided, ``subplots=True`` argument must be passed.
+        **kwds : optional
             Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : matplotlib.AxesSubplot or np.array of them.
+
+        See Also
+        --------
+        :meth:`pandas.Series.plot.pie` : Generate a pie plot for a Series.
+
+        Examples
+        --------
+        In the example below we have a DataFrame with the information about
+        planet's mass and radius. We pass the the 'mass' column to the
+        pie function to get a pie plot.
+
+        .. plot::
+            :context: close-figs
+
+            >>> df = pd.DataFrame({'mass': [0.330, 4.87 , 5.97],
+            ...                    'radius': [2439.7, 6051.8, 6378.1]})
+            >>> plot = df.plot.pie(y='mass', labels=['Mercury', 'Venus', 'Earth'])
         """
         return self(kind='pie', y=y, **kwds)
 
