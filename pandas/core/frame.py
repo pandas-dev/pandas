@@ -1560,6 +1560,9 @@ class DataFrame(NDFrame):
 
         """
 
+        if ".csv" not in path_or_buf:
+            path_or_buf += ".csv"
+
         if tupleize_cols is not None:
             warnings.warn("The 'tupleize_cols' parameter is deprecated and "
                           "will be removed in a future version",
