@@ -121,6 +121,51 @@ class TimelikeOps(object):
 
     @Appender(_round_doc % "ceil")
     def ceil(self, freq):
+        """
+        Ceil the index to the specified freq.
+
+        Links to the available `frequency strings <http://pandas.
+        pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`_
+        and `frequency objects <http://pandas.pydata.org/pandas-docs/
+        stable/timeseries.html#dateoffset-objects>`_ .
+
+        Parameters
+        ----------
+        freq : freq string/object
+
+        Returns
+        -------
+        ceil : DatetimeIndex
+
+        See Also
+        --------
+        DatetimeIndex.floor : Floor the DatetimeIndex to the specified freq.
+        DatetimeIndex.round : Round the DatetimeIndex to the specified freq.
+
+        Examples
+        --------
+
+        In [2]: df = pd.DatetimeIndex(start='2014-08-01 09:23:41.321211',
+        freq = 'H', periods = 3)
+
+        In [3]: df
+
+        Out[3]: DatetimeIndex(['2014-08-01 09:23:41.321211',
+        '2014-08-01 10:23:41.321211', '2014-08-01 11:23:41.321211'],
+        dtype='datetime64[ns]', freq='H')
+
+        In [4]: df.ceil('H')
+        Out[4]: DatetimeIndex(['2014-08-01 10:00:00', '2014-08-01 11:00:00',
+               '2014-08-01 12:00:00'],
+              dtype='datetime64[ns]', freq=None)
+
+
+        Raises
+        ------
+        TypeError
+            If the DatetimeIndex is tz-aware and tz is not None.
+
+        """
         return self._round(freq, np.ceil)
 
 
