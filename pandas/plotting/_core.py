@@ -2874,25 +2874,62 @@ class FramePlotMethods(BasePlotMethods):
     def hexbin(self, x, y, C=None, reduce_C_function=None, gridsize=None,
                **kwds):
         """
-        Hexbin plot
+        Make hexagonal binning plots.
+
+        Make an hexagonal binning plot of `x` versus `y`, where `x`,
+        `y` are 1-D sequences of the same length, `N`. If `C` is `None`
+        (the default), this is an histogram of the number of occurrences
+        of the observations at (x[i],y[i]).
+
+        If `C` is specified, specifies values at given coordinates
+        (x[i],y[i]). These values are accumulated for each hexagonal
+        bin and then reduced according to `reduce_C_function`,
+        having as default
+        the numpy's mean function (np.mean). (If *C* is
+        specified, it must also be a 1-D sequence of the same length
+        as `x` and `y`.)
 
         Parameters
         ----------
-        x, y : label or position, optional
-            Coordinates for each point.
+        x : label or position, optional
+            Coordinates for x point.
+        y : label or position, optional
+            Coordinates for y point.
         C : label or position, optional
             The value at each `(x, y)` point.
-        reduce_C_function : callable, optional
+        reduce_C_function : callable, optional, default `mean`
             Function of one argument that reduces all the values in a bin to
             a single number (e.g. `mean`, `max`, `sum`, `std`).
-        gridsize : int, optional
-            Number of bins.
-        `**kwds` : optional
+        gridsize : int, optional, default 100
+            The number of hexagons in the x-direction.
+            The corresponding number of hexagons in the y-direction is
+            chosen in a way that the hexagons are approximately regular.
+            Alternatively,
+            gridsize can be a tuple with two elements specifying the number of
+            hexagons in the x-direction and the y-direction.
+        kwds : optional
             Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : matplotlib.AxesSubplot or np.array of them.
+
+        See Also
+        --------
+        matplotlib.pyplot.hexbin : hexagonal binning plot using matplotlib.
+
+        Examples
+        --------
+
+        .. plot::
+            :context: close-figs
+
+            >>> from  sklearn.datasets import load_iris
+            >>> iris = load_iris()
+            >>> df = pd.DataFrame(iris.data, columns=iris.feature_names)
+            >>> hexbin = df.plot.hexbin(x='sepal length (cm)',
+            ...                         y='sepal width (cm)',
+            ...                         gridsize=10, cmap='viridis')
         """
         if reduce_C_function is not None:
             kwds['reduce_C_function'] = reduce_C_function
