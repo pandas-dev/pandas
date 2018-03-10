@@ -76,7 +76,7 @@ import pandas.plotting._core as gfx
 __all__ = ['Series']
 
 _shared_doc_kwargs = dict(
-    axes='index', klass='Series', axes_single_arg="{0, 'index'}",
+    axes='index', klass='Series', axes_single_arg="{0 or 'index'}",
     inplace="""inplace : boolean, default False
         If True, performs operation inplace and returns None.""",
     unique='np.ndarray', duplicated='Series',
@@ -1954,10 +1954,110 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # ----------------------------------------------------------------------
     # Reindexing, sorting
 
-    @Appender(generic._shared_docs['sort_values'] % _shared_doc_kwargs)
+    #@Appender(generic._shared_docs['sort_values'] % _shared_doc_kwargs)
     def sort_values(self, axis=0, ascending=True, inplace=False,
                     kind='quicksort', na_position='last'):
+        """
+        Sort by the Series values.
 
+        Sort (or order) a Series into ascending or descending order by some criterion.
+
+        Parameters
+        ----------
+        axis : {0 or ‘index’}, default 0
+            Axis to direct sorting.
+        ascending : bool, default True
+            Sort ascending (True) or descending (False).
+        inplace : bool, default False
+            If True, perform operation in-place.
+        kind : {‘quicksort’, ‘mergesort’ or ‘heapsort’}, default ‘quicksort’
+            Choice of sorting algorithm. See also ndarray.np.sort [1]_ for more information. `mergesort` is the only stable
+            algorithm.
+        na_position : {'first' or 'last'}, default 'last'
+             Argument `first` puts NaNs at the beginning, `last` puts NaNs at the end.
+
+        Returns
+        -------
+        sorted_obj : Series
+            Series ordered by values.
+
+        See Also
+        --------
+        Series.sort_index : Sort by the Series indices.
+        DataFrame.sort_index : Sort DataFrame by indices.
+        DataFrame.sort_values : Sort by the values along either axis.
+
+        References
+        ----------
+        .. [1] https://docs.scipy.org/doc/numpy/reference/generated/numpy.sort.html
+
+        Examples
+        --------
+        >>> s = pd.Series([np.nan, 1, 232, 323, 1, 2, 3, 45])
+        >>> s
+        0      NaN
+        1      1.0
+        2    232.0
+        3    323.0
+        4      1.0
+        5      2.0
+        6      3.0
+        7     45.0
+        dtype: float64
+
+        **Sort values ascending order**
+
+        >>> s.sort_values(ascending= True)
+        1      1.0
+        4      1.0
+        5      2.0
+        6      3.0
+        7     45.0
+        2    232.0
+        3    323.0
+        0      NaN
+        dtype: float64
+
+        **Sort values descending order**
+
+        >>> s.sort_values(ascending= False)
+        3    323.0
+        2    232.0
+        7     45.0
+        6      3.0
+        5      2.0
+        4      1.0
+        1      1.0
+        0      NaN
+        dtype: float64
+
+        **Sort values inplace**
+
+        >>> s.sort_values(ascending= False, inplace= True)
+        >>> s
+        3    323.0
+        2    232.0
+        7     45.0
+        6      3.0
+        5      2.0
+        4      1.0
+        1      1.0
+        0      NaN
+        dtype: float64
+
+        **Sort values putting NAs first**
+
+        >>> s.sort_values(na_position= 'first')
+        0      NaN
+        4      1.0
+        1      1.0
+        5      2.0
+        6      3.0
+        7     45.0
+        2    232.0
+        3    323.0
+        dtype: float64
+        """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         axis = self._get_axis_number(axis)
 
