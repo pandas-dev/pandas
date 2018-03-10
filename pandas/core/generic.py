@@ -5601,7 +5601,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Trim values at input threshold(s).
 
-        Elements above/below the upper'lower thresholds will be changed to
+        Elements above/below the upper/lower thresholds will be changed to
         upper/lower thresholds.
 
         Parameters
