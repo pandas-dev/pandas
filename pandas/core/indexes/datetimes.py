@@ -1057,7 +1057,30 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     def to_period(self, freq=None):
         """
-        Cast to PeriodIndex at a particular frequency
+        Cast to PeriodIndex at a particular frequency.
+
+        Converts timestamps index to period.
+
+        Parameters
+        ----------
+        freq : string or pandas offset object,optional
+            One of pandas date offset string or corresponding objects.
+
+        Returns
+        -------
+        period: period[D]
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"y": [1,2,3]},
+        ...                     index=pd.to_datetime(["2000-03-31 00:00:00",
+        ...                                           "2000-05-31 00:00:00",
+        ...                                           "2000-08-31 00:00:00"]))
+        >>> df.index = df.index.to_period("M")
+
+        See also
+        --------
+        Index: base pandas index type
         """
         from pandas.core.indexes.period import PeriodIndex
 
