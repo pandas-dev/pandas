@@ -7802,7 +7802,7 @@ bool_only : boolean, default None
     Include only boolean columns. If None, will attempt to use everything,
     then use only boolean data. Not implemented for Series.
 **kwargs : any, default None
-    Additional keywords have no fect but might be accepted for
+    Additional keywords have no affect but might be accepted for
     compatibility with numpy.
 
 Returns
@@ -7813,42 +7813,50 @@ Returns
 %(see_also)s"""
 
 _all_doc = """\
-Return whether all elements are True over requested axis.
+Return whether all elements are True over series or dataframe axis.
 
-Returns True if all elements along a dataframe
-axis are non-zero, not-empty or not-False.
-Also note that a series consisting of different data
-types returns the first occurence of the non-zero, not-empty
-or not-False element."""
+Returns True if all elements within a series or along a dataframe
+axis or are non-zero, not-empty or not-False."""
 
 _all_examples = """\
 Examples
 --------
-First create a pandas dataframe::
-    >>> d = {'col1': [True, True], 'col2': [True, False]}
-    >>> df = pd.DataFrame(data=d)
-    >>> df
-       col1   col2
-    0  True   True
-    1  True  False
+Series
 
-Default behaviour checks if column-wise values all return True
-    >>> df.all()
-    col1     True
-    col2    False
-    dtype: bool
+>>> pd.Series([True, True]).all()
+True
+>>> pd.Series([True, False]).all()
+False
 
-Adding axis=1 will check row-wise values
-    >>> df.all(axis=1)
-    0     True
-    1    False
-    dtype: bool
+Dataframes
+
+Create a dataframe from a dictionary.
+
+>>> df = pd.DataFrame({'col1': [True, True], 'col2': [True, False]})
+>>> df
+   col1   col2
+0  True   True
+1  True  False
+
+Default behaviour checks if column-wise values all return True.
+
+>>> df.all()
+col1     True
+col2    False
+dtype: bool
+
+Adding axis=1 argument will check if row-wise values all return True.
+
+>>> df.all(axis=1)
+0     True
+1    False
+dtype: bool
 """
 
 _all_see_also = """\
 See also
 --------
-pandas.DataFrame.any : Checks if one (or more) items return True
+pandas.DataFrame.any : Return if one (or more) elements are True
 """
 
 _cnum_doc = """
