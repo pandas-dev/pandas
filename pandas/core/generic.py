@@ -7769,7 +7769,7 @@ class NDFrame(PandasObject, SelectionMixin):
     2000-01-10  3.637586    1.143001
 
     >>> df[['A', 'B']].transform([log_T, normalize_T])
-                    A                     B            
+                    A                     B
                 log_T normalize_T     log_T normalize_T
     2000-01-01  2.302585   -1.143001  2.397895   -1.143001
     2000-01-02  2.564949   -0.889001  2.639057   -0.889001
