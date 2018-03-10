@@ -7534,7 +7534,6 @@ class NDFrame(PandasObject, SelectionMixin):
                       name1=name, name2=name2, axis_descr=axis_descr,
                       min_count='', examples='')
         @Appender(_num_doc)
-
         def mad(self, axis=None, skipna=None, level=None):
             if skipna is None:
                 skipna = True
@@ -7789,8 +7788,7 @@ _bool_doc = """
 Parameters
 ----------
 axis : int, default 0
-    Select the axis which can be 0 for indices and
-    1 for columns.
+    Select the axis which can be 0 for indices and 1 for columns.
 skipna : boolean, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA.
@@ -7808,8 +7806,6 @@ Returns
 %(examples)s
 %(see_also)s
 """
-
-
 
 _cnum_doc = """
 
@@ -7835,7 +7831,8 @@ pandas.core.window.Expanding.%(accum_func_name)s : Similar functionality
 _any_also = """\
 See Also
 --------
-pandas.DataFrame.all : Return whether all elements are True over requested axis."""
+pandas.DataFrame.all : Return whether all elements are True \
+over requested axis."""
 
 _any_desc = """\
 Return whether any element is True over requested axis.
@@ -8034,12 +8031,12 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
     return set_function_name(cum_func, name, cls)
 
 
-def _make_logical_function(cls, name, name1, name2, axis_descr, desc, f, examples='', see_also=''):
-    
+def _make_logical_function(cls, name, name1, name2, axis_descr, desc, f,
+                           examples='', see_also=''):
+
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
                   axis_descr=axis_descr, examples=examples, see_also=see_also)
     @Appender(_bool_doc)
-
     def logical_func(self, axis=None, bool_only=None, skipna=None, level=None,
                      **kwargs):
         nv.validate_logical_func(tuple(), kwargs, fname=name)
