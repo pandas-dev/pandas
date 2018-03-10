@@ -1004,10 +1004,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Reset the index of the Serie.
         
-        For a standard index, the index name will be used (if set), 
+        For an Index, the index name will be used (if set), 
         otherwise a default index or `level_0` (if `index` is already taken) 
         will be used.
-        For a Series with multi-level index, return a new Series with labeling
+        For a MultiIndex, return a new Series with labeling
         information in the columns under the index names, defaulting to
         `level_0`, `level_1`, etc. if any are None. 
 
@@ -1016,16 +1016,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         level : int, str, tuple, or list, default `None`
             Only remove the given levels from the index. Removes all levels by
             default.
-        drop : `boolean`, default `False`
+        drop : `bool`, default `False`
             Do not try to insert index into dataframe columns.
         name : `object`, default `None`
             The name of the column corresponding to the Series values.
-        inplace : `boolean`, default `False`
+        inplace : `bool`, default `False`
             Modify the Series in place (do not create a new object).
 
         Returns
         ----------
-        resetted : `DataFrame`, or Series if `drop == True`
+        reset : `DataFrame`, or Series if `drop == True`
 
         See Also
         --------
@@ -1042,7 +1042,28 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2   c  3
         3   d  4
 
+        >>> s = pd.Series([1, 2, 3, 4], index=pd.Index(['a', 'b', 'c', 'd'],
+        ...                                            name = 'idx'))
         >>> s.reset_index(drop=True)
+        0    1
+        1    2
+        2    3
+        3    4
+        dtype: int64
+
+        >>> s = pd.Series([1, 2, 3, 4], index=pd.Index(['a', 'b', 'c', 'd'],
+        ...                                            name = 'idx'))
+        >>> s.reset_index(name = 'new_idx')
+          idx  new_idx
+        0   a        1
+        1   b        2
+        2   c        3
+        3   d        4
+
+        >>> s = pd.Series([1, 2, 3, 4], index=pd.Index(['a', 'b', 'c', 'd'],
+        ...                                            name = 'idx'))
+        >>> s.reset_index(inplace=True, drop=True)
+        >>> s
         0    1
         1    2
         2    3
