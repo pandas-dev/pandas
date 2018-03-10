@@ -905,9 +905,9 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.from_records : Create DataFrame from ndarray (structured dtype),
+        DataFrame.from_records : DataFrame from ndarray (structured dtype),
                                  list of tuples, dict, or DataFrame
-        DataFrame.from_items : Create DataFrame from sequence of (key, value) pairs.
+        DataFrame.from_items : DataFrame from sequence of (key, value) pairs.
 
         Returns
         -------
