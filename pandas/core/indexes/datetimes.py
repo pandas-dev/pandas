@@ -1728,7 +1728,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         'is_month_start',
         'is_month_start',
         """
-        Returns a boolean indicating if the date is the first day of the month.
+        Return a boolean indicating if the date is the first day of the month.
 
         Returns
         -------
