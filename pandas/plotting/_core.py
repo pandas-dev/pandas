@@ -2744,7 +2744,6 @@ class FramePlotMethods(BasePlotMethods):
 
         Examples
         --------
-
         Basic plot
 
         .. plot::
