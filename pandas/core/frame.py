@@ -4223,11 +4223,11 @@ class DataFrame(NDFrame):
 
     def combine_first(self, other):
         """
-        Update null values with elements from another DataFrame.
+        Update NaN values with value in the same location in `other` DataFrame
 
         Combine two DataFrame objects by filling null values in self DataFrame
-        with non-null values from other DataFrame. The row and column indexes of the resulting
-        DataFrame will be the union of the two.
+        with non-null values from other DataFrame. The row and column indexes
+        of the resulting DataFrame will be the union of the two.
 
         Parameters
         ----------
