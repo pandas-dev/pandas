@@ -4958,7 +4958,7 @@ class DataFrame(NDFrame):
         ``result_type='expand'``. The resulting column names
         will be the Series index.
 
-        >>> df.apply(lambda x: Series([1, 2], index=['foo', 'bar']), axis=1)
+        >>> df.apply(lambda x: pd.Series([1, 2], index=['foo', 'bar']), axis=1)
            foo  bar
         0    1    2
         1    1    2
