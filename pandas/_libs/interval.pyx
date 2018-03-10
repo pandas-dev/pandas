@@ -153,6 +153,7 @@ cdef class Interval(IntervalMixin):
     cut : Return indices of half-open bins.
     qcut : Discretize variable into equal-sized buckets based on rank or
            based on sample quantiles.
+    Period : Represents a period of time.
     """
     _typ = "interval"
 
