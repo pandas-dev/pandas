@@ -2720,6 +2720,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         --------
         numpy.ndarray.nbytes : Total bytes consumed by the elements of the
             array.
+        DataFrame.memory_usage : Bytes consumed by a DataFrame.
 
         Examples
         --------
