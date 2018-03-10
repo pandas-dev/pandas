@@ -75,7 +75,7 @@ class DatelikeOps(object):
     Returns
     -------
     numpy.ndarray
-        n dimensional array of formatted strings
+        n-dimensional array of formatted strings
 
     See Also
     --------
