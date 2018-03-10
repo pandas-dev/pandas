@@ -354,7 +354,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         See Also
         --------
-        Categorical, Categorical.codes
+        Categorical : A categorical variable in classic R / S-plus fashion.
+        Categorical.codes : Ndarray.
         """
         return self._data.codes
 
@@ -367,7 +368,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         See Also
         --------
-        Categorical, Categorical.categories
+        Categorical : A categorical variable in classic R / S-plus fashion.
+        Categorical.categories : A list-like object.
         """
         return self._data.categories
 
@@ -380,7 +382,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         See Also
         --------
-        Categorical, Categorical.ordered
+        Categorical : A categorical variable in classic R / S-plus fashion.
+        Categorical.ordered : Whether the categories have an ordered relationship.
         """
         return self._data.ordered
 
