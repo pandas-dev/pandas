@@ -7,15 +7,7 @@ import threading
 import warnings
 
 from functools import partial
-
-
-# imports needed for Python 3.x but will fail under Python 2.x
-try:
-    from importlib import import_module, reload
-except ImportError:
-    import_module = __import__
-
-
+from importlib import reload
 from distutils.version import LooseVersion
 
 import pytest
@@ -33,42 +25,11 @@ from pandas.io.html import read_html
 from pandas._libs.parsers import ParserError
 
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas.util.testing import makeCustomDataframe as mkdf, network
 
 
-def _have_module(module_name):
-    try:
-        import_module(module_name)
-        return True
-    except ImportError:
-        return False
-
-
-def _skip_if_no(module_name):
-    if not _have_module(module_name):
-        pytest.skip("{0!r} not found".format(module_name))
-
-
-def _skip_if_none_of(module_names):
-    if isinstance(module_names, string_types):
-        _skip_if_no(module_names)
-        if module_names == 'bs4':
-            import bs4
-            if LooseVersion(bs4.__version__) == LooseVersion('4.2.0'):
-                pytest.skip("Bad version of bs4: 4.2.0")
-    else:
-        not_found = [module_name for module_name in module_names if not
-                     _have_module(module_name)]
-        if set(not_found) & set(module_names):
-            pytest.skip("{0!r} not found".format(not_found))
-        if 'bs4' in module_names:
-            import bs4
-            if LooseVersion(bs4.__version__) == LooseVersion('4.2.0'):
-                pytest.skip("Bad version of bs4: 4.2.0")
-
-
 DATA_PATH = tm.get_data_path()
-
 
 def assert_framelist_equal(list1, list2, *args, **kwargs):
     assert len(list1) == len(list2), ('lists are not of equal size '
@@ -83,23 +44,31 @@ def assert_framelist_equal(list1, list2, *args, **kwargs):
         tm.assert_frame_equal(frame_i, frame_j, *args, **kwargs)
         assert not frame_i.empty, 'frames are both empty'
 
+def _missing_bs4():
+    bs4 = td.safe_import('bs4')
+    if not bs4 or LooseVersion(bs4.__version__) == LooseVersion('4.2.0'):
+        return True
 
+    return False
+
+@td.skip_if_no('bs4')
 def test_bs4_version_fails():
-    _skip_if_none_of(('bs4', 'html5lib'))
     import bs4
     if LooseVersion(bs4.__version__) == LooseVersion('4.2.0'):
         tm.assert_raises(AssertionError, read_html, os.path.join(DATA_PATH,
                                                                  "spam.html"),
                          flavor='bs4')
-
+    else:
+        pytest.skip("Only applicable for bs4 version 4.2.0")
 
 def test_invalid_flavor():
     url = 'google.com'
     with pytest.raises(ValueError):
         read_html(url, 'google', flavor='not a* valid**++ flaver')
 
+@td.skip_if_no('bs4')
+@td.skip_if_no('lxml')
 def test_same_ordering():
-    _skip_if_none_of(['bs4', 'lxml', 'html5lib'])
     filename = os.path.join(DATA_PATH, 'valid_markup.html')
     dfs_lxml = read_html(filename, index_col=0, flavor=['lxml'])
     dfs_bs4 = read_html(filename, index_col=0, flavor=['bs4'])
@@ -107,7 +76,10 @@ def test_same_ordering():
 
 
 @pytest.mark.parametrize("flavor", [
-    'bs4', 'lxml'], scope="class")
+    pytest.param('bs4', marks=pytest.mark.skipif(
+        _missing_bs4(), reason='No bs4')),
+    pytest.param('lxml', marks=pytest.mark.skipif(
+        not td.safe_import('lxml'), reason='No lxml'))], scope="class")
 class TestReadHtml(object):
     spam_data = os.path.join(DATA_PATH, 'spam.html')
     spam_data_kwargs = {}
