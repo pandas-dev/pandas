@@ -1985,23 +1985,20 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         we perform reverse operation where we remove tize zone & make it
         tz-naive
 
-        In [2]: dti = pd.date_range('2018-03-01', '2018-03-05')
+        >>> dti = pd.date_range('2018-03-01', '2018-03-05')
 
-        In [3]: dti
-
-        Out[3]: DatetimeIndex(['2018-03-01', '2018-03-02', '2018-03-03',
+        >>> dti
+        DatetimeIndex(['2018-03-01', '2018-03-02', '2018-03-03',
         '2018-03-04', '2018-03-05'], dtype='datetime64[ns]', freq='D')
 
-        In [4]: dti.tz_localize(tz='US/Eastern')
-
-        Out[4]: DatetimeIndex(['2018-03-01 00:00:00-05:00',
+        >>> dti.tz_localize(tz='US/Eastern')
+        DatetimeIndex(['2018-03-01 00:00:00-05:00',
         '2018-03-02 00:00:00-05:00', '2018-03-03 00:00:00-05:00',
         '2018-03-04 00:00:00-05:00', '2018-03-05 00:00:00-05:00'],
         dtype='datetime64[ns, US/Eastern]', freq='D')
 
-        In [5]: dti.tz_localize('US/Eastern').tz_localize(None)
-
-        Out[5]: DatetimeIndex(['2018-03-01', '2018-03-02', '2018-03-03',
+        >>> dti.tz_localize('US/Eastern').tz_localize(None)
+        DatetimeIndex(['2018-03-01', '2018-03-02', '2018-03-03',
         '2018-03-04', '2018-03-05'], dtype='datetime64[ns]', freq='D')
 
 
