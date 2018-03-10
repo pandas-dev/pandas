@@ -1072,13 +1072,17 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         Examples
         --------
-        >>> index=pd.to_datetime(["2000-03-31 00:00:00",
-        ...                       "2000-08-31 00:00:00"])
-        >>> index.to_period("M")
-        PeriodIndex(['2000-03', '2000-08'],
-        ...         dtype='period[M]',
-        ...         freq='M')
-
+        >>> df = pd.DataFrame({"y": [1,2,3]},
+        ...                   index=pd.to_datetime(["2000-03-31 00:00:00",
+        ...                                         "2000-05-31 00:00:00",
+        ...                                         "2000-08-31 00:00:00"]))
+        >>> df.index = df.index.to_period("M")
+        >>> df
+        	    y
+        2000-03	1
+        2000-05	2
+        2000-08	3
+        
         See also
         --------
         pandas.PeriodIndex: Immutable ndarray holding ordinal values
