@@ -1958,9 +1958,9 @@ class NDFrame(PandasObject, SelectionMixin):
         See Also
         --------
         pandas.core.frame.DataFrame.to_csv : Write a DataFrame to a
-        comma-separated values (csv) file.
+            comma-separated values (csv) file.
         pandas.core.series.Series.to_csv : Write a Series to a
-        comma-separated values (csv) file.
+            comma-separated values (csv) file.
 
         Notes
         -----
