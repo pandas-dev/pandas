@@ -124,7 +124,7 @@ _apply_docs = dict(
     --------
     pipe : Apply function to the full GroupBy object instead of to each
         group.
-    aggregate : Apply aggregate function to the GroupBy object. 
+    aggregate : Apply aggregate function to the GroupBy object.
     transform : Apply function column-by-column to the GroupBy object.
     """,
     dataframe_examples="""
