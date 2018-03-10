@@ -1943,7 +1943,11 @@ class DataFrame(NDFrame):
         _put_lines(buf, lines)
 
     def memory_usage(self, index=True, deep=False):
-        """Memory usage of DataFrame columns.
+        """
+        Memory usage of DataFrame columns.
+
+        Memory usage of DataFrame is accessing pandas.DataFrame.info method.
+        A configuration option, `display.memory_usage` (see Parameters)
 
         Parameters
         ----------
@@ -1953,7 +1957,7 @@ class DataFrame(NDFrame):
             the first index of the Series is `Index`.
         deep : bool
             Introspect the data deeply, interrogate
-            `object` dtypes for system-level memory consumption
+            `object` dtypes for system-level memory consumption.
 
         Returns
         -------
@@ -1969,6 +1973,38 @@ class DataFrame(NDFrame):
         See Also
         --------
         numpy.ndarray.nbytes
+
+        Examples
+        --------
+        >>> dtypes = ['int64', 'float64', 'complex128', 'object', 'bool']
+        >>> data = dict([(t, np.random.randint(100, size=5000).astype(t))
+        ...              for t in dtypes])
+        >>> df = pd.DataFrame(data)
+        >>> df.memory_usage()
+        Index            80
+        int64         40000
+        float64       40000
+        complex128    80000
+        object        40000
+        bool           5000
+        dtype: int64
+        >>> df.memory_usage(index=False)
+        int64         40000
+        float64       40000
+        complex128    80000
+        object        40000
+        bool           5000
+        dtype: int64
+        >>> df.memory_usage(index=True)
+        Index            80
+        int64         40000
+        float64       40000
+        complex128    80000
+        object        40000
+        bool           5000
+        dtype: int64
+        >>> df.memory_usage(index=True).sum()
+        205080
         """
         result = Series([c.memory_usage(index=False, deep=deep)
                          for col, c in self.iteritems()], index=self.columns)
