@@ -5605,53 +5605,73 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Trim values at input threshold(s).
 
+        Assigns values outside boundary to boundary values. Thresholds
+        can be singular values or array like, and in the latter case
+        the clipping is performed element-wise in the specified axis.
+
         Parameters
         ----------
         lower : float or array_like, default None
+            Minimum threshold value. All values below this
+            threshold will be set to it.
         upper : float or array_like, default None
+            Maximum threshold value. All values above this
+            threshold will be set to it.
         axis : int or string axis name, optional
             Align object with lower and upper along the given axis.
         inplace : boolean, default False
-            Whether to perform the operation in place on the data
+            Whether to perform the operation in place on the data.
                 .. versionadded:: 0.21.0
+        *args, **kwargs
+            Additional keywords have no effect but might be accepted
+            for compatibility with numpy.
+
+        See Also
+        --------
+        Series.clip_lower : Clip values below specified threshold(s).
+        Series.clip_upper : Clip values above specified threshold(s).
 
         Returns
         -------
-        clipped : Series
+        `pandas.Series`
+            Series with the values outside the clip boundaries replaced
 
         Examples
         --------
+        >>> data = {'col_0': [9, -3, 0, -1, 5], 'col_1': [-2, -7, 6, 8, -5]}
+        >>> df = pd.DataFrame(data)
         >>> df
-                  0         1
-        0  0.335232 -1.256177
-        1 -1.367855  0.746646
-        2  0.027753 -1.176076
-        3  0.230930 -0.679613
-        4  1.261967  0.570967
+           col_0  col_1
+        0      9     -2
+        1     -3     -7
+        2      0      6
+        3     -1      8
+        4      5     -5
 
-        >>> df.clip(-1.0, 0.5)
-                  0         1
-        0  0.335232 -1.000000
-        1 -1.000000  0.500000
-        2  0.027753 -1.000000
-        3  0.230930 -0.679613
-        4  0.500000  0.500000
+        >>> df.clip(-4, 6)
+           col_0  col_1
+        0      6     -2
+        1     -3     -4
+        2      0      6
+        3     -1      6
+        4      5     -4
 
+        >>> t = pd.Series([2, -4, -1, 6, 3])
         >>> t
-        0   -0.3
-        1   -0.2
-        2   -0.1
-        3    0.0
-        4    0.1
-        dtype: float64
+        0    2
+        1   -4
+        2   -1
+        3    6
+        4    3
+        dtype: int64
 
-        >>> df.clip(t, t + 1, axis=0)
-                  0         1
-        0  0.335232 -0.300000
-        1 -0.200000  0.746646
-        2  0.027753 -0.100000
-        3  0.230930  0.000000
-        4  1.100000  0.570967
+        >>> df.clip(t, t + 4, axis=0)
+           col_0  col_1
+        0      6      2
+        1     -3     -4
+        2      0      3
+        3      6      8
+        4      5      3
         """
         if isinstance(self, ABCPanel):
             raise NotImplementedError("clip is not supported yet for panels")
