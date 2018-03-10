@@ -1652,6 +1652,51 @@ class NDFrame(PandasObject, SelectionMixin):
     strings before writing.
     """
 
+    _shared_docs['to_pickle'] = """
+    Pickle (serialize) %(klass)s object to input file path.
+
+    Parameters
+    ----------
+    path : string
+        File path where the pickled %(klass)s object will be stored.
+    compression : {'infer', 'gzip', 'bz2', 'xz', None}, default 'infer'
+        a string representing the compression to use in the output file
+
+        .. versionadded:: 0.20.0
+    protocol : int
+        Int which indicates which protocol should be used by the pickler,
+        default HIGHEST_PROTOCOL (see [1], paragraph 12.1.2). The possible
+        values for this parameter depend on the version of Python. For
+        Python 2.x, possible values are 0, 1, 2. For Python>=3.0, 3 is a
+        valid value. For Python >= 3.4, 4 is a valid value.A negative value
+        for the protocol parameter is equivalent to setting its value to
+        HIGHEST_PROTOCOL.
+
+        .. [1] https://docs.python.org/3/library/pickle.html
+        .. versionadded:: 0.21.0
+
+    Examples
+    --------
+    >>> original_df = DataFrame({"foo": range(5), "bar": range(5, 10)})
+    >>> original_df
+       bar  foo
+    0    5    0
+    1    6    1
+    2    7    2
+    3    8    3
+    4    9    4
+    >>> original_df.to_pickle("./dummy.pkl")
+
+    >>> unpickled_df = read_pickle("./dummy.pkl")
+    >>> unpickled_df
+       bar  foo
+    0    5    0
+    1    6    1
+    2    7    2
+    3    8    3
+    4    9    4
+        """
+
     def to_json(self, path_or_buf=None, orient=None, date_format=None,
                 double_precision=10, force_ascii=True, date_unit='ms',
                 default_handler=None, lines=False, compression=None,
@@ -1900,49 +1945,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def to_pickle(self, path, compression='infer',
                   protocol=pkl.HIGHEST_PROTOCOL):
-        """
-        Pickle (serialize) object to input file path.
-
-        Parameters
-        ----------
-        path : string
-            File path where the pickled pandas object will be stored.
-        compression : {'infer', 'gzip', 'bz2', 'xz', None}, default 'infer'
-            a string representing the compression to use in the output file
-
-            .. versionadded:: 0.20.0
-        protocol : int
-            Int which indicates which protocol should be used by the pickler,
-            default HIGHEST_PROTOCOL (see [1], paragraph 12.1.2). The possible
-            values for this parameter depend on the version of Python. For
-            Python 2.x, possible values are 0, 1, 2. For Python>=3.0, 3 is a
-            valid value. For Python >= 3.4, 4 is a valid value.A negative value
-            for the protocol parameter is equivalent to setting its value to
-            HIGHEST_PROTOCOL.
-
-            .. [1] https://docs.python.org/3/library/pickle.html
-            .. versionadded:: 0.21.0
-
-        Examples
-        --------
-        >>> original_df = DataFrame({"foo": range(5), "bar": range(5, 10)})
-        >>> original_df
-           bar  foo
-        0    5    0
-        1    6    1
-        2    7    2
-        3    8    3
-        4    9    4
-        >>> original_df.to_pickle("./dummy.pkl")
-        >>> unpickled_df = read_pickle("./dummy.pkl")
-        >>> unpickled_df
-           bar  foo
-        0    5    0
-        1    6    1
-        2    7    2
-        3    8    3
-        4    9    4
-        """
         from pandas.io.pickle import to_pickle
         return to_pickle(self, path, compression=compression,
                          protocol=protocol)
