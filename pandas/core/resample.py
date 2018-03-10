@@ -522,8 +522,8 @@ one pass, you can do
         Backward fill the values.
 
         In statistics, imputation is the process of replacing missing data with
-        substituted values. When resampling data, missing values may appear
-        (e.g., when the resampling frequency is higher than the original
+        substituted values [1]_. When resampling data, missing values may
+        appear (e.g., when the resampling frequency is higher than the original
         frequency). The backward fill will replace NA values with the next
         non-NA value in the sequence.
 
