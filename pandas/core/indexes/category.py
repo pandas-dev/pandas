@@ -64,14 +64,14 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     --------
     >>> pd.CategoricalIndex(['a','b','c','a','b','c'], ordered=False,
     ...                     categories=['c', 'b', 'a'])
-    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'], categories=['c', 'b', 'a'],
-    ordered=False, dtype='category')
+    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'],
+    categories=['c', 'b', 'a'], ordered=False, dtype='category')
 
     >>> idx = pd.CategoricalIndex(['a','b','c','a','b','c'], ordered=True,
     ...                     categories=['c', 'b', 'a'])
     >>> idx
-    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'], categories=['c', 'b', 'a'],
-    ordered=True, dtype='category')
+    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'],
+    categories=['c', 'b', 'a'], ordered=True, dtype='category')
     >>> idx.min()
     'c'
 
