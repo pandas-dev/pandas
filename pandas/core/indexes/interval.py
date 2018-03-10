@@ -158,7 +158,7 @@ class IntervalIndex(IntervalMixin, Index):
         Create IntervalIndex without verifying integrity.
     verify_integrity : boolean, default True
         Verify that the IntervalIndex is valid.
-        
+
         ..versionadded:: 0.23.0.
 
     Attributes
@@ -461,7 +461,8 @@ class IntervalIndex(IntervalMixin, Index):
     def from_arrays(cls, left, right, closed='right', name=None, copy=False,
                     dtype=None):
         """
-        Construct an IntervalIndex from a a left and right array
+        Construct an IntervalIndex from a given element in a left
+        and right array.
 
         Parameters
         ----------
@@ -475,11 +476,15 @@ class IntervalIndex(IntervalMixin, Index):
         name : object, optional
             Name to be stored in the index.
         copy : boolean, default False
-            copy the data
+            Copy the data.
         dtype : dtype or None, default None
-            If None, dtype will be inferred
+            If None, dtype will be inferred.
 
-            ..versionadded:: 0.23.0
+            .. versionadded:: 0.23.0.
+
+        Returns
+        -------
+        index : IntervalIndex
 
         Examples
         --------
@@ -488,13 +493,34 @@ class IntervalIndex(IntervalMixin, Index):
                       closed='right',
                       dtype='interval[int64]')
 
+        If you want to segment different groups of people based on
+        ages, you can apply the method as follows:
+
+        >>> ages = pd.IntervalIndex.from_arrays([0, 2, 13],
+        ...                                     [2, 13, 19], closed='left')
+        >>> ages
+        IntervalIndex([[0, 2), [2, 13), [13, 19)]
+              closed='left',
+              dtype='interval[int64]')
+        >>> s = pd.Series(['baby', 'kid', 'teen'], ages)
+        >>> s
+        [0, 2)      baby
+        [2, 13)      kid
+        [13, 19)    teen
+        dtype: object
+
+        Notes
+        -----
+        Each element of `left` must be smaller or equal to the `right` element
+        at the same position, ie, ``left[i] <= right[i]``.
+
         See Also
         --------
-        interval_range : Function to create a fixed frequency IntervalIndex
+        interval_range : Function to create a fixed frequency IntervalIndex.
         IntervalIndex.from_breaks : Construct an IntervalIndex from an array of
-                                    splits
+                                    splits.
         IntervalIndex.from_tuples : Construct an IntervalIndex from a
-                                    list/array of tuples
+                                    list/array of tuples.
         """
         left = maybe_convert_platform_interval(left)
         right = maybe_convert_platform_interval(right)
