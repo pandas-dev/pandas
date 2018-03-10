@@ -682,22 +682,24 @@ class Index(IndexOpsMixin, PandasObject):
 
     def get_values(self):
         """
-        Return `Index` data as an `ndarray`.
+        Return `Index` data as an `numpy.ndarray`.
 
-        Because this is a wrapper function around Index.values, it is useful
-        when one explicitly wants to use a getter.
+        In its functionality it is the same as `Series.get_values`,
+        but because it refers only to `Index` values, it does not need
+        the additional sparse transformation work.
+
+        It is a getter wrapper around `Index.values`. Getters are
+        often considered non-pythonic and, therefore, should be avoided if are
+        not explicitly aimed for.
 
         Returns
         -------
         numpy.ndarray
-            A one-dimensional numpy `array` of the indexes.
+            A one-dimensional `numpy array` of the indexes.
 
         See Also
         --------
-        Index
-            The basic object storing axis labels for all pandas objects.
-        Index.values
-            The original function around which `get_values` creates a wrapper.
+        Index.values : The original function around which `get_values` wraps.
 
         Examples
         --------
@@ -718,6 +720,13 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx = pd.Index(['1', '2', '3'])
         >>> idx.get_values()
         array(['1', '2', '3'], dtype=object)
+
+        `MultiIndex` arrays also have only one dimension:
+
+        >>> midx = pd.MultiIndex.from_arrays([[1, 2, 3], ['a', 'b', 'c']],
+        ...                                  names =  ('number', 'letter'))
+        >>> midx.ndim
+        1
         """
         return self.values
 
