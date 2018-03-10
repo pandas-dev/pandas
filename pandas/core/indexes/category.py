@@ -661,19 +661,32 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     take_nd = take
 
     def map(self, mapper):
-        """Apply mapper function to its categories (not codes).
+        """
+        Map categories (not codes) using input correspondence (a dict,
+        Series, or function).
+
+        Maps the categories of the index to new categories. If the mapping
+        correspondence maps each original category to a different new category
+        the result is a CategoricalIndex which has the same order property as
+        the original, otherwise an Index is returned.
+
+        If a dictionary or Series is used and any unmapped category is mapped
+        to NA. Note that if this happens an Index will be returned.
 
         Parameters
         ----------
         mapper : callable
-            Function to be applied. When all categories are mapped
-            to different categories, the result will be a CategoricalIndex
-            which has the same order property as the original. Otherwise,
-            the result will be a Index.
+            Function to be applied.
 
         Returns
         -------
         applied : CategoricalIndex or Index
+
+        See Also
+        --------
+        Index.map : For applying a mapping correspondence on an Index.
+        Series.map : For applying a mapping correspondence on a Series.
+        Series.apply : For applying more complex functions on a Series.
 
         """
         return self._shallow_copy_with_infer(self.values.map(mapper))
