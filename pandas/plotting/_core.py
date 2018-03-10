@@ -2732,6 +2732,7 @@ class FramePlotMethods(BasePlotMethods):
         Parameters
         ----------
         x : label or position, default None
+            Allows plotting of one column versus another.
         y : label or position, default None
             Allows plotting of one column versus another.
         **kwds : optional
@@ -2752,7 +2753,6 @@ class FramePlotMethods(BasePlotMethods):
             >>> df = pd.DataFrame({'lab':['A','B','C'], 'val':[10,30,20]})
             >>> ax = df.plot.bar(x='lab',y='val')
 
-
         Plot a whole dataframe to a bar plot
 
         .. plot::
@@ -2765,7 +2765,6 @@ class FramePlotMethods(BasePlotMethods):
             >>> df = pd.DataFrame({'speed': speed,
             ...                    'lifespan': lifespan}, index=index)
             >>> ax = df.plot.bar()
-
 
         Plot a column of the dataframe to a bar plot
 
@@ -2780,7 +2779,6 @@ class FramePlotMethods(BasePlotMethods):
             ...                    'lifespan': lifespan}, index=index)
             >>> ax = df.plot.bar(y='speed')
 
-
         Plot only selected categories for the dataframe
 
         .. plot::
@@ -2793,7 +2791,6 @@ class FramePlotMethods(BasePlotMethods):
             >>> df = pd.DataFrame({'speed': speed,
             ...          'lifespan': lifespan}, index=index)
             >>> ax = df.plot.bar(x='lifespan')
-
 
         See Also
         --------
