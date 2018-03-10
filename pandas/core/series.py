@@ -2737,15 +2737,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         The memory footprint of `object` values is ignored by default:
 
-        >>> class MyClass: pass
-        >>> s = pd.Series(MyClass())
-        >>> s
-        0    <__main__.MyClass object at ...>
-        dtype: object
+        >>> s = pd.Series(["a", "b"])
+        >>> s.values
+        array(['a', 'b'], dtype=object)
         >>> s.memory_usage()
-        88
+        96
         >>> s.memory_usage(deep=True)
-        120
+        212
         """
         v = super(Series, self).memory_usage(deep=deep)
         if index:
