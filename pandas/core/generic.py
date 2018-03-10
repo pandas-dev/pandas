@@ -1865,10 +1865,12 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Write records stored in a DataFrame to a SQL database.
 
+        This function inserts all rows of the dataframe into the given table and recreates if if_exists='replace'.
+
         Parameters
         ----------
         name : string
-            Name of SQL table
+            Name of SQL table.
         con : SQLAlchemy engine or DBAPI2 connection (legacy mode)
             Using SQLAlchemy makes it possible to use any DB supported by that
             library. If a DBAPI2 object, only sqlite3 is supported.
@@ -1876,6 +1878,7 @@ class NDFrame(PandasObject, SelectionMixin):
             Specify the schema (if database flavor supports this). If None, use
             default schema.
         if_exists : {'fail', 'replace', 'append'}, default 'fail'
+            Accepted values:
             - fail: If table exists, do nothing.
             - replace: If table exists, drop it, recreate it, and insert data.
             - append: If table exists, insert data. Create if does not exist.
@@ -1892,36 +1895,28 @@ class NDFrame(PandasObject, SelectionMixin):
             Optional specifying the datatype for columns. The SQL type should
             be a SQLAlchemy type, or a string for sqlite3 fallback connection.
 
+        Returns
+        --------
+            None
+
+        See Also
+        --------
+        pandas.io.sql.to_sql : this function will be called.
+
         Examples
         --------
         >>> from sqlalchemy import create_engine
         >>> import pandas as pd
-        >>> df=pd.DataFrame({"id":list(range(10)), "name" : ["User " + str(x) for x in range(10)]})
-        >>> eng = create_engine('sqlite:///example.db', echo=True)
-        >>> df.to_sql('users',con=eng,if_exists='replace')
-        2018-03-10 11:13:34,676 INFO sqlalchemy.engine.base.Engine SELECT CAST('test plain returns' AS VARCHAR(60)) AS anon_1
-        2018-03-10 11:13:34,676 INFO sqlalchemy.engine.base.Engine ()
-        2018-03-10 11:13:34,678 INFO sqlalchemy.engine.base.Engine SELECT CAST('test unicode returns' AS VARCHAR(60)) AS anon_1
-        2018-03-10 11:13:34,678 INFO sqlalchemy.engine.base.Engine ()
-        2018-03-10 11:13:34,679 INFO sqlalchemy.engine.base.Engine PRAGMA table_info("users")
-        2018-03-10 11:13:34,679 INFO sqlalchemy.engine.base.Engine ()
-        2018-03-10 11:13:34,682 INFO sqlalchemy.engine.base.Engine
-        CREATE TABLE users (
-        	"index" BIGINT,
-        id BIGINT,
-        name TEXT
-        )
-
-
-        2018-03-10 11:13:34,682 INFO sqlalchemy.engine.base.Engine ()
-        2018-03-10 11:13:34,684 INFO sqlalchemy.engine.base.Engine COMMIT
-        2018-03-10 11:13:34,684 INFO sqlalchemy.engine.base.Engine CREATE INDEX ix_users_index ON users ("index")
-        2018-03-10 11:13:34,684 INFO sqlalchemy.engine.base.Engine ()
-        2018-03-10 11:13:34,685 INFO sqlalchemy.engine.base.Engine COMMIT
-        2018-03-10 11:13:34,687 INFO sqlalchemy.engine.base.Engine BEGIN (implicit)
-        2018-03-10 11:13:34,687 INFO sqlalchemy.engine.base.Engine INSERT INTO users ("index", id, name) VALUES (?, ?, ?)
-        2018-03-10 11:13:34,687 INFO sqlalchemy.engine.base.Engine ((0, 0, 'User 0'), (1, 1, 'User 1'), (2, 2, 'User 2'), (3, 3, 'User 3'), (4, 4, 'User 4'), (5, 5, 'User 5'), (6, 6, 'User 6'), (7, 7, 'User 7'), (8, 8, 'User 8'), (9, 9, 'User 9'))
-        2018-03-10 11:13:34,688 INFO sqlalchemy.engine.base.Engine COMMIT
+        >>> engine = create_engine('sqlite:///example.db', echo=False)
+        >>> df=pd.DataFrame({"id":list(range(3)), "name" : ["User " + str(x) for x in range(3)]})
+        >>> # create a table from scratch
+        >>> df.to_sql('users',con=engine,if_exists='replace')
+        >>> df1=pd.DataFrame({"id":list(range(3,5)), "name" : ["User " + str(x) for x in range(3,5)]})
+        >>> # 2 new rows inserted
+        >>> df1.to_sql('users',con=engine,if_exists='append')
+        >>> # table will be recreated and 5 rows inserted
+        >>> df=pd.concat([df,df1],ignore_index=True)
+        >>> df.to_sql('users',con=engine,if_exists='replace')
         """
         from pandas.io import sql
         sql.to_sql(self, name, con, schema=schema, if_exists=if_exists,
