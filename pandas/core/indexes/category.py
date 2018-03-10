@@ -32,27 +32,65 @@ _index_doc_kwargs.update(dict(target_klass='CategoricalIndex'))
 
 class CategoricalIndex(Index, accessor.PandasDelegate):
     """
+    Immutable Index implementing an ordered, sliceable set.
 
-    Immutable Index implementing an ordered, sliceable set. CategoricalIndex
-    represents a sparsely populated Index with an underlying Categorical.
+    CategoricalIndex represents a sparsely populated Index with an underlying
+    Categorical.
 
     Parameters
     ----------
     data : array-like or Categorical, (1-dimensional)
     categories : optional, array-like
-        categories for the CategoricalIndex
+        Categories for the CategoricalIndex.
     ordered : boolean,
-        designating if the categories are ordered
+        Designating if the categories are ordered.
     copy : bool
-        Make a copy of input ndarray
+        Make a copy of input ndarray.
     name : object
-        Name to be stored in the index
+        Name to be stored in the index.
 
     Attributes
     ----------
-    codes
-    categories
-    ordered
+    codes : ndarray
+        The codes (integer positions, which point to the categories) of this
+        CategoricalIndex, read only.
+    categories : Index
+        The categories of this CategoricalIndex.
+    ordered : boolean
+        Whether or not this CategoricalIndex is ordered. An ordered
+        CategoricalIndex allows to have .min() and .max() values.
+
+    Examples
+    --------
+    >>> pd.CategoricalIndex(['a','b','c','a','b','c'], ordered=False,
+    ...                     categories=['c', 'b', 'a'])
+    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'], categories=['c', 'b', 'a'],
+    ordered=False, dtype='category')
+
+    >>> idx = pd.CategoricalIndex(['a','b','c','a','b','c'], ordered=True,
+    ...                     categories=['c', 'b', 'a'])
+    >>> idx
+    CategoricalIndex(['a', 'b', 'c', 'a', 'b', 'c'], categories=['c', 'b', 'a'],
+    ordered=True, dtype='category')
+    >>> idx.min()
+    'c'
+
+    >>> cats = pd.Categorical([1,2,3,1], categories=[4,2,3,1], ordered=False)
+    >>> strings = ["a","b","c","d"]
+    >>> values = [4,2,3,1]
+    >>> df = pd.DataFrame({"strings":strings, "values":values}, index=cats)
+    >>> df
+      strings  values
+    1       a       4
+    2       b       2
+    3       c       3
+    1       d       1
+    >>> df.sort_index()
+      strings  values
+    2       b       2
+    3       c       3
+    1       a       4
+    1       d       1
 
     Methods
     -------
@@ -309,14 +347,41 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     @property
     def codes(self):
+        """
+        Return codes attribute of self._data.
+
+        This assumes that self._data is a Categorical-like object.
+
+        See Also
+        --------
+        Categorical, Categorical.codes
+        """
         return self._data.codes
 
     @property
     def categories(self):
+        """
+        Return categories attribute of self._data.
+
+        This assumes that self._data is a Categorical-like object.
+
+        See Also
+        --------
+        Categorical, Categorical.categories
+        """
         return self._data.categories
 
     @property
     def ordered(self):
+        """
+        Return ordered attribute of self._data.
+
+        This assumes that assuming self._data is a Categorical-like object.
+
+        See Also
+        --------
+        Categorical, Categorical.ordered
+        """
         return self._data.ordered
 
     def _reverse_indexer(self):
