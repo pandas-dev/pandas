@@ -1972,7 +1972,8 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=['A', 'B', 'C'])
         >>> df.to_clipboard()
 
-        We can omit the the index by passing the keyword 'index' and setting it to false.
+        We can omit the the index by passing the keyword 'index' and setting
+         it to false.
 
         >>> df.to_clipboard(index=False)
         """
