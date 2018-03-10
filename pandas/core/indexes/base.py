@@ -4037,7 +4037,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        pandas.Series.drop_duplicates : equivalent method on pandas.Series
+        Series.drop_duplicates : equivalent method on Series
 
         Examples
         --------

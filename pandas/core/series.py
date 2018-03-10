@@ -1338,7 +1338,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        pandas.Index.drop_duplicates : equivalent method on pandas.Index
+        Index.drop_duplicates : equivalent method on Index
 
         Examples
         --------
