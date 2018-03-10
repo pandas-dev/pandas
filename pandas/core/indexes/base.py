@@ -2048,7 +2048,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        Show which entries in a pandas.Index are NA. The result is a
+        Show which entries in a pandas.Index are NA. The result is an
         array.
 
         >>> idx = pd.Index([5.2, 6.0, np.NaN])
@@ -2057,7 +2057,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.isna()
         array([False, False,  True])
 
-        Empty strings are not considered NA values. None is considered a NA
+        Empty strings are not considered NA values. None is considered an NA
         value.
 
         >>> idx = pd.Index(['black', '', 'red', None])
