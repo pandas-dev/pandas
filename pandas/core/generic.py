@@ -1951,10 +1951,6 @@ class NDFrame(PandasObject, SelectionMixin):
             or :py:meth:`pandas.Series.to_csv` methods depending on the
             Object type.
 
-        Returns
-        -------
-            None
-
         See Also
         --------
         pandas.core.frame.DataFrame.to_csv : Write a DataFrame to a
