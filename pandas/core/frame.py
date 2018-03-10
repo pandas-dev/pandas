@@ -3038,7 +3038,7 @@ class DataFrame(NDFrame):
     def drop(self, labels=None, axis=0, index=None, columns=None,
              level=None, inplace=False, errors='raise'):
         """
-        Drop rows or columns.
+        Drop specified labels from rows or columns.
 
         Remove rows or columns by specifying label names and corresponding
         axis, or by specifying directly index or column names. When using a
@@ -3049,19 +3049,15 @@ class DataFrame(NDFrame):
         ----------
         labels : single label or list-like
             Index or column labels to drop.
-        axis : int or axis name, default 0
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             Whether to drop labels from the index (0 / 'index') or
             columns (1 / 'columns').
-        index : None
-            Redundant for application on Series, but index can be used instead
-            of labels.
-        columns : None
-            Redundant for application on Series, but index can be used instead
-            of labels.
-
+        index, columns : single label or list-like
+            Alternative to specifying axis (labels, axis=1
+            is equivalent to columns=labels).
             .. versionadded:: 0.21.0
         level : int or level name, optional
-            For MultiIndex.
+            For MultiIndex, level for which the labels will be removed.
         inplace : bool, default False
             If True, do operation inplace and return None.
         errors : {'ignore', 'raise'}, default 'raise'
@@ -3069,14 +3065,16 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        dropped : type of caller
+        dropped : pandas.DataFrame
 
         See Also
         --------
+        DataFrame.loc : Label-location based indexer for selection by label.
         DataFrame.dropna : Return DataFrame with labels on given axis omitted
             where (all or any) data are missing
         DataFrame.drop_duplicates : Return DataFrame with duplicate rows
             removed, optionally only considering certain columns
+        Series.drop : Return Series with specified index labels removed.
 
         Raises
         ------
@@ -3113,29 +3111,29 @@ class DataFrame(NDFrame):
            A  B   C   D
         2  8  9  10  11
 
-        Drop columns and/or rows of MultiIndex
+        Drop columns and/or rows of MultiIndex DataFrame
 
-        >>> midx = pd.MultiIndex(levels=[['lama','cow','falcon'],
-        ...                              ['speed','weight','length']],
+        >>> midx = pd.MultiIndex(levels=[['lama', 'cow', 'falcon'],
+        ...                              ['speed', 'weight', 'length']],
         ...                      labels=[[0, 0, 0, 1, 1, 1, 2, 2, 2],
         ...                              [0, 1, 2, 0, 1, 2, 0, 1, 2]])
-        >>> df = pd.DataFrame(index=midx, columns=['big','small'],
-        ...                   data=[[45,30],[200,100],[1.5,1],[30,20],
-                                    [250,150],[1.5,0.8],[320,250],[1,0.8],
-                                    [0.3,0.2]])
+        >>> df = pd.DataFrame(index=midx, columns=['big', 'small'],
+        ...                   data=[[45,30], [200,100], [1.5,1], [30,20],
+        ...                         [250,150], [1.5,0.8], [320,250], [1,0.8],
+        ...                         [0.3,0.2]])
         >>> df
                         big 	small
-        lama 	speed 	45.0 	30.0
+        lama 	speed   45.0 	30.0
                 weight  200.0 	100.0
                 length 	1.5 	1.0
-        cow 	speed 	30.0 	20.0
+        cow 	speed   30.0 	20.0
                 weight 	250.0 	150.0
                 length 	1.5 	0.8
         falcon 	speed 	320.0 	250.0
                 weight 	1.0 	0.8
                 length 	0.3 	0.2
 
-        >>> df.drop(index='cow',columns='small')
+        >>> df.drop(index='cow', columns='small')
                         big
         lama 	speed 	45.0
                 weight 	200.0
@@ -3153,10 +3151,10 @@ class DataFrame(NDFrame):
         falcon 	speed 	320.0 	250.0
                 weight 	1.0 	0.8
         """
-        return super(DataFrame,
-                     self).drop(labels=labels, axis=axis, index=index,
-                                columns=columns, level=level, inplace=inplace,
-                                errors=errors)
+        return super(DataFrame,self).drop(labels=labels, axis=axis,
+                                          index=index, columns=columns,
+                                          level=level, inplace=inplace,
+                                          errors=errors)
 
     @rewrite_axis_style_signature('mapper', [('copy', True),
                                              ('inplace', False),

@@ -2675,10 +2675,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Index labels to drop.
         axis : 0, default 0
             Redundant for application on Series.
-        index : None
-            Redundant for application on Series, but index can be used instead
-            of labels.
-        columns : None
+        index, columns : None
             Redundant for application on Series, but index can be used instead
             of labels.
             .. versionadded:: 0.21.0
@@ -2691,13 +2688,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        dropped : type of caller
+        dropped : pandas.Series
 
         See Also
         --------
         Series.reindex : Return only specified index labels of Series.
         Series.dropna : Return series without null values.
         Series.drop_duplicates : Return Series with duplicate values removed.
+        DataFrame.drop : Drop specified labels from rows or columns.
 
         Raises
         ------
