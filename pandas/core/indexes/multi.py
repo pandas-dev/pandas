@@ -1847,8 +1847,11 @@ class MultiIndex(Index):
 
     def sortlevel(self, level=0, ascending=True, sort_remaining=True):
         """
-        Sort MultiIndex at the requested level. The result will respect the
-        original ordering of the associated factor at that level.
+        Sort MultiIndex at the requested level.
+
+        Sort MultiIndex at the requested level and optionally the
+        subsequent ones. The order will respect the internal order of the
+        level elements.
 
         Parameters
         ----------
@@ -1869,6 +1872,10 @@ class MultiIndex(Index):
         indexer : np.ndarray
             Indices of output values in original index
 
+        See Also
+        --------
+        Index.sort_values : Sort index
+        MultiIndex.lexsort_depth : Number of sorted levels
         """
         from pandas.core.sorting import indexer_from_factorized
 
