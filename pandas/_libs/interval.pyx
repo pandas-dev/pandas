@@ -91,8 +91,8 @@ cdef class Interval(IntervalMixin):
     
     Notes
     -----
-    You must be able to compare the parameters **left** and **right**,
-    and they must satisfy **left <= right**. 
+    You must be able to compare the parameters `left` and `right`,
+    and they must satisfy ``left <= right``. 
 
     Examples
     --------
