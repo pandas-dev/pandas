@@ -681,7 +681,44 @@ class Index(IndexOpsMixin, PandasObject):
         return self.values
 
     def get_values(self):
-        """ return the underlying data as an ndarray """
+        """
+        Return `Index` data as an `ndarray`.
+
+        Because this is a wrapper function around Index.values, it is useful
+        when one explicitly wants to use a getter.
+
+        Returns
+        -------
+        numpy.ndarray
+            A one-dimensional numpy `array` of the indexes.
+
+        See Also
+        --------
+        Index
+            The basic object storing axis labels for all pandas objects.
+        Index.values
+            The original function around which `get_values` creates a wrapper.
+
+        Examples
+        --------
+        Getting the `Index` values of a `DataFrame`:
+
+        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+        ...                    index=['a', 'b', 'c'], columns=['A', 'B', 'C'])
+        >>> df
+           A  B  C
+        a  1  2  3
+        b  4  5  6
+        c  7  8  9
+        >>> df.index.get_values()
+        array(['a', 'b', 'c'], dtype=object)
+
+        Standalone `Index` values:
+
+        >>> idx = pd.Index(['1', '2', '3'])
+        >>> idx.get_values()
+        array(['1', '2', '3'], dtype=object)
+        """
         return self.values
 
     @Appender(IndexOpsMixin.memory_usage.__doc__)
