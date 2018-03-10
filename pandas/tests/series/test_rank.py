@@ -264,9 +264,11 @@ class TestSeriesRank(TestData):
         chunk = 3
         disabled = set([('object', 'first')])
 
-        def _check(s, expected, method='average', na_option='keep', ascending=True):
+        def _check(s, expected, method='average', na_option='keep',
+                   ascending=True):
             expected = list(chain.from_iterable(expected))
-            result = s.rank(method=method, na_option=na_option, ascending=ascending)
+            result = s.rank(method=method, na_option=na_option,
+                            ascending=ascending)
             tm.assert_series_equal(result, Series(expected, dtype='float64'))
 
         exp_ranks = {
