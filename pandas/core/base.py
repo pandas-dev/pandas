@@ -787,7 +787,31 @@ class IndexOpsMixin(object):
         return not self.size
 
     def max(self):
-        """ The maximum value of the object """
+        """
+        Return the maximum value of the object.
+
+        Return the maximum value of the object within the same type.
+        Remember you also can access to a Dataframe's index as Dataframe.index.
+
+        Returns
+        -------
+        object
+            Maximum value.
+
+        See Also
+        --------
+        Index.min : Return the minimum value of the object.
+
+        Examples
+        --------
+        >>> idx = pd.Index([3, 2, 1])
+        >>> idx.max()
+        3
+
+        >>> idx = pd.Index(['c', 'b', 'a'])
+        >>> idx.max()
+        'c'
+        """
         return nanops.nanmax(self.values)
 
     def argmax(self, axis=None):
