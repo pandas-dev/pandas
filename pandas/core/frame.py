@@ -1695,7 +1695,7 @@ class DataFrame(NDFrame):
         else:
             tupleize_cols = False
 
-        from pandas.io.formats.csv import CSVFormatter
+        from pandas.io.formats.csvs import CSVFormatter
         formatter = CSVFormatter(self, path_or_buf,
                                  line_terminator=line_terminator, sep=sep,
                                  encoding=encoding,
