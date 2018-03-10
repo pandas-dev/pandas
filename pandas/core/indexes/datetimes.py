@@ -1933,10 +1933,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         Examples
         --------
-        >>> data=pd.DatetimeIndex(start='2014-08-01 09:00',
+        >>> dti = pd.DatetimeIndex(start='2014-08-01 09:00',
         ...                       freq='H', periods=3, tz='Europe/Berlin')
 
-        >>> data
+        >>> dti
         DatetimeIndex(['2014-08-01 09:00:00+02:00',
                        '2014-08-01 10:00:00+02:00',
                        '2014-08-01 11:00:00+02:00'],
@@ -1945,7 +1945,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         With the `tz` parameter, we can change the DatetimeIndex
         to other time zones:
 
-        >>> data.tz_convert('US/Eastern')
+        >>> dti.tz_convert('US/Eastern')
         DatetimeIndex(['2014-08-01 03:00:00-04:00',
                        '2014-08-01 04:00:00-04:00',
                        '2014-08-01 05:00:00-04:00'],
@@ -1953,7 +1953,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         With the `None` parameter, we can remove the timezone:
 
-        >>> data.tz_convert(None)
+        >>> dti.tz_convert(None)
         DatetimeIndex(['2014-08-01 07:00:00',
                        '2014-08-01 08:00:00',
                        '2014-08-01 09:00:00'],
