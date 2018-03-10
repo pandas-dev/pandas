@@ -1236,7 +1236,6 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-
         >>> df = pd.DataFrame({'A': [1, 2], 'B': [0.5, 0.75]},
         ...                   index=['a', 'b'])
         >>> df
