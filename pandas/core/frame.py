@@ -12,8 +12,8 @@ from __future__ import division
 # pylint: disable=E1101,E1103
 # pylint: disable=W0212,W0231,W0703,W0622
 
-import functools
 import collections
+import functools
 import itertools
 import sys
 import types
@@ -111,9 +111,9 @@ _shared_doc_kwargs = dict(
         by : str or list of str
             Name or list of names to sort by.
 
-            - if `axis` is 0 or `'index'` then `by` may contain index
+            - if ``axis`` is 0 or ``'index'`` then `by` may contain index
               levels and/or column labels
-            - if `axis` is 1 or `'columns'` then `by` may contain column
+            - if ``axis`` is 1 or ``'columns'`` then `by` may contain column
               levels and/or index labels
 
             .. versionchanged:: 0.23.0
@@ -5873,21 +5873,17 @@ class DataFrame(NDFrame):
 
     def mode(self, axis=0, numeric_only=False):
         """
-        Get the mode(s) of each element along the axis selected. Adds a row
-        for each mode per label, fills in gaps with nan.
-
-        Note that there could be multiple values returned for the selected
-        axis (when more than one item share the maximum frequency), which is
-        the reason why a dataframe is returned. If you want to impute missing
-        values with the mode in a dataframe ``df``, you can just do this:
-        ``df.fillna(df.mode().iloc[0])``
+        Get the mode(s) of each element along the axis selected. 
+        
+        Adds a row for each mode per label, fills in gaps with NaN.
 
         Parameters
         ----------
         axis : {0 or 'index', 1 or 'columns'}, default 0
             The axis to iterate over while searching for the mode.
-            To find the mode for each column, iterate over rows (`axis=0`, default behaviour).
-            To find the mode for each row, iterate over columns (`axis=1`).
+            To find the mode for each column, iterate over rows (``axis=0``, 
+            default behaviour).
+            To find the mode for each row, iterate over columns (``axis=1``).
         numeric_only : boolean, default False
             If True, only apply to numeric dimensions.
 
@@ -5895,18 +5891,30 @@ class DataFrame(NDFrame):
         -------
         modes : DataFrame (sorted)
             A DataFrame containing the modes. 
-            If `axis=0`, there will be one column per column in the original DataFrame, with as many rows as there are modes.
-            If `axis=1`, there will be one row per row in the original DataFrame, with as many columns as there are modes. 
+            If ``axis=0``, there will be one column per column in the original 
+            DataFrame, with as many rows as there are modes.
+            If ``axis=1``, there will be one row per row in the original 
+            DataFrame, with as many columns as there are modes. 
+
+        Notes
+        -----
+        There may be multiple values returned for the selected
+        axis (when more than one item share the maximum frequency), which is
+        the reason why a dataframe is returned. If you want to impute missing
+        values with the mode in a dataframe ``df``, you can just do this:
+        ``df.fillna(df.mode().iloc[0])``.
 
         See Also
         --------
         Series.mode : Return the highest frequency value in a Series. 
-        Series.value_counts : Returns a Series with all occuring values as indices and the number of occurences as values. 
+        Series.value_counts : Returns a Series with all occuring values as 
+            indices and the number of occurences as values. 
 
         Examples
         --------
 
-        ``mode`` returns a DataFrame, and there will be multiple rows if there is more than one mode. 
+        ``mode`` returns a DataFrame with multiple rows if there is more than 
+        one mode. Missing entries are imputed with NaN.
 
         >>> grades = pd.DataFrame({ 
         ...     'Science': [80, 70, 80, 75, 80, 75, 85, 90, 80, 70], 
@@ -5927,7 +5935,7 @@ class DataFrame(NDFrame):
         3      NaN    85
         4      NaN    90
 
-        Use ``axis=1`` to apply mode over columns (get the mode of each row)
+        Use ``axis=1`` to apply mode over columns (get the mode of each row).
 
         >>> student_grades = pd.DataFrame.from_dict({
         ...     'Alice': [80, 85, 90, 85, 95],
