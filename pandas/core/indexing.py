@@ -1649,35 +1649,35 @@ class _iLocIndexer(_LocationIndexer):
     out-of-bounds, except *slice* indexers which allow out-of-bounds
     indexing (this conforms with python/numpy *slice* semantics).
 
+    ref:`Selection by Position <indexing.integer>`
+
     See Also
     --------
-    DataFrame.ix : A primarily label-location based indexer
-    DataFrame.loc : Fast integer location scalar accessor.
+    DataFrame.iat : Fast integer location scalar accessor.
+    DataFrame.loc : Purely label-location based indexer for selection by label.
 
     Examples
     --------
     >>> import pandas as pd
     >>> mydict = [{'a': 1, 'b': 2, 'c': 3, 'd': 4},
-    ...           {'a': 100,  'b': 200, 'c': 300, 'd': 400},
-    ...           {'a': 1000,  'b': 2000,  'c': 3000,  'd': 4000 }]
+    ... {'a': 100, 'b': 200, 'c': 300, 'd': 400},
+    ... {'a': 1000, 'b': 2000, 'c': 3000, 'd': 4000 }]
     >>> df = pd.DataFrame(mydict)
-    >>> print(df.head())
+    >>> df
           a     b     c     d
     0     1     2     3     4
     1   100   200   300   400
     2  1000  2000  3000  4000
-    >>> print(df.iloc[0])
+    >>> df.iloc[0]
     a    1
     b    2
     c    3
     d    4
     Name: 0, dtype: int64
-    >>> print(df.iloc[0:2])
+    >>> df.iloc[0:2]
          a    b    c    d
-    0        1    2    3    4
+    0    1    2    3    4
     1  100  200  300  400
-
-    ref:`Selection by Position <indexing.integer>`
     """
 
     _valid_types = ("integer, integer slice (START point is INCLUDED, END "
