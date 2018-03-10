@@ -14,8 +14,7 @@ import numpy as np
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.errors import EmptyDataError
-from pandas.io.common import (_is_url, urlopen,
-                              parse_url, _validate_header_arg)
+from pandas.io.common import _is_url, urlopen, _validate_header_arg
 from pandas.io.parsers import TextParser
 from pandas.compat import (lrange, lmap, u, string_types, iteritems,
                            raise_with_traceback, binary_type)

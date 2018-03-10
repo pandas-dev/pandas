@@ -4,7 +4,6 @@ import glob
 import os
 import re
 import threading
-import warnings
 
 from functools import partial
 from distutils.version import LooseVersion
@@ -16,9 +15,9 @@ from numpy.random import rand
 
 from pandas import (DataFrame, MultiIndex, read_csv, Timestamp, Index,
                     date_range, Series)
-from pandas.compat import (map, zip, StringIO, string_types, BytesIO,
+from pandas.compat import (map, zip, StringIO, BytesIO,
                            is_platform_windows, PY3, reload)
-from pandas.io.common import URLError, urlopen, file_path_to_url
+from pandas.io.common import URLError, file_path_to_url
 import pandas.io.html
 from pandas.io.html import read_html
 from pandas._libs.parsers import ParserError
@@ -29,6 +28,7 @@ from pandas.util.testing import makeCustomDataframe as mkdf, network
 
 
 DATA_PATH = tm.get_data_path()
+
 
 def assert_framelist_equal(list1, list2, *args, **kwargs):
     assert len(list1) == len(list2), ('lists are not of equal size '
@@ -43,12 +43,14 @@ def assert_framelist_equal(list1, list2, *args, **kwargs):
         tm.assert_frame_equal(frame_i, frame_j, *args, **kwargs)
         assert not frame_i.empty, 'frames are both empty'
 
+
 def _missing_bs4():
     bs4 = td.safe_import('bs4')
     if not bs4 or LooseVersion(bs4.__version__) == LooseVersion('4.2.0'):
         return True
 
     return False
+
 
 @td.skip_if_no('bs4')
 def test_bs4_version_fails():
@@ -60,10 +62,12 @@ def test_bs4_version_fails():
     else:
         pytest.skip("Only applicable for bs4 version 4.2.0")
 
+
 def test_invalid_flavor():
     url = 'google.com'
     with pytest.raises(ValueError):
         read_html(url, 'google', flavor='not a* valid**++ flaver')
+
 
 @td.skip_if_no('bs4')
 @td.skip_if_no('lxml')
@@ -647,45 +651,15 @@ class TestReadHtml(object):
                                     r"multi_index of columns"):
             self.read_html(data, header=[0, 1])
 
+        data = os.path.join(DATA_PATH, 'computer_sales_page.html')
+        assert self.read_html(data, header=[1, 2])
+
     def test_wikipedia_states_table(self):
         data = os.path.join(DATA_PATH, 'wikipedia_states.html')
         assert os.path.isfile(data), '%r is not a file' % data
         assert os.path.getsize(data), '%r is an empty file' % data
         result = self.read_html(data, 'Arizona', header=1)[0]
         assert result['sq mi'].dtype == np.dtype('float64')
-
-    @pytest.mark.parametrize("displayed_only,exp0,exp1", [
-        (True, DataFrame(["foo"]), None),
-        (False, DataFrame(["foo  bar  baz  qux"]), DataFrame(["foo"]))])
-    def test_displayed_only(self, displayed_only, exp0, exp1):
-        # GH 20027
-        data = StringIO("""<html>
-          <body>
-            <table>
-              <tr>
-                <td>
-                  foo
-                  <span style="display:none;text-align:center">bar</span>
-                  <span style="display:none">baz</span>
-                  <span style="display: none">qux</span>
-                </td>
-              </tr>
-            </table>
-            <table style="display: none">
-              <tr>
-                <td>foo</td>
-              </tr>
-            </table>
-          </body>
-        </html>""")
-
-        dfs = self.read_html(data, displayed_only=displayed_only)
-        tm.assert_frame_equal(dfs[0], exp0)
-
-        if exp1 is not None:
-            tm.assert_frame_equal(dfs[1], exp1)
-        else:
-            assert len(dfs) == 1  # Should not parse hidden table
 
     def test_decimal_rows(self):
 
@@ -825,27 +799,6 @@ class TestReadHtml(object):
         result = df.to_html()
         assert '2000-01-01' in result
 
-    def test_parse_dates_list(self):
-        df = DataFrame({'date': date_range('1/1/2001', periods=10)})
-        expected = df.to_html()
-        res = self.read_html(expected, parse_dates=[1], index_col=0)
-        tm.assert_frame_equal(df, res[0])
-        res = self.read_html(expected, parse_dates=['date'], index_col=0)
-        tm.assert_frame_equal(df, res[0])
-
-    def test_parse_dates_combine(self):
-        raw_dates = Series(date_range('1/1/2001', periods=10))
-        df = DataFrame({'date': raw_dates.map(lambda x: str(x.date())),
-                        'time': raw_dates.map(lambda x: str(x.time()))})
-        res = self.read_html(df.to_html(), parse_dates={'datetime': [1, 2]},
-                             index_col=1)
-        newdf = DataFrame({'datetime': raw_dates})
-        tm.assert_frame_equal(newdf, res[0])
-
-    def test_computer_sales_page(self):
-        data = os.path.join(DATA_PATH, 'computer_sales_page.html')
-        self.read_html(data, header=[1, 2])
-
     @pytest.mark.parametrize("displayed_only,exp0,exp1", [
         (True, DataFrame(["foo"]), None),
         (False, DataFrame(["foo  bar  baz  qux"]), DataFrame(["foo"]))])
@@ -948,7 +901,6 @@ class TestReadHtml(object):
 
         assert self.read_html(good)
         assert self.read_html(bad)
-
 
     @pytest.mark.slow
     def test_importcheck_thread_safety(self):
