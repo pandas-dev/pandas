@@ -7115,14 +7115,14 @@ class NDFrame(PandasObject, SelectionMixin):
     # Numeric Methods
     def abs(self):
         """
-        Return a Series/DataFrame with absolute numeric value of each object.
+        Return a Series/DataFrame with absolute numeric value of each element.
 
-        This function only applies to objects that are all numeric.
+        This function only applies to elements that are all numeric.
 
         Returns
         -------
         abs
-            Series/DataFrame containing the absolute value of each object.
+            Series/DataFrame containing the absolute value of each element.
 
         Notes
         -----
@@ -7149,8 +7149,7 @@ class NDFrame(PandasObject, SelectionMixin):
         dtype: float64
 
         Select rows with data closest to certian value using argsort (from
-        `StackOverflow
-        <http://stackoverflow.com/questions/17758023/return-rows-in-a-dataframe-closest-to-a-user-defined-number>`__).
+        `StackOverflow <https://stackoverflow.com/a/17758115>`__).
 
         >>> df = pd.DataFrame({
         ...     'a': [4, 5, 6, 7],
@@ -7163,8 +7162,7 @@ class NDFrame(PandasObject, SelectionMixin):
         1    5   20   50
         2    6   30  -30
         3    7   40  -50
-        >>> a_value = 43.0
-        >>> df.loc[(df.c - a_value).abs().argsort()]
+        >>> df.loc[(df.c - 43).abs().argsort()]
              a    b    c
         1    5   20   50
         0    4   10  100
