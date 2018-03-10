@@ -1712,8 +1712,8 @@ class DataFrame(NDFrame):
             'pyarrow' is unavailable.
         compression : {'snappy', 'gzip', 'brotli', None}, default 'snappy'
             Name of the compression to use. Use ``None`` for no compression.
-        kwargs : dict
-            Additional keyword arguments passed to the parquet library. See
+        **kwargs
+            Additional arguments passed to the parquet library. See
             the documentation for :func:`pandas.io.parquet.to_parquet` for
             complete details.
 
