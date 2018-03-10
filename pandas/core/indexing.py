@@ -1921,27 +1921,30 @@ class _AtIndexer(_ScalarAccessIndexer):
 
 class _iAtIndexer(_ScalarAccessIndexer):
     """
-    Selects a single value for a row/column pair by integer position.
+    Access a single value for a row/column pair by integer position.
 
-    Useful if performance is a major concern and you only need to
-    get or set a value at a particular row/column.
+    Similar to ``iloc``, in that both provided integer-based lookups. Use
+    ``iat`` if you only need to get or set a single value in a DataFrame.
 
     See Also
     --------
-    at : Selects a single value for a row/column label pair
-    loc : Selects a group of rows and columns by label(s)
-    iloc : Selects group of rows and columns by integer position(s)
+    DataFrame.at : Access a single value for a row/column label pair
+    DataFrame.loc : Access a group of rows and columns by label(s)
+    DataFrame.iloc : Access a group of rows and columns by integer position(s)
 
     Examples
     --------
-    >>> df = pd.DataFrame([[0, 2, 3], [0, 4, 1], [10, 20, 30]])
+    >>> df = pd.DataFrame([[0, 2, 3], [0, 4, 1], [10, 20, 30]],
+    ...      columns=['A', 'B', 'C'])
     >>> df
-        0   1   2
+        A   B   C
     0   0   2   3
     1   0   4   1
     2  10  20  30
+
     >>> df.iat[1, 2]
     1
+
     >>> df.iat[1, 2] = 10
     >>> df.iat[1, 2]
     10
