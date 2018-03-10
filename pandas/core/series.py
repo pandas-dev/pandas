@@ -1388,7 +1388,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        pandas.Index.duplicated : equivalent method on pandas.Index
+        pandas.Index.duplicated : Equivalent method on pandas.Index
+        pandas.DataFrame.duplicated : Equivalent method on pandas.DataFrame
+        pandas.Series.drop_duplicates : Remove duplicate values from Series
         """
         return super(Series, self).duplicated(keep=keep)
 
