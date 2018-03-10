@@ -1816,7 +1816,7 @@ class DataFrame(NDFrame):
         Concise summary of a DataFrame.
 
         This method shows information about DataFrame type of index, columns
-        dtypes and non-null values and memory usage.
+        dtypes, non-null values and memory usage.
 
         Parameters
         ----------
@@ -1882,6 +1882,7 @@ class DataFrame(NDFrame):
 
         >>> file = open("df_info.txt", "w", encoding="utf-8")
         >>> df.info(buf=file)
+        >>> file.close()
 
         >>> df.drop('text_col', axis=1, inplace=True)
         >>> df.info(memory_usage='Deep')
