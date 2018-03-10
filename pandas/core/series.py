@@ -1322,7 +1322,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def duplicated(self, keep='first'):
         """
-        Indicate duplicate Series values 
+        Indicate duplicate Series values.
 
         Duplicated values are indicated as ``True`` values in the resulting
         Series. Either all duplicates, all except the first or all except the 
@@ -1374,6 +1374,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         3    False
         4    False
         5    False
+        dtype: bool
 
         By setting keep on ``False``, all duplicates are True:
         
