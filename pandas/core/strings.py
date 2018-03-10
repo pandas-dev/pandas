@@ -1842,6 +1842,8 @@ class StringMethods(NoNewAttributesMixin):
         return str_extractall(self._orig, pat, flags=flags)
 
     _shared_docs['find'] = ("""
+    Retrieve least index of substring.
+
     Return %(side)s indexes in each strings in the Series/Index
     where the substring is fully contained between [start:end].
     Return -1 on failure. Equivalent to standard :meth:`str.%(method)s`.
@@ -1849,15 +1851,28 @@ class StringMethods(NoNewAttributesMixin):
     Parameters
     ----------
     sub : str
-        Substring being searched
+        Substring being searched.
     start : int
-        Left edge index
+        Left edge index.
     end : int
-        Right edge index
+        Right edge index.
 
     Returns
     -------
     found : Series/Index of integer values
+
+    Examples
+    --------
+    >>> s = pd.Series('Finding with pandas')
+    >>> s.str.find('wi')
+    0    8
+    dtype: int64
+
+    Returns -1 if the substring is not found in S
+
+    >>> s.str.find('wi', start=0, end=5)
+    0   -1
+    dtype: int64
 
     See Also
     --------
