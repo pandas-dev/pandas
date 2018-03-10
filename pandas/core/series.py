@@ -2745,6 +2745,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def isin(self, values):
         """
+        Check whether ``values`` are contained in ``Series``.
+
         Return a boolean ``Series`` showing whether each element in the
         ``Series`` is exactly contained in the passed sequence of ``values``.
 
