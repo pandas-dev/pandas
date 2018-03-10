@@ -1705,7 +1705,64 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     nanosecond = _field_accessor('nanosecond', 'ns',
                                  "The nanoseconds of the datetime")
     weekofyear = _field_accessor('weekofyear', 'woy',
-                                 "The week ordinal of the year")
+    """
+    The week ordinal of the year.
+
+    Return the week ordinal of the year. Note that there can be 
+    counter intuitive edge cases around the yearchange. For example, 
+    the first of january could be in week 52 of the previous year. 
+    Monday indicates the start of a new week. 
+    
+    See Also
+    --------
+    pandas.Series.dt.week : Identical method.
+    pandas.Series.dt.weekofyear : Identical method.
+    
+    Returns
+    -------
+    ndarray of formatted strings
+    
+    Examples
+    --------
+    >>> dates = pd.date_range("2016-12-31", "2017-01-08", freq="D")
+    >>> s = pd.Series(dates)
+    >>> pd.DataFrame({'date':s, 'week':s.dt.weekofyear, 'day':s.dt.strftime("%A")})
+            date  week        day
+    0 2016-12-31    52   Saturday
+    1 2017-01-01    52     Sunday
+    2 2017-01-02     1     Monday
+    3 2017-01-03     1    Tuesday
+    4 2017-01-04     1  Wednesday
+    5 2017-01-05     1   Thursday
+    6 2017-01-06     1     Friday
+    7 2017-01-07     1   Saturday
+    8 2017-01-08     1     Sunday
+    
+    Note what `series.dt.week` and `series.dt.weekofyear` are the same.
+    
+    >>> s.dt.week
+    0    52
+    1    52
+    2     1
+    3     1
+    4     1
+    5     1
+    6     1
+    7     1
+    8     1
+    dtype: int64
+    >>> s.dt.weekofyear
+    0    52
+    1    52
+    2     1
+    3     1
+    4     1
+    5     1
+    6     1
+    7     1
+    8     1
+    dtype: int64
+    """)
     week = weekofyear
     dayofweek = _field_accessor('dayofweek', 'dow',
                                 "The day of the week with Monday=0, Sunday=6")
