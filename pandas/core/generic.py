@@ -4295,7 +4295,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         e.g. If the dtypes are float16 and float32, dtype will be upcast to
         float32.  If dtypes are int32 and uint8, dtype will be upcast to
-        int32. By By :func:`numpy.find_common_type` convention, mixing int64
+        int32. By :func:`numpy.find_common_type` convention, mixing int64
         and uint64 will result in a float64 dtype.
 
         See Also
