@@ -1751,7 +1751,32 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     is_leap_year = _field_accessor(
         'is_leap_year',
         'is_leap_year',
-        "Logical indicating if the date belongs to a leap year")
+        """
+        Return a boolean indicating if the date belongs to a leap year.
+
+        A leap year is a year, occurring every four years, which has 366 days
+        (instead of 365) including 29th of February as an intercalary day.
+
+        Returns
+        -------
+        is_leap_year : Series of boolean
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> dates = pd.date_range("2012-01-01", "2015-01-01", freq="Y")
+        >>> dates_series = pd.Series(dates)
+        >>> dates_series
+        0   2012-12-31
+        1   2013-12-31
+        2   2014-12-31
+        dtype: datetime64[ns]
+        >>> dates_series.dt.is_leap_year
+        0     True
+        1    False
+        2    False
+        dtype: bool
+        """)
 
     @property
     def time(self):
