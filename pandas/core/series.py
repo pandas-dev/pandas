@@ -1364,8 +1364,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         5    False
         dtype: bool
 
-        By using 'last', the last occurrence of each set of duplicated values is
-        set on False and all others on True:
+        By using 'last', the last occurrence of each set of duplicated values
+        is set on False and all others on True:
 
         >>> animals.duplicated(keep='last')
         0     True

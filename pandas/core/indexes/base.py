@@ -4052,8 +4052,8 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.duplicated(keep='first')
         array([False, False,  True, False,  True, False], dtype=bool)
 
-        By using 'last', the last occurrence of each set of duplicated values is
-        set on False and all others on True:
+        By using 'last', the last occurrence of each set of duplicated values
+        is set on False and all others on True:
 
         >>> idx.duplicated(keep='last')
         array([ True, False,  True, False, False, False], dtype=bool)
