@@ -1086,7 +1086,6 @@ class MultiIndex(Index):
             na = na_rep if na_rep is not None else _get_na_rep(lev.dtype.type)
 
             if len(lev) > 0:
-
                 formatted = lev.take(lab).format(formatter=formatter)
 
                 # we have some NA
@@ -1161,7 +1160,7 @@ class MultiIndex(Index):
                             self._get_level_values(level)
                             for name, level in
                             zip(self.names, range(len(self.levels)))},
-                           copy=False)
+                            copy=False)
         if index:
             result.index = self
         return result
@@ -1457,7 +1456,6 @@ class MultiIndex(Index):
         >>> i = pd.MultiIndex.from_product([range(2), list('ab')])
         MultiIndex(levels=[[0, 1], ['a', 'b']],
                    labels=[[0, 0, 1, 1], [0, 1, 0, 1]])
-
 
         >>> i[2:]
         MultiIndex(levels=[[0, 1], ['a', 'b']],
@@ -2891,11 +2889,9 @@ class MultiIndex(Index):
             else:
                 return np.lib.arraysetops.in1d(labs, sought_labels)
 
-
 MultiIndex._add_numeric_methods_disabled()
 MultiIndex._add_numeric_methods_add_sub_disabled()
 MultiIndex._add_logical_methods_disabled()
-
 
 def _sparsify(label_list, start=0, sentinel=''):
     pivoted = lzip(*label_list)
@@ -2923,7 +2919,6 @@ def _sparsify(label_list, start=0, sentinel=''):
         prev = cur
 
     return lzip(*result)
-
 
 def _get_na_rep(dtype):
     return {np.datetime64: 'NaT', np.timedelta64: 'NaT'}.get(dtype, 'NaN')
