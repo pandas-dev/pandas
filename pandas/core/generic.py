@@ -5601,6 +5601,9 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Trim values at input threshold(s).
 
+        Elements above the upper threshold will be changed to upper threshold.
+        Elements below the lower threshold will be changed to lower threshold.
+
         Parameters
         ----------
         lower : float or array_like, default None
@@ -5609,53 +5612,69 @@ class NDFrame(PandasObject, SelectionMixin):
             Align object with lower and upper along the given axis.
         inplace : boolean, default False
             Whether to perform the operation in place on the data
-                .. versionadded:: 0.21.0
+                .. versionadded:: 0.21.0.
 
         Returns
         -------
         clipped : Series
 
+        Notes
+        -----
+        Clipping data is a method for dealing with dubious elements.
+        If some elements are too large or too small, clipping is one way to
+        transform the data into a reasonable range.
+
+        See Also
+        --------
+        pandas.DataFrame.clip_upper : Return copy of input with values
+            above given value(s) truncated.
+        pandas.DataFrame.clip_lower : Return copy of input with values
+            below given value(s) truncated.
+
         Examples
         --------
+        >>> df = pd.DataFrame({'a':[1, 2, 3], 'b':[4, 5, 6], 'c':[7, 8, 9001]})
         >>> df
             a   b   c
         0   1   4   7
         1   2   5   8
         2   3   6   9001
 
-
-        >>> df.clip( lower = 1 , upper = 9 )
+        >>> df.clip(lower = 1, upper = 9)
             a   b   c
         0   1   4   7
         1   2   5   8
         2   3   6   9
 
-        
-        You can clip each column with different thresholds by passing a Series to the lower/upper argument.
+        You can clip each column with different thresholds by passing
+        a Series to the lower/upper argument.
 
+        >>> some_data = {'A':[-19, 12, -5],'B':[1, 100, -5]}
+        >>> df = pd.DataFrame(data = some_data, index = ['foo', 'bar', 'bizz'])
         >>> df
               A   B
         foo  -19  1
         bar   12 100
         bizz -5  -5
-        
-        >>> df.clip( lower = pd.Series({'A': -10, 'B': 10}) , axis = 1 )
 
+        Use the axis argument to clip by column or rows.  Clip column A with
+        lower threshold of -10 and column B has lower threshold of 10.
+
+        >>> df.clip(lower = pd.Series({'A':-10, 'B':10}), axis = 1)
               A   B
         foo  -10 10
         bar   12 100
         bizz -5  10
 
-        Use the axis argument to clip by column or rows.
+        Clip the foo, bar, and bizz rows with lower thresholds -10, 0, and 10.
 
-        >>> df.clip( lower = pd.Series({'foo':-10,'bar':0, 'bizz':10}) , axis = 0 )
+        >>> row_thresh = pd.Series({'foo':-10, 'bar':0, 'bizz':10})
+        >>> df.clip(lower = row_thresh ,axis = 0)
              A   B
         foo  -10 1
         bar   12 100
         bizz  10 10
-
         """
-        
         if isinstance(self, ABCPanel):
             raise NotImplementedError("clip is not supported yet for panels")
 
