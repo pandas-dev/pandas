@@ -103,7 +103,7 @@ def read_pickle(path, compression='infer'):
     3    8    3
     4    9    4
     >>> original_df.to_pickle("./dummy.pkl")
-    
+
     >>> unpickled_df = read_pickle("./dummy.pkl")
     >>> unpickled_df
        bar  foo
