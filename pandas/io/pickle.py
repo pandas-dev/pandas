@@ -29,8 +29,9 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
         For Python >= 3.4, 4 is a valid value. A negative value for the
         protocol parameter is equivalent to setting its value to
         HIGHEST_PROTOCOL.
+        
 
-        .. [1] https://docs.python.org/3/library/pickle.html
+        .. [1] https://docs.python.org/3.1/library/pickle.html
         .. versionadded:: 0.21.0
 
 
