@@ -4206,8 +4206,7 @@ class DataFrame(NDFrame):
     def update(self, other, join='left', overwrite=True, filter_func=None,
                raise_conflict=False):
         """
-        Modify DataFrame in place using non-NA values from passed
-        DataFrame.
+        Modify in place using non-NA values from other DataFrame.
 
         Aligns on indices.
 
@@ -4227,6 +4226,14 @@ class DataFrame(NDFrame):
         raise_conflict : boolean
             If True, will raise an error if the DataFrame and other both
             contain data in the same place.
+
+        Returns
+        -------
+        updated : DataFrame
+
+        See Also
+        --------
+        DataFrame.merge : For column(s)-on-columns(s) operations
 
         Examples
         --------
@@ -4282,14 +4289,6 @@ class DataFrame(NDFrame):
         0  1    4.0
         1  2  500.0
         2  3    6.0
-
-        See also
-        --------
-        DataFrame.merge : For column(s)-on-columns(s) operations
-
-        Returns
-        -------
-        updated : DataFrame
         """
         import pandas.core.computation.expressions as expressions
         # TODO: Support other joins
