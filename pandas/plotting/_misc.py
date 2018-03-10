@@ -349,13 +349,11 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
 
     Returns
     -------
-
     fig : matplotlib.figure.Figure
         Matplotlib figure
 
     See Also
     --------
-
     pandas.DataFrame.plot : Basic plotting for DataFrame objects.
     pandas.Series.plot : Basic plotting for Series objects.
 
@@ -365,8 +363,8 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     .. plot::
             :context: close-figs
 
-            >>> from random import uniform
-            >>> s = pd.Series([uniform(0, 1) for _ in range(100)])
+            >>> import numpy as np
+            >>> s = pd.Series(np.random.uniform(size=100))
             >>> fig = pd.plotting.bootstrap_plot(s)
     """
     import random
