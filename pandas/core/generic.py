@@ -2525,24 +2525,35 @@ class NDFrame(PandasObject, SelectionMixin):
             The axis on which to select elements. "0" means that we are
             selecting rows, "1" means that we are selecting columns, etc.
         convert : bool, default True
-            .. deprecated:: 0.21.0
-               In the future, negative indices will always be converted.
-
             Whether to convert negative indices into positive ones.
             For example, ``-1`` would map to the ``len(axis) - 1``.
             The conversions are similar to the behavior of indexing a
             regular Python list.
+            .. deprecated:: 0.21.0
+               In the future, negative indices will always be converted.
         is_copy : bool, default True
             Whether to return a copy of the original object or not.
+        kwargs : xxx, default xxx
+            TODO MUST ADD A REASONABLE DESCRIPTION.
+
+        Returns
+        -------
+        taken : type of caller
+            An array-like containing the elements taken from the object.
+
+        See Also
+        --------
+        numpy.ndarray.take : TODO
+        numpy.take : TODO
 
         Examples
         --------
         >>> df = pd.DataFrame([('falcon', 'bird',    389.0),
-                               ('parrot', 'bird',     24.0),
-                               ('lion',   'mammal',   80.5),
-                               ('monkey', 'mammal', np.nan)],
-                              columns=('name', 'class', 'max_speed'),
-                              index=[0, 2, 3, 1])
+        ...                    ('parrot', 'bird',     24.0),
+        ...                    ('lion',   'mammal',   80.5),
+        ...                    ('monkey', 'mammal', np.nan)],
+        ...                    columns=('name', 'class', 'max_speed'),
+        ...                    index=[0, 2, 3, 1])
         >>> df
              name   class  max_speed
         0  falcon    bird      389.0
@@ -2557,6 +2568,7 @@ class NDFrame(PandasObject, SelectionMixin):
         and 3rd rows, not rows whose indices equal 0 and 3.
 
         >>> df.take([0, 3])
+             name   class  max_speed
         0  falcon    bird      389.0
         1  monkey  mammal        NaN
 
@@ -2576,16 +2588,6 @@ class NDFrame(PandasObject, SelectionMixin):
              name   class  max_speed
         1  monkey  mammal        NaN
         3    lion  mammal       80.5
-
-        Returns
-        -------
-        taken : type of caller
-            An array-like containing the elements taken from the object.
-
-        See Also
-        --------
-        numpy.ndarray.take
-        numpy.take
         """
 
     @Appender(_shared_docs['take'])
