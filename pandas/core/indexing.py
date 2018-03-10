@@ -1651,7 +1651,7 @@ class _iLocIndexer(_LocationIndexer):
 
     See Also
     --------
-    DataFrame.ix : A primarily label-location based indexer, with integer position fallback.
+    DataFrame.ix : A primarily label-location based indexer
     DataFrame.loc : Fast integer location scalar accessor.
 
     Examples
