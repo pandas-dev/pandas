@@ -1930,25 +1930,50 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def to_clipboard(self, excel=True, sep=None, **kwargs):
         """
-        Attempt to write text representation of object to the system clipboard
+        Copy object to the system clipboard.
+
+        Attempt to write text representation of object to the system clipboard.
         This can be pasted into Excel, for example.
 
         Parameters
         ----------
-        excel : boolean, defaults to True
-                if True, use the provided separator, writing in a csv
-                format for allowing easy pasting into excel.
-                if False, write a string representation of the object
-                to the clipboard
-        sep : optional, defaults to tab
-        other keywords are passed to to_csv
+        excel : bool
+            Default setting for this argument is True.
+            If True, use the provided separator, writing in a csv format for
+            allowing easy pasting into excel.
+            If False, write a string representation of the object to the clipboard.
+        sep : str, default tab
+            Field delimiter.
+        kwargs : optional
+            These parameters will be passed to either :py:meth:`pandas.DataFrame.to_csv`
+            or :py:meth:`pandas.Series.to_csv` methods depending on the Object type.
+
+        Returns
+        -------
+            None
+
+        See Also
+        --------
+        pandas.core.frame.DataFrame.to_csv : Write a DataFrame to a comma-separated values (csv) file.
+        pandas.core.series.Series.to_csv : Write a Series to a comma-separated values (csv) file.
 
         Notes
         -----
-        Requirements for your platform
-          - Linux: xclip, or xsel (with gtk or PyQt4 modules)
-          - Windows: none
-          - OS X: none
+        Requirements for your platform.
+          - Linux : `xclip`, or `xsel` (with `gtk` or `PyQt4` modules)
+          - Windows : none
+          - OS X : none
+
+        Examples
+        --------
+        Copy the contents of a DataFrame to the clipboard.
+
+        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=['A', 'B', 'C'])
+        >>> df.to_clipboard()
+
+        We can emit the the index by passing the keyword 'index'.
+
+        >>> df.to_clipboard(index=False)
         """
         from pandas.io import clipboards
         clipboards.to_clipboard(self, excel=excel, sep=sep, **kwargs)
