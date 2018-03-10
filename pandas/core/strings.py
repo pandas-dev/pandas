@@ -924,8 +924,8 @@ def str_findall(arr, pat, flags=0):
     extractall : For each string in the Series, extract groups from all matches
         of regular expression and return a DataFrame with one row for each
         match and one column for each group.
-    re.findall: Return all non-overlapping matches of pattern or regular
-        expression in string, as a list of strings.
+    re.findall : The equivalent ``re`` function to all non-overlapping matches
+        of pattern or regular expression in string, as a list of strings.
 
     Examples
     --------
