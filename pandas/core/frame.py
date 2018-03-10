@@ -1815,6 +1815,9 @@ class DataFrame(NDFrame):
         """
         Concise summary of a DataFrame.
 
+        This method shows information about DataFrame type of index, columns
+        dtypes and non-null values and memory usage.
+
         Parameters
         ----------
         verbose : {None, True, False}, optional
@@ -1822,6 +1825,7 @@ class DataFrame(NDFrame):
             None follows the `display.max_info_columns` setting.
             True or False overrides the `display.max_info_columns` setting.
         buf : writable buffer, defaults to sys.stdout
+            Whether to pipe the output.
         max_cols : int, default None
             Determines whether full summary or short summary is printed.
             None follows the `display.max_info_columns` setting.
@@ -1840,6 +1844,56 @@ class DataFrame(NDFrame):
             - If True, always show counts.
             - If False, never show counts.
 
+        Returns
+        -------
+        None: NoneType
+            This method outputs a summary of a DataFrame and returns None.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"int_col": [1, 2, 3, 4, 5], "text_col": ['alpha', 'beta', 'gamma', 'delta', 'epsilon'], "float_col": [0.0, 0.25, 0.5, 0.75, 1.0]})
+        >>> df
+           int_col text_col  float_col
+        0        1    alpha       0.00
+        1        2     beta       0.25
+        2        3    gamma       0.50
+        3        4    delta       0.75
+        4        5  epsilon       1.00
+
+        >>> df.info(verbose=True)
+        <class 'pandas.core.frame.DataFrame'>
+        RangeIndex: 5 entries, 0 to 4
+        Data columns (total 3 columns):
+        int_col      5 non-null int64
+        text_col     5 non-null object
+        float_col    5 non-null float64
+        dtypes: float64(1), int64(1), object(1)
+        memory usage: 200.0+ bytes
+
+        >>> df.info(verbose=False)
+        <class 'pandas.core.frame.DataFrame'>
+        RangeIndex: 5 entries, 0 to 4
+        Columns: 3 entries, int_col to float_col
+        dtypes: float64(1), int64(1), object(1)
+        memory usage: 200.0+ bytes
+
+        >>> file = open("df_info.txt", "w", encoding="utf-8")
+        >>> df.info(buf=file)
+
+        >>> df.drop('text_col', axis=1, inplace=True)
+        >>> df.info(memory_usage='Deep')
+        <class 'pandas.core.frame.DataFrame'>
+        RangeIndex: 5 entries, 0 to 4
+        Data columns (total 2 columns):
+        int_col      5 non-null int64
+        float_col    5 non-null float64
+        dtypes: float64(1), int64(1)
+        memory usage: 160.0 bytes
+
+        See Also
+        --------
+
+        describe: Generate descriptive statistics of DataFrame columns.
         """
         from pandas.io.formats.format import _put_lines
 
