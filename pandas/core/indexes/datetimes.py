@@ -1722,7 +1722,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     Returns
     -------
-    ndarray of formatted strings
+    ndarray of integers indicating week
 
     Examples
     --------
