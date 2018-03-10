@@ -1920,11 +1920,35 @@ class _AtIndexer(_ScalarAccessIndexer):
 
 
 class _iAtIndexer(_ScalarAccessIndexer):
-    """Fast integer location scalar accessor.
+    """
+    Selects a single value for a row/column pair by integer position.
 
-    Similarly to ``iloc``, ``iat`` provides **integer** based lookups.
-    You can also set using these indexers.
+    Useful if performance is a major concern and you only need to
+    get or set a value at a particular row/column.
 
+    See Also
+    --------
+    at : Selects a single value for a row/column label pair
+    loc : Selects a group of rows and columns by label(s)
+    iloc : Selects group of rows and columns by integer position(s)
+
+    Returns
+    -------
+        None
+
+    Examples
+    --------
+    >>> df = pd.DataFrame([[0,2,3], [0,4,1], [10,20,30]])
+    >>> df
+        0   1   2
+    0   0   2   3
+    1   0   4   1
+    2  10  20  30
+    >>> df.iat[1, 2]
+    1
+    >>> df.iat[1, 2] = 10
+    >>> df.iat[1, 2]
+    10
     """
 
     _takeable = True
