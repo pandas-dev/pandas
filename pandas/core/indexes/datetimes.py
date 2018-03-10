@@ -1736,12 +1736,12 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         See Also
         --------
-        is_month_end : Returns a boolean indicating if the date is the last day of the month.
+        is_month_end : Returns a boolean indicating if the date is the last day
+        of the month.
 
         Examples
         --------
-        >>> import pandas as pd
-        >>> dates = pd.Series(pd.date_range("2018-02-27", periods = 3))
+        >>> dates = pd.Series(pd.date_range("2018-02-27", periods=3))
         >>> dates
         0   2018-02-27
         1   2018-02-28
