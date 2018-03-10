@@ -883,27 +883,51 @@ class DataFrame(NDFrame):
     @classmethod
     def from_dict(cls, data, orient='columns', dtype=None, columns=None):
         """
-        Construct DataFrame from dict of array-like or dicts
+        Construct DataFrame from dict of array-like or dicts.
+
+        Creates DataFrame object from dictionary by columns or by index
+        allowing dtype specification.
 
         Parameters
         ----------
         data : dict
-            {field : array-like} or {field : dict}
+            Of the form {field : array-like} or {field : dict}.
         orient : {'columns', 'index'}, default 'columns'
             The "orientation" of the data. If the keys of the passed dict
             should be the columns of the resulting DataFrame, pass 'columns'
             (default). Otherwise if the keys should be rows, pass 'index'.
         dtype : dtype, default None
-            Data type to force, otherwise infer
-        columns: list, default None
+            Data type to force, otherwise infer.
+        columns : list, default None
             Column labels to use when orient='index'. Raises a ValueError
-            if used with orient='columns'
-
+            if used with orient='columns'.
             .. versionadded:: 0.23.0
+
+        See Also
+        --------
+        pandas.DataFrame.from_records : DataFrame from ndarray (structured dtype),
+                                        list of tuples, dict, or DataFrame
+        pandas.DataFrame: DataFrame object creation using constructor
 
         Returns
         -------
-        DataFrame
+        pandas.DataFrame
+
+        Examples
+        --------
+        >>> data = {'col_1': [3, 2, 1, 0], 'col_2': ['a', 'b', 'c', 'd']}
+        >>> pd.DataFrame.from_dict(data)
+           col_1 col_2
+        0      3     a
+        1      2     b
+        2      1     c
+        3      0     d
+
+        >>> data = {'row_1': [3, 2, 1, 0], 'row_2': ['a', 'b', 'c', 'd']}
+        >>> pd.DataFrame.from_dict(data, orient='index')
+               0  1  2  3
+        row_1  3  2  1  0
+        row_2  a  b  c  d
         """
         index = None
         orient = orient.lower()
