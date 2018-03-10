@@ -235,34 +235,31 @@ class TestGroupBy(MixIn):
 
     def test_apply_trivial(self):
         # GH 20066
-        def gen_one_df(start=0):
-            df_this = pd.DataFrame({'key': ['a', 'a', 'b', 'b', 'a'],
-                                    'data': [1.0, 2.0, 3.0, 4.0, 5.0]},
-                                   columns=['key', 'data'])[start:]
-            return df_this
-
-        df = gen_one_df()
-        expected = pd.concat([gen_one_df(1), gen_one_df(1)],
+        # trivial apply: ignore input and return a constant dataframe.
+        df = pd.DataFrame({'key': ['a', 'a', 'b', 'b', 'a'],
+                           'data': [1.0, 2.0, 3.0, 4.0, 5.0]},
+                          columns=['key', 'data'])
+        expected = pd.concat([df.iloc[1:], df.iloc[1:]],
                              axis=1, keys=['float64', 'object'])
         result = df.groupby([str(x) for x in df.dtypes],
-                            axis=1).apply(lambda x: gen_one_df(1))
+                            axis=1).apply(lambda x: df.iloc[1:])
 
         assert_frame_equal(result, expected)
 
-    @pytest.mark.xfail(reason="didn't work yet")
+    @pytest.mark.xfail(reason=("GH 20066; function passed into apply "
+                               "returns a DataFrame with the same index "
+                               "as the one to create GroupBy object."))
     def test_apply_trivial_fail(self):
         # GH 20066
-        def gen_one_df(start=0):
-            df_this = pd.DataFrame({'key': ['a', 'a', 'b', 'b', 'a'],
-                                    'data': [1.0, 2.0, 3.0, 4.0, 5.0]},
-                                   columns=['key', 'data'])[start:]
-            return df_this
-
-        df = gen_one_df()
-        expected = pd.concat([gen_one_df(), gen_one_df()],
+        # trivial apply fails if the constant dataframe has the same index
+        # with the one used to create GroupBy object.
+        df = pd.DataFrame({'key': ['a', 'a', 'b', 'b', 'a'],
+                           'data': [1.0, 2.0, 3.0, 4.0, 5.0]},
+                          columns=['key', 'data'])
+        expected = pd.concat([df, df],
                              axis=1, keys=['float64', 'object'])
         result = df.groupby([str(x) for x in df.dtypes],
-                            axis=1).apply(lambda x: gen_one_df())
+                            axis=1).apply(lambda x: df)
 
         assert_frame_equal(result, expected)
 
