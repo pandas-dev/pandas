@@ -819,7 +819,7 @@ class IndexOpsMixin(object):
         Examples
         --------
         >>> idx = pd.Index([3, 2, 1])
-        >>> idx.min() 
+        >>> idx.min()
         1
 
         >>> idx = pd.Index(['c', 'b', 'a'])
