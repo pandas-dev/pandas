@@ -687,7 +687,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         Index.map : For applying a mapping correspondence on an Index.
         Series.map : For applying a mapping correspondence on a Series.
         Series.apply : For applying more complex functions on a Series.
-
         """
         return self._shallow_copy_with_infer(self.values.map(mapper))
 
