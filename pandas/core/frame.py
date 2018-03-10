@@ -1699,7 +1699,8 @@ class DataFrame(NDFrame):
 
         This function writes the dataframe as a `parquet file
         <https://parquet.apache.org/>`_. You can choose different parquet
-        backends, and have the option of compression.
+        backends, and have the option of compression. See
+        :ref:`the user guide <io.parquet>` for more details.
 
         Parameters
         ----------
@@ -1715,10 +1716,6 @@ class DataFrame(NDFrame):
         **kwargs
             Additional arguments passed to the parquet library. See
             :ref:`pandas io <io.parquet>` for more details.
-
-        Returns
-        -------
-        None
 
         See Also
         --------
