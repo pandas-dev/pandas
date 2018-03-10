@@ -2279,7 +2279,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        :meth:`Series.shift` : Shift values of Series.
+        Series.shift : Shift values of Series.
 
         Examples
         --------
