@@ -501,7 +501,33 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
     def total_seconds(self):
         """
-        Total duration of each element expressed in seconds.
+        Return total duration of each element expressed in seconds.
+
+        Return a series with the same length and index as the original,
+        containing the length of each element expressed in seconds.
+
+        Returns
+        -------
+        s : pandas.Series
+            a series of type `float64`.
+
+        Examples
+        --------
+        >>> s = pd.Series(pd.to_timedelta(np.arange(5), unit='d'))
+        >>> s
+        0   0 days
+        1   1 days
+        2   2 days
+        3   3 days
+        4   4 days
+        dtype: timedelta64[ns]
+        >>> s.dt.total_seconds()
+        0         0.0
+        1     86400.0
+        2    172800.0
+        3    259200.0
+        4    345600.0
+        dtype: float64
         """
         return Index(self._maybe_mask_results(1e-9 * self.asi8),
                      name=self.name)
