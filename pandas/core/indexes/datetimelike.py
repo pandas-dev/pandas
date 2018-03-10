@@ -82,20 +82,58 @@ class TimelikeOps(object):
 
     _round_doc = (
         """
-        %s the index to the specified freq
+        {op} the index to the specified `freq`.
 
         Parameters
         ----------
         freq : freq string/object
+            The frequency level to {op} the index to.
 
         Returns
         -------
-        index of same type
+        index of same type.
 
         Raises
         ------
-        ValueError if the freq cannot be converted
+        ValueError if the `freq` cannot be converted.
+
+        Notes
+        -----
+        See the following link for possible `freq` values
+        and their descriptions.\n
+        https://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases
+
+        Examples
+        --------
+        >>> rng = pd.date_range('1/1/2018 11:59:00', periods=3, freq='min')
+        >>> rng
+        DatetimeIndex(['2018-01-01 11:59:00', '2018-01-01 12:00:00',
+               '2018-01-01 12:01:00'],
+              dtype='datetime64[ns]', freq='T')
         """)
+
+    _round_example = (
+        """>>> rng.round('H')
+        DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
+               '2018-01-01 12:00:00'],
+              dtype='datetime64[ns]', freq=None)
+        """)
+
+    _floor_example = (
+        """>>> rng.floor('H')
+        DatetimeIndex(['2018-01-01 11:00:00', '2018-01-01 12:00:00',
+               '2018-01-01 12:00:00'],
+              dtype='datetime64[ns]', freq=None)
+        """
+    )
+
+    _ceil_example = (
+        """>>> rng.ceil('H')
+        DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
+               '2018-01-01 13:00:00'],
+              dtype='datetime64[ns]', freq=None)
+        """
+    )
 
     def _round(self, freq, rounder):
         # round the local times
@@ -111,15 +149,15 @@ class TimelikeOps(object):
         return self._ensure_localized(
             self._shallow_copy(result, **attribs))
 
-    @Appender(_round_doc % "round")
+    @Appender((_round_doc + _round_example).format(op="round"))
     def round(self, freq, *args, **kwargs):
         return self._round(freq, np.round)
 
-    @Appender(_round_doc % "floor")
+    @Appender((_round_doc + _floor_example).format(op="floor"))
     def floor(self, freq):
         return self._round(freq, np.floor)
 
-    @Appender(_round_doc % "ceil")
+    @Appender((_round_doc + _ceil_example).format(op="ceil"))
     def ceil(self, freq):
         return self._round(freq, np.ceil)
 
