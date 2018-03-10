@@ -4291,7 +4291,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.DataFrame.from_records : Creating a DataFrame from a numpy.ndarray
+        pandas.DataFrame.from_records : Creating a DataFrame from an ndarray
         pandas.DataFrame.keys : Retrieving the 'info axis' (column names)
         pandas.DataFrame.columns : Retrieving the column names
         """
