@@ -1995,52 +1995,134 @@ def plot_series(data, kind='line', ax=None,                    # Series unique
 
 
 _shared_docs['boxplot'] = """
-    Make a box plot from DataFrame column optionally grouped by some columns or
-    other inputs
+    Make a box-and-whisker plot from DataFrame column optionally grouped
+    by some columns or other inputs. The box extends from the Q1 to Q3
+    quartile values of the data, with a line at the median (Q2).
+    The whiskers extend from the edges of box to show the range of the data.
+    Flier points (outliers) are those past the end of the whiskers.
+    The position of the whiskers is set by default to 1.5 IQR (`whis=1.5``)
+    from the edge of the box.
+
+    For further details see
+    Wikipedia's entry for `boxplot <https://en.wikipedia.org/wiki/Box_plot/>`_.
 
     Parameters
     ----------
-    data : the pandas object holding the data
     column : column name or list of names, or vector
-        Can be any valid input to groupby
+        Can be any valid input to groupby.
     by : string or sequence
-        Column in the DataFrame to group by
-    ax : Matplotlib axes object, optional
+        Column in the DataFrame to groupby.
+    ax :  Matplotlib axes object, (default `None`)
+        The matplotlib axes to be used by boxplot.
     fontsize : int or string
+        The font-size used by matplotlib.
     rot : label rotation angle
+        The rotation angle of labels.
+    grid : boolean( default `True`)
+        Setting this to True will show the grid.
     figsize : A tuple (width, height) in inches
-    grid : Setting this to True will show the grid
+        The size of the figure to create in inches by default.
     layout : tuple (optional)
-        (rows, columns) for the layout of the plot
+        Tuple (rows, columns) used for the layout of the plot.
     return_type : {None, 'axes', 'dict', 'both'}, default None
         The kind of object to return. The default is ``axes``
         'axes' returns the matplotlib axes the boxplot is drawn on;
         'dict' returns a dictionary whose values are the matplotlib
         Lines of the boxplot;
         'both' returns a namedtuple with the axes and dict.
-
         When grouping with ``by``, a Series mapping columns to ``return_type``
         is returned, unless ``return_type`` is None, in which case a NumPy
         array of axes is returned with the same shape as ``layout``.
         See the prose documentation for more.
-
-    `**kwds` : Keyword Arguments
+    kwds : Keyword Arguments (optional)
         All other plotting keyword arguments to be passed to
-        matplotlib's boxplot function
+        matplotlib's function.
 
     Returns
     -------
     lines : dict
     ax : matplotlib Axes
-    (ax, lines): namedtuple
+        (ax, lines): namedtuple
+
+    See Also
+    --------
+    matplotlib.pyplot.boxplot: Make a box and whisker plot.
 
     Notes
     -----
     Use ``return_type='dict'`` when you want to tweak the appearance
     of the lines after plotting. In this case a dict containing the Lines
     making up the boxes, caps, fliers, medians, and whiskers is returned.
-    """
 
+    Examples
+    --------
+    .. plot::
+        :context: close-figs
+
+        >>> np.random.seed(1234)
+
+        >>> df = pd.DataFrame({
+        ...     u'stratifying_var': np.random.uniform(0, 100, 20),
+        ...     u'price': np.random.normal(100, 5, 20),
+        ...     u'demand': np.random.normal(100, 10, 20)})
+
+        >>> df[u'quartiles'] = pd.qcut(
+        ...     df[u'stratifying_var'], 4,
+        ...     labels=[u'0-25%%', u'25-50%%', u'50-75%%', u'75-100%%'])
+
+        >>> df
+            stratifying_var       price      demand quartiles
+        0         19.151945  106.605791  108.416747     0-25%%
+        1         62.210877   92.265472  123.909605    50-75%%
+        2         43.772774   98.986768  100.761996    25-50%%
+        3         78.535858   96.720153   94.335541   75-100%%
+        4         77.997581  100.967107  100.361419    50-75%%
+        5         27.259261  102.767195   79.250224     0-25%%
+        6         27.646426  106.590758  102.477922     0-25%%
+        7         80.187218   97.653474   91.028432   75-100%%
+        8         95.813935  103.377770   98.632052   75-100%%
+        9         87.593263   90.914864  100.182892   75-100%%
+        10        35.781727   99.084457  107.554140     0-25%%
+        11        50.099513  105.294846  102.152686    25-50%%
+        12        68.346294   98.010799  108.410088    50-75%%
+        13        71.270203  101.687188   85.541899    50-75%%
+        14        37.025075  105.237893   85.980267    25-50%%
+        15        56.119619  105.229691   98.990818    25-50%%
+        16        50.308317  104.318586   94.517576    25-50%%
+        17         1.376845   99.389542   98.553805     0-25%%
+        18        77.282662  100.623565  103.540203    50-75%%
+        19        88.264119   98.386026   99.644870   75-100%%
+
+    To plot the boxplot of the ``demand`` just put:
+
+    .. plot::
+        :context: close-figs
+
+        >>> boxplot = df.boxplot(column=u'demand', by=u'quartiles')
+
+    Use ``grid=False`` to hide the grid:
+
+    .. plot::
+        :context: close-figs
+
+        >>> boxplot = df.boxplot(column=u'demand', by=u'quartiles', grid=False)
+
+    Optionally, the layout can be changed by setting ``layout=(rows, cols)``:
+
+    .. plot::
+        :context: close-figs
+
+        >>> boxplot = df.boxplot(column=[u'price',u'demand'],
+        ...                      by=u'quartiles', layout=(1,2),
+        ...                      figsize=(8,5))
+
+    .. plot::
+        :context: close-figs
+
+        >>> boxplot = df.boxplot(column=[u'price',u'demand'],
+        ...                      by=u'quartiles', layout=(2,1),
+        ...                      figsize=(5,8))
+    """
 
 @Appender(_shared_docs['boxplot'] % _shared_doc_kwargs)
 def boxplot(data, column=None, by=None, ax=None, fontsize=None,
