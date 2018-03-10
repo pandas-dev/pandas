@@ -1697,9 +1697,9 @@ class DataFrame(NDFrame):
 
         .. versionadded:: 0.21.0
 
-        This function writes the dataframe as a parquet file (see
-        :func:`pandas.io.parquet.to_parquet`). You can choose different parquet
-        backends, and have the option of compressing.
+        This function writes the dataframe as a `parquet file
+        <https://parquet.apache.org/>`_. You can choose different parquet
+        backends, and have the option of compression.
 
         Parameters
         ----------
@@ -1714,8 +1714,7 @@ class DataFrame(NDFrame):
             Name of the compression to use. Use ``None`` for no compression.
         **kwargs
             Additional arguments passed to the parquet library. See
-            the documentation for :func:`pandas.io.parquet.to_parquet` for
-            complete details.
+            :ref:`pandas io <io.parquet>` for more details.
 
         Returns
         -------
@@ -1730,7 +1729,7 @@ class DataFrame(NDFrame):
 
         Notes
         -----
-        This function requires either the fastparquet or pyarrow library.
+        This function requires either the `fastparquet <https://pypi.python.org/pypi/fastparquet>`_ or `pyarrow <https://arrow.apache.org/docs/python/>`_ library.
 
         Examples
         --------
