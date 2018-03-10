@@ -1231,7 +1231,7 @@ class DataFrame(NDFrame):
         DataFrame.from_records: convert structured or record ndarray
             to DataFrame.
         numpy.recarray: ndarray that allows field access using
-            attributes, analogous to typed (typed) columns in a
+            attributes, analogous to typed columns in a
             spreadsheet.
 
         Examples
