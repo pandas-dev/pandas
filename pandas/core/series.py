@@ -2777,21 +2777,28 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Examples
         --------
 
-        >>> s = pd.Series(list('abc'))
-        >>> s.isin(['a', 'c', 'e'])
+        >>> s = pd.Series(['lama', 'cow', 'lama', 'beetle', 'lama',
+        ...               'hippo'], name='animal')
+        >>> s.isin(['cow', 'lama'])
+        0     True
+        1     True
+        2     True
+        3    False
+        4     True
+        5    False
+        Name: animal, dtype: bool
+
+        Passing a single string as ``s.isin('lama')`` will raise an error. Use
+        a list of one element instead:
+
+        >>> s.isin(['lama'])
         0     True
         1    False
         2     True
-        dtype: bool
-
-        Passing a single string as ``s.isin('a')`` will raise an error. Use
-        a list of one element instead:
-
-        >>> s.isin(['a'])
-        0     True
-        1    False
-        2    False
-        dtype: bool
+        3    False
+        4     True
+        5    False
+        Name: animal, dtype: bool
         """
         result = algorithms.isin(com._values_from_object(self), values)
         return self._constructor(result, index=self.index).__finalize__(self)
