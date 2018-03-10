@@ -127,11 +127,11 @@ class DatetimeProperties(Properties):
 
     def to_pydatetime(self):
         """
-        Return DatetimeIndex as an object ndarray.
+        Return Series as a native Python datetime objects.
 
         Returns
         -------
-        ndarray of object dtype
+        Series of object dtype
 
         See Also
         --------
@@ -140,11 +140,14 @@ class DatetimeProperties(Properties):
 
         Examples
         --------
-        >>> df = pd.Series(pd.date_range('20180310', periods=2))
-        >>> type(df)
-        <class 'pandas.core.series.Series'>
-        >>> type(df.dt.to_pydatetime())
-        <class 'numpy.ndarray'>
+        >>> s = pd.Series(pd.date_range('20180310', periods=2))
+        >>> s.head()
+        0   2018-03-10
+        1   2018-03-11
+        dtype: datetime64[ns]
+        >>> s.dt.to_pydatetime()
+        array([datetime.datetime(2018, 3, 10, 0, 0),
+            datetime.datetime(2018, 3, 11, 0, 0)], dtype=object)
         """
         return self._get_values().to_pydatetime()
 
