@@ -838,9 +838,48 @@ class _Rolling_and_Expanding(_Rolling):
         return self._apply('roll_max', 'max', **kwargs)
 
     _shared_docs['min'] = dedent("""
-    %(name)s minimum
-    """)
+    Calculate the %(name)s minimum. 
 
+    Parameters
+    ----------
+    **kwargs
+        Under Review.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returned object type is determined by the caller of the %(name)s
+        calculation.
+    
+    See Also
+    --------
+    Series.%(name)s : Calling object with a Series
+    DataFrame.%(name)s : Calling object with a DataFrame
+    Series.min : Similar method for Series
+    DataFrame.min : Similar method for DataFrame
+
+    Examples
+    --------
+    The below example will show a rolling calculation
+    with a window size of 3.
+
+    >>> s = pd.Series([4,3,5,2,6])
+    >>> s
+    0    4
+    1    3
+    2    5
+    3    2
+    4    6
+    dtype: int64
+    >>> s.rolling(3).min()
+    0    NaN
+    1    NaN
+    2    3.0
+    3    2.0
+    4    2.0
+    dtype: float64
+    """)
+    
     def min(self, *args, **kwargs):
         nv.validate_window_func('min', args, kwargs)
         return self._apply('roll_min', 'min', **kwargs)
@@ -1230,7 +1269,6 @@ class Rolling(_Rolling_and_Expanding):
         return super(Rolling, self).max(*args, **kwargs)
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['min'])
     def min(self, *args, **kwargs):
         nv.validate_rolling_func('min', args, kwargs)
@@ -1469,7 +1507,6 @@ class Expanding(_Rolling_and_Expanding):
         return super(Expanding, self).max(*args, **kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['min'])
     def min(self, *args, **kwargs):
         nv.validate_expanding_func('min', args, kwargs)
