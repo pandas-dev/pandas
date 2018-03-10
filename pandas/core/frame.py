@@ -4819,7 +4819,7 @@ class DataFrame(NDFrame):
     def apply(self, func, axis=0, broadcast=None, raw=False, reduce=None,
               result_type=None, args=(), **kwds):
         """
-	Apply function along an axis of the DataFrame.
+        Apply function along an axis of the DataFrame.
 
         Objects passed to functions are Series objects having index
         either the DataFrame's index (axis=0) or the columns (axis=1).
@@ -4831,7 +4831,7 @@ class DataFrame(NDFrame):
         func : function
             Function to apply to each column/row.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-	    Axis along which the function is applied
+            Axis along which the function is applied
             * 0 or 'index': apply function to each column
             * 1 or 'columns': apply function to each row.
         broadcast : boolean, optional
@@ -4880,8 +4880,9 @@ class DataFrame(NDFrame):
             Positional arguments to pass to function in addition to the
             array/series.
 
-	kwds : dictionary
-	    Additional keyword arguments will be passed as keywords to the function.
+        kwds : dictionary
+            Additional keyword arguments will be passed as keywords to
+            the function.
 
         Notes
         -----
@@ -4945,7 +4946,7 @@ class DataFrame(NDFrame):
         3    [1, 2]
         4    [1, 2]
         5    [1, 2]
-	dtype: object
+        dtype: object
 
         Passing result_type='expand' will expand list-like results
         to columns of a Dataframe
