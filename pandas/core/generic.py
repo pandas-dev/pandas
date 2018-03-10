@@ -1591,51 +1591,56 @@ class NDFrame(PandasObject, SelectionMixin):
     # I/O Methods
 
     _shared_docs['to_excel'] = """
-    Write %(klass)s to an excel sheet
+    Write %(klass)s to an excel sheet.
     %(versionadded_to_excel)s
-
     Parameters
     ----------
     excel_writer : string or ExcelWriter object
-        File path or existing ExcelWriter
+        File path or existing ExcelWriter.
     sheet_name : string, default 'Sheet1'
-        Name of sheet which will contain DataFrame
+        Name of sheet which will contain DataFrame.
     na_rep : string, default ''
-        Missing data representation
+        Missing data representation.
     float_format : string, default None
-        Format string for floating point numbers
+        Format string for floating point numbers.
     columns : sequence, optional
-        Columns to write
+        Columns to write.
     header : boolean or list of string, default True
         Write out the column names. If a list of strings is given it is
-        assumed to be aliases for the column names
+        assumed to be aliases for the column names.
     index : boolean, default True
-        Write row names (index)
+        Write row names (index).
     index_label : string or sequence, default None
         Column label for index column(s) if desired. If None is given, and
         `header` and `index` are True, then the index names are used. A
         sequence should be given if the DataFrame uses MultiIndex.
-    startrow :
-        upper left cell row to dump data frame
-    startcol :
-        upper left cell column to dump data frame
+    startrow : integer, default 0
+        Upper left cell row to dump data frame.
+    startcol : integer, default 0
+        Upper left cell column to dump data frame.
     engine : string, default None
-        write engine to use - you can also set this via the options
+        Write engine to use - you can also set this via the options
         ``io.excel.xlsx.writer``, ``io.excel.xls.writer``, and
         ``io.excel.xlsm.writer``.
     merge_cells : boolean, default True
         Write MultiIndex and Hierarchical Rows as merged cells.
-    encoding: string, default None
-        encoding of the resulting excel file. Only necessary for xlwt,
+    encoding : string, default 'ascii'
+        Encoding of the resulting excel file. Only necessary for xlwt,
         other writers support unicode natively.
     inf_rep : string, default 'inf'
         Representation for infinity (there is no native representation for
-        infinity in Excel)
+        infinity in Excel).
+    verbose : boolean, default True
+        Display more information in the error logs.
     freeze_panes : tuple of integer (length 2), default None
         Specifies the one-based bottommost row and rightmost column that
-        is to be frozen
+        is to be frozen.
 
         .. versionadded:: 0.20.0
+
+    Returns
+    -------
+    Nothing returned.
 
     Notes
     -----
