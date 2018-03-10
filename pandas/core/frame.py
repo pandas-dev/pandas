@@ -936,14 +936,14 @@ class DataFrame(NDFrame):
         orient : str {'dict', 'list', 'series', 'split', 'records', 'index'}
             Determines the type of the values of the dictionary.
 
-            - dict (default) : dict like {column -> {index -> value}}
-            - list : dict like {column -> [values]}
-            - series : dict like {column -> Series(values)}
-            - split : dict like
-              {index -> [index], columns -> [columns], data -> [values]}
-            - records : list like
+            - 'dict' (default) : dict like {column -> {index -> value}}
+            - 'list' : dict like {column -> [values]}
+            - 'series' : dict like {column -> Series(values)}
+            - 'split' : dict like
+              {index' -> [index], columns -> [columns], data -> [values]}
+            - 'records' : list like
               [{column -> value}, ... , {column -> value}]
-            - index : dict like {index -> {column -> value}}
+            - 'index' : dict like {index -> {column -> value}}
 
             Abbreviations are allowed. `s` indicates `series` and `sp`
             indicates `split`.
@@ -962,7 +962,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        from_dict: create a DataFrame from a dictionary
+        DataFrame.from_dict: create a DataFrame from a dictionary
 
         Examples
         --------
