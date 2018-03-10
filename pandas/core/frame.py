@@ -4824,7 +4824,7 @@ class DataFrame(NDFrame):
         Objects passed to the function are Series objects having as index
         either the DataFrame's index (``axis=0``)
         or the DataFrame's columns (``axis=1``).
-        If `result_type` is None, the final return type is the return
+        If ``result_type is None``, the final return type is the return
         type of the applied function.
         Otherwise, it depends on the `result_type` argument.
 
@@ -4857,10 +4857,10 @@ class DataFrame(NDFrame):
               instead.
             If you are just applying a NumPy reduction function this will
             achieve much better performance.
-        reduce : boolean or None, default None
+        reduce : boolean or `None`, default `None`
             Try to apply reduction procedures. If the `DataFrame` is empty,
             :meth:`apply` will use reduce to determine whether the result
-            should be a Series or a `DataFrame`. If reduce is None (the
+            should be a Series or a `DataFrame`. If ``reduce is None`` (the
             default), :meth:`apply`'s return value will be guessed by calling
             func on an empty Series
             (note: while guessing, exceptions raised by `func` will be
@@ -4872,7 +4872,7 @@ class DataFrame(NDFrame):
                This argument will be removed in a future version, replaced
                by result_type='reduce'.
 
-        result_type : {'expand', 'reduce', 'broadcast', None}
+        result_type : {'expand', 'reduce', 'broadcast', `None`}
             These only act when ``axis=1`` (columns):
 
             * 'expand' : list-like results will be turned into columns.
