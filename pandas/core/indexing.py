@@ -1643,13 +1643,13 @@ class _iLocIndexer(_LocationIndexer):
     - A slice object with ints, e.g. ``1:7``.
     - A boolean array.
     - A ``callable`` function with one argument (the calling Series, DataFrame
-      or Panel) and that returns valid output for indexing (one of the above)
+      or Panel) and that returns valid output for indexing (one of the above).
 
     ``.iloc`` will raise ``IndexError`` if a requested indexer is
     out-of-bounds, except *slice* indexers which allow out-of-bounds
     indexing (this conforms with python/numpy *slice* semantics).
 
-    ref:`Selection by Position <indexing.integer>`
+    ref:`Selection by Position <indexing.integer>`.
 
     See Also
     --------
