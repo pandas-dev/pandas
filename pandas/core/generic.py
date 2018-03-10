@@ -1901,16 +1901,15 @@ class NDFrame(PandasObject, SelectionMixin):
         --------
             None
 
-        References
-        --------
-        http://docs.sqlalchemy.org : Used for testing
-
         See Also
         --------
         pandas.read_sql_query : read a DataFrame from a table
 
         Examples
         --------
+
+        **create an in-memory database using [1]**
+
         >>> from sqlalchemy import create_engine
         >>> engine = create_engine('sqlite://', echo=False)
 
@@ -1935,6 +1934,10 @@ class NDFrame(PandasObject, SelectionMixin):
         2      2  User 3
         3      3  User 4
         4      4  User 5
+
+        References
+        ----------
+        .. [1] http://docs.sqlalchemy.org : SQLAlchemy is used for testing
         """
         from pandas.io import sql
         sql.to_sql(self, name, con, schema=schema, if_exists=if_exists,
