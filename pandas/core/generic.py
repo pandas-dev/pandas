@@ -4078,7 +4078,8 @@ class NDFrame(PandasObject, SelectionMixin):
         if inplace:
             self._consolidate_inplace()
         else:
-            def f(): return self._data.consolidate()
+            def f():
+                return self._data.consolidate()
             cons_data = self._protect_consolidate(f)
             return self._constructor(cons_data).__finalize__(self)
 
@@ -4096,17 +4097,20 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @property
     def _is_mixed_type(self):
-        def f(): return self._data.is_mixed_type
+        def f():
+            return self._data.is_mixed_type
         return self._protect_consolidate(f)
 
     @property
     def _is_numeric_mixed_type(self):
-        def f(): return self._data.is_numeric_mixed_type
+        def f():
+            return self._data.is_numeric_mixed_type
         return self._protect_consolidate(f)
 
     @property
     def _is_datelike_mixed_type(self):
-        def f(): return self._data.is_datelike_mixed_type
+        def f():
+            return self._data.is_datelike_mixed_type
         return self._protect_consolidate(f)
 
     def _check_inplace_setting(self, value):
