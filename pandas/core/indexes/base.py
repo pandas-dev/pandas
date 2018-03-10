@@ -4017,8 +4017,52 @@ class Index(IndexOpsMixin, PandasObject):
         result = super(Index, self).unique()
         return self._shallow_copy(result)
 
-    @Appender(base._shared_docs['drop_duplicates'] % _index_doc_kwargs)
+    #@Appender(base._shared_docs['drop_duplicates'] % _index_doc_kwargs)
     def drop_duplicates(self, keep='first'):
+        """
+        Return Index with duplicate values removed.
+
+        The drop_duplicates method can remove occurences or whole sets
+        of duplicated entries in a pandas.Index object.
+
+        Parameters
+        ----------
+        keep : {'first', 'last', False}, default 'first'
+            - 'first' : Drop duplicates except for the first occurrence.
+            - 'last' : Drop duplicates except for the last occurrence.
+            - ``False`` : Drop all duplicates.
+
+        Returns
+        -------
+        deduplicated : Index
+
+        See Also
+        --------
+        pandas.Series.drop_duplicates : equivalent method on pandas.Series
+
+        Examples
+        --------
+        Generate an index with duplicate values.
+        >>> idx = pd.Index(['lama', 'cow', 'lama', 'beetle', 'lama', 'hippo'])
+
+        With the 'keep' parameter, the selection behaviour of duplicated values
+        can be changed. The value 'first' keeps the first occurrence for each
+        set of duplicated entries. The default value of keep is 'first'.
+
+        >>> idx.drop_duplicates(keep='first')
+        Index(['lama', 'cow', 'beetle', 'hippo'], dtype='object')
+
+        The value 'last' keeps the last occurrence for each set of duplicated
+        entries.
+
+        >>> idx.drop_duplicates(keep='last')
+        Index(['cow', 'beetle', 'lama', 'hippo'], dtype='object')
+
+        The value ``False`` discards all sets of duplicated entries.
+
+        >>> idx.drop_duplicates(keep=False)
+        Index(['cow', 'beetle', 'hippo'], dtype='object')
+        """
         return super(Index, self).drop_duplicates(keep=keep)
 
     @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)
