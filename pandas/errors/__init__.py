@@ -53,7 +53,7 @@ class EmptyDataError(ValueError):
 
 class ParserWarning(Warning):
     """
-    Warning raised when reading a file that doesn't use the default parser.
+    Warning raised when reading a file that doesn't use the default 'c' parser.
 
     Raised by `pd.read_csv` and `pd.read_table` when it is necessary to change
     parsers, generally from the default 'c' parser to 'python'.
