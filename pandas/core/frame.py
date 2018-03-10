@@ -5005,14 +5005,25 @@ class DataFrame(NDFrame):
 
     def applymap(self, func):
         """
-        Apply a function to a DataFrame that is intended to operate
-        elementwise, i.e. like doing map(func, series) for each series in the
-        DataFrame
+        Apply a function to a Dataframe elementwise.
+
+        This method applies a function to a DataFrame that is intended to 
+        operate elementwise, i.e. like doing map(func, series) for each series
+        in the DataFrame.
 
         Parameters
         ----------
         func : function
-            Python function, returns a single value from a single value
+            Python function, returns a single value from a single value.
+
+        Returns
+        -------
+        pandas.DataFrame
+            A transformed DataFrame.
+
+        See also
+        --------
+        DataFrame.apply : Apply a function along input axis of DataFrame
 
         Examples
         --------
@@ -5029,14 +5040,6 @@ class DataFrame(NDFrame):
         0  1.76   0.40   0.98
         1  2.24   1.87  -0.98
         2  0.95  -0.15  -0.10
-
-        Returns
-        -------
-        applied : DataFrame
-
-        See also
-        --------
-        DataFrame.apply : For operations on rows/columns
         """
 
         # if we have a dtype == 'M8[ns]', provide boxed values
