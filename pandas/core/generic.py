@@ -3605,9 +3605,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def head(self, n=5):
         """
-        Return the first n rows.
+        Return the first `n` rows.
 
-        This function returns the first n rows for the object based on the
+        This function returns the first `n` rows for the object based on the
         underlying index. It is useful for quickly testing if your object
         has the right type of data in it.
 
@@ -3623,7 +3623,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.DataFrame.tail: Returns the last n rows.
+        pandas.DataFrame.tail: Returns the last `n` rows.
 
         Examples
         --------
