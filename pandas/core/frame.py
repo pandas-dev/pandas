@@ -1209,20 +1209,58 @@ class DataFrame(NDFrame):
 
     def to_records(self, index=True, convert_datetime64=True):
         """
-        Convert DataFrame to record array. Index will be put in the
-        'index' field of the record array if requested
+        Convert DataFrame to record array.
+
+        Index will be put in the 'index' field of the record array if requested.
 
         Parameters
         ----------
         index : boolean, default True
-            Include index in resulting record array, stored in 'index' field
+            Include index in resulting record array, stored in 'index' field.
         convert_datetime64 : boolean, default True
             Whether to convert the index to datetime.datetime if it is a
-            DatetimeIndex
+            DatetimeIndex.
 
         Returns
         -------
         y : recarray
+
+        See Also
+        --------
+        DataFrame.from_records: convert structured or record ndarray to DataFrame.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'col1': [1, 2], 'col2': [0.5, 0.75]}, index=['a', 'b'])
+        >>> df
+           col1  col2
+        a     1  0.50
+        b     2  0.75
+        >>> df.to_records()
+        rec.array([('a', 1, 0.5 ), ('b', 2, 0.75)],
+                  dtype=[('index', 'O'), ('col1', '<i8'), ('col2', '<f8')])
+
+        The index can be excluded from the record array:
+        >>> df.to_records(index=False)
+        rec.array([(1, 0.5 ), (2, 0.75)],
+                  dtype=[('col1', '<i8'), ('col2', '<f8')])
+
+        By default, timestamps are converted to `datetime.datetime` objects
+        >>> df.index = pd.date_range('2018-01-01 09:00', periods=2, freq='min')
+        >>> df
+                             col1  col2
+        2018-01-01 09:00:00     1  0.50
+        2018-01-01 09:01:00     2  0.75
+        >>> df.to_records()
+        rec.array([(datetime.datetime(2018, 1, 1, 9, 0), 1, 0.5 ),
+                   (datetime.datetime(2018, 1, 1, 9, 1), 2, 0.75)],
+                  dtype=[('index', 'O'), ('col1', '<i8'), ('col2', '<f8')])
+
+        The timestamp conversion can be disabled to use NumPy datetime64 objects instead:
+        >>> df.to_records(convert_datetime64=False)
+        rec.array([('2018-01-01T09:00:00.000000000', 1, 0.5 ),
+                   ('2018-01-01T09:01:00.000000000', 2, 0.75)],
+                  dtype=[('index', '<M8[ns]'), ('col1', '<i8'), ('col2', '<f8')])
         """
         if index:
             if is_datetime64_any_dtype(self.index) and convert_datetime64:
