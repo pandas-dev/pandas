@@ -2277,6 +2277,10 @@ class Index(IndexOpsMixin, PandasObject):
         pandas.Index
             shifted index
 
+        See Also
+        --------
+        :meth:`Series.shift` : Shift values of Series.
+
         Examples
         --------
         Put the first 5 month starts of 2011 into an index.
