@@ -1156,7 +1156,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx = pd.Index(['Ant', 'Bear', 'Cow'], name='animal')
         >>> idx.to_frame()
             animal
-        animal       
+        animal
         Ant       Ant
         Bear     Bear
         Cow       Cow
