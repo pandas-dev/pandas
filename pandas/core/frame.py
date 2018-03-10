@@ -4207,17 +4207,23 @@ class DataFrame(NDFrame):
                raise_conflict=False):
         """
         Modify DataFrame in place using non-NA values from passed
-        DataFrame. Aligns on indices
+        DataFrame.
+
+        Aligns on indices.
 
         Parameters
         ----------
         other : DataFrame, or object coercible into a DataFrame
+            Index should be similar to one of the columns in this one. If a
+            Series is passed, its name attribute must be set, and that will be
+            used as the column name in the resulting joined DataFrame.
         join : {'left'}, default 'left'
+            Indicates which column values overwrite.
         overwrite : boolean, default True
-            If True then overwrite values for common keys in the calling frame
+            If True then overwrite values for common keys in the calling frame.
         filter_func : callable(1d-array) -> 1d-array<boolean>, default None
             Can choose to replace values other than NA. Return True for values
-            that should be updated
+            that should be updated.
         raise_conflict : boolean
             If True, will raise an error if the DataFrame and other both
             contain data in the same place.
@@ -4276,6 +4282,14 @@ class DataFrame(NDFrame):
         0  1    4.0
         1  2  500.0
         2  3    6.0
+
+        See also
+        --------
+        DataFrame.merge : For column(s)-on-columns(s) operations
+
+        Returns
+        -------
+        updated : DataFrame
         """
         import pandas.core.computation.expressions as expressions
         # TODO: Support other joins
