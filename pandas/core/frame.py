@@ -5008,7 +5008,7 @@ class DataFrame(NDFrame):
         Apply a function to a Dataframe elementwise.
 
         This method applies a function to a DataFrame that is intended to
-        operate elementwise, i.e. like doing map(func, series) for each series
+        operate elementwise, i.e. like doing `map(func, series)` for each series
         in the DataFrame.
 
         Parameters
