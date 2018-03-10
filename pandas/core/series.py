@@ -1028,7 +1028,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        :meth:`pandas.DataFrame.reset_index`: Analogous function for DataFrame
+        pandas.DataFrame.reset_index: Analogous function for DataFrame
 
         Examples
         --------
@@ -1040,6 +1040,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         1   b  2
         2   c  3
         3   d  4
+
+        >>> s.reset_index(drop=True)
+        0    1
+        1    2
+        2    3
+        3    4
+        dtype: int64
 
         >>> arrays = [np.array(['bar', 'bar', 'baz', 'baz', 'foo',
         ...                     'foo', 'qux', 'qux']),
