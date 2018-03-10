@@ -4822,8 +4822,8 @@ class DataFrame(NDFrame):
         Apply a function along an axis of the DataFrame.
 
         Objects passed to the function are Series objects having as index
-        either the DataFrame's index (`axis=0`)
-        or the DataFrame's columns (`axis=1`).
+        either the DataFrame's index (``axis=0``)
+        or the DataFrame's columns (``axis=1``).
         If `result_type` is None, the final return type is the return
         type of the applied function.
         Otherwise, it depends on the `result_type` argument.
@@ -4873,7 +4873,7 @@ class DataFrame(NDFrame):
                by result_type='reduce'.
 
         result_type : {'expand', 'reduce', 'broadcast', None}
-            These only act when `axis=1` (columns):
+            These only act when ``axis=1`` (columns):
 
             * 'expand' : list-like results will be turned into columns.
             * 'reduce' : returns a Series if possible rather than expanding
