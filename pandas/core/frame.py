@@ -5592,22 +5592,58 @@ class DataFrame(NDFrame):
 
     def count(self, axis=0, level=None, numeric_only=False):
         """
-        Return Series with number of non-NA/null observations over requested
-        axis. Works with non-floating point data as well (detects NaN and None)
+        Count non-NA cells for each column or row.
+
+        Return Series with number of non-NA observations over requested
+        axis. Works with non-floating point data as well (detects `NaN` and
+        `None`)
 
         Parameters
         ----------
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            0 or 'index' for row-wise, 1 or 'columns' for column-wise
-        level : int or level name, default None
-            If the axis is a MultiIndex (hierarchical), count along a
-            particular level, collapsing into a DataFrame
+            If equal 0 or 'index' counts are generated for each column.
+            If equal 1 or 'columns' counts are generated for each row.
+        level : int or str, optional
+            If the axis is a `MultiIndex` (hierarchical), count along a
+            particular level, collapsing into a `DataFrame`.
+            A `str` specifies the level name.
         numeric_only : boolean, default False
-            Include only float, int, boolean data
+            Include only `float`, `int` or `boolean` data.
 
         Returns
         -------
-        count : Series (or DataFrame if level specified)
+        Series or DataFrame
+            For each column/row the number of non-NA/null entries.
+            If level is specified returns a `DataFrame`.
+
+        See Also
+        --------
+        Series.count: number of non-NA elements in a Series
+        DataFrame.shape: number of DataFrame rows and columns (including NA
+            elements)
+        DataFrame.isnull: boolean same-sized DataFrame showing places of NA
+            elements
+
+        Examples
+        --------
+        >>> df=pd.DataFrame({ "Person":["John","Myla",None],
+        ...                   "Age":[24.,np.nan,21.],
+        ...                   "Single":[False,True,True]     })
+        >>> df
+           Person   Age  Single
+        0    John  24.0   False
+        1    Myla   NaN    True
+        2    None  21.0    True
+        >>> df.count()
+        Person    2
+        Age       2
+        Single    3
+        dtype: int64
+        >>> df.count(axis=1)
+        0    3
+        1    2
+        2    2
+        dtype: int64
         """
         axis = self._get_axis_number(axis)
         if level is not None:
