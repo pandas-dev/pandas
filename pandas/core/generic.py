@@ -1913,16 +1913,19 @@ class NDFrame(PandasObject, SelectionMixin):
         --------
         >>> from sqlalchemy import create_engine
         >>> engine = create_engine('sqlite://', echo=False)
-        >>> df = pd.DataFrame({'name' : ['User 1', 'User 2', 'User 3']})
 
         **create a table from scratch with 3 rows**
+
+        >>> df = pd.DataFrame({'name' : ['User 1', 'User 2', 'User 3']})
         >>> df.to_sql('users', con=engine, if_exists='replace')
 
         **2 new rows inserted**
+
         >>> df1 = pd.DataFrame({'name' : ['User 4', 'User 5']})
         >>> df1.to_sql('users', con=engine, if_exists='append')
 
         **table will be recreated and 5 rows inserted**
+
         >>> df = pd.concat([df, df1], ignore_index=True)
         >>> df.to_sql('users', con=engine, if_exists='replace')
         >>> pd.read_sql_query("select * from users",con=engine)
