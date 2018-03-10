@@ -1922,13 +1922,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Examples
         --------
-        >>> s = pd.Series([np.nan, 1, 3, 5, 10])
+        >>> s = pd.Series([np.nan, 1, 3, 10, 5])
         >>> s
         0     NaN
         1     1.0
         2     3.0
-        3     5.0
-        4    10.0
+        3     10.0
+        4     5.0
         dtype: float64
 
         Sort values ascending order (default behaviour)
@@ -1936,16 +1936,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> s.sort_values(ascending=True)
         1     1.0
         2     3.0
-        3     5.0
-        4    10.0
+        4     5.0
+        3    10.0
         0     NaN
         dtype: float64
 
         Sort values descending order
 
         >>> s.sort_values(ascending=False)
-        4    10.0
-        3     5.0
+        3    10.0
+        4     5.0
         2     3.0
         1     1.0
         0     NaN
@@ -1955,8 +1955,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         >>> s.sort_values(ascending=False, inplace=True)
         >>> s
-        4    10.0
-        3     5.0
+        3    10.0
+        4     5.0
         2     3.0
         1     1.0
         0     NaN
@@ -1968,8 +1968,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         0     NaN
         1     1.0
         2     3.0
-        3     5.0
-        4    10.0
+        4     5.0
+        3    10.0
         dtype: float64
 
         Sort a series of strings
