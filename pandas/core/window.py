@@ -879,13 +879,58 @@ class _Rolling_and_Expanding(_Rolling):
                            ddof=ddof, **kwargs)
 
     _shared_docs['var'] = dedent("""
-    %(name)s variance
-
+    Calculate unbiased %(name)s variance.
+    
+    Normalized by N-1 by default. This can be changed using the ddof argument.
+    
     Parameters
     ----------
     ddof : int, default 1
         Delta Degrees of Freedom.  The divisor used in calculations
-        is ``N - ddof``, where ``N`` represents the number of elements.""")
+        is ``N - ddof``, where ``N`` represents the number of elements.
+    args
+        Under Review.
+    kwargs
+        Under Review.
+      
+    Returns
+    -------
+    Series or DataFrame
+        Returned object type is determined by the caller of the %(name)s
+        calculation
+        
+    See Also
+    --------
+    Series.%(name)s : Calling object with Series data
+    DataFrame.%(name)s : Calling object with DataFrames
+    Series.var : Equivalent method for Series
+    DataFrame.var : Equivalent method for DataFrame
+    numpy.var : Equivalent method for Numpy array
+    
+    Notes
+    -----
+    A minimum of 1 periods is required for the rolling calculation.
+      
+    Examples
+    --------
+    The below example will show a rolling example 
+    
+    >>> s = pd.Series((5,5,5,5,6,7,9,10,5,5,5,5))
+    >>> s.rolling(3).var(1)
+    0          NaN
+    1          NaN
+    2     0.000000
+    3     0.000000
+    4     0.333333
+    5     1.000000
+    6     2.333333
+    7     2.333333
+    8     7.000000
+    9     8.333333
+    10    0.000000
+    11    0.000000
+    dtype: float64
+    """)
 
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_window_func('var', args, kwargs)
@@ -1257,7 +1302,6 @@ class Rolling(_Rolling_and_Expanding):
         return super(Rolling, self).std(ddof=ddof, **kwargs)
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['var'])
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_rolling_func('var', args, kwargs)
@@ -1496,7 +1540,6 @@ class Expanding(_Rolling_and_Expanding):
         return super(Expanding, self).std(ddof=ddof, **kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['var'])
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_expanding_func('var', args, kwargs)
