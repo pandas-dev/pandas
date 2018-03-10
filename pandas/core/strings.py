@@ -644,7 +644,6 @@ def str_extract(arr, pat, flags=0, expand=True):
         Regular expression pattern with capturing groups.
     flags : int, default 0 (no flags)
         Re module flags, e.g. re.IGNORECASE.
-
     expand : bool, default True
         If True, return DataFrame, else return Series/Index/DataFrame.
         
