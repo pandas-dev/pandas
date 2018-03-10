@@ -967,7 +967,8 @@ class IndexOpsMixin(object):
         1.0    1
         dtype: int64
 
-        With `normalize` set to `True`, returns the relative frequency by dividing all values by the sum of values.
+        With `normalize` set to `True`, returns the relative frequency by
+        dividing all values by the sum of values.
 
         >>> s = pd.Series([3, 1, 2, 3, 4, np.nan])
         >>> s.value_counts(normalize=True)
@@ -979,8 +980,10 @@ class IndexOpsMixin(object):
 
         **bins**
 
-        Bins can be useful for going from a continuous variable to a categorical variable; instead of counting unique
-        apparitions of values, divide the index in the specified number of half-open bins.
+        Bins can be useful for going from a continuous variable to a
+        categorical variable; instead of counting unique
+        apparitions of values, divide the index in the specified
+        number of half-open bins.
 
         >>> s.value_counts(bins=3)
         (2.0, 3.0]      2
