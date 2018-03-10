@@ -2025,10 +2025,10 @@ class Index(IndexOpsMixin, PandasObject):
         Detect missing values.
 
         Return a boolean same-sized object indicating if the values are NA.
-        NA values, such as None or :attr:`numpy.NaN`, get mapped to True
-        values.
-        Everything else get mapped to False values. Characters such as empty
-        strings `''` or :attr:`numpy.inf` are not considered NA values
+        NA values, such as ``None``, :attr:`numpy.NaN` or :attr:`pd.NaT`, get
+        mapped to ``True`` values.
+        Everything else get mapped to ``False`` values. Characters such as
+        empty strings `''` or :attr:`numpy.inf` are not considered NA values
         (unless you set :attr:`pandas.options.mode.use_inf_as_na` `= True`).
 
         .. versionadded:: 0.20.0
@@ -2038,12 +2038,13 @@ class Index(IndexOpsMixin, PandasObject):
         numpy.ndarray
             A boolean array of whether my values are NA
 
-        See also
+        See Also
         --------
         pandas.Index.isnull : alias of isna
         pandas.Index.notna : boolean inverse of isna
         pandas.Index.dropna : omit entries with missing values
         pandas.isna : top-level isna
+        Series.isna : detect missing values in Series object
 
         Examples
         --------
@@ -2064,6 +2065,16 @@ class Index(IndexOpsMixin, PandasObject):
         Index(['black', '', 'red', None], dtype='object')
         >>> idx.isna()
         array([False, False, False,  True])
+
+        In pandas.DatetimeIndex, a `NaT` value is considered as a NA value.
+
+        >>> idx = pd.DatetimeIndex([pd.Timestamp('1940-04-25'),
+        ...                         pd.Timestamp(''), None, pd.NaT])
+        >>> idx
+        DatetimeIndex(['1940-04-25', 'NaT', 'NaT', 'NaT'],
+                      dtype='datetime64[ns]', freq=None)
+        >>> idx.isna()
+        array([False,  True,  True,  True])
         """
         return self._isnan
     isnull = isna
