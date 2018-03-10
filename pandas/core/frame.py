@@ -906,7 +906,7 @@ class DataFrame(NDFrame):
         See Also
         --------
         pandas.DataFrame.from_records : DataFrame from ndarray (structured dtype),
-                                        list of tuples, dict, or DataFrame
+            list of tuples, dict, or DataFrame
         pandas.DataFrame: DataFrame object creation using constructor
 
         Returns
