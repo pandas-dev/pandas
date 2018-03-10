@@ -1736,8 +1736,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         See Also
         --------
-        is_month_end : Returns a boolean indicating if the date is the last day
-        of the month.
+        is_month_end : Returns a boolean indicating if the date is the last day 
+                       of the month.
 
         Examples
         --------
