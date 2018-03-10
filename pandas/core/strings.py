@@ -646,7 +646,7 @@ def str_extract(arr, pat, flags=0, expand=True):
         Re module flags, e.g. re.IGNORECASE.
     expand : bool, default True
         If True, return DataFrame, else return Series/Index/DataFrame.
-        
+
         .. versionadded:: 0.18.0.
 
     Returns
