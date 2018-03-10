@@ -1932,13 +1932,9 @@ class _iAtIndexer(_ScalarAccessIndexer):
     loc : Selects a group of rows and columns by label(s)
     iloc : Selects group of rows and columns by integer position(s)
 
-    Returns
-    -------
-        None
-
     Examples
     --------
-    >>> df = pd.DataFrame([[0,2,3], [0,4,1], [10,20,30]])
+    >>> df = pd.DataFrame([[0, 2, 3], [0, 4, 1], [10, 20, 30]])
     >>> df
         0   1   2
     0   0   2   3
