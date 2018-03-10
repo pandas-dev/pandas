@@ -16,6 +16,7 @@ import pandas.util.testing as tm
 from pandas.tests.series.common import TestData
 from pandas._libs.tslib import iNaT
 from pandas._libs.algos import Infinity, NegInfinity
+from itertools import chain
 
 
 class TestSeriesRank(TestData):
@@ -263,8 +264,9 @@ class TestSeriesRank(TestData):
         chunk = 3
         disabled = set([('object', 'first')])
 
-        def _check(s, expected, method='average', na_option='keep'):
-            result = s.rank(method=method, na_option=na_option)
+        def _check(s, expected, method='average', na_option='keep', ascending=True):
+            expected = list(chain.from_iterable(expected))
+            result = s.rank(method=method, na_option=na_option, ascending=ascending)
             tm.assert_series_equal(result, Series(expected, dtype='float64'))
 
         exp_ranks = {
@@ -283,12 +285,13 @@ class TestSeriesRank(TestData):
                 if (dtype, method) in disabled:
                     continue
                 if na_opt == 'top':
-                    order = ranks[1] + ranks[0] + ranks[2]
+                    order = [ranks[1], ranks[0], ranks[2]]
                 elif na_opt == 'bottom':
-                    order = ranks[0] + ranks[2] + ranks[1]
+                    order = [ranks[0], ranks[2], ranks[1]]
                 else:
-                    order = ranks[0] + [np.nan] * chunk + ranks[1]
-                _check(iseries, order, method, na_opt)
+                    order = [ranks[0], [np.nan] * chunk, ranks[1]]
+                _check(iseries, order, method, na_opt, True)
+                _check(iseries, order[::-1], method, na_opt, False)
 
     def test_rank_methods_series(self):
         pytest.importorskip('scipy.stats.special')
