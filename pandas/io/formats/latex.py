@@ -7,8 +7,8 @@ from __future__ import print_function
 
 from pandas.core.index import MultiIndex
 from pandas import compat
-from pandas.compat import (range, map, zip, u)
-from pandas.io.formats.common import TableFormatter
+from pandas.compat import range, map, zip, u
+from pandas.io.formats.format import TableFormatter
 import numpy as np
 
 

@@ -15,6 +15,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_interval_dtype,
     is_datetimetz,
+    is_integer,
     is_float,
     is_scalar,
     is_numeric_dtype,
@@ -28,16 +29,11 @@ from pandas.core.index import Index, MultiIndex, _ensure_index
 from pandas import compat
 from pandas.compat import (StringIO, lzip, map, zip, u)
 
-from pandas.io.formats.html_format import HTMLFormatter
-from pandas.io.formats.latex_format import LatexFormatter
-from pandas.io.formats.csv_format import CSVFormatter
-
 from pandas.io.formats.terminal import get_terminal_size
 from pandas.core.config import get_option, set_option
 from pandas.io.common import (_expand_user, _stringify_path)
 from pandas.io.formats.printing import adjoin, justify, pprint_thing
 from pandas._libs import lib
-from pandas.io.formats.common import TableFormatter
 
 from pandas._libs.tslib import (iNaT, Timestamp, Timedelta,
                                 format_array_from_datetime)
@@ -350,6 +346,28 @@ def _get_adjustment():
         return EastAsianTextAdjustment()
     else:
         return TextAdjustment()
+
+
+class TableFormatter(object):
+
+    is_truncated = False
+    show_dimensions = None
+
+    @property
+    def should_show_dimensions(self):
+        return (self.show_dimensions is True or
+                (self.show_dimensions == 'truncate' and self.is_truncated))
+
+    def _get_formatter(self, i):
+        if isinstance(self.formatters, (list, tuple)):
+            if is_integer(i):
+                return self.formatters[i]
+            else:
+                return None
+        else:
+            if is_integer(i) and i not in self.columns:
+                i = self.columns[i]
+            return self.formatters.get(i, None)
 
 
 class DataFrameFormatter(TableFormatter):
@@ -676,6 +694,7 @@ class DataFrameFormatter(TableFormatter):
         Render a DataFrame to a LaTeX tabular/longtable environment output.
         """
 
+        from pandas.io.formats.latex import LatexFormatter
         latex_renderer = LatexFormatter(self, column_format=column_format,
                                         longtable=longtable,
                                         multicolumn=multicolumn,
@@ -720,6 +739,7 @@ class DataFrameFormatter(TableFormatter):
 
             .. versionadded:: 0.19.0
          """
+        from pandas.io.formats.html import HTMLFormatter
         html_renderer = HTMLFormatter(self, classes=classes,
                                       max_rows=self.max_rows,
                                       max_cols=self.max_cols,

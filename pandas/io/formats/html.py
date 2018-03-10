@@ -15,8 +15,9 @@ from pandas.compat import (lzip, range, map, zip, u,
                            OrderedDict, unichr)
 from pandas.core.config import get_option
 from pandas.io.formats.printing import pprint_thing
-from pandas.io.formats.common import (get_level_lengths,
-                                      TableFormatter, buffer_put_lines)
+from pandas.io.formats.common import (
+    get_level_lengths, buffer_put_lines)
+from pandas.io.formats.format import TableFormatter
 
 
 class HTMLFormatter(TableFormatter):
