@@ -7168,6 +7168,10 @@ class NDFrame(PandasObject, SelectionMixin):
         0    4   10  100
         2    6   30  -30
         3    7   40  -50
+
+        See Also
+        --------
+        numpy.absolute
         """
         return np.abs(self)
 
