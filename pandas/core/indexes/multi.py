@@ -208,8 +208,8 @@ class MultiIndex(Index):
     rename = Index.set_names
 
     def __new__(cls, levels=None, labels=None, sortorder=None, names=None,
-                copy=False, verify_integrity=True, _set_identity=True,
-                name=None, **kwargs):
+                dtype=None, copy=False, name=None,
+                verify_integrity=True, _set_identity=True):
 
         # compat with Index
         if name is not None:

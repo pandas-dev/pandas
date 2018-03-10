@@ -197,10 +197,9 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
     freq = None
 
-    def __new__(cls, data=None, unit=None,
-                freq=None, start=None, end=None, periods=None,
-                copy=False, name=None,
-                closed=None, verify_integrity=True, **kwargs):
+    def __new__(cls, data=None, unit=None, freq=None, start=None, end=None,
+                periods=None, closed=None, dtype=None, copy=False,
+                name=None, verify_integrity=True):
 
         if isinstance(data, TimedeltaIndex) and freq is None and name is None:
             if copy:

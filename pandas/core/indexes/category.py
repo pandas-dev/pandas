@@ -76,7 +76,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     _attributes = ['name']
 
     def __new__(cls, data=None, categories=None, ordered=None, dtype=None,
-                copy=False, name=None, fastpath=False, **kwargs):
+                copy=False, name=None, fastpath=False):
 
         if fastpath:
             return cls._simple_new(data, name=name, dtype=dtype)

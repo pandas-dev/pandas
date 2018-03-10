@@ -1539,16 +1539,16 @@ def makeUnicodeIndex(k=10, name=None):
     return Index(randu_array(nchars=10, size=k), name=name)
 
 
-def makeCategoricalIndex(k=10, n=3, name=None):
+def makeCategoricalIndex(k=10, n=3, name=None, **kwargs):
     """ make a length k index or n categories """
     x = rands_array(nchars=4, size=n)
-    return CategoricalIndex(np.random.choice(x, k), name=name)
+    return CategoricalIndex(np.random.choice(x, k), name=name, **kwargs)
 
 
-def makeIntervalIndex(k=10, name=None):
+def makeIntervalIndex(k=10, name=None, **kwargs):
     """ make a length k IntervalIndex """
     x = np.linspace(0, 100, num=(k + 1))
-    return IntervalIndex.from_breaks(x, name=name)
+    return IntervalIndex.from_breaks(x, name=name, **kwargs)
 
 
 def makeBoolIndex(k=10, name=None):
@@ -1567,8 +1567,8 @@ def makeUIntIndex(k=10, name=None):
     return Index([2**63 + i for i in lrange(k)], name=name)
 
 
-def makeRangeIndex(k=10, name=None):
-    return RangeIndex(0, k, 1, name=name)
+def makeRangeIndex(k=10, name=None, **kwargs):
+    return RangeIndex(0, k, 1, name=name, **kwargs)
 
 
 def makeFloatIndex(k=10, name=None):
@@ -1576,20 +1576,26 @@ def makeFloatIndex(k=10, name=None):
     return Index(values * (10 ** np.random.randint(0, 9)), name=name)
 
 
-def makeDateIndex(k=10, freq='B', name=None):
+def makeDateIndex(k=10, freq='B', name=None, **kwargs):
     dt = datetime(2000, 1, 1)
     dr = bdate_range(dt, periods=k, freq=freq, name=name)
-    return DatetimeIndex(dr, name=name)
+    return DatetimeIndex(dr, name=name, **kwargs)
 
 
-def makeTimedeltaIndex(k=10, freq='D', name=None):
-    return TimedeltaIndex(start='1 day', periods=k, freq=freq, name=name)
+def makeTimedeltaIndex(k=10, freq='D', name=None, **kwargs):
+    return TimedeltaIndex(start='1 day', periods=k, freq=freq,
+                          name=name, **kwargs)
 
 
-def makePeriodIndex(k=10, name=None):
+def makePeriodIndex(k=10, name=None, **kwargs):
     dt = datetime(2000, 1, 1)
-    dr = PeriodIndex(start=dt, periods=k, freq='B', name=name)
+    dr = PeriodIndex(start=dt, periods=k, freq='B', name=name, **kwargs)
     return dr
+
+
+def makeMultiIndex(k=10, names=None, **kwargs):
+    return MultiIndex.from_product(
+        (('foo', 'bar'), (1, 2)), names=names, **kwargs)
 
 
 def all_index_generator(k=10):
@@ -1607,6 +1613,17 @@ def all_index_generator(k=10):
                             makeCategoricalIndex]
     for make_index_func in all_make_index_funcs:
         yield make_index_func(k=k)
+
+
+def index_subclass_makers_generator():
+    make_index_funcs = [
+        makeDateIndex, makePeriodIndex,
+        makeTimedeltaIndex, makeRangeIndex,
+        makeIntervalIndex, makeCategoricalIndex,
+        makeMultiIndex
+    ]
+    for make_index_func in make_index_funcs:
+        yield make_index_func
 
 
 def all_timeseries_index_generator(k=10):
