@@ -124,8 +124,7 @@ _apply_docs = dict(
     --------
     pipe : Apply function to the full GroupBy object instead of to each
         group.
-    aggregate : 
-    transform : 
+    aggregate, transform
     """,
     dataframe_examples="""
     >>> df = pd.DataFrame({'A': 'a a b'.split(), 'B': [1,2,3], 'C': [4,6, 5]})
@@ -138,7 +137,7 @@ _apply_docs = dict(
     its argument and returns a dataframe. ``apply`` combines the result for
     each group together into a new dataframe:
 
-    >>> g[['B','C']].apply(lambda x: x / x.sum()) 
+    >>> g[['B','C']].apply(lambda x: x / x.sum())
               B    C
     0  0.333333  0.4
     1  0.666667  0.6
@@ -148,7 +147,7 @@ _apply_docs = dict(
     its argument and returns a series.  ``apply`` combines the result for
     each group together into a new dataframe:
 
-    >>> g[['B','C']].apply(lambda x: x.max() - x.min()) 
+    >>> g[['B','C']].apply(lambda x: x.max() - x.min())
        B  C
     A
     a  1  2
