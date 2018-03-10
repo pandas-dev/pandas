@@ -1002,14 +1002,16 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def reset_index(self, level=None, drop=False, name=None, inplace=False):
         """
-        Reset the index of the Series.
+        Generate a new DataFrame with columns containing the data and 
+        the index of the original Series, or, if drop is True, 
+        a Series with numeric index.
         
-        For an Index, the index name will be used (if set), 
-        otherwise a default index or level_0 (if index is already taken) 
-        will be used.
-        For a MultiIndex, return a new Series with labeling
-        information in the columns under the index names, defaulting to
-        level_0, level_1, etc. if any are None. 
+        For an Index Series, the results is a two-column DataFrame with 
+        index tourned in column.
+        For a MultiIndex Series, the results is a multi-column 
+        DataFrame with each level being turned into a column.
+        The new columns will be named level_n (with n increasing frm 0) 
+        if the name is None. 
 
         Parameters
         ----------
@@ -1025,7 +1027,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         ----------
-        reset : DataFrame, or Series if `drop == True`
+        reset : DataFrame, or Series if drop == True
 
         See Also
         --------
@@ -1034,12 +1036,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Examples
         --------
 
-        Generate a pandas.Series with a given Index.
+        Generate a pandas.Series.
 
         >>> s = pd.Series([1, 2, 3, 4], index=pd.Index(['a', 'b', 'c', 'd'],
         ...                                            name = 'idx'))
 
-        To generate a pandas.DataFrame with resetted index, 
+        To generate a pandas.DataFrame with default index, 
         call the reset_index() method.
 
         >>> s.reset_index()
@@ -1059,7 +1061,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2   c       3
         3   d       4
 
-        To generate a new pandas.Series with the resetted
+        To generate a new pandas.Series with the default
         index, set the drop parameter to True.
 
         >>> s.reset_index(drop=True)
