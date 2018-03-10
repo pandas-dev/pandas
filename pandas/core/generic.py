@@ -5661,22 +5661,57 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return copy of the input with values below given value(s) truncated.
 
+        It truncate values below a certain threshold. Threshold can be a single
+        value or an array, in the latter case it performs the truncation element-wise.
+
         Parameters
         ----------
         threshold : float or array_like
+            Minimum value allowed. All values below threshold will be
+            set to this value.
         axis : int or string axis name, optional
             Align object with threshold along the given axis.
         inplace : boolean, default False
-            Whether to perform the operation in place on the data
-                .. versionadded:: 0.21.0
+            Whether to perform the operation in place on the data.
 
         See Also
         --------
-        clip
+        clip : Return copy of the input with values below and over given thresholds values truncated.
 
         Returns
         -------
         clipped : same type as input
+
+        Examples
+        --------
+        >>> s = pd.Series([3.816052, 7.969235, 6.903116, 2.532261, 5.015296])
+        >>> s
+        0    3.816052
+        1    7.969235
+        2    6.903116
+        3    2.532261
+        4    5.015296
+        dtype: float64
+
+        >>> s.clip_lower(4)
+        0    4.000000
+        1    7.969235
+        2    6.903116
+        3    4.000000
+        4    5.015296
+        dtype: float64
+
+        >>> t = [4,8,7,2,5]
+        >>> t
+        [4, 8, 7, 2, 5]
+
+        >>> s.clip_lower(t)
+        0    4.000000
+        1    8.000000
+        2    7.000000
+        3    2.532261
+        4    5.015296
+        dtype: float64
         """
         return self._clip_with_one_bound(threshold, method=self.ge,
                                          axis=axis, inplace=inplace)
