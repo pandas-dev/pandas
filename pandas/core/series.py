@@ -2778,7 +2778,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         --------
 
         >>> s = pd.Series(['lama', 'cow', 'lama', 'beetle', 'lama',
-        ...               'hippo'], name='animal')
+        ...                'hippo'], name='animal')
         >>> s.isin(['cow', 'lama'])
         0     True
         1     True
