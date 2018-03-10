@@ -4079,6 +4079,7 @@ class DataFrame(NDFrame):
         Examples
         --------
         Combine using a simple function that chooses the smaller column.
+
         >>> from pandas import DataFrame
         >>> df1 = DataFrame({'A': [0, 0], 'B': [4, 4]})
         >>> df2 = DataFrame({'A': [1, 1], 'B': [3, 3]})
@@ -4126,6 +4127,7 @@ class DataFrame(NDFrame):
         2  NaN  3.0  1.0
 
         Demonstrating the preference of the passed in dataframe.
+
         >>> df2 = DataFrame({'B': [3, 3], 'C': [1, 1],}, index=[1, 2])
         >>> df2.combine(df1, take_smaller)
            A    B   C
@@ -4241,6 +4243,7 @@ class DataFrame(NDFrame):
         --------
 
         df1's values prioritized, use values from df2 to fill holes:
+
         >>> from pandas import DataFrame
         >>> df1 = DataFrame({'A': [None, 0], 'B': [None, 4]})
         >>> df2 = DataFrame({'A': [1, 1], 'B': [3, 3]})
