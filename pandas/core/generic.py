@@ -1880,7 +1880,6 @@ class NDFrame(PandasObject, SelectionMixin):
             Specify the schema (if database flavor supports this). If None, use
             default schema.
         if_exists : {'fail', 'replace', 'append'}, default 'fail'
-            Accepted values:
             - fail: If table exists, do nothing.
             - replace: If table exists, drop it, recreate it, and insert data.
             - append: If table exists, insert data. Create if does not exist.
