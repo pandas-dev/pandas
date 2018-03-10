@@ -1945,11 +1945,11 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                        '2014-08-01 11:00:00'],
                         dtype='datetime64[ns]', freq='H')
 
-        >>> dti.tz_localize('Europe/Berlin').tz_convert('US/Eastern')
-        DatetimeIndex(['2014-08-01 03:00:00-04:00',
-                       '2014-08-01 04:00:00-04:00',
-                       '2014-08-01 05:00:00-04:00'],
-                        dtype='datetime64[ns, US/Eastern]', freq='H')
+        >>> dti.tz_localize('Europe/Berlin')
+        DatetimeIndex(['2014-08-01 09:00:00+02:00',
+                       '2014-08-01 10:00:00+02:00',
+                       '2014-08-01 11:00:00+02:00'],
+                        dtype='datetime64[ns, Europe/Berlin]', freq='H')
 
         With the `None` parameter, we can remove the timezone:
 
