@@ -30,7 +30,7 @@ from pandas.core.accessor import DirNamesMixin
 
 _shared_docs = dict()
 _indexops_doc_kwargs = dict(klass='IndexOpsMixin', inplace='',
-                            unique='IndexOpsMixin', duplicated='IndexOpsMixin')
+                            unique='IndexOpsMixin')
 
 
 class StringMixin(object):
@@ -1215,24 +1215,6 @@ class IndexOpsMixin(object):
         else:
             return result
 
-    _shared_docs['duplicated'] = (
-        """Return boolean %(duplicated)s denoting duplicate values
-
-        Parameters
-        ----------
-        keep : {'first', 'last', False}, default 'first'
-            - ``first`` : Mark duplicates as ``True`` except for the first
-              occurrence.
-            - ``last`` : Mark duplicates as ``True`` except for the last
-              occurrence.
-            - False : Mark all duplicates as ``True``.
-
-        Returns
-        -------
-        duplicated : %(duplicated)s
-        """)
-
-    @Appender(_shared_docs['duplicated'] % _indexops_doc_kwargs)
     def duplicated(self, keep='first'):
         """
         Indicate duplicate Series values 
