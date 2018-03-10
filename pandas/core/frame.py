@@ -1851,7 +1851,10 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = pd.DataFrame({"int_col": [1, 2, 3, 4, 5], "text_col": ['alpha', 'beta', 'gamma', 'delta', 'epsilon'], "float_col": [0.0, 0.25, 0.5, 0.75, 1.0]})
+        >>> int_values = [1, 2, 3, 4, 5]
+        >>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon']
+        >>> float_values = [0.0, 0.25, 0.5, 0.75, 1.0]
+        >>> df = pd.DataFrame({"int_col": int_values, "text_col": text_values, "float_col": float_values})
         >>> df
            int_col text_col  float_col
         0        1    alpha       0.00
