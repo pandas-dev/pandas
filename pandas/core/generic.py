@@ -5673,7 +5673,8 @@ class NDFrame(PandasObject, SelectionMixin):
         axis : int or string axis name, optional
             Align object with threshold along the given axis.
         inplace : boolean, default False
-            Whether to perform the operation in place on the data.
+            Whether to perform the operation in place on the data
+                .. versionadded:: 0.21.0.
 
         See Also
         --------
@@ -5685,34 +5686,34 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> s = pd.Series([3.816052, 7.969235, 6.903116, 2.532261, 5.015296])
+        >>> s = pd.Series([5, 6, 7, 8, 9])
         >>> s
-        0    3.816052
-        1    7.969235
-        2    6.903116
-        3    2.532261
-        4    5.015296
-        dtype: float64
+        0    5
+        1    6
+        2    7
+        3    8
+        4    9
+        dtype: int64
 
         >>> s.clip_lower(4)
-        0    4.000000
-        1    7.969235
-        2    6.903116
-        3    4.000000
-        4    5.015296
-        dtype: float64
+        0    5
+        1    6
+        2    7
+        3    8
+        4    9
+        dtype: int64
 
         >>> t = [4,8,7,2,5]
         >>> t
         [4, 8, 7, 2, 5]
 
         >>> s.clip_lower(t)
-        0    4.000000
-        1    8.000000
-        2    7.000000
-        3    2.532261
-        4    5.015296
-        dtype: float64
+        0    5
+        1    8
+        2    7
+        3    8
+        4    9
+        dtype: int64
         """
         return self._clip_with_one_bound(threshold, method=self.ge,
                                          axis=axis, inplace=inplace)
