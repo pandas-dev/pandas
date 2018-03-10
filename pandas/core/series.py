@@ -1004,15 +1004,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Reset the index of the Serie.
 
-        For a Serie with multi-level index, return a new Serie with labeling
+        For a Series with multi-level index, return a new Series with labeling
         information in the columns under the index names, defaulting to
-        ‘level_0’, ‘level_1’, etc. if any are None. For a standard index,
+        `level_0`, `level_1`, etc. if any are None. For a standard index,
         the index name will be used (if set), otherwise a default
-        ‘index’ or ‘level_0’ (if ‘index’ is already taken) will be used.
+        `index` or `level_0` (if `index` is already taken) will be used.
 
         Parameters
         ----------
-        level : `int`, `str`, `tuple`, or `list`, default `None`
+        level : int, str, tuple, or list, default `None`
             Only remove the given levels from the index. Removes all levels by
             default.
         drop : `boolean`, default `False`
@@ -1028,7 +1028,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        :meth:`pandas.DataFrame.reset_index`: Analogous funciton for DataFrame
+        :meth:`pandas.DataFrame.reset_index`: Analogous function for DataFrame
 
         Examples
         --------
