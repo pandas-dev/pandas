@@ -1082,20 +1082,25 @@ class Categorical(ExtensionArray, PandasObject):
 
     def map(self, mapper):
         """
-        Apply mapper function to its categories (not codes).
+        Map categories (not codes) using input correspondence (a dict,
+        Series, or function).
+
+        Maps the categories to new categories. If the mapping
+        correspondence maps each original category to a different new category
+        the result is a Categorical which has the same order property as
+        the original, otherwise an np.ndarray is returned.
+
+        If a dictionary or Series is used and any unmapped category is mapped
+        to NA. Note that if this happens an np.ndarray will be returned.
 
         Parameters
         ----------
         mapper : callable
-            Function to be applied. When all categories are mapped
-            to different categories, the result will be Categorical which has
-            the same order property as the original. Otherwise, the result will
-            be np.ndarray.
+            Function to be applied.
 
         Returns
         -------
         applied : Categorical or Index.
-
         """
         new_categories = self.categories.map(mapper)
         try:
