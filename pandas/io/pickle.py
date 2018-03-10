@@ -16,7 +16,7 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
     ----------
     obj : any object
     path : string
-        File path
+        File path where the pickled pandas object will be stored.
     compression : {'infer', 'gzip', 'bz2', 'xz', None}, default 'infer'
         a string representing the compression to use in the output file
 
@@ -33,7 +33,25 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
         .. [1] https://docs.python.org/3/library/pickle.html
         .. versionadded:: 0.21.0
 
-
+    Examples
+    --------
+    >>> original_df = DataFrame({"foo": range(5), "bar": range(5, 10)})
+    >>> original_df
+       bar  foo
+    0    5    0
+    1    6    1
+    2    7    2
+    3    8    3
+    4    9    4
+    >>> original_df.to_pickle("./dummy.pkl")
+    >>> unpickled_df = read_pickle("./dummy.pkl")
+    >>> unpickled_df
+       bar  foo
+    0    5    0
+    1    6    1
+    2    7    2
+    3    8    3
+    4    9    4
     """
     path = _stringify_path(path)
     inferred_compression = _infer_compression(path, compression)
@@ -60,7 +78,7 @@ def read_pickle(path, compression='infer'):
     Parameters
     ----------
     path : string
-        File path
+        File path where the pickled object will be loaded.
     compression : {'infer', 'gzip', 'bz2', 'xz', 'zip', None}, default 'infer'
         For on-the-fly decompression of on-disk data. If 'infer', then use
         gzip, bz2, xz or zip if path ends in '.gz', '.bz2', '.xz',
@@ -72,6 +90,26 @@ def read_pickle(path, compression='infer'):
     Returns
     -------
     unpickled : type of object stored in file
+
+    Examples
+    --------
+    >>> original_df = DataFrame({"foo": range(5), "bar": range(5, 10)})
+    >>> original_df
+       bar  foo
+    0    5    0
+    1    6    1
+    2    7    2
+    3    8    3
+    4    9    4
+    >>> original_df.to_pickle("./dummy.pkl")
+    >>> unpickled_df = read_pickle("./dummy.pkl")
+    >>> unpickled_df
+       bar  foo
+    0    5    0
+    1    6    1
+    2    7    2
+    3    8    3
+    4    9    4
     """
     path = _stringify_path(path)
     inferred_compression = _infer_compression(path, compression)
