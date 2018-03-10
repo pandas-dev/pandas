@@ -2353,6 +2353,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self
 
     _agg_doc = dedent("""
+    Notes
+    -----
+    The only possible value for axis is 0 or 'index' because
+    :class:`~pandas.Series` has only one axis.
+
+    `agg` is an alias for `aggregate`. Use the alias.
+
     Examples
     --------
 

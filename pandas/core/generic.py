@@ -3929,36 +3929,38 @@ class NDFrame(PandasObject, SelectionMixin):
         return com._pipe(self, func, *args, **kwargs)
 
     _shared_docs['aggregate'] = ("""
-    Aggregate using callable, string, dict, or list of string/callables
+    Aggregate using one or multiple operations along the specified axis.
 
     %(versionadded)s
 
     Parameters
     ----------
-    func : callable, string, dictionary, or list of string/callables
+    func : function, string, dictionary, or list of string/functions
         Function to use for aggregating the data. If a function, must either
         work when passed a %(klass)s or when passed to %(klass)s.apply. For
         a DataFrame, can pass a dict, if the keys are DataFrame column names.
 
-        Accepted Combinations are:
+        Accepted combinations are:
 
-        - string function name
-        - function
-        - list of functions
-        - dict of column names -> functions (or list of functions)
-
-    Notes
-    -----
-    Numpy functions mean/median/prod/sum/std/var are special cased so the
-    default behavior is applying the function along axis=0
-    (e.g., np.mean(arr_2d, axis=0)) as opposed to
-    mimicking the default Numpy behavior (e.g., np.mean(arr_2d)).
-
-    `agg` is an alias for `aggregate`. Use the alias.
+        - string function name.
+        - function.
+        - list of functions.
+        - dict of column names -> functions (or list of functions).
+    axis : {0 or 'index', 1 or 'columns'}, default 0
+        - 0 or 'index': apply function to each column.
+        - 1 or 'columns': apply function to each row.
+    args
+        Optional positional arguments to pass to the function.
+    kwargs
+        Optional keyword arguments to pass to the function.
 
     Returns
     -------
     aggregated : %(klass)s
+
+    Notes
+    -----
+    `agg` is an alias for `aggregate`. Use the alias.
     """)
 
     _shared_docs['transform'] = ("""
@@ -4006,7 +4008,6 @@ class NDFrame(PandasObject, SelectionMixin):
     --------
     pandas.%(klass)s.aggregate
     pandas.%(klass)s.apply
-
     """)
 
     # ----------------------------------------------------------------------

@@ -4764,36 +4764,49 @@ class DataFrame(NDFrame):
         return self[key]
 
     _agg_doc = dedent("""
+    Notes
+    -----
+    The default behavior of aggregating over the axis 0 is different from
+    `numpy` functions `mean`/`median`/`prod`/`sum`/`std`/`var`, where the
+    default is to compute the aggregation of the flattened array (e.g.,
+    `numpy.mean(arr_2d)` as opposed to `numpy.mean(arr_2d, axis=0)`).
+
+    `agg` is an alias for `aggregate`. Use the alias.
+
     Examples
     --------
 
-    >>> df = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'],
-    ...                   index=pd.date_range('1/1/2000', periods=10))
-    >>> df.iloc[3:7] = np.nan
+    >>> df = df = pd.DataFrame([[1,2,3],
+    ...                         [4,5,6],
+    ...                         [7,8,9],
+    ...                         [np.nan, np.nan, np.nan]],
+    ...                        columns=['A', 'B', 'C'])
 
     Aggregate these functions across all columns
 
-    >>> df.agg(['sum', 'min'])
-                A         B         C
-    sum -0.182253 -0.614014 -2.909534
-    min -1.916563 -1.460076 -1.568297
+    >>> df.aggregate(['sum', 'min'])
+            A     B     C
+    sum  12.0  15.0  18.0
+    min   1.0   2.0   3.0
 
     Different aggregations per column
 
-    >>> df.agg({'A' : ['sum', 'min'], 'B' : ['min', 'max']})
-                A         B
-    max       NaN  1.514318
-    min -1.916563 -1.460076
-    sum -0.182253       NaN
+    >>> df.aggregate({'A' : ['sum', 'min'], 'B' : ['min', 'max']})
+            A    B
+    max   NaN  8.0
+    min   1.0  2.0
+    sum  12.0  NaN
 
     See also
     --------
-    pandas.DataFrame.apply
-    pandas.DataFrame.transform
-    pandas.DataFrame.groupby.aggregate
-    pandas.DataFrame.resample.aggregate
-    pandas.DataFrame.rolling.aggregate
-
+    pandas.DataFrame.apply : Perform any type of operations.
+    pandas.DataFrame.transform : Perform transformation type operations.
+    pandas.DataFrame.groupby.aggregate : Perform aggregation type operations
+        over groups.
+    pandas.DataFrame.resample.aggregate : Perform aggregation type operations
+        over resampled bins.
+    pandas.DataFrame.rolling.aggregate : Perform aggregation type operations
+        over rolling window.
     """)
 
     @Appender(_agg_doc)
