@@ -2316,16 +2316,36 @@ class Index(IndexOpsMixin, PandasObject):
 
     def argsort(self, *args, **kwargs):
         """
-        Returns the indices that would sort the index and its
-        underlying data.
+        Return the order of the indices that would sort the index.
+
+        Parameters
+        ----------
+        *args
+            Passed to `numpy.ndarray.argsort`.
+        **kwargs
+            Passed to `numpy.ndarray.argsort`.
 
         Returns
         -------
-        argsorted : numpy array
+        numpy.ndarray
+            Argsorted indices of the index
 
         See also
         --------
-        numpy.ndarray.argsort
+        numpy.ndarray.argsort : Similar method for NumPy arrays.
+        pd.Index.sort_values : Return sorted copy of Index
+
+        Examples
+        --------
+        >>> pd.Index(['b','a','d','c']).argsort()
+        array([1, 0, 3, 2], dtype=int64)
+
+        When applying argsort to a Series object then the result won't
+        be affected by Series values only by Series index.
+
+        >>> s = pd.Series(data=[4, 3, 2, 1], index=['c', 'b', 'a', 'd'])
+        >>> s.index.argsort()
+        array([2, 1, 0, 3], dtype=int64)
         """
         result = self.asi8
         if result is None:
