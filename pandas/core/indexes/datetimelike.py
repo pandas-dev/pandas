@@ -61,18 +61,26 @@ class DatelikeOps(object):
         return np.asarray(self.format(date_format=date_format),
                           dtype=compat.text_type)
     strftime.__doc__ = """
-    Return an array of formatted strings specified by date_format, which
+    Format series values with a date format string.
+
+    This function formats series values as specified by `date_format`, which
     supports the same string format as the python standard library. Details
-    of the string format can be found in `python string format doc <{0}>`__
+    of the string format can be found in `python string format doc <{0}>`__.
 
     Parameters
     ----------
     date_format : str
-        date format string (e.g. "%Y-%m-%d")
+        Date format string (e.g. "%Y-%m-%d").
 
     Returns
     -------
     ndarray of formatted strings
+
+    Examples
+    --------
+    >>> rng = pd.date_range('10/3/2018 16:20:10', periods=2, freq='H')
+    >>> rng.strftime("%Y-%m-%d")
+    array(['2018-10-03', '2018-10-03'], dtype='<U10')
     """.format("https://docs.python.org/3/library/datetime.html"
                "#strftime-and-strptime-behavior")
 
