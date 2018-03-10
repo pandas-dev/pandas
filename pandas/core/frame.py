@@ -4341,22 +4341,22 @@ class DataFrame(NDFrame):
 
     def pivot(self, index=None, columns=None, values=None):
         """
-        Return reshaped DataFrame summarized by given index / column values.
+        Return reshaped DataFrame organized by given index / column values.
 
         Reshape data (produce a "pivot" table) based on column values. Uses
-        unique values from index / columns to form axes of the resulting
+        unique values from specified `index` / `columns` to form axes of the resulting
         DataFrame. This function does not support data aggregation, multiple
         values will result in hierarchically indexed columns.
 
         Parameters
         ----------
         index : string or object, optional
-            Column name to use to make new frame's index. If None, uses
+            Column to use to make new frame's index. If None, uses
             existing index.
-        columns : string or object, optional
-            Column name to use to make new frame's columns.
+        columns : string or object
+            Column to use to make new frame's columns.
         values : string or object, optional
-            Column name to use for populating new frame's values. If not
+            Column to use for populating new frame's values. If not
             specified, all remaining columns will be used and the result will
             have hierarchically indexed columns.
 
@@ -4368,14 +4368,14 @@ class DataFrame(NDFrame):
         See Also
         --------
         DataFrame.pivot_table : generalization of pivot that can handle
-            duplicate values for one index/column pair
+            duplicate values for one index/column pair.
         DataFrame.unstack : pivot based on the index values instead of a
-            column
+            column.
 
         Notes
         -----
         For finer-tuned control, see hierarchical indexing documentation along
-        with the related stack/unstack methods
+        with the related stack/unstack methods.
 
         Examples
         --------
