@@ -7171,7 +7171,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        numpy.absolute
+        numpy.absolute : calculate the absolute value element-wise.
         """
         return np.abs(self)
 
