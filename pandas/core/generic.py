@@ -7583,7 +7583,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         cls.any = _make_logical_function(
             cls, 'any', name, name2, axis_descr,
-            _any_desc, nanops.nanany, _any_examples, _any_also)
+            _any_desc, nanops.nanany, _any_examples, _any_see_also)
         cls.all = _make_logical_function(
             cls, 'all', name, name2, axis_descr, _all_doc,
             nanops.nanall, _all_examples, _all_see_also)
@@ -7867,7 +7867,6 @@ Returns
 %(outname)s : %(name1)s or %(name2)s (if level specified)
 
 %(see_also)s
-
 %(examples)s"""
 
 _all_doc = """\
@@ -7939,11 +7938,12 @@ pandas.core.window.Expanding.%(accum_func_name)s : Similar functionality
 
 """
 
-_any_also = """\
+_any_see_also = """\
 See Also
 --------
-pandas.DataFrame.all : Return whether all elements are True
-    over requested axis."""
+pandas.Series.any : Return whether any element is True.
+pandas.DataFrame.all : Return whether all elements are True.
+"""
 
 _any_desc = """\
 Return whether any element is True over requested axis.
@@ -7951,8 +7951,7 @@ Return whether any element is True over requested axis.
 Unlike :meth:`DataFrame.all`, this performs an *or* operation. In other words,
 if any of the values along the specified axis is True, this will return
 True. If input is pandas.DataFrame, it returns pandas.Series;
-in case of having pandas.Series as an input, it returns a single value.
-"""
+in case of having pandas.Series as an input, it returns a single value."""
 
 _any_examples = """\
 Examples
@@ -7964,14 +7963,20 @@ Series([], dtype: bool)
 
 Non-boolean values will always give True.
 
->>> pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}).any()
+>>> pd.DataFrame({
+...     "A": [1, 2, 3],
+...     "B": [4, 5, 6]
+... }).any()
 A    True
 B    True
 dtype: bool
 
 It is performing OR along the specified axis.
 
->>> pd.DataFrame({"A": [True, False, True], "B": [4, 5, 6]}).any(axis=1)
+>>> pd.DataFrame({
+...     "A": [True, False, True],
+...     "B": [4, 5, 6]
+... }).any(axis=1)
 0    True
 1    True
 2    True
@@ -7988,8 +7993,8 @@ dtype: bool
 
 It takes first non-False value from Series.
 
->>> pd.Series([False, 'b', True, False], index=[100, 101, 102, 103]).any()
-'b'
+>>> pd.Series([0, 1, 5, 0]).any()
+1
 """
 
 _sum_examples = """\
