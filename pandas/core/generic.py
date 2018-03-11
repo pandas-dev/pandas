@@ -4276,13 +4276,11 @@ class NDFrame(PandasObject, SelectionMixin):
     @property
     def dtypes(self):
         """
-        Return the dtypes in DataFrame.
+        Return the dtypes in the DataFrame.
 
         This returns a Series with the data type of each column.
-        The result's index is original DataFrame's columns.
-        If object contains data multiple dtypes in a single column,
-        dtypes will be chosen to accommodate all of the data types.
-        ``object`` is the most general.
+        The result's index is the original DataFrame's columns. Columns
+        with mixed types are stored in with the ``object`` dtype.
 
         Returns
         -------
@@ -4291,14 +4289,14 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.DataFrame.ftypes
+        pandas.DataFrame.ftypes : dtype and sparsity information.
 
         Examples
         --------
         >>> df = pd.DataFrame({'f': [1.0],
         ...                    'i': [1],
-        ...                    'd': pd.Timestamp('20180310'),
-        ...                    'o': 'foo'})
+        ...                    'd': [pd.Timestamp('20180310')],
+        ...                    'o': ['foo']})
         >>> df.dtypes
         f           float64
         i             int64
@@ -4316,12 +4314,8 @@ class NDFrame(PandasObject, SelectionMixin):
         Return the ftypes (indication of sparse/dense and dtype) in DataFrame.
 
         This returns a Series with the data type of each column.
-        The result's index is original DataFrame's columns.
-        If object contains data multiple dtypes in a single column,
-        dtypes will be chosen to accommodate all of the data types.
-        ``object`` is the most general.
-        All of the standard pandas data structures have a to_sparse method.
-        The result's tracks where data has been "sparsified".
+        The result's index is the original DataFrame's columns. Columns
+        with mixed types are stored in with the ``object`` dtype.
 
         Returns
         -------
@@ -4330,7 +4324,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.DataFrame.dtypes, pandas.SparseDataFrame
+        pandas.DataFrame.dtypes: Series with just dtype information.
+        pandas.SparseDataFrame : Container for sparse tabular data.
 
         Notes
         -----
@@ -4347,6 +4342,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2    float64:dense
         3    float64:dense
         dtype: object
+
         >>> pd.SparseDataFrame(arr).ftypes
         0    float64:sparse
         1    float64:sparse
