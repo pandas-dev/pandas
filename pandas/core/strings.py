@@ -1880,7 +1880,7 @@ class StringMethods(NoNewAttributesMixin):
     1     8
     2    16
     dtype: int64
-    
+
     See Also
     --------
     %(also)s
