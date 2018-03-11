@@ -1699,10 +1699,13 @@ class NDFrame(PandasObject, SelectionMixin):
     See Also
     --------
     pandas.read_pickle : Load pickled pandas object (or any other pickled
-    object) from the specified file path.
-    pandas.to_hdf : Write the contained data to an HDF5 file using HDFStore.
-    pandas.to_sql : Write records stored in a DataFrame to a SQL database.
-    pandas.to_parquet : Write a DataFrame to the binary parquet format.
+                         object) from the specified file path.
+    pandas.DataFrame.to_hdf : Write the contained data to an HDF5 file using
+                              HDFStore.
+    pandas.DataFrame.to_sql : Write records stored in a DataFrame to a SQL
+                              database.
+    pandas.DataFrame.to_parquet : Write a DataFrame to the binary parquet
+                                  format.
     """
 
     def to_json(self, path_or_buf=None, orient=None, date_format=None,
