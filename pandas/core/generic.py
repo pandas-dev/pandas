@@ -4870,7 +4870,8 @@ class NDFrame(PandasObject, SelectionMixin):
         Replace values given in 'to_replace' with 'value'.
 
         Values of the DataFrame or a Series are being replaced with
-        other values.
+        other values. One or several values can be replaced with one
+        or several values.
 
         Parameters
         ----------
@@ -4960,7 +4961,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        filled : %(klass)s
+        %(klass)s
+            Some values have been substituted for new values.
 
         Raises
         ------
