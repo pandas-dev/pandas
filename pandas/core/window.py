@@ -1063,25 +1063,25 @@ class _Rolling_and_Expanding(_Rolling):
     -----
     Other should be always be specified, except for DataFrame inputs with
     pairwise set to `True`. All other input combinations will return all 1's.
-    
+
     Function will return `NaN`s for correlations of equal valued sequences;
     this is the result of a 0/0 division error.
-    
-    When pairwise is set to `False`, only matching columns between self and 
+
+    When pairwise is set to `False`, only matching columns between self and
     other will be used.
-    
-    When pairwise is set to `True`, the output will be a MultiIndex DataFrame 
-    with the original index on the first level, and the "other" DataFrame 
+
+    When pairwise is set to `True`, the output will be a MultiIndex DataFrame
+    with the original index on the first level, and the "other" DataFrame
     columns on the second level.
-    
+
     In the case of missing elements, only complete pairwise observations
     will be used.
-    
+
     Examples
     --------
     The below example shows a rolling calculation with a window size of
     four matching the equivalent function call using `numpy.corrcoef`.
-    
+
     >>> v1 = [3, 3, 3, 5, 8]
     >>> v2 = [3, 4, 4, 4, 8]
     >>> fmt = "{0:.6f}"  # limit the printed precision to 6 digits
@@ -1101,10 +1101,10 @@ class _Rolling_and_Expanding(_Rolling):
     3    0.333333
     4    0.916949
     dtype: float64
-    
+
     The below example shows a similar rolling calculation on a
     DataFrame using the pairwise option.
-    
+
     >>> matrix = np.array([[51., 35.], [49., 30.], [47., 32.],\
     [46., 31.], [50., 36.]])
     >>> print(np.corrcoef(matrix[:-1,0], matrix[:-1,1]).round(7))
@@ -1133,7 +1133,7 @@ class _Rolling_and_Expanding(_Rolling):
       Y  0.626300  1.000000
     4 X  1.000000  0.555368
       Y  0.555368  1.000000
-    """)
+""")
 
     def corr(self, other=None, pairwise=None, **kwargs):
         if other is None:
