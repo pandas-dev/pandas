@@ -320,7 +320,52 @@ class _Window(PandasObject, SelectionMixin):
     agg = aggregate
 
     _shared_docs['sum'] = dedent("""
-    %(name)s sum""")
+    Calculate %(name)s sum of given DataFrame or Series.
+
+    Parameters
+    ----------
+    *args
+        Under Review.
+    **kwargs
+        Under Review.
+
+    Returns
+    -------
+    Series or DataFrame
+        Like-indexed object containing the result of function application
+
+    See Also
+    --------
+    Series.%(name)s : Calling object with Series data
+    DataFrame.%(name)s  : Calling object with DataFrame data
+    Series.sum  : Equivalent method for Series
+    DataFrame.sum   : Equivalent method for DataFrame
+
+    Examples
+    --------
+    >>> s = pd.Series([1, 2, 3, 4, 5])
+    >>> s.rolling(3).sum()
+    0     NaN
+    1     NaN
+    2     6.0
+    3     9.0
+    4    12.0
+    dtype: float64
+    >>> s.expanding(3).sum()
+    0     NaN
+    1     NaN
+    2     6.0
+    3    10.0
+    4    15.0
+    dtype: float64
+    >>> s.rolling(3, center=True).sum()
+    0     NaN
+    1     6.0
+    2     9.0
+    3    12.0
+    4     NaN
+    dtype: float64
+    """)
 
     _shared_docs['mean'] = dedent("""
     %(name)s mean""")
@@ -639,7 +684,7 @@ class Window(_Window):
     agg = aggregate
 
     @Substitution(name='window')
-    @Appender(_doc_template)
+##    @Appender(_doc_template)
     @Appender(_shared_docs['sum'])
     def sum(self, *args, **kwargs):
         nv.validate_window_func('sum', args, kwargs)
@@ -1213,7 +1258,7 @@ class Rolling(_Rolling_and_Expanding):
         return super(Rolling, self).apply(func, args=args, kwargs=kwargs)
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
+##    @Appender(_doc_template)
     @Appender(_shared_docs['sum'])
     def sum(self, *args, **kwargs):
         nv.validate_rolling_func('sum', args, kwargs)
@@ -1452,7 +1497,7 @@ class Expanding(_Rolling_and_Expanding):
         return super(Expanding, self).apply(func, args=args, kwargs=kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
+##    @Appender(_doc_template)
     @Appender(_shared_docs['sum'])
     def sum(self, *args, **kwargs):
         nv.validate_expanding_func('sum', args, kwargs)
