@@ -364,20 +364,51 @@ def andrews_curves(frame, class_column, ax=None, samples=200, color=None,
 
 
 def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
-    """Bootstrap plot.
+    """
+    Bootstrap plot on mean, median and mid-range statistics.
+
+    The bootstrap plot is used to estimate the uncertainty of a statistic
+    by relaying on random sampling with replacement [1]_. This function will
+    generate bootstrapping plots for mean, median and mid-range statistics
+    for the given number of samples of the given size.
+
+    .. [1] "Bootstrapping (statistics)" in \
+    https://en.wikipedia.org/wiki/Bootstrapping_%28statistics%29
 
     Parameters
     ----------
-    series: Time series
-    fig: matplotlib figure object, optional
-    size: number of data points to consider during each sampling
-    samples: number of times the bootstrap procedure is performed
-    kwds: optional keyword arguments for plotting commands, must be accepted
-        by both hist and plot
+    series : pandas.Series
+        Pandas Series from where to get the samplings for the bootstrapping.
+    fig : matplotlib.figure.Figure, default None
+        If given, it will use the `fig` reference for plotting instead of
+        creating a new one with default parameters.
+    size : int, default 50
+        Number of data points to consider during each sampling. It must be
+        greater or equal than the length of the `series`.
+    samples : int, default 500
+        Number of times the bootstrap procedure is performed.
+    **kwds :
+        Options to pass to matplotlib plotting method.
 
     Returns
     -------
-    fig: matplotlib figure
+    fig : matplotlib.figure.Figure
+        Matplotlib figure
+
+    See Also
+    --------
+    pandas.DataFrame.plot : Basic plotting for DataFrame objects.
+    pandas.Series.plot : Basic plotting for Series objects.
+
+    Examples
+    --------
+
+    .. plot::
+            :context: close-figs
+
+            >>> import numpy as np
+            >>> s = pd.Series(np.random.uniform(size=100))
+            >>> fig = pd.plotting.bootstrap_plot(s)
     """
     import random
     import matplotlib.pyplot as plt
