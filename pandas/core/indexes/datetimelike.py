@@ -82,47 +82,65 @@ class TimelikeOps(object):
 
     _round_doc = (
         """
-        {op} the index to the specified `freq`.
+        {op} the data to the specified `freq`.
 
         Parameters
         ----------
-        freq : freq string/object
-            The frequency level to {op} the index to.
+        freq : str or Offset
+            The frequency level to {op} the index to. Must be a fixed
+            frequency like 'S' (second) not 'ME' (month end). See
+            :ref:`frequency aliases <timeseries.offset_aliases>` for
+            a list of possible `freq` values.
 
         Returns
         -------
-        index of same type.
+        DatetimeIndex, TimedeltaIndex, or Series
+            Index of the same type for a DatetimeIndex or TimedeltaIndex,
+            or a Series with the same index for a Series.
 
         Raises
         ------
         ValueError if the `freq` cannot be converted.
 
-        Notes
-        -----
-        See :ref:`frequency aliases <timeseries.offset_aliases>` for
-        a list of possible `freq` values.
-
         Examples
         --------
+        **DatetimeIndex**
+
         >>> rng = pd.date_range('1/1/2018 11:59:00', periods=3, freq='min')
         >>> rng
         DatetimeIndex(['2018-01-01 11:59:00', '2018-01-01 12:00:00',
                        '2018-01-01 12:01:00'],
-                       dtype='datetime64[ns]', freq='T')
+                      dtype='datetime64[ns]', freq='T')
         """)
 
     _round_example = (
         """>>> rng.round('H')
         DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
                        '2018-01-01 12:00:00'],
-                       dtype='datetime64[ns]', freq=None)
+                      dtype='datetime64[ns]', freq=None)
+
+        **Series**
+
+        >>> pd.Series(rng).dt.round("H")
+        0   2018-01-01 12:00:00
+        1   2018-01-01 12:00:00
+        2   2018-01-01 12:00:00
+        dtype: datetime64[ns]
         """)
 
     _floor_example = (
         """>>> rng.floor('H')
         DatetimeIndex(['2018-01-01 11:00:00', '2018-01-01 12:00:00',
                        '2018-01-01 12:00:00'],
-                       dtype='datetime64[ns]', freq=None)
+                      dtype='datetime64[ns]', freq=None)
+
+        **Series**
+
+        >>> pd.Series(rng).dt.floor("H")
+        0   2018-01-01 11:00:00
+        1   2018-01-01 12:00:00
+        2   2018-01-01 12:00:00
+        dtype: datetime64[ns]
         """
     )
 
@@ -130,7 +148,15 @@ class TimelikeOps(object):
         """>>> rng.ceil('H')
         DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
                        '2018-01-01 13:00:00'],
-                       dtype='datetime64[ns]', freq=None)
+                      dtype='datetime64[ns]', freq=None)
+
+        **Series**
+
+        >>> pd.Series(rng).dt.ceil("H")
+        0   2018-01-01 12:00:00
+        1   2018-01-01 12:00:00
+        2   2018-01-01 13:00:00
+        dtype: datetime64[ns]
         """
     )
 
