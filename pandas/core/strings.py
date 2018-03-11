@@ -1842,7 +1842,7 @@ class StringMethods(NoNewAttributesMixin):
         return str_extractall(self._orig, pat, flags=flags)
 
     _shared_docs['find'] = ("""
-    Retrieve least index of substring.
+    Return the lowest index of the substring.
 
     Return %(side)s indexes in each strings in the Series/Index
     where the substring is fully contained between [start:end].
@@ -1868,7 +1868,7 @@ class StringMethods(NoNewAttributesMixin):
     0    8
     dtype: int64
 
-    Returns -1 if the substring is not found in S
+    Return -1 if the substring is not found.
 
     >>> s.str.find('wi', start=0, end=5)
     0   -1
