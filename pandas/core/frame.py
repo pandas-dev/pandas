@@ -5531,10 +5531,10 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        Series.cov : compute covariance with another Series
-        core.window.EWM.cov: expoential weighted sample covariance
-        core.window.Expanding.cov : expanding sample covariance
-        core.window.Rolling.cov : rolling sample covariance
+        pandas.Series.cov : compute covariance with another Series
+        pandas.core.window.EWM.cov: expoential weighted sample covariance
+        pandas.core.window.Expanding.cov : expanding sample covariance
+        pandas.core.window.Rolling.cov : rolling sample covariance
 
         Notes
         -----
@@ -5578,8 +5578,8 @@ class DataFrame(NDFrame):
         **Minimum number of periods**
 
         This method also supports an optional ``min_periods`` keyword
-        that specifies the required minimum number of observations for each
-        column pair in order to have a valid result:
+        that specifies the required minimum number of non-NA observations for
+        each column pair in order to have a valid result:
 
         >>> np.random.seed(42)
         >>> df = pd.DataFrame(np.random.randn(20, 3),
