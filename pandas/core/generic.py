@@ -5260,12 +5260,14 @@ class NDFrame(PandasObject, SelectionMixin):
                   'polynomial', 'spline', 'piecewise_polynomial', 'pad',
                   'from_derivatives', 'pchip', 'akima'}, default 'linear'
             Interpolation technique to use.
+
             * 'linear': Ignore the index and treat the values as equally
               spaced. This is the only method supported on MultiIndexes.
               Default.
             * 'time': Interpolation works on daily and higher resolution
               data to interpolate given length of interval.
             * 'index', 'values': use the actual numerical values of the index.
+            * 'pad': Fill in NaNs using existing values.
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
               'barycentric', 'polynomial': Passed to
               ``scipy.interpolate.interp1d``. Both 'polynomial' and 'spline'
@@ -5280,7 +5282,8 @@ class NDFrame(PandasObject, SelectionMixin):
               <http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__
               and `tutorial documentation
               <http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html>`__.
-            * 'from_derivatives': Refers to BPoly.from_derivatives which
+            * 'from_derivatives': Refers to
+              ``scipy.intrepolate.BPoly.from_derivatives`` which
               replaces 'piecewise_polynomial' interpolation method in
               scipy 0.18.
 
@@ -5293,6 +5296,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         axis : {0, 1}, default 0
             Axis to interpolate along.
+
             * 0: Fill column-by-column.
             * 1: Fill row-by-row.
         limit : int, default None
@@ -5305,6 +5309,7 @@ class NDFrame(PandasObject, SelectionMixin):
         limit_area : {'inside', 'outside'}, default None
             If limit is specified, consecutive NaNs will be filled with this
             restriction.
+
             * None: No fill restriction (default).
             * 'inside': Only fill NaNs surrounded by valid values
               (interpolate).
@@ -5319,7 +5324,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        Series or DataFrame of same shape interpolated at the NaNs
+        Series or DataFrame
+            Same-shape object interpolated at the NaN values
 
         See Also
         --------
