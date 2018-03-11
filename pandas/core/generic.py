@@ -5646,8 +5646,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> some_data = {'a': [-1, -2, -100], 'b': [1, 2, 100]}
-        >>> df = pd.DataFrame(some_data, index = ['foo', 'bar', 'foobar'])
+        >>> df = pd.DataFrame({'a': [-1, -2, -100],
+        ...                    'b': [1, 2, 100]},
+        ...                    index=['foo', 'bar', 'foobar'])
         >>> df
             a   b
         foo -1  1
@@ -5682,7 +5683,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         `Winsorizing <https://en.wikipedia.org/wiki/Winsorizing>`__ is a
         related method, whereby the data are clipped at
-        the 5th and 95th percentiles.
+        the 5th and 95th percentiles. The ``DataFrame.quantile`` method returns
+        a ``Series`` with column names as index and the quantiles as values.
+        Use ``axis='columns'`` to apply clipping to columns.
 
         >>> lower, upper = df.quantile(0.05), df.quantile(0.95)
         >>> df.clip(lower=lower, upper=upper, axis='columns')
