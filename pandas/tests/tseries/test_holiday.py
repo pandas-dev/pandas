@@ -1,3 +1,5 @@
+import pytest
+
 from datetime import datetime
 import pandas.util.testing as tm
 from pandas import compat
@@ -17,9 +19,9 @@ from pandas.tseries.holiday import (USFederalHolidayCalendar, USMemorialDay,
 from pytz import utc
 
 
-class TestCalendar(tm.TestCase):
+class TestCalendar(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.holiday_list = [
             datetime(2012, 1, 2),
             datetime(2012, 1, 16),
@@ -47,9 +49,9 @@ class TestCalendar(tm.TestCase):
             Timestamp(self.start_date),
             Timestamp(self.end_date))
 
-        self.assertEqual(list(holidays.to_pydatetime()), self.holiday_list)
-        self.assertEqual(list(holidays_1.to_pydatetime()), self.holiday_list)
-        self.assertEqual(list(holidays_2.to_pydatetime()), self.holiday_list)
+        assert list(holidays.to_pydatetime()) == self.holiday_list
+        assert list(holidays_1.to_pydatetime()) == self.holiday_list
+        assert list(holidays_2.to_pydatetime()) == self.holiday_list
 
     def test_calendar_caching(self):
         # Test for issue #9552
@@ -80,28 +82,22 @@ class TestCalendar(tm.TestCase):
 
     def test_rule_from_name(self):
         USFedCal = get_calendar('USFederalHolidayCalendar')
-        self.assertEqual(USFedCal.rule_from_name(
-            'Thanksgiving'), USThanksgivingDay)
+        assert USFedCal.rule_from_name('Thanksgiving') == USThanksgivingDay
 
 
-class TestHoliday(tm.TestCase):
+class TestHoliday(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.start_date = datetime(2011, 1, 1)
         self.end_date = datetime(2020, 12, 31)
 
     def check_results(self, holiday, start, end, expected):
-        self.assertEqual(list(holiday.dates(start, end)), expected)
+        assert list(holiday.dates(start, end)) == expected
+
         # Verify that timezone info is preserved.
-        self.assertEqual(
-            list(
-                holiday.dates(
-                    utc.localize(Timestamp(start)),
-                    utc.localize(Timestamp(end)),
-                )
-            ),
-            [utc.localize(dt) for dt in expected],
-        )
+        assert (list(holiday.dates(utc.localize(Timestamp(start)),
+                                   utc.localize(Timestamp(end)))) ==
+                [utc.localize(dt) for dt in expected])
 
     def test_usmemorialday(self):
         self.check_results(holiday=USMemorialDay,
@@ -232,7 +228,7 @@ class TestHoliday(tm.TestCase):
 
         for rule, dates in compat.iteritems(holidays):
             empty_dates = rule.dates(start_date, end_date)
-            self.assertEqual(empty_dates.tolist(), [])
+            assert empty_dates.tolist() == []
 
             if isinstance(dates, tuple):
                 dates = [dates]
@@ -253,8 +249,8 @@ class TestHoliday(tm.TestCase):
             Timestamp(self.start_date),
             Timestamp(self.end_date))
 
-        self.assert_index_equal(holidays, holidays_1)
-        self.assert_index_equal(holidays, holidays_2)
+        tm.assert_index_equal(holidays, holidays_1)
+        tm.assert_index_equal(holidays, holidays_2)
 
     def test_special_holidays(self):
         base_date = [datetime(2012, 5, 28)]
@@ -264,17 +260,15 @@ class TestHoliday(tm.TestCase):
                             end_date=datetime(2012, 12, 31),
                             offset=DateOffset(weekday=MO(1)))
 
-        self.assertEqual(base_date,
-                         holiday_1.dates(self.start_date, self.end_date))
-        self.assertEqual(base_date,
-                         holiday_2.dates(self.start_date, self.end_date))
+        assert base_date == holiday_1.dates(self.start_date, self.end_date)
+        assert base_date == holiday_2.dates(self.start_date, self.end_date)
 
     def test_get_calendar(self):
         class TestCalendar(AbstractHolidayCalendar):
             rules = []
 
         calendar = get_calendar('TestCalendar')
-        self.assertEqual(TestCalendar, calendar.__class__)
+        assert TestCalendar == calendar.__class__
 
     def test_factory(self):
         class_1 = HolidayCalendarFactory('MemorialDay',
@@ -285,14 +279,14 @@ class TestHoliday(tm.TestCase):
                                          USThanksgivingDay)
         class_3 = HolidayCalendarFactory('Combined', class_1, class_2)
 
-        self.assertEqual(len(class_1.rules), 1)
-        self.assertEqual(len(class_2.rules), 1)
-        self.assertEqual(len(class_3.rules), 2)
+        assert len(class_1.rules) == 1
+        assert len(class_2.rules) == 1
+        assert len(class_3.rules) == 2
 
 
-class TestObservanceRules(tm.TestCase):
+class TestObservanceRules(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.we = datetime(2014, 4, 9)
         self.th = datetime(2014, 4, 10)
         self.fr = datetime(2014, 4, 11)
@@ -302,64 +296,65 @@ class TestObservanceRules(tm.TestCase):
         self.tu = datetime(2014, 4, 15)
 
     def test_next_monday(self):
-        self.assertEqual(next_monday(self.sa), self.mo)
-        self.assertEqual(next_monday(self.su), self.mo)
+        assert next_monday(self.sa) == self.mo
+        assert next_monday(self.su) == self.mo
 
     def test_next_monday_or_tuesday(self):
-        self.assertEqual(next_monday_or_tuesday(self.sa), self.mo)
-        self.assertEqual(next_monday_or_tuesday(self.su), self.tu)
-        self.assertEqual(next_monday_or_tuesday(self.mo), self.tu)
+        assert next_monday_or_tuesday(self.sa) == self.mo
+        assert next_monday_or_tuesday(self.su) == self.tu
+        assert next_monday_or_tuesday(self.mo) == self.tu
 
     def test_previous_friday(self):
-        self.assertEqual(previous_friday(self.sa), self.fr)
-        self.assertEqual(previous_friday(self.su), self.fr)
+        assert previous_friday(self.sa) == self.fr
+        assert previous_friday(self.su) == self.fr
 
     def test_sunday_to_monday(self):
-        self.assertEqual(sunday_to_monday(self.su), self.mo)
+        assert sunday_to_monday(self.su) == self.mo
 
     def test_nearest_workday(self):
-        self.assertEqual(nearest_workday(self.sa), self.fr)
-        self.assertEqual(nearest_workday(self.su), self.mo)
-        self.assertEqual(nearest_workday(self.mo), self.mo)
+        assert nearest_workday(self.sa) == self.fr
+        assert nearest_workday(self.su) == self.mo
+        assert nearest_workday(self.mo) == self.mo
 
     def test_weekend_to_monday(self):
-        self.assertEqual(weekend_to_monday(self.sa), self.mo)
-        self.assertEqual(weekend_to_monday(self.su), self.mo)
-        self.assertEqual(weekend_to_monday(self.mo), self.mo)
+        assert weekend_to_monday(self.sa) == self.mo
+        assert weekend_to_monday(self.su) == self.mo
+        assert weekend_to_monday(self.mo) == self.mo
 
     def test_next_workday(self):
-        self.assertEqual(next_workday(self.sa), self.mo)
-        self.assertEqual(next_workday(self.su), self.mo)
-        self.assertEqual(next_workday(self.mo), self.tu)
+        assert next_workday(self.sa) == self.mo
+        assert next_workday(self.su) == self.mo
+        assert next_workday(self.mo) == self.tu
 
     def test_previous_workday(self):
-        self.assertEqual(previous_workday(self.sa), self.fr)
-        self.assertEqual(previous_workday(self.su), self.fr)
-        self.assertEqual(previous_workday(self.tu), self.mo)
+        assert previous_workday(self.sa) == self.fr
+        assert previous_workday(self.su) == self.fr
+        assert previous_workday(self.tu) == self.mo
 
     def test_before_nearest_workday(self):
-        self.assertEqual(before_nearest_workday(self.sa), self.th)
-        self.assertEqual(before_nearest_workday(self.su), self.fr)
-        self.assertEqual(before_nearest_workday(self.tu), self.mo)
+        assert before_nearest_workday(self.sa) == self.th
+        assert before_nearest_workday(self.su) == self.fr
+        assert before_nearest_workday(self.tu) == self.mo
 
     def test_after_nearest_workday(self):
-        self.assertEqual(after_nearest_workday(self.sa), self.mo)
-        self.assertEqual(after_nearest_workday(self.su), self.tu)
-        self.assertEqual(after_nearest_workday(self.fr), self.mo)
+        assert after_nearest_workday(self.sa) == self.mo
+        assert after_nearest_workday(self.su) == self.tu
+        assert after_nearest_workday(self.fr) == self.mo
 
 
-class TestFederalHolidayCalendar(tm.TestCase):
+class TestFederalHolidayCalendar(object):
 
-    # Test for issue 10278
-    def test_no_mlk_before_1984(self):
+    def test_no_mlk_before_1986(self):
+        # see gh-10278
         class MLKCalendar(AbstractHolidayCalendar):
             rules = [USMartinLutherKingJr]
 
         holidays = MLKCalendar().holidays(start='1984',
                                           end='1988').to_pydatetime().tolist()
+
         # Testing to make sure holiday is not incorrectly observed before 1986
-        self.assertEqual(holidays, [datetime(1986, 1, 20, 0, 0), datetime(
-            1987, 1, 19, 0, 0)])
+        assert holidays == [datetime(1986, 1, 20, 0, 0),
+                            datetime(1987, 1, 19, 0, 0)]
 
     def test_memorial_day(self):
         class MemorialDay(AbstractHolidayCalendar):
@@ -367,24 +362,24 @@ class TestFederalHolidayCalendar(tm.TestCase):
 
         holidays = MemorialDay().holidays(start='1971',
                                           end='1980').to_pydatetime().tolist()
-        # Fixes 5/31 error and checked manually against wikipedia
-        self.assertEqual(holidays, [datetime(1971, 5, 31, 0, 0),
-                                    datetime(1972, 5, 29, 0, 0),
-                                    datetime(1973, 5, 28, 0, 0),
-                                    datetime(1974, 5, 27, 0,
-                                             0), datetime(1975, 5, 26, 0, 0),
-                                    datetime(1976, 5, 31, 0,
-                                             0), datetime(1977, 5, 30, 0, 0),
-                                    datetime(1978, 5, 29, 0,
-                                             0), datetime(1979, 5, 28, 0, 0)])
+
+        # Fixes 5/31 error and checked manually against Wikipedia
+        assert holidays == [datetime(1971, 5, 31, 0, 0),
+                            datetime(1972, 5, 29, 0, 0),
+                            datetime(1973, 5, 28, 0, 0),
+                            datetime(1974, 5, 27, 0, 0),
+                            datetime(1975, 5, 26, 0, 0),
+                            datetime(1976, 5, 31, 0, 0),
+                            datetime(1977, 5, 30, 0, 0),
+                            datetime(1978, 5, 29, 0, 0),
+                            datetime(1979, 5, 28, 0, 0)]
 
 
-class TestHolidayConflictingArguments(tm.TestCase):
-
-    # GH 10217
+class TestHolidayConflictingArguments(object):
 
     def test_both_offset_observance_raises(self):
-        with self.assertRaises(NotImplementedError):
+        # see gh-10217
+        with pytest.raises(NotImplementedError):
             Holiday("Cyber Monday", month=11, day=1,
                     offset=[DateOffset(weekday=SA(4))],
                     observance=next_monday)

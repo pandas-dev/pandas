@@ -30,20 +30,21 @@ def parse_results(filename):
             i += 1
             assert i - 1 == len(skipped)
     assert i - 1 == len(skipped)
-    assert len(skipped) == int(root.attrib['skip'])
+    # assert len(skipped) == int(root.attrib['skip'])
     return '\n'.join(skipped)
 
 
 def main(args):
     print('SKIPPED TESTS:')
-    print(parse_results(args.filename))
+    for fn in args.filename:
+        print(parse_results(fn))
     return 0
 
 
 def parse_args():
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('filename', help='XUnit file to parse')
+    parser.add_argument('filename', nargs='+', help='XUnit file to parse')
     return parser.parse_args()
 
 

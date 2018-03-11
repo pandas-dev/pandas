@@ -5,13 +5,14 @@
 
 from pandas import Series, DataFrame
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 import numpy as np
 
 from pandas.tests.plotting.common import TestPlotBase
 
 
-@tm.mplskip
+@td.skip_if_no_mpl
 class TestDataFrameGroupByPlots(TestPlotBase):
 
     def test_series_groupby_plotting_nominally_works(self):
@@ -68,7 +69,7 @@ class TestDataFrameGroupByPlots(TestPlotBase):
         res = df.groupby('z').plot(kind='scatter', x='x', y='y')
         # check that a scatter plot is effectively plotted: the axes should
         # contain a PathCollection from the scatter plot (GH11805)
-        self.assertEqual(len(res['a'].collections), 1)
+        assert len(res['a'].collections) == 1
 
         res = df.groupby('z').plot.scatter(x='x', y='y')
-        self.assertEqual(len(res['a'].collections), 1)
+        assert len(res['a'].collections) == 1

@@ -2,6 +2,7 @@
 from __future__ import print_function
 from numpy import nan
 
+import pytest
 
 from pandas import Timestamp
 from pandas.core.index import MultiIndex
@@ -22,9 +23,9 @@ import pandas.util.testing as tm
 import pandas as pd
 
 
-class TestGroupByFilter(tm.TestCase):
+class TestGroupByFilter(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.ts = tm.makeTimeSeries()
 
         self.seriesd = tm.getSeriesData()
@@ -164,8 +165,8 @@ class TestGroupByFilter(tm.TestCase):
         s = pd.Series([-1, 0, 1, 2])
         grouper = s.apply(lambda x: x % 2)
         grouped = s.groupby(grouper)
-        self.assertRaises(TypeError,
-                          lambda: grouped.filter(raise_if_sum_is_zero))
+        pytest.raises(TypeError,
+                      lambda: grouped.filter(raise_if_sum_is_zero))
 
     def test_filter_with_axis_in_groupby(self):
         # issue 11041
@@ -186,16 +187,16 @@ class TestGroupByFilter(tm.TestCase):
         g_s = s.groupby(s)
 
         f = lambda x: x
-        self.assertRaises(TypeError, lambda: g_df.filter(f))
-        self.assertRaises(TypeError, lambda: g_s.filter(f))
+        pytest.raises(TypeError, lambda: g_df.filter(f))
+        pytest.raises(TypeError, lambda: g_s.filter(f))
 
         f = lambda x: x == 1
-        self.assertRaises(TypeError, lambda: g_df.filter(f))
-        self.assertRaises(TypeError, lambda: g_s.filter(f))
+        pytest.raises(TypeError, lambda: g_df.filter(f))
+        pytest.raises(TypeError, lambda: g_s.filter(f))
 
         f = lambda x: np.outer(x, x)
-        self.assertRaises(TypeError, lambda: g_df.filter(f))
-        self.assertRaises(TypeError, lambda: g_s.filter(f))
+        pytest.raises(TypeError, lambda: g_df.filter(f))
+        pytest.raises(TypeError, lambda: g_s.filter(f))
 
     def test_filter_nan_is_false(self):
         df = DataFrame({'A': np.arange(8),
@@ -216,6 +217,7 @@ class TestGroupByFilter(tm.TestCase):
         grouper = s.apply(lambda x: np.round(x, -1))
         grouped = s.groupby(grouper)
         f = lambda x: x.mean() > 10
+
         old_way = s[grouped.transform(f).astype('bool')]
         new_way = grouped.filter(f)
         assert_series_equal(new_way.sort_values(), old_way.sort_values())
@@ -576,7 +578,8 @@ class TestGroupByFilter(tm.TestCase):
             ['worst', 'd', 'y'],
             ['best', 'd', 'z'],
         ], columns=['a', 'b', 'c'])
-        with tm.assertRaisesRegexp(TypeError, 'filter function returned a.*'):
+        with tm.assert_raises_regex(TypeError,
+                                    'filter function returned a.*'):
             df.groupby('c').filter(lambda g: g['a'] == 'best')
 
     def test_filter_non_bool_raises(self):
@@ -589,7 +592,8 @@ class TestGroupByFilter(tm.TestCase):
             ['worst', 'd', 1],
             ['best', 'd', 1],
         ], columns=['a', 'b', 'c'])
-        with tm.assertRaisesRegexp(TypeError, 'filter function returned a.*'):
+        with tm.assert_raises_regex(TypeError,
+                                    'filter function returned a.*'):
             df.groupby('a').filter(lambda g: g.c.mean())
 
     def test_filter_dropna_with_empty_groups(self):
@@ -616,24 +620,3 @@ def _check_groupby(df, result, keys, field, f=lambda x: x.sum()):
     expected = f(df.groupby(tups)[field])
     for k, v in compat.iteritems(expected):
         assert (result[k] == v)
-
-
-def test_decons():
-    from pandas.core.groupby import decons_group_index, get_group_index
-
-    def testit(label_list, shape):
-        group_index = get_group_index(label_list, shape, sort=True, xnull=True)
-        label_list2 = decons_group_index(group_index, shape)
-
-        for a, b in zip(label_list, label_list2):
-            assert (np.array_equal(a, b))
-
-    shape = (4, 5, 6)
-    label_list = [np.tile([0, 1, 2, 3, 0, 1, 2, 3], 100), np.tile(
-        [0, 2, 4, 3, 0, 1, 2, 3], 100), np.tile(
-            [5, 1, 0, 2, 3, 0, 5, 4], 100)]
-    testit(label_list, shape)
-
-    shape = (10000, 10000)
-    label_list = [np.tile(np.arange(10000), 5), np.tile(np.arange(10000), 5)]
-    testit(label_list, shape)

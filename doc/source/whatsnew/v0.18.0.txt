@@ -217,7 +217,7 @@ It returns a ``DataFrame`` with one column if ``expand=True``.
    pd.Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)', expand=True)
 
 Calling on an ``Index`` with a regex with exactly one capture group
-returns  an ``Index`` if ``expand=False``.
+returns an ``Index`` if ``expand=False``.
 
 .. ipython:: python
 
@@ -518,7 +518,7 @@ Other enhancements
 - Added ``DataFrame.style.format`` for more flexible formatting of cell values (:issue:`11692`)
 - ``DataFrame.select_dtypes`` now allows the ``np.float16`` typecode (:issue:`11990`)
 - ``pivot_table()`` now accepts most iterables for the ``values`` parameter (:issue:`12017`)
-- Added Google ``BigQuery`` service account authentication support, which enables authentication on remote servers. (:issue:`11881`, :issue:`12572`). For further details see :ref:`here <io.bigquery_authentication>`
+- Added Google ``BigQuery`` service account authentication support, which enables authentication on remote servers. (:issue:`11881`, :issue:`12572`). For further details see `here <https://pandas-gbq.readthedocs.io/en/latest/intro.html>`__
 - ``HDFStore`` is now iterable: ``for k in store`` is equivalent to ``for k in store.keys()`` (:issue:`12221`).
 - Add missing methods/fields to ``.dt`` for ``Period`` (:issue:`8848`)
 - The entire codebase has been ``PEP``-ified (:issue:`12096`)
@@ -944,7 +944,7 @@ assignment should be done inplace or return a copy.
 
 .. warning::
 
-   For backwards compatability, ``inplace`` defaults to ``True`` if not specified.
+   For backwards compatibility, ``inplace`` defaults to ``True`` if not specified.
    This will change in a future version of pandas. If your code depends on an
    inplace assignment you should update to explicitly set ``inplace=True``
 
@@ -1039,7 +1039,7 @@ Deprecations
              2    0.5
              dtype: float64
 
-- The the ``freq`` and ``how`` arguments to the ``.rolling``, ``.expanding``, and ``.ewm`` (new) functions are deprecated, and will be removed in a future version. You can simply resample the input prior to creating a window function. (:issue:`11603`).
+- The ``freq`` and ``how`` arguments to the ``.rolling``, ``.expanding``, and ``.ewm`` (new) functions are deprecated, and will be removed in a future version. You can simply resample the input prior to creating a window function. (:issue:`11603`).
 
   For example, instead of ``s.rolling(window=5,freq='D').max()`` to get the max value on a rolling 5 Day window, one could use ``s.resample('D').mean().rolling(window=5).max()``, which first resamples the data to daily data, then provides a rolling 5 day window.
 

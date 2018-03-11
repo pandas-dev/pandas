@@ -1,13 +1,13 @@
 include MANIFEST.in
 include LICENSE
 include RELEASE.md
-include README.rst
+include README.md
 include setup.py
+include pyproject.toml
 
 graft doc
 prune doc/build
 
-graft examples
 graft pandas
 
 global-exclude *.so
@@ -26,3 +26,4 @@ global-exclude *.png
 # recursive-include LICENSES *
 include versioneer.py
 include pandas/_version.py
+include pandas/io/formats/templates/*.tpl

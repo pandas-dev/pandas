@@ -14,7 +14,7 @@ from pandas.io.common import get_filepath_or_buffer, BaseIterator
 from pandas import compat
 import struct
 import numpy as np
-from pandas.util.decorators import Appender
+from pandas.util._decorators import Appender
 import warnings
 
 _correct_line1 = ("HEADER RECORD*******LIBRARY HEADER RECORD!!!!!!!"
@@ -76,7 +76,6 @@ Read a Xport file in 10,000 line chunks:
 >>> for chunk in itr:
 >>>     do_something(chunk)
 
-.. versionadded:: 0.17.0
 """ % {"_base_params_doc": _base_params_doc,
        "_format_params_doc": _format_params_doc,
        "_params2_doc": _params2_doc,
@@ -237,7 +236,8 @@ class XportReader(BaseIterator):
         self._chunksize = chunksize
 
         if isinstance(filepath_or_buffer, str):
-            filepath_or_buffer, encoding, compression = get_filepath_or_buffer(
+            (filepath_or_buffer, encoding,
+             compression, should_close) = get_filepath_or_buffer(
                 filepath_or_buffer, encoding=encoding)
 
         if isinstance(filepath_or_buffer, (str, compat.text_type, bytes)):

@@ -2,18 +2,156 @@
 from __future__ import print_function
 from datetime import datetime
 
+import pytest
+
 import numpy as np
 from numpy import nan
 
 import pandas as pd
 from pandas import (Index, MultiIndex, CategoricalIndex,
-                    DataFrame, Categorical, Series)
+                    DataFrame, Categorical, Series, Interval)
 from pandas.util.testing import assert_frame_equal, assert_series_equal
 import pandas.util.testing as tm
 from .common import MixIn
 
 
-class TestGroupByCategorical(MixIn, tm.TestCase):
+class TestGroupByCategorical(MixIn):
+
+    def test_groupby(self):
+
+        cats = Categorical(["a", "a", "a", "b", "b", "b", "c", "c", "c"],
+                           categories=["a", "b", "c", "d"], ordered=True)
+        data = DataFrame({"a": [1, 1, 1, 2, 2, 2, 3, 4, 5], "b": cats})
+
+        exp_index = CategoricalIndex(list('abcd'), name='b', ordered=True)
+        expected = DataFrame({'a': [1, 2, 4, np.nan]}, index=exp_index)
+        result = data.groupby("b").mean()
+        tm.assert_frame_equal(result, expected)
+
+        raw_cat1 = Categorical(["a", "a", "b", "b"],
+                               categories=["a", "b", "z"], ordered=True)
+        raw_cat2 = Categorical(["c", "d", "c", "d"],
+                               categories=["c", "d", "y"], ordered=True)
+        df = DataFrame({"A": raw_cat1, "B": raw_cat2, "values": [1, 2, 3, 4]})
+
+        # single grouper
+        gb = df.groupby("A")
+        exp_idx = CategoricalIndex(['a', 'b', 'z'], name='A', ordered=True)
+        expected = DataFrame({'values': Series([3, 7, 0], index=exp_idx)})
+        result = gb.sum()
+        tm.assert_frame_equal(result, expected)
+
+        # multiple groupers
+        gb = df.groupby(['A', 'B'])
+        exp_index = pd.MultiIndex.from_product(
+            [Categorical(["a", "b", "z"], ordered=True),
+             Categorical(["c", "d", "y"], ordered=True)],
+            names=['A', 'B'])
+        expected = DataFrame({'values': [1, 2, np.nan, 3, 4, np.nan,
+                                         np.nan, np.nan, np.nan]},
+                             index=exp_index)
+        result = gb.sum()
+        tm.assert_frame_equal(result, expected)
+
+        # multiple groupers with a non-cat
+        df = df.copy()
+        df['C'] = ['foo', 'bar'] * 2
+        gb = df.groupby(['A', 'B', 'C'])
+        exp_index = pd.MultiIndex.from_product(
+            [Categorical(["a", "b", "z"], ordered=True),
+             Categorical(["c", "d", "y"], ordered=True),
+             ['foo', 'bar']],
+            names=['A', 'B', 'C'])
+        expected = DataFrame({'values': Series(
+            np.nan, index=exp_index)}).sort_index()
+        expected.iloc[[1, 2, 7, 8], 0] = [1, 2, 3, 4]
+        result = gb.sum()
+        tm.assert_frame_equal(result, expected)
+
+        # GH 8623
+        x = DataFrame([[1, 'John P. Doe'], [2, 'Jane Dove'],
+                       [1, 'John P. Doe']],
+                      columns=['person_id', 'person_name'])
+        x['person_name'] = Categorical(x.person_name)
+
+        g = x.groupby(['person_id'])
+        result = g.transform(lambda x: x)
+        tm.assert_frame_equal(result, x[['person_name']])
+
+        result = x.drop_duplicates('person_name')
+        expected = x.iloc[[0, 1]]
+        tm.assert_frame_equal(result, expected)
+
+        def f(x):
+            return x.drop_duplicates('person_name').iloc[0]
+
+        result = g.apply(f)
+        expected = x.iloc[[0, 1]].copy()
+        expected.index = Index([1, 2], name='person_id')
+        expected['person_name'] = expected['person_name'].astype('object')
+        tm.assert_frame_equal(result, expected)
+
+        # GH 9921
+        # Monotonic
+        df = DataFrame({"a": [5, 15, 25]})
+        c = pd.cut(df.a, bins=[0, 10, 20, 30, 40])
+
+        result = df.a.groupby(c).transform(sum)
+        tm.assert_series_equal(result, df['a'])
+
+        tm.assert_series_equal(
+            df.a.groupby(c).transform(lambda xs: np.sum(xs)), df['a'])
+        tm.assert_frame_equal(df.groupby(c).transform(sum), df[['a']])
+        tm.assert_frame_equal(
+            df.groupby(c).transform(lambda xs: np.max(xs)), df[['a']])
+
+        # Filter
+        tm.assert_series_equal(df.a.groupby(c).filter(np.all), df['a'])
+        tm.assert_frame_equal(df.groupby(c).filter(np.all), df)
+
+        # Non-monotonic
+        df = DataFrame({"a": [5, 15, 25, -5]})
+        c = pd.cut(df.a, bins=[-10, 0, 10, 20, 30, 40])
+
+        result = df.a.groupby(c).transform(sum)
+        tm.assert_series_equal(result, df['a'])
+
+        tm.assert_series_equal(
+            df.a.groupby(c).transform(lambda xs: np.sum(xs)), df['a'])
+        tm.assert_frame_equal(df.groupby(c).transform(sum), df[['a']])
+        tm.assert_frame_equal(
+            df.groupby(c).transform(lambda xs: np.sum(xs)), df[['a']])
+
+        # GH 9603
+        df = DataFrame({'a': [1, 0, 0, 0]})
+        c = pd.cut(df.a, [0, 1, 2, 3, 4], labels=Categorical(list('abcd')))
+        result = df.groupby(c).apply(len)
+
+        exp_index = CategoricalIndex(
+            c.values.categories, ordered=c.values.ordered)
+        expected = Series([1, 0, 0, 0], index=exp_index)
+        expected.index.name = 'a'
+        tm.assert_series_equal(result, expected)
+
+    def test_groupby_sort(self):
+
+        # http://stackoverflow.com/questions/23814368/sorting-pandas-categorical-labels-after-groupby
+        # This should result in a properly sorted Series so that the plot
+        # has a sorted x axis
+        # self.cat.groupby(['value_group'])['value_group'].count().plot(kind='bar')
+
+        df = DataFrame({'value': np.random.randint(0, 10000, 100)})
+        labels = ["{0} - {1}".format(i, i + 499) for i in range(0, 10000, 500)]
+        cat_labels = Categorical(labels, labels)
+
+        df = df.sort_values(by=['value'], ascending=True)
+        df['value_group'] = pd.cut(df.value, range(0, 10500, 500),
+                                   right=False, labels=cat_labels)
+
+        res = df.groupby(['value_group'])['value_group'].count()
+        exp = res[sorted(res.index, key=lambda x: float(x.split()[0]))]
+        exp.index = CategoricalIndex(exp.index, name=exp.index.name)
+        tm.assert_series_equal(res, exp)
 
     def test_level_groupby_get_group(self):
         # GH15155
@@ -46,7 +184,7 @@ class TestGroupByCategorical(MixIn, tm.TestCase):
                     'mean': group.mean()}
 
         result = self.df.groupby(cats).D.apply(get_stats)
-        self.assertEqual(result.index.names[0], 'C')
+        assert result.index.names[0] == 'C'
 
     def test_apply_categorical_data(self):
         # GH 10138
@@ -113,14 +251,12 @@ class TestGroupByCategorical(MixIn, tm.TestCase):
         expc = Categorical.from_codes(np.arange(4).repeat(8),
                                       levels, ordered=True)
         exp = CategoricalIndex(expc)
-        self.assert_index_equal((desc_result.stack()
-                                            .index
-                                            .get_level_values(0)), exp)
+        tm.assert_index_equal((desc_result.stack().index
+                               .get_level_values(0)), exp)
         exp = Index(['count', 'mean', 'std', 'min', '25%', '50%',
                      '75%', 'max'] * 4)
-        self.assert_index_equal((desc_result.stack()
-                                            .index
-                                            .get_level_values(1)), exp)
+        tm.assert_index_equal((desc_result.stack().index
+                               .get_level_values(1)), exp)
 
     def test_groupby_datetime_categorical(self):
         # GH9049: ensure backward compatibility
@@ -157,14 +293,12 @@ class TestGroupByCategorical(MixIn, tm.TestCase):
         expc = Categorical.from_codes(
             np.arange(4).repeat(8), levels, ordered=True)
         exp = CategoricalIndex(expc)
-        self.assert_index_equal((desc_result.stack()
-                                            .index
-                                            .get_level_values(0)), exp)
+        tm.assert_index_equal((desc_result.stack().index
+                               .get_level_values(0)), exp)
         exp = Index(['count', 'mean', 'std', 'min', '25%', '50%',
                      '75%', 'max'] * 4)
-        self.assert_index_equal((desc_result.stack()
-                                            .index
-                                            .get_level_values(1)), exp)
+        tm.assert_index_equal((desc_result.stack().index
+                               .get_level_values(1)), exp)
 
     def test_groupby_categorical_index(self):
 
@@ -231,7 +365,7 @@ class TestGroupByCategorical(MixIn, tm.TestCase):
         # len(bins) != len(series) here
         def f():
             series.groupby(bins).mean()
-        self.assertRaises(ValueError, f)
+        pytest.raises(ValueError, f)
 
     def test_groupby_multi_categorical_as_index(self):
         # GH13204
@@ -254,14 +388,18 @@ class TestGroupByCategorical(MixIn, tm.TestCase):
                              columns=['cat', 'A', 'B'])
         tm.assert_frame_equal(result, expected)
 
-        # another not in-axis grouper (conflicting names in index)
-        s = Series(['a', 'b', 'b'], name='cat')
+        # another not in-axis grouper
+        s = Series(['a', 'b', 'b'], name='cat2')
         result = df.groupby(['cat', s], as_index=False).sum()
         expected = DataFrame({'cat': Categorical([1, 1, 2, 2, 3, 3]),
                               'A': [10.0, nan, nan, 22.0, nan, nan],
                               'B': [101.0, nan, nan, 205.0, nan, nan]},
                              columns=['cat', 'A', 'B'])
         tm.assert_frame_equal(result, expected)
+
+        # GH18872: conflicting names in desired index
+        pytest.raises(ValueError, lambda: df.groupby(['cat',
+                                                      s.rename('cat')]).sum())
 
         # is original index dropped?
         expected = DataFrame({'cat': Categorical([1, 1, 2, 2, 3, 3]),
@@ -283,6 +421,30 @@ class TestGroupByCategorical(MixIn, tm.TestCase):
                 result = df.groupby(group_columns, as_index=False).sum()
 
             tm.assert_frame_equal(result, expected, check_index_type=True)
+
+    def test_groupby_preserve_categories(self):
+        # GH-13179
+        categories = list('abc')
+
+        # ordered=True
+        df = DataFrame({'A': pd.Categorical(list('ba'),
+                                            categories=categories,
+                                            ordered=True)})
+        index = pd.CategoricalIndex(categories, categories, ordered=True)
+        tm.assert_index_equal(df.groupby('A', sort=True).first().index, index)
+        tm.assert_index_equal(df.groupby('A', sort=False).first().index, index)
+
+        # ordered=False
+        df = DataFrame({'A': pd.Categorical(list('ba'),
+                                            categories=categories,
+                                            ordered=False)})
+        sort_index = pd.CategoricalIndex(categories, categories, ordered=False)
+        nosort_index = pd.CategoricalIndex(list('bac'), list('bac'),
+                                           ordered=False)
+        tm.assert_index_equal(df.groupby('A', sort=True).first().index,
+                              sort_index)
+        tm.assert_index_equal(df.groupby('A', sort=False).first().index,
+                              nosort_index)
 
     def test_groupby_preserve_categorical_dtype(self):
         # GH13743, GH13854
@@ -356,7 +518,7 @@ class TestGroupByCategorical(MixIn, tm.TestCase):
         result = data.groupby("b").mean()
         result = result["a"].values
         exp = np.array([1, 2, 4, np.nan])
-        self.assert_numpy_array_equal(result, exp)
+        tm.assert_numpy_array_equal(result, exp)
 
     def test_groupby_sort_categorical(self):
         # dataframe groupby sort was being ignored # GH 8868
@@ -495,7 +657,8 @@ class TestGroupByCategorical(MixIn, tm.TestCase):
         res = groups_double_key.agg('mean')
         nan = np.nan
         idx = MultiIndex.from_product(
-            [Categorical(["(1, 2]", "(2, 3]", "(3, 6]"], ordered=True),
+            [Categorical([Interval(1, 2), Interval(2, 3),
+                          Interval(3, 6)], ordered=True),
              [1, 2, 3, 4]],
             names=["cat", "C2"])
         exp = DataFrame({"C1": [nan, nan, nan, nan, 3, 3,
@@ -503,3 +666,53 @@ class TestGroupByCategorical(MixIn, tm.TestCase):
                          "C3": [nan, nan, nan, nan, 10, 100,
                                 nan, nan, nan, nan, 200, 34]}, index=idx)
         tm.assert_frame_equal(res, exp)
+
+    def test_empty_sum(self):
+        # https://github.com/pandas-dev/pandas/issues/18678
+        df = pd.DataFrame({"A": pd.Categorical(['a', 'a', 'b'],
+                                               categories=['a', 'b', 'c']),
+                           'B': [1, 2, 1]})
+        expected_idx = pd.CategoricalIndex(['a', 'b', 'c'], name='A')
+
+        # 0 by default
+        result = df.groupby("A").B.sum()
+        expected = pd.Series([3, 1, 0], expected_idx, name='B')
+        tm.assert_series_equal(result, expected)
+
+        # min_count=0
+        result = df.groupby("A").B.sum(min_count=0)
+        expected = pd.Series([3, 1, 0], expected_idx, name='B')
+        tm.assert_series_equal(result, expected)
+
+        # min_count=1
+        result = df.groupby("A").B.sum(min_count=1)
+        expected = pd.Series([3, 1, np.nan], expected_idx, name='B')
+        tm.assert_series_equal(result, expected)
+
+        # min_count>1
+        result = df.groupby("A").B.sum(min_count=2)
+        expected = pd.Series([3, np.nan, np.nan], expected_idx, name='B')
+        tm.assert_series_equal(result, expected)
+
+    def test_empty_prod(self):
+        # https://github.com/pandas-dev/pandas/issues/18678
+        df = pd.DataFrame({"A": pd.Categorical(['a', 'a', 'b'],
+                                               categories=['a', 'b', 'c']),
+                           'B': [1, 2, 1]})
+
+        expected_idx = pd.CategoricalIndex(['a', 'b', 'c'], name='A')
+
+        # 1 by default
+        result = df.groupby("A").B.prod()
+        expected = pd.Series([2, 1, 1], expected_idx, name='B')
+        tm.assert_series_equal(result, expected)
+
+        # min_count=0
+        result = df.groupby("A").B.prod(min_count=0)
+        expected = pd.Series([2, 1, 1], expected_idx, name='B')
+        tm.assert_series_equal(result, expected)
+
+        # min_count=1
+        result = df.groupby("A").B.prod(min_count=1)
+        expected = pd.Series([2, 1, np.nan], expected_idx, name='B')
+        tm.assert_series_equal(result, expected)

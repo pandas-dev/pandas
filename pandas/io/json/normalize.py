@@ -5,7 +5,7 @@ import copy
 from collections import defaultdict
 import numpy as np
 
-from pandas.lib import convert_json_to_lines
+from pandas._libs.writers import convert_json_to_lines
 from pandas import compat, DataFrame
 
 
@@ -21,7 +21,7 @@ def _convert_to_line_delimits(s):
     return convert_json_to_lines(s)
 
 
-def nested_to_record(ds, prefix="", level=0):
+def nested_to_record(ds, prefix="", sep=".", level=0):
     """a simplified json_normalize
 
     converts a nested dict into a flat dict ("record"), unlike json_normalize,
@@ -31,6 +31,12 @@ def nested_to_record(ds, prefix="", level=0):
     ----------
     ds : dict or list of dicts
     prefix: the prefix, optional, default: ""
+    sep : string, default '.'
+        Nested records will generate names separated by sep,
+        e.g., for sep='.', { 'foo' : { 'bar' : 0 } } -> foo.bar
+
+        .. versionadded:: 0.20.0
+
     level: the number of levels in the jason string, optional, default: 0
 
     Returns
@@ -66,7 +72,7 @@ def nested_to_record(ds, prefix="", level=0):
             if level == 0:
                 newkey = k
             else:
-                newkey = prefix + '.' + k
+                newkey = prefix + sep + k
 
             # only dicts gets recurse-flattend
             # only at level>1 do we rename the rest of the keys
@@ -77,7 +83,7 @@ def nested_to_record(ds, prefix="", level=0):
                 continue
             else:
                 v = new_d.pop(k)
-                new_d.update(nested_to_record(v, newkey, level + 1))
+                new_d.update(nested_to_record(v, newkey, sep, level + 1))
         new_ds.append(new_d)
 
     if singleton:
@@ -88,7 +94,8 @@ def nested_to_record(ds, prefix="", level=0):
 def json_normalize(data, record_path=None, meta=None,
                    meta_prefix=None,
                    record_prefix=None,
-                   errors='raise'):
+                   errors='raise',
+                   sep='.'):
     """
     "Normalize" semi-structured JSON data into a flat table
 
@@ -107,12 +114,19 @@ def json_normalize(data, record_path=None, meta=None,
     meta_prefix : string, default None
     errors : {'raise', 'ignore'}, default 'raise'
 
-        * ignore : will ignore KeyError if keys listed in meta are not
-        always present
-        * raise : will raise KeyError if keys listed in meta are not
-        always present
+        * 'ignore' : will ignore KeyError if keys listed in meta are not
+          always present
+        * 'raise' : will raise KeyError if keys listed in meta are not
+          always present
 
         .. versionadded:: 0.20.0
+
+    sep : string, default '.'
+        Nested records will generate names separated by sep,
+        e.g., for sep='.', { 'foo' : { 'bar' : 0 } } -> foo.bar
+
+        .. versionadded:: 0.20.0
+
 
     Returns
     -------
@@ -120,6 +134,16 @@ def json_normalize(data, record_path=None, meta=None,
 
     Examples
     --------
+
+    >>> from pandas.io.json import json_normalize
+    >>> data = [{'id': 1, 'name': {'first': 'Coleen', 'last': 'Volk'}},
+    ...         {'name': {'given': 'Mose', 'family': 'Regner'}},
+    ...         {'id': 2, 'name': 'Faye Raker'}]
+    >>> json_normalize(data)
+        id        name name.family name.first name.given name.last
+    0  1.0         NaN         NaN     Coleen        NaN      Volk
+    1  NaN         NaN      Regner        NaN       Mose       NaN
+    2  2.0  Faye Raker         NaN        NaN        NaN       NaN
 
     >>> data = [{'state': 'Florida',
     ...          'shortname': 'FL',
@@ -136,7 +160,6 @@ def json_normalize(data, record_path=None, meta=None,
     ...          },
     ...          'counties': [{'name': 'Summit', 'population': 1234},
     ...                       {'name': 'Cuyahoga', 'population': 1337}]}]
-    >>> from pandas.io.json import json_normalize
     >>> result = json_normalize(data, 'counties', ['state', 'shortname',
     ...                                           ['info', 'governor']])
     >>> result
@@ -158,12 +181,15 @@ def json_normalize(data, record_path=None, meta=None,
 
         return result
 
+    if isinstance(data, list) and not data:
+        return DataFrame()
+
     # A bit of a hackjob
     if isinstance(data, dict):
         data = [data]
 
     if record_path is None:
-        if any([isinstance(x, dict) for x in compat.itervalues(data[0])]):
+        if any(isinstance(x, dict) for x in compat.itervalues(data[0])):
             # naive normalization, this is idempotent for flat records
             # and potentially will inflate the data considerably for
             # deeply nested structures:
@@ -171,7 +197,7 @@ def json_normalize(data, record_path=None, meta=None,
             #
             # TODO: handle record value which are lists, at least error
             #       reasonably
-            data = nested_to_record(data)
+            data = nested_to_record(data, sep=sep)
         return DataFrame(data)
     elif not isinstance(record_path, list):
         record_path = [record_path]
@@ -181,16 +207,16 @@ def json_normalize(data, record_path=None, meta=None,
     elif not isinstance(meta, list):
         meta = [meta]
 
-    for i, x in enumerate(meta):
-        if not isinstance(x, list):
-            meta[i] = [x]
+    meta = [m if isinstance(m, list) else [m] for m in meta]
 
     # Disastrously inefficient for now
     records = []
     lengths = []
 
     meta_vals = defaultdict(list)
-    meta_keys = ['.'.join(val) for val in meta]
+    if not isinstance(sep, compat.string_types):
+        sep = str(sep)
+    meta_keys = [sep.join(val) for val in meta]
 
     def _recursive_extract(data, path, seen_meta, level=0):
         if len(path) > 1:
@@ -221,7 +247,8 @@ def json_normalize(data, record_path=None, meta=None,
                                 raise \
                                     KeyError("Try running with "
                                              "errors='ignore' as key "
-                                             "%s is not always present", e)
+                                             "{err} is not always present"
+                                             .format(err=e))
                     meta_vals[key].append(meta_val)
 
                 records.extend(recs)
@@ -239,8 +266,8 @@ def json_normalize(data, record_path=None, meta=None,
             k = meta_prefix + k
 
         if k in result:
-            raise ValueError('Conflicting metadata name %s, '
-                             'need distinguishing prefix ' % k)
+            raise ValueError('Conflicting metadata name {name}, '
+                             'need distinguishing prefix '.format(name=k))
 
         result[k] = np.array(v).repeat(lengths)
 

@@ -7,17 +7,18 @@ import warnings
 
 from pandas import DataFrame, Series
 from pandas.compat import zip, iteritems
-from pandas.util.decorators import cache_readonly
-from pandas.types.api import is_list_like
+from pandas.util._decorators import cache_readonly
+from pandas.core.dtypes.api import is_list_like
 import pandas.util.testing as tm
 from pandas.util.testing import (ensure_clean,
                                  assert_is_valid_plot_return_object)
+import pandas.util._test_decorators as td
 
 import numpy as np
 from numpy import random
 
-import pandas.tools.plotting as plotting
-
+import pandas.plotting as plotting
+from pandas.plotting._tools import _flatten
 
 """
 This is a common base class used for various plotting tests
@@ -37,22 +38,24 @@ def _ok_for_gaussian_kde(kind):
             from scipy.stats import gaussian_kde  # noqa
         except ImportError:
             return False
-    return True
+
+    return plotting._compat._mpl_ge_1_5_0()
 
 
-@tm.mplskip
-class TestPlotBase(tm.TestCase):
+@td.skip_if_no_mpl
+class TestPlotBase(object):
 
-    def setUp(self):
+    def setup_method(self, method):
 
         import matplotlib as mpl
         mpl.rcdefaults()
 
-        self.mpl_le_1_2_1 = plotting._mpl_le_1_2_1()
-        self.mpl_ge_1_3_1 = plotting._mpl_ge_1_3_1()
-        self.mpl_ge_1_4_0 = plotting._mpl_ge_1_4_0()
-        self.mpl_ge_1_5_0 = plotting._mpl_ge_1_5_0()
-        self.mpl_ge_2_0_0 = plotting._mpl_ge_2_0_0()
+        self.mpl_le_1_2_1 = plotting._compat._mpl_le_1_2_1()
+        self.mpl_ge_1_3_1 = plotting._compat._mpl_ge_1_3_1()
+        self.mpl_ge_1_4_0 = plotting._compat._mpl_ge_1_4_0()
+        self.mpl_ge_1_5_0 = plotting._compat._mpl_ge_1_5_0()
+        self.mpl_ge_2_0_0 = plotting._compat._mpl_ge_2_0_0()
+        self.mpl_ge_2_0_1 = plotting._compat._mpl_ge_2_0_1()
 
         if self.mpl_ge_1_4_0:
             self.bp_n_objects = 7
@@ -72,7 +75,8 @@ class TestPlotBase(tm.TestCase):
         self.default_tick_position = 'left' if self.mpl_ge_2_0_0 else 'default'
         # common test data
         from pandas import read_csv
-        path = os.path.join(os.path.dirname(curpath()), 'data', 'iris.csv')
+        base = os.path.join(os.path.dirname(curpath()), os.pardir)
+        path = os.path.join(base, 'tests', 'data', 'iris.csv')
         self.iris = read_csv(path)
 
         n = 100
@@ -92,7 +96,7 @@ class TestPlotBase(tm.TestCase):
                                     "C": np.arange(20) + np.random.uniform(
                                         size=20)})
 
-    def tearDown(self):
+    def teardown_method(self, method):
         tm.close()
 
     @cache_readonly
@@ -124,10 +128,10 @@ class TestPlotBase(tm.TestCase):
         axes = self._flatten_visible(axes)
         for ax in axes:
             if visible:
-                self.assertTrue(ax.get_legend() is not None)
+                assert ax.get_legend() is not None
                 self._check_text_labels(ax.get_legend().get_texts(), labels)
             else:
-                self.assertTrue(ax.get_legend() is None)
+                assert ax.get_legend() is None
 
     def _check_data(self, xp, rs):
         """
@@ -146,7 +150,7 @@ class TestPlotBase(tm.TestCase):
             rsdata = rsl.get_xydata()
             tm.assert_almost_equal(xpdata, rsdata)
 
-        self.assertEqual(len(xp_lines), len(rs_lines))
+        assert len(xp_lines) == len(rs_lines)
         [check_line(xpl, rsl) for xpl, rsl in zip(xp_lines, rs_lines)]
         tm.close()
 
@@ -167,7 +171,7 @@ class TestPlotBase(tm.TestCase):
             collections = [collections]
 
         for patch in collections:
-            self.assertEqual(patch.get_visible(), visible)
+            assert patch.get_visible() == visible
 
     def _get_colors_mapped(self, series, colors):
         unique = series.unique()
@@ -205,7 +209,7 @@ class TestPlotBase(tm.TestCase):
                 linecolors = self._get_colors_mapped(mapping, linecolors)
                 linecolors = linecolors[:len(collections)]
 
-            self.assertEqual(len(collections), len(linecolors))
+            assert len(collections) == len(linecolors)
             for patch, color in zip(collections, linecolors):
                 if isinstance(patch, Line2D):
                     result = patch.get_color()
@@ -217,7 +221,7 @@ class TestPlotBase(tm.TestCase):
                     result = patch.get_edgecolor()
 
                 expected = conv.to_rgba(color)
-                self.assertEqual(result, expected)
+                assert result == expected
 
         if facecolors is not None:
 
@@ -225,7 +229,7 @@ class TestPlotBase(tm.TestCase):
                 facecolors = self._get_colors_mapped(mapping, facecolors)
                 facecolors = facecolors[:len(collections)]
 
-            self.assertEqual(len(collections), len(facecolors))
+            assert len(collections) == len(facecolors)
             for patch, color in zip(collections, facecolors):
                 if isinstance(patch, Collection):
                     # returned as list of np.array
@@ -237,7 +241,7 @@ class TestPlotBase(tm.TestCase):
                     result = tuple(result)
 
                 expected = conv.to_rgba(color)
-                self.assertEqual(result, expected)
+                assert result == expected
 
     def _check_text_labels(self, texts, expected):
         """
@@ -251,12 +255,12 @@ class TestPlotBase(tm.TestCase):
             expected text label, or its list
         """
         if not is_list_like(texts):
-            self.assertEqual(texts.get_text(), expected)
+            assert texts.get_text() == expected
         else:
             labels = [t.get_text() for t in texts]
-            self.assertEqual(len(labels), len(expected))
+            assert len(labels) == len(expected)
             for l, e in zip(labels, expected):
-                self.assertEqual(l, e)
+                assert l == e
 
     def _check_ticks_props(self, axes, xlabelsize=None, xrot=None,
                            ylabelsize=None, yrot=None):
@@ -289,10 +293,10 @@ class TestPlotBase(tm.TestCase):
 
                 for label in labels:
                     if xlabelsize is not None:
-                        self.assertAlmostEqual(label.get_fontsize(),
+                        tm.assert_almost_equal(label.get_fontsize(),
                                                xlabelsize)
                     if xrot is not None:
-                        self.assertAlmostEqual(label.get_rotation(), xrot)
+                        tm.assert_almost_equal(label.get_rotation(), xrot)
 
             if ylabelsize or yrot:
                 if isinstance(ax.yaxis.get_minor_formatter(), NullFormatter):
@@ -303,10 +307,10 @@ class TestPlotBase(tm.TestCase):
 
                 for label in labels:
                     if ylabelsize is not None:
-                        self.assertAlmostEqual(label.get_fontsize(),
+                        tm.assert_almost_equal(label.get_fontsize(),
                                                ylabelsize)
                     if yrot is not None:
-                        self.assertAlmostEqual(label.get_rotation(), yrot)
+                        tm.assert_almost_equal(label.get_rotation(), yrot)
 
     def _check_ax_scales(self, axes, xaxis='linear', yaxis='linear'):
         """
@@ -322,8 +326,8 @@ class TestPlotBase(tm.TestCase):
         """
         axes = self._flatten_visible(axes)
         for ax in axes:
-            self.assertEqual(ax.xaxis.get_scale(), xaxis)
-            self.assertEqual(ax.yaxis.get_scale(), yaxis)
+            assert ax.xaxis.get_scale() == xaxis
+            assert ax.yaxis.get_scale() == yaxis
 
     def _check_axes_shape(self, axes, axes_num=None, layout=None,
                           figsize=None):
@@ -346,16 +350,16 @@ class TestPlotBase(tm.TestCase):
         visible_axes = self._flatten_visible(axes)
 
         if axes_num is not None:
-            self.assertEqual(len(visible_axes), axes_num)
+            assert len(visible_axes) == axes_num
             for ax in visible_axes:
                 # check something drawn on visible axes
-                self.assertTrue(len(ax.get_children()) > 0)
+                assert len(ax.get_children()) > 0
 
         if layout is not None:
-            result = self._get_axes_layout(plotting._flatten(axes))
-            self.assertEqual(result, layout)
+            result = self._get_axes_layout(_flatten(axes))
+            assert result == layout
 
-        self.assert_numpy_array_equal(
+        tm.assert_numpy_array_equal(
             visible_axes[0].figure.get_size_inches(),
             np.array(figsize, dtype=np.float64))
 
@@ -378,7 +382,7 @@ class TestPlotBase(tm.TestCase):
         axes : matplotlib Axes object, or its list-like
 
         """
-        axes = plotting._flatten(axes)
+        axes = _flatten(axes)
         axes = [ax for ax in axes if ax.get_visible()]
         return axes
 
@@ -406,8 +410,8 @@ class TestPlotBase(tm.TestCase):
                     xerr_count += 1
                 if has_yerr:
                     yerr_count += 1
-            self.assertEqual(xerr, xerr_count)
-            self.assertEqual(yerr, yerr_count)
+            assert xerr == xerr_count
+            assert yerr == yerr_count
 
     def _check_box_return_type(self, returned, return_type, expected_keys=None,
                                check_ax_title=True):
@@ -434,36 +438,36 @@ class TestPlotBase(tm.TestCase):
             if return_type is None:
                 return_type = 'dict'
 
-            self.assertTrue(isinstance(returned, types[return_type]))
+            assert isinstance(returned, types[return_type])
             if return_type == 'both':
-                self.assertIsInstance(returned.ax, Axes)
-                self.assertIsInstance(returned.lines, dict)
+                assert isinstance(returned.ax, Axes)
+                assert isinstance(returned.lines, dict)
         else:
             # should be fixed when the returning default is changed
             if return_type is None:
                 for r in self._flatten_visible(returned):
-                    self.assertIsInstance(r, Axes)
+                    assert isinstance(r, Axes)
                 return
 
-            self.assertTrue(isinstance(returned, Series))
+            assert isinstance(returned, Series)
 
-            self.assertEqual(sorted(returned.keys()), sorted(expected_keys))
+            assert sorted(returned.keys()) == sorted(expected_keys)
             for key, value in iteritems(returned):
-                self.assertTrue(isinstance(value, types[return_type]))
+                assert isinstance(value, types[return_type])
                 # check returned dict has correct mapping
                 if return_type == 'axes':
                     if check_ax_title:
-                        self.assertEqual(value.get_title(), key)
+                        assert value.get_title() == key
                 elif return_type == 'both':
                     if check_ax_title:
-                        self.assertEqual(value.ax.get_title(), key)
-                    self.assertIsInstance(value.ax, Axes)
-                    self.assertIsInstance(value.lines, dict)
+                        assert value.ax.get_title() == key
+                    assert isinstance(value.ax, Axes)
+                    assert isinstance(value.lines, dict)
                 elif return_type == 'dict':
                     line = value['medians'][0]
                     axes = line.axes if self.mpl_ge_1_5_0 else line.get_axes()
                     if check_ax_title:
-                        self.assertEqual(axes.get_title(), key)
+                        assert axes.get_title() == key
                 else:
                     raise AssertionError
 
@@ -488,26 +492,26 @@ class TestPlotBase(tm.TestCase):
             spndx += 1
             mpl.rc('axes', grid=False)
             obj.plot(kind=kind, **kws)
-            self.assertFalse(is_grid_on())
+            assert not is_grid_on()
 
             self.plt.subplot(1, 4 * len(kinds), spndx)
             spndx += 1
             mpl.rc('axes', grid=True)
             obj.plot(kind=kind, grid=False, **kws)
-            self.assertFalse(is_grid_on())
+            assert not is_grid_on()
 
             if kind != 'pie':
                 self.plt.subplot(1, 4 * len(kinds), spndx)
                 spndx += 1
                 mpl.rc('axes', grid=True)
                 obj.plot(kind=kind, **kws)
-                self.assertTrue(is_grid_on())
+                assert is_grid_on()
 
                 self.plt.subplot(1, 4 * len(kinds), spndx)
                 spndx += 1
                 mpl.rc('axes', grid=False)
                 obj.plot(kind=kind, grid=True, **kws)
-                self.assertTrue(is_grid_on())
+                assert is_grid_on()
 
     def _maybe_unpack_cycler(self, rcParams, field='color'):
         """

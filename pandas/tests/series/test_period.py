@@ -2,43 +2,43 @@ import numpy as np
 
 import pandas as pd
 import pandas.util.testing as tm
-import pandas.tseries.period as period
-from pandas import Series, period_range, DataFrame, Period
+import pandas.core.indexes.period as period
+from pandas import Series, period_range, DataFrame
 
 
 def _permute(obj):
     return obj.take(np.random.permutation(len(obj)))
 
 
-class TestSeriesPeriod(tm.TestCase):
+class TestSeriesPeriod(object):
 
-    def setUp(self):
+    def setup_method(self, method):
         self.series = Series(period_range('2000-01-01', periods=10, freq='D'))
 
     def test_auto_conversion(self):
         series = Series(list(period_range('2000-01-01', periods=10, freq='D')))
-        self.assertEqual(series.dtype, 'object')
+        assert series.dtype == 'object'
 
         series = pd.Series([pd.Period('2011-01-01', freq='D'),
                             pd.Period('2011-02-01', freq='D')])
-        self.assertEqual(series.dtype, 'object')
+        assert series.dtype == 'object'
 
     def test_getitem(self):
-        self.assertEqual(self.series[1], pd.Period('2000-01-02', freq='D'))
+        assert self.series[1] == pd.Period('2000-01-02', freq='D')
 
         result = self.series[[2, 4]]
         exp = pd.Series([pd.Period('2000-01-03', freq='D'),
                          pd.Period('2000-01-05', freq='D')],
                         index=[2, 4])
-        self.assert_series_equal(result, exp)
-        self.assertEqual(result.dtype, 'object')
+        tm.assert_series_equal(result, exp)
+        assert result.dtype == 'object'
 
-    def test_isnull(self):
+    def test_isna(self):
         # GH 13737
         s = Series([pd.Period('2011-01', freq='M'),
                     pd.Period('NaT', freq='M')])
-        tm.assert_series_equal(s.isnull(), Series([False, True]))
-        tm.assert_series_equal(s.notnull(), Series([True, False]))
+        tm.assert_series_equal(s.isna(), Series([False, True]))
+        tm.assert_series_equal(s.notna(), Series([True, False]))
 
     def test_fillna(self):
         # GH 13737
@@ -49,12 +49,12 @@ class TestSeriesPeriod(tm.TestCase):
         exp = Series([pd.Period('2011-01', freq='M'),
                       pd.Period('2012-01', freq='M')])
         tm.assert_series_equal(res, exp)
-        self.assertEqual(res.dtype, 'object')
+        assert res.dtype == 'object'
 
         res = s.fillna('XXX')
         exp = Series([pd.Period('2011-01', freq='M'), 'XXX'])
         tm.assert_series_equal(res, exp)
-        self.assertEqual(res.dtype, 'object')
+        assert res.dtype == 'object'
 
     def test_dropna(self):
         # GH 13737
@@ -62,17 +62,6 @@ class TestSeriesPeriod(tm.TestCase):
                     pd.Period('NaT', freq='M')])
         tm.assert_series_equal(s.dropna(),
                                Series([pd.Period('2011-01', freq='M')]))
-
-    def test_series_comparison_scalars(self):
-        val = pd.Period('2000-01-04', freq='D')
-        result = self.series > val
-        expected = pd.Series([x > val for x in self.series])
-        tm.assert_series_equal(result, expected)
-
-        val = self.series[5]
-        result = self.series > val
-        expected = pd.Series([x > val for x in self.series])
-        tm.assert_series_equal(result, expected)
 
     def test_between(self):
         left, right = self.series[[2, 7]]
@@ -89,10 +78,10 @@ class TestSeriesPeriod(tm.TestCase):
         series = Series([0, 1000, 2000, iNaT], dtype='period[D]')
 
         val = series[3]
-        self.assertTrue(isnull(val))
+        assert isna(val)
 
         series[2] = val
-        self.assertTrue(isnull(series[2]))
+        assert isna(series[2])
 
     def test_NaT_cast(self):
         result = Series([np.nan]).astype('period[D]')
@@ -103,16 +92,16 @@ class TestSeriesPeriod(tm.TestCase):
     def test_set_none_nan(self):
         # currently Period is stored as object dtype, not as NaT
         self.series[3] = None
-        self.assertIs(self.series[3], None)
+        assert self.series[3] is None
 
         self.series[3:5] = None
-        self.assertIs(self.series[4], None)
+        assert self.series[4] is None
 
         self.series[5] = np.nan
-        self.assertTrue(np.isnan(self.series[5]))
+        assert np.isnan(self.series[5])
 
         self.series[5:7] = np.nan
-        self.assertTrue(np.isnan(self.series[6]))
+        assert np.isnan(self.series[6])
 
     def test_intercept_astype_object(self):
         expected = self.series.astype('object')
@@ -121,112 +110,12 @@ class TestSeriesPeriod(tm.TestCase):
                         'b': np.random.randn(len(self.series))})
 
         result = df.values.squeeze()
-        self.assertTrue((result[:, 0] == expected.values).all())
+        assert (result[:, 0] == expected.values).all()
 
         df = DataFrame({'a': self.series, 'b': ['foo'] * len(self.series)})
 
         result = df.values.squeeze()
-        self.assertTrue((result[:, 0] == expected.values).all())
-
-    def test_comp_series_period_scalar(self):
-        # GH 13200
-        for freq in ['M', '2M', '3M']:
-            base = Series([Period(x, freq=freq) for x in
-                           ['2011-01', '2011-02', '2011-03', '2011-04']])
-            p = Period('2011-02', freq=freq)
-
-            exp = pd.Series([False, True, False, False])
-            tm.assert_series_equal(base == p, exp)
-            tm.assert_series_equal(p == base, exp)
-
-            exp = pd.Series([True, False, True, True])
-            tm.assert_series_equal(base != p, exp)
-            tm.assert_series_equal(p != base, exp)
-
-            exp = pd.Series([False, False, True, True])
-            tm.assert_series_equal(base > p, exp)
-            tm.assert_series_equal(p < base, exp)
-
-            exp = pd.Series([True, False, False, False])
-            tm.assert_series_equal(base < p, exp)
-            tm.assert_series_equal(p > base, exp)
-
-            exp = pd.Series([False, True, True, True])
-            tm.assert_series_equal(base >= p, exp)
-            tm.assert_series_equal(p <= base, exp)
-
-            exp = pd.Series([True, True, False, False])
-            tm.assert_series_equal(base <= p, exp)
-            tm.assert_series_equal(p >= base, exp)
-
-            # different base freq
-            msg = "Input has different freq=A-DEC from Period"
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
-                base <= Period('2011', freq='A')
-
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
-                Period('2011', freq='A') >= base
-
-    def test_comp_series_period_series(self):
-        # GH 13200
-        for freq in ['M', '2M', '3M']:
-            base = Series([Period(x, freq=freq) for x in
-                           ['2011-01', '2011-02', '2011-03', '2011-04']])
-
-            s = Series([Period(x, freq=freq) for x in
-                        ['2011-02', '2011-01', '2011-03', '2011-05']])
-
-            exp = Series([False, False, True, False])
-            tm.assert_series_equal(base == s, exp)
-
-            exp = Series([True, True, False, True])
-            tm.assert_series_equal(base != s, exp)
-
-            exp = Series([False, True, False, False])
-            tm.assert_series_equal(base > s, exp)
-
-            exp = Series([True, False, False, True])
-            tm.assert_series_equal(base < s, exp)
-
-            exp = Series([False, True, True, False])
-            tm.assert_series_equal(base >= s, exp)
-
-            exp = Series([True, False, True, True])
-            tm.assert_series_equal(base <= s, exp)
-
-            s2 = Series([Period(x, freq='A') for x in
-                         ['2011', '2011', '2011', '2011']])
-
-            # different base freq
-            msg = "Input has different freq=A-DEC from Period"
-            with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
-                base <= s2
-
-    def test_comp_series_period_object(self):
-        # GH 13200
-        base = Series([Period('2011', freq='A'), Period('2011-02', freq='M'),
-                       Period('2013', freq='A'), Period('2011-04', freq='M')])
-
-        s = Series([Period('2012', freq='A'), Period('2011-01', freq='M'),
-                    Period('2013', freq='A'), Period('2011-05', freq='M')])
-
-        exp = Series([False, False, True, False])
-        tm.assert_series_equal(base == s, exp)
-
-        exp = Series([True, True, False, True])
-        tm.assert_series_equal(base != s, exp)
-
-        exp = Series([False, True, False, False])
-        tm.assert_series_equal(base > s, exp)
-
-        exp = Series([True, False, False, True])
-        tm.assert_series_equal(base < s, exp)
-
-        exp = Series([False, True, True, False])
-        tm.assert_series_equal(base >= s, exp)
-
-        exp = Series([True, False, True, True])
-        tm.assert_series_equal(base <= s, exp)
+        assert (result[:, 0] == expected.values).all()
 
     def test_align_series(self):
         rng = period_range('1/1/2000', '1/1/2010', freq='A')
@@ -244,5 +133,34 @@ class TestSeriesPeriod(tm.TestCase):
         for kind in ['inner', 'outer', 'left', 'right']:
             ts.align(ts[::2], join=kind)
         msg = "Input has different freq=D from PeriodIndex\\(freq=A-DEC\\)"
-        with tm.assertRaisesRegexp(period.IncompatibleFrequency, msg):
+        with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             ts + ts.asfreq('D', how="end")
+
+    def test_truncate(self):
+        # GH 17717
+        idx1 = pd.PeriodIndex([
+            pd.Period('2017-09-02'),
+            pd.Period('2017-09-02'),
+            pd.Period('2017-09-03')
+        ])
+        series1 = pd.Series([1, 2, 3], index=idx1)
+        result1 = series1.truncate(after='2017-09-02')
+
+        expected_idx1 = pd.PeriodIndex([
+            pd.Period('2017-09-02'),
+            pd.Period('2017-09-02')
+        ])
+        tm.assert_series_equal(result1, pd.Series([1, 2], index=expected_idx1))
+
+        idx2 = pd.PeriodIndex([
+            pd.Period('2017-09-03'),
+            pd.Period('2017-09-02'),
+            pd.Period('2017-09-03')
+        ])
+        series2 = pd.Series([1, 2, 3], index=idx2)
+        result2 = series2.sort_index().truncate(after='2017-09-02')
+
+        expected_idx2 = pd.PeriodIndex([
+            pd.Period('2017-09-02')
+        ])
+        tm.assert_series_equal(result2, pd.Series([2], index=expected_idx2))

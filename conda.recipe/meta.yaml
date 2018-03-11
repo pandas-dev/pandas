@@ -1,9 +1,9 @@
 package:
     name: pandas
-    version: {{ GIT_DESCRIBE_TAG|replace("v","") }}
+    version: {{ environ.get('GIT_DESCRIBE_TAG','').replace('v', '', 1) }}
 
 build:
-    number: {{ GIT_DESCRIBE_NUMBER|int }}
+    number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
     {% if GIT_DESCRIBE_NUMBER|int == 0 %}string: np{{ CONDA_NPY }}py{{ CONDA_PY }}_0
     {% else %}string: np{{ CONDA_NPY }}py{{ CONDA_PY }}_{{ GIT_BUILD_STR }}{% endif %}
 
@@ -14,15 +14,15 @@ requirements:
   build:
     - python
     - cython
-    - numpy x.x
-    - setuptools
+    - numpy 1.11.*
+    - setuptools >=3.3
+    - python-dateutil >=2.5.0
     - pytz
-    - python-dateutil
 
   run:
     - python
-    - numpy x.x
-    - python-dateutil
+    - numpy >=1.11.*
+    - python-dateutil >=2.5.0
     - pytz
 
 test:

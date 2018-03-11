@@ -399,7 +399,7 @@ class UnparseCompilerAst:
         self._fill("return ")
         if t.value:
             if isinstance(t.value, Tuple):
-                text = ', '.join([ name.name for name in t.value.asList() ])
+                text = ', '.join(name.name for name in t.value.asList())
                 self._write(text)
             else:
                 self._dispatch(t.value)

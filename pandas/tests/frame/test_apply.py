@@ -2,50 +2,54 @@
 
 from __future__ import print_function
 
+import pytest
+
 from datetime import datetime
 
 import warnings
 import numpy as np
 
-from pandas import (notnull, DataFrame, Series, MultiIndex, date_range,
+from pandas import (notna, DataFrame, Series, MultiIndex, date_range,
                     Timestamp, compat)
 import pandas as pd
-from pandas.types.dtypes import CategoricalDtype
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.apply import frame_apply
 from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal)
 import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData
 
 
-class TestDataFrameApply(tm.TestCase, TestData):
+class TestDataFrameApply(TestData):
 
     def test_apply(self):
         with np.errstate(all='ignore'):
             # ufunc
             applied = self.frame.apply(np.sqrt)
-            assert_series_equal(np.sqrt(self.frame['A']), applied['A'])
+            tm.assert_series_equal(np.sqrt(self.frame['A']), applied['A'])
 
             # aggregator
             applied = self.frame.apply(np.mean)
-            self.assertEqual(applied['A'], np.mean(self.frame['A']))
+            assert applied['A'] == np.mean(self.frame['A'])
 
             d = self.frame.index[0]
             applied = self.frame.apply(np.mean, axis=1)
-            self.assertEqual(applied[d], np.mean(self.frame.xs(d)))
-            self.assertIs(applied.index, self.frame.index)  # want this
+            assert applied[d] == np.mean(self.frame.xs(d))
+            assert applied.index is self.frame.index  # want this
 
         # invalid axis
         df = DataFrame(
             [[1, 2, 3], [4, 5, 6], [7, 8, 9]], index=['a', 'a', 'c'])
-        self.assertRaises(ValueError, df.apply, lambda x: x, 2)
+        pytest.raises(ValueError, df.apply, lambda x: x, 2)
 
-        # GH9573
+        # see gh-9573
         df = DataFrame({'c0': ['A', 'A', 'B', 'B'],
                         'c1': ['C', 'C', 'D', 'D']})
         df = df.apply(lambda ts: ts.astype('category'))
-        self.assertEqual(df.shape, (4, 2))
-        self.assertTrue(isinstance(df['c0'].dtype, CategoricalDtype))
-        self.assertTrue(isinstance(df['c1'].dtype, CategoricalDtype))
+
+        assert df.shape == (4, 2)
+        assert isinstance(df['c0'].dtype, CategoricalDtype)
+        assert isinstance(df['c1'].dtype, CategoricalDtype)
 
     def test_apply_mixed_datetimelike(self):
         # mixed datetimelike
@@ -58,10 +62,10 @@ class TestDataFrameApply(tm.TestCase, TestData):
     def test_apply_empty(self):
         # empty
         applied = self.empty.apply(np.sqrt)
-        self.assertTrue(applied.empty)
+        assert applied.empty
 
         applied = self.empty.apply(np.mean)
-        self.assertTrue(applied.empty)
+        assert applied.empty
 
         no_rows = self.frame[:0]
         result = no_rows.apply(lambda x: x.mean())
@@ -78,23 +82,29 @@ class TestDataFrameApply(tm.TestCase, TestData):
         rs = xp.apply(lambda x: x['a'], axis=1)
         assert_frame_equal(xp, rs)
 
+    def test_apply_with_reduce_empty(self):
         # reduce with an empty DataFrame
         x = []
-        result = self.empty.apply(x.append, axis=1, reduce=False)
+        result = self.empty.apply(x.append, axis=1, result_type='expand')
         assert_frame_equal(result, self.empty)
-        result = self.empty.apply(x.append, axis=1, reduce=True)
+        result = self.empty.apply(x.append, axis=1, result_type='reduce')
         assert_series_equal(result, Series(
             [], index=pd.Index([], dtype=object)))
 
         empty_with_cols = DataFrame(columns=['a', 'b', 'c'])
-        result = empty_with_cols.apply(x.append, axis=1, reduce=False)
+        result = empty_with_cols.apply(x.append, axis=1, result_type='expand')
         assert_frame_equal(result, empty_with_cols)
-        result = empty_with_cols.apply(x.append, axis=1, reduce=True)
+        result = empty_with_cols.apply(x.append, axis=1, result_type='reduce')
         assert_series_equal(result, Series(
             [], index=pd.Index([], dtype=object)))
 
         # Ensure that x.append hasn't been called
-        self.assertEqual(x, [])
+        assert x == []
+
+    def test_apply_deprecate_reduce(self):
+        with warnings.catch_warnings(record=True):
+            x = []
+            self.empty.apply(x.append, axis=1, result_type='reduce')
 
     def test_apply_standard_nonunique(self):
         df = DataFrame(
@@ -106,17 +116,90 @@ class TestDataFrameApply(tm.TestCase, TestData):
         rs = df.T.apply(lambda s: s[0], axis=0)
         assert_series_equal(rs, xp)
 
+    def test_with_string_args(self):
+
+        for arg in ['sum', 'mean', 'min', 'max', 'std']:
+            result = self.frame.apply(arg)
+            expected = getattr(self.frame, arg)()
+            tm.assert_series_equal(result, expected)
+
+            result = self.frame.apply(arg, axis=1)
+            expected = getattr(self.frame, arg)(axis=1)
+            tm.assert_series_equal(result, expected)
+
+    def test_apply_broadcast_deprecated(self):
+        with tm.assert_produces_warning(FutureWarning):
+            self.frame.apply(np.mean, broadcast=True)
+
     def test_apply_broadcast(self):
-        broadcasted = self.frame.apply(np.mean, broadcast=True)
-        agged = self.frame.apply(np.mean)
 
-        for col, ts in compat.iteritems(broadcasted):
-            self.assertTrue((ts == agged[col]).all())
+        # scalars
+        result = self.frame.apply(np.mean, result_type='broadcast')
+        expected = DataFrame([self.frame.mean()], index=self.frame.index)
+        tm.assert_frame_equal(result, expected)
 
-        broadcasted = self.frame.apply(np.mean, axis=1, broadcast=True)
-        agged = self.frame.apply(np.mean, axis=1)
-        for idx in broadcasted.index:
-            self.assertTrue((broadcasted.xs(idx) == agged[idx]).all())
+        result = self.frame.apply(np.mean, axis=1, result_type='broadcast')
+        m = self.frame.mean(axis=1)
+        expected = DataFrame({c: m for c in self.frame.columns})
+        tm.assert_frame_equal(result, expected)
+
+        # lists
+        result = self.frame.apply(
+            lambda x: list(range(len(self.frame.columns))),
+            axis=1,
+            result_type='broadcast')
+        m = list(range(len(self.frame.columns)))
+        expected = DataFrame([m] * len(self.frame.index),
+                             dtype='float64',
+                             index=self.frame.index,
+                             columns=self.frame.columns)
+        tm.assert_frame_equal(result, expected)
+
+        result = self.frame.apply(lambda x: list(range(len(self.frame.index))),
+                                  result_type='broadcast')
+        m = list(range(len(self.frame.index)))
+        expected = DataFrame({c: m for c in self.frame.columns},
+                             dtype='float64',
+                             index=self.frame.index)
+        tm.assert_frame_equal(result, expected)
+
+        # preserve columns
+        df = DataFrame(np.tile(np.arange(3), 6).reshape(6, -1) + 1,
+                       columns=list('ABC'))
+        result = df.apply(lambda x: [1, 2, 3],
+                          axis=1,
+                          result_type='broadcast')
+        tm.assert_frame_equal(result, df)
+
+        df = DataFrame(np.tile(np.arange(3), 6).reshape(6, -1) + 1,
+                       columns=list('ABC'))
+        result = df.apply(lambda x: Series([1, 2, 3], index=list('abc')),
+                          axis=1,
+                          result_type='broadcast')
+        expected = df.copy()
+        tm.assert_frame_equal(result, expected)
+
+    def test_apply_broadcast_error(self):
+        df = DataFrame(
+            np.tile(np.arange(3, dtype='int64'), 6).reshape(6, -1) + 1,
+            columns=['A', 'B', 'C'])
+
+        # > 1 ndim
+        with pytest.raises(ValueError):
+            df.apply(lambda x: np.array([1, 2]).reshape(-1, 2),
+                     axis=1,
+                     result_type='broadcast')
+
+        # cannot broadcast
+        with pytest.raises(ValueError):
+            df.apply(lambda x: [1, 2],
+                     axis=1,
+                     result_type='broadcast')
+
+        with pytest.raises(ValueError):
+            df.apply(lambda x: Series([1, 2]),
+                     axis=1,
+                     result_type='broadcast')
 
     def test_apply_raw(self):
         result0 = self.frame.apply(np.mean, raw=True)
@@ -136,11 +219,12 @@ class TestDataFrameApply(tm.TestCase, TestData):
     def test_apply_axis1(self):
         d = self.frame.index[0]
         tapplied = self.frame.apply(np.mean, axis=1)
-        self.assertEqual(tapplied[d], np.mean(self.frame.xs(d)))
+        assert tapplied[d] == np.mean(self.frame.xs(d))
 
     def test_apply_ignore_failures(self):
-        result = self.mixed_frame._apply_standard(np.mean, 0,
-                                                  ignore_failures=True)
+        result = frame_apply(self.mixed_frame,
+                             np.mean, 0,
+                             ignore_failures=True).apply_standard()
         expected = self.mixed_frame._get_numeric_data().apply(np.mean)
         assert_series_equal(result, expected)
 
@@ -176,10 +260,10 @@ class TestDataFrameApply(tm.TestCase, TestData):
                 res = df.apply(f, axis=axis, raw=raw)
                 if is_reduction:
                     agg_axis = df._get_agg_axis(axis)
-                    tm.assertIsInstance(res, Series)
-                    self.assertIs(res.index, agg_axis)
+                    assert isinstance(res, Series)
+                    assert res.index is agg_axis
                 else:
-                    tm.assertIsInstance(res, DataFrame)
+                    assert isinstance(res, DataFrame)
 
             _checkit()
             _checkit(axis=1)
@@ -192,8 +276,8 @@ class TestDataFrameApply(tm.TestCase, TestData):
             _check(no_index, lambda x: x)
             _check(no_index, lambda x: x.mean())
 
-        result = no_cols.apply(lambda x: x.mean(), broadcast=True)
-        tm.assertIsInstance(result, DataFrame)
+        result = no_cols.apply(lambda x: x.mean(), result_type='broadcast')
+        assert isinstance(result, DataFrame)
 
     def test_apply_with_args_kwds(self):
         def add_some(x, howmuch=0):
@@ -264,18 +348,17 @@ class TestDataFrameApply(tm.TestCase, TestData):
             return row
 
         def transform2(row):
-            if (notnull(row['C']) and row['C'].startswith('shin') and
+            if (notna(row['C']) and row['C'].startswith('shin') and
                     row['A'] == 'foo'):
                 row['D'] = 7
             return row
 
         try:
-            transformed = data.apply(transform, axis=1)  # noqa
+            data.apply(transform, axis=1)
         except AttributeError as e:
-            self.assertEqual(len(e.args), 2)
-            self.assertEqual(e.args[1], 'occurred at index 4')
-            self.assertEqual(
-                e.args[0], "'float' object has no attribute 'startswith'")
+            assert len(e.args) == 2
+            assert e.args[1] == 'occurred at index 4'
+            assert e.args[0] == "'float' object has no attribute 'startswith'"
 
     def test_apply_bug(self):
 
@@ -335,33 +418,37 @@ class TestDataFrameApply(tm.TestCase, TestData):
 
         result = self.frame.apply(lambda x: np.repeat(x.name, len(x)),
                                   axis=1)
-        expected = DataFrame(np.tile(self.frame.index,
-                                     (len(self.frame.columns), 1)).T,
-                             index=self.frame.index,
-                             columns=self.frame.columns)
-        assert_frame_equal(result, expected)
+        expected = Series(np.repeat(t[0], len(self.frame.columns))
+                          for t in self.frame.itertuples())
+        expected.index = self.frame.index
+        assert_series_equal(result, expected)
 
     def test_apply_multi_index(self):
-        s = DataFrame([[1, 2], [3, 4], [5, 6]])
-        s.index = MultiIndex.from_arrays([['a', 'a', 'b'], ['c', 'd', 'd']])
-        s.columns = ['col1', 'col2']
-        res = s.apply(lambda x: Series({'min': min(x), 'max': max(x)}), 1)
-        tm.assertIsInstance(res.index, MultiIndex)
+        index = MultiIndex.from_arrays([['a', 'a', 'b'], ['c', 'd', 'd']])
+        s = DataFrame([[1, 2], [3, 4], [5, 6]],
+                      index=index,
+                      columns=['col1', 'col2'])
+        result = s.apply(
+            lambda x: Series({'min': min(x), 'max': max(x)}), 1)
+        expected = DataFrame([[1, 2], [3, 4], [5, 6]],
+                             index=index,
+                             columns=['min', 'max'])
+        assert_frame_equal(result, expected, check_like=True)
 
     def test_apply_dict(self):
 
         # GH 8735
         A = DataFrame([['foo', 'bar'], ['spam', 'eggs']])
-        A_dicts = pd.Series([dict([(0, 'foo'), (1, 'spam')]),
-                             dict([(0, 'bar'), (1, 'eggs')])])
+        A_dicts = Series([dict([(0, 'foo'), (1, 'spam')]),
+                          dict([(0, 'bar'), (1, 'eggs')])])
         B = DataFrame([[0, 1], [2, 3]])
-        B_dicts = pd.Series([dict([(0, 0), (1, 2)]), dict([(0, 1), (1, 3)])])
+        B_dicts = Series([dict([(0, 0), (1, 2)]), dict([(0, 1), (1, 3)])])
         fn = lambda x: x.to_dict()
 
         for df, dicts in [(A, A_dicts), (B, B_dicts)]:
-            reduce_true = df.apply(fn, reduce=True)
-            reduce_false = df.apply(fn, reduce=False)
-            reduce_none = df.apply(fn, reduce=None)
+            reduce_true = df.apply(fn, result_type='reduce')
+            reduce_false = df.apply(fn, result_type='expand')
+            reduce_none = df.apply(fn)
 
             assert_series_equal(reduce_true, dicts)
             assert_frame_equal(reduce_false, df)
@@ -369,23 +456,23 @@ class TestDataFrameApply(tm.TestCase, TestData):
 
     def test_applymap(self):
         applied = self.frame.applymap(lambda x: x * 2)
-        assert_frame_equal(applied, self.frame * 2)
-        result = self.frame.applymap(type)
+        tm.assert_frame_equal(applied, self.frame * 2)
+        self.frame.applymap(type)
 
-        # GH #465, function returning tuples
+        # gh-465: function returning tuples
         result = self.frame.applymap(lambda x: (x, x))
-        tm.assertIsInstance(result['A'][0], tuple)
+        assert isinstance(result['A'][0], tuple)
 
-        # GH 2909, object conversion to float in constructor?
+        # gh-2909: object conversion to float in constructor?
         df = DataFrame(data=[1, 'a'])
         result = df.applymap(lambda x: x)
-        self.assertEqual(result.dtypes[0], object)
+        assert result.dtypes[0] == object
 
         df = DataFrame(data=[1., 'a'])
         result = df.applymap(lambda x: x)
-        self.assertEqual(result.dtypes[0], object)
+        assert result.dtypes[0] == object
 
-        # GH2786
+        # see gh-2786
         df = DataFrame(np.random.random((3, 4)))
         df2 = df.copy()
         cols = ['a', 'a', 'a', 'a']
@@ -394,16 +481,16 @@ class TestDataFrameApply(tm.TestCase, TestData):
         expected = df2.applymap(str)
         expected.columns = cols
         result = df.applymap(str)
-        assert_frame_equal(result, expected)
+        tm.assert_frame_equal(result, expected)
 
         # datetime/timedelta
         df['datetime'] = Timestamp('20130101')
         df['timedelta'] = pd.Timedelta('1 min')
         result = df.applymap(str)
         for f in ['datetime', 'timedelta']:
-            self.assertEqual(result.loc[0, f], str(df.loc[0, f]))
+            assert result.loc[0, f] == str(df.loc[0, f])
 
-        # GH 8222
+        # see gh-8222
         empty_frames = [pd.DataFrame(),
                         pd.DataFrame(columns=list('ABC')),
                         pd.DataFrame(index=list('ABC')),
@@ -412,6 +499,16 @@ class TestDataFrameApply(tm.TestCase, TestData):
             for func in [round, lambda x: x]:
                 result = frame.applymap(func)
                 tm.assert_frame_equal(result, frame)
+
+    def test_applymap_box_timestamps(self):
+        # #2689, #2627
+        ser = pd.Series(date_range('1/1/2000', periods=10))
+
+        def func(x):
+            return (x.hour, x.day, x.month)
+
+        # it works!
+        pd.DataFrame(ser).applymap(func)
 
     def test_applymap_box(self):
         # ufunc will not be boxed. Same test cases as the test_map_box
@@ -438,10 +535,10 @@ class TestDataFrameApply(tm.TestCase, TestData):
         df = df.applymap(lambda x: x + BDay())
         df = df.applymap(lambda x: x + BDay())
 
-        self.assertTrue(df.x1.dtype == 'M8[ns]')
+        assert df.x1.dtype == 'M8[ns]'
 
-    # See gh-12244
     def test_apply_non_numpy_dtype(self):
+        # See gh-12244
         df = DataFrame({'dt': pd.date_range(
             "2015-01-01", periods=3, tz='Europe/Brussels')})
         result = df.apply(lambda x: x)
@@ -455,3 +552,463 @@ class TestDataFrameApply(tm.TestCase, TestData):
         df = DataFrame({'dt': ['a', 'b', 'c', 'a']}, dtype='category')
         result = df.apply(lambda x: x)
         assert_frame_equal(result, df)
+
+
+class TestInferOutputShape(object):
+    # the user has supplied an opaque UDF where
+    # they are transforming the input that requires
+    # us to infer the output
+
+    def test_infer_row_shape(self):
+        # gh-17437
+        # if row shape is changing, infer it
+        df = pd.DataFrame(np.random.rand(10, 2))
+        result = df.apply(np.fft.fft, axis=0)
+        assert result.shape == (10, 2)
+
+        result = df.apply(np.fft.rfft, axis=0)
+        assert result.shape == (6, 2)
+
+    def test_with_dictlike_columns(self):
+        # gh 17602
+        df = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
+        result = df.apply(lambda x: {'s': x['a'] + x['b']},
+                          axis=1)
+        expected = Series([{'s': 3} for t in df.itertuples()])
+        assert_series_equal(result, expected)
+
+        df['tm'] = [pd.Timestamp('2017-05-01 00:00:00'),
+                    pd.Timestamp('2017-05-02 00:00:00')]
+        result = df.apply(lambda x: {'s': x['a'] + x['b']},
+                          axis=1)
+        assert_series_equal(result, expected)
+
+        # compose a series
+        result = (df['a'] + df['b']).apply(lambda x: {'s': x})
+        expected = Series([{'s': 3}, {'s': 3}])
+        assert_series_equal(result, expected)
+
+        # gh-18775
+        df = DataFrame()
+        df["author"] = ["X", "Y", "Z"]
+        df["publisher"] = ["BBC", "NBC", "N24"]
+        df["date"] = pd.to_datetime(['17-10-2010 07:15:30',
+                                     '13-05-2011 08:20:35',
+                                     '15-01-2013 09:09:09'])
+        result = df.apply(lambda x: {}, axis=1)
+        expected = Series([{}, {}, {}])
+        assert_series_equal(result, expected)
+
+    def test_with_dictlike_columns_with_infer(self):
+        # gh 17602
+        df = DataFrame([[1, 2], [1, 2]], columns=['a', 'b'])
+        result = df.apply(lambda x: {'s': x['a'] + x['b']},
+                          axis=1, result_type='expand')
+        expected = DataFrame({'s': [3, 3]})
+        assert_frame_equal(result, expected)
+
+        df['tm'] = [pd.Timestamp('2017-05-01 00:00:00'),
+                    pd.Timestamp('2017-05-02 00:00:00')]
+        result = df.apply(lambda x: {'s': x['a'] + x['b']},
+                          axis=1, result_type='expand')
+        assert_frame_equal(result, expected)
+
+    def test_with_listlike_columns(self):
+        # gh-17348
+        df = DataFrame({'a': Series(np.random.randn(4)),
+                        'b': ['a', 'list', 'of', 'words'],
+                        'ts': date_range('2016-10-01', periods=4, freq='H')})
+
+        result = df[['a', 'b']].apply(tuple, axis=1)
+        expected = Series([t[1:] for t in df[['a', 'b']].itertuples()])
+        assert_series_equal(result, expected)
+
+        result = df[['a', 'ts']].apply(tuple, axis=1)
+        expected = Series([t[1:] for t in df[['a', 'ts']].itertuples()])
+        assert_series_equal(result, expected)
+
+        # gh-18919
+        df = DataFrame({'x': Series([['a', 'b'], ['q']]),
+                        'y': Series([['z'], ['q', 't']])})
+        df.index = MultiIndex.from_tuples([('i0', 'j0'), ('i1', 'j1')])
+
+        result = df.apply(
+            lambda row: [el for el in row['x'] if el in row['y']],
+            axis=1)
+        expected = Series([[], ['q']], index=df.index)
+        assert_series_equal(result, expected)
+
+    def test_infer_output_shape_columns(self):
+        # gh-18573
+
+        df = DataFrame({'number': [1., 2.],
+                        'string': ['foo', 'bar'],
+                        'datetime': [pd.Timestamp('2017-11-29 03:30:00'),
+                                     pd.Timestamp('2017-11-29 03:45:00')]})
+        result = df.apply(lambda row: (row.number, row.string), axis=1)
+        expected = Series([(t.number, t.string) for t in df.itertuples()])
+        assert_series_equal(result, expected)
+
+    def test_infer_output_shape_listlike_columns(self):
+        # gh-16353
+
+        df = DataFrame(np.random.randn(6, 3), columns=['A', 'B', 'C'])
+
+        result = df.apply(lambda x: [1, 2, 3], axis=1)
+        expected = Series([[1, 2, 3] for t in df.itertuples()])
+        assert_series_equal(result, expected)
+
+        result = df.apply(lambda x: [1, 2], axis=1)
+        expected = Series([[1, 2] for t in df.itertuples()])
+        assert_series_equal(result, expected)
+
+        # gh-17970
+        df = DataFrame({"a": [1, 2, 3]}, index=list('abc'))
+
+        result = df.apply(lambda row: np.ones(1), axis=1)
+        expected = Series([np.ones(1) for t in df.itertuples()],
+                          index=df.index)
+        assert_series_equal(result, expected)
+
+        result = df.apply(lambda row: np.ones(2), axis=1)
+        expected = Series([np.ones(2) for t in df.itertuples()],
+                          index=df.index)
+        assert_series_equal(result, expected)
+
+        # gh-17892
+        df = pd.DataFrame({'a': [pd.Timestamp('2010-02-01'),
+                                 pd.Timestamp('2010-02-04'),
+                                 pd.Timestamp('2010-02-05'),
+                                 pd.Timestamp('2010-02-06')],
+                           'b': [9, 5, 4, 3],
+                           'c': [5, 3, 4, 2],
+                           'd': [1, 2, 3, 4]})
+
+        def fun(x):
+            return (1, 2)
+
+        result = df.apply(fun, axis=1)
+        expected = Series([(1, 2) for t in df.itertuples()])
+        assert_series_equal(result, expected)
+
+    def test_consistent_coerce_for_shapes(self):
+        # we want column names to NOT be propagated
+        # just because the shape matches the input shape
+        df = DataFrame(np.random.randn(4, 3), columns=['A', 'B', 'C'])
+
+        result = df.apply(lambda x: [1, 2, 3], axis=1)
+        expected = Series([[1, 2, 3] for t in df.itertuples()])
+        assert_series_equal(result, expected)
+
+        result = df.apply(lambda x: [1, 2], axis=1)
+        expected = Series([[1, 2] for t in df.itertuples()])
+        assert_series_equal(result, expected)
+
+    def test_consistent_names(self):
+        # if a Series is returned, we should use the resulting index names
+        df = DataFrame(
+            np.tile(np.arange(3, dtype='int64'), 6).reshape(6, -1) + 1,
+            columns=['A', 'B', 'C'])
+
+        result = df.apply(lambda x: Series([1, 2, 3],
+                                           index=['test', 'other', 'cols']),
+                          axis=1)
+        expected = DataFrame(
+            np.tile(np.arange(3, dtype='int64'), 6).reshape(6, -1) + 1,
+            columns=['test', 'other', 'cols'])
+        assert_frame_equal(result, expected)
+
+        result = df.apply(
+            lambda x: pd.Series([1, 2], index=['test', 'other']), axis=1)
+        expected = DataFrame(
+            np.tile(np.arange(2, dtype='int64'), 6).reshape(6, -1) + 1,
+            columns=['test', 'other'])
+        assert_frame_equal(result, expected)
+
+    def test_result_type(self):
+        # result_type should be consistent no matter which
+        # path we take in the code
+        df = DataFrame(
+            np.tile(np.arange(3, dtype='int64'), 6).reshape(6, -1) + 1,
+            columns=['A', 'B', 'C'])
+
+        result = df.apply(lambda x: [1, 2, 3], axis=1, result_type='expand')
+        expected = df.copy()
+        expected.columns = [0, 1, 2]
+        assert_frame_equal(result, expected)
+
+        result = df.apply(lambda x: [1, 2], axis=1, result_type='expand')
+        expected = df[['A', 'B']].copy()
+        expected.columns = [0, 1]
+        assert_frame_equal(result, expected)
+
+        # broadcast result
+        result = df.apply(lambda x: [1, 2, 3], axis=1, result_type='broadcast')
+        expected = df.copy()
+        assert_frame_equal(result, expected)
+
+        columns = ['other', 'col', 'names']
+        result = df.apply(
+            lambda x: pd.Series([1, 2, 3],
+                                index=columns),
+            axis=1,
+            result_type='broadcast')
+        expected = df.copy()
+        assert_frame_equal(result, expected)
+
+        # series result
+        result = df.apply(lambda x: Series([1, 2, 3], index=x.index), axis=1)
+        expected = df.copy()
+        assert_frame_equal(result, expected)
+
+        # series result with other index
+        columns = ['other', 'col', 'names']
+        result = df.apply(
+            lambda x: pd.Series([1, 2, 3], index=columns),
+            axis=1)
+        expected = df.copy()
+        expected.columns = columns
+        assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("result_type", ['foo', 1])
+    def test_result_type_error(self, result_type):
+        # allowed result_type
+        df = DataFrame(
+            np.tile(np.arange(3, dtype='int64'), 6).reshape(6, -1) + 1,
+            columns=['A', 'B', 'C'])
+
+        with pytest.raises(ValueError):
+            df.apply(lambda x: [1, 2, 3],
+                     axis=1,
+                     result_type=result_type)
+
+    @pytest.mark.parametrize(
+        "box",
+        [lambda x: list(x),
+         lambda x: tuple(x),
+         lambda x: np.array(x, dtype='int64')],
+        ids=['list', 'tuple', 'array'])
+    def test_consistency_for_boxed(self, box):
+        # passing an array or list should not affect the output shape
+        df = DataFrame(
+            np.tile(np.arange(3, dtype='int64'), 6).reshape(6, -1) + 1,
+            columns=['A', 'B', 'C'])
+
+        result = df.apply(lambda x: box([1, 2]), axis=1)
+        expected = Series([box([1, 2]) for t in df.itertuples()])
+        assert_series_equal(result, expected)
+
+        result = df.apply(lambda x: box([1, 2]), axis=1, result_type='expand')
+        expected = DataFrame(
+            np.tile(np.arange(2, dtype='int64'), 6).reshape(6, -1) + 1)
+        assert_frame_equal(result, expected)
+
+
+def zip_frames(*frames):
+    """
+    take a list of frames, zip the columns together for each
+    assume that these all have the first frame columns
+
+    return a new frame
+    """
+    columns = frames[0].columns
+    zipped = [f[c] for c in columns for f in frames]
+    return pd.concat(zipped, axis=1)
+
+
+class TestDataFrameAggregate(TestData):
+
+    def test_agg_transform(self):
+
+        with np.errstate(all='ignore'):
+
+            f_sqrt = np.sqrt(self.frame)
+            f_abs = np.abs(self.frame)
+
+            # ufunc
+            result = self.frame.transform(np.sqrt)
+            expected = f_sqrt.copy()
+            assert_frame_equal(result, expected)
+
+            result = self.frame.apply(np.sqrt)
+            assert_frame_equal(result, expected)
+
+            result = self.frame.transform(np.sqrt)
+            assert_frame_equal(result, expected)
+
+            # list-like
+            result = self.frame.apply([np.sqrt])
+            expected = f_sqrt.copy()
+            expected.columns = pd.MultiIndex.from_product(
+                [self.frame.columns, ['sqrt']])
+            assert_frame_equal(result, expected)
+
+            result = self.frame.transform([np.sqrt])
+            assert_frame_equal(result, expected)
+
+            # multiple items in list
+            # these are in the order as if we are applying both
+            # functions per series and then concatting
+            expected = zip_frames(f_sqrt, f_abs)
+            expected.columns = pd.MultiIndex.from_product(
+                [self.frame.columns, ['sqrt', 'absolute']])
+            result = self.frame.apply([np.sqrt, np.abs])
+            assert_frame_equal(result, expected)
+
+            result = self.frame.transform(['sqrt', np.abs])
+            assert_frame_equal(result, expected)
+
+    def test_transform_and_agg_err(self):
+        # cannot both transform and agg
+        def f():
+            self.frame.transform(['max', 'min'])
+        pytest.raises(ValueError, f)
+
+        def f():
+            with np.errstate(all='ignore'):
+                self.frame.agg(['max', 'sqrt'])
+        pytest.raises(ValueError, f)
+
+        def f():
+            with np.errstate(all='ignore'):
+                self.frame.transform(['max', 'sqrt'])
+        pytest.raises(ValueError, f)
+
+        df = pd.DataFrame({'A': range(5), 'B': 5})
+
+        def f():
+            with np.errstate(all='ignore'):
+                df.agg({'A': ['abs', 'sum'], 'B': ['mean', 'max']})
+
+    def test_demo(self):
+        # demonstration tests
+        df = pd.DataFrame({'A': range(5), 'B': 5})
+
+        result = df.agg(['min', 'max'])
+        expected = DataFrame({'A': [0, 4], 'B': [5, 5]},
+                             columns=['A', 'B'],
+                             index=['min', 'max'])
+        tm.assert_frame_equal(result, expected)
+
+        result = df.agg({'A': ['min', 'max'], 'B': ['sum', 'max']})
+        expected = DataFrame({'A': [4.0, 0.0, np.nan],
+                              'B': [5.0, np.nan, 25.0]},
+                             columns=['A', 'B'],
+                             index=['max', 'min', 'sum'])
+        tm.assert_frame_equal(result.reindex_like(expected), expected)
+
+    def test_agg_dict_nested_renaming_depr(self):
+
+        df = pd.DataFrame({'A': range(5), 'B': 5})
+
+        # nested renaming
+        with tm.assert_produces_warning(FutureWarning):
+            df.agg({'A': {'foo': 'min'},
+                    'B': {'bar': 'max'}})
+
+    def test_agg_reduce(self):
+        # all reducers
+        expected = zip_frames(self.frame.mean().to_frame(),
+                              self.frame.max().to_frame(),
+                              self.frame.sum().to_frame()).T
+        expected.index = ['mean', 'max', 'sum']
+        result = self.frame.agg(['mean', 'max', 'sum'])
+        assert_frame_equal(result, expected)
+
+        # dict input with scalars
+        result = self.frame.agg({'A': 'mean', 'B': 'sum'})
+        expected = Series([self.frame.A.mean(), self.frame.B.sum()],
+                          index=['A', 'B'])
+        assert_series_equal(result.reindex_like(expected), expected)
+
+        # dict input with lists
+        result = self.frame.agg({'A': ['mean'], 'B': ['sum']})
+        expected = DataFrame({'A': Series([self.frame.A.mean()],
+                                          index=['mean']),
+                              'B': Series([self.frame.B.sum()],
+                                          index=['sum'])})
+        assert_frame_equal(result.reindex_like(expected), expected)
+
+        # dict input with lists with multiple
+        result = self.frame.agg({'A': ['mean', 'sum'],
+                                 'B': ['sum', 'max']})
+        expected = DataFrame({'A': Series([self.frame.A.mean(),
+                                           self.frame.A.sum()],
+                                          index=['mean', 'sum']),
+                              'B': Series([self.frame.B.sum(),
+                                           self.frame.B.max()],
+                                          index=['sum', 'max'])})
+        assert_frame_equal(result.reindex_like(expected), expected)
+
+    def test_nuiscance_columns(self):
+
+        # GH 15015
+        df = DataFrame({'A': [1, 2, 3],
+                        'B': [1., 2., 3.],
+                        'C': ['foo', 'bar', 'baz'],
+                        'D': pd.date_range('20130101', periods=3)})
+
+        result = df.agg('min')
+        expected = Series([1, 1., 'bar', pd.Timestamp('20130101')],
+                          index=df.columns)
+        assert_series_equal(result, expected)
+
+        result = df.agg(['min'])
+        expected = DataFrame([[1, 1., 'bar', pd.Timestamp('20130101')]],
+                             index=['min'], columns=df.columns)
+        assert_frame_equal(result, expected)
+
+        result = df.agg('sum')
+        expected = Series([6, 6., 'foobarbaz'],
+                          index=['A', 'B', 'C'])
+        assert_series_equal(result, expected)
+
+        result = df.agg(['sum'])
+        expected = DataFrame([[6, 6., 'foobarbaz']],
+                             index=['sum'], columns=['A', 'B', 'C'])
+        assert_frame_equal(result, expected)
+
+    def test_non_callable_aggregates(self):
+
+        # GH 16405
+        # 'size' is a property of frame/series
+        # validate that this is working
+        df = DataFrame({'A': [None, 2, 3],
+                        'B': [1.0, np.nan, 3.0],
+                        'C': ['foo', None, 'bar']})
+
+        # Function aggregate
+        result = df.agg({'A': 'count'})
+        expected = Series({'A': 2})
+
+        assert_series_equal(result, expected)
+
+        # Non-function aggregate
+        result = df.agg({'A': 'size'})
+        expected = Series({'A': 3})
+
+        assert_series_equal(result, expected)
+
+        # Mix function and non-function aggs
+        result1 = df.agg(['count', 'size'])
+        result2 = df.agg({'A': ['count', 'size'],
+                          'B': ['count', 'size'],
+                          'C': ['count', 'size']})
+        expected = pd.DataFrame({'A': {'count': 2, 'size': 3},
+                                 'B': {'count': 2, 'size': 3},
+                                 'C': {'count': 2, 'size': 3}})
+
+        assert_frame_equal(result1, result2, check_like=True)
+        assert_frame_equal(result2, expected, check_like=True)
+
+        # Just functional string arg is same as calling df.arg()
+        result = df.agg('count')
+        expected = df.count()
+
+        assert_series_equal(result, expected)
+
+        # Just a string attribute arg same as calling df.arg
+        result = df.agg('size')
+        expected = df.size
+
+        assert result == expected

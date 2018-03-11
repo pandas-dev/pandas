@@ -26,7 +26,6 @@ if sphinx.__version__ < '1.0.1':
     raise RuntimeError("Sphinx 1.0.1 or newer is required")
 
 from .docscrape_sphinx import get_doc_object, SphinxDocString
-from sphinx.util.compat import Directive
 
 if sys.version_info[0] >= 3:
     sixu = lambda s: s
@@ -41,10 +40,6 @@ def mangle_docstrings(app, what, name, obj, options, lines,
                show_class_members=app.config.numpydoc_show_class_members,
                class_members_toctree=app.config.numpydoc_class_members_toctree,
               )
-
-    # PANDAS HACK (to remove the list of methods/attributes for Categorical)
-    if what == "class" and name.endswith(".Categorical"):
-        cfg['class_members_list'] = False
 
     if what == 'module':
         # Strip top title

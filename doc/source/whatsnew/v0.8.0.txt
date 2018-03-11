@@ -168,7 +168,6 @@ New plotting methods
 
    fx['FR'].plot(style='g')
 
-   @savefig whatsnew_secondary_y.png
    fx['IT'].plot(style='k--', secondary_y=True)
 
 Vytautas Jancauskas, the 2012 GSOC participant, has added many new plot
@@ -180,7 +179,6 @@ types. For example, ``'kde'`` is a new option:
                               np.random.randn(1000) * 0.5 + 3)))
    plt.figure()
    s.hist(normed=True, alpha=0.2)
-   @savefig whatsnew_kde.png
    s.plot(kind='kde')
 
 See :ref:`the plotting page <visualization.other>` for much more.
@@ -219,12 +217,12 @@ nanosecond support (the ``nanosecond`` field store the nanosecond value between
 ``DatetimeIndex`` to regular NumPy arrays.
 
 If you have code that requires an array of ``datetime.datetime`` objects, you
-have a couple of options. First, the ``asobject`` property of ``DatetimeIndex``
+have a couple of options. First, the ``astype(object)`` method of ``DatetimeIndex``
 produces an array of ``Timestamp`` objects:
 
 .. ipython:: python
 
-   stamp_array = rng.asobject
+   stamp_array = rng.astype(object)
    stamp_array
    stamp_array[5]
 

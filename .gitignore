@@ -7,6 +7,7 @@
 *$
 *.bak
 *flymake*
+*.iml
 *.kdev4
 *.log
 *.swp
@@ -20,6 +21,7 @@
 .ipynb_checkpoints
 .tags
 .cache/
+.vscode/
 
 # Compiled source #
 ###################
@@ -86,8 +88,9 @@ scikits
 *.c
 *.cpp
 
-# Performance Testing #
-#######################
+# Unit / Performance Testing #
+##############################
+.pytest_cache/
 asv_bench/env/
 asv_bench/html/
 asv_bench/results/
@@ -103,3 +106,6 @@ doc/source/index.rst
 doc/build/html/index.html
 # Windows specific leftover:
 doc/tmp.sv
+doc/source/styled.xlsx
+doc/source/templates/
+env/

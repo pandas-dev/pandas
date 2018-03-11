@@ -11,31 +11,25 @@ matrix:
 environment:
   global:
     # SDK v7.0 MSVC Express 2008's SetEnv.cmd script will fail if the
-    # /E:ON and /V:ON options are not enabled in the batch script intepreter
+    # /E:ON and /V:ON options are not enabled in the batch script interpreter
     # See: http://stackoverflow.com/a/13751649/163740
     CMD_IN_ENV: "cmd /E:ON /V:ON /C .\\ci\\run_with_env.cmd"
     clone_folder: C:\projects\pandas
+    PANDAS_TESTING_MODE: "deprecate"
 
   matrix:
 
-    - CONDA_ROOT: "C:\\Miniconda3.5_64"
+    - CONDA_ROOT: "C:\\Miniconda3_64"
       PYTHON_VERSION: "3.6"
       PYTHON_ARCH: "64"
       CONDA_PY: "36"
-      CONDA_NPY: "111"
+      CONDA_NPY: "113"
 
-    - CONDA_ROOT: "C:\\Miniconda3.5_64"
+    - CONDA_ROOT: "C:\\Miniconda3_64"
       PYTHON_VERSION: "2.7"
       PYTHON_ARCH: "64"
       CONDA_PY: "27"
       CONDA_NPY: "110"
-
-    - CONDA_ROOT: "C:\\Miniconda3.5_64"
-      PYTHON_VERSION: "3.5"
-      PYTHON_ARCH: "64"
-      CONDA_PY: "35"
-      CONDA_NPY: "111"
-
 
 # We always use a 64-bit machine, but can build x86 distributions
 # with the PYTHON_ARCH variable (which is used by CMD_IN_ENV).
@@ -66,8 +60,7 @@ install:
 
   # install our build environment
   - cmd: conda config --set show_channel_urls true --set always_yes true --set changeps1 false
-  #- cmd: conda update -q conda
-  - cmd: conda install conda=4.2.15
+  - cmd: conda update -q conda
   - cmd: conda config --set ssl_verify false
 
   # add the pandas channel *before* defaults to have defaults take priority
@@ -79,23 +72,25 @@ install:
   # this is now the downloaded conda...
   - cmd: conda info -a
 
-  # build em using the local source checkout in the correct windows env
-  - cmd: '%CMD_IN_ENV% conda build ci\appveyor.recipe -q'
-
   # create our env
-  - cmd: conda create -q -n pandas python=%PYTHON_VERSION% nose pytest
+  - cmd: conda create -n pandas python=%PYTHON_VERSION% cython pytest>=3.1.0 pytest-xdist
   - cmd: activate pandas
-  - SET REQ=ci\requirements-%PYTHON_VERSION%-%PYTHON_ARCH%.run
+  - cmd: pip install moto
+  - SET REQ=ci\requirements-%PYTHON_VERSION%_WIN.run
   - cmd: echo "installing requirements from %REQ%"
-  - cmd: conda install -n pandas -q --file=%REQ%
+  - cmd: conda install -n pandas --file=%REQ%
   - cmd: conda list -n pandas
   - cmd: echo "installing requirements from %REQ% - done"
-  - ps: conda install -n pandas (conda build ci\appveyor.recipe -q --output)
+
+  # add some pip only reqs to the env
+  - SET REQ=ci\requirements-%PYTHON_VERSION%_WIN.pip
+  - cmd: echo "installing requirements from %REQ%"
+  - cmd: pip install -Ur %REQ%
+
+  # build em using the local source checkout in the correct windows env
+  - cmd: '%CMD_IN_ENV% python setup.py build_ext --inplace'
 
 test_script:
   # tests
   - cmd: activate pandas
-  - cmd: conda list
-  - cmd: cd \
-  - cmd: python -c "import pandas; pandas.test(['--skip-slow', '--skip-network'])"
-
+  - cmd: test.bat

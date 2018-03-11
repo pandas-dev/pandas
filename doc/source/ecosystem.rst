@@ -27,7 +27,7 @@ Statistics and Machine Learning
 `Statsmodels <http://www.statsmodels.org/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Statsmodels is the prominent python "statistics and econometrics library" and it has
+Statsmodels is the prominent Python "statistics and econometrics library" and it has
 a long-standing special relationship with pandas. Statsmodels provides powerful statistics,
 econometrics, analysis and modeling functionality that is out of pandas' scope.
 Statsmodels leverages pandas objects as the underlying data container for computation.
@@ -53,6 +53,18 @@ the latest web technologies. Its goal is to provide elegant, concise constructio
 graphics in the style of Protovis/D3, while delivering high-performance interactivity over
 large data to thin clients.
 
+`seaborn <https://seaborn.pydata.org>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Seaborn is a Python visualization library based on `matplotlib
+<http://matplotlib.org>`__.  It provides a high-level, dataset-oriented
+interface for creating attractive statistical graphics. The plotting functions
+in seaborn understand pandas objects and leverage pandas grouping operations
+internally to support concise specification of complex visualizations. Seaborn
+also goes beyond matplotlib and pandas with the option to perform statistical
+estimation while plotting, aggregating across observations and visualizing the
+fit of statistical models to emphasize patterns in a dataset.
+
 `yhat/ggplot <https://github.com/yhat/ggplot>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -60,18 +72,9 @@ Hadley Wickham's `ggplot2 <http://ggplot2.org/>`__ is a foundational exploratory
 Based on `"The Grammar of Graphics" <http://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html>`__ it
 provides a powerful, declarative and extremely general way to generate bespoke plots of any kind of data.
 It's really quite incredible. Various implementations to other languages are available,
-but a faithful implementation for python users has long been missing. Although still young
+but a faithful implementation for Python users has long been missing. Although still young
 (as of Jan-2014), the `yhat/ggplot <https://github.com/yhat/ggplot>`__ project has been
 progressing quickly in that direction.
-
-`Seaborn <https://github.com/mwaskom/seaborn>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Although pandas has quite a bit of "just plot it" functionality built-in, visualization and
-in particular statistical graphics is a vast field with a long tradition and lots of ground
-to cover. The `Seaborn <https://github.com/mwaskom/seaborn>`__ project builds on top of pandas
-and `matplotlib <http://matplotlib.org>`__ to provide easy plotting of data which extends to
-more advanced types of plots then those offered by pandas.
 
 `Vincent <https://github.com/wrobstory/vincent>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -93,8 +96,8 @@ targets the IPython Notebook environment.
 
 `Plotly’s <https://plot.ly/>`__ `Python API <https://plot.ly/python/>`__ enables interactive figures and web shareability. Maps, 2D, 3D, and live-streaming graphs are rendered with WebGL and `D3.js <http://d3js.org/>`__. The library supports plotting directly from a pandas DataFrame and cloud-based collaboration. Users of `matplotlib, ggplot for Python, and Seaborn <https://plot.ly/python/matplotlib-to-plotly-tutorial/>`__ can convert figures into interactive web-based plots. Plots can be drawn in `IPython Notebooks <https://plot.ly/ipython-notebooks/>`__ , edited with R or MATLAB, modified in a GUI, or embedded in apps and dashboards. Plotly is free for unlimited sharing, and has `cloud <https://plot.ly/product/plans/>`__, `offline <https://plot.ly/python/offline/>`__, or `on-premise <https://plot.ly/product/enterprise/>`__ accounts for private use.
 
-Visualizing Data in Qt applications
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+`QtPandas <https://github.com/draperjames/qtpandas>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Spun off from the main pandas library, the `qtpandas <https://github.com/draperjames/qtpandas>`__
 library enables DataFrame visualization and manipulation in PyQt4 and PySide applications.
@@ -146,7 +149,10 @@ API
 
 `pandas-datareader <https://github.com/pydata/pandas-datareader>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-``pandas-datareader`` is a remote data access library for pandas. ``pandas.io`` from pandas < 0.17.0 is now refactored/split-off to and importable from ``pandas_datareader`` (PyPI:``pandas-datareader``). Many/most of the supported APIs have at least a documentation paragraph in the `pandas-datareader docs <https://pandas-datareader.readthedocs.io/en/latest/>`_:
+``pandas-datareader`` is a remote data access library for pandas (PyPI:``pandas-datareader``).
+It is based on functionality that was located in ``pandas.io.data`` and ``pandas.io.wb`` but was
+split off in v0.19.
+See more in the  `pandas-datareader docs <https://pandas-datareader.readthedocs.io/en/latest/>`_:
 
 The following data feeds are available:
 
@@ -173,18 +179,20 @@ This package requires valid credentials for this API (non free).
 
 `pandaSDMX <https://pandasdmx.readthedocs.io>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-pandaSDMX is an extensible library to retrieve and acquire statistical data
+pandaSDMX is a library to retrieve and acquire statistical data
 and metadata disseminated in
-`SDMX <http://www.sdmx.org>`_ 2.1. This standard is currently supported by
-the European statistics office (Eurostat)
-and the European Central Bank (ECB). Datasets may be returned as pandas Series
-or multi-indexed DataFrames.
-
+`SDMX <http://www.sdmx.org>`_ 2.1, an ISO-standard
+widely used by institutions such as statistics offices, central banks,   
+and international organisations. pandaSDMX can expose datasets and related 
+structural metadata including dataflows, code-lists, 
+and datastructure definitions as pandas Series 
+or multi-indexed DataFrames.  
+   
 `fredapi <https://github.com/mortada/fredapi>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 fredapi is a Python interface to the `Federal Reserve Economic Data (FRED) <http://research.stlouisfed.org/fred2/>`__
 provided by the Federal Reserve Bank of St. Louis. It works with both the FRED database and ALFRED database that
-contains point-in-time data (i.e. historic data revisions). fredapi provides a wrapper in python to the FRED
+contains point-in-time data (i.e. historic data revisions). fredapi provides a wrapper in Python to the FRED
 HTTP API, and also provides several convenient methods for parsing and analyzing point-in-time data from ALFRED.
 fredapi makes use of pandas and returns data in a Series or DataFrame. This module requires a FRED API key that
 you can obtain for free on the FRED website.
@@ -220,7 +228,13 @@ Out-of-core
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Dask is a flexible parallel computing library for analytics. Dask
-allow a familiar ``DataFrame`` interface to out-of-core, parallel and distributed computing.
+provides a familiar ``DataFrame`` interface for out-of-core, parallel and distributed computing.
+
+`Dask-ML <https://dask-ml.readthedocs.io/en/latest/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Dask-ML enables parallel and distributed machine learning using Dask alongside existing machine learning libraries like Scikit-Learn, XGBoost, and TensorFlow.
+
 
 `Blaze <http://blaze.pydata.org/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -237,3 +251,49 @@ pandas own ``read_csv`` for CSV IO and leverages many existing packages such as
 PyTables, h5py, and pymongo to move data between non pandas formats. Its graph
 based approach is also extensible by end users for custom formats that may be
 too specific for the core of odo.
+
+.. _ecosystem.data_validation:
+
+Data validation
+---------------
+
+`Engarde <http://engarde.readthedocs.io/en/latest/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Engarde is a lightweight library used to explicitly state your assumptions abour your datasets
+and check that they're *actually* true.
+
+.. _ecosystem.extensions:
+
+Extension Data Types
+--------------------
+
+Pandas provides an interface for defining
+:ref:`extension types <extending.extension-types>` to extend NumPy's type
+system. The following libraries implement that interface to provide types not
+found in NumPy or pandas, which work well with pandas' data containers.
+
+`cyberpandas`_
+~~~~~~~~~~~~~~
+
+Cyberpandas provides an extension type for storing arrays of IP Addresses. These
+arrays can be stored inside pandas' Series and DataFrame.
+
+.. _ecosystem.accessors:
+
+Accessors
+---------
+
+A directory of projects providing
+:ref:`extension accessors <extending.register-accessors>`. This is for users to
+discover new accessors and for library authors to coordinate on the namespace.
+
+============== ========== =========================
+Library        Accessor   Classes
+============== ========== =========================
+`cyberpandas`_ ``ip``     ``Series``
+`pdvega`_      ``vgplot`` ``Series``, ``DataFrame``
+============== ========== =========================
+
+.. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
+.. _pdvega: https://jakevdp.github.io/pdvega/

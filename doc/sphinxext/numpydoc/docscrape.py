@@ -270,7 +270,7 @@ class NumpyDocString(object):
         # If several signatures present, take the last one
         while True:
             summary = self._doc.read_to_next_empty_line()
-            summary_str = " ".join([s.strip() for s in summary]).strip()
+            summary_str = " ".join(s.strip() for s in summary).strip()
             if re.compile('^([\w., ]+=)?\s*[\w\.]+\(.*\)$').match(summary_str):
                 self['Signature'] = summary_str
                 if not self._is_at_section():
@@ -289,7 +289,7 @@ class NumpyDocString(object):
 
         for (section,content) in self._read_sections():
             if not section.startswith('..'):
-                section = ' '.join([s.capitalize() for s in section.split(' ')])
+                section = ' '.join(s.capitalize() for s in section.split(' '))
             if section in ('Parameters', 'Returns', 'Raises', 'Warns',
                            'Other Parameters', 'Attributes', 'Methods'):
                 self[section] = self._parse_param_list(content)
