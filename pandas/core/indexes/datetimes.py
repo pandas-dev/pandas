@@ -2204,8 +2204,9 @@ def _generate_regular_range(start, end, periods, offset):
 def date_range(start=None, end=None, periods=None, freq='D', tz=None,
                normalize=False, name=None, closed=None, **kwargs):
     """
-    Return a fixed frequency DatetimeIndex, with day (calendar) as the default
-    frequency
+    Return a fixed frequency DatetimeIndex.
+
+    The default frequency is day (calendar).
 
     Parameters
     ----------

@@ -3605,7 +3605,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def head(self, n=5):
         """
-        Return the first n rows.
+        Return the first `n` rows.
+
+        This function returns the first `n` rows for the object based
+        on position. It is useful for quickly testing if your object
+        has the right type of data in it.
 
         Parameters
         ----------
@@ -3615,11 +3619,11 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         obj_head : type of caller
-            The first n rows of the caller object.
+            The first `n` rows of the caller object.
 
         See Also
         --------
-        pandas.DataFrame.tail
+        pandas.DataFrame.tail: Returns the last `n` rows.
 
         Examples
         --------
@@ -3647,7 +3651,7 @@ class NDFrame(PandasObject, SelectionMixin):
         3       lion
         4     monkey
 
-        Viewing the first n lines (three in this case)
+        Viewing the first `n` lines (three in this case)
 
         >>> df.head(3)
               animal
@@ -3660,7 +3664,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def tail(self, n=5):
         """
-        Return the last n rows.
+        Return the last `n` rows.
+
+        This function returns last `n` rows from the object based on
+        position. It is useful for quickly verifying data, for example,
+        after sorting or appending rows.
 
         Parameters
         ----------
@@ -3669,12 +3677,12 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        obj_tail : type of caller
-            The last n rows of the caller object.
+        type of caller
+            The last `n` rows of the caller object.
 
         See Also
         --------
-        pandas.DataFrame.head
+        pandas.DataFrame.head : The first `n` rows of the caller object.
 
         Examples
         --------
@@ -3702,7 +3710,7 @@ class NDFrame(PandasObject, SelectionMixin):
         7   whale
         8   zebra
 
-        Viewing the last n lines (three in this case)
+        Viewing the last `n` lines (three in this case)
 
         >>> df.tail(3)
           animal
@@ -4232,7 +4240,55 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @property
     def values(self):
-        """Numpy representation of NDFrame
+        """
+        Return a Numpy representation of the DataFrame.
+
+        Only the values in the DataFrame will be returned, the axes labels
+        will be removed.
+
+        Returns
+        -------
+        numpy.ndarray
+            The values of the DataFrame.
+
+        Examples
+        --------
+        A DataFrame where all columns are the same type (e.g., int64) results
+        in an array of the same type.
+
+        >>> df = pd.DataFrame({'age':    [ 3,  29],
+        ...                    'height': [94, 170],
+        ...                    'weight': [31, 115]})
+        >>> df
+           age  height  weight
+        0    3      94      31
+        1   29     170     115
+        >>> df.dtypes
+        age       int64
+        height    int64
+        weight    int64
+        dtype: object
+        >>> df.values
+        array([[  3,  94,  31],
+               [ 29, 170, 115]], dtype=int64)
+
+        A DataFrame with mixed type columns(e.g., str/object, int64, float32)
+        results in an ndarray of the broadest type that accommodates these
+        mixed types (e.g., object).
+
+        >>> df2 = pd.DataFrame([('parrot',   24.0, 'second'),
+        ...                     ('lion',     80.5, 1),
+        ...                     ('monkey', np.nan, None)],
+        ...                   columns=('name', 'max_speed', 'rank'))
+        >>> df2.dtypes
+        name          object
+        max_speed    float64
+        rank          object
+        dtype: object
+        >>> df2.values
+        array([['parrot', 24.0, 'second'],
+               ['lion', 80.5, 1],
+               ['monkey', nan, None]], dtype=object)
 
         Notes
         -----
@@ -4243,8 +4299,13 @@ class NDFrame(PandasObject, SelectionMixin):
 
         e.g. If the dtypes are float16 and float32, dtype will be upcast to
         float32.  If dtypes are int32 and uint8, dtype will be upcast to
-        int32. By numpy.find_common_type convention, mixing int64 and uint64
-        will result in a flot64 dtype.
+        int32. By :func:`numpy.find_common_type` convention, mixing int64
+        and uint64 will result in a float64 dtype.
+
+        See Also
+        --------
+        pandas.DataFrame.index : Retrievie the index labels
+        pandas.DataFrame.columns : Retrieving the column names
         """
         self._consolidate_inplace()
         return self._data.as_array(transpose=self._AXIS_REVERSED)
@@ -7523,11 +7584,10 @@ class NDFrame(PandasObject, SelectionMixin):
         cls.any = _make_logical_function(
             cls, 'any', name, name2, axis_descr,
             'Return whether any element is True over requested axis',
-            nanops.nanany)
+            nanops.nanany, '', '')
         cls.all = _make_logical_function(
-            cls, 'all', name, name2, axis_descr,
-            'Return whether all elements are True over requested axis',
-            nanops.nanall)
+            cls, 'all', name, name2, axis_descr, _all_doc,
+            nanops.nanall, _all_examples, _all_see_also)
 
         @Substitution(outname='mad',
                       desc="Return the mean absolute deviation of the values "
@@ -7784,7 +7844,6 @@ Returns
 %(outname)s : %(name1)s or %(name2)s (if level specified)\n"""
 
 _bool_doc = """
-
 %(desc)s
 
 Parameters
@@ -7792,17 +7851,71 @@ Parameters
 axis : %(axis_descr)s
 skipna : boolean, default True
     Exclude NA/null values. If an entire row/column is NA, the result
-    will be NA
+    will be NA.
 level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
-    particular level, collapsing into a %(name1)s
+    particular level, collapsing into a %(name1)s.
 bool_only : boolean, default None
     Include only boolean columns. If None, will attempt to use everything,
     then use only boolean data. Not implemented for Series.
+**kwargs : any, default None
+    Additional keywords have no affect but might be accepted for
+    compatibility with numpy.
 
 Returns
 -------
-%(outname)s : %(name1)s or %(name2)s (if level specified)\n"""
+%(outname)s : %(name1)s or %(name2)s (if level specified)
+
+%(examples)s
+%(see_also)s"""
+
+_all_doc = """\
+Return whether all elements are True over series or dataframe axis.
+
+Returns True if all elements within a series or along a dataframe
+axis are non-zero, not-empty or not-False."""
+
+_all_examples = """\
+Examples
+--------
+Series
+
+>>> pd.Series([True, True]).all()
+True
+>>> pd.Series([True, False]).all()
+False
+
+Dataframes
+
+Create a dataframe from a dictionary.
+
+>>> df = pd.DataFrame({'col1': [True, True], 'col2': [True, False]})
+>>> df
+   col1   col2
+0  True   True
+1  True  False
+
+Default behaviour checks if column-wise values all return True.
+
+>>> df.all()
+col1     True
+col2    False
+dtype: bool
+
+Adding axis=1 argument will check if row-wise values all return True.
+
+>>> df.all(axis=1)
+0     True
+1    False
+dtype: bool
+"""
+
+_all_see_also = """\
+See also
+--------
+pandas.Series.all : Return True if all elements are True
+pandas.DataFrame.any : Return True if one (or more) elements are True
+"""
 
 _cnum_doc = """
 
@@ -7985,9 +8098,10 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
     return set_function_name(cum_func, name, cls)
 
 
-def _make_logical_function(cls, name, name1, name2, axis_descr, desc, f):
+def _make_logical_function(cls, name, name1, name2, axis_descr, desc, f,
+                           examples, see_also):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
-                  axis_descr=axis_descr)
+                  axis_descr=axis_descr, examples=examples, see_also=see_also)
     @Appender(_bool_doc)
     def logical_func(self, axis=None, bool_only=None, skipna=None, level=None,
                      **kwargs):
