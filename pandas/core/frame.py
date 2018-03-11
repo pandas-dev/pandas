@@ -4746,7 +4746,7 @@ class DataFrame(NDFrame):
         --------
         DataFrame.pct_change: Percent change over given number of periods.
         DataFrame.shift: Shift index by desired number of periods with an
-        optional time freq
+            optional time freq
         Series.diff: First discrete difference of object
 
         Examples
