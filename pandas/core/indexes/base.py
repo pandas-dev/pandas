@@ -684,12 +684,10 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return `Index` data as an `numpy.ndarray`.
 
-        It is a getter wrapper around `Index.values`.
-
         Returns
         -------
         numpy.ndarray
-            A one-dimensional numpy array of the indexes.
+            A one-dimensional numpy array of the `Index` values.
 
         See Also
         --------
@@ -718,7 +716,9 @@ class Index(IndexOpsMixin, PandasObject):
         `MultiIndex` arrays also have only one dimension:
 
         >>> midx = pd.MultiIndex.from_arrays([[1, 2, 3], ['a', 'b', 'c']],
-        ...                                  names =  ('number', 'letter'))
+        ...                                  names=('number', 'letter'))
+        >>> midx.get_values()
+        array([(1, 'a'), (2, 'b'), (3, 'c')], dtype=object)
         >>> midx.ndim
         1
         """
