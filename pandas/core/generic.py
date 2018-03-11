@@ -5621,7 +5621,8 @@ class NDFrame(PandasObject, SelectionMixin):
             Align object with lower and upper along the given axis.
         inplace : boolean, default False
             Whether to perform the operation in place on the data.
-                .. versionadded:: 0.21.0
+
+            .. versionadded:: 0.21.0
         *args, **kwargs
             Additional keywords have no effect but might be accepted
             for compatibility with numpy.
