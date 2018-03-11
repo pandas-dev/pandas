@@ -4506,61 +4506,60 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def copy(self, deep=True):
         """
-        Make a copy of this objects indices and data.
+        Make a copy of this object's indices and data.
 
-        Deep copy (default) will create a new object with a copy of the objects
-        data and indices. Modifications to the data or indices of the copy
-        will not be reflected in the original object.
+        When `deep=True` (default), a new object will be created with a
+        copy of the calling object's data and indices. Modifications to
+        the data or indices of the copy will not be reflected in the
+        original object (see notes below).
 
-        Shallow copy (``deep=False``) will create a new object without copying
-        the data or indices. Any changes to the index or data of the original
-        will be reflected in the shallow copy (and vice versa).
+        When `deep=False`, a new object will be created without copying
+        the calling object's data (only a reference to the data is
+        copied). Any changes to the data of the original will be reflected
+        in the shallow copy (and vice versa).
 
         Parameters
         ----------
         deep : boolean or string, default True
             Make a deep copy, including a copy of the data and the indices.
-            With ``deep=False`` neither the indices or the data are copied.
-
-            Note that when ``deep=True`` data is copied, actual python objects
-            will not be copied recursively, only the reference to the object.
-            This is in contrast to ``copy.deepcopy`` in the Standard Library,
-            which recursively copies object data.
+            With `deep=False` neither the indices or the data are copied.
 
         Returns
         -------
         copy : type of caller
 
+        Notes
+        -----
+        When `deep=True`, data is copied but actual python objects
+        will not be copied recursively, only the reference to the object.
+        This is in contrast to `copy.deepcopy` in the Standard Library,
+        which recursively copies object data.  (See examples below).
+
         Examples
         --------
-        >>> s = pd.Series([1,2], dtype="int32", index=["a", "b"])
+        >>> s = pd.Series([1, 2], index=["a", "b"])
         >>> s
         a    1
         b    2
-        dtype: int32
+        dtype: int64
         >>> s_copy = s.copy()
         >>> s_copy
         a    1
         b    2
-        dtype: int32
+        dtype: int64
 
         Shallow copy versus default (deep) copy:
 
-        In a shallow copy the index and data is a reference to the original
-        objects'.
+        In a shallow copy, the data is shared with the original object.
 
-        >>> s = pd.Series([1,2], dtype="int32", index=["a", "b"])
+        >>> s = pd.Series([1,2], index=["a", "b"])
         >>> deep_copy = s.copy()
         >>> shallow_copy = s.copy(deep=False)
         >>> id(s) == id(shallow_copy)
         False
-        >>> id(s.index) == id(shallow_copy.index)
-        True
         >>> id(s.values) == id(shallow_copy.values)
         True
         >>> id(s) == id(deep_copy)
-        False
-        >>> id(s.index) == id(deep_copy.index)
         False
         >>> id(s.values) == id(deep_copy.values)
         False
@@ -4568,58 +4567,43 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> s
         a    3
         b    2
-        dtype: int32
+        dtype: int64
         >>> shallow_copy
         a    3
         b    2
-        dtype: int32
+        dtype: int64
         >>> deep_copy
         a    1
         b    2
-        dtype: int32
+        dtype: int64
         >>> shallow_copy[0] = 4
         >>> s
         a    4
         b    2
-        dtype: int32
+        dtype: int64
         >>> shallow_copy
         a    4
         b    2
-        dtype: int32
+        dtype: int64
         >>> deep_copy
         a    1
         b    2
-        dtype: int32
+        dtype: int64
 
-        When copying object containing python objects, deep copy will
-        copy the indices and data but will not do so recursively.
+        When copying an object containing python objects, deep copy will
+        copy the data, but will not do so recursively.
 
-        >>> class Point(object):
-        ...     def __init__(self, x, y):
-        ...         self.x = x
-        ...         self.y = y
-        ...     def __repr__(self):
-        ...         return "Point(%d,%d)" % (self.x, self.y)
-        ...
-        >>> p1 = Point(0, 1)
-        >>> s = pd.Series([p1], dtype="object")
-        >>> s
-        0    Point(0,1)
-        dtype: object
+        >>> s = pd.Series([[1, 2], [3, 4]])
         >>> s_copy = s.copy()
-        >>> s_copy
-        0    Point(0,1)
-        dtype: object
-        >>> id(s[0]) == id(s_copy[0])
-        True
-        >>> p1.x = 1
+        >>> s[0][0] = 10
         >>> s
-        0    Point(1,1)
+        0    [10, 2]
+        1     [3, 4]
         dtype: object
         >>> s_copy
-        0    Point(1,1)
+        0    [10, 2]
+        1     [3, 4]
         dtype: object
-        >>>
 
         For deep-copying python objects, the following can be used:
 
