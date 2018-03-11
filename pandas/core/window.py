@@ -1034,12 +1034,12 @@ class _Rolling_and_Expanding(_Rolling):
 
     Parameters
     ----------
-    other : Series, DataFrame, or ndarray, optional 
+    other : Series, DataFrame, or ndarray, optional
         If not supplied then will default to self.
     pairwise : bool, default None
-        Calculate pairwise combinations of columns within a 
+        Calculate pairwise combinations of columns within a
         DataFrame. If other is not specified, defaults to True,
-        otherwise defaults to False. Not relevant for Series. 
+        otherwise defaults to False. Not relevant for Series.
         See notes.
     **kwargs
         Under Review.
@@ -1048,7 +1048,7 @@ class _Rolling_and_Expanding(_Rolling):
     -------
     Series or DataFrame
         Returned object type is determined by the caller of the
-        %(name)s calculation. 
+        %(name)s calculation.
 
     See Also
     --------
@@ -1065,7 +1065,7 @@ class _Rolling_and_Expanding(_Rolling):
     pairwise set to `True`. All other input combinations will return all 1's.
     
     Function will return `NaN`s for correlations of equal valued sequences;
-    this is the result of a 0/0 division error. 
+    this is the result of a 0/0 division error.
     
     When pairwise is set to `False`, only matching columns between self and 
     other will be used.
@@ -1086,7 +1086,7 @@ class _Rolling_and_Expanding(_Rolling):
     >>> v2 = [3, 4, 4, 4, 8]
     >>> fmt = "{0:.6f}"  # limit the printed precision to 6 digits
     >>> import numpy as np
-    >>> # numpy returns a 2X2 array, the correlation coefficient 
+    >>> # numpy returns a 2X2 array, the correlation coefficient
     >>> # is the number at entry [0][1]
     >>> print(fmt.format(np.corrcoef(v1[:-1], v2[:-1])[0][1]))
     0.333333
@@ -1102,16 +1102,17 @@ class _Rolling_and_Expanding(_Rolling):
     4    0.916949
     dtype: float64
     
-    The below example shows a similar rolling calculation on a 
+    The below example shows a similar rolling calculation on a
     DataFrame using the pairwise option.
     
-    >>> matrix = np.array([[51., 35.], [49., 30.], [47., 32.], [46., 31.], [50., 36.]])     
+    >>> matrix = np.array([[51., 35.], [49., 30.], [47., 32.],\
+    [46., 31.], [50., 36.]])
     >>> print(np.corrcoef(matrix[:-1,0], matrix[:-1,1]).round(7))
     [[1.         0.6263001]
      [0.6263001  1.       ]]
     >>> print(np.corrcoef(matrix[1:,0], matrix[1:,1]).round(7))
     [[1.         0.5553681]
-     [0.5553681  1.        ]]  
+     [0.5553681  1.        ]]
     >>> df = pd.DataFrame(matrix, columns=['X','Y'])
     >>> df
           X     Y
