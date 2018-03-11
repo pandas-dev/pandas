@@ -1878,9 +1878,9 @@ class StringMethods(NoNewAttributesMixin):
     >>> s.str.find('find')
     0    -1
     1     8
-    2     16
+    2    16
     dtype: int64
-
+    
     See Also
     --------
     %(also)s
