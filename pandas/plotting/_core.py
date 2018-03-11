@@ -2774,7 +2774,7 @@ class FramePlotMethods(BasePlotMethods):
             The values to be plotted.
             Either the location or the label of the columns to be used.
             By default, it will use the remaining DataFrame numeric columns.
-        kwds : optional
+        **kwds : optional
             Keyword arguments to pass on to :meth:`pandas.DataFrame.plot`.
 
         Returns
