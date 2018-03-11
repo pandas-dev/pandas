@@ -2254,7 +2254,8 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
                   dtype='datetime64[ns]', freq='D')
 
     Given the ``start`` and ``periods`` mandatory parameters,
-    periods would be the limit of the DatetimeIndex, with default `freq='D'` (calendar day frequency)
+    periods would be the limit of the DatetimeIndex, with default `freq='D'`
+    (D=calendar day frequency)
 
     >>> pd2 = pd.date_range(start='1/1/2018', periods=5)
     >>> pd2
@@ -2270,13 +2271,15 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
                    '2018-05-31'],
                   dtype='datetime64[ns, UTC]', freq='M')
 
-    closed set to `'left'`, this makes the month range with the starting month (therefore inclusive of dec to feb)
+    closed set to `'left'`, this makes the month range with the starting month
+    (inclusive of dec to feb)
 
     >>> pd4 = pd.date_range(start='31/12/2017', end='3/1/2018', freq='M', closed='left')
     >>> pd4
     DatetimeIndex(['2017-12-31', '2018-01-31', '2018-02-28'], dtype='datetime64[ns]', freq='M')
 
-    closed set to `'right'`, this makes the month range after the starting month (therefore inclusive of jan to feb)
+    closed set to `'right'`, this makes the month range after the starting month
+    (inclusive of jan to feb)
 
     >>> pd4 = pd.date_range(start='31/12/2017', end='3/1/2018', freq='M', closed='right')
     >>> pd4
