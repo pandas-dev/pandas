@@ -1982,15 +1982,17 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         Examples
         --------
-        >>> tz_aware = pd.date_range('2018-03-01', '2018-03-03')
+        >>> tz_naive = pd.date_range('2018-03-01', '2018-03-03')
 
-        >>> tz_aware
+        >>> tz_naive
         DatetimeIndex(['2018-03-01', '2018-03-02', '2018-03-03'],
         dtype='datetime64[ns]', freq='D')
 
         Localize DatetimeIndex in US/Eastern time zone.
 
-        >>> tz_aware.tz_localize(tz='US/Eastern')
+        >>> tz_aware = tz_naive.tz_localize(tz='US/Eastern')
+
+        >>> tz_aware
         DatetimeIndex(['2018-03-01 00:00:00-05:00',
         '2018-03-02 00:00:00-05:00', '2018-03-03 00:00:00-05:00'],
         dtype='datetime64[ns, US/Eastern]', freq='D')
