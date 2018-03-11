@@ -5602,7 +5602,7 @@ class DataFrame(NDFrame):
         ----------
         axis : {0 or 'index', 1 or 'columns'}, default 0
             If 0 or 'index' counts are generated for each column.
-            If 1 or 'columns' counts are generated for each row.
+            If 1 or 'columns' counts are generated for each **row**.
         level : int or str, optional
             If the axis is a `MultiIndex` (hierarchical), count along a
             particular level, collapsing into a `DataFrame`.
@@ -5621,11 +5621,13 @@ class DataFrame(NDFrame):
         Series.count: number of non-NA elements in a Series
         DataFrame.shape: number of DataFrame rows and columns (including NA
             elements)
-        DataFrame.isnull: boolean same-sized DataFrame showing places of NA
+        DataFrame.isna: boolean same-sized DataFrame showing places of NA
             elements
 
         Examples
         --------
+        Constructing DataFrame from a dictionary:
+
         >>> df = pd.DataFrame({"Person":
         ...                    ["John", "Myla", None, "John", "Myla"],
         ...                    "Age": [24., np.nan, 21., 33, 26],
@@ -5637,18 +5639,27 @@ class DataFrame(NDFrame):
         2    None  21.0    True
         3    John  33.0    True
         4    Myla  26.0   False
+
+        Notice the uncounted NA values:
+
         >>> df.count()
         Person    4
         Age       4
         Single    5
         dtype: int64
-        >>> df.count(axis=1)
+
+        Counts for each **row**:
+
+        >>> df.count(axis='columns')
         0    3
         1    2
         2    2
         3    3
         4    3
         dtype: int64
+
+        Counts for one level of a `MultiIndex`:
+
         >>> df.set_index(["Person", "Single"]).count(level="Person")
                 Age
         Person
