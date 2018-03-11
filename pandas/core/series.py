@@ -77,6 +77,10 @@ __all__ = ['Series']
 
 _shared_doc_kwargs = dict(
     axes='index', klass='Series', axes_single_arg="{0, 'index'}",
+    axis="""
+    axis : {0 or 'index'}
+        Parameter needed for compatibility.
+    """,
     inplace="""inplace : boolean, default False
         If True, performs operation inplace and returns None.""",
     unique='np.ndarray', duplicated='Series',
@@ -2353,13 +2357,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self
 
     _agg_doc = dedent("""
-    Notes
-    -----
-    The only possible value for axis is 0 or 'index' because
-    :class:`~pandas.Series` has only one axis.
-
-    `agg` is an alias for `aggregate`. Use the alias.
-
     Examples
     --------
 
