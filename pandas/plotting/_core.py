@@ -2714,18 +2714,18 @@ class FramePlotMethods(BasePlotMethods):
         x : int or str, optional
             Columns to use for the horizontal axis.
             Either the location or the label of the columns to be used.
-            By default, it will use the `DataFrame` indices.
+            By default, it will use the DataFrame indices.
         y : int, str, or list of them, optional
             The values to be plotted.
             Either the location or the label of the columns to be used.
             By default, it will use the remaining DataFrame numeric columns.
         kwds : optional
-            Keyword arguments to pass on to :py:meth:pandas.DataFrame.plot.
+            Keyword arguments to pass on to :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
-        axes : :class:matplotlib.AxesSubplot or :class:numpy.ndarray of
-               them.
+        axes : :class:`matplotlib.axes.Axes` or :class:`numpy.ndarray`
+            Returns an ndarray when ``subplots=True``.
 
         See Also
         --------
@@ -2745,6 +2745,15 @@ class FramePlotMethods(BasePlotMethods):
             ...    'horse': [4, 25, 281, 600, 1900]
             ...    }, index=[1990, 1997, 2003, 2009, 2014])
             >>> lines = df.plot.line()
+
+        .. plot::
+           :context: close-figs
+
+           An example with subplots, so an array of axes is returned.
+
+           >>> axes = df.plot.line(subplots=True)
+           >>> type(axes)
+           <class 'numpy.ndarray'>
 
         .. plot::
             :context: close-figs
