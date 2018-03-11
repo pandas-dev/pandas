@@ -904,15 +904,15 @@ class DataFrame(NDFrame):
             
             .. versionadded:: 0.23.0
 
+        Returns
+        -------
+        pandas.DataFrame
+
         See Also
         --------
         pandas.DataFrame.from_records : DataFrame from ndarray (structured dtype),
             list of tuples, dict, or DataFrame
         pandas.DataFrame: DataFrame object creation using constructor
-
-        Returns
-        -------
-        pandas.DataFrame
 
         Examples
         --------
@@ -932,6 +932,15 @@ class DataFrame(NDFrame):
         >>> data = {'row_1': [3, 2, 1, 0], 'row_2': ['a', 'b', 'c', 'd']}
         >>> pd.DataFrame.from_dict(data, orient='index')
                0  1  2  3
+        row_1  3  2  1  0
+        row_2  a  b  c  d
+        
+        When using the 'index' orientation, the column names can be
+        specified manually:
+        
+        >>> pd.DataFrame.from_dict(data, orient='index',
+        ...                        columns=['A', 'B', 'C', 'D'])
+               A  B  C  D
         row_1  3  2  1  0
         row_2  a  b  c  d
         """
