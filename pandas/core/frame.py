@@ -4725,8 +4725,8 @@ class DataFrame(NDFrame):
         First discrete difference of element.
 
         Calculates the difference of a DataFrame element compared with another
-        element in the DataFrame (default is element in same column of the
-        previous row).
+        element in the DataFrame (default is the element in the same column
+        of the previous row).
 
         Parameters
         ----------
@@ -4744,10 +4744,10 @@ class DataFrame(NDFrame):
 
         See Also
         --------
+        Series.diff: First discrete difference for a Series.
         DataFrame.pct_change: Percent change over given number of periods.
         DataFrame.shift: Shift index by desired number of periods with an
-            optional time freq
-        Series.diff: First discrete difference of object
+            optional time freq.
 
         Examples
         --------
