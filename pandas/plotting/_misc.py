@@ -327,7 +327,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     Bootstrap plot on mean, median and mid-range statistics.
 
     The bootstrap plot is used to estimate the uncertainty of a statistic
-    by relaying on random sampling with replacement. This function will
+    by relaying on random sampling with replacement [1]_. This function will
     generate bootstrapping plots for mean, median and mid-range statistics
     for the given number of samples of the given size.
 
@@ -354,7 +354,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     Notes
     -----
 
-    .. [1] "Bootstrapping (statistics)" in
+    .. [1] "Bootstrapping (statistics)" in \
     https://en.wikipedia.org/wiki/Bootstrapping_%28statistics%29
 
     See Also
