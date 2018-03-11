@@ -1625,6 +1625,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         See Also
         --------
         Series.pct_change: Percent change over given number of periods.
+        Series.shift: Shift index by desired number of periods with an
+            optional time freq.
         DataFrame.diff: First discrete difference of object
 
         Examples
