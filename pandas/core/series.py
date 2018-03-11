@@ -3082,7 +3082,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         5    I stay
         dtype: object
 
-        Drop NA values from a Series and save it in the same variable.
+        Keep the Series with valid entries in the same variable.
 
         >>> ser.dropna(inplace=True)
         >>> ser
