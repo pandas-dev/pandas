@@ -213,6 +213,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
            Attempt to infer fall dst-transition hours based on order
     name : object
         Name to be stored in the index
+    dayfirst : bool, default False
+        If True, parse dates in `data` with the day first order
+    yearfirst : bool, default False
+        If True parse dates in `data` with the year first order
 
     Attributes
     ----------
@@ -272,6 +276,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     Index : The base pandas Index type
     TimedeltaIndex : Index of timedelta64 data
     PeriodIndex : Index of Period data
+    pandas.to_datetime : Convert argument to datetime
     """
 
     _typ = 'datetimeindex'
@@ -327,10 +332,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     @deprecate_kwarg(old_arg_name='infer_dst', new_arg_name='ambiguous',
                      mapping={True: 'infer', False: 'raise'})
     def __new__(cls, data=None,
-                freq=None, start=None, end=None, periods=None,
-                copy=False, name=None, tz=None,
-                verify_integrity=True, normalize=False,
-                closed=None, ambiguous='raise', dtype=None, **kwargs):
+                freq=None, start=None, end=None, periods=None, tz=None,
+                normalize=False, closed=None, ambiguous='raise',
+                dayfirst=False, yearfirst=False, dtype=None,
+                copy=False, name=None, verify_integrity=True):
 
         # This allows to later ensure that the 'copy' parameter is honored:
         if isinstance(data, Index):
@@ -340,9 +345,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         if name is None and hasattr(data, 'name'):
             name = data.name
-
-        dayfirst = kwargs.pop('dayfirst', None)
-        yearfirst = kwargs.pop('yearfirst', None)
 
         freq_infer = False
         if not isinstance(freq, DateOffset):
