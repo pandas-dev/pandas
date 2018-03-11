@@ -4308,6 +4308,7 @@ class DataFrame(NDFrame):
             keeping the index and columns of the original object.
         overwrite : boolean, default True
             If True then overwrite values for common keys in the calling frame.
+            If False then only NA values in the calling object are updated.
         filter_func : callable(1d-array) -> 1d-array<boolean>, default None
             Can choose to replace values other than NA. Return True for values
             that should be updated.
