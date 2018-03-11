@@ -7941,27 +7941,29 @@ pandas.core.window.Expanding.%(accum_func_name)s : Similar functionality
 _any_see_also = """\
 See Also
 --------
-pandas.Series.any : Return whether any element is True.
 pandas.DataFrame.all : Return whether all elements are True.
 """
 
 _any_desc = """\
 Return whether any element is True over requested axis.
 
-Unlike :meth:`DataFrame.all`, this performs an *or* operation. In other words,
-if any of the values along the specified axis is True, this will return
-True. If input is pandas.DataFrame, it returns pandas.Series;
-in case of having pandas.Series as an input, it returns a single value."""
+Unlike :meth:`DataFrame.all`, this performs an *or* operation. If any of the
+values along the specified axis is True, this will return True."""
 
 _any_examples = """\
 Examples
 --------
-By default, `any` for an empty DataFrame is an empty Series.
+**Series**
 
->>> pd.DataFrame([]).any()
-Series([], dtype: bool)
+For Series input, the output is a scalar indicating whether any element
+is True.
 
-Non-boolean values will always give True.
+>>> pd.Series([True, False]).any()
+True
+
+**DataFrame**
+
+Whether each column contains at least one True element (the default).
 
 >>> pd.DataFrame({
 ...     "A": [1, 2, 3],
@@ -7971,12 +7973,12 @@ A    True
 B    True
 dtype: bool
 
-It is performing OR along the specified axis.
+Aggregating over the columns.
 
 >>> pd.DataFrame({
 ...     "A": [True, False, True],
 ...     "B": [4, 5, 6]
-... }).any(axis=1)
+... }).any(axis='columns')
 0    True
 1    True
 2    True
@@ -7985,16 +7987,16 @@ dtype: bool
 >>> pd.DataFrame({
 ...     "A": [True, False, True],
 ...     "B": [4, 0, 6]
-... }).any(axis=1)
+... }).any(axis='columns')
 0    True
 1    False
 2    True
 dtype: bool
 
-It takes first non-False value from Series.
+`any` for an empty DataFrame is an empty Series.
 
->>> pd.Series([0, 1, 5, 0]).any()
-1
+>>> pd.DataFrame([]).any()
+Series([], dtype: bool)
 """
 
 _sum_examples = """\
