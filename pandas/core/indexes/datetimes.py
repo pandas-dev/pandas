@@ -2242,24 +2242,45 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
 
     Examples
     --------
-    >>> pd1 = pd.date_range(start='1/1/2018', end='2/1/2018')
+
+    Given the ``start`` and ``end`` mandatory parameters,
+    with default `freq='D'` (Days)
+
+    >>> pd1 = pd.date_range(start='1/1/2018', end='1/10/2018')
     >>> pd1
     DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03', '2018-01-04',
-               '2018-01-05', '2018-01-06', '2018-01-07', '2018-01-08',
-               '2018-01-09', '2018-01-10', '2018-01-11', '2018-01-12',
-               '2018-01-13', '2018-01-14', '2018-01-15', '2018-01-16',
-               '2018-01-17', '2018-01-18', '2018-01-19', '2018-01-20',
-               '2018-01-21', '2018-01-22', '2018-01-23', '2018-01-24',
-               '2018-01-25', '2018-01-26', '2018-01-27', '2018-01-28',
-               '2018-01-29', '2018-01-30', '2018-01-31', '2018-02-01'],
-              dtype='datetime64[ns]', freq='D')
+                   '2018-01-05', '2018-01-06', '2018-01-07', '2018-01-08',
+                   '2018-01-09', '2018-01-10'],
+                  dtype='datetime64[ns]', freq='D')
 
+    Given the ``start`` and ``periods`` mandatory parameters,
+    periods would be the limit of the DatetimeIndex, with default `freq='D'` (calendar day frequency)
 
     >>> pd2 = pd.date_range(start='1/1/2018', periods=5)
     >>> pd2
     DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03', '2018-01-04',
-               '2018-01-05'],
-              dtype='datetime64[ns]', freq='D')
+                   '2018-01-05'],
+                  dtype='datetime64[ns]', freq='D')
+
+    Changed the `freq` (frequency) to `'M'` (month end frequency) and `tz` to `'UTC'`
+
+    >>> pd3 = pd.date_range(start='1/1/2018', periods=5, freq='M', tz='UTC')
+    >>> pd3
+    DatetimeIndex(['2018-01-31', '2018-02-28', '2018-03-31', '2018-04-30',
+                   '2018-05-31'],
+                  dtype='datetime64[ns, UTC]', freq='M')
+
+    closed set to `'left'`, this makes the month range with the starting month (therefore inclusive of dec to feb)
+
+    >>> pd4 = pd.date_range(start='31/12/2017', end='3/1/2018', freq='M', closed='left')
+    >>> pd4
+    DatetimeIndex(['2017-12-31', '2018-01-31', '2018-02-28'], dtype='datetime64[ns]', freq='M')
+
+    closed set to `'right'`, this makes the month range after the starting month (therefore inclusive of jan to feb)
+
+    >>> pd4 = pd.date_range(start='31/12/2017', end='3/1/2018', freq='M', closed='right')
+    >>> pd4
+    DatetimeIndex(['2018-01-31', '2018-02-28'], dtype='datetime64[ns]', freq='M')
     """
     return DatetimeIndex(start=start, end=end, periods=periods,
                          freq=freq, tz=tz, normalize=normalize, name=name,
