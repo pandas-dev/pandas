@@ -1380,6 +1380,50 @@ class HistPlot(LinePlot):
             return 'vertical'
 
 
+_kde_docstring = """
+        Generate Kernel Density Estimate plot using Gaussian kernels.
+
+        In statistics, `kernel density estimation`_ (KDE) is a non-parametric
+        way to estimate the probability density function (PDF) of a random
+        variable. This function uses Gaussian kernels and includes automatic
+        bandwith determination.
+
+        .. _kernel density estimation:
+            https://en.wikipedia.org/wiki/Kernel_density_estimation
+
+        Parameters
+        ----------
+        bw_method : str, scalar or callable, optional
+            The method used to calculate the estimator bandwidth. This can be
+            'scott', 'silverman', a scalar constant or a callable.
+            If None (default), 'scott' is used.
+            See :class:`scipy.stats.gaussian_kde` for more information.
+        ind : NumPy array or integer, optional
+            Evaluation points for the estimated PDF. If None (default),
+            1000 equally spaced points are used. If `ind` is a NumPy array, the
+            KDE is evaluated at the points passed. If `ind` is an integer,
+            `ind` number of equally spaced points are used.
+        **kwds : optional
+            Additional keyword arguments are documented in
+            :meth:`pandas.%(this-datatype)s.plot`.
+
+        Returns
+        -------
+        axes : matplotlib.AxesSubplot or np.array of them
+
+        See Also
+        --------
+        scipy.stats.gaussian_kde : Representation of a kernel-density
+            estimate using Gaussian kernels. This is the function used
+            internally to estimate the PDF.
+        %(sibling-datatype)s.plot.kde : Generate a KDE plot for a
+            %(sibling-datatype)s.
+
+        Examples
+        --------
+        %(examples)s
+        """
+
 class KdePlot(HistPlot):
     _kind = 'kde'
     orientation = 'vertical'
@@ -2616,49 +2660,12 @@ class SeriesPlotMethods(BasePlotMethods):
         """
         return self(kind='hist', bins=bins, **kwds)
 
-    def kde(self, bw_method=None, ind=None, **kwds):
-        """
-        Generate Kernel Density Estimate plot using Gaussian kernels.
-
-        In statistics, `kernel density estimation`_ (KDE) is a non-parametric
-        way to estimate the probability density function (PDF) of a random
-        variable. This function uses Gaussian kernels and includes automatic
-        bandwith determination.
-
-        .. _kernel density estimation:
-            https://en.wikipedia.org/wiki/Kernel_density_estimation
-
-        Parameters
-        ----------
-        bw_method : str, scalar or callable, optional
-            The method used to calculate the estimator bandwidth. This can be
-            'scott', 'silverman', a scalar constant or a callable.
-            If None (default), 'scott' is used.
-            See :class:`scipy.stats.gaussian_kde` for more information.
-        ind : NumPy array or integer, optional
-            Evaluation points for the estimated PDF. If None (default),
-            1000 equally spaced points are used. If `ind` is a NumPy array, the
-            KDE is evaluated at the points passed. If `ind` is an integer,
-            `ind` number of equally spaced points are used.
-        **kwds : optional
-            Additional keyword arguments are documented in
-            :meth:`pandas.Series.plot`.
-
-        Returns
-        -------
-        axes : matplotlib.AxesSubplot or np.array of them
-
-        See Also
-        --------
-        scipy.stats.gaussian_kde : Representation of a kernel-density
-            estimate using Gaussian kernels. This is the function used
-            internally to estimate the PDF.
-        DataFrame.plot.kde : Generate a KDE plot for a DataFrame.
-
-        Examples
-        --------
+    @Appender(_kde_docstring % {
+        'this-datatype': 'Series',
+        'sibling-datatype': 'DataFrame',
+        'examples': """
         Given a Series of points randomly sampled from an unknown
-        distribution, estimate its distribution using KDE with automatic
+        distribution, estimate its PDF using KDE with automatic
         bandwidth determination and plot the results, evaluating them at
         1000 equally spaced points (default):
 
@@ -2689,7 +2696,9 @@ class SeriesPlotMethods(BasePlotMethods):
             :context: close-figs
 
             >>> ax = s.plot.kde(ind=[1, 2, 3, 4, 5])
-        """
+        """.strip()
+    })
+    def kde(self, bw_method=None, ind=None, **kwds):
         return self(kind='kde', bw_method=bw_method, ind=ind, **kwds)
 
     density = kde
@@ -2852,49 +2861,12 @@ class FramePlotMethods(BasePlotMethods):
         """
         return self(kind='hist', by=by, bins=bins, **kwds)
 
-    def kde(self, bw_method=None, ind=None, **kwds):
-        """
-        Generate Kernel Density Estimate plot using Gaussian kernels.
-
-        In statistics, `kernel density estimation`_ (KDE) is a non-parametric
-        way to estimate the probability density function (PDF) of a random
-        variable. This function uses Gaussian kernels and includes automatic
-        bandwith determination.
-
-        .. _kernel density estimation:
-            https://en.wikipedia.org/wiki/Kernel_density_estimation
-
-        Parameters
-        ----------
-        bw_method : str, scalar or callable, optional
-            The method used to calculate the estimator bandwidth. This can be
-            'scott', 'silverman', a scalar constant or a callable.
-            If None (default), 'scott' is used.
-            See :class:`scipy.stats.gaussian_kde` for more information.
-        ind : NumPy array or integer, optional
-            Evaluation points for the estimated PDF. If None (default),
-            1000 equally spaced points are used. If `ind` is a NumPy array, the
-            KDE is evaluated at the points passed. If `ind` is an integer,
-            `ind` number of equally spaced points are used.
-        **kwds : optional
-            Additional keyword arguments are documented in
-            :meth:`pandas.DataFrame.plot`.
-
-        Returns
-        -------
-        axes : matplotlib.AxesSubplot or np.array of them
-
-        See Also
-        --------
-        scipy.stats.gaussian_kde : Representation of a kernel-density
-            estimate using Gaussian kernels. This is the function used
-            internally to estimate the PDF.
-        Series.plot.kde : Generate a KDE plot for a Series.
-
-        Examples
-        --------
+    @Appender(_kde_docstring % {
+        'this-datatype': 'DataFrame',
+        'sibling-datatype': 'Series',
+        'examples': """
         Given several Series of points randomly sampled from unknown
-        distributions, estimate their distribution using KDE with automatic
+        distributions, estimate their PDFs using KDE with automatic
         bandwidth determination and plot the results, evaluating them at
         1000 equally spaced points (default):
 
@@ -2928,7 +2900,9 @@ class FramePlotMethods(BasePlotMethods):
             :context: close-figs
 
             >>> ax = df.plot.kde(ind=[1, 2, 3, 4, 5, 6])
-        """
+        """.strip()
+    })
+    def kde(self, bw_method=None, ind=None, **kwds):
         return self(kind='kde', bw_method=bw_method, ind=ind, **kwds)
 
     density = kde
