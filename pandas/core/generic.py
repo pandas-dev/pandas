@@ -7579,7 +7579,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         cls.any = _make_logical_function(
             cls, 'any', name, name2, axis_descr,
-            'Return whether any element is True over requested axis',
+            'Return whether any element is True over requested axis.',
             nanops.nanany)
         cls.all = _make_logical_function(
             cls, 'all', name, name2, axis_descr,
@@ -7841,25 +7841,41 @@ Returns
 %(outname)s : %(name1)s or %(name2)s (if level specified)\n"""
 
 _bool_doc = """
-
 %(desc)s
+
+Returns True if one (or more) elements are non-zero,
+not-empty or not-False.
 
 Parameters
 ----------
 axis : %(axis_descr)s
 skipna : boolean, default True
     Exclude NA/null values. If an entire row/column is NA, the result
-    will be NA
+    will be NA.
 level : int or level name, default None
     If the axis is a MultiIndex (hierarchical), count along a
-    particular level, collapsing into a %(name1)s
+    particular level, collapsing into a %(name1)s.
 bool_only : boolean, default None
     Include only boolean columns. If None, will attempt to use everything,
     then use only boolean data. Not implemented for Series.
+**kwargs : Additional keywords have no effect but might be accepted for
+    compatibility with numpy.
 
 Returns
 -------
-%(outname)s : %(name1)s or %(name2)s (if level specified)\n"""
+%(outname)s : %(name1)s or %(name2)s (if level specified)
+
+Examples
+--------
+>>> s1 = pd.Series([1, 2, 3])
+>>> s1.any()
+True
+
+>>> import numpy as np
+>>> s2 = pd.Series([np.NaN, np.NaN, np.NaN])
+>>> s2.any()
+False
+"""
 
 _cnum_doc = """
 
