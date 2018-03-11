@@ -7837,7 +7837,7 @@ over requested axis."""
 _any_desc = """\
 Return whether any element is True over requested axis.
 
-One dimensional pandas.Series having boolean values will be returned. \
+One dimensional boolean pandas.Series is returned. \
 Unlike pandas.DataFrame.all, pandas.DataFrame.any performs OR operation; \
 in other word, if any of the values along the specified axis is True, \
 pandas.DataFrame.any will return True."""
@@ -7845,31 +7845,31 @@ pandas.DataFrame.any will return True."""
 _any_examples = """\
 Examples
 --------
-By default, any from an empty DataFrame is empty Series::
+By default, any from an empty DataFrame is empty Series.
 
-    >> pd.DataFrame([]).any()
-    Series([], dtype: bool)
+>>> pd.DataFrame([]).any()
+Series([], dtype: bool)
 
-Non-boolean values will always give True::
+Non-boolean values will always give True.
 
-    >> pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}).any()
-    A    True
-    B    True
-    dtype: bool
+>>> pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]}).any()
+A    True
+B    True
+dtype: bool
 
-It is performing OR along the specified axis::
+It is performing OR along the specified axis.
 
-    >> pd.DataFrame({"A": [1, False, 3], "B": [4, 5, 6]}).any(axis=1)
-    0    True
-    1    True
-    2    True
-    dtype: bool
+>>> pd.DataFrame({"A": [1, False, 3], "B": [4, 5, 6]}).any(axis=1)
+0    True
+1    True
+2    True
+dtype: bool
 
-    >> pd.DataFrame({"A": [1, False, 3], "B": [4, False, 6]}).any(axis=1)
-    0    True
-    1    False
-    2    True
-    dtype: bool
+>> pd.DataFrame({"A": [1, False, 3], "B": [4, False, 6]}).any(axis=1)
+0    True
+1    False
+2    True
+dtype: bool
 """
 
 _sum_examples = """\
