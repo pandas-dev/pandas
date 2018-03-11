@@ -5687,7 +5687,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        Series single threshold clipping
+        Series single threshold clipping:
 
         >>> s = pd.Series([5, 6, 7, 8, 9])
         >>> s.clip_lower(8)
@@ -5698,7 +5698,7 @@ class NDFrame(PandasObject, SelectionMixin):
         4    9
         dtype: int64
 
-        Series clipping elementwise using an array of thresholds
+        Series clipping element-wise using an array of thresholds:
 
         >>> elemwise_thresholds = [4, 8, 7, 2, 5]
         >>> s.clip_lower(elemwise_thresholds)
