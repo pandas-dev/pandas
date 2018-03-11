@@ -1873,7 +1873,7 @@ _shared_docs['plot'] = """
 
     Returns
     -------
-    axes : matplotlib.AxesSubplot or np.array of them
+    axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
 
     Notes
     -----
@@ -2536,7 +2536,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
 
         Examples
         --------
@@ -2560,7 +2560,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='bar', **kwds)
 
@@ -2575,7 +2575,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='barh', **kwds)
 
@@ -2590,7 +2590,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='box', **kwds)
 
@@ -2607,7 +2607,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='hist', bins=bins, **kwds)
 
@@ -2632,7 +2632,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='kde', bw_method=bw_method, ind=ind, **kwds)
 
@@ -2649,7 +2649,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='area', **kwds)
 
@@ -2664,7 +2664,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='pie', **kwds)
 
@@ -2715,7 +2715,7 @@ class FramePlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='line', x=x, y=y, **kwds)
 
@@ -2732,7 +2732,7 @@ class FramePlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='bar', x=x, y=y, **kwds)
 
@@ -2752,12 +2752,12 @@ class FramePlotMethods(BasePlotMethods):
             Column to be used for categories.
         y : label or position, default All numeric columns in dataframe
             Columns to be plotted from the DataFrame.
-        kwds
-            Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
+        **kwds
+            Keyword arguments to pass on to :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them.
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them.
 
         See Also
         --------
@@ -2829,7 +2829,7 @@ class FramePlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='box', by=by, **kwds)
 
@@ -2848,7 +2848,7 @@ class FramePlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='hist', by=by, bins=bins, **kwds)
 
@@ -2873,7 +2873,7 @@ class FramePlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='kde', bw_method=bw_method, ind=ind, **kwds)
 
@@ -2892,7 +2892,7 @@ class FramePlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='area', x=x, y=y, **kwds)
 
@@ -2909,7 +2909,7 @@ class FramePlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='pie', y=y, **kwds)
 
@@ -2930,7 +2930,7 @@ class FramePlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='scatter', x=x, y=y, c=c, s=s, **kwds)
 
@@ -2955,7 +2955,7 @@ class FramePlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         if reduce_C_function is not None:
             kwds['reduce_C_function'] = reduce_C_function
