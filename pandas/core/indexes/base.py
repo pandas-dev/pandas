@@ -719,7 +719,7 @@ class Index(IndexOpsMixin, PandasObject):
         ...                                  names=('number', 'letter'))
         >>> midx.get_values()
         array([(1, 'a'), (2, 'b'), (3, 'c')], dtype=object)
-        >>> midx.ndim
+        >>> midx.get_values().ndim
         1
         """
         return self.values
