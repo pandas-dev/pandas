@@ -7865,7 +7865,7 @@ It is performing OR along the specified axis.
 2    True
 dtype: bool
 
->> pd.DataFrame({"A": [1, False, 3], "B": [4, False, 6]}).any(axis=1)
+>>> pd.DataFrame({"A": [1, False, 3], "B": [4, False, 6]}).any(axis=1)
 0    True
 1    False
 2    True
