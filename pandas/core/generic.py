@@ -7619,7 +7619,7 @@ class NDFrame(PandasObject, SelectionMixin):
             nanptp)
 
     _shared_docs['transform'] = ("""
-    Generate transformed like-indexed same dimension Series or DataFrame.
+    Generate transformed same dimension Series or DataFrame.
 
     .. versionadded:: 0.20.0
 
@@ -7651,6 +7651,18 @@ class NDFrame(PandasObject, SelectionMixin):
     Returns
     -------
     transformed : Series or DataFrame (same as input)
+
+
+    Notes
+    --------
+    The function performs the transformation.
+    It takes a Series as input and must return a same length Series.
+    Note that the function may modify the Series index.
+
+    If applied to a Series the function is applied once.
+    If applied to a DataFrame the function is applied on each row or column. 
+    Note that if the function modifies the index it must do so consistently
+    in the case of a DataFrame.
 
     Examples
     --------
