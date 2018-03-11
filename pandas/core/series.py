@@ -1002,16 +1002,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def reset_index(self, level=None, drop=False, name=None, inplace=False):
         """
-        Generate a new DataFrame with columns containing the data and 
-        the index of the original Series, or, if drop is True, 
-        a Series with numeric index.
+        Generate a new DataFrame or Series with resetted index.
         
-        For an Index Series, the results is a two-column DataFrame with 
-        index tourned in column.
-        For a MultiIndex Series, the results is a multi-column 
-        DataFrame with each level being turned into a column.
-        The new columns will be named level_n (with n increasing frm 0) 
-        if the name is None. 
+        For a Series with a single level index (Index), the results is a 
+        two-column DataFrame with index tourned in column.
+        For a Series with multi-level index (MultiIndex), the results is a 
+        multi-column DataFrame with each level being turned into a column.
+        The new columns will be named level_n (with n increasing from 0) 
+        if the name parameter is None. 
 
         Parameters
         ----------
@@ -1022,12 +1020,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Do not try to insert index into dataframe columns.
         name : object, default None
             The name of the column corresponding to the Series values.
-        inplace : `bool`, default False
+        inplace : bool, default False
             Modify the Series in place (do not create a new object).
 
         Returns
-        ----------
-        reset : DataFrame, or Series if drop == True
+        -------
+        reset : DataFrame, or 
+        reset : Series
 
         See Also
         --------
@@ -1036,13 +1035,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Examples
         --------
 
-        Generate a pandas.Series.
+        Generate a Series.
 
         >>> s = pd.Series([1, 2, 3, 4], index=pd.Index(['a', 'b', 'c', 'd'],
-        ...                                            name = 'idx'))
+        ...                                            name='idx'))
 
-        To generate a pandas.DataFrame with default index, 
-        call the reset_index() method.
+        Generate a DataFrame with default index.
 
         >>> s.reset_index()
           idx  0
@@ -1051,7 +1049,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2   c  3
         3   d  4
 
-        To specify the name of the column corrisponding
+        To specify the name of the column corresponding
         to the Series values, use the name parameter.
 
         >>> s.reset_index(name='values')
@@ -1061,7 +1059,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2   c       3
         3   d       4
 
-        To generate a new pandas.Series with the default
+        To generate a new Series with the default
         index, set the drop parameter to True.
 
         >>> s.reset_index(drop=True)
@@ -1082,14 +1080,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         3    4
         dtype: int64
 
-        Generate a MultiIndex Series.
+        Generate a Series with multi-level index (MultiIndex).
 
-        >>> arrays = [np.array(['bar', 'bar', 'baz', 'baz', 'foo',
-        ...                     'foo', 'qux', 'qux']),
-        ...           np.array(['one', 'two', 'one', 'two', 'one', 'two',
-        ...                     'one', 'two'])]
+        >>> arrays = [np.array(['bar', 'bar', 'baz', 'baz']),
+        ...           np.array(['one', 'two', 'one', 'two'])]
         >>> s2 = pd.Series(
-        ...     range(8),
+        ...     range(4),
         ...     index=pd.MultiIndex.from_arrays(arrays,
         ...                                     names=['a', 'b']))
 
@@ -1103,10 +1099,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         two  bar  1
         one  baz  2
         two  baz  3
-        one  foo  4
-        two  foo  5
-        one  qux  6
-        two  qux  7
 
         If level parameter is not set, all levels are removed
         from the Index.
@@ -1117,12 +1109,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         1  bar  two  1
         2  baz  one  2
         3  baz  two  3
-        4  foo  one  4
-        5  foo  two  5
-        6  qux  one  6
-        7  qux  two  7
         """
-
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if drop:
