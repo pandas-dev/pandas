@@ -1924,8 +1924,8 @@ class _iAtIndexer(_ScalarAccessIndexer):
     Access a single value for a row/column pair by integer position.
 
     Similar to ``iloc``, in that both provide integer-based lookups. Use
-    ``iat`` if you only need to get or set a single value in a ``DataFrame``
-    or ``Series``.
+    ``iat`` if you only need to get or set a single value in a DataFrame
+    or Series.
 
     See Also
     --------
