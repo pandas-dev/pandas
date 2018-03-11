@@ -691,7 +691,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        Index.values : The original function around which get_values wraps.
+        Index.values : The attribute that get_values wraps.
 
         Examples
         --------
