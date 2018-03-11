@@ -1876,6 +1876,23 @@ class MultiIndex(Index):
         --------
         Index.sort_values : Sort index
         MultiIndex.lexsort_depth : Number of sorted levels
+        Series.sort_index : Sort object by labels
+        DataFrame.sort_index : Sort object by labels (along an axis)
+
+        Examples
+        --------
+        >>> df = pd.Series(range(16), index=pd.MultiIndex.from_product([list('acbd'),
+         range(2), ['C', 'B']])
+
+
+        >>> df.index.sortlevel(1,sort_remaining=False)
+        (MultiIndex(levels=[['a', 'b', 'c', 'd'], [0, 1], ['B', 'C']],
+            labels=[[0, 0, 2, 2, 1, 1, 3, 3, 0, 0, 2, 2, 1, 1, 3, 3],
+            [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]],
+            sortorder=1),
+        array([ 0,  1,  4,  5,  8,  9, 12, 13,  2,  3,  6,  7, 10, 11, 14, 15]))
+
         """
         from pandas.core.sorting import indexer_from_factorized
 
