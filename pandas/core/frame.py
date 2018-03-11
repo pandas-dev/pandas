@@ -5295,17 +5295,14 @@ class DataFrame(NDFrame):
     def join(self, other, on=None, how='left', lsuffix='', rsuffix='',
              sort=False):
         """
-        Join columns with other DataFrame either on a key column.
-
-        Efficiently Join multiple DataFrame objects by index at once by
-        passing a list of DataFrames.
+        Join with other DataFrame on the index or a key column.
 
         Parameters
         ----------
-        other : DataFrame, Series, or list of DataFrame
+        other : DataFrames, Series, or list of DataFrame
             Index should be similar to one of the columns in this one. If a
             Series is passed, its name attribute must be set, since
-            it would be used as the name of the appended
+            it would be used as the name of the added
             column in the resulting Dataframe.
         on : name, tuple/list of names, or array-like
             Column or index level name(s) in the caller to join on the index
@@ -5334,10 +5331,14 @@ class DataFrame(NDFrame):
 
         Notes
         -----
+        Efficiently Join multiple DataFrame objects by index at once by
+        passing a list of DataFrames.
+
         The on, lsuffix, and rsuffix options are not supported when passing
         a list of DataFrame objects.
 
-        If a Series is used as other parameter it must be with name field set.
+        If a Series is used as other parameter,
+        it must be with name attribute set.
 
         Support for specifying index levels as the `on` parameter was added
         in version 0.23.0.
