@@ -704,6 +704,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                          'second', 'third'], ordered=False, dtype='category')
 
         If the mapping is not bijective an Index is returned:
+
         >>> idx.map({'a': 'first', 'b': 'second', 'c': 'first'})
         Index(['first', 'second', 'first'], dtype='object')
 
