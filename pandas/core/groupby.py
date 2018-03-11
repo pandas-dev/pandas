@@ -80,19 +80,19 @@ _doc_template = """
 
 _apply_docs = dict(
     template="""
-    Apply function ``func``  group-wise and combine the results together.
+    Apply function `func`  group-wise and combine the results together.
 
-    The function passed to ``apply`` must take a {input} as its first
-    argument and return a dataframe, a series or a scalar. ``apply`` will
+    The function passed to `apply` must take a {input} as its first
+    argument and return a dataframe, a series or a scalar. `apply` will
     then take care of combining the results back together into a single
-    dataframe or series. ``apply`` is therefore a highly flexible
+    dataframe or series. `apply` is therefore a highly flexible
     grouping method.
 
-    While ``apply`` is a very flexible method, its downside is that
+    While `apply` is a very flexible method, its downside is that
     using it can be quite a bit slower than using more specific methods.
     Pandas offers a wide range of method that will be much faster
-    than using ``apply`` for their specific purposes, so try to use them
-    before reaching for ``apply``.
+    than using `apply` for their specific purposes, so try to use them
+    before reaching for `apply`.
 
     Parameters
     ----------
@@ -100,10 +100,8 @@ _apply_docs = dict(
         A callable that takes a {input} as its first argument, and
         returns a dataframe, a series or a scalar. In addition the
         callable may take positional and keyword arguments.
-    args : tuple
-        Optional positional and keyword arguments to pass to ``func``.
-    kwargs : dict
-        Optional positional and keyword arguments to pass to ``func``.
+    *args : Optional positional and keyword arguments to pass to `func`.
+    **kwargs : Optional positional and keyword arguments to pass to `func`.
 
     Returns
     -------
@@ -111,7 +109,7 @@ _apply_docs = dict(
 
     Notes
     -----
-    In the current implementation ``apply`` calls func twice on the
+    In the current implementation `apply` calls func twice on the
     first group to decide whether it can take a fast or slow code
     path. This can lead to unexpected behavior if func has
     side-effects, as they will take effect twice for the first
@@ -131,11 +129,11 @@ _apply_docs = dict(
     >>> df = pd.DataFrame({'A': 'a a b'.split(), 'B': [1,2,3], 'C': [4,6, 5]})
     >>> g = df.groupby('A')
 
-    From ``df`` above we can see that ``g`` has two groups, ``a``, ``b``.
-    Calling ``apply`` in various ways, we can get different grouping results:
+    From `df` above we can see that `g` has two groups, `a`, `b`.
+    Calling `apply` in various ways, we can get different grouping results:
 
-    Example 1: below the function passed to ``apply`` takes a dataframe as
-    its argument and returns a dataframe. ``apply`` combines the result for
+    Example 1: below the function passed to `apply` takes a dataframe as
+    its argument and returns a dataframe. `apply` combines the result for
     each group together into a new dataframe:
 
     >>> g[['B','C']].apply(lambda x: x / x.sum())
@@ -144,8 +142,8 @@ _apply_docs = dict(
     1  0.666667  0.6
     2  1.000000  1.0
 
-    Example 2: The function passed to ``apply`` takes a dataframe as
-    its argument and returns a series.  ``apply`` combines the result for
+    Example 2: The function passed to `apply` takes a dataframe as
+    its argument and returns a series.  `apply` combines the result for
     each group together into a new dataframe:
 
     >>> g[['B','C']].apply(lambda x: x.max() - x.min())
@@ -154,8 +152,8 @@ _apply_docs = dict(
     a  1  2
     b  0  0
 
-    Example 3: The function passed to ``apply`` takes a dataframe as
-    its argument and returns a scalar. ``apply`` combines the result for
+    Example 3: The function passed to `apply` takes a dataframe as
+    its argument and returns a scalar. `apply` combines the result for
     each group together into a series, including setting the index as
     appropriate:
 
@@ -169,11 +167,11 @@ _apply_docs = dict(
     >>> ser = pd.Series([0, 1, 2], index='a a b'.split())
     >>> g = ser.groupby(ser.index)
 
-    From ``ser`` above we can see that ``g`` has two groups, ``a``, ``b``.
-    Calling ``apply`` in various ways, we can get different grouping results:
+    From `ser` above we can see that `g` has two groups, `a`, `b`.
+    Calling `apply` in various ways, we can get different grouping results:
 
-    Example 1: The function passed to ``apply`` takes a series as
-    its argument and returns a series.  ``apply`` combines the result for
+    Example 1: The function passed to `apply` takes a series as
+    its argument and returns a series.  `apply` combines the result for
     each group together into a new series:
 
     >>> g.apply(lambda x:  x*2 if x.name == 'b' else x/2)
@@ -182,8 +180,8 @@ _apply_docs = dict(
     2    4.0
     dtype: float64
 
-    Example 2: The function passed to ``apply`` takes a series as
-    its argument and returns a scalar. ``apply`` combines the result for
+    Example 2: The function passed to `apply` takes a series as
+    its argument and returns a scalar. `apply` combines the result for
     each group together into a series, including setting the index as
     appropriate:
 
@@ -194,12 +192,12 @@ _apply_docs = dict(
     """)
 
 _pipe_template = """\
-Apply a function ``func`` with arguments to this %(klass)s object and return
+Apply a function `func` with arguments to this %(klass)s object and return
 the function's result.
 
 %(versionadded)s
 
-Use ``.pipe`` when you want to improve readability by chaining together
+Use `.pipe` when you want to improve readability by chaining together
 functions that expect Series, DataFrames, GroupBy or Resampler objects.
 Instead of writing
 
@@ -218,17 +216,17 @@ Parameters
 ----------
 func : callable or tuple of (callable, string)
     Function to apply to this %(klass)s object or, alternatively,
-    a ``(callable, data_keyword)`` tuple where ``data_keyword`` is a
-    string indicating the keyword of ``callable`` that expects the
+    a `(callable, data_keyword)` tuple where `data_keyword` is a
+    string indicating the keyword of `callable` that expects the
     %(klass)s object.
 args : iterable, optional
-       positional arguments passed into ``func``.
+       positional arguments passed into `func`.
 kwargs : dict, optional
-         a dictionary of keyword arguments passed into ``func``.
+         a dictionary of keyword arguments passed into `func`.
 
 Returns
 -------
-object : the return type of ``func``.
+object : the return type of `func`.
 
 Notes
 -----
@@ -381,7 +379,7 @@ class Grouper(object):
     sort : boolean, default to False
         whether to sort the resulting labels
 
-    additional kwargs to control time-like groupers (when ``freq`` is passed)
+    additional kwargs to control time-like groupers (when `freq` is passed)
 
     closed : closed end of interval; 'left' or 'right'
     label : interval boundary to use for labeling; 'left' or 'right'
@@ -396,7 +394,7 @@ class Grouper(object):
     Examples
     --------
 
-    Syntactic sugar for ``df.groupby('A')``
+    Syntactic sugar for `df.groupby('A')`
 
     >>> df.groupby(Grouper(key='A'))
 
@@ -1627,7 +1625,7 @@ class GroupBy(_GroupBy):
         2  3.0
         2  5.0
 
-        Specifying ``dropna`` allows count ignoring NaN
+        Specifying `dropna` allows count ignoring NaN
 
         >>> g.nth(0, dropna='any')
              B
@@ -1643,7 +1641,7 @@ class GroupBy(_GroupBy):
         1 NaN
         2 NaN
 
-        Specifying ``as_index=False`` in ``groupby`` keeps the original index.
+        Specifying `as_index=False` in `groupby` keeps the original index.
 
         >>> df.groupby('A', as_index=False).nth(1)
            A    B
@@ -2069,7 +2067,7 @@ class GroupBy(_GroupBy):
         """
         Returns first n rows of each group.
 
-        Essentially equivalent to ``.apply(lambda x: x.head(n))``,
+        Essentially equivalent to `.apply(lambda x: x.head(n))`,
         except ignores as_index flag.
 
         Examples
@@ -2096,7 +2094,7 @@ class GroupBy(_GroupBy):
         """
         Returns last n rows of each group
 
-        Essentially equivalent to ``.apply(lambda x: x.tail(n))``,
+        Essentially equivalent to `.apply(lambda x: x.tail(n))`,
         except ignores as_index flag.
 
         Examples
