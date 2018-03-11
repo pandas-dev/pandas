@@ -1842,7 +1842,7 @@ class StringMethods(NoNewAttributesMixin):
         return str_extractall(self._orig, pat, flags=flags)
 
     _shared_docs['find'] = ("""
-    Return the lowest index of the substring.
+    Return the %(side)s index of the substring.
 
     Return %(side)s indexes in each strings in the Series/Index
     where the substring is fully contained between [start:end].
@@ -1874,11 +1874,15 @@ class StringMethods(NoNewAttributesMixin):
     0   -1
     dtype: int64
 
-    >>> s = pd.Series(['get pandas','Did you find it','i think you can find it'])
+    >>> s = pd.Series(['Did you find it','find find'])
     >>> s.str.find('find')
-    0    -1
-    1     8
-    2    16
+    0     8
+    1     0
+    dtype: int64
+
+    >>> s.str.find('find', start=1, end=14)
+    0    8
+    1    5
     dtype: int64
 
     See Also
