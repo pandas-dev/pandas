@@ -4818,7 +4818,8 @@ class DataFrame(NDFrame):
 
     def apply(self, func, axis=0, broadcast=None, raw=False, reduce=None,
               result_type=None, args=(), **kwds):
-        """Applies function along an axis of the DataFrame.
+        """
+        Apply a function along an axis of the DataFrame.
 
         Objects passed to functions are Series objects having index
         either the DataFrame's index (axis=0) or the columns (axis=1).
@@ -4828,10 +4829,11 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         func : function
-            Function to apply to each column/row
+            Function to apply to each column/row.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            * 0 or 'index': apply function to each column
-            * 1 or 'columns': apply function to each row
+            Axis along which the function is applied.
+            * 0 or 'index': apply function to each column.
+            * 1 or 'columns': apply function to each row.
         broadcast : boolean, optional
             For aggregation functions, return object of same size with values
             propagated
@@ -4844,7 +4846,7 @@ class DataFrame(NDFrame):
             If False, convert each row or column into a Series. If raw=True the
             passed function will receive ndarray objects instead. If you are
             just applying a NumPy reduction function this will achieve much
-            better performance
+            better performance.
         reduce : boolean or None, default None
             Try to apply reduction procedures. If the DataFrame is empty,
             apply will use reduce to determine whether the result should be a
@@ -4872,12 +4874,15 @@ class DataFrame(NDFrame):
             of those. However if the apply function returns a Series these
             are expanded to columns.
 
-            .. versionadded:: 0.23.0
+            .. versionadded:: 0.23.0.
 
         args : tuple
             Positional arguments to pass to function in addition to the
-            array/series
-        Additional keyword arguments will be passed as keywords to the function
+            array/series.
+
+        kwds :
+            Additional keyword arguments will be passed as keywords to
+            the function.
 
         Notes
         -----
@@ -4941,6 +4946,7 @@ class DataFrame(NDFrame):
         3    [1, 2]
         4    [1, 2]
         5    [1, 2]
+        dtype: object
 
         Passing result_type='expand' will expand list-like results
         to columns of a Dataframe
@@ -4958,7 +4964,7 @@ class DataFrame(NDFrame):
         ``result_type='expand'``. The resulting column names
         will be the Series index.
 
-        >>> df.apply(lambda x: Series([1, 2], index=['foo', 'bar']), axis=1)
+        >>> df.apply(lambda x: pd.Series([1, 2], index=['foo', 'bar']), axis=1)
            foo  bar
         0    1    2
         1    1    2
