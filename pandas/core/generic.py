@@ -7127,11 +7127,11 @@ class NDFrame(PandasObject, SelectionMixin):
         Notes
         -----
         For ``complex`` inputs, ``1.2 + 1j``, the absolute value is
-        :math:`\\sqrt{ a^2 + b^2 }`. See the Python
+        :math:`\\sqrt{ a^2 + b^2 }`.
 
         Examples
         --------
-        Absolute numeric values in a ``Series``.
+        Absolute numeric values in a Series.
 
         >>> s = pd.Series([-1.10, 2, -3.33, 4])
         >>> s.abs()
@@ -7141,7 +7141,7 @@ class NDFrame(PandasObject, SelectionMixin):
         3    4.00
         dtype: float64
 
-        Absolute numeric values in a ``Series`` with ``complex`` numbers.
+        Absolute numeric values in a Series with complex numbers.
 
         >>> s = pd.Series([1.2 + 1j])
         >>> s.abs()
