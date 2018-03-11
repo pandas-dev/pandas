@@ -1747,7 +1747,31 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     is_year_end = _field_accessor(
         'is_year_end',
         'is_year_end',
-        "Logical indicating if last day of year (defined by frequency)")
+        """
+        Return a boolean indicating whether the date is the last day of the year.
+
+        Returns
+        -------
+        is_year_end : Series of boolean.
+
+        See Also
+        --------
+        is_year_start : Return a boolean indicating whether the date is the first day of the year.
+
+        Examples
+        --------
+        >>> dates = pd.Series(pd.date_range("2017-12-30", periods=3))
+        >>> dates
+        0   2017-12-30
+        1   2017-12-31
+        2   2018-01-01
+        dtype: datetime64[ns]
+        >>> dates.dt.is_year_end
+        0    False
+        1     True
+        2    False
+        dtype: bool
+        """)
     is_leap_year = _field_accessor(
         'is_leap_year',
         'is_leap_year',
