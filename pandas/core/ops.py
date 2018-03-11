@@ -343,7 +343,7 @@ def _get_op_name(op, special):
 # -----------------------------------------------------------------------------
 # Docstring Generation and Templates
 
-_add_doc_FRAME = """
+_add_example_FRAME = """
 >>> a = pd.DataFrame([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'],
                      columns=['one'])
 >>> a
@@ -375,7 +375,7 @@ _op_descriptions = {
     'add': {'op': '+',
             'desc': 'Addition',
             'reverse': 'radd',
-            'df_examples': _add_doc_FRAME},
+            'df_examples': _add_example_FRAME},
     'sub': {'op': '-',
             'desc': 'Subtraction',
             'reverse': 'rsub',
