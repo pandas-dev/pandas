@@ -344,7 +344,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
         greater or equal than the length of the `series`.
     samples : int, default 500
         Number of times the bootstrap procedure is performed.
-    **kwds : keywords
+    kwds : keywords
         Options to pass to matplotlib plotting method.
 
     Returns
@@ -355,7 +355,8 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     Notes
     -----
 
-    .. [1] "Bootstrapping (statistics)" in https://en.wikipedia.org/wiki/Bootstrapping_%28statistics%29
+    .. [1] "Bootstrapping (statistics)" in
+    https://en.wikipedia.org/wiki/Bootstrapping_%28statistics%29
 
     See Also
     --------
