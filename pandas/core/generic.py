@@ -7298,9 +7298,9 @@ class NDFrame(PandasObject, SelectionMixin):
         Describing a ``DataFrame``. By default only numeric fields
         are returned.
 
-        >>> df = pd.DataFrame({ 'object': ['a', 'b', 'c'],
+        >>> df = pd.DataFrame({ 'categorical': pd.Categorical(['d','e','f']),
         ...                     'numeric': [1, 2, 3],
-        ...                     'categorical': pd.Categorical(['d','e','f'])
+        ...                     'object': ['a', 'b', 'c']
         ...                   })
         >>> df.describe()
                numeric
@@ -7316,18 +7316,18 @@ class NDFrame(PandasObject, SelectionMixin):
         Describing all columns of a ``DataFrame`` regardless of data type.
 
         >>> df.describe(include='all')
-               object  numeric categorical
-        count       3      3.0           3
-        unique      3      NaN           3
-        top         c      NaN           f
-        freq        1      NaN           1
-        mean      NaN      2.0         NaN
-        std       NaN      1.0         NaN
-        min       NaN      1.0         NaN
-        25%       NaN      1.5         NaN
-        50%       NaN      2.0         NaN
-        75%       NaN      2.5         NaN
-        max       NaN      3.0         NaN
+                categorical  numeric object
+        count            3      3.0      3
+        unique           3      NaN      3
+        top              f      NaN      c
+        freq             1      NaN      1
+        mean           NaN      2.0    NaN
+        std            NaN      1.0    NaN
+        min            NaN      1.0    NaN
+        25%            NaN      1.5    NaN
+        50%            NaN      2.0    NaN
+        75%            NaN      2.5    NaN
+        max            NaN      3.0    NaN
 
         Describing a column from a ``DataFrame`` by accessing it as
         an attribute.
@@ -7377,27 +7377,27 @@ class NDFrame(PandasObject, SelectionMixin):
         Excluding numeric columns from a ``DataFrame`` description.
 
         >>> df.describe(exclude=[np.number])
-               object categorical
-        count       3           3
-        unique      3           3
-        top         c           f
-        freq        1           1
+               categorical object
+        count            3      3
+        unique           3      3
+        top              f      c
+        freq             1      1
 
         Excluding object columns from a ``DataFrame`` description.
 
         >>> df.describe(exclude=[np.object])
-                numeric categorical
-        count       3.0           3
-        unique      NaN           3
-        top         NaN           f
-        freq        NaN           1
-        mean        2.0         NaN
-        std         1.0         NaN
-        min         1.0         NaN
-        25%         1.5         NaN
-        50%         2.0         NaN
-        75%         2.5         NaN
-        max         3.0         NaN
+               categorical  numeric
+        count            3      3.0
+        unique           3      NaN
+        top              f      NaN
+        freq             1      NaN
+        mean           NaN      2.0
+        std            NaN      1.0
+        min            NaN      1.0
+        25%            NaN      1.5
+        50%            NaN      2.0
+        75%            NaN      2.5
+        max            NaN      3.0
 
         See Also
         --------
