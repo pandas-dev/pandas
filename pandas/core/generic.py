@@ -7652,7 +7652,6 @@ class NDFrame(PandasObject, SelectionMixin):
     -------
     transformed : Series or DataFrame (same as input)
 
-
     Notes
     --------
     The function performs the transformation.
@@ -7739,6 +7738,25 @@ class NDFrame(PandasObject, SelectionMixin):
     2000-01-08  21.0  23.0  25.0
     2000-01-09  24.0  26.0  28.0
     2000-01-10  27.0  29.0  31.0
+
+    >>> def g(s):
+    ...     "input is a Series whose index may be modified"
+    ...     i = np.arange(s.size)
+    ...     s.index = i
+    ...     return s + i
+
+    >>> df.transform(g)
+        A     B     C
+    0   0.0   1.0   2.0
+    1   4.0   5.0   6.0
+    2   8.0   9.0  10.0
+    3   NaN   NaN   NaN
+    4   NaN   NaN   NaN
+    5   NaN   NaN   NaN
+    6   NaN   NaN   NaN
+    7  28.0  29.0  30.0
+    8  32.0  33.0  34.0
+    9  36.0  37.0  38.0
 
     >>> def log_T(s):
     ...     return np.log(10 + s)
