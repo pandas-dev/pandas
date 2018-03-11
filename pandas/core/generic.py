@@ -5639,7 +5639,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> some_data = {'a': [-1, -2, -100], 'b': [1, 2, 100]}
+        >>> some_data={'a': [-1, -2, -100], 'b': [1, 2, 100]}
         >>> df=pd.DataFrame(some_data, index = ['foo', 'bar', 'foobar'])
         >>> df
             a   b
