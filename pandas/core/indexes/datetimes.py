@@ -1748,7 +1748,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         'is_year_end',
         'is_year_end',
         """
-        Return a boolean indicating whether the date is the last day of the year.
+        Return a boolean indicating whether the date is the last day of the
+        year.
 
         Returns
         -------
@@ -1756,7 +1757,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         See Also
         --------
-        is_year_start : Return a boolean indicating whether the date is the first day of the year.
+        is_year_start : Return a boolean indicating whether the date is the
+            first day of the year.
 
         Examples
         --------
