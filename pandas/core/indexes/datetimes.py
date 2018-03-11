@@ -1740,8 +1740,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         See Also
         --------
-        is_month_start : Return a boolean indicating whether the date is
-            the first day of the month.
+        is_month_start : Return a boolean indicating whether the date is the first day of the month.
 
         Examples
         --------
