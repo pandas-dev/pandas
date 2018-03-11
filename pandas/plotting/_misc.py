@@ -333,7 +333,6 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
 
     Parameters
     ----------
-
     series : pandas.Series
         Pandas Series from where to get the samplings for the bootstrapping.
     fig : matplotlib.figure.Figure, default None
@@ -344,7 +343,7 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
         greater or equal than the length of the `series`.
     samples : int, default 500
         Number of times the bootstrap procedure is performed.
-    kwds : keywords
+    **kwds :
         Options to pass to matplotlib plotting method.
 
     Returns
