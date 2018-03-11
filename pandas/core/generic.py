@@ -5627,7 +5627,7 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         `Series` or `DataFrame`.
             Original input with those values above/below the
-            `upper`/`'lower` thresholds set to the threshold values.
+            `upper`/`lower` thresholds set to the threshold values.
 
         See Also
         --------
