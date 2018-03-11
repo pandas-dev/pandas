@@ -7148,6 +7148,13 @@ class NDFrame(PandasObject, SelectionMixin):
         0    1.56205
         dtype: float64
 
+        Absolute numeric values in a Series with a Timedelta element.
+
+        >>> s = pd.Series([pd.Timedelta('1 days')])
+        >>> s.abs()
+        0   1 days
+        dtype: timedelta64[ns]
+
         Select rows with data closest to certian value using argsort (from
         `StackOverflow <https://stackoverflow.com/a/17758115>`__).
 
