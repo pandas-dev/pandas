@@ -901,6 +901,7 @@ class DataFrame(NDFrame):
         columns : list, default None
             Column labels to use when ``orient='index'``. Raises a ValueError
             if used with ``orient='columns'``.
+            
             .. versionadded:: 0.23.0
 
         See Also
