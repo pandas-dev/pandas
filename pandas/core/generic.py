@@ -5602,7 +5602,9 @@ class NDFrame(PandasObject, SelectionMixin):
         Trim values at input threshold(s).
 
         Elements above/below the upper/lower thresholds will be changed to
-        upper/lower thresholds.
+        upper/lower thresholds. Clipping data is a method for dealing with
+        out-of-range elements. If some elements are too large or too small,
+        clipping is one way to transform the data into a reasonable range.
 
         Parameters
         ----------
@@ -5617,67 +5619,70 @@ class NDFrame(PandasObject, SelectionMixin):
         inplace : boolean, default False
             Whether to perform the operation in place on the data
                 .. versionadded:: 0.21.0.
-        *args : Additional keywords have no effect but might be accepted
-            for compatibility with numpy.
-        **kwargs : Additional keywords have no effect but might be accepted
+        *args, **kwargs
+            Additional keywords have no effect but might be accepted
             for compatibility with numpy.
 
         Returns
         -------
         `Series` or `DataFrame`.
-            DataFrame is returned with those values above/below the
+            Original input with those values above/below the
             `upper`/`'lower` thresholds set to the threshold values.
 
         See Also
         --------
-        pandas.Series.clip : Trim values at input threshold(s).
+        Series.clip : Trim values at input threshold(s).
+        DataFrame.clip_upper : Return copy of input with values above given
+            value(s) truncated.
+        DataFrame.clip_lower : Return copy of the input with values below given
+            value(s) truncated.
 
         Examples
         --------
-        >>> some_data = {'a': [1, 2, 3], 'b': [4, 5, 6], 'c': [7, 8, 9001]}
-        >>> df = pd.DataFrame(some_data, index = ['foo', 'bar', 'foobar'])
+        >>> some_data = {'a': [-1, -2, -100], 'b': [1, 2, 100]}
+        >>> df=pd.DataFrame(some_data, index = ['foo', 'bar', 'foobar'])
         >>> df
-            a   b   c
-        foo 1   4   7
-        bar 2   5   8
-        foobar  3   6   9001
+            a   b
+        foo -1  1
+        bar -2  2
+        foobar  -100    100
 
-        >>> df.clip(lower=1, upper=9)
-            a   b   c
-        foo 1   4   7
-        bar 2   5   8
-        foobar  3   6   9
+        >>> df.clip(lower=-10, upper=10)
+            a   b
+        foo -1  1
+        bar -2  2
+        foobar  -10 10
 
         You can clip each column or row with different thresholds by passing
         a ``Series`` to the lower/upper argument. Use the axis argument to clip
         by column or rows.
 
-        >>> col_thresh = pd.Series({'a':4, 'b':5, 'c':6})
+        >>> col_thresh=pd.Series({'a':-5, 'b':5})
         >>> df.clip(lower=col_thresh, axis='columns')
-            a   b   c
-        foo 4   5   7
-        bar 4   5   8
-        foobar  4   6   9001
+            a   b
+        foo -1  5
+        bar -2  5
+        foobar  -5  100
 
         Clip the foo, bar, and foobar rows with lower thresholds 5, 7, and 10.
 
-        >>> row_thresh = pd.Series({'foo': 5, 'bar': 7, 'foobar': 10})
+        >>> row_thresh=pd.Series({'foo': 0, 'bar': 1, 'foobar': 10})
         >>> df.clip(lower=row_thresh, axis='index')
-            a   b   c
-        foo 5   5   7
-        bar 7   7   8
-        foobar  10  10  9001
+            a   b
+        foo 0   1
+        bar 1   2
+        foobar  10  100
 
-        Clipping data is a method for dealing with out-of-range elements.
-        If some elements are too large or too small, clipping is one way to
-        transform the data into a reasonable range.
         `Winsorizing <https://en.wikipedia.org/wiki/Winsorizing>`__ is a
         related method, whereby the data are clipped at
         the 5th and 95th percentiles.
 
-        >>> lwr_thresh = df.quantile(0.05)
-        >>> upr_thresh = df.quantile(0.95)
-        >>> dfw = df.clip(lower=lwr_thresh, upper=upr_thresh, axis='columns')
+        >>> lower, upper = df.quantile(0.05), df.quantile(0.95)
+        >>> df.clip(lower=lower, upper=upper, axis='columns')
+            a   b
+        foo -1.1    1.1
+        bar -2.0    2.0
+        foobar  -90.2   90.2
         """
         if isinstance(self, ABCPanel):
             raise NotImplementedError("clip is not supported yet for panels")
