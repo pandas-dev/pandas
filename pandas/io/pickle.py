@@ -81,8 +81,10 @@ def read_pickle(path, compression='infer'):
     Load pickled pandas object (or any other pickled object) from the specified
     file path.
 
-    Warning: Loading pickled data received from untrusted sources can be
-    unsafe. See: https://docs.python.org/3/library/pickle.html
+    .. warning::
+
+       Loading pickled data received from untrusted sources can be
+       unsafe. See `here <https://docs.python.org/3/library/pickle.html>`__.
 
     Parameters
     ----------
