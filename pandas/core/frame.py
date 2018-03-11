@@ -3503,21 +3503,28 @@ class DataFrame(NDFrame):
         """
         Remove missing values.
 
-        Return object with labels on given axis omitted where alternately any
+        Return object with labels on given axis omitted where either any
         or all of the data are missing.
 
         Parameters
         ----------
         axis : {0 or 'index', 1 or 'columns'}, or tuple/list thereof
+            Determine if rows or columns which contain missing values are
+            removed.
+
+            * 0, or 'index' : Drop rows which contain missing values.
+            * 1, or 'columns' : Drop columns which contain missing value.
+
             Pass tuple or list to drop on multiple axes.
         how : {'any', 'all'}, default 'any'
-            Determine if label is removed when we have at least one NA or all
-            NA.
-            * any : If any NA values are present, drop that label.
-            * all : If all values are NA, drop that label.
-        thresh : int or None, default None
+            Determine if row or column is removed from DataFrame, when we have
+            at least one NA or all NA.
+
+            * 'any' : If any NA values are present, drop that row or column.
+            * 'all' : If all values are NA, drop that row or column.
+        thresh : int, optional
             Require that many non-NA values.
-        subset : array-like
+        subset : array-like, optional
             Labels along other axis to consider, e.g. if you are dropping rows
             these would be a list of columns to include.
         inplace : bool, default False
