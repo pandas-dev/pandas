@@ -5631,11 +5631,18 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
+        DataFrame.clip : Trim values at input threshold(s).
         Series.clip : Trim values at input threshold(s).
-        DataFrame.clip_upper : Return copy of input with values above given
+        Series.clip_lower : Return copy of the input with values below given
+            value(s) truncated.
+        Series.clip_upper : Return copy of input with values above given
             value(s) truncated.
         DataFrame.clip_lower : Return copy of the input with values below given
             value(s) truncated.
+        DataFrame.clip_upper : Return copy of input with values above given
+            value(s) truncated.
+        DataFrame.quantile : Return values at the given quantile over requested
+            axis, a la numpy.percentile.
 
         Examples
         --------
