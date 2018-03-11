@@ -1438,10 +1438,10 @@ class _LocIndexer(_LocationIndexer):
     --------
     DateFrame.at
         Access a single value for a row/column label pair
-    DateFrame.iat
-        Access a single value for a row/column pair by integer position
     DateFrame.iloc
         Access group of rows and columns by integer position(s)
+    Series.loc
+        Access group of values using labels
 
     Examples
     --------
@@ -1453,8 +1453,7 @@ class _LocIndexer(_LocationIndexer):
     r1   0   4   1
     r2  10  20  30
 
-    Single label for row (note it would be faster to use ``DateFrame.at`` in
-    this case)
+    Single label. Note this returns a Series.
 
     >>> df.loc['r1']
     c0    0
@@ -1462,8 +1461,13 @@ class _LocIndexer(_LocationIndexer):
     c2    1
     Name: r1, dtype: int64
 
-    Single label for row and column (note it would be faster to use
-    ``DateFrame.at`` in this case)
+    List with a single label. Note using ``[[]]`` returns a DataFrame.
+
+    >>> df.loc[['r1']]
+        c0  c1  c2
+    r1   0   4   1
+
+    Single label for row and column
 
     >>> df.loc['r0', 'c1']
     2
@@ -1556,6 +1560,82 @@ class _LocIndexer(_LocationIndexer):
     7  12   2   3
     8   0   4   1
     9  10  20  30
+
+    A number of examples using a DataFrame with a multi-index
+
+    >>> tuples = [('r0', 'bar'), ('r0', 'foo'), ('r1', 'bar'),
+    ... 	('r1', 'foo'), ('r2', 'bar'), ('r2', 'baz')]
+    >>> index = pd.MultiIndex.from_tuples(tuples)
+    >>> values = [[12,2,3], [0,4,1], [10,20,30],
+    ...         [1, 4, 1], [7, 1, 2], [16, 36, 40]]
+    >>> df = pd.DataFrame(values, columns=['c0', 'c1', 'c2'], index=index)
+    >>> df
+            c0  c1  c2
+    r0 bar  12   2   3
+       foo   0   4   1
+    r1 bar  10  20  30
+       foo   1   4   1
+    r2 bar   7   1   2
+       baz  16  36  40
+
+    Single label. Note this returns a DataFrame with a single index.
+
+    >>> df.loc['r0']
+         c0  c1  c2
+    bar  12   2   3
+    foo   0   4   1
+
+    Single index tuple. Note this returns a Series.
+
+    >>> df.loc[('r0', 'bar')]
+    c0    12
+    c1     2
+    c2     3
+    Name: (r0, bar), dtype: int64
+
+    Single label for row and column. Similar to passing in a tuple, this
+    returns a Series.
+
+    >>> df.loc['r0', 'foo']
+    c0    0
+    c1    4
+    c2    1
+    Name: (r0, foo), dtype: int64
+
+    Single tuple. Note using ``[[]]`` returns a DataFrame.
+
+    >>> df.loc[[('r0', 'bar')]]
+            c0  c1  c2
+    r0 bar  12   2   3
+
+    Single tuple for the index with a single label for the column
+
+    >>> df.loc[('r0', 'foo'), 'c1']
+    4
+
+    Boolean list
+
+    >>> df.loc[[True, False, True, False, True, True]]
+            c0  c1  c2
+    r0 bar  12   2   3
+    r1 bar  10  20  30
+    r2 bar   7   1   2
+       baz  16  36  40
+
+    Slice from index tuple to single label
+
+    >>> df.loc[('r0', 'foo'):'r1']
+            c0  c1  c2
+    r0 foo   0   4   1
+    r1 bar  10  20  30
+       foo   1   4   1
+
+    Slice from index tuple to index tuple
+
+    >>> df.loc[('r0', 'foo'):('r1', 'bar')]
+            c0  c1  c2
+    r0 foo   0   4   1
+    r1 bar  10  20  30
 
     Raises
     ------
