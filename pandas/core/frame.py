@@ -3836,10 +3836,11 @@ class DataFrame(NDFrame):
 
     def nlargest(self, n, columns, keep='first'):
         """
-        Return the `n` largest rows sorted by `columns`.
+        Return the `n` largest rows ordered by `columns`.
 
-        Sort the DataFrame by `columns` in descending order and return the top
-        `n` rows.
+        Return the `n` largest rows of `columns` in descending order. The
+        remaining columns, although not used for ordering, are returned as
+        well.
 
         Parameters
         ----------
@@ -3855,22 +3856,36 @@ class DataFrame(NDFrame):
         Returns
         -------
         DataFrame
-            The `n` largest rows in the DataFrame, sorted by the given columns
+            The `n` largest rows in the DataFrame, ordered by the given columns
             in descending order.
 
         See Also
         --------
-        DataFrame.nsmallest : Return the `n` smallest rows sorted by given
+        DataFrame.nsmallest : Return the `n` smallest rows ordered by the given
             columns.
 
         Examples
         --------
-        >>> df = pd.DataFrame({'a': [1, 10, 8, 11, -1],
+        >>> df = pd.DataFrame({'a': [1, 10, 8, 10, -1],
         ...                    'b': list('abdce'),
         ...                    'c': [1.0, 2.0, np.nan, 3.0, 4.0]})
+        >>> df
+            a  b    c
+        0   1  a  1.0
+        1  10  b  2.0
+        2   8  d  NaN
+        3  10  c  3.0
+        4  -1  e  4.0
+
         >>> df.nlargest(3, 'a')
             a  b    c
-        3  11  c  3.0
+        1  10  b  2.0
+        3  10  c  3.0
+        2   8  d  NaN
+
+        >>> df.nlargest(3, 'a', keep='last')
+            a  b    c
+        3  10  c  3.0
         1  10  b  2.0
         2   8  d  NaN
         """
