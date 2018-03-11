@@ -572,10 +572,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Notes
         -----
-        Series are instantiated with `dtype=float64` by default. While
-        `numpy.ndarray.view()` will return a view with the same data type as
-        the original array, Series.view() will try using `float64` and may fail
-        if the original data type size in bytes is not the same.
+        Series are instantiated with ``dtype=float64`` by default. While
+        ``numpy.ndarray.view()`` will return a view with the same data type as
+        the original array, ``Series.view()`` (without specified dtype)
+        will try using ``float64`` and may fail if the original data type size
+        in bytes is not the same.
 
         Examples
         --------
