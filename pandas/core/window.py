@@ -889,10 +889,8 @@ class _Rolling_and_Expanding(_Rolling):
     ddof : int, default 1
         Delta Degrees of Freedom.  The divisor used in calculations
         is ``N - ddof``, where ``N`` represents the number of elements.
-    *args
-        Under Review.
-    **kwargs
-        Under Review.
+    *args, **kwargs
+        For NumPy compatibility. No additional arguments are used.
 
     Returns
     -------
@@ -909,10 +907,10 @@ class _Rolling_and_Expanding(_Rolling):
 
     Notes
     -----
-    The default `ddof` of 1 used in Series.var is different than the default
-    `ddof` of 0 in numpy.var.
+    The default `ddof` of 1 used in :meth:`Series.var` is different than the
+    default `ddof` of 0 in :func:`numpy.var`.
 
-    A minimum of 1 periods is required for the rolling calculation.
+    A minimum of 1 period is required for the rolling calculation.
 
     Examples
     --------
