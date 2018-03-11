@@ -1328,9 +1328,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Index label of the first occurrence of minimum of values.
 
-        Look for the first occurence of maximum of values and return the
-        index label. When data contains NA/null values, return nan.
-
         Parameters
         ----------
         skipna : boolean, default True
@@ -1359,7 +1356,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        numpy.ndarray.argmin : Return indices of the minimum values
+        numpy.argmin : Return indices of the minimum values
             along the given axis.
         DataFrame.idxmin : Return index of first occurrence of minimum
             over requested axis.
@@ -1368,7 +1365,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Examples
         --------
-        >>> s = pd.Series(data=[1,None,4,1], index=['A','B','C','D'])
+        >>> s = pd.Series(data=[1, None, 4, 1],
+        ...               index=['A' ,'B' ,'C' ,'D'])
         >>> s
         A    1.0
         B    NaN
@@ -1379,7 +1377,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> s.idxmin()
         'A'
 
-        s.idxmin(skipna=False)
+        If skipna=False and there is an NA value in the data,
+        the function returns nan.
+
+        >>> s.idxmin(skipna=False)
         nan
         """
         skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
@@ -1391,9 +1392,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def idxmax(self, axis=0, skipna=True, *args, **kwargs):
         """
         Return index label of the first occurrence of maximum of values.
-
-        Look for the first occurence of maximum of values and return the
-        index label. When data contains NA/null values, return nan.
 
         Parameters
         ----------
@@ -1423,7 +1421,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        numpy.ndarray.argmax : Return indices of the maximum values
+        numpy.argmax : Return indices of the maximum values
             along the given axis.
         DataFrame.idxmax : Return index of first occurrence of maximum
             over requested axis.
@@ -1432,7 +1430,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Examples
         --------
-        >>> s = pd.Series(data=[1,None,4,3,4], index=['A','B','C','D','E'])
+        >>> s = pd.Series(data=[1, None, 4, 3, 4],
+        ...               index=['A', 'B', 'C', 'D', 'E'])
         >>> s
         A    1.0
         B    NaN
@@ -1444,7 +1443,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> s.idxmax()
         'C'
 
-        s.idxmax(skipna=False)
+        If skipna=False and there is an NA value in the data,
+        the function returns nan.
+
+        >>> s.idxmax(skipna=False)
         nan
         """
         skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
