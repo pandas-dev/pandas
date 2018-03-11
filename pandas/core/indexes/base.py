@@ -1472,15 +1472,16 @@ class Index(IndexOpsMixin, PandasObject):
 
     def is_categorical(self):
         """
-        Check if the Index type is categorical.
-
-        The given object must be a pandas DataFrame index or a pandas Series
-        index.
+        Check if the Index holds categorical data.
 
         Returns
         -------
         boolean
-            True if index is categorical.
+            True if the Index is categorical.
+
+        See Also
+        --------
+        CategoricalIndex : Index for categorical data.
 
         Examples
         --------
