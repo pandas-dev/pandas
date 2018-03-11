@@ -852,13 +852,15 @@ class DataFrame(NDFrame):
         Returns
         -------
         dot_product : DataFrame, matrix, or Series
-            Return type depends on input, see examples below.
+            Returns the same type as self (Series returns an int).
+            See examples below.
 
         Raises
         ------
         ValueError
             If the first dimension of A is not the same size as the
-            secondi dimension of B.
+            second dimension of B, OR if there are conflicting column
+            indeces.
 
         See Also
         --------
@@ -884,6 +886,26 @@ class DataFrame(NDFrame):
               0   1
         0     5   8
         1    13   20
+
+        >>> type(df_A.dot(df_B))
+        <class 'pandas.core.frame.DataFrame'>
+
+        Two DataFrame objects (Error from column labels):
+
+        >>> df_A = pd.DataFrame([[1,2],[3,4]], columns=['a1', 'a2'])
+        >>> df_A
+          a1 a2
+        0  1  2
+        1  3  4
+
+        >>> df_B = pd.DataFrame([[3,4],[1,2]], columns=['b1', 'b2'])
+        >>> df_B
+          b1 b2
+        0  3  4
+        1  1  2
+
+        >>> # df_A.dot(df_B)
+        # ValueError: matrices are not aligned
 
         A DataFrame and a matrix object (returns DataFrame):
 
