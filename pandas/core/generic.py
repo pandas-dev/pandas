@@ -4276,7 +4276,7 @@ class NDFrame(PandasObject, SelectionMixin):
     @property
     def dtypes(self):
         """
-        Return the dtypes in this object.
+        Return the dtypes in DataFrame.
 
         This returns a Series with the data type of each column.
         The result's index is original DataFrame's columns.
@@ -4313,7 +4313,7 @@ class NDFrame(PandasObject, SelectionMixin):
     @property
     def ftypes(self):
         """
-        Return the ftypes (indication of sparse/dense and dtype) in this object.
+        Return the ftypes (indication of sparse/dense and dtype) in DataFrame.
 
         This returns a Series with the data type of each column.
         The result's index is original DataFrame's columns.
