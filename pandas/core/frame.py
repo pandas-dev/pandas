@@ -4217,7 +4217,8 @@ class DataFrame(NDFrame):
             Series is passed, its name attribute must be set, and that will be
             used as the column name in the resulting joined DataFrame.
         join : {'left'}, default 'left'
-            Indicates which column values overwrite.
+            Only left join is implemented,
+            keeping the index and columns of the original object.
         overwrite : boolean, default True
             If True then overwrite values for common keys in the calling frame.
         filter_func : callable(1d-array) -> 1d-array<boolean>, default None
@@ -4248,6 +4249,8 @@ class DataFrame(NDFrame):
         1  2  5
         2  3  6
 
+        The DataFrame's length does not increase as a result of the update.
+
         >>> df = pd.DataFrame({'A': ['a', 'b', 'c'],
         ...                    'B': ['x', 'y', 'z']})
         >>> new_df = pd.DataFrame({'B': ['d', 'e', 'f', 'g', 'h', 'i']})
@@ -4257,6 +4260,8 @@ class DataFrame(NDFrame):
         0  a  d
         1  b  e
         2  c  f
+
+        For Series, it's name attribute must be set.
 
         >>> df = pd.DataFrame({'A': ['a', 'b', 'c'],
         ...                    'B': ['x', 'y', 'z']})
