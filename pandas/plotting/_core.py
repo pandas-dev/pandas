@@ -2532,7 +2532,8 @@ class SeriesPlotMethods(BasePlotMethods):
         Parameters
         ----------
         `**kwds` : optional
-            Keyword arguments to pass on to :py:meth:`pandas.Series.plot`.
+            Additional keyword arguments are documented in
+            :meth:`pandas.Series.plot`.
 
         Returns
         -------
@@ -2556,7 +2557,8 @@ class SeriesPlotMethods(BasePlotMethods):
         Parameters
         ----------
         `**kwds` : optional
-            Keyword arguments to pass on to :py:meth:`pandas.Series.plot`.
+            Additional keyword arguments are documented in
+            :meth:`pandas.Series.plot`.
 
         Returns
         -------
@@ -2571,7 +2573,8 @@ class SeriesPlotMethods(BasePlotMethods):
         Parameters
         ----------
         `**kwds` : optional
-            Keyword arguments to pass on to :py:meth:`pandas.Series.plot`.
+            Additional keyword arguments are documented in
+            :meth:`pandas.Series.plot`.
 
         Returns
         -------
@@ -2586,7 +2589,8 @@ class SeriesPlotMethods(BasePlotMethods):
         Parameters
         ----------
         `**kwds` : optional
-            Keyword arguments to pass on to :py:meth:`pandas.Series.plot`.
+            Additional keyword arguments are documented in
+            :meth:`pandas.Series.plot`.
 
         Returns
         -------
@@ -2603,7 +2607,8 @@ class SeriesPlotMethods(BasePlotMethods):
         bins: integer, default 10
             Number of histogram bins to be used
         `**kwds` : optional
-            Keyword arguments to pass on to :py:meth:`pandas.Series.plot`.
+            Additional keyword arguments are documented in
+            :meth:`pandas.Series.plot`.
 
         Returns
         -------
@@ -2613,26 +2618,74 @@ class SeriesPlotMethods(BasePlotMethods):
 
     def kde(self, bw_method=None, ind=None, **kwds):
         """
-        Kernel Density Estimate plot
+        Kernel Density Estimate plot using Gaussian kernels.
+
+        In statistics, kernel density estimation (KDE) is a non-parametric way
+        to estimate the probability density function (PDF) of a random
+        variable. This function uses Gaussian kernels and includes automatic
+        bandwith determination.
 
         Parameters
         ----------
-        bw_method: str, scalar or callable, optional
-            The method used to calculate the estimator bandwidth.  This can be
+        bw_method : str, scalar or callable, optional
+            The method used to calculate the estimator bandwidth. This can be
             'scott', 'silverman', a scalar constant or a callable.
             If None (default), 'scott' is used.
             See :class:`scipy.stats.gaussian_kde` for more information.
         ind : NumPy array or integer, optional
-            Evaluation points. If None (default), 1000 equally spaced points
-            are used. If `ind` is a NumPy array, the kde is evaluated at the
-            points passed. If `ind` is an integer, `ind` number of equally
-            spaced points are used.
-        `**kwds` : optional
-            Keyword arguments to pass on to :py:meth:`pandas.Series.plot`.
+            Evaluation points for the estimated PDF. If None (default),
+            1000 equally spaced points are used. If `ind` is a NumPy array, the
+            kde is evaluated at the points passed. If `ind` is an integer,
+            `ind` number of equally spaced points are used.
+        kwds : optional
+            Additional keyword arguments are documented in
+            :meth:`pandas.Series.plot`.
 
         Returns
         -------
         axes : matplotlib.AxesSubplot or np.array of them
+
+        See also
+        --------
+        scipy.stats.gaussian_kde : Representation of a kernel-density
+            estimate using Gaussian kernels. This is the function used
+            internally to estimate the PDF.
+
+        Examples
+        --------
+        Given a Series of points randomly sampled from an unknown
+        distribution, estimate this distribution using KDE with automatic
+        bandwidth determination and plot the results, evaluating them at
+        1000 equally spaced points (default):
+
+        .. plot::
+            :context: close-figs
+
+            >>> s = pd.Series([1, 2, 2.5, 3, 3.5, 4, 5])
+            >>> ax = s.plot.kde()
+
+
+        An scalar fixed bandwidth can be specified. Using a too small bandwidth
+        can lead to overfitting, while a too large bandwidth can result in
+        underfitting:
+
+        .. plot::
+            :context: close-figs
+
+            >>> ax = s.plot.kde(bw_method=0.3)
+
+        .. plot::
+            :context: close-figs
+
+            >>> ax = s.plot.kde(bw_method=3)
+
+        Finally, the `ind` parameter determines the evaluation points for the
+        plot of the estimated PDF:
+
+        .. plot::
+            :context: close-figs
+
+            >>> ax = s.plot.kde(ind=[1, 2, 3, 4, 5])
         """
         return self(kind='kde', bw_method=bw_method, ind=ind, **kwds)
 
@@ -2645,7 +2698,8 @@ class SeriesPlotMethods(BasePlotMethods):
         Parameters
         ----------
         `**kwds` : optional
-            Keyword arguments to pass on to :py:meth:`pandas.Series.plot`.
+            Additional keyword arguments are documented in
+            :meth:`pandas.Series.plot`.
 
         Returns
         -------
@@ -2660,7 +2714,8 @@ class SeriesPlotMethods(BasePlotMethods):
         Parameters
         ----------
         `**kwds` : optional
-            Keyword arguments to pass on to :py:meth:`pandas.Series.plot`.
+            Additional keyword arguments are documented in
+            :meth:`pandas.Series.plot`.
 
         Returns
         -------
@@ -2711,7 +2766,8 @@ class FramePlotMethods(BasePlotMethods):
         x, y : label or position, optional
             Coordinates for each point.
         `**kwds` : optional
-            Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
+            Additional keyword arguments are documented in
+            :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
@@ -2728,7 +2784,8 @@ class FramePlotMethods(BasePlotMethods):
         x, y : label or position, optional
             Coordinates for each point.
         `**kwds` : optional
-            Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
+            Additional keyword arguments are documented in
+            :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
@@ -2745,7 +2802,8 @@ class FramePlotMethods(BasePlotMethods):
         x, y : label or position, optional
             Coordinates for each point.
         `**kwds` : optional
-            Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
+            Additional keyword arguments are documented in
+            :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
@@ -2762,7 +2820,8 @@ class FramePlotMethods(BasePlotMethods):
         by : string or sequence
             Column in the DataFrame to group by.
         `**kwds` : optional
-            Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
+            Additional keyword arguments are documented in
+            :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
@@ -2781,7 +2840,8 @@ class FramePlotMethods(BasePlotMethods):
         bins: integer, default 10
             Number of histogram bins to be used
         `**kwds` : optional
-            Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
+            Additional keyword arguments are documented in
+            :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
@@ -2806,7 +2866,8 @@ class FramePlotMethods(BasePlotMethods):
             points passed. If `ind` is an integer, `ind` number of equally
             spaced points are used.
         `**kwds` : optional
-            Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
+            Additional keyword arguments are documented in
+            :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
@@ -2825,7 +2886,8 @@ class FramePlotMethods(BasePlotMethods):
         x, y : label or position, optional
             Coordinates for each point.
         `**kwds` : optional
-            Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
+            Additional keyword arguments are documented in
+            :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
@@ -2842,7 +2904,8 @@ class FramePlotMethods(BasePlotMethods):
         y : label or position, optional
             Column to plot.
         `**kwds` : optional
-            Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
+            Additional keyword arguments are documented in
+            :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
@@ -2863,7 +2926,8 @@ class FramePlotMethods(BasePlotMethods):
         c : label or position, optional
             Color of each point.
         `**kwds` : optional
-            Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
+            Additional keyword arguments are documented in
+            :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
