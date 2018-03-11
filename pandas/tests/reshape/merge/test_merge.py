@@ -1345,10 +1345,6 @@ class TestMergeMulti(object):
             .set_index(["household_id", "asset_id", "t"])
             .reindex(columns=['share', 'log_return']))
 
-        def f():
-            household.join(log_return, how='inner')
-        pytest.raises(NotImplementedError, f)
-
         # this is the equivalency
         result = (merge(household.reset_index(), log_return.reset_index(),
                         on=['asset_id'], how='inner')
@@ -1358,7 +1354,7 @@ class TestMergeMulti(object):
         expected = (
             DataFrame(dict(
                 household_id=[1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4],
-                asset_id=["nl0000301109", "nl0000289783", "gb00b03mlx29",
+                asset_id=["nl0000301109", "nl0000301109", "gb00b03mlx29",
                           "gb00b03mlx29", "gb00b03mlx29",
                           "gb00b03mlx29", "gb00b03mlx29", "gb00b03mlx29",
                           "lu0197800237", "lu0197800237",
@@ -1371,11 +1367,118 @@ class TestMergeMulti(object):
                             .09604978, -.06524096, .03532373,
                             .03025441, .036997, None, None]
             ))
-            .set_index(["household_id", "asset_id", "t"]))
+            .set_index(["household_id", "asset_id", "t"])
+            .reindex(columns=['share', 'log_return']))
+
+        result = (merge(household.reset_index(), log_return.reset_index(),
+                  on=['asset_id'], how='outer')
+                  .set_index(['household_id', 'asset_id', 't']))
+
+        assert_frame_equal(result, expected)
+
+
+@pytest.fixture
+def left_multi():
+    return (
+        DataFrame(
+            dict(Origin=['A', 'A', 'B', 'B', 'C'],
+                 Destination=['A', 'B', 'A', 'C', 'A'],
+                 Period=['AM', 'PM', 'IP', 'AM', 'OP'],
+                 TripPurp=['hbw', 'nhb', 'hbo', 'nhb', 'hbw'],
+                 Trips=[1987, 3647, 2470, 4296, 4444]),
+            columns=['Origin', 'Destination', 'Period',
+                     'TripPurp', 'Trips'])
+        .set_index(['Origin', 'Destination', 'Period', 'TripPurp']))
+
+
+@pytest.fixture
+def right_multi():
+    return (
+        DataFrame(
+            dict(Origin=['A', 'A', 'B', 'B', 'C', 'C', 'E'],
+                 Destination=['A', 'B', 'A', 'B', 'A', 'B', 'F'],
+                 Period=['AM', 'PM', 'IP', 'AM', 'OP', 'IP', 'AM'],
+                 LinkType=['a', 'a', 'c', 'b', 'a', 'b', 'a'],
+                 Distance=[100, 80, 90, 80, 75, 35, 55]),
+            columns=['Origin', 'Destination', 'Period',
+                     'LinkType', 'Distance'])
+        .set_index(['Origin', 'Destination', 'Period', 'LinkType']))
+
+
+@pytest.fixture
+def on_cols():
+    return ['Origin', 'Destination', 'Period']
+
+
+@pytest.fixture
+def idx_cols():
+    return ['Origin', 'Destination', 'Period', 'TripPurp', 'LinkType']
+
+
+class TestJoinMultiMulti(object):
+
+    @pytest.mark.parametrize('how', ['left', 'right', 'inner', 'outer'])
+    def test_join_multi_multi(self, left_multi, right_multi, how,
+                              on_cols, idx_cols):
+        # Multi-index join tests
+        expected = (pd.merge(left_multi.reset_index(),
+                             right_multi.reset_index(),
+                             how=how, on=on_cols).set_index(idx_cols)
+                    .sort_index())
+
+        result = left_multi.join(right_multi, how=how).sort_index()
+        tm.assert_frame_equal(result, expected)
+
+    """
+    @pytest.mark.parametrize('how', ['left', 'right', 'inner', 'outer'])
+    def test_join_multi_multi_emptylevel(self, left_multi, right_multi, how,
+                                         on_cols, idx_cols):
+        # Join with empty level
+        num_lvls = len(right_multi.index.get_level_values('Period'))
+        # Set one level to None
+        right_multi.index.set_levels([np.nan] * num_lvls, level='Period',
+                                     inplace=True)
+
+        expected = (pd.merge(left_multi.reset_index(),
+                             right_multi.reset_index(),
+                             how=how, on=on_cols).set_index(idx_cols)
+                    .sort_index())
+
+        result = left_multi.join(right_multi, how=how).sort_index()
+        tm.assert_frame_equal(result, expected)
+    """
+
+    @pytest.mark.parametrize('how', ['left', 'right', 'inner', 'outer'])
+    def test_join_multi_empty_frames(self, left_multi, right_multi, how,
+                                     on_cols, idx_cols):
+
+        left_multi = left_multi.drop(columns=left_multi.columns)
+        right_multi = right_multi.drop(columns=right_multi.columns)
+
+        expected = (pd.merge(left_multi.reset_index(),
+                             right_multi.reset_index(),
+                             how=how, on=on_cols).set_index(idx_cols)
+                    .sort_index())
+
+        result = left_multi.join(right_multi, how=how).sort_index()
+        tm.assert_frame_equal(result, expected)
+
+    def test_join_multi_multi_nonunique(self, left_multi):
+        # Non-unique resulting index
+        right_multi = (
+            DataFrame(
+                dict(Origin=[1, 1, 2],
+                     Destination=[1, 1, 1],
+                     Period=['AM', 'AM', 'PM'],
+                     LinkType=['a', 'b', 'a'],
+                     Distance=[100, 110, 120]),
+                columns=['Origin', 'Destination', 'Period',
+                         'LinkType', 'Distance'])
+            .set_index(['Origin', 'Destination', 'Period', 'LinkType']))
 
         def f():
-            household.join(log_return, how='outer')
-        pytest.raises(NotImplementedError, f)
+            left_multi.join(right_multi, how='left')
+        pytest.raises(ValueError, f)
 
     @pytest.mark.parametrize("klass", [None, np.asarray, Series, Index])
     def test_merge_datetime_index(self, klass):

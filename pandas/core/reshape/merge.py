@@ -1143,6 +1143,82 @@ def _get_join_indexers(left_keys, right_keys, sort=False, how='inner',
     return join_func(lkey, rkey, count, **kwargs)
 
 
+def _complete_multilevel_join(left, right, how, dropped_levels,
+                              join_idx, lidx, ridx):
+    """
+    *this is an internal non-public method*
+
+    Returns the levels, labels and names of a multilevel to multilevel join
+    Depending on the type of join, this method restores the appropriate
+    dropped levels of the joined multi-index. The method relies on lidx, ridx
+    which hold the index positions of left and right, where a join was feasible
+
+    Parameters
+    ----------
+    left : Index
+        left index
+    right : Index
+        right index
+    join_idx : Index
+        the index of the join between the common levels of left and right
+    how : {'left', 'right', 'outer', 'inner'}
+    lidx : intp array
+        left indexer
+    right : intp array
+        right indexer
+    dropped_levels : str array
+        list of non-common levels
+
+    Returns
+    -------
+    levels : intp array
+        levels of combined multiindexes
+    labels : str array
+        labels of combined multiindexes
+    names : str array
+        names of combined multiindexes
+
+    """
+
+    join_levels = join_idx.levels
+    join_labels = join_idx.labels
+    join_names = join_idx.names
+
+    # lidx and ridx hold the indexes where the join occured
+    # for left and right respectively. If left (right) is None it means that
+    # the join occured on all indices of left (right)
+    if lidx is None:
+        lidx = range(0, len(left))
+
+    if ridx is None:
+        ridx = range(0, len(right))
+
+    # Iterate through the levels that must be restored
+    for dl in dropped_levels:
+        if dl in left.names:
+            idx = left
+            indexer = lidx
+        else:
+            idx = right
+            indexer = ridx
+
+        # The index of the level name to be restored
+        name_idx = idx.names.index(dl)
+
+        restore_levels = idx.levels[name_idx].values
+        restore_labels = idx.labels[name_idx]
+
+        join_levels = join_levels.__add__([restore_levels])
+        join_names = join_names.__add__([dl])
+
+        # Inject -1 in the labels list where a join was not possible
+        # IOW indexer[i]=-1
+        labels = [restore_labels[i] if i != -1 else -1 for i in indexer]
+        join_labels = join_labels.__add__([labels])
+
+    return join_levels, join_labels, join_names
+
+
 class _OrderedMerge(_MergeOperation):
     _merge_type = 'ordered_merge'
 

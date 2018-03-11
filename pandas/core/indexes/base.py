@@ -3498,46 +3498,68 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _join_multi(self, other, how, return_indexers=True):
         from .multi import MultiIndex
+        from pandas.core.reshape.merge import _complete_multilevel_join
+
+        # figure out join names
+        self_names = list(com._not_none(*self.names))
+        other_names = list(com._not_none(*other.names))
+        overlap = list(set(self_names) & set(other_names))
+
+        # need at least 1 in common
+        if not len(overlap):
+            raise ValueError("cannot join with no overlapping index names")
+
         self_is_mi = isinstance(self, MultiIndex)
         other_is_mi = isinstance(other, MultiIndex)
 
-        # figure out join names
-        self_names = com._not_none(*self.names)
-        other_names = com._not_none(*other.names)
-        overlap = list(set(self_names) & set(other_names))
+        # Drop the non matching levels
+        ldrop_levels = list(set(self_names) - set(overlap))
+        rdrop_levels = list(set(other_names) - set(overlap))
 
-        # need at least 1 in common, but not more than 1
-        if not len(overlap):
-            raise ValueError("cannot join with no level specified and no "
-                             "overlapping names")
-        if len(overlap) > 1:
-            raise NotImplementedError("merging with more than one level "
-                                      "overlap on a multi-index is not "
-                                      "implemented")
-        jl = overlap[0]
+        if self_is_mi and other_is_mi:
+            self_jnlevels = self.droplevel(ldrop_levels)
+            other_jnlevels = other.droplevel(rdrop_levels)
+
+            if not (self_jnlevels.is_unique and other_jnlevels.is_unique):
+                raise ValueError("Join on level between two MultiIndex objects"
+                                 "is ambiguous")
+
+            dropped_levels = ldrop_levels + rdrop_levels
+
+            join_idx, lidx, ridx = self_jnlevels.join(other_jnlevels, how,
+                                                      return_indexers=True)
+
+            levels, labels, names = _complete_multilevel_join(self, other, how,
+                                                              dropped_levels,
+                                                              join_idx,
+                                                              lidx, ridx)
+
+            multi_join_idx = MultiIndex(levels=levels, labels=labels,
+                                        names=names, verify_integrity=False)
+
+            # Check for unused levels
+            multi_join_idx = multi_join_idx.remove_unused_levels()
+
+            return multi_join_idx, lidx, ridx
+
+        jl = list(overlap)[0]
 
         # make the indices into mi's that match
-        if not (self_is_mi and other_is_mi):
+        flip_order = False
+        if self_is_mi:
+            self, other = other, self
+            flip_order = True
+            # flip if join method is right or left
+            how = {'right': 'left', 'left': 'right'}.get(how, how)
 
-            flip_order = False
-            if self_is_mi:
-                self, other = other, self
-                flip_order = True
-                # flip if join method is right or left
-                how = {'right': 'left', 'left': 'right'}.get(how, how)
+        level = other.names.index(jl)
+        result = self._join_level(other, level, how=how,
+                                  return_indexers=return_indexers)
 
-            level = other.names.index(jl)
-            result = self._join_level(other, level, how=how,
-                                      return_indexers=return_indexers)
-
-            if flip_order:
-                if isinstance(result, tuple):
-                    return result[0], result[2], result[1]
-            return result
-
-        # 2 multi-indexes
-        raise NotImplementedError("merging with both multi-indexes is not "
-                                  "implemented")
+        if flip_order:
+            if isinstance(result, tuple):
+                return result[0], result[2], result[1]
+        return result
 
     def _join_non_unique(self, other, how='left', return_indexers=False):
         from pandas.core.reshape.merge import _get_join_indexers
