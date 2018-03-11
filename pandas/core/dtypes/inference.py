@@ -28,20 +28,33 @@ def is_number(obj):
     """
     Check if the object is a number.
 
+    Booleans are valid because they are int subclass.
+
     Parameters
     ----------
-    obj : The object to check.
+    obj : any type
+        The object to check if is a number.
 
     Returns
     -------
     is_number : bool
         Whether `obj` is a number or not.
 
+    See Also
+    --------
+    pandas.api.types.is_integer: checks a subgroup of numbers
+
     Examples
     --------
-    >>> is_number(1)
+    >>> pd.api.types.is_number(1)
     True
-    >>> is_number("foo")
+    >>> pd.api.types.is_number(7.15)
+    True
+    >>> pd.api.types.is_number(False)
+    True
+    >>> pd.api.types.is_number("foo")
+    False
+    >>> pd.api.types.is_number("5")
     False
     """
 
@@ -236,30 +249,45 @@ def is_list_like(obj):
     Check if the object is list-like.
 
     Objects that are considered list-like are for example Python
-    lists, tuples, sets, NumPy arrays, and Pandas Series.
+    lists, tuples, sets, NumPy arrays, and Pandas DataFrame and Series.
 
     Strings and datetime objects, however, are not considered list-like.
 
     Parameters
     ----------
-    obj : The object to check.
+    obj : Any type
+        The object to check.
 
     Returns
     -------
     is_list_like : bool
         Whether `obj` has list-like properties.
 
+    See Also
+    --------
+    pandas.api.types.is_array_like: Checks if obj is array type.
+
     Examples
     --------
-    >>> is_list_like([1, 2, 3])
+    >>> pd.api.types.is_list_like([1, 2, 3])
     True
-    >>> is_list_like({1, 2, 3})
+    >>> pd.api.types.is_list_like({1:"one",2:"two"})
     True
-    >>> is_list_like(datetime(2017, 1, 1))
+    >>> pd.api.types.is_list_like({1, 2, 3})
+    True
+    >>> pd.api.types.is_list_like("foo")
     False
-    >>> is_list_like("foo")
+    >>> pd.api.types.is_list_like(1)
     False
-    >>> is_list_like(1)
+
+    >>> df = pd.DataFrame(np.random.randint(low=0, high=10, size=(5, 5)))
+    >>> pd.api.types.is_list_like(df)
+    True
+    >>> pd.api.types.is_list_like(df[0])
+    True
+
+    >>> from datetime import datetime
+    >>> pd.api.types.is_list_like(datetime(2017,2,1))
     False
     """
 
