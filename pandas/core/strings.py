@@ -1874,6 +1874,13 @@ class StringMethods(NoNewAttributesMixin):
     0   -1
     dtype: int64
 
+    >>> s = pd.Series(['get pandas','Did you find it','i think you can find it'])
+    >>> s.str.find('find')
+    0    -1
+    1     8
+    2     16
+    dtype: int64
+
     See Also
     --------
     %(also)s
