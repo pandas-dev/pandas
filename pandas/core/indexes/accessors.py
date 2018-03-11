@@ -127,27 +127,41 @@ class DatetimeProperties(Properties):
 
     def to_pydatetime(self):
         """
-        Return Series as a native Python datetime objects.
+        Return an ndarray of native Python datetime objects.
+
+        Timezone information is retained if present.
 
         Returns
         -------
-        Series of object dtype
-
-        See Also
-        --------
-        pandas.DatetimeIndex.to_pydatetime : Convert a Timestamp object to a native
-            Python datetime object.
+        numpy.ndarray
+            object dtype array containing native Python datetime objects.
 
         Examples
         --------
+        This method is available on both Series with datetime values, under the
+        ``.dt`` accessor, and directly on DatetimeIndex.
+
+        **Series**
+
         >>> s = pd.Series(pd.date_range('20180310', periods=2))
         >>> s.head()
         0   2018-03-10
         1   2018-03-11
         dtype: datetime64[ns]
+
         >>> s.dt.to_pydatetime()
         array([datetime.datetime(2018, 3, 10, 0, 0),
-            datetime.datetime(2018, 3, 11, 0, 0)], dtype=object)
+               datetime.datetime(2018, 3, 11, 0, 0)], dtype=object)
+
+        **DatetimeIndex**
+        >>> idx = pd.date_range("2018-03-10", periods=2)
+        >>> idx  # doctest: +NORMALIZE_WHITESPACE
+        DatetimeIndex(['2018-03-10', '2018-03-11'],
+                      dtype='datetime64[ns]', freq='D')
+
+        >>> idx.to_pydatetime()
+        array([datetime.datetime(2018, 3, 10, 0, 0),
+               datetime.datetime(2018, 3, 11, 0, 0)], dtype=object)
         """
         return self._get_values().to_pydatetime()
 
