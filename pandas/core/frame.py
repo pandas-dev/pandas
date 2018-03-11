@@ -4052,11 +4052,8 @@ class DataFrame(NDFrame):
         Perform series-wise combine with `other` DataFrame using given `func`.
 
         Combines `self` DataFrame with `other` DataFrame using `func`
-        to merge columns. The row and column indexes of the resulting
-        DataFrame will be the union of the two. If `fill_value` is
-        specified, that value will be filled prior to the call to
-        `func`. If `overwrite` is `False`, columns in `self` that
-        do not exist in `other` will be preserved.
+        to element-wise combine columns. The row and column indexes of the
+        resulting DataFrame will be the union of the two.
 
         Parameters
         ----------
@@ -4081,6 +4078,7 @@ class DataFrame(NDFrame):
         Combine using a simple function that chooses the smaller column.
 
         >>> from pandas import DataFrame
+        >>> import numpy as np
         >>> df1 = DataFrame({'A': [0, 0], 'B': [4, 4]})
         >>> df2 = DataFrame({'A': [1, 1], 'B': [3, 3]})
         >>> take_smaller = lambda s1, s2: s1 if s1.sum() < s2.sum() else s2
@@ -4089,14 +4087,24 @@ class DataFrame(NDFrame):
         0  0  3
         1  0  3
 
+        Example  using a true element-wise combine function.
+
+        >>> import numpy as np
+        >>> df1 = DataFrame({'A': [5, 0], 'B': [2, 4]})
+        >>> df2 = DataFrame({'A': [1, 1], 'B': [3, 3]})
+        >>> df1.combine(df2, np.minimum)
+           A  B
+        0  1  2
+        1  0  3
+
         Using `fill_value` fills Nones prior to passing the column to the
         merge function.
 
         >>> df1 = DataFrame({'A': [0, 0], 'B': [None, 4]})
         >>> df2 = DataFrame({'A': [1, 1], 'B': [3, 3]})
         >>> df1.combine(df2, take_smaller, fill_value=-5)
-           A  B
-        0  0  -5.0
+           A    B
+        0  0 -5.0
         1  0  4.0
 
         However, if the same element in both dataframes is None, that None
@@ -4105,7 +4113,7 @@ class DataFrame(NDFrame):
         >>> df1 = DataFrame({'A': [0, 0], 'B': [None, 4]})
         >>> df2 = DataFrame({'A': [1, 1], 'B': [None, 3]})
         >>> df1.combine(df2, take_smaller, fill_value=-5)
-           A  B
+           A    B
         0  0  NaN
         1  0  3.0
 
@@ -4115,16 +4123,16 @@ class DataFrame(NDFrame):
         >>> df1 = DataFrame({'A': [0, 0], 'B': [4, 4]})
         >>> df2 = DataFrame({'B': [3, 3], 'C': [-10, 1],}, index=[1, 2])
         >>> df1.combine(df2, take_smaller)
-           A    B    C
-        0  NaN  NaN  NaN
-        1  NaN  3.0  -10.0
-        2  NaN  3.0  1.0
+             A    B     C
+        0  NaN  NaN   NaN
+        1  NaN  3.0 -10.0
+        2  NaN  3.0   1.0
 
         >>> df1.combine(df2, take_smaller, overwrite=False)
-           A    B    C
-        0  0.0  NaN  NaN
-        1  0.0  3.0  -10.0
-        2  NaN  3.0  1.0
+             A    B     C
+        0  0.0  NaN   NaN
+        1  0.0  3.0 -10.0
+        2  NaN  3.0   1.0
 
         Demonstrating the preference of the passed in dataframe.
 
@@ -4136,7 +4144,7 @@ class DataFrame(NDFrame):
         2  NaN  3.0 NaN
 
         >>> df2.combine(df1, take_smaller, overwrite=False)
-           A    B   C
+             A    B   C
         0  0.0  NaN NaN
         1  0.0  3.0 1.0
         2  NaN  3.0 1.0
@@ -4248,7 +4256,7 @@ class DataFrame(NDFrame):
         >>> df1 = DataFrame({'A': [None, 0], 'B': [None, 4]})
         >>> df2 = DataFrame({'A': [1, 1], 'B': [3, 3]})
         >>> df1.combine_first(df2)
-           A  B
+             A    B
         0  1.0  3.0
         1  0.0  4.0
 
@@ -4257,7 +4265,7 @@ class DataFrame(NDFrame):
         >>> df1 = DataFrame({'A': [None, 0], 'B': [4, None]})
         >>> df2 = DataFrame({'B': [3, 3], 'C': [1, 1],}, index=[1, 2])
         >>> df1.combine_first(df2)
-           A    B    C
+             A    B    C
         0  NaN  4.0  NaN
         1  0.0  3.0  1.0
         2  NaN  3.0  1.0
