@@ -1699,6 +1699,9 @@ class NDFrame(PandasObject, SelectionMixin):
     See Also
     --------
     pandas.read_pickle
+    pandas.to_hdf
+    pandas.to_sql
+    pandas.to_parquet
     """
 
     def to_json(self, path_or_buf=None, orient=None, date_format=None,
