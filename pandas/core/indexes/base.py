@@ -1713,38 +1713,55 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Extract duplicated index elements.
 
-        This function returns a sorted list of index elements which appear more
-        than once in the index.
+        Returns a sorted list of index elements which appear more than once in
+        the index.
 
         Returns
         -------
         array-like
-            List of duplicated indices.
+            List of duplicated indexes.
 
         See Also
         --------
-        :meth:`Index.duplicated` : Return boolean array denoting duplicates.
-        :meth:`Index.drop_duplicates` : Return Index with duplicates removed.
+        Index.duplicated : Return boolean array denoting duplicates.
+        Index.drop_duplicates : Return Index with duplicates removed.
 
         Examples
         --------
-        >>> pd.Index([1, 2, 3, 4]).get_duplicates()
-        []
+
+        Works on different Index of types.
+
         >>> pd.Index([1, 2, 2, 3, 3, 3, 4]).get_duplicates()
         [2, 3]
-        >>> pd.Index([1, 2, 3, 2, 3, 4, 3]).get_duplicates()
-        [2, 3]
+        >>> pd.Index([1., 2., 2., 3., 3., 3., 4.]).get_duplicates()
+        [2.0, 3.0]
         >>> pd.Index(['a', 'b', 'b', 'c', 'c', 'c', 'd']).get_duplicates()
         ['b', 'c']
-        >>> dates = pd.to_datetime(['2018-01-01', '2018-01-02',
-        ...                         '2018-01-03', '2018-01-03'],
+        >>> dates = pd.to_datetime(['2018-01-01', '2018-01-02', '2018-01-03',
+        ...                         '2018-01-03', '2018-01-04', '2018-01-04'],
         ...                        format='%Y-%m-%d')
-        >>> pd.Index(pd.to_datetime(dates, format='%Y-%m-%d')).get_duplicates()
-        DatetimeIndex(['2018-01-03'], dtype='datetime64[ns]', freq=None)
+        >>> pd.Index(dates).get_duplicates()
+        DatetimeIndex(['2018-01-03', '2018-01-04'],
+                      dtype='datetime64[ns]', freq=None)
+
+        Sorts duplicated elements even when indexes are unordered.
+
+        >>> pd.Index([1, 2, 3, 2, 3, 4, 3]).get_duplicates()
+        [2, 3]
+
+        Return empty array-like structure when all elements are unique.
+
+        >>> pd.Index([1, 2, 3, 4]).get_duplicates()
+        []
+        >>> dates = pd.to_datetime(['2018-01-01', '2018-01-02', '2018-01-03'],
+        ...                        format='%Y-%m-%d')
+        >>> pd.Index(dates).get_duplicates()
+        DatetimeIndex([], dtype='datetime64[ns]', freq=None)
 
         Notes
         -----
-        Returns empty list in case all index elements are unique.
+        In case of datetime-like indexes, the function is overridden where the
+        result is converted to DatetimeIndex.
         """
         from collections import defaultdict
         counter = defaultdict(lambda: 0)
