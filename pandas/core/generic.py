@@ -4293,15 +4293,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'f': [1.0],
-        ...                    'i': [1],
-        ...                    'd': [pd.Timestamp('20180310')],
-        ...                    'o': ['foo']})
+        >>> df = pd.DataFrame({'float': [1.0],
+        ...                    'int': [1],
+        ...                    'datetime': [pd.Timestamp('20180310')],
+        ...                    'string': ['foo']})
         >>> df.dtypes
-        f           float64
-        i             int64
-        d    datetime64[ns]
-        o            object
+        float              float64
+        int                  int64
+        datetime    datetime64[ns]
+        string              object
         dtype: object
         """
         from pandas import Series
