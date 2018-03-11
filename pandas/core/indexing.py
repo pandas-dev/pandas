@@ -1936,7 +1936,7 @@ class _iAtIndexer(_ScalarAccessIndexer):
     Examples
     --------
     >>> df = pd.DataFrame([[0, 2, 3], [0, 4, 1], [10, 20, 30]],
-    ...      columns=['A', 'B', 'C'])
+    ...                   columns=['A', 'B', 'C'])
     >>> df
         A   B   C
     0   0   2   3
