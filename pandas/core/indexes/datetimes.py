@@ -1764,7 +1764,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         1   2017-12-31
         2   2018-01-01
         dtype: datetime64[ns]
-        >>> dates.dt.is_year_end
+        >>> dates.dt.is_year_start
         0    False
         1    False
         2    True
