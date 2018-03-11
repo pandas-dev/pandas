@@ -5613,7 +5613,7 @@ class NDFrame(PandasObject, SelectionMixin):
             Upper threshold for clipping.  Values larger than `upper` will be
             converted to `upper`.
         axis : {0 or 'index', 1 or 'columns', None}, default None
-            Align object with lower and upper along the given axis.
+            Apply clip by index (i.e. by rows) or columns.
         inplace : boolean, default False
             Whether to perform the operation in place on the data
                 .. versionadded:: 0.21.0.
