@@ -1409,7 +1409,7 @@ _kde_docstring = """
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : matplotlib.axes.Axes or numpy.ndarray of them
 
         See Also
         --------
@@ -1917,7 +1917,7 @@ _shared_docs['plot'] = """
 
     Returns
     -------
-    axes : matplotlib.AxesSubplot or np.array of them
+    axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
 
     Notes
     -----
@@ -2581,7 +2581,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
 
         Examples
         --------
@@ -2606,7 +2606,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='bar', **kwds)
 
@@ -2622,7 +2622,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='barh', **kwds)
 
@@ -2638,7 +2638,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='box', **kwds)
 
@@ -2656,7 +2656,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='hist', bins=bins, **kwds)
 
@@ -2715,7 +2715,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='area', **kwds)
 
@@ -2731,7 +2731,7 @@ class SeriesPlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='pie', **kwds)
 
@@ -2783,7 +2783,7 @@ class FramePlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='line', x=x, y=y, **kwds)
 
@@ -2801,25 +2801,87 @@ class FramePlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='bar', x=x, y=y, **kwds)
 
     def barh(self, x=None, y=None, **kwds):
         """
-        Horizontal bar plot
+        Make a horizontal bar plot.
+
+        A horizontal bar plot is a plot that presents quantitative data with
+        rectangular bars with lengths proportional to the values that they
+        represent. A bar plot shows comparisons among discrete categories. One
+        axis of the plot shows the specific categories being compared, and the
+        other axis represents a measured value.
 
         Parameters
         ----------
-        x, y : label or position, optional
-            Coordinates for each point.
-        `**kwds` : optional
-            Additional keyword arguments are documented in
-            :meth:`pandas.DataFrame.plot`.
+        x : label or position, default DataFrame.index
+            Column to be used for categories.
+        y : label or position, default All numeric columns in dataframe
+            Columns to be plotted from the DataFrame.
+        **kwds
+            Keyword arguments to pass on to :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them.
+
+        See Also
+        --------
+        pandas.DataFrame.plot.bar: Vertical bar plot.
+        pandas.DataFrame.plot : Make plots of DataFrame using matplotlib.
+        matplotlib.axes.Axes.bar : Plot a vertical bar plot using matplotlib.
+
+        Examples
+        --------
+        Basic example
+
+        .. plot::
+            :context: close-figs
+
+            >>> df = pd.DataFrame({'lab':['A', 'B', 'C'], 'val':[10, 30, 20]})
+            >>> ax = df.plot.barh(x='lab', y='val')
+
+        Plot a whole DataFrame to a horizontal bar plot
+
+        .. plot::
+            :context: close-figs
+
+            >>> speed = [0.1, 17.5, 40, 48, 52, 69, 88]
+            >>> lifespan = [2, 8, 70, 1.5, 25, 12, 28]
+            >>> index = ['snail', 'pig', 'elephant',
+            ...          'rabbit', 'giraffe', 'coyote', 'horse']
+            >>> df = pd.DataFrame({'speed': speed,
+            ...                    'lifespan': lifespan}, index=index)
+            >>> ax = df.plot.barh()
+
+        Plot a column of the DataFrame to a horizontal bar plot
+
+        .. plot::
+            :context: close-figs
+
+            >>> speed = [0.1, 17.5, 40, 48, 52, 69, 88]
+            >>> lifespan = [2, 8, 70, 1.5, 25, 12, 28]
+            >>> index = ['snail', 'pig', 'elephant',
+            ...          'rabbit', 'giraffe', 'coyote', 'horse']
+            >>> df = pd.DataFrame({'speed': speed,
+            ...                    'lifespan': lifespan}, index=index)
+            >>> ax = df.plot.barh(y='speed')
+
+        Plot DataFrame versus the desired column
+
+        .. plot::
+            :context: close-figs
+
+            >>> speed = [0.1, 17.5, 40, 48, 52, 69, 88]
+            >>> lifespan = [2, 8, 70, 1.5, 25, 12, 28]
+            >>> index = ['snail', 'pig', 'elephant',
+            ...          'rabbit', 'giraffe', 'coyote', 'horse']
+            >>> df = pd.DataFrame({'speed': speed,
+            ...                    'lifespan': lifespan}, index=index)
+            >>> ax = df.plot.barh(x='lifespan')
         """
         return self(kind='barh', x=x, y=y, **kwds)
 
@@ -2837,7 +2899,7 @@ class FramePlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='box', by=by, **kwds)
 
@@ -2857,7 +2919,7 @@ class FramePlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='hist', by=by, bins=bins, **kwds)
 
@@ -2921,7 +2983,7 @@ class FramePlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='area', x=x, y=y, **kwds)
 
@@ -2939,7 +3001,7 @@ class FramePlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='pie', y=y, **kwds)
 
@@ -2961,7 +3023,7 @@ class FramePlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         return self(kind='scatter', x=x, y=y, c=c, s=s, **kwds)
 
@@ -2987,7 +3049,7 @@ class FramePlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
         """
         if reduce_C_function is not None:
             kwds['reduce_C_function'] = reduce_C_function
