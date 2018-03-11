@@ -57,10 +57,11 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
 
     See Also
     --------
-    pandas.read_pickle
-    pandas.to_hdf
-    pandas.to_sql
-    pandas.to_parquet
+    pandas.read_pickle : Load pickled pandas object (or any other pickled
+    object) from the specified file path.
+    pandas.to_hdf : Write the contained data to an HDF5 file using HDFStore.
+    pandas.to_sql : Write records stored in a DataFrame to a SQL database.
+    pandas.to_parquet : Write a DataFrame to the binary parquet format.
     """
     path = _stringify_path(path)
     inferred_compression = _infer_compression(path, compression)
@@ -125,11 +126,14 @@ def read_pickle(path, compression='infer'):
 
     See Also
     --------
-    pandas.DataFrame.to_pickle
-    pandas.Series.to_pickle
-    pandas.read_hdf
-    pandas.read_sql
-    pandas.read_parquet
+    pandas.DataFrame.to_pickle : Pickle (serialize) DataFrame object to input
+    file path.
+    pandas.Series.to_pickle : Pickle (serialize) Series object to input
+    file path.
+    pandas.read_hdf : read from the store, close it if we opened it.
+    pandas.read_sql : Read SQL query or database table into a DataFrame.
+    pandas.read_parquet : Load a parquet object from the file path, returning
+    a DataFrame.
     """
     path = _stringify_path(path)
     inferred_compression = _infer_compression(path, compression)
