@@ -1474,7 +1474,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Check if the Index type is categorical.
 
-        The given object must be a pandas DataFrame or pandas Series.
+        The given object must be a pandas DataFrame index or a pandas Series
+        index.
 
         Returns
         -------
@@ -1483,25 +1484,21 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> s = pd.Series(["Watermelon", "Orange", "Apple",
-        ...                 "Watermelon"]).astype('category')
-        >>> df = pd.DataFrame({'Weight (grams)': [2000, 230, 160, 1300]},
-        ...                     index=s)
-        >>> df
-                    Weight (grams)
-        Watermelon            2000
-        Orange                 230
-        Apple                  160
-        Watermelon            1300
-        >>> df.index.is_categorical()
+        >>> idx = pd.Index(["Watermelon", "Orange", "Apple",
+        ...                 "Watermelon"]).astype("category")
+        >>> idx.is_categorical()
         True
 
-        >>> s = pd.Series(["Peter", "Adam", "Elisabeth", "Margareth"])
+        >>> idx = pd.Index([1, 3, 5, 7])
+        >>> idx.is_categorical()
+        False
+
+        >>> s = pd.Series(["Peter", "Víctor", "Elisabeth", "Mar"])
         >>> s
         0        Peter
-        1         Adam
+        1       Víctor
         2    Elisabeth
-        3    Margareth
+        3          Mar
         dtype: object
         >>> s.index.is_categorical()
         False
