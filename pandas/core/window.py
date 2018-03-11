@@ -896,8 +896,8 @@ class _Rolling_and_Expanding(_Rolling):
 
     Returns
     -------
-    Returns the same object type as determined by the caller of the %(name)s
-    calculation.
+    Series or DataFrame
+        Returns the same object type as the caller of the %(name)s calculation.
 
     See Also
     --------
@@ -909,38 +909,32 @@ class _Rolling_and_Expanding(_Rolling):
 
     Notes
     -----
+    The default `ddof` of 1 used in Series.var is different than the default
+    `ddof` of 0 in numpy.var.
+
     A minimum of 1 periods is required for the rolling calculation.
 
     Examples
     --------
-    >>> s = pd.Series((5, 5, 5, 5, 6, 7, 9, 10, 5, 5, 5, 5))
-    >>> s.rolling(3).var(1)
-    0          NaN
-    1          NaN
-    2     0.000000
-    3     0.000000
-    4     0.333333
-    5     1.000000
-    6     2.333333
-    7     2.333333
-    8     7.000000
-    9     8.333333
-    10    0.000000
-    11    0.000000
+    >>> s = pd.Series([5, 5, 6, 7, 5, 5, 5])
+    >>> s.rolling(3).var()
+    0         NaN
+    1         NaN
+    2    0.333333
+    3    1.000000
+    4    1.000000
+    5    1.333333
+    6    0.000000
     dtype: float64
-    >>> s.expanding(3).var(1)
-    0          NaN
-    1          NaN
-    2     0.000000
-    3     0.000000
-    4     0.200000
-    5     0.700000
-    6     2.333333
-    7     4.000000
-    8     3.750000
-    9     3.511111
-    10    3.290909
-    11    3.090909
+
+    >>> s.expanding(3).var()
+    0         NaN
+    1         NaN
+    2    0.333333
+    3    0.916667
+    4    0.800000
+    5    0.700000
+    6    0.619048
     dtype: float64
     """)
 
