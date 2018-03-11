@@ -5639,8 +5639,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> some_data={'a': [-1, -2, -100], 'b': [1, 2, 100]}
-        >>> df=pd.DataFrame(some_data, index = ['foo', 'bar', 'foobar'])
+        >>> some_data = {'a': [-1, -2, -100], 'b': [1, 2, 100]}
+        >>> df = pd.DataFrame(some_data, index = ['foo', 'bar', 'foobar'])
         >>> df
             a   b
         foo -1  1
@@ -5657,7 +5657,7 @@ class NDFrame(PandasObject, SelectionMixin):
         a ``Series`` to the lower/upper argument. Use the axis argument to clip
         by column or rows.
 
-        >>> col_thresh=pd.Series({'a':-5, 'b':5})
+        >>> col_thresh = pd.Series({'a': -5, 'b': 5})
         >>> df.clip(lower=col_thresh, axis='columns')
             a   b
         foo -1  5
@@ -5666,7 +5666,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Clip the foo, bar, and foobar rows with lower thresholds 5, 7, and 10.
 
-        >>> row_thresh=pd.Series({'foo': 0, 'bar': 1, 'foobar': 10})
+        >>> row_thresh = pd.Series({'foo': 0, 'bar': 1, 'foobar': 10})
         >>> df.clip(lower=row_thresh, axis='index')
             a   b
         foo 0   1
