@@ -3047,7 +3047,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         ----------
         axis : {0 or 'index'}, default 0
             There is only one axis to drop values from.
-        inplace : boolean, default False
+        inplace : bool, default False
             If True, do operation inplace and return None.
         **kwargs
             Not in use.
@@ -3057,7 +3057,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Series
             Series with NA entries dropped from it.
 
-        See also
+        See Also
         --------
         isna: show missing values
         notna : show existing (non-missing) values

@@ -3515,12 +3515,12 @@ class DataFrame(NDFrame):
             NA.
             * any : If any NA values are present, drop that label.
             * all : If all values are NA, drop that label.
-        thresh : int, default None
+        thresh : int or None, default None
             Require that many non-NA values.
         subset : array-like
             Labels along other axis to consider, e.g. if you are dropping rows
             these would be a list of columns to include.
-        inplace : boolean, default False
+        inplace : bool, default False
             If True, do operation inplace and return None.
 
         Returns
@@ -3528,7 +3528,7 @@ class DataFrame(NDFrame):
         DataFrame
             DataFrame with NA entries dropped from it.
 
-        See also
+        See Also
         --------
         isna: show missing values
         notna : show existing (non-missing) values
