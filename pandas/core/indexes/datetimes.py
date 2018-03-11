@@ -1939,7 +1939,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         """
         Localize tz-naive DatetimeIndex to tz-aware DatetimeIndex.
 
-        This method takes a naive DatetimeIndex object and make this 
+        This method takes a naive DatetimeIndex object and make this
         time zone aware. It does not move the time to another
         timezone.
         Time zone localization helps to switch b/w time zone aware and time
