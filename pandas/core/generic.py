@@ -4869,6 +4869,9 @@ class NDFrame(PandasObject, SelectionMixin):
     _shared_docs['replace'] = ("""
         Replace values given in 'to_replace' with 'value'.
 
+        Values of the DataFrame or a Series are being replaced with
+        other values.
+
         Parameters
         ----------
         to_replace : str, regex, list, dict, Series, numeric, or None
@@ -4934,19 +4937,21 @@ class NDFrame(PandasObject, SelectionMixin):
             other views on this object (e.g. a column from a DataFrame).
             Returns the caller if this is True.
         limit : int, default None
-            Maximum size gap to forward or backward fill
+            Maximum size gap to forward or backward fill.
         regex : bool or same types as ``to_replace``, default False
             Whether to interpret ``to_replace`` and/or ``value`` as regular
             expressions. If this is ``True`` then ``to_replace`` *must* be a
             string. Alternatively, this could be a regular expression or a
             list, dict, or array of regular expressions in which case
             ``to_replace`` must be ``None``.
-        method : string, optional, {'pad', 'ffill', 'bfill'}
+        method : string, optional, {'pad', 'ffill', 'bfill'}, default is 'pad'
             The method to use when for replacement, when ``to_replace`` is a
             scalar, list or tuple and ``value`` is None.
+        axis : None
+            Deprecated.
 
-        .. versionchanged:: 0.23.0
-           Added to DataFrame
+            .. versionchanged:: 0.23.0
+                Added to DataFrame
 
         See Also
         --------
@@ -5092,6 +5097,47 @@ class NDFrame(PandasObject, SelectionMixin):
 
         This raises a ``TypeError`` because one of the ``dict`` keys is not of
         the correct type for replacement.
+
+        Compare the behavior of
+        ``s.replace('a', None)`` and ``s.replace({'a': None})`` to understand
+        the pecularities of the ``to_replace`` parameter.
+        ``s.replace('a', None)`` is actually equivalent to
+        ``s.replace(to_replace='a', value=None, method='pad')``,
+        because when ``value=None`` and ``to_replace`` is a scalar, list or
+        tuple, ``replace`` uses the method parameter to do the replacement.
+        So this is why the 'a' values are being replaced by 30 in rows 3 and 4
+        and 'b' in row 6 in this case. However, this behaviour does not occur
+        when you use a dict as the ``to_replace`` value. In this case, it is
+        like the value(s) in the dict are equal to the value parameter.
+
+        >>> s = pd.Series([10, 20, 30, 'a', 'a', 'b', 'a'])
+        >>> print(s)
+        0    10
+        1    20
+        2    30
+        3     a
+        4     a
+        5     b
+        6     a
+        dtype: object
+        >>> print(s.replace('a', None))
+        0    10
+        1    20
+        2    30
+        3    30
+        4    30
+        5     b
+        6     b
+        dtype: object
+        >>> print(s.replace({'a': None}))
+        0      10
+        1      20
+        2      30
+        3    None
+        4    None
+        5       b
+        6    None
+        dtype: object
     """)
 
     @Appender(_shared_docs['replace'] % _shared_doc_kwargs)
