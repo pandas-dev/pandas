@@ -1710,6 +1710,59 @@ class Index(IndexOpsMixin, PandasObject):
                             kind=type(key)))
 
     def get_duplicates(self):
+        """
+        Extract duplicated index elements.
+
+        Returns a sorted list of index elements which appear more than once in
+        the index.
+
+        Returns
+        -------
+        array-like
+            List of duplicated indexes.
+
+        See Also
+        --------
+        Index.duplicated : Return boolean array denoting duplicates.
+        Index.drop_duplicates : Return Index with duplicates removed.
+
+        Examples
+        --------
+
+        Works on different Index of types.
+
+        >>> pd.Index([1, 2, 2, 3, 3, 3, 4]).get_duplicates()
+        [2, 3]
+        >>> pd.Index([1., 2., 2., 3., 3., 3., 4.]).get_duplicates()
+        [2.0, 3.0]
+        >>> pd.Index(['a', 'b', 'b', 'c', 'c', 'c', 'd']).get_duplicates()
+        ['b', 'c']
+        >>> dates = pd.to_datetime(['2018-01-01', '2018-01-02', '2018-01-03',
+        ...                         '2018-01-03', '2018-01-04', '2018-01-04'],
+        ...                        format='%Y-%m-%d')
+        >>> pd.Index(dates).get_duplicates()
+        DatetimeIndex(['2018-01-03', '2018-01-04'],
+                      dtype='datetime64[ns]', freq=None)
+
+        Sorts duplicated elements even when indexes are unordered.
+
+        >>> pd.Index([1, 2, 3, 2, 3, 4, 3]).get_duplicates()
+        [2, 3]
+
+        Return empty array-like structure when all elements are unique.
+
+        >>> pd.Index([1, 2, 3, 4]).get_duplicates()
+        []
+        >>> dates = pd.to_datetime(['2018-01-01', '2018-01-02', '2018-01-03'],
+        ...                        format='%Y-%m-%d')
+        >>> pd.Index(dates).get_duplicates()
+        DatetimeIndex([], dtype='datetime64[ns]', freq=None)
+
+        Notes
+        -----
+        In case of datetime-like indexes, the function is overridden where the
+        result is converted to DatetimeIndex.
+        """
         from collections import defaultdict
         counter = defaultdict(lambda: 0)
         for k in self.values:
