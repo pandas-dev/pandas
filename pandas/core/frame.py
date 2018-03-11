@@ -5054,7 +5054,9 @@ class DataFrame(NDFrame):
     def append(self, other, ignore_index=False, verify_integrity=False):
         """
         Append rows of `other` to the end of this frame, returning a new
-        object. Columns not in this frame are added as new columns.
+        object.
+
+        Columns not in this frame are added as new columns.
 
         Parameters
         ----------
@@ -5136,7 +5138,6 @@ class DataFrame(NDFrame):
         2  2
         3  3
         4  4
-
         """
         if isinstance(other, (Series, dict)):
             if isinstance(other, dict):
