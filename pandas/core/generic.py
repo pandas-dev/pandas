@@ -5716,24 +5716,81 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def clip_lower(self, threshold, axis=None, inplace=False):
         """
-        Return copy of the input with values below given value(s) truncated.
+        Return copy of the input with values below given value(s) trimmed.
+
+        If an element value is below the threshold, the threshold value is
+        returned instead.
 
         Parameters
         ----------
         threshold : float or array_like
-        axis : int or string axis name, optional
+            Lower value(s) to which the input value(s) will be trimmed.
+        axis : {0 or 'index', 1 or 'columns'}
             Align object with threshold along the given axis.
         inplace : boolean, default False
             Whether to perform the operation in place on the data
-                .. versionadded:: 0.21.0
+                .. versionadded:: 0.21.0.
 
         See Also
         --------
-        clip
+        DataFrame.clip: Trim values at input threshold(s).
+        DataFrame.clip_upper: Return copy of input with values above given
+            value(s) trimmed.
+        Series.clip_lower: Return copy of the input with values below given
+            value(s) trimmed.
 
         Returns
         -------
         clipped : same type as input
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'a': [0.740518, 0.450228, 0.710404, -0.771225],
+        ...                    'b': [0.040507, -0.45121, 0.760925, 0.010624]})
+
+        >>> df
+                  a         b
+        0  0.740518  0.040507
+        1  0.450228 -0.451210
+        2  0.710404  0.760925
+        3 -0.771225  0.010624
+
+        Clip to a scalar value
+
+        >>> df.clip_lower(0.2)
+                  a         b
+        0  0.740518  0.200000
+        1  0.450228  0.200000
+        2  0.710404  0.760925
+        3  0.200000  0.200000
+
+        Clip to an array along the index axis
+
+        >>> df.clip_lower([0.2, 0.4, 0.6, 0.8], axis=0)
+                  a         b
+        0  0.740518  0.200000
+        1  0.450228  0.400000
+        2  0.710404  0.760925
+        3  0.800000  0.800000
+
+        Clip to an array column the index axis
+
+        >>> df.clip_lower([0.5, 0.0], axis=1)
+                  a         b
+        0  0.740518  0.040507
+        1  0.500000  0.000000
+        2  0.710404  0.760925
+        3  0.500000  0.010624
+
+        Clip in place
+
+        >>> df.clip_lower(0.2, inplace=True)
+        >>> df
+                  a         b
+        0  0.740518  0.200000
+        1  0.450228  0.200000
+        2  0.710404  0.760925
+        3  0.200000  0.200000
         """
         return self._clip_with_one_bound(threshold, method=self.ge,
                                          axis=axis, inplace=inplace)
