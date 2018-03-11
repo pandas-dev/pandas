@@ -4278,17 +4278,25 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return the dtypes in this object.
 
-        Notes
-        -----
-        It returns a Series with the data type of each column.
+        This returns a Series with the data type of each column.
+        The result's index is original DataFrame's columns.
         If object contains data multiple dtypes in a single column,
         dtypes will be chosen to accommodate all of the data types.
         ``object`` is the most general.
 
+        Returns
+        -------
+        pandas.Series
+            The data type of each column.
+
+        See Also
+        --------
+        pandas.DataFrame.ftypes
+
         Examples
         --------
-        >>> df = pd.DataFrame({'f': pd.np.random.rand(3),
-        ...                    'i': 1,
+        >>> df = pd.DataFrame({'f': [1.0],
+        ...                    'i': [1],
         ...                    'd': pd.Timestamp('20180310'),
         ...                    'o': 'foo'})
         >>> df.dtypes
@@ -4305,21 +4313,34 @@ class NDFrame(PandasObject, SelectionMixin):
     @property
     def ftypes(self):
         """
-        Return the ftypes (indication of sparse/dense and dtype)
-        in this object.
+        Return the ftypes (indication of sparse/dense and dtype) in this object.
 
-        Notes
-        -----
-        Sparse data should have the same dtypes as its dense representation
+        This returns a Series with the data type of each column.
+        The result's index is original DataFrame's columns.
+        If object contains data multiple dtypes in a single column,
+        dtypes will be chosen to accommodate all of the data types.
+        ``object`` is the most general.
+        All of the standard pandas data structures have a to_sparse method.
+        The result's tracks where data has been "sparsified".
+
+        Returns
+        -------
+        pandas.Series
+            The data type and indication of sparse/dense of each column.
 
         See Also
         --------
-        dtypes, SparseDataFrame
+        pandas.DataFrame.dtypes, pandas.SparseDataFrame
+
+        Notes
+        -----
+        Sparse data should have the same dtypes as its dense representation.
 
         Examples
         --------
-        >>> arr = pd.np.random.randn(100, 4)
-        >>> arr[arr < .8] = pd.np.nan
+        >>> import numpy as np
+        >>> arr = np.random.RandomState(0).randn(100, 4)
+        >>> arr[arr < .8] = np.nan
         >>> pd.DataFrame(arr).ftypes
         0    float64:dense
         1    float64:dense
