@@ -1655,29 +1655,77 @@ class _iLocIndexer(_LocationIndexer):
     --------
     DataFrame.iat : Fast integer location scalar accessor.
     DataFrame.loc : Purely label-location based indexer for selection by label.
+    Series.iloc : Purely integer-location based indexing for
+                   selection by position.
 
     Examples
     --------
-    >>> import pandas as pd
+
     >>> mydict = [{'a': 1, 'b': 2, 'c': 3, 'd': 4},
-    ... {'a': 100, 'b': 200, 'c': 300, 'd': 400},
-    ... {'a': 1000, 'b': 2000, 'c': 3000, 'd': 4000 }]
-    >>> df = pd.DataFrame(mydict)
+    ...           {'a': 100, 'b': 200, 'c': 300, 'd': 400},
+    ...           {'a': 1000, 'b': 2000, 'c': 3000, 'd': 4000 }]
+    >>> df=pd.DataFrame(mydict)
     >>> df
           a     b     c     d
     0     1     2     3     4
     1   100   200   300   400
     2  1000  2000  3000  4000
+
+    Select using integer.
+
+    >>> type(df.iloc[0])
+    <class 'pandas.core.series.Series'>
     >>> df.iloc[0]
     a    1
     b    2
     c    3
     d    4
     Name: 0, dtype: int64
-    >>> df.iloc[0:2]
-         a    b    c    d
-    0    1    2    3    4
-    1  100  200  300  400
+    >>> type(df.iloc[[0]])
+    <class 'pandas.core.frame.DataFrame'>
+    >>> df.iloc[[0]]
+       a  b  c  d
+    0  1  2  3  4
+
+    Multi index selection.
+
+    >>> df.iloc[0,1]
+    2
+
+    Select using list
+
+    >>> df.iloc[[0,2],[1,3]]
+          b     d
+    0     2     4
+    2  2000  4000
+
+    Select via index slicing.
+
+    >>> df.iloc[:3]
+          a     b     c     d
+    0     1     2     3     4
+    1   100   200   300   400
+    2  1000  2000  3000  4000
+    >>> df.iloc[1:3, 0:3]
+          a     b     c
+    1   100   200   300
+    2  1000  2000  3000
+
+    Select using boolean array.
+
+    >>> df.iloc[:,[True,False,True,False]]
+          a     c
+    0     1     3
+    1   100   300
+    2  1000  3000
+
+    Select using callable function.
+
+    >>> df.iloc[:, lambda df: [0, 2]]
+          a     c
+    0     1     3
+    1   100   300
+    2  1000  3000
     """
 
     _valid_types = ("integer, integer slice (START point is INCLUDED, END "
