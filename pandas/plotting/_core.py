@@ -1424,6 +1424,7 @@ _kde_docstring = """
         %(examples)s
         """
 
+
 class KdePlot(HistPlot):
     _kind = 'kde'
     orientation = 'vertical'
