@@ -1059,7 +1059,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         """
         Cast to PeriodIndex at a particular frequency.
 
-        Converts DatetimeIndex to PeriodIndex.
+        Converts DatetimeIndex to PeriodIndex
 
         Parameters
         ----------
@@ -1068,7 +1068,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         Returns
         -------
-        period : DatetimeIndex
+        period: DatetineIndex
 
         Examples
         --------
@@ -1078,11 +1078,11 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         ...                                         "2000-08-31 00:00:00"]))
         >>> df.index = df.index.to_period("M")
         >>> df
-        	    y
-        2000-03	1
-        2000-05	2
-        2000-08	3
-        
+                    y
+        2000-03 1
+        2000-05 2
+        2000-08 3
+
         See also
         --------
         pandas.PeriodIndex: Immutable ndarray holding ordinal values
@@ -1175,17 +1175,17 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     def to_perioddelta(self, freq):
         """
-        Calculates TimedeltaIndex of difference between index
-        values and index converted to PeriodIndex at specified
-        freq.  Used for vectorized offsets
+        Calculate TimedeltaIndex of difference between index
+        values and index converted to periodIndex at specified
+        freq. Used for vectorized offsets
 
         Parameters
         ----------
-        freq : Period frequency
+        freq: Period frequency
 
         Returns
         -------
-        y : TimedeltaIndex
+        y: TimedeltaIndex
         """
         return to_timedelta(self.asi8 - self.to_period(freq)
                             .to_timestamp().asi8)
