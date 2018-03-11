@@ -5596,7 +5596,7 @@ class DataFrame(NDFrame):
 
         Return Series with number of non-NA observations over requested
         axis. Works with non-floating point data as well (detects `None`,
-        `NaN` and `NaT`)
+        `NaN` and `NaT`).
 
         Parameters
         ----------
@@ -5605,7 +5605,7 @@ class DataFrame(NDFrame):
             If 1 or 'columns' counts are generated for each **row**.
         level : int or str, optional
             If the axis is a `MultiIndex` (hierarchical), count along a
-            particular level, collapsing into a `DataFrame`.
+            particular `level`, collapsing into a `DataFrame`.
             A `str` specifies the level name.
         numeric_only : boolean, default False
             Include only `float`, `int` or `boolean` data.
@@ -5614,7 +5614,7 @@ class DataFrame(NDFrame):
         -------
         Series or DataFrame
             For each column/row the number of non-NA/null entries.
-            If level is specified returns a `DataFrame`.
+            If `level` is specified returns a `DataFrame`.
 
         See Also
         --------
