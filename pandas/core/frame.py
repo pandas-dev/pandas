@@ -4770,32 +4770,34 @@ class DataFrame(NDFrame):
     _agg_doc = dedent("""
     Notes
     -----
-    The default behavior of aggregating over the axis 0 is different from
-    `numpy` functions `mean`/`median`/`prod`/`sum`/`std`/`var`, where the
-    default is to compute the aggregation of the flattened array (e.g.,
-    `numpy.mean(arr_2d)` as opposed to `numpy.mean(arr_2d, axis=0)`).
+    The aggregation operations are always performed over an axis, either the
+    index (default) or the column axis. This behavior is different from
+    `numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
+    `var`), where the default is to compute the aggregation of the flattened
+    array, e.g., ``numpy.mean(arr_2d)`` as opposed to ``numpy.mean(arr_2d,
+    axis=0)``.
 
     `agg` is an alias for `aggregate`. Use the alias.
 
     Examples
     --------
 
-    >>> df = df = pd.DataFrame([[1,2,3],
-    ...                         [4,5,6],
-    ...                         [7,8,9],
-    ...                         [np.nan, np.nan, np.nan]],
-    ...                        columns=['A', 'B', 'C'])
+    >>> df = pd.DataFrame([[1,2,3],
+    ...                    [4,5,6],
+    ...                    [7,8,9],
+    ...                    [np.nan, np.nan, np.nan]],
+    ...                   columns=['A', 'B', 'C'])
 
     Aggregate these functions across all columns
 
-    >>> df.aggregate(['sum', 'min'])
+    >>> df.agg(['sum', 'min'])
             A     B     C
     sum  12.0  15.0  18.0
     min   1.0   2.0   3.0
 
     Different aggregations per column
 
-    >>> df.aggregate({'A' : ['sum', 'min'], 'B' : ['min', 'max']})
+    >>> df.agg({'A' : ['sum', 'min'], 'B' : ['min', 'max']})
             A    B
     max   NaN  8.0
     min   1.0  2.0
@@ -4803,14 +4805,14 @@ class DataFrame(NDFrame):
 
     See also
     --------
-    pandas.DataFrame.apply : Perform any type of operations.
-    pandas.DataFrame.transform : Perform transformation type operations.
-    pandas.DataFrame.groupby.aggregate : Perform aggregation type operations
-        over groups.
-    pandas.DataFrame.resample.aggregate : Perform aggregation type operations
-        over resampled bins.
-    pandas.DataFrame.rolling.aggregate : Perform aggregation type operations
-        over rolling window.
+    DataFrame.apply : Perform any type of operations.
+    DataFrame.transform : Perform transformation type operations.
+    pandas.core.groupby.GroupBy : Perform operations over groups.
+    pandas.core.resample.Resampler : Perform operations over resampled bins.
+    pandas.core.window.Rolling : Perform operations over rolling window.
+    pandas.core.window.Expanding : Perform operations over expanding window.
+    pandas.core.window.EWM : Perform operation over exponential weighted
+        window.
     """)
 
     @Appender(_agg_doc)

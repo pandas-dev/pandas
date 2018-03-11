@@ -3929,7 +3929,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return com._pipe(self, func, *args, **kwargs)
 
     _shared_docs['aggregate'] = ("""
-    Aggregate using one or multiple operations along the specified axis.
+    Aggregate using one or more operations over the specified axis.
 
     %(versionadded)s
 
@@ -3947,10 +3947,10 @@ class NDFrame(PandasObject, SelectionMixin):
         - list of functions.
         - dict of column names -> functions (or list of functions).
     %(axis)s
-    args
-        Optional positional arguments to pass to the function.
-    kwargs
-        Optional keyword arguments to pass to the function.
+    *args
+        Positional arguments to pass to the function.
+    **kwargs
+        Keyword arguments to pass to the function.
 
     Returns
     -------
