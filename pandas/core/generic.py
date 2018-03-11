@@ -7866,8 +7866,9 @@ Returns
 -------
 %(outname)s : %(name1)s or %(name2)s (if level specified)
 
-%(examples)s
-%(see_also)s"""
+%(see_also)s
+
+%(examples)s"""
 
 _all_doc = """\
 Return whether all elements are True over series or dataframe axis.
@@ -7941,21 +7942,20 @@ pandas.core.window.Expanding.%(accum_func_name)s : Similar functionality
 _any_also = """\
 See Also
 --------
-pandas.DataFrame.all : Return whether all elements are True \
-over requested axis."""
+pandas.DataFrame.all : Return whether all elements are True
+    over requested axis."""
 
 _any_desc = """\
 Return whether any element is True over requested axis.
 
-One dimensional boolean pandas.Series is returned. \
-Unlike pandas.DataFrame.all, pandas.DataFrame.any performs OR operation; \
-in other word, if any of the values along the specified axis is True, \
-pandas.DataFrame.any will return True."""
+Unlike :meth:`DataFrame.all`, this performs an *or* operation. In other words,
+if any of the values along the specified axis is True, this will return
+True."""
 
 _any_examples = """\
 Examples
 --------
-By default, any from an empty DataFrame is empty Series.
+By default, `any` for an empty DataFrame is an empty Series.
 
 >>> pd.DataFrame([]).any()
 Series([], dtype: bool)
@@ -7969,13 +7969,16 @@ dtype: bool
 
 It is performing OR along the specified axis.
 
->>> pd.DataFrame({"A": [1, False, 3], "B": [4, 5, 6]}).any(axis=1)
+>>> pd.DataFrame({"A": [True, False, True], "B": [4, 5, 6]}).any(axis=1)
 0    True
 1    True
 2    True
 dtype: bool
 
->> pd.DataFrame({"A": [1, False, 3], "B": [4, False, 6]}).any(axis=1)
+>>> pd.DataFrame({
+...     "A": [True, False, True],
+...     "B": [4, 0, 6]
+... }).any(axis=1)
 0    True
 1    False
 2    True
