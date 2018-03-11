@@ -1939,8 +1939,13 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                      mapping={True: 'infer', False: 'raise'})
     def tz_localize(self, tz, ambiguous='raise', errors='raise'):
         """
-        Localize tz-naive DatetimeIndex to given time zone (using
-        pytz/dateutil), or remove timezone from tz-aware DatetimeIndex
+        Localize tz-naive DatetimeIndex to tz-aware DatetimeIndex.
+
+        This method takes a naive DatetimeIndex object and make this
+        time zone aware. It does not move the time to another
+        timezone.
+        Time zone localization helps to switch b/w time zone aware and time
+        zone unaware objects.
 
         Parameters
         ----------
@@ -1948,7 +1953,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             Time zone for time. Corresponding timestamps would be converted to
             time zone of the TimeSeries.
             None will remove timezone holding local time.
-        ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
+        ambiguous : str {'infer', 'NaT', 'raise'} or bool array, \
+        default 'raise'
             - 'infer' will attempt to infer fall dst-transition hours based on
               order
             - bool-ndarray where True signifies a DST time, False signifies a
@@ -1957,7 +1963,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             - 'NaT' will return NaT where there are ambiguous times
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
-        errors : 'raise', 'coerce', default 'raise'
+        errors : {'raise', 'coerce'}, default 'raise'
             - 'raise' will raise a NonExistentTimeError if a timestamp is not
                valid in the specified timezone (e.g. due to a transition from
                or to DST time)
@@ -1970,14 +1976,47 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             .. deprecated:: 0.15.0
                Attempt to infer fall dst-transition hours based on order
 
+
         Returns
         -------
-        localized : DatetimeIndex
+        DatetimeIndex
+
+        Examples
+        --------
+        In the example below, We put the date range from 01 March 2018
+        to 08 March 2018 & localize this to US/Eastern Time zone & again
+        we perform reverse operation where we remove tize zone & make it
+        tz-naive
+
+        >>> dti = pd.date_range('2018-03-01', '2018-03-03')
+
+        >>> dti
+        DatetimeIndex(['2018-03-01', '2018-03-02', '2018-03-03'],
+        dtype='datetime64[ns]', freq='D')
+
+        localize DatetimeIndex in US/Eastern time zone.
+
+        >>> tz_aware = dti.tz_localize(tz='US/Eastern')
+
+        >>> tz_aware
+        DatetimeIndex(['2018-03-01 00:00:00-05:00',
+        '2018-03-02 00:00:00-05:00', '2018-03-03 00:00:00-05:00'],
+        dtype='datetime64[ns, US/Eastern]', freq='D')
+
+        localize aware time zone into naive time zone.
+
+        >>> tz_naive = tz_aware.tz_localize(None)
+
+        >>> tz_naive
+        DatetimeIndex(['2018-03-01', '2018-03-02', '2018-03-03'],
+        dtype='datetime64[ns]', freq='D')
+
 
         Raises
         ------
         TypeError
             If the DatetimeIndex is tz-aware and tz is not None.
+
         """
         if self.tz is not None:
             if tz is None:
