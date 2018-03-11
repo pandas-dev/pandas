@@ -899,8 +899,8 @@ class DataFrame(NDFrame):
         dtype : dtype, default None
             Data type to force, otherwise infer.
         columns : list, default None
-            Column labels to use when orient='index'. Raises a ValueError
-            if used with orient='columns'.
+            Column labels to use when ``orient='index'``. Raises a ValueError
+            if used with ``orient='columns'``.
             .. versionadded:: 0.23.0
 
         See Also
@@ -915,6 +915,8 @@ class DataFrame(NDFrame):
 
         Examples
         --------
+        By default the keys of the dict become the DataFrame columns:
+
         >>> data = {'col_1': [3, 2, 1, 0], 'col_2': ['a', 'b', 'c', 'd']}
         >>> pd.DataFrame.from_dict(data)
            col_1 col_2
@@ -922,6 +924,9 @@ class DataFrame(NDFrame):
         1      2     b
         2      1     c
         3      0     d
+
+        Specify ``orient='index'`` to create the DataFrame using dictionary
+        keys as rows:
 
         >>> data = {'row_1': [3, 2, 1, 0], 'row_2': ['a', 'b', 'c', 'd']}
         >>> pd.DataFrame.from_dict(data, orient='index')
