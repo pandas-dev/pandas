@@ -1180,19 +1180,36 @@ def str_slice(arr, start=None, stop=None, step=None):
 
 def str_slice_replace(arr, start=None, stop=None, repl=None):
     """
+    Replace a sliced string.
+
     Replace a slice of each string in the Series/Index with another
     string.
 
     Parameters
     ----------
     start : int or None
+        Left edge index.
     stop : int or None
+        Right edge index.
     repl : str or None
-        String for replacement
+        String for replacement.
 
     Returns
     -------
     replaced : Series/Index of objects
+
+    Examples
+    --------
+    >>> s = pd.Series(['This is a Test 1', 'This is a Test 2'])
+    >>> s
+    0    This is a Test 1
+    1    This is a Test 2
+    dtype: object
+    >>> s = s.str.slice_replace(8, 14, 'an Example')
+    >>> s
+    0    This is an Example 1
+    1    This is an Example 2
+    dtype: object
     """
     if repl is None:
         repl = ''
