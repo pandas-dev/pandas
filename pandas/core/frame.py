@@ -5053,10 +5053,9 @@ class DataFrame(NDFrame):
 
     def append(self, other, ignore_index=False, verify_integrity=False):
         """
-        Append rows of `other` to the end of this frame, returning a new
-        object.
+        Append rows of `other` to the end of `caller`, returning a new object.
 
-        Columns not in this frame are added as new columns.
+        Columns not in the caller are added as new columns.
 
         Parameters
         ----------
