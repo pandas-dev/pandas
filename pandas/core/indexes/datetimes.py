@@ -1978,34 +1978,26 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         Returns
         -------
         DatetimeIndex
+            It returns naive time or aware time
 
         Examples
         --------
-        In the example below, We put the date range from 01 March 2018
-        to 08 March 2018 & localize this to US/Eastern Time zone & again
-        we perform reverse operation where we remove tize zone & make it
-        tz-naive
+        >>> tz_aware = pd.date_range('2018-03-01', '2018-03-03')
 
-        >>> dti = pd.date_range('2018-03-01', '2018-03-03')
-
-        >>> dti
+        >>> tz_aware
         DatetimeIndex(['2018-03-01', '2018-03-02', '2018-03-03'],
         dtype='datetime64[ns]', freq='D')
 
-        localize DatetimeIndex in US/Eastern time zone.
+        Localize DatetimeIndex in US/Eastern time zone.
 
-        >>> tz_aware = dti.tz_localize(tz='US/Eastern')
-
-        >>> tz_aware
+        >>> tz_aware.tz_localize(tz='US/Eastern')
         DatetimeIndex(['2018-03-01 00:00:00-05:00',
         '2018-03-02 00:00:00-05:00', '2018-03-03 00:00:00-05:00'],
         dtype='datetime64[ns, US/Eastern]', freq='D')
 
-        localize aware time zone into naive time zone.
+        Localize aware time zone into naive time zone.
 
-        >>> tz_naive = tz_aware.tz_localize(None)
-
-        >>> tz_naive
+        >>> tz_aware.tz_localize(None)
         DatetimeIndex(['2018-03-01', '2018-03-02', '2018-03-03'],
         dtype='datetime64[ns]', freq='D')
 
