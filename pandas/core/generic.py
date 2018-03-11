@@ -7261,6 +7261,16 @@ class NDFrame(PandasObject, SelectionMixin):
         which columns in a ``DataFrame`` are analyzed for the output.
         The parameters are ignored when analyzing a ``Series``.
 
+        See Also
+        --------
+        DataFrame.count: Count number of non-NA/null observations.
+        DataFrame.max: Maximum of the values in the object.
+        DataFrame.min: Minimum of the values in the object.
+        DataFrame.mean: Mean of the values.
+        DataFrame.std: Standard deviation of the obersvations.
+        DataFrame.select_dtypes: Subset of a DataFrame including/excluding
+            columns based on their dtype.
+
         Examples
         --------
         Describing a numeric ``Series``.
@@ -7406,15 +7416,6 @@ class NDFrame(PandasObject, SelectionMixin):
         50%            NaN      2.0
         75%            NaN      2.5
         max            NaN      3.0
-
-        See Also
-        --------
-        DataFrame.count : Count number of non-NA/null observations
-        DataFrame.max : Maximum of the values in the object
-        DataFrame.min : Minimum of the values in the object
-        DataFrame.mean : Mean of the values
-        DataFrame.std : Standard deviation of the obersvations
-        DataFrame.select_dtypes : Subset of a DataFrame including/excluding columns based on their dtype
         """
         if self.ndim >= 3:
             msg = "describe is not implemented on Panel objects."
