@@ -927,8 +927,7 @@ class DataFrame(NDFrame):
         """
         Convert DataFrame to dictionary.
 
-        Method converting the DataFrame to a Python dictionary,
-        the type of the key-value pairs can be customized with
+        The type of the key-value pairs can be customized with
         the parameters (see below).
 
         Parameters
@@ -940,7 +939,7 @@ class DataFrame(NDFrame):
             - 'list' : dict like {column -> [values]}
             - 'series' : dict like {column -> Series(values)}
             - 'split' : dict like
-              {index' -> [index], columns -> [columns], data -> [values]}
+              {'index' -> [index], 'columns' -> [columns], 'data' -> [values]}
             - 'records' : list like
               [{column -> value}, ... , {column -> value}]
             - 'index' : dict like {index -> {column -> value}}
@@ -954,7 +953,7 @@ class DataFrame(NDFrame):
             instance of the mapping type you want.  If you want a
             collections.defaultdict, you must pass it initialized.
 
-            .. versionadded:: 0.21.0.
+            .. versionadded:: 0.21.0
 
         Returns
         -------
@@ -963,6 +962,7 @@ class DataFrame(NDFrame):
         See Also
         --------
         DataFrame.from_dict: create a DataFrame from a dictionary
+        DataFrame.to_json: convert a DataFrame to JSON format
 
         Examples
         --------
