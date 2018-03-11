@@ -97,6 +97,7 @@ class TimelikeOps(object):
         ValueError if the freq cannot be converted
         """)
 
+
     def _round(self, freq, rounder):
         # round the local times
         values = _ensure_datetimelike_to_i8(self)
@@ -115,8 +116,52 @@ class TimelikeOps(object):
     def round(self, freq, *args, **kwargs):
         return self._round(freq, np.round)
 
-    @Appender(_round_doc % "floor")
     def floor(self, freq):
+        """
+        Floor the DatetimeIndex to the specified frequency.
+
+        Links to the available `frequency strings <http://pandas.
+        pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`_
+        and `frequency objects <http://pandas.pydata.org/pandas-docs/
+        stable/timeseries.html#dateoffset-objects>`_ .
+
+        Parameters
+        ----------
+        freq : str, object
+            String or object specifying the frequency to round down to.
+
+        Returns
+        -------
+        DatetimeIndex
+
+        See Also
+        --------
+        DatetimeIndex.ceil : Ceil the DatetimeIndex to the specified freq.
+        DatetimeIndex.round : Round the DatetimeIndex to the specified freq.
+
+        Examples
+        --------
+        >>> df = pd.DatetimeIndex(start='2014-08-01 09:23:41.321211',
+        ...                       freq = 'H', periods = 3)
+        >>> df
+        DatetimeIndex(['2014-08-01 09:23:41.321211',
+                       '2014-08-01 10:23:41.321211',
+                       '2014-08-01 11:23:41.321211'],
+                        dtype='datetime64[ns]', freq='H')
+        >>> df.floor('H')
+        DatetimeIndex(['2014-08-01 09:00:00',
+                       '2014-08-01 10:00:00',
+                       '2014-08-01 11:00:00'],
+                        dtype='datetime64[ns]', freq=None)
+        >>> df.floor('D')
+        DatetimeIndex(['2014-08-01', '2014-08-01', '2014-08-01'],
+                       dtype='datetime64[ns]', freq=None)
+        >>> df.floor('min')
+        DatetimeIndex(['2014-08-01 09:23:00',
+                       '2014-08-01 10:23:00',
+                       '2014-08-01 11:23:00'],
+                       dtype='datetime64[ns]', freq=None)
+        """
         return self._round(freq, np.floor)
 
     @Appender(_round_doc % "ceil")
