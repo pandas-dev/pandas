@@ -3059,6 +3059,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
+        DataFrame.dropna : drop rows or columns which contain NA values
         isna: show missing values
         notna : show existing (non-missing) values
 

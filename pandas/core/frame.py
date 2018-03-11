@@ -3539,6 +3539,7 @@ class DataFrame(NDFrame):
         --------
         DataFrame.isna: show missing values
         DataFrame.notna : show existing (non-missing) values
+        Series.dropna : drop missing values
         isna : top-level isna
         notna : top-level notna
 
