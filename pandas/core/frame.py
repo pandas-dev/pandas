@@ -4764,6 +4764,7 @@ class DataFrame(NDFrame):
         3  4  3  16
         4  5  5  25
         5  6  8  36
+
         >>> df.diff()
              a    b     c
         0  NaN  NaN   NaN
