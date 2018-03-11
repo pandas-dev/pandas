@@ -5055,7 +5055,7 @@ class DataFrame(NDFrame):
         """
         Append rows of `other` to the end of `caller`, returning a new object.
 
-        Columns not in the caller are added as new columns.
+        Columns not in other are added as new columns.
 
         Parameters
         ----------
