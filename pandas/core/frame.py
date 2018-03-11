@@ -140,7 +140,7 @@ ignored*. Otherwise if joining indexes on indexes or indexes on a column or
 columns, the index will be passed on.
 
 Parameters
-----------%s
+----------
 right : DataFrame
 how : {'left', 'right', 'outer', 'inner'}, default 'inner'
     How to handle the operation of the two objects.
@@ -211,21 +211,31 @@ Support for specifying index levels as the `on`, `left_on`, and
 Examples
 --------
 
->>> A              >>> B
-    lkey value         rkey value
-0   foo  1         0   foo  5
-1   bar  2         1   bar  6
-2   baz  3         2   qux  7
-3   foo  4         3   bar  8
+>>> A = pd.DataFrame({'lkey': ['foo', 'bar', 'baz', 'foo'],
+...                   'value': [1, 2, 3, 5]})
+>>> B = pd.DataFrame({'rkey': ['foo', 'bar', 'baz', 'foo'],
+...                   'value': [5, 6, 7, 8]})
+>>> A
+    lkey value
+0   foo  1
+1   bar  2
+2   baz  3
+3   foo  4
+>>> B
+    rkey value
+0   foo  5
+1   bar  6
+2   baz  7
+3   foo  8
 
 >>> A.merge(B, left_on='lkey', right_on='rkey', how='outer')
-   lkey  value_x  rkey  value_y
-0  foo   1        foo   5
-1  foo   4        foo   5
-2  bar   2        bar   6
-3  bar   2        bar   8
-4  baz   3        NaN   NaN
-5  NaN   NaN      qux   7
+  lkey  value_x rkey  value_y
+0  foo        1  foo        5
+1  foo        1  foo        8
+2  foo        5  foo        5
+3  foo        5  foo        8
+4  bar        2  bar        6
+5  baz        3  baz        7
 
 Returns
 -------
@@ -2692,13 +2702,14 @@ class DataFrame(NDFrame):
 
     def assign(self, **kwargs):
         """
-        Assign new columns to a DataFrame, returning a new object
-        (a copy) with all the original columns in addition to the new ones.
+        Assign new columns to a DataFrame.
+
+        Returns a new object with all original columns in addition to new ones.
 
         Parameters
         ----------
         kwargs : keyword, value pairs
-            keywords are the column names. If the values are
+            The column names are keywords. If the values are
             callable, they are computed on the DataFrame and
             assigned to the new columns. The callable must not
             change input DataFrame (though pandas doesn't check it).
@@ -2721,9 +2732,13 @@ class DataFrame(NDFrame):
         or modified columns. All items are computed first, and then assigned
         in alphabetical order.
 
-        .. versionchanged :: 0.23.0
+        .. versionchanged :: 0.23.0.
 
-            Keyword argument order is maintained for Python 3.6 and later.
+        Keyword argument order is maintained for Python 3.6 and later.
+
+        See Also
+        --------
+        DataFrame.assign: For column(s)-on-DataFrame operations
 
         Examples
         --------
