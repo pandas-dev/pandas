@@ -5625,7 +5625,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         `Series` or `DataFrame`.
-            DataFrame is returned with those values above/below the 
+            DataFrame is returned with those values above/below the
             `upper`/`'lower` thresholds set to the threshold values.
 
         See Also
@@ -5649,7 +5649,7 @@ class NDFrame(PandasObject, SelectionMixin):
         foobar  3   6   9
 
         You can clip each column or row with different thresholds by passing
-        a ``Series`` to the lower/upper argument. Use the axis argument to clip 
+        a ``Series`` to the lower/upper argument. Use the axis argument to clip
         by column or rows.
 
         >>> col_thresh = pd.Series({'a':4, 'b':5, 'c':6})
@@ -5671,12 +5671,13 @@ class NDFrame(PandasObject, SelectionMixin):
         Clipping data is a method for dealing with out-of-range elements.
         If some elements are too large or too small, clipping is one way to
         transform the data into a reasonable range.
-        `Winsorizing <https://en.wikipedia.org/wiki/Winsorizing>`__ is a related
-        method, whereby the data are clipped at the 5th and 95th percentiles.
+        `Winsorizing <https://en.wikipedia.org/wiki/Winsorizing>`__ is a
+        related method, whereby the data are clipped at
+        the 5th and 95th percentiles.
 
         >>> lwr_thresh = df.quantile(0.05)
         >>> upr_thresh = df.quantile(0.95)
-        >>> df_win = df.clip(lower=lwr_thresh, upper=upr_thresh, axis='columns')
+        >>> dfw = df.clip(lower=lwr_thresh, upper=upr_thresh, axis='columns')
         """
         if isinstance(self, ABCPanel):
             raise NotImplementedError("clip is not supported yet for panels")
