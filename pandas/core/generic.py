@@ -3607,8 +3607,8 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return the first `n` rows.
 
-        This function returns the first `n` rows for the object based on the
-        underlying index. It is useful for quickly testing if your object
+        This function returns the first `n` rows for the object based
+        on position. It is useful for quickly testing if your object
         has the right type of data in it.
 
         Parameters
@@ -3619,7 +3619,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         obj_head : type of caller
-            The first n rows of the caller object.
+            The first `n` rows of the caller object.
 
         See Also
         --------
@@ -3651,7 +3651,7 @@ class NDFrame(PandasObject, SelectionMixin):
         3       lion
         4     monkey
 
-        Viewing the first n lines (three in this case)
+        Viewing the first `n` lines (three in this case)
 
         >>> df.head(3)
               animal
@@ -3664,7 +3664,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def tail(self, n=5):
         """
-        Return the last n rows.
+        Return the last `n` rows.
+
+        This function returns last `n` rows from the object based on
+        position. It is useful for quickly verifying data, for example,
+        after sorting or appending rows.
 
         Parameters
         ----------
@@ -3706,7 +3710,7 @@ class NDFrame(PandasObject, SelectionMixin):
         7   whale
         8   zebra
 
-        Viewing the last n lines (three in this case)
+        Viewing the last `n` lines (three in this case)
 
         >>> df.tail(3)
           animal
