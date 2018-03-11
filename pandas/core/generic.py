@@ -7231,7 +7231,18 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        summary:  Series/DataFrame of summary statistics
+        Series or DataFrame
+            Summary statistics of the Series or Dataframe provided.
+
+        See Also
+        --------
+        DataFrame.count: Count number of non-NA/null observations.
+        DataFrame.max: Maximum of the values in the object.
+        DataFrame.min: Minimum of the values in the object.
+        DataFrame.mean: Mean of the values.
+        DataFrame.std: Standard deviation of the obersvations.
+        DataFrame.select_dtypes: Subset of a DataFrame including/excluding
+            columns based on their dtype.
 
         Notes
         -----
@@ -7260,16 +7271,6 @@ class NDFrame(PandasObject, SelectionMixin):
         The `include` and `exclude` parameters can be used to limit
         which columns in a ``DataFrame`` are analyzed for the output.
         The parameters are ignored when analyzing a ``Series``.
-
-        See Also
-        --------
-        DataFrame.count: Count number of non-NA/null observations.
-        DataFrame.max: Maximum of the values in the object.
-        DataFrame.min: Minimum of the values in the object.
-        DataFrame.mean: Mean of the values.
-        DataFrame.std: Standard deviation of the obersvations.
-        DataFrame.select_dtypes: Subset of a DataFrame including/excluding
-            columns based on their dtype.
 
         Examples
         --------
