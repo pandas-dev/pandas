@@ -684,7 +684,7 @@ class Window(_Window):
     agg = aggregate
 
     @Substitution(name='window')
-##    @Appender(_doc_template)
+#    @Appender(_doc_template)
     @Appender(_shared_docs['sum'])
     def sum(self, *args, **kwargs):
         nv.validate_window_func('sum', args, kwargs)
@@ -1258,7 +1258,7 @@ class Rolling(_Rolling_and_Expanding):
         return super(Rolling, self).apply(func, args=args, kwargs=kwargs)
 
     @Substitution(name='rolling')
-##    @Appender(_doc_template)
+#    @Appender(_doc_template)
     @Appender(_shared_docs['sum'])
     def sum(self, *args, **kwargs):
         nv.validate_rolling_func('sum', args, kwargs)
@@ -1497,7 +1497,7 @@ class Expanding(_Rolling_and_Expanding):
         return super(Expanding, self).apply(func, args=args, kwargs=kwargs)
 
     @Substitution(name='expanding')
-##    @Appender(_doc_template)
+#    @Appender(_doc_template)
     @Appender(_shared_docs['sum'])
     def sum(self, *args, **kwargs):
         nv.validate_expanding_func('sum', args, kwargs)
