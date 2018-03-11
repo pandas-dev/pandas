@@ -7837,10 +7837,12 @@ over requested axis."""
 _any_desc = """\
 Return whether any element is True over requested axis.
 
-One dimensional boolean pandas.Series is returned. \
+Boolean pandas.Series or value is returned. \
 Unlike pandas.DataFrame.all, pandas.DataFrame.any performs OR operation; \
 in other word, if any of the values along the specified axis is True, \
-pandas.DataFrame.any will return True."""
+pandas.DataFrame.any will return True. \
+If input is pandas.DataFrame, it returns pandas.Series; \
+In case of having pandas.Series as an input, it returns a single value. """
 
 _any_examples = """\
 Examples
@@ -7870,6 +7872,11 @@ dtype: bool
 1    False
 2    True
 dtype: bool
+
+It takes first non-False value from Series.
+
+>>> pd.Series([False, 'b', True, False], index=[100, 101, 102, 103]).any()
+'b'
 """
 
 _sum_examples = """\
