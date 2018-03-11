@@ -901,7 +901,7 @@ class DataFrame(NDFrame):
         columns : list, default None
             Column labels to use when ``orient='index'``. Raises a ValueError
             if used with ``orient='columns'``.
-            
+
             .. versionadded:: 0.23.0
 
         Returns
@@ -910,8 +910,8 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas.DataFrame.from_records : DataFrame from ndarray (structured dtype),
-            list of tuples, dict, or DataFrame
+        pandas.DataFrame.from_records : DataFrame from ndarray (structured
+            dtype), list of tuples, dict, or DataFrame
         pandas.DataFrame: DataFrame object creation using constructor
 
         Examples
