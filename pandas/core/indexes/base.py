@@ -684,22 +684,16 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return `Index` data as an `numpy.ndarray`.
 
-        In its functionality it is the same as `Series.get_values`,
-        but because it refers only to `Index` values, it does not need
-        the additional sparse transformation work.
-
-        It is a getter wrapper around `Index.values`. Getters are
-        often considered non-pythonic and, therefore, should be avoided if are
-        not explicitly aimed for.
+        It is a getter wrapper around `Index.values`.
 
         Returns
         -------
         numpy.ndarray
-            A one-dimensional `numpy array` of the indexes.
+            A one-dimensional numpy array of the indexes.
 
         See Also
         --------
-        Index.values : The original function around which `get_values` wraps.
+        Index.values : The original function around which get_values wraps.
 
         Examples
         --------
