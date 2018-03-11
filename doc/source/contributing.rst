@@ -171,7 +171,7 @@ We'll now kick off a three-step process:
    # Create and activate the build environment
    conda env create -f ci/environment-dev.yaml
    conda activate pandas-dev
-   
+
    # or with older versions of Anaconda:
    source activate pandas-dev
 
@@ -262,8 +262,9 @@ after updating.
 Contributing to the documentation
 =================================
 
-If you're not the developer type, contributing to the documentation is still of
-huge value. You don't even have to be an expert on *pandas* to do so! In fact,
+Contributing to the documentation benefits everyone who uses *pandas*.
+We encourage you to help us improve the documentation, and
+you don't have to be an expert on *pandas* to do so! In fact,
 there are sections of the docs that are worse off after being written by
 experts. If something in the docs doesn't make sense to you, updating the
 relevant section after you figure it out is a great way to ensure it will help
@@ -351,8 +352,10 @@ Some other important things to know about the docs:
 
       pandoc doc/source/contributing.rst -t markdown_github > CONTRIBUTING.md
 
-The utility script ``scripts/api_rst_coverage.py`` can be used to compare
-the list of methods documented in ``doc/source/api.rst`` (which is used to generate
+The utility script ``scripts/validate_docstrings.py`` can be used to get a csv
+summary of the API documentation. And also validate common errors in the docstring
+of a specific class, function or method. The summary also compares the list of
+methods documented in ``doc/source/api.rst`` (which is used to generate
 the `API Reference <http://pandas.pydata.org/pandas-docs/stable/api.html>`_ page)
 and the actual public methods.
 This will identify methods documented in ``doc/source/api.rst`` that are not actually
@@ -388,14 +391,11 @@ If you want to do a full clean build, do::
     python make.py html
 
 You can tell ``make.py`` to compile only a single section of the docs, greatly
-reducing the turn-around time for checking your changes. You will be prompted to
-delete ``.rst`` files that aren't required. This is okay because the prior
-versions of these files can be checked out from git. However, you must make sure
-not to commit the file deletions to your Git repository!
+reducing the turn-around time for checking your changes.
 
 ::
 
-    #omit autosummary and API section
+    # omit autosummary and API section
     python make.py clean
     python make.py --no-api
 
@@ -404,10 +404,20 @@ not to commit the file deletions to your Git repository!
     python make.py clean
     python make.py --single indexing
 
-For comparison, a full documentation build may take 10 minutes, a ``-no-api`` build
-may take 3 minutes and a single section may take 15 seconds.  Subsequent builds, which
-only process portions you have changed, will be faster. Open the following file in a web
-browser to see the full documentation you just built::
+    # compile the reference docs for a single function
+    python make.py clean
+    python make.py --single DataFrame.join
+
+For comparison, a full documentation build may take 15 minutes, but a single
+section may take 15 seconds. Subsequent builds, which only process portions
+you have changed, will be faster.
+
+You can also specify to use multiple cores to speed up the documentation build::
+
+    python make.py html --num-jobs 4
+
+Open the following file in a web browser to see the full documentation you
+just built::
 
     pandas/docs/build/html/index.html
 

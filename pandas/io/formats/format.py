@@ -1209,6 +1209,9 @@ class HTMLFormatter(TableFormatter):
         frame = self.frame
 
         _classes = ['dataframe']  # Default class.
+        use_mathjax = get_option("display.html.use_mathjax")
+        if not use_mathjax:
+            _classes.append('tex2jax_ignore')
         if self.classes is not None:
             if isinstance(self.classes, str):
                 self.classes = self.classes.split()

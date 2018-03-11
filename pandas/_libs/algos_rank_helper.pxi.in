@@ -213,7 +213,10 @@ def rank_1d_{{dtype}}(object in_arr, ties_method='average', ascending=True,
                 sum_ranks = dups = 0
     {{endif}}
     if pct:
-        return ranks / count
+        if tiebreak == TIEBREAK_DENSE:
+            return ranks / total_tie_count
+        else:
+            return ranks / count
     else:
         return ranks
 
@@ -385,7 +388,10 @@ def rank_2d_{{dtype}}(object in_arr, axis=0, ties_method='average',
                         ranks[i, argsorted[i, z]] = total_tie_count
                 sum_ranks = dups = 0
         if pct:
-            ranks[i, :] /= count
+            if tiebreak == TIEBREAK_DENSE:
+                ranks[i, :] /= total_tie_count
+            else:
+                ranks[i, :] /= count
     if axis == 0:
         return ranks.T
     else:
