@@ -1436,10 +1436,12 @@ class _LocIndexer(_LocationIndexer):
 
     See Also
     --------
-    DateFrame.at : Access a single value for a row/column label pair
-    DateFrame.iat : Access a single value for a row/column pair by integer
-                    position
-    DateFrame.iloc : Access group of rows and columns by integer position(s)
+    DateFrame.at
+        Access a single value for a row/column label pair
+    DateFrame.iat
+        Access a single value for a row/column pair by integer position
+    DateFrame.iloc
+        Access group of rows and columns by integer position(s)
 
     Examples
     --------
@@ -1482,7 +1484,6 @@ class _LocIndexer(_LocationIndexer):
     r1     0
     Name: c0, dtype: int64
 
-
     Boolean list with the same length as the row axis
 
     >>> df.loc[[False, False, True]]
@@ -1500,6 +1501,42 @@ class _LocIndexer(_LocationIndexer):
     >>> df.loc[df['c1'] > 10, ['c0', 'c2']]
         c0  c2
     r2  10  30
+
+    Set value for all items matching the list of labels
+
+    >>> df.loc[['r1', 'r2'], ['c1']] = 70
+    >>> df
+        c0  c1  c2
+    r0  12   2   3
+    r1   0  70   1
+    r2  10  70  30
+
+    Set value for an entire row
+
+    >>> df.loc['r0'] = 70
+    >>> df
+        c0  c1  c2
+    r0  70  70  70
+    r1   0  70   1
+    r2  10  70  30
+
+    Set value for an entire column
+
+    >>> df.loc[:, 'c0'] = 30
+    >>> df
+        c0  c1  c2
+    r0  30  70  70
+    r1  30  70   1
+    r2  30  70  30
+
+    Set value for rows matching callable condition
+
+    >>> df.loc[df['c2'] < 10] = 0
+    >>> df
+        c0  c1  c2
+    r0  30  70  70
+    r1   0   0   0
+    r2  30  70  30
 
     Another example using integers for the index
 
