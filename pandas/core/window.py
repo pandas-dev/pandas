@@ -867,15 +867,13 @@ class _Rolling_and_Expanding(_Rolling):
     ddof : int, default 1
         Delta Degrees of Freedom.  The divisor used in calculations
         is ``N - ddof``, where ``N`` represents the number of elements.
-    *args
-        Under Review.
-    **kwargs
-        Under Review.
+    *args, **kwargs
+        For NumPy compatibility. No additional arguments are used.
 
     Returns
     -------
-    Returns the same object type as determined by the caller of the %(name)s
-    calculation.
+    Series or DataFrame
+        Returns the same object type as the caller of the %(name)s calculation.
 
     See Also
     --------
@@ -887,38 +885,32 @@ class _Rolling_and_Expanding(_Rolling):
 
     Notes
     -----
+    The default `ddof` of 1 used in Series.var is different than the default
+    `ddof` of 0 in numpy.var.
+
     A minimum of 1 periods is required for the rolling calculation.
 
     Examples
     --------
-    >>> s = pd.Series((5, 5, 5, 5, 6, 7, 9, 10, 5, 5, 5, 5))
+    >>> s = pd.Series([5, 5, 6, 7, 5, 5, 5])
     >>> s.rolling(3).std()
-    0          NaN
-    1          NaN
-    2     0.000000
-    3     0.000000
-    4     0.577350
-    5     1.000000
-    6     1.527525
-    7     1.527525
-    8     2.645751
-    9     2.886751
-    10    0.000000
-    11    0.000000
+    0         NaN
+    1         NaN
+    2    0.577350
+    3    1.000000
+    4    1.000000
+    5    1.154701
+    6    0.000000
     dtype: float64
+
     >>> s.expanding(3).std()
-    0          NaN
-    1          NaN
-    2     0.000000
-    3     0.000000
-    4     0.447214
-    5     0.836660
-    6     1.527525
-    7     2.000000
-    8     1.936492
-    9     1.873796
-    10    1.814086
-    11    1.758098
+    0         NaN
+    1         NaN
+    2    0.577350
+    3    0.957427
+    4    0.894427
+    5    0.836660
+    6    0.786796
     dtype: float64
     """)
 
