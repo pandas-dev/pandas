@@ -1209,7 +1209,7 @@ class DataFrame(NDFrame):
 
     def to_records(self, index=True, convert_datetime64=True):
         """
-        Convert DataFrame to record array.
+        Convert DataFrame to a NumPy record array.
 
         Index will be put in the 'index' field of the record array if
         requested.
@@ -1224,7 +1224,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        y : recarray
+        y : numpy.recarray
 
         See Also
         --------
