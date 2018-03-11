@@ -141,18 +141,18 @@ columns, the index will be passed on.
 
 Parameters
 ----------
-right : DataFrame
+right : DataFrame or Series/dict-like object
 how : {'left', 'right', 'outer', 'inner'}, default 'inner'
     How to handle the operation of the two objects.
 
     * left: use only keys from left frame, similar to a SQL left outer join;
-      preserve key order.
+      preserve key order
     * right: use only keys from right frame, similar to a SQL right outer join;
-      preserve key order.
+      preserve key order
     * outer: use union of keys from both frames, similar to a SQL full outer
-      join; sort keys lexicographically.
+      join; sort keys lexicographically
     * inner: use intersection of keys from both frames, similar to a SQL inner
-      join; preserve the order of the left keys.
+      join; preserve the order of the left keys
 on : label or list
     Column or index level names to join on. These must be found in both
     DataFrames. If `on` is None and not merging on indexes then this defaults
@@ -249,10 +249,8 @@ merge_ordered
 merge_asof
 DataFrame.join
 """
-
 # -----------------------------------------------------------------------
 # DataFrame class
-
 
 class DataFrame(NDFrame):
     """ Two-dimensional size-mutable, potentially heterogeneous tabular data
