@@ -5306,9 +5306,10 @@ class NDFrame(PandasObject, SelectionMixin):
             If limit is specified, consecutive NaNs will be filled with this
             restriction.
             * None: No fill restriction (default).
-            * 'inside': Only fill NaNs surrounded by valid values (interpolate).
+            * 'inside': Only fill NaNs surrounded by valid values
+              (interpolate).
             * 'outside': Only fill NaNs outside valid values (extrapolate).
-            
+
             .. versionadded:: 0.21.0
 
         downcast : optional, 'infer' or None, defaults to None
@@ -5340,9 +5341,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Filling in NaNs in a Series by padding, but filling at most two
         consecutive NaN at a time.
-        
-        >>> ser = pd.Series([np.nan, "single_one", np.nan, 
-        ...                  "fill_two_more", np.nan, np.nan, np.nan, 
+
+        >>> ser = pd.Series([np.nan, "single_one", np.nan,
+        ...                  "fill_two_more", np.nan, np.nan, np.nan,
         ...                  4.71, np.nan])
         >>> ser
         0              NaN
@@ -5366,11 +5367,11 @@ class NDFrame(PandasObject, SelectionMixin):
         7             4.71
         8             4.71
         dtype: object
-        
+
         Create a DataFrame with missing values.
-        
+
         >>> df = pd.DataFrame([[0,1,2,0,4],[1,2,3,-1,8],
-        ...                    [2,3,4,-2,12],[3,4,5,-3,16]], 
+        ...                    [2,3,4,-2,12],[3,4,5,-3,16]],
         ...                   columns=['a', 'b', 'c', 'd', 'e'])
         >>> df
            a  b  c  d   e
@@ -5389,13 +5390,13 @@ class NDFrame(PandasObject, SelectionMixin):
         1  1.0  2.0  3  NaN   NaN
         2  2.0  3.0  4  NaN  12.0
         3  NaN  4.0  5 -3.0  16.0
-        
+
         Fill the DataFrame forward (that is, going down) along each column.
-        Note how the last entry in column `a` is interpolated differently 
+        Note how the last entry in column `a` is interpolated differently
         (because there is no entry after it to use for interpolation).
         Note how the first entry in column `b` remains NA (because there
         is no entry befofe it to use for interpolation).
-        
+
         >>> df.interpolate(method='linear', limit_direction='forward', axis=0)
              a    b  c    d     e
         0  0.0  NaN  2  0.0   4.0
