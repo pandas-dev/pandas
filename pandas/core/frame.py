@@ -1835,7 +1835,7 @@ class DataFrame(NDFrame):
             the `display.memory_usage` setting. True or False overrides
             the `display.memory_usage` setting. A value of 'deep' is equivalent
             of True, with deep introspection. Memory usage is shown in
-            human-readable units (base-2 representation). Without deep instrospection
+            human-readable units (base-2 representation). Without deep introspection
             a memory estimation is made based in column dtype and number of rows
             assuming values consume the same memory amount for corresponding dtypes.
             With deep memory introspection, a real memory usage calculation is performed
@@ -1856,7 +1856,8 @@ class DataFrame(NDFrame):
         See Also
         --------
 
-        describe: Generate descriptive statistics of DataFrame columns.
+        DataFrame.describe: Generate descriptive statistics of DataFrame columns.
+        DataFrame.memory_usage: Memory usage of DataFrame columns.
 
         Examples
         --------
@@ -1872,6 +1873,8 @@ class DataFrame(NDFrame):
         3        4    delta       0.75
         4        5  epsilon       1.00
 
+        Prints information of all columns overriding default `display.max_info_columns` setting:
+
         >>> df.info(verbose=True)
         <class 'pandas.core.frame.DataFrame'>
         RangeIndex: 5 entries, 0 to 4
@@ -1882,12 +1885,17 @@ class DataFrame(NDFrame):
         dtypes: float64(1), int64(1), object(1)
         memory usage: 200.0+ bytes
 
+        Prints a summary of columns count and its dtypes but not per column information:
+
         >>> df.info(verbose=False)
         <class 'pandas.core.frame.DataFrame'>
         RangeIndex: 5 entries, 0 to 4
         Columns: 3 entries, int_col to float_col
         dtypes: float64(1), int64(1), object(1)
         memory usage: 200.0+ bytes
+
+        Pipe output of DataFrame.info to buffer instead of sys.stdout, get buffer content
+        and writes to a text file:
 
         >>> import io
         >>> buffer = io.StringIO()
@@ -1896,6 +1904,9 @@ class DataFrame(NDFrame):
         >>> with open("df_info.txt", "w", encoding="utf-8") as f:
         ...     f.write(s)
         260
+
+        The `memory_usage` parameter allows deep introspection mode, specially useful for
+        big DataFrames and fine-tune memory optimization:
 
         >>> random_strings_array = np.random.choice(['a', 'b', 'c'], 10 ** 6)
         >>> df = pd.DataFrame({'column_1': np.random.choice(['a', 'b', 'c'], 10 ** 6),
