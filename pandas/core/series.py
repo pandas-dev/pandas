@@ -1888,9 +1888,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def sort_values(self, axis=0, ascending=True, inplace=False,
                     kind='quicksort', na_position='last'):
         """
-        Sort by the Series values.
+        Sort by the values.
 
-        Sort (or order) a Series in ascending or descending order by some
+        Sort a Series in ascending or descending order by some
         criterion.
 
         Parameters
