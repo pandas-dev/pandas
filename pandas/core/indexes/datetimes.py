@@ -1739,7 +1739,33 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     is_quarter_end = _field_accessor(
         'is_quarter_end',
         'is_quarter_end',
-        "Logical indicating if last day of quarter (defined by frequency)")
+        """
+        Return a boolean indicating whether the date is the last day of a
+        quarter.
+
+        Returns
+        -------
+        is_quarter_end : Series of boolean.
+
+        See Also
+        --------
+        quarter : Return the quarter of the date.
+
+        is_quarter_start : Return a boolean indicating whether the date is the
+            first day of the quarter.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'dates': pd.date_range("2017-03-30",
+        ...                   periods=4)})
+        >>> df.assign(quarter = df.dates.dt.quarter,
+        ...          is_quarter_end = df.dates.dt.is_quarter_end)
+               dates  quarter    is_quarter_end
+        0 2017-03-30        1             False
+        1 2017-03-31        1              True
+        2 2017-04-01        2             False
+        3 2017-04-02        2             False
+        """)
     is_year_start = _field_accessor(
         'is_year_start',
         'is_year_start',
