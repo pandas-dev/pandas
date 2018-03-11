@@ -331,6 +331,9 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     generate bootstrapping plots for mean, median and mid-range statistics
     for the given number of samples of the given size.
 
+    .. [1] "Bootstrapping (statistics)" in \
+    https://en.wikipedia.org/wiki/Bootstrapping_%28statistics%29
+
     Parameters
     ----------
     series : pandas.Series
@@ -350,12 +353,6 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     -------
     fig : matplotlib.figure.Figure
         Matplotlib figure
-
-    Notes
-    -----
-
-    .. [1] "Bootstrapping (statistics)" in \
-    https://en.wikipedia.org/wiki/Bootstrapping_%28statistics%29
 
     See Also
     --------
