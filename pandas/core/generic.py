@@ -5648,6 +5648,8 @@ class NDFrame(PandasObject, SelectionMixin):
         3     -1      8
         4      5     -5
 
+        Clips per column using lower and upper thresholds:
+
         >>> df.clip(-4, 6)
            col_0  col_1
         0      6     -2
@@ -5655,6 +5657,8 @@ class NDFrame(PandasObject, SelectionMixin):
         2      0      6
         3     -1      6
         4      5     -4
+
+        Clips using specific lower and upper thresholds per column element:
 
         >>> t = pd.Series([2, -4, -1, 6, 3])
         >>> t
