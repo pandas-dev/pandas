@@ -7619,9 +7619,7 @@ class NDFrame(PandasObject, SelectionMixin):
             nanptp)
 
     _shared_docs['transform'] = ("""
-    Call function on a Series resp. DataFrame
-    producing a like-indexed Series resp.
-    DataFrame with the transformed values.
+    Generate transformed like-indexed same dimension Series or DataFrame.
 
     .. versionadded:: 0.20.0
 
@@ -7630,7 +7628,6 @@ class NDFrame(PandasObject, SelectionMixin):
     func : Function, dictionary, or list of functions
 
         Function: Function to apply to the DataFrame/Series.
-
         ``args``, and ``kwargs`` are passed into ``func``.
 
         Accepted Combinations are:
