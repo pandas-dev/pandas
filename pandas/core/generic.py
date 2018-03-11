@@ -3605,7 +3605,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def head(self, n=5):
         """
-        Return the first n rows.
+        Return the first `n` rows.
+
+        This function returns the first `n` rows for the object based on the
+        underlying index. It is useful for quickly testing if your object
+        has the right type of data in it.
 
         Parameters
         ----------
@@ -3619,7 +3623,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.DataFrame.tail
+        pandas.DataFrame.tail: Returns the last `n` rows.
 
         Examples
         --------
@@ -3669,12 +3673,12 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        obj_tail : type of caller
-            The last n rows of the caller object.
+        type of caller
+            The last `n` rows of the caller object.
 
         See Also
         --------
-        pandas.DataFrame.head
+        pandas.DataFrame.head : The first `n` rows of the caller object.
 
         Examples
         --------
@@ -4232,7 +4236,55 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @property
     def values(self):
-        """Numpy representation of NDFrame
+        """
+        Return a Numpy representation of the DataFrame.
+
+        Only the values in the DataFrame will be returned, the axes labels
+        will be removed.
+
+        Returns
+        -------
+        numpy.ndarray
+            The values of the DataFrame.
+
+        Examples
+        --------
+        A DataFrame where all columns are the same type (e.g., int64) results
+        in an array of the same type.
+
+        >>> df = pd.DataFrame({'age':    [ 3,  29],
+        ...                    'height': [94, 170],
+        ...                    'weight': [31, 115]})
+        >>> df
+           age  height  weight
+        0    3      94      31
+        1   29     170     115
+        >>> df.dtypes
+        age       int64
+        height    int64
+        weight    int64
+        dtype: object
+        >>> df.values
+        array([[  3,  94,  31],
+               [ 29, 170, 115]], dtype=int64)
+
+        A DataFrame with mixed type columns(e.g., str/object, int64, float32)
+        results in an ndarray of the broadest type that accommodates these
+        mixed types (e.g., object).
+
+        >>> df2 = pd.DataFrame([('parrot',   24.0, 'second'),
+        ...                     ('lion',     80.5, 1),
+        ...                     ('monkey', np.nan, None)],
+        ...                   columns=('name', 'max_speed', 'rank'))
+        >>> df2.dtypes
+        name          object
+        max_speed    float64
+        rank          object
+        dtype: object
+        >>> df2.values
+        array([['parrot', 24.0, 'second'],
+               ['lion', 80.5, 1],
+               ['monkey', nan, None]], dtype=object)
 
         Notes
         -----
@@ -4243,8 +4295,13 @@ class NDFrame(PandasObject, SelectionMixin):
 
         e.g. If the dtypes are float16 and float32, dtype will be upcast to
         float32.  If dtypes are int32 and uint8, dtype will be upcast to
-        int32. By numpy.find_common_type convention, mixing int64 and uint64
-        will result in a flot64 dtype.
+        int32. By :func:`numpy.find_common_type` convention, mixing int64
+        and uint64 will result in a float64 dtype.
+
+        See Also
+        --------
+        pandas.DataFrame.index : Retrievie the index labels
+        pandas.DataFrame.columns : Retrieving the column names
         """
         self._consolidate_inplace()
         return self._data.as_array(transpose=self._AXIS_REVERSED)
