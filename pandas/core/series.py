@@ -76,7 +76,7 @@ import pandas.plotting._core as gfx
 __all__ = ['Series']
 
 _shared_doc_kwargs = dict(
-    axes='index', klass='Series', axes_single_arg="{0, 'index'}",
+    axes='index', klass='Series', axes_single_arg="{0 or 'index'}",
     inplace="""inplace : boolean, default False
         If True, performs operation inplace and returns None.""",
     unique='np.ndarray', duplicated='Series',
@@ -2066,10 +2066,112 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # ----------------------------------------------------------------------
     # Reindexing, sorting
 
-    @Appender(generic._shared_docs['sort_values'] % _shared_doc_kwargs)
     def sort_values(self, axis=0, ascending=True, inplace=False,
                     kind='quicksort', na_position='last'):
+        """
+        Sort by the values.
 
+        Sort a Series in ascending or descending order by some
+        criterion.
+
+        Parameters
+        ----------
+        axis : {0 or 'index'}, default 0
+            Axis to direct sorting. The value 'index' is accepted for
+            compatibility with DataFrame.sort_values.
+        ascending : bool, default True
+            If True, sort values in ascending order, otherwise descending.
+        inplace : bool, default False
+            If True, perform operation in-place.
+        kind : {'quicksort', 'mergesort' or 'heapsort'}, default 'quicksort'
+            Choice of sorting algorithm. See also :func:`numpy.sort` for more
+            information. 'mergesort' is the only stable  algorithm.
+        na_position : {'first' or 'last'}, default 'last'
+            Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
+            the end.
+
+        Returns
+        -------
+        Series
+            Series ordered by values.
+
+        See Also
+        --------
+        Series.sort_index : Sort by the Series indices.
+        DataFrame.sort_values : Sort DataFrame by the values along either axis.
+        DataFrame.sort_index : Sort DataFrame by indices.
+
+        Examples
+        --------
+        >>> s = pd.Series([np.nan, 1, 3, 10, 5])
+        >>> s
+        0     NaN
+        1     1.0
+        2     3.0
+        3     10.0
+        4     5.0
+        dtype: float64
+
+        Sort values ascending order (default behaviour)
+
+        >>> s.sort_values(ascending=True)
+        1     1.0
+        2     3.0
+        4     5.0
+        3    10.0
+        0     NaN
+        dtype: float64
+
+        Sort values descending order
+
+        >>> s.sort_values(ascending=False)
+        3    10.0
+        4     5.0
+        2     3.0
+        1     1.0
+        0     NaN
+        dtype: float64
+
+        Sort values inplace
+
+        >>> s.sort_values(ascending=False, inplace=True)
+        >>> s
+        3    10.0
+        4     5.0
+        2     3.0
+        1     1.0
+        0     NaN
+        dtype: float64
+
+        Sort values putting NAs first
+
+        >>> s.sort_values(na_position='first')
+        0     NaN
+        1     1.0
+        2     3.0
+        4     5.0
+        3    10.0
+        dtype: float64
+
+        Sort a series of strings
+
+        >>> s = pd.Series(['z', 'b', 'd', 'a', 'c'])
+        >>> s
+        0    z
+        1    b
+        2    d
+        3    a
+        4    c
+        dtype: object
+
+        >>> s.sort_values()
+        3    a
+        1    b
+        4    c
+        2    d
+        0    z
+        dtype: object
+        """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         axis = self._get_axis_number(axis)
 
