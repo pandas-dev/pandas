@@ -2491,10 +2491,10 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas.DataFrame.query : Evaluates a boolean expression to query the
-            columns of a frame.
-        pandas.DataFrame.assign : Can evaluate an expression or function to
-            create new values for a column.
+        DataFrame.query : Evaluates a boolean expression to query the columns
+            of a frame.
+        DataFrame.assign : Can evaluate an expression or function to create new
+            values for a column.
         pandas.eval : Evaluate a Python expression as a string using various
             backends.
 
@@ -2503,9 +2503,6 @@ class DataFrame(NDFrame):
         For more details see the API documentation for :func:`~pandas.eval`.
         For detailed examples see :ref:`enhancing performance with eval
         <enhancingperf.eval>`.
-
-        This function calls `pandas.eval()` and is likely to be slower than
-        it.
 
         Examples
         --------
