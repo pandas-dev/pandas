@@ -4903,6 +4903,12 @@ class DataFrame(NDFrame):
         side-effects, as they will take effect twice for the first
         column/row.
 
+        See also
+        --------
+        DataFrame.applymap: For elementwise operations
+        DataFrame.aggregate: only perform aggregating type operations
+        DataFrame.transform: only perform transformating type operations
+
         Examples
         --------
 
@@ -4972,12 +4978,6 @@ class DataFrame(NDFrame):
         0  1  2
         1  1  2
         2  1  2
-
-        See also
-        --------
-        DataFrame.applymap: For elementwise operations
-        DataFrame.aggregate: only perform aggregating type operations
-        DataFrame.transform: only perform transformating type operations
 
         Returns
         -------
