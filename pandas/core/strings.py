@@ -1104,27 +1104,27 @@ def str_split(arr, pat=None, n=None):
     ----------
     pat : str, optional
         String or regular expression to split on.
-        If `None`, split on whitespace.
+        If not specified, split on whitespace.
     n : int, default -1 (all)
         Limit number of splits in output.
-        `None`, 0 and -1 will be interpreted as return all splits.
+        ``None``, 0 and -1 will be interpreted as return all splits.
     expand : bool, default False
         Expand the splitted strings into separate columns.
 
-        * If `True`, return DataFrame/MultiIndex expanding dimensionality.
-        * If `False`, return Series/Index, containing lists of strings.
+        * If ``True``, return DataFrame/MultiIndex expanding dimensionality.
+        * If ``False``, return Series/Index, containing lists of strings.
 
     Returns
     -------
     split : Series/Index or DataFrame/MultiIndex of objects
-        Type matches caller unless `expand=True` (return type is `DataFrame` or
-    `MultiIndex`)
+        Type matches caller unless ``expand=True`` (return type is DataFrame or
+    MultiIndex)
 
     Notes
     -----
     - If n >= default splits, makes all splits
     - If n < default splits, makes first n splits only
-    - Appends `None` for padding if `expand=True`
+    - Appends `None` for padding if ``expand=True``
 
     Examples
     --------
@@ -1142,7 +1142,7 @@ def str_split(arr, pat=None, n=None):
     1    [but this is even better]
     dtype: object
 
-    When using `expand=True`, the split elements will
+    When using ``expand=True``, the split elements will
     expand out into separate columns.
 
     >>> s.str.split(expand=True)
