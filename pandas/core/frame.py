@@ -4332,8 +4332,8 @@ class DataFrame(NDFrame):
             Series is passed, its name attribute must be set, and that will be
             used as the column name in the resulting joined DataFrame.
         join : {'left'}, default 'left'
-            Only left join is implemented,
-            keeping the index and columns of the original object.
+            Only left join is implemented, keeping the index and columns of the
+            original object.
         overwrite : boolean, default True
             How to handle non-NA values for overlapping keys.
 
@@ -4344,13 +4344,13 @@ class DataFrame(NDFrame):
             Can choose to replace values other than NA. Return True for values
             that should be updated.
         raise_conflict : boolean
-            If True, will raise a `ValueError` if the DataFrame and `other` both
-            contain non-NA data in the same place.
+            If True, will raise a `ValueError` if the DataFrame and `other`
+            both contain non-NA data in the same place.
 
         Raises
         ------
         ValueError
-            When `raise conflict` is True and there's overlapping non-NA data.
+            When `raise_conflict` is True and there's overlapping non-NA data.
 
         See Also
         --------
