@@ -17,6 +17,7 @@ from pandas.tests.series.common import TestData
 from pandas._libs.tslib import iNaT
 from pandas._libs.algos import Infinity, NegInfinity
 from itertools import chain
+import pandas.util._test_decorators as td
 
 
 class TestSeriesRank(TestData):
@@ -258,19 +259,16 @@ class TestSeriesRank(TestData):
             series = s if dtype is None else s.astype(dtype)
             _check(series, results[method], method=method)
 
-    def test_rank_tie_methods_on_infs_nans(self):
+    @td.skip_if_no_scipy
+    @pytest.mark.parametrize('ascending', [True, False])
+    @pytest.mark.parametrize('method', ['average', 'min', 'max', 'first',
+                                        'dense'])
+    @pytest.mark.parametrize('na_option', ['top', 'bottom', 'keep'])
+    def test_rank_tie_methods_on_infs_nans(self, method, na_option, ascending):
         dtypes = [('object', None, Infinity(), NegInfinity()),
                   ('float64', np.nan, np.inf, -np.inf)]
         chunk = 3
         disabled = set([('object', 'first')])
-
-        def _check(s, expected, method='average', na_option='keep',
-                   ascending=True):
-            expected = list(chain.from_iterable(expected))
-            result = s.rank(method=method, na_option=na_option,
-                            ascending=ascending)
-            tm.assert_series_equal(result, Series(expected, dtype='float64'))
-
         exp_ranks = {
             'average': ([2, 2, 2], [5, 5, 5], [8, 8, 8]),
             'min': ([1, 1, 1], [4, 4, 4], [7, 7, 7]),
@@ -278,22 +276,33 @@ class TestSeriesRank(TestData):
             'first': ([1, 2, 3], [4, 5, 6], [7, 8, 9]),
             'dense': ([1, 1, 1], [2, 2, 2], [3, 3, 3])
         }
-        na_options = ('top', 'bottom', 'keep')
+
+        def _check(s, method, na_option, ascending):
+            ranks = exp_ranks[method]
+            if na_option == 'top':
+                order = [ranks[1], ranks[0], ranks[2]]
+            elif na_option == 'bottom':
+                order = [ranks[0], ranks[2], ranks[1]]
+            else:
+                order = [ranks[0], [np.nan] * chunk, ranks[1]]
+            expected = order if ascending else order[::-1]
+            expected = list(chain.from_iterable(expected))
+            result = s.rank(method=method, na_option=na_option,
+                            ascending=ascending)
+            tm.assert_series_equal(result, Series(expected, dtype='float64'))
+
         for dtype, na_value, pos_inf, neg_inf in dtypes:
             in_arr = [neg_inf] * chunk + [na_value] * chunk + [pos_inf] * chunk
             iseries = Series(in_arr, dtype=dtype)
-            for method, na_opt in product(exp_ranks.keys(), na_options):
-                ranks = exp_ranks[method]
-                if (dtype, method) in disabled:
-                    continue
-                if na_opt == 'top':
-                    order = [ranks[1], ranks[0], ranks[2]]
-                elif na_opt == 'bottom':
-                    order = [ranks[0], ranks[2], ranks[1]]
-                else:
-                    order = [ranks[0], [np.nan] * chunk, ranks[1]]
-                _check(iseries, order, method, na_opt, True)
-                _check(iseries, order[::-1], method, na_opt, False)
+            if (dtype, method) in disabled:
+                continue
+            _check(iseries, method, na_option, ascending)
+
+    def test_rank_desc_mix_nans_infs(self):
+        iseries = Series([1, np.nan, np.inf, -np.inf, 25])
+        result = iseries.rank(ascending=False)
+        exp = Series([3, np.nan, 1, 4, 2], dtype='float64')
+        tm.assert_series_equal(result, exp)
 
     def test_rank_methods_series(self):
         pytest.importorskip('scipy.stats.special')
