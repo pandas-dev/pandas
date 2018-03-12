@@ -28,10 +28,10 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     """
     Bin `x` and return data about the bin to which each `x` value belongs.
 
-    This function splits `x` into the specified number of equal-width half-
-    open bins. Based on the parameters specified and the input, returns
-    information about the half-open bins to which each value of `x` belongs
-    or the bins themselves.
+    Splits `x` into the specified number of equal-width half-open bins.
+    Based on the parameters specified and the input, returns data about
+    the half-open bins to which each value of `x` belongs or the bins
+    themselves.
     Use `cut` when you need to segment and sort data values into bins. This
     function is also useful for going from a continuous variable to a
     categorical variable. For example, `cut` could convert ages to groups
@@ -108,7 +108,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     [good, good, good, medium, bad, good]
     Categories (3, object): [good < medium < bad]
 
-    >>> pd.cut(np.ones(5), 4, labels=False)
+    >>> pd.cut(np.ones(5, dtype='int64'), 4, labels=False)
     array([1, 1, 1, 1, 1], dtype=int64)
 
     >>> s = pd.Series(np.array([2,4,6,8,10]), index=['a', 'b', 'c', 'd', 'e'])
