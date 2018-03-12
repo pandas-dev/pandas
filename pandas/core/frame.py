@@ -835,10 +835,10 @@ class DataFrame(NDFrame):
 
     def dot(self, other):
         """
-        Find the dot product of two matrices.
+        Find the dot product of two DataFrames.
 
-        Using two DataFrame, matrix, or Series objects -
-        this method finds the standard inner product (dot product)
+        Using two DataFrame objects - this method
+        finds the standard inner product (dot product)
         of two conformable matrices. Matrices A and B are said
         to be conformable for multiplication A(B) whenever the
         number of columns in A = the number of rows in B.
@@ -846,14 +846,12 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        other : DataFrame, matrix, or Series
-            Different combinations shown in examples below.
+        other : DataFrame
+                    A DataFrame of the correct dimension.
 
         Returns
         -------
-        dot_product : DataFrame, matrix, or Series
-            Returns the same type as self (Series returns an int).
-            See examples below.
+        dot_product : DataFrame
 
         Raises
         ------
@@ -890,75 +888,7 @@ class DataFrame(NDFrame):
         >>> type(df_A.dot(df_B))
         <class 'pandas.core.frame.DataFrame'>
 
-        Two DataFrame objects (Error from column labels):
-
-        >>> df_A = pd.DataFrame([[1,2],[3,4]], columns=['a1', 'a2'])
-        >>> df_A
-          a1 a2
-        0  1  2
-        1  3  4
-
-        >>> df_B = pd.DataFrame([[3,4],[1,2]], columns=['b1', 'b2'])
-        >>> df_B
-          b1 b2
-        0  3  4
-        1  1  2
-
-        >>> # df_A.dot(df_B)
-        # ValueError: matrices are not aligned
-
-        A DataFrame and a matrix object (returns DataFrame):
-
-        >>> df_A = pd.DataFrame([[1,2],[3,4]])
-        >>> df_A
-           0  1
-        0  1  2
-        1  3  4
-
-        >>> mat_B = np.matrix('3 4 ; 1 2')
-        >>> mat_B
-        matrix([[3, 4],
-               [1, 2]])
-
-        >>> df_A.dot(mat_B)
-              0   1
-        0     5   8
-        1    13   20
-
-        A matrix object and a DataFrame (returns matrix):
-
-        >>> mat_A = np.matrix('1 2 ; 3 4')
-        >>> mat_A
-        matrix([[1, 2],
-                [3, 4]])
-
-        >>> df_B = pd.DataFrame([[3,4],[1,2]])
-        >>> df_B
-           0  1
-        0  3  4
-        1  1  2
-
-        >>> mat_A.dot(df_B)
-        matrix([[ 5,  8],
-                [13, 20]])
-
-        There is similar functionality using just matrices or Series.
-
-        Two matrix objects:
-
-        >>> mat_A = np.matrix('1 2 ; 3 4')
-        >>> mat_A
-        matrix([[1, 2],
-                [3, 4]])
-
-        >>> mat_B = np.matrix('3 4 ; 1 2')
-        >>> mat_B
-        matrix([[3, 4],
-               [1, 2]])
-
-        >>> mat_A.dot(mat_B)
-        matrix([[ 5,  8],
-                [13, 20]])
+        There is similar functionality using two Series.
 
         Two Series objects:
 
