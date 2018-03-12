@@ -71,7 +71,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
 
         * True : returns a Series for Series `x` or a pandas.Categorical for
         pandas.Categorial `x`.
-        
+
         * False : returns an ndarray of integers.
     bins : numpy.ndarray of floats
         Returned when `retbins` is 'True'.
