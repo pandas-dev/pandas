@@ -1059,16 +1059,23 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         """
         Cast to PeriodIndex at a particular frequency.
 
-        Converts DatetimeIndex to PeriodIndex
+        Converts DatetimeIndex to PeriodIndex.
 
         Parameters
         ----------
-        freq : string or pandas offset object, optional
-            One of pandas date offset string or corresponding objects.
+        freq : string or Offset, optional
+            One of pandas' :ref:`offset strings <timeseries.offset_aliases>`
+            or an Offset object. Will be inferred by default.
 
         Returns
         -------
-        period: DatetineIndex
+        PeriodIndex
+
+        Raises
+        ------
+        ValueError
+            When converting a DatetimeIndex with non-regular values, so that a
+            frequency cannot be inferred.
 
         Examples
         --------
@@ -1076,12 +1083,16 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         ...                   index=pd.to_datetime(["2000-03-31 00:00:00",
         ...                                         "2000-05-31 00:00:00",
         ...                                         "2000-08-31 00:00:00"]))
-        >>> df.index = df.index.to_period("M")
-        >>> df
-                    y
-        2000-03 1
-        2000-05 2
-        2000-08 3
+        >>> df.index.to_period("M")
+        PeriodIndex(['2000-03', '2000-05', '2000-08'],
+                    dtype='period[M]', freq='M')
+
+        Infer the daily frequency
+
+        >>> idx = pd.date_range("2017-01-01", periods=2)
+        >>> idx.to_period()
+        PeriodIndex(['2017-01-01', '2017-01-02'],
+                    dtype='period[D]', freq='D')
 
         See also
         --------
