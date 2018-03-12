@@ -131,10 +131,19 @@ class DatetimeProperties(Properties):
 
         Timezone information is retained if present.
 
+        .. warning::
+
+           Python's datetimes use microsecond resolution, which is lower than
+           pandas' (nanosecond). The values are truncated.
+
         Returns
         -------
         numpy.ndarray
             object dtype array containing native Python datetime objects.
+
+        See Also
+        --------
+        datetime.datetime : Standard library value for a datetime.
 
         Examples
         --------
@@ -147,6 +156,17 @@ class DatetimeProperties(Properties):
         >>> s.dt.to_pydatetime()
         array([datetime.datetime(2018, 3, 10, 0, 0),
                datetime.datetime(2018, 3, 11, 0, 0)], dtype=object)
+
+        pandas' nanosecond precision is truncated to microseconds.
+
+        >>> idx = pd.date_range('2017', periods=2, freq='ns')
+        >>> idx
+        DatetimeIndex(['2017-01-01 00:00:00', '2017-01-01 00:00:00.000000001'],
+                      dtype='datetime64[ns]', freq='N')
+
+        >>> idx.to_pydatetime()
+        array([datetime.datetime(2017, 1, 1, 0, 0),
+               datetime.datetime(2017, 1, 1, 0, 0)], dtype=object)
         """
         return self._get_values().to_pydatetime()
 
