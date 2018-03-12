@@ -1793,7 +1793,32 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     is_leap_year = _field_accessor(
         'is_leap_year',
         'is_leap_year',
-        "Logical indicating if the date belongs to a leap year")
+        """
+        Return a boolean indicating if the date belongs to a leap year.
+
+        A leap year is a year, occurring every four years, which has 366 days
+        (instead of 365) including 29th of February as an intercalary day.
+
+        Returns
+        -------
+        is_leap_year : Series of boolean
+
+        Examples
+        --------
+        >>> import pandas as pd
+        >>> dates = pd.date_range("2012-01-01", "2015-01-01", freq="Y")
+        >>> dates_series = pd.Series(dates)
+        >>> dates_series
+        0   2012-12-31
+        1   2013-12-31
+        2   2014-12-31
+        dtype: datetime64[ns]
+        >>> dates_series.dt.is_leap_year
+        0     True
+        1    False
+        2    False
+        dtype: bool
+        """)
 
     @property
     def time(self):
@@ -1946,15 +1971,22 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     def tz_convert(self, tz):
         """
-        Convert tz-aware DatetimeIndex from one time zone to another (using
-        pytz/dateutil)
+        Change time zone of Datetime series.
+
+        Convert tz-aware DatetimeIndex from one time zone to another or remove
+        time zone information. The time zone can be specified using a string,
+        pytz or dateutil.
 
         Parameters
         ----------
-        tz : string, pytz.timezone, dateutil.tz.tzfile or None
+        tz : string, pytz.timezone, dateutil.tz.tzfile, None
             Time zone for time. Corresponding timestamps would be converted to
             time zone of the TimeSeries.
-            None will remove timezone holding UTC time.
+            None will remove timezone and return UTC timestamp.
+        args : iterable, optional
+            Additional arguments passed to the function.
+        kwargs : dict, optional
+            Additional keyword arguments passed to the function.
 
         Returns
         -------
@@ -1964,6 +1996,26 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         ------
         TypeError
             If DatetimeIndex is tz-naive.
+
+        See Also
+        --------
+        tz_localize : Localize tz-naive DatetimeIndex to given time zone.
+
+        Examples
+        --------
+        >>> ts = pd.Series([pd.Timestamp("2018-01-01 00:00", tz="US/Eastern"),
+        ...                 pd.Timestamp("2018-02-01 23:00", tz="US/Eastern")])
+        >>> ts.dt.tz_convert("Europe/Amsterdam")
+        0   2018-01-01 06:00:00+01:00
+        1   2018-02-02 05:00:00+01:00
+        dtype: datetime64[ns, Europe/Amsterdam]
+
+        >>> import pytz
+        >>> pacific = pytz.timezone('US/Pacific')
+        >>> ts = pd.Series([pd.Timestamp("2018-01-01 01:00", tz=pacific)])
+        >>> ts.dt.tz_convert(tz=None)
+        0   2018-01-01 09:00:00
+        dtype: datetime64[ns]
         """
         tz = timezones.maybe_get_tz(tz)
 
