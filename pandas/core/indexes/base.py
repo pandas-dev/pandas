@@ -2040,11 +2040,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
-        pandas.Index.isnull : alias of isna
-        pandas.Index.notna : boolean inverse of isna
-        pandas.Index.dropna : omit entries with missing values
-        pandas.isna : top-level isna
-        Series.isna : detect missing values in Series object
+        pandas.Index.notna : boolean inverse of isna.
+        pandas.Index.dropna : omit entries with missing values.
+        pandas.isna : top-level isna.
+        Series.isna : detect missing values in Series object.
 
         Examples
         --------
@@ -2066,7 +2065,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.isna()
         array([False, False, False,  True])
 
-        In pandas.DatetimeIndex, a `NaT` value is considered as a NA value.
+        For datetimes, `NaT` (Not a Time) is considered as an NA value.
 
         >>> idx = pd.DatetimeIndex([pd.Timestamp('1940-04-25'),
         ...                         pd.Timestamp(''), None, pd.NaT])
