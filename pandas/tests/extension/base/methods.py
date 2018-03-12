@@ -35,7 +35,7 @@ class BaseMethodsTests(BaseExtensionTests):
     @pytest.mark.parametrize('box', [pd.Series, lambda x: x])
     @pytest.mark.parametrize('method', [lambda x: x.unique(), pd.unique])
     def test_unique(self, data, box, method):
-        duplicated = box(type(data)([data[0], data[0]]))
+        duplicated = box(data._constructor_from_sequence([data[0], data[0]]))
 
         result = method(duplicated)
 
