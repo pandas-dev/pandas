@@ -1381,7 +1381,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> s.idxmin()
         'A'
 
-        If 'skipna' is False and there is an NA value in the data,
+        If `skipna` is False and there is an NA value in the data,
         the function returns ``nan``.
 
         >>> s.idxmin(skipna=False)
@@ -1451,7 +1451,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> s.idxmax()
         'C'
 
-        If 'skipna' is False and there is an NA value in the data,
+        If `skipna` is False and there is an NA value in the data,
         the function returns ``nan``.
 
         >>> s.idxmax(skipna=False)
