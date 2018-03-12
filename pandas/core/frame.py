@@ -4943,12 +4943,6 @@ class DataFrame(NDFrame):
         2    [1, 2]
         dtype: object
 
-        >>> df.apply(lambda x: [1,], axis=1)
-        0    [1]
-        1    [1]
-        2    [1]
-        dtype: object
-
         Passing result_type='expand' will expand list-like results
         to columns of a Dataframe
 
