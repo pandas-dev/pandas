@@ -7546,6 +7546,37 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
+        See the percentage change in a Series.
+
+        >>> s = pd.Series([90, 91, 85])
+        >>> s
+        0    90
+        1    91
+        2    85
+        dtype: int64
+        >>> s.pct_change()
+        0         NaN
+        1    0.011111
+        2   -0.065934
+        dtype: float64
+
+        See the percentage change in a Series where filling NAs with last
+        valid observation forward to next valid.
+
+        >>> s = pd.Series([90, 91, None, 85])
+        >>> s
+        0    90.0
+        1    91.0
+        2     NaN
+        3    85.0
+        dtype: float64
+        >>> s.pct_change(fill_method='ffill')
+        0         NaN
+        1    0.011111
+        2   -0.065934
+        3    0.000000
+        dtype: float64
+
         Percentage change in French franc, Deutsche Mark, and Italian lira from
         1 January 1980 to 1 March 1980.
 
