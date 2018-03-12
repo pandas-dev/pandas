@@ -16,7 +16,7 @@ from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.tseries.offsets import DateOffset, Tick, Day, delta_to_nanoseconds
 from pandas.core.indexes.period import PeriodIndex
-import pandas.core.common as com
+from pandas.errors import AbstractMethodError
 import pandas.core.algorithms as algos
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
@@ -205,10 +205,10 @@ class Resampler(_GroupBy):
     def __getitem__(self, key):
         try:
             return super(Resampler, self).__getitem__(key)
-        except (KeyError, com.AbstractMethodError):
+        except (KeyError, AbstractMethodError):
 
             # compat for deprecated
-            if isinstance(self.obj, com.ABCSeries):
+            if isinstance(self.obj, ABCSeries):
                 return self._deprecated('__getitem__')[key]
 
             raise
@@ -233,7 +233,7 @@ class Resampler(_GroupBy):
         return obj
 
     def _get_binner_for_time(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _set_binner(self):
         """
@@ -372,10 +372,10 @@ one pass, you can do
             arg, *args, **kwargs)
 
     def _downsample(self, f):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _upsample(self, f, limit=None, fill_value=None):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def _gotitem(self, key, ndim, subset=None):
         """
@@ -464,7 +464,7 @@ one pass, you can do
 
     def _wrap_result(self, result):
         """ potentially wrap any results """
-        if isinstance(result, com.ABCSeries) and self._selection is not None:
+        if isinstance(result, ABCSeries) and self._selection is not None:
             result.name = self._selection
 
         if isinstance(result, ABCSeries) and result.empty:
@@ -519,21 +519,104 @@ one pass, you can do
 
     def backfill(self, limit=None):
         """
-        Backward fill the values
+        Backward fill the new missing values in the resampled data.
+
+        In statistics, imputation is the process of replacing missing data with
+        substituted values [1]_. When resampling data, missing values may
+        appear (e.g., when the resampling frequency is higher than the original
+        frequency). The backward fill will replace NaN values that appeared in
+        the resampled data with the next value in the original sequence.
+        Missing values that existed in the orginal data will not be modified.
 
         Parameters
         ----------
         limit : integer, optional
-            limit of how many values to fill
+            Limit of how many values to fill.
 
         Returns
         -------
-        an upsampled Series
+        Series, DataFrame
+            An upsampled Series or DataFrame with backward filled NaN values.
 
         See Also
         --------
-        Series.fillna
-        DataFrame.fillna
+        bfill : Alias of backfill.
+        fillna : Fill NaN values using the specified method, which can be
+            'backfill'.
+        nearest : Fill NaN values with nearest neighbor starting from center.
+        pad : Forward fill NaN values.
+        pandas.Series.fillna : Fill NaN values in the Series using the
+            specified method, which can be 'backfill'.
+        pandas.DataFrame.fillna : Fill NaN values in the DataFrame using the
+            specified method, which can be 'backfill'.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Imputation_(statistics)
+
+        Examples
+        --------
+
+        Resampling a Series:
+
+        >>> s = pd.Series([1, 2, 3],
+        ...               index=pd.date_range('20180101', periods=3, freq='h'))
+        >>> s
+        2018-01-01 00:00:00    1
+        2018-01-01 01:00:00    2
+        2018-01-01 02:00:00    3
+        Freq: H, dtype: int64
+
+        >>> s.resample('30min').backfill()
+        2018-01-01 00:00:00    1
+        2018-01-01 00:30:00    2
+        2018-01-01 01:00:00    2
+        2018-01-01 01:30:00    3
+        2018-01-01 02:00:00    3
+        Freq: 30T, dtype: int64
+
+        >>> s.resample('15min').backfill(limit=2)
+        2018-01-01 00:00:00    1.0
+        2018-01-01 00:15:00    NaN
+        2018-01-01 00:30:00    2.0
+        2018-01-01 00:45:00    2.0
+        2018-01-01 01:00:00    2.0
+        2018-01-01 01:15:00    NaN
+        2018-01-01 01:30:00    3.0
+        2018-01-01 01:45:00    3.0
+        2018-01-01 02:00:00    3.0
+        Freq: 15T, dtype: float64
+
+        Resampling a DataFrame that has missing values:
+
+        >>> df = pd.DataFrame({'a': [2, np.nan, 6], 'b': [1, 3, 5]},
+        ...                   index=pd.date_range('20180101', periods=3,
+        ...                                       freq='h'))
+        >>> df
+                               a  b
+        2018-01-01 00:00:00  2.0  1
+        2018-01-01 01:00:00  NaN  3
+        2018-01-01 02:00:00  6.0  5
+
+        >>> df.resample('30min').backfill()
+                               a  b
+        2018-01-01 00:00:00  2.0  1
+        2018-01-01 00:30:00  NaN  3
+        2018-01-01 01:00:00  NaN  3
+        2018-01-01 01:30:00  6.0  5
+        2018-01-01 02:00:00  6.0  5
+
+        >>> df.resample('15min').backfill(limit=2)
+                               a    b
+        2018-01-01 00:00:00  2.0  1.0
+        2018-01-01 00:15:00  NaN  NaN
+        2018-01-01 00:30:00  NaN  3.0
+        2018-01-01 00:45:00  NaN  3.0
+        2018-01-01 01:00:00  NaN  3.0
+        2018-01-01 01:15:00  NaN  NaN
+        2018-01-01 01:30:00  6.0  5.0
+        2018-01-01 01:45:00  6.0  5.0
+        2018-01-01 02:00:00  6.0  5.0
         """
         return self._upsample('backfill', limit=limit)
     bfill = backfill

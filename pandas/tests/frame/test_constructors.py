@@ -15,7 +15,7 @@ import numpy.ma.mrecords as mrecords
 
 from pandas.core.dtypes.common import is_integer_dtype
 from pandas.compat import (lmap, long, zip, range, lrange, lzip,
-                           OrderedDict, is_platform_little_endian)
+                           OrderedDict, is_platform_little_endian, PY36)
 from pandas import compat
 from pandas import (DataFrame, Index, Series, isna,
                     MultiIndex, Timedelta, Timestamp,
@@ -289,6 +289,24 @@ class TestDataFrameConstructors(TestData):
 
         with tm.assert_raises_regex(ValueError, msg):
             DataFrame({'a': 0.7}, columns=['b'])
+
+    @pytest.mark.skipif(not PY36, reason='Insertion order for Python>=3.6')
+    def test_constructor_dict_order_insertion(self):
+        # GH19018
+        # initialization ordering: by insertion order if python>= 3.6
+        d = {'b': self.ts2, 'a': self.ts1}
+        frame = DataFrame(data=d)
+        expected = DataFrame(data=d, columns=list('ba'))
+        tm.assert_frame_equal(frame, expected)
+
+    @pytest.mark.skipif(PY36, reason='order by value for Python<3.6')
+    def test_constructor_dict_order_by_values(self):
+        # GH19018
+        # initialization ordering: by value if python<3.6
+        d = {'b': self.ts2, 'a': self.ts1}
+        frame = DataFrame(data=d)
+        expected = DataFrame(data=d, columns=list('ab'))
+        tm.assert_frame_equal(frame, expected)
 
     def test_constructor_multi_index(self):
         # GH 4078
@@ -1091,6 +1109,25 @@ class TestDataFrameConstructors(TestData):
         xp = DataFrame.from_dict(a).T.reindex(list(a.keys()))
         tm.assert_frame_equal(rs, xp)
 
+    def test_from_dict_columns_parameter(self):
+        # GH 18529
+        # Test new columns parameter for from_dict that was added to make
+        # from_items(..., orient='index', columns=[...]) easier to replicate
+        result = DataFrame.from_dict(OrderedDict([('A', [1, 2]),
+                                                  ('B', [4, 5])]),
+                                     orient='index', columns=['one', 'two'])
+        expected = DataFrame([[1, 2], [4, 5]], index=['A', 'B'],
+                             columns=['one', 'two'])
+        tm.assert_frame_equal(result, expected)
+
+        msg = "cannot use columns parameter with orient='columns'"
+        with tm.assert_raises_regex(ValueError, msg):
+            DataFrame.from_dict(dict([('A', [1, 2]), ('B', [4, 5])]),
+                                orient='columns', columns=['one', 'two'])
+        with tm.assert_raises_regex(ValueError, msg):
+            DataFrame.from_dict(dict([('A', [1, 2]), ('B', [4, 5])]),
+                                columns=['one', 'two'])
+
     def test_constructor_Series_named(self):
         a = Series([1, 2, 3], index=['a', 'b', 'c'], name='x')
         df = DataFrame(a)
@@ -1362,9 +1399,8 @@ class TestDataFrameConstructors(TestData):
             expected['float64'] = 1
             expected[floatname] = 1
 
-        result.sort_index()
-        expected = Series(expected)
-        expected.sort_index()
+        result = result.sort_index()
+        expected = Series(expected).sort_index()
         tm.assert_series_equal(result, expected)
 
         # check with ndarray construction ndim>0
@@ -1373,7 +1409,7 @@ class TestDataFrameConstructors(TestData):
                         intname: np.array([1] * 10, dtype=intname)},
                        index=np.arange(10))
         result = df.get_dtype_counts()
-        result.sort_index()
+        result = result.sort_index()
         tm.assert_series_equal(result, expected)
 
         # GH 2809
@@ -1384,8 +1420,8 @@ class TestDataFrameConstructors(TestData):
         df = DataFrame({'datetime_s': datetime_s})
         result = df.get_dtype_counts()
         expected = Series({datetime64name: 1})
-        result.sort_index()
-        expected.sort_index()
+        result = result.sort_index()
+        expected = expected.sort_index()
         tm.assert_series_equal(result, expected)
 
         # GH 2810
@@ -1395,8 +1431,8 @@ class TestDataFrameConstructors(TestData):
         df = DataFrame({'datetimes': datetimes, 'dates': dates})
         result = df.get_dtype_counts()
         expected = Series({datetime64name: 1, objectname: 1})
-        result.sort_index()
-        expected.sort_index()
+        result = result.sort_index()
+        expected = expected.sort_index()
         tm.assert_series_equal(result, expected)
 
         # GH 7594
@@ -1519,8 +1555,8 @@ class TestDataFrameConstructors(TestData):
         result = df.get_dtype_counts()
         expected = Series(
             {'int64': 1, 'float64': 2, datetime64name: 1, objectname: 1})
-        result.sort_index()
-        expected.sort_index()
+        result = result.sort_index()
+        expected = expected.sort_index()
         tm.assert_series_equal(result, expected)
 
     def test_constructor_frame_copy(self):
@@ -1832,7 +1868,7 @@ class TestDataFrameConstructors(TestData):
         rows.append([datetime(2010, 1, 1), 1])
         rows.append([datetime(2010, 1, 2), 1])
         df2_obj = DataFrame.from_records(rows, columns=['date', 'test'])
-        results = df2_obj.get_dtype_counts()
+        results = df2_obj.get_dtype_counts().sort_index()
         expected = Series({'datetime64[ns]': 1, 'int64': 1})
         tm.assert_series_equal(results, expected)
 

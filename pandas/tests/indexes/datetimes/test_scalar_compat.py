@@ -38,18 +38,26 @@ class TestDatetimeIndexOps(object):
         pytest.raises(ValueError, DatetimeIndex, ['1400-01-01'])
         pytest.raises(ValueError, DatetimeIndex, [datetime(1400, 1, 1)])
 
-    def test_dti_timestamp_fields(self):
+    @pytest.mark.parametrize('field', [
+        'dayofweek', 'dayofyear', 'week', 'weekofyear', 'quarter',
+        'days_in_month', 'is_month_start', 'is_month_end',
+        'is_quarter_start', 'is_quarter_end', 'is_year_start',
+        'is_year_end', 'weekday_name'])
+    def test_dti_timestamp_fields(self, field):
         # extra fields from DatetimeIndex like quarter and week
         idx = tm.makeDateIndex(100)
+        expected = getattr(idx, field)[-1]
+        if field == 'weekday_name':
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
+                result = getattr(Timestamp(idx[-1]), field)
+        else:
+            result = getattr(Timestamp(idx[-1]), field)
+        assert result == expected
 
-        fields = ['dayofweek', 'dayofyear', 'week', 'weekofyear', 'quarter',
-                  'days_in_month', 'is_month_start', 'is_month_end',
-                  'is_quarter_start', 'is_quarter_end', 'is_year_start',
-                  'is_year_end', 'weekday_name']
-        for f in fields:
-            expected = getattr(idx, f)[-1]
-            result = getattr(Timestamp(idx[-1]), f)
-            assert result == expected
+    def test_dti_timestamp_freq_fields(self):
+        # extra fields from DatetimeIndex like quarter and week
+        idx = tm.makeDateIndex(100)
 
         assert idx.freq == Timestamp(idx[-1], idx.freq).freq
         assert idx.freqstr == Timestamp(idx[-1], idx.freq).freqstr

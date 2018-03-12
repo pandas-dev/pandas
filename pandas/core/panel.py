@@ -204,10 +204,8 @@ class Panel(NDFrame):
                                for k, v in compat.iteritems(data)
                                if k in haxis)
         else:
-            ks = list(data.keys())
-            if not isinstance(data, OrderedDict):
-                ks = com._try_sort(ks)
-            haxis = Index(ks)
+            keys = com._dict_keys_to_ordered_list(data)
+            haxis = Index(keys)
 
         for k, v in compat.iteritems(data):
             if isinstance(v, dict):
@@ -1020,7 +1018,7 @@ class Panel(NDFrame):
 
         Equivalent to previous:
 
-        >>> p.apply(lambda x: x.sum(), axis='minor')
+        >>> p.apply(lambda x: x.sum(), axis='major')
 
         Return the shapes of each DataFrame over axis 2 (i.e the shapes of
         items x major), as a Series
@@ -1527,9 +1525,8 @@ Panel._setup_axes(axes=['items', 'major_axis', 'minor_axis'], info_axis=0,
                   slicers={'major_axis': 'index',
                            'minor_axis': 'columns'})
 
-ops.add_special_arithmetic_methods(Panel, **ops.panel_special_funcs)
-ops.add_flex_arithmetic_methods(Panel, ops._flex_method_PANEL,
-                                flex_comp_method=ops._comp_method_PANEL)
+ops.add_special_arithmetic_methods(Panel)
+ops.add_flex_arithmetic_methods(Panel)
 Panel._add_numeric_operations()
 
 

@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 
 import pandas.util.testing as tm
+from pandas.core.dtypes.generic import ABCIndex
 from pandas.core.dtypes.common import is_unsigned_integer_dtype
 from pandas.core.indexes.api import Index, MultiIndex
 from pandas.tests.indexes.common import Base
@@ -518,7 +519,6 @@ class TestIndex(Base):
         assert not ind.is_(ind.copy())
         assert not ind.is_(ind.copy(deep=False))
         assert not ind.is_(ind[:])
-        assert not ind.is_(ind.view(np.ndarray).view(Index))
         assert not ind.is_(np.array(range(10)))
 
         # quasi-implementation dependent
@@ -1988,6 +1988,17 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
         tm.assert_index_equal(idx - idx, 0 * idx)
         assert not (idx - idx).empty
 
+    def test_iadd_preserves_name(self):
+        # GH#17067, GH#19723 __iadd__ and __isub__ should preserve index name
+        ser = pd.Series([1, 2, 3])
+        ser.index.name = 'foo'
+
+        ser.index += 1
+        assert ser.index.name == "foo"
+
+        ser.index -= 1
+        assert ser.index.name == "foo"
+
 
 class TestMixedIntIndex(Base):
     # Mostly the tests from common.py for which the results differ
@@ -2301,9 +2312,24 @@ class TestIndexUtils(object):
         tm.assert_index_equal(result, expected)
 
 
-@pytest.mark.parametrize('opname', ['eq', 'ne', 'le', 'lt', 'ge', 'gt'])
+@pytest.mark.parametrize('opname', ['eq', 'ne', 'le', 'lt', 'ge', 'gt',
+                                    'add', 'radd', 'sub', 'rsub',
+                                    'mul', 'rmul', 'truediv', 'rtruediv',
+                                    'floordiv', 'rfloordiv',
+                                    'pow', 'rpow', 'mod', 'divmod'])
 def test_generated_op_names(opname, indices):
     index = indices
+    if isinstance(index, ABCIndex) and opname == 'rsub':
+        # pd.Index.__rsub__ does not exist; though the method does exist
+        # for subclasses.  see GH#19723
+        return
     opname = '__{name}__'.format(name=opname)
     method = getattr(index, opname)
     assert method.__name__ == opname
+
+
+@pytest.mark.parametrize('idx_maker', tm.index_subclass_makers_generator())
+def test_index_subclass_constructor_wrong_kwargs(idx_maker):
+    # GH #19348
+    with tm.assert_raises_regex(TypeError, 'unexpected keyword argument'):
+        idx_maker(foo='bar')

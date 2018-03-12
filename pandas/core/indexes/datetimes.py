@@ -100,10 +100,11 @@ def _field_accessor(name, field, docstring=None):
     return property(f)
 
 
-def _dt_index_cmp(opname, cls, nat_result=False):
+def _dt_index_cmp(opname, cls):
     """
     Wrap comparison operations to convert datetime-like to datetime64
     """
+    nat_result = True if opname == '__ne__' else False
 
     def wrapper(self, other):
         func = getattr(super(DatetimeIndex, self), opname)
@@ -137,11 +138,9 @@ def _dt_index_cmp(opname, cls, nat_result=False):
             result = func(np.asarray(other))
             result = com._values_from_object(result)
 
-            if isinstance(other, Index):
-                o_mask = other.values.view('i8') == libts.iNaT
-            else:
-                o_mask = other.view('i8') == libts.iNaT
-
+            # Make sure to pass an array to result[...]; indexing with
+            # Series breaks with older version of numpy
+            o_mask = np.array(isna(other))
             if o_mask.any():
                 result[o_mask] = nat_result
 
@@ -214,6 +213,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
            Attempt to infer fall dst-transition hours based on order
     name : object
         Name to be stored in the index
+    dayfirst : bool, default False
+        If True, parse dates in `data` with the day first order
+    yearfirst : bool, default False
+        If True parse dates in `data` with the year first order
 
     Attributes
     ----------
@@ -232,7 +235,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     week
     dayofweek
     weekday
-    weekday_name
     quarter
     tz
     freq
@@ -261,6 +263,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     to_pydatetime
     to_series
     to_frame
+    month_name
+    day_name
 
     Notes
     -----
@@ -272,6 +276,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     Index : The base pandas Index type
     TimedeltaIndex : Index of timedelta64 data
     PeriodIndex : Index of Period data
+    pandas.to_datetime : Convert argument to datetime
     """
 
     _typ = 'datetimeindex'
@@ -291,7 +296,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     def _add_comparison_methods(cls):
         """ add in comparison methods """
         cls.__eq__ = _dt_index_cmp('__eq__', cls)
-        cls.__ne__ = _dt_index_cmp('__ne__', cls, nat_result=True)
+        cls.__ne__ = _dt_index_cmp('__ne__', cls)
         cls.__lt__ = _dt_index_cmp('__lt__', cls)
         cls.__gt__ = _dt_index_cmp('__gt__', cls)
         cls.__le__ = _dt_index_cmp('__le__', cls)
@@ -319,7 +324,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     _datetimelike_methods = ['to_period', 'tz_localize',
                              'tz_convert',
                              'normalize', 'strftime', 'round', 'floor',
-                             'ceil']
+                             'ceil', 'month_name', 'day_name']
 
     _is_numeric_dtype = False
     _infer_as_myclass = True
@@ -327,10 +332,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     @deprecate_kwarg(old_arg_name='infer_dst', new_arg_name='ambiguous',
                      mapping={True: 'infer', False: 'raise'})
     def __new__(cls, data=None,
-                freq=None, start=None, end=None, periods=None,
-                copy=False, name=None, tz=None,
-                verify_integrity=True, normalize=False,
-                closed=None, ambiguous='raise', dtype=None, **kwargs):
+                freq=None, start=None, end=None, periods=None, tz=None,
+                normalize=False, closed=None, ambiguous='raise',
+                dayfirst=False, yearfirst=False, dtype=None,
+                copy=False, name=None, verify_integrity=True):
 
         # This allows to later ensure that the 'copy' parameter is honored:
         if isinstance(data, Index):
@@ -340,9 +345,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         if name is None and hasattr(data, 'name'):
             name = data.name
-
-        dayfirst = kwargs.pop('dayfirst', None)
-        yearfirst = kwargs.pop('yearfirst', None)
 
         freq_infer = False
         if not isinstance(freq, DateOffset):
@@ -852,27 +854,22 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             raise Exception("invalid pickle state")
     _unpickle_compat = __setstate__
 
-    def _add_datelike(self, other):
-        # adding a timedeltaindex to a datetimelike
-        if other is libts.NaT:
-            return self._nat_new(box=True)
-        raise TypeError("cannot add {0} and {1}"
-                        .format(type(self).__name__,
-                                type(other).__name__))
-
     def _sub_datelike(self, other):
-        # subtract a datetime from myself, yielding a TimedeltaIndex
-        from pandas import TimedeltaIndex
-        if isinstance(other, DatetimeIndex):
+        # subtract a datetime from myself, yielding a ndarray[timedelta64[ns]]
+        if isinstance(other, (DatetimeIndex, np.ndarray)):
+            # if other is an ndarray, we assume it is datetime64-dtype
+            other = DatetimeIndex(other)
             # require tz compat
             if not self._has_same_tz(other):
-                raise TypeError("DatetimeIndex subtraction must have the same "
-                                "timezones or no timezones")
+                raise TypeError("{cls} subtraction must have the same "
+                                "timezones or no timezones"
+                                .format(cls=type(self).__name__))
             result = self._sub_datelike_dti(other)
         elif isinstance(other, (datetime, np.datetime64)):
+            assert other is not libts.NaT
             other = Timestamp(other)
             if other is libts.NaT:
-                result = self._nat_new(box=False)
+                return self - libts.NaT
             # require tz compat
             elif not self._has_same_tz(other):
                 raise TypeError("Timestamp subtraction must have the same "
@@ -884,9 +881,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 result = self._maybe_mask_results(result,
                                                   fill_value=libts.iNaT)
         else:
-            raise TypeError("cannot subtract DatetimeIndex and {typ}"
-                            .format(typ=type(other).__name__))
-        return TimedeltaIndex(result, name=self.name, copy=False)
+            raise TypeError("cannot subtract {cls} and {typ}"
+                            .format(cls=type(self).__name__,
+                                    typ=type(other).__name__))
+        return result.view('timedelta64[ns]')
 
     def _sub_datelike_dti(self, other):
         """subtraction of two DatetimeIndexes"""
@@ -899,7 +897,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         if self.hasnans or other.hasnans:
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = libts.iNaT
-        return new_values.view('i8')
+        return new_values.view('timedelta64[ns]')
 
     def _maybe_update_attributes(self, attrs):
         """ Update Index attributes (e.g. freq) depending on op """
@@ -910,33 +908,43 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         return attrs
 
     def _add_delta(self, delta):
-        if isinstance(delta, ABCSeries):
-            return NotImplemented
+        """
+        Add a timedelta-like, DateOffset, or TimedeltaIndex-like object
+        to self.
 
+        Parameters
+        ----------
+        delta : {timedelta, np.timedelta64, DateOffset,
+                 TimedelaIndex, ndarray[timedelta64]}
+
+        Returns
+        -------
+        result : DatetimeIndex
+
+        Notes
+        -----
+        The result's name is set outside of _add_delta by the calling
+        method (__add__ or __sub__)
+        """
         from pandas import TimedeltaIndex
-        name = self.name
 
         if isinstance(delta, (Tick, timedelta, np.timedelta64)):
             new_values = self._add_delta_td(delta)
         elif is_timedelta64_dtype(delta):
             if not isinstance(delta, TimedeltaIndex):
                 delta = TimedeltaIndex(delta)
-            else:
-                # update name when delta is Index
-                name = com._maybe_match_name(self, delta)
             new_values = self._add_delta_tdi(delta)
-        elif isinstance(delta, DateOffset):
-            new_values = self._add_offset(delta).asi8
         else:
             new_values = self.astype('O') + delta
 
         tz = 'UTC' if self.tz is not None else None
-        result = DatetimeIndex(new_values, tz=tz, name=name, freq='infer')
+        result = DatetimeIndex(new_values, tz=tz, freq='infer')
         if self.tz is not None and self.tz is not utc:
             result = result.tz_convert(self.tz)
         return result
 
     def _add_offset(self, offset):
+        assert not isinstance(offset, Tick)
         try:
             if self.tz is not None:
                 values = self.tz_localize(None)
@@ -945,38 +953,13 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             result = offset.apply_index(values)
             if self.tz is not None:
                 result = result.tz_localize(self.tz)
-            return result
 
         except NotImplementedError:
             warnings.warn("Non-vectorized DateOffset being applied to Series "
                           "or DatetimeIndex", PerformanceWarning)
-            return self.astype('O') + offset
+            result = self.astype('O') + offset
 
-    def _add_offset_array(self, other):
-        # Array/Index of DateOffset objects
-        if isinstance(other, ABCSeries):
-            return NotImplemented
-        elif len(other) == 1:
-            return self + other[0]
-        else:
-            warnings.warn("Adding/subtracting array of DateOffsets to "
-                          "{} not vectorized".format(type(self)),
-                          PerformanceWarning)
-            return self.astype('O') + np.array(other)
-            # TODO: This works for __add__ but loses dtype in __sub__
-
-    def _sub_offset_array(self, other):
-        # Array/Index of DateOffset objects
-        if isinstance(other, ABCSeries):
-            return NotImplemented
-        elif len(other) == 1:
-            return self - other[0]
-        else:
-            warnings.warn("Adding/subtracting array of DateOffsets to "
-                          "{} not vectorized".format(type(self)),
-                          PerformanceWarning)
-            res_values = self.astype('O').values - np.array(other)
-            return self.__class__(res_values, freq='infer')
+        return DatetimeIndex(result, freq='infer')
 
     def _format_native_types(self, na_rep='NaT', date_format=None, **kwargs):
         from pandas.io.formats.format import _get_format_datetime64_from_values
@@ -1076,7 +1059,47 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     def to_period(self, freq=None):
         """
-        Cast to PeriodIndex at a particular frequency
+        Cast to PeriodIndex at a particular frequency.
+
+        Converts DatetimeIndex to PeriodIndex.
+
+        Parameters
+        ----------
+        freq : string or Offset, optional
+            One of pandas' :ref:`offset strings <timeseries.offset_aliases>`
+            or an Offset object. Will be inferred by default.
+
+        Returns
+        -------
+        PeriodIndex
+
+        Raises
+        ------
+        ValueError
+            When converting a DatetimeIndex with non-regular values, so that a
+            frequency cannot be inferred.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"y": [1,2,3]},
+        ...                   index=pd.to_datetime(["2000-03-31 00:00:00",
+        ...                                         "2000-05-31 00:00:00",
+        ...                                         "2000-08-31 00:00:00"]))
+        >>> df.index.to_period("M")
+        PeriodIndex(['2000-03', '2000-05', '2000-08'],
+                    dtype='period[M]', freq='M')
+
+        Infer the daily frequency
+
+        >>> idx = pd.date_range("2017-01-01", periods=2)
+        >>> idx.to_period()
+        PeriodIndex(['2017-01-01', '2017-01-02'],
+                    dtype='period[D]', freq='D')
+
+        See also
+        --------
+        pandas.PeriodIndex: Immutable ndarray holding ordinal values
+        pandas.DatetimeIndex.to_pydatetime: Return DatetimeIndex as object
         """
         from pandas.core.indexes.period import PeriodIndex
 
@@ -1165,17 +1188,17 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     def to_perioddelta(self, freq):
         """
-        Calculates TimedeltaIndex of difference between index
-        values and index converted to PeriodIndex at specified
-        freq.  Used for vectorized offsets
+        Calculate TimedeltaIndex of difference between index
+        values and index converted to periodIndex at specified
+        freq. Used for vectorized offsets
 
         Parameters
         ----------
-        freq : Period frequency
+        freq: Period frequency
 
         Returns
         -------
-        y : TimedeltaIndex
+        y: TimedeltaIndex
         """
         return to_timedelta(self.asi8 - self.to_period(freq)
                             .to_timestamp().asi8)
@@ -1733,7 +1756,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     weekday_name = _field_accessor(
         'weekday_name',
         'weekday_name',
-        "The name of day in a week (ex: Friday)\n\n.. versionadded:: 0.18.1")
+        "The name of day in a week (ex: Friday)\n\n.. deprecated:: 0.23.0")
 
     dayofyear = _field_accessor('dayofyear', 'doy',
                                 "The ordinal day of the year")
@@ -2117,6 +2140,58 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                              self.nanosecond / 3600.0 / 1e+9
                              ) / 24.0)
 
+    def month_name(self, locale=None):
+        """
+        Return the month names of the DateTimeIndex with specified locale.
+
+        Parameters
+        ----------
+        locale : string, default None (English locale)
+            locale determining the language in which to return the month name
+
+        Returns
+        -------
+        month_names : Index
+            Index of month names
+
+        .. versionadded:: 0.23.0
+        """
+        values = self.asi8
+        if self.tz is not None:
+            if self.tz is not utc:
+                values = self._local_timestamps()
+
+        result = fields.get_date_name_field(values, 'month_name',
+                                            locale=locale)
+        result = self._maybe_mask_results(result)
+        return Index(result, name=self.name)
+
+    def day_name(self, locale=None):
+        """
+        Return the day names of the DateTimeIndex with specified locale.
+
+        Parameters
+        ----------
+        locale : string, default None (English locale)
+            locale determining the language in which to return the day name
+
+        Returns
+        -------
+        month_names : Index
+            Index of day names
+
+        .. versionadded:: 0.23.0
+        """
+        values = self.asi8
+        if self.tz is not None:
+            if self.tz is not utc:
+                values = self._local_timestamps()
+
+        result = fields.get_date_name_field(values, 'day_name',
+                                            locale=locale)
+        result = self._maybe_mask_results(result)
+        return Index(result, name=self.name)
+
 
 DatetimeIndex._add_comparison_methods()
 DatetimeIndex._add_numeric_methods_disabled()
@@ -2169,29 +2244,30 @@ def _generate_regular_range(start, end, periods, offset):
 def date_range(start=None, end=None, periods=None, freq='D', tz=None,
                normalize=False, name=None, closed=None, **kwargs):
     """
-    Return a fixed frequency DatetimeIndex, with day (calendar) as the default
-    frequency
+    Return a fixed frequency DatetimeIndex.
+
+    The default frequency is day (calendar).
 
     Parameters
     ----------
     start : string or datetime-like, default None
-        Left bound for generating dates
+        Left bound for generating dates.
     end : string or datetime-like, default None
-        Right bound for generating dates
+        Right bound for generating dates.
     periods : integer, default None
-        Number of periods to generate
+        Number of periods to generate.
     freq : string or DateOffset, default 'D' (calendar daily)
-        Frequency strings can have multiples, e.g. '5H'
+        Frequency strings can have multiples, e.g. '5H'.
     tz : string, default None
         Time zone name for returning localized DatetimeIndex, for example
-        Asia/Hong_Kong
+        Asia/Hong_Kong.
     normalize : bool, default False
-        Normalize start/end dates to midnight before generating date range
+        Normalize start/end dates to midnight before generating date range.
     name : string, default None
-        Name of the resulting DatetimeIndex
+        Name of the resulting DatetimeIndex.
     closed : string, default None
         Make the interval closed with respect to the given frequency to
-        the 'left', 'right', or both sides (None)
+        the 'left', 'right', or both sides (None).
 
     Notes
     -----
@@ -2204,6 +2280,22 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
     Returns
     -------
     rng : DatetimeIndex
+
+    See Also
+    --------
+    pandas.period_range : Return a fixed frequency PeriodIndex.
+    pandas.interval_range : Return a fixed frequency IntervalIndex.
+
+    Examples
+    --------
+    >>> pd.date_range('2018-10-03', periods=2) # doctest: +NORMALIZE_WHITESPACE
+    DatetimeIndex(['2018-10-03', '2018-10-04'], dtype='datetime64[ns]',
+                   freq='D')
+
+    >>> pd.date_range(start='2018-01-01', end='20180103')
+    ... # doctest: +NORMALIZE_WHITESPACE
+    DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03'],
+                    dtype='datetime64[ns]', freq='D')
     """
     return DatetimeIndex(start=start, end=end, periods=periods,
                          freq=freq, tz=tz, normalize=normalize, name=name,

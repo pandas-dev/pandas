@@ -1,11 +1,11 @@
-import datetime
+from datetime import datetime, timedelta
 import warnings
 import operator
 
 import numpy as np
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           algos as libalgos, join as libjoin,
-                          Timestamp)
+                          Timedelta)
 from pandas._libs.lib import is_datetime_array
 
 from pandas.compat import range, u, set_function_name
@@ -13,10 +13,11 @@ from pandas.compat.numpy import function as nv
 from pandas import compat
 
 from pandas.core.accessor import CachedAccessor
+from pandas.core.arrays import ExtensionArray
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCDataFrame,
     ABCMultiIndex,
-    ABCPeriodIndex,
+    ABCPeriodIndex, ABCTimedeltaIndex,
     ABCDateOffset)
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.core.dtypes.common import (
@@ -47,6 +48,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.base import PandasObject, IndexOpsMixin
 import pandas.core.common as com
 import pandas.core.base as base
+from pandas.core import ops
 from pandas.util._decorators import (
     Appender, Substitution, cache_readonly, deprecate_kwarg)
 from pandas.core.indexes.frozen import FrozenList
@@ -55,7 +57,7 @@ import pandas.core.missing as missing
 import pandas.core.algorithms as algos
 import pandas.core.sorting as sorting
 from pandas.io.formats.printing import pprint_thing
-from pandas.core.ops import _comp_method_OBJECT_ARRAY
+from pandas.core.ops import make_invalid_op
 from pandas.core.config import get_option
 from pandas.core.strings import StringMethods
 
@@ -82,24 +84,72 @@ def _try_get_item(x):
         return x
 
 
-def _make_invalid_op(name):
-    """
-    Return a binary method that always raises a TypeError.
+def _make_comparison_op(op, cls):
+    def cmp_method(self, other):
+        if isinstance(other, (np.ndarray, Index, ABCSeries)):
+            if other.ndim > 0 and len(self) != len(other):
+                raise ValueError('Lengths must match to compare')
 
-    Parameters
-    ----------
-    name : str
+        # we may need to directly compare underlying
+        # representations
+        if needs_i8_conversion(self) and needs_i8_conversion(other):
+            return self._evaluate_compare(other, op)
 
-    Returns
-    -------
-    invalid_op : function
-    """
-    def invalid_op(self, other=None):
-        raise TypeError("cannot perform {name} with this index type: "
-                        "{typ}".format(name=name, typ=type(self)))
+        if is_object_dtype(self) and self.nlevels == 1:
+            # don't pass MultiIndex
+            with np.errstate(all='ignore'):
+                result = ops._comp_method_OBJECT_ARRAY(op, self.values, other)
+        else:
+            with np.errstate(all='ignore'):
+                result = op(self.values, np.asarray(other))
 
-    invalid_op.__name__ = name
-    return invalid_op
+        # technically we could support bool dtyped Index
+        # for now just return the indexing array directly
+        if is_bool_dtype(result):
+            return result
+        try:
+            return Index(result)
+        except TypeError:
+            return result
+
+    name = '__{name}__'.format(name=op.__name__)
+    # TODO: docstring?
+    return set_function_name(cmp_method, name, cls)
+
+
+def _make_arithmetic_op(op, cls):
+    def index_arithmetic_method(self, other):
+        if isinstance(other, (ABCSeries, ABCDataFrame)):
+            return NotImplemented
+        elif isinstance(other, ABCTimedeltaIndex):
+            # Defer to subclass implementation
+            return NotImplemented
+
+        other = self._validate_for_numeric_binop(other, op)
+
+        # handle time-based others
+        if isinstance(other, (ABCDateOffset, np.timedelta64, timedelta)):
+            return self._evaluate_with_timedelta_like(other, op)
+        elif isinstance(other, (datetime, np.datetime64)):
+            return self._evaluate_with_datetime_like(other, op)
+
+        values = self.values
+        with np.errstate(all='ignore'):
+            result = op(values, other)
+
+        result = missing.dispatch_missing(op, values, other, result)
+
+        attrs = self._get_attributes_dict()
+        attrs = self._maybe_update_attributes(attrs)
+        if op is divmod:
+            result = (Index(result[0], **attrs), Index(result[1], **attrs))
+        else:
+            result = Index(result, **attrs)
+        return result
+
+    name = '__{name}__'.format(name=op.__name__)
+    # TODO: docstring?
+    return set_function_name(index_arithmetic_method, name, cls)
 
 
 class InvalidIndexError(Exception):
@@ -631,7 +681,47 @@ class Index(IndexOpsMixin, PandasObject):
         return self.values
 
     def get_values(self):
-        """ return the underlying data as an ndarray """
+        """
+        Return `Index` data as an `numpy.ndarray`.
+
+        Returns
+        -------
+        numpy.ndarray
+            A one-dimensional numpy array of the `Index` values.
+
+        See Also
+        --------
+        Index.values : The attribute that get_values wraps.
+
+        Examples
+        --------
+        Getting the `Index` values of a `DataFrame`:
+
+        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+        ...                    index=['a', 'b', 'c'], columns=['A', 'B', 'C'])
+        >>> df
+           A  B  C
+        a  1  2  3
+        b  4  5  6
+        c  7  8  9
+        >>> df.index.get_values()
+        array(['a', 'b', 'c'], dtype=object)
+
+        Standalone `Index` values:
+
+        >>> idx = pd.Index(['1', '2', '3'])
+        >>> idx.get_values()
+        array(['1', '2', '3'], dtype=object)
+
+        `MultiIndex` arrays also have only one dimension:
+
+        >>> midx = pd.MultiIndex.from_arrays([[1, 2, 3], ['a', 'b', 'c']],
+        ...                                  names=('number', 'letter'))
+        >>> midx.get_values()
+        array([(1, 'a'), (2, 'b'), (3, 'c')], dtype=object)
+        >>> midx.get_values().ndim
+        1
+        """
         return self.values
 
     @Appender(IndexOpsMixin.memory_usage.__doc__)
@@ -646,12 +736,38 @@ class Index(IndexOpsMixin, PandasObject):
     @deprecate_kwarg(old_arg_name='n', new_arg_name='repeats')
     def repeat(self, repeats, *args, **kwargs):
         """
-        Repeat elements of an Index. Refer to `numpy.ndarray.repeat`
-        for more information about the `repeats` argument.
+        Repeat elements of an Index.
 
-        See also
+        Returns a new index where each element of the current index
+        is repeated consecutively a given number of times.
+
+        Parameters
+        ----------
+        repeats : int
+            The number of repetitions for each element.
+        **kwargs
+            Additional keywords have no effect but might be accepted for
+            compatibility with numpy.
+
+        Returns
+        -------
+        pandas.Index
+            Newly created Index with repeated elements.
+
+        See Also
         --------
-        numpy.ndarray.repeat
+        Series.repeat : Equivalent function for Series
+        numpy.repeat : Underlying implementation
+
+        Examples
+        --------
+        >>> idx = pd.Index([1, 2, 3])
+        >>> idx
+        Int64Index([1, 2, 3], dtype='int64')
+        >>> idx.repeat(2)
+        Int64Index([1, 1, 2, 2, 3, 3], dtype='int64')
+        >>> idx.repeat(3)
+        Int64Index([1, 1, 1, 2, 2, 2, 3, 3, 3], dtype='int64')
         """
         nv.validate_repeat(args, kwargs)
         return self._shallow_copy(self._values.repeat(repeats))
@@ -1072,7 +1188,26 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        DataFrame : a DataFrame containing the original Index data.
+        DataFrame
+            DataFrame containing the original Index data.
+
+        Examples
+        --------
+        >>> idx = pd.Index(['Ant', 'Bear', 'Cow'], name='animal')
+        >>> idx.to_frame()
+               animal
+        animal
+        Ant       Ant
+        Bear     Bear
+        Cow       Cow
+
+        By default, the original Index is reused. To enforce a new Index:
+
+        >>> idx.to_frame(index=False)
+            animal
+        0   Ant
+        1  Bear
+        2   Cow
         """
 
         from pandas import DataFrame
@@ -1351,7 +1486,7 @@ class Index(IndexOpsMixin, PandasObject):
     def is_lexsorted_for_tuple(self, tup):
         return True
 
-    @cache_readonly(allow_setting=True)
+    @cache_readonly
     def is_unique(self):
         """ return if the index has unique values """
         return self._engine.is_unique
@@ -1376,6 +1511,39 @@ class Index(IndexOpsMixin, PandasObject):
         return is_object_dtype(self.dtype)
 
     def is_categorical(self):
+        """
+        Check if the Index holds categorical data.
+
+        Returns
+        -------
+        boolean
+            True if the Index is categorical.
+
+        See Also
+        --------
+        CategoricalIndex : Index for categorical data.
+
+        Examples
+        --------
+        >>> idx = pd.Index(["Watermelon", "Orange", "Apple",
+        ...                 "Watermelon"]).astype("category")
+        >>> idx.is_categorical()
+        True
+
+        >>> idx = pd.Index([1, 3, 5, 7])
+        >>> idx.is_categorical()
+        False
+
+        >>> s = pd.Series(["Peter", "Victor", "Elisabeth", "Mar"])
+        >>> s
+        0        Peter
+        1       Victor
+        2    Elisabeth
+        3          Mar
+        dtype: object
+        >>> s.index.is_categorical()
+        False
+        """
         return self.inferred_type in ['categorical']
 
     def is_interval(self):
@@ -1615,6 +1783,59 @@ class Index(IndexOpsMixin, PandasObject):
                             kind=type(key)))
 
     def get_duplicates(self):
+        """
+        Extract duplicated index elements.
+
+        Returns a sorted list of index elements which appear more than once in
+        the index.
+
+        Returns
+        -------
+        array-like
+            List of duplicated indexes.
+
+        See Also
+        --------
+        Index.duplicated : Return boolean array denoting duplicates.
+        Index.drop_duplicates : Return Index with duplicates removed.
+
+        Examples
+        --------
+
+        Works on different Index of types.
+
+        >>> pd.Index([1, 2, 2, 3, 3, 3, 4]).get_duplicates()
+        [2, 3]
+        >>> pd.Index([1., 2., 2., 3., 3., 3., 4.]).get_duplicates()
+        [2.0, 3.0]
+        >>> pd.Index(['a', 'b', 'b', 'c', 'c', 'c', 'd']).get_duplicates()
+        ['b', 'c']
+        >>> dates = pd.to_datetime(['2018-01-01', '2018-01-02', '2018-01-03',
+        ...                         '2018-01-03', '2018-01-04', '2018-01-04'],
+        ...                        format='%Y-%m-%d')
+        >>> pd.Index(dates).get_duplicates()
+        DatetimeIndex(['2018-01-03', '2018-01-04'],
+                      dtype='datetime64[ns]', freq=None)
+
+        Sorts duplicated elements even when indexes are unordered.
+
+        >>> pd.Index([1, 2, 3, 2, 3, 4, 3]).get_duplicates()
+        [2, 3]
+
+        Return empty array-like structure when all elements are unique.
+
+        >>> pd.Index([1, 2, 3, 4]).get_duplicates()
+        []
+        >>> dates = pd.to_datetime(['2018-01-01', '2018-01-02', '2018-01-03'],
+        ...                        format='%Y-%m-%d')
+        >>> pd.Index(dates).get_duplicates()
+        DatetimeIndex([], dtype='datetime64[ns]', freq=None)
+
+        Notes
+        -----
+        In case of datetime-like indexes, the function is overridden where the
+        result is converted to DatetimeIndex.
+        """
         from collections import defaultdict
         counter = defaultdict(lambda: 0)
         for k in self.values:
@@ -2002,6 +2223,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if is_categorical_dtype(values.dtype):
             values = np.array(values)
+
         elif is_object_dtype(values.dtype):
             values = lib.maybe_convert_objects(values, safe=1)
 
@@ -2098,7 +2320,7 @@ class Index(IndexOpsMixin, PandasObject):
         try:
             loc = self.get_loc(label, method='pad')
         except KeyError:
-            return _get_na_value(self.dtype)
+            return self._na_value
         else:
             if isinstance(loc, slice):
                 loc = loc.indices(len(self))[-1]
@@ -2161,28 +2383,97 @@ class Index(IndexOpsMixin, PandasObject):
 
     def shift(self, periods=1, freq=None):
         """
-        Shift Index containing datetime objects by input number of periods and
-        DateOffset
+        Shift index by desired number of time frequency increments.
+
+        This method is for shifting the values of datetime-like indexes
+        by a specified time increment a given number of times.
+
+        Parameters
+        ----------
+        periods : int, default 1
+            Number of periods (or increments) to shift by,
+            can be positive or negative.
+        freq : pandas.DateOffset, pandas.Timedelta or string, optional
+            Frequency increment to shift by.
+            If None, the index is shifted by its own `freq` attribute.
+            Offset aliases are valid strings, e.g., 'D', 'W', 'M' etc.
 
         Returns
         -------
-        shifted : Index
+        pandas.Index
+            shifted index
+
+        See Also
+        --------
+        Series.shift : Shift values of Series.
+
+        Examples
+        --------
+        Put the first 5 month starts of 2011 into an index.
+
+        >>> month_starts = pd.date_range('1/1/2011', periods=5, freq='MS')
+        >>> month_starts
+        DatetimeIndex(['2011-01-01', '2011-02-01', '2011-03-01', '2011-04-01',
+                       '2011-05-01'],
+                      dtype='datetime64[ns]', freq='MS')
+
+        Shift the index by 10 days.
+
+        >>> month_starts.shift(10, freq='D')
+        DatetimeIndex(['2011-01-11', '2011-02-11', '2011-03-11', '2011-04-11',
+                       '2011-05-11'],
+                      dtype='datetime64[ns]', freq=None)
+
+        The default value of `freq` is the `freq` attribute of the index,
+        which is 'MS' (month start) in this example.
+
+        >>> month_starts.shift(10)
+        DatetimeIndex(['2011-11-01', '2011-12-01', '2012-01-01', '2012-02-01',
+                       '2012-03-01'],
+                      dtype='datetime64[ns]', freq='MS')
+
+        Notes
+        -----
+        This method is only implemented for datetime-like index classes,
+        i.e., DatetimeIndex, PeriodIndex and TimedeltaIndex.
         """
         raise NotImplementedError("Not supported for type %s" %
                                   type(self).__name__)
 
     def argsort(self, *args, **kwargs):
         """
-        Returns the indices that would sort the index and its
-        underlying data.
+        Return the integer indicies that would sort the index.
+
+        Parameters
+        ----------
+        *args
+            Passed to `numpy.ndarray.argsort`.
+        **kwargs
+            Passed to `numpy.ndarray.argsort`.
 
         Returns
         -------
-        argsorted : numpy array
+        numpy.ndarray
+            Integer indicies that would sort the index if used as
+            an indexer.
 
         See also
         --------
-        numpy.ndarray.argsort
+        numpy.argsort : Similar method for NumPy arrays.
+        Index.sort_values : Return sorted copy of Index.
+
+        Examples
+        --------
+        >>> idx = pd.Index(['b', 'a', 'd', 'c'])
+        >>> idx
+        Index(['b', 'a', 'd', 'c'], dtype='object')
+
+        >>> order = idx.argsort()
+        >>> order
+        array([1, 0, 3, 2])
+
+        >>> idx[order]
+        Index(['a', 'b', 'c', 'd'], dtype='object')
         """
         result = self.asi8
         if result is None:
@@ -2195,11 +2486,13 @@ class Index(IndexOpsMixin, PandasObject):
     def __radd__(self, other):
         return Index(other + np.array(self))
 
-    __iadd__ = __add__
+    def __iadd__(self, other):
+        # alias for __add__
+        return self + other
 
     def __sub__(self, other):
         raise TypeError("cannot perform __sub__ with this index type: "
-                        "{typ}".format(typ=type(self)))
+                        "{typ}".format(typ=type(self).__name__))
 
     def __and__(self, other):
         return self.intersection(other)
@@ -2601,7 +2894,7 @@ class Index(IndexOpsMixin, PandasObject):
         # if we have something that is Index-like, then
         # use this, e.g. DatetimeIndex
         s = getattr(series, '_values', None)
-        if isinstance(s, Index) and is_scalar(key):
+        if isinstance(s, (ExtensionArray, Index)) and is_scalar(key):
             try:
                 return s[key]
             except (IndexError, ValueError):
@@ -3877,8 +4170,52 @@ class Index(IndexOpsMixin, PandasObject):
         result = super(Index, self).unique()
         return self._shallow_copy(result)
 
-    @Appender(base._shared_docs['drop_duplicates'] % _index_doc_kwargs)
     def drop_duplicates(self, keep='first'):
+        """
+        Return Index with duplicate values removed.
+
+        Parameters
+        ----------
+        keep : {'first', 'last', ``False``}, default 'first'
+            - 'first' : Drop duplicates except for the first occurrence.
+            - 'last' : Drop duplicates except for the last occurrence.
+            - ``False`` : Drop all duplicates.
+
+        Returns
+        -------
+        deduplicated : Index
+
+        See Also
+        --------
+        Series.drop_duplicates : equivalent method on Series
+        DataFrame.drop_duplicates : equivalent method on DataFrame
+        Index.duplicated : related method on Index, indicating duplicate
+            Index values.
+
+        Examples
+        --------
+        Generate an pandas.Index with duplicate values.
+
+        >>> idx = pd.Index(['lama', 'cow', 'lama', 'beetle', 'lama', 'hippo'])
+
+        The `keep` parameter controls  which duplicate values are removed.
+        The value 'first' keeps the first occurrence for each
+        set of duplicated entries. The default value of keep is 'first'.
+
+        >>> idx.drop_duplicates(keep='first')
+        Index(['lama', 'cow', 'beetle', 'hippo'], dtype='object')
+
+        The value 'last' keeps the last occurrence for each set of duplicated
+        entries.
+
+        >>> idx.drop_duplicates(keep='last')
+        Index(['cow', 'beetle', 'lama', 'hippo'], dtype='object')
+
+        The value ``False`` discards all sets of duplicated entries.
+
+        >>> idx.drop_duplicates(keep=False)
+        Index(['cow', 'beetle', 'hippo'], dtype='object')
+        """
         return super(Index, self).drop_duplicates(keep=keep)
 
     @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)
@@ -3937,79 +4274,67 @@ class Index(IndexOpsMixin, PandasObject):
             return self._shallow_copy(self.values[~self._isnan])
         return self._shallow_copy()
 
-    def _evaluate_with_timedelta_like(self, other, op, opstr, reversed=False):
-        raise TypeError("can only perform ops with timedelta like values")
+    def _evaluate_with_timedelta_like(self, other, op):
+        # Timedelta knows how to operate with np.array, so dispatch to that
+        # operation and then wrap the results
+        other = Timedelta(other)
+        values = self.values
 
-    def _evaluate_with_datetime_like(self, other, op, opstr):
+        with np.errstate(all='ignore'):
+            result = op(values, other)
+
+        attrs = self._get_attributes_dict()
+        attrs = self._maybe_update_attributes(attrs)
+        if op == divmod:
+            return Index(result[0], **attrs), Index(result[1], **attrs)
+        return Index(result, **attrs)
+
+    def _evaluate_with_datetime_like(self, other, op):
         raise TypeError("can only perform ops with datetime like values")
 
-    def _evaluate_compare(self, op):
-        raise base.AbstractMethodError(self)
+    def _evaluate_compare(self, other, op):
+        raise com.AbstractMethodError(self)
 
     @classmethod
     def _add_comparison_methods(cls):
         """ add in comparison methods """
-
-        def _make_compare(op):
-            def _evaluate_compare(self, other):
-                if isinstance(other, (np.ndarray, Index, ABCSeries)):
-                    if other.ndim > 0 and len(self) != len(other):
-                        raise ValueError('Lengths must match to compare')
-
-                # we may need to directly compare underlying
-                # representations
-                if needs_i8_conversion(self) and needs_i8_conversion(other):
-                    return self._evaluate_compare(other, op)
-
-                if (is_object_dtype(self) and
-                        self.nlevels == 1):
-
-                    # don't pass MultiIndex
-                    with np.errstate(all='ignore'):
-                        result = _comp_method_OBJECT_ARRAY(
-                            op, self.values, other)
-                else:
-                    with np.errstate(all='ignore'):
-                        result = op(self.values, np.asarray(other))
-
-                # technically we could support bool dtyped Index
-                # for now just return the indexing array directly
-                if is_bool_dtype(result):
-                    return result
-                try:
-                    return Index(result)
-                except TypeError:
-                    return result
-
-            name = '__{name}__'.format(name=op.__name__)
-            return set_function_name(_evaluate_compare, name, cls)
-
-        cls.__eq__ = _make_compare(operator.eq)
-        cls.__ne__ = _make_compare(operator.ne)
-        cls.__lt__ = _make_compare(operator.lt)
-        cls.__gt__ = _make_compare(operator.gt)
-        cls.__le__ = _make_compare(operator.le)
-        cls.__ge__ = _make_compare(operator.ge)
+        cls.__eq__ = _make_comparison_op(operator.eq, cls)
+        cls.__ne__ = _make_comparison_op(operator.ne, cls)
+        cls.__lt__ = _make_comparison_op(operator.lt, cls)
+        cls.__gt__ = _make_comparison_op(operator.gt, cls)
+        cls.__le__ = _make_comparison_op(operator.le, cls)
+        cls.__ge__ = _make_comparison_op(operator.ge, cls)
 
     @classmethod
     def _add_numeric_methods_add_sub_disabled(cls):
         """ add in the numeric add/sub methods to disable """
-        cls.__add__ = cls.__radd__ = __iadd__ = _make_invalid_op('__add__')  # noqa
-        cls.__sub__ = __isub__ = _make_invalid_op('__sub__')  # noqa
+        cls.__add__ = make_invalid_op('__add__')
+        cls.__radd__ = make_invalid_op('__radd__')
+        cls.__iadd__ = make_invalid_op('__iadd__')
+        cls.__sub__ = make_invalid_op('__sub__')
+        cls.__rsub__ = make_invalid_op('__rsub__')
+        cls.__isub__ = make_invalid_op('__isub__')
 
     @classmethod
     def _add_numeric_methods_disabled(cls):
         """ add in numeric methods to disable other than add/sub """
-        cls.__pow__ = cls.__rpow__ = _make_invalid_op('__pow__')
-        cls.__mul__ = cls.__rmul__ = _make_invalid_op('__mul__')
-        cls.__floordiv__ = cls.__rfloordiv__ = _make_invalid_op('__floordiv__')
-        cls.__truediv__ = cls.__rtruediv__ = _make_invalid_op('__truediv__')
+        cls.__pow__ = make_invalid_op('__pow__')
+        cls.__rpow__ = make_invalid_op('__rpow__')
+        cls.__mul__ = make_invalid_op('__mul__')
+        cls.__rmul__ = make_invalid_op('__rmul__')
+        cls.__floordiv__ = make_invalid_op('__floordiv__')
+        cls.__rfloordiv__ = make_invalid_op('__rfloordiv__')
+        cls.__truediv__ = make_invalid_op('__truediv__')
+        cls.__rtruediv__ = make_invalid_op('__rtruediv__')
         if not compat.PY3:
-            cls.__div__ = cls.__rdiv__ = _make_invalid_op('__div__')
-        cls.__neg__ = _make_invalid_op('__neg__')
-        cls.__pos__ = _make_invalid_op('__pos__')
-        cls.__abs__ = _make_invalid_op('__abs__')
-        cls.__inv__ = _make_invalid_op('__inv__')
+            cls.__div__ = make_invalid_op('__div__')
+            cls.__rdiv__ = make_invalid_op('__rdiv__')
+        cls.__mod__ = make_invalid_op('__mod__')
+        cls.__divmod__ = make_invalid_op('__divmod__')
+        cls.__neg__ = make_invalid_op('__neg__')
+        cls.__pos__ = make_invalid_op('__pos__')
+        cls.__abs__ = make_invalid_op('__abs__')
+        cls.__inv__ = make_invalid_op('__inv__')
 
     def _maybe_update_attributes(self, attrs):
         """ Update Index attributes (e.g. freq) depending on op """
@@ -4020,34 +4345,29 @@ class Index(IndexOpsMixin, PandasObject):
 
         if not self._is_numeric_dtype:
             raise TypeError("cannot evaluate a numeric op "
-                            "{opstr} for type: {typ}".format(
-                                opstr=opstr,
-                                typ=type(self))
-                            )
+                            "{opstr} for type: {typ}"
+                            .format(opstr=opstr, typ=type(self).__name__))
 
-    def _validate_for_numeric_binop(self, other, op, opstr):
+    def _validate_for_numeric_binop(self, other, op):
         """
         return valid other, evaluate or raise TypeError
         if we are not of the appropriate type
 
         internal method called by ops
         """
+        opstr = '__{opname}__'.format(opname=op.__name__)
         # if we are an inheritor of numeric,
         # but not actually numeric (e.g. DatetimeIndex/PeriodIndex)
         if not self._is_numeric_dtype:
             raise TypeError("cannot evaluate a numeric op {opstr} "
-                            "for type: {typ}".format(
-                                opstr=opstr,
-                                typ=type(self))
-                            )
+                            "for type: {typ}"
+                            .format(opstr=opstr, typ=type(self).__name__))
 
         if isinstance(other, Index):
             if not other._is_numeric_dtype:
                 raise TypeError("cannot evaluate a numeric op "
-                                "{opstr} with type: {typ}".format(
-                                    opstr=type(self),
-                                    typ=type(other))
-                                )
+                                "{opstr} with type: {typ}"
+                                .format(opstr=opstr, typ=type(other)))
         elif isinstance(other, np.ndarray) and not other.ndim:
             other = other.item()
 
@@ -4059,11 +4379,10 @@ class Index(IndexOpsMixin, PandasObject):
             if other.dtype.kind not in ['f', 'i', 'u']:
                 raise TypeError("cannot evaluate a numeric op "
                                 "with a non-numeric dtype")
-        elif isinstance(other, (ABCDateOffset, np.timedelta64,
-                                datetime.timedelta)):
+        elif isinstance(other, (ABCDateOffset, np.timedelta64, timedelta)):
             # higher up to handle
             pass
-        elif isinstance(other, (Timestamp, np.datetime64)):
+        elif isinstance(other, (datetime, np.datetime64)):
             # higher up to handle
             pass
         else:
@@ -4075,70 +4394,24 @@ class Index(IndexOpsMixin, PandasObject):
     @classmethod
     def _add_numeric_methods_binary(cls):
         """ add in numeric methods """
-
-        def _make_evaluate_binop(op, opstr, reversed=False, constructor=Index):
-            def _evaluate_numeric_binop(self, other):
-                if isinstance(other, (ABCSeries, ABCDataFrame)):
-                    return NotImplemented
-
-                other = self._validate_for_numeric_binop(other, op, opstr)
-
-                # handle time-based others
-                if isinstance(other, (ABCDateOffset, np.timedelta64,
-                                      datetime.timedelta)):
-                    return self._evaluate_with_timedelta_like(other, op, opstr,
-                                                              reversed)
-                elif isinstance(other, (Timestamp, np.datetime64)):
-                    return self._evaluate_with_datetime_like(other, op, opstr)
-
-                # if we are a reversed non-commutative op
-                values = self.values
-                if reversed:
-                    values, other = other, values
-
-                attrs = self._get_attributes_dict()
-                attrs = self._maybe_update_attributes(attrs)
-                with np.errstate(all='ignore'):
-                    result = op(values, other)
-
-                result = missing.dispatch_missing(op, values, other, result)
-                return constructor(result, **attrs)
-
-            return _evaluate_numeric_binop
-
-        cls.__add__ = cls.__radd__ = _make_evaluate_binop(
-            operator.add, '__add__')
-        cls.__sub__ = _make_evaluate_binop(
-            operator.sub, '__sub__')
-        cls.__rsub__ = _make_evaluate_binop(
-            operator.sub, '__sub__', reversed=True)
-        cls.__mul__ = cls.__rmul__ = _make_evaluate_binop(
-            operator.mul, '__mul__')
-        cls.__rpow__ = _make_evaluate_binop(
-            operator.pow, '__pow__', reversed=True)
-        cls.__pow__ = _make_evaluate_binop(
-            operator.pow, '__pow__')
-        cls.__mod__ = _make_evaluate_binop(
-            operator.mod, '__mod__')
-        cls.__floordiv__ = _make_evaluate_binop(
-            operator.floordiv, '__floordiv__')
-        cls.__rfloordiv__ = _make_evaluate_binop(
-            operator.floordiv, '__floordiv__', reversed=True)
-        cls.__truediv__ = _make_evaluate_binop(
-            operator.truediv, '__truediv__')
-        cls.__rtruediv__ = _make_evaluate_binop(
-            operator.truediv, '__truediv__', reversed=True)
+        cls.__add__ = _make_arithmetic_op(operator.add, cls)
+        cls.__radd__ = _make_arithmetic_op(ops.radd, cls)
+        cls.__sub__ = _make_arithmetic_op(operator.sub, cls)
+        cls.__rsub__ = _make_arithmetic_op(ops.rsub, cls)
+        cls.__mul__ = _make_arithmetic_op(operator.mul, cls)
+        cls.__rmul__ = _make_arithmetic_op(ops.rmul, cls)
+        cls.__rpow__ = _make_arithmetic_op(ops.rpow, cls)
+        cls.__pow__ = _make_arithmetic_op(operator.pow, cls)
+        cls.__mod__ = _make_arithmetic_op(operator.mod, cls)
+        cls.__floordiv__ = _make_arithmetic_op(operator.floordiv, cls)
+        cls.__rfloordiv__ = _make_arithmetic_op(ops.rfloordiv, cls)
+        cls.__truediv__ = _make_arithmetic_op(operator.truediv, cls)
+        cls.__rtruediv__ = _make_arithmetic_op(ops.rtruediv, cls)
         if not compat.PY3:
-            cls.__div__ = _make_evaluate_binop(
-                operator.div, '__div__')
-            cls.__rdiv__ = _make_evaluate_binop(
-                operator.div, '__div__', reversed=True)
+            cls.__div__ = _make_arithmetic_op(operator.div, cls)
+            cls.__rdiv__ = _make_arithmetic_op(ops.rdiv, cls)
 
-        cls.__divmod__ = _make_evaluate_binop(
-            divmod,
-            '__divmod__',
-            constructor=lambda result, **attrs: (Index(result[0], **attrs),
-                                                 Index(result[1], **attrs)))
+        cls.__divmod__ = _make_arithmetic_op(divmod, cls)
 
     @classmethod
     def _add_numeric_methods_unary(cls):
@@ -4155,8 +4428,8 @@ class Index(IndexOpsMixin, PandasObject):
 
             return _evaluate_numeric_unary
 
-        cls.__neg__ = _make_evaluate_unary(lambda x: -x, '__neg__')
-        cls.__pos__ = _make_evaluate_unary(lambda x: x, '__pos__')
+        cls.__neg__ = _make_evaluate_unary(operator.neg, '__neg__')
+        cls.__pos__ = _make_evaluate_unary(operator.pos, '__pos__')
         cls.__abs__ = _make_evaluate_unary(np.abs, '__abs__')
         cls.__inv__ = _make_evaluate_unary(lambda x: -x, '__inv__')
 
@@ -4207,8 +4480,8 @@ class Index(IndexOpsMixin, PandasObject):
     @classmethod
     def _add_logical_methods_disabled(cls):
         """ add in logical methods to disable """
-        cls.all = _make_invalid_op('all')
-        cls.any = _make_invalid_op('any')
+        cls.all = make_invalid_op('all')
+        cls.any = make_invalid_op('any')
 
 
 Index._add_numeric_methods_disabled()
@@ -4314,12 +4587,6 @@ def _ensure_index(index_like, copy=False):
             index_like = copy(index_like)
 
     return Index(index_like)
-
-
-def _get_na_value(dtype):
-    if is_datetime64_any_dtype(dtype) or is_timedelta64_dtype(dtype):
-        return libts.NaT
-    return np.nan
 
 
 def _ensure_has_len(seq):

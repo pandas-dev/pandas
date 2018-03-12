@@ -53,16 +53,10 @@ def _get_fill(arr):
         return np.asarray(arr.fill_value)
 
 
-def _sparse_array_op(left, right, op, name, series=False):
-
-    if series and is_integer_dtype(left) and is_integer_dtype(right):
-        # series coerces to float64 if result should have NaN/inf
-        if name in ('floordiv', 'mod') and (right.values == 0).any():
-            left = left.astype(np.float64)
-            right = right.astype(np.float64)
-        elif name in ('rfloordiv', 'rmod') and (left.values == 0).any():
-            left = left.astype(np.float64)
-            right = right.astype(np.float64)
+def _sparse_array_op(left, right, op, name):
+    if name.startswith('__'):
+        # For lookups in _libs.sparse we need non-dunder op name
+        name = name[2:-2]
 
     # dtype used to find corresponding sparse method
     if not is_dtype_equal(left.dtype, right.dtype):
@@ -119,6 +113,10 @@ def _sparse_array_op(left, right, op, name, series=False):
 
 def _wrap_result(name, data, sparse_index, fill_value, dtype=None):
     """ wrap op result to have correct dtype """
+    if name.startswith('__'):
+        # e.g. __eq__ --> eq
+        name = name[2:-2]
+
     if name in ('eq', 'ne', 'lt', 'gt', 'le', 'ge'):
         dtype = np.bool
 
@@ -843,7 +841,4 @@ def _make_index(length, indices, kind):
     return index
 
 
-ops.add_special_arithmetic_methods(SparseArray,
-                                   arith_method=ops._arith_method_SPARSE_ARRAY,
-                                   comp_method=ops._arith_method_SPARSE_ARRAY,
-                                   bool_method=ops._arith_method_SPARSE_ARRAY)
+ops.add_special_arithmetic_methods(SparseArray)

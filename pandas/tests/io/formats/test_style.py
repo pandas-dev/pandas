@@ -24,7 +24,7 @@ class TestStyler(object):
 
         def h(x, foo='bar'):
             return pd.Series(
-                ['color: {foo}'.format(foo=foo)], index=x.index, name=x.name)
+                'color: {foo}'.format(foo=foo), index=x.index, name=x.name)
 
         self.h = h
         self.styler = Styler(self.df)
@@ -45,6 +45,13 @@ class TestStyler(object):
 
     def test_repr_html_ok(self):
         self.styler._repr_html_()
+
+    def test_repr_html_mathjax(self):
+        # gh-19824
+        assert 'tex2jax_ignore' not in self.styler._repr_html_()
+
+        with pd.option_context('display.html.use_mathjax', False):
+            assert 'tex2jax_ignore' in self.styler._repr_html_()
 
     def test_update_ctx(self):
         self.styler._update_ctx(self.attrs)

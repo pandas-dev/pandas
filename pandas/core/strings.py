@@ -20,6 +20,7 @@ from pandas.core.base import NoNewAttributesMixin
 from pandas.util._decorators import Appender
 import re
 import pandas._libs.lib as lib
+import pandas._libs.ops as libops
 import warnings
 import textwrap
 import codecs
@@ -305,7 +306,7 @@ def str_endswith(arr, pat, na=np.nan):
     return _na_map(f, arr, na, dtype=bool)
 
 
-def str_replace(arr, pat, repl, n=-1, case=None, flags=0):
+def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
     r"""
     Replace occurrences of pattern/regex in the Series/Index with
     some other string. Equivalent to :meth:`str.replace` or
@@ -336,25 +337,50 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0):
     flags : int, default 0 (no flags)
         - re module flags, e.g. re.IGNORECASE
         - Cannot be set if `pat` is a compiled regex
+    regex : boolean, default True
+        - If True, assumes the passed-in pattern is a regular expression.
+        - If False, treats the pattern as a literal string
+        - Cannot be set to False if `pat` is a compiled regex or `repl` is
+          a callable.
+
+        .. versionadded:: 0.23.0
 
     Returns
     -------
     replaced : Series/Index of objects
 
+    Raises
+    ------
+    ValueError
+        * if `regex` is False and `repl` is a callable or `pat` is a compiled
+          regex
+        * if `pat` is a compiled regex and `case` or `flags` is set
+
     Notes
     -----
     When `pat` is a compiled regex, all flags should be included in the
-    compiled regex. Use of `case` or `flags` with a compiled regex will
-    raise an error.
+    compiled regex. Use of `case`, `flags`, or `regex=False` with a compiled
+    regex will raise an error.
 
     Examples
     --------
-    When `repl` is a string, every `pat` is replaced as with
-    :meth:`str.replace`. NaN value(s) in the Series are left as is.
+    When `pat` is a string and `regex` is True (the default), the given `pat`
+    is compiled as a regex. When `repl` is a string, it replaces matching
+    regex patterns as with :meth:`re.sub`. NaN value(s) in the Series are
+    left as is:
 
-    >>> pd.Series(['foo', 'fuz', np.nan]).str.replace('f', 'b')
-    0    boo
-    1    buz
+    >>> pd.Series(['foo', 'fuz', np.nan]).str.replace('f.', 'ba', regex=True)
+    0    bao
+    1    baz
+    2    NaN
+    dtype: object
+
+    When `pat` is a string and `regex` is False, every `pat` is replaced with
+    `repl` as with :meth:`str.replace`:
+
+    >>> pd.Series(['f.o', 'fuz', np.nan]).str.replace('f.', 'ba', regex=False)
+    0    bao
+    1    fuz
     2    NaN
     dtype: object
 
@@ -396,6 +422,7 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0):
     1    bar
     2    NaN
     dtype: object
+
     """
 
     # Check whether repl is valid (GH 13438, GH 15055)
@@ -403,27 +430,33 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0):
         raise TypeError("repl must be a string or callable")
 
     is_compiled_re = is_re(pat)
-    if is_compiled_re:
-        if (case is not None) or (flags != 0):
-            raise ValueError("case and flags cannot be set"
-                             " when pat is a compiled regex")
+    if regex:
+        if is_compiled_re:
+            if (case is not None) or (flags != 0):
+                raise ValueError("case and flags cannot be set"
+                                 " when pat is a compiled regex")
+        else:
+            # not a compiled regex
+            # set default case
+            if case is None:
+                case = True
+
+            # add case flag, if provided
+            if case is False:
+                flags |= re.IGNORECASE
+        if is_compiled_re or len(pat) > 1 or flags or callable(repl):
+            n = n if n >= 0 else 0
+            compiled = re.compile(pat, flags=flags)
+            f = lambda x: compiled.sub(repl=repl, string=x, count=n)
+        else:
+            f = lambda x: x.replace(pat, repl, n)
     else:
-        # not a compiled regex
-        # set default case
-        if case is None:
-            case = True
-
-        # add case flag, if provided
-        if case is False:
-            flags |= re.IGNORECASE
-
-    use_re = is_compiled_re or len(pat) > 1 or flags or callable(repl)
-
-    if use_re:
-        n = n if n >= 0 else 0
-        regex = re.compile(pat, flags=flags)
-        f = lambda x: regex.sub(repl=repl, string=x, count=n)
-    else:
+        if is_compiled_re:
+            raise ValueError("Cannot use a compiled regex as replacement "
+                             "pattern with regex=False")
+        if callable(repl):
+            raise ValueError("Cannot use a callable replacement when "
+                             "regex=False")
         f = lambda x: x.replace(pat, repl, n)
 
     return _na_map(f, arr)
@@ -461,7 +494,7 @@ def str_repeat(arr, repeats):
                 return compat.text_type.__mul__(x, r)
 
         repeats = np.asarray(repeats, dtype=object)
-        result = lib.vec_binop(com._values_from_object(arr), repeats, rep)
+        result = libops.vec_binop(com._values_from_object(arr), repeats, rep)
         return result
 
 
@@ -865,23 +898,94 @@ def str_join(arr, sep):
 
 def str_findall(arr, pat, flags=0):
     """
-    Find all occurrences of pattern or regular expression in the
-    Series/Index. Equivalent to :func:`re.findall`.
+    Find all occurrences of pattern or regular expression in the Series/Index.
+
+    Equivalent to applying :func:`re.findall` to all the elements in the
+    Series/Index.
 
     Parameters
     ----------
     pat : string
-        Pattern or regular expression
-    flags : int, default 0 (no flags)
-        re module flags, e.g. re.IGNORECASE
+        Pattern or regular expression.
+    flags : int, default 0
+        ``re`` module flags, e.g. `re.IGNORECASE` (default is 0, which means
+        no flags).
 
     Returns
     -------
-    matches : Series/Index of lists
+    Series/Index of lists of strings
+        All non-overlapping matches of pattern or regular expression in each
+        string of this Series/Index.
 
     See Also
     --------
-    extractall : returns DataFrame with one column per capture group
+    count : Count occurrences of pattern or regular expression in each string
+        of the Series/Index.
+    extractall : For each string in the Series, extract groups from all matches
+        of regular expression and return a DataFrame with one row for each
+        match and one column for each group.
+    re.findall : The equivalent ``re`` function to all non-overlapping matches
+        of pattern or regular expression in string, as a list of strings.
+
+    Examples
+    --------
+
+    >>> s = pd.Series(['Lion', 'Monkey', 'Rabbit'])
+
+    The search for the pattern 'Monkey' returns one match:
+
+    >>> s.str.findall('Monkey')
+    0          []
+    1    [Monkey]
+    2          []
+    dtype: object
+
+    On the other hand, the search for the pattern 'MONKEY' doesn't return any
+    match:
+
+    >>> s.str.findall('MONKEY')
+    0    []
+    1    []
+    2    []
+    dtype: object
+
+    Flags can be added to the pattern or regular expression. For instance,
+    to find the pattern 'MONKEY' ignoring the case:
+
+    >>> import re
+    >>> s.str.findall('MONKEY', flags=re.IGNORECASE)
+    0          []
+    1    [Monkey]
+    2          []
+    dtype: object
+
+    When the pattern matches more than one string in the Series, all matches
+    are returned:
+
+    >>> s.str.findall('on')
+    0    [on]
+    1    [on]
+    2      []
+    dtype: object
+
+    Regular expressions are supported too. For instance, the search for all the
+    strings ending with the word 'on' is shown next:
+
+    >>> s.str.findall('on$')
+    0    [on]
+    1      []
+    2      []
+    dtype: object
+
+    If the pattern is found more than once in the same string, then a list of
+    multiple strings is returned:
+
+    >>> s.str.findall('b')
+    0        []
+    1        []
+    2    [b, b]
+    dtype: object
+
     """
     regex = re.compile(pat, flags=flags)
     return _na_map(regex.findall, arr)
@@ -991,24 +1095,88 @@ def str_pad(arr, width, side='left', fillchar=' '):
 
 def str_split(arr, pat=None, n=None):
     """
-    Split each string (a la re.split) in the Series/Index by given
-    pattern, propagating NA values. Equivalent to :meth:`str.split`.
+    Split strings around given separator/delimiter.
+
+    Split each string in the caller's values by given
+    pattern, propagating NaN values. Equivalent to :meth:`str.split`.
 
     Parameters
     ----------
-    pat : string, default None
-        String or regular expression to split on. If None, splits on whitespace
+    pat : str, optional
+        String or regular expression to split on.
+        If not specified, split on whitespace.
     n : int, default -1 (all)
-        None, 0 and -1 will be interpreted as return all splits
+        Limit number of splits in output.
+        ``None``, 0 and -1 will be interpreted as return all splits.
     expand : bool, default False
-        * If True, return DataFrame/MultiIndex expanding dimensionality.
-        * If False, return Series/Index.
+        Expand the splitted strings into separate columns.
 
-    return_type : deprecated, use `expand`
+        * If ``True``, return DataFrame/MultiIndex expanding dimensionality.
+        * If ``False``, return Series/Index, containing lists of strings.
 
     Returns
     -------
     split : Series/Index or DataFrame/MultiIndex of objects
+        Type matches caller unless ``expand=True`` (return type is DataFrame or
+    MultiIndex)
+
+    Notes
+    -----
+    The handling of the `n` keyword depends on the number of found splits:
+
+    - If found splits > `n`,  make first `n` splits only
+    - If found splits <= `n`, make all splits
+    - If for a certain row the number of found splits < `n`,
+      append `None` for padding up to `n` if ``expand=True``
+
+    Examples
+    --------
+    >>> s = pd.Series(["this is good text", "but this is even better"])
+
+    By default, split will return an object of the same size
+    having lists containing the split elements
+
+    >>> s.str.split()
+    0           [this, is, good, text]
+    1    [but, this, is, even, better]
+    dtype: object
+    >>> s.str.split("random")
+    0          [this is good text]
+    1    [but this is even better]
+    dtype: object
+
+    When using ``expand=True``, the split elements will
+    expand out into separate columns.
+
+    >>> s.str.split(expand=True)
+          0     1     2     3       4
+    0  this    is  good  text    None
+    1   but  this    is  even  better
+    >>> s.str.split(" is ", expand=True)
+              0            1
+    0      this    good text
+    1  but this  even better
+
+    Parameter `n` can be used to limit the number of splits in the output.
+
+    >>> s.str.split("is", n=1)
+    0          [th,  is good text]
+    1    [but th,  is even better]
+    dtype: object
+    >>> s.str.split("is", n=1, expand=True)
+            0                1
+    0      th     is good text
+    1  but th   is even better
+
+    If NaN is present, it is propagated throughout the columns
+    during the split.
+
+    >>> s = pd.Series(["this is good text", "but this is even better", np.nan])
+    >>> s.str.split(n=3, expand=True)
+          0     1     2            3
+    0  this    is  good         text
+    1   but  this    is  even better
+    2   NaN   NaN   NaN          NaN
     """
     if pat is None:
         if n is None or n == 0:
@@ -1595,9 +1763,9 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     @copy(str_replace)
-    def replace(self, pat, repl, n=-1, case=None, flags=0):
+    def replace(self, pat, repl, n=-1, case=None, flags=0, regex=True):
         result = str_replace(self._data, pat, repl, n=n, case=case,
-                             flags=flags)
+                             flags=flags, regex=regex)
         return self._wrap_result(result)
 
     @copy(str_repeat)
