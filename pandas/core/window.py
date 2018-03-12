@@ -872,12 +872,9 @@ class _Rolling_and_Expanding(_Rolling):
 
     Examples
     --------
-    The below example will show a rolling calculation with a window size of
-    three.
+    Compute the rolling mean of a series with a window size of 3.
 
-    >>> import pandas as pd
-    >>> import numpy as np
-    >>> s = pd.Series(np.arange(5))
+    >>> s = pd.Series([0, 1, 2, 3, 4])
     >>> s.rolling(3).median()
     0    NaN
     1    NaN
