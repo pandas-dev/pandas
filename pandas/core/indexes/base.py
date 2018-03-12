@@ -2045,7 +2045,7 @@ class Index(IndexOpsMixin, PandasObject):
         Return a boolean same-sized object indicating if the values are not NA.
         Non-missing values get mapped to ``True``. Characters such as empty
         strings ``''`` or :attr:`numpy.inf` are not considered NA values
-        (unless you set :attr:`pandas.options.mode.use_inf_as_na` `= True`).
+        (unless you set ``pandas.options.mode.use_inf_as_na = True``).
         NA values, such as None or :attr:`numpy.NaN`, get mapped to ``False``
         values.
 
@@ -2053,18 +2053,18 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        bool of type numpy.ndarray
+        numpy.ndarray
             Boolean array to indicate which entries are not NA.
 
         See also
         --------
-        notnull : alias of notna
-        isna: inverse of notna
+        Index.notnull : alias of notna
+        Index.isna: inverse of notna
         pandas.notna : top-level notna
 
         Examples
         --------
-        Show which entries in a pandas.Index are not NA. The result is an
+        Show which entries in an Index are not NA. The result is an
         array.
 
         >>> idx = pd.Index([5.2, 6.0, np.NaN])
