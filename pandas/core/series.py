@@ -2667,7 +2667,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Remove elements of a Series based on specifying the index labels.
         When using a multi-index, labels on different levels can be removed
-        by specifying the level name or int.
+        by specifying the level.
 
         Parameters
         ----------
@@ -2678,13 +2678,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         index, columns : None
             Redundant for application on Series, but index can be used instead
             of labels.
+
             .. versionadded:: 0.21.0
         level : int or level name, optional
-            For MultiIndex.
+            For MultiIndex, level for which the labels will be removed.
         inplace : bool, default False
             If True, do operation inplace and return None.
         errors : {'ignore', 'raise'}, default 'raise'
-            If 'ignore', suppress error and existing labels are dropped.
+            If 'ignore', suppress error and only existing labels are dropped.
 
         Returns
         -------
