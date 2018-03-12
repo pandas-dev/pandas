@@ -681,7 +681,47 @@ class Index(IndexOpsMixin, PandasObject):
         return self.values
 
     def get_values(self):
-        """ return the underlying data as an ndarray """
+        """
+        Return `Index` data as an `numpy.ndarray`.
+
+        Returns
+        -------
+        numpy.ndarray
+            A one-dimensional numpy array of the `Index` values.
+
+        See Also
+        --------
+        Index.values : The attribute that get_values wraps.
+
+        Examples
+        --------
+        Getting the `Index` values of a `DataFrame`:
+
+        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
+        ...                    index=['a', 'b', 'c'], columns=['A', 'B', 'C'])
+        >>> df
+           A  B  C
+        a  1  2  3
+        b  4  5  6
+        c  7  8  9
+        >>> df.index.get_values()
+        array(['a', 'b', 'c'], dtype=object)
+
+        Standalone `Index` values:
+
+        >>> idx = pd.Index(['1', '2', '3'])
+        >>> idx.get_values()
+        array(['1', '2', '3'], dtype=object)
+
+        `MultiIndex` arrays also have only one dimension:
+
+        >>> midx = pd.MultiIndex.from_arrays([[1, 2, 3], ['a', 'b', 'c']],
+        ...                                  names=('number', 'letter'))
+        >>> midx.get_values()
+        array([(1, 'a'), (2, 'b'), (3, 'c')], dtype=object)
+        >>> midx.get_values().ndim
+        1
+        """
         return self.values
 
     @Appender(IndexOpsMixin.memory_usage.__doc__)
@@ -1148,7 +1188,26 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        DataFrame : a DataFrame containing the original Index data.
+        DataFrame
+            DataFrame containing the original Index data.
+
+        Examples
+        --------
+        >>> idx = pd.Index(['Ant', 'Bear', 'Cow'], name='animal')
+        >>> idx.to_frame()
+               animal
+        animal
+        Ant       Ant
+        Bear     Bear
+        Cow       Cow
+
+        By default, the original Index is reused. To enforce a new Index:
+
+        >>> idx.to_frame(index=False)
+            animal
+        0   Ant
+        1  Bear
+        2   Cow
         """
 
         from pandas import DataFrame
@@ -1452,6 +1511,39 @@ class Index(IndexOpsMixin, PandasObject):
         return is_object_dtype(self.dtype)
 
     def is_categorical(self):
+        """
+        Check if the Index holds categorical data.
+
+        Returns
+        -------
+        boolean
+            True if the Index is categorical.
+
+        See Also
+        --------
+        CategoricalIndex : Index for categorical data.
+
+        Examples
+        --------
+        >>> idx = pd.Index(["Watermelon", "Orange", "Apple",
+        ...                 "Watermelon"]).astype("category")
+        >>> idx.is_categorical()
+        True
+
+        >>> idx = pd.Index([1, 3, 5, 7])
+        >>> idx.is_categorical()
+        False
+
+        >>> s = pd.Series(["Peter", "Víctor", "Elisabeth", "Mar"])
+        >>> s
+        0        Peter
+        1       Víctor
+        2    Elisabeth
+        3          Mar
+        dtype: object
+        >>> s.index.is_categorical()
+        False
+        """
         return self.inferred_type in ['categorical']
 
     def is_interval(self):
@@ -1691,6 +1783,59 @@ class Index(IndexOpsMixin, PandasObject):
                             kind=type(key)))
 
     def get_duplicates(self):
+        """
+        Extract duplicated index elements.
+
+        Returns a sorted list of index elements which appear more than once in
+        the index.
+
+        Returns
+        -------
+        array-like
+            List of duplicated indexes.
+
+        See Also
+        --------
+        Index.duplicated : Return boolean array denoting duplicates.
+        Index.drop_duplicates : Return Index with duplicates removed.
+
+        Examples
+        --------
+
+        Works on different Index of types.
+
+        >>> pd.Index([1, 2, 2, 3, 3, 3, 4]).get_duplicates()
+        [2, 3]
+        >>> pd.Index([1., 2., 2., 3., 3., 3., 4.]).get_duplicates()
+        [2.0, 3.0]
+        >>> pd.Index(['a', 'b', 'b', 'c', 'c', 'c', 'd']).get_duplicates()
+        ['b', 'c']
+        >>> dates = pd.to_datetime(['2018-01-01', '2018-01-02', '2018-01-03',
+        ...                         '2018-01-03', '2018-01-04', '2018-01-04'],
+        ...                        format='%Y-%m-%d')
+        >>> pd.Index(dates).get_duplicates()
+        DatetimeIndex(['2018-01-03', '2018-01-04'],
+                      dtype='datetime64[ns]', freq=None)
+
+        Sorts duplicated elements even when indexes are unordered.
+
+        >>> pd.Index([1, 2, 3, 2, 3, 4, 3]).get_duplicates()
+        [2, 3]
+
+        Return empty array-like structure when all elements are unique.
+
+        >>> pd.Index([1, 2, 3, 4]).get_duplicates()
+        []
+        >>> dates = pd.to_datetime(['2018-01-01', '2018-01-02', '2018-01-03'],
+        ...                        format='%Y-%m-%d')
+        >>> pd.Index(dates).get_duplicates()
+        DatetimeIndex([], dtype='datetime64[ns]', freq=None)
+
+        Notes
+        -----
+        In case of datetime-like indexes, the function is overridden where the
+        result is converted to DatetimeIndex.
+        """
         from collections import defaultdict
         counter = defaultdict(lambda: 0)
         for k in self.values:
@@ -2237,18 +2382,19 @@ class Index(IndexOpsMixin, PandasObject):
         return self.sort_values(return_indexer=True, ascending=ascending)
 
     def shift(self, periods=1, freq=None):
-        """Shift index by desired number of time frequency increments.
+        """
+        Shift index by desired number of time frequency increments.
 
         This method is for shifting the values of datetime-like indexes
         by a specified time increment a given number of times.
 
         Parameters
         ----------
-        periods : int
+        periods : int, default 1
             Number of periods (or increments) to shift by,
-            can be positive or negative (default is 1).
-        freq : pandas.DateOffset, pandas.Timedelta or string
-            Frequency increment to shift by (default is None).
+            can be positive or negative.
+        freq : pandas.DateOffset, pandas.Timedelta or string, optional
+            Frequency increment to shift by.
             If None, the index is shifted by its own `freq` attribute.
             Offset aliases are valid strings, e.g., 'D', 'W', 'M' etc.
 
@@ -2256,6 +2402,10 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         pandas.Index
             shifted index
+
+        See Also
+        --------
+        Series.shift : Shift values of Series.
 
         Examples
         --------
@@ -3998,8 +4148,52 @@ class Index(IndexOpsMixin, PandasObject):
         result = super(Index, self).unique()
         return self._shallow_copy(result)
 
-    @Appender(base._shared_docs['drop_duplicates'] % _index_doc_kwargs)
     def drop_duplicates(self, keep='first'):
+        """
+        Return Index with duplicate values removed.
+
+        Parameters
+        ----------
+        keep : {'first', 'last', ``False``}, default 'first'
+            - 'first' : Drop duplicates except for the first occurrence.
+            - 'last' : Drop duplicates except for the last occurrence.
+            - ``False`` : Drop all duplicates.
+
+        Returns
+        -------
+        deduplicated : Index
+
+        See Also
+        --------
+        Series.drop_duplicates : equivalent method on Series
+        DataFrame.drop_duplicates : equivalent method on DataFrame
+        Index.duplicated : related method on Index, indicating duplicate
+            Index values.
+
+        Examples
+        --------
+        Generate an pandas.Index with duplicate values.
+
+        >>> idx = pd.Index(['lama', 'cow', 'lama', 'beetle', 'lama', 'hippo'])
+
+        The `keep` parameter controls  which duplicate values are removed.
+        The value 'first' keeps the first occurrence for each
+        set of duplicated entries. The default value of keep is 'first'.
+
+        >>> idx.drop_duplicates(keep='first')
+        Index(['lama', 'cow', 'beetle', 'hippo'], dtype='object')
+
+        The value 'last' keeps the last occurrence for each set of duplicated
+        entries.
+
+        >>> idx.drop_duplicates(keep='last')
+        Index(['cow', 'beetle', 'lama', 'hippo'], dtype='object')
+
+        The value ``False`` discards all sets of duplicated entries.
+
+        >>> idx.drop_duplicates(keep=False)
+        Index(['cow', 'beetle', 'hippo'], dtype='object')
+        """
         return super(Index, self).drop_duplicates(keep=keep)
 
     @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)

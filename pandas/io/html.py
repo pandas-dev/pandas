@@ -160,6 +160,14 @@ class _HtmlFrameParser(object):
     attrs : dict
         List of HTML <table> element attributes to match.
 
+    encoding : str
+        Encoding to be used by parser
+
+    displayed_only : bool
+        Whether or not items with "display:none" should be ignored
+
+        .. versionadded:: 0.23.0
+
     Attributes
     ----------
     io : str or file-like
@@ -171,6 +179,14 @@ class _HtmlFrameParser(object):
     attrs : dict-like
         A dictionary of valid table attributes to use to search for table
         elements.
+
+    encoding : str
+        Encoding to be used by parser
+
+    displayed_only : bool
+        Whether or not items with "display:none" should be ignored
+
+        .. versionadded:: 0.23.0
 
     Notes
     -----
@@ -187,11 +203,12 @@ class _HtmlFrameParser(object):
     functionality.
     """
 
-    def __init__(self, io, match, attrs, encoding):
+    def __init__(self, io, match, attrs, encoding, displayed_only):
         self.io = io
         self.match = match
         self.attrs = attrs
         self.encoding = encoding
+        self.displayed_only = displayed_only
 
     def parse_tables(self):
         tables = self._parse_tables(self._build_doc(), self.match, self.attrs)
@@ -380,6 +397,27 @@ class _HtmlFrameParser(object):
             res = self._parse_tr(table)
         return self._parse_raw_data(res)
 
+    def _handle_hidden_tables(self, tbl_list, attr_name):
+        """Returns list of tables, potentially removing hidden elements
+
+        Parameters
+        ----------
+        tbl_list : list of Tag or list of Element
+            Type of list elements will vary depending upon parser used
+        attr_name : str
+            Name of the accessor for retrieving HTML attributes
+
+        Returns
+        -------
+        list of Tag or list of Element
+            Return type matches `tbl_list`
+        """
+        if not self.displayed_only:
+            return tbl_list
+
+        return [x for x in tbl_list if "display:none" not in
+                getattr(x, attr_name).get('style', '').replace(" ", "")]
+
 
 class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
     """HTML to DataFrame parser that uses BeautifulSoup under the hood.
@@ -431,8 +469,14 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
 
         result = []
         unique_tables = set()
+        tables = self._handle_hidden_tables(tables, "attrs")
 
         for table in tables:
+            if self.displayed_only:
+                for elem in table.find_all(
+                        style=re.compile(r"display:\s*none")):
+                    elem.decompose()
+
             if (table not in unique_tables and
                     table.find(text=match) is not None):
                 result.append(table)
@@ -527,6 +571,17 @@ class _LxmlFrameParser(_HtmlFrameParser):
             xpath_expr += _build_xpath_expr(kwargs)
 
         tables = doc.xpath(xpath_expr, namespaces=_re_namespace)
+
+        tables = self._handle_hidden_tables(tables, "attrib")
+        if self.displayed_only:
+            for table in tables:
+                # lxml utilizes XPATH 1.0 which does not have regex
+                # support. As a result, we find all elements with a style
+                # attribute and iterate them to check for display:none
+                for elem in table.xpath('.//*[@style]'):
+                    if "display:none" in elem.attrib.get(
+                            "style", "").replace(" ", ""):
+                        elem.getparent().remove(elem)
 
         if not tables:
             raise ValueError("No tables found matching regex {patt!r}"
@@ -729,7 +784,7 @@ def _validate_flavor(flavor):
     return flavor
 
 
-def _parse(flavor, io, match, attrs, encoding, **kwargs):
+def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
     flavor = _validate_flavor(flavor)
     compiled_match = re.compile(match)  # you can pass a compiled regex here
 
@@ -737,7 +792,7 @@ def _parse(flavor, io, match, attrs, encoding, **kwargs):
     retained = None
     for flav in flavor:
         parser = _parser_dispatch(flav)
-        p = parser(io, compiled_match, attrs, encoding)
+        p = parser(io, compiled_match, attrs, encoding, displayed_only)
 
         try:
             tables = p.parse_tables()
@@ -773,7 +828,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
               skiprows=None, attrs=None, parse_dates=False,
               tupleize_cols=None, thousands=',', encoding=None,
               decimal='.', converters=None, na_values=None,
-              keep_default_na=True):
+              keep_default_na=True, displayed_only=True):
     r"""Read HTML tables into a ``list`` of ``DataFrame`` objects.
 
     Parameters
@@ -877,6 +932,11 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
 
         .. versionadded:: 0.19.0
 
+    display_only : bool, default True
+        Whether elements with "display: none" should be parsed
+
+        .. versionadded:: 0.23.0
+
     Returns
     -------
     dfs : list of DataFrames
@@ -924,4 +984,5 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
                   parse_dates=parse_dates, tupleize_cols=tupleize_cols,
                   thousands=thousands, attrs=attrs, encoding=encoding,
                   decimal=decimal, converters=converters, na_values=na_values,
-                  keep_default_na=keep_default_na)
+                  keep_default_na=keep_default_na,
+                  displayed_only=displayed_only)
