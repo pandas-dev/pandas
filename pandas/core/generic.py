@@ -2967,11 +2967,33 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        prefix : string
+        prefix : str
+            The string to add before each item name.
 
         Returns
         -------
-        with_prefix : type of caller
+        Series
+            Original Series with updated item names.
+
+        See Also
+        --------
+        pandas.Series.add_suffix: Add a suffix string to panel items names.
+
+        Examples
+        --------
+        >>> s = pd.Series([1,2,3,4])
+        >>> s
+        0    1
+        1    2
+        2    3
+        3    4
+        dtype: int64
+        >>> s.add_prefix('item_')
+        item_0    1
+        item_1    2
+        item_2    3
+        item_3    4
+        dtype: int64
         """
         new_data = self._data.add_prefix(prefix)
         return self._constructor(new_data).__finalize__(self)
