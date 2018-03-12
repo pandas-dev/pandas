@@ -2046,6 +2046,23 @@ class GroupBy(_GroupBy):
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
+    def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None,
+                   axis=0):
+        """Calcuate pct_change of each value to previous entry in group"""
+        if freq is not None or axis != 0:
+            return self.apply(lambda x: x.pct_change(periods=periods,
+                                                     fill_method=fill_method,
+                                                     limit=limit, freq=freq,
+                                                     axis=axis))
+
+        filled = getattr(self, fill_method)(limit=limit).drop(
+            self.grouper.names, axis=1)
+        shifted = filled.shift(periods=periods, freq=freq)
+
+        return (filled / shifted) - 1
+
+    @Substitution(name='groupby')
+    @Appender(_doc_template)
     def head(self, n=5):
         """
         Returns first n rows of each group.
@@ -3884,6 +3901,13 @@ class SeriesGroupBy(GroupBy):
         """ return a pass thru """
         return func(self)
 
+    def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None):
+        """Calculate percent change of each value to previous entry in group"""
+        filled = getattr(self, fill_method)(limit=limit)
+        shifted = filled.shift(periods=periods, freq=freq)
+
+        return (filled / shifted) - 1
+
 
 class NDFrameGroupBy(GroupBy):
 
@@ -4757,7 +4781,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
             keys=self._selected_obj.columns, axis=1)
 
     def _fill(self, direction, limit=None):
-        """Overriden method to join grouped columns in output"""
+        """Overridden method to join grouped columns in output"""
         res = super(DataFrameGroupBy, self)._fill(direction, limit=limit)
         output = collections.OrderedDict(
             (grp.name, grp.grouper) for grp in self.grouper.groupings)

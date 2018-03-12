@@ -1217,6 +1217,25 @@ cdef class _Period(object):
 
     @property
     def day(self):
+        """
+        Get day of the month that a Period falls on.
+
+        Returns
+        -------
+        int
+
+        See Also
+        --------
+        Period.dayofweek : Get the day of the week
+
+        Period.dayofyear : Get the day of the year
+
+        Examples
+        --------
+        >>> p = pd.Period("2018-03-11", freq='H')
+        >>> p.day
+        11
+        """
         base, mult = get_freq_code(self.freq)
         return pday(self.ordinal, base)
 

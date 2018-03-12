@@ -6,31 +6,28 @@ from cpython cimport (
     PyDict_Contains, PyDict_GetItem, PyDict_SetItem)
 
 
-cdef class cache_readonly(object):
+cdef class CachedProperty(object):
 
     cdef readonly:
-        object func, name, allow_setting
+        object func, name, __doc__
 
-    def __init__(self, func=None, allow_setting=False):
-        if func is not None:
-            self.func = func
-            self.name = func.__name__
-        self.allow_setting = allow_setting
-
-    def __call__(self, func, doc=None):
+    def __init__(self, func):
         self.func = func
         self.name = func.__name__
-        return self
+        self.__doc__ = getattr(func, '__doc__', None)
 
     def __get__(self, obj, typ):
-        # Get the cache or set a default one if needed
+        if obj is None:
+            # accessed on the class, not the instance
+            return self
 
+        # Get the cache or set a default one if needed
         cache = getattr(obj, '_cache', None)
         if cache is None:
             try:
                 cache = obj._cache = {}
             except (AttributeError):
-                return
+                return self
 
         if PyDict_Contains(cache, self.name):
             # not necessary to Py_INCREF
@@ -40,20 +37,9 @@ cdef class cache_readonly(object):
             PyDict_SetItem(cache, self.name, val)
         return val
 
-    def __set__(self, obj, value):
 
-        if not self.allow_setting:
-            raise Exception("cannot set values for [%s]" % self.name)
+cache_readonly = CachedProperty
 
-        # Get the cache or set a default one if needed
-        cache = getattr(obj, '_cache', None)
-        if cache is None:
-            try:
-                cache = obj._cache = {}
-            except (AttributeError):
-                return
-
-        PyDict_SetItem(cache, self.name, value)
 
 cdef class AxisProperty(object):
     cdef:

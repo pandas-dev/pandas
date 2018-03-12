@@ -883,27 +883,66 @@ class DataFrame(NDFrame):
     @classmethod
     def from_dict(cls, data, orient='columns', dtype=None, columns=None):
         """
-        Construct DataFrame from dict of array-like or dicts
+        Construct DataFrame from dict of array-like or dicts.
+
+        Creates DataFrame object from dictionary by columns or by index
+        allowing dtype specification.
 
         Parameters
         ----------
         data : dict
-            {field : array-like} or {field : dict}
+            Of the form {field : array-like} or {field : dict}.
         orient : {'columns', 'index'}, default 'columns'
             The "orientation" of the data. If the keys of the passed dict
             should be the columns of the resulting DataFrame, pass 'columns'
             (default). Otherwise if the keys should be rows, pass 'index'.
         dtype : dtype, default None
-            Data type to force, otherwise infer
-        columns: list, default None
-            Column labels to use when orient='index'. Raises a ValueError
-            if used with orient='columns'
+            Data type to force, otherwise infer.
+        columns : list, default None
+            Column labels to use when ``orient='index'``. Raises a ValueError
+            if used with ``orient='columns'``.
 
             .. versionadded:: 0.23.0
 
         Returns
         -------
-        DataFrame
+        pandas.DataFrame
+
+        See Also
+        --------
+        DataFrame.from_records : DataFrame from ndarray (structured
+            dtype), list of tuples, dict, or DataFrame
+        DataFrame : DataFrame object creation using constructor
+
+        Examples
+        --------
+        By default the keys of the dict become the DataFrame columns:
+
+        >>> data = {'col_1': [3, 2, 1, 0], 'col_2': ['a', 'b', 'c', 'd']}
+        >>> pd.DataFrame.from_dict(data)
+           col_1 col_2
+        0      3     a
+        1      2     b
+        2      1     c
+        3      0     d
+
+        Specify ``orient='index'`` to create the DataFrame using dictionary
+        keys as rows:
+
+        >>> data = {'row_1': [3, 2, 1, 0], 'row_2': ['a', 'b', 'c', 'd']}
+        >>> pd.DataFrame.from_dict(data, orient='index')
+               0  1  2  3
+        row_1  3  2  1  0
+        row_2  a  b  c  d
+
+        When using the 'index' orientation, the column names can be
+        specified manually:
+
+        >>> pd.DataFrame.from_dict(data, orient='index',
+        ...                        columns=['A', 'B', 'C', 'D'])
+               A  B  C  D
+        row_1  3  2  1  0
+        row_2  a  b  c  d
         """
         index = None
         orient = orient.lower()
@@ -1209,20 +1248,68 @@ class DataFrame(NDFrame):
 
     def to_records(self, index=True, convert_datetime64=True):
         """
-        Convert DataFrame to record array. Index will be put in the
-        'index' field of the record array if requested
+        Convert DataFrame to a NumPy record array.
+
+        Index will be put in the 'index' field of the record array if
+        requested.
 
         Parameters
         ----------
         index : boolean, default True
-            Include index in resulting record array, stored in 'index' field
+            Include index in resulting record array, stored in 'index' field.
         convert_datetime64 : boolean, default True
             Whether to convert the index to datetime.datetime if it is a
-            DatetimeIndex
+            DatetimeIndex.
 
         Returns
         -------
-        y : recarray
+        y : numpy.recarray
+
+        See Also
+        --------
+        DataFrame.from_records: convert structured or record ndarray
+            to DataFrame.
+        numpy.recarray: ndarray that allows field access using
+            attributes, analogous to typed columns in a
+            spreadsheet.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2], 'B': [0.5, 0.75]},
+        ...                   index=['a', 'b'])
+        >>> df
+           A     B
+        a  1  0.50
+        b  2  0.75
+        >>> df.to_records()
+        rec.array([('a', 1, 0.5 ), ('b', 2, 0.75)],
+                  dtype=[('index', 'O'), ('A', '<i8'), ('B', '<f8')])
+
+        The index can be excluded from the record array:
+
+        >>> df.to_records(index=False)
+        rec.array([(1, 0.5 ), (2, 0.75)],
+                  dtype=[('A', '<i8'), ('B', '<f8')])
+
+        By default, timestamps are converted to `datetime.datetime`:
+
+        >>> df.index = pd.date_range('2018-01-01 09:00', periods=2, freq='min')
+        >>> df
+                             A     B
+        2018-01-01 09:00:00  1  0.50
+        2018-01-01 09:01:00  2  0.75
+        >>> df.to_records()
+        rec.array([(datetime.datetime(2018, 1, 1, 9, 0), 1, 0.5 ),
+                   (datetime.datetime(2018, 1, 1, 9, 1), 2, 0.75)],
+                  dtype=[('index', 'O'), ('A', '<i8'), ('B', '<f8')])
+
+        The timestamp conversion can be disabled so NumPy's datetime64
+        data type is used instead:
+
+        >>> df.to_records(convert_datetime64=False)
+        rec.array([('2018-01-01T09:00:00.000000000', 1, 0.5 ),
+                   ('2018-01-01T09:01:00.000000000', 2, 0.75)],
+                  dtype=[('index', '<M8[ns]'), ('A', '<i8'), ('B', '<f8')])
         """
         if index:
             if is_datetime64_any_dtype(self.index) and convert_datetime64:
@@ -1697,10 +1784,15 @@ class DataFrame(NDFrame):
 
         .. versionadded:: 0.21.0
 
+        This function writes the dataframe as a `parquet file
+        <https://parquet.apache.org/>`_. You can choose different parquet
+        backends, and have the option of compression. See
+        :ref:`the user guide <io.parquet>` for more details.
+
         Parameters
         ----------
         fname : str
-            string file path
+            String file path.
         engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
             Parquet library to use. If 'auto', then the option
             ``io.parquet.engine`` is used. The default ``io.parquet.engine``
@@ -1708,8 +1800,31 @@ class DataFrame(NDFrame):
             'pyarrow' is unavailable.
         compression : {'snappy', 'gzip', 'brotli', None}, default 'snappy'
             Name of the compression to use. Use ``None`` for no compression.
-        kwargs
-            Additional keyword arguments passed to the engine
+        **kwargs
+            Additional arguments passed to the parquet library. See
+            :ref:`pandas io <io.parquet>` for more details.
+
+        See Also
+        --------
+        read_parquet : Read a parquet file.
+        DataFrame.to_csv : Write a csv file.
+        DataFrame.to_sql : Write to a sql table.
+        DataFrame.to_hdf : Write to hdf.
+
+        Notes
+        -----
+        This function requires either the `fastparquet
+        <https://pypi.python.org/pypi/fastparquet>`_ or `pyarrow
+        <https://arrow.apache.org/docs/python/>`_ library.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(data={'col1': [1, 2], 'col2': [3, 4]})
+        >>> df.to_parquet('df.parquet.gzip', compression='gzip')
+        >>> pd.read_parquet('df.parquet.gzip')
+           col1  col2
+        0     1     3
+        1     2     4
         """
         from pandas.io.parquet import to_parquet
         to_parquet(self, fname, engine,
@@ -4722,20 +4837,90 @@ class DataFrame(NDFrame):
 
     def diff(self, periods=1, axis=0):
         """
-        1st discrete difference of object
+        First discrete difference of element.
+
+        Calculates the difference of a DataFrame element compared with another
+        element in the DataFrame (default is the element in the same column
+        of the previous row).
 
         Parameters
         ----------
         periods : int, default 1
-            Periods to shift for forming difference
+            Periods to shift for calculating difference, accepts negative
+            values.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             Take difference over rows (0) or columns (1).
 
-            .. versionadded:: 0.16.1
+            .. versionadded:: 0.16.1.
 
         Returns
         -------
         diffed : DataFrame
+
+        See Also
+        --------
+        Series.diff: First discrete difference for a Series.
+        DataFrame.pct_change: Percent change over given number of periods.
+        DataFrame.shift: Shift index by desired number of periods with an
+            optional time freq.
+
+        Examples
+        --------
+        Difference with previous row
+
+        >>> df = pd.DataFrame({'a': [1, 2, 3, 4, 5, 6],
+        ...                    'b': [1, 1, 2, 3, 5, 8],
+        ...                    'c': [1, 4, 9, 16, 25, 36]})
+        >>> df
+           a  b   c
+        0  1  1   1
+        1  2  1   4
+        2  3  2   9
+        3  4  3  16
+        4  5  5  25
+        5  6  8  36
+
+        >>> df.diff()
+             a    b     c
+        0  NaN  NaN   NaN
+        1  1.0  0.0   3.0
+        2  1.0  1.0   5.0
+        3  1.0  1.0   7.0
+        4  1.0  2.0   9.0
+        5  1.0  3.0  11.0
+
+        Difference with previous column
+
+        >>> df.diff(axis=1)
+            a    b     c
+        0 NaN  0.0   0.0
+        1 NaN -1.0   3.0
+        2 NaN -1.0   7.0
+        3 NaN -1.0  13.0
+        4 NaN  0.0  20.0
+        5 NaN  2.0  28.0
+
+        Difference with 3rd previous row
+
+        >>> df.diff(periods=3)
+             a    b     c
+        0  NaN  NaN   NaN
+        1  NaN  NaN   NaN
+        2  NaN  NaN   NaN
+        3  3.0  2.0  15.0
+        4  3.0  4.0  21.0
+        5  3.0  6.0  27.0
+
+        Difference with following row
+
+        >>> df.diff(periods=-1)
+             a    b     c
+        0 -1.0  0.0  -3.0
+        1 -1.0 -1.0  -5.0
+        2 -1.0 -1.0  -7.0
+        3 -1.0 -2.0  -9.0
+        4 -1.0 -3.0 -11.0
+        5  NaN  NaN   NaN
         """
         bm_axis = self._get_block_manager_axis(axis)
         new_data = self._data.diff(n=periods, axis=bm_axis)
@@ -5501,7 +5686,22 @@ class DataFrame(NDFrame):
 
     def cov(self, min_periods=None):
         """
-        Compute pairwise covariance of columns, excluding NA/null values
+        Compute pairwise covariance of columns, excluding NA/null values.
+
+        Compute the pairwise covariance among the series of a DataFrame.
+        The returned data frame is the `covariance matrix
+        <https://en.wikipedia.org/wiki/Covariance_matrix>`__ of the columns
+        of the DataFrame.
+
+        Both NA and null values are automatically excluded from the
+        calculation. (See the note below about bias from missing values.)
+        A threshold can be set for the minimum number of
+        observations for each value created. Comparisons with observations
+        below this threshold will be returned as ``NaN``.
+
+        This method is generally used for the analysis of time series data to
+        understand the relationship between different measures
+        across time.
 
         Parameters
         ----------
@@ -5511,12 +5711,71 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        y : DataFrame
+        DataFrame
+            The covariance matrix of the series of the DataFrame.
+
+        See Also
+        --------
+        pandas.Series.cov : compute covariance with another Series
+        pandas.core.window.EWM.cov: expoential weighted sample covariance
+        pandas.core.window.Expanding.cov : expanding sample covariance
+        pandas.core.window.Rolling.cov : rolling sample covariance
 
         Notes
         -----
-        `y` contains the covariance matrix of the DataFrame's time series.
-        The covariance is normalized by N-1 (unbiased estimator).
+        Returns the covariance matrix of the DataFrame's time series.
+        The covariance is normalized by N-1.
+
+        For DataFrames that have Series that are missing data (assuming that
+        data is `missing at random
+        <https://en.wikipedia.org/wiki/Missing_data#Missing_at_random>`__)
+        the returned covariance matrix will be an unbiased estimate
+        of the variance and covariance between the member Series.
+
+        However, for many applications this estimate may not be acceptable
+        because the estimate covariance matrix is not guaranteed to be positive
+        semi-definite. This could lead to estimate correlations having
+        absolute values which are greater than one, and/or a non-invertible
+        covariance matrix. See `Estimation of covariance matrices
+        <http://en.wikipedia.org/w/index.php?title=Estimation_of_covariance_
+        matrices>`__ for more details.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame([(1, 2), (0, 3), (2, 0), (1, 1)],
+        ...                   columns=['dogs', 'cats'])
+        >>> df.cov()
+                  dogs      cats
+        dogs  0.666667 -1.000000
+        cats -1.000000  1.666667
+
+        >>> np.random.seed(42)
+        >>> df = pd.DataFrame(np.random.randn(1000, 5),
+        ...                   columns=['a', 'b', 'c', 'd', 'e'])
+        >>> df.cov()
+                  a         b         c         d         e
+        a  0.998438 -0.020161  0.059277 -0.008943  0.014144
+        b -0.020161  1.059352 -0.008543 -0.024738  0.009826
+        c  0.059277 -0.008543  1.010670 -0.001486 -0.000271
+        d -0.008943 -0.024738 -0.001486  0.921297 -0.013692
+        e  0.014144  0.009826 -0.000271 -0.013692  0.977795
+
+        **Minimum number of periods**
+
+        This method also supports an optional ``min_periods`` keyword
+        that specifies the required minimum number of non-NA observations for
+        each column pair in order to have a valid result:
+
+        >>> np.random.seed(42)
+        >>> df = pd.DataFrame(np.random.randn(20, 3),
+        ...                   columns=['a', 'b', 'c'])
+        >>> df.loc[df.index[:5], 'a'] = np.nan
+        >>> df.loc[df.index[5:10], 'b'] = np.nan
+        >>> df.cov(min_periods=12)
+                  a         b         c
+        a  0.316741       NaN -0.150812
+        b       NaN  1.248003  0.191417
+        c -0.150812  0.191417  0.895202
         """
         numeric_df = self._get_numeric_data()
         cols = numeric_df.columns
