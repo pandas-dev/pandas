@@ -1644,12 +1644,14 @@ class _iLocIndexer(_LocationIndexer):
     - A boolean array.
     - A ``callable`` function with one argument (the calling Series, DataFrame
       or Panel) and that returns valid output for indexing (one of the above).
+      This is useful in method chains, when you don't have a reference to the
+      calling object, but would like to base your selection on some value.
 
     ``.iloc`` will raise ``IndexError`` if a requested indexer is
     out-of-bounds, except *slice* indexers which allow out-of-bounds
     indexing (this conforms with python/numpy *slice* semantics).
 
-    ref:`Selection by Position <indexing.integer>`.
+    See more at ref:`Selection by Position <indexing.integer>`.
 
     See Also
     --------
@@ -1664,14 +1666,16 @@ class _iLocIndexer(_LocationIndexer):
     >>> mydict = [{'a': 1, 'b': 2, 'c': 3, 'd': 4},
     ...           {'a': 100, 'b': 200, 'c': 300, 'd': 400},
     ...           {'a': 1000, 'b': 2000, 'c': 3000, 'd': 4000 }]
-    >>> df=pd.DataFrame(mydict)
+    >>> df = pd.DataFrame(mydict)
     >>> df
           a     b     c     d
     0     1     2     3     4
     1   100   200   300   400
     2  1000  2000  3000  4000
 
-    Select using integer.
+    **Indexing just the rows**
+
+    With a scalar integer.
 
     >>> type(df.iloc[0])
     <class 'pandas.core.series.Series'>
@@ -1681,31 +1685,58 @@ class _iLocIndexer(_LocationIndexer):
     c    3
     d    4
     Name: 0, dtype: int64
-    >>> type(df.iloc[[0]])
-    <class 'pandas.core.frame.DataFrame'>
+
+    With a list of integers.
+
     >>> df.iloc[[0]]
        a  b  c  d
     0  1  2  3  4
+    >>> type(df.iloc[[0]])
+    <class 'pandas.core.frame.DataFrame'>
 
-    Multi index selection.
+    >>> df.iloc[[0, 1]]
+         a    b    c    d
+    0    1    2    3    4
+    1  100  200  300  400
 
-    >>> df.iloc[0,1]
-    2
-
-    Select using list
-
-    >>> df.iloc[[0,2],[1,3]]
-          b     d
-    0     2     4
-    2  2000  4000
-
-    Select via index slicing.
+    With a slice object.
 
     >>> df.iloc[:3]
           a     b     c     d
     0     1     2     3     4
     1   100   200   300   400
     2  1000  2000  3000  4000
+
+    With a boolean mask the same length as the index.
+
+    >>> df.iloc[[True, False, True]]
+          a     b     c     d
+    0     1     2     3     4
+    2  1000  2000  3000  4000
+
+    With a callable, useful in method chains. The `x` passed
+    to the ``lambda`` is the DataFrame being sliced. This selects
+    the rows whose index label even.
+
+    >>> df.iloc[lambda x: x.index % 2 == 0]
+          a     b     c     d
+    0     1     2     3     4
+    2  1000  2000  3000  4000
+
+    **Indexing both axes**
+
+    With scalars.
+
+    >>> df.iloc[0, 1]
+    2
+
+    With lists.
+
+    >>> df.iloc[[0, 2], [1, 3]]
+          b     d
+    0     2     4
+    2  2000  4000
+
     >>> df.iloc[1:3, 0:3]
           a     b     c
     1   100   200   300
@@ -1713,7 +1744,7 @@ class _iLocIndexer(_LocationIndexer):
 
     Select using boolean array.
 
-    >>> df.iloc[:,[True,False,True,False]]
+    >>> df.iloc[:, [True, False, True, False]]
           a     c
     0     1     3
     1   100   300
