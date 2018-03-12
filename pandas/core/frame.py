@@ -4413,10 +4413,10 @@ class DataFrame(NDFrame):
 
         A ValueError is raised if there are any duplicates.
 
-        >>> af = pd.DataFrame({"foo": ['one', 'one', 'two', 'two'],
+        >>> df = pd.DataFrame({"foo": ['one', 'one', 'two', 'two'],
         ...                    "bar": ['A', 'A', 'B', 'C'],
         ...                    "baz": [1, 2, 3, 4]})
-        >>> af
+        >>> df
            foo bar  baz
         0  one   A    1
         1  one   A    2
@@ -4426,7 +4426,7 @@ class DataFrame(NDFrame):
         Notice that the first two rows are the same for our `index`
         and `columns` arguments.
 
-        >>> af.pivot(index='foo', columns='bar', values='baz')
+        >>> df.pivot(index='foo', columns='bar', values='baz')
         Traceback (most recent call last):
            ...
         ValueError: Index contains duplicate entries, cannot reshape
