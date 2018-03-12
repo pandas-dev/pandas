@@ -4859,9 +4859,9 @@ class DataFrame(NDFrame):
               achieve much better performance.
         reduce : bool or `None`, default `None`
             Try to apply reduction procedures. If the DataFrame is empty,
-            :meth:`apply` will use `reduce` to determine whether the result
+            `apply` will use `reduce` to determine whether the result
             should be a Series or a DataFrame. If ``reduce is None`` (the
-            default), :meth:`apply`'s return value will be guessed by calling
+            default), `apply`'s return value will be guessed by calling
             `func` on an empty Series
             (note: while guessing, exceptions raised by `func` will be
             ignored).
