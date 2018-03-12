@@ -3120,43 +3120,43 @@ class DataFrame(NDFrame):
         ...                      labels=[[0, 0, 0, 1, 1, 1, 2, 2, 2],
         ...                              [0, 1, 2, 0, 1, 2, 0, 1, 2]])
         >>> df = pd.DataFrame(index=midx, columns=['big', 'small'],
-        ...                   data=[[45,30], [200,100], [1.5,1], [30,20],
-        ...                         [250,150], [1.5,0.8], [320,250], [1,0.8],
-        ...                         [0.3,0.2]])
+        ...                   data=[[45, 30], [200, 100], [1.5, 1], [30, 20],
+        ...                         [250, 150], [1.5, 0.8], [320, 250],
+        ...                         [1, 0.8], [0.3,0.2]])
         >>> df
-                        big 	small
-        lama 	speed   45.0 	30.0
-                weight  200.0 	100.0
-                length 	1.5 	1.0
-        cow 	speed   30.0 	20.0
-                weight 	250.0 	150.0
-                length 	1.5 	0.8
-        falcon 	speed 	320.0 	250.0
-                weight 	1.0 	0.8
-                length 	0.3 	0.2
+                        big     small
+        lama    speed   45.0    30.0
+                weight  200.0   100.0
+                length  1.5     1.0
+        cow     speed   30.0    20.0
+                weight  250.0   150.0
+                length  1.5     0.8
+        falcon  speed   320.0   250.0
+                weight  1.0     0.8
+                length  0.3     0.2
 
         >>> df.drop(index='cow', columns='small')
                         big
         lama    speed   45.0
                 weight  200.0
-                length 	1.5
-        falcon 	speed   320.0
-                weight 	1.0
-                length 	0.3
+                length  1.5
+        falcon  speed   320.0
+                weight  1.0
+                length  0.3
 
         >>> df.drop(index='length', level=1)
-                        big 	small
-        lama 	speed 	45.0 	30.0
-                weight 	200.0 	100.0
-        cow 	speed 	30.0 	20.0
-                weight 	250.0 	150.0
-        falcon 	speed 	320.0 	250.0
-                weight 	1.0 	0.8
+                        big     small
+        lama    speed   45.0    30.0
+                weight  200.0   100.0
+        cow     speed   30.0    20.0
+                weight  250.0   150.0
+        falcon  speed   320.0   250.0
+                weight  1.0     0.8
         """
-        return super(DataFrame,self).drop(labels=labels, axis=axis,
-                                          index=index, columns=columns,
-                                          level=level, inplace=inplace,
-                                          errors=errors)
+        return super(DataFrame, self).drop(labels=labels, axis=axis,
+                                           index=index, columns=columns,
+                                           level=level, inplace=inplace,
+                                           errors=errors)
 
     @rewrite_axis_style_signature('mapper', [('copy', True),
                                              ('inplace', False),

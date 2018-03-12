@@ -2720,11 +2720,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Drop 2nd level label in MultiIndex Series
 
-        >>> midx = pd.MultiIndex(levels=[['lama','cow','falcon'],
-        ...                              ['speed','weight','length']],
+        >>> midx = pd.MultiIndex(levels=[['lama', 'cow', 'falcon'],
+        ...                              ['speed', 'weight', 'length']],
         ...                      labels=[[0, 0, 0, 1, 1, 1, 2, 2, 2],
         ...                              [0, 1, 2, 0, 1, 2, 0, 1, 2]])
-        >>> s = pd.Series(data=[45,200,1.2,30,250,1.5,320,1,0.3], index=midx)
+        >>> s = pd.Series([45, 200, 1.2, 30, 250, 1.5, 320, 1, 0.3],
+        ...               index=midx)
         >>> s
         lama    speed      45.0
                 weight    200.0
