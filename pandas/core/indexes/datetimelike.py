@@ -122,20 +122,21 @@ class TimelikeOps(object):
     @Appender(_round_doc % "ceil")
     def ceil(self, freq):
         """
-        Ceil the index to the specified freq.
+        Floor the index to the specified freq.
 
-        Links to the available `frequency strings <http://pandas.
-        pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`_
-        and `frequency objects <http://pandas.pydata.org/pandas-docs/
-        stable/timeseries.html#dateoffset-objects>`_ .
+        Links to the available [frequency strings](http://pandas.
+        pydata.org/pandas-docs/stable/timeseries.html#offset-aliases)
+        and [frequency objects](http://pandas.pydata.org/pandas-docs/
+        stable/timeseries.html#dateoffset-objects).
 
         Parameters
         ----------
-        freq : freq string/object
+        freq : str, object
+            String or object specifying the frequency to round down to.
 
         Returns
         -------
-        ceil : DatetimeIndex
+        index of same type
 
         See Also
         --------
@@ -145,17 +146,16 @@ class TimelikeOps(object):
         Examples
         --------
 
-        In [2]: df = pd.DatetimeIndex(start='2014-08-01 09:23:41.321211',
+        >>> dti = pd.DatetimeIndex(start='2014-08-01 09:23:41.321211',
         freq = 'H', periods = 3)
 
-        In [3]: df
-
-        Out[3]: DatetimeIndex(['2014-08-01 09:23:41.321211',
+        >>> dti
+        DatetimeIndex(['2014-08-01 09:23:41.321211',
         '2014-08-01 10:23:41.321211', '2014-08-01 11:23:41.321211'],
         dtype='datetime64[ns]', freq='H')
 
-        In [4]: df.ceil('H')
-        Out[4]: DatetimeIndex(['2014-08-01 10:00:00', '2014-08-01 11:00:00',
+        >>> dti.ceil('H')
+        DatetimeIndex(['2014-08-01 10:00:00', '2014-08-01 11:00:00',
                '2014-08-01 12:00:00'],
               dtype='datetime64[ns]', freq=None)
 
