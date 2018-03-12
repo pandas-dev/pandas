@@ -1276,7 +1276,7 @@ cdef class _Period(object):
     @property
     def daysinmonth(self):
         """
-        Get total days of month that a Period falls on.
+        Get the total number of days of the month that the Period falls in.
 
         Returns
         -------
@@ -1285,7 +1285,6 @@ cdef class _Period(object):
         See Also
         --------
         Period.days_in_month : Return the days of the month
-
         Period.dayofyear : Return the day of the year
 
         Examples
