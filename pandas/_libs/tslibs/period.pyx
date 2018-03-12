@@ -1286,17 +1286,16 @@ cdef class _Period(object):
 
         Examples
         --------
-        >>> p= pd.Period('2018-2-17')
+        >>> p = pd.Period('2018-2-17')
         >>> p.days_in_month
         28
 
-        >>> import datetime
-        >>> pd.Period(datetime.datetime.today(), freq= 'B').days_in_month
+        >>> pd.Period('2018-03-01').days_in_month
         31
 
         Handles the leap year case as well:
 
-        >>> p= pd.Period('2016-2-17')
+        >>> p = pd.Period('2016-2-17')
         >>> p.days_in_month
         29
         """
