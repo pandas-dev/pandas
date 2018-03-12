@@ -1116,9 +1116,8 @@ def str_split(arr, pat=None, n=None):
 
     Returns
     -------
-    split : Series/Index or DataFrame/MultiIndex of objects
-        Type matches caller unless ``expand=True`` (return type is DataFrame or
-    MultiIndex)
+    Series, Index, DataFrame or MultiIndex
+        Type matches caller unless ``expand=True`` (see Notes)
 
     Notes
     -----
@@ -1128,6 +1127,9 @@ def str_split(arr, pat=None, n=None):
     - If found splits <= `n`, make all splits
     - If for a certain row the number of found splits < `n`,
       append `None` for padding up to `n` if ``expand=True``
+
+    If using ``expand=True``, Series and Index callers return DataFrame and
+    MultiIndex objects, respectively.
 
     Examples
     --------
@@ -1145,8 +1147,10 @@ def str_split(arr, pat=None, n=None):
     1    [but this is even better]
     dtype: object
 
-    When using ``expand=True``, the split elements will
-    expand out into separate columns.
+    When using ``expand=True``, the split elements will expand out into
+    separate columns.
+
+    For Series object, output return type is DataFrame.
 
     >>> s.str.split(expand=True)
           0     1     2     3       4
@@ -1156,6 +1160,13 @@ def str_split(arr, pat=None, n=None):
               0            1
     0      this    good text
     1  but this  even better
+
+    For Index object, output return type is MultiIndex.
+
+    >>> i = pd.Index(["ba 100 001", "ba 101 002", "ba 102 003"])
+    >>> i.str.split(expand=True)
+    MultiIndex(levels=[['ba'], ['100', '101', '102'], ['001', '002', '003']],
+           labels=[[0, 0, 0], [0, 1, 2], [0, 1, 2]])
 
     Parameter `n` can be used to limit the number of splits in the output.
 
