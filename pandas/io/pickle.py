@@ -19,7 +19,8 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
     path : string
         File path where the pickled object will be stored.
     compression : {'infer', 'gzip', 'bz2', 'xz', None}, default 'infer'
-        A string representing the compression to use in the output file.
+        A string representing the compression to use in the output file. By
+        default, infers from the specified path.
 
         .. versionadded:: 0.20.0
     protocol : int
@@ -57,14 +58,11 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
 
     See Also
     --------
-    pandas.read_pickle : Load pickled pandas object (or any other pickled
-                         object) from the specified file path.
-    pandas.DataFrame.to_hdf : Write the contained data to an HDF5 file using
-                              HDFStore.
-    pandas.DataFrame.to_sql : Write records stored in a DataFrame to a SQL
-                              database.
-    pandas.DataFrame.to_parquet : Write a DataFrame to the binary parquet
-                                  format.
+    read_pickle : Load pickled pandas object (or any other pickled object) from
+                  the specified file path.
+    DataFrame.to_hdf : Write the contained data to an HDF5 file using HDFStore.
+    DataFrame.to_sql : Write records stored in a DataFrame to a SQL database.
+    DataFrame.to_parquet : Write a DataFrame to the binary parquet format.
     """
     path = _stringify_path(path)
     inferred_compression = _infer_compression(path, compression)
@@ -129,14 +127,13 @@ def read_pickle(path, compression='infer'):
 
     See Also
     --------
-    pandas.DataFrame.to_pickle : Pickle (serialize) DataFrame object to input
-                                 file path.
-    pandas.Series.to_pickle : Pickle (serialize) Series object to input
-                              file path.
-    pandas.read_hdf : read from the store, close it if we opened it.
-    pandas.read_sql : Read SQL query or database table into a DataFrame.
-    pandas.read_parquet : Load a parquet object from the file path, returning
-                          a DataFrame.
+    DataFrame.to_pickle : Pickle (serialize) DataFrame object to input file
+                          path.
+    Series.to_pickle : Pickle (serialize) Series object to input file path.
+    read_hdf : read from the store, close it if we opened it.
+    read_sql : Read SQL query or database table into a DataFrame.
+    read_parquet : Load a parquet object from the file path, returning a
+                   DataFrame.
     """
     path = _stringify_path(path)
     inferred_compression = _infer_compression(path, compression)
