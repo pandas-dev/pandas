@@ -607,11 +607,12 @@ class _LxmlFrameParser(_HtmlFrameParser):
         parser = HTMLParser(recover=True, encoding=self.encoding)
 
         try:
-            _io = self.io
-            if _is_url(_io):
-                _io = urlopen(_io)
-            # try to parse the input in the simplest way
-            r = parse(_io, parser=parser)
+            if _is_url(self.io):
+                with urlopen(self.io) as f:
+                    r = parse(f, parser=parser)
+            else:
+                # try to parse the input in the simplest way
+                r = parse(self.io, parser=parser)
             try:
                 r = r.getroot()
             except AttributeError:
