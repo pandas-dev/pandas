@@ -1122,9 +1122,12 @@ def str_split(arr, pat=None, n=None):
 
     Notes
     -----
-    - If n >= default splits, makes all splits
-    - If n < default splits, makes first n splits only
-    - Appends `None` for padding if ``expand=True``
+    The handling of the `n` keyword depends on the number of found splits:
+
+    - If found splits > `n`,  make first `n` splits only
+    - If found splits <= `n`, make all splits
+    - If for a certain row the number of found splits < `n`,
+      append `None` for padding up to `n` if ``expand=True``
 
     Examples
     --------
