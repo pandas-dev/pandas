@@ -4,6 +4,7 @@ import pytz
 import pytest
 import dateutil
 import calendar
+import locale
 import numpy as np
 
 from dateutil.tz import tzutc
@@ -21,7 +22,7 @@ from pandas._libs.tslibs.timezones import get_timezone, dateutil_gettz as gettz
 from pandas.errors import OutOfBoundsDatetime
 from pandas.compat import long, PY3
 from pandas.compat.numpy import np_datetime64_compat
-from pandas import Timestamp, Period, Timedelta
+from pandas import Timestamp, Period, Timedelta, NaT
 
 
 class TestTimestampProperties(object):
@@ -95,13 +96,33 @@ class TestTimestampProperties(object):
         for end in ends:
             assert getattr(ts, end)
 
-    @pytest.mark.parametrize('data, expected',
-                             [(Timestamp('2017-08-28 23:00:00'), 'Monday'),
-                              (Timestamp('2017-08-28 23:00:00', tz='EST'),
-                               'Monday')])
-    def test_weekday_name(self, data, expected):
+    # GH 12806
+    @pytest.mark.parametrize('data',
+                             [Timestamp('2017-08-28 23:00:00'),
+                              Timestamp('2017-08-28 23:00:00', tz='EST')])
+    @pytest.mark.parametrize('time_locale', [
+        None] if tm.get_locales() is None else [None] + tm.get_locales())
+    def test_names(self, data, time_locale):
         # GH 17354
-        assert data.weekday_name == expected
+        # Test .weekday_name, .day_name(), .month_name
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            assert data.weekday_name == 'Monday'
+        if time_locale is None:
+            expected_day = 'Monday'
+            expected_month = 'August'
+        else:
+            with tm.set_locale(time_locale, locale.LC_TIME):
+                expected_day = calendar.day_name[0].capitalize()
+                expected_month = calendar.month_name[8].capitalize()
+
+        assert data.day_name(time_locale) == expected_day
+        assert data.month_name(time_locale) == expected_month
+
+        # Test NaT
+        nan_ts = Timestamp(NaT)
+        assert np.isnan(nan_ts.day_name(time_locale))
+        assert np.isnan(nan_ts.month_name(time_locale))
 
     @pytest.mark.parametrize('tz', [None, 'UTC', 'US/Eastern', 'Asia/Tokyo'])
     def test_is_leap_year(self, tz):
