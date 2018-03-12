@@ -5258,16 +5258,15 @@ class NDFrame(PandasObject, SelectionMixin):
         method : {'linear', 'time', 'index', 'values', 'nearest', 'zero',
                   'slinear', 'quadratic', 'cubic', 'barycentric', 'krogh',
                   'polynomial', 'spline', 'piecewise_polynomial', 'pad',
-                  'from_derivatives', 'pchip', 'akima'}, default 'linear'
+                  'from_derivatives', 'pchip', 'akima'}
             Interpolation technique to use.
 
             * 'linear': Ignore the index and treat the values as equally
               spaced. This is the only method supported on MultiIndexes.
-              Default.
-            * 'time': Interpolation works on daily and higher resolution
+            * 'time': Works on daily and higher resolution
               data to interpolate given length of interval.
             * 'index', 'values': use the actual numerical values of the index.
-            * 'pad': Fill in NaNs using existing values.
+            * 'pad': Fill in `NaN`s using existing values.
             * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
               'barycentric', 'polynomial': Passed to
               ``scipy.interpolate.interp1d``. Both 'polynomial' and 'spline'
@@ -5275,15 +5274,10 @@ class NDFrame(PandasObject, SelectionMixin):
               e.g. df.interpolate(method='polynomial', order=4).
               These use the actual numerical values of the index.
             * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima':
-              Wrappers around the scipy interpolation methods of
-              similar names. These use the actual numerical values of the
-              index. For more information on their behavior, see the
-              `scipy documentation
-              <http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__
-              and `tutorial documentation
-              <http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html>`__.
+              Wrappers around the scipy interpolation methods of similar
+              names. See `Notes`.
             * 'from_derivatives': Refers to
-              ``scipy.intrepolate.BPoly.from_derivatives`` which
+              ``scipy.interpolate.BPoly.from_derivatives`` which
               replaces 'piecewise_polynomial' interpolation method in
               scipy 0.18.
 
@@ -5294,32 +5288,30 @@ class NDFrame(PandasObject, SelectionMixin):
                'piecewise_polynomial' in scipy 0.18; backwards-compatible with
                scipy < 0.18
 
-        axis : {0, 1}, default 0
+        axis : {0 or 'index', 1 or 'columns', None}, default None
             Axis to interpolate along.
-
-            * 0: Fill column-by-column.
-            * 1: Fill row-by-row.
-        limit : int, default None
-            Maximum number of consecutive NaNs to fill. Must be greater than 0.
+        limit : int, optional
+            Maximum number of consecutive `NaN`s to fill. Must be greater than
+            0.
         inplace : bool, default False
             Update the data in place if possible.
         limit_direction : {'forward', 'backward', 'both'}, default 'forward'
-            If limit is specified, consecutive NaNs will be filled in this
+            If limit is specified, consecutive `NaN`s will be filled in this
             direction.
-        limit_area : {'inside', 'outside'}, default None
-            If limit is specified, consecutive NaNs will be filled with this
+        limit_area : {`None`, 'inside', 'outside'}
+            If limit is specified, consecutive `NaN`s will be filled with this
             restriction.
 
             * None: No fill restriction (default).
-            * 'inside': Only fill NaNs surrounded by valid values
+            * 'inside': Only fill `NaN`s surrounded by valid values
               (interpolate).
-            * 'outside': Only fill NaNs outside valid values (extrapolate).
+            * 'outside': Only fill `NaN`s outside valid values (extrapolate).
 
             .. versionadded:: 0.21.0
 
         downcast : optional, 'infer' or None, defaults to None
             Downcast dtypes if possible.
-        kwargs
+        **kwargs
             Keyword arguments to pass on to the interpolating function.
 
         Returns
@@ -5331,27 +5323,50 @@ class NDFrame(PandasObject, SelectionMixin):
         --------
         replace : replace a value
         fillna : fill missing values
+        scipy.interpolate.Akima1DInterpolator : piecewise cubic polynomials
+            (Akima interpolator)
+        scipy.interpolate.BPoly.from_derivatives : piecewise polynomial in the
+            Bernstein basis
+        scipy.interpolate.interp1d : interpolate a 1-D function
+        scipy.interpolate.KroghInterpolator : interpolate polynomial (Krogh
+            interpolator)
+        scipy.interpolate.PchipInterpolator : PCHIP 1-d monotonic cubic
+            interpolation
+        scipy.interpolate.CubicSpline : cubic spline data interpolator
+
+        Notes
+        -----
+        If the selected `method` is one of 'krogh', 'piecewise_polynomial',
+        'spline', 'pchip', 'akima':
+        They are wrappers around the scipy interpolation methods of similar
+        names. These use the actual numerical values of the index.
+        For more information on their behavior, see the
+        `scipy documentation
+        <http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__
+        and `tutorial documentation
+        <http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html>`__.
 
         Examples
         --------
 
-        Filling in NaNs in a Series via linear interpolation.
+        Filling in `NaNs` in a :class:`~pandas.Series` via linear
+        interpolation.
 
-        >>> ser = pd.Series([0, 1, np.nan, 3])
-        >>> ser.interpolate()
+        >>> s = pd.Series([0, 1, np.nan, 3])
+        >>> s.interpolate()
         0    0.0
         1    1.0
         2    2.0
         3    3.0
         dtype: float64
 
-        Filling in NaNs in a Series by padding, but filling at most two
-        consecutive NaN at a time.
+        Filling in `NaN`s in a Series by padding, but filling at most two
+        consecutive `NaN` at a time.
 
-        >>> ser = pd.Series([np.nan, "single_one", np.nan,
+        >>> s = pd.Series([np.nan, "single_one", np.nan,
         ...                  "fill_two_more", np.nan, np.nan, np.nan,
         ...                  4.71, np.nan])
-        >>> ser
+        >>> s
         0              NaN
         1       single_one
         2              NaN
@@ -5362,7 +5377,7 @@ class NDFrame(PandasObject, SelectionMixin):
         7             4.71
         8              NaN
         dtype: object
-        >>> ser.interpolate(method='pad', limit=2)
+        >>> s.interpolate(method='pad', limit=2)
         0              NaN
         1       single_one
         2       single_one
@@ -5374,7 +5389,8 @@ class NDFrame(PandasObject, SelectionMixin):
         8             4.71
         dtype: object
 
-        Create a DataFrame with missing values.
+        Create a :class:`~pandas.DataFrame` with missing values to fill it
+        with diffferent methods.
 
         >>> df = pd.DataFrame([[0,1,2,0,4],[1,2,3,-1,8],
         ...                    [2,3,4,-2,12],[3,4,5,-3,16]],
@@ -5400,7 +5416,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Fill the DataFrame forward (that is, going down) along each column.
         Note how the last entry in column `a` is interpolated differently
         (because there is no entry after it to use for interpolation).
-        Note how the first entry in column `b` remains NA (because there
+        Note how the first entry in column `b` remains `NaN` (because there
         is no entry befofe it to use for interpolation).
 
         >>> df.interpolate(method='linear', limit_direction='forward', axis=0)
