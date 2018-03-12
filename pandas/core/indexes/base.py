@@ -2334,7 +2334,7 @@ class Index(IndexOpsMixin, PandasObject):
         See also
         --------
         numpy.argsort : Similar method for NumPy arrays.
-        Index.sort_values : Return sorted copy of Index
+        Index.sort_values : Return sorted copy of Index.
 
         Examples
         --------
