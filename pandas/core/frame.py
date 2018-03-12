@@ -5594,9 +5594,8 @@ class DataFrame(NDFrame):
         """
         Count non-NA cells for each column or row.
 
-        Return Series with number of non-NA observations over requested
-        axis. Works with non-floating point data as well (detects `None`,
-        `NaN` and `NaT`).
+        The values `None`, `NaN`, `NaT`, and optionally `numpy.inf` (depending
+        on `pandas.options.mode.use_inf_as_na`) are considered NA.
 
         Parameters
         ----------
