@@ -1406,7 +1406,7 @@ class Categorical(ExtensionArray, PandasObject):
             or descending sort.
         kind : {'quicksort', 'mergesort', 'heapsort'}, optional
             Sorting algorithm.
-        args, kwargs:
+        *args, **kwargs:
             passed through to :func:`numpy.argsort`.
 
         Returns
