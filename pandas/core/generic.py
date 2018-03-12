@@ -7531,11 +7531,12 @@ class NDFrame(PandasObject, SelectionMixin):
         freq : DateOffset, timedelta, or offset alias string, optional
             Increment to use from time series API (e.g. 'M' or BDay()).
         kwargs : mapping, optional
-            A dictionary of keyword arguments passed into ``%(klass)s.shift``.
+            A dictionary of keyword arguments passed into
+            ``DataFrame.shift``/``Series.shift``.
 
         Returns
         -------
-        chg : %(klass)s
+        chg : Series or DataFrame, same type as the input
 
         Notes
         -----
@@ -7566,7 +7567,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.%(klass)s.diff : see the difference of two columns
+        pandas.DataFrame.diff : see the difference of two columns
+        pandas.Series.diff : see the difference of two columns
         """
 
     @Appender(_shared_docs['pct_change'] % _shared_doc_kwargs)
