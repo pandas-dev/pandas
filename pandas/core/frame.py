@@ -4293,9 +4293,9 @@ class DataFrame(NDFrame):
     def update(self, other, join='left', overwrite=True, filter_func=None,
                raise_conflict=False):
         """
-        Modify in place using non-NA values from other DataFrame.
+        Modify in place using non-NA values from another DataFrame.
 
-        Aligns on indices.
+        Aligns on indices. There is no return value.
 
         Parameters
         ----------
@@ -4304,25 +4304,30 @@ class DataFrame(NDFrame):
             Series is passed, its name attribute must be set, and that will be
             used as the column name in the resulting joined DataFrame.
         join : {'left'}, default 'left'
-            Only left join is implemented,
-            keeping the index and columns of the original object.
+            Only left join is implemented, keeping the index and columns of the
+            original object.
         overwrite : boolean, default True
-            If True then overwrite values for common keys in the calling frame.
-            If False then only NA values in the calling object are updated.
+            How to handle non-NA values for overlapping keys.
+
+            * True : overwrite values in `self` with values from `other`.
+            * False : only update values that are NA in `self`.
+
         filter_func : callable(1d-array) -> 1d-array<boolean>, default None
             Can choose to replace values other than NA. Return True for values
             that should be updated.
         raise_conflict : boolean
-            If True, will raise an error if the DataFrame and other both
-            contain data in the same place.
+            If True, will raise a `ValueError` if the DataFrame and `other`
+            both contain non-NA data in the same place.
 
-        Returns
-        -------
-        updated : DataFrame
+        Raises
+        ------
+        ValueError
+            When `raise_conflict` is True and there's overlapping non-NA data.
 
         See Also
         --------
-        DataFrame.merge : For column(s)-on-columns(s) operations
+        dict.update : Similar method for dictionaries.
+        DataFrame.merge : For column(s)-on-columns(s) operations.
 
         Examples
         --------
