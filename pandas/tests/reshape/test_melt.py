@@ -230,7 +230,7 @@ class TestMelt(object):
                               'value': [1, 0, 0, 0, 0] + [0, 1, 0, 0, 0]})
         tm.assert_frame_equal(result, expected)
 
-        # Pandas dtype in the column
+        # Pandas dtype in the value
         df = DataFrame({'klass': range(5),
                         'col': col,
                         'attr1': [1, 0, 0, 0, 0],
