@@ -5718,30 +5718,34 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return copy of the input with values below given value(s) trimmed.
 
-        If an element value is below the threshold, the threshold value is
-        returned instead.
+        Elements below the `threshold` will be changed to `threshold`.
 
         Parameters
         ----------
-        threshold : float or array_like
+        threshold : float or array-like
             Lower value(s) to which the input value(s) will be trimmed.
-        axis : {0 or 'index', 1 or 'columns'}
+        axis : {0 or ‘index’, 1 or ‘columns’, None}, default None
             Align object with threshold along the given axis.
         inplace : boolean, default False
-            Whether to perform the operation in place on the data
-                .. versionadded:: 0.21.0.
+            Whether to perform the operation in place on the data.
+
+            .. versionadded:: 0.21.0
 
         See Also
         --------
-        DataFrame.clip: Trim values at input threshold(s).
-        DataFrame.clip_upper: Return copy of input with values above given
+        DataFrame.clip : Trim values at input threshold(s).
+        DataFrame.clip_upper : Return copy of input with values above given
             value(s) trimmed.
-        Series.clip_lower: Return copy of the input with values below given
+        Series.clip : Trim values at input threshold(s).
+        Series.clip_lower : Return copy of the input with values below given
+            value(s) trimmed.
+        Series.clip_upper : Return copy of input with values above given
             value(s) trimmed.
 
         Returns
         -------
-        clipped : same type as input
+        Series or DataFrame
+            Same type as caller.
 
         Examples
         --------
