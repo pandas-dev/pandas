@@ -2128,7 +2128,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     def day_name(self, locale=None):
         """
-        Return the day names of the DateTimeIndex with specified locale.
+        Returns the day names.
+        
+        Provides day names of the DateTimeIndex for the dataframe which consists of the time and date data with specified locale.
 
         Parameters
         ----------
@@ -2137,10 +2139,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         Returns
         -------
-        month_names : Index
-            Index of day names
-
-        .. versionadded:: 0.23.0
+        day_names : Index
+            Index (instance) of day names
         """
         values = self.asi8
         if self.tz is not None:
