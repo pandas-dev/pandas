@@ -4867,7 +4867,7 @@ class DataFrame(NDFrame):
             If ``reduce is True`` a Series will always be returned, and if
             ``reduce is False`` a DataFrame will always be returned.
 
-            .. deprecated:: 0.23.0.
+            .. deprecated:: 0.23.0
                This argument will be removed in a future version, replaced
                by ``result_type='reduce'``.
 
@@ -4886,7 +4886,7 @@ class DataFrame(NDFrame):
             of those. However if the apply function returns a Series these
             are expanded to columns.
 
-            .. versionadded:: 0.23.0.
+            .. versionadded:: 0.23.0
 
         args : tuple
             Positional arguments to pass to `func` in addition to the
