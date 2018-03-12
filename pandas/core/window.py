@@ -885,10 +885,10 @@ class _Rolling_and_Expanding(_Rolling):
 
     Notes
     -----
-    The default `ddof` of 1 used in Series.var is different than the default
-    `ddof` of 0 in numpy.var.
+    The default `ddof` of 1 used in Series.std is different than the default
+    `ddof` of 0 in numpy.std.
 
-    A minimum of 1 periods is required for the rolling calculation.
+    A minimum of one period is required for the rolling calculation.
 
     Examples
     --------
