@@ -212,6 +212,38 @@ class TestMelt(object):
         res = self.df1.melt()
         assert res.columns.tolist() == ['CAP', 'low', 'value']
 
+    @pytest.mark.parametrize("col", [
+        pd.Series(pd.date_range('2010', periods=5, tz='US/Pacific')),
+        pd.Series(["a", "b", "c", "a", "d"], dtype="category")])
+    def test_pandas_dtypes_id_var(self, col):
+        # GH 15785
+        # Pandas dtype in the id
+        df = DataFrame({'klass': range(5),
+                        'col': col,
+                        'attr1': [1, 0, 0, 0, 0],
+                        'attr2': [0, 1, 0, 0, 0]})
+        result = melt(df, id_vars=['klass', 'col'], var_name='attribute',
+                      value_name='value')
+        expected = DataFrame({'klass': list(range(5)) * 2,
+                              'col': pd.concat([col] * 2, ignore_index=True),
+                              'attribute': ['attr1'] * 5 + ['attr2'] * 5,
+                              'value': [1, 0, 0, 0, 0] + [0, 1, 0, 0, 0]})
+        tm.assert_frame_equal(result, expected)
+
+        # Pandas dtype in the column
+        df = DataFrame({'klass': range(5),
+                        'col': col,
+                        'attr1': [1, 0, 0, 0, 0],
+                        'attr2': col})
+        result = melt(df, id_vars=['klass', 'col'], var_name='attribute',
+                      value_name='value')
+        expected = DataFrame({'klass': list(range(5)) * 2,
+                              'col': pd.concat([col] * 2, ignore_index=True),
+                              'attribute': ['attr1'] * 5 + ['attr2'] * 5,
+                              'value': pd.concat([pd.Series([1, 0, 0, 0, 0]),
+                                                  col], ignore_index=True)})
+        tm.assert_frame_equal(result, expected)
+
 
 class TestLreshape(object):
 
