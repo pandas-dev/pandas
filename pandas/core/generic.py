@@ -5419,6 +5419,7 @@ class NDFrame(PandasObject, SelectionMixin):
         1  1  2  3 -1   8
         2  2  3  4 -2  12
         3  3  4  5 -3  16
+        >>> df.loc[1,'a'] = np.nan
         >>> df.loc[3,'a'] = np.nan
         >>> df.loc[0,'b'] = np.nan
         >>> df.loc[1,'d'] = np.nan
@@ -5427,7 +5428,7 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> df
              a    b  c    d     e
         0  0.0  NaN  2  0.0   4.0
-        1  1.0  2.0  3  NaN   NaN
+        1  NaN  2.0  3  NaN   NaN
         2  2.0  3.0  4  NaN  12.0
         3  NaN  4.0  5 -3.0  16.0
 
