@@ -1256,8 +1256,8 @@ cdef class _Period(object):
 
         See Also
         --------
-        Period.hour : Get the hour of the Period.
-        Period.second : Get the second of the Period.
+        Period.hour : Get the hour component of the Period.
+        Period.second : Get the second component of the Period.
 
         Examples
         --------
