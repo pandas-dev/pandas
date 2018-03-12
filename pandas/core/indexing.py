@@ -1888,11 +1888,49 @@ class _ScalarAccessIndexer(_NDFrameIndexer):
 
 
 class _AtIndexer(_ScalarAccessIndexer):
-    """Fast label-based scalar accessor
+    """
+    Access a single value for a row/column label pair.
 
-    Similarly to ``loc``, ``at`` provides **label** based scalar lookups.
-    You can also set using these indexers.
+    Similar to ``loc``, in that both provide label-based lookups. Use
+    ``at`` if you only need to get or set a single value in a DataFrame
+    or Series.
 
+    See Also
+    --------
+    DataFrame.iat : Access a single value for a row/column pair by integer position
+    DataFrame.loc : Access a group of rows and columns by label(s)
+    Series.at : Access a single value using a label
+
+    Examples
+    --------
+    >>> df = pd.DataFrame([[0, 2, 3], [0, 4, 1], [10, 20, 30]],
+    ...                   index=[4, 5, 6], columns=['A', 'B', 'C'])
+    >>> df
+        A   B   C
+    4   0   2   3
+    5   0   4   1
+    6  10  20  30
+
+    Get value at specified row/column pair
+
+    >>> df.at[4, 'B']
+    2
+
+    Set value at specified row/column pair
+
+    >>> df.at[4, 'B'] = 10
+    >>> df.at[4, 'B']
+    10
+
+    Get value within a series
+
+    >>> df.loc[5].at['B']
+    4
+
+    Raises
+    ------
+    KeyError
+        When label does not exist in DataFrame
     """
 
     _takeable = False
