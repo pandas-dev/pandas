@@ -4839,9 +4839,9 @@ class DataFrame(NDFrame):
         broadcast : bool, optional
             Only relevant for aggregation functions:
 
-            * ``False`` or ``None`` : returns a Series whose length is the length
-              of the index or the number of columns (based on the `axis`
-              parameter)
+            * ``False`` or ``None`` : returns a Series whose length is the
+              length of the index or the number of columns (based on the
+              `axis` parameter)
             * ``True`` : results will be broadcast to the original shape
               of the frame, the original index and columns will be retained.
 
