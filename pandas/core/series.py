@@ -1326,7 +1326,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def idxmin(self, axis=None, skipna=True, *args, **kwargs):
         """
-        Index label of the first occurrence of minimum of values.
+        Return the row label of the minimum value.
+
+        If multiple values equal the minimum, the first row label with that
+        value is returned.
 
         Parameters
         ----------
@@ -1334,19 +1337,20 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Exclude NA/null values. If the entire Series is NA, the result
             will be NA.
         axis : int, default 0
-            Redundant for application on series.
-        *args, **kwargs :
+            For compatibility with DataFrame.idxmin. Redundant for application
+            on Series.
+        *args, **kwargs
             Additional keywors have no effect but might be accepted
-            for compatibility with numpy.
+            for compatibility with NumPy.
+
+        Returns
+        -------
+        idxmin : Index of minimum of values.
 
         Raises
         ------
         ValueError
-            If the Series is empty
-
-        Returns
-        -------
-        idxmin : Index of minimum of values
+            If the Series is empty.
 
         Notes
         -----
@@ -1378,7 +1382,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         'A'
 
         If skipna=False and there is an NA value in the data,
-        the function returns nan.
+        the function returns ``nan``.
 
         >>> s.idxmin(skipna=False)
         nan
@@ -1391,7 +1395,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def idxmax(self, axis=0, skipna=True, *args, **kwargs):
         """
-        Return index label of the first occurrence of maximum of values.
+        Return the row label of the maximum value.
+
+        If multiple values equal the maximum, the first row label with that
+        value is returned.
 
         Parameters
         ----------
@@ -1399,19 +1406,20 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Exclude NA/null values. If the entire Series is NA, the result
             will be NA.
         axis : int, default 0
-            Redundant for application on series.
-        *args, **kwargs :
+            For compatibility with DataFrame.idxmax. Redundant for application
+            on Series.
+        *args, **kwargs
             Additional keywors have no effect but might be accepted
-            for compatibility with numpy.
+            for compatibility with NumPy.
+
+        Returns
+        -------
+        idxmax : Index of maximum of values.
 
         Raises
         ------
         ValueError
-            If the Series is empty
-
-        Returns
-        -------
-        idxmax : Index of maximum of values
+            If the Series is empty.
 
         Notes
         -----
@@ -1444,7 +1452,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         'C'
 
         If skipna=False and there is an NA value in the data,
-        the function returns nan.
+        the function returns ``nan``.
 
         >>> s.idxmax(skipna=False)
         nan
