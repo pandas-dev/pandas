@@ -1279,9 +1279,9 @@ cdef class _Period(object):
 
         See Also
         --------
-        Period.daysinmonth : Returns the number of days in the month.
-        DatetimeIndex.daysinmonth : Return the number of days in the month.
-        calendar.monthrange : Return a tuple containing weekday
+        Period.daysinmonth : Gets the number of days in the month.
+        DatetimeIndex.daysinmonth : Gets the number of days in the month.
+        calendar.monthrange : Returns a tuple containing weekday
             (0-6 ~ Mon-Sun) and number of days (28-31).
 
         Examples
