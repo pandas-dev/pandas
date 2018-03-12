@@ -520,7 +520,8 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
         from pandas.core.sorting import safe_sort
         try:
             order = uniques.argsort()
-            labels = take_1d(order, labels, fill_value=na_sentinel)
+            order2 = order.argsort()
+            labels = take_1d(order2, labels, fill_value=na_sentinel)
             uniques = uniques.take(order)
         except TypeError:
             # Mixed types, where uniques.argsort fails.
