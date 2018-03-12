@@ -54,8 +54,7 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas import compat
 from pandas.io.formats.terminal import get_terminal_size
 from pandas.compat import (
-    zip, u, OrderedDict, StringIO, range, get_range_parameters, PY36,
-    cPickle as pkl)
+    zip, u, OrderedDict, StringIO, range, get_range_parameters, PY36)
 from pandas.compat.numpy import function as nv
 
 import pandas.core.ops as ops
@@ -2952,12 +2951,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     startrow=startrow, startcol=startcol, engine=engine,
                     merge_cells=merge_cells, encoding=encoding,
                     inf_rep=inf_rep, verbose=verbose)
-
-    @Appender(generic._shared_docs['to_pickle'] % _shared_doc_kwargs)
-    def to_pickle(self, path, compression='infer',
-                  protocol=pkl.HIGHEST_PROTOCOL):
-        return super(Series, self).to_pickle(path, compression=compression,
-                                             protocol=protocol)
 
     @Appender(generic._shared_docs['isna'] % _shared_doc_kwargs)
     def isna(self):
