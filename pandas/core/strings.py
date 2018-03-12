@@ -1116,9 +1116,9 @@ def str_split(arr, pat=None, n=None):
 
     Returns
     -------
-    Type matches caller unless `expand=True` (return type is `DataFrame` or
-    `MultiIndex`)
     split : Series/Index or DataFrame/MultiIndex of objects
+        Type matches caller unless `expand=True` (return type is `DataFrame` or
+    `MultiIndex`)
 
     Notes
     -----
