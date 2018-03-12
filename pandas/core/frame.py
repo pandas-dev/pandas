@@ -4346,7 +4346,7 @@ class DataFrame(NDFrame):
         Reshape data (produce a "pivot" table) based on column values. Uses
         unique values from specified `index` / `columns` to form axes of the resulting
         DataFrame. This function does not support data aggregation, multiple
-        values will result in hierarchically indexed columns.
+        values will result in a MultiIndex in the columns.
 
         Parameters
         ----------
@@ -4365,6 +4365,12 @@ class DataFrame(NDFrame):
         DataFrame
             Returns reshaped DataFrame.
 
+        Raises
+        ------
+        ValueError:
+            When there are any `index`, `columns` combinations with multiple
+            values.
+
         See Also
         --------
         DataFrame.pivot_table : generalization of pivot that can handle
@@ -4379,8 +4385,8 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-
-        >>> df = pd.DataFrame({'foo': ['one','one','one','two','two','two'],
+        >>> df = pd.DataFrame({'foo': ['one', 'one', 'one', 'two', 'two',
+        ...                            'two'],
         ...                    'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
         ...                    'baz': [1, 2, 3, 4, 5, 6]})
         >>> df
@@ -4403,6 +4409,26 @@ class DataFrame(NDFrame):
         foo
         one  1   2   3
         two  4   5   6
+
+        A ValueError is raised if there are any duplicates.
+
+        >>> af = pd.DataFrame({"foo": ['one', 'one', 'two', 'two'],
+        ...                    "bar": ['A', 'A', 'B', 'C'],
+        ...                    "baz": [1, 2, 3, 4]})
+        >>> af
+           foo bar  baz
+        0  one   A    1
+        1  one   A    2
+        2  two   B    3
+        3  two   C    4
+
+        Notice that the first two rows are the same for our `index`
+        and `columns` arguments.
+
+        >>> af.pivot(index='foo', columns='bar', values='baz')
+        Traceback (most recent call last):
+           ...
+        ValueError: Index contains duplicate entries, cannot reshape
         """
         from pandas.core.reshape.reshape import pivot
         return pivot(self, index=index, columns=columns, values=values)
