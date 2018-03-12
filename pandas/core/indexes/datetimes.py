@@ -213,6 +213,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
            Attempt to infer fall dst-transition hours based on order
     name : object
         Name to be stored in the index
+    dayfirst : bool, default False
+        If True, parse dates in `data` with the day first order
+    yearfirst : bool, default False
+        If True parse dates in `data` with the year first order
 
     Attributes
     ----------
@@ -272,6 +276,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     Index : The base pandas Index type
     TimedeltaIndex : Index of timedelta64 data
     PeriodIndex : Index of Period data
+    pandas.to_datetime : Convert argument to datetime
     """
 
     _typ = 'datetimeindex'
@@ -327,10 +332,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     @deprecate_kwarg(old_arg_name='infer_dst', new_arg_name='ambiguous',
                      mapping={True: 'infer', False: 'raise'})
     def __new__(cls, data=None,
-                freq=None, start=None, end=None, periods=None,
-                copy=False, name=None, tz=None,
-                verify_integrity=True, normalize=False,
-                closed=None, ambiguous='raise', dtype=None, **kwargs):
+                freq=None, start=None, end=None, periods=None, tz=None,
+                normalize=False, closed=None, ambiguous='raise',
+                dayfirst=False, yearfirst=False, dtype=None,
+                copy=False, name=None, verify_integrity=True):
 
         # This allows to later ensure that the 'copy' parameter is honored:
         if isinstance(data, Index):
@@ -340,9 +345,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         if name is None and hasattr(data, 'name'):
             name = data.name
-
-        dayfirst = kwargs.pop('dayfirst', None)
-        yearfirst = kwargs.pop('yearfirst', None)
 
         freq_infer = False
         if not isinstance(freq, DateOffset):
@@ -932,8 +934,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             if not isinstance(delta, TimedeltaIndex):
                 delta = TimedeltaIndex(delta)
             new_values = self._add_delta_tdi(delta)
-        elif isinstance(delta, DateOffset):
-            new_values = self._add_offset(delta).asi8
         else:
             new_values = self.astype('O') + delta
 
@@ -944,6 +944,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         return result
 
     def _add_offset(self, offset):
+        assert not isinstance(offset, Tick)
         try:
             if self.tz is not None:
                 values = self.tz_localize(None)
@@ -952,12 +953,13 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             result = offset.apply_index(values)
             if self.tz is not None:
                 result = result.tz_localize(self.tz)
-            return result
 
         except NotImplementedError:
             warnings.warn("Non-vectorized DateOffset being applied to Series "
                           "or DatetimeIndex", PerformanceWarning)
-            return self.astype('O') + offset
+            result = self.astype('O') + offset
+
+        return DatetimeIndex(result, freq='infer')
 
     def _format_native_types(self, na_rep='NaT', date_format=None, **kwargs):
         from pandas.io.formats.format import _get_format_datetime64_from_values
@@ -2202,29 +2204,30 @@ def _generate_regular_range(start, end, periods, offset):
 def date_range(start=None, end=None, periods=None, freq='D', tz=None,
                normalize=False, name=None, closed=None, **kwargs):
     """
-    Return a fixed frequency DatetimeIndex, with day (calendar) as the default
-    frequency
+    Return a fixed frequency DatetimeIndex.
+
+    The default frequency is day (calendar).
 
     Parameters
     ----------
     start : string or datetime-like, default None
-        Left bound for generating dates
+        Left bound for generating dates.
     end : string or datetime-like, default None
-        Right bound for generating dates
+        Right bound for generating dates.
     periods : integer, default None
-        Number of periods to generate
+        Number of periods to generate.
     freq : string or DateOffset, default 'D' (calendar daily)
-        Frequency strings can have multiples, e.g. '5H'
+        Frequency strings can have multiples, e.g. '5H'.
     tz : string, default None
         Time zone name for returning localized DatetimeIndex, for example
-        Asia/Hong_Kong
+        Asia/Hong_Kong.
     normalize : bool, default False
-        Normalize start/end dates to midnight before generating date range
+        Normalize start/end dates to midnight before generating date range.
     name : string, default None
-        Name of the resulting DatetimeIndex
+        Name of the resulting DatetimeIndex.
     closed : string, default None
         Make the interval closed with respect to the given frequency to
-        the 'left', 'right', or both sides (None)
+        the 'left', 'right', or both sides (None).
 
     Notes
     -----
@@ -2237,6 +2240,22 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
     Returns
     -------
     rng : DatetimeIndex
+
+    See Also
+    --------
+    pandas.period_range : Return a fixed frequency PeriodIndex.
+    pandas.interval_range : Return a fixed frequency IntervalIndex.
+
+    Examples
+    --------
+    >>> pd.date_range('2018-10-03', periods=2) # doctest: +NORMALIZE_WHITESPACE
+    DatetimeIndex(['2018-10-03', '2018-10-04'], dtype='datetime64[ns]',
+                   freq='D')
+
+    >>> pd.date_range(start='2018-01-01', end='20180103')
+    ... # doctest: +NORMALIZE_WHITESPACE
+    DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03'],
+                    dtype='datetime64[ns]', freq='D')
     """
     return DatetimeIndex(start=start, end=end, periods=periods,
                          freq=freq, tz=tz, normalize=normalize, name=name,

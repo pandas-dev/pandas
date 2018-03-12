@@ -899,7 +899,35 @@ class _Rolling_and_Expanding(_Rolling):
         return self._apply('roll_skew', 'skew',
                            check_minp=_require_min_periods(3), **kwargs)
 
-    _shared_docs['kurt'] = """Unbiased %(name)s kurtosis"""
+    _shared_docs['kurt'] = dedent("""
+    Calculate unbiased %(name)s kurtosis.
+
+    This function uses Fisher's definition of kurtosis without bias.
+
+    Parameters
+    ----------
+    **kwargs
+        Under Review.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returned object type is determined by the caller of the %(name)s
+        calculation
+
+    See Also
+    --------
+    Series.%(name)s : Calling object with Series data
+    DataFrame.%(name)s : Calling object with DataFrames
+    Series.kurt : Equivalent method for Series
+    DataFrame.kurt : Equivalent method for DataFrame
+    scipy.stats.skew : Third moment of a probability density
+    scipy.stats.kurtosis : Reference SciPy method
+
+    Notes
+    -----
+    A minimum of 4 periods is required for the %(name)s calculation.
+    """)
 
     def kurt(self, **kwargs):
         return self._apply('roll_kurt', 'kurt',
@@ -1220,8 +1248,32 @@ class Rolling(_Rolling_and_Expanding):
     def skew(self, **kwargs):
         return super(Rolling, self).skew(**kwargs)
 
+    _agg_doc = dedent("""
+    Examples
+    --------
+
+    The example below will show a rolling calculation with a window size of
+    four matching the equivalent function call using `scipy.stats`.
+
+    >>> arr = [1, 2, 3, 4, 999]
+    >>> fmt = "{0:.6f}"  # limit the printed precision to 6 digits
+    >>> import scipy.stats
+    >>> print(fmt.format(scipy.stats.kurtosis(arr[:-1], bias=False)))
+    -1.200000
+    >>> print(fmt.format(scipy.stats.kurtosis(arr[1:], bias=False)))
+    3.999946
+    >>> s = pd.Series(arr)
+    >>> s.rolling(4).kurt()
+    0         NaN
+    1         NaN
+    2         NaN
+    3   -1.200000
+    4    3.999946
+    dtype: float64
+    """)
+
+    @Appender(_agg_doc)
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['kurt'])
     def kurt(self, **kwargs):
         return super(Rolling, self).kurt(**kwargs)
@@ -1460,8 +1512,32 @@ class Expanding(_Rolling_and_Expanding):
     def skew(self, **kwargs):
         return super(Expanding, self).skew(**kwargs)
 
+    _agg_doc = dedent("""
+    Examples
+    --------
+
+    The example below will show an expanding calculation with a window size of
+    four matching the equivalent function call using `scipy.stats`.
+
+    >>> arr = [1, 2, 3, 4, 999]
+    >>> import scipy.stats
+    >>> fmt = "{0:.6f}"  # limit the printed precision to 6 digits
+    >>> print(fmt.format(scipy.stats.kurtosis(arr[:-1], bias=False)))
+    -1.200000
+    >>> print(fmt.format(scipy.stats.kurtosis(arr, bias=False)))
+    4.999874
+    >>> s = pd.Series(arr)
+    >>> s.expanding(4).kurt()
+    0         NaN
+    1         NaN
+    2         NaN
+    3   -1.200000
+    4    4.999874
+    dtype: float64
+    """)
+
+    @Appender(_agg_doc)
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['kurt'])
     def kurt(self, **kwargs):
         return super(Expanding, self).kurt(**kwargs)

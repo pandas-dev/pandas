@@ -519,7 +519,6 @@ class TestIndex(Base):
         assert not ind.is_(ind.copy())
         assert not ind.is_(ind.copy(deep=False))
         assert not ind.is_(ind[:])
-        assert not ind.is_(ind.view(np.ndarray).view(Index))
         assert not ind.is_(np.array(range(10)))
 
         # quasi-implementation dependent
@@ -2327,3 +2326,10 @@ def test_generated_op_names(opname, indices):
     opname = '__{name}__'.format(name=opname)
     method = getattr(index, opname)
     assert method.__name__ == opname
+
+
+@pytest.mark.parametrize('idx_maker', tm.index_subclass_makers_generator())
+def test_index_subclass_constructor_wrong_kwargs(idx_maker):
+    # GH #19348
+    with tm.assert_raises_regex(TypeError, 'unexpected keyword argument'):
+        idx_maker(foo='bar')
