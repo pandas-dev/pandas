@@ -2731,12 +2731,15 @@ class FramePlotMethods(BasePlotMethods):
 
         Parameters
         ----------
-        x : label or position, default None
-            Allows plotting of one column versus another.
-        y : label or position, default None
-            Allows plotting of one column versus another.
+        x : label or position, optional
+            Allows plotting of one column versus another. If not specified,
+            index of dataframe is taken.
+        y : label or position, optional
+            Allows plotting of one column versus another. If not specified,
+            all numerical columns are taken.
         **kwds : optional
-            Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
+            Additional keyword arguments are documented in
+            meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
@@ -2770,12 +2773,6 @@ class FramePlotMethods(BasePlotMethods):
         .. plot::
             :context: close-figs
 
-            >>> speed = [0.1, 17.5, 40, 48, 52, 69, 88]
-            >>> lifespan = [2, 8, 70, 1.5, 25, 12, 28]
-            >>> index = ['snail', 'pig', 'elephant',
-            ...          'rabbit', 'giraffe', 'coyote', 'horse']
-            >>> df = pd.DataFrame({'speed': speed,
-            ...                    'lifespan': lifespan}, index=index)
             >>> ax = df.plot.bar(y='speed')
 
         Plot only selected categories for the dataframe
@@ -2783,12 +2780,6 @@ class FramePlotMethods(BasePlotMethods):
         .. plot::
             :context: close-figs
 
-            >>> speed = [0.1, 17.5, 40, 48, 52, 69, 88]
-            >>> lifespan = [2, 8, 70, 1.5, 25, 12, 28]
-            >>> index = ['snail', 'pig', 'elephant',
-            ...          'rabbit', 'giraffe', 'coyote', 'horse']
-            >>> df = pd.DataFrame({'speed': speed,
-            ...          'lifespan': lifespan}, index=index)
             >>> ax = df.plot.bar(x='lifespan')
 
         See Also
