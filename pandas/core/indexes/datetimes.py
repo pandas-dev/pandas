@@ -2288,6 +2288,8 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
 
     See Also
     --------
+    pandas.period_range : Return a fixed frequency PeriodIndex.
+    pandas.interval_range : Return a fixed frequency IntervalIndex.
     Numpy daterange: `numpy daterange<https://docs.scipy.org/doc/numpy/reference/arrays.datetime.html>`__.
     """
     return DatetimeIndex(start=start, end=end, periods=periods,
