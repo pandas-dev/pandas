@@ -4527,7 +4527,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        copy : type of caller
+        copy : Series, DataFrame or Panel
             Object type matches caller.
 
         Notes
