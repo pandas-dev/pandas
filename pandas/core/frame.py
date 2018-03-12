@@ -1734,6 +1734,10 @@ class DataFrame(NDFrame):
         --------
         >>> df = pd.DataFrame(data={'col1': [1, 2], 'col2': [3, 4]})
         >>> df.to_parquet('df.parquet.gzip', compression='gzip')
+        >>> pd.read_parquet('df.parquet.gzip')
+           col1  col2
+        0     1     3
+        1     2     4
         """
         from pandas.io.parquet import to_parquet
         to_parquet(self, fname, engine,
