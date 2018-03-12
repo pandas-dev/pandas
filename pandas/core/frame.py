@@ -4822,11 +4822,10 @@ class DataFrame(NDFrame):
         Apply a function along an axis of the DataFrame.
 
         Objects passed to the function are Series objects whose index is
-        either the DataFrame's index (``axis=0``)
-        or the DataFrame's columns (``axis=1``).
-        If ``result_type is None``, the final return type is the return
-        type of the applied function.
-        Otherwise, it depends on the `result_type` argument.
+        either the DataFrame's index (``axis=0``) or the DataFrame's columns
+        (``axis=1``). If ``result_type is None``, the final return type is the
+        return type of the applied function. Otherwise, it depends on the
+        `result_type` argument.
 
         Parameters
         ----------
