@@ -1814,11 +1814,6 @@ class DataFrame(NDFrame):
              null_counts=None):
         """
         Concise summary of a DataFrame.
-        References
-        --------
-        .. [1] http://docs.sqlalchemy.org : Used for testing
-
-
 
         Parameters
         ----------
