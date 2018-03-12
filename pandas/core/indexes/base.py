@@ -2327,7 +2327,7 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         sorted_index : pandas.Index
             Sorted copy of the index.
-        _as : numpy.ndarray, optional
+        indexer : numpy.ndarray, optional
             The indices that the index itself was sorted by.
 
         See Also
