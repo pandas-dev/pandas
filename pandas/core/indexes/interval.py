@@ -213,8 +213,8 @@ class IntervalIndex(IntervalMixin, Index):
 
     _mask = None
 
-    def __new__(cls, data, closed=None, name=None, copy=False, dtype=None,
-                fastpath=False, verify_integrity=True):
+    def __new__(cls, data, closed=None, dtype=None, copy=False,
+                name=None, fastpath=False, verify_integrity=True):
 
         if fastpath:
             return cls._simple_new(data.left, data.right, closed, name,
