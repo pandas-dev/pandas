@@ -4882,7 +4882,7 @@ class DataFrame(NDFrame):
               of the DataFrame, the original index and columns will be
               retained.
 
-            The default behaviour (`None`) depends on the return value of the
+            The default behaviour `None` depends on the return value of the
             applied function: list-like results will be returned as a Series
             of those. However if the apply function returns a Series these
             are expanded to columns.
