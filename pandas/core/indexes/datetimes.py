@@ -2148,8 +2148,14 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         
         Examples
         --------
-        >>> day_name(numpyarr, locale=English) 
-        Index(['Monday', 'Wednesday,...,'Sunday'], dtype='object')
+        #from the time stamps data based on it the day_name is returned. 
+        # 1.) first data is changed to asi8(int64) format.
+        # 2.) then it is checked whether the timestamp is null.
+        # 3.) if yes then it is checked whether the timestamp is utc(Universal Time Coordinated).
+        # 4.) if yes then it is sent to local_timestamps method where the local timestamp is calculated and converted to asi8 if no the loop breaks.
+        # 5.) the it calls the get_date_name_field function where it passes the data the object to be retrieved(day_name) and the locale and stores it in result .
+        # 6.) next it deals with the null values using _maybe_mask_result function.
+        # 7.) then it returns the instance of the the result.
         """
         values = self.asi8
         if self.tz is not None:
