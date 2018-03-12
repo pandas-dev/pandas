@@ -1424,6 +1424,7 @@ _kde_docstring = """
         %(examples)s
         """
 
+
 class KdePlot(HistPlot):
     _kind = 'kde'
     orientation = 'vertical'
@@ -2771,19 +2772,64 @@ class FramePlotMethods(BasePlotMethods):
 
     def line(self, x=None, y=None, **kwds):
         """
-        Line plot
+        Plot DataFrame columns as lines.
+
+        This function is useful to plot lines using DataFrame's values
+        as coordinates.
 
         Parameters
         ----------
-        x, y : label or position, optional
-            Coordinates for each point.
-        `**kwds` : optional
-            Additional keyword arguments are documented in
-            :meth:`pandas.DataFrame.plot`.
+        x : int or str, optional
+            Columns to use for the horizontal axis.
+            Either the location or the label of the columns to be used.
+            By default, it will use the DataFrame indices.
+        y : int, str, or list of them, optional
+            The values to be plotted.
+            Either the location or the label of the columns to be used.
+            By default, it will use the remaining DataFrame numeric columns.
+        **kwds
+            Keyword arguments to pass on to :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        axes : :class:`matplotlib.axes.Axes` or :class:`numpy.ndarray`
+            Returns an ndarray when ``subplots=True``.
+
+        See Also
+        --------
+        matplotlib.pyplot.plot : Plot y versus x as lines and/or markers.
+
+        Examples
+        --------
+
+        .. plot::
+            :context: close-figs
+
+            The following example shows the populations for some animals
+            over the years.
+
+            >>> df = pd.DataFrame({
+            ...    'pig': [20, 18, 489, 675, 1776],
+            ...    'horse': [4, 25, 281, 600, 1900]
+            ...    }, index=[1990, 1997, 2003, 2009, 2014])
+            >>> lines = df.plot.line()
+
+        .. plot::
+           :context: close-figs
+
+           An example with subplots, so an array of axes is returned.
+
+           >>> axes = df.plot.line(subplots=True)
+           >>> type(axes)
+           <class 'numpy.ndarray'>
+
+        .. plot::
+            :context: close-figs
+
+            The following example shows the relationship between both
+            populations.
+
+            >>> lines = df.plot.line(x='pig', y='horse')
         """
         return self(kind='line', x=x, y=y, **kwds)
 
