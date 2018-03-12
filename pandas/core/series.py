@@ -1899,11 +1899,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Axis to direct sorting. The value 'index' is accepted for
             compatibility with DataFrame.sort_values.
         ascending : bool, default True
-            If  True sort values in ascending order, otherwise descending.
+            If True, sort values in ascending order, otherwise descending.
         inplace : bool, default False
             If True, perform operation in-place.
         kind : {'quicksort', 'mergesort' or 'heapsort'}, default 'quicksort'
-            Choice of sorting algorithm. See also :func:'numpy.sort' for more
+            Choice of sorting algorithm. See also :func:`numpy.sort` for more
             information. 'mergesort' is the only stable  algorithm.
         na_position : {'first' or 'last'}, default 'last'
             Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
@@ -1917,8 +1917,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         See Also
         --------
         Series.sort_index : Sort by the Series indices.
+        DataFrame.sort_values : Sort DataFrame by the values along either axis.
         DataFrame.sort_index : Sort DataFrame by indices.
-        DataFrame.sort_values : Sort by the values along either axis.
 
         Examples
         --------
