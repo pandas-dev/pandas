@@ -1534,10 +1534,10 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.is_categorical()
         False
 
-        >>> s = pd.Series(["Peter", "Víctor", "Elisabeth", "Mar"])
+        >>> s = pd.Series(["Peter", "Victor", "Elisabeth", "Mar"])
         >>> s
         0        Peter
-        1       Víctor
+        1       Victor
         2    Elisabeth
         3          Mar
         dtype: object
