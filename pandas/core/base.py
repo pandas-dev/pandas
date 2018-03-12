@@ -1184,24 +1184,6 @@ class IndexOpsMixin(object):
         # needs coercion on the key (DatetimeIndex does already)
         return self.values.searchsorted(value, side=side, sorter=sorter)
 
-    _shared_docs['drop_duplicates'] = (
-        """Return %(klass)s with duplicate values removed
-
-        Parameters
-        ----------
-
-        keep : {'first', 'last', False}, default 'first'
-            - ``first`` : Drop duplicates except for the first occurrence.
-            - ``last`` : Drop duplicates except for the last occurrence.
-            - False : Drop all duplicates.
-        %(inplace)s
-
-        Returns
-        -------
-        deduplicated : %(klass)s
-        """)
-
-    @Appender(_shared_docs['drop_duplicates'] % _indexops_doc_kwargs)
     def drop_duplicates(self, keep='first', inplace=False):
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if isinstance(self, ABCIndexClass):
