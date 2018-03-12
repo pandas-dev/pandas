@@ -1289,11 +1289,58 @@ cdef class _Period(object):
 
     @property
     def days_in_month(self):
+        """
+        Get the total number of days in the month that this period falls on.
+
+        Returns
+        -------
+        int
+
+        See Also
+        --------
+        Period.daysinmonth : Gets the number of days in the month.
+        DatetimeIndex.daysinmonth : Gets the number of days in the month.
+        calendar.monthrange : Returns a tuple containing weekday
+            (0-6 ~ Mon-Sun) and number of days (28-31).
+
+        Examples
+        --------
+        >>> p = pd.Period('2018-2-17')
+        >>> p.days_in_month
+        28
+
+        >>> pd.Period('2018-03-01').days_in_month
+        31
+
+        Handles the leap year case as well:
+
+        >>> p = pd.Period('2016-2-17')
+        >>> p.days_in_month
+        29
+        """
         base, mult = get_freq_code(self.freq)
         return pdays_in_month(self.ordinal, base)
 
     @property
     def daysinmonth(self):
+        """
+        Get the total number of days of the month that the Period falls in.
+
+        Returns
+        -------
+        int
+
+        See Also
+        --------
+        Period.days_in_month : Return the days of the month
+        Period.dayofyear : Return the day of the year
+
+        Examples
+        --------
+        >>> p = pd.Period("2018-03-11", freq='H')
+        >>> p.daysinmonth
+        31
+        """
         return self.days_in_month
 
     @property
