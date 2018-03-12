@@ -4859,13 +4859,13 @@ class DataFrame(NDFrame):
         reduce : bool or `None`, default `None`
             Try to apply reduction procedures. If the DataFrame is empty,
             `apply` will use `reduce` to determine whether the result
-            should be a Series or a DataFrame. If ``reduce is None`` (the
+            should be a Series or a DataFrame. If ``reduce=None`` (the
             default), `apply`'s return value will be guessed by calling
             `func` on an empty Series
             (note: while guessing, exceptions raised by `func` will be
             ignored).
-            If ``reduce is True`` a Series will always be returned, and if
-            ``reduce is False`` a DataFrame will always be returned.
+            If ``reduce=True`` a Series will always be returned, and if
+            ``reduce=False`` a DataFrame will always be returned.
 
             .. deprecated:: 0.23.0
                This argument will be removed in a future version, replaced
