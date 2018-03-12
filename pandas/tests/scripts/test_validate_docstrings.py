@@ -1,7 +1,7 @@
 import os
 import sys
 
-import numpy
+import numpy as np
 import pytest
     
 
@@ -79,7 +79,8 @@ class GoodDocStrings(object):
             yield random.random()
 
     def head(self):
-        """Return the first 5 elements of the Series.
+        """
+        Return the first 5 elements of the Series.
 
         This function is mainly useful to preview the values of the
         Series without displaying the whole of it.
@@ -98,7 +99,8 @@ class GoodDocStrings(object):
         return self.iloc[:5]
 
     def head1(self, n=5):
-        """Return the first elements of the Series.
+        """
+        Return the first elements of the Series.
 
         This function is mainly useful to preview the values of the
         Series without displaying the whole of it.
@@ -108,9 +110,9 @@ class GoodDocStrings(object):
         n : int
             Number of values to return.
 
-        Return
-        ------
-        pandas.Series
+        Returns
+        -------
+        Series
             Subset of the original series with the n first values.
 
         See Also
@@ -119,8 +121,7 @@ class GoodDocStrings(object):
 
         Examples
         --------
-        >>> s = pd.Series(['Ant', 'Bear', 'Cow', 'Dog', 'Falcon',
-        ...                'Lion', 'Monkey', 'Rabbit', 'Zebra'])
+        >>> s = pd.Series(['Ant', 'Bear', 'Cow', 'Dog', 'Falcon'])
         >>> s.head()
         0   Ant
         1   Bear
@@ -139,40 +140,49 @@ class GoodDocStrings(object):
         """
         return self.iloc[:n]
 
-    def contains(self, pattern, case_sensitive=True, na=numpy.nan):
+    def contains(self, pat, case=True, na=np.nan):
         """
-        Return whether each value contains `pattern`.
+        Return whether each value contains `pat`.
 
         In this case, we are illustrating how to use sections, even
         if the example is simple enough and does not require them.
 
+        Parameters
+        ----------
+        pat : str
+            Pattern to check for within each element.
+        case : bool, default True
+            Whether check should be done with case sensitivity.
+        na : object, default np.nan
+            Fill value for missing data.
+
         Examples
         --------
-        >>> s = pd.Series('Antelope', 'Lion', 'Zebra', numpy.nan)
-        >>> s.contains(pattern='a')
+        >>> s = pd.Series(['Antelope', 'Lion', 'Zebra', np.nan])
+        >>> s.str.contains(pat='a')
         0    False
         1    False
         2     True
         3      NaN
-        dtype: bool
+        dtype: object
 
         **Case sensitivity**
 
         With `case_sensitive` set to `False` we can match `a` with both
         `a` and `A`:
 
-        >>> s.contains(pattern='a', case_sensitive=False)
+        >>> s.str.contains(pat='a', case=False)
         0     True
         1    False
         2     True
         3      NaN
-        dtype: bool
+        dtype: object
 
         **Missing values**
 
         We can fill missing values in the output using the `na` parameter:
 
-        >>> s.contains(pattern='a', na=False)
+        >>> s.str.contains(pat='a', na=False)
         0    False
         1    False
         2     True
@@ -181,20 +191,6 @@ class GoodDocStrings(object):
         """
         pass
 
-    def plot2(self):
-        """
-        Generate a plot with the `Series` data.
-
-        Examples
-        --------
-
-        .. plot::
-            :context: close-figs
-
-        >>> s = pd.Series([1, 2, 3])
-        >>> s.plot()
-        """
-        pass    
 
 class BadDocStrings(object):
 
@@ -285,7 +281,7 @@ class BadDocStrings(object):
         to understand.
 
         Try to avoid positional arguments like in `df.method(1)`. They
-        can be all right if previously defined with a meaningful name,
+        can be alright if previously defined with a meaningful name,
         like in `present_value(interest_rate)`, but avoid them otherwise.
 
         When presenting the behavior with different parameters, do not place
@@ -296,12 +292,15 @@ class BadDocStrings(object):
         --------
         >>> import numpy as np
         >>> import pandas as pd
-        >>> df = pd.DataFrame(numpy.random.randn(3, 3),
+        >>> df = pd.DataFrame(np.ones((3, 3)),
         ...                   columns=('a', 'b', 'c'))
-        >>> df.method(1)
-        21
-        >>> df.method(bar=14)
-        123
+        >>> df.all(1)
+        0    True
+        1    True
+        2    True
+        dtype: bool
+        >>> df.all(bool_only=True)
+        Series([], dtype: bool)
         """
         pass
 
@@ -309,6 +308,14 @@ class TestValidator(object):
 
     @pytest.fixture(autouse=True, scope="class")
     def import_scripts(self):
+        """
+        Because the scripts directory is above the top level pandas package
+        we need to hack sys.path to know where to find that directory for
+        import. The below traverses up the file system to find the scripts
+        directory, adds to location to sys.path and imports the required
+        module into the global namespace before as part of class setup,
+        reverting those changes on teardown.
+        """
         up = os.path.dirname
         file_dir = up(os.path.abspath(__file__))
         script_dir = os.path.join(up(up(up(file_dir))), 'scripts')
@@ -321,7 +328,13 @@ class TestValidator(object):
     
     @pytest.mark.parametrize("func", [
         'plot', 'sample', 'random_letters', 'sample_values', 'head', 'head1',
-        'contains', 'plot2'])
+        'contains'])
     def test_good_functions(self, func):
         assert validate_one('pandas.tests.scripts.test_validate_docstrings'
                             '.GoodDocStrings.' + func) == 0
+
+    @pytest.mark.parametrize("func", [
+        'func', 'astype', 'astype1', 'astype2', 'astype3', 'plot', 'method'])
+    def test_bad_functions(self, func):
+        assert validate_one('pandas.tests.scripts.test_validate_docstrings'
+                            '.BadDocStrings.' + func) > 0

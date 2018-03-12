@@ -34,6 +34,7 @@ BASE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 sys.path.insert(0, os.path.join(BASE_PATH))
 import pandas
+from pandas.compat import signature
 
 sys.path.insert(1, os.path.join(BASE_PATH, 'doc', 'sphinxext'))
 from numpydoc.docscrape import NumpyDocString
@@ -185,11 +186,17 @@ class Docstring:
             # accessor classes have a signature, but don't want to show this
             return tuple()
         try:
-            params = self.method_obj.__code__.co_varnames
+            sig = signature(self.method_obj)
         except (TypeError, ValueError):
             # Some objects, mainly in C extensions do not support introspection
             # of the signature
             return tuple()
+        params = sig.args
+        if sig.varargs:
+            params.append("*" + sig.varargs)
+        if sig.keywords:
+            params.append("**" + sig.keywords)
+        params = tuple(params)
         if params and params[0] in ('self', 'cls'):
             return params[1:]
         return params
@@ -236,6 +243,10 @@ class Docstring:
     @property
     def returns(self):
         return self.doc['Returns']
+
+    @property
+    def method_source(self):
+        return inspect.getsource(self.method_obj)
 
     @property
     def first_line_ends_in_dot(self):
@@ -376,6 +387,19 @@ def validate_all():
 
 
 def validate_one(func_name):
+    """
+    Validate the docstring for the given func_name
+
+    Parameters
+    ----------
+    func_name : function
+        Function whose docstring will be evaluated
+
+    Returns
+    -------
+    int
+        The number of errors found in the `func_name` docstring
+    """
     func_obj = _load_obj(func_name)
     doc = Docstring(func_name, func_obj)
 
@@ -383,6 +407,7 @@ def validate_one(func_name):
     sys.stderr.write('{}\n'.format(doc.clean_doc))
 
     errs = []
+    wrns = []
     if doc.start_blank_lines != 1:
         errs.append('Docstring text (summary) should start in the line '
                     'immediately after the opening quotes (not in the same '
@@ -410,16 +435,17 @@ def validate_one(func_name):
                         'not third person (e.g. use "Generate" instead of '
                         '"Generates")')
     if not doc.extended_summary:
-        errs.append('No extended summary found')
+        wrns.append('No extended summary found')
 
     param_errs = doc.parameter_mismatches
     for param in doc.doc_parameters:
-        if not doc.parameter_type(param):
-            param_errs.append('Parameter "{}" has no type'.format(param))
-        else:
-            if doc.parameter_type(param)[-1] == '.':
-                param_errs.append('Parameter "{}" type '
-                                  'should not finish with "."'.format(param))
+        if not param.startswith("*"):  # Check can ignore var / kwargs
+            if not doc.parameter_type(param):
+                param_errs.append('Parameter "{}" has no type'.format(param))
+            else:
+                if doc.parameter_type(param)[-1] == '.':
+                    param_errs.append('Parameter "{}" type '
+                                      'should not finish with "."'.format(param))
 
         if not doc.parameter_desc(param):
             param_errs.append('Parameter "{}" '
@@ -437,8 +463,12 @@ def validate_one(func_name):
         for param_err in param_errs:
             errs.append('\t{}'.format(param_err))
 
-    if not doc.returns:
-        errs.append('No returns section found')
+    if not doc.returns and "return" in doc.method_source:
+        errs.append('No Returns section found')
+    if "yield" in doc.method_source:
+        # numpydoc is not correctly parsing Yields sections, so
+        # best we can do is warn the user to lookout for this...
+        wrns.append('Yield found in source - please make sure to document!')
 
     mentioned_errs = doc.mentioned_private_classes
     if mentioned_errs:
@@ -446,7 +476,7 @@ def validate_one(func_name):
                     'docstring.'.format(mentioned_errs))
 
     if not doc.see_also:
-        errs.append('See Also section not found')
+        wrns.append('See Also section not found')
     else:
         for rel_name, rel_desc in doc.see_also.items():
             if not rel_desc:
@@ -454,7 +484,7 @@ def validate_one(func_name):
                             'See Also "{}" reference'.format(rel_name))
     examples_errs = ''
     if not doc.examples:
-        errs.append('No examples section found')
+        wrns.append('No examples section found')
     else:
         examples_errs = doc.examples_errors
         if examples_errs:
@@ -465,7 +495,12 @@ def validate_one(func_name):
         sys.stderr.write('Errors found:\n')
         for err in errs:
             sys.stderr.write('\t{}\n'.format(err))
-    else:
+    if wrns:
+        sys.stderr.write('Warnings found:\n')
+        for wrn in wrns:
+            sys.stderr.write('\t{}\n'.format(wrn))
+
+    if not errs:
         sys.stderr.write('Docstring for "{}" correct. :)\n'.format(func_name))
 
     if examples_errs:
