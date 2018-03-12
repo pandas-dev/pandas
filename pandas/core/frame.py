@@ -3043,25 +3043,27 @@ class DataFrame(NDFrame):
         Remove rows or columns by specifying label names and corresponding
         axis, or by specifying directly index or column names. When using a
         multi-index, labels on different levels can be removed by specifying
-        the level name or int.
+        the level.
 
         Parameters
         ----------
         labels : single label or list-like
             Index or column labels to drop.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            Whether to drop labels from the index (0 / 'index') or
-            columns (1 / 'columns').
+            Whether to drop labels from the index (0 or 'index') or
+            columns (1 or 'columns').
         index, columns : single label or list-like
-            Alternative to specifying axis (labels, axis=1
-            is equivalent to columns=labels).
+            Alternative to specifying axis (``labels, axis=1``
+            is equivalent to ``columns=labels``).
+
             .. versionadded:: 0.21.0
         level : int or level name, optional
-            For MultiIndex, level for which the labels will be removed.
+            For MultiIndex, level from which the labels will be removed.
         inplace : bool, default False
             If True, do operation inplace and return None.
         errors : {'ignore', 'raise'}, default 'raise'
-            If 'ignore', suppress error and existing labels are dropped.
+            If 'ignore', suppress error and only existing labels are
+            dropped.
 
         Returns
         -------
@@ -3135,10 +3137,10 @@ class DataFrame(NDFrame):
 
         >>> df.drop(index='cow', columns='small')
                         big
-        lama 	speed 	45.0
-                weight 	200.0
+        lama    speed   45.0
+                weight  200.0
                 length 	1.5
-        falcon 	speed 	320.0
+        falcon 	speed   320.0
                 weight 	1.0
                 length 	0.3
 
