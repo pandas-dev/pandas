@@ -2285,6 +2285,10 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
     >>> pd4 = pd.date_range(start='31/12/2017', end='3/1/2018', freq='M', closed='right')
     >>> pd4
     DatetimeIndex(['2018-01-31', '2018-02-28'], dtype='datetime64[ns]', freq='M')
+
+    See Also
+    --------
+    Numpy daterange: `numpy daterange<https://docs.scipy.org/doc/numpy/reference/arrays.datetime.html>`__.
     """
     return DatetimeIndex(start=start, end=end, periods=periods,
                          freq=freq, tz=tz, normalize=normalize, name=name,
