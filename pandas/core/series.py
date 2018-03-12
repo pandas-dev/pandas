@@ -1906,8 +1906,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             Choice of sorting algorithm. See also :func:'numpy.sort' for more
             information. 'mergesort' is the only stable  algorithm.
         na_position : {'first' or 'last'}, default 'last'
-             Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
-             the end.
+            Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
+            the end.
 
         Returns
         -------
