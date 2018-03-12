@@ -287,7 +287,8 @@ def create_msgpack_data():
     del data['frame']['cat_onecol']
     del data['frame']['cat_and_float']
     del data['scalars']['period']
-    del data['index']['interval']
+    if _loose_version < LooseVersion('0.23.0'):
+        del data['index']['interval']
     del data['offsets']
     return _u(data)
 
