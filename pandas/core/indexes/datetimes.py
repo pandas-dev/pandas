@@ -1059,7 +1059,47 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     def to_period(self, freq=None):
         """
-        Cast to PeriodIndex at a particular frequency
+        Cast to PeriodIndex at a particular frequency.
+
+        Converts DatetimeIndex to PeriodIndex.
+
+        Parameters
+        ----------
+        freq : string or Offset, optional
+            One of pandas' :ref:`offset strings <timeseries.offset_aliases>`
+            or an Offset object. Will be inferred by default.
+
+        Returns
+        -------
+        PeriodIndex
+
+        Raises
+        ------
+        ValueError
+            When converting a DatetimeIndex with non-regular values, so that a
+            frequency cannot be inferred.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"y": [1,2,3]},
+        ...                   index=pd.to_datetime(["2000-03-31 00:00:00",
+        ...                                         "2000-05-31 00:00:00",
+        ...                                         "2000-08-31 00:00:00"]))
+        >>> df.index.to_period("M")
+        PeriodIndex(['2000-03', '2000-05', '2000-08'],
+                    dtype='period[M]', freq='M')
+
+        Infer the daily frequency
+
+        >>> idx = pd.date_range("2017-01-01", periods=2)
+        >>> idx.to_period()
+        PeriodIndex(['2017-01-01', '2017-01-02'],
+                    dtype='period[D]', freq='D')
+
+        See also
+        --------
+        pandas.PeriodIndex: Immutable ndarray holding ordinal values
+        pandas.DatetimeIndex.to_pydatetime: Return DatetimeIndex as object
         """
         from pandas.core.indexes.period import PeriodIndex
 
@@ -1148,17 +1188,17 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     def to_perioddelta(self, freq):
         """
-        Calculates TimedeltaIndex of difference between index
-        values and index converted to PeriodIndex at specified
-        freq.  Used for vectorized offsets
+        Calculate TimedeltaIndex of difference between index
+        values and index converted to periodIndex at specified
+        freq. Used for vectorized offsets
 
         Parameters
         ----------
-        freq : Period frequency
+        freq: Period frequency
 
         Returns
         -------
-        y : TimedeltaIndex
+        y: TimedeltaIndex
         """
         return to_timedelta(self.asi8 - self.to_period(freq)
                             .to_timestamp().asi8)
