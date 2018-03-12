@@ -2128,19 +2128,28 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     def day_name(self, locale=None):
         """
-        Returns the day names.
+        Return the day names.
         
         Provides day names of the DateTimeIndex for the dataframe which consists of the time and date data with specified locale.
 
         Parameters
         ----------
         locale : string, default None (English locale)
-            locale determining the language in which to return the day name
-
+            The locale determines the language in which the day name should be returned.
+         
         Returns
         -------
         day_names : Index
             Index (instance) of day names
+            
+        See Also
+        --------
+        month_name : Return the month names
+        
+        Examples
+        --------
+        >>> day_name(numpyarr, locale=English) 
+        Index(['Monday', 'Wednesday,...,'Sunday'], dtype='object')
         """
         values = self.asi8
         if self.tz is not None:
