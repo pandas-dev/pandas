@@ -1294,6 +1294,24 @@ cdef class _Period(object):
 
     @property
     def daysinmonth(self):
+        """
+        Get the total number of days of the month that the Period falls in.
+
+        Returns
+        -------
+        int
+
+        See Also
+        --------
+        Period.days_in_month : Return the days of the month
+        Period.dayofyear : Return the day of the year
+
+        Examples
+        --------
+        >>> p = pd.Period("2018-03-11", freq='H')
+        >>> p.daysinmonth
+        31
+        """
         return self.days_in_month
 
     @property
