@@ -4280,7 +4280,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         This returns a Series with the data type of each column.
         The result's index is the original DataFrame's columns. Columns
-        with mixed types are stored in with the ``object`` dtype.
+        with mixed types are stored with the ``object`` dtype. See
+        :ref:`the User Guide <basics.dtypes>` for more.
 
         Returns
         -------
@@ -4315,7 +4316,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         This returns a Series with the data type of each column.
         The result's index is the original DataFrame's columns. Columns
-        with mixed types are stored in with the ``object`` dtype.
+        with mixed types are stored with the ``object`` dtype.  See
+        :ref:`the User Guide <basics.dtypes>` for more.
 
         Returns
         -------
