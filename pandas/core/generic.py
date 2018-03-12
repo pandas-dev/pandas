@@ -5266,8 +5266,8 @@ class NDFrame(PandasObject, SelectionMixin):
             * 'time': Works on daily and higher resolution
               data to interpolate given length of interval.
             * 'index', 'values': use the actual numerical values of the index.
-            * 'pad': Fill in `NaN`s using existing values.
-            * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
+            * 'pad': Fill in NaNs using existing values.
+            * 'nearest', 'zero', 'slinear', 'quadratic', 'cubic', 'spline',
               'barycentric', 'polynomial': Passed to
               ``scipy.interpolate.interp1d``. Both 'polynomial' and 'spline'
               require that you also specify an `order` (int),
@@ -5291,21 +5291,21 @@ class NDFrame(PandasObject, SelectionMixin):
         axis : {0 or 'index', 1 or 'columns', None}, default None
             Axis to interpolate along.
         limit : int, optional
-            Maximum number of consecutive `NaN`s to fill. Must be greater than
+            Maximum number of consecutive NaNs to fill. Must be greater than
             0.
         inplace : bool, default False
             Update the data in place if possible.
         limit_direction : {'forward', 'backward', 'both'}, default 'forward'
-            If limit is specified, consecutive `NaN`s will be filled in this
+            If limit is specified, consecutive NaNs will be filled in this
             direction.
         limit_area : {`None`, 'inside', 'outside'}
-            If limit is specified, consecutive `NaN`s will be filled with this
+            If limit is specified, consecutive NaNs will be filled with this
             restriction.
 
             * None: No fill restriction (default).
-            * 'inside': Only fill `NaN`s surrounded by valid values
+            * 'inside': Only fill NaNs surrounded by valid values
               (interpolate).
-            * 'outside': Only fill `NaN`s outside valid values (extrapolate).
+            * 'outside': Only fill NaNs outside valid values (extrapolate).
 
             .. versionadded:: 0.21.0
 
@@ -5349,7 +5349,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Examples
         --------
 
-        Filling in `NaNs` in a :class:`~pandas.Series` via linear
+        Filling in `NaN` in a :class:`~pandas.Series` via linear
         interpolation.
 
         >>> s = pd.Series([0, 1, np.nan, 3])
@@ -5360,7 +5360,7 @@ class NDFrame(PandasObject, SelectionMixin):
         3    3.0
         dtype: float64
 
-        Filling in `NaN`s in a Series by padding, but filling at most two
+        Filling in `NaN` in a Series by padding, but filling at most two
         consecutive `NaN` at a time.
 
         >>> s = pd.Series([np.nan, "single_one", np.nan,
@@ -5388,6 +5388,24 @@ class NDFrame(PandasObject, SelectionMixin):
         7             4.71
         8             4.71
         dtype: object
+
+        Filling in `NaN` in a Series via polynomial interpolation or splines:
+        Both `polynomial` and `spline` methods require that you also specify
+        an `order` (int).
+
+        >>> s = pd.Series([0, 2, np.nan, 8])
+        >>> s.interpolate(method='polynomial', order=1)
+        0    0.0
+        1    2.0
+        2    5.0
+        3    8.0
+        dtype: float64
+        >>> s.interpolate(method='polynomial', order=2)
+        0    0.000000
+        1    2.000000
+        2    4.666667
+        3    8.000000
+        dtype: float64
 
         Create a :class:`~pandas.DataFrame` with missing values to fill it
         with diffferent methods.
