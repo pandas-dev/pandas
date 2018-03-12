@@ -2316,7 +2316,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def argsort(self, *args, **kwargs):
         """
-        Return the order of the indices that would sort the index.
+        Return the integer indicies that would sort the index.
 
         Parameters
         ----------
@@ -2328,7 +2328,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         numpy.ndarray
-            indicies that would sort the index if used as
+            Integer indicies that would sort the index if used as
             an indexer.
 
         See also
