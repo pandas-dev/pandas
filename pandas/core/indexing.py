@@ -1725,12 +1725,12 @@ class _iLocIndexer(_LocationIndexer):
 
     **Indexing both axes**
 
-    With scalars.
+    With scalar integers.
 
     >>> df.iloc[0, 1]
     2
 
-    With lists.
+    With lists of integers.
 
     >>> df.iloc[[0, 2], [1, 3]]
           b     d
@@ -1742,7 +1742,7 @@ class _iLocIndexer(_LocationIndexer):
     1   100   200   300
     2  1000  2000  3000
 
-    Select using boolean array.
+    With a boolean array whose length matches the columns.
 
     >>> df.iloc[:, [True, False, True, False]]
           a     c
@@ -1750,7 +1750,7 @@ class _iLocIndexer(_LocationIndexer):
     1   100   300
     2  1000  3000
 
-    Select using callable function.
+    With a callable function that expects the Series or DataFrame.
 
     >>> df.iloc[:, lambda df: [0, 2]]
           a     c
