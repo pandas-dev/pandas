@@ -1218,27 +1218,20 @@ cdef class _Period(object):
     @property
     def day(self):
         """
-        Return the number of days of particular month of a given Period.
+        Get day of the month that a Period falls on.
 
-        This attribute returns the total number of days of given month on which
-        the particular date occurs.
-        
         Returns
         -------
-        Int
-        Number of days till particular date
+        int
 
-        See also
+        See Also
         --------
-        Period.dayofweek
-            Return the day of the week
+        Period.dayofweek : Get the day of the week
 
-        Period.dayofyear
-            Return the day of the year
+        Period.dayofyear : Get the day of the year
 
         Examples
         --------
-        >>> import pandas as pd
         >>> p = pd.Period("2018-03-11", freq='H')
         >>> p.day
         11
