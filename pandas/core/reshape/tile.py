@@ -65,11 +65,14 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
 
     Returns
     -------
-    out : pandas.Categorical or Series, or array of int if `labels` is 'False'
-        The return type depends on the input.
-        If the input is a Series, a Series of type category is returned.
-        Else - pandas.Categorical is returned. Bins are represented as
-        categories when categorical data is returned.
+    out : pandas.Categorical, Series, or ndarray
+        An array-like object representing the respective bin for each value
+        of `x`. The type depends on the value of `labels`.
+
+        * True : returns a Series for Series `x` or a pandas.Categorical for
+        pandas.Categorial `x`.
+        
+        * False : returns an ndarray of integers.
     bins : numpy.ndarray of floats
         Returned when `retbins` is 'True'.
 
