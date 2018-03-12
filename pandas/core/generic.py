@@ -4514,26 +4514,28 @@ class NDFrame(PandasObject, SelectionMixin):
         original object (see notes below).
 
         When `deep=False`, a new object will be created without copying
-        the calling object's data (only a reference to the data is
-        copied). Any changes to the data of the original will be reflected
-        in the shallow copy (and vice versa).
+        the calling object's data or index (only references to the data
+        and index are copied). Any changes to the data of the original
+        will be reflected in the shallow copy (and vice versa). Changes
+        to the index will result in a new index as indices are immutable.
 
         Parameters
         ----------
-        deep : boolean or string, default True
+        deep : boolean or str, default `True`
             Make a deep copy, including a copy of the data and the indices.
-            With `deep=False` neither the indices or the data are copied.
+            With `deep=False` neither the indices nor the data are copied.
 
         Returns
         -------
         copy : type of caller
+            Object type matches caller.
 
         Notes
         -----
-        When `deep=True`, data is copied but actual python objects
+        When `deep=True`, data is copied but actual Python objects
         will not be copied recursively, only the reference to the object.
         This is in contrast to `copy.deepcopy` in the Standard Library,
-        which recursively copies object data.  (See examples below).
+        which recursively copies object data (see examples below).
 
         Examples
         --------
@@ -4542,74 +4544,66 @@ class NDFrame(PandasObject, SelectionMixin):
         a    1
         b    2
         dtype: int64
+
         >>> s_copy = s.copy()
         >>> s_copy
         a    1
         b    2
         dtype: int64
 
-        Shallow copy versus default (deep) copy:
+        **Shallow copy versus default (deep) copy:**
 
-        In a shallow copy, the data is shared with the original object.
+        >>> s = pd.Series([1, 2], index=["a", "b"])
+        >>> deep = s.copy()
+        >>> shallow = s.copy(deep=False)
 
-        >>> s = pd.Series([1,2], index=["a", "b"])
-        >>> deep_copy = s.copy()
-        >>> shallow_copy = s.copy(deep=False)
-        >>> id(s) == id(shallow_copy)
+        Shallow copy shares data and index with original.
+
+        >>> s is shallow
         False
-        >>> id(s.values) == id(shallow_copy.values)
+        >>> s.values is shallow.values and s.index is shallow.index
         True
-        >>> id(s) == id(deep_copy)
+
+        Deep copy has own copy of data and index.
+
+        >>> s is deep
         False
-        >>> id(s.values) == id(deep_copy.values)
+        >>> s.values is deep.values or s.index is deep.index
         False
+
+        Updates to the data shared by shallow copy and original is reflected
+        in both; deep copy remains unchanged.
+
         >>> s[0] = 3
+        >>> shallow[1] = 4
         >>> s
         a    3
-        b    2
+        b    4
         dtype: int64
-        >>> shallow_copy
+        >>> shallow
         a    3
-        b    2
+        b    4
         dtype: int64
-        >>> deep_copy
-        a    1
-        b    2
-        dtype: int64
-        >>> shallow_copy[0] = 4
-        >>> s
-        a    4
-        b    2
-        dtype: int64
-        >>> shallow_copy
-        a    4
-        b    2
-        dtype: int64
-        >>> deep_copy
+        >>> deep
         a    1
         b    2
         dtype: int64
 
-        When copying an object containing python objects, deep copy will
-        copy the data, but will not do so recursively.
+        When copying an object containing Python objects, a deep copy will
+        copy the data, but will not do so recursively. Updating a nested data
+        object will be reflected in the deep copy.
 
         >>> s = pd.Series([[1, 2], [3, 4]])
-        >>> s_copy = s.copy()
+        >>> deep = s.copy()
         >>> s[0][0] = 10
         >>> s
         0    [10, 2]
         1     [3, 4]
         dtype: object
-        >>> s_copy
+        >>> deep
         0    [10, 2]
         1     [3, 4]
         dtype: object
-
-        For deep-copying python objects, the following can be used:
-
-        >>> import copy
-        >>> deep_deep_copy = pd.Series(copy.deepcopy(s.values),
-        ...                            index=copy.deepcopy(s.index))
         """
         data = self._data.copy(deep=deep)
         return self._constructor(data).__finalize__(self)
