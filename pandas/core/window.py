@@ -357,7 +357,7 @@ class _Window(PandasObject, SelectionMixin):
     2    2.5
     3    3.5
     dtype: float64
-    
+
     >>> s.rolling(3).mean()
     0    NaN
     1    NaN
