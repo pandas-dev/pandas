@@ -2021,8 +2021,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         Sort Series by index labels.
 
-        Returns a new Series sorted by label if `inplace` argument is `False`,
-        otherwise updates the original series and returns `null`.
+        Returns a new Series sorted by label if `inplace` argument is
+        ``False``, otherwise updates the original series and returns None.
 
         Parameters
         ----------
