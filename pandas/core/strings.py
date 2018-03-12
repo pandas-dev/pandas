@@ -898,23 +898,94 @@ def str_join(arr, sep):
 
 def str_findall(arr, pat, flags=0):
     """
-    Find all occurrences of pattern or regular expression in the
-    Series/Index. Equivalent to :func:`re.findall`.
+    Find all occurrences of pattern or regular expression in the Series/Index.
+
+    Equivalent to applying :func:`re.findall` to all the elements in the
+    Series/Index.
 
     Parameters
     ----------
     pat : string
-        Pattern or regular expression
-    flags : int, default 0 (no flags)
-        re module flags, e.g. re.IGNORECASE
+        Pattern or regular expression.
+    flags : int, default 0
+        ``re`` module flags, e.g. `re.IGNORECASE` (default is 0, which means
+        no flags).
 
     Returns
     -------
-    matches : Series/Index of lists
+    Series/Index of lists of strings
+        All non-overlapping matches of pattern or regular expression in each
+        string of this Series/Index.
 
     See Also
     --------
-    extractall : returns DataFrame with one column per capture group
+    count : Count occurrences of pattern or regular expression in each string
+        of the Series/Index.
+    extractall : For each string in the Series, extract groups from all matches
+        of regular expression and return a DataFrame with one row for each
+        match and one column for each group.
+    re.findall : The equivalent ``re`` function to all non-overlapping matches
+        of pattern or regular expression in string, as a list of strings.
+
+    Examples
+    --------
+
+    >>> s = pd.Series(['Lion', 'Monkey', 'Rabbit'])
+
+    The search for the pattern 'Monkey' returns one match:
+
+    >>> s.str.findall('Monkey')
+    0          []
+    1    [Monkey]
+    2          []
+    dtype: object
+
+    On the other hand, the search for the pattern 'MONKEY' doesn't return any
+    match:
+
+    >>> s.str.findall('MONKEY')
+    0    []
+    1    []
+    2    []
+    dtype: object
+
+    Flags can be added to the pattern or regular expression. For instance,
+    to find the pattern 'MONKEY' ignoring the case:
+
+    >>> import re
+    >>> s.str.findall('MONKEY', flags=re.IGNORECASE)
+    0          []
+    1    [Monkey]
+    2          []
+    dtype: object
+
+    When the pattern matches more than one string in the Series, all matches
+    are returned:
+
+    >>> s.str.findall('on')
+    0    [on]
+    1    [on]
+    2      []
+    dtype: object
+
+    Regular expressions are supported too. For instance, the search for all the
+    strings ending with the word 'on' is shown next:
+
+    >>> s.str.findall('on$')
+    0    [on]
+    1      []
+    2      []
+    dtype: object
+
+    If the pattern is found more than once in the same string, then a list of
+    multiple strings is returned:
+
+    >>> s.str.findall('b')
+    0        []
+    1        []
+    2    [b, b]
+    dtype: object
+
     """
     regex = re.compile(pat, flags=flags)
     return _na_map(regex.findall, arr)
@@ -1024,24 +1095,88 @@ def str_pad(arr, width, side='left', fillchar=' '):
 
 def str_split(arr, pat=None, n=None):
     """
-    Split each string (a la re.split) in the Series/Index by given
-    pattern, propagating NA values. Equivalent to :meth:`str.split`.
+    Split strings around given separator/delimiter.
+
+    Split each string in the caller's values by given
+    pattern, propagating NaN values. Equivalent to :meth:`str.split`.
 
     Parameters
     ----------
-    pat : string, default None
-        String or regular expression to split on. If None, splits on whitespace
+    pat : str, optional
+        String or regular expression to split on.
+        If not specified, split on whitespace.
     n : int, default -1 (all)
-        None, 0 and -1 will be interpreted as return all splits
+        Limit number of splits in output.
+        ``None``, 0 and -1 will be interpreted as return all splits.
     expand : bool, default False
-        * If True, return DataFrame/MultiIndex expanding dimensionality.
-        * If False, return Series/Index.
+        Expand the splitted strings into separate columns.
 
-    return_type : deprecated, use `expand`
+        * If ``True``, return DataFrame/MultiIndex expanding dimensionality.
+        * If ``False``, return Series/Index, containing lists of strings.
 
     Returns
     -------
     split : Series/Index or DataFrame/MultiIndex of objects
+        Type matches caller unless ``expand=True`` (return type is DataFrame or
+    MultiIndex)
+
+    Notes
+    -----
+    The handling of the `n` keyword depends on the number of found splits:
+
+    - If found splits > `n`,  make first `n` splits only
+    - If found splits <= `n`, make all splits
+    - If for a certain row the number of found splits < `n`,
+      append `None` for padding up to `n` if ``expand=True``
+
+    Examples
+    --------
+    >>> s = pd.Series(["this is good text", "but this is even better"])
+
+    By default, split will return an object of the same size
+    having lists containing the split elements
+
+    >>> s.str.split()
+    0           [this, is, good, text]
+    1    [but, this, is, even, better]
+    dtype: object
+    >>> s.str.split("random")
+    0          [this is good text]
+    1    [but this is even better]
+    dtype: object
+
+    When using ``expand=True``, the split elements will
+    expand out into separate columns.
+
+    >>> s.str.split(expand=True)
+          0     1     2     3       4
+    0  this    is  good  text    None
+    1   but  this    is  even  better
+    >>> s.str.split(" is ", expand=True)
+              0            1
+    0      this    good text
+    1  but this  even better
+
+    Parameter `n` can be used to limit the number of splits in the output.
+
+    >>> s.str.split("is", n=1)
+    0          [th,  is good text]
+    1    [but th,  is even better]
+    dtype: object
+    >>> s.str.split("is", n=1, expand=True)
+            0                1
+    0      th     is good text
+    1  but th   is even better
+
+    If NaN is present, it is propagated throughout the columns
+    during the split.
+
+    >>> s = pd.Series(["this is good text", "but this is even better", np.nan])
+    >>> s.str.split(n=3, expand=True)
+          0     1     2            3
+    0  this    is  good         text
+    1   but  this    is  even better
+    2   NaN   NaN   NaN          NaN
     """
     if pat is None:
         if n is None or n == 0:
