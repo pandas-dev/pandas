@@ -215,33 +215,28 @@ class TestMelt(object):
     @pytest.mark.parametrize("col", [
         pd.Series(pd.date_range('2010', periods=5, tz='US/Pacific')),
         pd.Series(["a", "b", "c", "a", "d"], dtype="category")])
-    def test_pandas_dtypes_id_var(self, col):
+    @pytest.mark.parametrize("pandas_dtype_value", [True, False])
+    def test_pandas_dtypes_id_var(self, col, pandas_dtype_value):
         # GH 15785
         # Pandas dtype in the id
         df = DataFrame({'klass': range(5),
                         'col': col,
-                        'attr1': [1, 0, 0, 0, 0],
-                        'attr2': [0, 1, 0, 0, 0]})
+                        'attr1': [1, 0, 0, 0, 0]})
+        if pandas_dtype_value:
+            # Pandas dtype in the value as well
+            df['attr2'] = col
+            expected_value = pd.concat([pd.Series([1, 0, 0, 0, 0]), col],
+                                       ignore_index=True)
+        else:
+            df['attr2'] = [0, 1, 0, 0, 0]
+            expected_value = [1, 0, 0, 0, 0] + [0, 1, 0, 0, 0]
         result = melt(df, id_vars=['klass', 'col'], var_name='attribute',
                       value_name='value')
-        expected = DataFrame({'klass': list(range(5)) * 2,
-                              'col': pd.concat([col] * 2, ignore_index=True),
-                              'attribute': ['attr1'] * 5 + ['attr2'] * 5,
-                              'value': [1, 0, 0, 0, 0] + [0, 1, 0, 0, 0]})
-        tm.assert_frame_equal(result, expected)
-
-        # Pandas dtype in the value
-        df = DataFrame({'klass': range(5),
-                        'col': col,
-                        'attr1': [1, 0, 0, 0, 0],
-                        'attr2': col})
-        result = melt(df, id_vars=['klass', 'col'], var_name='attribute',
-                      value_name='value')
-        expected = DataFrame({'klass': list(range(5)) * 2,
-                              'col': pd.concat([col] * 2, ignore_index=True),
-                              'attribute': ['attr1'] * 5 + ['attr2'] * 5,
-                              'value': pd.concat([pd.Series([1, 0, 0, 0, 0]),
-                                                  col], ignore_index=True)})
+        expected = DataFrame({0: list(range(5)) * 2,
+                              1: pd.concat([col] * 2, ignore_index=True),
+                              2: ['attr1'] * 5 + ['attr2'] * 5,
+                              3: expected_value})
+        expected.columns = ['klass', 'col', 'attribute', 'value']
         tm.assert_frame_equal(result, expected)
 
 
