@@ -1699,7 +1699,7 @@ class _iLocIndexer(_LocationIndexer):
     0    1    2    3    4
     1  100  200  300  400
 
-    With a slice object.
+    With a `slice` object.
 
     >>> df.iloc[:3]
           a     b     c     d
@@ -1725,6 +1725,9 @@ class _iLocIndexer(_LocationIndexer):
 
     **Indexing both axes**
 
+    You can mix the indexer types for the index and columns. Use ``:`` to
+    select the entire axis.
+
     With scalar integers.
 
     >>> df.iloc[0, 1]
@@ -1736,6 +1739,8 @@ class _iLocIndexer(_LocationIndexer):
           b     d
     0     2     4
     2  2000  4000
+
+    With `slice` objects.
 
     >>> df.iloc[1:3, 0:3]
           a     b     c
