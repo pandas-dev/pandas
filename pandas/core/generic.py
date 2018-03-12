@@ -7583,8 +7583,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         cls.any = _make_logical_function(
             cls, 'any', name, name2, axis_descr,
-            'Return whether any element is True over requested axis',
-            nanops.nanany, '', '')
+            _any_desc, nanops.nanany, _any_examples, _any_see_also)
         cls.all = _make_logical_function(
             cls, 'all', name, name2, axis_descr, _all_doc,
             nanops.nanall, _all_examples, _all_see_also)
@@ -7848,7 +7847,8 @@ _bool_doc = """
 
 Parameters
 ----------
-axis : %(axis_descr)s
+axis : int, default 0
+    Select the axis which can be 0 for indices and 1 for columns.
 skipna : boolean, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA.
@@ -7866,8 +7866,8 @@ Returns
 -------
 %(outname)s : %(name1)s or %(name2)s (if level specified)
 
-%(examples)s
-%(see_also)s"""
+%(see_also)s
+%(examples)s"""
 
 _all_doc = """\
 Return whether all elements are True over series or dataframe axis.
@@ -7938,6 +7938,74 @@ pandas.core.window.Expanding.%(accum_func_name)s : Similar functionality
 
 """
 
+_any_see_also = """\
+See Also
+--------
+pandas.DataFrame.all : Return whether all elements are True.
+"""
+
+_any_desc = """\
+Return whether any element is True over requested axis.
+
+Unlike :meth:`DataFrame.all`, this performs an *or* operation. If any of the
+values along the specified axis is True, this will return True."""
+
+_any_examples = """\
+Examples
+--------
+**Series**
+
+For Series input, the output is a scalar indicating whether any element
+is True.
+
+>>> pd.Series([True, False]).any()
+True
+
+**DataFrame**
+
+Whether each column contains at least one True element (the default).
+
+>>> df = pd.DataFrame({"A": [1, 2], "B": [0, 2], "C": [0, 0]})
+>>> df
+   A  B  C
+0  1  0  0
+1  2  2  0
+
+>>> df.any()
+A     True
+B     True
+C    False
+dtype: bool
+
+Aggregating over the columns.
+
+>>> df = pd.DataFrame({"A": [True, False], "B": [1, 2]})
+>>> df
+       A  B
+0   True  1
+1  False  2
+
+>>> df.any(axis='columns')
+0    True
+1    True
+dtype: bool
+
+>>> df = pd.DataFrame({"A": [True, False], "B": [1, 0]})
+>>> df
+       A  B
+0   True  1
+1  False  0
+
+>>> df.any(axis='columns')
+0    True
+1    False
+dtype: bool
+
+`any` for an empty DataFrame is an empty Series.
+
+>>> pd.DataFrame([]).any()
+Series([], dtype: bool)
+"""
 
 _sum_examples = """\
 Examples
