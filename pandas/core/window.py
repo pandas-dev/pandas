@@ -872,7 +872,7 @@ class _Rolling_and_Expanding(_Rolling):
 
     Examples
     --------
-    Compute the rolling mean of a series with a window size of 3.
+    Compute the rolling median of a series with a window size of 3.
 
     >>> s = pd.Series([0, 1, 2, 3, 4])
     >>> s.rolling(3).median()
