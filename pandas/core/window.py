@@ -347,7 +347,7 @@ class _Window(PandasObject, SelectionMixin):
 
     Examples
     --------
-    The below example will show rolling mean calculations with window sizes of
+    The below examples will show rolling mean calculations with window sizes of
     two and three, respectively.
 
     >>> s = pd.Series([1, 2, 3, 4])
@@ -357,6 +357,7 @@ class _Window(PandasObject, SelectionMixin):
     2    2.5
     3    3.5
     dtype: float64
+    
     >>> s.rolling(3).mean()
     0    NaN
     1    NaN
