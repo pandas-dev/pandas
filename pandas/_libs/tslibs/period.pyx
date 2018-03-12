@@ -1255,7 +1255,7 @@ cdef class _Period(object):
         Returns
         -------
         Int
-            Range of 0 to 6
+            Range from 0 to 6(included).
 
         See also
         --------
