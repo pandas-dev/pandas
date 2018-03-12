@@ -2019,7 +2019,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def sort_index(self, axis=0, level=None, ascending=True, inplace=False,
                    kind='quicksort', na_position='last', sort_remaining=True):
         """
-        Sort object by labels.
+        Sort Series by index labels.
 
         Returns a new Series sorted by label if `inplace` argument is `False`,
         otherwise updates the original series and returns `null`.
@@ -2027,20 +2027,20 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Parameters
         ----------
         axis : int, default 0
-            Axis to direct sorting.
-        level : int, default None
+            Axis to direct sorting. This can only be 0 for Series.
+        level : int, optional
             If not None, sort on values in specified index level(s).
-        ascending : boolean, default true
+        ascending : bool, default true
             Sort ascending vs. descending.
         inplace : bool, default False
             If True, perform operation in-place.
         kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
-            Choice of sorting algorithm. See also ndarray.np.sort for more
-            information.  `mergesort` is the only stable algorithm. For
+            Choice of sorting algorithm. See also :func:`numpy.sort` for more
+            information.  'mergesort' is the only stable algorithm. For
             DataFrames, this option is only applied when sorting on a single
             column or label.
         na_position : {'first', 'last'}, default 'last'
-            If `first` puts NaNs at the beginning, `last` puts NaNs at the end.
+            If `first` puts NaNs at the beginning, 'last' puts NaNs at the end.
             Not implemented for MultiIndex.
         sort_remaining : bool, default True
             If true and sorting by level and index is multilevel, sort by other
@@ -2053,11 +2053,13 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        sort_values : Sort by the value
+        DataFrame.sort_index: Sort DataFrame by the index
+        DataFrame.sort_values: Sort DataFrame by the value
+        Series.sort_values : Sort Series by the value
 
         Examples
         --------
-        >>> s = pd.Series(['a', 'b', 'c', 'd'], index=[3,2,1,4])
+        >>> s = pd.Series(['a','b','c','d'], index=[3,2,1,4])
         >>> s.sort_index()
         1    c
         2    b
@@ -2067,7 +2069,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Sort Descending
 
-        >>> s = pd.Series(['a', 'b', 'c', 'd'], index=[3,2,1,4])
+        >>> s = pd.Series(['a','b','c','d'], index=[3,2,1,4])
         >>> s.sort_index(ascending=False)
         4    d
         3    a
@@ -2077,7 +2079,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Sort Inplace
 
-        >>> s = pd.Series(['a', 'b', 'c', 'd'], index=[3,2,1,4])
+        >>> s = pd.Series(['a','b','c','d'], index=[3,2,1,4])
         >>> s.sort_index(inplace=True)
         >>> s
         1    c
@@ -2088,7 +2090,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Sort placing NaNs at first
 
-        >>> s = pd.Series(['a', 'b', 'c', 'd'], index=[3,2,1,np.nan])
+        >>> s = pd.Series(['a','b','c','d'], index=[3,2,1,np.nan])
         >>> s.sort_index(na_position='first')
         NaN     d
          1.0    c
@@ -2098,12 +2100,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Specify index level to sort
 
-        >>> import numpy as np
-        >>> arrays = [np.array(['qux', 'qux', 'foo', 'foo',
-        ...                     'baz', 'baz', 'bar', 'bar']),
-        ...           np.array(['two', 'one', 'two', 'one',
-        ...                     'two', 'one', 'two', 'one'])]
-        >>> s = pd.Series([1, 2, 3, 4, 5, 6, 7, 8], index=arrays)
+        >>> arrays = [np.array(['qux','qux','foo','foo',
+        ...                     'baz','baz','bar','bar']),
+        ...           np.array(['two','one','two','one',
+        ...                     'two','one','two','one'])]
+        >>> s = pd.Series([1,2,3,4,5,6,7,8], index=arrays)
         >>> s.sort_index(level=1)
         bar  one    8
         baz  one    6
@@ -2117,12 +2118,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Does not sort by remaining levels when sorting by levels
 
-        >>> import numpy as np
-        >>> arrays = [np.array(['qux', 'qux', 'foo', 'foo',
-        ...                     'baz', 'baz', 'bar', 'bar']),
-        ...           np.array(['two', 'one', 'two', 'one',
-        ...                     'two', 'one', 'two', 'one'])]
-        >>> s = pd.Series([1, 2, 3, 4, 5, 6, 7, 8], index=arrays)
+        >>> arrays = [np.array(['qux','qux','foo','foo',
+        ...                     'baz','baz','bar','bar']),
+        ...           np.array(['two','one','two','one',
+        ...                     'two','one','two','one'])]
+        >>> s = pd.Series([1,2,3,4,5,6,7,8], index=arrays)
         >>> s.sort_index(level=1, sort_remaining=False)
         qux  one    2
         foo  one    4
