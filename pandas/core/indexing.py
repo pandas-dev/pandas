@@ -1897,12 +1897,10 @@ class _AtIndexer(_ScalarAccessIndexer):
 
     See Also
     --------
-    DataFrame.iat
-        Access a single value for a row/column pair by integer position
-    DataFrame.loc
-        Access a group of rows and columns by label(s)
-    Series.at
-        Access a single value using a label
+    DataFrame.iat : Access a single value for a row/column pair by integer
+                    position
+    DataFrame.loc : Access a group of rows and columns by label(s)
+    Series.at : Access a single value using a label
 
     Examples
     --------
@@ -1925,7 +1923,7 @@ class _AtIndexer(_ScalarAccessIndexer):
     >>> df.at[4, 'B']
     10
 
-    Get value within a series
+    Get value within a Series
 
     >>> df.loc[5].at['B']
     4
