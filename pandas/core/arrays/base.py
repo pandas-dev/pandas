@@ -279,19 +279,10 @@ class ExtensionArray(object):
 
         if mask.any():
             if method is not None:
-                # ffill / bfill
-                # The basic idea is to create an array of integer positions.
-                # Internally, we use iNaT and the datetime filling routines
-                # to avoid floating-point NaN. Once filled, we take on `self`
-                # to get the actual values.
                 func = pad_1d if method == 'pad' else backfill_1d
-                idx = np.arange(len(self), dtype='int64')
-                idx[mask] = iNaT
-                idx = _ensure_platform_int(func(idx, mask=mask,
-                                                limit=limit,
-                                                dtype='datetime64[ns]'))
-                idx[idx == iNaT] = -1  # missing value marker for take.
-                new_values = self.take(idx)
+                new_values = func(self.astype(object), limit=limit,
+                                  mask=mask)
+                new_values = self._constructor_from_sequence(new_values)
             else:
                 # fill with value
                 new_values = self.copy()
