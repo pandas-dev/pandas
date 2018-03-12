@@ -4906,46 +4906,33 @@ class DataFrame(NDFrame):
         Examples
         --------
 
-        We use this DataFrame to illustrate
-
-        >>> df = pd.DataFrame(np.tile(np.arange(3), 6).reshape(6, -1) + 1,
-        ...                   columns=['A', 'B', 'C'])
+        >>> df = pd.DataFrame([[4, 9],] * 3, columns=['A', 'B'])
         >>> df
-           A  B  C
-        0  1  2  3
-        1  1  2  3
-        2  1  2  3
-        3  1  2  3
-        4  1  2  3
-        5  1  2  3
+           A  B
+        0  4  9
+        1  4  9
+        2  4  9
 
         Using a numpy universal function (in this case the same as
         ``np.sqrt(df)``):
 
         >>> df.apply(np.sqrt)
-             A         B         C
-        0  1.0  1.414214  1.732051
-        1  1.0  1.414214  1.732051
-        2  1.0  1.414214  1.732051
-        3  1.0  1.414214  1.732051
-        4  1.0  1.414214  1.732051
-        5  1.0  1.414214  1.732051
+             A    B
+        0  2.0  3.0
+        1  2.0  3.0
+        2  2.0  3.0
 
         Using a reducing function on either axis
 
         >>> df.apply(np.sum, axis=0)
-        A     6
-        B    12
-        C    18
+        A    12
+        B    27
         dtype: int64
 
         >>> df.apply(np.sum, axis=1)
-        0    6
-        1    6
-        2    6
-        3    6
-        4    6
-        5    6
+        0    13
+        1    13
+        2    13
         dtype: int64
 
         Retuning a list-like will result in a Series
@@ -4954,9 +4941,12 @@ class DataFrame(NDFrame):
         0    [1, 2]
         1    [1, 2]
         2    [1, 2]
-        3    [1, 2]
-        4    [1, 2]
-        5    [1, 2]
+        dtype: object
+
+        >>> df.apply(lambda x: [1,], axis=1)
+        0    [1]
+        1    [1]
+        2    [1]
         dtype: object
 
         Passing result_type='expand' will expand list-like results
@@ -4967,9 +4957,6 @@ class DataFrame(NDFrame):
         0  1  2
         1  1  2
         2  1  2
-        3  1  2
-        4  1  2
-        5  1  2
 
         Returning a Series inside the function is similar to passing
         ``result_type='expand'``. The resulting column names
@@ -4980,23 +4967,17 @@ class DataFrame(NDFrame):
         0    1    2
         1    1    2
         2    1    2
-        3    1    2
-        4    1    2
-        5    1    2
 
         Passing ``result_type='broadcast'`` will ensure the same shape
         result, whether list-like or scalar is returned by the function,
         and broadcast it along the axis. The resulting column names will
         be the originals.
 
-        >>> df.apply(lambda x: [1, 2, 3], axis=1, result_type='broadcast')
-           A  B  C
-        0  1  2  3
-        1  1  2  3
-        2  1  2  3
-        3  1  2  3
-        4  1  2  3
-        5  1  2  3
+        >>> df.apply(lambda x: [1, 2], axis=1, result_type='broadcast')
+           A  B
+        0  1  2
+        1  1  2
+        2  1  2
 
         See also
         --------
