@@ -4856,7 +4856,7 @@ class DataFrame(NDFrame):
               instead.
               If you are just applying a NumPy reduction function this will
               achieve much better performance.
-        reduce : bool or `None`, default `None`
+        reduce : bool or None, default None
             Try to apply reduction procedures. If the DataFrame is empty,
             `apply` will use `reduce` to determine whether the result
             should be a Series or a DataFrame. If ``reduce=None`` (the
