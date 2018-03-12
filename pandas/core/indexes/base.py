@@ -2054,7 +2054,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx
         Float64Index([5.2, 6.0, nan], dtype='float64')
         >>> idx.isna()
-        array([False, False,  True])
+        array([False, False,  True], dtype=bool)
 
         Empty strings are not considered NA values. None is considered an NA
         value.
@@ -2063,7 +2063,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx
         Index(['black', '', 'red', None], dtype='object')
         >>> idx.isna()
-        array([False, False, False,  True])
+        array([False, False, False,  True], dtype=bool)
 
         For datetimes, `NaT` (Not a Time) is considered as an NA value.
 
@@ -2073,7 +2073,7 @@ class Index(IndexOpsMixin, PandasObject):
         DatetimeIndex(['1940-04-25', 'NaT', 'NaT', 'NaT'],
                       dtype='datetime64[ns]', freq=None)
         >>> idx.isna()
-        array([False,  True,  True,  True])
+        array([False,  True,  True,  True], dtype=bool)
         """
         return self._isnan
     isnull = isna
