@@ -7515,10 +7515,11 @@ class NDFrame(PandasObject, SelectionMixin):
         return q
 
     _shared_docs['pct_change'] = """
-        Percentage change between the current and previous element.
+        Percentage change between the current and a prior element.
 
-        This is useful in comparing the percentage of change in a time series
-        of elements.
+        Computes the percentage change from the immediately previous row by
+        default. This is useful in comparing the percentage of change in a time
+        series of elements.
 
         Parameters
         ----------
@@ -7530,7 +7531,7 @@ class NDFrame(PandasObject, SelectionMixin):
             The number of consecutive NAs to fill before stopping.
         freq : DateOffset, timedelta, or offset alias string, optional
             Increment to use from time series API (e.g. 'M' or BDay()).
-        **kwargs : mapping, optional
+        **kwargs
             Additional keyword arguments are passed into
             `DataFrame.shift` or `Series.shift`.
 
@@ -7539,9 +7540,16 @@ class NDFrame(PandasObject, SelectionMixin):
         chg : Series or DataFrame
             The same type as the calling object.
 
+        See Also
+        --------
+        Series.diff : Compute the difference of two elements in a Series.
+        DataFrame.diff : Compute the difference of two elements in a DataFrame.
+        Series.shift : Shift the index by some number of periods.
+        DataFrame.shift : Shift the index by some number of periods.
+
         Examples
         --------
-        See the percentage change in a Series.
+        **Series**
 
         >>> s = pd.Series([90, 91, 85])
         >>> s
@@ -7549,10 +7557,17 @@ class NDFrame(PandasObject, SelectionMixin):
         1    91
         2    85
         dtype: int64
+
         >>> s.pct_change()
         0         NaN
         1    0.011111
         2   -0.065934
+        dtype: float64
+
+        >>> s.pct_change(periods=2)
+        0         NaN
+        1         NaN
+        2   -0.055556
         dtype: float64
 
         See the percentage change in a Series where filling NAs with last
@@ -7565,6 +7580,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2     NaN
         3    85.0
         dtype: float64
+
         >>> s.pct_change(fill_method='ffill')
         0         NaN
         1    0.011111
@@ -7572,8 +7588,10 @@ class NDFrame(PandasObject, SelectionMixin):
         3   -0.065934
         dtype: float64
 
+        **DataFrame**
+
         Percentage change in French franc, Deutsche Mark, and Italian lira from
-        1 January 1980 to 1 March 1980.
+        1980-01-01 to 1980-03-01.
 
         >>> df = pd.DataFrame({
         ...     'FR': [4.0405, 4.0963, 4.3149],
@@ -7585,13 +7603,15 @@ class NDFrame(PandasObject, SelectionMixin):
         1980-01-01  4.0405  1.7246  804.74
         1980-02-01  4.0963  1.7482  810.01
         1980-03-01  4.3149  1.8519  860.13
+
         >>> df.pct_change()
                           FR        GR        IT
         1980-01-01       NaN       NaN       NaN
         1980-02-01  0.013810  0.013684  0.006549
         1980-03-01  0.053365  0.059318  0.061876
 
-        Percentage of change in GOOG and APPL stock volume.
+        Percentage of change in GOOG and APPL stock volume. Shows computing
+        the percentage change between columns.
 
         >>> df = pd.DataFrame({
         ...     '2016': [1769950, 30586265],
@@ -7602,15 +7622,11 @@ class NDFrame(PandasObject, SelectionMixin):
                   2016      2015      2014
         GOOG   1769950   1500923   1371819
         APPL  30586265  40912316  41403351
+
         >>> df.pct_change(axis='columns')
               2016      2015      2014
         GOOG   NaN -0.151997 -0.086016
         APPL   NaN  0.337604  0.012002
-
-        See Also
-        --------
-        DataFrame.diff : see the difference of two columns
-        Series.diff : see the difference of two columns
         """
 
     @Appender(_shared_docs['pct_change'] % _shared_doc_kwargs)
