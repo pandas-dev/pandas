@@ -1242,7 +1242,7 @@ cdef class _Period(object):
     @property
     def hour(self):
         """
-        Get hours of the day component of the Period.
+        Get the hour of the day component of the Period.
 
         Returns
         -------
@@ -1251,8 +1251,8 @@ cdef class _Period(object):
 
         See Also
         --------
-        Period.minute : Get the minute of the Period.
-        Period.second : Get the second of the Period.
+        Period.second : Get the second component of the Period.
+        Period.minute : Get the minute component of the Period.
 
         Examples
         --------
