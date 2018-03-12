@@ -7965,32 +7965,40 @@ True
 
 Whether each column contains at least one True element (the default).
 
->>> pd.DataFrame({
-...     "A": [1, 2, 3],
-...     "B": [4, 5, 6]
-... }).any()
-A    True
-B    True
+>>> df = pd.DataFrame({"A": [1, 2], "B": [0, 2], "C": [0, 0]})
+>>> df
+   A  B  C
+0  1  0  0
+1  2  2  0
+
+>>> df.any()
+A     True
+B     True
+C    False
 dtype: bool
 
 Aggregating over the columns.
 
->>> pd.DataFrame({
-...     "A": [True, False, True],
-...     "B": [4, 5, 6]
-... }).any(axis='columns')
+>>> df = pd.DataFrame({"A": [True, False], "B": [1, 2]})
+>>> df
+       A  B
+0   True  1
+1  False  2
+
+>>> df.any(axis='columns')
 0    True
 1    True
-2    True
 dtype: bool
 
->>> pd.DataFrame({
-...     "A": [True, False, True],
-...     "B": [4, 0, 6]
-... }).any(axis='columns')
+>>> df = pd.DataFrame({"A": [True, False], "B": [1, 0]})
+>>> df
+       A  B
+0   True  1
+1  False  0
+
+>>> df.any(axis='columns')
 0    True
 1    False
-2    True
 dtype: bool
 
 `any` for an empty DataFrame is an empty Series.
