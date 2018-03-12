@@ -138,11 +138,6 @@ class DatetimeProperties(Properties):
 
         Examples
         --------
-        This method is available on both Series with datetime values, under the
-        ``.dt`` accessor, and directly on DatetimeIndex.
-
-        **Series**
-
         >>> s = pd.Series(pd.date_range('20180310', periods=2))
         >>> s.head()
         0   2018-03-10
@@ -150,16 +145,6 @@ class DatetimeProperties(Properties):
         dtype: datetime64[ns]
 
         >>> s.dt.to_pydatetime()
-        array([datetime.datetime(2018, 3, 10, 0, 0),
-               datetime.datetime(2018, 3, 11, 0, 0)], dtype=object)
-
-        **DatetimeIndex**
-        >>> idx = pd.date_range("2018-03-10", periods=2)
-        >>> idx  # doctest: +NORMALIZE_WHITESPACE
-        DatetimeIndex(['2018-03-10', '2018-03-11'],
-                      dtype='datetime64[ns]', freq='D')
-
-        >>> idx.to_pydatetime()
         array([datetime.datetime(2018, 3, 10, 0, 0),
                datetime.datetime(2018, 3, 11, 0, 0)], dtype=object)
         """
