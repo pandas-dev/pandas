@@ -847,7 +847,7 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         other : DataFrame
-                    A DataFrame of the correct dimension.
+            A DataFrame of the correct dimension.
 
         Returns
         -------
