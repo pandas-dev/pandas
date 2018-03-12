@@ -1460,22 +1460,31 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def idxmin(self, axis=None, skipna=True, *args, **kwargs):
         """
-        Index *label* of the first occurrence of minimum of values.
+        Return the row label of the minimum value.
+
+        If multiple values equal the minimum, the first row label with that
+        value is returned.
 
         Parameters
         ----------
         skipna : boolean, default True
             Exclude NA/null values. If the entire Series is NA, the result
             will be NA.
+        axis : int, default 0
+            For compatibility with DataFrame.idxmin. Redundant for application
+            on Series.
+        *args, **kwargs
+            Additional keywors have no effect but might be accepted
+            for compatibility with NumPy.
+
+        Returns
+        -------
+        idxmin : Index of minimum of values.
 
         Raises
         ------
         ValueError
-            * If the Series is empty
-
-        Returns
-        -------
-        idxmin : Index of minimum of values
+            If the Series is empty.
 
         Notes
         -----
@@ -1485,8 +1494,32 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        DataFrame.idxmin
-        numpy.ndarray.argmin
+        numpy.argmin : Return indices of the minimum values
+            along the given axis.
+        DataFrame.idxmin : Return index of first occurrence of minimum
+            over requested axis.
+        Series.idxmax : Return index *label* of the first occurrence
+            of maximum of values.
+
+        Examples
+        --------
+        >>> s = pd.Series(data=[1, None, 4, 1],
+        ...               index=['A' ,'B' ,'C' ,'D'])
+        >>> s
+        A    1.0
+        B    NaN
+        C    4.0
+        D    1.0
+        dtype: float64
+
+        >>> s.idxmin()
+        'A'
+
+        If `skipna` is False and there is an NA value in the data,
+        the function returns ``nan``.
+
+        >>> s.idxmin(skipna=False)
+        nan
         """
         skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
         i = nanops.nanargmin(com._values_from_object(self), skipna=skipna)
@@ -1494,24 +1527,33 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return np.nan
         return self.index[i]
 
-    def idxmax(self, axis=None, skipna=True, *args, **kwargs):
+    def idxmax(self, axis=0, skipna=True, *args, **kwargs):
         """
-        Index *label* of the first occurrence of maximum of values.
+        Return the row label of the maximum value.
+
+        If multiple values equal the maximum, the first row label with that
+        value is returned.
 
         Parameters
         ----------
         skipna : boolean, default True
             Exclude NA/null values. If the entire Series is NA, the result
             will be NA.
+        axis : int, default 0
+            For compatibility with DataFrame.idxmax. Redundant for application
+            on Series.
+        *args, **kwargs
+            Additional keywors have no effect but might be accepted
+            for compatibility with NumPy.
+
+        Returns
+        -------
+        idxmax : Index of maximum of values.
 
         Raises
         ------
         ValueError
-            * If the Series is empty
-
-        Returns
-        -------
-        idxmax : Index of maximum of values
+            If the Series is empty.
 
         Notes
         -----
@@ -1521,8 +1563,33 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        DataFrame.idxmax
-        numpy.ndarray.argmax
+        numpy.argmax : Return indices of the maximum values
+            along the given axis.
+        DataFrame.idxmax : Return index of first occurrence of maximum
+            over requested axis.
+        Series.idxmin : Return index *label* of the first occurrence
+            of minimum of values.
+
+        Examples
+        --------
+        >>> s = pd.Series(data=[1, None, 4, 3, 4],
+        ...               index=['A', 'B', 'C', 'D', 'E'])
+        >>> s
+        A    1.0
+        B    NaN
+        C    4.0
+        D    3.0
+        E    4.0
+        dtype: float64
+
+        >>> s.idxmax()
+        'C'
+
+        If `skipna` is False and there is an NA value in the data,
+        the function returns ``nan``.
+
+        >>> s.idxmax(skipna=False)
+        nan
         """
         skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
         i = nanops.nanargmax(com._values_from_object(self), skipna=skipna)
