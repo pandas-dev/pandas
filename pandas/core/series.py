@@ -2580,15 +2580,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
               fill_value=None, method=None, limit=None, fill_axis=0,
               broadcast_axis=None):
         """
-        Align two Series on their axes with the specified join method for each
-        axis Index.
+        Align two Series on their axes with the specified join method.
 
-        The result is a tuple containing two Series with the same indexes.
+        The result is a tuple of (Series, type of other) with the same indexes.
         Using `join`, one can specifiy if the union or intersection of the
         indexes are retained or whether to keep the index of the first or
         second Series.
 
-        Align supports MultiIndexing, `level` can be used to select which index
+        Align supports MultiIndex, `level` can be used to select which index
         that is used for alignment.
 
         Parameters
