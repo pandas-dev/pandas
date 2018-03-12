@@ -857,13 +857,62 @@ class _Rolling_and_Expanding(_Rolling):
         return self._apply('roll_median_c', 'median', **kwargs)
 
     _shared_docs['std'] = dedent("""
-    %(name)s standard deviation
+    Calculate %(name)s standard deviation.
+
+    Normalized by N-1 by default. This can be changed using the `ddof`
+    argument.
 
     Parameters
     ----------
     ddof : int, default 1
         Delta Degrees of Freedom.  The divisor used in calculations
-        is ``N - ddof``, where ``N`` represents the number of elements.""")
+        is ``N - ddof``, where ``N`` represents the number of elements.
+    *args, **kwargs
+        For NumPy compatibility. No additional arguments are used.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returns the same object type as the caller of the %(name)s calculation.
+
+    See Also
+    --------
+    Series.%(name)s : Calling object with Series data
+    DataFrame.%(name)s : Calling object with DataFrames
+    Series.std : Equivalent method for Series
+    DataFrame.std : Equivalent method for DataFrame
+    numpy.std : Equivalent method for Numpy array
+
+    Notes
+    -----
+    The default `ddof` of 1 used in Series.std is different than the default
+    `ddof` of 0 in numpy.std.
+
+    A minimum of one period is required for the rolling calculation.
+
+    Examples
+    --------
+    >>> s = pd.Series([5, 5, 6, 7, 5, 5, 5])
+    >>> s.rolling(3).std()
+    0         NaN
+    1         NaN
+    2    0.577350
+    3    1.000000
+    4    1.000000
+    5    1.154701
+    6    0.000000
+    dtype: float64
+
+    >>> s.expanding(3).std()
+    0         NaN
+    1         NaN
+    2    0.577350
+    3    0.957427
+    4    0.894427
+    5    0.836660
+    6    0.786796
+    dtype: float64
+    """)
 
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_window_func('std', args, kwargs)
@@ -879,13 +928,62 @@ class _Rolling_and_Expanding(_Rolling):
                            ddof=ddof, **kwargs)
 
     _shared_docs['var'] = dedent("""
-    %(name)s variance
+    Calculate unbiased %(name)s variance.
+
+    Normalized by N-1 by default. This can be changed using the `ddof`
+    argument.
 
     Parameters
     ----------
     ddof : int, default 1
         Delta Degrees of Freedom.  The divisor used in calculations
-        is ``N - ddof``, where ``N`` represents the number of elements.""")
+        is ``N - ddof``, where ``N`` represents the number of elements.
+    *args, **kwargs
+        For NumPy compatibility. No additional arguments are used.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returns the same object type as the caller of the %(name)s calculation.
+
+    See Also
+    --------
+    Series.%(name)s : Calling object with Series data
+    DataFrame.%(name)s : Calling object with DataFrames
+    Series.var : Equivalent method for Series
+    DataFrame.var : Equivalent method for DataFrame
+    numpy.var : Equivalent method for Numpy array
+
+    Notes
+    -----
+    The default `ddof` of 1 used in :meth:`Series.var` is different than the
+    default `ddof` of 0 in :func:`numpy.var`.
+
+    A minimum of 1 period is required for the rolling calculation.
+
+    Examples
+    --------
+    >>> s = pd.Series([5, 5, 6, 7, 5, 5, 5])
+    >>> s.rolling(3).var()
+    0         NaN
+    1         NaN
+    2    0.333333
+    3    1.000000
+    4    1.000000
+    5    1.333333
+    6    0.000000
+    dtype: float64
+
+    >>> s.expanding(3).var()
+    0         NaN
+    1         NaN
+    2    0.333333
+    3    0.916667
+    4    0.800000
+    5    0.700000
+    6    0.619048
+    dtype: float64
+    """)
 
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_window_func('var', args, kwargs)
@@ -1229,14 +1327,12 @@ class Rolling(_Rolling_and_Expanding):
         return super(Rolling, self).median(**kwargs)
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['std'])
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_rolling_func('std', args, kwargs)
         return super(Rolling, self).std(ddof=ddof, **kwargs)
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['var'])
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_rolling_func('var', args, kwargs)
@@ -1493,14 +1589,12 @@ class Expanding(_Rolling_and_Expanding):
         return super(Expanding, self).median(**kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['std'])
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_expanding_func('std', args, kwargs)
         return super(Expanding, self).std(ddof=ddof, **kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['var'])
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_expanding_func('var', args, kwargs)
