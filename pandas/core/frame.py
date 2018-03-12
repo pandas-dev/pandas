@@ -4369,7 +4369,7 @@ class DataFrame(NDFrame):
         ------
         ValueError:
             When there are any `index`, `columns` combinations with multiple
-            values.
+            values. `DataFrame.pivot_table` when you need to aggregate.
 
         See Also
         --------
