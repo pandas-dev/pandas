@@ -7573,8 +7573,8 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> s.pct_change(fill_method='ffill')
         0         NaN
         1    0.011111
-        2   -0.065934
-        3    0.000000
+        2    0.000000
+        3   -0.065934
         dtype: float64
 
         Percentage change in French franc, Deutsche Mark, and Italian lira from
