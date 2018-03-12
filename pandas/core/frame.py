@@ -4823,9 +4823,9 @@ class DataFrame(NDFrame):
 
         Objects passed to the function are Series objects whose index is
         either the DataFrame's index (``axis=0``) or the DataFrame's columns
-        (``axis=1``). If ``result_type is None``, the final return type is
-        inferred from the return type of the applied function. Otherwise, it
-        depends on the `result_type` argument.
+        (``axis=1``). By default (``result_type=None``), the final return type
+        is inferred from the return type of the applied function. Otherwise,
+        it depends on the `result_type` argument.
 
         Parameters
         ----------
@@ -4839,10 +4839,10 @@ class DataFrame(NDFrame):
         broadcast : bool, optional
             Only relevant for aggregation functions:
 
-            * `False` or `None` : returns a Series whose length is the length
+            * ``False`` or ``None`` : returns a Series whose length is the length
               of the index or the number of columns (based on the `axis`
               parameter)
-            * `True` : results will be broadcast to the original shape
+            * ``True`` : results will be broadcast to the original shape
               of the frame, the original index and columns will be retained.
 
             .. deprecated:: 0.23.0
@@ -4850,9 +4850,9 @@ class DataFrame(NDFrame):
                by result_type='broadcast'.
 
         raw : bool, default False
-            * `False` : passes each row or column as a Series to the
+            * ``False`` : passes each row or column as a Series to the
               function.
-            * `True` : the passed function will receive ndarray objects
+            * ``True`` : the passed function will receive ndarray objects
               instead.
               If you are just applying a NumPy reduction function this will
               achieve much better performance.
@@ -4871,7 +4871,7 @@ class DataFrame(NDFrame):
                This argument will be removed in a future version, replaced
                by ``result_type='reduce'``.
 
-        result_type : {'expand', 'reduce', 'broadcast', `None`}
+        result_type : {'expand', 'reduce', 'broadcast', None}, default None
             These only act when ``axis=1`` (columns):
 
             * 'expand' : list-like results will be turned into columns.
@@ -4881,7 +4881,7 @@ class DataFrame(NDFrame):
               of the DataFrame, the original index and columns will be
               retained.
 
-            The default behaviour `None` depends on the return value of the
+            The default behaviour (None) depends on the return value of the
             applied function: list-like results will be returned as a Series
             of those. However if the apply function returns a Series these
             are expanded to columns.
