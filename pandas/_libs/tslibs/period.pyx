@@ -1241,6 +1241,24 @@ cdef class _Period(object):
 
     @property
     def hour(self):
+        """
+        Get hours of a day that a Period falls on.
+
+        Returns
+        -------
+        int
+
+        See Also
+        --------
+        Period.minute : Get the minute of hour
+        Period.second : Get the second of hour
+
+        Examples
+        --------
+        >>> p = pd.Period("2018-03-11 13:03:12.050000")
+        >>> p.hour
+        13
+        """
         base, mult = get_freq_code(self.freq)
         return phour(self.ordinal, base)
 
