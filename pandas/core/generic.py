@@ -7530,19 +7530,38 @@ class NDFrame(PandasObject, SelectionMixin):
             The number of consecutive NAs to fill before stopping.
         freq : DateOffset, timedelta, or offset alias string, optional
             Increment to use from time series API (e.g. 'M' or BDay()).
-        kwargs : mapping, optional
-            A dictionary of keyword arguments passed into
+        **kwargs : mapping, optional
+            Additional keyword arguments are passed into
             ``DataFrame.shift``/``Series.shift``.
 
         Returns
         -------
-        chg : Series or DataFrame, same type as the input
+        chg : Series or DataFrame, same type as the calling object
 
         Notes
         -----
         By default, the percentage change is calculated along the stat
         axis: 0, or ``Index``, for ``DataFrame`` and 1, or ``minor`` for
         ``Panel``. You can change this with the ``axis`` keyword argument.
+
+        Percentage change in French franc, Deutsche Mark, and Italian lira from
+        1 January 1980 to 1 March 1980.
+
+        >>> df = pd.DataFrame({
+        ...     'FR': [4.0405, 4.0963, 4.3149],
+        ...     'GR': [1.7246, 1.7482, 1.8519],
+        ...     'IT': [804.74, 810.01, 860.13]},
+        ...     index=['1980-01-01', '1980-02-01', '1980-03-01'])
+        >>> df
+                        FR      GR      IT
+        1980-01-01  4.0405  1.7246  804.74
+        1980-02-01  4.0963  1.7482  810.01
+        1980-03-01  4.3149  1.8519  860.13
+        >>> df.pct_change()
+                          FR        GR        IT
+        1980-01-01       NaN       NaN       NaN
+        1980-02-01  0.013810  0.013684  0.006549
+        1980-03-01  0.053365  0.059318  0.061876
 
         Examples
         --------
@@ -7576,25 +7595,6 @@ class NDFrame(PandasObject, SelectionMixin):
         2    0.000000
         3   -0.065934
         dtype: float64
-
-        Percentage change in French franc, Deutsche Mark, and Italian lira from
-        1 January 1980 to 1 March 1980.
-
-        >>> df = pd.DataFrame({
-        ...     'FR': [4.0405, 4.0963, 4.3149],
-        ...     'GR': [1.7246, 1.7482, 1.8519],
-        ...     'IT': [804.74, 810.01, 860.13]},
-        ...     index=['1980-01-01', '1980-02-01', '1980-03-01'])
-        >>> df
-                        FR      GR      IT
-        1980-01-01  4.0405  1.7246  804.74
-        1980-02-01  4.0963  1.7482  810.01
-        1980-03-01  4.3149  1.8519  860.13
-        >>> df.pct_change()
-                          FR        GR        IT
-        1980-01-01       NaN       NaN       NaN
-        1980-02-01  0.013810  0.013684  0.006549
-        1980-03-01  0.053365  0.059318  0.061876
 
         See Also
         --------
