@@ -1095,24 +1095,85 @@ def str_pad(arr, width, side='left', fillchar=' '):
 
 def str_split(arr, pat=None, n=None):
     """
-    Split each string (a la re.split) in the Series/Index by given
-    pattern, propagating NA values. Equivalent to :meth:`str.split`.
+    Split strings around given separator/delimiter.
+
+    Split each string in the caller's values by given
+    pattern, propagating NaN values. Equivalent to :meth:`str.split`.
 
     Parameters
     ----------
-    pat : string, default None
-        String or regular expression to split on. If None, splits on whitespace
+    pat : str, optional
+        String or regular expression to split on.
+        If `None`, split on whitespace.
     n : int, default -1 (all)
-        None, 0 and -1 will be interpreted as return all splits
+        Limit number of splits in output.
+        `None`, 0 and -1 will be interpreted as return all splits.
     expand : bool, default False
-        * If True, return DataFrame/MultiIndex expanding dimensionality.
-        * If False, return Series/Index.
+        Expand the splitted strings into separate columns.
 
-    return_type : deprecated, use `expand`
+        * If `True`, return DataFrame/MultiIndex expanding dimensionality.
+        * If `False`, return Series/Index, containing lists of strings.
 
     Returns
     -------
+    Type matches caller unless `expand=True` (return type is `DataFrame` or
+    `MultiIndex`)
     split : Series/Index or DataFrame/MultiIndex of objects
+
+    Notes
+    -----
+    - If n >= default splits, makes all splits
+    - If n < default splits, makes first n splits only
+    - Appends `None` for padding if `expand=True`
+
+    Examples
+    --------
+    >>> s = pd.Series(["this is good text", "but this is even better"])
+
+    By default, split will return an object of the same size
+    having lists containing the split elements
+
+    >>> s.str.split()
+    0           [this, is, good, text]
+    1    [but, this, is, even, better]
+    dtype: object
+    >>> s.str.split("random")
+    0          [this is good text]
+    1    [but this is even better]
+    dtype: object
+
+    When using `expand=True`, the split elements will
+    expand out into separate columns.
+
+    >>> s.str.split(expand=True)
+          0     1     2     3       4
+    0  this    is  good  text    None
+    1   but  this    is  even  better
+    >>> s.str.split(" is ", expand=True)
+              0            1
+    0      this    good text
+    1  but this  even better
+
+    Parameter `n` can be used to limit the number of splits in the output.
+
+    >>> s.str.split("is", n=1)
+    0          [th,  is good text]
+    1    [but th,  is even better]
+    dtype: object
+    >>> s.str.split("is", n=1, expand=True)
+            0                1
+    0      th     is good text
+    1  but th   is even better
+
+    If NaN is present, it is propagated throughout the columns
+    during the split.
+
+    >>> s = pd.Series(["this is good text", "but this is even better", np.nan])
+    >>> s.str.split(n=3, expand=True)
+          0     1     2            3
+    0  this    is  good         text
+    1   but  this    is  even better
+    2   NaN   NaN   NaN          NaN
     """
     if pat is None:
         if n is None or n == 0:
