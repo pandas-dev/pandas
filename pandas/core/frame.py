@@ -2376,14 +2376,11 @@ class DataFrame(NDFrame):
 
     def eval(self, expr, inplace=False, **kwargs):
         """
-        Evaluate expression in the context of the calling DataFrame instance.
+        Evaluate a string describing operations on DataFrame columns.
 
-        Evaluates a string describing operations on DataFrame columns (only,
-        not specific rows or elements).  This allows `eval` to run arbitrary
-        code, but remember to sanitize your inputs.
-
-        This function calls `pandas.eval()` and is likely to be slower than
-        it.
+        Operates on columns only, not specific rows or elements.  This allows
+        `eval` to run arbitrary code, which can make you vulnerable to code
+        injection if you pass user input to this function.
 
         Parameters
         ----------
@@ -2419,6 +2416,9 @@ class DataFrame(NDFrame):
         For more details see the API documentation for :func:`~pandas.eval`.
         For detailed examples see :ref:`enhancing performance with eval
         <enhancingperf.eval>`.
+
+        This function calls `pandas.eval()` and is likely to be slower than
+        it.
 
         Examples
         --------
