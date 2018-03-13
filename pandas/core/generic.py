@@ -950,20 +950,25 @@ class NDFrame(PandasObject, SelectionMixin):
     rename.__doc__ = _shared_docs['rename']
 
     def rename_axis(self, mapper, axis=0, copy=True, inplace=False):
-        """Alter the name of the index or columns.
+        """
+        Alter the name of the index or columns.
 
         Parameters
         ----------
         mapper : scalar, list-like, optional
-            Value to set the axis name attribute.
-        axis : int or string, default 0
+            Value to set as the axis name attribute.
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            The index or the name of the axis.
         copy : boolean, default True
-            Also copy underlying data
+            Also copy underlying data.
         inplace : boolean, default False
+            Modifies the object directly, instead of creating a new Series
+            or DataFrame.
 
         Returns
         -------
-        renamed : type of caller or None if inplace=True
+        renamed : Series, DataFrame, or None
+            The same type as the caller or None if `inplace` is True.
 
         Notes
         -----
@@ -974,11 +979,23 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.Series.rename, pandas.DataFrame.rename
-        pandas.Index.rename
+        pandas.Series.rename : Alter Series index labels or name
+        pandas.DataFrame.rename : Alter DataFrame index labels or name
+        pandas.Index.rename : Set new names on index
 
         Examples
         --------
+        **Series**
+
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.rename_axis("foo")
+        foo
+        0    1
+        1    2
+        2    3
+        dtype: int64
+
+        **DataFrame**
 
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         >>> df.rename_axis("foo")
@@ -993,7 +1010,6 @@ class NDFrame(PandasObject, SelectionMixin):
         0    1  4
         1    2  5
         2    3  6
-
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         non_mapper = is_scalar(mapper) or (is_list_like(mapper) and not
