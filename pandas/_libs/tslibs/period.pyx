@@ -1408,6 +1408,25 @@ cdef class _Period(object):
 
     @property
     def qyear(self):
+        """
+        Return a year of the given date.
+
+        This function simply find the year of the given date that period fallsin.
+
+        Returns
+        -------
+        int
+
+        See Also
+        --------
+        Period.qyear :Return the year of the date
+
+        Examples
+        --------
+        >>> p = pd.Period("2014-9-21", freq="A")
+        >>> p.qyear
+        2014
+        """
         base, mult = get_freq_code(self.freq)
         return pqyear(self.ordinal, base)
 
