@@ -8339,8 +8339,8 @@ skipna : boolean, default True
     will be NA.
 *args : any, default None
 **kwargs : any, default None
-	Additional keywords have no effect but might be accepted for
-	compatibility with NumPy.
+    Additional keywords have no effect but might be accepted for
+    compatibility with NumPy.
 
 Returns
 -------
@@ -8615,7 +8615,7 @@ def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
                        accum_func, accum_func_name, mask_a, mask_b, examples):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
                   axis_descr=axis_descr, accum_func_name=accum_func_name,
-                  examples = examples)
+                  examples=examples)
     @Appender(_cnum_doc)
     def cum_func(self, axis=None, skipna=True, *args, **kwargs):
         skipna = nv.validate_cum_func_with_skipna(skipna, args, kwargs, name)
