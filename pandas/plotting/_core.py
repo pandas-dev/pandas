@@ -2847,29 +2847,36 @@ class FramePlotMethods(BasePlotMethods):
         ----------
         x : label or position, optional
             Allows plotting of one column versus another. If not specified,
-            index of dataframe is taken.
+            the index of the DataFrame is use.
         y : label or position, optional
             Allows plotting of one column versus another. If not specified,
-            all numerical columns are taken.
+            all numerical columns are used.
         **kwds : optional
             Additional keyword arguments are documented in
-            meth:`pandas.DataFrame.plot`.
+            :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them
+        axes : matplotlib.axes.Axes or np.array of them
+
+        See Also
+        --------
+        pandas.DataFrame.plot.barh : Horizontal bar plot.
+        pandas.DataFrame.plot : Make plots of DataFrame using matplotlib.
+        matplotlib.pyplot.bar : Make a bar plot with matplotlib.
 
         Examples
         --------
-        Basic plot
+        Basic plot.
 
         .. plot::
             :context: close-figs
 
-            >>> df = pd.DataFrame({'lab':['A','B','C'], 'val':[10,30,20]})
-            >>> ax = df.plot.bar(x='lab',y='val')
+            >>> df = pd.DataFrame({'lab':['A', 'B', 'C'], 'val':[10, 30, 20]})
+            >>> ax = df.plot.bar(x='lab', y='val', rot=0)
 
-        Plot a whole dataframe to a bar plot
+        Plot a whole dataframe to a bar plot. Each row is plotted as a group on
+        the horizontal axis, and each column is assigned a distinct color.
 
         .. plot::
             :context: close-figs
@@ -2880,27 +2887,21 @@ class FramePlotMethods(BasePlotMethods):
             ...          'rabbit', 'giraffe', 'coyote', 'horse']
             >>> df = pd.DataFrame({'speed': speed,
             ...                    'lifespan': lifespan}, index=index)
-            >>> ax = df.plot.bar()
+            >>> ax = df.plot.bar(rot=0)
 
-        Plot a column of the dataframe to a bar plot
-
-        .. plot::
-            :context: close-figs
-
-            >>> ax = df.plot.bar(y='speed')
-
-        Plot only selected categories for the dataframe
+        Plot a single column.
 
         .. plot::
             :context: close-figs
 
-            >>> ax = df.plot.bar(x='lifespan')
+            >>> ax = df.plot.bar(y='speed', rot=0)
 
-        See Also
-        --------
-        pandas.DataFrame.plot.barh : Horizontal bar plot.
-        pandas.DataFrame.plot : Make plots of DataFrame using matplotlib.
-        matplotlib.pyplot.bar : Make a bar plot.
+        Plot only selected categories for the DataFrame.
+
+        .. plot::
+            :context: close-figs
+
+            >>> ax = df.plot.bar(x='lifespan', rot=0)
         """
         return self(kind='bar', x=x, y=y, **kwds)
 
