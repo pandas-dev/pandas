@@ -2977,7 +2977,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        Series.add_suffix: Add a suffix string to panel items names.
+        Series.add_suffix: Add a suffix string to Series items names.
 
         Examples
         --------
