@@ -2951,7 +2951,7 @@ class FramePlotMethods(BasePlotMethods):
 
     def hist(self, by=None, bins=10, **kwds):
         """
-        Draw one histogram of the DataFrame's Series using matplotlib.
+        Draw one histogram of the DataFrame's columns.
 
         A histogram is a representation of the distribution of data.
         This function groups the values of all given Series in the DataFrame
@@ -2960,7 +2960,7 @@ class FramePlotMethods(BasePlotMethods):
 
         Parameters
         ----------
-        by : str or sequence
+        by : str or sequence, optional
             Column in the DataFrame to group by.
         bins : int, default 10
             Number of histogram bins to be used.
@@ -2973,8 +2973,8 @@ class FramePlotMethods(BasePlotMethods):
 
         See Also
         --------
-        :meth:`pandas.DataFrame.hist` : Draw histograms per DataFrame's Series.
-        :meth:`pandas.Series.hist` : Draw a histogram with Series' data.
+        pandas.DataFrame.hist : Draw histograms per DataFrame's Series.
+        pandas.Series.hist : Draw a histogram with Series' data.
 
         Examples
         --------
@@ -2989,7 +2989,7 @@ class FramePlotMethods(BasePlotMethods):
             >>> df = pd.DataFrame({
             ...     'length': [ 1.5, 0.5, 1.2, 0.9, 3],
             ...     'width': [ 0.7, 0.2, 0.15, 0.2,  1.1]
-            ...     }, index= ['pig', 'rabbit', 'duck', 'chicken', 'horse'])
+            ...     }, index = ['pig', 'rabbit', 'duck', 'chicken', 'horse'])
             >>> hist = df.plot.hist(bins = 3, xticks = range(4), alpha = 0.5)
         """
         return self(kind='hist', by=by, bins=bins, **kwds)
