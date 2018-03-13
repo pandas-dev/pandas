@@ -8,7 +8,7 @@ from pandas.compat import lrange, zip
 
 import numpy as np
 from pandas import Index, Series, DataFrame, NaT
-from pandas.compat import is_platform_mac, PY3
+from pandas.compat import PY3
 from pandas.core.indexes.datetimes import date_range, bdate_range
 from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.tseries.offsets import DateOffset
@@ -1357,13 +1357,13 @@ class TestTSPlot(TestPlotBase):
         values = [datetime(1677, 1, 1, 12), datetime(1677, 1, 2, 12)]
         ax.plot(values)
 
-    @td.xfail_if_mpl_2_2
-    @pytest.mark.skip(
-        is_platform_mac(),
-        "skip on mac for precision display issue on older mpl")
     def test_format_timedelta_ticks_narrow(self):
 
-        if self.mpl_ge_2_0_0:
+        if self.mpl_ge_2_2_0:
+            expected_labels = (['-1 days 23:59:59.999999998'] +
+                               ['00:00:00.0000000{:0>2d}'.format(2 * i)
+                                for i in range(6)])
+        elif self.mpl_ge_2_0_0:
             expected_labels = [''] + [
                 '00:00:00.00000000{:d}'.format(2 * i)
                 for i in range(5)] + ['']
@@ -1382,10 +1382,6 @@ class TestTSPlot(TestPlotBase):
         for l, l_expected in zip(labels, expected_labels):
             assert l.get_text() == l_expected
 
-    @td.xfail_if_mpl_2_2
-    @pytest.mark.skip(
-        is_platform_mac(),
-        "skip on mac for precision display issue on older mpl")
     def test_format_timedelta_ticks_wide(self):
 
         if self.mpl_ge_2_0_0:
@@ -1402,6 +1398,9 @@ class TestTSPlot(TestPlotBase):
                 '9 days 06:13:20',
                 ''
             ]
+            if self.mpl_ge_2_2_0:
+                expected_labels[0] = '-2 days 20:13:20'
+                expected_labels[-1] = '10 days 10:00:00'
         else:
             expected_labels = [
                 '00:00:00',
