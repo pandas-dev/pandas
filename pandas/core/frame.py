@@ -4331,24 +4331,23 @@ class DataFrame(NDFrame):
             Should have at least one matching index/column label
             with the original DataFrame. If a Series is passed,
             its name attribute must be set, and that will be
-            used as the column name in the resulting joined DataFrame.
+            used as the column name to align with the original DataFrame.
         join : {'left'}, default 'left'
             Only left join is implemented, keeping the index and columns of the
             original object.
-        overwrite : boolean, default True
-            How to handle non-NA values for overlapping keys.
+        overwrite : bool, default True
+            How to handle non-NA values for overlapping keys:
 
-            * True : overwrite original DataFrame's values
-                    with values from `other`.
-            * False : only update values that are NA in
-                    the original DataFrame.
+            * True: overwrite original DataFrame's values
+              with values from `other`.
+            * False: only update values that are NA in
+              the original DataFrame.
 
-        filter_func : callable(1d-array) -> 1d-array<boolean>,\
-        "default None" -> "optional"
+        filter_func : callable(1d-array) -> boolean 1d-array, optional
             Can choose to replace values other than NA. Return True for values
             that should be updated.
-        raise_conflict : boolean
-            If True, will raise a `ValueError` if the DataFrame and `other`
+        raise_conflict : bool, default False
+            If True, will raise a ValueError if the DataFrame and `other`
             both contain non-NA data in the same place.
 
         Raises
@@ -4408,7 +4407,7 @@ class DataFrame(NDFrame):
         1  b  d
         2  c  e
 
-        If ``other`` contains NaNs the corresponding values are not updated
+        If `other` contains NaNs the corresponding values are not updated
         in the original dataframe.
 
         >>> df = pd.DataFrame({'A': [1, 2, 3],
