@@ -2976,7 +2976,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         Series or DataFrame
-            Original Series or DataFrame with updated labels.
+            New Series or DataFrame with updated labels.
 
         See Also
         --------
@@ -3005,8 +3005,8 @@ class NDFrame(PandasObject, SelectionMixin):
         1  2  4
         2  3  5
         3  4  6
-        >>> df.add_suffix('_item')
-           A_item  B_item
+        >>> df.add_prefix('col_')
+           col_A  col_B
         0       1       3
         1       2       4
         2       3       5
