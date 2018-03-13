@@ -1694,7 +1694,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 describing the data, and the data component is
                 like ``orient='records'``.
 
-                .. versionchanged:: 0.20.0.
+                .. versionchanged:: 0.20.0
 
         date_format : {None, 'epoch', 'iso'}
             Type of date conversion. 'epoch' = epoch milliseconds,
@@ -1719,24 +1719,20 @@ class NDFrame(PandasObject, SelectionMixin):
             throw ValueError if incorrect 'orient' since others are not list
             like.
 
-            .. versionadded:: 0.19.0.
+            .. versionadded:: 0.19.0
 
         compression : {None, 'gzip', 'bz2', 'xz'}
             A string representing the compression to use in the output file,
             only used when the first argument is a filename
 
-            .. versionadded:: 0.21.0.
+            .. versionadded:: 0.21.0
 
         index : boolean, default True
             Whether to include the index values in the JSON string. Not
             including the index (``index=False``) is only supported when
             orient is 'split' or 'table'.
 
-            .. versionadded:: 0.23.0.
-
-        Returns
-        -------
-        same type as input object with filtered info axis
+            .. versionadded:: 0.23.0
 
         See Also
         --------
