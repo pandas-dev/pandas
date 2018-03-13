@@ -2951,7 +2951,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        Series.add_suffix: Suffix labels with string `suffix`.
+        Series.add_suffix: Suffix row labels with string `suffix`.
+        DataFrame.add_suffix: Suffix column labels with string `suffix`.
 
         Examples
         --------
@@ -3007,7 +3008,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        Series.add_prefix: Prefix labels with string `prefix`.
+        Series.add_prefix: Prefix row labels with string `prefix`.
+        DataFrame.add_prefix: Prefix column labels with string `prefix`.
 
         Examples
         --------
@@ -3018,6 +3020,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2    3
         3    4
         dtype: int64
+
         >>> s.add_suffix('_item')
         0_item    1
         1_item    2
@@ -3032,8 +3035,9 @@ class NDFrame(PandasObject, SelectionMixin):
         1  2  4
         2  3  5
         3  4  6
+
         >>> df.add_suffix('_col')
-           A_col  B_col
+             A_col  B_col
         0       1       3
         1       2       4
         2       3       5
