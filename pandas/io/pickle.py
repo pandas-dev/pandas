@@ -35,6 +35,13 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
         .. [1] https://docs.python.org/3/library/pickle.html
         .. versionadded:: 0.21.0
 
+    See Also
+    --------
+    read_pickle : Load pickled pandas object (or any object) from file.
+    DataFrame.to_hdf : Write the contained data to an HDF5 file using HDFStore.
+    DataFrame.to_sql : Write records stored in a DataFrame to a SQL database.
+    DataFrame.to_parquet : Write a DataFrame to the binary parquet format.
+
     Examples
     --------
     >>> original_df = pd.DataFrame({"foo": range(5), "bar": range(5, 10)})
@@ -56,12 +63,8 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
     3    3    8
     4    4    9
 
-    See Also
-    --------
-    read_pickle : Load pickled pandas object (or any object) from file.
-    DataFrame.to_hdf : Write the contained data to an HDF5 file using HDFStore.
-    DataFrame.to_sql : Write records stored in a DataFrame to a SQL database.
-    DataFrame.to_parquet : Write a DataFrame to the binary parquet format.
+    >>> import os
+    >>> os.remove("./dummy.pkl")
     """
     path = _stringify_path(path)
     inferred_compression = _infer_compression(path, compression)
