@@ -1246,7 +1246,7 @@ cdef class _Period(object):
 
         Returns
         -------
-        int 
+        int
             The hour as an integer, between 0 and 23.
 
         See Also
@@ -1276,7 +1276,7 @@ cdef class _Period(object):
 
         Returns
         -------
-        int 
+        int
             The minute as an integer, between 0 and 59.
 
         See Also
