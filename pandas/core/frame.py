@@ -4463,10 +4463,10 @@ class DataFrame(NDFrame):
         Return reshaped DataFrame organized by given index / column values.
 
         Reshape data (produce a "pivot" table) based on column values. Uses
-        unique values from specified `index` / `columns` to form axes of the resulting
-        DataFrame. This function does not support data aggregation, multiple
-        values will result in a MultiIndex in the columns. See the
-        :ref:`User Guide <reshaping>` for more on reshaping.
+        unique values from specified `index` / `columns` to form axes of the
+        resulting DataFrame. This function does not support data
+        aggregation, multiple values will result in a MultiIndex in the
+        columns. See the :ref:`User Guide <reshaping>` for more on reshaping.
 
         Parameters
         ----------
