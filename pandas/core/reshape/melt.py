@@ -74,7 +74,6 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
     for col in id_vars:
         id_data = frame.pop(col)
         if is_extension_type(id_data):
-            # Preserve pandas dtype by not converting to a numpy array
             id_data = concat([id_data] * K, ignore_index=True)
         else:
             id_data = np.tile(id_data.values, K)
