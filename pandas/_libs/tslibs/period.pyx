@@ -1217,16 +1217,79 @@ cdef class _Period(object):
 
     @property
     def day(self):
+        """
+        Get day of the month that a Period falls on.
+
+        Returns
+        -------
+        int
+
+        See Also
+        --------
+        Period.dayofweek : Get the day of the week
+
+        Period.dayofyear : Get the day of the year
+
+        Examples
+        --------
+        >>> p = pd.Period("2018-03-11", freq='H')
+        >>> p.day
+        11
+        """
         base, mult = get_freq_code(self.freq)
         return pday(self.ordinal, base)
 
     @property
     def hour(self):
+        """
+        Get the hour of the day component of the Period.
+
+        Returns
+        -------
+        int 
+            The hour as an integer, between 0 and 23.
+
+        See Also
+        --------
+        Period.second : Get the second component of the Period.
+        Period.minute : Get the minute component of the Period.
+
+        Examples
+        --------
+        >>> p = pd.Period("2018-03-11 13:03:12.050000")
+        >>> p.hour
+        13
+
+        Period longer than a day
+
+        >>> p = pd.Period("2018-03-11", freq="M")
+        >>> p.hour
+        0
+        """
         base, mult = get_freq_code(self.freq)
         return phour(self.ordinal, base)
 
     @property
     def minute(self):
+        """
+        Get minute of the hour component of the Period.
+
+        Returns
+        -------
+        int 
+            The minute as an integer, between 0 and 59.
+
+        See Also
+        --------
+        Period.hour : Get the hour component of the Period.
+        Period.second : Get the second component of the Period.
+
+        Examples
+        --------
+        >>> p = pd.Period("2018-03-11 13:03:12.050000")
+        >>> p.minute
+        3
+        """
         base, mult = get_freq_code(self.freq)
         return pminute(self.ordinal, base)
 
@@ -1270,11 +1333,58 @@ cdef class _Period(object):
 
     @property
     def days_in_month(self):
+        """
+        Get the total number of days in the month that this period falls on.
+
+        Returns
+        -------
+        int
+
+        See Also
+        --------
+        Period.daysinmonth : Gets the number of days in the month.
+        DatetimeIndex.daysinmonth : Gets the number of days in the month.
+        calendar.monthrange : Returns a tuple containing weekday
+            (0-6 ~ Mon-Sun) and number of days (28-31).
+
+        Examples
+        --------
+        >>> p = pd.Period('2018-2-17')
+        >>> p.days_in_month
+        28
+
+        >>> pd.Period('2018-03-01').days_in_month
+        31
+
+        Handles the leap year case as well:
+
+        >>> p = pd.Period('2016-2-17')
+        >>> p.days_in_month
+        29
+        """
         base, mult = get_freq_code(self.freq)
         return pdays_in_month(self.ordinal, base)
 
     @property
     def daysinmonth(self):
+        """
+        Get the total number of days of the month that the Period falls in.
+
+        Returns
+        -------
+        int
+
+        See Also
+        --------
+        Period.days_in_month : Return the days of the month
+        Period.dayofyear : Return the day of the year
+
+        Examples
+        --------
+        >>> p = pd.Period("2018-03-11", freq='H')
+        >>> p.daysinmonth
+        31
+        """
         return self.days_in_month
 
     @property
