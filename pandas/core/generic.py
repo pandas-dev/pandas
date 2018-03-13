@@ -457,12 +457,49 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @property
     def ndim(self):
-        """Number of axes / array dimensions"""
+        """
+        Return an int representing the number of axes / array dimensions.
+
+        Return 1 if Series. Otherwise return 2 if DataFrame.
+
+        See Also
+        --------
+        ndarray.ndim
+
+        Examples
+        --------
+        >>> s = pd.Series({'a': 1, 'b': 2, 'c': 3})
+        >>> s.ndim
+        1
+
+        >>> df = pd.DataFrame({'col1': [1, 2], 'col2': [3, 4]})
+        >>> df.ndim
+        2
+        """
         return self._data.ndim
 
     @property
     def size(self):
-        """number of elements in the NDFrame"""
+        """
+        Return an int representing the number of elements in this object.
+
+        Return the number of rows if Series. Otherwise return the number of
+        rows times number of columns if DataFrame.
+
+        See Also
+        --------
+        ndarray.size
+
+        Examples
+        --------
+        >>> s = pd.Series({'a': 1, 'b': 2, 'c': 3})
+        >>> s.size
+        3
+
+        >>> df = pd.DataFrame({'col1': [1, 2], 'col2': [3, 4]})
+        >>> df.size
+        4
+        """
         return np.prod(self.shape)
 
     @property
