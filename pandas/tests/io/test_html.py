@@ -44,14 +44,6 @@ def assert_framelist_equal(list1, list2, *args, **kwargs):
         assert not frame_i.empty, 'frames are both empty'
 
 
-def _missing_bs4():
-    bs4 = td.safe_import('bs4')
-    if not bs4 or LooseVersion(bs4.__version__) == LooseVersion('4.2.0'):
-        return True
-
-    return False
-
-
 @td.skip_if_no('bs4')
 def test_bs4_version_fails(monkeypatch):
     import bs4
@@ -77,7 +69,7 @@ def test_same_ordering():
 
 @pytest.mark.parametrize("flavor", [
     pytest.param('bs4', marks=pytest.mark.skipif(
-        _missing_bs4(), reason='No bs4')),
+        not td.safe_import('lxml'), reason='No bs4')),
     pytest.param('lxml', marks=pytest.mark.skipif(
         not td.safe_import('lxml'), reason='No lxml'))], scope="class")
 class TestReadHtml(object):
