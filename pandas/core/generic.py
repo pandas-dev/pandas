@@ -5629,6 +5629,12 @@ class NDFrame(PandasObject, SelectionMixin):
             Original input with those values above/below the
             `upper`/`lower` thresholds set to the threshold values.
 
+        Notes
+        -----
+
+        .. [1] Tukey, John W. "The future of data analysis." The annals of
+            mathematical statistics 33.1 (1962): 1-67.
+
         See Also
         --------
         DataFrame.clip : Trim values at input threshold(s).
@@ -5650,13 +5656,13 @@ class NDFrame(PandasObject, SelectionMixin):
         ...                    'b': [1, 2, 100]},
         ...                    index=['foo', 'bar', 'foobar'])
         >>> df
-            a   b
+             a  b
         foo -1  1
         bar -2  2
         foobar  -100    100
 
         >>> df.clip(lower=-10, upper=10)
-            a   b
+             a  b
         foo -1  1
         bar -2  2
         foobar  -10 10
@@ -5667,7 +5673,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         >>> col_thresh = pd.Series({'a': -5, 'b': 5})
         >>> df.clip(lower=col_thresh, axis='columns')
-            a   b
+             a  b
         foo -1  5
         bar -2  5
         foobar  -5  100
@@ -5681,15 +5687,14 @@ class NDFrame(PandasObject, SelectionMixin):
         bar 1   2
         foobar  10  100
 
-        `Winsorizing <https://en.wikipedia.org/wiki/Winsorizing>`__ is a
-        related method, whereby the data are clipped at
+        Winsorizing [1]_ is a related method, whereby the data are clipped at
         the 5th and 95th percentiles. The ``DataFrame.quantile`` method returns
         a ``Series`` with column names as index and the quantiles as values.
         Use ``axis='columns'`` to apply clipping to columns.
 
         >>> lower, upper = df.quantile(0.05), df.quantile(0.95)
         >>> df.clip(lower=lower, upper=upper, axis='columns')
-            a   b
+             a  b
         foo -1.1    1.1
         bar -2.0    2.0
         foobar  -90.2   90.2
