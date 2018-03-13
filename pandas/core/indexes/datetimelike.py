@@ -121,67 +121,64 @@ class TimelikeOps(object):
 
     @Appender(_round_doc % "ceil")
     def ceil(self, freq):
-        """
-        Floor the index to the specified freq.
-
-        Links to the available [frequency strings](http://pandas.
-        pydata.org/pandas-docs/stable/timeseries.html#offset-aliases)
-        and [frequency objects](http://pandas.pydata.org/pandas-docs/
-        stable/timeseries.html#dateoffset-objects).
-
-        Parameters
-        ----------
-        freq : str, object
-			String or object specifying the frequency to round down to.
-
-        Returns
-        -------
-        DatetimeIndex
-            Index of the same time is rounded off.
-
-        See Also
-        --------
-        DatetimeIndex.floor : Floor the DatetimeIndex to the specified freq.
-        DatetimeIndex.round : Round the DatetimeIndex to the specified freq.
-
-        Examples
-        --------
-
-        >>> dti = pd.DatetimeIndex(start='2014-08-01 09:23:41.321211',
-		...							freq='H', periods=3)
-        >>> dti
-        DatetimeIndex(['2014-08-01 09:23:41.321211',
-        '2014-08-01 10:23:41.321211', '2014-08-01 11:23:41.321211'],
-        dtype='datetime64[ns]', freq='H')
-
-        >>> dti.ceil('H')
-        DatetimeIndex(['2014-08-01 10:00:00', '2014-08-01 11:00:00','2014-08-01 12:00:00'],dtype='datetime64[ns]', freq=None)
-        >>> dti = pd.DatetimeIndex(start='2014-08-01 09:15:41.321211',freq = 'None' , periods = 3)
-		Traceback (most recent call last):
-		File "/usr/local/lib/python3.6/dist-packages/pandas/tseries/frequencies.py", line 552, in get_offset
-		klass = prefix_mapping[split[0]]
-		KeyError: 'NONE'
-		
-		During handling of the above exception, another exception occurred:
-		
-		Traceback (most recent call last):
-		File "/usr/local/lib/python3.6/dist-packages/pandas/tseries/frequencies.py", line 475, in to_offset
-		offset = get_offset(name)
-		File "/usr/local/lib/python3.6/dist-packages/pandas/tseries/frequencies.py", line 558, in get_offset
-		raise ValueError(_INVALID_FREQ_ERROR.format(name))
-		ValueError: Invalid frequency: NONE
-		During handling of the above exception, another exception occurred:
-		Traceback (most recent call last):
-		File "<stdin>", line 1, in <module>
-		File "/usr/local/lib/python3.6/dist-packages/pandas/util/decorators.py", line 91, in wrapper
-		return func(*args, **kwargs)
-		File "/usr/local/lib/python3.6/dist-packages/pandas/tseries/index.py", line 269, in __new__
-		freq = to_offset(freq)
-		File "/usr/local/lib/python3.6/dist-packages/pandas/util/decorators.py", line 91, in wrapper
-		return func(*args, **kwargs)
-		File "/usr/local/lib/python3.6/dist-packages/pandas/tseries/frequencies.py", line 487, in to_offset
-		raise ValueError(_INVALID_FREQ_ERROR.format(freq))
-		ValueError: Invalid frequency: None
+	"""
+	Floor the index to the specified freq.
+	Links to the available [frequency strings](http://pandas.
+	pydata.org/pandas-docs/stable/timeseries.html#offset-aliases)
+	and [frequency objects](http://pandas.pydata.org/pandas-docs/
+	stable/timeseries.html#dateoffset-objects).
+	
+	Parameters
+	----------
+	freq : str, object
+		String or object specifying the frequency to round down to.
+	
+	Returns
+	-------
+	DatetimeIndex
+		Index of the same type is rounded off.
+	
+	See Also
+	--------
+	DatetimeIndex.floor : Floor the DatetimeIndex to the specified freq.
+	DatetimeIndex.round : Round the DatetimeIndex to the specified freq.
+	
+	Examples
+	--------
+	
+	>>> dti = pd.DatetimeIndex(start='2014-08-01 09:23:41.321211',
+	...				freq='H', periods=3)
+	>>> dti
+	DatetimeIndex(['2014-08-01 09:23:41.321211',
+	'2014-08-01 10:23:41.321211', '2014-08-01 11:23:41.321211'],
+	dtype='datetime64[ns]', freq='H')
+	
+	>>> dti.ceil('H')
+	DatetimeIndex(['2014-08-01 10:00:00', '2014-08-01 11:00:00','2014-08-01 12:00:00'],dtype='datetime64[ns]', freq=None)
+	>>> dti = pd.DatetimeIndex(start='2014-08-01 09:15:41.321211',freq = 'None' , periods = 3)
+	Traceback (most recent call last):
+	File "/usr/local/lib/python3.6/dist-packages/pandas/tseries/frequencies.py", line 552, in get_offset
+	klass = prefix_mapping[split[0]]
+	KeyError: 'NONE'
+	During handling of the above exception, another exception occurred:
+	Traceback (most recent call last):
+	File "/usr/local/lib/python3.6/dist-packages/pandas/tseries/frequencies.py", line 475, in to_offset
+	offset = get_offset(name)
+	File "/usr/local/lib/python3.6/dist-packages/pandas/tseries/frequencies.py", line 558, in get_offset
+	raise ValueError(_INVALID_FREQ_ERROR.format(name))
+	ValueError: Invalid frequency: NONE
+	During handling of the above exception, another exception occurred:
+	Traceback (most recent call last):
+	File "<stdin>", line 1, in <module>
+	File "/usr/local/lib/python3.6/dist-packages/pandas/util/decorators.py", line 91, in wrapper
+	return func(*args, **kwargs)
+	File "/usr/local/lib/python3.6/dist-packages/pandas/tseries/index.py", line 269, in __new__
+	freq = to_offset(freq)
+	File "/usr/local/lib/python3.6/dist-packages/pandas/util/decorators.py", line 91, in wrapper
+	return func(*args, **kwargs)
+	File "/usr/local/lib/python3.6/dist-packages/pandas/tseries/frequencies.py", line 487, in to_offset
+	raise ValueError(_INVALID_FREQ_ERROR.format(freq))
+	ValueError: Invalid frequency: None
         """
         return self._round(freq, np.ceil)
 
