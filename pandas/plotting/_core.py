@@ -2857,7 +2857,9 @@ class FramePlotMethods(BasePlotMethods):
 
         Returns
         -------
-        axes : matplotlib.axes.Axes or np.array of them
+        axes : matplotlib.axes.Axes or np.ndarray of them
+            An ndarray is returned with one :class:`matplotlib.axes.Axes`
+            per column when ``subplots=True``.
 
         See Also
         --------
@@ -2875,8 +2877,9 @@ class FramePlotMethods(BasePlotMethods):
             >>> df = pd.DataFrame({'lab':['A', 'B', 'C'], 'val':[10, 30, 20]})
             >>> ax = df.plot.bar(x='lab', y='val', rot=0)
 
-        Plot a whole dataframe to a bar plot. Each row is plotted as a group on
-        the horizontal axis, and each column is assigned a distinct color.
+        Plot a whole dataframe to a bar plot. Each column is assigned a
+        distinct color, and each row is nested in a group along the
+        horizontal axis.
 
         .. plot::
             :context: close-figs
@@ -2888,6 +2891,16 @@ class FramePlotMethods(BasePlotMethods):
             >>> df = pd.DataFrame({'speed': speed,
             ...                    'lifespan': lifespan}, index=index)
             >>> ax = df.plot.bar(rot=0)
+
+        Instead of nesting, the figure can be split by column with
+        ``subplots=True``. In this case, a :class:`numpy.ndarray` of
+        :class:`matplotlib.axes.Axes` are returned.
+
+        .. plot::
+            :context: close-figs
+
+            >>> axes = df.plot.bar(rot=0, subplots=True)
+            >>> axes[1].legend(loc=2)  # doctest: +SKIP
 
         Plot a single column.
 
