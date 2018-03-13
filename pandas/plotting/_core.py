@@ -390,7 +390,7 @@ class MPLPlot(object):
 
         if self.orientation == 'vertical' or self.orientation is None:
             if self._need_to_set_index:
-                xticklabels = [get_label(x) for x in ax.get_xticks()]
+                xticklabels = [get_label(x) for x in self._get_xticks()]
                 ax.set_xticklabels(xticklabels)
             self._apply_axis_properties(ax.xaxis, rot=self.rot,
                                         fontsize=self.fontsize)
