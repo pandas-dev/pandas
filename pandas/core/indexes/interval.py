@@ -461,8 +461,7 @@ class IntervalIndex(IntervalMixin, Index):
     def from_arrays(cls, left, right, closed='right', name=None, copy=False,
                     dtype=None):
         """
-        Construct an IntervalIndex from a given element in a left
-        and right array.
+        Construct from two arrays defining the left and right bounds.
 
         Parameters
         ----------
@@ -477,14 +476,37 @@ class IntervalIndex(IntervalMixin, Index):
             Name to be stored in the index.
         copy : boolean, default False
             Copy the data.
-        dtype : dtype or None, default None
+        dtype : dtype, optional
             If None, dtype will be inferred.
 
-            .. versionadded:: 0.23.0.
+            .. versionadded:: 0.23.0
 
         Returns
         -------
         index : IntervalIndex
+
+        Notes
+        -----
+        Each element of `left` must be less than or equal to the `right`
+        element at the same position. If an element is missing, it must be
+        missing in both `left` and `right`. A TypeError is raised when
+        using an unsupported type for `left` or `right`. At the moment,
+        'category', 'object', and 'string' subtypes are not supported.
+
+        Raises
+        ------
+        ValueError
+            When a value is missing in only one of `left` or `right`.
+            When a value in `left` is greater than the corresponding value
+            in `right`.
+
+        See Also
+        --------
+        interval_range : Function to create a fixed frequency IntervalIndex.
+        IntervalIndex.from_breaks : Construct an IntervalIndex from an array of
+            splits.
+        IntervalIndex.from_tuples : Construct an IntervalIndex from a
+            list/array of tuples.
 
         Examples
         --------
@@ -500,27 +522,14 @@ class IntervalIndex(IntervalMixin, Index):
         ...                                     [2, 13, 19], closed='left')
         >>> ages
         IntervalIndex([[0, 2), [2, 13), [13, 19)]
-              closed='left',
-              dtype='interval[int64]')
+                      closed='left',
+                      dtype='interval[int64]')
         >>> s = pd.Series(['baby', 'kid', 'teen'], ages)
         >>> s
         [0, 2)      baby
         [2, 13)      kid
         [13, 19)    teen
         dtype: object
-
-        Notes
-        -----
-        Each element of `left` must be smaller or equal to the `right` element
-        at the same position, ie, ``left[i] <= right[i]``.
-
-        See Also
-        --------
-        interval_range : Function to create a fixed frequency IntervalIndex.
-        IntervalIndex.from_breaks : Construct an IntervalIndex from an array of
-                                    splits.
-        IntervalIndex.from_tuples : Construct an IntervalIndex from a
-                                    list/array of tuples.
         """
         left = maybe_convert_platform_interval(left)
         right = maybe_convert_platform_interval(right)
