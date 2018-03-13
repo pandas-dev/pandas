@@ -4485,44 +4485,55 @@ class DataFrame(NDFrame):
 
     def pivot(self, index=None, columns=None, values=None):
         """
+        Return reshaped DataFrame organized by given index / column values.
+
         Reshape data (produce a "pivot" table) based on column values. Uses
-        unique values from index / columns to form axes of the resulting
-        DataFrame.
+        unique values from specified `index` / `columns` to form axes of the
+        resulting DataFrame. This function does not support data aggregation,
+        multiple values will result in a MultiIndex in the columns. See the
+        :ref:`User Guide <reshaping>` for more on reshaping.
 
         Parameters
         ----------
         index : string or object, optional
-            Column name to use to make new frame's index. If None, uses
+            Column to use to make new frame's index. If None, uses
             existing index.
         columns : string or object
-            Column name to use to make new frame's columns
+            Column to use to make new frame's columns.
         values : string or object, optional
-            Column name to use for populating new frame's values. If not
+            Column to use for populating new frame's values. If not
             specified, all remaining columns will be used and the result will
-            have hierarchically indexed columns
+            have hierarchically indexed columns.
 
         Returns
         -------
-        pivoted : DataFrame
+        DataFrame
+            Returns reshaped DataFrame.
 
-        See also
+        Raises
+        ------
+        ValueError:
+            When there are any `index`, `columns` combinations with multiple
+            values. `DataFrame.pivot_table` when you need to aggregate.
+
+        See Also
         --------
         DataFrame.pivot_table : generalization of pivot that can handle
-            duplicate values for one index/column pair
+            duplicate values for one index/column pair.
         DataFrame.unstack : pivot based on the index values instead of a
-            column
+            column.
 
         Notes
         -----
         For finer-tuned control, see hierarchical indexing documentation along
-        with the related stack/unstack methods
+        with the related stack/unstack methods.
 
         Examples
         --------
-
-        >>> df = pd.DataFrame({'foo': ['one','one','one','two','two','two'],
-                               'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
-                               'baz': [1, 2, 3, 4, 5, 6]})
+        >>> df = pd.DataFrame({'foo': ['one', 'one', 'one', 'two', 'two',
+        ...                            'two'],
+        ...                    'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
+        ...                    'baz': [1, 2, 3, 4, 5, 6]})
         >>> df
             foo   bar  baz
         0   one   A    1
@@ -4533,16 +4544,36 @@ class DataFrame(NDFrame):
         5   two   C    6
 
         >>> df.pivot(index='foo', columns='bar', values='baz')
-             A   B   C
+        bar  A   B   C
+        foo
         one  1   2   3
         two  4   5   6
 
         >>> df.pivot(index='foo', columns='bar')['baz']
-             A   B   C
+        bar  A   B   C
+        foo
         one  1   2   3
         two  4   5   6
 
+        A ValueError is raised if there are any duplicates.
 
+        >>> df = pd.DataFrame({"foo": ['one', 'one', 'two', 'two'],
+        ...                    "bar": ['A', 'A', 'B', 'C'],
+        ...                    "baz": [1, 2, 3, 4]})
+        >>> df
+           foo bar  baz
+        0  one   A    1
+        1  one   A    2
+        2  two   B    3
+        3  two   C    4
+
+        Notice that the first two rows are the same for our `index`
+        and `columns` arguments.
+
+        >>> df.pivot(index='foo', columns='bar', values='baz')
+        Traceback (most recent call last):
+           ...
+        ValueError: Index contains duplicate entries, cannot reshape
         """
         from pandas.core.reshape.reshape import pivot
         return pivot(self, index=index, columns=columns, values=values)
@@ -5032,54 +5063,68 @@ class DataFrame(NDFrame):
 
     def apply(self, func, axis=0, broadcast=None, raw=False, reduce=None,
               result_type=None, args=(), **kwds):
-        """Applies function along an axis of the DataFrame.
+        """
+        Apply a function along an axis of the DataFrame.
 
-        Objects passed to functions are Series objects having index
-        either the DataFrame's index (axis=0) or the columns (axis=1).
-        Final return type depends on the return type of the applied function,
-        or on the `result_type` argument.
+        Objects passed to the function are Series objects whose index is
+        either the DataFrame's index (``axis=0``) or the DataFrame's columns
+        (``axis=1``). By default (``result_type=None``), the final return type
+        is inferred from the return type of the applied function. Otherwise,
+        it depends on the `result_type` argument.
 
         Parameters
         ----------
         func : function
-            Function to apply to each column/row
+            Function to apply to each column or row.
         axis : {0 or 'index', 1 or 'columns'}, default 0
-            * 0 or 'index': apply function to each column
-            * 1 or 'columns': apply function to each row
-        broadcast : boolean, optional
-            For aggregation functions, return object of same size with values
-            propagated
+            Axis along which the function is applied:
+
+            * 0 or 'index': apply function to each column.
+            * 1 or 'columns': apply function to each row.
+        broadcast : bool, optional
+            Only relevant for aggregation functions:
+
+            * ``False`` or ``None`` : returns a Series whose length is the
+              length of the index or the number of columns (based on the
+              `axis` parameter)
+            * ``True`` : results will be broadcast to the original shape
+              of the frame, the original index and columns will be retained.
 
             .. deprecated:: 0.23.0
                This argument will be removed in a future version, replaced
                by result_type='broadcast'.
 
-        raw : boolean, default False
-            If False, convert each row or column into a Series. If raw=True the
-            passed function will receive ndarray objects instead. If you are
-            just applying a NumPy reduction function this will achieve much
-            better performance
-        reduce : boolean or None, default None
+        raw : bool, default False
+            * ``False`` : passes each row or column as a Series to the
+              function.
+            * ``True`` : the passed function will receive ndarray objects
+              instead.
+              If you are just applying a NumPy reduction function this will
+              achieve much better performance.
+        reduce : bool or None, default None
             Try to apply reduction procedures. If the DataFrame is empty,
-            apply will use reduce to determine whether the result should be a
-            Series or a DataFrame. If reduce is None (the default), apply's
-            return value will be guessed by calling func an empty Series (note:
-            while guessing, exceptions raised by func will be ignored). If
-            reduce is True a Series will always be returned, and if False a
-            DataFrame will always be returned.
+            `apply` will use `reduce` to determine whether the result
+            should be a Series or a DataFrame. If ``reduce=None`` (the
+            default), `apply`'s return value will be guessed by calling
+            `func` on an empty Series
+            (note: while guessing, exceptions raised by `func` will be
+            ignored).
+            If ``reduce=True`` a Series will always be returned, and if
+            ``reduce=False`` a DataFrame will always be returned.
 
             .. deprecated:: 0.23.0
                This argument will be removed in a future version, replaced
-               by result_type='reduce'.
+               by ``result_type='reduce'``.
 
-        result_type : {'expand', 'reduce', 'broadcast, None}
-            These only act when axis=1 {columns}:
+        result_type : {'expand', 'reduce', 'broadcast', None}, default None
+            These only act when ``axis=1`` (columns):
 
             * 'expand' : list-like results will be turned into columns.
-            * 'reduce' : return a Series if possible rather than expanding
-              list-like results. This is the opposite to 'expand'.
+            * 'reduce' : returns a Series if possible rather than expanding
+              list-like results. This is the opposite of 'expand'.
             * 'broadcast' : results will be broadcast to the original shape
-              of the frame, the original index & columns will be retained.
+              of the DataFrame, the original index and columns will be
+              retained.
 
             The default behaviour (None) depends on the return value of the
             applied function: list-like results will be returned as a Series
@@ -5089,61 +5134,56 @@ class DataFrame(NDFrame):
             .. versionadded:: 0.23.0
 
         args : tuple
-            Positional arguments to pass to function in addition to the
-            array/series
-        Additional keyword arguments will be passed as keywords to the function
+            Positional arguments to pass to `func` in addition to the
+            array/series.
+        **kwds
+            Additional keyword arguments to pass as keywords arguments to
+            `func`.
 
         Notes
         -----
-        In the current implementation apply calls func twice on the
+        In the current implementation apply calls `func` twice on the
         first column/row to decide whether it can take a fast or slow
-        code path. This can lead to unexpected behavior if func has
+        code path. This can lead to unexpected behavior if `func` has
         side-effects, as they will take effect twice for the first
         column/row.
+
+        See also
+        --------
+        DataFrame.applymap: For elementwise operations
+        DataFrame.aggregate: only perform aggregating type operations
+        DataFrame.transform: only perform transformating type operations
 
         Examples
         --------
 
-        We use this DataFrame to illustrate
-
-        >>> df = pd.DataFrame(np.tile(np.arange(3), 6).reshape(6, -1) + 1,
-        ...                   columns=['A', 'B', 'C'])
+        >>> df = pd.DataFrame([[4, 9],] * 3, columns=['A', 'B'])
         >>> df
-           A  B  C
-        0  1  2  3
-        1  1  2  3
-        2  1  2  3
-        3  1  2  3
-        4  1  2  3
-        5  1  2  3
+           A  B
+        0  4  9
+        1  4  9
+        2  4  9
 
         Using a numpy universal function (in this case the same as
         ``np.sqrt(df)``):
 
         >>> df.apply(np.sqrt)
-             A         B         C
-        0  1.0  1.414214  1.732051
-        1  1.0  1.414214  1.732051
-        2  1.0  1.414214  1.732051
-        3  1.0  1.414214  1.732051
-        4  1.0  1.414214  1.732051
-        5  1.0  1.414214  1.732051
+             A    B
+        0  2.0  3.0
+        1  2.0  3.0
+        2  2.0  3.0
 
         Using a reducing function on either axis
 
         >>> df.apply(np.sum, axis=0)
-        A     6
-        B    12
-        C    18
+        A    12
+        B    27
         dtype: int64
 
         >>> df.apply(np.sum, axis=1)
-        0    6
-        1    6
-        2    6
-        3    6
-        4    6
-        5    6
+        0    13
+        1    13
+        2    13
         dtype: int64
 
         Retuning a list-like will result in a Series
@@ -5152,9 +5192,7 @@ class DataFrame(NDFrame):
         0    [1, 2]
         1    [1, 2]
         2    [1, 2]
-        3    [1, 2]
-        4    [1, 2]
-        5    [1, 2]
+        dtype: object
 
         Passing result_type='expand' will expand list-like results
         to columns of a Dataframe
@@ -5164,42 +5202,27 @@ class DataFrame(NDFrame):
         0  1  2
         1  1  2
         2  1  2
-        3  1  2
-        4  1  2
-        5  1  2
 
         Returning a Series inside the function is similar to passing
         ``result_type='expand'``. The resulting column names
         will be the Series index.
 
-        >>> df.apply(lambda x: Series([1, 2], index=['foo', 'bar']), axis=1)
+        >>> df.apply(lambda x: pd.Series([1, 2], index=['foo', 'bar']), axis=1)
            foo  bar
         0    1    2
         1    1    2
         2    1    2
-        3    1    2
-        4    1    2
-        5    1    2
 
         Passing ``result_type='broadcast'`` will ensure the same shape
         result, whether list-like or scalar is returned by the function,
         and broadcast it along the axis. The resulting column names will
         be the originals.
 
-        >>> df.apply(lambda x: [1, 2, 3], axis=1, result_type='broadcast')
-           A  B  C
-        0  1  2  3
-        1  1  2  3
-        2  1  2  3
-        3  1  2  3
-        4  1  2  3
-        5  1  2  3
-
-        See also
-        --------
-        DataFrame.applymap: For elementwise operations
-        DataFrame.aggregate: only perform aggregating type operations
-        DataFrame.transform: only perform transformating type operations
+        >>> df.apply(lambda x: [1, 2], axis=1, result_type='broadcast')
+           A  B
+        0  1  2
+        1  1  2
+        2  1  2
 
         Returns
         -------

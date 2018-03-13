@@ -4336,7 +4336,36 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @property
     def dtypes(self):
-        """Return the dtypes in this object."""
+        """
+        Return the dtypes in the DataFrame.
+
+        This returns a Series with the data type of each column.
+        The result's index is the original DataFrame's columns. Columns
+        with mixed types are stored with the ``object`` dtype. See
+        :ref:`the User Guide <basics.dtypes>` for more.
+
+        Returns
+        -------
+        pandas.Series
+            The data type of each column.
+
+        See Also
+        --------
+        pandas.DataFrame.ftypes : dtype and sparsity information.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'float': [1.0],
+        ...                    'int': [1],
+        ...                    'datetime': [pd.Timestamp('20180310')],
+        ...                    'string': ['foo']})
+        >>> df.dtypes
+        float              float64
+        int                  int64
+        datetime    datetime64[ns]
+        string              object
+        dtype: object
+        """
         from pandas import Series
         return Series(self._data.get_dtypes(), index=self._info_axis,
                       dtype=np.object_)
@@ -4344,8 +4373,45 @@ class NDFrame(PandasObject, SelectionMixin):
     @property
     def ftypes(self):
         """
-        Return the ftypes (indication of sparse/dense and dtype)
-        in this object.
+        Return the ftypes (indication of sparse/dense and dtype) in DataFrame.
+
+        This returns a Series with the data type of each column.
+        The result's index is the original DataFrame's columns. Columns
+        with mixed types are stored with the ``object`` dtype.  See
+        :ref:`the User Guide <basics.dtypes>` for more.
+
+        Returns
+        -------
+        pandas.Series
+            The data type and indication of sparse/dense of each column.
+
+        See Also
+        --------
+        pandas.DataFrame.dtypes: Series with just dtype information.
+        pandas.SparseDataFrame : Container for sparse tabular data.
+
+        Notes
+        -----
+        Sparse data should have the same dtypes as its dense representation.
+
+        Examples
+        --------
+        >>> import numpy as np
+        >>> arr = np.random.RandomState(0).randn(100, 4)
+        >>> arr[arr < .8] = np.nan
+        >>> pd.DataFrame(arr).ftypes
+        0    float64:dense
+        1    float64:dense
+        2    float64:dense
+        3    float64:dense
+        dtype: object
+
+        >>> pd.SparseDataFrame(arr).ftypes
+        0    float64:sparse
+        1    float64:sparse
+        2    float64:sparse
+        3    float64:sparse
+        dtype: object
         """
         from pandas import Series
         return Series(self._data.get_ftypes(), index=self._info_axis,
@@ -5519,13 +5585,63 @@ class NDFrame(PandasObject, SelectionMixin):
     # Action Methods
 
     _shared_docs['isna'] = """
+        Detect missing values.
+
         Return a boolean same-sized object indicating if the values are NA.
+        NA values, such as None or :attr:`numpy.NaN`, gets mapped to True
+        values.
+        Everything else gets mapped to False values. Characters such as empty
+        strings ``''`` or :attr:`numpy.inf` are not considered NA values
+        (unless you set ``pandas.options.mode.use_inf_as_na = True``).
+
+        Returns
+        -------
+        %(klass)s
+            Mask of bool values for each element in %(klass)s that
+            indicates whether an element is not an NA value.
 
         See Also
         --------
-        %(klass)s.notna : boolean inverse of isna
         %(klass)s.isnull : alias of isna
+        %(klass)s.notna : boolean inverse of isna
+        %(klass)s.dropna : omit axes labels with missing values
         isna : top-level isna
+
+        Examples
+        --------
+        Show which entries in a DataFrame are NA.
+
+        >>> df = pd.DataFrame({'age': [5, 6, np.NaN],
+        ...                    'born': [pd.NaT, pd.Timestamp('1939-05-27'),
+        ...                             pd.Timestamp('1940-04-25')],
+        ...                    'name': ['Alfred', 'Batman', ''],
+        ...                    'toy': [None, 'Batmobile', 'Joker']})
+        >>> df
+           age       born    name        toy
+        0  5.0        NaT  Alfred       None
+        1  6.0 1939-05-27  Batman  Batmobile
+        2  NaN 1940-04-25              Joker
+
+        >>> df.isna()
+             age   born   name    toy
+        0  False   True  False   True
+        1  False  False  False  False
+        2   True  False  False  False
+
+        Show which entries in a Series are NA.
+
+        >>> ser = pd.Series([5, 6, np.NaN])
+        >>> ser
+        0    5.0
+        1    6.0
+        2    NaN
+        dtype: float64
+
+        >>> ser.isna()
+        0    False
+        1    False
+        2     True
+        dtype: bool
         """
 
     @Appender(_shared_docs['isna'] % _shared_doc_kwargs)
@@ -5537,14 +5653,63 @@ class NDFrame(PandasObject, SelectionMixin):
         return isna(self).__finalize__(self)
 
     _shared_docs['notna'] = """
-        Return a boolean same-sized object indicating if the values are
-        not NA.
+        Detect existing (non-missing) values.
+
+        Return a boolean same-sized object indicating if the values are not NA.
+        Non-missing values get mapped to True. Characters such as empty
+        strings ``''`` or :attr:`numpy.inf` are not considered NA values
+        (unless you set ``pandas.options.mode.use_inf_as_na = True``).
+        NA values, such as None or :attr:`numpy.NaN`, get mapped to False
+        values.
+
+        Returns
+        -------
+        %(klass)s
+            Mask of bool values for each element in %(klass)s that
+            indicates whether an element is not an NA value.
 
         See Also
         --------
-        %(klass)s.isna : boolean inverse of notna
         %(klass)s.notnull : alias of notna
+        %(klass)s.isna : boolean inverse of notna
+        %(klass)s.dropna : omit axes labels with missing values
         notna : top-level notna
+
+        Examples
+        --------
+        Show which entries in a DataFrame are not NA.
+
+        >>> df = pd.DataFrame({'age': [5, 6, np.NaN],
+        ...                    'born': [pd.NaT, pd.Timestamp('1939-05-27'),
+        ...                             pd.Timestamp('1940-04-25')],
+        ...                    'name': ['Alfred', 'Batman', ''],
+        ...                    'toy': [None, 'Batmobile', 'Joker']})
+        >>> df
+           age       born    name        toy
+        0  5.0        NaT  Alfred       None
+        1  6.0 1939-05-27  Batman  Batmobile
+        2  NaN 1940-04-25              Joker
+
+        >>> df.notna()
+             age   born  name    toy
+        0   True  False  True  False
+        1   True   True  True   True
+        2  False   True  True   True
+
+        Show which entries in a Series are not NA.
+
+        >>> ser = pd.Series([5, 6, np.NaN])
+        >>> ser
+        0    5.0
+        1    6.0
+        2    NaN
+        dtype: float64
+
+        >>> ser.notna()
+        0     True
+        1     True
+        2    False
+        dtype: bool
         """
 
     @Appender(_shared_docs['notna'] % _shared_doc_kwargs)
@@ -7523,29 +7688,118 @@ class NDFrame(PandasObject, SelectionMixin):
         return q
 
     _shared_docs['pct_change'] = """
-        Percent change over given number of periods.
+        Percentage change between the current and a prior element.
+
+        Computes the percentage change from the immediately previous row by
+        default. This is useful in comparing the percentage of change in a time
+        series of elements.
 
         Parameters
         ----------
         periods : int, default 1
-            Periods to shift for forming percent change
+            Periods to shift for forming percent change.
         fill_method : str, default 'pad'
-            How to handle NAs before computing percent changes
+            How to handle NAs before computing percent changes.
         limit : int, default None
-            The number of consecutive NAs to fill before stopping
+            The number of consecutive NAs to fill before stopping.
         freq : DateOffset, timedelta, or offset alias string, optional
-            Increment to use from time series API (e.g. 'M' or BDay())
+            Increment to use from time series API (e.g. 'M' or BDay()).
+        **kwargs
+            Additional keyword arguments are passed into
+            `DataFrame.shift` or `Series.shift`.
 
         Returns
         -------
-        chg : %(klass)s
+        chg : Series or DataFrame
+            The same type as the calling object.
 
-        Notes
-        -----
+        See Also
+        --------
+        Series.diff : Compute the difference of two elements in a Series.
+        DataFrame.diff : Compute the difference of two elements in a DataFrame.
+        Series.shift : Shift the index by some number of periods.
+        DataFrame.shift : Shift the index by some number of periods.
 
-        By default, the percentage change is calculated along the stat
-        axis: 0, or ``Index``, for ``DataFrame`` and 1, or ``minor`` for
-        ``Panel``. You can change this with the ``axis`` keyword argument.
+        Examples
+        --------
+        **Series**
+
+        >>> s = pd.Series([90, 91, 85])
+        >>> s
+        0    90
+        1    91
+        2    85
+        dtype: int64
+
+        >>> s.pct_change()
+        0         NaN
+        1    0.011111
+        2   -0.065934
+        dtype: float64
+
+        >>> s.pct_change(periods=2)
+        0         NaN
+        1         NaN
+        2   -0.055556
+        dtype: float64
+
+        See the percentage change in a Series where filling NAs with last
+        valid observation forward to next valid.
+
+        >>> s = pd.Series([90, 91, None, 85])
+        >>> s
+        0    90.0
+        1    91.0
+        2     NaN
+        3    85.0
+        dtype: float64
+
+        >>> s.pct_change(fill_method='ffill')
+        0         NaN
+        1    0.011111
+        2    0.000000
+        3   -0.065934
+        dtype: float64
+
+        **DataFrame**
+
+        Percentage change in French franc, Deutsche Mark, and Italian lira from
+        1980-01-01 to 1980-03-01.
+
+        >>> df = pd.DataFrame({
+        ...     'FR': [4.0405, 4.0963, 4.3149],
+        ...     'GR': [1.7246, 1.7482, 1.8519],
+        ...     'IT': [804.74, 810.01, 860.13]},
+        ...     index=['1980-01-01', '1980-02-01', '1980-03-01'])
+        >>> df
+                        FR      GR      IT
+        1980-01-01  4.0405  1.7246  804.74
+        1980-02-01  4.0963  1.7482  810.01
+        1980-03-01  4.3149  1.8519  860.13
+
+        >>> df.pct_change()
+                          FR        GR        IT
+        1980-01-01       NaN       NaN       NaN
+        1980-02-01  0.013810  0.013684  0.006549
+        1980-03-01  0.053365  0.059318  0.061876
+
+        Percentage of change in GOOG and APPL stock volume. Shows computing
+        the percentage change between columns.
+
+        >>> df = pd.DataFrame({
+        ...     '2016': [1769950, 30586265],
+        ...     '2015': [1500923, 40912316],
+        ...     '2014': [1371819, 41403351]},
+        ...     index=['GOOG', 'APPL'])
+        >>> df
+                  2016      2015      2014
+        GOOG   1769950   1500923   1371819
+        APPL  30586265  40912316  41403351
+
+        >>> df.pct_change(axis='columns')
+              2016      2015      2014
+        GOOG   NaN -0.151997 -0.086016
+        APPL   NaN  0.337604  0.012002
         """
 
     @Appender(_shared_docs['pct_change'] % _shared_doc_kwargs)
@@ -7583,8 +7837,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         cls.any = _make_logical_function(
             cls, 'any', name, name2, axis_descr,
-            'Return whether any element is True over requested axis',
-            nanops.nanany, '', '')
+            _any_desc, nanops.nanany, _any_examples, _any_see_also)
         cls.all = _make_logical_function(
             cls, 'all', name, name2, axis_descr, _all_doc,
             nanops.nanall, _all_examples, _all_see_also)
@@ -7848,7 +8101,8 @@ _bool_doc = """
 
 Parameters
 ----------
-axis : %(axis_descr)s
+axis : int, default 0
+    Select the axis which can be 0 for indices and 1 for columns.
 skipna : boolean, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA.
@@ -7866,8 +8120,8 @@ Returns
 -------
 %(outname)s : %(name1)s or %(name2)s (if level specified)
 
-%(examples)s
-%(see_also)s"""
+%(see_also)s
+%(examples)s"""
 
 _all_doc = """\
 Return whether all elements are True over series or dataframe axis.
@@ -7938,6 +8192,74 @@ pandas.core.window.Expanding.%(accum_func_name)s : Similar functionality
 
 """
 
+_any_see_also = """\
+See Also
+--------
+pandas.DataFrame.all : Return whether all elements are True.
+"""
+
+_any_desc = """\
+Return whether any element is True over requested axis.
+
+Unlike :meth:`DataFrame.all`, this performs an *or* operation. If any of the
+values along the specified axis is True, this will return True."""
+
+_any_examples = """\
+Examples
+--------
+**Series**
+
+For Series input, the output is a scalar indicating whether any element
+is True.
+
+>>> pd.Series([True, False]).any()
+True
+
+**DataFrame**
+
+Whether each column contains at least one True element (the default).
+
+>>> df = pd.DataFrame({"A": [1, 2], "B": [0, 2], "C": [0, 0]})
+>>> df
+   A  B  C
+0  1  0  0
+1  2  2  0
+
+>>> df.any()
+A     True
+B     True
+C    False
+dtype: bool
+
+Aggregating over the columns.
+
+>>> df = pd.DataFrame({"A": [True, False], "B": [1, 2]})
+>>> df
+       A  B
+0   True  1
+1  False  2
+
+>>> df.any(axis='columns')
+0    True
+1    True
+dtype: bool
+
+>>> df = pd.DataFrame({"A": [True, False], "B": [1, 0]})
+>>> df
+       A  B
+0   True  1
+1  False  0
+
+>>> df.any(axis='columns')
+0    True
+1    False
+dtype: bool
+
+`any` for an empty DataFrame is an empty Series.
+
+>>> pd.DataFrame([]).any()
+Series([], dtype: bool)
+"""
 
 _sum_examples = """\
 Examples
