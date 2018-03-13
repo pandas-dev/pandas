@@ -2144,6 +2144,13 @@ class TestStringMethods(object):
         # tm.assert_frame_equal does not differentiate
         assert all(np.isnan(x) for x in result.iloc[1])
 
+    def test_split_no_pat_and_expand(self):
+        # GH 20002
+        df = DataFrame({'foo': ['']})
+        exp = DataFrame([[]])
+        res = df['foo'].str.split(expand=True)
+        tm.assert_frame_equal(res, exp)
+
     def test_split_with_name(self):
         # GH 12617
 
