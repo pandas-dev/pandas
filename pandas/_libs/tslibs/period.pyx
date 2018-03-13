@@ -1305,6 +1305,24 @@ cdef class _Period(object):
 
     @property
     def week(self):
+        """
+        Get the total weeks on the Period falls in.
+
+        Returns
+        -------
+        int 
+
+        See Also
+        --------
+        Period.dayofweek : Get the day component of the Period.
+        Period.weekday : Get the day component of the Period.
+
+        Examples
+        --------
+        >>> p = pd.Period("2018-03-11")
+        >>> p.week
+        10
+        """
         return self.weekofyear
 
     @property
