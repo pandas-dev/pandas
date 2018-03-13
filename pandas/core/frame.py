@@ -863,15 +863,82 @@ class DataFrame(NDFrame):
 
     def dot(self, other):
         """
-        Matrix multiplication with DataFrame or Series objects
+        Find the dot product of two DataFrames.
+
+        Using two DataFrame objects - this method
+        finds the standard inner product (dot product)
+        of two conformable matrices. Matrices A and B are said
+        to be conformable for multiplication A(B) whenever the
+        number of columns in A = the number of rows in B.
+        (i.e. -  A is m × p and B is p × n)
 
         Parameters
         ----------
-        other : DataFrame or Series
+        other : DataFrame
+            A DataFrame of the correct dimension.
 
         Returns
         -------
-        dot_product : DataFrame or Series
+        dot_product : DataFrame
+
+        Raises
+        ------
+        ValueError
+            If the first dimension of A is not the same size as the
+            second dimension of B, OR if there are conflicting column
+            indeces.
+
+        See Also
+        --------
+        Series.dot: dot product on a Series
+        numpy.dot : dot product in numpy
+
+        Examples
+        --------
+        Two DataFrame objects:
+
+        >>> df_A = pd.DataFrame([[1,2],[3,4]])
+        >>> df_A
+           0  1
+        0  1  2
+        1  3  4
+
+        >>> df_B = pd.DataFrame([[3,4],[1,2]])
+        >>> df_B
+           0  1
+        0  3  4
+        1  1  2
+
+        >>> df_A.dot(df_B)
+              0   1
+        0     5   8
+        1    13   20
+
+        >>> type(df_A.dot(df_B))
+        <class 'pandas.core.frame.DataFrame'>
+
+        There is similar functionality using two Series.
+
+        Two Series objects:
+
+        >>> ser_A = pd.Series(data=[1,2,3,4])
+        >>> ser_A
+        0    1
+        1    2
+        2    3
+        3    4
+        dtype: int64
+
+        >>> ser_B = pd.Series(data=[3,4,1,2])
+        >>> ser_B
+        0    3
+        1    4
+        2    1
+        3    2
+        dtype: int64
+
+        >>> ser_A.dot(ser_B)
+        22
         """
         if isinstance(other, (Series, DataFrame)):
             common = self.columns.union(other.index)
