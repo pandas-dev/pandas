@@ -5732,59 +5732,65 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.21.0
 
+        See Also
+        --------
+        DataFrame.clip : General purpose method to trim `DataFrame` values to
+            given threshold(s)
+        DataFrame.clip_upper : Trim `DataFrame` values above given
+            threshold(s)
+        Series.clip : General purpose method to trim `Series` values to given
+            threshold(s)
+        Series.clip_upper : Trim `Series` values above given threshold(s)
+
         Returns
         -------
-        Series or DataFrame
-            Same type as caller.
+        type of caller
+            Original data with values trimmed.
 
         Examples
         --------
-        >>> df = pd.DataFrame({'a': [0.740518, 0.450228, 0.710404, -0.771225],
-        ...                    'b': [0.040507, -0.45121, 0.760925, 0.010624]})
+        >>> df = pd.DataFrame({'a': [-1, -2, -100],
+        ...                    'b': [1, 2, 100]},
+        ...                    index = ['foo', 'bar', 'foobar'])
 
         >>> df
-                  a         b
-        0  0.740518  0.040507
-        1  0.450228 -0.451210
-        2  0.710404  0.760925
-        3 -0.771225  0.010624
+                  a    b
+        foo      -1    1
+        bar      -2    2
+        foobar -100  100
 
         Clip to a scalar value
 
-        >>> df.clip_lower(0.2)
-                  a         b
-        0  0.740518  0.200000
-        1  0.450228  0.200000
-        2  0.710404  0.760925
-        3  0.200000  0.200000
+        >>> df.clip_lower(0)
+                a    b
+        foo     0    1
+        bar     0    2
+        foobar  0  100
 
         Clip to an array along the index axis
 
-        >>> df.clip_lower([0.2, 0.4, 0.6, 0.8], axis=0)
-                  a         b
-        0  0.740518  0.200000
-        1  0.450228  0.400000
-        2  0.710404  0.760925
-        3  0.800000  0.800000
+        >>> df.clip_lower([0, 5, 10], axis=0)
+                 a    b
+        foo      0    1
+        bar      5    5
+        foobar  10  100
 
         Clip to an array along the column axis
 
-        >>> df.clip_lower([0.5, 0.0], axis=1)
-                  a         b
-        0  0.740518  0.040507
-        1  0.500000  0.000000
-        2  0.710404  0.760925
-        3  0.500000  0.010624
+        >>> df.clip_lower([-5, 10], axis=1)
+                a    b
+        foo    -1   10
+        bar    -2   10
+        foobar -5  100
 
         Clip in place
 
-        >>> df.clip_lower(0.2, inplace=True)
+        >>> df.clip_lower(0, inplace=True)
         >>> df
-                  a         b
-        0  0.740518  0.200000
-        1  0.450228  0.200000
-        2  0.710404  0.760925
-        3  0.200000  0.200000
+                a    b
+        foo     0    1
+        bar     0    2
+        foobar  0  100
         """
         return self._clip_with_one_bound(threshold, method=self.ge,
                                          axis=axis, inplace=inplace)
