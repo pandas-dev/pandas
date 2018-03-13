@@ -1436,36 +1436,35 @@ class _LocIndexer(_LocationIndexer):
 
     See Also
     --------
-    DateFrame.at
-        Access a single value for a row/column label pair
-    DateFrame.iloc
-        Access group of rows and columns by integer position(s)
-    Series.loc
-        Access group of values using labels
+    DateFrame.at : Access a single value for a row/column label pair
+    DateFrame.iloc : Access group of rows and columns by integer position(s)
+    Series.loc : Access group of values using labels
 
     Examples
     --------
-    >>> df = pd.DataFrame([[12, 2, 3], [0, 4, 1], [10, 20, 30]],
+    **Getting values**
+
+    >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
     ...      index=['r0', 'r1', 'r2'], columns=['c0', 'c1', 'c2'])
     >>> df
         c0  c1  c2
-    r0  12   2   3
-    r1   0   4   1
-    r2  10  20  30
+    r0   1   2   3
+    r1   4   5   6
+    r2   7   8   9
 
-    Single label. Note this returns a Series.
+    Single label. Note this returns the row as a Series.
 
     >>> df.loc['r1']
-    c0    0
-    c1    4
-    c2    1
+    c0    4
+    c1    5
+    c2    6
     Name: r1, dtype: int64
 
     List with a single label. Note using ``[[]]`` returns a DataFrame.
 
     >>> df.loc[['r1']]
         c0  c1  c2
-    r1   0   4   1
+    r1   4   5   6
 
     Single label for row and column
 
@@ -1476,92 +1475,104 @@ class _LocIndexer(_LocationIndexer):
 
     >>> df.loc[['r1', 'r2']]
         c0  c1  c2
-    r1   0   4   1
-    r2  10  20  30
+    r1   4   5   6
+    r2   7   8   9
 
     Slice with labels for row and single label for column. Note that
     contrary to usual python slices, both the start and the stop are
     included!
 
     >>> df.loc['r0':'r1', 'c0']
-    r0    12
-    r1     0
+    r0     1
+    r1     4
     Name: c0, dtype: int64
 
     Boolean list with the same length as the row axis
 
     >>> df.loc[[False, False, True]]
         c0  c1  c2
-    r2  10  20  30
+    r2   7   8   9
 
-    Callable that returns valid output for indexing
+    Conditional that returns a boolean Series
 
-    >>> df.loc[df['c1'] > 10]
+    >>> df.loc[df['c1'] > 6]
         c0  c1  c2
-    r2  10  20  30
+    r2   7   8   9
 
-    Callable that returns valid output with column labels specified
+    Conditional that returns a boolean Series with column labels specified
 
-    >>> df.loc[df['c1'] > 10, ['c0', 'c2']]
+    >>> df.loc[df['c1'] > 6, ['c0', 'c2']]
         c0  c2
-    r2  10  30
+    r2   7   9
+
+    Callable that returns a boolean Series
+
+    >>> df.loc[lambda df: df['c1'] == 8]
+        c0  c1  c2
+    r2   7   8   9
+
+    **Setting values**
 
     Set value for all items matching the list of labels
 
-    >>> df.loc[['r1', 'r2'], ['c1']] = 70
+    >>> df.loc[['r1', 'r2'], ['c1']] = 50
     >>> df
         c0  c1  c2
-    r0  12   2   3
-    r1   0  70   1
-    r2  10  70  30
+    r0   1   2   3
+    r1   4  50   6
+    r2   7  50   9
 
     Set value for an entire row
 
-    >>> df.loc['r0'] = 70
+    >>> df.loc['r0'] = 10
     >>> df
         c0  c1  c2
-    r0  70  70  70
-    r1   0  70   1
-    r2  10  70  30
+    r0  10  10  10
+    r1   4  50   6
+    r2   7  50   9
 
     Set value for an entire column
 
     >>> df.loc[:, 'c0'] = 30
     >>> df
         c0  c1  c2
-    r0  30  70  70
-    r1  30  70   1
-    r2  30  70  30
+    r0  30  10  10
+    r1  30  50   6
+    r2  30  50   9
 
     Set value for rows matching callable condition
 
     >>> df.loc[df['c2'] < 10] = 0
     >>> df
         c0  c1  c2
-    r0  30  70  70
+    r0  30  10  10
     r1   0   0   0
-    r2  30  70  30
+    r2   0   0   0
+
+    **Getting values on a DataFrame with an index that has integer labels**
 
     Another example using integers for the index
 
-    >>> df = pd.DataFrame([[12, 2, 3], [0, 4, 1], [10, 20, 30]],
+    >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
     ...      index=[7, 8, 9], columns=['c0', 'c1', 'c2'])
     >>> df
         c0  c1  c2
-    7  12   2   3
-    8   0   4   1
-    9  10  20  30
+    7    1   2   3
+    8    4   5   6
+    9    7   8   9
 
     Slice with integer labels for rows. Note that contrary to usual
     python slices, both the start and the stop are included!
 
     >>> df.loc[7:9]
        c0  c1  c2
-    7  12   2   3
-    8   0   4   1
-    9  10  20  30
+    7   1   2   3
+    8   4   5   6
+    9   7   8   9
 
-    A number of examples using a DataFrame with a multi-index
+    **Getting values with a MultiIndex**
+
+    A number of examples using a DataFrame with a MultiIndex
 
     >>> tuples = [('r0', 'bar'), ('r0', 'foo'), ('r1', 'bar'),
     ... 	('r1', 'foo'), ('r2', 'bar'), ('r2', 'baz')]
