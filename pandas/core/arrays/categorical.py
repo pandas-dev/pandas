@@ -422,6 +422,10 @@ class Categorical(ExtensionArray, PandasObject):
     def _constructor(self):
         return Categorical
 
+    @classmethod
+    def _constructor_from_sequence(cls, scalars):
+        return Categorical(scalars)
+
     def copy(self):
         """ Copy constructor. """
         return self._constructor(values=self._codes.copy(),
