@@ -1318,6 +1318,36 @@ cdef class _Period(object):
 
     @property
     def dayofyear(self):
+        """
+        Return the day of the year.
+
+        This attribute returns the day of the year on which the particular
+        date occurs. The return value ranges between 1 to 365 for regular
+        years and 1 to 366 for leap years.
+
+        Returns
+        -------
+        int
+            The day of year.
+
+        See Also
+        --------
+        Period.day : Return the day of the month.
+        Period.dayofweek : Return the day of week.
+        PeriodIndex.dayofyear : Return the day of year of all indexes.
+
+        Examples
+        --------
+        >>> period = pd.Period("2015-10-23", freq='H')
+        >>> period.dayofyear
+        296
+        >>> period = pd.Period("2012-12-31", freq='D')
+        >>> period.dayofyear
+        366
+        >>> period = pd.Period("2013-01-01", freq='D')
+        >>> period.dayofyear
+        1
+        """
         base, mult = get_freq_code(self.freq)
         return pday_of_year(self.ordinal, base)
 
