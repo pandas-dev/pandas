@@ -4328,8 +4328,9 @@ class DataFrame(NDFrame):
         Parameters
         ----------
         other : DataFrame, or object coercible into a DataFrame
-            Index should be similar to one of the columns in this one. If a
-            Series is passed, its name attribute must be set, and that will be
+            Should have at least one matching index/column label
+            with the original DataFrame. If a Series is passed,
+            its name attribute must be set, and that will be
             used as the column name in the resulting joined DataFrame.
         join : {'left'}, default 'left'
             Only left join is implemented, keeping the index and columns of the
@@ -4337,10 +4338,13 @@ class DataFrame(NDFrame):
         overwrite : boolean, default True
             How to handle non-NA values for overlapping keys.
 
-            * True : overwrite values in `self` with values from `other`.
-            * False : only update values that are NA in `self`.
+            * True : overwrite original DataFrame's values
+                    with values from `other`.
+            * False : only update values that are NA in
+                    the original DataFrame.
 
-        filter_func : callable(1d-array) -> 1d-array<boolean>, default None
+        filter_func : callable(1d-array) -> 1d-array<boolean>,\
+        "default None" -> "optional"
             Can choose to replace values other than NA. Return True for values
             that should be updated.
         raise_conflict : boolean
@@ -4370,7 +4374,8 @@ class DataFrame(NDFrame):
         1  2  5
         2  3  6
 
-        The DataFrame's length does not increase as a result of the update.
+        The DataFrame's length does not increase as a result of the update,
+        only values at matching index/column labels are updated.
 
         >>> df = pd.DataFrame({'A': ['a', 'b', 'c'],
         ...                    'B': ['x', 'y', 'z']})
