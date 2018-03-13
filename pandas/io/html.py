@@ -738,14 +738,10 @@ def _parser_dispatch(flavor):
             raise ImportError(
                 "BeautifulSoup4 (bs4) not found, please install it")
         import bs4
-        if LooseVersion(bs4.__version__) == LooseVersion('4.2.0'):
-            raise ValueError("You're using a version"
-                             " of BeautifulSoup4 (4.2.0) that has been"
-                             " known to cause problems on certain"
-                             " operating systems such as Debian. "
-                             "Please install a version of"
-                             " BeautifulSoup4 != 4.2.0, both earlier"
-                             " and later releases will work.")
+        if LooseVersion(bs4.__version__) <= LooseVersion('4.2.0'):
+            raise ValueError("A minimum version of BeautifulSoup 4.2.1 "
+                             "is required")
+
     else:
         if not _HAS_LXML:
             raise ImportError("lxml not found, please install it")
