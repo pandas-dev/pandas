@@ -2965,7 +2965,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Prefix labels with string `prefix`.
 
-        For Series, the row labels are prefixed.  
+        For Series, the row labels are prefixed.
         For DataFrame, the column labels are prefixed.
 
         Parameters
