@@ -5629,9 +5629,8 @@ class NDFrame(PandasObject, SelectionMixin):
             Original input with those values above/below the
             `upper`/`lower` thresholds set to the threshold values.
 
-        Notes
+        References
         -----
-
         .. [1] Tukey, John W. "The future of data analysis." The annals of
             mathematical statistics 33.1 (1962): 1-67.
 
