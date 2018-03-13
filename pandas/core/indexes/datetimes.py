@@ -2210,22 +2210,22 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
 
     Parameters
     ----------
-    start : string or datetime-like, default None
+    start : str or datetime-like, default None
         Left bound for generating dates.
-    end : string or datetime-like, default None
+    end : str or datetime-like, default None
         Right bound for generating dates.
     periods : integer, default None
         Number of periods to generate.
-    freq : string or DateOffset, default 'D' (calendar daily)
+    freq : str or DateOffset, default 'D' (calendar daily)
         Frequency strings can have multiples, e.g. '5H'.
-    tz : string, default None
+    tz : str, default None
         Time zone name for returning localized DatetimeIndex, for example
         Asia/Hong_Kong.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
-    name : string, default None
+    name : str, default None
         Name of the resulting DatetimeIndex.
-    closed : string, default None
+    closed : str, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None).
 
@@ -2241,14 +2241,19 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
     -------
     rng : DatetimeIndex
 
+    See Also
+    --------
+    pandas.period_range : Return a fixed frequency PeriodIndex.
+    pandas.interval_range : Return a fixed frequency IntervalIndex.
+    Numpy daterange: `numpy daterange<https://docs.scipy.org/doc/numpy/reference/arrays.datetime.html>`__.
+
     Examples
     --------
 
-    Given the ``start`` and ``end`` mandatory parameters,
-    with default `freq='D'` (Days)
+    Given the `start` and `end` mandatory parameters,
+    with default ``freq='D'`` (Days)
 
-    >>> pd1 = pd.date_range(start='1/1/2018', end='1/10/2018')
-    >>> pd1
+    >>> pd.date_range(start='1/1/2018', end='1/10/2018')
     DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03', '2018-01-04',
                    '2018-01-05', '2018-01-06', '2018-01-07', '2018-01-08',
                    '2018-01-09', '2018-01-10'],
@@ -2258,16 +2263,14 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
     periods would be the limit of the DatetimeIndex, with default `freq='D'`
     (D=calendar day frequency)
 
-    >>> pd2 = pd.date_range(start='1/1/2018', periods=5)
-    >>> pd2
+    >>> pd.date_range(start='1/1/2018', periods=5)
     DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03', '2018-01-04',
                    '2018-01-05'],
                   dtype='datetime64[ns]', freq='D')
 
     Changed the `freq` (frequency) to `'M'` (month end frequency) and `tz` to `'UTC'`
 
-    >>> pd3 = pd.date_range(start='1/1/2018', periods=5, freq='M', tz='UTC')
-    >>> pd3
+    >>> pd.date_range(start='1/1/2018', periods=5, freq='M', tz='UTC')
     DatetimeIndex(['2018-01-31', '2018-02-28', '2018-03-31', '2018-04-30',
                    '2018-05-31'],
                   dtype='datetime64[ns, UTC]', freq='M')
@@ -2275,22 +2278,14 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
     closed set to `'left'`, this makes the month range with the starting month
     (inclusive of dec to feb)
 
-    >>> pd4 = pd.date_range(start='31/12/2017', end='3/1/2018', freq='M', closed='left')
-    >>> pd4
+    >>> pd.date_range(start='31/12/2017', end='3/1/2018', freq='M', closed='left')
     DatetimeIndex(['2017-12-31', '2018-01-31', '2018-02-28'], dtype='datetime64[ns]', freq='M')
 
     closed set to `'right'`, this makes the month range after the starting month
     (inclusive of jan to feb)
 
-    >>> pd4 = pd.date_range(start='31/12/2017', end='3/1/2018', freq='M', closed='right')
-    >>> pd4
+    >>> pd.date_range(start='31/12/2017', end='3/1/2018', freq='M', closed='right')
     DatetimeIndex(['2018-01-31', '2018-02-28'], dtype='datetime64[ns]', freq='M')
-
-    See Also
-    --------
-    pandas.period_range : Return a fixed frequency PeriodIndex.
-    pandas.interval_range : Return a fixed frequency IntervalIndex.
-    Numpy daterange: `numpy daterange<https://docs.scipy.org/doc/numpy/reference/arrays.datetime.html>`__.
     """
     return DatetimeIndex(start=start, end=end, periods=periods,
                          freq=freq, tz=tz, normalize=normalize, name=name,
