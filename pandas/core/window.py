@@ -861,7 +861,7 @@ class _Rolling_and_Expanding(_Rolling):
     Returns
     -------
     Series or DataFrame
-        Returned type the same as the caller.
+        Returned type is the same as the original object.
 
     See Also
     --------
