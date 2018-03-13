@@ -1241,11 +1241,55 @@ cdef class _Period(object):
 
     @property
     def hour(self):
+        """
+        Get the hour of the day component of the Period.
+
+        Returns
+        -------
+        int 
+            The hour as an integer, between 0 and 23.
+
+        See Also
+        --------
+        Period.second : Get the second component of the Period.
+        Period.minute : Get the minute component of the Period.
+
+        Examples
+        --------
+        >>> p = pd.Period("2018-03-11 13:03:12.050000")
+        >>> p.hour
+        13
+
+        Period longer than a day
+
+        >>> p = pd.Period("2018-03-11", freq="M")
+        >>> p.hour
+        0
+        """
         base, mult = get_freq_code(self.freq)
         return phour(self.ordinal, base)
 
     @property
     def minute(self):
+        """
+        Get minute of the hour component of the Period.
+
+        Returns
+        -------
+        int 
+            The minute as an integer, between 0 and 59.
+
+        See Also
+        --------
+        Period.hour : Get the hour component of the Period.
+        Period.second : Get the second component of the Period.
+
+        Examples
+        --------
+        >>> p = pd.Period("2018-03-11 13:03:12.050000")
+        >>> p.minute
+        3
+        """
         base, mult = get_freq_code(self.freq)
         return pminute(self.ordinal, base)
 

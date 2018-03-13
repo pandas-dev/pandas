@@ -1534,10 +1534,10 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.is_categorical()
         False
 
-        >>> s = pd.Series(["Peter", "Víctor", "Elisabeth", "Mar"])
+        >>> s = pd.Series(["Peter", "Victor", "Elisabeth", "Mar"])
         >>> s
         0        Peter
-        1       Víctor
+        1       Victor
         2    Elisabeth
         3          Mar
         dtype: object
@@ -2148,36 +2148,105 @@ class Index(IndexOpsMixin, PandasObject):
 
     def isna(self):
         """
-        Detect missing values
+        Detect missing values.
+
+        Return a boolean same-sized object indicating if the values are NA.
+        NA values, such as ``None``, :attr:`numpy.NaN` or :attr:`pd.NaT`, get
+        mapped to ``True`` values.
+        Everything else get mapped to ``False`` values. Characters such as
+        empty strings `''` or :attr:`numpy.inf` are not considered NA values
+        (unless you set :attr:`pandas.options.mode.use_inf_as_na` `= True`).
 
         .. versionadded:: 0.20.0
 
         Returns
         -------
-        a boolean array of whether my values are NA
+        numpy.ndarray
+            A boolean array of whether my values are NA
 
-        See also
+        See Also
         --------
-        isnull : alias of isna
-        pandas.isna : top-level isna
+        pandas.Index.notna : boolean inverse of isna.
+        pandas.Index.dropna : omit entries with missing values.
+        pandas.isna : top-level isna.
+        Series.isna : detect missing values in Series object.
+
+        Examples
+        --------
+        Show which entries in a pandas.Index are NA. The result is an
+        array.
+
+        >>> idx = pd.Index([5.2, 6.0, np.NaN])
+        >>> idx
+        Float64Index([5.2, 6.0, nan], dtype='float64')
+        >>> idx.isna()
+        array([False, False,  True], dtype=bool)
+
+        Empty strings are not considered NA values. None is considered an NA
+        value.
+
+        >>> idx = pd.Index(['black', '', 'red', None])
+        >>> idx
+        Index(['black', '', 'red', None], dtype='object')
+        >>> idx.isna()
+        array([False, False, False,  True], dtype=bool)
+
+        For datetimes, `NaT` (Not a Time) is considered as an NA value.
+
+        >>> idx = pd.DatetimeIndex([pd.Timestamp('1940-04-25'),
+        ...                         pd.Timestamp(''), None, pd.NaT])
+        >>> idx
+        DatetimeIndex(['1940-04-25', 'NaT', 'NaT', 'NaT'],
+                      dtype='datetime64[ns]', freq=None)
+        >>> idx.isna()
+        array([False,  True,  True,  True], dtype=bool)
         """
         return self._isnan
     isnull = isna
 
     def notna(self):
         """
-        Inverse of isna
+        Detect existing (non-missing) values.
+
+        Return a boolean same-sized object indicating if the values are not NA.
+        Non-missing values get mapped to ``True``. Characters such as empty
+        strings ``''`` or :attr:`numpy.inf` are not considered NA values
+        (unless you set ``pandas.options.mode.use_inf_as_na = True``).
+        NA values, such as None or :attr:`numpy.NaN`, get mapped to ``False``
+        values.
 
         .. versionadded:: 0.20.0
 
         Returns
         -------
-        a boolean array of whether my values are not NA
+        numpy.ndarray
+            Boolean array to indicate which entries are not NA.
 
         See also
         --------
-        notnull : alias of notna
+        Index.notnull : alias of notna
+        Index.isna: inverse of notna
         pandas.notna : top-level notna
+
+        Examples
+        --------
+        Show which entries in an Index are not NA. The result is an
+        array.
+
+        >>> idx = pd.Index([5.2, 6.0, np.NaN])
+        >>> idx
+        Float64Index([5.2, 6.0, nan], dtype='float64')
+        >>> idx.notna()
+        array([ True,  True, False])
+
+        Empty strings are not considered NA values. None is considered a NA
+        value.
+
+        >>> idx = pd.Index(['black', '', 'red', None])
+        >>> idx
+        Index(['black', '', 'red', None], dtype='object')
+        >>> idx.notna()
+        array([ True,  True,  True, False])
         """
         return ~self.isna()
     notnull = notna
@@ -2344,7 +2413,46 @@ class Index(IndexOpsMixin, PandasObject):
 
     def sort_values(self, return_indexer=False, ascending=True):
         """
-        Return sorted copy of Index
+        Return a sorted copy of the index.
+
+        Return a sorted copy of the index, and optionally return the indices
+        that sorted the index itself.
+
+        Parameters
+        ----------
+        return_indexer : bool, default False
+            Should the indices that would sort the index be returned.
+        ascending : bool, default True
+            Should the index values be sorted in an ascending order.
+
+        Returns
+        -------
+        sorted_index : pandas.Index
+            Sorted copy of the index.
+        indexer : numpy.ndarray, optional
+            The indices that the index itself was sorted by.
+
+        See Also
+        --------
+        pandas.Series.sort_values : Sort values of a Series.
+        pandas.DataFrame.sort_values : Sort values in a DataFrame.
+
+        Examples
+        --------
+        >>> idx = pd.Index([10, 100, 1, 1000])
+        >>> idx
+        Int64Index([10, 100, 1, 1000], dtype='int64')
+
+        Sort values in ascending order (default behavior).
+
+        >>> idx.sort_values()
+        Int64Index([1, 10, 100, 1000], dtype='int64')
+
+        Sort values in descending order, and also get the indices `idx` was
+        sorted by.
+
+        >>> idx.sort_values(ascending=False, return_indexer=True)
+        (Int64Index([1000, 100, 10, 1], dtype='int64'), array([3, 1, 0, 2]))
         """
         _as = self.argsort()
         if not ascending:
