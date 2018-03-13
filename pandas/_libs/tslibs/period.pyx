@@ -1164,6 +1164,36 @@ cdef class _Period(object):
 
     @property
     def start_time(self):
+        """
+        Return the Timestamp.
+
+        This attribute returns the timestamp of the particular
+        starting date for the given period.
+
+        See also
+        --------
+        Period.dayofyear
+            Return the day of year.
+        Period.daysinmonth
+            Return the days in that month.
+        Period.dayofweek
+            Return the day of the week.
+
+        Returns
+        -------
+        Timestamp
+
+        Examples
+        --------
+        >>> period = pd.Period('2012-1-1', freq='D')
+        >>> period
+        Period('2012-01-01', 'D')
+
+        >>> period.start_time
+        Timestamp('2012-01-01 00:00:00')
+        >>> period.end_time
+        Timestamp('2012-01-01 23:59:59.999999999')
+        """
         return self.to_timestamp(how='S')
 
     @property
