@@ -250,10 +250,9 @@ class TestDatetimeIndex(object):
         assert cols.dtype == joined.dtype
         tm.assert_numpy_array_equal(cols.values, joined.values)
 
-    @pytest.mark.parametrize('how', ['outer', 'inner', 'left', 'right'])
-    def test_join_self(self, how):
+    def test_join_self(self, join_type):
         index = date_range('1/1/2000', periods=10)
-        joined = index.join(index, how=how)
+        joined = index.join(index, how=join_type)
         assert index is joined
 
     def assert_index_parameters(self, index):
@@ -274,8 +273,7 @@ class TestDatetimeIndex(object):
                                      freq=index.freq)
         self.assert_index_parameters(new_index)
 
-    @pytest.mark.parametrize('how', ['left', 'right', 'inner', 'outer'])
-    def test_join_with_period_index(self, how):
+    def test_join_with_period_index(self, join_type):
         df = tm.makeCustomDataframe(
             10, 10, data_gen_f=lambda *args: np.random.randint(2),
             c_idx_type='p', r_idx_type='dt')
@@ -284,7 +282,7 @@ class TestDatetimeIndex(object):
         with tm.assert_raises_regex(ValueError,
                                     'can only call with other '
                                     'PeriodIndex-ed objects'):
-            df.columns.join(s.index, how=how)
+            df.columns.join(s.index, how=join_type)
 
     def test_factorize(self):
         idx1 = DatetimeIndex(['2014-01', '2014-01', '2014-02', '2014-02',

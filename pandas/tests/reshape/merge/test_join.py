@@ -297,7 +297,25 @@ class TestJoin(object):
                               'b': [2, 2]}, index=df.index)
         tm.assert_frame_equal(result, expected)
 
-    def test_join_index_mixed(self):
+    def test_join_index_mixed(self, join_type):
+        # no overlapping blocks
+        df1 = DataFrame(index=np.arange(10))
+        df1['bool'] = True
+        df1['string'] = 'foo'
+
+        df2 = DataFrame(index=np.arange(5, 15))
+        df2['int'] = 1
+        df2['float'] = 1.
+
+        joined = df1.join(df2, how=join_type)
+        expected = _join_by_hand(df1, df2, how=join_type)
+        assert_frame_equal(joined, expected)
+
+        joined = df2.join(df1, how=join_type)
+        expected = _join_by_hand(df2, df1, how=join_type)
+        assert_frame_equal(joined, expected)
+
+    def test_join_index_mixed_overlap(self):
         df1 = DataFrame({'A': 1., 'B': 2, 'C': 'foo', 'D': True},
                         index=np.arange(10),
                         columns=['A', 'B', 'C', 'D'])
@@ -316,25 +334,6 @@ class TestJoin(object):
         df2.columns = expected_columns[4:]
         expected = _join_by_hand(df1, df2)
         assert_frame_equal(joined, expected)
-
-        # no overlapping blocks
-        df1 = DataFrame(index=np.arange(10))
-        df1['bool'] = True
-        df1['string'] = 'foo'
-
-        df2 = DataFrame(index=np.arange(5, 15))
-        df2['int'] = 1
-        df2['float'] = 1.
-
-        for kind in ['inner', 'outer', 'left', 'right']:
-
-            joined = df1.join(df2, how=kind)
-            expected = _join_by_hand(df1, df2, how=kind)
-            assert_frame_equal(joined, expected)
-
-            joined = df2.join(df1, how=kind)
-            expected = _join_by_hand(df2, df1, how=kind)
-            assert_frame_equal(joined, expected)
 
     def test_join_empty_bug(self):
         # generated an exception in 0.4.3

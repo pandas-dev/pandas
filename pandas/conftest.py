@@ -89,3 +89,11 @@ def compression_no_zip(request):
 def datetime_tz_utc():
     from datetime import timezone
     return timezone.utc
+
+
+@pytest.fixture(params=['inner', 'outer', 'left', 'right'])
+def join_type(request):
+    """
+    Fixture for trying all types of join operations
+    """
+    return request.param
