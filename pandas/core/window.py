@@ -850,7 +850,38 @@ class _Rolling_and_Expanding(_Rolling):
         return self._apply('roll_mean', 'mean', **kwargs)
 
     _shared_docs['median'] = dedent("""
-    %(name)s median
+    Calculate the %(name)s median.
+
+    Parameters
+    ----------
+    **kwargs
+        For compatibility with other %(name)s methods. Has no effect
+        on the computed median.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returned type is the same as the original object.
+
+    See Also
+    --------
+    Series.%(name)s : Calling object with Series data
+    DataFrame.%(name)s : Calling object with DataFrames
+    Series.median : Equivalent method for Series
+    DataFrame.median : Equivalent method for DataFrame
+
+    Examples
+    --------
+    Compute the rolling median of a series with a window size of 3.
+
+    >>> s = pd.Series([0, 1, 2, 3, 4])
+    >>> s.rolling(3).median()
+    0    NaN
+    1    NaN
+    2    1.0
+    3    2.0
+    4    3.0
+    dtype: float64
     """)
 
     def median(self, **kwargs):
@@ -1321,7 +1352,6 @@ class Rolling(_Rolling_and_Expanding):
         return super(Rolling, self).mean(*args, **kwargs)
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['median'])
     def median(self, **kwargs):
         return super(Rolling, self).median(**kwargs)
@@ -1583,7 +1613,6 @@ class Expanding(_Rolling_and_Expanding):
         return super(Expanding, self).mean(*args, **kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['median'])
     def median(self, **kwargs):
         return super(Expanding, self).median(**kwargs)
