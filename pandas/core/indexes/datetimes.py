@@ -1948,15 +1948,11 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         """
         Convert tz-aware DatetimeIndex from one time zone to another.
 
-        When using DatetimeIndex providing with timezone this method
-        converts tz(timezone)-aware DatetimeIndex from one timezone
-        to another.
-
         Parameters
         ----------
         tz : string, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time. Corresponding timestamps would be converted
-            to time zone of the DatetimeIndex.
+            to this time zone of the DatetimeIndex.
             None will remove timezone holding UTC time.
 
         Returns
@@ -1970,8 +1966,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         See Also
         --------
-        tz_localize : Localize tz-naive DatetimeIndex to given time zone,
-                      or remove timezone from tz-aware DatetimeIndex.
+        tz_localize : Localize tz-naive DatetimeIndex to a given time zone,
+                      or remove timezone from a tz-aware DatetimeIndex.
 
         Examples
         --------
