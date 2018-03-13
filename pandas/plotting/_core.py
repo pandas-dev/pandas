@@ -2852,22 +2852,47 @@ class FramePlotMethods(BasePlotMethods):
 
     def scatter(self, x, y, s=None, c=None, **kwds):
         """
-        A scatter plot with point size `s` and color `c`.
+        Create a scatter plot with varying marker point size and color.
 
-        The coordinates of each point `x,y` are defined by two dataframe
-        columns and filled circles are used to represent each point.
+        The coordinates of each point are defined by two dataframe columns and
+        filled circles are used to represent each point. This kind of plot is
+        useful to see complex correlations between two variables. Points could
+        be for instance natural 2D coordinates like longitude and latitude in
+        a map or, in general, any pair of metrics that can be plotted against
+        each other.
 
         Parameters
         ----------
-        x : column name or column position
-            Horizontal coordinates of each point.
-        y : column name or column position
-            Vertical coordinates of each point.
-        s : scalar or array_like, optional
-            Size of each point.
-        c : label, column name or column position, optional
-            Color of each point.
-        kwds : optional
+        x : int, str
+            The column name or column position to be used as horizontal
+            coordinates for each point.
+        y : int, str
+            The column name or column position to be used as vertical
+            coordinates for each point.
+        s : scalar, array_like, optional
+            The size of each point. Possible values are:
+
+            - A single scalar so all points have the same size.
+
+            - A sequence of scalars, which will be used for each point's size
+            recursively. For intance [2,14] all points will be size 2 or 14,
+            alternatively.
+
+        c : str, int, array_like, optional
+            The color of each point. Possible values are:
+
+            - A single color string referred to by name, RGB or RGBA code,
+            for instance 'red' or '#a98d19'.
+
+            - A sequence of color strings referred to by name, RGB or RGBA code,
+            which will be used for each point's color recursively. For intance
+            ['green','yellow'] all points will be filled in green or yellow,
+            alternatively.
+
+            - A column name or position whose values will be used to color the
+            marker points according to a colormap.
+
+        **kwds : optional
             Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
 
         Returns
@@ -2881,6 +2906,8 @@ class FramePlotMethods(BasePlotMethods):
 
         Examples
         --------
+        Let's see how to draw a scatter plot using coordinates and color from
+        the values in three DataFrame columns.
 
         .. plot::
             :context: close-figs
@@ -2888,10 +2915,13 @@ class FramePlotMethods(BasePlotMethods):
             >>> df = pd.DataFrame([[5.1, 3.5, 0], [4.9, 3.0, 0], [7.0, 3.2, 1],
             ...                    [6.4, 3.2, 1], [5.9, 3.0, 2]],
             ...                   columns = ['length', 'width', 'species'])
-            >>> f = df.plot.scatter(x='length',
-            ...                     y='width',
-            ...                     c='species',
-            ...                     colormap='viridis')
+            >>> ax1 = df.plot.scatter(x='length',
+            ...                       y='width',
+            ...                       c='DarkBlue')
+            >>> ax2 = df.plot.scatter(x='length',
+            ...                       y='width',
+            ...                       c='species',
+            ...                       colormap='viridis')
         """
         return self(kind='scatter', x=x, y=y, c=c, s=s, **kwds)
 
