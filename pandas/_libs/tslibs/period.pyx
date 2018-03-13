@@ -1300,7 +1300,7 @@ cdef class _Period(object):
 
         Returns
         -------
-        int 
+        int
             The second of the Period (ranges from 0 to 59).
 
         See Also
