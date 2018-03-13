@@ -502,16 +502,28 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         """
         Return total duration of each element expressed in seconds.
 
-        Return a series with the same length and index as the original,
-        containing the length of each element expressed in seconds.
+        This method is available directly on TimedeltaIndex and on Series
+        containing timedelta values under the ``.dt`` namespace.
 
         Returns
         -------
-        s : pandas.Series
-            Series of type `float64`.
+        seconds : Float64Index or Series
+            When the calling object is a TimedeltaIndex, the return type is a
+            Float64Index. When the calling object is a Series, the return type
+            is Series of type `float64` whose index is the same as the
+            original.
+
+        See Also
+        --------
+        datetime.timedelta.total_seconds : Standard library version
+            of this method.
+        TimedeltaIndex.components : Return a DataFrame with components of
+            each Timedelta.
 
         Examples
         --------
+        **Series**
+
         >>> s = pd.Series(pd.to_timedelta(np.arange(5), unit='d'))
         >>> s
         0   0 days
@@ -520,6 +532,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         3   3 days
         4   4 days
         dtype: timedelta64[ns]
+
         >>> s.dt.total_seconds()
         0         0.0
         1     86400.0
@@ -528,9 +541,16 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         4    345600.0
         dtype: float64
 
-        See Also
-        --------
-        datetime.timedelta.total_seconds
+        **TimedeltaIndex**
+
+        >>> idx = pd.to_timedelta(np.arange(5), unit='d')
+        >>> idx
+        TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
+                       dtype='timedelta64[ns]', freq=None)
+
+        >>> idx.total_seconds()
+        Float64Index([0.0, 86400.0, 172800.0, 259200.00000000003, 345600.0],
+                     dtype='float64')
         """
         return Index(self._maybe_mask_results(1e-9 * self.asi8),
                      name=self.name)
