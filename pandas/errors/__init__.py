@@ -63,13 +63,16 @@ class DtypeWarning(Warning):
     This example creates and reads a large CSV file with a column that contains
     `int` and `str`.
 
-    >>> df = pd.DataFrame({'a':['1']*100000 + ['X']*100000 + ['1']*100000,
-    ...                    'b':['b']*300000})
+    >>> import os
+    >>> df = pd.DataFrame({'a': (['1'] * 100000 + ['X'] * 100000 +
+    ...                          ['1'] * 100000),
+    ...                    'b': ['b'] * 300000})
     >>> df.to_csv('test.csv', index=False)
     >>> df2 = pd.read_csv('test.csv')
-    >>> DtypeWarning: Columns (0) have mixed types... # doctest: +SKIP
 
-    Important to notice that df2 will contain both `str` and `int` for the
+        DtypeWarning: Columns (0) have mixed types
+
+    Important to notice that ``df2`` will contain both `str` and `int` for the
     same input, '1'.
 
     >>> df2.iloc[262140, 0]
@@ -81,10 +84,14 @@ class DtypeWarning(Warning):
     >>> type(df2.iloc[262150, 0])
     <class 'int'>
 
-    One way to solve this issue is using the parameter `converters` in the
+    One way to solve this issue is using the `dtype` parameter in the
     `read_csv` and `read_table` functions to explicit the conversion:
 
-    >>> df2 = pd.read_csv('test', sep='\t', converters={'a': str})
+    >>> df2 = pd.read_csv('test.csv', sep=',', dtype={'a': str})
+
+    No warning was issued.
+
+    >>> os.remove('test.csv')
     """
 
 
