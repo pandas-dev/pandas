@@ -1901,7 +1901,7 @@ class NDFrame(PandasObject, SelectionMixin):
     def to_pickle(self, path, compression='infer',
                   protocol=pkl.HIGHEST_PROTOCOL):
         """
-        Pickle (serialize) object to input file path.
+        Pickle (serialize) object to file.
 
         Parameters
         ----------
@@ -1927,10 +1927,8 @@ class NDFrame(PandasObject, SelectionMixin):
         See Also
         --------
         read_pickle : Load pickled pandas object (or any object) from file.
-        DataFrame.to_hdf : Write the contained data to an HDF5 file using
-            HDFStore.
-        DataFrame.to_sql : Write records stored in a DataFrame to a SQL
-            database.
+        DataFrame.to_hdf : Write DataFrame to an HDF5 file.
+        DataFrame.to_sql : Write DataFrame to a SQL database.
         DataFrame.to_parquet : Write a DataFrame to the binary parquet format.
 
         Examples
