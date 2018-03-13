@@ -133,8 +133,8 @@ class DatetimeProperties(Properties):
 
         .. warning::
 
-           Python's datetimes use microsecond resolution, which is lower than
-           pandas' (nanosecond). The values are truncated.
+           Python's datetime uses microsecond resolution, which is lower than
+           pandas (nanosecond). The values are truncated.
 
         Returns
         -------
@@ -148,7 +148,7 @@ class DatetimeProperties(Properties):
         Examples
         --------
         >>> s = pd.Series(pd.date_range('20180310', periods=2))
-        >>> s.head()
+        >>> s
         0   2018-03-10
         1   2018-03-11
         dtype: datetime64[ns]
@@ -159,14 +159,15 @@ class DatetimeProperties(Properties):
 
         pandas' nanosecond precision is truncated to microseconds.
 
-        >>> idx = pd.date_range('2017', periods=2, freq='ns')
-        >>> idx
-        DatetimeIndex(['2017-01-01 00:00:00', '2017-01-01 00:00:00.000000001'],
-                      dtype='datetime64[ns]', freq='N')
+        >>> s = pd.Series(pd.date_range('20180310', periods=2, freq='ns'))
+        >>> s
+        0   2018-03-10 00:00:00.000000000
+        1   2018-03-10 00:00:00.000000001
+        dtype: datetime64[ns]
 
-        >>> idx.to_pydatetime()
-        array([datetime.datetime(2017, 1, 1, 0, 0),
-               datetime.datetime(2017, 1, 1, 0, 0)], dtype=object)
+        >>> s.dt.to_pydatetime()
+        array([datetime.datetime(2018, 3, 10, 0, 0),
+               datetime.datetime(2018, 3, 10, 0, 0)], dtype=object)
         """
         return self._get_values().to_pydatetime()
 
