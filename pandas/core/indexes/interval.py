@@ -526,6 +526,14 @@ class IntervalIndex(IntervalMixin, Index):
         [2, 13)      kid
         [13, 19)    teen
         dtype: object
+
+        Values may be missing, but they must be missing in both arrays.
+
+        >>> pd.IntervalIndex.from_arrays([0, np.nan, 13],
+        ...                              [2, np.nan, 19])
+        IntervalIndex([(0.0, 2.0], nan, (13.0, 19.0]]
+                      closed='right',
+                      dtype='interval[float64]')
         """
         left = maybe_convert_platform_interval(left)
         right = maybe_convert_platform_interval(right)
