@@ -59,6 +59,7 @@ def test_bs4_version_fails(monkeypatch):
     with tm.assert_raises_regex(ValueError, "minimum version"):
         read_html(os.path.join(DATA_PATH, "spam.html"), flavor='bs4')
 
+
 def test_invalid_flavor():
     url = 'google.com'
     with pytest.raises(ValueError):
