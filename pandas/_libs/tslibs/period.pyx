@@ -1260,8 +1260,8 @@ cdef class _Period(object):
 
         See also
         --------
-        Period.dayofyear : Return the day of year.
-        Period.daysinmonth : Return the days in that month.
+        Period.dayofyear : Return the day of the year.
+        Period.daysinmonth : Return the number of days in that month.
 
         Examples
         --------
