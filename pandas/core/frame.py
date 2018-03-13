@@ -2597,8 +2597,8 @@ class DataFrame(NDFrame):
         return _eval(expr, inplace=inplace, **kwargs)
 
     def select_dtypes(self, include=None, exclude=None):
-        """Return a subset of a DataFrame including/excluding columns based on
-        their ``dtype``.
+        """
+        Return a subset of the DataFrame's columns based on the column dtypes.
 
         Parameters
         ----------
@@ -2636,25 +2636,27 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'a': np.random.randn(6).astype('f4'),
+        >>> df = pd.DataFrame({'a': [1, 2] * 3,
         ...                    'b': [True, False] * 3,
         ...                    'c': [1.0, 2.0] * 3})
         >>> df
                 a      b  c
-        0  0.3962   True  1.0
-        1  0.1459  False  2.0
-        2  0.2623   True  1.0
-        3  0.0764  False  2.0
-        4 -0.9703   True  1.0
-        5 -1.2094  False  2.0
+        0       1   True  1.0
+        1       2  False  2.0
+        2       1   True  1.0
+        3       2  False  2.0
+        4       1   True  1.0
+        5       2  False  2.0
+
         >>> df.select_dtypes(include='bool')
-           c
+           b
         0  True
         1  False
         2  True
         3  False
         4  True
         5  False
+
         >>> df.select_dtypes(include=['float64'])
            c
         0  1.0
@@ -2663,14 +2665,15 @@ class DataFrame(NDFrame):
         3  2.0
         4  1.0
         5  2.0
-        >>> df.select_dtypes(exclude=['floating'])
-               b
-        0   True
-        1  False
-        2   True
-        3  False
-        4   True
-        5  False
+
+        >>> df.select_dtypes(exclude=['int'])
+               b    c
+        0   True  1.0
+        1  False  2.0
+        2   True  1.0
+        3  False  2.0
+        4   True  1.0
+        5  False  2.0
         """
 
         if not is_list_like(include):

@@ -4321,16 +4321,116 @@ class NDFrame(PandasObject, SelectionMixin):
         return self.values
 
     def get_values(self):
-        """same as values (but handles sparseness conversions)"""
+        """
+        Return an ndarray after converting sparse values to dense.
+
+        This is the same as ``.values`` for non-sparse data. For sparse
+        data contained in a `pandas.SparseArray`, the data are first
+        converted to a dense representation.
+
+        Returns
+        -------
+        numpy.ndarray
+            Numpy representation of DataFrame
+
+        See Also
+        --------
+        values : Numpy representation of DataFrame.
+        pandas.SparseArray : Container for sparse data.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'a': [1, 2], 'b': [True, False],
+        ...                    'c': [1.0, 2.0]})
+        >>> df
+           a      b    c
+        0  1   True  1.0
+        1  2  False  2.0
+
+        >>> df.get_values()
+        array([[1, True, 1.0], [2, False, 2.0]], dtype=object)
+
+        >>> df = pd.DataFrame({"a": pd.SparseArray([1, None, None]),
+        ...                    "c": [1.0, 2.0, 3.0]})
+        >>> df
+             a    c
+        0  1.0  1.0
+        1  NaN  2.0
+        2  NaN  3.0
+
+        >>> df.get_values()
+        array([[ 1.,  1.],
+               [nan,  2.],
+               [nan,  3.]])
+        """
         return self.values
 
     def get_dtype_counts(self):
-        """Return the counts of dtypes in this object."""
+        """
+        Return counts of unique dtypes in this object.
+
+        Returns
+        -------
+        dtype : Series
+            Series with the count of columns with each dtype.
+
+        See Also
+        --------
+        dtypes : Return the dtypes in this object.
+
+        Examples
+        --------
+        >>> a = [['a', 1, 1.0], ['b', 2, 2.0], ['c', 3, 3.0]]
+        >>> df = pd.DataFrame(a, columns=['str', 'int', 'float'])
+        >>> df
+          str  int  float
+        0   a    1    1.0
+        1   b    2    2.0
+        2   c    3    3.0
+
+        >>> df.get_dtype_counts()
+        float64    1
+        int64      1
+        object     1
+        dtype: int64
+        """
         from pandas import Series
         return Series(self._data.get_dtype_counts())
 
     def get_ftype_counts(self):
-        """Return the counts of ftypes in this object."""
+        """
+        Return counts of unique ftypes in this object.
+
+        This is useful for SparseDataFrame or for DataFrames containing
+        sparse arrays.
+
+        Returns
+        -------
+        dtype : Series
+            Series with the count of columns with each type and
+            sparsity (dense/sparse)
+
+        See Also
+        --------
+        ftypes : Return ftypes (indication of sparse/dense and dtype) in
+            this object.
+
+        Examples
+        --------
+        >>> a = [['a', 1, 1.0], ['b', 2, 2.0], ['c', 3, 3.0]]
+        >>> df = pd.DataFrame(a, columns=['str', 'int', 'float'])
+        >>> df
+          str  int  float
+        0   a    1    1.0
+        1   b    2    2.0
+        2   c    3    3.0
+
+        >>> df.get_ftype_counts()
+        float64:dense    1
+        int64:dense      1
+        object:dense     1
+        dtype: int64
+        """
         from pandas import Series
         return Series(self._data.get_ftype_counts())
 
