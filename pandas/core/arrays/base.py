@@ -264,8 +264,6 @@ class ExtensionArray(object):
         from pandas.api.types import is_scalar
         from pandas.util._validators import validate_fillna_kwargs
         from pandas.core.missing import pad_1d, backfill_1d
-        from pandas.core.dtypes.common import _ensure_platform_int
-        from pandas._libs.tslib import iNaT
 
         value, method = validate_fillna_kwargs(value, method)
 
