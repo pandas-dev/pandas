@@ -1905,11 +1905,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        path : string
+        path : str
             File path where the pickled object will be stored.
         compression : {'infer', 'gzip', 'bz2', 'xz', None}, default 'infer'
             A string representing the compression to use in the output file. By
-            default, infers from the specified path.
+            default, infers from the file extension in specified path.
 
             .. versionadded:: 0.20.0
         protocol : int
@@ -1923,6 +1923,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. [1] https://docs.python.org/3/library/pickle.html
             .. versionadded:: 0.21.0
+
+        See Also
+        --------
+        read_pickle : Load pickled pandas object (or any object) from file.
+        DataFrame.to_hdf : Write the contained data to an HDF5 file using
+            HDFStore.
+        DataFrame.to_sql : Write records stored in a DataFrame to a SQL
+            database.
+        DataFrame.to_parquet : Write a DataFrame to the binary parquet format.
 
         Examples
         --------
@@ -1945,15 +1954,8 @@ class NDFrame(PandasObject, SelectionMixin):
         3    3    8
         4    4    9
 
-        See Also
-        --------
-        read_pickle : Load pickled pandas object (or any other pickled object)
-                      from the specified file path.
-        DataFrame.to_hdf : Write the contained data to an HDF5 file using
-                           HDFStore.
-        DataFrame.to_sql : Write records stored in a DataFrame to a SQL
-                           database.
-        DataFrame.to_parquet : Write a DataFrame to the binary parquet format.
+        >>> import os
+        >>> os.remove("./dummy.pkl")
         """
         from pandas.io.pickle import to_pickle
         return to_pickle(self, path, compression=compression,
