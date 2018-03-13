@@ -1952,8 +1952,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         ----------
         tz : string, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time. Corresponding timestamps would be converted
-            to this time zone of the DatetimeIndex.
-            None will remove timezone holding UTC time.
+            to this time zone of the DatetimeIndex. A `tz` of None will
+            convert to UTC and remove the timezone information.
 
         Returns
         -------
@@ -1966,8 +1966,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         See Also
         --------
-        tz_localize : Localize tz-naive DatetimeIndex to a given time zone,
-                      or remove timezone from a tz-aware DatetimeIndex.
+        DatetimeIndex.tz : A timezone that has a variable offset from UTC
+        DatetimeIndex.tz_localize : Localize tz-naive DatetimeIndex to a
+            given time zone, or remove timezone from a tz-aware DatetimeIndex.
 
         Examples
         --------
@@ -1975,21 +1976,22 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         to other time zones:
 
         >>> dti = pd.DatetimeIndex(start='2014-08-01 09:00',
-        ...                       freq='H', periods=3)
+        ...                        freq='H', periods=3, tz='Europe/Berlin')
 
         >>> dti
-        DatetimeIndex(['2014-08-01 09:00:00',
-                       '2014-08-01 10:00:00',
-                       '2014-08-01 11:00:00'],
-                        dtype='datetime64[ns]', freq='H')
-
-        >>> dti.tz_localize('Europe/Berlin')
         DatetimeIndex(['2014-08-01 09:00:00+02:00',
                        '2014-08-01 10:00:00+02:00',
                        '2014-08-01 11:00:00+02:00'],
-                        dtype='datetime64[ns, Europe/Berlin]', freq='H')
+                      dtype='datetime64[ns, Europe/Berlin]', freq='H')
 
-        With the `None` parameter, we can remove the timezone:
+        >>> dti.tz_convert('US/Central')
+        DatetimeIndex(['2014-08-01 02:00:00-05:00',
+                       '2014-08-01 03:00:00-05:00',
+                       '2014-08-01 04:00:00-05:00'],
+                      dtype='datetime64[ns, US/Central]', freq='H')
+
+        With the ``tz=None``, we can remove the timezone (after converting
+        to UTC if necessary):
 
         >>> dti = pd.DatetimeIndex(start='2014-08-01 09:00',freq='H',
         ...                        periods=3, tz='Europe/Berlin')
