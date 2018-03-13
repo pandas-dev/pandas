@@ -44,7 +44,7 @@ class GoodDocStrings(object):
         float
             Random number generated.
         """
-        return random.random()
+        return random.random()  # noqa: F821
 
     def random_letters(self):
         """
@@ -60,8 +60,8 @@ class GoodDocStrings(object):
         letters : str
             String of random letters.
         """
-        length = random.randint(1, 10)
-        letters = ''.join(random.choice(string.ascii_lowercase)
+        length = random.randint(1, 10)  # noqa: F821
+        letters = ''.join(random.choice(string.ascii_lowercase)  # noqa: F821
                           for i in range(length))
         return length, letters
 
@@ -78,7 +78,7 @@ class GoodDocStrings(object):
             Random number generated.
         """
         while True:
-            yield random.random()
+            yield random.random()  # noqa: F821
 
     def head(self):
         """
@@ -329,16 +329,16 @@ class TestValidator(object):
         yield
         sys.path.pop()
         del globals()['validate_one']
-    
+
     @pytest.mark.parametrize("func", [
         'plot', 'sample', 'random_letters', 'sample_values', 'head', 'head1',
         'contains'])
     def test_good_functions(self, func):
-        assert validate_one('pandas.tests.scripts.test_validate_docstrings'
-                            '.GoodDocStrings.' + func) == 0
+        assert validate_one('pandas.tests.scripts.test_validate_'  # noqa: F821
+                            'docstrings.GoodDocStrings.' + func) == 0
 
     @pytest.mark.parametrize("func", [
         'func', 'astype', 'astype1', 'astype2', 'astype3', 'plot', 'method'])
     def test_bad_functions(self, func):
-        assert validate_one('pandas.tests.scripts.test_validate_docstrings'
-                            '.BadDocStrings.' + func) > 0
+        assert validate_one('pandas.tests.scripts.test_validate_'  # noqa: F821
+                            'docstrings.BadDocStrings.' + func) > 0
