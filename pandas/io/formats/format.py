@@ -112,7 +112,8 @@ justify_docstring = """
 return_docstring = """
     Returns
     -------
-    formatted : str (or unicode, depending on data and options)
+    str (or unicode, depending on data and options)
+        String representation of the dataframe.
     """
 
 docstring_to_string = common_docstring + justify_docstring + return_docstring

@@ -1732,8 +1732,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        pandas.DataFrame.to_html
-            Convert dataframe to a html file.
+        pandas.DataFrame.to_html : Convert dataframe to a html file.
 
         Examples
         --------
