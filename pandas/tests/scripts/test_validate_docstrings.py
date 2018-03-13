@@ -3,7 +3,9 @@ import sys
 
 import numpy as np
 import pytest
-    
+
+import pandas.util._test_decorators as td
+
 
 class GoodDocStrings(object):
     """
@@ -304,6 +306,8 @@ class BadDocStrings(object):
         """
         pass
 
+
+@td.skip_if_no('sphinx')
 class TestValidator(object):
 
     @pytest.fixture(autouse=True, scope="class")
