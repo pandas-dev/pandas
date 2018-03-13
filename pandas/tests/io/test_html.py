@@ -765,18 +765,6 @@ class TestReadHtml(object):
         html_df = read_html(html, )[0]
         tm.assert_frame_equal(expected_df, html_df)
 
-    @pytest.mark.xfail
-    def test_data_fail(self):
-        from lxml.etree import XMLSyntaxError
-        spam_data = os.path.join(DATA_PATH, 'spam.html')
-        banklist_data = os.path.join(DATA_PATH, 'banklist.html')
-
-        with pytest.raises(XMLSyntaxError):
-            self.read_html(spam_data)
-
-        with pytest.raises(XMLSyntaxError):
-            self.read_html(banklist_data)
-
     def test_works_on_valid_markup(self):
         filename = os.path.join(DATA_PATH, 'valid_markup.html')
         dfs = self.read_html(filename, index_col=0)
