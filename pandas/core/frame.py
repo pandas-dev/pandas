@@ -2550,7 +2550,7 @@ class DataFrame(NDFrame):
         4     7
         dtype: int64
 
-        Assignment is allowed and by default the original DataFrame is not
+        Assignment is allowed though by default the original DataFrame is not
         modified.
 
         >>> df.eval('C = A + B')
@@ -2568,7 +2568,7 @@ class DataFrame(NDFrame):
         3  4   4
         4  5   2
 
-        Use inplace=True to modify the original DataFrame.
+        Use ``inplace=True`` to modify the original DataFrame.
 
         >>> df.eval('C = A + B', inplace=True)
         >>> df
