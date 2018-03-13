@@ -7971,17 +7971,17 @@ class NDFrame(PandasObject, SelectionMixin):
         cls.cummin = _make_cum_function(
             cls, 'cummin', name, name2, axis_descr, "cumulative minimum",
             lambda y, axis: np.minimum.accumulate(y, axis), "min",
-            np.inf, np.nan)
+            np.inf, np.nan, '')
         cls.cumsum = _make_cum_function(
             cls, 'cumsum', name, name2, axis_descr, "cumulative sum",
-            lambda y, axis: y.cumsum(axis), "sum", 0., np.nan)
+            lambda y, axis: y.cumsum(axis), "sum", 0., np.nan, '')
         cls.cumprod = _make_cum_function(
             cls, 'cumprod', name, name2, axis_descr, "cumulative product",
-            lambda y, axis: y.cumprod(axis), "prod", 1., np.nan)
+            lambda y, axis: y.cumprod(axis), "prod", 1., np.nan, '')
         cls.cummax = _make_cum_function(
-            cls, 'cummax', name, name2, axis_descr, "cumulative max",
+            cls, 'cummax', name, name2, axis_descr, "cumulative maximum",
             lambda y, axis: np.maximum.accumulate(y, axis), "max",
-            -np.inf, np.nan)
+            -np.inf, np.nan, _cummax_examples)
 
         cls.sum = _make_min_count_stat_function(
             cls, 'sum', name, name2, axis_descr,
@@ -8243,24 +8243,39 @@ pandas.DataFrame.any : Return True if one (or more) elements are True
 """
 
 _cnum_doc = """
+Return %(desc)s over requested axis.
+
+Return %(desc)s over a DataFrame or Series axis.
+axis=0 iterates over rows.
+axis=1 iterates over columns.
 
 Parameters
 ----------
 axis : %(axis_descr)s
 skipna : boolean, default True
     Exclude NA/null values. If an entire row/column is NA, the result
-    will be NA
+    will be NA.
+*args : any, default None
+**kwargs : any, default None
+	Additional keywords have no effect but might be accepted for
+	compatibility with NumPy.
 
 Returns
 -------
 %(outname)s : %(name1)s\n
-
-
+%(examples)s
 See also
 --------
 pandas.core.window.Expanding.%(accum_func_name)s : Similar functionality
     but ignores ``NaN`` values.
+pandas.Series.%(outname)s : Return %(desc)s over Series axis.
+pandas.DataFrame.cummax : Return cumulative maximum over DataFrame axis.
+pandas.DataFrame.cummin : Return cumulative minimum over DataFrame axis.
+pandas.DataFrame.cumsum : Return cumulative sum over DataFrame axis.
+pandas.DataFrame.cumprod : Return cumulative product over DataFrame axis.
+"""
 
+_cummax_examples = """\
 """
 
 _any_see_also = """\
@@ -8457,11 +8472,11 @@ def _make_stat_function_ddof(cls, name, name1, name2, axis_descr, desc, f):
 
 
 def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
-                       accum_func, accum_func_name, mask_a, mask_b):
+                       accum_func, accum_func_name, mask_a, mask_b, examples):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
-                  axis_descr=axis_descr, accum_func_name=accum_func_name)
-    @Appender("Return {0} over requested axis.".format(desc) +
-              _cnum_doc)
+                  axis_descr=axis_descr, accum_func_name=accum_func_name,
+                  examples = examples)
+    @Appender(_cnum_doc)
     def cum_func(self, axis=None, skipna=True, *args, **kwargs):
         skipna = nv.validate_cum_func_with_skipna(skipna, args, kwargs, name)
         if axis is None:
