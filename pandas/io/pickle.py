@@ -16,11 +16,11 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
     ----------
     obj : any object
         Any python object.
-    path : string
+    path : str
         File path where the pickled object will be stored.
     compression : {'infer', 'gzip', 'bz2', 'xz', None}, default 'infer'
         A string representing the compression to use in the output file. By
-        default, infers from the specified path.
+        default, infers from the file extension in specified path.
 
         .. versionadded:: 0.20.0
     protocol : int
@@ -58,8 +58,7 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
 
     See Also
     --------
-    read_pickle : Load pickled pandas object (or any other pickled object) from
-                  the specified file path.
+    read_pickle : Load pickled pandas object (or any object) from file.
     DataFrame.to_hdf : Write the contained data to an HDF5 file using HDFStore.
     DataFrame.to_sql : Write records stored in a DataFrame to a SQL database.
     DataFrame.to_parquet : Write a DataFrame to the binary parquet format.
@@ -80,8 +79,7 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
 
 def read_pickle(path, compression='infer'):
     """
-    Load pickled pandas object (or any other pickled object) from the specified
-    file path.
+    Load pickled pandas object (or any object) from file.
 
     .. warning::
 
@@ -90,7 +88,7 @@ def read_pickle(path, compression='infer'):
 
     Parameters
     ----------
-    path : string
+    path : str
         File path where the pickled object will be loaded.
     compression : {'infer', 'gzip', 'bz2', 'xz', 'zip', None}, default 'infer'
         For on-the-fly decompression of on-disk data. If 'infer', then use
@@ -103,6 +101,16 @@ def read_pickle(path, compression='infer'):
     Returns
     -------
     unpickled : type of object stored in file
+
+    See Also
+    --------
+    DataFrame.to_pickle : Pickle (serialize) DataFrame object to input file
+        path.
+    Series.to_pickle : Pickle (serialize) Series object to input file path.
+    read_hdf : read from the store, close it if we opened it.
+    read_sql : Read SQL query or database table into a DataFrame.
+    read_parquet : Load a parquet object from the file path, returning a
+        DataFrame.
 
     Examples
     --------
@@ -125,15 +133,8 @@ def read_pickle(path, compression='infer'):
     3    3    8
     4    4    9
 
-    See Also
-    --------
-    DataFrame.to_pickle : Pickle (serialize) DataFrame object to input file
-                          path.
-    Series.to_pickle : Pickle (serialize) Series object to input file path.
-    read_hdf : read from the store, close it if we opened it.
-    read_sql : Read SQL query or database table into a DataFrame.
-    read_parquet : Load a parquet object from the file path, returning a
-                   DataFrame.
+    >>> import os
+    >>> os.remove("./dummy.pkl")
     """
     path = _stringify_path(path)
     inferred_compression = _infer_compression(path, compression)
