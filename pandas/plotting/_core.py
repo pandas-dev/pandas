@@ -2128,11 +2128,13 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
                xrot=None, ylabelsize=None, yrot=None, ax=None, sharex=False,
                sharey=False, figsize=None, layout=None, bins=10, **kwds):
     """
-    Draw histogram of the DataFrame's columns using matplotlib.
+    Make a histogram of the DataFrame's.
 
-    A histogram is a representation of the distribution of data.
-    This function wraps the matplotlib histogram function for each series in
-    the DataFrame. It returns an array with a plot for each histogram.
+    A `histogram`_ is a representation of the distribution of data.
+    This function calls :meth:`matplotlib.pyplot.hist`, on each series in
+    the DataFrame, resulting in one histogram per column.
+
+    .. _histogram: https://en.wikipedia.org/wiki/Histogram
 
     Parameters
     ----------
@@ -2175,9 +2177,9 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
         bin edges are calculated and returned. If bins is a sequence, gives
         bin edges, including left edge of first bin and right edge of last
         bin. In this case, bins is returned unmodified.
-    kwds : optional
+    **kwds
         All other plotting keyword arguments to be passed to
-        matplotlib's boxplot function.
+        :meth:`matplotlib.pyplot.hist`.
 
     Returns
     -------
@@ -2185,7 +2187,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
 
     See Also
     --------
-    matplotlib.axes.Axes.hist : Plot a histogram using matplotlib.
+    matplotlib.pyplot.hist : Plot a histogram using matplotlib.
 
     Examples
     --------
