@@ -855,13 +855,13 @@ class _Rolling_and_Expanding(_Rolling):
     Parameters
     ----------
     **kwargs
-        Under Review.
+        For compatibility with other %(name)s methods. Has no effect
+        on the computed median.
 
     Returns
     -------
     Series or DataFrame
-        Returned object type is determined by the caller of the %(name)s
-        object.
+        Returned type the same as the caller.
 
     See Also
     --------
