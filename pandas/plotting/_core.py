@@ -2851,7 +2851,7 @@ class FramePlotMethods(BasePlotMethods):
         y : label or position, optional
             Allows plotting of one column versus another. If not specified,
             all numerical columns are used.
-        **kwds : optional
+        **kwds
             Additional keyword arguments are documented in
             :meth:`pandas.DataFrame.plot`.
 
@@ -2864,7 +2864,7 @@ class FramePlotMethods(BasePlotMethods):
         See Also
         --------
         pandas.DataFrame.plot.barh : Horizontal bar plot.
-        pandas.DataFrame.plot : Make plots of DataFrame using matplotlib.
+        pandas.DataFrame.plot : Make plots of a DataFrame.
         matplotlib.pyplot.bar : Make a bar plot with matplotlib.
 
         Examples
