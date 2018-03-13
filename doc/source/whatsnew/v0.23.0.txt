@@ -898,6 +898,7 @@ Timezones
 - Bug in :func:`Timestamp.tz_localize` where localizing a timestamp near the minimum or maximum valid values could overflow and return a timestamp with an incorrect nanosecond value (:issue:`12677`)
 - Bug when iterating over :class:`DatetimeIndex` that was localized with fixed timezone offset that rounded nanosecond precision to microseconds (:issue:`19603`)
 - Bug in :func:`DataFrame.diff` that raised an ``IndexError`` with tz-aware values (:issue:`18578`)
+- Bug in :func:`melt` that converted tz-aware dtypes to tz-naive (:issue:`15785`)
 
 Offsets
 ^^^^^^^
