@@ -508,7 +508,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         Returns
         -------
         s : pandas.Series
-            a series of type `float64`.
+            Series of type `float64`.
 
         Examples
         --------
