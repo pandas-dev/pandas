@@ -39,6 +39,17 @@ def na_cmp():
     return operator.eq
 
 
+@pytest.fixture
+def data_for_grouping():
+    return JSONArray([
+        {'b': 1}, {'b': 1},
+        {}, {},
+        {'a': 0, 'c': 2}, {'a': 0, 'c': 2},
+        {'b': 1},
+        {'c': 2},
+    ])
+
+
 class TestDtype(base.BaseDtypeTests):
     pass
 
@@ -64,8 +75,10 @@ class TestMissing(base.BaseMissingTests):
 
 
 class TestMethods(base.BaseMethodsTests):
-    @pytest.mark.skip(reason="Unhashable")
-    def test_value_counts(self, all_data, dropna):
+    unhashable = pytest.mark.skip(reason="Unhashable")
+
+    @unhashable
+    def test_factorize(self):
         pass
 
 

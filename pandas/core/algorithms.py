@@ -146,10 +146,9 @@ def _reconstruct_data(values, dtype, original):
     Returns
     -------
     Index for extension types, otherwise ndarray casted to dtype
-
     """
     from pandas import Index
-    if is_categorical_dtype(dtype):
+    if is_extension_array_dtype(dtype):
         pass
     elif is_datetime64tz_dtype(dtype) or is_period_dtype(dtype):
         values = Index(original)._shallow_copy(values, name=None)
@@ -502,9 +501,9 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     values = _ensure_arraylike(values)
     original = values
 
-    if is_categorical_dtype(values):
+    if is_extension_array_dtype(values):
         values = getattr(values, '_values', values)
-        labels, uniques = values.factorize()
+        labels, uniques = values.factorize(na_sentinel=na_sentinel)
         dtype = original.dtype
     else:
         values, dtype, _ = _ensure_data(values)

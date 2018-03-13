@@ -35,6 +35,15 @@ def na_value():
     return decimal.Decimal("NaN")
 
 
+@pytest.fixture
+def data_for_grouping():
+    b = decimal.Decimal('1.0')
+    a = decimal.Decimal('0.0')
+    c = decimal.Decimal('2.0')
+    na = decimal.Decimal('NaN')
+    return DecimalArray([b, b, na, na, a, a, b, c])
+
+
 class TestDtype(base.BaseDtypeTests):
     pass
 

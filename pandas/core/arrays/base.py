@@ -248,6 +248,41 @@ class ExtensionArray(object):
         uniques = unique(self.astype(object))
         return self._constructor_from_sequence(uniques)
 
+    def factorize(self, na_sentinel=-1):
+        """Encode the extension array as an enumerated type.
+
+        Parameters
+        ----------
+        na_sentinel : int, default -1
+            Value to use in the `labels` array to indicate missing values.
+
+        Returns
+        -------
+        labels : ndarray
+            An interger NumPy array that's an indexer into the original
+            ExtensionArray
+        uniques : ExtensionArray
+            An ExtensionArray containing the unique values of `self`.
+
+        See Also
+        --------
+        pandas.factorize : top-level factorize method that dispatches here.
+
+        Notes
+        -----
+        :meth:`pandas.factorize` offers a `sort` keyword as well.
+        """
+        from pandas.core.algorithms import _factorize_array
+
+        mask = self.isna()
+        arr = self.astype(object)
+        arr[mask] = np.nan
+
+        labels, uniques = _factorize_array(arr, check_nulls=True,
+                                           na_sentinel=na_sentinel)
+        uniques = self._constructor_from_sequence(uniques)
+        return labels, uniques
+
     # ------------------------------------------------------------------------
     # Indexing methods
     # ------------------------------------------------------------------------

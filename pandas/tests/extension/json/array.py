@@ -7,6 +7,7 @@ import sys
 
 import numpy as np
 
+import pandas as pd
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.arrays import ExtensionArray
 
@@ -103,6 +104,21 @@ class JSONArray(ExtensionArray):
     def _concat_same_type(cls, to_concat):
         data = list(itertools.chain.from_iterable([x.data for x in to_concat]))
         return cls(data)
+
+    def factorize(self, na_sentinel=-1):
+        frozen = tuple(tuple(x.items()) for x in self)
+        labels, uniques = pd.factorize(frozen)
+
+        # fixup NA
+        if self.isna().any():
+            na_code = self.isna().argmax()
+
+            labels[labels == na_code] = na_sentinel
+            labels[labels > na_code] -= 1
+
+        uniques = JSONArray([collections.UserDict(x)
+                             for x in uniques if x != ()])
+        return labels, uniques
 
 
 def make_data():
