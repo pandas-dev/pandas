@@ -1611,7 +1611,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Missing data representation.
     float_format : string, default None
         Format string for floating point numbers.
-    columns : sequence, optional
+    columns : sequence or list of string, optional
         Columns to write.
     header : boolean or list of string, default True
         Write out the column names. If a list of strings is given it is
@@ -1627,12 +1627,12 @@ class NDFrame(PandasObject, SelectionMixin):
     startcol : integer, default 0
         Upper left cell column to dump data frame.
     engine : string, default None
-        Write engine to use - you can also set this via the options
-        ``io.excel.xlsx.writer``, ``io.excel.xls.writer``, and
+        Write engine to use, 'openpyxl' or 'xlsxwriter'. You can also set this
+        via the options ``io.excel.xlsx.writer``, ``io.excel.xls.writer``, and
         ``io.excel.xlsm.writer``.
     merge_cells : boolean, default True
         Write MultiIndex and Hierarchical Rows as merged cells.
-    encoding : string, default 'ascii'
+    encoding : string, default None
         Encoding of the resulting excel file. Only necessary for xlwt,
         other writers support unicode natively.
     inf_rep : string, default 'inf'
@@ -1646,13 +1646,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         .. versionadded:: 0.20.0.
 
-    Returns
-    -------
-    Nothing returned.
-
     See Also
     --------
-    pd.read_excel
+    pandas.read_excel
 
     Examples
     --------
@@ -1673,6 +1669,9 @@ class NDFrame(PandasObject, SelectionMixin):
     >>> df2 = df1.copy()
     >>> df2.to_excel(writer2, sheet_name='Sheet2')
     >>> writer2.save()
+
+    Limit floats to a fixed precision using float_format. For example
+    float_format="%.2f" will format 0.1234 to 0.12.
 
     For compatibility with to_csv, to_excel serializes lists and dicts to
     strings before writing.
