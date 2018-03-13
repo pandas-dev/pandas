@@ -2978,21 +2978,24 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def add_suffix(self, suffix):
         """
-        Add a suffix string to Series items names.
+        Suffix labels with string `suffix`.
+
+        For Series, the row labels are suffixed.
+        For DataFrame, the column labels are suffixed.
 
         Parameters
         ----------
         suffix : str
-            The string to add after each item name.
+            The string to add after each label.
 
         Returns
         -------
-        Series
-            Original Series with updated item names.
+        Series or DataFrame
+            New Series or DataFrame with updated labels.
 
         See Also
         --------
-        Series.add_prefix: Concatenate prefix string with Series items names.
+        Series.add_prefix: Prefix labels with string `prefix`.
 
         Examples
         --------
@@ -3009,6 +3012,20 @@ class NDFrame(PandasObject, SelectionMixin):
         2_item    3
         3_item    4
         dtype: int64
+
+        >>> df = pd.DataFrame({'A': [1, 2, 3, 4],  'B': [3, 4, 5, 6]})
+        >>> df
+           A  B
+        0  1  3
+        1  2  4
+        2  3  5
+        3  4  6
+        >>> df.add_suffix('_col')
+           A_col  B_col
+        0       1       3
+        1       2       4
+        2       3       5
+        3       4       6
         """
         new_data = self._data.add_suffix(suffix)
         return self._constructor(new_data).__finalize__(self)
