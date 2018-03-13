@@ -862,6 +862,7 @@ class DataFrame(NDFrame):
 
         See Also
         --------
+        Series.dot: dot product on a Series
         numpy.dot : dot product in numpy
 
         Examples
