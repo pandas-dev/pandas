@@ -1309,6 +1309,37 @@ cdef class _Period(object):
 
     @property
     def dayofweek(self):
+        """
+        Return the day of the week.
+
+        This attribute returns the day of the week on which the particular
+        date for the given period occurs depending on the frequency with
+        Monday=0, Sunday=6.
+
+        Returns
+        -------
+        Int
+            Range from 0 to 6 (included).
+
+        See also
+        --------
+        Period.dayofyear : Return the day of the year.
+        Period.daysinmonth : Return the number of days in that month.
+
+        Examples
+        --------
+        >>> period1 = pd.Period('2012-1-1 19:00', freq='H')
+        >>> period1
+        Period('2012-01-01 19:00', 'H')
+        >>> period1.dayofweek
+        6
+
+        >>> period2 = pd.Period('2013-1-9 11:00', freq='H')
+        >>> period2
+        Period('2013-01-09 11:00', 'H')
+        >>> period2.dayofweek
+        2
+        """
         base, mult = get_freq_code(self.freq)
         return pweekday(self.ordinal, base)
 
