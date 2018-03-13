@@ -245,6 +245,10 @@ class Docstring:
         return self.doc['Returns']
 
     @property
+    def yields(self):
+        return self.doc['Yields']
+
+    @property
     def method_source(self):
         return inspect.getsource(self.method_obj)
 
@@ -465,10 +469,8 @@ def validate_one(func_name):
 
     if not doc.returns and "return" in doc.method_source:
         errs.append('No Returns section found')
-    if "yield" in doc.method_source:
-        # numpydoc is not correctly parsing Yields sections, so
-        # best we can do is warn the user to lookout for this...
-        wrns.append('Yield found in source - please make sure to document!')
+    if not doc.yields and "yield" in doc.method_source:
+        errs.append('No Yields section found!')
 
     mentioned_errs = doc.mentioned_private_classes
     if mentioned_errs:

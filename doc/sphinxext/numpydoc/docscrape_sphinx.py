@@ -47,12 +47,12 @@ class SphinxDocString(NumpyDocString):
     def _str_extended_summary(self):
         return self['Extended Summary'] + ['']
 
-    def _str_returns(self):
+    def _str_returns(self, name='Returns'):
         out = []
-        if self['Returns']:
-            out += self._str_field_list('Returns')
+        if self[name]:
+            out += self._str_field_list(name)
             out += ['']
-            for param, param_type, desc in self['Returns']:
+            for param, param_type, desc in self[name]:
                 if param_type:
                     out += self._str_indent(['**%s** : %s' % (param.strip(),
                                                               param_type)])
@@ -227,7 +227,8 @@ class SphinxDocString(NumpyDocString):
         out += self._str_summary()
         out += self._str_extended_summary()
         out += self._str_param_list('Parameters')
-        out += self._str_returns()
+        out += self._str_returns('Returns')
+        out += self._str_returns('Yields')
         for param_list in ('Other Parameters', 'Raises', 'Warns'):
             out += self._str_param_list(param_list)
         out += self._str_warnings()

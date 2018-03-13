@@ -1,6 +1,7 @@
 # -*- encoding:utf-8 -*-
 from __future__ import division, absolute_import, print_function
 
+import re
 import sys, textwrap
 
 from numpydoc.docscrape import NumpyDocString, FunctionDoc, ClassDoc
@@ -122,6 +123,20 @@ doc_txt = '''\
   '''
 doc = NumpyDocString(doc_txt)
 
+doc_yields_txt = """
+Test generator
+
+Yields
+------
+a : int
+    The number of apples.
+b : int
+    The number of bananas.
+int
+    The number of unknowns.
+"""
+doc_yields = NumpyDocString(doc_yields_txt)
+
 
 def test_signature():
     assert doc['Signature'].startswith('numpy.multivariate_normal(')
@@ -164,6 +179,36 @@ def test_returns():
     assert desc[0].startswith('This is not a real')
     assert desc[-1].endswith('anonymous return values.')
 
+def test_yields():
+    section = doc_yields['Yields']
+    assert_equal(len(section), 3)
+    truth = [('a', 'int', 'apples.'),
+             ('b', 'int', 'bananas.'),
+             ('int', '', 'unknowns.')]
+    for (arg, arg_type, desc), (arg_, arg_type_, end) in zip(section, truth):
+        assert_equal(arg, arg_)
+        assert_equal(arg_type, arg_type_)
+        assert desc[0].startswith('The number of')
+        assert desc[0].endswith(end)
+
+def test_returnyield():
+    doc_text = """
+Test having returns and yields.
+
+Returns
+-------
+int
+    The number of apples.
+
+Yields
+------
+a : int
+    The number of apples.
+b : int
+    The number of bananas.
+"""
+    assert_raises(ValueError, NumpyDocString, doc_text)
+
 def test_notes():
     assert doc['Notes'][0].startswith('Instead')
     assert doc['Notes'][-1].endswith('definite.')
@@ -192,6 +237,24 @@ def non_blank_line_by_line_compare(a,b):
             raise AssertionError("Lines %s of a and b differ: "
                                  "\n>>> %s\n<<< %s\n" %
                                  (n,line,b[n]))
+
+
+def _strip_blank_lines(s):
+    "Remove leading, trailing and multiple blank lines"
+    s = re.sub(r'^\s*\n', '', s)
+    s = re.sub(r'\n\s*$', '', s)
+    s = re.sub(r'\n\s*\n', r'\n\n', s)
+    return s
+
+
+def line_by_line_compare(a, b):
+    a = textwrap.dedent(a)
+    b = textwrap.dedent(b)
+    a = [l.rstrip() for l in _strip_blank_lines(a).split('\n')]
+    b = [l.rstrip() for l in _strip_blank_lines(b).split('\n')]
+    assert_list_equal(a, b)
+
+
 def test_str():
     non_blank_line_by_line_compare(str(doc),
 """numpy.multivariate_normal(mean, cov, shape=None, spam=None)
@@ -300,6 +363,22 @@ standard deviation:
 
 .. index:: random
    :refguide: random;distributions, random;gauss""")
+
+
+def test_yield_str():
+    line_by_line_compare(str(doc_yields),
+"""Test generator
+
+Yields
+------
+a : int
+    The number of apples.
+b : int
+    The number of bananas.
+int
+    The number of unknowns.
+
+.. index:: """)
 
 
 def test_sphinx_str():
