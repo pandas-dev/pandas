@@ -1717,9 +1717,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        path_or_buf : the path or buffer to write the result string
-            if this is None, return the converted string
+        path_or_buf : string or file handle, optional
+            File path or object. If not specified, the result is returned as
+            a string.
         orient : string
+            Indication of expected JSON string format.
 
             * Series
 
@@ -1734,27 +1736,29 @@ class NDFrame(PandasObject, SelectionMixin):
 
             * The format of the JSON string
 
-              - split : dict like
-                {index -> [index], columns -> [columns], data -> [values]}
-              - records : list like
+              - 'split' : dict like {'index' -> [index],
+                'columns' -> [columns], 'data' -> [values]}
+              - 'records' : list like
                 [{column -> value}, ... , {column -> value}]
-              - index : dict like {index -> {column -> value}}
-              - columns : dict like {column -> {index -> value}}
-              - values : just the values array
-              - table : dict like {'schema': {schema}, 'data': {data}}
+              - 'index' : dict like {index -> {column -> value}}
+              - 'columns' : dict like {column -> {index -> value}}
+              - 'values' : just the values array
+              - 'table' : dict like {'schema': {schema}, 'data': {data}}
                 describing the data, and the data component is
                 like ``orient='records'``.
 
                 .. versionchanged:: 0.20.0
 
         date_format : {None, 'epoch', 'iso'}
-            Type of date conversion. `epoch` = epoch milliseconds,
-            `iso` = ISO8601. The default depends on the `orient`. For
-            `orient='table'`, the default is `'iso'`. For all other orients,
-            the default is `'epoch'`.
-        double_precision : The number of decimal places to use when encoding
-            floating point values, default 10.
-        force_ascii : force encoded string to be ASCII, default True.
+            Type of date conversion. 'epoch' = epoch milliseconds,
+            'iso' = ISO8601. The default depends on the `orient`. For
+            ``orient='table'``, the default is 'iso'. For all other orients,
+            the default is 'epoch'.
+        double_precision : int, default 10
+            The number of decimal places to use when encoding
+            floating point values.
+        force_ascii : boolean, default True
+            Force encoded string to be ASCII.
         date_unit : string, default 'ms' (milliseconds)
             The time unit to encode to, governs timestamp and ISO8601
             precision.  One of 's', 'ms', 'us', 'ns' for second, millisecond,
@@ -1783,13 +1787,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.23.0
 
-        Returns
-        -------
-        same type as input object with filtered info axis
-
         See Also
         --------
-        pd.read_json
+        pandas.read_json
 
         Examples
         --------
@@ -1802,16 +1802,26 @@ class NDFrame(PandasObject, SelectionMixin):
           "index":["row 1","row 2"],
           "data":[["a","b"],["c","d"]]}'
 
-        Encoding/decoding a Dataframe using ``'index'`` formatted JSON:
-
-        >>> df.to_json(orient='index')
-        '{"row 1":{"col 1":"a","col 2":"b"},"row 2":{"col 1":"c","col 2":"d"}}'
-
         Encoding/decoding a Dataframe using ``'records'`` formatted JSON.
         Note that index labels are not preserved with this encoding.
 
         >>> df.to_json(orient='records')
         '[{"col 1":"a","col 2":"b"},{"col 1":"c","col 2":"d"}]'
+
+        Encoding/decoding a Dataframe using ``'index'`` formatted JSON:
+
+        >>> df.to_json(orient='index')
+        '{"row 1":{"col 1":"a","col 2":"b"},"row 2":{"col 1":"c","col 2":"d"}}'
+
+        Encoding/decoding a Dataframe using ``'columns'`` formatted JSON:
+
+        >>> df.to_json(orient='columns')
+        '{"col 1":{"row 1":"a","row 2":"c"},"col 2":{"row 1":"b","row 2":"d"}}'
+
+        Encoding/decoding a Dataframe using ``'values'`` formatted JSON:
+
+        >>> df.to_json(orient='values')
+        '[["a","b"],["c","d"]]'
 
         Encoding with Table Schema
 
