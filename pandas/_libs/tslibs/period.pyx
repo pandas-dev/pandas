@@ -1269,8 +1269,8 @@ cdef class _Period(object):
 
         See Also
         --------
+        Period.day : Return the day of the month.
         Period.dayofweek : Return the day of week.
-        Period.daysinmonth : Return the days in that month.
         PeriodIndex.dayofyear : Return the day of year of all indexes.
 
         Examples
