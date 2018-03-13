@@ -283,6 +283,18 @@ class ExtensionArray(object):
             result = result[::-1]
         return result
 
+    def unique(self):
+        """Compute the ExtensionArray of unique values.
+
+        Returns
+        -------
+        uniques : ExtensionArray
+        """
+        from pandas import unique
+
+        uniques = unique(self.astype(object))
+        return self._constructor_from_sequence(uniques)
+
     # ------------------------------------------------------------------------
     # Indexing methods
     # ------------------------------------------------------------------------
