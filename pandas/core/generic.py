@@ -919,18 +919,19 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         mapper : scalar, list-like, optional
-            Value to set the axis name attribute.
+            Value to set as the axis name attribute.
         axis : {0 or 'index', 1 or 'columns'}, default 0
             The index or the name of the axis.
         copy : boolean, default True
             Also copy underlying data.
         inplace : boolean, default False
-            Modifies the mapper in place.
+            Modifies the object directly, instead of creating a new Series
+            or DataFrame.
 
         Returns
         -------
         renamed : Series, DataFrame, or None
-            The same type as the caller or None ifa` inplace` is True.
+            The same type as the caller or None if `inplace` is True.
 
         Notes
         -----
@@ -947,6 +948,18 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
+        **Series**
+
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.rename_axis("foo")
+        foo
+        0    1
+        1    2
+        2    3
+        dtype: int64
+
+        **DataFrame**
+
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         >>> df.rename_axis("foo")
              A  B
