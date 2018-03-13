@@ -2847,7 +2847,7 @@ class FramePlotMethods(BasePlotMethods):
         ----------
         x : label or position, optional
             Allows plotting of one column versus another. If not specified,
-            the index of the DataFrame is use.
+            the index of the DataFrame is used.
         y : label or position, optional
             Allows plotting of one column versus another. If not specified,
             all numerical columns are used.
