@@ -2433,7 +2433,7 @@ class DataFrame(NDFrame):
 
     def select_dtypes(self, include=None, exclude=None):
         """
-        Return a subset of the DataFrame based on the column dtypes.
+        Return a subset of the DataFrame's columns based on the column dtypes.
 
         Parameters
         ----------
@@ -2482,6 +2482,7 @@ class DataFrame(NDFrame):
         3       2  False  2.0
         4       1   True  1.0
         5       2  False  2.0
+
         >>> df.select_dtypes(include='bool')
            b
         0  True
@@ -2490,6 +2491,7 @@ class DataFrame(NDFrame):
         3  False
         4  True
         5  False
+
         >>> df.select_dtypes(include=['float64'])
            c
         0  1.0
@@ -2498,6 +2500,7 @@ class DataFrame(NDFrame):
         3  2.0
         4  1.0
         5  2.0
+
         >>> df.select_dtypes(exclude=['int'])
                b    c
         0   True  1.0

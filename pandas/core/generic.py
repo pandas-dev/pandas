@@ -4261,8 +4261,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def get_values(self):
         """
-        Return a NumPy representation of the data
-            after converting sparse to dense.
+        Return an ndarray after converting sparse values to dense.
+
+        This is the same as ``.values`` for non-sparse data. For sparse
+        data contained in a `pandas.SparseArray`, the data are first
+        converted to a dense representation.
 
         Returns
         -------
@@ -4271,14 +4274,33 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        values : Numpy representation of DataFrame
+        values : Numpy representation of DataFrame.
+        pandas.SparseArray : Container for sparse data.
 
         Examples
         --------
         >>> df = pd.DataFrame({'a': [1, 2], 'b': [True, False],
         ...                    'c': [1.0, 2.0]})
+        >>> df
+           a      b    c
+        0  1   True  1.0
+        1  2  False  2.0
+
         >>> df.get_values()
         array([[1, True, 1.0], [2, False, 2.0]], dtype=object)
+
+        >>> df = pd.DataFrame({"a": pd.SparseArray([1, None, None]),
+        ...                    "c": [1.0, 2.0, 3.0]})
+        >>> df
+             a    c
+        0  1.0  1.0
+        1  NaN  2.0
+        2  NaN  3.0
+
+        >>> df.get_values()
+        array([[ 1.,  1.],
+               [nan,  2.],
+               [nan,  3.]])
         """
         return self.values
 
@@ -4289,7 +4311,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         dtype : Series
-            Series with the count of columns with each dtype
+            Series with the count of columns with each dtype.
 
         See Also
         --------
@@ -4299,6 +4321,12 @@ class NDFrame(PandasObject, SelectionMixin):
         --------
         >>> a = [['a', 1, 1.0], ['b', 2, 2.0], ['c', 3, 3.0]]
         >>> df = pd.DataFrame(a, columns=['str', 'int', 'float'])
+        >>> df
+          str  int  float
+        0   a    1    1.0
+        1   b    2    2.0
+        2   c    3    3.0
+
         >>> df.get_dtype_counts()
         float64    1
         int64      1
@@ -4312,21 +4340,30 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return counts of unique ftypes in this object.
 
+        This is useful for SparseDataFrame or for DataFrames containing
+        sparse arrays.
+
         Returns
         -------
         dtype : Series
-            Series with the count of columns
-                with each type and sparcity(dense/sparse)
+            Series with the count of columns with each type and
+            sparsity (dense/sparse)
 
         See Also
         --------
-        ftypes : Return
-                 ftypes (indication of sparse/dense and dtype) in this object.
+        ftypes : Return ftypes (indication of sparse/dense and dtype) in
+            this object.
 
         Examples
         --------
         >>> a = [['a', 1, 1.0], ['b', 2, 2.0], ['c', 3, 3.0]]
         >>> df = pd.DataFrame(a, columns=['str', 'int', 'float'])
+        >>> df
+          str  int  float
+        0   a    1    1.0
+        1   b    2    2.0
+        2   c    3    3.0
+
         >>> df.get_ftype_counts()
         float64:dense    1
         int64:dense      1
