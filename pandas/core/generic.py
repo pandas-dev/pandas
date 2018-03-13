@@ -2991,6 +2991,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2    3
         3    4
         dtype: int64
+
         >>> s.add_prefix('item_')
         item_0    1
         item_1    2
@@ -3005,8 +3006,9 @@ class NDFrame(PandasObject, SelectionMixin):
         1  2  4
         2  3  5
         3  4  6
+
         >>> df.add_prefix('col_')
-           col_A  col_B
+             col_A  col_B
         0       1       3
         1       2       4
         2       3       5
