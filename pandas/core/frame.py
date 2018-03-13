@@ -4997,27 +4997,35 @@ class DataFrame(NDFrame):
 
     Examples
     --------
-
-    >>> df = pd.DataFrame([[1,2,3],
-    ...                    [4,5,6],
-    ...                    [7,8,9],
+    >>> df = pd.DataFrame([[1, 2, 3],
+    ...                    [4, 5, 6],
+    ...                    [7, 8, 9],
     ...                    [np.nan, np.nan, np.nan]],
     ...                   columns=['A', 'B', 'C'])
 
-    Aggregate these functions across all columns
+    Aggregate these functions over the rows.
 
     >>> df.agg(['sum', 'min'])
             A     B     C
     sum  12.0  15.0  18.0
     min   1.0   2.0   3.0
 
-    Different aggregations per column
+    Different aggregations per column.
 
     >>> df.agg({'A' : ['sum', 'min'], 'B' : ['min', 'max']})
             A    B
     max   NaN  8.0
     min   1.0  2.0
     sum  12.0  NaN
+
+    Aggregate over the columns.
+
+    >>> df.agg("mean", axis="columns")
+    0    2.0
+    1    5.0
+    2    8.0
+    3    NaN
+    dtype: float64
 
     See also
     --------

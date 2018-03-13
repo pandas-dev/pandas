@@ -79,7 +79,7 @@ _shared_doc_kwargs = dict(
     axes='index', klass='Series', axes_single_arg="{0 or 'index'}",
     axis="""
     axis : {0 or 'index'}
-        Parameter needed for compatibility.
+        Parameter needed for compatibility with DataFrame.
     """,
     inplace="""inplace : boolean, default False
         If True, performs operation inplace and returns None.""",

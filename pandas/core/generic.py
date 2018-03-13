@@ -3954,11 +3954,12 @@ class NDFrame(PandasObject, SelectionMixin):
         - function.
         - list of functions.
         - dict of column names -> functions (or list of functions).
+
     %(axis)s
     *args
-        Positional arguments to pass to the function.
+        Positional arguments to pass to `func`.
     **kwargs
-        Keyword arguments to pass to the function.
+        Keyword arguments to pass to `func`.
 
     Returns
     -------
