@@ -1250,19 +1250,18 @@ cdef class _Period(object):
         Return the day of the week.
 
         This attribute returns the day of the week on which the particular
-        starting date for the given period occurs with Monday=0, Sunday=6.
+        date for the given period occurs depending on the frequency with
+        Monday=0, Sunday=6.
 
         Returns
         -------
         Int
-            Range from 0 to 6(included).
+            Range from 0 to 6 (included).
 
         See also
         --------
-        Period.dayofyear
-            Return the day of year.
-        Period.daysinmonth
-            Return the days in that month.
+        Period.dayofyear : Return the day of year.
+        Period.daysinmonth : Return the days in that month.
 
         Examples
         --------
