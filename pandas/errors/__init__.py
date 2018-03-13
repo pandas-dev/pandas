@@ -63,7 +63,6 @@ class DtypeWarning(Warning):
     This example creates and reads a large CSV file with a column that contains
     `int` and `str`.
 
-    >>> import os
     >>> df = pd.DataFrame({'a': (['1'] * 100000 + ['X'] * 100000 +
     ...                          ['1'] * 100000),
     ...                    'b': ['b'] * 300000})
@@ -91,6 +90,7 @@ class DtypeWarning(Warning):
 
     No warning was issued.
 
+    >>> import os
     >>> os.remove('test.csv')
     """
 
