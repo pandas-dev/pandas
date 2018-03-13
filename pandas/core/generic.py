@@ -1943,7 +1943,7 @@ class NDFrame(PandasObject, SelectionMixin):
             - False, write a string representation of the object to the
               clipboard.
 
-        sep : str, ``\t``
+        sep : str, default ``'\t'``
             Field delimiter.
         **kwargs
             These parameters will be passed to DataFrame.to_csv.
