@@ -1296,12 +1296,12 @@ cdef class _Period(object):
     @property
     def second(self):
         """
-        Get second of the minute component of the Period.
+        Get the second component of the Period.
 
         Returns
         -------
         int 
-            The second as an integer, between 0 and 59.
+            The second of the Period (ranges from 0 to 59).
 
         See Also
         --------
