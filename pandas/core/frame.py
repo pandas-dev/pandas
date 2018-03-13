@@ -925,10 +925,10 @@ class DataFrame(NDFrame):
 
     def to_dict(self, orient='dict', into=dict):
         """
-        Convert DataFrame to dictionary.
+        Convert the DataFrame to a dictionary.
 
-        The type of the key-value pairs can be customized with
-        the parameters (see below).
+        The type of the key-value pairs can be customized with the parameters
+        (see below).
 
         Parameters
         ----------
@@ -980,15 +980,19 @@ class DataFrame(NDFrame):
 
         >>> df.to_dict('series')
         {'col1': a    1
-        b    2
-        Name: col1, dtype: int64, 'col2': a    0.50
-        b    0.75
-        Name: col2, dtype: float64}
+                 b    2
+                 Name: col1, dtype: int64,
+         'col2': a    0.50
+                 b    0.75
+                 Name: col2, dtype: float64}
+
         >>> df.to_dict('split')
         {'index': ['a', 'b'], 'columns': ['col1', 'col2'],
-        'data': [[1.0, 0.5], [2.0, 0.75]]}
+         'data': [[1.0, 0.5], [2.0, 0.75]]}
+
         >>> df.to_dict('records')
         [{'col1': 1.0, 'col2': 0.5}, {'col1': 2.0, 'col2': 0.75}]
+
         >>> df.to_dict('index')
         {'a': {'col1': 1.0, 'col2': 0.5}, 'b': {'col1': 2.0, 'col2': 0.75}}
 
@@ -997,14 +1001,14 @@ class DataFrame(NDFrame):
         >>> from collections import OrderedDict, defaultdict
         >>> df.to_dict(into=OrderedDict)
         OrderedDict([('col1', OrderedDict([('a', 1), ('b', 2)])),
-                   ('col2', OrderedDict([('a', 0.5), ('b', 0.75)]))])
+                     ('col2', OrderedDict([('a', 0.5), ('b', 0.75)]))])
 
         If you want a `defaultdict`, you need to initialize it:
 
         >>> dd = defaultdict(list)
         >>> df.to_dict('records', into=dd)
         [defaultdict(<class 'list'>, {'col1': 1.0, 'col2': 0.5}),
-        defaultdict(<class 'list'>, {'col1': 2.0, 'col2': 0.75})]
+         defaultdict(<class 'list'>, {'col1': 2.0, 'col2': 0.75})]
         """
         if not self.columns.is_unique:
             warnings.warn("DataFrame columns are not unique, some "
