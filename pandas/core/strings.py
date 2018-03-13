@@ -1117,7 +1117,7 @@ def str_split(arr, pat=None, n=None):
     Returns
     -------
     Series, Index, DataFrame or MultiIndex
-        Type matches caller unless ``expand=True`` (see Notes)
+        Type matches caller unless ``expand=True`` (see Notes).
 
     Notes
     -----
@@ -1130,6 +1130,13 @@ def str_split(arr, pat=None, n=None):
 
     If using ``expand=True``, Series and Index callers return DataFrame and
     MultiIndex objects, respectively.
+
+    See Also
+    --------
+    str.split : Standard library version of this method.
+    Series.str.get_dummies : Split each string into dummy variables.
+    Series.str.partition : Split string on a separator, returning
+        the before, separator, and after components.
 
     Examples
     --------
