@@ -1664,8 +1664,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        path_or_buf : string or file handle, default None
-            File path or object, if None is provided the result is returned as
+        path_or_buf : string or file handle, optional
+            File path or object. If not specified, the result is returned as
             a string.
         orient : string
             Indication of expected JSON string format.
@@ -1683,8 +1683,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
             * The format of the JSON string
 
-              - 'split' : dict like
-                {index -> [index], columns -> [columns], data -> [values]}
+              - 'split' : dict like {'index' -> [index],
+                'columns' -> [columns], 'data' -> [values]}
               - 'records' : list like
                 [{column -> value}, ... , {column -> value}]
               - 'index' : dict like {index -> {column -> value}}
@@ -1697,10 +1697,10 @@ class NDFrame(PandasObject, SelectionMixin):
                 .. versionchanged:: 0.20.0.
 
         date_format : {None, 'epoch', 'iso'}
-            Type of date conversion. `epoch` = epoch milliseconds,
-            `iso` = ISO8601. The default depends on the `orient`. For
-            `orient='table'`, the default is `'iso'`. For all other orients,
-            the default is `'epoch'`.
+            Type of date conversion. 'epoch' = epoch milliseconds,
+            'iso' = ISO8601. The default depends on the `orient`. For
+            ``orient='table'``, the default is 'iso'. For all other orients,
+            the default is 'epoch'.
         double_precision : int, default 10
             The number of decimal places to use when encoding
             floating point values.
