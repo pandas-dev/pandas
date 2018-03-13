@@ -3432,7 +3432,8 @@ class SeriesGroupBy(GroupBy):
     @Appender(_agg_doc)
     @Appender(_shared_docs['aggregate'] % dict(
         klass='Series',
-        versionadded=''))
+        versionadded='',
+        axis=''))
     def aggregate(self, func_or_funcs, *args, **kwargs):
         _level = kwargs.pop('_level', None)
         if isinstance(func_or_funcs, compat.string_types):
@@ -4611,7 +4612,8 @@ class DataFrameGroupBy(NDFrameGroupBy):
     @Appender(_agg_doc)
     @Appender(_shared_docs['aggregate'] % dict(
         klass='DataFrame',
-        versionadded=''))
+        versionadded='',
+        axis=''))
     def aggregate(self, arg, *args, **kwargs):
         return super(DataFrameGroupBy, self).aggregate(arg, *args, **kwargs)
 

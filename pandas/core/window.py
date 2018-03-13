@@ -626,7 +626,8 @@ class Window(_Window):
     @Appender(_agg_doc)
     @Appender(_shared_docs['aggregate'] % dict(
         versionadded='',
-        klass='Series/DataFrame'))
+        klass='Series/DataFrame',
+        axis=''))
     def aggregate(self, arg, *args, **kwargs):
         result, how = self._aggregate(arg, *args, **kwargs)
         if result is None:
@@ -1300,7 +1301,8 @@ class Rolling(_Rolling_and_Expanding):
     @Appender(_agg_doc)
     @Appender(_shared_docs['aggregate'] % dict(
         versionadded='',
-        klass='Series/DataFrame'))
+        klass='Series/DataFrame',
+        axis=''))
     def aggregate(self, arg, *args, **kwargs):
         return super(Rolling, self).aggregate(arg, *args, **kwargs)
 
@@ -1566,7 +1568,8 @@ class Expanding(_Rolling_and_Expanding):
     @Appender(_agg_doc)
     @Appender(_shared_docs['aggregate'] % dict(
         versionadded='',
-        klass='Series/DataFrame'))
+        klass='Series/DataFrame',
+        axis=''))
     def aggregate(self, arg, *args, **kwargs):
         return super(Expanding, self).aggregate(arg, *args, **kwargs)
 
@@ -1869,7 +1872,8 @@ class EWM(_Rolling):
     @Appender(_agg_doc)
     @Appender(_shared_docs['aggregate'] % dict(
         versionadded='',
-        klass='Series/DataFrame'))
+        klass='Series/DataFrame',
+        axis=''))
     def aggregate(self, arg, *args, **kwargs):
         return super(EWM, self).aggregate(arg, *args, **kwargs)
 

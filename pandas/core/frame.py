@@ -107,6 +107,10 @@ from pandas.core.config import get_option
 _shared_doc_kwargs = dict(
     axes='index, columns', klass='DataFrame',
     axes_single_arg="{0 or 'index', 1 or 'columns'}",
+    axis="""
+    axis : {0 or 'index', 1 or 'columns'}, default 0
+        - 0 or 'index': apply function to each column.
+        - 1 or 'columns': apply function to each row.""",
     optional_by="""
         by : str or list of str
             Name or list of names to sort by.
@@ -4460,9 +4464,9 @@ class DataFrame(NDFrame):
 
         Reshape data (produce a "pivot" table) based on column values. Uses
         unique values from specified `index` / `columns` to form axes of the
-        resulting DataFrame. This function does not support data aggregation,
-        multiple values will result in a MultiIndex in the columns. See the
-        :ref:`User Guide <reshaping>` for more on reshaping.
+        resulting DataFrame. This function does not support data
+        aggregation, multiple values will result in a MultiIndex in the
+        columns. See the :ref:`User Guide <reshaping>` for more on reshaping.
 
         Parameters
         ----------
@@ -4980,36 +4984,59 @@ class DataFrame(NDFrame):
         return self[key]
 
     _agg_doc = dedent("""
+    Notes
+    -----
+    The aggregation operations are always performed over an axis, either the
+    index (default) or the column axis. This behavior is different from
+    `numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
+    `var`), where the default is to compute the aggregation of the flattened
+    array, e.g., ``numpy.mean(arr_2d)`` as opposed to ``numpy.mean(arr_2d,
+    axis=0)``.
+
+    `agg` is an alias for `aggregate`. Use the alias.
+
     Examples
     --------
+    >>> df = pd.DataFrame([[1, 2, 3],
+    ...                    [4, 5, 6],
+    ...                    [7, 8, 9],
+    ...                    [np.nan, np.nan, np.nan]],
+    ...                   columns=['A', 'B', 'C'])
 
-    >>> df = pd.DataFrame(np.random.randn(10, 3), columns=['A', 'B', 'C'],
-    ...                   index=pd.date_range('1/1/2000', periods=10))
-    >>> df.iloc[3:7] = np.nan
-
-    Aggregate these functions across all columns
+    Aggregate these functions over the rows.
 
     >>> df.agg(['sum', 'min'])
-                A         B         C
-    sum -0.182253 -0.614014 -2.909534
-    min -1.916563 -1.460076 -1.568297
+            A     B     C
+    sum  12.0  15.0  18.0
+    min   1.0   2.0   3.0
 
-    Different aggregations per column
+    Different aggregations per column.
 
     >>> df.agg({'A' : ['sum', 'min'], 'B' : ['min', 'max']})
-                A         B
-    max       NaN  1.514318
-    min -1.916563 -1.460076
-    sum -0.182253       NaN
+            A    B
+    max   NaN  8.0
+    min   1.0  2.0
+    sum  12.0  NaN
+
+    Aggregate over the columns.
+
+    >>> df.agg("mean", axis="columns")
+    0    2.0
+    1    5.0
+    2    8.0
+    3    NaN
+    dtype: float64
 
     See also
     --------
-    pandas.DataFrame.apply
-    pandas.DataFrame.transform
-    pandas.DataFrame.groupby.aggregate
-    pandas.DataFrame.resample.aggregate
-    pandas.DataFrame.rolling.aggregate
-
+    DataFrame.apply : Perform any type of operations.
+    DataFrame.transform : Perform transformation type operations.
+    pandas.core.groupby.GroupBy : Perform operations over groups.
+    pandas.core.resample.Resampler : Perform operations over resampled bins.
+    pandas.core.window.Rolling : Perform operations over rolling window.
+    pandas.core.window.Expanding : Perform operations over expanding window.
+    pandas.core.window.EWM : Perform operation over exponential weighted
+        window.
     """)
 
     @Appender(_agg_doc)

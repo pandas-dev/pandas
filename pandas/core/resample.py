@@ -334,7 +334,8 @@ one pass, you can do
     @Appender(_agg_doc)
     @Appender(_shared_docs['aggregate'] % dict(
         klass='DataFrame',
-        versionadded=''))
+        versionadded='',
+        axis=''))
     def aggregate(self, arg, *args, **kwargs):
 
         self._set_binner()
