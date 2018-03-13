@@ -991,21 +991,25 @@ class DataFrame(NDFrame):
         return cls(data, index=index, columns=columns, dtype=dtype)
 
     def to_dict(self, orient='dict', into=dict):
-        """Convert DataFrame to dictionary.
+        """
+        Convert the DataFrame to a dictionary.
+
+        The type of the key-value pairs can be customized with the parameters
+        (see below).
 
         Parameters
         ----------
         orient : str {'dict', 'list', 'series', 'split', 'records', 'index'}
             Determines the type of the values of the dictionary.
 
-            - dict (default) : dict like {column -> {index -> value}}
-            - list : dict like {column -> [values]}
-            - series : dict like {column -> Series(values)}
-            - split : dict like
-              {index -> [index], columns -> [columns], data -> [values]}
-            - records : list like
+            - 'dict' (default) : dict like {column -> {index -> value}}
+            - 'list' : dict like {column -> [values]}
+            - 'series' : dict like {column -> Series(values)}
+            - 'split' : dict like
+              {'index' -> [index], 'columns' -> [columns], 'data' -> [values]}
+            - 'records' : list like
               [{column -> value}, ... , {column -> value}]
-            - index : dict like {index -> {column -> value}}
+            - 'index' : dict like {index -> {column -> value}}
 
             Abbreviations are allowed. `s` indicates `series` and `sp`
             indicates `split`.
@@ -1022,10 +1026,16 @@ class DataFrame(NDFrame):
         -------
         result : collections.Mapping like {column -> {index -> value}}
 
+        See Also
+        --------
+        DataFrame.from_dict: create a DataFrame from a dictionary
+        DataFrame.to_json: convert a DataFrame to JSON format
+
         Examples
         --------
-        >>> df = pd.DataFrame(
-                {'col1': [1, 2], 'col2': [0.5, 0.75]}, index=['a', 'b'])
+        >>> df = pd.DataFrame({'col1': [1, 2],
+        ...                    'col2': [0.5, 0.75]},
+        ...                   index=['a', 'b'])
         >>> df
            col1  col2
         a     1   0.50
@@ -1037,16 +1047,19 @@ class DataFrame(NDFrame):
 
         >>> df.to_dict('series')
         {'col1': a    1
-        b    2
-        Name: col1, dtype: int64, 'col2': a    0.50
-        b    0.75
-        Name: col2, dtype: float64}
+                 b    2
+                 Name: col1, dtype: int64,
+         'col2': a    0.50
+                 b    0.75
+                 Name: col2, dtype: float64}
+
         >>> df.to_dict('split')
-        {'columns': ['col1', 'col2'],
-        'data': [[1.0, 0.5], [2.0, 0.75]],
-        'index': ['a', 'b']}
+        {'index': ['a', 'b'], 'columns': ['col1', 'col2'],
+         'data': [[1.0, 0.5], [2.0, 0.75]]}
+
         >>> df.to_dict('records')
         [{'col1': 1.0, 'col2': 0.5}, {'col1': 2.0, 'col2': 0.75}]
+
         >>> df.to_dict('index')
         {'a': {'col1': 1.0, 'col2': 0.5}, 'b': {'col1': 2.0, 'col2': 0.75}}
 
@@ -1055,14 +1068,14 @@ class DataFrame(NDFrame):
         >>> from collections import OrderedDict, defaultdict
         >>> df.to_dict(into=OrderedDict)
         OrderedDict([('col1', OrderedDict([('a', 1), ('b', 2)])),
-                   ('col2', OrderedDict([('a', 0.5), ('b', 0.75)]))])
+                     ('col2', OrderedDict([('a', 0.5), ('b', 0.75)]))])
 
         If you want a `defaultdict`, you need to initialize it:
 
         >>> dd = defaultdict(list)
         >>> df.to_dict('records', into=dd)
-        [defaultdict(<type 'list'>, {'col2': 0.5, 'col1': 1.0}),
-        defaultdict(<type 'list'>, {'col2': 0.75, 'col1': 2.0})]
+        [defaultdict(<class 'list'>, {'col1': 1.0, 'col2': 0.5}),
+         defaultdict(<class 'list'>, {'col1': 2.0, 'col2': 0.75})]
         """
         if not self.columns.is_unique:
             warnings.warn("DataFrame columns are not unique, some "
