@@ -5716,7 +5716,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def clip_lower(self, threshold, axis=None, inplace=False):
         """
-        Return copy of the input with values below given value(s) trimmed.
+        Trim the caller's values below a given `threshold`.
 
         Elements below the `threshold` will be changed to match the
         `threshold` value(s).
@@ -5731,17 +5731,6 @@ class NDFrame(PandasObject, SelectionMixin):
             Whether to perform the operation in place on the data.
 
             .. versionadded:: 0.21.0
-
-        See Also
-        --------
-        DataFrame.clip : General purpose method to trim `DataFrame` values to
-            given threshold(s)
-        DataFrame.clip_upper : Trim `DataFrame` values above given
-            threshold(s)
-        Series.clip : General purpose method to trim `Series` values to given
-            threshold(s)
-        Series.clip_lower : Trim `Series` values below given threshold(s)
-        Series.clip_upper : Trim `Series` values above given threshold(s)
 
         Returns
         -------
@@ -5778,7 +5767,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2  0.710404  0.760925
         3  0.800000  0.800000
 
-        Clip to an array column the index axis
+        Clip to an array along the column axis
 
         >>> df.clip_lower([0.5, 0.0], axis=1)
                   a         b
