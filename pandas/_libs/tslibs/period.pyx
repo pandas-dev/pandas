@@ -1241,16 +1241,79 @@ cdef class _Period(object):
 
     @property
     def hour(self):
+        """
+        Get the hour of the day component of the Period.
+
+        Returns
+        -------
+        int
+            The hour as an integer, between 0 and 23.
+
+        See Also
+        --------
+        Period.second : Get the second component of the Period.
+        Period.minute : Get the minute component of the Period.
+
+        Examples
+        --------
+        >>> p = pd.Period("2018-03-11 13:03:12.050000")
+        >>> p.hour
+        13
+
+        Period longer than a day
+
+        >>> p = pd.Period("2018-03-11", freq="M")
+        >>> p.hour
+        0
+        """
         base, mult = get_freq_code(self.freq)
         return phour(self.ordinal, base)
 
     @property
     def minute(self):
+        """
+        Get minute of the hour component of the Period.
+
+        Returns
+        -------
+        int
+            The minute as an integer, between 0 and 59.
+
+        See Also
+        --------
+        Period.hour : Get the hour component of the Period.
+        Period.second : Get the second component of the Period.
+
+        Examples
+        --------
+        >>> p = pd.Period("2018-03-11 13:03:12.050000")
+        >>> p.minute
+        3
+        """
         base, mult = get_freq_code(self.freq)
         return pminute(self.ordinal, base)
 
     @property
     def second(self):
+        """
+        Get the second component of the Period.
+
+        Returns
+        -------
+        int
+            The second of the Period (ranges from 0 to 59).
+
+        See Also
+        --------
+        Period.hour : Get the hour component of the Period.
+        Period.minute : Get the minute component of the Period.
+
+        Examples
+        --------
+        >>> p = pd.Period("2018-03-11 13:03:12.050000")
+        >>> p.second
+        12
+        """
         base, mult = get_freq_code(self.freq)
         return psecond(self.ordinal, base)
 
@@ -1265,6 +1328,37 @@ cdef class _Period(object):
 
     @property
     def dayofweek(self):
+        """
+        Return the day of the week.
+
+        This attribute returns the day of the week on which the particular
+        date for the given period occurs depending on the frequency with
+        Monday=0, Sunday=6.
+
+        Returns
+        -------
+        Int
+            Range from 0 to 6 (included).
+
+        See also
+        --------
+        Period.dayofyear : Return the day of the year.
+        Period.daysinmonth : Return the number of days in that month.
+
+        Examples
+        --------
+        >>> period1 = pd.Period('2012-1-1 19:00', freq='H')
+        >>> period1
+        Period('2012-01-01 19:00', 'H')
+        >>> period1.dayofweek
+        6
+
+        >>> period2 = pd.Period('2013-1-9 11:00', freq='H')
+        >>> period2
+        Period('2013-01-09 11:00', 'H')
+        >>> period2.dayofweek
+        2
+        """
         base, mult = get_freq_code(self.freq)
         return pweekday(self.ordinal, base)
 
@@ -1274,6 +1368,36 @@ cdef class _Period(object):
 
     @property
     def dayofyear(self):
+        """
+        Return the day of the year.
+
+        This attribute returns the day of the year on which the particular
+        date occurs. The return value ranges between 1 to 365 for regular
+        years and 1 to 366 for leap years.
+
+        Returns
+        -------
+        int
+            The day of year.
+
+        See Also
+        --------
+        Period.day : Return the day of the month.
+        Period.dayofweek : Return the day of week.
+        PeriodIndex.dayofyear : Return the day of year of all indexes.
+
+        Examples
+        --------
+        >>> period = pd.Period("2015-10-23", freq='H')
+        >>> period.dayofyear
+        296
+        >>> period = pd.Period("2012-12-31", freq='D')
+        >>> period.dayofyear
+        366
+        >>> period = pd.Period("2013-01-01", freq='D')
+        >>> period.dayofyear
+        1
+        """
         base, mult = get_freq_code(self.freq)
         return pday_of_year(self.ordinal, base)
 
