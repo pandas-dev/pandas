@@ -6,7 +6,6 @@ import re
 import threading
 
 from functools import partial
-from distutils.version import LooseVersion
 
 import pytest
 
