@@ -1664,8 +1664,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        path_or_buf : the path or buffer to write the result string
-            If this is None, return the converted string.
+        path_or_buf : string or file handle, default None
+            File path or object, if None is provided the result is returned as
+            a string.
         orient : string
             Indication of expected JSON string format.
 
@@ -1682,14 +1683,14 @@ class NDFrame(PandasObject, SelectionMixin):
 
             * The format of the JSON string
 
-              - split : dict like
+              - 'split' : dict like
                 {index -> [index], columns -> [columns], data -> [values]}
-              - records : list like
+              - 'records' : list like
                 [{column -> value}, ... , {column -> value}]
-              - index : dict like {index -> {column -> value}}
-              - columns : dict like {column -> {index -> value}}
-              - values : just the values array
-              - table : dict like {'schema': {schema}, 'data': {data}}
+              - 'index' : dict like {index -> {column -> value}}
+              - 'columns' : dict like {column -> {index -> value}}
+              - 'values' : just the values array
+              - 'table' : dict like {'schema': {schema}, 'data': {data}}
                 describing the data, and the data component is
                 like ``orient='records'``.
 
@@ -1739,7 +1740,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pd.read_json
+        pandas.read_json
 
         Examples
         --------
