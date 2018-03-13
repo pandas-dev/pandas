@@ -236,6 +236,18 @@ class ExtensionArray(object):
         """
         raise AbstractMethodError(self)
 
+    def unique(self):
+        """Compute the ExtensionArray of unique values.
+
+        Returns
+        -------
+        uniques : ExtensionArray
+        """
+        from pandas import unique
+
+        uniques = unique(self.astype(object))
+        return self._constructor_from_sequence(uniques)
+
     # ------------------------------------------------------------------------
     # Indexing methods
     # ------------------------------------------------------------------------
