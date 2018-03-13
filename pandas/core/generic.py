@@ -8327,11 +8327,9 @@ pandas.DataFrame.any : Return True if one (or more) elements are True
 """
 
 _cnum_doc = """
-Return %(desc)s over requested axis.
-
 Return %(desc)s over a DataFrame or Series axis.
-axis=0 iterates over rows.
-axis=1 iterates over columns.
+
+Returns a DataFrame or Series of the same size containing the %(desc)s.
 
 Parameters
 ----------
@@ -8360,6 +8358,64 @@ pandas.DataFrame.cumprod : Return cumulative product over DataFrame axis.
 """
 
 _cummax_examples = """\
+Examples
+--------
+**DataFrame**
+
+Create a DataFrame:
+
+>>> df = pd.DataFrame([[9, 7, 9, 7],
+...                    [7, 5, 2, 7],
+...                    [3, 5, 2, 2],
+...                    [8, 0, 9, 0]],
+...                    columns=list('ABCD'))
+>>> df
+   A  B  C  D
+0  9  7  9  7
+1  7  5  2  7
+2  3  5  2  2
+3  8  0  9  0
+
+axis=None : Iterates over rows and finds the maximum value in each column.
+If value is larger than the previous maximum, updates it:
+
+>>> df.cummax(axis=None)
+   A  B  C  D
+0  9  7  9  7
+1  9  7  9  7
+2  9  7  9  7
+3  9  7  9  7
+
+axis=1 : Iterates over columns and finds the maximum value in each row.
+If value is larger than the previous maximum, updates it:
+
+>>> df.cummax(axis=1)
+   A  B  C  D
+0  9  9  9  9
+1  7  7  7  7
+2  3  5  5  5
+3  8  8  9  9
+
+**Series**
+
+Create a Series:
+
+>>> s = pd.Series([5,0,-5,10,-10])
+>>> s
+0     5
+1     0
+2    -5
+3    10
+4   -10
+dtype: int64
+
+>>> s.cummax()
+0     5
+1     5
+2     5
+3    10
+4    10
+dtype: int64
 """
 
 _any_see_also = """\
