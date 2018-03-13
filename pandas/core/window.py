@@ -850,20 +850,100 @@ class _Rolling_and_Expanding(_Rolling):
         return self._apply('roll_mean', 'mean', **kwargs)
 
     _shared_docs['median'] = dedent("""
-    %(name)s median
+    Calculate the %(name)s median.
+
+    Parameters
+    ----------
+    **kwargs
+        For compatibility with other %(name)s methods. Has no effect
+        on the computed median.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returned type is the same as the original object.
+
+    See Also
+    --------
+    Series.%(name)s : Calling object with Series data
+    DataFrame.%(name)s : Calling object with DataFrames
+    Series.median : Equivalent method for Series
+    DataFrame.median : Equivalent method for DataFrame
+
+    Examples
+    --------
+    Compute the rolling median of a series with a window size of 3.
+
+    >>> s = pd.Series([0, 1, 2, 3, 4])
+    >>> s.rolling(3).median()
+    0    NaN
+    1    NaN
+    2    1.0
+    3    2.0
+    4    3.0
+    dtype: float64
     """)
 
     def median(self, **kwargs):
         return self._apply('roll_median_c', 'median', **kwargs)
 
     _shared_docs['std'] = dedent("""
-    %(name)s standard deviation
+    Calculate %(name)s standard deviation.
+
+    Normalized by N-1 by default. This can be changed using the `ddof`
+    argument.
 
     Parameters
     ----------
     ddof : int, default 1
         Delta Degrees of Freedom.  The divisor used in calculations
-        is ``N - ddof``, where ``N`` represents the number of elements.""")
+        is ``N - ddof``, where ``N`` represents the number of elements.
+    *args, **kwargs
+        For NumPy compatibility. No additional arguments are used.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returns the same object type as the caller of the %(name)s calculation.
+
+    See Also
+    --------
+    Series.%(name)s : Calling object with Series data
+    DataFrame.%(name)s : Calling object with DataFrames
+    Series.std : Equivalent method for Series
+    DataFrame.std : Equivalent method for DataFrame
+    numpy.std : Equivalent method for Numpy array
+
+    Notes
+    -----
+    The default `ddof` of 1 used in Series.std is different than the default
+    `ddof` of 0 in numpy.std.
+
+    A minimum of one period is required for the rolling calculation.
+
+    Examples
+    --------
+    >>> s = pd.Series([5, 5, 6, 7, 5, 5, 5])
+    >>> s.rolling(3).std()
+    0         NaN
+    1         NaN
+    2    0.577350
+    3    1.000000
+    4    1.000000
+    5    1.154701
+    6    0.000000
+    dtype: float64
+
+    >>> s.expanding(3).std()
+    0         NaN
+    1         NaN
+    2    0.577350
+    3    0.957427
+    4    0.894427
+    5    0.836660
+    6    0.786796
+    dtype: float64
+    """)
 
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_window_func('std', args, kwargs)
@@ -879,13 +959,62 @@ class _Rolling_and_Expanding(_Rolling):
                            ddof=ddof, **kwargs)
 
     _shared_docs['var'] = dedent("""
-    %(name)s variance
+    Calculate unbiased %(name)s variance.
+
+    Normalized by N-1 by default. This can be changed using the `ddof`
+    argument.
 
     Parameters
     ----------
     ddof : int, default 1
         Delta Degrees of Freedom.  The divisor used in calculations
-        is ``N - ddof``, where ``N`` represents the number of elements.""")
+        is ``N - ddof``, where ``N`` represents the number of elements.
+    *args, **kwargs
+        For NumPy compatibility. No additional arguments are used.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returns the same object type as the caller of the %(name)s calculation.
+
+    See Also
+    --------
+    Series.%(name)s : Calling object with Series data
+    DataFrame.%(name)s : Calling object with DataFrames
+    Series.var : Equivalent method for Series
+    DataFrame.var : Equivalent method for DataFrame
+    numpy.var : Equivalent method for Numpy array
+
+    Notes
+    -----
+    The default `ddof` of 1 used in :meth:`Series.var` is different than the
+    default `ddof` of 0 in :func:`numpy.var`.
+
+    A minimum of 1 period is required for the rolling calculation.
+
+    Examples
+    --------
+    >>> s = pd.Series([5, 5, 6, 7, 5, 5, 5])
+    >>> s.rolling(3).var()
+    0         NaN
+    1         NaN
+    2    0.333333
+    3    1.000000
+    4    1.000000
+    5    1.333333
+    6    0.000000
+    dtype: float64
+
+    >>> s.expanding(3).var()
+    0         NaN
+    1         NaN
+    2    0.333333
+    3    0.916667
+    4    0.800000
+    5    0.700000
+    6    0.619048
+    dtype: float64
+    """)
 
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_window_func('var', args, kwargs)
@@ -926,28 +1055,7 @@ class _Rolling_and_Expanding(_Rolling):
 
     Notes
     -----
-    A minimum of 4 periods is required for the rolling calculation.
-
-    Examples
-    --------
-    The below example will show a rolling calculation with a window size of
-    four matching the equivalent function call using `scipy.stats`.
-
-    >>> arr = [1, 2, 3, 4, 999]
-    >>> fmt = "{0:.6f}"  # limit the printed precision to 6 digits
-    >>> import scipy.stats
-    >>> print(fmt.format(scipy.stats.kurtosis(arr[:-1], bias=False)))
-    -1.200000
-    >>> print(fmt.format(scipy.stats.kurtosis(arr[1:], bias=False)))
-    3.999946
-    >>> s = pd.Series(arr)
-    >>> s.rolling(4).kurt()
-    0         NaN
-    1         NaN
-    2         NaN
-    3   -1.200000
-    4    3.999946
-    dtype: float64
+    A minimum of 4 periods is required for the %(name)s calculation.
     """)
 
     def kurt(self, **kwargs):
@@ -1244,20 +1352,17 @@ class Rolling(_Rolling_and_Expanding):
         return super(Rolling, self).mean(*args, **kwargs)
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['median'])
     def median(self, **kwargs):
         return super(Rolling, self).median(**kwargs)
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['std'])
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_rolling_func('std', args, kwargs)
         return super(Rolling, self).std(ddof=ddof, **kwargs)
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['var'])
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_rolling_func('var', args, kwargs)
@@ -1269,6 +1374,31 @@ class Rolling(_Rolling_and_Expanding):
     def skew(self, **kwargs):
         return super(Rolling, self).skew(**kwargs)
 
+    _agg_doc = dedent("""
+    Examples
+    --------
+
+    The example below will show a rolling calculation with a window size of
+    four matching the equivalent function call using `scipy.stats`.
+
+    >>> arr = [1, 2, 3, 4, 999]
+    >>> fmt = "{0:.6f}"  # limit the printed precision to 6 digits
+    >>> import scipy.stats
+    >>> print(fmt.format(scipy.stats.kurtosis(arr[:-1], bias=False)))
+    -1.200000
+    >>> print(fmt.format(scipy.stats.kurtosis(arr[1:], bias=False)))
+    3.999946
+    >>> s = pd.Series(arr)
+    >>> s.rolling(4).kurt()
+    0         NaN
+    1         NaN
+    2         NaN
+    3   -1.200000
+    4    3.999946
+    dtype: float64
+    """)
+
+    @Appender(_agg_doc)
     @Substitution(name='rolling')
     @Appender(_shared_docs['kurt'])
     def kurt(self, **kwargs):
@@ -1483,20 +1613,17 @@ class Expanding(_Rolling_and_Expanding):
         return super(Expanding, self).mean(*args, **kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['median'])
     def median(self, **kwargs):
         return super(Expanding, self).median(**kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['std'])
     def std(self, ddof=1, *args, **kwargs):
         nv.validate_expanding_func('std', args, kwargs)
         return super(Expanding, self).std(ddof=ddof, **kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['var'])
     def var(self, ddof=1, *args, **kwargs):
         nv.validate_expanding_func('var', args, kwargs)
@@ -1508,6 +1635,31 @@ class Expanding(_Rolling_and_Expanding):
     def skew(self, **kwargs):
         return super(Expanding, self).skew(**kwargs)
 
+    _agg_doc = dedent("""
+    Examples
+    --------
+
+    The example below will show an expanding calculation with a window size of
+    four matching the equivalent function call using `scipy.stats`.
+
+    >>> arr = [1, 2, 3, 4, 999]
+    >>> import scipy.stats
+    >>> fmt = "{0:.6f}"  # limit the printed precision to 6 digits
+    >>> print(fmt.format(scipy.stats.kurtosis(arr[:-1], bias=False)))
+    -1.200000
+    >>> print(fmt.format(scipy.stats.kurtosis(arr, bias=False)))
+    4.999874
+    >>> s = pd.Series(arr)
+    >>> s.expanding(4).kurt()
+    0         NaN
+    1         NaN
+    2         NaN
+    3   -1.200000
+    4    4.999874
+    dtype: float64
+    """)
+
+    @Appender(_agg_doc)
     @Substitution(name='expanding')
     @Appender(_shared_docs['kurt'])
     def kurt(self, **kwargs):
