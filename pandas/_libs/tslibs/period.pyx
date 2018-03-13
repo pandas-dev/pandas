@@ -1409,10 +1409,8 @@ cdef class _Period(object):
     @property
     def qyear(self):
         """
-        Return a year of the given date.
-
-        This function simply find the year of the given date that period fallsin.
-
+        Get the year component of the Period.
+        
         Returns
         -------
         int
