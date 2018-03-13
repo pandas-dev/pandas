@@ -2978,7 +2978,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def add_suffix(self, suffix):
         """
-        Add a suffix string to panel items names.
+        Add a suffix string to Series items names.
 
         Parameters
         ----------
@@ -2992,11 +2992,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.Series.add_prefix: Concatenate prefix string with panel items names.
+        Series.add_prefix: Concatenate prefix string with Series items names.
 
         Examples
         --------
-        >>> s = pd.Series([1,2,3,4])
+        >>> s = pd.Series([1, 2, 3, 4])
         >>> s
         0    1
         1    2
