@@ -1757,11 +1757,6 @@ class Index(IndexOpsMixin, PandasObject):
         ...                        format='%Y-%m-%d')
         >>> pd.Index(dates).get_duplicates()
         DatetimeIndex([], dtype='datetime64[ns]', freq=None)
-
-        Notes
-        -----
-        In case of datetime-like indexes, the function is overridden where the
-        result is converted to DatetimeIndex.
         """
         from collections import defaultdict
         counter = defaultdict(lambda: 0)
