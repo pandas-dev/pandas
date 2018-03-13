@@ -1810,6 +1810,10 @@ class Index(IndexOpsMixin, PandasObject):
         [2.0, 3.0]
         >>> pd.Index(['a', 'b', 'b', 'c', 'c', 'c', 'd']).get_duplicates()
         ['b', 'c']
+
+        Note that for a DatetimeIndex, it does not return a list but a new
+        DatetimeIndex:
+
         >>> dates = pd.to_datetime(['2018-01-01', '2018-01-02', '2018-01-03',
         ...                         '2018-01-03', '2018-01-04', '2018-01-04'],
         ...                        format='%Y-%m-%d')
@@ -1830,11 +1834,6 @@ class Index(IndexOpsMixin, PandasObject):
         ...                        format='%Y-%m-%d')
         >>> pd.Index(dates).get_duplicates()
         DatetimeIndex([], dtype='datetime64[ns]', freq=None)
-
-        Notes
-        -----
-        In case of datetime-like indexes, the function is overridden where the
-        result is converted to DatetimeIndex.
         """
         from collections import defaultdict
         counter = defaultdict(lambda: 0)
