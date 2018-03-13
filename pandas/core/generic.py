@@ -5518,17 +5518,17 @@ class NDFrame(PandasObject, SelectionMixin):
         Detect missing values.
 
         Return a boolean same-sized object indicating if the values are NA.
-        NA values, such as None or :attr:`numpy.NaN`, get mapped to True
+        NA values, such as None or :attr:`numpy.NaN`, gets mapped to True
         values.
-        Everything else get mapped to False values. Characters such as empty
+        Everything else gets mapped to False values. Characters such as empty
         strings `''` or :attr:`numpy.inf` are not considered NA values
-        (unless you set :attr:`pandas.options.mode.use_inf_as_na` `= True`).
+        (unless you set ``pandas.options.mode.use_inf_as_na = True``).
 
         Returns
         -------
-        bool of type %(klass)s
-            Mask of True/False values for each element in %(klass)s that
-            indicates whether an element is an NA value.
+        %(klass)s
+            Mask of bool values for each element in %(klass)s that
+            indicates whether an element is not an NA value.
 
         See Also
         --------
