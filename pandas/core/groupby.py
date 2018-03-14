@@ -162,6 +162,17 @@ _apply_docs = dict(
     a    5
     b    2
     dtype: int64
+
+    When GroupBy object has group_keys=False changes are made to
+    rows of a group.
+
+    >>> df = pd.DataFrame({'A': 'a a b'.split(), 'B': [1,2,3], 'C': [4,6, 5]})
+    >>> g = df.groupby('A', group_keys=False)
+    >>> g.apply(lambda x: x.iloc[0])
+       A  B  C
+    A
+    a  a  1  4
+    b  b  3  5
     """,
     series_examples="""
     >>> ser = pd.Series([0, 1, 2], index='a a b'.split())
