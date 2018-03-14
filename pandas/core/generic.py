@@ -950,20 +950,25 @@ class NDFrame(PandasObject, SelectionMixin):
     rename.__doc__ = _shared_docs['rename']
 
     def rename_axis(self, mapper, axis=0, copy=True, inplace=False):
-        """Alter the name of the index or columns.
+        """
+        Alter the name of the index or columns.
 
         Parameters
         ----------
         mapper : scalar, list-like, optional
-            Value to set the axis name attribute.
-        axis : int or string, default 0
+            Value to set as the axis name attribute.
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            The index or the name of the axis.
         copy : boolean, default True
-            Also copy underlying data
+            Also copy underlying data.
         inplace : boolean, default False
+            Modifies the object directly, instead of creating a new Series
+            or DataFrame.
 
         Returns
         -------
-        renamed : type of caller or None if inplace=True
+        renamed : Series, DataFrame, or None
+            The same type as the caller or None if `inplace` is True.
 
         Notes
         -----
@@ -974,11 +979,23 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.Series.rename, pandas.DataFrame.rename
-        pandas.Index.rename
+        pandas.Series.rename : Alter Series index labels or name
+        pandas.DataFrame.rename : Alter DataFrame index labels or name
+        pandas.Index.rename : Set new names on index
 
         Examples
         --------
+        **Series**
+
+        >>> s = pd.Series([1, 2, 3])
+        >>> s.rename_axis("foo")
+        foo
+        0    1
+        1    2
+        2    3
+        dtype: int64
+
+        **DataFrame**
 
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         >>> df.rename_axis("foo")
@@ -993,7 +1010,6 @@ class NDFrame(PandasObject, SelectionMixin):
         0    1  4
         1    2  5
         2    3  6
-
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         non_mapper = is_scalar(mapper) or (is_list_like(mapper) and not
@@ -1701,9 +1717,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        path_or_buf : the path or buffer to write the result string
-            if this is None, return the converted string
+        path_or_buf : string or file handle, optional
+            File path or object. If not specified, the result is returned as
+            a string.
         orient : string
+            Indication of expected JSON string format.
 
             * Series
 
@@ -1718,27 +1736,29 @@ class NDFrame(PandasObject, SelectionMixin):
 
             * The format of the JSON string
 
-              - split : dict like
-                {index -> [index], columns -> [columns], data -> [values]}
-              - records : list like
+              - 'split' : dict like {'index' -> [index],
+                'columns' -> [columns], 'data' -> [values]}
+              - 'records' : list like
                 [{column -> value}, ... , {column -> value}]
-              - index : dict like {index -> {column -> value}}
-              - columns : dict like {column -> {index -> value}}
-              - values : just the values array
-              - table : dict like {'schema': {schema}, 'data': {data}}
+              - 'index' : dict like {index -> {column -> value}}
+              - 'columns' : dict like {column -> {index -> value}}
+              - 'values' : just the values array
+              - 'table' : dict like {'schema': {schema}, 'data': {data}}
                 describing the data, and the data component is
                 like ``orient='records'``.
 
                 .. versionchanged:: 0.20.0
 
         date_format : {None, 'epoch', 'iso'}
-            Type of date conversion. `epoch` = epoch milliseconds,
-            `iso` = ISO8601. The default depends on the `orient`. For
-            `orient='table'`, the default is `'iso'`. For all other orients,
-            the default is `'epoch'`.
-        double_precision : The number of decimal places to use when encoding
-            floating point values, default 10.
-        force_ascii : force encoded string to be ASCII, default True.
+            Type of date conversion. 'epoch' = epoch milliseconds,
+            'iso' = ISO8601. The default depends on the `orient`. For
+            ``orient='table'``, the default is 'iso'. For all other orients,
+            the default is 'epoch'.
+        double_precision : int, default 10
+            The number of decimal places to use when encoding
+            floating point values.
+        force_ascii : boolean, default True
+            Force encoded string to be ASCII.
         date_unit : string, default 'ms' (milliseconds)
             The time unit to encode to, governs timestamp and ISO8601
             precision.  One of 's', 'ms', 'us', 'ns' for second, millisecond,
@@ -1767,13 +1787,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.23.0
 
-        Returns
-        -------
-        same type as input object with filtered info axis
-
         See Also
         --------
-        pd.read_json
+        pandas.read_json
 
         Examples
         --------
@@ -1786,16 +1802,26 @@ class NDFrame(PandasObject, SelectionMixin):
           "index":["row 1","row 2"],
           "data":[["a","b"],["c","d"]]}'
 
-        Encoding/decoding a Dataframe using ``'index'`` formatted JSON:
-
-        >>> df.to_json(orient='index')
-        '{"row 1":{"col 1":"a","col 2":"b"},"row 2":{"col 1":"c","col 2":"d"}}'
-
         Encoding/decoding a Dataframe using ``'records'`` formatted JSON.
         Note that index labels are not preserved with this encoding.
 
         >>> df.to_json(orient='records')
         '[{"col 1":"a","col 2":"b"},{"col 1":"c","col 2":"d"}]'
+
+        Encoding/decoding a Dataframe using ``'index'`` formatted JSON:
+
+        >>> df.to_json(orient='index')
+        '{"row 1":{"col 1":"a","col 2":"b"},"row 2":{"col 1":"c","col 2":"d"}}'
+
+        Encoding/decoding a Dataframe using ``'columns'`` formatted JSON:
+
+        >>> df.to_json(orient='columns')
+        '{"col 1":{"row 1":"a","row 2":"c"},"col 2":{"row 1":"b","row 2":"d"}}'
+
+        Encoding/decoding a Dataframe using ``'values'`` formatted JSON:
+
+        >>> df.to_json(orient='values')
+        '[["a","b"],["c","d"]]'
 
         Encoding with Table Schema
 
@@ -1902,33 +1928,108 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Write records stored in a DataFrame to a SQL database.
 
+        Databases supported by SQLAlchemy [1]_ are supported. Tables can be
+        newly created, appended to, or overwritten.
+
         Parameters
         ----------
         name : string
-            Name of SQL table
-        con : SQLAlchemy engine or DBAPI2 connection (legacy mode)
+            Name of SQL table.
+        con : sqlalchemy.engine.Engine or sqlite3.Connection
             Using SQLAlchemy makes it possible to use any DB supported by that
-            library. If a DBAPI2 object, only sqlite3 is supported.
-        schema : string, default None
+            library. Legacy support is provided for sqlite3.Connection objects.
+        schema : string, optional
             Specify the schema (if database flavor supports this). If None, use
             default schema.
         if_exists : {'fail', 'replace', 'append'}, default 'fail'
-            - fail: If table exists, do nothing.
-            - replace: If table exists, drop it, recreate it, and insert data.
-            - append: If table exists, insert data. Create if does not exist.
+            How to behave if the table already exists.
+
+            * fail: Raise a ValueError.
+            * replace: Drop the table before inserting new values.
+            * append: Insert new values to the existing table.
+
         index : boolean, default True
-            Write DataFrame index as a column.
+            Write DataFrame index as a column. Uses `index_label` as the column
+            name in the table.
         index_label : string or sequence, default None
             Column label for index column(s). If None is given (default) and
             `index` is True, then the index names are used.
             A sequence should be given if the DataFrame uses MultiIndex.
-        chunksize : int, default None
-            If not None, then rows will be written in batches of this size at a
-            time.  If None, all rows will be written at once.
-        dtype : dict of column name to SQL type, default None
-            Optional specifying the datatype for columns. The SQL type should
-            be a SQLAlchemy type, or a string for sqlite3 fallback connection.
+        chunksize : int, optional
+            Rows will be written in batches of this size at a time. By default,
+            all rows will be written at once.
+        dtype : dict, optional
+            Specifying the datatype for columns. The keys should be the column
+            names and the values should be the SQLAlchemy types or strings for
+            the sqlite3 legacy mode.
 
+        Raises
+        ------
+        ValueError
+            When the table already exists and `if_exists` is 'fail' (the
+            default).
+
+        See Also
+        --------
+        pandas.read_sql : read a DataFrame from a table
+
+        References
+        ----------
+        .. [1] http://docs.sqlalchemy.org
+        .. [2] https://www.python.org/dev/peps/pep-0249/
+
+        Examples
+        --------
+
+        Create an in-memory SQLite database.
+
+        >>> from sqlalchemy import create_engine
+        >>> engine = create_engine('sqlite://', echo=False)
+
+        Create a table from scratch with 3 rows.
+
+        >>> df = pd.DataFrame({'name' : ['User 1', 'User 2', 'User 3']})
+        >>> df
+             name
+        0  User 1
+        1  User 2
+        2  User 3
+
+        >>> df.to_sql('users', con=engine)
+        >>> engine.execute("SELECT * FROM users").fetchall()
+        [(0, 'User 1'), (1, 'User 2'), (2, 'User 3')]
+
+        >>> df1 = pd.DataFrame({'name' : ['User 4', 'User 5']})
+        >>> df1.to_sql('users', con=engine, if_exists='append')
+        >>> engine.execute("SELECT * FROM users").fetchall()
+        [(0, 'User 1'), (1, 'User 2'), (2, 'User 3'),
+         (0, 'User 4'), (1, 'User 5')]
+
+        Overwrite the table with just ``df1``.
+
+        >>> df1.to_sql('users', con=engine, if_exists='replace',
+        ...            index_label='id')
+        >>> engine.execute("SELECT * FROM users").fetchall()
+        [(0, 'User 4'), (1, 'User 5')]
+
+        Specify the dtype (especially useful for integers with missing values).
+        Notice that while pandas is forced to store the data as floating point,
+        the database supports nullable integers. When fetching the data with
+        Python, we get back integer scalars.
+
+        >>> df = pd.DataFrame({"A": [1, None, 2]})
+        >>> df
+             A
+        0  1.0
+        1  NaN
+        2  2.0
+
+        >>> from sqlalchemy.types import Integer
+        >>> df.to_sql('integers', con=engine, index=False,
+        ...           dtype={"A": Integer()})
+
+        >>> engine.execute("SELECT * FROM integers").fetchall()
+        [(1,), (None,), (2,)]
         """
         from pandas.io import sql
         sql.to_sql(self, name, con, schema=schema, if_exists=if_exists,
@@ -1966,26 +2067,58 @@ class NDFrame(PandasObject, SelectionMixin):
                          protocol=protocol)
 
     def to_clipboard(self, excel=True, sep=None, **kwargs):
-        """
-        Attempt to write text representation of object to the system clipboard
+        r"""
+        Copy object to the system clipboard.
+
+        Write a text representation of object to the system clipboard.
         This can be pasted into Excel, for example.
 
         Parameters
         ----------
-        excel : boolean, defaults to True
-                if True, use the provided separator, writing in a csv
-                format for allowing easy pasting into excel.
-                if False, write a string representation of the object
-                to the clipboard
-        sep : optional, defaults to tab
-        other keywords are passed to to_csv
+        excel : bool, default True
+            - True, use the provided separator, writing in a csv format for
+              allowing easy pasting into excel.
+            - False, write a string representation of the object to the
+              clipboard.
+
+        sep : str, default ``'\t'``
+            Field delimiter.
+        **kwargs
+            These parameters will be passed to DataFrame.to_csv.
+
+        See Also
+        --------
+        DataFrame.to_csv : Write a DataFrame to a comma-separated values
+            (csv) file.
+        read_clipboard : Read text from clipboard and pass to read_table.
 
         Notes
         -----
-        Requirements for your platform
-          - Linux: xclip, or xsel (with gtk or PyQt4 modules)
-          - Windows: none
-          - OS X: none
+        Requirements for your platform.
+
+          - Linux : `xclip`, or `xsel` (with `gtk` or `PyQt4` modules)
+          - Windows : none
+          - OS X : none
+
+        Examples
+        --------
+        Copy the contents of a DataFrame to the clipboard.
+
+        >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6]], columns=['A', 'B', 'C'])
+        >>> df.to_clipboard(sep=',')
+        ... # Wrote the following to the system clipboard:
+        ... # ,A,B,C
+        ... # 0,1,2,3
+        ... # 1,4,5,6
+
+        We can omit the the index by passing the keyword `index` and setting
+        it to false.
+
+        >>> df.to_clipboard(sep=',', index=False)
+        ... # Wrote the following to the system clipboard:
+        ... # A,B,C
+        ... # 1,2,3
+        ... # 4,5,6
         """
         from pandas.io import clipboards
         clipboards.to_clipboard(self, excel=excel, sep=sep, **kwargs)
@@ -7496,12 +7629,70 @@ class NDFrame(PandasObject, SelectionMixin):
     # Numeric Methods
     def abs(self):
         """
-        Return an object with absolute value taken--only applicable to objects
-        that are all numeric.
+        Return a Series/DataFrame with absolute numeric value of each element.
+
+        This function only applies to elements that are all numeric.
 
         Returns
         -------
-        abs: type of caller
+        abs
+            Series/DataFrame containing the absolute value of each element.
+
+        Notes
+        -----
+        For ``complex`` inputs, ``1.2 + 1j``, the absolute value is
+        :math:`\\sqrt{ a^2 + b^2 }`.
+
+        Examples
+        --------
+        Absolute numeric values in a Series.
+
+        >>> s = pd.Series([-1.10, 2, -3.33, 4])
+        >>> s.abs()
+        0    1.10
+        1    2.00
+        2    3.33
+        3    4.00
+        dtype: float64
+
+        Absolute numeric values in a Series with complex numbers.
+
+        >>> s = pd.Series([1.2 + 1j])
+        >>> s.abs()
+        0    1.56205
+        dtype: float64
+
+        Absolute numeric values in a Series with a Timedelta element.
+
+        >>> s = pd.Series([pd.Timedelta('1 days')])
+        >>> s.abs()
+        0   1 days
+        dtype: timedelta64[ns]
+
+        Select rows with data closest to certian value using argsort (from
+        `StackOverflow <https://stackoverflow.com/a/17758115>`__).
+
+        >>> df = pd.DataFrame({
+        ...     'a': [4, 5, 6, 7],
+        ...     'b': [10, 20, 30, 40],
+        ...     'c': [100, 50, -30, -50]
+        ... })
+        >>> df
+             a    b    c
+        0    4   10  100
+        1    5   20   50
+        2    6   30  -30
+        3    7   40  -50
+        >>> df.loc[(df.c - 43).abs().argsort()]
+             a    b    c
+        1    5   20   50
+        0    4   10  100
+        2    6   30  -30
+        3    7   40  -50
+
+        See Also
+        --------
+        numpy.absolute : calculate the absolute value element-wise.
         """
         return np.abs(self)
 
