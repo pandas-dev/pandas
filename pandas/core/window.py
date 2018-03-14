@@ -326,7 +326,7 @@ class _Window(PandasObject, SelectionMixin):
     ----------
     *args, **kwargs
         For compatibility with other %(name)s methods. Has no effect
-        on the computed median.
+        on the computed value.
 
     Returns
     -------
