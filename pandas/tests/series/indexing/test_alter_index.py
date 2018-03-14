@@ -18,91 +18,71 @@ from pandas.compat import lrange, range
 from pandas.util.testing import (assert_series_equal)
 import pandas.util.testing as tm
 
-JOIN_TYPES = ['inner', 'outer', 'left', 'right']
+
+@pytest.mark.parametrize(
+    'first_slice,second_slice', [
+        [[2, None], [None, -5]],
+        [[None, 0], [None, -5]],
+        [[None, -5], [None, 0]],
+        [[None, 0], [None, 0]]
+    ])
+@pytest.mark.parametrize('fill', [None, -1])
+def test_align(test_data, first_slice, second_slice, join_type, fill):
+    a = test_data.ts[slice(*first_slice)]
+    b = test_data.ts[slice(*second_slice)]
+
+    aa, ab = a.align(b, join=join_type, fill_value=fill)
+
+    join_index = a.index.join(b.index, how=join_type)
+    if fill is not None:
+        diff_a = aa.index.difference(join_index)
+        diff_b = ab.index.difference(join_index)
+        if len(diff_a) > 0:
+            assert (aa.reindex(diff_a) == fill).all()
+        if len(diff_b) > 0:
+            assert (ab.reindex(diff_b) == fill).all()
+
+    ea = a.reindex(join_index)
+    eb = b.reindex(join_index)
+
+    if fill is not None:
+        ea = ea.fillna(fill)
+        eb = eb.fillna(fill)
+
+    assert_series_equal(aa, ea)
+    assert_series_equal(ab, eb)
+    assert aa.name == 'ts'
+    assert ea.name == 'ts'
+    assert ab.name == 'ts'
+    assert eb.name == 'ts'
 
 
-def test_align(test_data):
-    def _check_align(a, b, how='left', fill=None):
-        aa, ab = a.align(b, join=how, fill_value=fill)
+@pytest.mark.parametrize(
+    'first_slice,second_slice', [
+        [[2, None], [None, -5]],
+        [[None, 0], [None, -5]],
+        [[None, -5], [None, 0]],
+        [[None, 0], [None, 0]]
+    ])
+@pytest.mark.parametrize('method', ['pad', 'bfill'])
+@pytest.mark.parametrize('limit', [None, 1])
+def test_align_fill_method(test_data,
+                           first_slice, second_slice,
+                           join_type, method, limit):
+    a = test_data.ts[slice(*first_slice)]
+    b = test_data.ts[slice(*second_slice)]
 
-        join_index = a.index.join(b.index, how=how)
-        if fill is not None:
-            diff_a = aa.index.difference(join_index)
-            diff_b = ab.index.difference(join_index)
-            if len(diff_a) > 0:
-                assert (aa.reindex(diff_a) == fill).all()
-            if len(diff_b) > 0:
-                assert (ab.reindex(diff_b) == fill).all()
+    aa, ab = a.align(b, join=join_type, method=method, limit=limit)
 
-        ea = a.reindex(join_index)
-        eb = b.reindex(join_index)
+    join_index = a.index.join(b.index, how=join_type)
+    ea = a.reindex(join_index)
+    eb = b.reindex(join_index)
 
-        if fill is not None:
-            ea = ea.fillna(fill)
-            eb = eb.fillna(fill)
+    ea = ea.fillna(method=method, limit=limit)
+    eb = eb.fillna(method=method, limit=limit)
 
-        assert_series_equal(aa, ea)
-        assert_series_equal(ab, eb)
-        assert aa.name == 'ts'
-        assert ea.name == 'ts'
-        assert ab.name == 'ts'
-        assert eb.name == 'ts'
-
-    for kind in JOIN_TYPES:
-        _check_align(test_data.ts[2:], test_data.ts[:-5], how=kind)
-        _check_align(test_data.ts[2:], test_data.ts[:-5], how=kind, fill=-1)
-
-        # empty left
-        _check_align(test_data.ts[:0], test_data.ts[:-5], how=kind)
-        _check_align(test_data.ts[:0], test_data.ts[:-5], how=kind, fill=-1)
-
-        # empty right
-        _check_align(test_data.ts[:-5], test_data.ts[:0], how=kind)
-        _check_align(test_data.ts[:-5], test_data.ts[:0], how=kind, fill=-1)
-
-        # both empty
-        _check_align(test_data.ts[:0], test_data.ts[:0], how=kind)
-        _check_align(test_data.ts[:0], test_data.ts[:0], how=kind, fill=-1)
-
-
-def test_align_fill_method(test_data):
-    def _check_align(a, b, how='left', method='pad', limit=None):
-        aa, ab = a.align(b, join=how, method=method, limit=limit)
-
-        join_index = a.index.join(b.index, how=how)
-        ea = a.reindex(join_index)
-        eb = b.reindex(join_index)
-
-        ea = ea.fillna(method=method, limit=limit)
-        eb = eb.fillna(method=method, limit=limit)
-
-        assert_series_equal(aa, ea)
-        assert_series_equal(ab, eb)
-
-    for kind in JOIN_TYPES:
-        for meth in ['pad', 'bfill']:
-            _check_align(test_data.ts[2:], test_data.ts[:-5],
-                         how=kind, method=meth)
-            _check_align(test_data.ts[2:], test_data.ts[:-5],
-                         how=kind, method=meth, limit=1)
-
-            # empty left
-            _check_align(test_data.ts[:0], test_data.ts[:-5],
-                         how=kind, method=meth)
-            _check_align(test_data.ts[:0], test_data.ts[:-5],
-                         how=kind, method=meth, limit=1)
-
-            # empty right
-            _check_align(test_data.ts[:-5], test_data.ts[:0],
-                         how=kind, method=meth)
-            _check_align(test_data.ts[:-5], test_data.ts[:0],
-                         how=kind, method=meth, limit=1)
-
-            # both empty
-            _check_align(test_data.ts[:0], test_data.ts[:0],
-                         how=kind, method=meth)
-            _check_align(test_data.ts[:0], test_data.ts[:0],
-                         how=kind, method=meth, limit=1)
+    assert_series_equal(aa, ea)
+    assert_series_equal(ab, eb)
 
 
 def test_align_nocopy(test_data):
@@ -481,3 +461,56 @@ def test_rename():
     assert_series_equal(result, expected)
 
     assert result.name == expected.name
+
+
+def test_drop():
+    # unique
+    s = Series([1, 2], index=['one', 'two'])
+    expected = Series([1], index=['one'])
+    result = s.drop(['two'])
+    assert_series_equal(result, expected)
+    result = s.drop('two', axis='rows')
+    assert_series_equal(result, expected)
+
+    # non-unique
+    # GH 5248
+    s = Series([1, 1, 2], index=['one', 'two', 'one'])
+    expected = Series([1, 2], index=['one', 'one'])
+    result = s.drop(['two'], axis=0)
+    assert_series_equal(result, expected)
+    result = s.drop('two')
+    assert_series_equal(result, expected)
+
+    expected = Series([1], index=['two'])
+    result = s.drop(['one'])
+    assert_series_equal(result, expected)
+    result = s.drop('one')
+    assert_series_equal(result, expected)
+
+    # single string/tuple-like
+    s = Series(range(3), index=list('abc'))
+    pytest.raises(KeyError, s.drop, 'bc')
+    pytest.raises(KeyError, s.drop, ('a',))
+
+    # errors='ignore'
+    s = Series(range(3), index=list('abc'))
+    result = s.drop('bc', errors='ignore')
+    assert_series_equal(result, s)
+    result = s.drop(['a', 'd'], errors='ignore')
+    expected = s.iloc[1:]
+    assert_series_equal(result, expected)
+
+    # bad axis
+    pytest.raises(ValueError, s.drop, 'one', axis='columns')
+
+    # GH 8522
+    s = Series([2, 3], index=[True, False])
+    assert s.index.is_object()
+    result = s.drop(True)
+    expected = Series([3], index=[False])
+    assert_series_equal(result, expected)
+
+    # GH 16877
+    s = Series([2, 3], index=[0, 1])
+    with tm.assert_raises_regex(KeyError, 'not contained in axis'):
+        s.drop([False, True])

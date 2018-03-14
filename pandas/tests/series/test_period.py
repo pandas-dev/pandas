@@ -117,7 +117,7 @@ class TestSeriesPeriod(object):
         result = df.values.squeeze()
         assert (result[:, 0] == expected.values).all()
 
-    def test_align_series(self):
+    def test_add_series(self):
         rng = period_range('1/1/2000', '1/1/2010', freq='A')
         ts = Series(np.random.randn(len(rng)), index=rng)
 
@@ -129,12 +129,15 @@ class TestSeriesPeriod(object):
         result = ts + _permute(ts[::2])
         tm.assert_series_equal(result, expected)
 
-        # it works!
-        for kind in ['inner', 'outer', 'left', 'right']:
-            ts.align(ts[::2], join=kind)
         msg = "Input has different freq=D from PeriodIndex\\(freq=A-DEC\\)"
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             ts + ts.asfreq('D', how="end")
+
+    def test_align_series(self, join_type):
+        rng = period_range('1/1/2000', '1/1/2010', freq='A')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        ts.align(ts[::2], join=join_type)
 
     def test_truncate(self):
         # GH 17717
