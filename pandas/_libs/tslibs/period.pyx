@@ -1319,9 +1319,16 @@ cdef class _Period(object):
 
         Examples
         --------
-        >>> p = pd.Period("2018-03-11")
+        >>> p = pd.Period("2018-03-11", "H")
         >>> p.week
         10
+
+        >>> p = pd.Period("2018-02-01", "D")
+        >>> p.week
+        5
+        >>> p = pd.Period("2018-01-06", "D")
+        >>> p.week
+        1
         """
         return self.weekofyear
 
