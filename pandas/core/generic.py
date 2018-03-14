@@ -2521,21 +2521,23 @@ class NDFrame(PandasObject, SelectionMixin):
         ----------
         indices : array-like
             An array of ints indicating which positions to take.
-        axis : int, default 0
-            The axis on which to select elements. "0" means that we are
-            selecting rows, "1" means that we are selecting columns, etc.
+        axis : {0 or ‘index’, 1 or ‘columns’, None}, default 0
+            The axis on which to select elements. ``0`` means that we are
+            selecting rows, ``1`` means that we are selecting columns.
         convert : bool, default True
             Whether to convert negative indices into positive ones.
             For example, ``-1`` would map to the ``len(axis) - 1``.
             The conversions are similar to the behavior of indexing a
             regular Python list.
+
             .. deprecated:: 0.21.0
                In the future, negative indices will always be converted.
+
         is_copy : bool, default True
             Whether to return a copy of the original object or not.
-        kwargs : mapping, optional
-            Optional keyword arguments to
-            ``:meth:pandas.compat.numpy.function.validate_take``.
+        **kwargs
+            For compatibility with :meth:`numpy.take`. Has no effect on the
+            output.
 
         Returns
         -------
@@ -2544,9 +2546,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        numpy.ndarray.take : Return an array formed from the elements
-            at given indices
-        numpy.take : Take elements from an array along an axis
+        DataFrame.loc : Select a subset of a DataFrame by label.
+        DataFrame.iloc : Select a subset of a DataFrame by position.
+        numpy.take : Take elements from an array along an axis.
 
         Examples
         --------
@@ -2554,7 +2556,7 @@ class NDFrame(PandasObject, SelectionMixin):
         ...                    ('parrot', 'bird',     24.0),
         ...                    ('lion',   'mammal',   80.5),
         ...                    ('monkey', 'mammal', np.nan)],
-        ...                    columns=('name', 'class', 'max_speed'),
+        ...                    columns=['name', 'class', 'max_speed'],
         ...                    index=[0, 2, 3, 1])
         >>> df
              name   class  max_speed
