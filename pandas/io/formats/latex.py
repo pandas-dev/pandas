@@ -174,7 +174,7 @@ class LatexFormatter(TableFormatter):
         def null_replace(x):
             if (not x and x != 0) or x == '{}':
                 return '{}'
-            return '{x}'.format(x=x)
+            return u'{x}'.format(x=x)
 
         def escape_item(x):
             x = x.replace('\\', '\\textbackslash')
