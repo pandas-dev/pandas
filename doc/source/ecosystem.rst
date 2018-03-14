@@ -156,14 +156,22 @@ See more in the  `pandas-datareader docs <https://pandas-datareader.readthedocs.
 
 The following data feeds are available:
 
-  * Yahoo! Finance
-  * Google Finance
-  * FRED
-  * Fama/French
-  * World Bank
-  * OECD
-  * Eurostat
-  * EDGAR Index
+ * Google Finance
+ * Tiingo
+ * Morningstar
+ * IEX
+ * Robinhood
+ * Enigma
+ * Quandl
+ * FRED
+ * Fama/French
+ * World Bank
+ * OECD
+ * Eurostat
+ * TSP Fund Data
+ * Nasdaq Trader Symbol Definitions
+ * Stooq Index Data
+ * MOEX Data
 
 `quandl/Python <https://github.com/quandl/Python>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
