@@ -3174,18 +3174,18 @@ class FramePlotMethods(BasePlotMethods):
     def hexbin(self, x, y, C=None, reduce_C_function=None, gridsize=None,
                **kwds):
         """
-        Generate an hexagonal binning plot.
+        Generate a hexagonal binning plot.
 
-        Generate an hexagonal binning plot of `x` versus `y`. If `C` is `None`
-        (the default), this is an histogram of the number of occurrences
+        Generate a hexagonal binning plot of `x` versus `y`. If `C` is `None`
+        (the default), this is a histogram of the number of occurrences
         of the observations at ``(x[i], y[i])``.
 
         If `C` is specified, specifies values at given coordinates
         ``(x[i], y[i])``. These values are accumulated for each hexagonal
         bin and then reduced according to `reduce_C_function`,
-        having as default the numpy's mean function (:meth:`numpy.mean`).
+        which defaults to NumPy's mean function (:meth:`numpy.mean`).
         (If `C` is specified, it must also be a 1-D sequence
-        of the same length as `x` and `y`.)
+        of the same length as `x` and `y`, or a column label.)
 
         Parameters
         ----------
