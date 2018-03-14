@@ -1173,6 +1173,7 @@ cdef class _Period(object):
 
         See also
         --------
+        Period.end_time : Return the end Timestamp.
         Period.dayofyear : Return the day of year.
         Period.daysinmonth : Return the days in that month.
         Period.dayofweek : Return the day of the week.
@@ -1185,6 +1186,7 @@ cdef class _Period(object):
 
         >>> period.start_time
         Timestamp('2012-01-01 00:00:00')
+
         >>> period.end_time
         Timestamp('2012-01-01 23:59:59.999999999')
         """
