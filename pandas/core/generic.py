@@ -701,15 +701,20 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Squeeze 1 dimensional axis objects into scalars.
 
-        If the given axis consists of one dimensional objects, they are turned
-        into scalars. In case no axis is specified, all axes are subject to
-        squeezing. In any case, objects in axes that can't be squeezed are
-        left unchanged.
+        Series or DataFrames with a single element are squeezed to a scalar.
+        DataFrames with a single column or a single row are squeezed to a
+        Series. Otherwise the object is unchanged.
+
+        This method is most useful when you don't know if your
+        object is a Series or DataFrame, but you do know it has just a single
+        column. In that case you can safely call `squeeze` to ensure you have a
+        Series.
 
         Parameters
         ----------
         axis : integer or string, optional
-            A specific axis to squeeze.
+            A specific axis to squeeze. By default, all length-1 axes are
+            squeezed.
 
             .. versionadded:: 0.20.0
 
