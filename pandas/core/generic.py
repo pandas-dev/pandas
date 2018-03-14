@@ -8524,28 +8524,28 @@ Returns a DataFrame or Series of the same size containing the %(desc)s.
 
 Parameters
 ----------
-axis : %(axis_descr)s
+axis : {0 or 'index', 1 or 'columns'}, default 0
 skipna : boolean, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA.
-*args : any, default None
-**kwargs : any, default None
+*args : default None
+**kwargs : default None
     Additional keywords have no effect but might be accepted for
     compatibility with NumPy.
 
 Returns
 -------
-%(outname)s : %(name1)s\n
+%(outname)s : %(name1)s or %(name2)s\n
 %(examples)s
 See also
 --------
-pandas.core.window.Expanding.%(accum_func_name)s : Similar functionality
+core.window.Expanding.%(accum_func_name)s : Similar functionality
     but ignores ``NaN`` values.
-pandas.Series.%(outname)s : Return %(desc)s over Series axis.
-pandas.DataFrame.cummax : Return cumulative maximum over DataFrame axis.
-pandas.DataFrame.cummin : Return cumulative minimum over DataFrame axis.
-pandas.DataFrame.cumsum : Return cumulative sum over DataFrame axis.
-pandas.DataFrame.cumprod : Return cumulative product over DataFrame axis.
+Series.%(outname)s : Return %(desc)s over Series axis.
+DataFrame.cummax : Return cumulative maximum over DataFrame axis.
+DataFrame.cummin : Return cumulative minimum over DataFrame axis.
+DataFrame.cumsum : Return cumulative sum over DataFrame axis.
+DataFrame.cumprod : Return cumulative product over DataFrame axis.
 """
 
 _cummax_examples = """\
@@ -8553,60 +8553,163 @@ Examples
 --------
 **DataFrame**
 
-Create a DataFrame:
-
->>> df = pd.DataFrame([[9, 7, 9, 7],
-...                    [7, 5, 2, 7],
-...                    [3, 5, 2, 2],
-...                    [8, 0, 9, 0]],
-...                    columns=list('ABCD'))
+>>> df = pd.DataFrame([[7, 1],
+...                    [3, 4],
+...                    [8, 0]],
+...                    columns=list('AB'))
 >>> df
-   A  B  C  D
-0  9  7  9  7
-1  7  5  2  7
-2  3  5  2  2
-3  8  0  9  0
+   A  B
+0  7  1
+1  3  4
+2  8  0
 
-axis=None : Iterates over rows and finds the maximum value in each column.
-If value is larger than the previous maximum, updates it:
+**axis**
+
+axis=None : Iterates over rows and finds the cumulative value in each column.
+If value is different from the previous one, updates it:
 
 >>> df.cummax(axis=None)
-   A  B  C  D
-0  9  7  9  7
-1  9  7  9  7
-2  9  7  9  7
-3  9  7  9  7
+   A  B
+0  7  1
+1  7  4
+2  8  4
+>>> df.cummin(axis=None)
+   A  B
+0  7  1
+1  3  1
+2  3  0
+>>> df.cumsum(axis=None)
+    A  B
+0   7  1
+1  10  5
+2  18  5
+>>> df.cumprod(axis=None)
+     A  B
+0    7  1
+1   21  4
+2  168  0
 
-axis=1 : Iterates over columns and finds the maximum value in each row.
-If value is larger than the previous maximum, updates it:
+axis=1 : Iterates over columns and finds the cumulative value in each row.
+If value is different from the previous one, updates it:
 
 >>> df.cummax(axis=1)
-   A  B  C  D
-0  9  9  9  9
-1  7  7  7  7
-2  3  5  5  5
-3  8  8  9  9
+   A  B
+0  7  7
+1  3  4
+2  8  8
+>>> df.cummin(axis=1)
+   A  B
+0  7  1
+1  3  3
+2  8  0
+>>> df.cumsum(axis=1)
+   A  B
+0  7  8
+1  3  7
+2  8  8
+>>> df.cumprod(axis=1)
+   A   B
+0  7   7
+1  3  12
+2  8   0
+
+**skipna**
+
+skipna=True : Ignores NaN values during operation:
+
+>>> df = pd.DataFrame([[7, np.nan],
+...                    [np.nan, 4],
+...                    [8, 0]],
+...                    columns=list('AB'))
+>>> df
+     A    B
+0  7.0  NaN
+1  NaN  4.0
+2  8.0  0.0
+
+>>> df.cummax(skipna=True)
+     A    B
+0  7.0  NaN
+1  NaN  4.0
+2  8.0  4.0
+>>> df.cummin(skipna=True)
+     A    B
+0  7.0  NaN
+1  NaN  4.0
+2  7.0  0.0
+>>> df.cumsum(skipna=True)
+      A    B
+0   7.0  NaN
+1   NaN  4.0
+2  15.0  4.0
+>>> df.cumprod(skipna=True)
+      A    B
+0   7.0  NaN
+1   NaN  4.0
+2  56.0  0.0
+
+skipna=False : Includes NaN values:
+
+>>> df.cummax(skipna=False)
+     A   B
+0  7.0 NaN
+1  NaN NaN
+2  NaN NaN
+>>> df.cummin(skipna=False)
+     A   B
+0  7.0 NaN
+1  NaN NaN
+2  NaN NaN
+>>> df.cumsum(skipna=False)
+     A   B
+0  7.0 NaN
+1  NaN NaN
+2  NaN NaN
+>>> df.cumprod(skipna=False)
+     A   B
+0  7.0 NaN
+1  NaN NaN
+2  NaN NaN
 
 **Series**
 
-Create a Series:
-
->>> s = pd.Series([5,0,-5,10,-10])
+>>> s = pd.Series([2,np.nan,5,0,-1])
 >>> s
-0     5
-1     0
-2    -5
-3    10
-4   -10
-dtype: int64
+0    2.0
+1    NaN
+2    5.0
+3    0.0
+4   -1.0
+dtype: float64
 
 >>> s.cummax()
-0     5
-1     5
-2     5
-3    10
-4    10
-dtype: int64
+0    2.0
+1    NaN
+2    5.0
+3    5.0
+4    5.0
+dtype: float64
+>>> s.cummin()
+0    2.0
+1    NaN
+2    2.0
+3    0.0
+4   -1.0
+dtype: float64
+>>> s.cumsum()
+0    2.0
+1    NaN
+2    7.0
+3    7.0
+4    6.0
+dtype: float64
+>>> s.cumprod()
+0     2.0
+1     NaN
+2    10.0
+3     0.0
+4    -0.0
+dtype: float64
 """
 
 _any_see_also = """\
