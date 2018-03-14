@@ -1418,6 +1418,7 @@ cdef class _Period(object):
         See Also
         --------
         Period.qyear :Return the year of the date
+        Period.second : Return the second of the period
 
         Examples
         --------
