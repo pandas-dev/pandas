@@ -3065,6 +3065,31 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Examples
         --------
+        >>> ser = pd.Series([1., 2., np.nan])
+        >>> ser
+        0    1.0
+        1    2.0
+        2    NaN
+        dtype: float64
+
+        Drop NA values from a Series.
+
+        >>> ser.dropna()
+        0    1.0
+        1    2.0
+        dtype: float64
+
+        Keep the Series with valid entries in the same variable.
+
+        >>> ser.dropna(inplace=True)
+        >>> ser
+        0    1.0
+        1    2.0
+        dtype: float64
+
+        Empty strings are not considered NA values. None is considered an NA
+        value.
+
         >>> ser = pd.Series([np.NaN, 2, pd.NaT, '', None, 'I stay'])
         >>> ser
         0       NaN
@@ -3074,19 +3099,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         4      None
         5    I stay
         dtype: object
-
-        Drop NA values from a Series.
-
         >>> ser.dropna()
-        1         2
-        3
-        5    I stay
-        dtype: object
-
-        Keep the Series with valid entries in the same variable.
-
-        >>> ser.dropna(inplace=True)
-        >>> ser
         1         2
         3
         5    I stay
