@@ -448,8 +448,8 @@ def validate_one(func_name):
                 param_errs.append('Parameter "{}" has no type'.format(param))
             else:
                 if doc.parameter_type(param)[-1] == '.':
-                    param_errs.append('Parameter "{}" type '
-                                      'should not finish with "."'.format(param))
+                    param_errs.append('Parameter "{}" type should '
+                                      'not finish with "."'.format(param))
 
         if not doc.parameter_desc(param):
             param_errs.append('Parameter "{}" '
