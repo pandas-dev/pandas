@@ -2874,39 +2874,39 @@ class FramePlotMethods(BasePlotMethods):
     def hexbin(self, x, y, C=None, reduce_C_function=None, gridsize=None,
                **kwds):
         """
-        Make hexagonal binning plot.
+        Generate an hexagonal binning plot.
 
-        Make an hexagonal binning plot of `x` versus `y`. If `C` is `None`
+        Generate an hexagonal binning plot of `x` versus `y`. If `C` is `None`
         (the default), this is an histogram of the number of occurrences
-        of the observations at (x[i],y[i]).
+        of the observations at ``(x[i], y[i])``.
 
         If `C` is specified, specifies values at given coordinates
-        (x[i],y[i]). These values are accumulated for each hexagonal
+        ``(x[i], y[i])``. These values are accumulated for each hexagonal
         bin and then reduced according to `reduce_C_function`,
-        having as default the numpy's mean function (np.mean).
+        having as default the numpy's mean function (:meth:`numpy.mean`).
         (If `C` is specified, it must also be a 1-D sequence
         of the same length as `x` and `y`.)
 
         Parameters
         ----------
-        x : label or position
-            Coordinates for x points.
-        y : label or position
-            Coordinates for y points.
-        C : label or position, optional
-            The value at each `(x, y)` point.
-        reduce_C_function : callable, optional, default `mean`
+        x : int or str
+            The column label or position for x points.
+        y : int or str
+            The column label or position for y points.
+        C : int or str, optional
+            The column label or position for the value of `(x, y)` point.
+        reduce_C_function : callable, default `np.mean`
             Function of one argument that reduces all the values in a bin to
-            a single number (e.g. `mean`, `max`, `sum`, `std`).
-        gridsize : int, optional, default 100
+            a single number (e.g. `np.mean`, `np.max`, `np.sum`, `np.std`).
+        gridsize : int or tuple of (int, int), optional, default 100
             The number of hexagons in the x-direction.
             The corresponding number of hexagons in the y-direction is
             chosen in a way that the hexagons are approximately regular.
             Alternatively,
             gridsize can be a tuple with two elements specifying the number
             of hexagons in the x-direction and the y-direction.
-        kwds : optional
-            Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
+        **kwds : optional
+            Additional keyword arguments are documented in :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
@@ -2915,18 +2915,39 @@ class FramePlotMethods(BasePlotMethods):
         See Also
         --------
         matplotlib.pyplot.hexbin : hexagonal binning plot using matplotlib,
-                    the matplotlib function that is used under the hood.
+            the matplotlib function that is used under the hood.
 
         Examples
         --------
+        The following examples are generated with random data.
 
         .. plot::
             :context: close-figs
 
             >>> n = 100000
+            >>> # Make a dataframe with normal distributed data
             >>> df = pd.DataFrame({'x':np.random.randn(n),
             ...                    'y':np.random.randn(n)})
-            >>> hexbin = df.plot.hexbin(x='x', y='y', cmap='viridis')
+            >>> ax = df.plot.hexbin(x='x', y='y', cmap='inferno')
+        
+        The next example uses `C` and `np.sum` as `reduce_C_function`.
+        Note that `'observations'` values ranges from 1 to 5 but the result
+        plot shows values up to more than 25. This is because of the `reduce_C_function`.
+
+        .. plot::
+            :context: close-figs
+
+            >>> n=500
+            >>> df = pd.DataFrame({
+            ...     'coord_x':np.random.uniform(-3, 3, size=n),
+            ...     'coord_y':np.random.uniform(30, 50, size=n),
+            ...     'observations':np.random.randint(1,5, size=n)
+            ...     })
+            >>> ax = df.plot.hexbin(x='coord_x',
+            ...                     y='coord_y',
+            ...                     C='observations',
+            ...                     reduce_C_function=np.sum,
+            ...                     gridsize=10)
         """
         if reduce_C_function is not None:
             kwds['reduce_C_function'] = reduce_C_function
