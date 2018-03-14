@@ -1059,7 +1059,47 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     def to_period(self, freq=None):
         """
-        Cast to PeriodIndex at a particular frequency
+        Cast to PeriodIndex at a particular frequency.
+
+        Converts DatetimeIndex to PeriodIndex.
+
+        Parameters
+        ----------
+        freq : string or Offset, optional
+            One of pandas' :ref:`offset strings <timeseries.offset_aliases>`
+            or an Offset object. Will be inferred by default.
+
+        Returns
+        -------
+        PeriodIndex
+
+        Raises
+        ------
+        ValueError
+            When converting a DatetimeIndex with non-regular values, so that a
+            frequency cannot be inferred.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({"y": [1,2,3]},
+        ...                   index=pd.to_datetime(["2000-03-31 00:00:00",
+        ...                                         "2000-05-31 00:00:00",
+        ...                                         "2000-08-31 00:00:00"]))
+        >>> df.index.to_period("M")
+        PeriodIndex(['2000-03', '2000-05', '2000-08'],
+                    dtype='period[M]', freq='M')
+
+        Infer the daily frequency
+
+        >>> idx = pd.date_range("2017-01-01", periods=2)
+        >>> idx.to_period()
+        PeriodIndex(['2017-01-01', '2017-01-02'],
+                    dtype='period[D]', freq='D')
+
+        See also
+        --------
+        pandas.PeriodIndex: Immutable ndarray holding ordinal values
+        pandas.DatetimeIndex.to_pydatetime: Return DatetimeIndex as object
         """
         from pandas.core.indexes.period import PeriodIndex
 
@@ -1148,17 +1188,17 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     def to_perioddelta(self, freq):
         """
-        Calculates TimedeltaIndex of difference between index
-        values and index converted to PeriodIndex at specified
-        freq.  Used for vectorized offsets
+        Calculate TimedeltaIndex of difference between index
+        values and index converted to periodIndex at specified
+        freq. Used for vectorized offsets
 
         Parameters
         ----------
-        freq : Period frequency
+        freq: Period frequency
 
         Returns
         -------
-        y : TimedeltaIndex
+        y: TimedeltaIndex
         """
         return to_timedelta(self.asi8 - self.to_period(freq)
                             .to_timestamp().asi8)
@@ -1906,15 +1946,14 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     def tz_convert(self, tz):
         """
-        Convert tz-aware DatetimeIndex from one time zone to another (using
-        pytz/dateutil)
+        Convert tz-aware DatetimeIndex from one time zone to another.
 
         Parameters
         ----------
         tz : string, pytz.timezone, dateutil.tz.tzfile or None
-            Time zone for time. Corresponding timestamps would be converted to
-            time zone of the TimeSeries.
-            None will remove timezone holding UTC time.
+            Time zone for time. Corresponding timestamps would be converted
+            to this time zone of the DatetimeIndex. A `tz` of None will
+            convert to UTC and remove the timezone information.
 
         Returns
         -------
@@ -1924,6 +1963,50 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         ------
         TypeError
             If DatetimeIndex is tz-naive.
+
+        See Also
+        --------
+        DatetimeIndex.tz : A timezone that has a variable offset from UTC
+        DatetimeIndex.tz_localize : Localize tz-naive DatetimeIndex to a
+            given time zone, or remove timezone from a tz-aware DatetimeIndex.
+
+        Examples
+        --------
+        With the `tz` parameter, we can change the DatetimeIndex
+        to other time zones:
+
+        >>> dti = pd.DatetimeIndex(start='2014-08-01 09:00',
+        ...                        freq='H', periods=3, tz='Europe/Berlin')
+
+        >>> dti
+        DatetimeIndex(['2014-08-01 09:00:00+02:00',
+                       '2014-08-01 10:00:00+02:00',
+                       '2014-08-01 11:00:00+02:00'],
+                      dtype='datetime64[ns, Europe/Berlin]', freq='H')
+
+        >>> dti.tz_convert('US/Central')
+        DatetimeIndex(['2014-08-01 02:00:00-05:00',
+                       '2014-08-01 03:00:00-05:00',
+                       '2014-08-01 04:00:00-05:00'],
+                      dtype='datetime64[ns, US/Central]', freq='H')
+
+        With the ``tz=None``, we can remove the timezone (after converting
+        to UTC if necessary):
+
+        >>> dti = pd.DatetimeIndex(start='2014-08-01 09:00',freq='H',
+        ...                        periods=3, tz='Europe/Berlin')
+
+        >>> dti
+        DatetimeIndex(['2014-08-01 09:00:00+02:00',
+                       '2014-08-01 10:00:00+02:00',
+                       '2014-08-01 11:00:00+02:00'],
+                        dtype='datetime64[ns, Europe/Berlin]', freq='H')
+
+        >>> dti.tz_convert(None)
+        DatetimeIndex(['2014-08-01 07:00:00',
+                       '2014-08-01 08:00:00',
+                       '2014-08-01 09:00:00'],
+                        dtype='datetime64[ns]', freq='H')
         """
         tz = timezones.maybe_get_tz(tz)
 
@@ -2204,29 +2287,30 @@ def _generate_regular_range(start, end, periods, offset):
 def date_range(start=None, end=None, periods=None, freq='D', tz=None,
                normalize=False, name=None, closed=None, **kwargs):
     """
-    Return a fixed frequency DatetimeIndex, with day (calendar) as the default
-    frequency
+    Return a fixed frequency DatetimeIndex.
+
+    The default frequency is day (calendar).
 
     Parameters
     ----------
     start : string or datetime-like, default None
-        Left bound for generating dates
+        Left bound for generating dates.
     end : string or datetime-like, default None
-        Right bound for generating dates
+        Right bound for generating dates.
     periods : integer, default None
-        Number of periods to generate
+        Number of periods to generate.
     freq : string or DateOffset, default 'D' (calendar daily)
-        Frequency strings can have multiples, e.g. '5H'
+        Frequency strings can have multiples, e.g. '5H'.
     tz : string, default None
         Time zone name for returning localized DatetimeIndex, for example
-        Asia/Hong_Kong
+        Asia/Hong_Kong.
     normalize : bool, default False
-        Normalize start/end dates to midnight before generating date range
+        Normalize start/end dates to midnight before generating date range.
     name : string, default None
-        Name of the resulting DatetimeIndex
+        Name of the resulting DatetimeIndex.
     closed : string, default None
         Make the interval closed with respect to the given frequency to
-        the 'left', 'right', or both sides (None)
+        the 'left', 'right', or both sides (None).
 
     Notes
     -----
@@ -2239,6 +2323,22 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
     Returns
     -------
     rng : DatetimeIndex
+
+    See Also
+    --------
+    pandas.period_range : Return a fixed frequency PeriodIndex.
+    pandas.interval_range : Return a fixed frequency IntervalIndex.
+
+    Examples
+    --------
+    >>> pd.date_range('2018-10-03', periods=2) # doctest: +NORMALIZE_WHITESPACE
+    DatetimeIndex(['2018-10-03', '2018-10-04'], dtype='datetime64[ns]',
+                   freq='D')
+
+    >>> pd.date_range(start='2018-01-01', end='20180103')
+    ... # doctest: +NORMALIZE_WHITESPACE
+    DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03'],
+                    dtype='datetime64[ns]', freq='D')
     """
     return DatetimeIndex(start=start, end=end, periods=periods,
                          freq=freq, tz=tz, normalize=normalize, name=name,
