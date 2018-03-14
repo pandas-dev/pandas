@@ -51,18 +51,15 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
     """
     Concatenate strings in the Series/Index with given separator.
 
-    This function concatenates elements of Series/Index and elements
-    of lists or list-like objects having same length.
-    The concatenation is done at corresponding indices of
-    iterable specified by `Series` when two or more iterables
-    are present. If `others` is not being passed then
-    all values in the Series are concatenated in a single string.
-    The final concatenation is done with a given `sep`
-    and a string is returned, `sep` is optional.
+    If `others` is specified, this function concatenates the Series/Index
+    and elements of `others` element-wise.
+    If `others` is not being passed then all values in the Series are
+    concatenated in a single string with a given `sep`.
 
     Parameters
     ----------
-    others : list-like, or list of list-likes
+    others : list-like, or list of list-likes, optional
+        List-likes (or a list of them) of the same length as calling object.
         If None, returns str concatenating strings of the Series.
     sep : string or None, default None
         If None, concatenates without any separator.
@@ -75,21 +72,24 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
 
     See Also
     --------
-    str_split : Split each string in the Series/Index
+    split : Split each string in the Series/Index
 
     Examples
     --------
-    When ``na_rep`` is `None` (default behavior), NaN value(s)
-    in the Series are ignored.
+    When not passing `other`, all values are concatenated into a single
+    string:
 
-    >>> s = pd.Series(['a','b',np.nan,'c'])
+    >>> s = pd.Series(['a', 'b', np.nan, 'c'])
     >>> s.str.cat(sep=' ')
     'a b c'
 
-    >>> pd.Series(['a','b',np.nan,'c']).str.cat(sep=' ', na_rep='?')
+    By default, NA values in the Series are ignored. Using `na_rep`, they
+    can be given a representation:
+
+    >>> pd.Series(['a', 'b', np.nan, 'c']).str.cat(sep=' ', na_rep='?')
     'a b ? c'
 
-    If ``others`` is specified, corresponding values are
+    If `others` is specified, corresponding values are
     concatenated with the separator. Result will be a Series of strings.
 
     >>> pd.Series(['a', 'b', 'c']).str.cat(['A', 'B', 'C'], sep=',')
@@ -97,11 +97,6 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
     1    b,B
     2    c,C
     dtype: object
-
-    Otherwise, strings in the Series are concatenated. Result will be a string.
-
-    >>> pd.Series(['a', 'b', 'c']).str.cat(sep=',')
-    'a,b,c'
 
     Also, you can pass a list of list-likes.
 
