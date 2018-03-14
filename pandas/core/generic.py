@@ -2546,8 +2546,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        DataFrame.loc : Select a subset of a DataFrame by label.
-        DataFrame.iloc : Select a subset of a DataFrame by position.
+        DataFrame.loc : Select a subset of a DataFrame by labels.
+        DataFrame.iloc : Select a subset of a DataFrame by positions.
         numpy.take : Take elements from an array along an axis.
 
         Examples
