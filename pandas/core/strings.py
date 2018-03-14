@@ -51,11 +51,18 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
     """
     Concatenate strings in the Series/Index with given separator.
 
+    If `others` is specified, this function concatenates the Series/Index
+    and elements of `others` element-wise.
+    If `others` is not being passed then all values in the Series are
+    concatenated in a single string with a given `sep`.
+
     Parameters
     ----------
-    others : list-like, or list of list-likes
-      If None, returns str concatenating strings of the Series
+    others : list-like, or list of list-likes, optional
+        List-likes (or a list of them) of the same length as calling object.
+        If None, returns str concatenating strings of the Series.
     sep : string or None, default None
+        If None, concatenates without any separator.
     na_rep : string or None, default None
         If None, NA in the series are ignored.
 
@@ -63,34 +70,37 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
     -------
     concat : Series/Index of objects or str
 
+    See Also
+    --------
+    split : Split each string in the Series/Index
+
     Examples
     --------
-    When ``na_rep`` is `None` (default behavior), NaN value(s)
-    in the Series are ignored.
+    When not passing `other`, all values are concatenated into a single
+    string:
 
-    >>> Series(['a','b',np.nan,'c']).str.cat(sep=' ')
+    >>> s = pd.Series(['a', 'b', np.nan, 'c'])
+    >>> s.str.cat(sep=' ')
     'a b c'
 
-    >>> Series(['a','b',np.nan,'c']).str.cat(sep=' ', na_rep='?')
+    By default, NA values in the Series are ignored. Using `na_rep`, they
+    can be given a representation:
+
+    >>> pd.Series(['a', 'b', np.nan, 'c']).str.cat(sep=' ', na_rep='?')
     'a b ? c'
 
-    If ``others`` is specified, corresponding values are
+    If `others` is specified, corresponding values are
     concatenated with the separator. Result will be a Series of strings.
 
-    >>> Series(['a', 'b', 'c']).str.cat(['A', 'B', 'C'], sep=',')
+    >>> pd.Series(['a', 'b', 'c']).str.cat(['A', 'B', 'C'], sep=',')
     0    a,A
     1    b,B
     2    c,C
     dtype: object
 
-    Otherwise, strings in the Series are concatenated. Result will be a string.
-
-    >>> Series(['a', 'b', 'c']).str.cat(sep=',')
-    'a,b,c'
-
     Also, you can pass a list of list-likes.
 
-    >>> Series(['a', 'b']).str.cat([['x', 'y'], ['1', '2']], sep=',')
+    >>> pd.Series(['a', 'b']).str.cat([['x', 'y'], ['1', '2']], sep=',')
     0    a,x,1
     1    b,y,2
     dtype: object
@@ -202,15 +212,65 @@ def str_count(arr, pat, flags=0):
     """
     Count occurrences of pattern in each string of the Series/Index.
 
+    This function is used to count the number of times a particular regex
+    pattern is repeated in each of the string elements of the
+    :class:`~pandas.Series`.
+
     Parameters
     ----------
-    pat : string, valid regular expression
-    flags : int, default 0 (no flags)
-        re module flags, e.g. re.IGNORECASE
+    pat : str
+        Valid regular expression.
+    flags : int, default 0, meaning no flags
+        Flags for the `re` module. For a complete list, `see here
+        <https://docs.python.org/3/howto/regex.html#compilation-flags>`_.
+    **kwargs
+        For compatability with other string methods. Not used.
 
     Returns
     -------
-    counts : Series/Index of integer values
+    counts : Series or Index
+        Same type as the calling object containing the integer counts.
+
+    Notes
+    -----
+    Some characters need to be escaped when passing in `pat`.
+    eg. ``'$'`` has a special meaning in regex and must be escaped when
+    finding this literal character.
+
+    See Also
+    --------
+    re : Standard library module for regular expressions.
+    str.count : Standard library version, without regular expression support.
+
+    Examples
+    --------
+    >>> s = pd.Series(['A', 'B', 'Aaba', 'Baca', np.nan, 'CABA', 'cat'])
+    >>> s.str.count('a')
+    0    0.0
+    1    0.0
+    2    2.0
+    3    2.0
+    4    NaN
+    5    0.0
+    6    1.0
+    dtype: float64
+
+    Escape ``'$'`` to find the literal dollar sign.
+
+    >>> s = pd.Series(['$', 'B', 'Aab$', '$$ca', 'C$B$', 'cat'])
+    >>> s.str.count('\$')
+    0    1
+    1    0
+    2    1
+    3    2
+    4    2
+    5    0
+    dtype: int64
+
+    This is also available on Index
+
+    >>> pd.Index(['A', 'A', 'Aaba', 'cat']).str.count('a')
+    Int64Index([0, 0, 2, 1], dtype='int64')
     """
     regex = re.compile(pat, flags=flags)
     f = lambda x: len(regex.findall(x))

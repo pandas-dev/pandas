@@ -2039,14 +2039,15 @@ class NDFrame(PandasObject, SelectionMixin):
     def to_pickle(self, path, compression='infer',
                   protocol=pkl.HIGHEST_PROTOCOL):
         """
-        Pickle (serialize) object to input file path.
+        Pickle (serialize) object to file.
 
         Parameters
         ----------
-        path : string
-            File path
+        path : str
+            File path where the pickled object will be stored.
         compression : {'infer', 'gzip', 'bz2', 'xz', None}, default 'infer'
-            a string representing the compression to use in the output file
+            A string representing the compression to use in the output file. By
+            default, infers from the file extension in specified path.
 
             .. versionadded:: 0.20.0
         protocol : int
@@ -2054,13 +2055,43 @@ class NDFrame(PandasObject, SelectionMixin):
             default HIGHEST_PROTOCOL (see [1], paragraph 12.1.2). The possible
             values for this parameter depend on the version of Python. For
             Python 2.x, possible values are 0, 1, 2. For Python>=3.0, 3 is a
-            valid value. For Python >= 3.4, 4 is a valid value.A negative value
-            for the protocol parameter is equivalent to setting its value to
-            HIGHEST_PROTOCOL.
+            valid value. For Python >= 3.4, 4 is a valid value. A negative
+            value for the protocol parameter is equivalent to setting its value
+            to HIGHEST_PROTOCOL.
 
             .. [1] https://docs.python.org/3/library/pickle.html
             .. versionadded:: 0.21.0
 
+        See Also
+        --------
+        read_pickle : Load pickled pandas object (or any object) from file.
+        DataFrame.to_hdf : Write DataFrame to an HDF5 file.
+        DataFrame.to_sql : Write DataFrame to a SQL database.
+        DataFrame.to_parquet : Write a DataFrame to the binary parquet format.
+
+        Examples
+        --------
+        >>> original_df = pd.DataFrame({"foo": range(5), "bar": range(5, 10)})
+        >>> original_df
+           foo  bar
+        0    0    5
+        1    1    6
+        2    2    7
+        3    3    8
+        4    4    9
+        >>> original_df.to_pickle("./dummy.pkl")
+
+        >>> unpickled_df = pd.read_pickle("./dummy.pkl")
+        >>> unpickled_df
+           foo  bar
+        0    0    5
+        1    1    6
+        2    2    7
+        3    3    8
+        4    4    9
+
+        >>> import os
+        >>> os.remove("./dummy.pkl")
         """
         from pandas.io.pickle import to_pickle
         return to_pickle(self, path, compression=compression,
@@ -2691,28 +2722,43 @@ class NDFrame(PandasObject, SelectionMixin):
         ----------
         indices : array-like
             An array of ints indicating which positions to take.
-        axis : int, default 0
-            The axis on which to select elements. "0" means that we are
-            selecting rows, "1" means that we are selecting columns, etc.
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            The axis on which to select elements. ``0`` means that we are
+            selecting rows, ``1`` means that we are selecting columns.
         convert : bool, default True
-            .. deprecated:: 0.21.0
-               In the future, negative indices will always be converted.
-
             Whether to convert negative indices into positive ones.
             For example, ``-1`` would map to the ``len(axis) - 1``.
             The conversions are similar to the behavior of indexing a
             regular Python list.
+
+            .. deprecated:: 0.21.0
+               In the future, negative indices will always be converted.
+
         is_copy : bool, default True
             Whether to return a copy of the original object or not.
+        **kwargs
+            For compatibility with :meth:`numpy.take`. Has no effect on the
+            output.
+
+        Returns
+        -------
+        taken : type of caller
+            An array-like containing the elements taken from the object.
+
+        See Also
+        --------
+        DataFrame.loc : Select a subset of a DataFrame by labels.
+        DataFrame.iloc : Select a subset of a DataFrame by positions.
+        numpy.take : Take elements from an array along an axis.
 
         Examples
         --------
         >>> df = pd.DataFrame([('falcon', 'bird',    389.0),
-                               ('parrot', 'bird',     24.0),
-                               ('lion',   'mammal',   80.5),
-                               ('monkey', 'mammal', np.nan)],
-                              columns=('name', 'class', 'max_speed'),
-                              index=[0, 2, 3, 1])
+        ...                    ('parrot', 'bird',     24.0),
+        ...                    ('lion',   'mammal',   80.5),
+        ...                    ('monkey', 'mammal', np.nan)],
+        ...                    columns=['name', 'class', 'max_speed'],
+        ...                    index=[0, 2, 3, 1])
         >>> df
              name   class  max_speed
         0  falcon    bird      389.0
@@ -2727,6 +2773,7 @@ class NDFrame(PandasObject, SelectionMixin):
         and 3rd rows, not rows whose indices equal 0 and 3.
 
         >>> df.take([0, 3])
+             name   class  max_speed
         0  falcon    bird      389.0
         1  monkey  mammal        NaN
 
@@ -2746,16 +2793,6 @@ class NDFrame(PandasObject, SelectionMixin):
              name   class  max_speed
         1  monkey  mammal        NaN
         3    lion  mammal       80.5
-
-        Returns
-        -------
-        taken : type of caller
-            An array-like containing the elements taken from the object.
-
-        See Also
-        --------
-        numpy.ndarray.take
-        numpy.take
         """
 
     @Appender(_shared_docs['take'])

@@ -22,7 +22,6 @@ from pandas.core.config import get_option
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core import accessor
 import pandas.core.common as com
-import pandas.core.base as base
 import pandas.core.missing as missing
 import pandas.core.indexes.base as ibase
 
@@ -399,7 +398,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         return self._shallow_copy(result, categories=result.categories,
                                   ordered=result.ordered)
 
-    @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)
+    @Appender(Index.duplicated.__doc__)
     def duplicated(self, keep='first'):
         from pandas._libs.hashtable import duplicated_int64
         codes = self.codes.astype('i8')
