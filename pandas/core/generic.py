@@ -712,7 +712,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        axis : integer or string, optional
+        axis : axis : {0 or ‘index’, 1 or ‘columns’, None}, default None
             A specific axis to squeeze. By default, all length-1 axes are
             squeezed.
 
@@ -720,13 +720,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        DataFrame, Series or scalar
-            The projection after squeezing axis.
+        DataFrame, Series, or scalar
+            The projection after squeezing `axis` or all the axes.
 
         See Also
         --------
         Series.iloc : Integer-location based indexing for selecting scalars
         DataFrame.iloc : Integer-location based indexing for selecting Series
+        Series.to_frame : Inverse of DataFrame.squeeze for a
+            single-column DataFrame.
 
         Examples
         --------
@@ -738,10 +740,11 @@ class NDFrame(PandasObject, SelectionMixin):
         >>> even_primes
         0    2
         dtype: int64
+
         >>> even_primes.squeeze()
         2
 
-        Squeezing objects with more than 1 dimension does nothing:
+        Squeezing objects with more than one value in every axis does nothing:
 
         >>> odd_primes = primes[primes % 2 == 1]
         >>> odd_primes
@@ -749,6 +752,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2    5
         3    7
         dtype: int64
+
         >>> odd_primes.squeeze()
         1    3
         2    5
@@ -757,14 +761,14 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Squeezing is even more effective when used with DataFrames.
 
-        >>> df = pd.DataFrame([[1,2], [3, 4]], columns=['a', 'b'])
+        >>> df = pd.DataFrame([[1, 2], [3, 4]], columns=['a', 'b'])
         >>> df
            a  b
         0  1  2
         1  3  4
 
-        Slicing a single column will produce a DataFrame with one of the
-        axis having only 1 dimension:
+        Slicing a single column will produce a DataFrame with the columns
+        having only one value:
 
         >>> df_a = df[['a']]
         >>> df_a
@@ -772,8 +776,7 @@ class NDFrame(PandasObject, SelectionMixin):
         0  1
         1  3
 
-        Objects along the column are 1 dimensional, so they can be squeezed
-        into scalars:
+        So the columns can be squeezed down, resulting in a Series:
 
         >>> df_a.squeeze('columns')
         0    1
@@ -783,12 +786,12 @@ class NDFrame(PandasObject, SelectionMixin):
         Slicing a single row from a single column will produce a single
         scalar DataFrame:
 
-        >>> df_0a = df[['a']].iloc[[0]]
+        >>> df_0a = df.loc[df.index < 1, ['a']]
         >>> df_0a
            a
         0  1
 
-        Squeezing along the rows produces a single scalar Series:
+        Squeezing the rows produces a single scalar Series:
 
         >>> df_0a.squeeze('rows')
         a    1
