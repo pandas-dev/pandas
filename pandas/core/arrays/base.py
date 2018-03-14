@@ -289,6 +289,18 @@ class ExtensionArray(object):
             new_values = self.copy()
         return new_values
 
+    def unique(self):
+        """Compute the ExtensionArray of unique values.
+
+        Returns
+        -------
+        uniques : ExtensionArray
+        """
+        from pandas import unique
+
+        uniques = unique(self.astype(object))
+        return self._constructor_from_sequence(uniques)
+
     # ------------------------------------------------------------------------
     # Indexing methods
     # ------------------------------------------------------------------------

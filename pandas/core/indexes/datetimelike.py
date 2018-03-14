@@ -61,6 +61,8 @@ class DatelikeOps(object):
         return np.asarray(self.format(date_format=date_format),
                           dtype=compat.text_type)
     strftime.__doc__ = """
+    Convert to string array using specified date_format.
+
     Return an array of formatted strings specified by date_format, which
     supports the same string format as the python standard library. Details
     of the string format can be found in `python string format doc <{0}>`__
@@ -68,11 +70,32 @@ class DatelikeOps(object):
     Parameters
     ----------
     date_format : str
-        date format string (e.g. "%Y-%m-%d")
+        Date format string (e.g. "%Y-%m-%d").
 
     Returns
     -------
-    ndarray of formatted strings
+    numpy.ndarray
+        NumPy array of formatted strings
+
+    See Also
+    --------
+    pandas.to_datetime : Convert the given argument to datetime
+    DatetimeIndex.normalize : Return DatetimeIndex with times to midnight.
+    DatetimeIndex.round : Round the DatetimeIndex to the specified freq.
+    DatetimeIndex.floor : Floor the DatetimeIndex to the specified freq.
+
+    Examples
+    --------
+    >>> import datetime
+    >>> data = pd.date_range(datetime.datetime(2018,3,10,19,27,52),
+    ...                      periods=4, freq='B')
+    >>> df = pd.DataFrame(data, columns=['date'])
+    >>> df.date[1]
+    Timestamp('2018-03-13 19:27:52')
+    >>> df.date[1].strftime('%d-%m-%Y')
+    '13-03-2018'
+    >>> df.date[1].strftime('%B %d, %Y, %r')
+    'March 13, 2018, 07:27:52 PM'
     """.format("https://docs.python.org/3/library/datetime.html"
                "#strftime-and-strptime-behavior")
 
