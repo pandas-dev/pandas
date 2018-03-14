@@ -2521,7 +2521,7 @@ class NDFrame(PandasObject, SelectionMixin):
         ----------
         indices : array-like
             An array of ints indicating which positions to take.
-        axis : {0 or ‘index’, 1 or ‘columns’, None}, default 0
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
             The axis on which to select elements. ``0`` means that we are
             selecting rows, ``1`` means that we are selecting columns.
         convert : bool, default True
