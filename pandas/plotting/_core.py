@@ -3162,22 +3162,22 @@ class FramePlotMethods(BasePlotMethods):
 
         Parameters
         ----------
-        x : int, str
+        x : int or str
             The column name or column position to be used as horizontal
             coordinates for each point.
-        y : int, str
+        y : int or str
             The column name or column position to be used as vertical
             coordinates for each point.
-        s : scalar, array_like, optional
+        s : scalar or array_like, optional
             The size of each point. Possible values are:
 
             - A single scalar so all points have the same size.
 
             - A sequence of scalars, which will be used for each point's size
-            recursively. For intance [2,14] all points will be size 2 or 14,
-            alternatively.
+            recursively. For instance, when passing [2,14] all points size will
+            be either 2 or 14, alternatively.
 
-        c : str, int, array_like, optional
+        c : str, int or array_like, optional
             The color of each point. Possible values are:
 
             - A single color string referred to by name, RGB or RGBA code,
