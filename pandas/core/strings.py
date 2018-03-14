@@ -211,7 +211,9 @@ def str_count(arr, pat, flags=0):
     pat : str
         Valid regular expression.
     flags : int, default 0, meaning no flags
-        Flags for re module, e.g. re.IGNORECASE.
+        Flags for re module, for a complete list
+        `look at this
+        <https://docs.python.org/3/howto/regex.html#compilation-flags>`_.
 
     Returns
     -------
@@ -225,10 +227,6 @@ def str_count(arr, pat, flags=0):
 
     Examples
     --------
-    Take a look at
-    `this link <https://docs.python.org/3/howto/regex.html#compilation-flags>`_
-    for the list of all possible flags that can be used.
-
     >>> s = pd.Series(['A', 'B', 'Aaba', 'Baca', np.nan, 'CABA', 'cat'])
     >>> s.str.count('a')
     0    0.0
@@ -239,6 +237,16 @@ def str_count(arr, pat, flags=0):
     5    0.0
     6    1.0
     dtype: float64
+
+    >>> s = pd.Series(['$', 'B', 'Aab$', '$$ca', 'C$B$', 'cat'])
+    >>> s.str.count('\$')
+    0    1
+    1    0
+    2    1
+    3    2
+    4    2
+    5    0
+    dtype: int64
     """
     regex = re.compile(pat, flags=flags)
     f = lambda x: len(regex.findall(x))
