@@ -1939,20 +1939,19 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         """
         Localize tz-naive DatetimeIndex to tz-aware DatetimeIndex.
 
-        This method takes a naive DatetimeIndex object and make this
-        time zone aware. It does not move the time to another
-        timezone.
-        Time zone localization helps to switch b/w time zone aware and time
+        This method takes a time zone (tz) naive DatetimeIndex object and
+        makes this time zone aware. It does not move the time to another
+        time zone.
+        Time zone localization helps to switch from time zone aware to time
         zone unaware objects.
 
         Parameters
         ----------
         tz : string, pytz.timezone, dateutil.tz.tzfile or None
-            Time zone for time. Corresponding timestamps would be converted to
-            time zone of the TimeSeries.
-            None will remove timezone holding local time.
+            Time zone to convert timestamps to. Passing ``None`` will
+            remove the time zone information preserving local time.
         ambiguous : str {'infer', 'NaT', 'raise'} or bool array, \
-        default 'raise'
+default 'raise'
             - 'infer' will attempt to infer fall dst-transition hours based on
               order
             - bool-ndarray where True signifies a DST time, False signifies a
@@ -1963,10 +1962,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
               times
         errors : {'raise', 'coerce'}, default 'raise'
             - 'raise' will raise a NonExistentTimeError if a timestamp is not
-               valid in the specified timezone (e.g. due to a transition from
+               valid in the specified time zone (e.g. due to a transition from
                or to DST time)
             - 'coerce' will return NaT if the timestamp can not be converted
-              into the specified timezone
+              to the specified time zone
 
             .. versionadded:: 0.19.0
 
@@ -1974,38 +1973,45 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             .. deprecated:: 0.15.0
                Attempt to infer fall dst-transition hours based on order
 
-
         Returns
         -------
         DatetimeIndex
             Index converted to the specified time zone.
 
-        Examples
-        --------
-        >>> tz_naive = pd.date_range('2018-03-01', '2018-03-03')
-        >>> tz_naive
-        DatetimeIndex(['2018-03-01', '2018-03-02', '2018-03-03'],
-        dtype='datetime64[ns]', freq='D')
-
-        Localize DatetimeIndex in US/Eastern time zone.
-
-        >>> tz_aware = tz_naive.tz_localize(tz='US/Eastern')
-        >>> tz_aware
-        DatetimeIndex(['2018-03-01 00:00:00-05:00',
-        '2018-03-02 00:00:00-05:00', '2018-03-03 00:00:00-05:00'],
-        dtype='datetime64[ns, US/Eastern]', freq='D')
-
-        Localize time zone aware into naive time zone.
-
-        >>> tz_aware.tz_localize(None)
-        DatetimeIndex(['2018-03-01', '2018-03-02', '2018-03-03'],
-        dtype='datetime64[ns]', freq='D')
-
-
         Raises
         ------
         TypeError
             If the DatetimeIndex is tz-aware and tz is not None.
+
+        See Also
+        --------
+        DatetimeIndex.tz_convert : Convert tz-aware DatetimeIndex from
+            one time zone to another.
+
+        Examples
+        --------
+        >>> tz_naive = pd.date_range('2018-03-01 09:00', periods=3)
+        >>> tz_naive
+        DatetimeIndex(['2018-03-01 09:00:00', '2018-03-02 09:00:00',
+                       '2018-03-03 09:00:00'],
+                      dtype='datetime64[ns]', freq='D')
+
+        Localize DatetimeIndex in US/Eastern time zone:
+
+        >>> tz_aware = tz_naive.tz_localize(tz='US/Eastern')
+        >>> tz_aware
+        DatetimeIndex(['2018-03-01 09:00:00-05:00',
+                       '2018-03-02 09:00:00-05:00',
+                       '2018-03-03 09:00:00-05:00'],
+                      dtype='datetime64[ns, US/Eastern]', freq='D')
+
+        With the ``tz=None``, we can remove the time zone information
+        while keeping the local time (not converted to UTC):
+
+        >>> tz_aware.tz_localize(None)
+        DatetimeIndex(['2018-03-01 09:00:00', '2018-03-02 09:00:00',
+                       '2018-03-03 09:00:00'],
+                      dtype='datetime64[ns]', freq='D')
         """
         if self.tz is not None:
             if tz is None:
