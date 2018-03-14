@@ -5272,7 +5272,7 @@ class NDFrame(PandasObject, SelectionMixin):
               ``scipy.interpolate.interp1d``. Both 'polynomial' and 'spline'
               require that you also specify an `order` (int),
               e.g. df.interpolate(method='polynomial', order=4).
-              These use the actual numerical values of the index.
+              These use the numerical values of the index.
             * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima':
               Wrappers around the SciPy interpolation methods of similar
               names. See `Notes`.
@@ -5285,8 +5285,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
                Added support for the 'akima' method
                Added interpolate method 'from_derivatives' which replaces
-               'piecewise_polynomial' in scipy 0.18; backwards-compatible with
-               scipy < 0.18
+               'piecewise_polynomial' in SciPy 0.18; backwards-compatible with
+               SciPy < 0.18
 
         axis : {0 or 'index', 1 or 'columns', None}, default None
             Axis to interpolate along.
@@ -5317,7 +5317,8 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         Series or DataFrame
-            Same-shape object interpolated at the NaN values
+            Returns the same object type as the caller, interpolated at
+            some or all `NaN` values
 
         See Also
         --------
@@ -5363,8 +5364,8 @@ class NDFrame(PandasObject, SelectionMixin):
         consecutive `NaN` at a time.
 
         >>> s = pd.Series([np.nan, "single_one", np.nan,
-        ...                  "fill_two_more", np.nan, np.nan, np.nan,
-        ...                  4.71, np.nan])
+        ...                "fill_two_more", np.nan, np.nan, np.nan,
+        ...                4.71, np.nan])
         >>> s
         0              NaN
         1       single_one
@@ -5393,53 +5394,58 @@ class NDFrame(PandasObject, SelectionMixin):
         an `order` (int).
 
         >>> s = pd.Series([0, 2, np.nan, 8])
-        >>> s.interpolate(method='polynomial', order=1)
-        0    0.0
-        1    2.0
-        2    5.0
-        3    8.0
-        dtype: float64
         >>> s.interpolate(method='polynomial', order=2)
         0    0.000000
         1    2.000000
         2    4.666667
         3    8.000000
         dtype: float64
-        
-        >>> df = pd.DataFrame([[0,1,2,0,4],[1,2,3,-1,8],
-        ...                    [2,3,4,-2,12],[3,4,5,-3,16]],
-        ...                   columns=['a', 'b', 'c', 'd', 'e'])
+
+        Filling in `NaN` in a :class:`~pandas.DataFrame` via linear
+        interpolation.
+
+        >>> df = pd.DataFrame({'a': range(0,4),
+        ...                    'b': range(1,5),
+        ...                    'c': range(-1, -5, -1),
+        ...                    'd': [x**2 for x in range(1,5)]})
         >>> df
-           a  b  c  d   e
-        0  0  1  2  0   4
-        1  1  2  3 -1   8
-        2  2  3  4 -2  12
-        3  3  4  5 -3  16
+           a  b  c   d
+        0  0  1 -1   1
+        1  1  2 -2   4
+        2  2  3 -3   9
+        3  3  4 -4  16
         >>> df.loc[1,'a'] = np.nan
         >>> df.loc[3,'a'] = np.nan
         >>> df.loc[0,'b'] = np.nan
+        >>> df.loc[1,'c'] = np.nan
+        >>> df.loc[2,'c'] = np.nan
         >>> df.loc[1,'d'] = np.nan
-        >>> df.loc[2,'d'] = np.nan
-        >>> df.loc[1,'e'] = np.nan
         >>> df
-             a    b  c    d     e
-        0  0.0  NaN  2  0.0   4.0
-        1  NaN  2.0  3  NaN   NaN
-        2  2.0  3.0  4  NaN  12.0
-        3  NaN  4.0  5 -3.0  16.0
+             a    b    c     d
+        0  0.0  NaN -1.0   1.0
+        1  NaN  2.0  NaN   NaN
+        2  2.0  3.0  NaN   9.0
+        3  NaN  4.0 -4.0  16.0
 
         Fill the DataFrame forward (that is, going down) along each column.
-        Note how the last entry in column `a` is interpolated differently
-        (because there is no entry after it to use for interpolation).
-        Note how the first entry in column `b` remains `NaN` (because there
-        is no entry befofe it to use for interpolation).
+        Note how the last entry in column `a` is interpolated differently,
+        because there is no entry after it to use for interpolation.
+        Note how the first entry in column `b` remains `NaN`, because there
+        is no entry befofe it to use for interpolation.
 
         >>> df.interpolate(method='linear', limit_direction='forward', axis=0)
-             a    b  c    d     e
-        0  0.0  NaN  2  0.0   4.0
-        1  1.0  2.0  3 -1.0   8.0
-        2  2.0  3.0  4 -2.0  12.0
-        3  2.0  4.0  5 -3.0  16.0
+             a    b    c     d
+        0  0.0  NaN -1.0   1.0
+        1  1.0  2.0 -2.0   5.0
+        2  2.0  3.0 -3.0   9.0
+        3  2.0  4.0 -4.0  16.0
+
+        >>> df['d'].interpolate(method='polynomial', order=2)
+        0     1.0
+        1     4.0
+        2     9.0
+        3    16.0
+        Name: d, dtype: float64        
         """
 
     @Appender(_shared_docs['interpolate'] % _shared_doc_kwargs)
