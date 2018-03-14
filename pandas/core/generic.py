@@ -1594,9 +1594,9 @@ class NDFrame(PandasObject, SelectionMixin):
     Write %(klass)s to an excel sheet.
 
     To write a %(klass)s to an excel .xlsx file it is necessary to first create
-    an ExcelWriter object with a target file name, and specify a sheet in the
+    an `ExcelWriter` object with a target file name, and specify a sheet in the
     file to write to. Multiple sheets may be written to by
-    specifying unique sheet_name. With all data written to the file it is
+    specifying unique `sheet_name`. With all data written to the file it is
     necessary to save the changes. Note that creating an ExcelWriter object
     with a file name that already exists will result in the contents of the
     existing file being erased.
@@ -1653,28 +1653,30 @@ class NDFrame(PandasObject, SelectionMixin):
     Examples
     --------
 
+    Create, write to and save a workbook:
+
     >>> df1 = pd.DataFrame([['a', 'b'], ['c', 'd']],
     ...                   index=['row 1', 'row 2'],
     ...                   columns=['col 1', 'col 2'])
-    >>> writer = pd.ExcelWriter('output.xlsx', engine='xlsxwriter')
+    >>> df1.to_excel("output.xlsx", sheet_name='Sheet1')
+
+    If you wish to write to more than one sheet in the workbook, it is
+    necessary to specify an ExcelWriter object:
+
+    >>> writer = pd.ExcelWriter('output2.xlsx', engine='xlsxwriter')
     >>> df1.to_excel(writer, sheet_name='Sheet1')
+    >>> df2 = df1.copy()
+    >>> df2.to_excel(writer, sheet_name='Sheet2')
     >>> writer.save()
 
-    If passing an existing ExcelWriter object, then the sheet will be added
-    to the existing workbook.  This can be used to save different
-    DataFrames to one workbook:
-
-    >>> writer2 = pd.ExcelWriter('output2.xlsx', engine='xlsxwriter')
-    >>> df1.to_excel(writer2, sheet_name='Sheet1')
-    >>> df2 = df1.copy()
-    >>> df2.to_excel(writer2, sheet_name='Sheet2')
-    >>> writer2.save()
+    Note that once a workbook has been saved it is not possible write further
+    data without rewriting the whole workbook.
 
     Limit floats to a fixed precision using float_format. For example
     float_format="%.2f" will format 0.1234 to 0.12.
 
-    For compatibility with to_csv, to_excel serializes lists and dicts to
-    strings before writing.
+    For compatibility with `to_csv <https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.to_csv.html>`__ ,
+    to_excel serializes lists and dicts to strings before writing.
     """
 
     def to_json(self, path_or_buf=None, orient=None, date_format=None,
