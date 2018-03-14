@@ -27,7 +27,8 @@ cdef class IntervalMixin(object):
         Returns
         -------
         bool
-            `True` if the Interval is closed on the left-side, else `False`.
+            ``True`` if the Interval is closed on the left-side, else
+            ``False``.
         """
         return self.closed in ('left', 'both')
 
@@ -41,7 +42,8 @@ cdef class IntervalMixin(object):
         Returns
         -------
         bool
-            `True` if the Interval is closed on the right-side, else `False`.
+            ``True`` if the Interval is closed on the left-side, else
+            ``False``.
         """
         return self.closed in ('right', 'both')
 
@@ -55,7 +57,8 @@ cdef class IntervalMixin(object):
         Returns
         -------
         bool
-            `True` if the Interval is open on the left-side, else `False`.
+            ``True`` if the Interval is closed on the left-side, else
+            ``False``.
         """
         return not self.closed_left
 
@@ -69,7 +72,8 @@ cdef class IntervalMixin(object):
         Returns
         -------
         bool
-            `True` if the Interval is open on the right-side, else `False`.
+            ``True`` if the Interval is closed on the left-side, else
+            ``False``.
         """
         return not self.closed_right
 
@@ -147,12 +151,8 @@ cdef class Interval(IntervalMixin):
 
     >>> 2.5 in iv
     True
-    >>> 0 in iv
-    False
-    >>> 5 in iv
-    True
 
-    You can test the bounds (``closed='right'``, so ``0 < x <= 5`):
+    You can test the bounds (``closed='right'``, so ``0 < x <= 5``):
 
     >>> 0 in iv
     False
