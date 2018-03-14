@@ -1427,8 +1427,8 @@ class _LocIndexer(_LocationIndexer):
     - A list or array of labels, e.g. ``['a', 'b', 'c']``.
     - A slice object with labels, e.g. ``'a':'f'``.
 
-    .. warning:: Note that contrary to usual python slices, **both** the start
-        and the stop are included
+      .. warning:: Note that contrary to usual python slices, **both** the
+          start and the stop are included
 
     - A boolean array of the same length as the axis being sliced,
       e.g. ``[True, False, True]``.
