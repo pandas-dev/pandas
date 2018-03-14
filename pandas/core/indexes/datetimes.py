@@ -1790,7 +1790,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         See Also
         --------
         quarter : Return the quarter of the date.
-        is_quarter_end : Similar method for indicating the start of a quarter.
+        is_quarter_end : Similar property for indicating the start of a quarter.
 
         Examples
         --------
@@ -1831,7 +1831,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         See Also
         --------
         quarter : Return the quarter of the date.
-        is_quarter_start : Similar method indicating the quarter start.
+        is_quarter_start : Similar property indicating the quarter start.
 
         Examples
         --------
@@ -1871,7 +1871,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         See Also
         --------
-        is_year_end : Similar method indicating the last day of the year.
+        is_year_end : Similar property indicating the last day of the year.
 
         Examples
         --------
