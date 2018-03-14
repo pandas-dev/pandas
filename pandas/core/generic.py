@@ -2533,8 +2533,9 @@ class NDFrame(PandasObject, SelectionMixin):
                In the future, negative indices will always be converted.
         is_copy : bool, default True
             Whether to return a copy of the original object or not.
-        kwargs : xxx, default xxx
-            TODO MUST ADD A REASONABLE DESCRIPTION.
+        kwargs : mapping, optional
+            Optional keyword arguments to
+            ``:meth:pandas.compat.numpy.function.validate_take``.
 
         Returns
         -------
@@ -2543,8 +2544,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        numpy.ndarray.take : TODO
-        numpy.take : TODO
+        numpy.ndarray.take : Return an array formed from the elements
+            at given indices
+        numpy.take : Take elements from an array along an axis
 
         Examples
         --------
