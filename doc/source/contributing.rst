@@ -262,8 +262,9 @@ after updating.
 Contributing to the documentation
 =================================
 
-If you're not the developer type, contributing to the documentation is still of
-huge value. You don't even have to be an expert on *pandas* to do so! In fact,
+Contributing to the documentation benefits everyone who uses *pandas*.
+We encourage you to help us improve the documentation, and
+you don't have to be an expert on *pandas* to do so! In fact,
 there are sections of the docs that are worse off after being written by
 experts. If something in the docs doesn't make sense to you, updating the
 relevant section after you figure it out is a great way to ensure it will help
@@ -292,12 +293,9 @@ Some other important things to know about the docs:
   overviews per topic together with some other information (what's new,
   installation, etc).
 
-- The docstrings follow the **Numpy Docstring Standard**, which is used widely
-  in the Scientific Python community. This standard specifies the format of
-  the different sections of the docstring. See `this document
-  <https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt>`_
-  for a detailed explanation, or look at some of the existing functions to
-  extend it in a similar manner.
+- The docstrings follow a pandas convention, based on the **Numpy Docstring
+  Standard**. Follow the :ref:`pandas docstring guide <docstring>` for detailed
+  instructions on how to write a correct docstring.
 
 - The tutorials make heavy use of the `ipython directive
   <http://matplotlib.org/sampledoc/ipython_directive.html>`_ sphinx extension.

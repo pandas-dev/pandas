@@ -56,6 +56,7 @@ class TestPlotBase(object):
         self.mpl_ge_1_5_0 = plotting._compat._mpl_ge_1_5_0()
         self.mpl_ge_2_0_0 = plotting._compat._mpl_ge_2_0_0()
         self.mpl_ge_2_0_1 = plotting._compat._mpl_ge_2_0_1()
+        self.mpl_ge_2_2_0 = plotting._compat._mpl_ge_2_2_0()
 
         if self.mpl_ge_1_4_0:
             self.bp_n_objects = 7
