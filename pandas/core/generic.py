@@ -5274,7 +5274,7 @@ class NDFrame(PandasObject, SelectionMixin):
               e.g. df.interpolate(method='polynomial', order=4).
               These use the actual numerical values of the index.
             * 'krogh', 'piecewise_polynomial', 'spline', 'pchip', 'akima':
-              Wrappers around the scipy interpolation methods of similar
+              Wrappers around the SciPy interpolation methods of similar
               names. See `Notes`.
             * 'from_derivatives': Refers to
               ``scipy.interpolate.BPoly.from_derivatives`` which
@@ -5302,7 +5302,7 @@ class NDFrame(PandasObject, SelectionMixin):
             If limit is specified, consecutive NaNs will be filled with this
             restriction.
 
-            * None: No fill restriction (default).
+            * None: No fill restriction.
             * 'inside': Only fill NaNs surrounded by valid values
               (interpolate).
             * 'outside': Only fill NaNs outside valid values (extrapolate).
@@ -5336,14 +5336,13 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Notes
         -----
-        If the selected `method` is one of 'krogh', 'piecewise_polynomial',
-        'spline', 'pchip', 'akima':
-        They are wrappers around the scipy interpolation methods of similar
-        names. These use the actual numerical values of the index.
+        The 'krogh', 'piecewise_polynomial', 'spline', 'pchip' and 'akima'
+        methods are wrappers around the respective SciPy implementations of
+        similar names. These use the actual numerical values of the index.
         For more information on their behavior, see the
-        `scipy documentation
+        `SciPy documentation
         <http://docs.scipy.org/doc/scipy/reference/interpolate.html#univariate-interpolation>`__
-        and `tutorial documentation
+        and `SciPy tutorial
         <http://docs.scipy.org/doc/scipy/reference/tutorial/interpolate.html>`__.
 
         Examples
@@ -5406,10 +5405,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2    4.666667
         3    8.000000
         dtype: float64
-
-        Create a :class:`~pandas.DataFrame` with missing values to fill it
-        with diffferent methods.
-
+        
         >>> df = pd.DataFrame([[0,1,2,0,4],[1,2,3,-1,8],
         ...                    [2,3,4,-2,12],[3,4,5,-3,16]],
         ...                   columns=['a', 'b', 'c', 'd', 'e'])
