@@ -3174,18 +3174,18 @@ class FramePlotMethods(BasePlotMethods):
     def hexbin(self, x, y, C=None, reduce_C_function=None, gridsize=None,
                **kwds):
         """
-        Generate a hexagonal binning plot.
+        Generate an hexagonal binning plot.
 
-        Generate a hexagonal binning plot of `x` versus `y`. If `C` is `None`
-        (the default), this is a histogram of the number of occurrences
+        Generate an hexagonal binning plot of `x` versus `y`. If `C` is `None`
+        (the default), this is an histogram of the number of occurrences
         of the observations at ``(x[i], y[i])``.
 
         If `C` is specified, specifies values at given coordinates
         ``(x[i], y[i])``. These values are accumulated for each hexagonal
         bin and then reduced according to `reduce_C_function`,
-        which defaults to NumPy's mean function (:meth:`numpy.mean`).
+        having as default the numpy's mean function (:meth:`numpy.mean`).
         (If `C` is specified, it must also be a 1-D sequence
-        of the same length as `x` and `y`, or a column label.)
+        of the same length as `x` and `y`.)
 
         Parameters
         ----------
@@ -3225,11 +3225,11 @@ class FramePlotMethods(BasePlotMethods):
         .. plot::
             :context: close-figs
 
-            >>> n = 100000
+            >>> n = 10000
             >>> # Make a dataframe with normal distributed data
             >>> df = pd.DataFrame({'x': np.random.randn(n),
             ...                    'y': np.random.randn(n)})
-            >>> ax = df.plot.hexbin(x='x', y='y', cmap='inferno')
+            >>> ax = df.plot.hexbin(x='x', y='y', gridsize=20)
 
         The next example uses `C` and `np.sum` as `reduce_C_function`.
         Note that `'observations'` values ranges from 1 to 5 but the result
@@ -3249,7 +3249,8 @@ class FramePlotMethods(BasePlotMethods):
             ...                     y='coord_y',
             ...                     C='observations',
             ...                     reduce_C_function=np.sum,
-            ...                     gridsize=10)
+            ...                     gridsize=10,
+            ...                     cmap="viridis")
         """
         if reduce_C_function is not None:
             kwds['reduce_C_function'] = reduce_C_function
