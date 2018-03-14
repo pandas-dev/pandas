@@ -14,8 +14,7 @@ import numpy as np
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.errors import EmptyDataError
-from pandas.io.common import (_is_url, urlopen,
-                              parse_url, _validate_header_arg)
+from pandas.io.common import _is_url, urlopen, _validate_header_arg
 from pandas.io.parsers import TextParser
 from pandas.compat import (lrange, lmap, u, string_types, iteritems,
                            raise_with_traceback, binary_type)
@@ -554,8 +553,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
         return row.xpath('.//td|.//th')
 
     def _parse_tr(self, table):
-        expr = './/tr[normalize-space()]'
-        return table.xpath(expr)
+        return table.xpath('.//tr')
 
     def _parse_tables(self, doc, match, kwargs):
         pattern = match.pattern
@@ -606,18 +604,20 @@ class _LxmlFrameParser(_HtmlFrameParser):
         """
         from lxml.html import parse, fromstring, HTMLParser
         from lxml.etree import XMLSyntaxError
-
-        parser = HTMLParser(recover=False, encoding=self.encoding)
+        parser = HTMLParser(recover=True, encoding=self.encoding)
 
         try:
-            # try to parse the input in the simplest way
-            r = parse(self.io, parser=parser)
-
+            if _is_url(self.io):
+                with urlopen(self.io) as f:
+                    r = parse(f, parser=parser)
+            else:
+                # try to parse the input in the simplest way
+                r = parse(self.io, parser=parser)
             try:
                 r = r.getroot()
             except AttributeError:
                 pass
-        except (UnicodeDecodeError, IOError):
+        except (UnicodeDecodeError, IOError) as e:
             # if the input is a blob of html goop
             if not _is_url(self.io):
                 r = fromstring(self.io, parser=parser)
@@ -627,17 +627,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
                 except AttributeError:
                     pass
             else:
-                # not a url
-                scheme = parse_url(self.io).scheme
-                if scheme not in _valid_schemes:
-                    # lxml can't parse it
-                    msg = (('{invalid!r} is not a valid url scheme, valid '
-                            'schemes are {valid}')
-                           .format(invalid=scheme, valid=_valid_schemes))
-                    raise ValueError(msg)
-                else:
-                    # something else happened: maybe a faulty connection
-                    raise
+                raise e
         else:
             if not hasattr(r, 'text_content'):
                 raise XMLSyntaxError("no text parsed from document", 0, 0, 0)
@@ -657,12 +647,21 @@ class _LxmlFrameParser(_HtmlFrameParser):
         thead = table.xpath(expr)
         res = []
         if thead:
-            trs = self._parse_tr(thead[0])
-            for tr in trs:
-                cols = [_remove_whitespace(x.text_content()) for x in
-                        self._parse_td(tr)]
+            # Grab any directly descending table headers first
+            ths = thead[0].xpath('./th')
+            if ths:
+                cols = [_remove_whitespace(x.text_content()) for x in ths]
                 if any(col != '' for col in cols):
                     res.append(cols)
+            else:
+                trs = self._parse_tr(thead[0])
+
+                for tr in trs:
+                    cols = [_remove_whitespace(x.text_content()) for x in
+                            self._parse_td(tr)]
+
+                    if any(col != '' for col in cols):
+                        res.append(cols)
         return res
 
     def _parse_raw_tfoot(self, table):
@@ -739,14 +738,10 @@ def _parser_dispatch(flavor):
             raise ImportError(
                 "BeautifulSoup4 (bs4) not found, please install it")
         import bs4
-        if LooseVersion(bs4.__version__) == LooseVersion('4.2.0'):
-            raise ValueError("You're using a version"
-                             " of BeautifulSoup4 (4.2.0) that has been"
-                             " known to cause problems on certain"
-                             " operating systems such as Debian. "
-                             "Please install a version of"
-                             " BeautifulSoup4 != 4.2.0, both earlier"
-                             " and later releases will work.")
+        if LooseVersion(bs4.__version__) <= LooseVersion('4.2.0'):
+            raise ValueError("A minimum version of BeautifulSoup 4.2.1 "
+                             "is required")
+
     else:
         if not _HAS_LXML:
             raise ImportError("lxml not found, please install it")
