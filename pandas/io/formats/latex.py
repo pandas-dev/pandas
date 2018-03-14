@@ -90,6 +90,10 @@ class LatexFormatter(TableFormatter):
     def write_result(self, buf):
         """
         Render a DataFrame to a LaTeX tabular/longtable environment output.
+
+        Parameters
+        ----------
+        buf : The buffer to write output to
         """
 
         strcols = self._build_str_cols()
@@ -130,6 +134,15 @@ class LatexFormatter(TableFormatter):
         buf.write('\\end{{{typ}}}\n'.format(typ=table_type))
 
     def _build_row(self, i, row, strrows):
+        """
+        Build and style a row in preparation for LaTeX output
+
+        Parameters
+        ----------
+        i : the current row counter
+        row : the row itself
+        strrows : all rows
+        """
         crow = self._escape_row(row)
         ilevels = self.frame.index.nlevels
         clevels = nlevels = self.frame.columns.nlevels
@@ -150,16 +163,25 @@ class LatexFormatter(TableFormatter):
         return crow
 
     def _escape_row(self, row):
+        """
+        Escape elements based LaTeX-specific escape bindings as defined
+        in ESCAPE_MAPPING.
+
+        Parameters
+        ----------
+        row : the row with elements to be escaped
+        """
         def null_replace(x):
-            if not x or x == '{}':
+            if (not x and x != 0) or x == '{}':
                 return '{}'
-            return x
+            return '{x}'.format(x=x)
 
         def escape_item(x):
             x = x.replace('\\', '\\textbackslash')
             for k, v in LatexFormatter.ESCAPE_MAPPING.items():
                 x = x.replace(k, v)
             return x
+
         return [escape_item(null_replace(x))
                 if self.fmt.kwds.get('escape', True)
                 and x and x != '{}' else null_replace(x) for x in row]
@@ -238,6 +260,13 @@ class LatexFormatter(TableFormatter):
         self.clinebuf = [x for x in self.clinebuf if x[0] != i]
 
     def _rebuild_multi_index(self, strcols):
+        """
+        Reestablish the MultiIndex that has been joined by _to_str_column
+
+        Parameters
+        ----------
+        strcols : all columns in string format
+        """
         strcols.pop(0)
         previous_lev3 = None
         for i, lev in enumerate(self.frame.index.levels):

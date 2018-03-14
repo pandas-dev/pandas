@@ -629,7 +629,7 @@ AA &  BB \\
         expected = r"""\begin{tabular}{llr}
 \toprule
   &   &  2 \\
-{} & 1 &    \\
+0 & 1 &    \\
 \midrule
 1 & 2 &  3 \\
   &   &  3 \\
