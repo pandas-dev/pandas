@@ -1386,6 +1386,11 @@ class Index(IndexOpsMixin, PandasObject):
         return False
 
     def _summary(self, name=None):
+        """
+        Return a summarized representation
+        .. deprecated:: 0.23.0
+           No longer supported
+        """
         if len(self) > 0:
             head = self[0]
             if (hasattr(head, 'format') and
@@ -1406,6 +1411,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def summary(self, name=None):
         """
+        Return a summarized representation
         .. deprecated:: 0.23.0
            No longer supported
         """

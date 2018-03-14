@@ -1051,7 +1051,9 @@ class DatetimeIndexOpsMixin(object):
 
     def _summary(self, name=None):
         """
-        return a summarized representation
+        Return a summarized representation
+        .. deprecated:: 0.23.0
+           No longer supported
         """
         formatter = self._formatter_func
         if len(self) > 0:
@@ -1070,15 +1072,6 @@ class DatetimeIndexOpsMixin(object):
         # display as values, not quoted
         result = result.replace("'", "")
         return result
-
-    def summary(self, name=None):
-        """
-        .. deprecated:: 0.23.0
-           No longer supported
-        """
-        warnings.warn("'summary' is deprecated and will be removed in a "
-                      "future version.", FutureWarning, stacklevel=2)
-        return self._summary(name)
 
     def _concat_same_dtype(self, to_concat, name):
         """

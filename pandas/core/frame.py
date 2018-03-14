@@ -2341,7 +2341,7 @@ class DataFrame(NDFrame):
         try:
             if key in self.columns and not is_mi_columns:
                 return self._getitem_column(key)
-        except Exception:
+        except:
             pass
 
         # see if we can slice the rows
@@ -2843,7 +2843,7 @@ class DataFrame(NDFrame):
         if not len(self.index) and is_list_like(value):
             try:
                 value = Series(value)
-            except Exception:
+            except:
                 raise ValueError('Cannot set a frame with no defined index '
                                  'and a value that cannot be converted to a '
                                  'Series')
@@ -6828,7 +6828,7 @@ def _prep_ndarray(values, copy=True):
                 values = np.array([convert(v) for v in values])
             else:
                 values = convert(values)
-        except Exception:
+        except:
             values = convert(values)
 
     else:

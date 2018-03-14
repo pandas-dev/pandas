@@ -207,10 +207,3 @@ Freq: Q-DEC"""
                                   exp6, exp7, exp8, exp9]):
             result = idx._summary()
             assert result == expected
-
-    def test_summary_deprecated(self):
-        # GH18217
-        idx = PeriodIndex(['2011-01-01'], freq='D')
-
-        with tm.assert_produces_warning(FutureWarning):
-            idx.summary()
