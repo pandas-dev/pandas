@@ -4878,7 +4878,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        to_replace : str, regex, list, dict, Series, numeric, or None
+        to_replace : str, regex, list, dict, Series, int, float, or None
             * numeric, str or regex:
 
                 - numeric: numeric values equal to ``to_replace`` will be
