@@ -4330,12 +4330,14 @@ class Index(IndexOpsMixin, PandasObject):
         Indicate duplicate index values.
 
         Duplicated values are indicated as ``True`` values in the resulting
-        array. Either all duplicates, all except the first or all except the
+        array. Either all duplicates, all except the first, or all except the
         last occurrence of duplicates can be indicated.
 
         Parameters
         ----------
         keep : {'first', 'last', False}, default 'first'
+            The value or values in a set of duplicates to mark as missing.
+
             - 'first' : Mark duplicates as ``True`` except for the first
               occurrence.
             - 'last' : Mark duplicates as ``True`` except for the last
@@ -4345,27 +4347,27 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
         By default, for each set of duplicated values, the first occurrence is
-        set on False and all others on True:
+        set to False and all others to True:
 
         >>> idx = pd.Index(['lama', 'cow', 'lama', 'beetle', 'lama'])
         >>> idx.duplicated()
-        array([False, False,  True, False,  True], dtype=bool)
+        array([False, False,  True, False,  True])
 
         which is equivalent to
 
         >>> idx.duplicated(keep='first')
-        array([False, False,  True, False,  True], dtype=bool)
+        array([False, False,  True, False,  True])
 
         By using 'last', the last occurrence of each set of duplicated values
         is set on False and all others on True:
 
         >>> idx.duplicated(keep='last')
-        array([ True, False,  True, False, False], dtype=bool)
+        array([ True, False,  True, False, False])
 
         By setting keep on ``False``, all duplicates are True:
 
         >>> idx.duplicated(keep=False)
-        array([ True, False,  True, False,  True], dtype=bool)
+        array([ True, False,  True, False,  True])
 
         Returns
         -------
