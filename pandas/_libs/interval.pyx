@@ -109,34 +109,51 @@ cdef class Interval(IntervalMixin):
 
     Parameters
     ----------
-    left : value
+    left : orderable scalar
         Left bound for the interval.
-    right : value
+    right : orderable scalar
         Right bound for the interval.
-    closed : {'right', 'left', 'both', 'neither'}, default 'right'
+    closed : {'left', 'right', 'both', 'neither'}, default 'right'
         Whether the interval is closed on the left-side, right-side, both or
         neither.
-        A closed interval (in mathematics denoted by square brackets)
-        contains its endpoints, i.e. the closed interval `[1, 5]` is
-        characterized by the conditions `1 <= x <= 5`. This is what
-        `closed='both'` stands for.
-        An open interval (in mathematics denoted by parentheses) does not
-        contain its endpoints, i.e. the open interval `(1, 5)` is
-        characterized by the conditions `1 < x < 5`. This is what
-        `closed='neither'` stands for.
-        Intervals can also be half-open or half-closed, i.e.
-        `[1,5)` is described by `1 <= x < 5` (`closed='left'`) and `(1, 5]`
-        is described by `1 < x <= 5` (`closed='right'`).
+    closed : {'right', 'left', 'both', 'neither'}, default 'right'
+        Whether the interval is closed on the left-side, right-side, both or
+        neither. See the Notes for more detailed explanation.
 
-        See also the examples section below.
+    Notes
+    -----
+    The parameters `left` and `right` must be from the same type, you must be
+    able to compare them and they must satisfy ``left <= right``.
+
+    A closed interval (in mathematics denoted by square brackets) contains
+    its endpoints, i.e. the closed interval ``[0, 5]`` is characterized by the
+    conditions ``0 <= x <= 5``. This is what ``closed='both'`` stands for.
+    An open interval (in mathematics denoted by parentheses) does not contain
+    its endpoints, i.e. the open interval ``(0, 5)`` is characterized by the
+    conditions ``0 < x < 5``. This is what ``closed='neither'`` stands for.
+    Intervals can also be half-open or half-closed, i.e. ``[0, 5)`` is
+    described by ``0 <= x < 5`` (``closed='left'``) and ``(0, 5]`` is
+    described by ``0 < x <= 5`` (``closed='right'``).
 
     Examples
     --------
+    It is possible to build Intervals of different types, like numeric ones:
+
     >>> iv = pd.Interval(left=0, right=5)
     >>> iv
     Interval(0, 5, closed='right')
+
+    You can check if an element belongs to it
+
     >>> 2.5 in iv
     True
+    >>> 0 in iv
+    False
+    >>> 5 in iv
+    True
+
+    You can test the bounds (``closed='right'``, so ``0 < x <= 5`):
+
     >>> 0 in iv
     False
     >>> 5 in iv
@@ -144,19 +161,47 @@ cdef class Interval(IntervalMixin):
     >>> 0.0001 in iv
     True
 
-    >>> year_2017 = pd.Interval(pd.Timestamp('2017-01-01'),
-    ...                         pd.Timestamp('2017-12-31'), closed='both')
+    Calculate its length
+
+    >>> iv.length
+    5
+
+    You can operate with `+` and `*` over an Interval and the operation
+    is applied to each of its bounds, so the result depends on the type
+    of the bound elements
+
+    >>> shifted_iv = iv + 3
+    >>> shifted_iv
+    Interval(3, 8, closed='right')
+    >>> extended_iv = iv * 10.0
+    >>> extended_iv
+    Interval(0.0, 50.0, closed='right')
+
+    To create a time interval you can use Timestamps as the bounds
+
+    >>> year_2017 = pd.Interval(pd.Timestamp('2017-01-01 00:00:00'),
+    ...                         pd.Timestamp('2018-01-01 00:00:00'),
+    ...                         closed='left')
     >>> pd.Timestamp('2017-01-01 00:00') in year_2017
+    True
+    >>> year_2017.length
+    Timedelta('365 days 00:00:00')
+
+    And also you can create string intervals
+
+    >>> volume_1 = pd.Interval('Ant', 'Dog', closed='both')
+    >>> 'Bee' in volume_1
     True
 
     See Also
     --------
     IntervalIndex : An Index of Interval objects that are all closed on the
-                    same side.
-    cut : Convert arrays of continuous data into bins of Series/Categoricals
-          of Interval.
-    qcut : Convert arrays of continuous data into bins of Series/Categoricals
-           of Interval based on quantiles.
+        same side.
+    cut : Convert continuous data into discrete bins (Categorical
+        of Interval objects).
+    qcut : Convert continuous data into bins (Categorical of Interval objects)
+        based on quantiles.
+    Period : Represents a period of time.
     """
     _typ = "interval"
 
