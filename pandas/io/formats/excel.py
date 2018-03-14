@@ -14,7 +14,7 @@ import pandas.core.common as com
 from pandas.core.dtypes.common import is_float, is_scalar
 from pandas.core.dtypes import missing
 from pandas import Index, MultiIndex, PeriodIndex
-from pandas.io.formats.common import get_level_lengths
+from pandas.io.formats.format import get_level_lengths
 
 
 class ExcelCell(object):

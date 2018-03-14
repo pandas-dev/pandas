@@ -5,7 +5,7 @@ sphinx
 nbconvert
 nbformat
 notebook
-matplotlib
+matplotlib=2.1*
 seaborn
 scipy
 lxml

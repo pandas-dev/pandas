@@ -8,7 +8,6 @@ import pytest
 from dateutil.parser import parse
 
 import pandas.util._test_decorators as td
-from pandas.conftest import is_dateutil_le_261, is_dateutil_gt_261
 from pandas import compat
 from pandas.util import testing as tm
 from pandas._libs.tslibs import parsing
@@ -96,7 +95,6 @@ class TestDatetimeParsingWrappers(object):
 class TestGuessDatetimeFormat(object):
 
     @td.skip_if_not_us_locale
-    @is_dateutil_le_261
     @pytest.mark.parametrize(
         "string, format",
         [
@@ -112,19 +110,6 @@ class TestGuessDatetimeFormat(object):
         result = parsing._guess_datetime_format(string)
         assert result == format
 
-    @td.skip_if_not_us_locale
-    @is_dateutil_gt_261
-    @pytest.mark.parametrize(
-        "string",
-        ['20111230', '2011-12-30', '30-12-2011',
-         '2011-12-30 00:00:00', '2011-12-30T00:00:00',
-         '2011-12-30 00:00:00.000000'])
-    def test_guess_datetime_format_with_parseable_formats_gt_261(
-            self, string):
-        result = parsing._guess_datetime_format(string)
-        assert result is None
-
-    @is_dateutil_le_261
     @pytest.mark.parametrize(
         "dayfirst, expected",
         [
@@ -136,17 +121,7 @@ class TestGuessDatetimeFormat(object):
             ambiguous_string, dayfirst=dayfirst)
         assert result == expected
 
-    @is_dateutil_gt_261
-    @pytest.mark.parametrize(
-        "dayfirst", [True, False])
-    def test_guess_datetime_format_with_dayfirst_gt_261(self, dayfirst):
-        ambiguous_string = '01/01/2011'
-        result = parsing._guess_datetime_format(
-            ambiguous_string, dayfirst=dayfirst)
-        assert result is None
-
     @td.skip_if_has_locale
-    @is_dateutil_le_261
     @pytest.mark.parametrize(
         "string, format",
         [
@@ -157,19 +132,6 @@ class TestGuessDatetimeFormat(object):
             self, string, format):
         result = parsing._guess_datetime_format(string)
         assert result == format
-
-    @td.skip_if_has_locale
-    @is_dateutil_gt_261
-    @pytest.mark.parametrize(
-        "string",
-        [
-            '30/Dec/2011',
-            '30/December/2011',
-            '30/Dec/2011 00:00:00'])
-    def test_guess_datetime_format_with_locale_specific_formats_gt_261(
-            self, string):
-        result = parsing._guess_datetime_format(string)
-        assert result is None
 
     def test_guess_datetime_format_invalid_inputs(self):
         # A datetime string must include a year, month and a day for it
@@ -189,7 +151,6 @@ class TestGuessDatetimeFormat(object):
         for invalid_dt in invalid_dts:
             assert parsing._guess_datetime_format(invalid_dt) is None
 
-    @is_dateutil_le_261
     @pytest.mark.parametrize(
         "string, format",
         [
@@ -203,21 +164,6 @@ class TestGuessDatetimeFormat(object):
         # GH 11142
         result = parsing._guess_datetime_format(string)
         assert result == format
-
-    @is_dateutil_gt_261
-    @pytest.mark.parametrize(
-        "string",
-        [
-            '2011-1-1',
-            '30-1-2011',
-            '1/1/2011',
-            '2011-1-1 00:00:00',
-            '2011-1-1 0:0:0',
-            '2011-1-3T00:00:0'])
-    def test_guess_datetime_format_nopadding_gt_261(self, string):
-        # GH 11142
-        result = parsing._guess_datetime_format(string)
-        assert result is None
 
 
 class TestArrayToDatetime(object):
