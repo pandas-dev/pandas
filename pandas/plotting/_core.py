@@ -3205,8 +3205,8 @@ class FramePlotMethods(BasePlotMethods):
 
         Examples
         --------
-        Let's see how to draw a scatter plot using coordinates and color from
-        the values in three DataFrame columns.
+        Let's see how to draw a scatter plot using coordinates from the values
+        in a DataFrame's columns.
 
         .. plot::
             :context: close-figs
@@ -3217,6 +3217,12 @@ class FramePlotMethods(BasePlotMethods):
             >>> ax1 = df.plot.scatter(x='length',
             ...                       y='width',
             ...                       c='DarkBlue')
+
+        And now with the color determined by a column as well.
+
+        .. plot::
+            :context: close-figs
+
             >>> ax2 = df.plot.scatter(x='length',
             ...                       y='width',
             ...                       c='species',
