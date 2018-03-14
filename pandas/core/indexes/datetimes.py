@@ -1736,31 +1736,42 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         'is_quarter_start',
         'is_quarter_start',
         """
-        Return a boolean indicating whether the date is the first day of a
-        quarter.
+        Indicator for whether the date is the first day of a quarter.
 
         Returns
         -------
-        is_quarter_start : Series of boolean.
+        is_quarter_start : Series or DatetimeIndex
+            The same type as the original data with boolean values. Series will
+            have the same name and index. DatetimeIndex will have the same
+            name.
 
         See Also
         --------
         quarter : Return the quarter of the date.
-
-        is_quarter_end : Return a boolean indicating whether the date is the
-            last day of the quarter.
+        is_quarter_end : Similar method for indicating the start of a quarter.
 
         Examples
         --------
+        This method is available on Series with datetime values under
+        the ``.dt`` accessor, and directly on DatetimeIndex.
+
         >>> df = pd.DataFrame({'dates': pd.date_range("2017-03-30",
         ...                   periods=4)})
         >>> df.assign(quarter = df.dates.dt.quarter,
-        ...          is_quarter_start = df.dates.dt.is_quarter_start)
+        ...           is_quarter_start=df.dates.dt.is_quarter_start)
                dates  quarter  is_quarter_start
         0 2017-03-30        1             False
         1 2017-03-31        1             False
         2 2017-04-01        2              True
         3 2017-04-02        2             False
+
+        >>> idx = pd.date_range('2017-03-30', periods=4)
+        >>> idx
+        DatetimeIndex(['2017-03-30', '2017-03-31', '2017-04-01', '2017-04-02'],
+                      dtype='datetime64[ns]', freq='D')
+
+        >>> idx.is_quarter_start
+        array([False, False,  True, False])
         """)
     is_quarter_end = _field_accessor(
         'is_quarter_end',
