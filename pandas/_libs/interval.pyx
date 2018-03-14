@@ -81,33 +81,79 @@ cdef class Interval(IntervalMixin):
 
     Parameters
     ----------
-    left : value
-        Left bound for the interval
-    right : value
-        Right bound for the interval
+    left : orderable scalar
+        Left bound for the interval.
+    right : orderable scalar
+        Right bound for the interval.
     closed : {'left', 'right', 'both', 'neither'}, default 'right'
         Whether the interval is closed on the left-side, right-side, both or
-        neither
+        neither.
+
+    Notes
+    -----
+    The parameters `left` and `right` must be from the same type, you must be
+    able to compare them and they must satisfy ``left <= right``.
 
     Examples
     --------
+    It is possible to build Intervals of different types, like numeric ones:
+
     >>> iv = pd.Interval(left=0, right=5)
     >>> iv
     Interval(0, 5, closed='right')
+
+    You can check if an element belongs to it
+
     >>> 2.5 in iv
     True
 
-    >>> year_2017 = pd.Interval(pd.Timestamp('2017-01-01'),
-    ...                         pd.Timestamp('2017-12-31'), closed='both')
+    You can test the bounds
+
+    >>> 0 in iv
+    False
+    >>> 5 in iv
+    True
+
+    Calculate its length
+
+    >>> iv.length
+    5
+
+    You can operate with `+` and `*` over an Interval and the operation
+    is applied to each of its bounds, so the result depends on the type
+    of the bound elements
+
+    >>> shifted_iv = iv + 3
+    >>> shifted_iv
+    Interval(3, 8, closed='right')
+    >>> extended_iv = iv * 10.0
+    >>> extended_iv
+    Interval(0.0, 50.0, closed='right')
+
+    To create a time interval you can use Timestamps as the bounds
+
+    >>> year_2017 = pd.Interval(pd.Timestamp('2017-01-01 00:00:00'),
+    ...                         pd.Timestamp('2018-01-01 00:00:00'),
+    ...                         closed='left')
     >>> pd.Timestamp('2017-01-01 00:00') in year_2017
+    True
+    >>> year_2017.length
+    Timedelta('365 days 00:00:00')
+
+    And also you can create string intervals
+
+    >>> volume_1 = pd.Interval('Ant', 'Dog', closed='both')
+    >>> 'Bee' in volume_1
     True
 
     See Also
     --------
     IntervalIndex : An Index of Interval objects that are all closed on the
-                    same side.
-    cut, qcut : Convert arrays of continuous data into Categoricals/Series of
-                Interval.
+        same side.
+    cut : Bin values into discrete intervals.
+    qcut : Discretize values into equal-sized buckets based on rank or
+           based on sample quantiles.
+    Period : Represents a period of time.
     """
     _typ = "interval"
 
