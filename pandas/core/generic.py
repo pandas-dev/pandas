@@ -5445,7 +5445,7 @@ class NDFrame(PandasObject, SelectionMixin):
         1     4.0
         2     9.0
         3    16.0
-        Name: d, dtype: float64        
+        Name: d, dtype: float64
         """
 
     @Appender(_shared_docs['interpolate'] % _shared_doc_kwargs)
