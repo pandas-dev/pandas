@@ -1178,42 +1178,77 @@ def str_slice(arr, start=None, stop=None, step=None):
     return _na_map(f, arr)
 
 
-def str_slice_replace(arr, start=None, stop=None, repl=None):
+def str_slice_replace(arr, start=None, stop=None, repl=''):
     """
-    Replace a sliced string.
-
-    Replace a slice of each string in the Series/Index with another
-    string.
+    Replace a positional slice of a string with another value.
 
     Parameters
     ----------
-    start : int or None
-        Left edge index.
-    stop : int or None
-        Right edge index.
-    repl : str or None
+    start : int, optional
+        Left index position to use for the slice. The default of None
+        implies a slice unbound on the left, i.e. slice from the start
+        of the string.
+    stop : int, optional
+        Right index position to use for the slice. The default of None
+        implies a slice unbounded on the right, i.e. slice until the
+        end of the string.
+    repl : str, default ''
         String for replacement.
 
     Returns
     -------
-    replaced : Series/Index of objects
+    replaced : Series or Index
+        Same type as the original object.
+
+    See Also
+    --------
+    Series.str.slice : Just slicing without replacement.
 
     Examples
     --------
-    >>> s = pd.Series(['This is a Test 1', 'This is a Test 2'])
+    >>> s = pd.Series(['a', 'ab', 'abc', 'abdc', 'abcde'])
     >>> s
-    0    This is a Test 1
-    1    This is a Test 2
+    0        a
+    1       ab
+    2      abc
+    3     abdc
+    4    abcde
     dtype: object
-    >>> s = s.str.slice_replace(8, 14, 'an Example')
-    >>> s
-    0    This is an Example 1
-    1    This is an Example 2
+
+    Specify just `start`, meaning replace `start` until the end of the
+    string with `repl`.
+
+    >>> s.str.slice_replace(1, repl='X')
+    0    aX
+    1    aX
+    2    aX
+    3    aX
+    4    aX
+    dtype: object
+
+    Specify just `stop`, meaning the start of the string to `stop` is replaced
+    with `repl`, and the rest of the string is included.
+
+    >>> s.str.slice_replace(stop=2, repl='X')
+    0       X
+    1       X
+    2      Xc
+    3     Xdc
+    4    Xcde
+    dtype: object
+
+    Specify `start` and `stop`, meaning the slice from `start` to `stop` is
+    replaced with `repl`. Everything before or after `start` and `stop` is
+    included as is.
+
+    >>> s.str.slice_replace(start=1, stop=3, repl='X')
+    0      aX
+    1      aX
+    2      aX
+    3     aXc
+    4    aXde
     dtype: object
     """
-    if repl is None:
-        repl = ''
-
     def f(x):
         if x[start:stop] == '':
             local_stop = start
