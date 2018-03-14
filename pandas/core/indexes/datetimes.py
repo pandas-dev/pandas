@@ -1790,7 +1790,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         See Also
         --------
         quarter : Return the quarter of the date.
-        is_quarter_end : Similar property for indicating the start of a quarter.
+        is_quarter_end : Similar property for indicating the quarter start.
 
         Examples
         --------
