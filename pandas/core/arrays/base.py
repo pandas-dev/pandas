@@ -250,7 +250,8 @@ class ExtensionArray(object):
         return np.array(self)
 
     def argsort(self, ascending=True, kind='quicksort', *args, **kwargs):
-        """Returns the indices that would sort this array.
+        """
+        Return the indices that would sort this array.
 
         Parameters
         ----------
@@ -259,7 +260,7 @@ class ExtensionArray(object):
             or descending sort.
         kind : {'quicksort', 'mergesort', 'heapsort'}, optional
             Sorting algorithm.
-        args, kwargs:
+        *args, **kwargs:
             passed through to :func:`numpy.argsort`.
 
         Returns
@@ -269,7 +270,7 @@ class ExtensionArray(object):
 
         See Also
         --------
-        numpy.argsort
+        numpy.argsort : Sorting implementation used internally.
         """
         # Implementor note: You have two places to override the behavior of
         # argsort.
