@@ -175,9 +175,9 @@ class Docstring:
 
     @property
     def doc_parameters(self):
-        return collections.OrderedDict((name, (type_, ''.join(desc)))
-                                       for name, type_, desc
-                                       in self.doc['Parameters'])
+        return collections.OrderedDict(
+            (name.strip('*'), (type_, ''.join(desc)))
+            for name, type_, desc in self.doc['Parameters'])
 
     @property
     def signature_parameters(self):
@@ -417,7 +417,11 @@ def validate_one(func_name):
 
     param_errs = doc.parameter_mismatches
     for param in doc.doc_parameters:
-        if not doc.parameter_type(param):
+        if param in {'kwargs', 'args'}:
+            if doc.parameter_type(param):
+                param_errs.append('Parameter "**{}" does not need a type '
+                                  'description'.format(param))
+        elif not doc.parameter_type(param) and param not in {'args', 'kwargs'}:
             param_errs.append('Parameter "{}" has no type'.format(param))
         else:
             if doc.parameter_type(param)[-1] == '.':
