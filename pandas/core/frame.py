@@ -3539,17 +3539,17 @@ class DataFrame(NDFrame):
         --------
         DataFrame.isna: show missing values
         DataFrame.notna : show existing (non-missing) values
+        DataFrame.fillna : replace missing values
         Series.dropna : drop missing values
-        isna : top-level isna
-        notna : top-level notna
+        Index.dropna : drop missing indices
 
         Examples
         --------
         >>> df = pd.DataFrame([['Alfred', np.nan, pd.NaT],
-        ...                 ['Batman', 'Batmobile', pd.Timestamp('1940-04-25')],
-        ...                 ['Catwoman', 'Bullwhip', pd.NaT],
-        ...                 [np.nan, np.nan, pd.NaT]],
-        ...                 columns=['name', 'toy', 'born'])
+        ...                ['Batman', 'Batmobile', pd.Timestamp('1940-04-25')],
+        ...                ['Catwoman', 'Bullwhip', pd.NaT],
+        ...                [np.nan, np.nan, pd.NaT]],
+        ...                columns=['name', 'toy', 'born'])
         >>> df
                name        toy       born
         0    Alfred        NaN        NaT

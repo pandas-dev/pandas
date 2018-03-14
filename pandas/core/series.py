@@ -3059,9 +3059,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
+        Series.isna: show missing values
+        Series.notna : show existing (non-missing) values
+        Series.fillna : replace missing values
         DataFrame.dropna : drop rows or columns which contain NA values
-        isna: show missing values
-        notna : show existing (non-missing) values
+        Index.dropna : drop missing indices
 
         Examples
         --------
@@ -3087,8 +3089,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         1    2.0
         dtype: float64
 
-        Empty strings are not considered NA values. None is considered an NA
-        value.
+        Empty strings are not considered NA values. ``None`` is considered an
+        NA value.
 
         >>> ser = pd.Series([np.NaN, 2, pd.NaT, '', None, 'I stay'])
         >>> ser
