@@ -91,18 +91,18 @@ cdef class Interval(IntervalMixin):
 
     Notes
     -----
-    The parameters `left` and `right` must be from the `same` type,you must be
-    able to `compare` them and they must satisfy ``left <= right``.
+    The parameters `left` and `right` must be from the same type, you must be
+    able to compare them and they must satisfy ``left <= right``.
 
     Examples
     --------
-    It is possible to build Intervals of different types, like numeric ones
+    It is possible to build Intervals of different types, like numeric ones:
 
     >>> iv = pd.Interval(left=0, right=5)
     >>> iv
     Interval(0, 5, closed='right')
 
-    In which you can check if an element belongs to it
+    You can check if an element belongs to it
 
     >>> 2.5 in iv
     True
@@ -149,9 +149,9 @@ cdef class Interval(IntervalMixin):
     See Also
     --------
     IntervalIndex : An Index of Interval objects that are all closed on the
-                    same side.
-    cut : Return indices of half-open bins.
-    qcut : Discretize variable into equal-sized buckets based on rank or
+        same side.
+    cut : Bin values into discrete intervals.
+    qcut : Discretize values into equal-sized buckets based on rank or
            based on sample quantiles.
     Period : Represents a period of time.
     """
