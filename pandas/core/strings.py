@@ -1178,7 +1178,7 @@ def str_slice(arr, start=None, stop=None, step=None):
     return _na_map(f, arr)
 
 
-def str_slice_replace(arr, start=None, stop=None, repl=''):
+def str_slice_replace(arr, start=None, stop=None, repl=None):
     """
     Replace a positional slice of a string with another value.
 
@@ -1192,8 +1192,9 @@ def str_slice_replace(arr, start=None, stop=None, repl=''):
         Right index position to use for the slice. The default of None
         implies a slice unbounded on the right, i.e. slice until the
         end of the string.
-    repl : str, default ''
-        String for replacement.
+    repl : str, optional
+        String for replacement. The default of None replaces the slice
+        with an empty string.
 
     Returns
     -------
@@ -1249,6 +1250,9 @@ def str_slice_replace(arr, start=None, stop=None, repl=''):
     4    aXde
     dtype: object
     """
+    if repl is None:
+        repl = ''
+
     def f(x):
         if x[start:stop] == '':
             local_stop = start
