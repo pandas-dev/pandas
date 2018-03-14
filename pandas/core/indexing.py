@@ -1425,8 +1425,11 @@ class _LocIndexer(_LocationIndexer):
       interpreted as a *label* of the index, and **never** as an
       integer position along the index).
     - A list or array of labels, e.g. ``['a', 'b', 'c']``.
-    - A slice object with labels, e.g. ``'a':'f'`` (note that contrary
-      to usual python slices, **both** the start and the stop are included!).
+    - A slice object with labels, e.g. ``'a':'f'``.
+
+    .. warning:: Note that contrary to usual python slices, **both** the start
+        and the stop are included
+
     - A boolean array of the same length as the axis being sliced,
       e.g. ``[True, False, True]``.
     - A ``callable`` function with one argument (the calling Series, DataFrame
@@ -1438,220 +1441,213 @@ class _LocIndexer(_LocationIndexer):
     --------
     DateFrame.at : Access a single value for a row/column label pair
     DateFrame.iloc : Access group of rows and columns by integer position(s)
+    DataFrame.xs : Returns a cross-section (row(s) or column(s)) from the
+        Series/DataFrame.
     Series.loc : Access group of values using labels
 
     Examples
     --------
     **Getting values**
 
-    >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
-    ...      index=['r0', 'r1', 'r2'], columns=['c0', 'c1', 'c2'])
+    >>> df = pd.DataFrame([[1, 2], [4, 5], [7, 8]],
+    ...      index=['cobra', 'viper', 'sidewinder'],
+    ...      columns=['max_speed', 'shield'])
     >>> df
-        c0  c1  c2
-    r0   1   2   3
-    r1   4   5   6
-    r2   7   8   9
+                max_speed  shield
+    cobra               1       2
+    viper               4       5
+    sidewinder          7       8
 
     Single label. Note this returns the row as a Series.
 
-    >>> df.loc['r1']
-    c0    4
-    c1    5
-    c2    6
-    Name: r1, dtype: int64
+    >>> df.loc['viper']
+    max_speed    4
+    shield       5
+    Name: viper, dtype: int64
 
-    List with a single label. Note using ``[[]]`` returns a DataFrame.
+    List of labels. Note using ``[[]]`` returns a DataFrame.
 
-    >>> df.loc[['r1']]
-        c0  c1  c2
-    r1   4   5   6
+    >>> df.loc[['viper', 'sidewinder']]
+                max_speed  shield
+    viper               4       5
+    sidewinder          7       8
 
     Single label for row and column
 
-    >>> df.loc['r0', 'c1']
+    >>> df.loc['cobra', 'shield']
     2
 
-    A list of labels
+    Slice with labels for row and single label for column. As mentioned
+    above, note that both the start and stop of the slice are included.
 
-    >>> df.loc[['r1', 'r2']]
-        c0  c1  c2
-    r1   4   5   6
-    r2   7   8   9
-
-    Slice with labels for row and single label for column. Note that
-    contrary to usual python slices, both the start and the stop are
-    included!
-
-    >>> df.loc['r0':'r1', 'c0']
-    r0     1
-    r1     4
-    Name: c0, dtype: int64
+    >>> df.loc['cobra':'viper', 'max_speed']
+    cobra    1
+    viper    4
+    Name: max_speed, dtype: int64
 
     Boolean list with the same length as the row axis
 
     >>> df.loc[[False, False, True]]
-        c0  c1  c2
-    r2   7   8   9
+                max_speed  shield
+    sidewinder          7       8
 
     Conditional that returns a boolean Series
 
-    >>> df.loc[df['c1'] > 6]
-        c0  c1  c2
-    r2   7   8   9
+    >>> df.loc[df['shield'] > 6]
+                max_speed  shield
+    sidewinder          7       8
 
     Conditional that returns a boolean Series with column labels specified
 
-    >>> df.loc[df['c1'] > 6, ['c0', 'c2']]
-        c0  c2
-    r2   7   9
+    >>> df.loc[df['shield'] > 6, ['max_speed']]
+                max_speed
+    sidewinder          7
 
     Callable that returns a boolean Series
 
-    >>> df.loc[lambda df: df['c1'] == 8]
-        c0  c1  c2
-    r2   7   8   9
+    >>> df.loc[lambda df: df['shield'] == 8]
+                max_speed  shield
+    sidewinder          7       8
 
     **Setting values**
 
     Set value for all items matching the list of labels
 
-    >>> df.loc[['r1', 'r2'], ['c1']] = 50
+    >>> df.loc[['viper', 'sidewinder'], ['shield']] = 50
     >>> df
-        c0  c1  c2
-    r0   1   2   3
-    r1   4  50   6
-    r2   7  50   9
+                max_speed  shield
+    cobra               1       2
+    viper               4      50
+    sidewinder          7      50
 
     Set value for an entire row
 
-    >>> df.loc['r0'] = 10
+    >>> df.loc['cobra'] = 10
     >>> df
-        c0  c1  c2
-    r0  10  10  10
-    r1   4  50   6
-    r2   7  50   9
+                max_speed  shield
+    cobra              10      10
+    viper               4      50
+    sidewinder          7      50
 
     Set value for an entire column
 
-    >>> df.loc[:, 'c0'] = 30
+    >>> df.loc[:, 'max_speed'] = 30
     >>> df
-        c0  c1  c2
-    r0  30  10  10
-    r1  30  50   6
-    r2  30  50   9
+                max_speed  shield
+    cobra              30      10
+    viper              30      50
+    sidewinder         30      50
 
     Set value for rows matching callable condition
 
-    >>> df.loc[df['c2'] < 10] = 0
+    >>> df.loc[df['shield'] > 35] = 0
     >>> df
-        c0  c1  c2
-    r0  30  10  10
-    r1   0   0   0
-    r2   0   0   0
+                max_speed  shield
+    cobra              30      10
+    viper               0       0
+    sidewinder          0       0
 
     **Getting values on a DataFrame with an index that has integer labels**
 
     Another example using integers for the index
 
-    >>> df = pd.DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
-    ...      index=[7, 8, 9], columns=['c0', 'c1', 'c2'])
+    >>> df = pd.DataFrame([[1, 2], [4, 5], [7, 8]],
+    ...      index=[7, 8, 9], columns=['max_speed', 'shield'])
     >>> df
-        c0  c1  c2
-    7    1   2   3
-    8    4   5   6
-    9    7   8   9
+       max_speed  shield
+    7          1       2
+    8          4       5
+    9          7       8
 
-    Slice with integer labels for rows. Note that contrary to usual
-    python slices, both the start and the stop are included!
+    Slice with integer labels for rows. As mentioned above, note that both
+    the start and stop of the slice are included.
 
     >>> df.loc[7:9]
-       c0  c1  c2
-    7   1   2   3
-    8   4   5   6
-    9   7   8   9
+       max_speed  shield
+    7          1       2
+    8          4       5
+    9          7       8
 
     **Getting values with a MultiIndex**
 
     A number of examples using a DataFrame with a MultiIndex
 
-    >>> tuples = [('r0', 'bar'), ('r0', 'foo'), ('r1', 'bar'),
-    ... 	('r1', 'foo'), ('r2', 'bar'), ('r2', 'baz')]
+    >>> tuples = [
+    ...    ('cobra', 'mark i'), ('cobra', 'mark ii'),
+    ...    ('sidewinder', 'mark i'), ('sidewinder', 'mark ii'),
+    ...    ('viper', 'mark ii'), ('viper', 'mark iii')
+    ... ]
     >>> index = pd.MultiIndex.from_tuples(tuples)
-    >>> values = [[12,2,3], [0,4,1], [10,20,30],
-    ...         [1, 4, 1], [7, 1, 2], [16, 36, 40]]
-    >>> df = pd.DataFrame(values, columns=['c0', 'c1', 'c2'], index=index)
+    >>> values = [[12, 2], [0, 4], [10, 20],
+    ...         [1, 4], [7, 1], [16, 36]]
+    >>> df = pd.DataFrame(values, columns=['max_speed', 'shield'], index=index)
     >>> df
-            c0  c1  c2
-    r0 bar  12   2   3
-       foo   0   4   1
-    r1 bar  10  20  30
-       foo   1   4   1
-    r2 bar   7   1   2
-       baz  16  36  40
+                         max_speed  shield
+    cobra      mark i           12       2
+               mark ii           0       4
+    sidewinder mark i           10      20
+               mark ii           1       4
+    viper      mark ii           7       1
+               mark iii         16      36
 
     Single label. Note this returns a DataFrame with a single index.
 
-    >>> df.loc['r0']
-         c0  c1  c2
-    bar  12   2   3
-    foo   0   4   1
+    >>> df.loc['cobra']
+             max_speed  shield
+    mark i          12       2
+    mark ii          0       4
 
     Single index tuple. Note this returns a Series.
 
-    >>> df.loc[('r0', 'bar')]
-    c0    12
-    c1     2
-    c2     3
-    Name: (r0, bar), dtype: int64
+    >>> df.loc[('cobra', 'mark ii')]
+    max_speed    0
+    shield       4
+    Name: (cobra, mark ii), dtype: int64
 
     Single label for row and column. Similar to passing in a tuple, this
     returns a Series.
 
-    >>> df.loc['r0', 'foo']
-    c0    0
-    c1    4
-    c2    1
-    Name: (r0, foo), dtype: int64
+    >>> df.loc['cobra', 'mark i']
+    max_speed    12
+    shield        2
+    Name: (cobra, mark i), dtype: int64
 
     Single tuple. Note using ``[[]]`` returns a DataFrame.
 
-    >>> df.loc[[('r0', 'bar')]]
-            c0  c1  c2
-    r0 bar  12   2   3
+    >>> df.loc[[('cobra', 'mark ii')]]
+                   max_speed  shield
+    cobra mark ii          0       4
 
     Single tuple for the index with a single label for the column
 
-    >>> df.loc[('r0', 'foo'), 'c1']
-    4
-
-    Boolean list
-
-    >>> df.loc[[True, False, True, False, True, True]]
-            c0  c1  c2
-    r0 bar  12   2   3
-    r1 bar  10  20  30
-    r2 bar   7   1   2
-       baz  16  36  40
+    >>> df.loc[('cobra', 'mark i'), 'shield']
+    2
 
     Slice from index tuple to single label
 
-    >>> df.loc[('r0', 'foo'):'r1']
-            c0  c1  c2
-    r0 foo   0   4   1
-    r1 bar  10  20  30
-       foo   1   4   1
+    >>> df.loc[('cobra', 'mark i'):'viper']
+                         max_speed  shield
+    cobra      mark i           12       2
+               mark ii           0       4
+    sidewinder mark i           10      20
+               mark ii           1       4
+    viper      mark ii           7       1
+               mark iii         16      36
 
     Slice from index tuple to index tuple
 
-    >>> df.loc[('r0', 'foo'):('r1', 'bar')]
-            c0  c1  c2
-    r0 foo   0   4   1
-    r1 bar  10  20  30
+    >>> df.loc[('cobra', 'mark i'):('viper', 'mark ii')]
+                        max_speed  shield
+    cobra      mark i          12       2
+               mark ii          0       4
+    sidewinder mark i          10      20
+               mark ii          1       4
+    viper      mark ii          7       1
 
     Raises
     ------
     KeyError:
-        when items are not found
+        when any items are not found
     """
 
     _valid_types = ("labels (MUST BE IN THE INDEX), slices of labels (BOTH "
