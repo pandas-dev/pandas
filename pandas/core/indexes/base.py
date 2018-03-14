@@ -1388,8 +1388,15 @@ class Index(IndexOpsMixin, PandasObject):
     def _summary(self, name=None):
         """
         Return a summarized representation
-        .. deprecated:: 0.23.0
-           No longer supported
+
+        Parameters
+        ----------
+        name : str
+            name to use in the summary representation
+
+        Returns
+        -------
+        String with a summarized representation of the index
         """
         if len(self) > 0:
             head = self[0]
