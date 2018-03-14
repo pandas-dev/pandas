@@ -134,9 +134,9 @@ class CSSToExcelConverter(object):
     def build_border(self, props):
         return {side: {
             'style': self._border_style(props.get('border-{side}-style'
-                                        .format(side=side)),
+                                                  .format(side=side)),
                                         props.get('border-{side}-width'
-                                        .format(side=side))),
+                                                  .format(side=side))),
             'color': self.color_to_excel(
                 props.get('border-{side}-color'.format(side=side))),
         } for side in ['top', 'right', 'bottom', 'left']}
@@ -408,9 +408,7 @@ class ExcelFormatter(object):
             return
 
         columns = self.columns
-        level_strs = columns.format(sparsify=self.merge_cells, adjoin=False,
-                                    names=False)
-        level_lengths = get_level_lengths(level_strs)
+        level_lengths = get_level_lengths(columns, self.merge_cells)
         coloffset = 0
         lnum = 0
 
@@ -436,6 +434,8 @@ class ExcelFormatter(object):
                                         header_style)
         else:
             # Format in legacy format with dots to indicate levels.
+            level_strs = columns.format(sparsify=None, adjoin=False,
+                                        names=False)
             for i, values in enumerate(zip(*level_strs)):
                 v = ".".join(map(pprint_thing, values))
                 yield ExcelCell(lnum, coloffset + i + 1, v, header_style)
@@ -560,9 +560,7 @@ class ExcelFormatter(object):
 
             if self.merge_cells:
                 # Format hierarchical rows as merged cells.
-                level_strs = self.df.index.format(sparsify=True, adjoin=False,
-                                                  names=False)
-                level_lengths = get_level_lengths(level_strs)
+                level_lengths = get_level_lengths(self.df.index, True)
 
                 for spans, levels, labels in zip(level_lengths,
                                                  self.df.index.levels,

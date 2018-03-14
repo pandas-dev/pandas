@@ -2618,3 +2618,20 @@ def test_format_percentiles():
     pytest.raises(ValueError, fmt.format_percentiles, [-0.001, 0.1, 0.5])
     pytest.raises(ValueError, fmt.format_percentiles, [2, 0.1, 0.5])
     pytest.raises(ValueError, fmt.format_percentiles, [0.1, 0.5, 'a'])
+
+
+def test_get_level_lengths():
+    index = pd.MultiIndex.from_product([['a', 'b'], [0, 1, 2]])
+    expected = [{0: 3, 3: 3}, {0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1}]
+    result = fmt.get_level_lengths(index)
+    assert result == expected
+
+
+def test_get_level_lengths_un_sorted():
+    index = pd.MultiIndex.from_arrays([
+        [1, 1, 2, 1],
+        ['a', 'b', 'b', 'd']
+    ])
+    expected = [{0: 2, 2: 1, 3: 1}, {0: 1, 1: 1, 2: 1, 3: 1}]
+    result = fmt.get_level_lengths(index)
+    assert result == expected

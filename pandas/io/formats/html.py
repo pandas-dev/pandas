@@ -234,7 +234,7 @@ class HTMLFormatter(TableFormatter):
                 sentinel = None
             levels = self.columns.format(sparsify=sentinel, adjoin=False,
                                          names=False)
-            level_lengths = get_level_lengths(levels, sentinel)
+            level_lengths = get_level_lengths(self.columns, sentinel=sentinel)
             inner_lvl = len(level_lengths) - 1
             for lnum, (records, values) in enumerate(zip(level_lengths,
                                                          levels)):
@@ -397,12 +397,7 @@ class HTMLFormatter(TableFormatter):
         idx_values = lzip(*idx_values)
 
         if self.fmt.sparsify:
-            # GH3547
-            sentinel = com.sentinel_factory()
-            levels = frame.index.format(sparsify=sentinel, adjoin=False,
-                                        names=False)
-
-            level_lengths = get_level_lengths(levels, sentinel)
+            level_lengths = get_level_lengths(frame.index)
             inner_lvl = len(level_lengths) - 1
             if truncate_v:
                 # Insert ... row and adjust idx_values and
@@ -471,7 +466,7 @@ class HTMLFormatter(TableFormatter):
                     row.insert(row_levels - sparse_offset +
                                self.fmt.tr_col_num, '...')
                 self.write_tr(row, indent, self.indent_delta, tags=tags,
-                              nindex_levels=len(levels) - sparse_offset)
+                              nindex_levels=len(level_lengths) - sparse_offset)
         else:
             for i in range(len(frame)):
                 idx_values = list(zip(*frame.index.format(

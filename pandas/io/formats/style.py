@@ -8,6 +8,7 @@ from contextlib import contextmanager
 from uuid import uuid1
 import copy
 from collections import defaultdict, MutableMapping
+from pandas.io.formats.format import get_level_lengths
 
 try:
     from jinja2 import (
@@ -198,8 +199,8 @@ class Styler(object):
             return "{key}={value}".format(**pair)
 
         # for sparsifying a MultiIndex
-        idx_lengths = _get_level_lengths(self.index)
-        col_lengths = _get_level_lengths(self.columns, hidden_columns)
+        idx_lengths = get_level_lengths(self.index)
+        col_lengths = get_level_lengths(self.columns, hidden_columns)
 
         cell_context = dict()
 
@@ -249,7 +250,8 @@ class Styler(object):
                         "class": " ".join(cs),
                         "is_visible": _is_visible(c, r, col_lengths),
                     }
-                    colspan = col_lengths.get((r, c), 0)
+                    colspan = col_lengths[r][c] if r < len(
+                        col_lengths) and c in col_lengths[r] else 0
                     if colspan > 1:
                         es["attributes"] = [
                             format_attr({"key": "colspan", "value": colspan})
@@ -292,7 +294,8 @@ class Styler(object):
                     "id": "_".join(rid[1:]),
                     "class": " ".join(rid)
                 }
-                rowspan = idx_lengths.get((c, r), 0)
+                rowspan = idx_lengths[c][r] if c < len(
+                    idx_lengths) and r in idx_lengths[c] else 0
                 if rowspan > 1:
                     es["attributes"] = [
                         format_attr({"key": "rowspan", "value": rowspan})
@@ -1209,51 +1212,8 @@ def _is_visible(idx_row, idx_col, lengths):
     """
     Index -> {(idx_row, idx_col): bool})
     """
-    return (idx_col, idx_row) in lengths
-
-
-def _get_level_lengths(index, hidden_elements=None):
-    """
-    Given an index, find the level length for each element.
-    Optional argument is a list of index positions which
-    should not be visible.
-
-    Result is a dictionary of (level, inital_position): span
-    """
-    sentinel = com.sentinel_factory()
-    levels = index.format(sparsify=sentinel, adjoin=False, names=False)
-
-    if hidden_elements is None:
-        hidden_elements = []
-
-    lengths = {}
-    if index.nlevels == 1:
-        for i, value in enumerate(levels):
-            if(i not in hidden_elements):
-                lengths[(0, i)] = 1
-        return lengths
-
-    for i, lvl in enumerate(levels):
-        for j, row in enumerate(lvl):
-            if not get_option('display.multi_sparse'):
-                lengths[(i, j)] = 1
-            elif (row != sentinel) and (j not in hidden_elements):
-                last_label = j
-                lengths[(i, last_label)] = 1
-            elif (row != sentinel):
-                # even if its hidden, keep track of it in case
-                # length >1 and later elements are visible
-                last_label = j
-                lengths[(i, last_label)] = 0
-            elif(j not in hidden_elements):
-                lengths[(i, last_label)] += 1
-
-    non_zero_lengths = {}
-    for element, length in lengths.items():
-        if(length >= 1):
-            non_zero_lengths[element] = length
-
-    return non_zero_lengths
+    return idx_col < len(lengths) and idx_row in lengths[idx_col]
+    # return (idx_col, idx_row) in lengths
 
 
 def _maybe_wrap_formatter(formatter):

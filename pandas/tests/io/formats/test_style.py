@@ -10,7 +10,7 @@ import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 
 jinja2 = pytest.importorskip('jinja2')
-from pandas.io.formats.style import Styler, _get_level_lengths  # noqa
+from pandas.io.formats.style import Styler
 
 
 class TestStyler(object):
@@ -775,23 +775,6 @@ class TestStyler(object):
         df = pd.DataFrame([[1, 2], [3, 4]])
         with pytest.raises(ValueError):
             df.style._apply(f, axis=None)
-
-    def test_get_level_lengths(self):
-        index = pd.MultiIndex.from_product([['a', 'b'], [0, 1, 2]])
-        expected = {(0, 0): 3, (0, 3): 3, (1, 0): 1, (1, 1): 1, (1, 2): 1,
-                    (1, 3): 1, (1, 4): 1, (1, 5): 1}
-        result = _get_level_lengths(index)
-        tm.assert_dict_equal(result, expected)
-
-    def test_get_level_lengths_un_sorted(self):
-        index = pd.MultiIndex.from_arrays([
-            [1, 1, 2, 1],
-            ['a', 'b', 'b', 'd']
-        ])
-        expected = {(0, 0): 2, (0, 2): 1, (0, 3): 1,
-                    (1, 0): 1, (1, 1): 1, (1, 2): 1, (1, 3): 1}
-        result = _get_level_lengths(index)
-        tm.assert_dict_equal(result, expected)
 
     def test_mi_sparse(self):
         df = pd.DataFrame({'A': [1, 2]},

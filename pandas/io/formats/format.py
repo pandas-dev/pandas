@@ -6,6 +6,7 @@ and latex files. This module also applies to display formatting.
 
 from __future__ import print_function
 # pylint: disable=W0141
+from collections import defaultdict
 
 from pandas.core.dtypes.missing import isna, notna
 from pandas.core.dtypes.common import (
@@ -603,8 +604,8 @@ class DataFrameFormatter(TableFormatter):
         if len(frame.columns) == 0 or len(frame.index) == 0:
             info_line = (u('Empty {name}\nColumns: {col}\nIndex: {idx}')
                          .format(name=type(self.frame).__name__,
-                         col=pprint_thing(frame.columns),
-                         idx=pprint_thing(frame.index)))
+                                 col=pprint_thing(frame.columns),
+                                 idx=pprint_thing(frame.index)))
             text = info_line
         else:
 
@@ -1545,8 +1546,9 @@ def _binify(cols, line_width):
     return bins
 
 
-def get_level_lengths(levels, sentinel=''):
-    """For each index in each level the function returns lengths of indexes.
+def get_level_lengths(index, hidden_elements=None, sentinel=None):
+    """
+    Given an index, find the level length for each element.
 
     Parameters
     ----------
@@ -1554,35 +1556,39 @@ def get_level_lengths(levels, sentinel=''):
         List of values on for level.
     sentinel : string, optional
         Value which states that no new index starts on there.
+    hidden_elements : list, optional
+        A list of index positions which should not be visible
 
     Returns
     ----------
-    Returns list of maps. For each level returns map of indexes (key is index
-    in row and value is length of index).
+    Returns a list of dicts which represent the level lengths -- the key
+    is the index in a row and the value is length of the index).
     """
-    if len(levels) == 0:
-        return []
+    if sentinel is None:
+        sentinel = com.sentinel_factory()
 
-    control = [True for x in levels[0]]
+    if hidden_elements is None:
+        hidden_elements = []
 
-    result = []
-    for level in levels:
-        last_index = 0
+    levels = index.format(sparsify=sentinel, adjoin=False, names=False)
 
-        lengths = {}
-        for i, key in enumerate(level):
-            if control[i] and key == sentinel:
-                pass
+    lengths = []
+    if index.nlevels == 1:
+        levels = [levels]
+
+    last_label = 0
+    for i, level in enumerate(levels):
+        level_spans = defaultdict(int)
+        for j, key in enumerate(level):
+            if not get_option('display.multi_sparse'):
+                level_spans[j] = 1
             else:
-                control[i] = False
-                lengths[last_index] = i - last_index
-                last_index = i
-
-        lengths[last_index] = len(level) - last_index
-
-        result.append(lengths)
-
-    return result
+                if key != sentinel:
+                    last_label = j
+                level_spans[last_label] += 1 if j not in hidden_elements else 0
+        lengths.append({span[0]: span[1]
+                        for span in level_spans.items() if span[1] > 0})
+    return lengths
 
 
 def buffer_put_lines(buf, lines):
