@@ -25,6 +25,9 @@ from pandas.util.testing import assert_series_equal
 from pandas import (isna, to_datetime, Timestamp, Series, DataFrame,
                     Index, DatetimeIndex, NaT, date_range, compat)
 
+if PY3:
+    from datetime import timezone
+
 
 class TestTimeConversionFormats(object):
 
@@ -186,7 +189,6 @@ class TestTimeConversionFormats(object):
     @pytest.mark.skipif(not PY3,
                         reason="datetime.timezone not supported in PY2")
     def test_to_datetime_parse_timezone(self):
-        from datetime import timezone
         # %Z parsing only
         fmt = '%Y-%m-%d %H:%M:%S %Z'
         dates = ['2010-01-01 12:00:00 UTC'] * 2
@@ -239,6 +241,13 @@ class TestTimeConversionFormats(object):
 
         with pytest.raises(ValueError):
             pd.to_datetime(dates, format=fmt, utc=True)
+
+    @pytest.mark.parametrize('cache', ['+0', '-1foo', 'UTCbar', ':10'])
+    def test_to_datetime_parse_timezone_malformed(self, offset):
+        fmt = '%Y-%m-%d %H:%M:%S %z'
+        date = '2010-01-01 12:00:00 ' + offset
+        with pytest.raises(ValueError):
+            pd.to_datetime([date], format=fmt)
 
 
 class TestToDatetime(object):

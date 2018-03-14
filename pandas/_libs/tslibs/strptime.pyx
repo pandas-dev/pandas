@@ -292,29 +292,7 @@ def array_strptime(ndarray[object] values, object fmt,
                             break
             elif parse_code == 19:
                 z = found_dict['z']
-                if z == 'Z':
-                    gmtoff = 0
-                else:
-                    if z[3] == ':':
-                        z = z[:3] + z[4:]
-                        if len(z) > 5:
-                            if z[5] != ':':
-                                msg = "Inconsistent use of : in {0}"
-                                raise ValueError(msg.format(found_dict['z']))
-                            z = z[:5] + z[6:]
-                    hours = int(z[1:3])
-                    minutes = int(z[3:5])
-                    seconds = int(z[5:7] or 0)
-                    gmtoff = (hours * 60 * 60) + (minutes * 60) + seconds
-                    gmtoff_remainder = z[8:]
-                    # Pad to always return microseconds.
-                    pad_number = 6 - len(gmtoff_remainder)
-                    gmtoff_remainder_padding = "0" * pad_number
-                    gmtoff_fraction = int(gmtoff_remainder +
-                                          gmtoff_remainder_padding)
-                    if z.startswith("-"):
-                        gmtoff = -gmtoff
-                        gmtoff_fraction = -gmtoff_fraction
+                gmtoff, gmtoff_fraction = _parse_timezone_directive(z)
 
         # If we know the wk of the year and what day of that wk, we can figure
         # out the Julian day of the year.
@@ -677,3 +655,48 @@ cdef _calc_julian_from_U_or_W(int year, int week_of_year,
     else:
         days_to_week = week_0_length + (7 * (week_of_year - 1))
         return 1 + days_to_week + day_of_week
+
+cdef _parse_timezone_directive(object z):
+    """
+    Parse the '%z' directive and return an offset from UTC
+
+    Parameters
+    ----------
+    z : string-like of the UTC offset
+
+    Returns
+    -------
+    tuple of (offset, offset_fraction)
+    """
+
+    cdef:
+        int gmtoff, gmtoff_fraction, hours, minutes, seconds, pad_number
+        object gmtoff_remainder, gmtoff_remainder_padding
+
+    if z == 'Z':
+        gmtoff = 0
+        gmtoff_fraction = 0
+    else:
+        if z[3] == ':':
+            z = z[:3] + z[4:]
+            if len(z) > 5:
+                if z[5] != ':':
+                    msg = "Inconsistent use of : in {0}"
+                    raise ValueError(msg.format(found_dict['z']))
+                z = z[:5] + z[6:]
+        hours = int(z[1:3])
+        minutes = int(z[3:5])
+        seconds = int(z[5:7] or 0)
+        gmtoff = (hours * 60 * 60) + (minutes * 60) + seconds
+        gmtoff_remainder = z[8:]
+
+        # Pad to always return microseconds.
+        pad_number = 6 - len(gmtoff_remainder)
+        gmtoff_remainder_padding = "0" * pad_number
+        gmtoff_fraction = int(gmtoff_remainder +
+                              gmtoff_remainder_padding)
+        if z.startswith("-"):
+            gmtoff = -gmtoff
+            gmtoff_fraction = -gmtoff_fraction
+
+    return (gmtoff, gmtoff_fraction)
