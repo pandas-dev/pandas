@@ -47,7 +47,6 @@ from pandas.core.dtypes.common import (
 
 from pandas.core.base import PandasObject, IndexOpsMixin
 import pandas.core.common as com
-import pandas.core.base as base
 from pandas.core import ops
 from pandas.util._decorators import (
     Appender, Substitution, cache_readonly, deprecate_kwarg)

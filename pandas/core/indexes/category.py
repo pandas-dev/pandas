@@ -22,7 +22,6 @@ from pandas.core.config import get_option
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core import accessor
 import pandas.core.common as com
-import pandas.core.base as base
 import pandas.core.missing as missing
 import pandas.core.indexes.base as ibase
 
