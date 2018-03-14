@@ -252,6 +252,11 @@ PyTables, h5py, and pymongo to move data between non pandas formats. Its graph
 based approach is also extensible by end users for custom formats that may be
 too specific for the core of odo.
 
+`Vaex <https://docs.vaex.io/>`_
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Increasingly, packages are being built on top of pandas to address specific needs in data preparation, analysis and visualization. Vaex is a python library for Out-of-Core DataFrames (similar to Pandas), to visualize and explore big tabular datasets. It can calculate statistics such as mean, sum, count, standard deviation etc, on an N-dimensional grid up to a billion (10\ :sup:`9`) objects/rows per second. Visualization is done using histograms, density plots and 3d volume rendering, allowing interactive exploration of big data. Vaex uses memory mapping, zero memory copy policy and lazy computations for best performance (no memory wasted).
+
+
 .. _ecosystem.data_validation:
 
 Data validation
