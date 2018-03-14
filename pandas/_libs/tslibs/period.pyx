@@ -1165,23 +1165,17 @@ cdef class _Period(object):
     @property
     def start_time(self):
         """
-        Return the Timestamp.
-
-        This attribute returns the timestamp of the particular
-        starting date for the given period.
-
-        See also
-        --------
-        Period.dayofyear
-            Return the day of year.
-        Period.daysinmonth
-            Return the days in that month.
-        Period.dayofweek
-            Return the day of the week.
+        Get the Timestamp for the start of the period.
 
         Returns
         -------
         Timestamp
+
+        See also
+        --------
+        Period.dayofyear : Return the day of year.
+        Period.daysinmonth : Return the days in that month.
+        Period.dayofweek : Return the day of the week.
 
         Examples
         --------
