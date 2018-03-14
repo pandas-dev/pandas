@@ -3174,22 +3174,22 @@ class FramePlotMethods(BasePlotMethods):
             - A single scalar so all points have the same size.
 
             - A sequence of scalars, which will be used for each point's size
-            recursively. For instance, when passing [2,14] all points size will
-            be either 2 or 14, alternatively.
+              recursively. For instance, when passing [2,14] all points size
+              will be either 2 or 14, alternatively.
 
         c : str, int or array_like, optional
             The color of each point. Possible values are:
 
             - A single color string referred to by name, RGB or RGBA code,
-            for instance 'red' or '#a98d19'.
+              for instance 'red' or '#a98d19'.
 
-            - A sequence of color strings referred to by name, RGB or RGBA code,
-            which will be used for each point's color recursively. For intance
-            ['green','yellow'] all points will be filled in green or yellow,
-            alternatively.
+            - A sequence of color strings referred to by name, RGB or RGBA
+              code, which will be used for each point's color recursively. For
+              intance ['green','yellow'] all points will be filled in green or
+              yellow, alternatively.
 
             - A column name or position whose values will be used to color the
-            marker points according to a colormap.
+              marker points according to a colormap.
 
         **kwds : optional
             Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
