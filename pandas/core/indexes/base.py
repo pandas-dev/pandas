@@ -2378,12 +2378,49 @@ class Index(IndexOpsMixin, PandasObject):
 
     def asof(self, label):
         """
-        For a sorted index, return the most recent label up to and including
-        the passed label. Return NaN if not found.
+        Return the latest index label up to and including the passed label.
+
+        For sorted indexes, return the index label that is the latest among
+        the labels that are not later than the passed index label.
+
+        Parameters
+        ----------
+        label : object
+            The label up to which the method returns the latest index label.
+
+        Returns
+        -------
+        object : The index label that is the latest as of the passed label,
+            or NaN if there is no such label.
 
         See also
         --------
-        get_loc : asof is a thin wrapper around get_loc with method='pad'
+        Index.get_loc : `asof` is a thin wrapper around `get_loc`
+            with method='pad'.
+
+        Examples
+        --------
+        The method returns the latest index label up to the passed label.
+
+        >>> pd.Index([13, 18, 20]).asof(14)
+        13
+
+        If the label is in the index, the method returns the passed label.
+
+        >>> pd.Index([13, 18, 20]).asof(18)
+        18
+
+        If all of the labels in the index are later than the passed label,
+        NaN is returned.
+
+        >>> pd.Index([13, 18, 20]).asof(1)
+        nan
+
+        If the index is not sorted, an error is raised.
+
+        >>> pd.Index([13, 20, 18]).asof(18)
+        Traceback (most recent call last):
+        ValueError: index must be monotonic increasing or decreasing
         """
         try:
             loc = self.get_loc(label, method='pad')
