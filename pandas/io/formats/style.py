@@ -200,7 +200,7 @@ class Styler(object):
 
         # for sparsifying a MultiIndex
         idx_lengths = get_level_lengths(self.index)
-        col_lengths = get_level_lengths(self.columns, hidden_columns)
+        col_lengths = get_level_lengths(self.columns, hidden_elements=hidden_columns)
 
         cell_context = dict()
 

@@ -408,7 +408,7 @@ class ExcelFormatter(object):
             return
 
         columns = self.columns
-        level_lengths = get_level_lengths(columns, self.merge_cells)
+        level_lengths = get_level_lengths(columns, sentinel=self.merge_cells)
         coloffset = 0
         lnum = 0
 
@@ -560,7 +560,7 @@ class ExcelFormatter(object):
 
             if self.merge_cells:
                 # Format hierarchical rows as merged cells.
-                level_lengths = get_level_lengths(self.df.index, True)
+                level_lengths = get_level_lengths(self.df.index, sentinel=True)
 
                 for spans, levels, labels in zip(level_lengths,
                                                  self.df.index.levels,
