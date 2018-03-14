@@ -3191,8 +3191,8 @@ class FramePlotMethods(BasePlotMethods):
             - A column name or position whose values will be used to color the
               marker points according to a colormap.
 
-        **kwds : optional
-            Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
+        **kwds
+            Keyword arguments to pass on to :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
