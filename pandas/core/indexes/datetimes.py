@@ -1859,7 +1859,46 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     is_year_start = _field_accessor(
         'is_year_start',
         'is_year_start',
-        "Logical indicating if first day of year (defined by frequency)")
+        """
+        Indicate whether the date is the first day of a year.
+
+        Returns
+        -------
+        Series or DatetimeIndex
+            The same type as the original data with boolean values. Series will
+            have the same name and index. DatetimeIndex will have the same
+            name.
+
+        See Also
+        --------
+        is_year_end : Similar method indicating the last day of the year.
+
+        Examples
+        --------
+        This method is available on Series with datetime values under
+        the ``.dt`` accessor, and directly on DatetimeIndex.
+
+        >>> dates = pd.Series(pd.date_range("2017-12-30", periods=3))
+        >>> dates
+        0   2017-12-30
+        1   2017-12-31
+        2   2018-01-01
+        dtype: datetime64[ns]
+
+        >>> dates.dt.is_year_start
+        0    False
+        1    False
+        2    True
+        dtype: bool
+
+        >>> idx = pd.date_range("2017-12-30", periods=3)
+        >>> idx
+        DatetimeIndex(['2017-12-30', '2017-12-31', '2018-01-01'],
+                      dtype='datetime64[ns]', freq='D')
+
+        >>> idx.is_year_start
+        array([False, False,  True])
+        """)
     is_year_end = _field_accessor(
         'is_year_end',
         'is_year_end',
