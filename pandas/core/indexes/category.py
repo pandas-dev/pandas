@@ -76,7 +76,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     _attributes = ['name']
 
     def __new__(cls, data=None, categories=None, ordered=None, dtype=None,
-                copy=False, name=None, fastpath=False, **kwargs):
+                copy=False, name=None, fastpath=False):
 
         if fastpath:
             return cls._simple_new(data, name=name, dtype=dtype)
@@ -399,7 +399,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         return self._shallow_copy(result, categories=result.categories,
                                   ordered=result.ordered)
 
-    @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)
+    @Appender(Index.duplicated.__doc__)
     def duplicated(self, keep='first'):
         from pandas._libs.hashtable import duplicated_int64
         codes = self.codes.astype('i8')

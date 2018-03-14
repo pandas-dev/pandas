@@ -1599,16 +1599,15 @@ class TestIndex(Base):
         idx = Index(['a', 'b'], name='asdf')
         assert idx.name == idx[1:].name
 
-    def test_join_self(self):
-        # instance attributes of the form self.<name>Index
-        indices = 'unicode', 'str', 'date', 'int', 'float'
-        kinds = 'outer', 'inner', 'left', 'right'
-        for index_kind in indices:
-            res = getattr(self, '{0}Index'.format(index_kind))
+    # instance attributes of the form self.<name>Index
+    @pytest.mark.parametrize('index_kind',
+                             ['unicode', 'str', 'date', 'int', 'float'])
+    def test_join_self(self, join_type, index_kind):
 
-            for kind in kinds:
-                joined = res.join(res, how=kind)
-                assert res is joined
+        res = getattr(self, '{0}Index'.format(index_kind))
+
+        joined = res.join(res, how=join_type)
+        assert res is joined
 
     def test_str_attribute(self):
         # GH9068
@@ -2326,3 +2325,10 @@ def test_generated_op_names(opname, indices):
     opname = '__{name}__'.format(name=opname)
     method = getattr(index, opname)
     assert method.__name__ == opname
+
+
+@pytest.mark.parametrize('idx_maker', tm.index_subclass_makers_generator())
+def test_index_subclass_constructor_wrong_kwargs(idx_maker):
+    # GH #19348
+    with tm.assert_raises_regex(TypeError, 'unexpected keyword argument'):
+        idx_maker(foo='bar')
