@@ -2962,19 +2962,20 @@ class FramePlotMethods(BasePlotMethods):
         reduce_C_function : callable, default `np.mean`
             Function of one argument that reduces all the values in a bin to
             a single number (e.g. `np.mean`, `np.max`, `np.sum`, `np.std`).
-        gridsize : int or tuple of (int, int), optional, default 100
+        gridsize : int or tuple of (int, int), default 100
             The number of hexagons in the x-direction.
             The corresponding number of hexagons in the y-direction is
             chosen in a way that the hexagons are approximately regular.
-            Alternatively,
-            gridsize can be a tuple with two elements specifying the number
-            of hexagons in the x-direction and the y-direction.
-        **kwds : optional
-            Additional keyword arguments are documented in :meth:`pandas.DataFrame.plot`.
+            Alternatively, gridsize can be a tuple with two elements
+            specifying the number of hexagons in the x-direction and the
+            y-direction.
+        **kwds
+            Additional keyword arguments are documented in
+            :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot.
+        axes : matplotlib.AxesSubplot
 
         See Also
         --------
@@ -2990,22 +2991,23 @@ class FramePlotMethods(BasePlotMethods):
 
             >>> n = 100000
             >>> # Make a dataframe with normal distributed data
-            >>> df = pd.DataFrame({'x':np.random.randn(n),
-            ...                    'y':np.random.randn(n)})
+            >>> df = pd.DataFrame({'x': np.random.randn(n),
+            ...                    'y': np.random.randn(n)})
             >>> ax = df.plot.hexbin(x='x', y='y', cmap='inferno')
-        
+
         The next example uses `C` and `np.sum` as `reduce_C_function`.
         Note that `'observations'` values ranges from 1 to 5 but the result
-        plot shows values up to more than 25. This is because of the `reduce_C_function`.
+        plot shows values up to more than 25. This is because of the
+        `reduce_C_function`.
 
         .. plot::
             :context: close-figs
 
-            >>> n=500
+            >>> n = 500
             >>> df = pd.DataFrame({
-            ...     'coord_x':np.random.uniform(-3, 3, size=n),
-            ...     'coord_y':np.random.uniform(30, 50, size=n),
-            ...     'observations':np.random.randint(1,5, size=n)
+            ...     'coord_x': np.random.uniform(-3, 3, size=n),
+            ...     'coord_y': np.random.uniform(30, 50, size=n),
+            ...     'observations': np.random.randint(1,5, size=n)
             ...     })
             >>> ax = df.plot.hexbin(x='coord_x',
             ...                     y='coord_y',
