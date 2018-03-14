@@ -1757,7 +1757,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         >>> df = pd.DataFrame({'dates': pd.date_range("2017-03-30",
         ...                   periods=4)})
-        >>> df.assign(quarter = df.dates.dt.quarter,
+        >>> df.assign(quarter=df.dates.dt.quarter,
         ...           is_quarter_start=df.dates.dt.is_quarter_start)
                dates  quarter  is_quarter_start
         0 2017-03-30        1             False
