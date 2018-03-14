@@ -1439,8 +1439,8 @@ class _LocIndexer(_LocationIndexer):
 
     See Also
     --------
-    DateFrame.at : Access a single value for a row/column label pair
-    DateFrame.iloc : Access group of rows and columns by integer position(s)
+    DataFrame.at : Access a single value for a row/column label pair
+    DataFrame.iloc : Access group of rows and columns by integer position(s)
     DataFrame.xs : Returns a cross-section (row(s) or column(s)) from the
         Series/DataFrame.
     Series.loc : Access group of values using labels
