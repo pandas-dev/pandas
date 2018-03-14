@@ -4870,13 +4870,15 @@ class NDFrame(PandasObject, SelectionMixin):
         Replace values given in 'to_replace' with 'value'.
 
         Values of the DataFrame or a Series are being replaced with
-        other values. One or several values can be replaced with one
-        or several values.
+        other values in a dynamic way. Instead of replacing values in a
+        specific cell (row/column combination), this method allows for more
+        flexibility with replacements. For instance, values can be replaced
+        by specifying lists of values and replacements separately or
+        with a dynamic set of inputs like dicts.
 
         Parameters
         ----------
         to_replace : str, regex, list, dict, Series, numeric, or None
-
             * numeric, str or regex:
 
                 - numeric: numeric values equal to ``to_replace`` will be
@@ -4912,8 +4914,8 @@ class NDFrame(PandasObject, SelectionMixin):
                   special case of passing two lists except that you are
                   specifying the column to search in.
                 - For a DataFrame nested dictionaries, e.g.,
-                  {'a': {'b': np.nan}}, are read as follows: look in column 'a'
-                  for the value 'b' and replace it with NaN. The ``value``
+                  {'a': {'b': np.nan}}, are read as follows: look in column
+                  'a' for the value 'b' and replace it with NaN. The ``value``
                   parameter should be ``None`` to use a nested dict in this
                   way. You can nest regular expressions as well. Note that
                   column names (the top-level dictionary keys in a nested
@@ -4922,9 +4924,9 @@ class NDFrame(PandasObject, SelectionMixin):
             * None:
 
                 - This means that the ``regex`` argument must be a string,
-                  compiled regular expression, or list, dict, ndarray or Series
-                  of such elements. If ``value`` is also ``None`` then this
-                  **must** be a nested dictionary or ``Series``.
+                  compiled regular expression, or list, dict, ndarray or
+                  Series of such elements. If ``value`` is also ``None`` then
+                  this **must** be a nested dictionary or ``Series``.
 
             See the examples section for examples of each of these.
         value : scalar, dict, list, str, regex, default None
@@ -4945,24 +4947,23 @@ class NDFrame(PandasObject, SelectionMixin):
             string. Alternatively, this could be a regular expression or a
             list, dict, or array of regular expressions in which case
             ``to_replace`` must be ``None``.
-        method : string, optional, {'pad', 'ffill', 'bfill'}, default is 'pad'
+        method : {'pad', 'ffill', 'bfill', `None`}
             The method to use when for replacement, when ``to_replace`` is a
-            scalar, list or tuple and ``value`` is None.
+            scalar, list or tuple and ``value`` is `None`.
+            .. versionchanged:: 0.23.0
+                Added to DataFrame.
         axis : None
             Deprecated.
 
-            .. versionchanged:: 0.23.0
-                Added to DataFrame
-
         See Also
         --------
-        %(klass)s.fillna : Fill NA/NaN values
+        %(klass)s.fillna : Fill `NaN` values
         %(klass)s.where : Replace values based on boolean condition
 
         Returns
         -------
         %(klass)s
-            Some values have been substituted for new values.
+            Object after replacement.
 
         Raises
         ------
@@ -4993,6 +4994,9 @@ class NDFrame(PandasObject, SelectionMixin):
           numbers *are* strings, then you can do this.
         * This method has *a lot* of options. You are encouraged to experiment
           and play with this method to gain intuition about how it works.
+        * When dict is used as the ``to_replace`` value, it is like
+          key(s) in the dict are the to_replace part and
+          value(s) in the dict are the value parameter.
 
         Examples
         --------
@@ -5100,45 +5104,38 @@ class NDFrame(PandasObject, SelectionMixin):
         This raises a ``TypeError`` because one of the ``dict`` keys is not of
         the correct type for replacement.
 
-        Compare the behavior of
-        ``s.replace('a', None)`` and ``s.replace({'a': None})`` to understand
-        the pecularities of the ``to_replace`` parameter.
-        ``s.replace('a', None)`` is actually equivalent to
-        ``s.replace(to_replace='a', value=None, method='pad')``,
-        because when ``value=None`` and ``to_replace`` is a scalar, list or
-        tuple, ``replace`` uses the method parameter to do the replacement.
-        So this is why the 'a' values are being replaced by 30 in rows 3 and 4
-        and 'b' in row 6 in this case. However, this behaviour does not occur
-        when you use a dict as the ``to_replace`` value. In this case, it is
-        like the value(s) in the dict are equal to the value parameter.
+        Compare the behavior of` `s.replace({'a': None})`` and
+        ``s.replace('a', None)`` to understand the pecularities
+        of the ``to_replace`` parameter:
 
-        >>> s = pd.Series([10, 20, 30, 'a', 'a', 'b', 'a'])
-        >>> print(s)
-        0    10
-        1    20
-        2    30
-        3     a
-        4     a
-        5     b
-        6     a
-        dtype: object
-        >>> print(s.replace('a', None))
-        0    10
-        1    20
-        2    30
-        3    30
-        4    30
-        5     b
-        6     b
-        dtype: object
-        >>> print(s.replace({'a': None}))
+        >>> s = pd.Series([10, 'a', 'a', 'b', 'a'])
+
+        When one uses a dict as the ``to_replace`` value, it is like the
+        value(s) in the dict are equal to the value parameter.
+        ``s.replace({'a': None})`` is equivalent to
+        ``s.replace(to_replace={'a': None}, value=None, method=None)``:
+
+        >>> s.replace({'a': None})
         0      10
-        1      20
-        2      30
-        3    None
+        1    None
+        2    None
+        3       b
         4    None
-        5       b
-        6    None
+        dtype: object
+
+        When ``value=None`` and ``to_replace`` are a scalar, list or
+        tuple, ``replace`` uses the method parameter (default 'pad') to do the
+        replacement. So this is why the 'a' values are being replaced by 10
+        in rows 1 and 2 and 'b' in row 4 in this case.
+        The command ``s.replace('a', None)`` is actually equivalent to
+        ``s.replace(to_replace='a', value=None, method='pad')``:
+
+        >>> s.replace('a', None)
+        0    10
+        1    10
+        2    10
+        3     b
+        4     b
         dtype: object
     """)
 
