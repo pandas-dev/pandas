@@ -324,26 +324,32 @@ class _Window(PandasObject, SelectionMixin):
 
     Parameters
     ----------
-    *args
-        Under Review.
-    **kwargs
-        Under Review.
+    *args, **kwargs
+        For compatibility with other %(name)s methods. Has no effect
+        on the computed median.
 
     Returns
     -------
     Series or DataFrame
-        Like-indexed object containing the result of function application.
+        Same type as the input, with the same index, containing the
+        %(name)s sum.
 
     See Also
     --------
-    Series.%(name)s : Calling object with Series data
-    DataFrame.%(name)s : Calling object with DataFrame data
-    Series.sum : Equivalent method for Series
-    DataFrame.sum : Equivalent method for DataFrame
+    Series.sum : Reducing sum for Series.
+    DataFrame.sum : Reducing sum for DataFrame.
 
     Examples
     --------
     >>> s = pd.Series([1, 2, 3, 4, 5])
+    >>> s
+    0    1
+    1    2
+    2    3
+    3    4
+    4    5
+    dtype: int64
+
     >>> s.rolling(3).sum()
     0     NaN
     1     NaN
@@ -351,7 +357,7 @@ class _Window(PandasObject, SelectionMixin):
     3     9.0
     4    12.0
     dtype: float64
-    
+
     >>> s.expanding(3).sum()
     0     NaN
     1     NaN
@@ -359,7 +365,7 @@ class _Window(PandasObject, SelectionMixin):
     3    10.0
     4    15.0
     dtype: float64
-    
+
     >>> s.rolling(3, center=True).sum()
     0     NaN
     1     6.0
@@ -367,8 +373,25 @@ class _Window(PandasObject, SelectionMixin):
     3    12.0
     4     NaN
     dtype: float64
-    
-    'center =True' argument will place the results in center of the resultset.
+
+    For DataFrame, each %(name)s sum is computed column-wise.
+
+    >>> df = pd.DataFrame({"A": s, "B": s ** 2})
+    >>> df
+       A   B
+    0  1   1
+    1  2   4
+    2  3   9
+    3  4  16
+    4  5  25
+
+    >>> df.rolling(3).sum()
+          A     B
+    0   NaN   NaN
+    1   NaN   NaN
+    2   6.0  14.0
+    3   9.0  29.0
+    4  12.0  50.0
     """)
 
     _shared_docs['mean'] = dedent("""
