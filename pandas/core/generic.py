@@ -4950,6 +4950,7 @@ class NDFrame(PandasObject, SelectionMixin):
         method : {'pad', 'ffill', 'bfill', `None`}
             The method to use when for replacement, when ``to_replace`` is a
             scalar, list or tuple and ``value`` is `None`.
+
             .. versionchanged:: 0.23.0
                 Added to DataFrame.
         axis : None
@@ -5104,7 +5105,7 @@ class NDFrame(PandasObject, SelectionMixin):
         This raises a ``TypeError`` because one of the ``dict`` keys is not of
         the correct type for replacement.
 
-        Compare the behavior of` `s.replace({'a': None})`` and
+        Compare the behavior of ``s.replace({'a': None})`` and
         ``s.replace('a', None)`` to understand the pecularities
         of the ``to_replace`` parameter:
 
@@ -5115,6 +5116,7 @@ class NDFrame(PandasObject, SelectionMixin):
         ``s.replace({'a': None})`` is equivalent to
         ``s.replace(to_replace={'a': None}, value=None, method=None)``:
 
+        >>> #s.replace(to_replace={'a': None}, value=None, method=None)
         >>> s.replace({'a': None})
         0      10
         1    None
@@ -5130,6 +5132,7 @@ class NDFrame(PandasObject, SelectionMixin):
         The command ``s.replace('a', None)`` is actually equivalent to
         ``s.replace(to_replace='a', value=None, method='pad')``:
 
+        >>> #s.replace(to_replace='a', value=None, method='pad')
         >>> s.replace('a', None)
         0    10
         1    10
