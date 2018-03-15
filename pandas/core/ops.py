@@ -354,7 +354,7 @@ c  1.0
 d  NaN
 >>> b = pd.DataFrame(dict(one=[1, np.nan, 1, np.nan],
 ...                       two=[np.nan, 2, np.nan, 2]),
-...                       index=['a', 'b', 'd', 'e'])
+...                  index=['a', 'b', 'd', 'e'])
 >>> b
    one  two
 a  1.0  NaN
@@ -381,7 +381,7 @@ c  1.0
 d  NaN
 >>> b = pd.DataFrame(dict(one=[1, np.nan, 1, np.nan],
 ...                       two=[3, 2, np.nan, 2]),
-...                       index=['a', 'b', 'd', 'e'])
+...                  index=['a', 'b', 'd', 'e'])
 >>> b
    one  two
 a  1.0  3.0
@@ -403,7 +403,6 @@ _op_descriptions = {
             'desc': 'Addition',
             'reverse': 'radd',
             'df_examples': _add_example_FRAME},
-    # Subtraction Operators
     'sub': {'op': '-',
             'desc': 'Subtraction',
             'reverse': 'rsub',
