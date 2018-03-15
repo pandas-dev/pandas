@@ -354,7 +354,7 @@ c  1.0
 d  NaN
 >>> b = pd.DataFrame(dict(one=[1, np.nan, 1, np.nan],
 ...                       two=[np.nan, 2, np.nan, 2]),
-...                  index=['a', 'b', 'd', 'e'])
+...                       index=['a', 'b', 'd', 'e'])
 >>> b
    one  two
 a  1.0  NaN
@@ -370,16 +370,44 @@ d  1.0  NaN
 e  NaN  2.0
 """
 
+_sub_example_FRAME = """
+>>> a = pd.DataFrame([2, 1, 1, np.nan], index=['a', 'b', 'c', 'd'],
+...                  columns=['one'])
+>>> a
+   one
+a  2.0
+b  1.0
+c  1.0
+d  NaN
+>>> b = pd.DataFrame(dict(one=[1, np.nan, 1, np.nan],
+...                       two=[3, 2, np.nan, 2]),
+...                       index=['a', 'b', 'd', 'e'])
+>>> b
+   one  two
+a  1.0  3.0
+b  NaN  2.0
+d  1.0  NaN
+e  NaN  2.0
+>>> a.sub(b, fill_value=0)
+   one  two
+a  1.0  -3.0
+b  1.0  -2.0
+c  1.0  NaN
+d  -1.0  NaN
+e  NaN  -2.0
+"""
+
 _op_descriptions = {
     # Arithmetic Operators
     'add': {'op': '+',
             'desc': 'Addition',
             'reverse': 'radd',
             'df_examples': _add_example_FRAME},
+    # Subtraction Operators
     'sub': {'op': '-',
             'desc': 'Subtraction',
             'reverse': 'rsub',
-            'df_examples': None},
+            'df_examples': _sub_example_FRAME},
     'mul': {'op': '*',
             'desc': 'Multiplication',
             'reverse': 'rmul',
