@@ -1420,7 +1420,6 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return a summarized representation
         .. deprecated:: 0.23.0
-           No longer supported
         """
         warnings.warn("'summary' is deprecated and will be removed in a "
                       "future version.", FutureWarning, stacklevel=2)
