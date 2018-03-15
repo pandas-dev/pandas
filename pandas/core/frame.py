@@ -1949,7 +1949,8 @@ class DataFrame(NDFrame):
         The memory usage can optionally include the contribution of
         the index and elements of `object` dtype.
 
-        A configuration option, `display.memory_usage` (see Parameters)
+        This value is displayed in `DataFrame.info` by default. This can be
+        suppressed by setting ``pandas.options.display.memory_usage`` to False.
 
         Parameters
         ----------
@@ -1975,6 +1976,7 @@ class DataFrame(NDFrame):
         Series.memory_usage : Bytes consumed by a Series.
         pandas.Categorical : Memory-efficient array for string values with
             many repeated values.
+        DataFrame.info : Concise summary of a DataFrame.
 
         Examples
         --------
