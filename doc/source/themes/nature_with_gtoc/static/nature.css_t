@@ -201,7 +201,7 @@ div.body p, div.body dd, div.body li {
 div.admonition p.admonition-title + p {
     display: inline;
 }
-git
+
 div.deprecated {
     background-color: #ffe4e4;
     border: 1px solid #f66;
