@@ -196,7 +196,9 @@ class GoodDocStrings(object):
         pass
 
 
-class BadDocStrings(object):
+class BadGenericDocStrings(object):
+    """Everything here has a bad docstring
+    """
 
     def func(self):
 
@@ -308,6 +310,36 @@ class BadDocStrings(object):
         """
         pass
 
+    def missing_params(self, kind, **kwargs):
+        """
+        Kwargs argument is missing in parameters section.
+
+        Parameters
+        ----------
+        kind : str
+            Kind of matplotlib plot.
+        """
+        pass
+
+    def missing_param_colon_spacing(self, kind, kind2):
+        """
+        Bad spacing around colo spacing in Parameters.
+
+        Parameters
+        ----------
+        kind: str
+            Needs space before.
+        kind2 :str
+            Needs space after.
+        """
+
+
+class BadParameters():
+    """
+    Everything here has a problem with its Parameters section.
+    """
+    pass
+
 
 @td.skip_if_no('sphinx')
 class TestValidator(object):
@@ -366,8 +398,12 @@ class TestValidator(object):
         assert validate_one(self._import_path(klass='GoodDocStrings',
                                               func=func)) == 0
 
+    def test_bad_class(self):
+        assert validate_one(self._import_path(
+            klass='BadGenericDocStrings')) > 0
+
     @pytest.mark.parametrize("func", [
         'func', 'astype', 'astype1', 'astype2', 'astype3', 'plot', 'method'])
     def test_bad_functions(self, func):
-        assert validate_one(self._import_path(klass='BadDocStrings',
+        assert validate_one(self._import_path(klass='BadGenericDocStrings',
                                               func=func)) > 0
