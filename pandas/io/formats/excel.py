@@ -408,7 +408,7 @@ class ExcelFormatter(object):
             return
 
         columns = self.columns
-        level_lengths = get_level_lengths(columns, sentinel=self.merge_cells)
+        level_lengths = get_level_lengths(columns, sentinel='')
         coloffset = 0
         lnum = 0
 
@@ -434,8 +434,8 @@ class ExcelFormatter(object):
                                         header_style)
         else:
             # Format in legacy format with dots to indicate levels.
-            level_strs = columns.format(sparsify=None, adjoin=False,
-                                        names=False)
+            level_strs = columns.format(sparsify=self.merge_cells,
+                                        adjoin=False, names=False)
             for i, values in enumerate(zip(*level_strs)):
                 v = ".".join(map(pprint_thing, values))
                 yield ExcelCell(lnum, coloffset + i + 1, v, header_style)
@@ -560,7 +560,7 @@ class ExcelFormatter(object):
 
             if self.merge_cells:
                 # Format hierarchical rows as merged cells.
-                level_lengths = get_level_lengths(self.df.index, sentinel=True)
+                level_lengths = get_level_lengths(self.df.index, sentinel='')
 
                 for spans, levels, labels in zip(level_lengths,
                                                  self.df.index.levels,

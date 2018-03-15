@@ -1585,7 +1585,8 @@ def get_level_lengths(index, hidden_elements=None, sentinel=None):
             else:
                 if key != sentinel:
                     last_label = j
-                level_spans[last_label] += (1 if j not in hidden_elements else 0)
+                level_spans[last_label] += (1 if j not in hidden_elements
+                                            else 0)
         lengths.append({span[0]: span[1]
                         for span in level_spans.items() if span[1] > 0})
     return lengths
