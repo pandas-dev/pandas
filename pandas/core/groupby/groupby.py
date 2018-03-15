@@ -1460,8 +1460,93 @@ class GroupBy(_GroupBy):
     @Appender(_doc_template)
     def resample(self, rule, *args, **kwargs):
         """
-        Provide resampling when using a TimeGrouper
-        Return a new grouper with our resampler appended
+        Provide resampling when using a TimeGrouper.
+
+        Given a grouper the function resamples it according to a string and an
+        optional list and dictionary of parameters. Returns a new grouper with
+        our resampler appended.
+
+        Parameters
+        ----------
+        rule : str
+            The offset string or object representing target grouper conversion.
+        *args
+            These parameters will be passed to the get_resampler_for_grouping
+            function which builds the approriate resampler and checks for
+            deprecated parameters.
+        **kwargs
+            These parameters will be passed to the get_resampler_for_grouping
+            function which builds the approriate resampler and checks for
+            deprecated parameters.
+
+        Returns
+        -------
+        Grouper
+            Return a new grouper with our resampler appended.
+
+        Examples
+        --------
+        Start by creating a DataFrame with 9 one minute timestamps.
+
+        >>> idx = pd.date_range('1/1/2000', periods=9, freq='T')
+        >>> df = pd.DataFrame(data=9*[range(4)],
+        ...                   index=idx,
+        ...                   columns=['a', 'b', 'c', 'd'])
+        >>> df.iloc[[6], [0]] = 5  # change a value for grouping
+        >>> df
+                             a  b  c  d
+        2000-01-01 00:00:00  0  1  2  3
+        2000-01-01 00:01:00  0  1  2  3
+        2000-01-01 00:02:00  0  1  2  3
+        2000-01-01 00:03:00  0  1  2  3
+        2000-01-01 00:04:00  0  1  2  3
+        2000-01-01 00:05:00  0  1  2  3
+        2000-01-01 00:06:00  5  1  2  3
+        2000-01-01 00:07:00  0  1  2  3
+        2000-01-01 00:08:00  0  1  2  3
+
+        Downsample the DataFrame into 3 minute bins and sum the values of
+        the timestamps falling into a bin.
+
+        >>> df.groupby('a').resample('3T').sum()
+                                 a  b  c  d
+        a
+        0   2000-01-01 00:00:00  0  3  6  9
+            2000-01-01 00:03:00  0  3  6  9
+            2000-01-01 00:06:00  0  2  4  6
+        5   2000-01-01 00:06:00  5  1  2  3
+
+        Upsample the series into 30 second bins.
+
+        >>> df.groupby('a').resample('30S').sum()
+                                 a  b  c  d
+        a
+        0   2000-01-01 00:00:00  0  1  2  3
+            2000-01-01 00:00:30  0  0  0  0
+            2000-01-01 00:01:00  0  1  2  3
+            2000-01-01 00:01:30  0  0  0  0
+            2000-01-01 00:02:00  0  1  2  3
+            2000-01-01 00:02:30  0  0  0  0
+            2000-01-01 00:03:00  0  1  2  3
+            2000-01-01 00:03:30  0  0  0  0
+            2000-01-01 00:04:00  0  1  2  3
+            2000-01-01 00:04:30  0  0  0  0
+            2000-01-01 00:05:00  0  1  2  3
+            2000-01-01 00:05:30  0  0  0  0
+            2000-01-01 00:06:00  0  0  0  0
+            2000-01-01 00:06:30  0  0  0  0
+            2000-01-01 00:07:00  0  1  2  3
+            2000-01-01 00:07:30  0  0  0  0
+            2000-01-01 00:08:00  0  1  2  3
+        5   2000-01-01 00:06:00  5  1  2  3
+
+        Resample by month. Values are assigned to the month of the period.
+
+        >>> df.groupby('a').resample('M').sum()
+                        a  b   c   d
+        a
+        0   2000-01-31  0  8  16  24
+        5   2000-01-31  5  1   2   3
         """
         from pandas.core.resample import get_resampler_for_grouping
         return get_resampler_for_grouping(self, rule, *args, **kwargs)
