@@ -96,12 +96,14 @@ _apply_docs = dict(
 
     Parameters
     ----------
-    func : function
+    func : callable
         A callable that takes a {input} as its first argument, and
         returns a dataframe, a series or a scalar. In addition the
         callable may take positional and keyword arguments.
-    *args : Optional positional and keyword arguments to pass to `func`.
-    **kwargs : Optional positional and keyword arguments to pass to `func`.
+    *args
+        Additional positional arguments are passed through to `func`.
+    **kwargs
+        Additional keyword arguments are passed through to `func`.
 
     Returns
     -------
@@ -118,12 +120,15 @@ _apply_docs = dict(
     Examples
     --------
     {examples}
-    See also
+    See Also
     --------
     pipe : Apply function to the full GroupBy object instead of to each
         group.
     aggregate : Apply aggregate function to the GroupBy object.
     transform : Apply function column-by-column to the GroupBy object.
+    Series.apply : Apply a function to a Series.
+    DataFrame.apply : Apply a function to each row or column of a
+        DataFrame.
     """,
     dataframe_examples="""
     >>> df = pd.DataFrame({'A': 'a a b'.split(), 'B': [1,2,3], 'C': [4,6, 5]})
@@ -216,7 +221,7 @@ Parameters
 ----------
 func : callable or tuple of (callable, string)
     Function to apply to this %(klass)s object or, alternatively,
-    a `(callable, data_keyword)` tuple where `data_keyword` is a
+    a ``(callable, data_keyword)`` tuple where `data_keyword` is a
     string indicating the keyword of `callable` that expects the
     %(klass)s object.
 args : iterable, optional
@@ -394,7 +399,7 @@ class Grouper(object):
     Examples
     --------
 
-    Syntactic sugar for `df.groupby('A')`
+    Syntactic sugar for ``df.groupby('A')``
 
     >>> df.groupby(Grouper(key='A'))
 
@@ -1641,7 +1646,7 @@ class GroupBy(_GroupBy):
         1 NaN
         2 NaN
 
-        Specifying `as_index=False` in `groupby` keeps the original index.
+        Specifying ``as_index=False`` in `groupby` keeps the original index.
 
         >>> df.groupby('A', as_index=False).nth(1)
            A    B
@@ -2067,7 +2072,7 @@ class GroupBy(_GroupBy):
         """
         Returns first n rows of each group.
 
-        Essentially equivalent to `.apply(lambda x: x.head(n))`,
+        Essentially equivalent to ``.apply(lambda x: x.head(n))``,
         except ignores as_index flag.
 
         Examples
@@ -2094,7 +2099,7 @@ class GroupBy(_GroupBy):
         """
         Returns last n rows of each group
 
-        Essentially equivalent to `.apply(lambda x: x.tail(n))`,
+        Essentially equivalent to ``.apply(lambda x: x.tail(n))``,
         except ignores as_index flag.
 
         Examples
