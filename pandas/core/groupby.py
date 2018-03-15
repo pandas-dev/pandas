@@ -1759,9 +1759,20 @@ class GroupBy(_GroupBy):
         ...    columns=['key', 'val'])
         >>> df
         """
-        return self._get_cythonized_result('quantile', self.grouper,
+
+        def assert_not_object(vals):
+            if vals.dtype == np.object:
+                raise TypeError("'quantile' cannot be performed against "
+                                "'object' dtypes!")
+
+            return vals
+
+        return self._get_cythonized_result('group_quantile', self.grouper,
                                            aggregate=True,
-                                           needs_values=True, q=q)
+                                           needs_values=True,
+                                           cython_dtype=np.float64,
+                                           pre_processing=assert_not_object,
+                                           q=q)
 
     @Substitution(name='groupby')
     def ngroup(self, ascending=True):
@@ -1959,43 +1970,46 @@ class GroupBy(_GroupBy):
     def _get_cythonized_result(self, how, grouper, aggregate=False,
                                cython_dtype=None, needs_values=False,
                                needs_mask=False, needs_ngroups=False,
-                               result_is_index=False,
-                               pre_processing=None, post_processing=None,
-                               **kwargs):
-        """Get result for Cythonized functions
+                               result_is_index=False, pre_processing=None,
+                               post_processing=None, **kwargs):
+        """
+        Get result for Cythonized functions.
 
         Parameters
         ----------
-        how : str, Cythonized function name to be called
-        grouper : Grouper object containing pertinent group info
+        how : str
+            Cythonized function name to be called.
+        grouper : pandas.Grouper
+            Grouper object containing pertinent group info.
         aggregate : bool, default False
             Whether the result should be aggregated to match the number of
-            groups
+            groups.
         cython_dtype : default None
             Type of the array that will be modified by the Cython call. If
-            `None`, the type will be inferred from the values of each slice
+            `None`, the type will be inferred from the values of each slice.
         needs_values : bool, default False
             Whether the values should be a part of the Cython call
-            signature
+            signature.
         needs_mask : bool, default False
             Whether boolean mask needs to be part of the Cython call
-            signature
+            signature.
         needs_ngroups : bool, default False
-            Whether number of groups is part of the Cython call signature
+            Whether number of groups is part of the Cython call signature.
         result_is_index : bool, default False
             Whether the result of the Cython operation is an index of
-            values to be retrieved, instead of the actual values themselves
+            values to be retrieved, instead of the actual values themselves.
         pre_processing : function, default None
-            Function to be applied to `values` prior to passing to Cython
-            Raises if `needs_values` is False
+            Function to be applied to `values` prior to passing to Cython.
+            Raises if `needs_values` is False.
         post_processing : function, default None
-            Function to be applied to result of Cython function
-        **kwargs : dict
-            Extra arguments to be passed back to Cython funcs
+            Function to be applied to result of Cython function.
+        **kwargs
+            Extra arguments to be passed back to Cython funcs.
 
         Returns
         -------
-        `Series` or `DataFrame`  with filled values
+        `Series` or `DataFrame`
+            Object type determined by caller of the ``GroupBy`` object.
         """
         if result_is_index and aggregate:
             raise ValueError("'result_is_index' and 'aggregate' cannot both "

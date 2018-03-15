@@ -378,6 +378,72 @@ def group_any_all(ndarray[uint8_t] out,
             if values[i] == flag_val:
                 out[lab] = flag_val
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def group_quantile(ndarray[float64_t] out,
+                   ndarray[int64_t] labels,
+                   ndarray values,
+                   double_t q):
+    """
+    Calculate the quantile per group.
+
+    Parameters
+    ----------
+    out : ndarray
+        Array of aggregated values that will be written to.
+    labels : ndarray
+        Array containing the unique group labels.
+    values : ndarray
+        Array containing the values to apply the function against.
+    q : double
+        The quantile value to search for.
+
+    Notes
+    -----
+    Rather than explicitly returning a value, this function modifies the
+    provided `out` parameter.
+    """
+    cdef:
+        Py_ssize_t i, N=len(labels)
+        int64_t lab, vlow, vhigh, ngroups, grp_sz, grp_start=0, idx=0
+        ndarray[int64_t] counts
+        ndarray[int64_t] sort_arr
+
+    counts = np.zeros_like(out, dtype=np.int64)
+    ngroups = len(counts)
+
+    # First figure out the size of every group
+    with nogil:
+        for i in range(N):
+            lab = labels[i]
+            counts[lab] += 1
+
+    # Get an index of values sorted by labels and then values
+    assert len(values) == len(labels)
+    order = (values, labels)
+    sort_arr = np.lexsort(order).astype(np.int64, copy=False)
+
+    with nogil:
+        for i in range(ngroups):
+            # Figure out how many group elements there are
+            grp_sz = counts[i]
+
+            # Calculate where to retrieve the desired value
+            idx = grp_start + <int64_t>(q * <double_t>(grp_sz - 1))
+
+            vlow = labels[sort_arr[idx]]
+            # Sanity check for single value
+            if grp_sz == 1:
+                out[i] = vlow
+            else:
+                vhigh = labels[sort_arr[idx + 1]]
+                out[i] = ((vlow + (vhigh - vlow) *
+                           (q * (grp_sz - 1) - idx - grp_start)))
+
+            # Because sort_arr is sorted, move the reference to the
+            # next group by incrementing by the current groups size
+            grp_start += grp_sz
+
 
 # generated from template
 include "groupby_helper.pxi"
