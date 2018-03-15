@@ -26,41 +26,44 @@ import numpy as np
 def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         include_lowest=False):
     """
-    Bin `x` and return data about the bin to which each `x` value belongs.
+    Bin values into discrete intervals.
 
-    Splits `x` into the specified number of equal-width half-open bins.
-    Based on the parameters specified and the input, returns data about
-    the half-open bins to which each value of `x` belongs or the bins
-    themselves.
     Use `cut` when you need to segment and sort data values into bins. This
     function is also useful for going from a continuous variable to a
-    categorical variable. For example, `cut` could convert ages to groups
-    of age ranges.
+    categorical variable. For example, `cut` could convert ages to groups of
+    age ranges. Supports binning into an equal number of bins, or a
+    pre-specified array of bins.
 
     Parameters
     ----------
     x : array-like
         The input array to be binned. Must be 1-dimensional.
     bins : int, sequence of scalars, or pandas.IntervalIndex
-        If int, defines the number of equal-width bins in the range of `x`.
-        The range of `x` is extended by .1% on each side to include the min or
-        max values of `x`.
-        If a sequence, defines the bin edges allowing for non-uniform width.
-        No extension of the range of `x` is done.
-    right : bool, default 'True'
-        Indicates whether the `bins` include the rightmost edge or not. If
-        `right == True` (the default), then the `bins` [1,2,3,4] indicate
-        (1,2], (2,3], (3,4].
+        The criteria to bin by.
+
+        * int : Defines the number of equal-width bins in the range of `x`. The
+          range of `x` is extended by .1% on each side to include the minimum
+          and maximum values of `x`.
+        * sequence of scalars : Defines the bin edges allowing for non-uniform
+          width. No extension of the range of `x` is done.
+        * IntervalIndex : Defines the exact bins to be used.
+
+    right : bool, default True
+        Indicates whether `bins` includes the rightmost edge or not. If
+        ``right == True`` (the default), then the `bins` ``[1, 2, 3, 4]``
+         indicate (1,2], (2,3], (3,4]. This argument is ignored when
+        `bins` is an IntervalIndex.
     labels : array or bool, optional
         Specifies the labels for the returned bins. Must be the same length as
         the resulting bins. If False, returns only integer indicators of the
-        bins.
-    retbins : bool, default 'False'
+        bins. This affects the type of the output container (see below).
+        This argument is ignored when `bins` is an IntervalIndex.
+    retbins : bool, default False
         Whether to return the bins or not. Useful when bins is provided
         as a scalar.
-    precision : int, default '3'
+    precision : int, default 3
         The precision at which to store and display the bins labels.
-    include_lowest : bool, default 'False'
+    include_lowest : bool, default False
         Whether the first interval should be left-inclusive or not.
 
     Returns
@@ -69,52 +72,68 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         An array-like object representing the respective bin for each value
         of `x`. The type depends on the value of `labels`.
 
-        * True : returns a Series for Series `x` or a pandas.Categorical for
-        pandas.Categorial `x`.
+        * True (default) : returns a Series for Series `x` or a
+          pandas.Categorical for all other inputs. The values stored within
+          are Interval dtype.
+
+        * sequence of scalars : returns a Series for Series `x` or a
+          pandas.Categorical for all other inputs. The values stored within
+          are whatever the type in the sequence is.
 
         * False : returns an ndarray of integers.
-    bins : numpy.ndarray of floats
-        Returned when `retbins` is 'True'.
+
+    bins : numpy.ndarray or IntervalIndex.
+        The computed or specified bins. Only returned when `retbins=True`.
+        For scalar or sequence `bins`, this is an ndarray with the computed
+        bins. For an IntervalIndex `bins`, this is equal to `bins`.
 
     See Also
     --------
     qcut : Discretize variable into equal-sized buckets based on rank
         or based on sample quantiles.
-    pandas.Categorical : Represents a categorical variable in
-        classic R / S-plus fashion.
-    Series : One-dimensional ndarray with axis labels (including time series).
+    pandas.Categorical : Array type for storing data that come from a
+        fixed set of values.
+    Series : One-dimensional array with axis labels (including time series).
     pandas.IntervalIndex : Immutable Index implementing an ordered,
-        sliceable set. IntervalIndex represents an Index of intervals that
-        are all closed on the same side.
+        sliceable set.
 
     Notes
     -----
     Any NA values will be NA in the result. Out of bounds values will be NA in
-    the resulting pandas.Categorical object.
+    the resulting Series or pandas.Categorical object.
 
     Examples
     --------
-    >>> pd.cut(np.array([1,7,5,4,6,3]), 3)
+    Discretize into three equal-sized bins.
+
+    >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]), 3)
     ... # doctest: +ELLIPSIS
     [(0.994, 3.0], (5.0, 7.0], (3.0, 5.0], (3.0, 5.0], (5.0, 7.0], ...
     Categories (3, interval[float64]): [(0.994, 3.0] < (3.0, 5.0] ...
 
-    >>> pd.cut(np.array([1,7,5,4,6,3]), 3, retbins=True)
+    >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]), 3, retbins=True)
     ... # doctest: +ELLIPSIS
     ([(0.994, 3.0], (5.0, 7.0], (3.0, 5.0], (3.0, 5.0], (5.0, 7.0], ...
     Categories (3, interval[float64]): [(0.994, 3.0] < (3.0, 5.0] ...
     array([0.994, 3.   , 5.   , 7.   ]))
 
-    >>> pd.cut(np.array([.2, 1.4, 2.5, 6.2, 9.7, 2.1]),
-    ...        3, labels=["good", "medium", "bad"])
-    ... # doctest: +SKIP
-    [good, good, good, medium, bad, good]
-    Categories (3, object): [good < medium < bad]
+    Discovers the same bins, but assign them specific labels. Notice that
+    the returned Categorical's categories are `labels` and is ordered.
 
-    >>> pd.cut(np.ones(5, dtype='int64'), 4, labels=False)
-    array([1, 1, 1, 1, 1], dtype=int64)
+    >>> pd.cut(np.array([1, 7, 5, 4, 6, 3]),
+    ...        3, labels=["bad", "medium", "good"])
+    [bad, good, medium, medium, good, bad]
+    Categories (3, object): [bad < medium < good]
 
-    >>> s = pd.Series(np.array([2,4,6,8,10]), index=['a', 'b', 'c', 'd', 'e'])
+    ``labels=False`` implies you just want the bins back.
+
+    >>> pd.cut([0, 1, 1, 2], bins=4, labels=False)
+    array([0, 1, 1, 3])
+
+    Passing a Series as an input returns a Series with categorical dtype:
+
+    >>> s = pd.Series(np.array([2, 4, 6, 8, 10]),
+    ...               index=['a', 'b', 'c', 'd', 'e'])
     >>> pd.cut(s, 3)
     ... # doctest: +ELLIPSIS
     a    (1.992, 4.667]
@@ -124,6 +143,16 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     e     (7.333, 10.0]
     dtype: category
     Categories (3, interval[float64]): [(1.992, 4.667] < (4.667, ...
+
+    Passing an IntervalIndex for `bins` results in those categories exactly.
+    Notice that values not covered by the IntervalIndex are set to NaN. 0
+    is to the left of the first bin (which is closed on the right), and 1.5
+    falls between two bins.
+
+    >>> bins = pd.IntervalIndex.from_tuples([(0, 1), (2, 3), (4, 5)])
+    >>> pd.cut([0, 0.5, 1.5, 2.5, 4.5], bins)
+    [NaN, (0, 1], NaN, (2, 3], (4, 5]]
+    Categories (3, interval[int64]): [(0, 1] < (2, 3] < (4, 5]]
     """
     # NOTE: this binning code is changed a bit from histogram for var(x) == 0
 
