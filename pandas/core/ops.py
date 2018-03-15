@@ -370,6 +370,66 @@ d  1.0  NaN
 e  NaN  2.0
 """
 
+_gt_example_FRAME = """
+>>> df1 = pd.DataFrame({'num1': range(1,6),
+                        'num2': range(2,11,2),
+                        'num3': range(1,20,4)})
+>>> df1
+   num1  num2  num3
+0     1     2     1
+1     2     4     5
+2     3     6     9
+3     4     8    13
+4     5    10    17
+>>> df2 = pd.DataFrame({'num1': range(6,11),
+                        'num2': range(1,10,2),
+                        'num3': range(1,20,4)})
+>>> df2
+   num1  num2  num3
+0     6     1     1
+1     7     3     5
+2     8     5     9
+3     9     7    13
+4    10     9    17
+>>> df1.gt(df2)
+    num1  num2   num3
+0  False  True  False
+1  False  True  False
+2  False  True  False
+3  False  True  False
+4  False  True  False
+"""
+
+_ge_example_FRAME = """
+>>> df1 = pd.DataFrame({'num1': range(1,6),
+                        'num2': range(2,11,2),
+                        'num3': range(1,20,4)})
+>>> df1
+   num1  num2  num3
+0     1     2     1
+1     2     4     5
+2     3     6     9
+3     4     8    13
+4     5    10    17
+>>> df2 = pd.DataFrame({'num1': range(6,11),
+                        'num2': range(1,10,2),
+                        'num3': range(1,20,4)})
+>>> df2
+   num1  num2  num3
+0     6     1     1
+1     7     3     5
+2     8     5     9
+3     9     7    13
+4    10     9    17
+>>> df1.ge(df2)
+    num1  num2   num3
+0  False  True   True
+1  False  True   True
+2  False  True   True
+3  False  True   True
+4  False  True   True
+"""
+
 _op_descriptions = {
     # Arithmetic Operators
     'add': {'op': '+',
@@ -425,11 +485,11 @@ _op_descriptions = {
     'gt': {'op': '>',
            'desc': 'Greater than',
            'reverse': None,
-           'df_examples': None},
+           'df_examples': _gt_example_FRAME},
     'ge': {'op': '>=',
            'desc': 'Greater than or equal to',
            'reverse': None,
-           'df_examples': None}}
+           'df_examples': _ge_example_FRAME}}
 
 _op_names = list(_op_descriptions.keys())
 for key in _op_names:
