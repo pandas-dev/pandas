@@ -1440,7 +1440,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Indicator whether DataFrame is empty.
 
         True if DataFrame is entirely empty (no items), meaning any of the
-        axes are of length 0. O
+        axes are of length 0.
 
         Returns
         -------
