@@ -512,47 +512,43 @@ class TestValidator(object):
         assert validate_one(self._import_path(klass='BadGenericDocStrings',
                                               func=func)) > 0
 
-    @pytest.mark.parametrize("func,msgs", [
-        ('wrong_line', ('should start in the line immediately after the '
-                        'opening quotes',)),
-        ('no_punctuation', ('Summary does not end with a period',)),
-        ('no_capitalization', ('Summary does not start with a capital '
-                               'letter',)),
-        ('no_capitalization', ('Summary must start with infinitive verb',)),
-        ('multi_line', ('a short summary in a single line should be '
-                        'present',))])
-    def test_bad_summaries(self, capsys, func, msgs):
-        validate_one(self._import_path(klass='BadSummaries', func=func))
-        err = capsys.readouterr().err
-        for msg in msgs:
-            assert msg in err
-
-    @pytest.mark.parametrize("func,msgs", [
-        ('missing_params', ('Parameters {\'**kwargs\'} not documented',)),
-        ('bad_colon_spacing', ('Parameters {\'kind\'} not documented',
-                               'Unknown parameters {\'kind: str\'}',
-                               'Parameter "kind: str" has no type')),
-        ('no_description_period', ('Parameter "kind" description should '
-                                   'finish with "."',)),
-        ('parameter_capitalization', ('Parameter "kind" description should '
-                                      'start with a capital letter',)),
-        pytest.param('blank_lines', ('No error yet?',),
+    @pytest.mark.parametrize("klass,func,msgs", [
+        # Summary tests
+        ('BadSummaries', 'wrong_line',
+         ('should start in the line immediately after the opening quotes',)),
+        ('BadSummaries', 'no_punctuation',
+         ('Summary does not end with a period',)),
+        ('BadSummaries', 'no_capitalization',
+         ('Summary does not start with a capital letter',)),
+        ('BadSummaries', 'no_capitalization',
+         ('Summary must start with infinitive verb',)),
+        ('BadSummaries', 'multi_line',
+         ('a short summary in a single line should be present',)),
+        # Parameters tests
+        ('BadParameters', 'missing_params',
+         ('Parameters {\'**kwargs\'} not documented',)),
+        ('BadParameters', 'bad_colon_spacing',
+         ('Parameters {\'kind\'} not documented',
+          'Unknown parameters {\'kind: str\'}',
+          'Parameter "kind: str" has no type')),
+        ('BadParameters', 'no_description_period',
+         ('Parameter "kind" description should finish with "."',)),
+        ('BadParameters', 'parameter_capitalization',
+         ('Parameter "kind" description should start with a capital letter',)),
+        pytest.param('BadParameters', 'blank_lines', ('No error yet?',),
+                     marks=pytest.mark.xfail),
+        # Returns tests
+        ('BadReturns', 'return_not_documented', ('No Returns section found',)),
+        ('BadReturns', 'yield_not_documented', ('No Yields section found',)),
+        pytest.param('BadReturns', 'no_type', ('foo',),
+                     marks=pytest.mark.xfail),
+        pytest.param('BadReturns', 'no_description', ('foo',),
+                     marks=pytest.mark.xfail),
+        pytest.param('BadReturns', 'no_punctuation', ('foo',),
                      marks=pytest.mark.xfail)
     ])
-    def test_bad_params(self, capsys, func, msgs):
-        validate_one(self._import_path(klass='BadParameters', func=func))
-        err = capsys.readouterr().err
-        for msg in msgs:
-            assert msg in err
-
-    @pytest.mark.parametrize("func,msgs", [
-        ('return_not_documented', ('No Returns section found',)),
-        ('yield_not_documented', ('No Yields section found',)),
-        pytest.param('no_type', ('foo',), marks=pytest.mark.xfail),
-        pytest.param('no_description', ('foo',), marks=pytest.mark.xfail),
-        pytest.param('no_punctuation', ('foo',), marks=pytest.mark.xfail)])
-    def test_bad_returns(self, capsys, func, msgs):
-        validate_one(self._import_path(klass='BadReturns', func=func))
+    def test_bad_examples(self, capsys, klass, func, msgs):
+        validate_one(self._import_path(klass=klass, func=func))
         err = capsys.readouterr().err
         for msg in msgs:
             assert msg in err
