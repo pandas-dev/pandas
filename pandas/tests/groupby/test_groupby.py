@@ -1341,33 +1341,6 @@ class TestGroupBy(MixIn):
         result = gni.mad()
         assert_frame_equal(result, expected)
 
-        # describe
-        expected_index = pd.Index([1, 3], name='A')
-        expected_col = pd.MultiIndex(levels=[['B'],
-                                             ['count', 'mean', 'std', 'min',
-                                              '25%', '50%', '75%', 'max']],
-                                     labels=[[0] * 8, list(range(8))])
-        expected = pd.DataFrame([[1.0, 2.0, np.nan, 2.0, 2.0, 2.0, 2.0, 2.0],
-                                 [0.0, np.nan, np.nan, np.nan, np.nan, np.nan,
-                                  np.nan, np.nan]],
-                                index=expected_index,
-                                columns=expected_col)
-        result = g.describe()
-        assert_frame_equal(result, expected)
-
-        expected = pd.concat([df[df.A == 1].describe().unstack().to_frame().T,
-                              df[df.A == 3].describe().unstack().to_frame().T])
-        expected.index = pd.Index([0, 1])
-        result = gni.describe()
-        assert_frame_equal(result, expected)
-
-        # any
-        expected = DataFrame([[True, True], [False, True]], columns=['B', 'C'],
-                             index=[1, 3])
-        expected.index.name = 'A'
-        result = g.any()
-        assert_frame_equal(result, expected)
-
         # idxmax
         expected = DataFrame([[0.0], [np.nan]], columns=['B'], index=[1, 3])
         expected.index.name = 'A'
@@ -1897,6 +1870,35 @@ class TestGroupBy(MixIn):
         expected = grouped.sum()
         assert_series_equal(result, expected)
         assert_series_equal(result2, expected)
+
+    def test_describe(self):
+        df = DataFrame(
+            [[1, 2, 'foo'],
+             [1, np.nan, 'bar'],
+             [3, np.nan, 'baz']],
+            columns=['A', 'B', 'C'])
+        g = df.groupby('A')
+        gni = df.groupby('A', as_index=False)
+
+        # describe
+        expected_index = pd.Index([1, 3], name='A')
+        expected_col = pd.MultiIndex(levels=[['B'],
+                                             ['count', 'mean', 'std', 'min',
+                                              '25%', '50%', '75%', 'max']],
+                                     labels=[[0] * 8, list(range(8))])
+        expected = pd.DataFrame([[1.0, 2.0, np.nan, 2.0, 2.0, 2.0, 2.0, 2.0],
+                                 [0.0, np.nan, np.nan, np.nan, np.nan, np.nan,
+                                  np.nan, np.nan]],
+                                index=expected_index,
+                                columns=expected_col)
+        result = g.describe()
+        assert_frame_equal(result, expected)
+
+        expected = pd.concat([df[df.A == 1].describe().unstack().to_frame().T,
+                              df[df.A == 3].describe().unstack().to_frame().T])
+        expected.index = pd.Index([0, 1])
+        result = gni.describe()
+        assert_frame_equal(result, expected)
 
     def test_rank_apply(self):
         lev1 = tm.rands_array(10, 100)
