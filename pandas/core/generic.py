@@ -5634,8 +5634,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        `pandas.Series`
-            Series with the values outside the clip boundaries replaced
+        Series or DataFrame
+            Same type as calling object with the values outside the
+            clip boundaries replaced
 
         Examples
         --------
