@@ -682,7 +682,7 @@ cdef _parse_timezone_directive(object z):
             if len(z) > 5:
                 if z[5] != ':':
                     msg = "Inconsistent use of : in {0}"
-                    raise ValueError(msg.format(found_dict['z']))
+                    raise ValueError(msg.format(z))
                 z = z[:5] + z[6:]
         hours = int(z[1:3])
         minutes = int(z[3:5])

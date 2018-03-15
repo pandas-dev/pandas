@@ -106,6 +106,70 @@ def _convert_and_box_cache(arg, cache_array, box, errors, name=None):
     return result.values
 
 
+def _return_parsed_timezone_results(result, tznames, tzoffsets, parsing_tzname,
+                                    parsing_tzoffset, box):
+    """
+    Return results from array_strptime if a %z or %Z directive was passed.
+
+    If %Z is only parsed, timezones will be a pytz.timezone object.
+    If %z is only parsed, timezones will be a pytz.FixedOffset object.
+    If both %Z and %z are parsed, timezones will be a datetime.timezone object.
+
+    Parameters
+    ----------
+    result : ndarray
+        int64 date representations of the dates
+    tznames : ndarray
+        strings of timezone names if %Z is parsed
+    tzoffsets : ndarray
+        timedelta objects of the timezone offset if %z is parsed
+    parsing_tzname : boolean
+        True if %Z is parsed
+    parsing_tzoffset : boolean
+        True if %z is parsed
+    box : boolean
+        True boxes result as an Index-like, False returns an ndarray
+
+    Returns
+    -------
+    tz_result : ndarray of parsed dates with timezone
+        Returns:
+
+        - Index-like if box=True
+        - ndarray of Timestamps if box=False
+
+    """
+    if parsing_tzname and not parsing_tzoffset:
+        tz_results = np.array([tslib.Timestamp(res, tz=tz)
+                               for res, tz in zip(result, tznames)])
+    elif parsing_tzoffset and not parsing_tzname:
+        tz_results = []
+        for res, offset in zip(result, tzoffsets):
+            offset_mins = offset.total_seconds() / 60
+            tzoffset = pytz.FixedOffset(offset_mins)
+            ts = tslib.Timestamp(res)
+            ts = ts.tz_localize(tzoffset)
+            tz_results.append(ts)
+        tz_results = np.array(tz_results)
+    elif parsing_tzoffset and parsing_tzname:
+        if not PY3:
+            raise ValueError("Parsing tzoffsets are not "
+                             "not supported in Python 3")
+        from datetime import timezone
+        tz_results = []
+        for res, offset, tzname in zip(result, tzoffsets, tznames):
+            # Do we need to validate these timezones?
+            # e.g. UTC / +0100
+            tzinfo = timezone(offset, tzname)
+            ts = tslib.Timestamp(res, tzinfo=tzinfo)
+            tz_results.append(ts)
+        tz_results = np.array(tz_results)
+    if box:
+        from pandas import Index
+        return Index(tz_results)
+    return tz_results
+
+
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 utc=None, box=True, format=None, exact=True,
                 unit=None, infer_datetime_format=False, origin='unix',
@@ -355,65 +419,10 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                                              "information.")
                         result, tznames, tzoffsets = array_strptime(
                             arg, format, exact=exact, errors=errors)
-                        if parsing_tzname and not parsing_tzoffset:
-                            if len(set(tznames)) == 1:
-                                tz = tznames[0]
-                                if box:
-                                    result = DatetimeIndex(result,
-                                                           tz=tz,
-                                                           name=name)
-                                else:
-                                    stamps = [tslib.Timestamp(res, tz=tz)
-                                              for res in result]
-                                    result = np.array(stamps, dtype=object)
-                            else:
-                                stamps = [tslib.Timestamp(res, tz=tz)
-                                          for res, tz in zip(result, tznames)]
-                                result = np.array(stamps, dtype=object)
-                            return result
-                        elif parsing_tzoffset and not parsing_tzname:
-                            # Should we convert these to pytz.FixedOffsets
-                            # or datetime.timezones?
-                            if len(set(tzoffsets)) == 1:
-                                offset_mins = tzoffsets[0].total_seconds() / 60
-                                tzoffset = pytz.FixedOffset(offset_mins)
-                                if box:
-                                    result = DatetimeIndex(result,
-                                                           tz=tzoffset,
-                                                           name=name)
-                                else:
-                                    stamps = []
-                                    for res, offset in zip(result, tzoffsets):
-                                        ts = tslib.Timestamp(res)
-                                        ts = ts.tz_localize(tzoffset)
-                                        stamps.append(ts)
-                                    result = np.array(stamps, dtype=object)
-                            else:
-                                stamps = []
-                                for res, offset in zip(result, tzoffsets):
-                                    offset_mins = offset.total_seconds() / 60
-                                    tzoffset = pytz.FixedOffset(offset_mins)
-                                    ts = tslib.Timestamp(res)
-                                    ts = ts.tz_localize(tzoffset)
-                                    stamps.append(ts)
-                                result = np.array(stamps, dtype=object)
-                            return result
-                        elif parsing_tzoffset and parsing_tzname:
-                            if not PY3:
-                                raise ValueError("Parsing tzoffsets are not "
-                                                 "not supported in Python 3")
-                            from datetime import timezone
-                            stamps = []
-                            for res, offset, tzname in zip(result, tzoffsets,
-                                                           tznames):
-                                # Do we need to validate these timezones?
-                                # e.g. UTC / +0100
-                                tzinfo = timezone(offset, tzname)
-                                ts = tslib.Timestamp(res, tzinfo=tzinfo)
-                                stamps.append(ts)
-                            result = np.array(stamps, dtype=object)
-                            return result
-
+                        if parsing_tzname or parsing_tzoffset:
+                            return _return_parsed_timezone_results(
+                                result, tznames, tzoffsets, parsing_tzname,
+                                parsing_tzoffset, box)
                     except tslib.OutOfBoundsDatetime:
                         if errors == 'raise':
                             raise
