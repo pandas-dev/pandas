@@ -493,14 +493,15 @@ class TestValidator(object):
         return base_path
 
     def test_good_class(self):
-        assert validate_one(self._import_path(klass='GoodDocStrings')) == 0
+        assert validate_one(self._import_path(
+            klass='GoodDocStrings')) == 0  # noqa: F821
 
     @pytest.mark.parametrize("func", [
         'plot', 'sample', 'random_letters', 'sample_values', 'head', 'head1',
         'contains'])
     def test_good_functions(self, func):
         assert validate_one(self._import_path(klass='GoodDocStrings',
-                                              func=func)) == 0
+                                              func=func)) == 0  # noqa: F821
 
     def test_bad_class(self):
         assert validate_one(self._import_path(
@@ -510,7 +511,7 @@ class TestValidator(object):
         'func', 'astype', 'astype1', 'astype2', 'astype3', 'plot', 'method'])
     def test_bad_generic_functions(self, func):
         assert validate_one(self._import_path(klass='BadGenericDocStrings',
-                                              func=func)) > 0
+                                              func=func)) > 0  # noqa: F821
 
     @pytest.mark.parametrize("klass,func,msgs", [
         # Summary tests
@@ -548,7 +549,7 @@ class TestValidator(object):
                      marks=pytest.mark.xfail)
     ])
     def test_bad_examples(self, capsys, klass, func, msgs):
-        validate_one(self._import_path(klass=klass, func=func))
+        validate_one(self._import_path(klass=klass, func=func))  # noqa: F821
         err = capsys.readouterr().err
         for msg in msgs:
             assert msg in err
