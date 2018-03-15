@@ -430,9 +430,9 @@ def validate_one(func_name):
                     'should be present at the beginning of the docstring)')
     else:
         if not doc.summary[0].isupper():
-            errs.append('Summary does not start with capital')
+            errs.append('Summary does not start with a capital letter')
         if doc.summary[-1] != '.':
-            errs.append('Summary does not end with dot')
+            errs.append('Summary does not end with a period')
         if (doc.is_function_or_method and
                 doc.summary.split(' ')[0][-1] == 's'):
             errs.append('Summary must start with infinitive verb, '
@@ -457,7 +457,7 @@ def validate_one(func_name):
         else:
             if not doc.parameter_desc(param)[0].isupper():
                 param_errs.append('Parameter "{}" description '
-                                  'should start with '
+                                  'should start with a '
                                   'capital letter'.format(param))
             if doc.parameter_desc(param)[-1] != '.':
                 param_errs.append('Parameter "{}" description '

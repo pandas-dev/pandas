@@ -310,35 +310,139 @@ class BadGenericDocStrings(object):
         """
         pass
 
+
+class BadSummaries(object):
+
+    def wrong_line(self):
+        """Exists on the wrong line"""
+        pass
+
+    def no_punctuation(self):
+        """
+        Has the right line but forgets punctuation
+        """
+        pass
+
+    def no_capitalization(self):
+        """
+        provides a lowercase summary.
+        """
+        pass
+
+    def no_infinitive(self):
+        """
+        Started with a verb that is not infinitive.
+        """
+
+    def multi_line(self):
+        """
+        Extends beyond one line
+        which is not correct.
+        """
+
+
+class BadParameters(object):
+    """
+    Everything here has a problem with its Parameters section.
+    """
+
     def missing_params(self, kind, **kwargs):
         """
-        Kwargs argument is missing in parameters section.
+        Lacks kwargs in Parameters.
 
         Parameters
         ----------
         kind : str
-            Kind of matplotlib plot.
+            Foo bar baz.
         """
-        pass
 
-    def missing_param_colon_spacing(self, kind, kind2):
+    def bad_colon_spacing(self, kind):
         """
-        Bad spacing around colo spacing in Parameters.
+        Has bad spacing in the type line.
 
         Parameters
         ----------
         kind: str
-            Needs space before.
-        kind2 :str
-            Needs space after.
+            Needs a space after kind.
         """
 
+    def no_description_period(self, kind):
+        """
+        Forgets to add a period to the description.
 
-class BadParameters():
-    """
-    Everything here has a problem with its Parameters section.
-    """
-    pass
+        Parameters
+        ----------
+        kind : str
+           Doesn't end with a dot
+        """
+
+    def parameter_capitalization(self, kind):
+        """
+        Forgets to capitalize the description.
+
+        Parameters
+        ----------
+        kind : str
+           this is not capitalized.
+        """
+
+    def blank_lines(self, kind):
+        """
+        Adds a blank line after the section header.
+
+        Parameters
+        ----------
+
+        kind : str
+            Foo bar baz.
+        """
+        pass
+
+
+class BadReturns(object):
+
+    def return_not_documented(self):
+        """
+        Lacks section for Returns
+        """
+        return "Hello world!"
+
+    def yield_not_documented(self):
+        """
+        Lacks section for Yields
+        """
+        yield "Hello world!"
+
+    def no_type(self):
+        """
+        Returns documented but without type.
+
+        Returns
+        -------
+        Some value.
+        """
+        return "Hello world!"
+
+    def no_description(self):
+        """
+        Provides type but no descrption.
+
+        Returns
+        -------
+        str
+        """
+        return "Hello world!"
+
+    def no_punctuation(self):
+        """
+        Provides type and description but no period.
+
+        Returns
+        -------
+        str
+           A nice greeting
+        """
+        return "Hello world!"
 
 
 @td.skip_if_no('sphinx')
@@ -404,6 +508,51 @@ class TestValidator(object):
 
     @pytest.mark.parametrize("func", [
         'func', 'astype', 'astype1', 'astype2', 'astype3', 'plot', 'method'])
-    def test_bad_functions(self, func):
+    def test_bad_generic_functions(self, func):
         assert validate_one(self._import_path(klass='BadGenericDocStrings',
                                               func=func)) > 0
+
+    @pytest.mark.parametrize("func,msgs", [
+        ('wrong_line', ('should start in the line immediately after the '
+                        'opening quotes',)),
+        ('no_punctuation', ('Summary does not end with a period',)),
+        ('no_capitalization', ('Summary does not start with a capital '
+                               'letter',)),
+        ('no_capitalization', ('Summary must start with infinitive verb',)),
+        ('multi_line', ('a short summary in a single line should be '
+                        'present',))])
+    def test_bad_summaries(self, capsys, func, msgs):
+        validate_one(self._import_path(klass='BadSummaries', func=func))
+        err = capsys.readouterr().err
+        for msg in msgs:
+            assert msg in err
+
+    @pytest.mark.parametrize("func,msgs", [
+        ('missing_params', ('Parameters {\'**kwargs\'} not documented',)),
+        ('bad_colon_spacing', ('Parameters {\'kind\'} not documented',
+                               'Unknown parameters {\'kind: str\'}',
+                               'Parameter "kind: str" has no type')),
+        ('no_description_period', ('Parameter "kind" description should '
+                                   'finish with "."',)),
+        ('parameter_capitalization', ('Parameter "kind" description should '
+                                      'start with a capital letter',)),
+        pytest.param('blank_lines', ('No error yet?',),
+                     marks=pytest.mark.xfail)
+    ])
+    def test_bad_params(self, capsys, func, msgs):
+        validate_one(self._import_path(klass='BadParameters', func=func))
+        err = capsys.readouterr().err
+        for msg in msgs:
+            assert msg in err
+
+    @pytest.mark.parametrize("func,msgs", [
+        ('return_not_documented', ('No Returns section found',)),
+        ('yield_not_documented', ('No Yields section found',)),
+        pytest.param('no_type', ('foo',), marks=pytest.mark.xfail),
+        pytest.param('no_description', ('foo',), marks=pytest.mark.xfail),
+        pytest.param('no_punctuation', ('foo',), marks=pytest.mark.xfail)])
+    def test_bad_returns(self, capsys, func, msgs):
+        validate_one(self._import_path(klass='BadReturns', func=func))
+        err = capsys.readouterr().err
+        for msg in msgs:
+            assert msg in err
