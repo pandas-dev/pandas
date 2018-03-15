@@ -27,6 +27,9 @@ from pandas import (isna, to_datetime, Timestamp, Series, DataFrame,
 
 if PY3:
     from datetime import timezone
+else:
+    def timezone(offset, name):
+        return
 
 
 class TestTimeConversionFormats(object):
