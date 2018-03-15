@@ -2965,7 +2965,8 @@ class FramePlotMethods(BasePlotMethods):
         bins : int, default 10
             Number of histogram bins to be used.
         **kwds : optional
-            Additional keyword arguments are documented in :meth:`pandas.DataFrame.plot`.
+            Additional keyword arguments are documented in
+            :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
