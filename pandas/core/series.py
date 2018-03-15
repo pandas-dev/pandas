@@ -1109,7 +1109,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2  baz  one    2
         3  baz  two    3
         """
-
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if drop:
             new_index = com._default_index(len(self))
