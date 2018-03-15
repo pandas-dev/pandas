@@ -269,15 +269,15 @@ class TestSeriesRank(TestData):
                   ('float64', np.nan, np.inf, -np.inf)]
         chunk = 3
         disabled = set([('object', 'first')])
-        exp_ranks = {
-            'average': ([2, 2, 2], [5, 5, 5], [8, 8, 8]),
-            'min': ([1, 1, 1], [4, 4, 4], [7, 7, 7]),
-            'max': ([3, 3, 3], [6, 6, 6], [9, 9, 9]),
-            'first': ([1, 2, 3], [4, 5, 6], [7, 8, 9]),
-            'dense': ([1, 1, 1], [2, 2, 2], [3, 3, 3])
-        }
 
         def _check(s, method, na_option, ascending):
+            exp_ranks = {
+                    'average': ([2, 2, 2], [5, 5, 5], [8, 8, 8]),
+                    'min': ([1, 1, 1], [4, 4, 4], [7, 7, 7]),
+                    'max': ([3, 3, 3], [6, 6, 6], [9, 9, 9]),
+                    'first': ([1, 2, 3], [4, 5, 6], [7, 8, 9]),
+                    'dense': ([1, 1, 1], [2, 2, 2], [3, 3, 3])
+            }
             ranks = exp_ranks[method]
             if na_option == 'top':
                 order = [ranks[1], ranks[0], ranks[2]]
@@ -299,6 +299,8 @@ class TestSeriesRank(TestData):
             _check(iseries, method, na_option, ascending)
 
     def test_rank_desc_mix_nans_infs(self):
+        #GH 19538
+        #check descending ranking when mix nans and infs
         iseries = Series([1, np.nan, np.inf, -np.inf, 25])
         result = iseries.rank(ascending=False)
         exp = Series([3, np.nan, 1, 4, 2], dtype='float64')
