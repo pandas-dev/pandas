@@ -516,33 +516,6 @@ Mismatched indices will be unioned together
 Returns
 -------
 result : DataFrame
-
-Examples
---------
->>> a = pd.DataFrame([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'],
-...                  columns=['one'])
->>> a
-   one
-a  1.0
-b  1.0
-c  1.0
-d  NaN
->>> b = pd.DataFrame(dict(one=[1, np.nan, 1, np.nan],
-...                       two=[np.nan, 2, np.nan, 2]),
-...                  index=['a', 'b', 'd', 'e'])
->>> b
-   one  two
-a  1.0  NaN
-b  NaN  2.0
-d  1.0  NaN
-e  NaN  2.0
->>> a.add(b, fill_value=0)
-   one  two
-a  2.0  NaN
-b  1.0  2.0
-c  1.0  NaN
-d  1.0  NaN
-e  NaN  2.0
 """
 
 _flex_doc_FRAME = """
