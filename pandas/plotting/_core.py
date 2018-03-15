@@ -3031,19 +3031,46 @@ class FramePlotMethods(BasePlotMethods):
 
     def box(self, by=None, **kwds):
         r"""
-        Boxplot
+        Make a box plot of the DataFrame columns.
+
+        This method draws a box and whisker for each series in the DataFrame
+        in a single chart. The boxes share the vertical axis, which
+        makes makes it easier to compare if they are similar in scale.
+        Box plots are useful because they clearly show the median,
+        quartiles and flier points in the data.
+
+        A consideration when using this chart is that the box and the whiskers
+        can overlap, which is very common when plotting small sets of data.
 
         Parameters
         ----------
         by : string or sequence
             Column in the DataFrame to group by.
-        `**kwds` : optional
-            Additional keyword arguments are documented in
+        **kwds : optional
+            Additional keywords are documented in
             :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
         axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+
+        See Also
+        --------
+        :meth:`pandas.DataFrame.boxplot` : Another method to draw a box plot.
+        :meth:`pandas.Series.plot.box` : Draw a box plot from a Series object.
+        :func:`matplotlib.pyplot.boxplot`: Draw a box plot in matplotlib.
+
+        Examples
+        --------
+        Draw a box plot from a DataFrame with four columns of randomly
+        generated data.
+
+        .. plot::
+            :context: close-figs
+
+            >>> data = np.random.randint(0, 10, size=(25, 4))
+            >>> df = pd.DataFrame(data, columns=list('ABCD'))
+            >>> plot = df.plot.box()
         """
         return self(kind='box', by=by, **kwds)
 
