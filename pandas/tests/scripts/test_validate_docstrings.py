@@ -9,8 +9,10 @@ import pandas.util._test_decorators as td
 
 class GoodDocStrings(object):
     """
-    Collection of good docstrings - be sure to update the tests as new
-    examples are added here
+    Collection of good doc strings.
+
+    This class contains a lot of docstrings that should pass the validation
+    script without any errors.
     """
 
     def plot(self, kind, color='blue', **kwargs):
@@ -330,15 +332,42 @@ class TestValidator(object):
         sys.path.pop()
         del globals()['validate_one']
 
+    def _import_path(self, klass=None, func=None):
+        """
+        Build the required import path for tests in this module.
+
+        Parameters
+        ----------
+        klass : str
+            Class name of object in module.
+        func : str
+            Function name of object in module.
+
+        Returns
+        -------
+        str
+            Import path of specified object in this module
+        """
+        base_path = 'pandas.tests.scripts.test_validate_docstrings'
+        if klass:
+            base_path = '.'.join([base_path, klass])
+        if func:
+            base_path = '.'.join([base_path, func])
+
+        return base_path
+
+    def test_good_class(self):
+        assert validate_one(self._import_path(klass='GoodDocStrings')) == 0
+
     @pytest.mark.parametrize("func", [
         'plot', 'sample', 'random_letters', 'sample_values', 'head', 'head1',
         'contains'])
     def test_good_functions(self, func):
-        assert validate_one('pandas.tests.scripts.test_validate_'  # noqa: F821
-                            'docstrings.GoodDocStrings.' + func) == 0
+        assert validate_one(self._import_path(klass='GoodDocStrings',
+                                              func=func)) == 0
 
     @pytest.mark.parametrize("func", [
         'func', 'astype', 'astype1', 'astype2', 'astype3', 'plot', 'method'])
     def test_bad_functions(self, func):
-        assert validate_one('pandas.tests.scripts.test_validate_'  # noqa: F821
-                            'docstrings.BadDocStrings.' + func) > 0
+        assert validate_one(self._import_path(klass='BadDocStrings',
+                                              func=func)) > 0

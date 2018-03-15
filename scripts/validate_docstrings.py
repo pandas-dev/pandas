@@ -467,10 +467,11 @@ def validate_one(func_name):
         for param_err in param_errs:
             errs.append('\t{}'.format(param_err))
 
-    if not doc.returns and "return" in doc.method_source:
-        errs.append('No Returns section found')
-    if not doc.yields and "yield" in doc.method_source:
-        errs.append('No Yields section found!')
+    if doc.is_function_or_method:
+        if not doc.returns and "return" in doc.method_source:
+            errs.append('No Returns section found')
+        if not doc.yields and "yield" in doc.method_source:
+            errs.append('No Yields section found')
 
     mentioned_errs = doc.mentioned_private_classes
     if mentioned_errs:
