@@ -435,6 +435,35 @@ def isin(comps, values):
     return f(comps, values)
 
 
+def _factorize_array(values, check_nulls, na_sentinel=-1, size_hint=None):
+    """Factorize an array-like to labels and uniques.
+
+    This doesn't do any coercion of types or unboxing before factorization.
+
+    Parameters
+    ----------
+    values : ndarray
+    check_nulls : bool
+        Whether to check for nulls in the hashtable's 'get_labels' method.
+    na_sentinel : int, default -1
+    size_hint : int, optional
+        Passsed through to the hashtable's 'get_labels' method
+
+    Returns
+    -------
+    labels, uniques : ndarray
+    """
+    (hash_klass, vec_klass), values = _get_data_algo(values, _hashtables)
+
+    table = hash_klass(size_hint or len(values))
+    uniques = vec_klass()
+    labels = table.get_labels(values, uniques, 0, na_sentinel, check_nulls)
+
+    labels = _ensure_platform_int(labels)
+    uniques = uniques.to_array()
+    return labels, uniques
+
+
 @deprecate_kwarg(old_arg_name='order', new_arg_name=None)
 def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     """
@@ -442,8 +471,9 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
 
     Parameters
     ----------
-    values : ndarray (1-d)
-        Sequence
+    values : Sequence
+        ndarrays must be 1-D. Sequences that aren't pandas objects are
+        coereced to ndarrays before factorization.
     sort : boolean, default False
         Sort by values
     na_sentinel : int, default -1
@@ -458,26 +488,43 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
         Series
 
     note: an array of Periods will ignore sort as it returns an always sorted
-    PeriodIndex
+    PeriodIndex.
     """
+    # Implementation notes: This method is responsible for 3 things
+    # 1.) coercing data to array-like (ndarray, Index, extension array)
+    # 2.) factorizing labels and uniques
+    # 3.) Maybe boxing the output in an Index
+    #
+    # Step 2 is dispatched to extension types (like Categorical). They are
+    # responsible only for factorization. All data coercion, sorting and boxing
+    # should happen here.
 
     values = _ensure_arraylike(values)
     original = values
-    values, dtype, _ = _ensure_data(values)
-    (hash_klass, vec_klass), values = _get_data_algo(values, _hashtables)
 
-    table = hash_klass(size_hint or len(values))
-    uniques = vec_klass()
-    check_nulls = not is_integer_dtype(original)
-    labels = table.get_labels(values, uniques, 0, na_sentinel, check_nulls)
-
-    labels = _ensure_platform_int(labels)
-    uniques = uniques.to_array()
+    if is_categorical_dtype(values):
+        values = getattr(values, '_values', values)
+        labels, uniques = values.factorize()
+        dtype = original.dtype
+    else:
+        values, dtype, _ = _ensure_data(values)
+        check_nulls = not is_integer_dtype(original)
+        labels, uniques = _factorize_array(values, check_nulls,
+                                           na_sentinel=na_sentinel,
+                                           size_hint=size_hint)
 
     if sort and len(uniques) > 0:
         from pandas.core.sorting import safe_sort
-        uniques, labels = safe_sort(uniques, labels, na_sentinel=na_sentinel,
-                                    assume_unique=True)
+        try:
+            order = uniques.argsort()
+            order2 = order.argsort()
+            labels = take_1d(order2, labels, fill_value=na_sentinel)
+            uniques = uniques.take(order)
+        except TypeError:
+            # Mixed types, where uniques.argsort fails.
+            uniques, labels = safe_sort(uniques, labels,
+                                        na_sentinel=na_sentinel,
+                                        assume_unique=True)
 
     uniques = _reconstruct_data(uniques, dtype, original)
 
