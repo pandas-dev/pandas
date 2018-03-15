@@ -1732,6 +1732,37 @@ class GroupBy(_GroupBy):
 
         return result
 
+    def quantile(self, q=0.5):
+        """
+        Return group values at the given quantile, a la numpy.percentile.
+
+        Parameters
+        ----------
+        q : float or array-like, default 0.5 (50% quantile)
+            0 <= q <= 1, the quantile(s) to compute
+
+        Returns
+        -------
+        Series or DataFrame
+            Return type determined by caller of GroupBy object.
+
+        See Also
+        --------
+        Series.quantile : Similar method for Series
+        DataFrame.quantile : Similar method for DataFrame
+
+        Examples
+        --------
+        >>> df = pd.DataFrame(
+        ...    [['foo'] * 5 + ['bar'] * 5,
+        ...     [1, 2, 3, 4, 5, 5, 4, 3, 2, 1]],
+        ...    columns=['key', 'val'])
+        >>> df
+        """
+        return self._get_cythonized_result('quantile', self.grouper,
+                                           aggregate=True,
+                                           needs_values=True, q=q)
+
     @Substitution(name='groupby')
     def ngroup(self, ascending=True):
         """

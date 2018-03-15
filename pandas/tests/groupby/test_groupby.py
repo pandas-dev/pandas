@@ -1900,6 +1900,18 @@ class TestGroupBy(MixIn):
         result = gni.describe()
         assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize('q,val', [
+        (0, 1), (.25, 2), (.5, 3), (.75, 4), (1, 5)])
+    def test_quantile(self, q, val):
+        df = DataFrame(
+            [['foo'] * 5 + ['bar'] * 5,
+             [1, 2, 3, 4, 5, 5, 4, 3, 2, 1]],
+            columns=['key', 'val'])
+        exp = DataFrame([[val, val]], columns=['val'],
+                        index=Index(['bar', 'foo'], name='key'))
+        res = df.groupby('key').quantile(q)
+        assert_frame_equal(exp, res)
+
     def test_rank_apply(self):
         lev1 = tm.rands_array(10, 100)
         lev2 = tm.rands_array(10, 130)
