@@ -204,7 +204,7 @@ div.admonition p.admonition-title + p {
 
 div.deprecated {
     background-color: #ffe4e4;
-    border: 2px solid #f66;
+    border: 1px solid #f66;
 }
 
 div.highlight{
