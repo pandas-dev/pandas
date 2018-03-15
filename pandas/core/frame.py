@@ -1953,11 +1953,11 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        index : bool, default False
+        index : bool, default True
             Specifies whether to include the memory usage of the DataFrame's
             index in returned Series. If ``index=True`` the memory usage of the
             index the first item in the output.
-        deep : bool
+        deep : bool, default False
             If True, introspect the data deeply by interrogating
             `object` dtypes for system-level memory consumption, and include
             it in the returned values.
@@ -2007,16 +2007,8 @@ class DataFrame(NDFrame):
         bool           5000
         dtype: int64
 
-        >>> df.memory_usage(index=True)
-        Index            80
-        int64         40000
-        float64       40000
-        complex128    80000
-        object        40000
-        bool           5000
-        dtype: int64
-
         The memory footprint of `object` dtype columns is ignored by default:
+
         >>> df.memory_usage(deep=True)
         Index             80
         int64          40000
