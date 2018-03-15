@@ -1258,7 +1258,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         Detect missing values
 
-        Both missing values (-1 in .codes) and NA as a category are detected.
+        Missing values (-1 in .codes) are detected.
 
         Returns
         -------
@@ -1273,13 +1273,6 @@ class Categorical(ExtensionArray, PandasObject):
         """
 
         ret = self._codes == -1
-
-        # String/object and float categories can hold np.nan
-        if self.categories.dtype.kind in ['S', 'O', 'f']:
-            if np.nan in self.categories:
-                nan_pos = np.where(isna(self.categories))[0]
-                # we only have one NA in categories
-                ret = np.logical_or(ret, self._codes == nan_pos)
         return ret
     isnull = isna
 
@@ -1315,16 +1308,14 @@ class Categorical(ExtensionArray, PandasObject):
         """
         Return the Categorical without null values.
 
-        Both missing values (-1 in .codes) and NA as a category are detected.
-        NA is removed from the categories if present.
+        Missing values (-1 in .codes) are detected.
 
         Returns
         -------
         valid : Categorical
         """
         result = self[self.notna()]
-        if isna(result.categories).any():
-            result = result.remove_categories([np.nan])
+
         return result
 
     def value_counts(self, dropna=True):
@@ -1336,7 +1327,7 @@ class Categorical(ExtensionArray, PandasObject):
         Parameters
         ----------
         dropna : boolean, default True
-            Don't include counts of NaN, even if NaN is a category.
+            Don't include counts of NaN.
 
         Returns
         -------
@@ -1348,11 +1339,9 @@ class Categorical(ExtensionArray, PandasObject):
 
         """
         from numpy import bincount
-        from pandas import isna, Series, CategoricalIndex
+        from pandas import Series, CategoricalIndex
 
-        obj = (self.remove_categories([np.nan]) if dropna and
-               isna(self.categories).any() else self)
-        code, cat = obj._codes, obj.categories
+        code, cat = self._codes, self.categories
         ncat, mask = len(cat), 0 <= code
         ix, clean = np.arange(ncat), mask.all()
 
@@ -1627,14 +1616,6 @@ class Categorical(ExtensionArray, PandasObject):
 
         values = self._codes
 
-        # Make sure that we also get NA in categories
-        if self.categories.dtype.kind in ['S', 'O', 'f']:
-            if np.nan in self.categories:
-                values = values.copy()
-                nan_pos = np.where(isna(self.categories))[0]
-                # we only have one NA in categories
-                values[values == nan_pos] = -1
-
         # pad / bfill
         if method is not None:
 
@@ -1888,15 +1869,6 @@ class Categorical(ExtensionArray, PandasObject):
             key = np.asarray(key)
 
         lindexer = self.categories.get_indexer(rvalue)
-
-        # FIXME: the following can be removed after GH7820 is fixed:
-        # https://github.com/pandas-dev/pandas/issues/7820
-        # float categories do currently return -1 for np.nan, even if np.nan is
-        # included in the index -> "repair" this here
-        if isna(rvalue).any() and isna(self.categories).any():
-            nan_pos = np.where(isna(self.categories))[0]
-            lindexer[lindexer == -1] = nan_pos
-
         lindexer = self._maybe_coerce_indexer(lindexer)
         self._codes[key] = lindexer
 
