@@ -2039,14 +2039,15 @@ class NDFrame(PandasObject, SelectionMixin):
     def to_pickle(self, path, compression='infer',
                   protocol=pkl.HIGHEST_PROTOCOL):
         """
-        Pickle (serialize) object to input file path.
+        Pickle (serialize) object to file.
 
         Parameters
         ----------
-        path : string
-            File path
+        path : str
+            File path where the pickled object will be stored.
         compression : {'infer', 'gzip', 'bz2', 'xz', None}, default 'infer'
-            a string representing the compression to use in the output file
+            A string representing the compression to use in the output file. By
+            default, infers from the file extension in specified path.
 
             .. versionadded:: 0.20.0
         protocol : int
@@ -2054,13 +2055,43 @@ class NDFrame(PandasObject, SelectionMixin):
             default HIGHEST_PROTOCOL (see [1], paragraph 12.1.2). The possible
             values for this parameter depend on the version of Python. For
             Python 2.x, possible values are 0, 1, 2. For Python>=3.0, 3 is a
-            valid value. For Python >= 3.4, 4 is a valid value.A negative value
-            for the protocol parameter is equivalent to setting its value to
-            HIGHEST_PROTOCOL.
+            valid value. For Python >= 3.4, 4 is a valid value. A negative
+            value for the protocol parameter is equivalent to setting its value
+            to HIGHEST_PROTOCOL.
 
             .. [1] https://docs.python.org/3/library/pickle.html
             .. versionadded:: 0.21.0
 
+        See Also
+        --------
+        read_pickle : Load pickled pandas object (or any object) from file.
+        DataFrame.to_hdf : Write DataFrame to an HDF5 file.
+        DataFrame.to_sql : Write DataFrame to a SQL database.
+        DataFrame.to_parquet : Write a DataFrame to the binary parquet format.
+
+        Examples
+        --------
+        >>> original_df = pd.DataFrame({"foo": range(5), "bar": range(5, 10)})
+        >>> original_df
+           foo  bar
+        0    0    5
+        1    1    6
+        2    2    7
+        3    3    8
+        4    4    9
+        >>> original_df.to_pickle("./dummy.pkl")
+
+        >>> unpickled_df = pd.read_pickle("./dummy.pkl")
+        >>> unpickled_df
+           foo  bar
+        0    0    5
+        1    1    6
+        2    2    7
+        3    3    8
+        4    4    9
+
+        >>> import os
+        >>> os.remove("./dummy.pkl")
         """
         from pandas.io.pickle import to_pickle
         return to_pickle(self, path, compression=compression,
@@ -2691,28 +2722,43 @@ class NDFrame(PandasObject, SelectionMixin):
         ----------
         indices : array-like
             An array of ints indicating which positions to take.
-        axis : int, default 0
-            The axis on which to select elements. "0" means that we are
-            selecting rows, "1" means that we are selecting columns, etc.
+        axis : {0 or 'index', 1 or 'columns', None}, default 0
+            The axis on which to select elements. ``0`` means that we are
+            selecting rows, ``1`` means that we are selecting columns.
         convert : bool, default True
-            .. deprecated:: 0.21.0
-               In the future, negative indices will always be converted.
-
             Whether to convert negative indices into positive ones.
             For example, ``-1`` would map to the ``len(axis) - 1``.
             The conversions are similar to the behavior of indexing a
             regular Python list.
+
+            .. deprecated:: 0.21.0
+               In the future, negative indices will always be converted.
+
         is_copy : bool, default True
             Whether to return a copy of the original object or not.
+        **kwargs
+            For compatibility with :meth:`numpy.take`. Has no effect on the
+            output.
+
+        Returns
+        -------
+        taken : type of caller
+            An array-like containing the elements taken from the object.
+
+        See Also
+        --------
+        DataFrame.loc : Select a subset of a DataFrame by labels.
+        DataFrame.iloc : Select a subset of a DataFrame by positions.
+        numpy.take : Take elements from an array along an axis.
 
         Examples
         --------
         >>> df = pd.DataFrame([('falcon', 'bird',    389.0),
-                               ('parrot', 'bird',     24.0),
-                               ('lion',   'mammal',   80.5),
-                               ('monkey', 'mammal', np.nan)],
-                              columns=('name', 'class', 'max_speed'),
-                              index=[0, 2, 3, 1])
+        ...                    ('parrot', 'bird',     24.0),
+        ...                    ('lion',   'mammal',   80.5),
+        ...                    ('monkey', 'mammal', np.nan)],
+        ...                    columns=['name', 'class', 'max_speed'],
+        ...                    index=[0, 2, 3, 1])
         >>> df
              name   class  max_speed
         0  falcon    bird      389.0
@@ -2727,6 +2773,7 @@ class NDFrame(PandasObject, SelectionMixin):
         and 3rd rows, not rows whose indices equal 0 and 3.
 
         >>> df.take([0, 3])
+             name   class  max_speed
         0  falcon    bird      389.0
         1  monkey  mammal        NaN
 
@@ -2746,16 +2793,6 @@ class NDFrame(PandasObject, SelectionMixin):
              name   class  max_speed
         1  monkey  mammal        NaN
         3    lion  mammal       80.5
-
-        Returns
-        -------
-        taken : type of caller
-            An array-like containing the elements taken from the object.
-
-        See Also
-        --------
-        numpy.ndarray.take
-        numpy.take
         """
 
     @Appender(_shared_docs['take'])
@@ -3914,7 +3951,9 @@ class NDFrame(PandasObject, SelectionMixin):
     def sample(self, n=None, frac=None, replace=False, weights=None,
                random_state=None, axis=None):
         """
-        Returns a random sample of items from an axis of object.
+        Return a random sample of items from an axis of object.
+
+        You can use `random_state` for reproducibility.
 
         Parameters
         ----------
@@ -3951,7 +3990,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-
         Generate an example ``Series`` and ``DataFrame``:
 
         >>> s = pd.Series(np.random.randn(50))
@@ -3990,6 +4028,16 @@ class NDFrame(PandasObject, SelectionMixin):
         40  0.823173 -0.078816  1.009536  1.015108
         15  1.421154 -0.055301 -1.922594 -0.019696
         6  -0.148339  0.832938  1.787600 -1.383767
+
+        You can use `random state` for reproducibility:
+
+        >>> df.sample(random_state=1)
+        A         B         C         D
+        37 -2.027662  0.103611  0.237496 -0.165867
+        43 -0.259323 -0.583426  1.516140 -0.479118
+        12 -1.686325 -0.579510  0.985195 -0.460286
+        8   1.167946  0.429082  1.215742 -1.636041
+        9   1.197475 -0.864188  1.554031 -1.505264
         """
 
         if axis is None:
@@ -6062,53 +6110,79 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Trim values at input threshold(s).
 
+        Assigns values outside boundary to boundary values. Thresholds
+        can be singular values or array like, and in the latter case
+        the clipping is performed element-wise in the specified axis.
+
         Parameters
         ----------
         lower : float or array_like, default None
+            Minimum threshold value. All values below this
+            threshold will be set to it.
         upper : float or array_like, default None
+            Maximum threshold value. All values above this
+            threshold will be set to it.
         axis : int or string axis name, optional
             Align object with lower and upper along the given axis.
         inplace : boolean, default False
-            Whether to perform the operation in place on the data
-                .. versionadded:: 0.21.0
+            Whether to perform the operation in place on the data.
+
+            .. versionadded:: 0.21.0
+        *args, **kwargs
+            Additional keywords have no effect but might be accepted
+            for compatibility with numpy.
+
+        See Also
+        --------
+        clip_lower : Clip values below specified threshold(s).
+        clip_upper : Clip values above specified threshold(s).
 
         Returns
         -------
-        clipped : Series
+        Series or DataFrame
+            Same type as calling object with the values outside the
+            clip boundaries replaced
 
         Examples
         --------
+        >>> data = {'col_0': [9, -3, 0, -1, 5], 'col_1': [-2, -7, 6, 8, -5]}
+        >>> df = pd.DataFrame(data)
         >>> df
-                  0         1
-        0  0.335232 -1.256177
-        1 -1.367855  0.746646
-        2  0.027753 -1.176076
-        3  0.230930 -0.679613
-        4  1.261967  0.570967
+           col_0  col_1
+        0      9     -2
+        1     -3     -7
+        2      0      6
+        3     -1      8
+        4      5     -5
 
-        >>> df.clip(-1.0, 0.5)
-                  0         1
-        0  0.335232 -1.000000
-        1 -1.000000  0.500000
-        2  0.027753 -1.000000
-        3  0.230930 -0.679613
-        4  0.500000  0.500000
+        Clips per column using lower and upper thresholds:
 
+        >>> df.clip(-4, 6)
+           col_0  col_1
+        0      6     -2
+        1     -3     -4
+        2      0      6
+        3     -1      6
+        4      5     -4
+
+        Clips using specific lower and upper thresholds per column element:
+
+        >>> t = pd.Series([2, -4, -1, 6, 3])
         >>> t
-        0   -0.3
-        1   -0.2
-        2   -0.1
-        3    0.0
-        4    0.1
-        dtype: float64
+        0    2
+        1   -4
+        2   -1
+        3    6
+        4    3
+        dtype: int64
 
-        >>> df.clip(t, t + 1, axis=0)
-                  0         1
-        0  0.335232 -0.300000
-        1 -0.200000  0.746646
-        2  0.027753 -0.100000
-        3  0.230930  0.000000
-        4  1.100000  0.570967
+        >>> df.clip(t, t + 4, axis=0)
+           col_0  col_1
+        0      6      2
+        1     -3     -4
+        2      0      3
+        3      6      8
+        4      5      3
         """
         if isinstance(self, ABCPanel):
             raise NotImplementedError("clip is not supported yet for panels")
