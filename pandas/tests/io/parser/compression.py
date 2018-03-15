@@ -14,7 +14,10 @@ import pandas.util._test_decorators as td
 
 import gzip
 import bz2
-lzma = compat.import_lzma()
+try:
+    lzma = compat.import_lzma()
+except ImportError:
+    lzma = None
 
 
 class CompressionTests(object):
@@ -71,7 +74,7 @@ class CompressionTests(object):
     @pytest.mark.parametrize('compress_type, compress_method, ext', [
         ('gzip', gzip.GzipFile, 'gz'),
         ('bz2', bz2.BZ2File, 'bz2'),
-        pytest.param('xz', lzma.LZMAFile, 'xz',
+        pytest.param('xz', getattr(lzma, 'LZMAFile', None), 'xz',
                      marks=td.skip_if_no_lzma)
     ])
     def test_other_compression(self, compress_type, compress_method, ext):
