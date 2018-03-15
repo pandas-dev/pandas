@@ -3951,7 +3951,9 @@ class NDFrame(PandasObject, SelectionMixin):
     def sample(self, n=None, frac=None, replace=False, weights=None,
                random_state=None, axis=None):
         """
-        Returns a random sample of items from an axis of object.
+        Return a random sample of items from an axis of object.
+
+        You can use `random_state` for reproducibility.
 
         Parameters
         ----------
@@ -3988,7 +3990,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-
         Generate an example ``Series`` and ``DataFrame``:
 
         >>> s = pd.Series(np.random.randn(50))
@@ -4027,6 +4028,16 @@ class NDFrame(PandasObject, SelectionMixin):
         40  0.823173 -0.078816  1.009536  1.015108
         15  1.421154 -0.055301 -1.922594 -0.019696
         6  -0.148339  0.832938  1.787600 -1.383767
+
+        You can use `random state` for reproducibility:
+
+        >>> df.sample(random_state=1)
+        A         B         C         D
+        37 -2.027662  0.103611  0.237496 -0.165867
+        43 -0.259323 -0.583426  1.516140 -0.479118
+        12 -1.686325 -0.579510  0.985195 -0.460286
+        8   1.167946  0.429082  1.215742 -1.636041
+        9   1.197475 -0.864188  1.554031 -1.505264
         """
 
         if axis is None:
