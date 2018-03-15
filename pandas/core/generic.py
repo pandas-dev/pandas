@@ -5629,8 +5629,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        Series.clip_lower : Clip values below specified threshold(s).
-        Series.clip_upper : Clip values above specified threshold(s).
+        clip_lower : Clip values below specified threshold(s).
+        clip_upper : Clip values above specified threshold(s).
 
         Returns
         -------
