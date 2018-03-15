@@ -7,6 +7,7 @@ import types
 from pandas import compat
 from pandas.compat import u, lzip
 from pandas._libs import lib, algos as libalgos
+from pandas._libs.tslib import iNaT
 
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCIndexClass, ABCCategoricalIndex)
@@ -364,10 +365,6 @@ class Categorical(ExtensionArray, PandasObject):
         self._dtype = self._dtype.update_dtype(dtype)
         self._codes = coerce_indexer_dtype(codes, dtype.categories)
 
-    @classmethod
-    def _constructor_from_sequence(cls, scalars):
-        return cls(scalars)
-
     @property
     def categories(self):
         """The categories of this categorical.
@@ -424,6 +421,10 @@ class Categorical(ExtensionArray, PandasObject):
     @property
     def _constructor(self):
         return Categorical
+
+    @classmethod
+    def _constructor_from_sequence(cls, scalars):
+        return Categorical(scalars)
 
     def copy(self):
         """ Copy constructor. """
@@ -2069,6 +2070,60 @@ class Categorical(ExtensionArray, PandasObject):
         if self.ordered:
             take_codes = sorted(take_codes)
         return cat.set_categories(cat.categories.take(take_codes))
+
+    def factorize(self, na_sentinel=-1):
+        """Encode the Categorical as an enumerated type.
+
+        Parameters
+        ----------
+        sort : boolean, default False
+            Sort by values
+        na_sentinel: int, default -1
+            Value to mark "not found"
+
+        Returns
+        -------
+        labels : ndarray
+            An integer NumPy array that's an indexer into the original
+            Categorical
+        uniques : Categorical
+            A Categorical whose values are the unique values and
+            whose dtype matches the original CategoricalDtype. Note that if
+            there any unobserved categories in ``self`` will not be present
+            in ``uniques.values``. They will be present in
+            ``uniques.categories``
+
+        Examples
+        --------
+        >>> cat = pd.Categorical(['a', 'a', 'c'], categories=['a', 'b', 'c'])
+        >>> labels, uniques = cat.factorize()
+        >>> labels
+        (array([0, 0, 1]),
+        >>> uniques
+        [a, c]
+        Categories (3, object): [a, b, c])
+
+        Missing values are handled
+
+        >>> labels, uniques = pd.factorize(pd.Categorical(['a', 'b', None]))
+        >>> labels
+        array([ 0,  1, -1])
+        >>> uniques
+        [a, b]
+        Categories (2, object): [a, b]
+        """
+        from pandas.core.algorithms import _factorize_array
+
+        codes = self.codes.astype('int64')
+        codes[codes == -1] = iNaT
+        # We set missing codes, normally -1, to iNaT so that the
+        # Int64HashTable treats them as missing values.
+        labels, uniques = _factorize_array(codes, check_nulls=True,
+                                           na_sentinel=na_sentinel)
+        uniques = self._constructor(self.categories.take(uniques),
+                                    categories=self.categories,
+                                    ordered=self.ordered)
+        return labels, uniques
 
     def equals(self, other):
         """
