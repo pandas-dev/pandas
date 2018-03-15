@@ -26,7 +26,8 @@ from .common import (_ensure_object, is_bool, is_integer, is_float,
                      _ensure_int32, _ensure_int64,
                      _NS_DTYPE, _TD_DTYPE, _INT64_DTYPE,
                      _POSSIBLY_CAST_DTYPES)
-from .dtypes import ExtensionDtype, DatetimeTZDtype, PeriodDtype
+from .dtypes import (ExtensionDtype, PandasExtensionDtype, DatetimeTZDtype,
+                     PeriodDtype)
 from .generic import (ABCDatetimeIndex, ABCPeriodIndex,
                       ABCSeries)
 from .missing import isna, notna
@@ -1114,7 +1115,8 @@ def find_common_type(types):
     if all(is_dtype_equal(first, t) for t in types[1:]):
         return first
 
-    if any(isinstance(t, ExtensionDtype) for t in types):
+    if any(isinstance(t, (PandasExtensionDtype, ExtensionDtype))
+           for t in types):
         return np.object
 
     # take lowest unit

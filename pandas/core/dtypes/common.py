@@ -9,7 +9,7 @@ from .dtypes import (CategoricalDtype, CategoricalDtypeType,
                      DatetimeTZDtype, DatetimeTZDtypeType,
                      PeriodDtype, PeriodDtypeType,
                      IntervalDtype, IntervalDtypeType,
-                     ExtensionDtype)
+                     ExtensionDtype, PandasExtensionDtype)
 from .generic import (ABCCategorical, ABCPeriodIndex,
                       ABCDatetimeIndex, ABCSeries,
                       ABCSparseArray, ABCSparseSeries, ABCCategoricalIndex,
@@ -2006,7 +2006,7 @@ def pandas_dtype(dtype):
             return CategoricalDtype.construct_from_string(dtype)
         except TypeError:
             pass
-    elif isinstance(dtype, ExtensionDtype):
+    elif isinstance(dtype, (PandasExtensionDtype, ExtensionDtype)):
         return dtype
 
     try:
