@@ -1944,42 +1944,52 @@ class DataFrame(NDFrame):
 
     def memory_usage(self, index=True, deep=False):
         """
-        Memory usage of DataFrame columns.
+        Return the memory usage of each column in bytes.
 
-        Memory usage of DataFrame is accessing pandas.DataFrame.info method.
+        The memory usage can optionally include the contribution of
+        the index and elements of `object` dtype.
+
         A configuration option, `display.memory_usage` (see Parameters)
 
         Parameters
         ----------
-        index : bool
-            Specifies whether to include memory usage of DataFrame's
-            index in returned Series. If `index=True` (default is False)
-            the first index of the Series is `Index`.
+        index : bool, default False
+            Specifies whether to include the memory usage of the DataFrame's
+            index in returned Series. If ``index=True`` the memory usage of the
+            index the first item in the output.
         deep : bool
-            Introspect the data deeply, interrogate
-            `object` dtypes for system-level memory consumption.
+            If True, introspect the data deeply by interrogating
+            `object` dtypes for system-level memory consumption, and include
+            it in the returned values.
 
         Returns
         -------
         sizes : Series
-            A series with column names as index and memory usage of
-            columns with units of bytes.
-
-        Notes
-        -----
-        Memory usage does not include memory consumed by elements that
-        are not components of the array if deep=False
+            A Series whose index is the original column names and whose values
+            is the memory usage of each column in bytes.
 
         See Also
         --------
-        numpy.ndarray.nbytes
+        numpy.ndarray.nbytes : Total bytes consumed by the elements of an
+            ndarray.
+        Series.memory_usage : Bytes consumed by a Series.
+        pandas.Categorical : Memory-efficient array for string values with
+            many repeated values.
 
         Examples
         --------
         >>> dtypes = ['int64', 'float64', 'complex128', 'object', 'bool']
-        >>> data = dict([(t, np.random.randint(100, size=5000).astype(t))
+        >>> data = dict([(t, np.ones(shape=5000).astype(t))
         ...              for t in dtypes])
         >>> df = pd.DataFrame(data)
+        >>> df.head()
+           int64  float64  complex128 object  bool
+        0      1      1.0      (1+0j)      1  True
+        1      1      1.0      (1+0j)      1  True
+        2      1      1.0      (1+0j)      1  True
+        3      1      1.0      (1+0j)      1  True
+        4      1      1.0      (1+0j)      1  True
+
         >>> df.memory_usage()
         Index            80
         int64         40000
@@ -1988,6 +1998,7 @@ class DataFrame(NDFrame):
         object        40000
         bool           5000
         dtype: int64
+
         >>> df.memory_usage(index=False)
         int64         40000
         float64       40000
@@ -1995,6 +2006,7 @@ class DataFrame(NDFrame):
         object        40000
         bool           5000
         dtype: int64
+
         >>> df.memory_usage(index=True)
         Index            80
         int64         40000
@@ -2003,8 +2015,22 @@ class DataFrame(NDFrame):
         object        40000
         bool           5000
         dtype: int64
-        >>> df.memory_usage(index=True).sum()
-        205080
+
+        The memory footprint of `object` dtype columns is ignored by default:
+        >>> df.memory_usage(deep=True)
+        Index             80
+        int64          40000
+        float64        40000
+        complex128     80000
+        object        160000
+        bool            5000
+        dtype: int64
+
+        Use a Categorical for efficient storage of an object-dtype column with
+        many repeated values.
+
+        >>> df['object'].astype('category').memory_usage(deep=True)
+        5168
         """
         result = Series([c.memory_usage(index=False, deep=deep)
                          for col, c in self.iteritems()], index=self.columns)
