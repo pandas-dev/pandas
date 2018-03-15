@@ -905,9 +905,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         """
         try:
             o = self.obj
-            d = dict(
-                [(a, self._convert_for_reindex(t, axis=o._get_axis_number(a)))
-                 for t, a in zip(tup, o._AXIS_ORDERS)])
+            d = {a: self._convert_for_reindex(t, axis=o._get_axis_number(a))
+                 for t, a in zip(tup, o._AXIS_ORDERS)}
             return o.reindex(**d)
         except(KeyError, IndexingError):
             raise self._exception
@@ -1414,7 +1413,8 @@ class _LocationIndexer(_NDFrameIndexer):
 
 
 class _LocIndexer(_LocationIndexer):
-    """Purely label-location based indexer for selection by label.
+    """
+    Access a group of rows and columns by label(s) or a boolean array.
 
     ``.loc[]`` is primarily label based, but may also be used with a
     boolean array.
@@ -1425,16 +1425,229 @@ class _LocIndexer(_LocationIndexer):
       interpreted as a *label* of the index, and **never** as an
       integer position along the index).
     - A list or array of labels, e.g. ``['a', 'b', 'c']``.
-    - A slice object with labels, e.g. ``'a':'f'`` (note that contrary
-      to usual python slices, **both** the start and the stop are included!).
-    - A boolean array.
+    - A slice object with labels, e.g. ``'a':'f'``.
+
+      .. warning:: Note that contrary to usual python slices, **both** the
+          start and the stop are included
+
+    - A boolean array of the same length as the axis being sliced,
+      e.g. ``[True, False, True]``.
     - A ``callable`` function with one argument (the calling Series, DataFrame
       or Panel) and that returns valid output for indexing (one of the above)
 
-    ``.loc`` will raise a ``KeyError`` when the items are not found.
-
     See more at :ref:`Selection by Label <indexing.label>`
 
+    See Also
+    --------
+    DataFrame.at : Access a single value for a row/column label pair
+    DataFrame.iloc : Access group of rows and columns by integer position(s)
+    DataFrame.xs : Returns a cross-section (row(s) or column(s)) from the
+        Series/DataFrame.
+    Series.loc : Access group of values using labels
+
+    Examples
+    --------
+    **Getting values**
+
+    >>> df = pd.DataFrame([[1, 2], [4, 5], [7, 8]],
+    ...      index=['cobra', 'viper', 'sidewinder'],
+    ...      columns=['max_speed', 'shield'])
+    >>> df
+                max_speed  shield
+    cobra               1       2
+    viper               4       5
+    sidewinder          7       8
+
+    Single label. Note this returns the row as a Series.
+
+    >>> df.loc['viper']
+    max_speed    4
+    shield       5
+    Name: viper, dtype: int64
+
+    List of labels. Note using ``[[]]`` returns a DataFrame.
+
+    >>> df.loc[['viper', 'sidewinder']]
+                max_speed  shield
+    viper               4       5
+    sidewinder          7       8
+
+    Single label for row and column
+
+    >>> df.loc['cobra', 'shield']
+    2
+
+    Slice with labels for row and single label for column. As mentioned
+    above, note that both the start and stop of the slice are included.
+
+    >>> df.loc['cobra':'viper', 'max_speed']
+    cobra    1
+    viper    4
+    Name: max_speed, dtype: int64
+
+    Boolean list with the same length as the row axis
+
+    >>> df.loc[[False, False, True]]
+                max_speed  shield
+    sidewinder          7       8
+
+    Conditional that returns a boolean Series
+
+    >>> df.loc[df['shield'] > 6]
+                max_speed  shield
+    sidewinder          7       8
+
+    Conditional that returns a boolean Series with column labels specified
+
+    >>> df.loc[df['shield'] > 6, ['max_speed']]
+                max_speed
+    sidewinder          7
+
+    Callable that returns a boolean Series
+
+    >>> df.loc[lambda df: df['shield'] == 8]
+                max_speed  shield
+    sidewinder          7       8
+
+    **Setting values**
+
+    Set value for all items matching the list of labels
+
+    >>> df.loc[['viper', 'sidewinder'], ['shield']] = 50
+    >>> df
+                max_speed  shield
+    cobra               1       2
+    viper               4      50
+    sidewinder          7      50
+
+    Set value for an entire row
+
+    >>> df.loc['cobra'] = 10
+    >>> df
+                max_speed  shield
+    cobra              10      10
+    viper               4      50
+    sidewinder          7      50
+
+    Set value for an entire column
+
+    >>> df.loc[:, 'max_speed'] = 30
+    >>> df
+                max_speed  shield
+    cobra              30      10
+    viper              30      50
+    sidewinder         30      50
+
+    Set value for rows matching callable condition
+
+    >>> df.loc[df['shield'] > 35] = 0
+    >>> df
+                max_speed  shield
+    cobra              30      10
+    viper               0       0
+    sidewinder          0       0
+
+    **Getting values on a DataFrame with an index that has integer labels**
+
+    Another example using integers for the index
+
+    >>> df = pd.DataFrame([[1, 2], [4, 5], [7, 8]],
+    ...      index=[7, 8, 9], columns=['max_speed', 'shield'])
+    >>> df
+       max_speed  shield
+    7          1       2
+    8          4       5
+    9          7       8
+
+    Slice with integer labels for rows. As mentioned above, note that both
+    the start and stop of the slice are included.
+
+    >>> df.loc[7:9]
+       max_speed  shield
+    7          1       2
+    8          4       5
+    9          7       8
+
+    **Getting values with a MultiIndex**
+
+    A number of examples using a DataFrame with a MultiIndex
+
+    >>> tuples = [
+    ...    ('cobra', 'mark i'), ('cobra', 'mark ii'),
+    ...    ('sidewinder', 'mark i'), ('sidewinder', 'mark ii'),
+    ...    ('viper', 'mark ii'), ('viper', 'mark iii')
+    ... ]
+    >>> index = pd.MultiIndex.from_tuples(tuples)
+    >>> values = [[12, 2], [0, 4], [10, 20],
+    ...         [1, 4], [7, 1], [16, 36]]
+    >>> df = pd.DataFrame(values, columns=['max_speed', 'shield'], index=index)
+    >>> df
+                         max_speed  shield
+    cobra      mark i           12       2
+               mark ii           0       4
+    sidewinder mark i           10      20
+               mark ii           1       4
+    viper      mark ii           7       1
+               mark iii         16      36
+
+    Single label. Note this returns a DataFrame with a single index.
+
+    >>> df.loc['cobra']
+             max_speed  shield
+    mark i          12       2
+    mark ii          0       4
+
+    Single index tuple. Note this returns a Series.
+
+    >>> df.loc[('cobra', 'mark ii')]
+    max_speed    0
+    shield       4
+    Name: (cobra, mark ii), dtype: int64
+
+    Single label for row and column. Similar to passing in a tuple, this
+    returns a Series.
+
+    >>> df.loc['cobra', 'mark i']
+    max_speed    12
+    shield        2
+    Name: (cobra, mark i), dtype: int64
+
+    Single tuple. Note using ``[[]]`` returns a DataFrame.
+
+    >>> df.loc[[('cobra', 'mark ii')]]
+                   max_speed  shield
+    cobra mark ii          0       4
+
+    Single tuple for the index with a single label for the column
+
+    >>> df.loc[('cobra', 'mark i'), 'shield']
+    2
+
+    Slice from index tuple to single label
+
+    >>> df.loc[('cobra', 'mark i'):'viper']
+                         max_speed  shield
+    cobra      mark i           12       2
+               mark ii           0       4
+    sidewinder mark i           10      20
+               mark ii           1       4
+    viper      mark ii           7       1
+               mark iii         16      36
+
+    Slice from index tuple to index tuple
+
+    >>> df.loc[('cobra', 'mark i'):('viper', 'mark ii')]
+                        max_speed  shield
+    cobra      mark i          12       2
+               mark ii          0       4
+    sidewinder mark i          10      20
+               mark ii          1       4
+    viper      mark ii          7       1
+
+    Raises
+    ------
+    KeyError:
+        when any items are not found
     """
 
     _valid_types = ("labels (MUST BE IN THE INDEX), slices of labels (BOTH "
@@ -1889,11 +2102,50 @@ class _ScalarAccessIndexer(_NDFrameIndexer):
 
 
 class _AtIndexer(_ScalarAccessIndexer):
-    """Fast label-based scalar accessor
+    """
+    Access a single value for a row/column label pair.
 
-    Similarly to ``loc``, ``at`` provides **label** based scalar lookups.
-    You can also set using these indexers.
+    Similar to ``loc``, in that both provide label-based lookups. Use
+    ``at`` if you only need to get or set a single value in a DataFrame
+    or Series.
 
+    See Also
+    --------
+    DataFrame.iat : Access a single value for a row/column pair by integer
+        position
+    DataFrame.loc : Access a group of rows and columns by label(s)
+    Series.at : Access a single value using a label
+
+    Examples
+    --------
+    >>> df = pd.DataFrame([[0, 2, 3], [0, 4, 1], [10, 20, 30]],
+    ...                   index=[4, 5, 6], columns=['A', 'B', 'C'])
+    >>> df
+        A   B   C
+    4   0   2   3
+    5   0   4   1
+    6  10  20  30
+
+    Get value at specified row/column pair
+
+    >>> df.at[4, 'B']
+    2
+
+    Set value at specified row/column pair
+
+    >>> df.at[4, 'B'] = 10
+    >>> df.at[4, 'B']
+    10
+
+    Get value within a Series
+
+    >>> df.loc[5].at['B']
+    4
+
+    Raises
+    ------
+    KeyError
+        When label does not exist in DataFrame
     """
 
     _takeable = False
@@ -1921,11 +2173,49 @@ class _AtIndexer(_ScalarAccessIndexer):
 
 
 class _iAtIndexer(_ScalarAccessIndexer):
-    """Fast integer location scalar accessor.
+    """
+    Access a single value for a row/column pair by integer position.
 
-    Similarly to ``iloc``, ``iat`` provides **integer** based lookups.
-    You can also set using these indexers.
+    Similar to ``iloc``, in that both provide integer-based lookups. Use
+    ``iat`` if you only need to get or set a single value in a DataFrame
+    or Series.
 
+    See Also
+    --------
+    DataFrame.at : Access a single value for a row/column label pair
+    DataFrame.loc : Access a group of rows and columns by label(s)
+    DataFrame.iloc : Access a group of rows and columns by integer position(s)
+
+    Examples
+    --------
+    >>> df = pd.DataFrame([[0, 2, 3], [0, 4, 1], [10, 20, 30]],
+    ...                   columns=['A', 'B', 'C'])
+    >>> df
+        A   B   C
+    0   0   2   3
+    1   0   4   1
+    2  10  20  30
+
+    Get value at specified row/column pair
+
+    >>> df.iat[1, 2]
+    1
+
+    Set value at specified row/column pair
+
+    >>> df.iat[1, 2] = 10
+    >>> df.iat[1, 2]
+    10
+
+    Get value within a series
+
+    >>> df.loc[0].iat[1]
+    2
+
+    Raises
+    ------
+    IndexError
+        When integer position is out of bounds
     """
 
     _takeable = True

@@ -1,6 +1,7 @@
 """
 Quantilization functions and related stuff
 """
+from functools import partial
 
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.common import (
@@ -9,6 +10,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_datetime64_dtype,
     is_timedelta64_dtype,
+    is_datetime64tz_dtype,
     _ensure_int64)
 
 import pandas.core.algorithms as algos
@@ -239,7 +241,8 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
     ids = _ensure_int64(bins.searchsorted(x, side=side))
 
     if include_lowest:
-        ids[x == bins[0]] = 1
+        # Numpy 1.9 support: ensure this mask is a Numpy array
+        ids[np.asarray(x == bins[0])] = 1
 
     na_mask = isna(x) | (ids == len(bins)) | (ids == 0)
     has_nas = na_mask.any()
@@ -284,12 +287,14 @@ def _coerce_to_type(x):
     """
     dtype = None
 
-    if is_timedelta64_dtype(x):
-        x = to_timedelta(x)
-        dtype = np.timedelta64
+    if is_datetime64tz_dtype(x):
+        dtype = x.dtype
     elif is_datetime64_dtype(x):
         x = to_datetime(x)
         dtype = np.datetime64
+    elif is_timedelta64_dtype(x):
+        x = to_timedelta(x)
+        dtype = np.timedelta64
 
     if dtype is not None:
         # GH 19768: force NaT to NaN during integer conversion
@@ -305,7 +310,7 @@ def _convert_bin_to_numeric_type(bins, dtype):
 
     Parameters
     ----------
-    bins : list-liek of bins
+    bins : list-like of bins
     dtype : dtype of data
 
     Raises
@@ -318,7 +323,7 @@ def _convert_bin_to_numeric_type(bins, dtype):
             bins = to_timedelta(bins).view(np.int64)
         else:
             raise ValueError("bins must be of timedelta64 dtype")
-    elif is_datetime64_dtype(dtype):
+    elif is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype):
         if bins_dtype in ['datetime', 'datetime64']:
             bins = to_datetime(bins).view(np.int64)
         else:
@@ -333,7 +338,10 @@ def _format_labels(bins, precision, right=True,
 
     closed = 'right' if right else 'left'
 
-    if is_datetime64_dtype(dtype):
+    if is_datetime64tz_dtype(dtype):
+        formatter = partial(Timestamp, tz=dtype.tz)
+        adjust = lambda x: x - Timedelta('1ns')
+    elif is_datetime64_dtype(dtype):
         formatter = Timestamp
         adjust = lambda x: x - Timedelta('1ns')
     elif is_timedelta64_dtype(dtype):
@@ -372,7 +380,13 @@ def _preprocess_for_cut(x):
         series_index = x.index
         name = x.name
 
-    x = np.asarray(x)
+    # Check that the passed array is a Pandas or Numpy object
+    # We don't want to strip away a Pandas data-type here (e.g. datetimetz)
+    ndim = getattr(x, 'ndim', None)
+    if ndim is None:
+        x = np.asarray(x)
+    if x.ndim != 1:
+        raise ValueError("Input array must be 1 dimensional")
 
     return x_is_series, series_index, name, x
 

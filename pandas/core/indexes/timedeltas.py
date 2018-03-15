@@ -197,10 +197,9 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
     freq = None
 
-    def __new__(cls, data=None, unit=None,
-                freq=None, start=None, end=None, periods=None,
-                copy=False, name=None,
-                closed=None, verify_integrity=True, **kwargs):
+    def __new__(cls, data=None, unit=None, freq=None, start=None, end=None,
+                periods=None, closed=None, dtype=None, copy=False,
+                name=None, verify_integrity=True):
 
         if isinstance(data, TimedeltaIndex) and freq is None and name is None:
             if copy:
@@ -353,6 +352,12 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             attrs['freq'] = 'infer'
         return attrs
 
+    def _add_offset(self, other):
+        assert not isinstance(other, Tick)
+        raise TypeError("cannot add the type {typ} to a {cls}"
+                        .format(typ=type(other).__name__,
+                                cls=type(self).__name__))
+
     def _add_delta(self, delta):
         """
         Add a timedelta-like, Tick, or TimedeltaIndex-like object
@@ -495,7 +500,57 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
     def total_seconds(self):
         """
-        Total duration of each element expressed in seconds.
+        Return total duration of each element expressed in seconds.
+
+        This method is available directly on TimedeltaIndex and on Series
+        containing timedelta values under the ``.dt`` namespace.
+
+        Returns
+        -------
+        seconds : Float64Index or Series
+            When the calling object is a TimedeltaIndex, the return type is a
+            Float64Index. When the calling object is a Series, the return type
+            is Series of type `float64` whose index is the same as the
+            original.
+
+        See Also
+        --------
+        datetime.timedelta.total_seconds : Standard library version
+            of this method.
+        TimedeltaIndex.components : Return a DataFrame with components of
+            each Timedelta.
+
+        Examples
+        --------
+        **Series**
+
+        >>> s = pd.Series(pd.to_timedelta(np.arange(5), unit='d'))
+        >>> s
+        0   0 days
+        1   1 days
+        2   2 days
+        3   3 days
+        4   4 days
+        dtype: timedelta64[ns]
+
+        >>> s.dt.total_seconds()
+        0         0.0
+        1     86400.0
+        2    172800.0
+        3    259200.0
+        4    345600.0
+        dtype: float64
+
+        **TimedeltaIndex**
+
+        >>> idx = pd.to_timedelta(np.arange(5), unit='d')
+        >>> idx
+        TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
+                       dtype='timedelta64[ns]', freq=None)
+
+        >>> idx.total_seconds()
+        Float64Index([0.0, 86400.0, 172800.0, 259200.00000000003, 345600.0],
+                     dtype='float64')
         """
         return Index(self._maybe_mask_results(1e-9 * self.asi8),
                      name=self.name)
