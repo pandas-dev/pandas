@@ -83,16 +83,16 @@ _apply_docs = dict(
     Apply function `func`  group-wise and combine the results together.
 
     The function passed to `apply` must take a {input} as its first
-    argument and return a dataframe, a series or a scalar. `apply` will
+    argument and return a DataFrame, Series, or scalar. `apply` will
     then take care of combining the results back together into a single
     dataframe or series. `apply` is therefore a highly flexible
     grouping method.
 
     While `apply` is a very flexible method, its downside is that
-    using it can be quite a bit slower than using more specific methods.
-    Pandas offers a wide range of method that will be much faster
-    than using `apply` for their specific purposes, so try to use them
-    before reaching for `apply`.
+    using it can be quite a bit slower than using more specific methods
+    like `agg` or `transform`. Pandas offers a wide range of method that will
+    be much faster than using `apply` for their specific purposes, so try to
+    use them before reaching for `apply`.
 
     Parameters
     ----------
@@ -111,9 +111,9 @@ _apply_docs = dict(
 
     Notes
     -----
-    In the current implementation `apply` calls func twice on the
+    In the current implementation `apply` calls `func` twice on the
     first group to decide whether it can take a fast or slow code
-    path. This can lead to unexpected behavior if func has
+    path. This can lead to unexpected behavior if `func` has
     side-effects, as they will take effect twice for the first
     group.
 
@@ -131,17 +131,19 @@ _apply_docs = dict(
         DataFrame.
     """,
     dataframe_examples="""
-    >>> df = pd.DataFrame({'A': 'a a b'.split(), 'B': [1,2,3], 'C': [4,6, 5]})
+    >>> df = pd.DataFrame({'A': 'a a b'.split(),
+    ...                    'B': [1, 2, 3],
+    ...                    'C': [4, 6, 5]})
     >>> g = df.groupby('A')
 
-    From `df` above we can see that `g` has two groups, `a`, `b`.
+    Notice that ``g`` has two groups, ``a``, and ``b``.
     Calling `apply` in various ways, we can get different grouping results:
 
     Example 1: below the function passed to `apply` takes a dataframe as
     its argument and returns a dataframe. `apply` combines the result for
     each group together into a new dataframe:
 
-    >>> g[['B','C']].apply(lambda x: x / x.sum())
+    >>> g[['B', 'C']].apply(lambda x: x / x.sum())
               B    C
     0  0.333333  0.4
     1  0.666667  0.6
@@ -151,7 +153,7 @@ _apply_docs = dict(
     its argument and returns a series.  `apply` combines the result for
     each group together into a new dataframe:
 
-    >>> g[['B','C']].apply(lambda x: x.max() - x.min())
+    >>> g[['B', 'C']].apply(lambda x: x.max() - x.min())
        B  C
     A
     a  1  2
