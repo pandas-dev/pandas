@@ -84,9 +84,7 @@ class ParserWarning(Warning):
     ...           1;1,8
     ...           1;2,1'''
     >>> df = pd.read_csv(io.StringIO(csv), sep='[;,]')
-    Traceback (most recent call last):
-    ...
-    ParserWarning: Falling back to the 'python' engine...
+    ... # ParserWarning: Falling back to the 'python' engine...
 
     Adding `engine='python'` to `pd.read_csv` removes the Warning:
 
