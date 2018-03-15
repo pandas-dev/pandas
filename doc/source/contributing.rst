@@ -1056,8 +1056,9 @@ Once the conflicts are merged and the files where the conflicts were solved are
 added, you can run ``git commit`` to save those fixes.
 
 If you have uncommitted changes at the moment you want to update the branch with
-master, you will need to ``stash`` them prior to updating.  This will effectively
-store your changes and they can be reapplied after updating.
+master, you will need to ``stash`` them prior to updating (see the
+`stash docs <https://git-scm.com/book/en/v2/Git-Tools-Stashing-and-Cleaning>`__).
+This will effectively store your changes and they can be reapplied after updating.
 
 After the feature branch has been update locally, you can now update your pull
 request by pushing to the branch on GitHub::
