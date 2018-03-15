@@ -32,9 +32,6 @@ class BaseInterfaceTests(BaseExtensionTests):
         result = np.array(data)
         assert result[0] == data[0]
 
-    def test_as_ndarray_with_dtype_kind(self, data):
-        np.array(data, dtype=data.dtype.kind)
-
     def test_repr(self, data):
         ser = pd.Series(data)
         assert data.dtype.name in repr(ser)
