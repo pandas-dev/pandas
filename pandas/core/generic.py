@@ -3755,13 +3755,6 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         A new object of same type as caller.
 
-        See Also
-        --------
-        Series.sample : Returns a random sample of items
-            from an axis of object.
-        DataFrame.sample : Returns a random sample of items
-            from an axis of object.
-
         Examples
         --------
         Generate an example ``Series`` and ``DataFrame``:
