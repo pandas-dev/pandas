@@ -16,8 +16,6 @@ from pandas.tseries.offsets import BDay
 from pandas.util.testing import (assert_series_equal)
 import pandas.util.testing as tm
 
-JOIN_TYPES = ['inner', 'outer', 'left', 'right']
-
 
 def test_getitem_boolean(test_data):
     s = test_data.series
@@ -283,34 +281,30 @@ def test_where_error():
                   [])
 
 
-def test_where_array_like():
+@pytest.mark.parametrize('klass', [list, tuple, np.array, Series])
+def test_where_array_like(klass):
     # see gh-15414
     s = Series([1, 2, 3])
     cond = [False, True, True]
     expected = Series([np.nan, 2, 3])
-    klasses = [list, tuple, np.array, Series]
 
-    for klass in klasses:
-        result = s.where(klass(cond))
-        assert_series_equal(result, expected)
+    result = s.where(klass(cond))
+    assert_series_equal(result, expected)
 
 
-def test_where_invalid_input():
+@pytest.mark.parametrize('cond', [
+    [1, 0, 1],
+    Series([2, 5, 7]),
+    ["True", "False", "True"],
+    [Timestamp("2017-01-01"), pd.NaT, Timestamp("2017-01-02")]
+])
+def test_where_invalid_input(cond):
     # see gh-15414: only boolean arrays accepted
     s = Series([1, 2, 3])
     msg = "Boolean array expected for the condition"
 
-    conds = [
-        [1, 0, 1],
-        Series([2, 5, 7]),
-        ["True", "False", "True"],
-        [Timestamp("2017-01-01"),
-         pd.NaT, Timestamp("2017-01-02")]
-    ]
-
-    for cond in conds:
-        with tm.assert_raises_regex(ValueError, msg):
-            s.where(cond)
+    with tm.assert_raises_regex(ValueError, msg):
+        s.where(cond)
 
     msg = "Array conditional must be same shape as self"
     with tm.assert_raises_regex(ValueError, msg):
@@ -403,37 +397,43 @@ def test_where_setitem_invalid():
     assert_series_equal(s, expected)
 
 
-def test_where_broadcast():
-    # Test a variety of differently sized series
-    for size in range(2, 6):
-        # Test a variety of boolean indices
-        for selection in [
-            # First element should be set
-            np.resize([True, False, False, False, False], size),
-            # Set alternating elements]
-            np.resize([True, False], size),
-            # No element should be set
-            np.resize([False], size)
-        ]:
+@pytest.mark.parametrize('size', range(2, 6))
+@pytest.mark.parametrize('mask', [
+    [True, False, False, False, False],
+    [True, False],
+    [False]
+])
+@pytest.mark.parametrize('item', [
+    2.0, np.nan, np.finfo(np.float).max, np.finfo(np.float).min
+])
+# Test numpy arrays, lists and tuples as the input to be
+# broadcast
+@pytest.mark.parametrize('box', [
+    lambda x: np.array([x]),
+    lambda x: [x],
+    lambda x: (x,)
+])
+def test_broadcast(size, mask, item, box):
+    selection = np.resize(mask, size)
 
-            # Test a variety of different numbers as content
-            for item in [2.0, np.nan, np.finfo(np.float).max,
-                         np.finfo(np.float).min]:
-                # Test numpy arrays, lists and tuples as the input to be
-                # broadcast
-                for arr in [np.array([item]), [item], (item,)]:
-                    data = np.arange(size, dtype=float)
-                    s = Series(data)
-                    s[selection] = arr
-                    # Construct the expected series by taking the source
-                    # data or item based on the selection
-                    expected = Series([item if use_item else data[
-                        i] for i, use_item in enumerate(selection)])
-                    assert_series_equal(s, expected)
+    data = np.arange(size, dtype=float)
 
-                    s = Series(data)
-                    result = s.where(~selection, arr)
-                    assert_series_equal(result, expected)
+    # Construct the expected series by taking the source
+    # data or item based on the selection
+    expected = Series([item if use_item else data[
+        i] for i, use_item in enumerate(selection)])
+
+    s = Series(data)
+    s[selection] = box(item)
+    assert_series_equal(s, expected)
+
+    s = Series(data)
+    result = s.where(~selection, box(item))
+    assert_series_equal(result, expected)
+
+    s = Series(data)
+    result = s.mask(selection, box(item))
+    assert_series_equal(result, expected)
 
 
 def test_where_inplace():
@@ -585,29 +585,6 @@ def test_mask():
     result = s.mask(s > 2, np.nan)
     expected = Series([1, 2, np.nan, np.nan])
     assert_series_equal(result, expected)
-
-
-def test_mask_broadcast():
-    # GH 8801
-    # copied from test_where_broadcast
-    for size in range(2, 6):
-        for selection in [
-            # First element should be set
-            np.resize([True, False, False, False, False], size),
-            # Set alternating elements]
-            np.resize([True, False], size),
-            # No element should be set
-            np.resize([False], size)
-        ]:
-            for item in [2.0, np.nan, np.finfo(np.float).max,
-                         np.finfo(np.float).min]:
-                for arr in [np.array([item]), [item], (item,)]:
-                    data = np.arange(size, dtype=float)
-                    s = Series(data)
-                    result = s.mask(selection, arr)
-                    expected = Series([item if use_item else data[
-                        i] for i, use_item in enumerate(selection)])
-                    assert_series_equal(result, expected)
 
 
 def test_mask_inplace():
