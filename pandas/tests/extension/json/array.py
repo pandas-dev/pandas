@@ -111,7 +111,7 @@ class JSONArray(ExtensionArray):
 
         # fixup NA
         if self.isna().any():
-            na_code = self.isna().argmax()
+            na_code = labels[self.isna()][0]
 
             labels[labels == na_code] = na_sentinel
             labels[labels > na_code] -= 1

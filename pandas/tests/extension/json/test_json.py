@@ -75,10 +75,8 @@ class TestMissing(base.BaseMissingTests):
 
 
 class TestMethods(base.BaseMethodsTests):
-    unhashable = pytest.mark.skip(reason="Unhashable")
-
-    @unhashable
-    def test_factorize(self):
+    @pytest.mark.skip(reason="Unhashable")
+    def test_value_counts(self):
         pass
 
 
