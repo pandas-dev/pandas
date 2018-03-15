@@ -6,8 +6,7 @@ from pandas import (
     Index, DatetimeIndex, PeriodIndex, TimedeltaIndex, Series, Period)
 
 
-# test cases of the form (to_concat, expected)
-test_cases_standard = [
+@pytest.mark.parametrize('to_concat, expected', [
     # int/float/str
     ([['a'], [1, 2]], ['i', 'object']),
     ([[3, 4], [1, 2]], ['i']),
@@ -30,19 +29,15 @@ test_cases_standard = [
      ['timedelta']),
     ([DatetimeIndex(['2011-01-01'], tz='Asia/Tokyo'),
       TimedeltaIndex(['1 days'])],
-     ['datetime64[ns, Asia/Tokyo]', 'timedelta'])]
-
-
+     ['datetime64[ns, Asia/Tokyo]', 'timedelta'])])
 @pytest.mark.parametrize('klass', [Index, Series])
-@pytest.mark.parametrize('to_concat, expected', test_cases_standard)
 def test_get_dtype_kinds(klass, to_concat, expected):
     to_concat_klass = [klass(c) for c in to_concat]
     result = _concat.get_dtype_kinds(to_concat_klass)
     assert result == set(expected)
 
 
-# test cases of the form (to_concat, expected)
-test_cases_period = [
+@pytest.mark.parametrize('to_concat, expected', [
     # because we don't have Period dtype (yet),
     # Series results in object dtype
     ([PeriodIndex(['2011-01'], freq='M'),
@@ -52,10 +47,7 @@ test_cases_period = [
     ([PeriodIndex(['2011-01'], freq='M'),
       PeriodIndex(['2011-01'], freq='D')], ['period[M]', 'period[D]']),
     ([Series([Period('2011-01', freq='M')]),
-      Series([Period('2011-02', freq='D')])], ['object'])]
-
-
-@pytest.mark.parametrize('to_concat, expected', test_cases_period)
+      Series([Period('2011-02', freq='D')])], ['object'])])
 def test_get_dtype_kinds_period(to_concat, expected):
     result = _concat.get_dtype_kinds(to_concat)
     assert result == set(expected)

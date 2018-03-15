@@ -16,10 +16,10 @@ class TestPandasDtype(object):
 
     # Passing invalid dtype, both as a string or object, must raise TypeError
     # Per issue GH15520
-    @pytest.mark.parametrize('dtype', [pd.Timestamp, 'pd.Timestamp', list])
-    def test_invalid_dtype_error(self, dtype):
+    @pytest.mark.parametrize('box', [pd.Timestamp, 'pd.Timestamp', list])
+    def test_invalid_dtype_error(self, box):
         with tm.assert_raises_regex(TypeError, 'not understood'):
-            com.pandas_dtype(dtype)
+            com.pandas_dtype(box)
 
     @pytest.mark.parametrize('dtype', [
         object, 'float64', np.object_, np.dtype('object'), 'O',
