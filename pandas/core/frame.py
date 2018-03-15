@@ -3537,11 +3537,11 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.isna: show missing values
-        DataFrame.notna : show existing (non-missing) values
-        DataFrame.fillna : replace missing values
-        Series.dropna : drop missing values
-        Index.dropna : drop missing indices
+        DataFrame.isna: Indicate missing values.
+        DataFrame.notna : Indicate existing (non-missing) values.
+        DataFrame.fillna : Replace missing values.
+        Series.dropna : Drop missing values.
+        Index.dropna : Drop missing indices.
 
         Examples
         --------

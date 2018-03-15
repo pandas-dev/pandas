@@ -3059,11 +3059,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        Series.isna: show missing values
-        Series.notna : show existing (non-missing) values
-        Series.fillna : replace missing values
-        DataFrame.dropna : drop rows or columns which contain NA values
-        Index.dropna : drop missing indices
+        Series.isna: Indicate missing values.
+        Series.notna : Indicate existing (non-missing) values.
+        Series.fillna : Replace missing values.
+        DataFrame.dropna : Drop rows or columns which contain NA values.
+        Index.dropna : Drop missing indices.
 
         Examples
         --------
