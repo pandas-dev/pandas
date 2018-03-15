@@ -1489,12 +1489,20 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @property
     def empty(self):
-        """True if NDFrame is entirely empty [no items], meaning any of the
+        """
+        Indicator whether DataFrame is empty.
+
+        True if DataFrame is entirely empty (no items), meaning any of the
         axes are of length 0.
+
+        Returns
+        -------
+        bool
+            If DataFrame is empty, return True, if not return False.
 
         Notes
         -----
-        If NDFrame contains only NaNs, it is still not considered empty. See
+        If DataFrame contains only NaNs, it is still not considered empty. See
         the example below.
 
         Examples
