@@ -455,6 +455,12 @@ def validate_one(func_name):
             if not rel_desc:
                 errs.append('Missing description for '
                             'See Also "{}" reference'.format(rel_name))
+
+    for line in doc.raw_doc.splitlines():
+        if re.match("^ *\t", line):
+            errs.append('Tabs found at the start of line "{}", '
+                        'please use whitespace only'.format(line.lstrip()))
+
     examples_errs = ''
     if not doc.examples:
         errs.append('No examples section found')
