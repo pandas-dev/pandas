@@ -1728,6 +1728,11 @@ def _plot(data, x=None, y=None, subplots=False,
         klass = _plot_klass[kind]
     else:
         raise ValueError("%r is not a valid plot kind" % kind)
+    xy_ints = is_integer(x) or is_integer(y)
+    if xy_ints and not data.columns.holds_integer():
+        raise ValueError(
+            "x and y must be labels that match column names in data"
+        )
 
     if kind in _dataframe_kinds:
         if isinstance(data, ABCDataFrame):
@@ -1743,8 +1748,6 @@ def _plot(data, x=None, y=None, subplots=False,
                 msg = "{0} requires either y column or 'subplots=True'"
                 raise ValueError(msg.format(kind))
             elif y is not None:
-                if is_integer(y) and not data.columns.holds_integer():
-                    y = data.columns[y]
                 # converted to series actually. copy to not modify
                 data = data[y].copy()
                 data.index.name = y
@@ -1752,17 +1755,13 @@ def _plot(data, x=None, y=None, subplots=False,
     else:
         if isinstance(data, ABCDataFrame):
             if x is not None:
-                if is_integer(x) and not data.columns.holds_integer():
-                    x = data.columns[x]
-                elif not isinstance(data[x], ABCSeries):
-                    raise ValueError("x must be a label or position")
+                if not isinstance(data[x], ABCSeries):
+                    raise ValueError("x must be a label")
                 data = data.set_index(x)
 
             if y is not None:
-                if is_integer(y) and not data.columns.holds_integer():
-                    y = data.columns[y]
-                elif not isinstance(data[y], ABCSeries):
-                    raise ValueError("y must be a label or position")
+                if not isinstance(data[y], ABCSeries):
+                    raise ValueError("y must be a label")
                 label = kwds['label'] if 'label' in kwds else y
                 series = data[y].copy()  # Don't modify
                 series.name = label
@@ -1787,8 +1786,8 @@ df_kind = """- 'scatter' : scatter plot
         - 'hexbin' : hexbin plot"""
 series_kind = ""
 
-df_coord = """x : label or position, default None
-    y : label or position, default None
+df_coord = """x : label, default None
+    y : label, default None
         Allows plotting of one column versus another"""
 series_coord = ""
 
