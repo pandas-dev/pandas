@@ -3545,17 +3545,15 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = pd.DataFrame([['Alfred', np.nan, pd.NaT],
-        ...                ['Batman', 'Batmobile', pd.Timestamp('1940-04-25')],
-        ...                ['Catwoman', 'Bullwhip', pd.NaT],
-        ...                [np.nan, np.nan, pd.NaT]],
-        ...                columns=['name', 'toy', 'born'])
+        >>> df = pd.DataFrame({"name": ['Alfred', 'Batman', 'Catwoman'],
+        ...                    "toy": [np.nan, 'Batmobile', 'Bullwhip'],
+        ...                    "born": [pd.NaT, pd.Timestamp("1940-04-25"),
+        ...                             pd.NaT]})
         >>> df
                name        toy       born
         0    Alfred        NaN        NaT
         1    Batman  Batmobile 1940-04-25
         2  Catwoman   Bullwhip        NaT
-        3       NaN        NaN        NaT
 
         Drop the rows where at least one element is missing.
 
@@ -3565,10 +3563,11 @@ class DataFrame(NDFrame):
 
         Drop the columns where at least one element is missing.
 
-        >>> df.dropna(axis=1)
-        Empty DataFrame
-        Columns: []
-        Index: [0, 1, 2, 3]
+        >>> df.dropna(axis='columns')
+               name
+        0    Alfred
+        1    Batman
+        2  Catwoman
 
         Drop the rows where all elements are missing.
 
