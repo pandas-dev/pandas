@@ -68,15 +68,15 @@ also goes beyond matplotlib and pandas with the option to perform statistical
 estimation while plotting, aggregating across observations and visualizing the
 fit of statistical models to emphasize patterns in a dataset.
 
-`yhat/ggplot <https://github.com/yhat/ggplot>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+`yhat/ggpy <https://github.com/yhat/ggpy>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Hadley Wickham's `ggplot2 <http://ggplot2.org/>`__ is a foundational exploratory visualization package for the R language.
 Based on `"The Grammar of Graphics" <http://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html>`__ it
 provides a powerful, declarative and extremely general way to generate bespoke plots of any kind of data.
 It's really quite incredible. Various implementations to other languages are available,
 but a faithful implementation for Python users has long been missing. Although still young
-(as of Jan-2014), the `yhat/ggplot <https://github.com/yhat/ggplot>`__ project has been
+(as of Jan-2014), the `yhat/ggpy <https://github.com/yhat/ggpy>`__ project has been
 progressing quickly in that direction.
 
 `IPython Vega <https://github.com/vega/ipyvega>`__
