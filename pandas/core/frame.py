@@ -2005,7 +2005,7 @@ class DataFrame(NDFrame):
         lines = []
 
         lines.append(str(type(self)))
-        lines.append(self.index.summary())
+        lines.append(self.index._summary())
 
         if len(self.columns) == 0:
             lines.append('Empty %s' % type(self).__name__)
