@@ -76,7 +76,9 @@ def mangle_docstrings(app, what, name, obj, options, lines):
            'show_class_members': app.config.numpydoc_show_class_members,
            'show_inherited_class_members':
            app.config.numpydoc_show_inherited_class_members,
-           'class_members_toctree': app.config.numpydoc_class_members_toctree}
+           'class_members_toctree': app.config.numpydoc_class_members_toctree,
+           'attributes_as_param_list':
+           app.config.numpydoc_attributes_as_param_list}
 
     u_NL = sixu('\n')
     if what == 'module':
@@ -146,6 +148,7 @@ def setup(app, get_doc_object_=get_doc_object):
     app.add_config_value('numpydoc_show_inherited_class_members', True, True)
     app.add_config_value('numpydoc_class_members_toctree', True, True)
     app.add_config_value('numpydoc_citation_re', '[a-z0-9_.-]+', True)
+    app.add_config_value('numpydoc_attributes_as_param_list', True, True)
 
     # Extra mangling domains
     app.add_domain(NumpyPythonDomain)
