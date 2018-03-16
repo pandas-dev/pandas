@@ -524,24 +524,37 @@ class NDFrame(PandasObject, SelectionMixin):
 
         return new_axes
 
-    _shared_docs['set_axis'] = """Assign desired index to given axis
+    def set_axis(self, labels, axis=0, inplace=None):
+        """
+        Assign desired index to given axis.
+
+        Indexes for column or row labels can be changed by assigning
+        a list-like or Index.
+
+        .. versionchanged:: 0.21.0
+
+           The signature is now `labels` and `axis`, consistent with
+           the rest of pandas API. Previously, the `axis` and `labels`
+           arguments were respectively the first and second positional
+           arguments.
 
         Parameters
         ----------
-        labels: list-like or Index
-            The values for the new index
-        axis : int or string, default 0
+        labels : list-like, Index
+            The values for the new index.
+
+        axis : {0 or 'index', 1 or 'columns'}, default 0
+            The axis to update. The value 0 identifies the rows, and 1
+            identifies the columns.
+
         inplace : boolean, default None
             Whether to return a new %(klass)s instance.
 
-            WARNING: inplace=None currently falls back to to True, but
-            in a future version, will default to False.  Use inplace=True
-            explicitly rather than relying on the default.
+            .. warning::
 
-        .. versionadded:: 0.21.0
-            The signature is make consistent to the rest of the API.
-            Previously, the "axis" and "labels" arguments were respectively
-            the first and second positional arguments.
+               ``inplace=None`` currently falls back to to True, but in a
+               future version, will default to False. Use inplace=True
+               explicitly rather than relying on the default.
 
         Returns
         -------
@@ -550,43 +563,62 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.NDFrame.rename
+        pandas.DataFrame.rename_axis : Alter the name of the index or columns.
 
         Examples
         --------
+        **Series**
+
         >>> s = pd.Series([1, 2, 3])
         >>> s
         0    1
         1    2
         2    3
         dtype: int64
+
         >>> s.set_axis(['a', 'b', 'c'], axis=0, inplace=False)
         a    1
         b    2
         c    3
         dtype: int64
+
+        The original object is not modified.
+
+        >>> s
+        0    1
+        1    2
+        2    3
+        dtype: int64
+
+        **DataFrame**
+
         >>> df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
-        >>> df.set_axis(['a', 'b', 'c'], axis=0, inplace=False)
+
+        Change the row labels.
+
+        >>> df.set_axis(['a', 'b', 'c'], axis='index', inplace=False)
            A  B
         a  1  4
         b  2  5
         c  3  6
-        >>> df.set_axis(['I', 'II'], axis=1, inplace=False)
+
+        Change the column labels.
+
+        >>> df.set_axis(['I', 'II'], axis='columns', inplace=False)
            I  II
         0  1   4
         1  2   5
         2  3   6
-        >>> df.set_axis(['i', 'ii'], axis=1, inplace=True)
+
+        Now, update the labels inplace.
+
+        >>> df.set_axis(['i', 'ii'], axis='columns', inplace=True)
         >>> df
            i  ii
         0  1   4
         1  2   5
         2  3   6
-
         """
-
-    @Appender(_shared_docs['set_axis'] % dict(klass='NDFrame'))
-    def set_axis(self, labels, axis=0, inplace=None):
         if is_scalar(labels):
             warnings.warn(
                 'set_axis now takes "labels" as first argument, and '
@@ -1489,12 +1521,20 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @property
     def empty(self):
-        """True if NDFrame is entirely empty [no items], meaning any of the
+        """
+        Indicator whether DataFrame is empty.
+
+        True if DataFrame is entirely empty (no items), meaning any of the
         axes are of length 0.
+
+        Returns
+        -------
+        bool
+            If DataFrame is empty, return True, if not return False.
 
         Notes
         -----
-        If NDFrame contains only NaNs, it is still not considered empty. See
+        If DataFrame contains only NaNs, it is still not considered empty. See
         the example below.
 
         Examples
@@ -3951,7 +3991,9 @@ class NDFrame(PandasObject, SelectionMixin):
     def sample(self, n=None, frac=None, replace=False, weights=None,
                random_state=None, axis=None):
         """
-        Returns a random sample of items from an axis of object.
+        Return a random sample of items from an axis of object.
+
+        You can use `random_state` for reproducibility.
 
         Parameters
         ----------
@@ -3988,7 +4030,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-
         Generate an example ``Series`` and ``DataFrame``:
 
         >>> s = pd.Series(np.random.randn(50))
@@ -4027,6 +4068,16 @@ class NDFrame(PandasObject, SelectionMixin):
         40  0.823173 -0.078816  1.009536  1.015108
         15  1.421154 -0.055301 -1.922594 -0.019696
         6  -0.148339  0.832938  1.787600 -1.383767
+
+        You can use `random state` for reproducibility:
+
+        >>> df.sample(random_state=1)
+        A         B         C         D
+        37 -2.027662  0.103611  0.237496 -0.165867
+        43 -0.259323 -0.583426  1.516140 -0.479118
+        12 -1.686325 -0.579510  0.985195 -0.460286
+        8   1.167946  0.429082  1.215742 -1.636041
+        9   1.197475 -0.864188  1.554031 -1.505264
         """
 
         if axis is None:
@@ -6099,53 +6150,79 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Trim values at input threshold(s).
 
+        Assigns values outside boundary to boundary values. Thresholds
+        can be singular values or array like, and in the latter case
+        the clipping is performed element-wise in the specified axis.
+
         Parameters
         ----------
         lower : float or array_like, default None
+            Minimum threshold value. All values below this
+            threshold will be set to it.
         upper : float or array_like, default None
+            Maximum threshold value. All values above this
+            threshold will be set to it.
         axis : int or string axis name, optional
             Align object with lower and upper along the given axis.
         inplace : boolean, default False
-            Whether to perform the operation in place on the data
-                .. versionadded:: 0.21.0
+            Whether to perform the operation in place on the data.
+
+            .. versionadded:: 0.21.0
+        *args, **kwargs
+            Additional keywords have no effect but might be accepted
+            for compatibility with numpy.
+
+        See Also
+        --------
+        clip_lower : Clip values below specified threshold(s).
+        clip_upper : Clip values above specified threshold(s).
 
         Returns
         -------
-        clipped : Series
+        Series or DataFrame
+            Same type as calling object with the values outside the
+            clip boundaries replaced
 
         Examples
         --------
+        >>> data = {'col_0': [9, -3, 0, -1, 5], 'col_1': [-2, -7, 6, 8, -5]}
+        >>> df = pd.DataFrame(data)
         >>> df
-                  0         1
-        0  0.335232 -1.256177
-        1 -1.367855  0.746646
-        2  0.027753 -1.176076
-        3  0.230930 -0.679613
-        4  1.261967  0.570967
+           col_0  col_1
+        0      9     -2
+        1     -3     -7
+        2      0      6
+        3     -1      8
+        4      5     -5
 
-        >>> df.clip(-1.0, 0.5)
-                  0         1
-        0  0.335232 -1.000000
-        1 -1.000000  0.500000
-        2  0.027753 -1.000000
-        3  0.230930 -0.679613
-        4  0.500000  0.500000
+        Clips per column using lower and upper thresholds:
 
+        >>> df.clip(-4, 6)
+           col_0  col_1
+        0      6     -2
+        1     -3     -4
+        2      0      6
+        3     -1      6
+        4      5     -4
+
+        Clips using specific lower and upper thresholds per column element:
+
+        >>> t = pd.Series([2, -4, -1, 6, 3])
         >>> t
-        0   -0.3
-        1   -0.2
-        2   -0.1
-        3    0.0
-        4    0.1
-        dtype: float64
+        0    2
+        1   -4
+        2   -1
+        3    6
+        4    3
+        dtype: int64
 
-        >>> df.clip(t, t + 1, axis=0)
-                  0         1
-        0  0.335232 -0.300000
-        1 -0.200000  0.746646
-        2  0.027753 -0.100000
-        3  0.230930  0.000000
-        4  1.100000  0.570967
+        >>> df.clip(t, t + 4, axis=0)
+           col_0  col_1
+        0      6      2
+        1     -3     -4
+        2      0      3
+        3      6      8
+        4      5      3
         """
         if isinstance(self, ABCPanel):
             raise NotImplementedError("clip is not supported yet for panels")
@@ -7439,29 +7516,37 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def truncate(self, before=None, after=None, axis=None, copy=True):
         """
-        Truncates a sorted DataFrame/Series before and/or after some
-        particular index value. If the axis contains only datetime values,
-        before/after parameters are converted to datetime values.
+        Truncate a Series or DataFrame before and after some index value.
+
+        This is a useful shorthand for boolean indexing based on index
+        values above or below certain thresholds.
 
         Parameters
         ----------
         before : date, string, int
-            Truncate all rows before this index value
+            Truncate all rows before this index value.
         after : date, string, int
-            Truncate all rows after this index value
-        axis : {0 or 'index', 1 or 'columns'}
-
-            * 0 or 'index': apply truncation to rows
-            * 1 or 'columns': apply truncation to columns
-
-            Default is stat axis for given data type (0 for Series and
-            DataFrames, 1 for Panels)
+            Truncate all rows after this index value.
+        axis : {0 or 'index', 1 or 'columns'}, optional
+            Axis to truncate. Truncates the index (rows) by default.
         copy : boolean, default is True,
-            return a copy of the truncated section
+            Return a copy of the truncated section.
 
         Returns
         -------
-        truncated : type of caller
+        type of caller
+            The truncated Series or DataFrame.
+
+        See Also
+        --------
+        DataFrame.loc : Select a subset of a DataFrame by label.
+        DataFrame.iloc : Select a subset of a DataFrame by position.
+
+        Notes
+        -----
+        If the index being truncated contains only datetime values,
+        `before` and `after` may be specified as strings instead of
+        Timestamps.
 
         Examples
         --------
@@ -7469,28 +7554,63 @@ class NDFrame(PandasObject, SelectionMixin):
         ...                    'B': ['f', 'g', 'h', 'i', 'j'],
         ...                    'C': ['k', 'l', 'm', 'n', 'o']},
         ...                    index=[1, 2, 3, 4, 5])
+        >>> df
+           A  B  C
+        1  a  f  k
+        2  b  g  l
+        3  c  h  m
+        4  d  i  n
+        5  e  j  o
+
         >>> df.truncate(before=2, after=4)
            A  B  C
         2  b  g  l
         3  c  h  m
         4  d  i  n
-        >>> df = pd.DataFrame({'A': [1, 2, 3, 4, 5],
-        ...                    'B': [6, 7, 8, 9, 10],
-        ...                    'C': [11, 12, 13, 14, 15]},
-        ...                    index=['a', 'b', 'c', 'd', 'e'])
-        >>> df.truncate(before='b', after='d')
-           A  B   C
-        b  2  7  12
-        c  3  8  13
-        d  4  9  14
+
+        The columns of a DataFrame can be truncated.
+
+        >>> df.truncate(before="A", after="B", axis="columns")
+           A  B
+        1  a  f
+        2  b  g
+        3  c  h
+        4  d  i
+        5  e  j
+
+        For Series, only rows can be truncated.
+
+        >>> df['A'].truncate(before=2, after=4)
+        2    b
+        3    c
+        4    d
+        Name: A, dtype: object
 
         The index values in ``truncate`` can be datetimes or string
-        dates. Note that ``truncate`` assumes a 0 value for any unspecified
-        date component in a ``DatetimeIndex`` in contrast to slicing which
-        returns any partially matching dates.
-
+        dates.
         >>> dates = pd.date_range('2016-01-01', '2016-02-01', freq='s')
         >>> df = pd.DataFrame(index=dates, data={'A': 1})
+        >>> df.tail()
+                             A
+        2016-01-31 23:59:56  1
+        2016-01-31 23:59:57  1
+        2016-01-31 23:59:58  1
+        2016-01-31 23:59:59  1
+        2016-02-01 00:00:00  1
+
+        >>> df.truncate(before=pd.Timestamp('2016-01-05'),
+        ...             after=pd.Timestamp('2016-01-10')).tail()
+                             A
+        2016-01-09 23:59:56  1
+        2016-01-09 23:59:57  1
+        2016-01-09 23:59:58  1
+        2016-01-09 23:59:59  1
+        2016-01-10 00:00:00  1
+
+        Because the index is a DatetimeIndex containing only dates, we can
+        specify `before` and `after` as strings. They will be coerced to
+        Timestamps before truncation.
+
         >>> df.truncate('2016-01-05', '2016-01-10').tail()
                              A
         2016-01-09 23:59:56  1
@@ -7498,6 +7618,11 @@ class NDFrame(PandasObject, SelectionMixin):
         2016-01-09 23:59:58  1
         2016-01-09 23:59:59  1
         2016-01-10 00:00:00  1
+
+        Note that ``truncate`` assumes a 0 value for any unspecified time
+        component (midnight). This differs from partial string slicing, which
+        returns any partially matching dates.
+
         >>> df.loc['2016-01-05':'2016-01-10', :].tail()
                              A
         2016-01-10 23:59:55  1
