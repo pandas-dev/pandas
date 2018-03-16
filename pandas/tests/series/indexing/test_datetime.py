@@ -20,7 +20,6 @@ import pandas.util.testing as tm
 import pandas._libs.index as _index
 from pandas._libs import tslib
 
-JOIN_TYPES = ['inner', 'outer', 'left', 'right']
 
 """
 Also test support for datetime64[ns] in Series / DataFrame
@@ -700,11 +699,11 @@ def test_nat_operations():
     assert s.max() == exp
 
 
-def test_round_nat():
+@pytest.mark.parametrize('method', ["round", "floor", "ceil"])
+@pytest.mark.parametrize('freq', ["s", "5s", "min", "5min", "h", "5h"])
+def test_round_nat(method, freq):
     # GH14940
     s = Series([pd.NaT])
     expected = Series(pd.NaT)
-    for method in ["round", "floor", "ceil"]:
-        round_method = getattr(s.dt, method)
-        for freq in ["s", "5s", "min", "5min", "h", "5h"]:
-            assert_series_equal(round_method(freq), expected)
+    round_method = getattr(s.dt, method)
+    assert_series_equal(round_method(freq), expected)

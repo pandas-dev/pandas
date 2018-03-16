@@ -1184,24 +1184,6 @@ class IndexOpsMixin(object):
         # needs coercion on the key (DatetimeIndex does already)
         return self.values.searchsorted(value, side=side, sorter=sorter)
 
-    _shared_docs['drop_duplicates'] = (
-        """Return %(klass)s with duplicate values removed
-
-        Parameters
-        ----------
-
-        keep : {'first', 'last', False}, default 'first'
-            - ``first`` : Drop duplicates except for the first occurrence.
-            - ``last`` : Drop duplicates except for the last occurrence.
-            - False : Drop all duplicates.
-        %(inplace)s
-
-        Returns
-        -------
-        deduplicated : %(klass)s
-        """)
-
-    @Appender(_shared_docs['drop_duplicates'] % _indexops_doc_kwargs)
     def drop_duplicates(self, keep='first', inplace=False):
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if isinstance(self, ABCIndexClass):
@@ -1215,24 +1197,6 @@ class IndexOpsMixin(object):
         else:
             return result
 
-    _shared_docs['duplicated'] = (
-        """Return boolean %(duplicated)s denoting duplicate values
-
-        Parameters
-        ----------
-        keep : {'first', 'last', False}, default 'first'
-            - ``first`` : Mark duplicates as ``True`` except for the first
-              occurrence.
-            - ``last`` : Mark duplicates as ``True`` except for the last
-              occurrence.
-            - False : Mark all duplicates as ``True``.
-
-        Returns
-        -------
-        duplicated : %(duplicated)s
-        """)
-
-    @Appender(_shared_docs['duplicated'] % _indexops_doc_kwargs)
     def duplicated(self, keep='first'):
         from pandas.core.algorithms import duplicated
         if isinstance(self, ABCIndexClass):
