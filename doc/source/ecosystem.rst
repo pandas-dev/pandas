@@ -12,7 +12,7 @@ build powerful and more focused data tools.
 The creation of libraries that complement pandas' functionality also allows pandas
 development to remain focused around it's original requirements.
 
-This is an in-exhaustive list of projects that build on pandas in order to provide
+This is an inexhaustive list of projects that build on pandas in order to provide
 tools in the PyData space.
 
 We'd like to make it easier for users to find these project, if you know of other
@@ -79,9 +79,8 @@ progressing quickly in that direction.
 `IPython Vega <https://github.com/vega/ipyvega>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Like Vincent, the `IPython Vega <https://github.com/vega/ipyvega>`__ project leverages `Vega
-<https://github.com/trifacta/vega>`__ to create plots, but primarily
-targets the IPython Notebook environment.
+`IPython Vega <https://github.com/vega/ipyvega>`__ leverages `Vega
+<https://github.com/trifacta/vega>`__ to create plots within Jupyter Notebook.
 
 `Plotly <https://plot.ly/python>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
