@@ -2837,27 +2837,29 @@ class FramePlotMethods(BasePlotMethods):
         """
         Generate a pie plot.
 
-        A pie plot is a representation of the distribution of numerical data
-        in a DataFrame column. This function wraps the `matplotlib.pyplot.pie`
-        function for specified column. If no column reference is passed and
-        ``subplots`` argument is set to ``True``, an np.array of plots for
-        all DataFrame columns will be returned.
+        A pie plot is a proportional representation of the numerical data in a
+        column. This function wraps :meth:`matplotlib.pyplot.pie` for the
+        specified column. If no column reference is passed and
+        ``subplots=True`` a pie plot is drawn for each numerical column
+        independently.
 
         Parameters
         ----------
-        y : str or int, optional
+        y : int or label, optional
             Label or position of the column to plot.
             If not provided, ``subplots=True`` argument must be passed.
-        **kwds : optional
-            Keyword arguments to pass on to :py:meth:`pandas.DataFrame.plot`.
+        **kwds
+            Keyword arguments to pass on to :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
-        axes : matplotlib.AxesSubplot or np.array of them.
+        axes : matplotlib.axes.Axes or np.ndarray of them.
+            A NumPy array is returned when `subplots` is True.
 
         See Also
         --------
-        :meth:`pandas.Series.plot.pie` : Generate a pie plot for a Series.
+        Series.plot.pie : Generate a pie plot for a Series.
+        DataFrame.plot : Make plots of a DataFrame.
 
         Examples
         --------
@@ -2869,8 +2871,15 @@ class FramePlotMethods(BasePlotMethods):
             :context: close-figs
 
             >>> df = pd.DataFrame({'mass': [0.330, 4.87 , 5.97],
-            ...                    'radius': [2439.7, 6051.8, 6378.1]})
-            >>> plot = df.plot.pie(y='mass', labels=['Mercury', 'Venus', 'Earth'])
+            ...                    'radius': [2439.7, 6051.8, 6378.1]},
+            ...                   index=['Mercury', 'Venus', 'Earth'])
+            >>> plot = df.plot.pie(y='mass', figsize=(5, 5))
+
+        .. plot::
+            :context: close-figs
+
+            >>> plot = df.plot.pie(subplots=True, figsize=(6, 3))
+
         """
         return self(kind='pie', y=y, **kwds)
 
