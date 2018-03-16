@@ -4,8 +4,11 @@ intended for public consumption
 """
 from __future__ import division
 from warnings import warn, catch_warnings
+from textwrap import dedent
+
 import numpy as np
 
+from pandas.core.base import _shared_docs
 from pandas.core.dtypes.cast import (
     maybe_promote, construct_1d_object_array_from_listlike)
 from pandas.core.dtypes.generic import (
@@ -34,7 +37,8 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import common as com
 from pandas._libs import algos, lib, hashtable as htable
 from pandas._libs.tslib import iNaT
-from pandas.util._decorators import deprecate_kwarg
+from pandas.util._decorators import (Appender, Substitution,
+                                     deprecate_kwarg)
 
 
 # --------------- #
@@ -463,32 +467,25 @@ def _factorize_array(values, check_nulls, na_sentinel=-1, size_hint=None):
     return labels, uniques
 
 
+@Substitution(
+    values=dedent("""\
+    values : Sequence
+        A 1-D seqeunce. Sequences that aren't pandas objects are
+        coereced to ndarrays before factorization.
+    """),
+    sort=dedent("""\
+    sort : boolean, default False
+        Sort `uniques` and shuffle `labels` to maintain the
+        relationship.
+    """),
+    size_hint=dedent("""\
+    size_hint : int, optional
+        Hint to the hashtable sizer.
+    """),
+)
+@Appender(_shared_docs['factorize'])
 @deprecate_kwarg(old_arg_name='order', new_arg_name=None)
 def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
-    """
-    Encode input values as an enumerated type or categorical variable
-
-    Parameters
-    ----------
-    values : Sequence
-        ndarrays must be 1-D. Sequences that aren't pandas objects are
-        coereced to ndarrays before factorization.
-    sort : boolean, default False
-        Sort by values
-    na_sentinel : int, default -1
-        Value to mark "not found"
-    size_hint : hint to the hashtable sizer
-
-    Returns
-    -------
-    labels : the indexer to the original array
-    uniques : ndarray (1-d) or Index
-        the unique values. Index is returned when passed values is Index or
-        Series
-
-    note: an array of Periods will ignore sort as it returns an always sorted
-    PeriodIndex.
-    """
     # Implementation notes: This method is responsible for 3 things
     # 1.) coercing data to array-like (ndarray, Index, extension array)
     # 2.) factorizing labels and uniques

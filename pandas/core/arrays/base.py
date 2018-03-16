@@ -260,9 +260,14 @@ class ExtensionArray(object):
         -------
         labels : ndarray
             An interger NumPy array that's an indexer into the original
-            ExtensionArray
+            ExtensionArray.
         uniques : ExtensionArray
             An ExtensionArray containing the unique values of `self`.
+
+            .. note::
+
+               uniques should *not* contain a value for the NA sentinel,
+               if values in `self` are missing.
 
         See Also
         --------
@@ -272,6 +277,8 @@ class ExtensionArray(object):
         -----
         :meth:`pandas.factorize` offers a `sort` keyword as well.
         """
+        # Implementor note: make sure to exclude missing values from your
+        # `uniques`. It should only contain non-NA values.
         from pandas.core.algorithms import _factorize_array
 
         mask = self.isna()

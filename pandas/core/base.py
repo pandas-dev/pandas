@@ -2,6 +2,7 @@
 Base and utility classes for pandas objects.
 """
 import warnings
+import textwrap
 from pandas import compat
 from pandas.compat import builtins
 import numpy as np
@@ -1092,22 +1093,110 @@ class IndexOpsMixin(object):
             v += lib.memory_usage_of_objects(self.values)
         return v
 
+    _shared_docs['factorize'] = """
+    Encode the object as an enumerated type or categorical variable.
+
+    This method is useful for obtaining a numeric representation of
+    when all that matters is identifying distinct values. `factorize`
+    is available as both a top-level function :func:`pandas.factorize`,
+    and as a method :meth:`Series.factorize` and :meth:`Index.factorize`.
+
+    Parameters
+    ----------
+    %(values)s%(sort)s
+    na_sentinel : int, default -1
+        Value to mark "not found".
+    %(size_hint)s\
+
+    Returns
+    -------
+    labels : ndarray
+        An integer ndarray that's an indexer into `uniques`.
+        ``uniques.take(labels)`` will have the same values as `values`.
+    uniques : ndarray, Index, or Categorical
+        The unique valid values. When `values` is Categorical, `uniques`
+        is a Categorical. When `values` is some other pandas object, an
+        `Index` is returned. Otherwise, a 1-D ndarray is returned.
+
+        .. note ::
+
+           Even if there's a missing value in `values`, `uniques` will
+           *not* contain an entry for it.
+
+    See Also
+    --------
+    pandas.cut : Discretize continuous-valued array.
+
+    Examples
+    --------
+    These examples all show factorize as a top-level method like
+    ``pd.factorize(values)``. The results are identical for methods like
+    ``Series.factorize``.
+
+    >>> labels, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'])
+    >>> labels
+    array([0, 0, 1, 2, 0])
+    >>> uniques
+    array(['b', 'a', 'c'], dtype=object)
+
+    With ``sort=True``, the `uniques` will be sorted, and `labels` will be
+    shulffled so that the relationship is the maintained.
+
+    >>> labels, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'], sort=True)
+    >>> labels
+    array([1, 1, 0, 2, 1])
+
+    >>> uniques
+    array(['a', 'b', 'c'], dtype=object)
+
+    Missing values are indicated by `na_sentinel` (``-1`` by default). Note
+    that missing values are never included in `uniques`.
+
+    >>> labels, uniques = pd.factorize(['b', None, 'a', 'c', 'b'])
+    >>> labels
+    array([ 0, -1,  1,  2,  0])
+
+    >>> uniques
+    array(['b', 'a', 'c'], dtype=object)
+
+    Thus far, we've only factorized lists (which are internally coerced to
+    NumPy arrays). When factorizing pandas objects, the type of `uniques`
+    will differ. For Categoricals, a `Categorical` is returned.
+
+    >>> cat = pd.Categorical(['a', 'a', 'c'], categories=['a', 'b', 'c'])
+    >>> labels, uniques = pd.factorize(cat)
+    >>> labels
+    array([0, 0, 1])
+
+    >>> uniques
+    [a, c]
+    Categories (3, object): [a, b, c]
+
+    Notice that ``'b'`` is in ``uniques.categories``, desipite not being
+    present in ``cat.values``.
+
+    For all other pandas objects, an Index of the appropriate type is
+    returned.
+
+    >>> cat = pd.Series(['a', 'a', 'c'])
+    >>> labels, uniques = pd.factorize(cat)
+    >>> labels
+    array([0, 0, 1])
+
+    >>> uniques
+    Index(['a', 'c'], dtype='object')
+    """
+
+    @Substitution(
+        values='',
+        sort=textwrap.dedent("""\
+            sort : boolean, default False
+                Sort `uniques` and shuffle `labels` to maintain the
+                relationship.
+            """),
+        size_hint='')
+    @Appender(_shared_docs['factorize'])
     def factorize(self, sort=False, na_sentinel=-1):
-        """
-        Encode the object as an enumerated type or categorical variable
-
-        Parameters
-        ----------
-        sort : boolean, default False
-            Sort by values
-        na_sentinel: int, default -1
-            Value to mark "not found"
-
-        Returns
-        -------
-        labels : the indexer to the original array
-        uniques : the unique Index
-        """
         from pandas.core.algorithms import factorize
         return factorize(self, sort=sort, na_sentinel=na_sentinel)
 
