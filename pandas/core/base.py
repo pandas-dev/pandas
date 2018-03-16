@@ -812,8 +812,8 @@ class IndexOpsMixin(object):
         See Also
         --------
         Index.max : Return the maximum value of the object.
-        Series.max : Return the maximum value in a Series.
-        DataFrame.max : Return the maximum values in a DataFrame.
+        Series.min : Return the minimum value in a Series.
+        DataFrame.min : Return the minimum values in a DataFrame.
 
         Examples
         --------
