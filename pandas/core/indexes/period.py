@@ -519,19 +519,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         base, mult = _gfc(freq)
         new_data = self.asfreq(freq, how)
 
-        end = how == 'E'
-        if end:
-            indexer = np.where(new_data.notnull())
-            # move forward one period
-            new_data._values[indexer] += 1
-            ndarray_vals = new_data._ndarray_values
-            new_data = period.periodarr_to_dt64arr(ndarray_vals, base)
-            # subtract one nanosecond
-            new_data[indexer] -= 1
-        else:
-            ndarray_vals = new_data._ndarray_values
-            new_data = period.periodarr_to_dt64arr(ndarray_vals, base)
-
+        new_data = period.periodarr_to_dt64arr(new_data._ndarray_values, base)
         return DatetimeIndex(new_data, freq='infer', name=self.name)
 
     @property

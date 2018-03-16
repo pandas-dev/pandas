@@ -1566,6 +1566,47 @@ DatetimeIndex._add_logical_methods_disabled()
 DatetimeIndex._add_datetimelike_methods()
 
 
+<<<<<<< 52e0171b2086c87362ae33db0d3fe9cc2c4afc2a
+=======
+def _generate_regular_range(cls, start, end, periods, freq):
+    if isinstance(freq, Tick):
+        stride = freq.nanos
+        if periods is None:
+            b = Timestamp(start).value
+            # cannot just use e = Timestamp(end) + 1 because arange breaks when
+            # stride is too large, see GH10887
+            e = (b + (Timestamp(end).value - b) // stride * stride +
+                 stride // 2 + 1)
+            # end.tz == start.tz by this point due to _generate implementation
+            tz = start.tz
+        elif start is not None:
+            b = Timestamp(start).value
+            e = b + np.int64(periods) * stride
+            tz = start.tz
+        elif end is not None:
+            e = Timestamp(end).value + stride
+            b = e - np.int64(periods) * stride
+            tz = end.tz
+        else:
+            raise ValueError("at least 'start' or 'end' should be specified "
+                             "if a 'period' is given.")
+
+        data = np.arange(b, e, stride, dtype=np.int64)
+        # TODO: Do we need to use _simple_new here?  just return data.view?
+        data = cls._simple_new(data.view(_NS_DTYPE), None, tz=tz)
+    else:
+
+        xdr = generate_range(start=start, end=end,
+                             periods=periods, offset=offset)
+
+        dates = list(xdr)
+        # utc = len(dates) > 0 and dates[0].tzinfo is not None
+        data = tools.to_datetime(dates)
+
+    return data
+
+
+>>>>>>> simplify timestamp precision issue
 def date_range(start=None, end=None, periods=None, freq=None, tz=None,
                normalize=False, name=None, closed=None, **kwargs):
     """
