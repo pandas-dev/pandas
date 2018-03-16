@@ -42,11 +42,16 @@ cache_readonly = CachedProperty
 
 
 cdef class AxisProperty(object):
-    cdef:
+
+    cdef readonly:
         Py_ssize_t axis
 
-    def __init__(self, axis=0):
+    cdef readonly:
+        object __doc__
+
+    def __init__(self, axis=0, doc=""):
         self.axis = axis
+        self.__doc__ = doc
 
     def __get__(self, obj, type):
         cdef:
@@ -54,7 +59,7 @@ cdef class AxisProperty(object):
 
         if obj is None:
             # Only instances have _data, not classes
-            return None
+            return self
         else:
             axes = obj._data.axes
         return axes[self.axis]

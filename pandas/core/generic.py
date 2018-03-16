@@ -278,7 +278,7 @@ class NDFrame(PandasObject, SelectionMixin):
         if build_axes:
 
             def set_axis(a, i):
-                setattr(cls, a, properties.AxisProperty(i))
+                setattr(cls, a, properties.AxisProperty(i, a))
                 cls._internal_names_set.add(a)
 
             if axes_are_reversed:
