@@ -1489,12 +1489,20 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @property
     def empty(self):
-        """True if NDFrame is entirely empty [no items], meaning any of the
+        """
+        Indicator whether DataFrame is empty.
+
+        True if DataFrame is entirely empty (no items), meaning any of the
         axes are of length 0.
+
+        Returns
+        -------
+        bool
+            If DataFrame is empty, return True, if not return False.
 
         Notes
         -----
-        If NDFrame contains only NaNs, it is still not considered empty. See
+        If DataFrame contains only NaNs, it is still not considered empty. See
         the example below.
 
         Examples
@@ -7476,29 +7484,37 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def truncate(self, before=None, after=None, axis=None, copy=True):
         """
-        Truncates a sorted DataFrame/Series before and/or after some
-        particular index value. If the axis contains only datetime values,
-        before/after parameters are converted to datetime values.
+        Truncate a Series or DataFrame before and after some index value.
+
+        This is a useful shorthand for boolean indexing based on index
+        values above or below certain thresholds.
 
         Parameters
         ----------
         before : date, string, int
-            Truncate all rows before this index value
+            Truncate all rows before this index value.
         after : date, string, int
-            Truncate all rows after this index value
-        axis : {0 or 'index', 1 or 'columns'}
-
-            * 0 or 'index': apply truncation to rows
-            * 1 or 'columns': apply truncation to columns
-
-            Default is stat axis for given data type (0 for Series and
-            DataFrames, 1 for Panels)
+            Truncate all rows after this index value.
+        axis : {0 or 'index', 1 or 'columns'}, optional
+            Axis to truncate. Truncates the index (rows) by default.
         copy : boolean, default is True,
-            return a copy of the truncated section
+            Return a copy of the truncated section.
 
         Returns
         -------
-        truncated : type of caller
+        type of caller
+            The truncated Series or DataFrame.
+
+        See Also
+        --------
+        DataFrame.loc : Select a subset of a DataFrame by label.
+        DataFrame.iloc : Select a subset of a DataFrame by position.
+
+        Notes
+        -----
+        If the index being truncated contains only datetime values,
+        `before` and `after` may be specified as strings instead of
+        Timestamps.
 
         Examples
         --------
@@ -7506,28 +7522,63 @@ class NDFrame(PandasObject, SelectionMixin):
         ...                    'B': ['f', 'g', 'h', 'i', 'j'],
         ...                    'C': ['k', 'l', 'm', 'n', 'o']},
         ...                    index=[1, 2, 3, 4, 5])
+        >>> df
+           A  B  C
+        1  a  f  k
+        2  b  g  l
+        3  c  h  m
+        4  d  i  n
+        5  e  j  o
+
         >>> df.truncate(before=2, after=4)
            A  B  C
         2  b  g  l
         3  c  h  m
         4  d  i  n
-        >>> df = pd.DataFrame({'A': [1, 2, 3, 4, 5],
-        ...                    'B': [6, 7, 8, 9, 10],
-        ...                    'C': [11, 12, 13, 14, 15]},
-        ...                    index=['a', 'b', 'c', 'd', 'e'])
-        >>> df.truncate(before='b', after='d')
-           A  B   C
-        b  2  7  12
-        c  3  8  13
-        d  4  9  14
+
+        The columns of a DataFrame can be truncated.
+
+        >>> df.truncate(before="A", after="B", axis="columns")
+           A  B
+        1  a  f
+        2  b  g
+        3  c  h
+        4  d  i
+        5  e  j
+
+        For Series, only rows can be truncated.
+
+        >>> df['A'].truncate(before=2, after=4)
+        2    b
+        3    c
+        4    d
+        Name: A, dtype: object
 
         The index values in ``truncate`` can be datetimes or string
-        dates. Note that ``truncate`` assumes a 0 value for any unspecified
-        date component in a ``DatetimeIndex`` in contrast to slicing which
-        returns any partially matching dates.
-
+        dates.
         >>> dates = pd.date_range('2016-01-01', '2016-02-01', freq='s')
         >>> df = pd.DataFrame(index=dates, data={'A': 1})
+        >>> df.tail()
+                             A
+        2016-01-31 23:59:56  1
+        2016-01-31 23:59:57  1
+        2016-01-31 23:59:58  1
+        2016-01-31 23:59:59  1
+        2016-02-01 00:00:00  1
+
+        >>> df.truncate(before=pd.Timestamp('2016-01-05'),
+        ...             after=pd.Timestamp('2016-01-10')).tail()
+                             A
+        2016-01-09 23:59:56  1
+        2016-01-09 23:59:57  1
+        2016-01-09 23:59:58  1
+        2016-01-09 23:59:59  1
+        2016-01-10 00:00:00  1
+
+        Because the index is a DatetimeIndex containing only dates, we can
+        specify `before` and `after` as strings. They will be coerced to
+        Timestamps before truncation.
+
         >>> df.truncate('2016-01-05', '2016-01-10').tail()
                              A
         2016-01-09 23:59:56  1
@@ -7535,6 +7586,11 @@ class NDFrame(PandasObject, SelectionMixin):
         2016-01-09 23:59:58  1
         2016-01-09 23:59:59  1
         2016-01-10 00:00:00  1
+
+        Note that ``truncate`` assumes a 0 value for any unspecified time
+        component (midnight). This differs from partial string slicing, which
+        returns any partially matching dates.
+
         >>> df.loc['2016-01-05':'2016-01-10', :].tail()
                              A
         2016-01-10 23:59:55  1
