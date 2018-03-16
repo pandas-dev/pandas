@@ -31,6 +31,7 @@ from pandas.core.dtypes.common import (
     is_dict_like)
 
 from pandas.core.algorithms import factorize, take_1d, unique1d
+from pandas.core.algorithms import _shared_docs as _algos_shared_docs
 from pandas.core.accessor import PandasDelegate
 from pandas.core.base import (PandasObject,
                               NoNewAttributesMixin, _shared_docs)
@@ -2046,7 +2047,7 @@ class Categorical(ExtensionArray, PandasObject):
         return cat.set_categories(cat.categories.take(take_codes))
 
     @Substitution(values='', size_hint='', sort='')
-    @Appender(_shared_docs['factorize'])
+    @Appender(_algos_shared_docs['factorize'])
     def factorize(self, na_sentinel=-1):
         from pandas.core.algorithms import _factorize_array
 
