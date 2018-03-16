@@ -88,6 +88,13 @@ class JSONArray(ExtensionArray):
     def copy(self, deep=False):
         return type(self)(self.data[:])
 
+    def unique(self):
+        # Parent method doesn't work since np.array will try to infer
+        # a 2-dim object.
+        return type(self)([
+            dict(x) for x in list(set(tuple(d.items()) for d in self.data))
+        ])
+
     @property
     def _na_value(self):
         return {}

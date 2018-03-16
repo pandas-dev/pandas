@@ -246,24 +246,25 @@ changes in this branch specific to one bug or feature so it is clear
 what the branch brings to *pandas*. You can have many shiny-new-features
 and switch in between them using the git checkout command.
 
-To update this branch, you need to retrieve the changes from the master branch::
+When creating this branch, make sure your master branch is up to date with
+the latest upstream master version. To update your local master branch, you
+can do::
 
-    git fetch upstream
-    git rebase upstream/master
+    git checkout master
+    git pull upstream master --ff-only
 
-This will replay your commits on top of the latest pandas git master.  If this
-leads to merge conflicts, you must resolve these before submitting your pull
-request.  If you have uncommitted changes, you will need to ``stash`` them prior
-to updating.  This will effectively store your changes and they can be reapplied
-after updating.
+When you want to update the feature branch with changes in master after
+you created the branch, check the section on
+:ref:`updating a PR <contributing.update-pr>`.
 
 .. _contributing.documentation:
 
 Contributing to the documentation
 =================================
 
-If you're not the developer type, contributing to the documentation is still of
-huge value. You don't even have to be an expert on *pandas* to do so! In fact,
+Contributing to the documentation benefits everyone who uses *pandas*.
+We encourage you to help us improve the documentation, and
+you don't have to be an expert on *pandas* to do so! In fact,
 there are sections of the docs that are worse off after being written by
 experts. If something in the docs doesn't make sense to you, updating the
 relevant section after you figure it out is a great way to ensure it will help
@@ -292,12 +293,9 @@ Some other important things to know about the docs:
   overviews per topic together with some other information (what's new,
   installation, etc).
 
-- The docstrings follow the **Numpy Docstring Standard**, which is used widely
-  in the Scientific Python community. This standard specifies the format of
-  the different sections of the docstring. See `this document
-  <https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt>`_
-  for a detailed explanation, or look at some of the existing functions to
-  extend it in a similar manner.
+- The docstrings follow a pandas convention, based on the **Numpy Docstring
+  Standard**. Follow the :ref:`pandas docstring guide <docstring>` for detailed
+  instructions on how to write a correct docstring.
 
 - The tutorials make heavy use of the `ipython directive
   <http://matplotlib.org/sampledoc/ipython_directive.html>`_ sphinx extension.
@@ -966,32 +964,6 @@ Now you can commit your changes in your local repository::
 
     git commit -m
 
-Combining commits
------------------
-
-If you have multiple commits, you may want to combine them into one commit, often
-referred to as "squashing" or "rebasing".  This is a common request by package maintainers
-when submitting a pull request as it maintains a more compact commit history.  To rebase
-your commits::
-
-    git rebase -i HEAD~#
-
-Where # is the number of commits you want to combine.  Then you can pick the relevant
-commit message and discard others.
-
-To squash to the master branch do::
-
-    git rebase -i master
-
-Use the ``s`` option on a commit to ``squash``, meaning to keep the commit messages,
-or ``f`` to ``fixup``, meaning to merge the commit messages.
-
-Then you will need to push the branch (see below) forcefully to replace the current
-commits with the new ones::
-
-    git push origin shiny-new-feature -f
-
-
 Pushing your changes
 --------------------
 
@@ -1047,15 +1019,51 @@ release.  To submit a pull request:
 #. Click ``Send Pull Request``.
 
 This request then goes to the repository maintainers, and they will review
-the code. If you need to make more changes, you can make them in
-your branch, push them to GitHub, and the pull request will be automatically
-updated.  Pushing them to GitHub again is done by::
+the code. 
 
-    git push -f origin shiny-new-feature
+.. _contributing.update-pr:
+
+Updating your pull request
+--------------------------
+
+Based on the review you get on your pull request, you will probably need to make
+some changes to the code. In that case, you can make them in your branch, 
+add a new commit to that branch, push it to GitHub, and the pull request will be
+automatically updated.  Pushing them to GitHub again is done by::
+
+    git push origin shiny-new-feature
 
 This will automatically update your pull request with the latest code and restart the
 :ref:`Continuous Integration <contributing.ci>` tests.
 
+Another reason you might need to update your pull request is to solve conflicts
+with changes that have been merged into the master branch since you opened your
+pull request. 
+
+To do this, you need to "merge upstream master" in your branch::
+
+    git checkout shiny-new-feature
+    git fetch upstream
+    git merge upstream/master
+
+If there are no conflicts (or they could be fixed automatically), a file with a
+default commit message will open, and you can simply save and quit this file.
+
+If there are merge conflicts, you need to solve those conflicts. See for
+example at https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line/
+for an explanation on how to do this.
+Once the conflicts are merged and the files where the conflicts were solved are
+added, you can run ``git commit`` to save those fixes.
+
+If you have uncommitted changes at the moment you want to update the branch with
+master, you will need to ``stash`` them prior to updating (see the
+`stash docs <https://git-scm.com/book/en/v2/Git-Tools-Stashing-and-Cleaning>`__).
+This will effectively store your changes and they can be reapplied after updating.
+
+After the feature branch has been update locally, you can now update your pull
+request by pushing to the branch on GitHub::
+
+    git push origin shiny-new-feature
 
 Delete your merged branch (optional)
 ------------------------------------
