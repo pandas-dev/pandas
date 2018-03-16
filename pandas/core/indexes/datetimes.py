@@ -2266,7 +2266,16 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
                    '2018-01-05', '2018-01-06', '2018-01-07', '2018-01-08'],
                   dtype='datetime64[ns]', freq='D')
 
-    Specify `end` and `periods`.
+    Specify `end` and `periods`, the number of periods (days).
+
+    >>> pd.date_range(end='1/1/2018', periods=8)
+    DatetimeIndex(['2017-12-25', '2017-12-26', '2017-12-27', '2017-12-28',
+                   '2017-12-29', '2017-12-30', '2017-12-31', '2018-01-01'],
+                  dtype='datetime64[ns]', freq='D')
+
+    Given the ``start`` and ``periods`` mandatory parameters,
+    periods would be the number of the days, with default `freq='D'`
+    (D=calendar day frequency)
 
     >>> pd.date_range(end='1/8/2018', periods=8)
     DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03', '2018-01-04',
