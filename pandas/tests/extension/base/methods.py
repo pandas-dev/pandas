@@ -56,9 +56,10 @@ class BaseMethodsTests(BaseExtensionTests):
         tm.assert_numpy_array_equal(labels, expected_labels)
         self.assert_extension_array_equal(uniques, expected_uniques)
 
-    def test_factorize_equivalence(self, data_for_grouping):
-        l1, u1 = pd.factorize(data_for_grouping)
-        l2, u2 = pd.factorize(data_for_grouping)
+    @pytest.mark.parametrize('na_sentinel', [-1, -2])
+    def test_factorize_equivalence(self, data_for_grouping, na_sentinel):
+        l1, u1 = pd.factorize(data_for_grouping, na_sentinel=na_sentinel)
+        l2, u2 = data_for_grouping.factorize(na_sentinel=na_sentinel)
 
         tm.assert_numpy_array_equal(l1, l2)
         self.assert_extension_array_equal(u1, u2)
