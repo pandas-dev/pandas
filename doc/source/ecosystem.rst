@@ -13,9 +13,12 @@ The creation of libraries that complement pandas' functionality also allows pand
 development to remain focused around it's original requirements.
 
 This is an inexhaustive list of projects that build on pandas in order to provide
-tools in the PyData space.
+tools in the PyData space. For a list of projects that depend on pandas,
+see the 
+`libraries.io usage page for pandas <https://libraries.io/pypi/pandas/usage>`_
+or `search pypi for pandas <https://pypi.org/search/?q=pandas>`_.
 
-We'd like to make it easier for users to find these project, if you know of other
+We'd like to make it easier for users to find these projects, if you know of other
 substantial projects that you feel should be on this list, please let us know.
 
 
