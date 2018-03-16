@@ -1822,21 +1822,22 @@ class DataFrame(NDFrame):
         ----------
         verbose : bool, optional
             Whether to print the full summary. By default, the setting in
-            ``pandas.options.display.max_info_columns`` is followed. This can
-            be overridden by passing `verbose`.
+            ``pandas.options.display.max_info_columns`` is followed.
         buf : writable buffer, defaults to sys.stdout
             Where to send the output. By default, the output is printed to
             sys.stdout. Pass a writable buffer if you need to further process
             the output.
         max_cols : int, optional
-            When to switch from the verbose to the truncated output. By
-            default, the setting in ``pandas.options.display.max_info_columns``
-            is used. This can be overridden by passing `max_cols`.
+            When to switch from the verbose to the truncated output. If the
+            DataFrame has more than `max_cols` columns, the truncated output
+            is used. By default, the setting in
+            ``pandas.options.display.max_info_columns`` is used.
         memory_usage : bool, str, optional
             Specifies whether total memory usage of the DataFrame
             elements (including the index) should be displayed. By default,
             this follows the ``pandas.options.display.memory_usage`` setting.
-            This can be overridden by passing `memory_usage`.
+
+            True always show memory usage. False never shows memory usage.
             A value of 'deep' is equivalent to "True with deep introspection".
             Memory usage is shown in human-readable units (base-2
             representation). Without deep introspection a memory estimation is
