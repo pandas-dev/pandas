@@ -5563,39 +5563,52 @@ class DataFrame(NDFrame):
 
     def applymap(self, func):
         """
-        Apply a function to a DataFrame that is intended to operate
-        elementwise, i.e. like doing map(func, series) for each series in the
-        DataFrame
+        Apply a function to a Dataframe elementwise.
+
+        This method applies a function that accepts and returns a scalar
+        to every element of a DataFrame.
 
         Parameters
         ----------
-        func : function
-            Python function, returns a single value from a single value
-
-        Examples
-        --------
-
-        >>> df = pd.DataFrame(np.random.randn(3, 3))
-        >>> df
-            0         1          2
-        0  -0.029638  1.081563   1.280300
-        1   0.647747  0.831136  -1.549481
-        2   0.513416 -0.884417   0.195343
-        >>> df = df.applymap(lambda x: '%.2f' % x)
-        >>> df
-            0         1          2
-        0  -0.03      1.08       1.28
-        1   0.65      0.83      -1.55
-        2   0.51     -0.88       0.20
+        func : callable
+            Python function, returns a single value from a single value.
 
         Returns
         -------
-        applied : DataFrame
+        DataFrame
+            Transformed DataFrame.
 
         See also
         --------
-        DataFrame.apply : For operations on rows/columns
+        DataFrame.apply : Apply a function along input axis of DataFrame
 
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2.12], [3.356, 4.567]])
+        >>> df
+               0      1
+        0  1.000  2.120
+        1  3.356  4.567
+
+        >>> df.applymap(lambda x: len(str(x)))
+           0  1
+        0  3  4
+        1  5  5
+
+        Note that a vectorized version of `func` often exists, which will
+        be much faster. You could square each number elementwise.
+
+        >>> df.applymap(lambda x: x**2)
+                   0          1
+        0   1.000000   4.494400
+        1  11.262736  20.857489
+
+        But it's better to avoid applymap in that case.
+
+        >>> df ** 2
+                   0          1
+        0   1.000000   4.494400
+        1  11.262736  20.857489
         """
 
         # if we have a dtype == 'M8[ns]', provide boxed values
