@@ -738,6 +738,7 @@ Deprecations
 - :attr:`Timestamp.weekday_name`, :attr:`DatetimeIndex.weekday_name`, and :attr:`Series.dt.weekday_name` are deprecated in favor of :meth:`Timestamp.day_name`, :meth:`DatetimeIndex.day_name`, and :meth:`Series.dt.day_name` (:issue:`12806`)
 
 - ``pandas.tseries.plotting.tsplot`` is deprecated. Use :func:`Series.plot` instead (:issue:`18627`)
+- ``Index.summary()`` is deprecated and will be removed in a future version (:issue:`18217`)
 
 .. _whatsnew_0230.prior_deprecations:
 

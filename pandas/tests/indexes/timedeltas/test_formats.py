@@ -92,5 +92,5 @@ class TestTimedeltaIndexRendering(object):
 
         for idx, expected in zip([idx1, idx2, idx3, idx4, idx5],
                                  [exp1, exp2, exp3, exp4, exp5]):
-            result = idx.summary()
+            result = idx._summary()
             assert result == expected
