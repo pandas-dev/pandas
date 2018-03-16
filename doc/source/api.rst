@@ -2557,6 +2557,8 @@ objects.
    generated/pandas.Index.asi8
    generated/pandas.Index.data
    generated/pandas.Index.flags
+   generated/pandas.Index.holds_integer
+   generated/pandas.Index.is_type_compatible
    generated/pandas.Index.nlevels
    generated/pandas.Index.sort
    generated/pandas.Panel.agg
@@ -2572,4 +2574,6 @@ objects.
    generated/pandas.Series.blocks
    generated/pandas.Series.from_array
    generated/pandas.Series.ix
+   generated/pandas.Series.imag
+   generated/pandas.Series.real
    generated/pandas.Timestamp.offset

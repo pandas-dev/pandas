@@ -86,6 +86,12 @@ autosummary_generate = False
 if any(re.match("\s*api\s*", l) for l in index_rst_lines):
     autosummary_generate = True
 
+# numpydoc
+# for now use old parameter listing (styling + **kwargs problem)
+numpydoc_use_blockquotes = True
+# use member listing for attributes
+numpydoc_attributes_as_param_list = False
+
 # matplotlib plot directive
 plot_include_source = True
 plot_formats = [("png", 90)]
