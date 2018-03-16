@@ -1190,6 +1190,11 @@ class Index(IndexOpsMixin, PandasObject):
         DataFrame
             DataFrame containing the original Index data.
 
+        See Also
+        --------
+        Index.to_series : Convert an Index to a Series.
+        Series.to_frame : Convert Series to DataFrame.
+
         Examples
         --------
         >>> idx = pd.Index(['Ant', 'Bear', 'Cow'], name='animal')
