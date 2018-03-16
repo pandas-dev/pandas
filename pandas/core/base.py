@@ -9,10 +9,10 @@ import numpy as np
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCIndexClass
 from pandas.core.dtypes.common import (
+    is_datetimelike,
     is_object_dtype,
     is_list_like,
     is_scalar,
-    is_datetimelike,
     is_extension_type,
     is_extension_array_dtype)
 
@@ -883,9 +883,10 @@ class IndexOpsMixin(object):
         --------
         numpy.ndarray.tolist
         """
-
-        if is_datetimelike(self):
+        if is_datetimelike(self._values):
             return [com._maybe_box_datetimelike(x) for x in self._values]
+        elif is_extension_array_dtype(self._values):
+            return list(self._values)
         else:
             return self._values.tolist()
 

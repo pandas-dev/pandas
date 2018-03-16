@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
-
 import pytest
 
 import numpy as np
 
 import pandas.util.testing as tm
 from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas import Categorical, Index, CategoricalIndex, Series
+from pandas.compat import long
+from pandas import Categorical, Index, CategoricalIndex, Series, Timestamp
 
 
 class TestCategoricalDtypes(object):
@@ -161,3 +161,16 @@ class TestCategoricalDtypes(object):
             result = cat.astype('category')
             expected = cat
             tm.assert_categorical_equal(result, expected)
+
+    def test_iter_python_types(self):
+        # GH-19909
+        # TODO(Py2): Remove long
+        cat = Categorical([1, 2])
+        assert isinstance(list(cat)[0], (int, long))
+        assert isinstance(cat.tolist()[0], (int, long))
+
+    def test_iter_python_types_datetime(self):
+        cat = Categorical([Timestamp('2017-01-01'),
+                           Timestamp('2017-01-02')])
+        assert isinstance(list(cat)[0], Timestamp)
+        assert isinstance(cat.tolist()[0], Timestamp)
