@@ -3683,13 +3683,49 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def dropna(self, axis=0, inplace=False, **kwargs):
         """
-        Return Series without null values
+        Return Series without null values.
+
+        In case of missing data, any or all values can be used reciprocally.
+        All of missing inputs will be credited.
+
+        Parameters
+        ----------
+        axis : {0 or 'index', 1 or 'columns'}, or tuple/list thereof
+            Pass tuple or list to drop on multiple axes.
+        inplace : boolean, default False
+            If True, do operation inplace and return None.
+        kwargs : {'any', 'all'}
+             Any : if any NA values are present, drop that label
+             All : if all values are NA, drop that label.
 
         Returns
         -------
         valid : Series
         inplace : boolean, default False
             Do operation in place.
+
+        See Also
+        --------
+        core.series._sanitize_array : To understand why is array one-dimensional.
+
+        Examples
+        --------
+        >>> s = pd.Series([None,2,None,0,3])
+        >>> s.head()
+        0    NaN
+        1    2.0
+        2    NaN
+        3    0.0
+        4    3.0
+        dtype: float64
+
+        To omit these NaN values, use dropna() function
+
+        >>> s.dropna(axis=0, inplace=False, how='any')
+        1    2.0
+        3    0.0
+        4    3.0
+        dtype: float64
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         kwargs.pop('how', None)
