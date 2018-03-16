@@ -358,13 +358,15 @@ Dependencies have increased minimum versions
 We have updated our minimum supported versions of dependencies (:issue:`15184`).
 If installed, we now require:
 
-+-----------------+-----------------+----------+
-| Package         | Minimum Version | Required |
-+=================+=================+==========+
-| python-dateutil | 2.5.0           |    X     |
-+-----------------+-----------------+----------+
-| openpyxl        | 2.4.0           |          |
-+-----------------+-----------------+----------+
++-----------------+-----------------+----------+---------------+
+| Package         | Minimum Version | Required |     Issue     |
++=================+=================+==========+===============+
+| python-dateutil | 2.5.0           |    X     | :issue:`15184`|
++-----------------+-----------------+----------+---------------+
+| openpyxl        | 2.4.0           |          | :issue:`15184`|
++-----------------+-----------------+----------+---------------+
+| beautifulsoup4  | 4.2.1           |          | :issue:`20082`|
++-----------------+-----------------+----------+---------------+
 
 .. _whatsnew_0230.api_breaking.dict_insertion_order:
 
@@ -736,6 +738,7 @@ Deprecations
 - :attr:`Timestamp.weekday_name`, :attr:`DatetimeIndex.weekday_name`, and :attr:`Series.dt.weekday_name` are deprecated in favor of :meth:`Timestamp.day_name`, :meth:`DatetimeIndex.day_name`, and :meth:`Series.dt.day_name` (:issue:`12806`)
 
 - ``pandas.tseries.plotting.tsplot`` is deprecated. Use :func:`Series.plot` instead (:issue:`18627`)
+- ``Index.summary()`` is deprecated and will be removed in a future version (:issue:`18217`)
 
 .. _whatsnew_0230.prior_deprecations:
 
@@ -841,6 +844,8 @@ Categorical
 - Bug in :meth:`Series.astype` and ``Categorical.astype()`` where an existing categorical data does not get updated (:issue:`10696`, :issue:`18593`)
 - Bug in :class:`Index` constructor with ``dtype=CategoricalDtype(...)`` where ``categories`` and ``ordered`` are not maintained (issue:`19032`)
 - Bug in :class:`Series` constructor with scalar and ``dtype=CategoricalDtype(...)`` where ``categories`` and ``ordered`` are not maintained (issue:`19565`)
+- Bug in :func:`pandas.factorize` returning the unique codes for the ``uniques``. This now returns a ``Categorical`` with the same dtype as the input (:issue:`19721`)
+- Bug in :func:`pandas.factorize` including an item for missing values in the ``uniques`` return value (:issue:`19721`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -896,6 +901,7 @@ Timezones
 - Bug in :func:`Timestamp.tz_localize` where localizing a timestamp near the minimum or maximum valid values could overflow and return a timestamp with an incorrect nanosecond value (:issue:`12677`)
 - Bug when iterating over :class:`DatetimeIndex` that was localized with fixed timezone offset that rounded nanosecond precision to microseconds (:issue:`19603`)
 - Bug in :func:`DataFrame.diff` that raised an ``IndexError`` with tz-aware values (:issue:`18578`)
+- Bug in :func:`melt` that converted tz-aware dtypes to tz-naive (:issue:`15785`)
 
 Offsets
 ^^^^^^^
