@@ -1306,7 +1306,7 @@ cdef class _Period(object):
     @property
     def week(self):
         """
-        Get the total weeks on the Period falls in.
+        Get the week of the year on the given Period.
 
         Returns
         -------
