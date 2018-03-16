@@ -143,6 +143,18 @@ editing, testing, debugging, and introspection features.
 Spyder can now introspect and display Pandas DataFrames and show
 both "column wise min/max and global min/max coloring."
 
+Spyder can also execute ``.py`` files containing IPython prompts
+cell by cell:
+
+.. code:: python
+
+   # In[0]:
+   subprocess.call('jupyter convert --to python notebook.ipynb')
+
+   # In[1]:
+   print('Ctrl-Return -- Run cell')
+   print('Shift-Return -- Run cell and advance')
+
 
 .. _ecosystem.api:
 
