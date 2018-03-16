@@ -33,6 +33,7 @@ class SphinxDocString(NumpyDocString):
         self.use_plots = config.get('use_plots', False)
         self.use_blockquotes = config.get('use_blockquotes', False)
         self.class_members_toctree = config.get('class_members_toctree', True)
+        self.attributes_as_param_list = config.get('attributes_as_param_list', True)
         self.template = config.get('template', None)
         if self.template is None:
             template_dirs = [os.path.join(os.path.dirname(__file__), 'templates')]
@@ -366,8 +367,10 @@ class SphinxDocString(NumpyDocString):
             'notes': self._str_section('Notes'),
             'references': self._str_references(),
             'examples': self._str_examples(),
-            'attributes': self._str_param_list('Attributes',
-                                               fake_autosummary=True),
+            'attributes':
+                self._str_param_list('Attributes', fake_autosummary=True)
+                if self.attributes_as_param_list
+                else self._str_member_list('Attributes'),
             'methods': self._str_member_list('Methods'),
         }
         ns = dict((k, '\n'.join(v)) for k, v in ns.items())
