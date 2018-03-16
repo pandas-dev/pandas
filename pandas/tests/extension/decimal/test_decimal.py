@@ -35,19 +35,38 @@ def na_value():
     return decimal.Decimal("NaN")
 
 
-class TestDtype(base.BaseDtypeTests):
+class BaseDecimal(object):
+
+    def assert_series_equal(self, left, right, *args, **kwargs):
+
+        left_na = left.isna()
+        right_na = right.isna()
+
+        tm.assert_series_equal(left_na, right_na)
+        return tm.assert_series_equal(left[~left_na],
+                                      right[~right_na],
+                                      *args, **kwargs)
+
+    def assert_frame_equal(self, left, right, *args, **kwargs):
+        self.assert_series_equal(left.dtypes, right.dtypes)
+        for col in left.columns:
+            self.assert_series_equal(left[col], right[col],
+                                     *args, **kwargs)
+
+
+class TestDtype(BaseDecimal, base.BaseDtypeTests):
     pass
 
 
-class TestInterface(base.BaseInterfaceTests):
+class TestInterface(BaseDecimal, base.BaseInterfaceTests):
     pass
 
 
-class TestConstructors(base.BaseConstructorsTests):
+class TestConstructors(BaseDecimal, base.BaseConstructorsTests):
     pass
 
 
-class TestReshaping(base.BaseReshapingTests):
+class TestReshaping(BaseDecimal, base.BaseReshapingTests):
 
     def test_align(self, data, na_value):
         # Have to override since assert_series_equal doesn't
@@ -88,15 +107,15 @@ class TestReshaping(base.BaseReshapingTests):
         assert e2.loc[0, 'A'].is_nan()
 
 
-class TestGetitem(base.BaseGetitemTests):
+class TestGetitem(BaseDecimal, base.BaseGetitemTests):
     pass
 
 
-class TestMissing(base.BaseMissingTests):
+class TestMissing(BaseDecimal, base.BaseMissingTests):
     pass
 
 
-class TestMethods(base.BaseMethodsTests):
+class TestMethods(BaseDecimal, base.BaseMethodsTests):
     @pytest.mark.parametrize('dropna', [True, False])
     @pytest.mark.xfail(reason="value_counts not implemented yet.")
     def test_value_counts(self, all_data, dropna):
@@ -112,7 +131,7 @@ class TestMethods(base.BaseMethodsTests):
         tm.assert_series_equal(result, expected)
 
 
-class TestCasting(base.BaseCastingTests):
+class TestCasting(BaseDecimal, base.BaseCastingTests):
     pass
 
 
