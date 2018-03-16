@@ -378,11 +378,12 @@ def group_any_all(ndarray[uint8_t] out,
             if values[i] == flag_val:
                 out[lab] = flag_val
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def group_quantile(ndarray[float64_t] out,
                    ndarray[int64_t] labels,
-                   ndarray values,
+                   numeric[:] values,
                    double_t q):
     """
     Calculate the quantile per group.
@@ -405,7 +406,9 @@ def group_quantile(ndarray[float64_t] out,
     """
     cdef:
         Py_ssize_t i, N=len(labels)
-        int64_t lab, vlow, vhigh, ngroups, grp_sz, grp_start=0, idx=0
+        int64_t lab, ngroups, grp_sz, grp_start=0, idx=0
+        numeric val, next_val
+        double_t q_idx, frac
         ndarray[int64_t] counts
         ndarray[int64_t] sort_arr
 
@@ -429,19 +432,22 @@ def group_quantile(ndarray[float64_t] out,
             grp_sz = counts[i]
 
             # Calculate where to retrieve the desired value
+            # Casting to int will intentionaly truncate result
             idx = grp_start + <int64_t>(q * <double_t>(grp_sz - 1))
 
-            vlow = labels[sort_arr[idx]]
-            # Sanity check for single value
-            if grp_sz == 1:
-                out[i] = vlow
-            else:
-                vhigh = labels[sort_arr[idx + 1]]
-                out[i] = ((vlow + (vhigh - vlow) *
-                           (q * (grp_sz - 1) - idx - grp_start)))
+            val = values[sort_arr[idx]]
+            # If requested quantile falls evenly on a particular index
+            # then write that index's value out. Otherwise interpolate
+            q_idx = q * (grp_sz - 1)
+            frac = q_idx % 1
 
-            # Because sort_arr is sorted, move the reference to the
-            # next group by incrementing by the current groups size
+            if frac == 0.0:  # IEEE-754 always a safe comparison?
+                out[i] = val
+            else:
+                next_val = values[sort_arr[idx + 1]]
+                out[i] = val + (next_val - val) * frac
+
+            # Increment the index reference in sorted_arr for the next group
             grp_start += grp_sz
 
 

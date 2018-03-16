@@ -1900,14 +1900,26 @@ class TestGroupBy(MixIn):
         result = gni.describe()
         assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize('q,val', [
-        (0, 1), (.25, 2), (.5, 3), (.75, 4), (1, 5)])
-    def test_quantile(self, q, val):
-        df = DataFrame(
-            [['foo'] * 5 + ['bar'] * 5,
-             [1, 2, 3, 4, 5, 5, 4, 3, 2, 1]],
-            columns=['key', 'val'])
-        exp = DataFrame([[val, val]], columns=['val'],
+    @pytest.mark.parametrize("bar_vals,foo_vals", [
+        ([1, 2, 3, 4, 5], [5, 4, 3, 2, 1]),
+        ([1, 2, 3, 4], [4, 3, 2, 1]),
+        ([1, 2, 3, 4, 5], [4, 3, 2, 1]),
+        ([1., 2., 3., 4., 5.], [5., 4., 3., 2., 1.]),
+        ([1., np.nan, 3., np.nan, 5.], [5., np.nan, 3., np.nan, 1.]),
+        ([np.nan, 4., np.nan, 2., np.nan], [np.nan, 4., np.nan, 2., np.nan])
+    ])
+    @pytest.mark.parametrize('q', [0, .25, .5, .75, 1])
+    def test_quantile(self, bar_vals, foo_vals, q):
+        bar_ser = pd.Series(bar_vals)
+        bar_exp = bar_ser.quantile(q)
+        foo_ser = pd.Series(foo_vals)
+        foo_exp = foo_ser.quantile(q)
+
+        df = pd.DataFrame({
+            'key': ['bar'] * len(bar_vals) + ['foo'] * len(foo_vals),
+            'val': bar_vals + foo_vals})
+
+        exp = DataFrame([bar_exp, foo_exp], columns=['val'],
                         index=Index(['bar', 'foo'], name='key'))
         res = df.groupby('key').quantile(q)
         assert_frame_equal(exp, res)
