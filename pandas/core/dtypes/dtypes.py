@@ -5,10 +5,10 @@ import numpy as np
 from pandas import compat
 from pandas.core.dtypes.generic import ABCIndexClass, ABCCategoricalIndex
 
-from .base import ExtensionDtype
+from .base import ExtensionDtype, _DtypeOpsMixin
 
 
-class PandasExtensionDtype(ExtensionDtype):
+class PandasExtensionDtype(_DtypeOpsMixin):
     """
     A np.dtype duck-typed class, suitable for holding a custom dtype.
 
@@ -83,7 +83,7 @@ class CategoricalDtypeType(type):
     pass
 
 
-class CategoricalDtype(PandasExtensionDtype):
+class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
     """
     Type for categorical data with the categories and orderedness
 
