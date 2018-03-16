@@ -1151,12 +1151,17 @@ class Index(IndexOpsMixin, PandasObject):
         DataFrame
             DataFrame containing the original Index data.
 
+        See Also
+        --------
+        Index.to_series : Convert an Index to a Series.
+        Series.to_frame : Convert Series to DataFrame.
+
         Examples
         --------
         >>> idx = pd.Index(['Ant', 'Bear', 'Cow'], name='animal')
         >>> idx.to_frame()
             animal
-        animal       
+        animal
         Ant       Ant
         Bear     Bear
         Cow       Cow
@@ -1168,32 +1173,6 @@ class Index(IndexOpsMixin, PandasObject):
         0   Ant
         1  Bear
         2   Cow
-
-        Application to datetimes
-
-        >>> dt = ['04/27/2008 05:28 AM', '04/22/2008 07:19 AM',
-        ...       '10/09/2008 01:44 PM', '12/25/2008 09:50 AM',
-        ...       '08/19/2008 07:30 PM', '03/07/2008 11:04 PM',
-        ...       '12/22/2008 12:08 PM', '07/01/2008 05:36 AM',
-        ...       '09/06/2008 04:53 AM', '01/23/2008 07:43 PM']
-        >>> con_dt = pd.to_datetime(dt)
-        >>> df = con_dt.to_frame(index=True)
-        >>> df[0]
-        2008-04-27 05:28:00   2008-04-27 05:28:00
-        2008-04-22 07:19:00   2008-04-22 07:19:00
-        2008-10-09 13:44:00   2008-10-09 13:44:00
-        2008-12-25 09:50:00   2008-12-25 09:50:00
-        2008-08-19 19:30:00   2008-08-19 19:30:00
-        2008-03-07 23:04:00   2008-03-07 23:04:00
-        2008-12-22 12:08:00   2008-12-22 12:08:00
-        2008-07-01 05:36:00   2008-07-01 05:36:00
-        2008-09-06 04:53:00   2008-09-06 04:53:00
-        2008-01-23 19:43:00   2008-01-23 19:43:00
-        Name: 0, dtype: datetime64[ns]
-
-        See Also
-        --------
-        pandas.Series.to_frame : Convert Series to DataFrame
         """
 
         from pandas import DataFrame
