@@ -1815,8 +1815,8 @@ class DataFrame(NDFrame):
         """
         Print a concise summary of a DataFrame.
 
-        This method prints information about DataFrame: index dtype, columns
-        dtypes, non-null values and memory usage.
+        This method prints information about a DataFrame including
+        the index dtype and column dtypes, non-null values and memory usage.
 
         Parameters
         ----------
