@@ -506,7 +506,7 @@ _shared_docs['factorize'] = """
     --------
     These examples all show factorize as a top-level method like
     ``pd.factorize(values)``. The results are identical for methods like
-    ``Series.factorize``.
+    :meth:`Series.factorize`.
 
     >>> labels, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'])
     >>> labels
@@ -515,12 +515,11 @@ _shared_docs['factorize'] = """
     array(['b', 'a', 'c'], dtype=object)
 
     With ``sort=True``, the `uniques` will be sorted, and `labels` will be
-    shulffled so that the relationship is the maintained.
+    shuffled so that the relationship is the maintained.
 
     >>> labels, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'], sort=True)
     >>> labels
     array([1, 1, 0, 2, 1])
-
     >>> uniques
     array(['a', 'b', 'c'], dtype=object)
 
@@ -530,7 +529,6 @@ _shared_docs['factorize'] = """
     >>> labels, uniques = pd.factorize(['b', None, 'a', 'c', 'b'])
     >>> labels
     array([ 0, -1,  1,  2,  0])
-
     >>> uniques
     array(['b', 'a', 'c'], dtype=object)
 
@@ -542,7 +540,6 @@ _shared_docs['factorize'] = """
     >>> labels, uniques = pd.factorize(cat)
     >>> labels
     array([0, 0, 1])
-
     >>> uniques
     [a, c]
     Categories (3, object): [a, b, c]
