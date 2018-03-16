@@ -76,14 +76,6 @@ but a faithful implementation for Python users has long been missing. Although s
 (as of Jan-2014), the `yhat/ggplot <https://github.com/yhat/ggplot>`__ project has been
 progressing quickly in that direction.
 
-`Vincent <https://github.com/wrobstory/vincent>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The `Vincent <https://github.com/wrobstory/vincent>`__ project leverages `Vega <https://github.com/trifacta/vega>`__
-(that in turn, leverages `d3 <http://d3js.org/>`__) to create
-plots. Although functional, as of Summer 2016 the Vincent project has not been updated
-in over two years and is `unlikely to receive further updates <https://github.com/wrobstory/vincent#2015-08-12-update>`__.
-
 `IPython Vega <https://github.com/vega/ipyvega>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
