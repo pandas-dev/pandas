@@ -121,6 +121,14 @@ which are utilized by IPython Notebook for displaying
 (abbreviated) HTML tables.  (Note: HTML tables may or may not be
 compatible with non-HTML IPython output formats.)
 
+`PyCharm <https://www.jetbrains.com/pycharm/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+PyCharm is a full-featured Python IDE.
+`PyCharm supports Jupyter Notebook
+<https://www.jetbrains.com/help/pycharm/ipython-jupyter-notebook-support.html>`__
+, recognizes ``*.ipynb files``,
+and allows you to edit them.
+
 `quantopian/qgrid <https://github.com/quantopian/qgrid>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
