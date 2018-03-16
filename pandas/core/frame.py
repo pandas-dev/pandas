@@ -5037,7 +5037,7 @@ class DataFrame(NDFrame):
         0  3  4
         1  5  5
 
-        Note that a vectorized versions of `func` often exists, which will
+        Note that a vectorized version of `func` often exists, which will
         be much faster. You could square each number elementwise.
 
         >>> df.applymap(lambda x: x**2)
