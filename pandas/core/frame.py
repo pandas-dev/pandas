@@ -1813,50 +1813,53 @@ class DataFrame(NDFrame):
     def info(self, verbose=None, buf=None, max_cols=None, memory_usage=None,
              null_counts=None):
         """
-        Prints a concise summary of a DataFrame.
+        Print a concise summary of a DataFrame.
 
         This method prints information about DataFrame: index dtype, columns
         dtypes, non-null values and memory usage.
 
         Parameters
         ----------
-        verbose : {None, True, False}, optional
-            Whether to print the full summary.
-            None follows the `display.max_info_columns` setting.
-            True or False overrides the `display.max_info_columns` setting.
+        verbose : bool, optional
+            Whether to print the full summary. By default, the setting in
+            ``pandas.options.display.max_info_columns`` is followed. This can
+            be overridden by passing `verbose`.
         buf : writable buffer, defaults to sys.stdout
-            Whether to pipe the output.
-        max_cols : int, default None
-            Determines whether full summary or short summary is printed.
-            None follows the `display.max_info_columns` setting.
-        memory_usage : boolean/string, default None
+            Where to send the output. By default, the output is printed to
+            sys.stdout. Pass a writable buffer if you need to further process
+            the output.
+        max_cols : int, optional
+            When to switch from the verbose to the truncated output. By
+            default, the setting in ``pandas.options.display.max_info_columns``
+            is used. This can be overridden by passing `max_cols`.
+        memory_usage : bool, str, optional
             Specifies whether total memory usage of the DataFrame
-            elements (including index) should be displayed. None follows
-            the `display.memory_usage` setting. True or False overrides
-            the `display.memory_usage` setting. A value of 'deep' is equivalent
-            of True, with deep introspection. Memory usage is shown in
-            human-readable units (base-2 representation). Without deep introspection
-            a memory estimation is made based in column dtype and number of rows
-            assuming values consume the same memory amount for corresponding dtypes.
-            With deep memory introspection, a real memory usage calculation is performed
+            elements (including the index) should be displayed. By default,
+            this follows the ``pandas.options.display.memory_usage`` setting.
+            This can be overridden by passing `memory_usage`.
+            A value of 'deep' is equivalent to "True with deep introspection".
+            Memory usage is shown in human-readable units (base-2
+            representation). Without deep introspection a memory estimation is
+            made based in column dtype and number of rows assuming values
+            consume the same memory amount for corresponding dtypes. With deep
+            memory introspection, a real memory usage calculation is performed
             at the cost of computational resources.
-        null_counts : boolean, default None
-            Whether to show the non-null counts
-
-            - If None, then only show if the frame is smaller than
-              max_info_rows and max_info_columns.
-            - If True, always show counts.
-            - If False, never show counts.
+        null_counts : bool, optional
+            Whether to show the non-null counts. By default, this is shown
+            only if the frame is smaller than
+            ``pandas.options.display.max_info_rows`` and
+            ``pandas.options.display.max_info_columns``. A value of True always
+            shows the counts, and False never shows the counts.
 
         Returns
         -------
-        None: NoneType
+        None
             This method prints a summary of a DataFrame and returns None.
 
         See Also
         --------
-
-        DataFrame.describe: Generate descriptive statistics of DataFrame columns.
+        DataFrame.describe: Generate descriptive statistics of DataFrame
+            columns.
         DataFrame.memory_usage: Memory usage of DataFrame columns.
 
         Examples
@@ -1864,7 +1867,8 @@ class DataFrame(NDFrame):
         >>> int_values = [1, 2, 3, 4, 5]
         >>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon']
         >>> float_values = [0.0, 0.25, 0.5, 0.75, 1.0]
-        >>> df = pd.DataFrame({"int_col": int_values, "text_col": text_values, "float_col": float_values})
+        >>> df = pd.DataFrame({"int_col": int_values, "text_col": text_values,
+        ...                   "float_col": float_values})
         >>> df
            int_col text_col  float_col
         0        1    alpha       0.00
@@ -1873,7 +1877,7 @@ class DataFrame(NDFrame):
         3        4    delta       0.75
         4        5  epsilon       1.00
 
-        Prints information of all columns overriding default `display.max_info_columns` setting:
+        Prints information of all columns:
 
         >>> df.info(verbose=True)
         <class 'pandas.core.frame.DataFrame'>
@@ -1885,7 +1889,8 @@ class DataFrame(NDFrame):
         dtypes: float64(1), int64(1), object(1)
         memory usage: 200.0+ bytes
 
-        Prints a summary of columns count and its dtypes but not per column information:
+        Prints a summary of columns count and its dtypes but not per column
+        information:
 
         >>> df.info(verbose=False)
         <class 'pandas.core.frame.DataFrame'>
@@ -1894,8 +1899,8 @@ class DataFrame(NDFrame):
         dtypes: float64(1), int64(1), object(1)
         memory usage: 200.0+ bytes
 
-        Pipe output of DataFrame.info to buffer instead of sys.stdout, get buffer content
-        and writes to a text file:
+        Pipe output of DataFrame.info to buffer instead of sys.stdout, get
+        buffer content and writes to a text file:
 
         >>> import io
         >>> buffer = io.StringIO()
@@ -1905,13 +1910,15 @@ class DataFrame(NDFrame):
         ...     f.write(s)
         260
 
-        The `memory_usage` parameter allows deep introspection mode, specially useful for
-        big DataFrames and fine-tune memory optimization:
+        The `memory_usage` parameter allows deep introspection mode, specially
+        useful for big DataFrames and fine-tune memory optimization:
 
         >>> random_strings_array = np.random.choice(['a', 'b', 'c'], 10 ** 6)
-        >>> df = pd.DataFrame({'column_1': np.random.choice(['a', 'b', 'c'], 10 ** 6),
-        ...                    'column_2': np.random.choice(['a', 'b', 'c'], 10 ** 6),
-        ...                    'column_3': np.random.choice(['a', 'b', 'c'], 10 ** 6)})
+        >>> df = pd.DataFrame({
+        ...     'column_1': np.random.choice(['a', 'b', 'c'], 10 ** 6),
+        ...     'column_2': np.random.choice(['a', 'b', 'c'], 10 ** 6),
+        ...     'column_3': np.random.choice(['a', 'b', 'c'], 10 ** 6)
+        ... })
         >>> df.info()
         <class 'pandas.core.frame.DataFrame'>
         RangeIndex: 1000000 entries, 0 to 999999
@@ -1921,6 +1928,7 @@ class DataFrame(NDFrame):
         column_3    1000000 non-null object
         dtypes: object(3)
         memory usage: 22.9+ MB
+
         >>> df.info(memory_usage='deep')
         <class 'pandas.core.frame.DataFrame'>
         RangeIndex: 1000000 entries, 0 to 999999
