@@ -1813,7 +1813,7 @@ class DataFrame(NDFrame):
     def info(self, verbose=None, buf=None, max_cols=None, memory_usage=None,
              null_counts=None):
         """
-        Concise summary of a DataFrame.
+        Prints a concise summary of a DataFrame.
 
         This method prints information about DataFrame: index dtype, columns
         dtypes, non-null values and memory usage.
