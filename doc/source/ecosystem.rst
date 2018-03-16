@@ -106,20 +106,28 @@ IDE
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 IPython is an interactive command shell and distributed computing
-environment.
-IPython Notebook is a web application for creating IPython notebooks.
-An IPython notebook is a JSON document containing an ordered list
+environment. IPython tab completion works with Pandas methods and also
+attributes like DataFrame columns.
+
+`Jupyter Notebook / Jupyter Lab <https://jupyter.org>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Jupyter Notebook is a web application for creating Jupyter notebooks.
+A Jupyter notebook is a JSON document containing an ordered list
 of input/output cells which can contain code, text, mathematics, plots
 and rich media.
-IPython notebooks can be converted to a number of open standard output formats
+Jupyter notebooks can be converted to a number of open standard output formats
 (HTML, HTML presentation slides, LaTeX, PDF, ReStructuredText, Markdown,
-Python) through 'Download As' in the web interface and ``ipython nbconvert``
+Python) through 'Download As' in the web interface and ``jupyter convert``
 in a shell.
 
-Pandas DataFrames implement ``_repr_html_`` methods
-which are utilized by IPython Notebook for displaying
-(abbreviated) HTML tables.  (Note: HTML tables may or may not be
-compatible with non-HTML IPython output formats.)
+Pandas DataFrames implement ``_repr_html_``and ``_repr_latex`` methods
+which are utilized by Jupyter Notebook for displaying
+(abbreviated) HTML or LaTeX tables. LaTeX output is properly escaped.
+(Note: HTML tables may or may not be
+compatible with non-HTML Jupyter output formats.)
+
+See :ref:`Options and Settings <options>` and :ref:`<options.available>`
+for pandas ``display.`` settings.
 
 `PyCharm <https://www.jetbrains.com/pycharm/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
