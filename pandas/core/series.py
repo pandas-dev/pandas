@@ -3039,9 +3039,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def dropna(self, axis=0, inplace=False, **kwargs):
         """
-        Remove missing values.
+        Return a new Series with missing values removed.
 
-        Return Series without NA values.
+        See the :ref:`User Guide <missing_data>` for more on which values are
+        considered missing, and how to work with missing data.
 
         Parameters
         ----------

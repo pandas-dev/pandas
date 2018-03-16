@@ -3503,8 +3503,8 @@ class DataFrame(NDFrame):
         """
         Remove missing values.
 
-        Return object with labels on given axis omitted where either any
-        or all of the data are missing.
+        See the :ref:`User Guide <missing_data>` for more on which values are
+        considered missing, and how to work with missing data.
 
         Parameters
         ----------
