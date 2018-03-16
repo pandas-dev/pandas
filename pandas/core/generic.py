@@ -8411,10 +8411,12 @@ class NDFrame(PandasObject, SelectionMixin):
             np.inf, np.nan, _cummin_examples)
         cls.cumsum = _make_cum_function(
             cls, 'cumsum', name, name2, axis_descr, "cumulative sum",
-            lambda y, axis: y.cumsum(axis), "sum", 0., np.nan, _cumsum_examples)
+            lambda y, axis: y.cumsum(axis), "sum", 0., 
+            np.nan, _cumsum_examples)
         cls.cumprod = _make_cum_function(
             cls, 'cumprod', name, name2, axis_descr, "cumulative product",
-            lambda y, axis: y.cumprod(axis), "prod", 1., np.nan, _cumprod_examples)
+            lambda y, axis: y.cumprod(axis), "prod", 1., 
+            np.nan, _cumprod_examples)
         cls.cummax = _make_cum_function(
             cls, 'cummax', name, name2, axis_descr, "cumulative maximum",
             lambda y, axis: np.maximum.accumulate(y, axis), "max",
@@ -8702,7 +8704,7 @@ See also
 pandas.core.window.Expanding.%(accum_func_name)s : Similar functionality
     but ignores ``NaN`` values.
 Series.%(outname)s : Return %(desc)s over Series axis.
-DataFrame.%(accum_func_name)s : Return the %(accum_func_name)s of values over DataFrame axis.
+DataFrame.%(accum_func_name)s : Return the %(accum_func_name)s over DataFrame axis.
 DataFrame.cummax : Return cumulative maximum over DataFrame axis.
 DataFrame.cummin : Return cumulative minimum over DataFrame axis.
 DataFrame.cumsum : Return cumulative sum over DataFrame axis.
@@ -8834,7 +8836,8 @@ Iterates over rows and finds the cumulative sum of values in each column.
 1  5.0  NaN
 2  6.0  1.0
 
-axis=1 : Iterates over columns and finds the cumulative sum of values in each row.
+axis=1 : Iterates over columns and finds the cumulative sum of
+values in each row.
 
 >>> df.cumsum(axis=1)
      A    B
@@ -8900,7 +8903,8 @@ Iterates over rows and finds the cumulative product of values in each column.
 1  6.0  NaN
 2  6.0  0.0
 
-axis=1 : Iterates over columns and finds the cumulative product of values in each row.
+axis=1 : Iterates over columns and finds the cumulative product
+of values in each row.
 
 >>> df.cumprod(axis=1)
      A    B
