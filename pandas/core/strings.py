@@ -1185,16 +1185,16 @@ def str_slice_replace(arr, start=None, stop=None, repl=None):
     Parameters
     ----------
     start : int, optional
-        Left index position to use for the slice. The default of None
-        implies a slice unbound on the left, i.e. slice from the start
+        Left index position to use for the slice. If not specified (None),
+        the slice is unbounded on the left, i.e. slice from the start
         of the string.
     stop : int, optional
-        Right index position to use for the slice. The default of None
-        implies a slice unbounded on the right, i.e. slice until the
+        Right index position to use for the slice. If not specified (None),
+        the slice is unbounded on the right, i.e. slice until the
         end of the string.
     repl : str, optional
-        String for replacement. The default of None replaces the slice
-        with an empty string.
+        String for replacement. If not specified (None), the sliced region
+        is replaced with an empty string.
 
     Returns
     -------
