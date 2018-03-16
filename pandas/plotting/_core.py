@@ -3033,11 +3033,16 @@ class FramePlotMethods(BasePlotMethods):
         r"""
         Make a box plot of the DataFrame columns.
 
-        This method draws a box and whisker for each series in the DataFrame
-        in a single chart. The boxes share the vertical axis, which
-        makes makes it easier to compare if they are similar in scale.
-        Box plots are useful because they clearly show the median,
-        quartiles and flier points in the data.
+        A box plot is a method for graphically depicting
+        groups of numerical data through their quartiles.
+        The box extends from the Q1 to Q3 quartile values of the data,
+        with a line at the median (Q2). The whiskers extend from the edges
+        of box to show the range of the data. The position of the whiskers
+        is set by default to 1.5*IQR (IQR = Q3 - Q1) from the edges of the
+        box. Outlier points are those past the end of the whiskers.
+
+        For further details see Wikipedia's
+        entry for `boxplot <https://en.wikipedia.org/wiki/Box_plot>`_.
 
         A consideration when using this chart is that the box and the whiskers
         can overlap, which is very common when plotting small sets of data.
@@ -3056,9 +3061,9 @@ class FramePlotMethods(BasePlotMethods):
 
         See Also
         --------
-        :meth:`pandas.DataFrame.boxplot` : Another method to draw a box plot.
-        :meth:`pandas.Series.plot.box` : Draw a box plot from a Series object.
-        :func:`matplotlib.pyplot.boxplot`: Draw a box plot in matplotlib.
+        pandas.DataFrame.boxplot: Another method to draw a box plot.
+        pandas.Series.plot.box: Draw a box plot from a Series object.
+        matplotlib.pyplot.boxplot: Draw a box plot in matplotlib.
 
         Examples
         --------
@@ -3068,7 +3073,7 @@ class FramePlotMethods(BasePlotMethods):
         .. plot::
             :context: close-figs
 
-            >>> data = np.random.randint(0, 10, size=(25, 4))
+            >>> data = np.random.randn(25, 4)
             >>> df = pd.DataFrame(data, columns=list('ABCD'))
             >>> plot = df.plot.box()
         """
