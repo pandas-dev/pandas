@@ -1992,6 +1992,19 @@ class TestStringMethods(object):
         exp = Series([['a_b', 'c'], ['c_d', 'e'], NA, ['f_g', 'h']])
         tm.assert_series_equal(result, exp)
 
+    def test_split_blank_string(self):
+        # expand blank split GH 20067
+        values = Series([''], name='test')
+        result = values.str.split(expand=True)
+        exp = DataFrame([[]])
+        tm.assert_frame_equal(result, exp)
+
+        values = Series(['a b c', 'a b', '', ' '], name='test')
+        result = values.str.split(expand=True)
+        exp = DataFrame([['a', 'b', 'c'], ['a', 'b', np.nan],
+                         [np.nan, np.nan, np.nan], [np.nan, np.nan, np.nan]])
+        tm.assert_frame_equal(result, exp)
+
     def test_split_noargs(self):
         # #1859
         s = Series(['Wes McKinney', 'Travis  Oliphant'])
