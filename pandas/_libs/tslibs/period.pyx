@@ -974,8 +974,8 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
                 if stamps[i] == NPY_NAT:
                     result[i] = NPY_NAT
                     continue
-                dt64_to_dtstruct(stamps[i] + deltas[0], &dts)
-                result[i] = get_period_ordinal(&dts, freq)
+                dt64_to_dtstruct(stamps[i] + deltas[0], & dts)
+                result[i] = get_period_ordinal(& dts, freq)
         else:
             for i in range(n):
                 if stamps[i] == NPY_NAT:
@@ -1410,7 +1410,7 @@ cdef class _Period(object):
     def qyear(self):
         """
         Get the year component of the Period.
-        
+
         Returns
         -------
         int
@@ -1519,8 +1519,8 @@ cdef class _Period(object):
         return value
 
     def __setstate__(self, state):
-        self.freq=state[1]
-        self.ordinal=state[2]
+        self.freq = state[1]
+        self.ordinal = state[2]
 
     def __reduce__(self):
         object_state = None, self.freq, self.ordinal
