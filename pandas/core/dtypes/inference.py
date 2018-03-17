@@ -28,20 +28,37 @@ def is_number(obj):
     """
     Check if the object is a number.
 
+    Returns True when the object is a number, and False if is not.
+
     Parameters
     ----------
-    obj : The object to check.
+    obj : any type
+        The object to check if is a number.
 
     Returns
     -------
     is_number : bool
         Whether `obj` is a number or not.
 
+    See Also
+    --------
+    pandas.api.types.is_integer: checks a subgroup of numbers
+
     Examples
     --------
-    >>> is_number(1)
+    >>> pd.api.types.is_number(1)
     True
-    >>> is_number("foo")
+    >>> pd.api.types.is_number(7.15)
+    True
+
+    Booleans are valid because they are int subclass.
+
+    >>> pd.api.types.is_number(False)
+    True
+
+    >>> pd.api.types.is_number("foo")
+    False
+    >>> pd.api.types.is_number("5")
     False
     """
 
