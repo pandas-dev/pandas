@@ -1970,33 +1970,132 @@ class DataFrame(NDFrame):
     def info(self, verbose=None, buf=None, max_cols=None, memory_usage=None,
              null_counts=None):
         """
-        Concise summary of a DataFrame.
+        Print a concise summary of a DataFrame.
+
+        This method prints information about a DataFrame including
+        the index dtype and column dtypes, non-null values and memory usage.
 
         Parameters
         ----------
-        verbose : {None, True, False}, optional
-            Whether to print the full summary.
-            None follows the `display.max_info_columns` setting.
-            True or False overrides the `display.max_info_columns` setting.
+        verbose : bool, optional
+            Whether to print the full summary. By default, the setting in
+            ``pandas.options.display.max_info_columns`` is followed.
         buf : writable buffer, defaults to sys.stdout
-        max_cols : int, default None
-            Determines whether full summary or short summary is printed.
-            None follows the `display.max_info_columns` setting.
-        memory_usage : boolean/string, default None
+            Where to send the output. By default, the output is printed to
+            sys.stdout. Pass a writable buffer if you need to further process
+            the output.
+        max_cols : int, optional
+            When to switch from the verbose to the truncated output. If the
+            DataFrame has more than `max_cols` columns, the truncated output
+            is used. By default, the setting in
+            ``pandas.options.display.max_info_columns`` is used.
+        memory_usage : bool, str, optional
             Specifies whether total memory usage of the DataFrame
-            elements (including index) should be displayed. None follows
-            the `display.memory_usage` setting. True or False overrides
-            the `display.memory_usage` setting. A value of 'deep' is equivalent
-            of True, with deep introspection. Memory usage is shown in
-            human-readable units (base-2 representation).
-        null_counts : boolean, default None
-            Whether to show the non-null counts
+            elements (including the index) should be displayed. By default,
+            this follows the ``pandas.options.display.memory_usage`` setting.
 
-            - If None, then only show if the frame is smaller than
-              max_info_rows and max_info_columns.
-            - If True, always show counts.
-            - If False, never show counts.
+            True always show memory usage. False never shows memory usage.
+            A value of 'deep' is equivalent to "True with deep introspection".
+            Memory usage is shown in human-readable units (base-2
+            representation). Without deep introspection a memory estimation is
+            made based in column dtype and number of rows assuming values
+            consume the same memory amount for corresponding dtypes. With deep
+            memory introspection, a real memory usage calculation is performed
+            at the cost of computational resources.
+        null_counts : bool, optional
+            Whether to show the non-null counts. By default, this is shown
+            only if the frame is smaller than
+            ``pandas.options.display.max_info_rows`` and
+            ``pandas.options.display.max_info_columns``. A value of True always
+            shows the counts, and False never shows the counts.
 
+        Returns
+        -------
+        None
+            This method prints a summary of a DataFrame and returns None.
+
+        See Also
+        --------
+        DataFrame.describe: Generate descriptive statistics of DataFrame
+            columns.
+        DataFrame.memory_usage: Memory usage of DataFrame columns.
+
+        Examples
+        --------
+        >>> int_values = [1, 2, 3, 4, 5]
+        >>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon']
+        >>> float_values = [0.0, 0.25, 0.5, 0.75, 1.0]
+        >>> df = pd.DataFrame({"int_col": int_values, "text_col": text_values,
+        ...                   "float_col": float_values})
+        >>> df
+           int_col text_col  float_col
+        0        1    alpha       0.00
+        1        2     beta       0.25
+        2        3    gamma       0.50
+        3        4    delta       0.75
+        4        5  epsilon       1.00
+
+        Prints information of all columns:
+
+        >>> df.info(verbose=True)
+        <class 'pandas.core.frame.DataFrame'>
+        RangeIndex: 5 entries, 0 to 4
+        Data columns (total 3 columns):
+        int_col      5 non-null int64
+        text_col     5 non-null object
+        float_col    5 non-null float64
+        dtypes: float64(1), int64(1), object(1)
+        memory usage: 200.0+ bytes
+
+        Prints a summary of columns count and its dtypes but not per column
+        information:
+
+        >>> df.info(verbose=False)
+        <class 'pandas.core.frame.DataFrame'>
+        RangeIndex: 5 entries, 0 to 4
+        Columns: 3 entries, int_col to float_col
+        dtypes: float64(1), int64(1), object(1)
+        memory usage: 200.0+ bytes
+
+        Pipe output of DataFrame.info to buffer instead of sys.stdout, get
+        buffer content and writes to a text file:
+
+        >>> import io
+        >>> buffer = io.StringIO()
+        >>> df.info(buf=buffer)
+        >>> s = buffer.getvalue()
+        >>> with open("df_info.txt", "w", encoding="utf-8") as f:
+        ...     f.write(s)
+        260
+
+        The `memory_usage` parameter allows deep introspection mode, specially
+        useful for big DataFrames and fine-tune memory optimization:
+
+        >>> random_strings_array = np.random.choice(['a', 'b', 'c'], 10 ** 6)
+        >>> df = pd.DataFrame({
+        ...     'column_1': np.random.choice(['a', 'b', 'c'], 10 ** 6),
+        ...     'column_2': np.random.choice(['a', 'b', 'c'], 10 ** 6),
+        ...     'column_3': np.random.choice(['a', 'b', 'c'], 10 ** 6)
+        ... })
+        >>> df.info()
+        <class 'pandas.core.frame.DataFrame'>
+        RangeIndex: 1000000 entries, 0 to 999999
+        Data columns (total 3 columns):
+        column_1    1000000 non-null object
+        column_2    1000000 non-null object
+        column_3    1000000 non-null object
+        dtypes: object(3)
+        memory usage: 22.9+ MB
+
+        >>> df.info(memory_usage='deep')
+        <class 'pandas.core.frame.DataFrame'>
+        RangeIndex: 1000000 entries, 0 to 999999
+        Data columns (total 3 columns):
+        column_1    1000000 non-null object
+        column_2    1000000 non-null object
+        column_3    1000000 non-null object
+        dtypes: object(3)
+        memory usage: 188.8 MB
         """
 
         if buf is None:  # pragma: no cover
@@ -4249,34 +4348,93 @@ class DataFrame(NDFrame):
                                inplace=inplace, sort_remaining=sort_remaining)
 
     def nlargest(self, n, columns, keep='first'):
-        """Get the rows of a DataFrame sorted by the `n` largest
-        values of `columns`.
+        """
+        Return the first `n` rows ordered by `columns` in descending order.
+
+        Return the first `n` rows with the largest values in `columns`, in
+        descending order. The columns that are not specified are returned as
+        well, but not used for ordering.
+
+        This method is equivalent to
+        ``df.sort_values(columns, ascending=False).head(n)``, but more
+        performant.
 
         Parameters
         ----------
         n : int
-            Number of items to retrieve
-        columns : list or str
-            Column name or names to order by
+            Number of rows to return.
+        columns : label or list of labels
+            Column label(s) to order by.
         keep : {'first', 'last'}, default 'first'
             Where there are duplicate values:
-            - ``first`` : take the first occurrence.
-            - ``last`` : take the last occurrence.
+
+            - `first` : prioritize the first occurrence(s)
+            - `last` : prioritize the last occurrence(s)
 
         Returns
         -------
         DataFrame
+            The first `n` rows ordered by the given columns in descending
+            order.
+
+        See Also
+        --------
+        DataFrame.nsmallest : Return the first `n` rows ordered by `columns` in
+            ascending order.
+        DataFrame.sort_values : Sort DataFrame by the values
+        DataFrame.head : Return the first `n` rows without re-ordering.
+
+        Notes
+        -----
+        This function cannot be used with all column types. For example, when
+        specifying columns with `object` or `category` dtypes, ``TypeError`` is
+        raised.
 
         Examples
         --------
-        >>> df = pd.DataFrame({'a': [1, 10, 8, 11, -1],
+        >>> df = pd.DataFrame({'a': [1, 10, 8, 10, -1],
         ...                    'b': list('abdce'),
         ...                    'c': [1.0, 2.0, np.nan, 3.0, 4.0]})
+        >>> df
+            a  b    c
+        0   1  a  1.0
+        1  10  b  2.0
+        2   8  d  NaN
+        3  10  c  3.0
+        4  -1  e  4.0
+
+        In the following example, we will use ``nlargest`` to select the three
+        rows having the largest values in column "a".
+
         >>> df.nlargest(3, 'a')
-            a  b   c
-        3  11  c   3
-        1  10  b   2
-        2   8  d NaN
+            a  b    c
+        1  10  b  2.0
+        3  10  c  3.0
+        2   8  d  NaN
+
+        When using ``keep='last'``, ties are resolved in reverse order:
+
+        >>> df.nlargest(3, 'a', keep='last')
+            a  b    c
+        3  10  c  3.0
+        1  10  b  2.0
+        2   8  d  NaN
+
+        To order by the largest values in column "a" and then "c", we can
+        specify multiple columns like in the next example.
+
+        >>> df.nlargest(3, ['a', 'c'])
+            a  b    c
+        3  10  c  3.0
+        1  10  b  2.0
+        2   8  d  NaN
+
+        Attempting to use ``nlargest`` on non-numeric dtypes will raise a
+        ``TypeError``:
+
+        >>> df.nlargest(3, 'b')
+        Traceback (most recent call last):
+        TypeError: Column 'b' has dtype object, cannot use method 'nlargest'
         """
         return algorithms.SelectNFrame(self,
                                        n=n,
