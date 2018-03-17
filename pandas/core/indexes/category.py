@@ -706,12 +706,12 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         CategoricalIndex(['first', 'second', 'third'], categories=['first',
                          'second', 'third'], ordered=False, dtype='category')
 
-        If the mapping is not bijective an :class:`~pandas.Index~ is returned:
+        If the mapping is not bijective an :class:`~pandas.Index` is returned:
 
         >>> idx.map({'a': 'first', 'b': 'second', 'c': 'first'})
         Index(['first', 'second', 'first'], dtype='object')
 
-        If a `dict` is used, all unmapped categories are mapped to NA and
+        If a `dict` is used, all unmapped categories are mapped to NaN and
         the result is an :class:`~pandas.Index`:
 
         >>> idx.map({'a': 'first', 'b': 'second'})

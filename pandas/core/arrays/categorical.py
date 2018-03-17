@@ -1107,7 +1107,7 @@ class Categorical(ExtensionArray, PandasObject):
         See Also
         --------
         CategoricalIndex.map : Apply a mapping correspondence on a
-        :class:`~pandas.CategoricalIndex`.
+            :class:`~pandas.CategoricalIndex`.
         Index.map : Apply a mapping correspondence on an
             :class:`~pandas.Index`.
         Series.map : Apply a mapping correspondence on a
@@ -1128,15 +1128,15 @@ class Categorical(ExtensionArray, PandasObject):
         [first, second, third]
         Categories (3, object): [first, second, third]
 
-        If the mapping is not bijective an :class:`~pandas.Index~ is returned:
+        If the mapping is not bijective an :class:`~pandas.Index` is returned:
 
         >>> cat.map({'a': 'first', 'b': 'second', 'c': 'first'})
         Index(['first', 'second', 'first'], dtype='object')
 
-        If a `dict` is used, all unmapped categories are mapped to NA and
+        If a `dict` is used, all unmapped categories are mapped to NaN and
         the result is an :class:`~pandas.Index`:
 
-        >>> idx.map({'a': 'first', 'b': 'second'})
+        >>> cat.map({'a': 'first', 'b': 'second'})
         Index(['first', 'second', nan], dtype='object')
         """
         new_categories = self.categories.map(mapper)
