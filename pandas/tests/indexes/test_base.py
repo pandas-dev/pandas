@@ -20,7 +20,7 @@ import numpy as np
 from pandas import (period_range, date_range, Series,
                     DataFrame, Float64Index, Int64Index, UInt64Index,
                     CategoricalIndex, DatetimeIndex, TimedeltaIndex,
-                    PeriodIndex, isna)
+                    PeriodIndex, RangeIndex, isna)
 from pandas.core.index import _get_combined_index, _ensure_index_from_sequences
 from pandas.util.testing import assert_almost_equal
 from pandas.compat.numpy import np_datetime64_compat
@@ -44,7 +44,7 @@ class TestIndex(Base):
                             tdIndex=tm.makeTimedeltaIndex(100),
                             intIndex=tm.makeIntIndex(100),
                             uintIndex=tm.makeUIntIndex(100),
-                            rangeIndex=tm.makeIntIndex(100),
+                            rangeIndex=tm.makeRangeIndex(100),
                             floatIndex=tm.makeFloatIndex(100),
                             boolIndex=Index([True, False]),
                             catIndex=tm.makeCategoricalIndex(100),
@@ -56,6 +56,15 @@ class TestIndex(Base):
 
     def create_index(self):
         return Index(list('abcde'))
+
+    def generate_index_types(self, skip_index_keys=[]):
+        """
+        Return a generator of the various index types, leaving
+        out the ones with a key in skip_index_keys
+        """
+        for key, idx in self.indices.items():
+            if key not in skip_index_keys:
+                yield key, idx
 
     def test_new_axis(self):
         new_index = self.dateIndex[None, :]
@@ -405,6 +414,27 @@ class TestIndex(Base):
             for res in [pd.TimedeltaIndex(values, dtype=dtype),
                         pd.TimedeltaIndex(list(values), dtype=dtype)]:
                 tm.assert_index_equal(res, idx)
+
+    def test_constructor_empty(self):
+        skip_index_keys = ["repeats", "periodIndex", "rangeIndex",
+                           "tuples"]
+        for key, idx in self.generate_index_types(skip_index_keys):
+            empty = idx.__class__([])
+            assert isinstance(empty, idx.__class__)
+            assert not len(empty)
+
+        empty = PeriodIndex([], freq='B')
+        assert isinstance(empty, PeriodIndex)
+        assert not len(empty)
+
+        empty = RangeIndex(step=1)
+        assert isinstance(empty, pd.RangeIndex)
+        assert not len(empty)
+
+        empty = MultiIndex(levels=[[1, 2], ['blue', 'red']],
+                           labels=[[], []])
+        assert isinstance(empty, MultiIndex)
+        assert not len(empty)
 
     def test_view_with_args(self):
 
@@ -1034,6 +1064,27 @@ class TestIndex(Base):
         assert tm.equalContents(result, expected)
         assert result.name == 'new_name'
 
+    def test_difference_type(self):
+        # GH 20040
+        # If taking difference of a set and itself, it
+        # needs to preserve the type of the index
+        skip_index_keys = ['repeats']
+        for key, idx in self.generate_index_types(skip_index_keys):
+            result = idx.difference(idx)
+            expected = idx.drop(idx)
+            tm.assert_index_equal(result, expected)
+
+    def test_intersection_difference(self):
+        # GH 20040
+        # Test that the intersection of an index with an
+        # empty index produces the same index as the difference
+        # of an index with itself.  Test for all types
+        skip_index_keys = ['repeats']
+        for key, idx in self.generate_index_types(skip_index_keys):
+            inter = idx.intersection(idx.drop(idx))
+            diff = idx.difference(idx)
+            tm.assert_index_equal(inter, diff)
+
     def test_is_numeric(self):
         assert not self.dateIndex.is_numeric()
         assert not self.strIndex.is_numeric()
@@ -1055,13 +1106,20 @@ class TestIndex(Base):
         assert not self.intIndex.is_all_dates
 
     def test_summary(self):
-        self._check_method_works(Index.summary)
+        self._check_method_works(Index._summary)
         # GH3869
         ind = Index(['{other}%s', "~:{range}:0"], name='A')
-        result = ind.summary()
+        result = ind._summary()
         # shouldn't be formatted accidentally.
         assert '~:{range}:0' in result
         assert '{other}%s' in result
+
+    # GH18217
+    def test_summary_deprecated(self):
+        ind = Index(['{other}%s', "~:{range}:0"], name='A')
+
+        with tm.assert_produces_warning(FutureWarning):
+            ind.summary()
 
     def test_format(self):
         self._check_method_works(Index.format)
@@ -1599,16 +1657,15 @@ class TestIndex(Base):
         idx = Index(['a', 'b'], name='asdf')
         assert idx.name == idx[1:].name
 
-    def test_join_self(self):
-        # instance attributes of the form self.<name>Index
-        indices = 'unicode', 'str', 'date', 'int', 'float'
-        kinds = 'outer', 'inner', 'left', 'right'
-        for index_kind in indices:
-            res = getattr(self, '{0}Index'.format(index_kind))
+    # instance attributes of the form self.<name>Index
+    @pytest.mark.parametrize('index_kind',
+                             ['unicode', 'str', 'date', 'int', 'float'])
+    def test_join_self(self, join_type, index_kind):
 
-            for kind in kinds:
-                joined = res.join(res, how=kind)
-                assert res is joined
+        res = getattr(self, '{0}Index'.format(index_kind))
+
+        joined = res.join(res, how=join_type)
+        assert res is joined
 
     def test_str_attribute(self):
         # GH9068
