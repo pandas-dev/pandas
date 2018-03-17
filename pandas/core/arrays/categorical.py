@@ -1390,7 +1390,7 @@ class Categorical(ExtensionArray, PandasObject):
                             "you can use .as_ordered() to change the "
                             "Categorical to an ordered one\n".format(op=op))
 
-    def _values_for_argsort(self):
+    def _simple_ndarray(self):
         return self._codes.copy()
 
     def argsort(self, *args, **kwargs):
