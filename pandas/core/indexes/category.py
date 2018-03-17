@@ -662,17 +662,17 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     def map(self, mapper):
         """
-        Map index values using input correspondence (a dict, Series, or
-        function).
+        Map values using input correspondence (a dict, Series, or function).
 
         Maps the values (their categories, not the codes) of the index to new
-        categories. If the mapping correspondence maps each original category
-        to a different new category the result is a CategoricalIndex which has
-        the same order property as the original, otherwise an Index is
-        returned.
+        categories. If the mapping correspondence is a bijection (maps each
+        original category to a different new category) the result is a
+        :class:`~pandas.CategoricalIndex` which has the same order property as
+        the original, otherwise an :class:`~pandas.Index` is returned.
 
-        If a dictionary or Series is used any unmapped category is mapped to
-        NA. Note that if this happens an Index will be returned.
+        If a `dict` or :class:`~pandas.Series` is used any unmapped category is
+        mapped to NaN. Note that if this happens an :class:`~pandas.Index` will
+        be returned.
 
         Parameters
         ----------
@@ -681,14 +681,17 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         Returns
         -------
-        CategoricalIndex or Index
+        pandas.CategoricalIndex or pandas.Index
             Mapped index.
 
         See Also
         --------
-        Index.map : Apply a mapping correspondence on an Index.
-        Series.map : Apply a mapping correspondence on a Series.
-        Series.apply : Apply more complex functions on a Series.
+        Index.map : Apply a mapping correspondence on an
+            :class:`~pandas.Index`.
+        Series.map : Apply a mapping correspondence on a
+            :class:`~pandas.Series`.
+        Series.apply : Apply more complex functions on a
+            :class:`~pandas.Series`.
 
         Examples
         --------
@@ -703,13 +706,13 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         CategoricalIndex(['first', 'second', 'third'], categories=['first',
                          'second', 'third'], ordered=False, dtype='category')
 
-        If the mapping is not bijective an Index is returned:
+        If the mapping is not bijective an :class:`~pandas.Index~ is returned:
 
         >>> idx.map({'a': 'first', 'b': 'second', 'c': 'first'})
         Index(['first', 'second', 'first'], dtype='object')
 
-        If a dictionary is used, all unmapped categories are mapped to NA and
-        the result is an Index:
+        If a `dict` is used, all unmapped categories are mapped to NA and
+        the result is an :class:`~pandas.Index`:
 
         >>> idx.map({'a': 'first', 'b': 'second'})
         Index(['first', 'second', nan], dtype='object')
