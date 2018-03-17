@@ -1350,6 +1350,32 @@ cdef class _Period(object):
 
     @property
     def week(self):
+        """
+        Get the week of the year on the given Period.
+
+        Returns
+        -------
+        int 
+
+        See Also
+        --------
+        Period.dayofweek : Get the day component of the Period.
+        Period.weekday : Get the day component of the Period.
+
+        Examples
+        --------
+        >>> p = pd.Period("2018-03-11", "H")
+        >>> p.week
+        10
+
+        >>> p = pd.Period("2018-02-01", "D")
+        >>> p.week
+        5
+        
+        >>> p = pd.Period("2018-01-06", "D")
+        >>> p.week
+        1
+        """
         return self.weekofyear
 
     @property
