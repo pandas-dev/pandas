@@ -910,7 +910,7 @@ class _Rolling_and_Expanding(_Rolling):
         return self._apply('roll_max', 'max', **kwargs)
 
     _shared_docs['min'] = dedent("""
-    Calculate the %(name)s minimum. 
+    Calculate the %(name)s minimum.
 
     Parameters
     ----------
@@ -922,7 +922,7 @@ class _Rolling_and_Expanding(_Rolling):
     Series or DataFrame
         Returned object type is determined by the caller of the %(name)s
         calculation.
-    
+
     See Also
     --------
     Series.%(name)s : Calling object with a Series
@@ -932,17 +932,9 @@ class _Rolling_and_Expanding(_Rolling):
 
     Examples
     --------
-    The below example will show a rolling calculation
-    with a window size of 3.
+    Performing a rolling minimum with a window size of 3.
 
-    >>> s = pd.Series([4,3,5,2,6])
-    >>> s
-    0    4
-    1    3
-    2    5
-    3    2
-    4    6
-    dtype: int64
+    >>> s = pd.Series([4, 3, 5, 2, 6])
     >>> s.rolling(3).min()
     0    NaN
     1    NaN
@@ -951,7 +943,7 @@ class _Rolling_and_Expanding(_Rolling):
     4    2.0
     dtype: float64
     """)
-    
+
     def min(self, *args, **kwargs):
         nv.validate_window_func('min', args, kwargs)
         return self._apply('roll_min', 'min', **kwargs)
