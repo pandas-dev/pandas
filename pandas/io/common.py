@@ -363,18 +363,33 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
 
         # ZIP Compression
         elif compression == 'zip':
-            import zipfile
-            zip_file = zipfile.ZipFile(path_or_buf)
-            zip_names = zip_file.namelist()
-            if len(zip_names) == 1:
-                f = zip_file.open(zip_names.pop())
-            elif len(zip_names) == 0:
-                raise ValueError('Zero files found in ZIP file {}'
-                                 .format(path_or_buf))
-            else:
-                raise ValueError('Multiple files found in ZIP file.'
-                                 ' Only one file per ZIP: {}'
-                                 .format(zip_names))
+            from zipfile import ZipFile
+            # GH 17778
+
+            class _ZipFile(ZipFile):
+                """uses writestr method as write to accept bytes."""
+                def __init__(self, file, mode='r', **kwargs):
+                    if mode in ['wb', 'rb']:
+                        mode = mode.replace('b', '')
+                    super(_ZipFile, self).__init__(file, mode=mode, **kwargs)
+
+                def write(self, data):
+                    super(_ZipFile, self).writestr(self.filename, data)
+
+            zf = _ZipFile(path_or_buf, mode)
+            if zf.mode == 'w':
+                f = zf
+            elif zf.mode == 'r':
+                zip_names = zf.namelist()
+                if len(zip_names) == 1:
+                    f = zf.open(zip_names.pop())
+                elif len(zip_names) == 0:
+                    raise ValueError('Zero files found in ZIP file {}'
+                                     .format(path_or_buf))
+                else:
+                    raise ValueError('Multiple files found in ZIP file.'
+                                     ' Only one file per ZIP: {}'
+                                     .format(zip_names))
 
         # XZ Compression
         elif compression == 'xz':
