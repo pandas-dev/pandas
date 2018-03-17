@@ -8580,37 +8580,29 @@ class NDFrame(PandasObject, SelectionMixin):
 
     Examples
     --------
-    >>> df = pd.DataFrame(np.arange(30).reshape(10, 3),
-    ...                   columns=['A', 'B', 'C'],
-    ...                   index=pd.date_range('1/1/2000', periods=10))
-    >>> df.iloc[3:7] = np.nan
+
+    transform() is applicable to Dataframes.
+
+    >>> df = pd.DataFrame(np.arange(15).reshape(5, 3), columns=['A', 'B', 'C'],
+    ...                   index=pd.date_range('1/1/2000', periods=5))
+    ...
     >>> df
-                A     B     C
-    2000-01-01   0.0   1.0   2.0
-    2000-01-02   3.0   4.0   5.0
-    2000-01-03   6.0   7.0   8.0
-    2000-01-04   NaN   NaN   NaN
-    2000-01-05   NaN   NaN   NaN
-    2000-01-06   NaN   NaN   NaN
-    2000-01-07   NaN   NaN   NaN
-    2000-01-08  21.0  22.0  23.0
-    2000-01-09  24.0  25.0  26.0
-    2000-01-10  27.0  28.0  29.0
+                A   B   C
+    2000-01-01   0   1   2
+    2000-01-02   3   4   5
+    2000-01-03   6   7   8
+    2000-01-04   9  10  11
+    2000-01-05  12  13  14
 
     By default, `func` is applied to each column independently.
 
     >>> df.transform(lambda x: (x - x.mean()) / x.std())
-                A         B         C
-    2000-01-01 -1.143001 -1.143001 -1.143001
-    2000-01-02 -0.889001 -0.889001 -0.889001
-    2000-01-03 -0.635001 -0.635001 -0.635001
-    2000-01-04       NaN       NaN       NaN
-    2000-01-05       NaN       NaN       NaN
-    2000-01-06       NaN       NaN       NaN
-    2000-01-07       NaN       NaN       NaN
-    2000-01-08  0.635001  0.635001  0.635001
-    2000-01-09  0.889001  0.889001  0.889001
-    2000-01-10  1.143001  1.143001  1.143001
+                    A         B         C
+    2000-01-01 -1.264911 -1.264911 -1.264911
+    2000-01-02 -0.632456 -0.632456 -0.632456
+    2000-01-03  0.000000  0.000000  0.000000
+    2000-01-04  0.632456  0.632456  0.632456
+    2000-01-05  1.264911  1.264911  1.264911
 
     Apply `func` to each row with ``axis='columns'``.
 
@@ -8619,120 +8611,70 @@ class NDFrame(PandasObject, SelectionMixin):
     2000-01-01 -1.0  0.0  1.0
     2000-01-02 -1.0  0.0  1.0
     2000-01-03 -1.0  0.0  1.0
-    2000-01-04  NaN  NaN  NaN
-    2000-01-05  NaN  NaN  NaN
-    2000-01-06  NaN  NaN  NaN
-    2000-01-07  NaN  NaN  NaN
-    2000-01-08 -1.0  0.0  1.0
-    2000-01-09 -1.0  0.0  1.0
-    2000-01-10 -1.0  0.0  1.0
+    2000-01-04 -1.0  0.0  1.0
+    2000-01-05 -1.0  0.0  1.0
 
-    >>> def f(s):
-    ...     "input is a Series"
-    ...     i = np.arange(s.size)
-    ...     return s + i
+    transform() takes individual columns (or rows) as pandas.Series.
 
-    >>> df.transform(f)
-                A     B     C
-    2000-01-01   0.0   1.0   2.0
-    2000-01-02   4.0   5.0   6.0
-    2000-01-03   8.0   9.0  10.0
-    2000-01-04   NaN   NaN   NaN
-    2000-01-05   NaN   NaN   NaN
-    2000-01-06   NaN   NaN   NaN
-    2000-01-07   NaN   NaN   NaN
-    2000-01-08  28.0  29.0  30.0
-    2000-01-09  32.0  33.0  34.0
-    2000-01-10  36.0  37.0  38.0
-
-    >>> df.transform(f, axis=1)
-                A     B     C
-    2000-01-01   0.0   2.0   4.0
-    2000-01-02   3.0   5.0   7.0
-    2000-01-03   6.0   8.0  10.0
-    2000-01-04   NaN   NaN   NaN
-    2000-01-05   NaN   NaN   NaN
-    2000-01-06   NaN   NaN   NaN
-    2000-01-07   NaN   NaN   NaN
-    2000-01-08  21.0  23.0  25.0
-    2000-01-09  24.0  26.0  28.0
-    2000-01-10  27.0  29.0  31.0
-
-    >>> def g(s):
-    ...     "input is a Series whose index may be modified"
-    ...     i = np.arange(s.size)
-    ...     s.index = i
-    ...     return s + i
-
-    >>> df.transform(g)
-        A     B     C
-    0   0.0   1.0   2.0
-    1   4.0   5.0   6.0
-    2   8.0   9.0  10.0
-    3   NaN   NaN   NaN
-    4   NaN   NaN   NaN
-    5   NaN   NaN   NaN
-    6   NaN   NaN   NaN
-    7  28.0  29.0  30.0
-    8  32.0  33.0  34.0
-    9  36.0  37.0  38.0
+    >>> df2 = pd.DataFrame({"A": [10, 20, 30], "B": [1, 2, 3]})
+    >>> df2
+        A  B
+    0  10  1
+    1  20  2
+    2  30  3
+    >>> def cell_name(series):
+    ...     return ['{}-{}'.format(series.name, idx) for idx in series.index]
+    ... 
+    >>> df2.transform(cell_name)
+        A    B
+    0  A-0  B-0
+    1  A-1  B-1
+    2  A-2  B-2
 
     Apply functions to specific columns by passing a dictionary mapping
     column names to functions.
 
     >>> def log_T(s):
-    ...     return np.log(10 + s)
-    >>> def normalize_T(s):
+    ...     return np.log(10+s)
+    ... def normalize_T(s):
     ...     return (s - s.mean()) / s.std()
-
+    ... 
     >>> dic = {
     ...     'A': lambda x: x+1,
-    ...     'B': lambda x: x+2,
+    ...     'B': lambda x: x+2
     ... }
+    >>> 
     >>> df.transform(dic)
-               A     B
-    2000-01-01   1.0   3.0
-    2000-01-02   4.0   6.0
-    2000-01-03   7.0   9.0
-    2000-01-04   NaN   NaN
-    2000-01-05   NaN   NaN
-    2000-01-06   NaN   NaN
-    2000-01-07   NaN   NaN
-    2000-01-08  22.0  24.0
-    2000-01-09  25.0  27.0
-    2000-01-10  28.0  30.0
+                A   B
+    2000-01-01   1   3
+    2000-01-02   4   6
+    2000-01-03   7   9
+    2000-01-04  10  12
+    2000-01-05  13  15
 
     When multiple functions are applied to a column, the result is a MultiIndex
     in the columns.
 
     >>> dic = {'B': [log_T, normalize_T]}
     >>> df.transform(dic)
-                                   B
-                   log_T normalize_T
-    2000-01-01  2.397895   -1.143001
-    2000-01-02  2.639057   -0.889001
-    2000-01-03  2.833213   -0.635001
-    2000-01-04       NaN         NaN
-    2000-01-05       NaN         NaN
-    2000-01-06       NaN         NaN
-    2000-01-07       NaN         NaN
-    2000-01-08  3.465736    0.635001
-    2000-01-09  3.555348    0.889001
-    2000-01-10  3.637586    1.143001
+                    B            
+                log_T normalize_T
+    2000-01-01  2.397895   -1.264911
+    2000-01-02  2.639057   -0.632456
+    2000-01-03  2.833213    0.000000
+    2000-01-04  2.995732    0.632456
+    2000-01-05  3.135494    1.264911
 
     >>> df[['A', 'B']].transform([log_T, normalize_T])
-                                   A                     B
-                   log_T normalize_T     log_T normalize_T
-    2000-01-01  2.302585   -1.143001  2.397895   -1.143001
-    2000-01-02  2.564949   -0.889001  2.639057   -0.889001
-    2000-01-03  2.772589   -0.635001  2.833213   -0.635001
-    2000-01-04       NaN         NaN       NaN         NaN
-    2000-01-05       NaN         NaN       NaN         NaN
-    2000-01-06       NaN         NaN       NaN         NaN
-    2000-01-07       NaN         NaN       NaN         NaN
-    2000-01-08  3.433987    0.635001  3.465736    0.635001
-    2000-01-09  3.526361    0.889001  3.555348    0.889001
-    2000-01-10  3.610918    1.143001  3.637586    1.143001
+                    A                     B            
+                log_T normalize_T     log_T normalize_T
+    2000-01-01  2.302585   -1.264911  2.397895   -1.264911
+    2000-01-02  2.564949   -0.632456  2.639057   -0.632456
+    2000-01-03  2.772589    0.000000  2.833213    0.000000
+    2000-01-04  2.944439    0.632456  2.995732    0.632456
+    2000-01-05  3.091042    1.264911  3.135494    1.264911
+
+    transform() is applicable to Series.
 
     >>> s = pd.Series(np.sin([x for x in range(5)]), name='A',
     ...               index=pd.date_range('1/1/2000', periods=5))
