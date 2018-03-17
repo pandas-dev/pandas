@@ -47,7 +47,6 @@ from pandas.core.dtypes.common import (
 
 from pandas.core.base import PandasObject, IndexOpsMixin
 import pandas.core.common as com
-import pandas.core.base as base
 from pandas.core import ops
 from pandas.util._decorators import (
     Appender, Substitution, cache_readonly, deprecate_kwarg)
@@ -458,7 +457,7 @@ class Index(IndexOpsMixin, PandasObject):
         Must be careful not to recurse.
         """
         if not hasattr(values, 'dtype'):
-            if values is None and dtype is not None:
+            if (values is None or not len(values)) and dtype is not None:
                 values = np.empty(0, dtype=dtype)
             else:
                 values = np.array(values, copy=False)
@@ -492,6 +491,8 @@ class Index(IndexOpsMixin, PandasObject):
             values = self.values
         attributes = self._get_attributes_dict()
         attributes.update(kwargs)
+        if not len(values) and 'dtype' not in kwargs:
+            attributes['dtype'] = self.dtype
         return self._simple_new(values, **attributes)
 
     def _shallow_copy_with_infer(self, values=None, **kwargs):
@@ -512,6 +513,8 @@ class Index(IndexOpsMixin, PandasObject):
         attributes = self._get_attributes_dict()
         attributes.update(kwargs)
         attributes['copy'] = False
+        if not len(values) and 'dtype' not in kwargs:
+            attributes['dtype'] = self.dtype
         if self._infer_as_myclass:
             try:
                 return self._constructor(values, **attributes)
@@ -1191,6 +1194,11 @@ class Index(IndexOpsMixin, PandasObject):
         DataFrame
             DataFrame containing the original Index data.
 
+        See Also
+        --------
+        Index.to_series : Convert an Index to a Series.
+        Series.to_frame : Convert Series to DataFrame.
+
         Examples
         --------
         >>> idx = pd.Index(['Ant', 'Bear', 'Cow'], name='animal')
@@ -1385,7 +1393,19 @@ class Index(IndexOpsMixin, PandasObject):
         # to disable groupby tricks in MultiIndex
         return False
 
-    def summary(self, name=None):
+    def _summary(self, name=None):
+        """
+        Return a summarized representation
+
+        Parameters
+        ----------
+        name : str
+            name to use in the summary representation
+
+        Returns
+        -------
+        String with a summarized representation of the index
+        """
         if len(self) > 0:
             head = self[0]
             if (hasattr(head, 'format') and
@@ -1403,6 +1423,15 @@ class Index(IndexOpsMixin, PandasObject):
         if name is None:
             name = type(self).__name__
         return '%s: %s entries%s' % (name, len(self), index_summary)
+
+    def summary(self, name=None):
+        """
+        Return a summarized representation
+        .. deprecated:: 0.23.0
+        """
+        warnings.warn("'summary' is deprecated and will be removed in a "
+                      "future version.", FutureWarning, stacklevel=2)
+        return self._summary(name)
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
@@ -2816,7 +2845,7 @@ class Index(IndexOpsMixin, PandasObject):
         self._assert_can_do_setop(other)
 
         if self.equals(other):
-            return Index([], name=self.name)
+            return self._shallow_copy([])
 
         other, result_name = self._convert_can_do_setop(other)
 
@@ -4325,8 +4354,60 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return super(Index, self).drop_duplicates(keep=keep)
 
-    @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)
     def duplicated(self, keep='first'):
+        """
+        Indicate duplicate index values.
+
+        Duplicated values are indicated as ``True`` values in the resulting
+        array. Either all duplicates, all except the first, or all except the
+        last occurrence of duplicates can be indicated.
+
+        Parameters
+        ----------
+        keep : {'first', 'last', False}, default 'first'
+            The value or values in a set of duplicates to mark as missing.
+
+            - 'first' : Mark duplicates as ``True`` except for the first
+              occurrence.
+            - 'last' : Mark duplicates as ``True`` except for the last
+              occurrence.
+            - ``False`` : Mark all duplicates as ``True``.
+
+        Examples
+        --------
+        By default, for each set of duplicated values, the first occurrence is
+        set to False and all others to True:
+
+        >>> idx = pd.Index(['lama', 'cow', 'lama', 'beetle', 'lama'])
+        >>> idx.duplicated()
+        array([False, False,  True, False,  True])
+
+        which is equivalent to
+
+        >>> idx.duplicated(keep='first')
+        array([False, False,  True, False,  True])
+
+        By using 'last', the last occurrence of each set of duplicated values
+        is set on False and all others on True:
+
+        >>> idx.duplicated(keep='last')
+        array([ True, False,  True, False, False])
+
+        By setting keep on ``False``, all duplicates are True:
+
+        >>> idx.duplicated(keep=False)
+        array([ True, False,  True, False,  True])
+
+        Returns
+        -------
+        numpy.ndarray
+
+        See Also
+        --------
+        pandas.Series.duplicated : Equivalent method on pandas.Series
+        pandas.DataFrame.duplicated : Equivalent method on pandas.DataFrame
+        pandas.Index.drop_duplicates : Remove duplicate values from Index
+        """
         return super(Index, self).duplicated(keep=keep)
 
     _index_shared_docs['fillna'] = """
@@ -4550,20 +4631,86 @@ class Index(IndexOpsMixin, PandasObject):
         """ add in logical methods """
 
         _doc = """
-
         %(desc)s
 
         Parameters
         ----------
-        All arguments to numpy.%(outname)s are accepted.
+        *args
+            These parameters will be passed to numpy.%(outname)s.
+        **kwargs
+            These parameters will be passed to numpy.%(outname)s.
 
         Returns
         -------
         %(outname)s : bool or array_like (if axis is specified)
             A single element array_like may be converted to bool."""
 
+        _index_shared_docs['index_all'] = """
+
+        See Also
+        --------
+        pandas.Index.any : Return whether any element in an Index is True.
+        pandas.Series.any : Return whether any element in a Series is True.
+        pandas.Series.all : Return whether all elements in a Series are True.
+
+        Notes
+        -----
+        Not a Number (NaN), positive infinity and negative infinity
+        evaluate to True because these are not equal to zero.
+
+        Examples
+        --------
+        **all**
+
+        True, because nonzero integers are considered True.
+
+        >>> pd.Index([1, 2, 3]).all()
+        True
+
+        False, because ``0`` is considered False.
+
+        >>> pd.Index([0, 1, 2]).all()
+        False
+
+        **any**
+
+        True, because ``1`` is considered True.
+
+        >>> pd.Index([0, 0, 1]).any()
+        True
+
+        False, because ``0`` is considered False.
+
+        >>> pd.Index([0, 0, 0]).any()
+        False
+        """
+
+        _index_shared_docs['index_any'] = """
+
+        See Also
+        --------
+        pandas.Index.all : Return whether all elements are True.
+        pandas.Series.all : Return whether all elements are True.
+
+        Notes
+        -----
+        Not a Number (NaN), positive infinity and negative infinity
+        evaluate to True because these are not equal to zero.
+
+        Examples
+        --------
+        >>> index = pd.Index([0, 1, 2])
+        >>> index.any()
+        True
+
+        >>> index = pd.Index([0, 0, 0])
+        >>> index.any()
+        False
+        """
+
         def _make_logical_function(name, desc, f):
             @Substitution(outname=name, desc=desc)
+            @Appender(_index_shared_docs['index_' + name])
             @Appender(_doc)
             def logical_func(self, *args, **kwargs):
                 result = f(self.values)
@@ -4578,10 +4725,10 @@ class Index(IndexOpsMixin, PandasObject):
             return logical_func
 
         cls.all = _make_logical_function('all', 'Return whether all elements '
-                                                'are True',
+                                                'are True.',
                                          np.all)
         cls.any = _make_logical_function('any',
-                                         'Return whether any element is True',
+                                         'Return whether any element is True.',
                                          np.any)
 
     @classmethod

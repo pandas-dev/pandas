@@ -70,7 +70,13 @@ class TestGetitem(base.BaseGetitemTests):
 
 
 class TestMissing(base.BaseMissingTests):
-    pass
+    @pytest.mark.xfail(reason="Setting a dict as a scalar")
+    def test_fillna_series(self):
+        """We treat dictionaries as a mapping in fillna, not a scalar."""
+
+    @pytest.mark.xfail(reason="Setting a dict as a scalar")
+    def test_fillna_frame(self):
+        """We treat dictionaries as a mapping in fillna, not a scalar."""
 
 
 class TestMethods(base.BaseMethodsTests):

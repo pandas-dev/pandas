@@ -266,6 +266,12 @@ Optional Dependencies
 * One of the following combinations of libraries is needed to use the
   top-level :func:`~pandas.read_html` function:
 
+  .. versionchanged:: 0.23.0
+
+  .. note::
+
+     If using BeautifulSoup4 a minimum version of 4.2.1 is required
+
   * `BeautifulSoup4`_ and `html5lib`_ (Any recent version of `html5lib`_ is
     okay.)
   * `BeautifulSoup4`_ and `lxml`_
@@ -282,9 +288,6 @@ Optional Dependencies
      * You are highly encouraged to read :ref:`HTML Table Parsing gotchas <io.html.gotchas>`.
        It explains issues surrounding the installation and
        usage of the above three libraries.
-     * You may need to install an older version of `BeautifulSoup4`_:
-       Versions 4.2.1, 4.1.3 and 4.0.2 have been confirmed for 64 and 32-bit
-       Ubuntu/Debian
 
   .. note::
 
