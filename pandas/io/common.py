@@ -363,20 +363,27 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
 
         # ZIP Compression
         elif compression == 'zip':
+            import io
             from zipfile import ZipFile
             # GH 17778
 
-            class _ZipFile(ZipFile):
-                """uses writestr method as write to accept bytes."""
+            class BytesZipFile(ZipFile, io.BufferedIOBase):
+                """override write method with writestr to accept bytes."""
                 def __init__(self, file, mode='r', **kwargs):
                     if mode in ['wb', 'rb']:
                         mode = mode.replace('b', '')
-                    super(_ZipFile, self).__init__(file, mode=mode, **kwargs)
+                    super(BytesZipFile, self).__init__(file, mode, **kwargs)
 
                 def write(self, data):
-                    super(_ZipFile, self).writestr(self.filename, data)
+                    super(BytesZipFile, self).writestr(self.filename, data)
 
-            zf = _ZipFile(path_or_buf, mode)
+                def writable(self):
+                    return self.mode == 'w'
+
+                def readable(self):
+                    return self.mode == 'r'
+
+            zf = BytesZipFile(path_or_buf, mode)
             if zf.mode == 'w':
                 f = zf
             elif zf.mode == 'r':
