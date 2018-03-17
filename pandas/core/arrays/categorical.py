@@ -2046,7 +2046,7 @@ class Categorical(ExtensionArray, PandasObject):
             take_codes = sorted(take_codes)
         return cat.set_categories(cat.categories.take(take_codes))
 
-    @Substitution(values='', size_hint='', sort='')
+    @Substitution(values='', size_hint='', sort='', order='')
     @Appender(_algos_shared_docs['factorize'])
     def factorize(self, na_sentinel=-1):
         from pandas.core.algorithms import _factorize_array

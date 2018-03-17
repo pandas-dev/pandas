@@ -478,7 +478,7 @@ _shared_docs['factorize'] = """
 
     Parameters
     ----------
-    %(values)s%(sort)s
+    %(values)s%(sort)s%(order)s
     na_sentinel : int, default -1
         Value to mark "not found".
     %(size_hint)s\
@@ -501,6 +501,7 @@ _shared_docs['factorize'] = """
     See Also
     --------
     pandas.cut : Discretize continuous-valued array.
+    pandas.unique : Find the unique valuse in an array.
 
     Examples
     --------
@@ -523,8 +524,9 @@ _shared_docs['factorize'] = """
     >>> uniques
     array(['a', 'b', 'c'], dtype=object)
 
-    Missing values are indicated by `na_sentinel` (``-1`` by default). Note
-    that missing values are never included in `uniques`.
+    Missing values are indicated in `labels` with `na_sentinel`
+    (``-1`` by default). Note that missing values are never
+    included in `uniques`.
 
     >>> labels, uniques = pd.factorize(['b', None, 'a', 'c', 'b'])
     >>> labels
@@ -554,7 +556,6 @@ _shared_docs['factorize'] = """
     >>> labels, uniques = pd.factorize(cat)
     >>> labels
     array([0, 0, 1])
-
     >>> uniques
     Index(['a', 'c'], dtype='object')
     """
@@ -562,12 +563,18 @@ _shared_docs['factorize'] = """
 
 @Substitution(
     values=dedent("""\
-    values : Sequence
+    values : sequence
         A 1-D seqeunce. Sequences that aren't pandas objects are
         coereced to ndarrays before factorization.
     """),
+    order=dedent("""\
+    order
+        .. deprecated:: 0.23.0
+
+           This parameter has no effect and is deprecated.
+    """),
     sort=dedent("""\
-    sort : boolean, default False
+    sort : bool, default False
         Sort `uniques` and shuffle `labels` to maintain the
         relationship.
     """),
