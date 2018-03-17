@@ -18,8 +18,6 @@ from pandas.compat import lrange, range
 from pandas.util.testing import (assert_series_equal)
 import pandas.util.testing as tm
 
-JOIN_TYPES = ['inner', 'outer', 'left', 'right']
-
 
 @pytest.mark.parametrize(
     'first_slice,second_slice', [
@@ -28,7 +26,6 @@ JOIN_TYPES = ['inner', 'outer', 'left', 'right']
         [[None, -5], [None, 0]],
         [[None, 0], [None, 0]]
     ])
-@pytest.mark.parametrize('join_type', JOIN_TYPES)
 @pytest.mark.parametrize('fill', [None, -1])
 def test_align(test_data, first_slice, second_slice, join_type, fill):
     a = test_data.ts[slice(*first_slice)]
@@ -67,7 +64,6 @@ def test_align(test_data, first_slice, second_slice, join_type, fill):
         [[None, -5], [None, 0]],
         [[None, 0], [None, 0]]
     ])
-@pytest.mark.parametrize('join_type', JOIN_TYPES)
 @pytest.mark.parametrize('method', ['pad', 'bfill'])
 @pytest.mark.parametrize('limit', [None, 1])
 def test_align_fill_method(test_data,

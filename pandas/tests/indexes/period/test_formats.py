@@ -205,5 +205,5 @@ Freq: Q-DEC"""
                                   idx6, idx7, idx8, idx9],
                                  [exp1, exp2, exp3, exp4, exp5,
                                   exp6, exp7, exp8, exp9]):
-            result = idx.summary()
+            result = idx._summary()
             assert result == expected
