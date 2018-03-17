@@ -343,50 +343,120 @@ def _get_op_name(op, special):
 # -----------------------------------------------------------------------------
 # Docstring Generation and Templates
 
+_add_example_FRAME = """
+>>> a = pd.DataFrame([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'],
+...                  columns=['one'])
+>>> a
+   one
+a  1.0
+b  1.0
+c  1.0
+d  NaN
+>>> b = pd.DataFrame(dict(one=[1, np.nan, 1, np.nan],
+...                       two=[np.nan, 2, np.nan, 2]),
+...                  index=['a', 'b', 'd', 'e'])
+>>> b
+   one  two
+a  1.0  NaN
+b  NaN  2.0
+d  1.0  NaN
+e  NaN  2.0
+>>> a.add(b, fill_value=0)
+   one  two
+a  2.0  NaN
+b  1.0  2.0
+c  1.0  NaN
+d  1.0  NaN
+e  NaN  2.0
+"""
+
+_sub_example_FRAME = """
+>>> a = pd.DataFrame([2, 1, 1, np.nan], index=['a', 'b', 'c', 'd'],
+...                  columns=['one'])
+>>> a
+   one
+a  2.0
+b  1.0
+c  1.0
+d  NaN
+>>> b = pd.DataFrame(dict(one=[1, np.nan, 1, np.nan],
+...                       two=[3, 2, np.nan, 2]),
+...                  index=['a', 'b', 'd', 'e'])
+>>> b
+   one  two
+a  1.0  3.0
+b  NaN  2.0
+d  1.0  NaN
+e  NaN  2.0
+>>> a.sub(b, fill_value=0)
+   one  two
+a  1.0  -3.0
+b  1.0  -2.0
+c  1.0  NaN
+d  -1.0  NaN
+e  NaN  -2.0
+"""
+
 _op_descriptions = {
+    # Arithmetic Operators
     'add': {'op': '+',
             'desc': 'Addition',
-            'reverse': 'radd'},
+            'reverse': 'radd',
+            'df_examples': _add_example_FRAME},
     'sub': {'op': '-',
             'desc': 'Subtraction',
-            'reverse': 'rsub'},
+            'reverse': 'rsub',
+            'df_examples': _sub_example_FRAME},
     'mul': {'op': '*',
             'desc': 'Multiplication',
-            'reverse': 'rmul'},
+            'reverse': 'rmul',
+            'df_examples': None},
     'mod': {'op': '%',
             'desc': 'Modulo',
-            'reverse': 'rmod'},
+            'reverse': 'rmod',
+            'df_examples': None},
     'pow': {'op': '**',
             'desc': 'Exponential power',
-            'reverse': 'rpow'},
+            'reverse': 'rpow',
+            'df_examples': None},
     'truediv': {'op': '/',
                 'desc': 'Floating division',
-                'reverse': 'rtruediv'},
+                'reverse': 'rtruediv',
+                'df_examples': None},
     'floordiv': {'op': '//',
                  'desc': 'Integer division',
-                 'reverse': 'rfloordiv'},
+                 'reverse': 'rfloordiv',
+                 'df_examples': None},
     'divmod': {'op': 'divmod',
                'desc': 'Integer division and modulo',
-               'reverse': None},
+               'reverse': None,
+               'df_examples': None},
 
+    # Comparison Operators
     'eq': {'op': '==',
-                 'desc': 'Equal to',
-                 'reverse': None},
+           'desc': 'Equal to',
+           'reverse': None,
+           'df_examples': None},
     'ne': {'op': '!=',
-                 'desc': 'Not equal to',
-                 'reverse': None},
+           'desc': 'Not equal to',
+           'reverse': None,
+           'df_examples': None},
     'lt': {'op': '<',
-                 'desc': 'Less than',
-                 'reverse': None},
+           'desc': 'Less than',
+           'reverse': None,
+           'df_examples': None},
     'le': {'op': '<=',
-                 'desc': 'Less than or equal to',
-                 'reverse': None},
+           'desc': 'Less than or equal to',
+           'reverse': None,
+           'df_examples': None},
     'gt': {'op': '>',
-                 'desc': 'Greater than',
-                 'reverse': None},
+           'desc': 'Greater than',
+           'reverse': None,
+           'df_examples': None},
     'ge': {'op': '>=',
-                 'desc': 'Greater than or equal to',
-                 'reverse': None}}
+           'desc': 'Greater than or equal to',
+           'reverse': None,
+           'df_examples': None}}
 
 _op_names = list(_op_descriptions.keys())
 for key in _op_names:
@@ -473,33 +543,6 @@ Mismatched indices will be unioned together
 Returns
 -------
 result : DataFrame
-
-Examples
---------
->>> a = pd.DataFrame([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'],
-                     columns=['one'])
->>> a
-   one
-a  1.0
-b  1.0
-c  1.0
-d  NaN
->>> b = pd.DataFrame(dict(one=[1, np.nan, 1, np.nan],
-                          two=[np.nan, 2, np.nan, 2]),
-                     index=['a', 'b', 'd', 'e'])
->>> b
-   one  two
-a  1.0  NaN
-b  NaN  2.0
-d  1.0  NaN
-e  NaN  2.0
->>> a.add(b, fill_value=0)
-   one  two
-a  2.0  NaN
-b  1.0  2.0
-c  1.0  NaN
-d  1.0  NaN
-e  NaN  2.0
 """
 
 _flex_doc_FRAME = """
@@ -513,14 +556,14 @@ Parameters
 other : Series, DataFrame, or constant
 axis : {{0, 1, 'index', 'columns'}}
     For Series input, axis to match Series index on
+level : int or name
+    Broadcast across a level, matching Index values on the
+    passed MultiIndex level
 fill_value : None or float value, default None
     Fill existing missing (NaN) values, and any new element needed for
     successful DataFrame alignment, with this value before computation.
     If data in both corresponding DataFrame locations is missing
     the result will be missing
-level : int or name
-    Broadcast across a level, matching Index values on the
-    passed MultiIndex level
 
 Notes
 -----
@@ -532,30 +575,7 @@ result : DataFrame
 
 Examples
 --------
->>> a = pd.DataFrame([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'],
-                     columns=['one'])
->>> a
-   one
-a  1.0
-b  1.0
-c  1.0
-d  NaN
->>> b = pd.DataFrame(dict(one=[1, np.nan, 1, np.nan],
-                          two=[np.nan, 2, np.nan, 2]),
-                     index=['a', 'b', 'd', 'e'])
->>> b
-   one  two
-a  1.0  NaN
-b  NaN  2.0
-d  1.0  NaN
-e  NaN  2.0
->>> a.add(b, fill_value=0)
-   one  two
-a  2.0  NaN
-b  1.0  2.0
-c  1.0  NaN
-d  1.0  NaN
-e  NaN  2.0
+{df_examples}
 
 See also
 --------
@@ -622,14 +642,19 @@ def _make_flex_doc(op_name, typ):
 
     if typ == 'series':
         base_doc = _flex_doc_SERIES
+        doc = base_doc.format(desc=op_desc['desc'], op_name=op_name,
+                              equiv=equiv, reverse=op_desc['reverse'])
     elif typ == 'dataframe':
         base_doc = _flex_doc_FRAME
+        doc = base_doc.format(desc=op_desc['desc'], op_name=op_name,
+                              equiv=equiv, reverse=op_desc['reverse'],
+                              df_examples=op_desc['df_examples'])
     elif typ == 'panel':
         base_doc = _flex_doc_PANEL
+        doc = base_doc.format(desc=op_desc['desc'], op_name=op_name,
+                              equiv=equiv, reverse=op_desc['reverse'])
     else:
         raise AssertionError('Invalid typ argument.')
-    doc = base_doc.format(desc=op_desc['desc'], op_name=op_name,
-                          equiv=equiv, reverse=op_desc['reverse'])
     return doc
 
 
