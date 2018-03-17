@@ -4348,34 +4348,93 @@ class DataFrame(NDFrame):
                                inplace=inplace, sort_remaining=sort_remaining)
 
     def nlargest(self, n, columns, keep='first'):
-        """Get the rows of a DataFrame sorted by the `n` largest
-        values of `columns`.
+        """
+        Return the first `n` rows ordered by `columns` in descending order.
+
+        Return the first `n` rows with the largest values in `columns`, in
+        descending order. The columns that are not specified are returned as
+        well, but not used for ordering.
+
+        This method is equivalent to
+        ``df.sort_values(columns, ascending=False).head(n)``, but more
+        performant.
 
         Parameters
         ----------
         n : int
-            Number of items to retrieve
-        columns : list or str
-            Column name or names to order by
+            Number of rows to return.
+        columns : label or list of labels
+            Column label(s) to order by.
         keep : {'first', 'last'}, default 'first'
             Where there are duplicate values:
-            - ``first`` : take the first occurrence.
-            - ``last`` : take the last occurrence.
+
+            - `first` : prioritize the first occurrence(s)
+            - `last` : prioritize the last occurrence(s)
 
         Returns
         -------
         DataFrame
+            The first `n` rows ordered by the given columns in descending
+            order.
+
+        See Also
+        --------
+        DataFrame.nsmallest : Return the first `n` rows ordered by `columns` in
+            ascending order.
+        DataFrame.sort_values : Sort DataFrame by the values
+        DataFrame.head : Return the first `n` rows without re-ordering.
+
+        Notes
+        -----
+        This function cannot be used with all column types. For example, when
+        specifying columns with `object` or `category` dtypes, ``TypeError`` is
+        raised.
 
         Examples
         --------
-        >>> df = pd.DataFrame({'a': [1, 10, 8, 11, -1],
+        >>> df = pd.DataFrame({'a': [1, 10, 8, 10, -1],
         ...                    'b': list('abdce'),
         ...                    'c': [1.0, 2.0, np.nan, 3.0, 4.0]})
+        >>> df
+            a  b    c
+        0   1  a  1.0
+        1  10  b  2.0
+        2   8  d  NaN
+        3  10  c  3.0
+        4  -1  e  4.0
+
+        In the following example, we will use ``nlargest`` to select the three
+        rows having the largest values in column "a".
+
         >>> df.nlargest(3, 'a')
-            a  b   c
-        3  11  c   3
-        1  10  b   2
-        2   8  d NaN
+            a  b    c
+        1  10  b  2.0
+        3  10  c  3.0
+        2   8  d  NaN
+
+        When using ``keep='last'``, ties are resolved in reverse order:
+
+        >>> df.nlargest(3, 'a', keep='last')
+            a  b    c
+        3  10  c  3.0
+        1  10  b  2.0
+        2   8  d  NaN
+
+        To order by the largest values in column "a" and then "c", we can
+        specify multiple columns like in the next example.
+
+        >>> df.nlargest(3, ['a', 'c'])
+            a  b    c
+        3  10  c  3.0
+        1  10  b  2.0
+        2   8  d  NaN
+
+        Attempting to use ``nlargest`` on non-numeric dtypes will raise a
+        ``TypeError``:
+
+        >>> df.nlargest(3, 'b')
+        Traceback (most recent call last):
+        TypeError: Column 'b' has dtype object, cannot use method 'nlargest'
         """
         return algorithms.SelectNFrame(self,
                                        n=n,
