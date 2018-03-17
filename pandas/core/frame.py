@@ -3885,71 +3885,101 @@ class DataFrame(NDFrame):
     def dropna(self, axis=0, how='any', thresh=None, subset=None,
                inplace=False):
         """
-        Return object with labels on given axis omitted where alternately any
-        or all of the data are missing
+        Remove missing values.
+
+        See the :ref:`User Guide <missing_data>` for more on which values are
+        considered missing, and how to work with missing data.
 
         Parameters
         ----------
         axis : {0 or 'index', 1 or 'columns'}, or tuple/list thereof
-            Pass tuple or list to drop on multiple axes
-        how : {'any', 'all'}
-            * any : if any NA values are present, drop that label
-            * all : if all values are NA, drop that label
-        thresh : int, default None
-            int value : require that many non-NA values
-        subset : array-like
+            Determine if rows or columns which contain missing values are
+            removed.
+
+            * 0, or 'index' : Drop rows which contain missing values.
+            * 1, or 'columns' : Drop columns which contain missing value.
+
+            Pass tuple or list to drop on multiple axes.
+        how : {'any', 'all'}, default 'any'
+            Determine if row or column is removed from DataFrame, when we have
+            at least one NA or all NA.
+
+            * 'any' : If any NA values are present, drop that row or column.
+            * 'all' : If all values are NA, drop that row or column.
+        thresh : int, optional
+            Require that many non-NA values.
+        subset : array-like, optional
             Labels along other axis to consider, e.g. if you are dropping rows
-            these would be a list of columns to include
-        inplace : boolean, default False
+            these would be a list of columns to include.
+        inplace : bool, default False
             If True, do operation inplace and return None.
 
         Returns
         -------
-        dropped : DataFrame
+        DataFrame
+            DataFrame with NA entries dropped from it.
+
+        See Also
+        --------
+        DataFrame.isna: Indicate missing values.
+        DataFrame.notna : Indicate existing (non-missing) values.
+        DataFrame.fillna : Replace missing values.
+        Series.dropna : Drop missing values.
+        Index.dropna : Drop missing indices.
 
         Examples
         --------
-        >>> df = pd.DataFrame([[np.nan, 2, np.nan, 0], [3, 4, np.nan, 1],
-        ...                    [np.nan, np.nan, np.nan, 5]],
-        ...                   columns=list('ABCD'))
+        >>> df = pd.DataFrame({"name": ['Alfred', 'Batman', 'Catwoman'],
+        ...                    "toy": [np.nan, 'Batmobile', 'Bullwhip'],
+        ...                    "born": [pd.NaT, pd.Timestamp("1940-04-25"),
+        ...                             pd.NaT]})
         >>> df
-             A    B   C  D
-        0  NaN  2.0 NaN  0
-        1  3.0  4.0 NaN  1
-        2  NaN  NaN NaN  5
+               name        toy       born
+        0    Alfred        NaN        NaT
+        1    Batman  Batmobile 1940-04-25
+        2  Catwoman   Bullwhip        NaT
 
-        Drop the columns where all elements are nan:
+        Drop the rows where at least one element is missing.
 
-        >>> df.dropna(axis=1, how='all')
-             A    B  D
-        0  NaN  2.0  0
-        1  3.0  4.0  1
-        2  NaN  NaN  5
+        >>> df.dropna()
+             name        toy       born
+        1  Batman  Batmobile 1940-04-25
 
-        Drop the columns where any of the elements is nan
+        Drop the columns where at least one element is missing.
 
-        >>> df.dropna(axis=1, how='any')
-           D
-        0  0
-        1  1
-        2  5
+        >>> df.dropna(axis='columns')
+               name
+        0    Alfred
+        1    Batman
+        2  Catwoman
 
-        Drop the rows where all of the elements are nan
-        (there is no row to drop, so df stays the same):
+        Drop the rows where all elements are missing.
 
-        >>> df.dropna(axis=0, how='all')
-             A    B   C  D
-        0  NaN  2.0 NaN  0
-        1  3.0  4.0 NaN  1
-        2  NaN  NaN NaN  5
+        >>> df.dropna(how='all')
+               name        toy       born
+        0    Alfred        NaN        NaT
+        1    Batman  Batmobile 1940-04-25
+        2  Catwoman   Bullwhip        NaT
 
-        Keep only the rows with at least 2 non-na values:
+        Keep only the rows with at least 2 non-NA values.
 
         >>> df.dropna(thresh=2)
-             A    B   C  D
-        0  NaN  2.0 NaN  0
-        1  3.0  4.0 NaN  1
+               name        toy       born
+        1    Batman  Batmobile 1940-04-25
+        2  Catwoman   Bullwhip        NaT
 
+        Define in which columns to look for missing values.
+
+        >>> df.dropna(subset=['name', 'born'])
+               name        toy       born
+        1    Batman  Batmobile 1940-04-25
+
+        Keep the DataFrame with valid entries in the same variable.
+
+        >>> df.dropna(inplace=True)
+        >>> df
+             name        toy       born
+        1  Batman  Batmobile 1940-04-25
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if isinstance(axis, (tuple, list)):
@@ -5533,39 +5563,52 @@ class DataFrame(NDFrame):
 
     def applymap(self, func):
         """
-        Apply a function to a DataFrame that is intended to operate
-        elementwise, i.e. like doing map(func, series) for each series in the
-        DataFrame
+        Apply a function to a Dataframe elementwise.
+
+        This method applies a function that accepts and returns a scalar
+        to every element of a DataFrame.
 
         Parameters
         ----------
-        func : function
-            Python function, returns a single value from a single value
-
-        Examples
-        --------
-
-        >>> df = pd.DataFrame(np.random.randn(3, 3))
-        >>> df
-            0         1          2
-        0  -0.029638  1.081563   1.280300
-        1   0.647747  0.831136  -1.549481
-        2   0.513416 -0.884417   0.195343
-        >>> df = df.applymap(lambda x: '%.2f' % x)
-        >>> df
-            0         1          2
-        0  -0.03      1.08       1.28
-        1   0.65      0.83      -1.55
-        2   0.51     -0.88       0.20
+        func : callable
+            Python function, returns a single value from a single value.
 
         Returns
         -------
-        applied : DataFrame
+        DataFrame
+            Transformed DataFrame.
 
         See also
         --------
-        DataFrame.apply : For operations on rows/columns
+        DataFrame.apply : Apply a function along input axis of DataFrame
 
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2.12], [3.356, 4.567]])
+        >>> df
+               0      1
+        0  1.000  2.120
+        1  3.356  4.567
+
+        >>> df.applymap(lambda x: len(str(x)))
+           0  1
+        0  3  4
+        1  5  5
+
+        Note that a vectorized version of `func` often exists, which will
+        be much faster. You could square each number elementwise.
+
+        >>> df.applymap(lambda x: x**2)
+                   0          1
+        0   1.000000   4.494400
+        1  11.262736  20.857489
+
+        But it's better to avoid applymap in that case.
+
+        >>> df ** 2
+                   0          1
+        0   1.000000   4.494400
+        1  11.262736  20.857489
         """
 
         # if we have a dtype == 'M8[ns]', provide boxed values

@@ -713,6 +713,7 @@ Other API Changes
 - ``Categorical.fillna`` now validates its ``value`` and ``method`` keyword arguments. It now raises when both or none are specified, matching the behavior of :meth:`Series.fillna` (:issue:`19682`)
 - ``pd.to_datetime('today')`` now returns a datetime, consistent with ``pd.Timestamp('today')``; previously ``pd.to_datetime('today')`` returned a ``.normalized()`` datetime (:issue:`19935`)
 - :func:`Series.str.replace` now takes an optional `regex` keyword which, when set to ``False``, uses literal string replacement rather than regex replacement (:issue:`16808`)
+- :func:`DatetimeIndex.strftime` and :func:`PeriodIndex.strftime` now return an ``Index`` instead of a numpy array to be consistent with similar accessors (:issue:`20127`)
 
 .. _whatsnew_0230.deprecations:
 
@@ -844,6 +845,7 @@ Categorical
 - Bug in :meth:`Series.astype` and ``Categorical.astype()`` where an existing categorical data does not get updated (:issue:`10696`, :issue:`18593`)
 - Bug in :class:`Index` constructor with ``dtype=CategoricalDtype(...)`` where ``categories`` and ``ordered`` are not maintained (issue:`19032`)
 - Bug in :class:`Series` constructor with scalar and ``dtype=CategoricalDtype(...)`` where ``categories`` and ``ordered`` are not maintained (issue:`19565`)
+- Bug in ``Categorical.__iter__`` not converting to Python types (:issue:`19909`)
 - Bug in :func:`pandas.factorize` returning the unique codes for the ``uniques``. This now returns a ``Categorical`` with the same dtype as the input (:issue:`19721`)
 - Bug in :func:`pandas.factorize` including an item for missing values in the ``uniques`` return value (:issue:`19721`)
 
@@ -942,6 +944,7 @@ Indexing
 - Bug in :class:`IntervalIndex` where set operations that returned an empty ``IntervalIndex`` had the wrong dtype (:issue:`19101`)
 - Bug in :meth:`DataFrame.drop_duplicates` where no ``KeyError`` is raised when passing in columns that don't exist on the ``DataFrame`` (issue:`19726`)
 - Bug in ``Index`` subclasses constructors that ignore unexpected keyword arguments (:issue:`19348`)
+- Bug in :meth:`Index.difference` when taking difference of an ``Index`` with itself (:issue:`20040`)
 
 
 MultiIndex

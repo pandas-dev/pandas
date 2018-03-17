@@ -480,9 +480,7 @@ class Categorical(ExtensionArray, PandasObject):
         (for str, int, float) or a pandas scalar
         (for Timestamp/Timedelta/Interval/Period)
         """
-        if is_datetimelike(self.categories):
-            return [com._maybe_box_datetimelike(x) for x in self]
-        return np.array(self).tolist()
+        return list(self)
 
     @property
     def base(self):
@@ -1581,16 +1579,16 @@ class Categorical(ExtensionArray, PandasObject):
 
         Parameters
         ----------
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            Method to use for filling holes in reindexed Series
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
         value : scalar, dict, Series
             If a scalar value is passed it is used to fill all missing values.
             Alternatively, a Series or dict can be used to fill in different
             values for each index. The value should not be a list. The
             value(s) passed should either be in the categories or should be
             NaN.
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
+            Method to use for filling holes in reindexed Series
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill gap
         limit : int, default None
             (Not implemented yet for Categorical!)
             If method is specified, this is the maximum number of consecutive
@@ -1698,7 +1696,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def __iter__(self):
         """Returns an Iterator over the values of this Categorical."""
-        return iter(self.get_values())
+        return iter(self.get_values().tolist())
 
     def _tidy_repr(self, max_vals=10, footer=True):
         """ a short repr displaying only max_vals and an optional (but default
