@@ -1805,6 +1805,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         dtype: bool
 
         >>> idx = pd.date_range("2018-02-27", periods=3)
+        >>> idx.is_month_end
         array([False,  True, False], dtype=bool)
         """)
     is_quarter_start = _field_accessor(
