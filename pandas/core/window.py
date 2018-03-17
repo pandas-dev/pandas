@@ -790,8 +790,8 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    pandas.Series.%(name)s
-    pandas.DataFrame.%(name)s
+    pandas.Series.%(name)
+    pandas.DataFrame.%(name)
 
     Examples
     --------
