@@ -2035,6 +2035,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """ Matrix multiplication using binary `@` operator in Python>=3.5 """
         return self.dot(other)
 
+    def __rmatmul__(self, other):
+        """ Matrix multiplication using binary `@` operator in Python>=3.5 """
+        return self.dot(other)
+
     @Substitution(klass='Series')
     @Appender(base._shared_docs['searchsorted'])
     @deprecate_kwarg(old_arg_name='v', new_arg_name='value')

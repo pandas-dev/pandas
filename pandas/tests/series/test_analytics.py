@@ -3,6 +3,8 @@
 
 from itertools import product
 from distutils.version import LooseVersion
+import operator
+import sys
 
 import pytest
 
@@ -895,30 +897,60 @@ class TestSeriesAnalytics(TestData):
         ts.iloc[[0, 3, 5]] = nan
         assert_series_equal(ts.count(level=1), right - 1)
 
-    @pytest.mark.parametrize('dot_fn', [Series.dot, Series.__matmul__])
-    def test_dot(self, dot_fn):
-        # __matmul__ test is for GH #10259
+    def test_dot(self):
         a = Series(np.random.randn(4), index=['p', 'q', 'r', 's'])
         b = DataFrame(np.random.randn(3, 4), index=['1', '2', '3'],
                       columns=['p', 'q', 'r', 's']).T
 
-        result = dot_fn(a, b)
+        result = a.dot(b)
         expected = Series(np.dot(a.values, b.values), index=['1', '2', '3'])
         assert_series_equal(result, expected)
 
         # Check index alignment
         b2 = b.reindex(index=reversed(b.index))
-        result = dot_fn(a, b)
+        result = a.dot(b)
         assert_series_equal(result, expected)
 
         # Check ndarray argument
-        result = dot_fn(a, b.values)
+        result = a.dot(b.values)
         assert np.all(result == expected.values)
-        assert_almost_equal(dot_fn(a, b['2'].values), expected['2'])
+        assert_almost_equal(a.dot(b['2'].values), expected['2'])
 
         # Check series argument
-        assert_almost_equal(dot_fn(a, b['1']), expected['1'])
-        assert_almost_equal(dot_fn(a, b2['1']), expected['1'])
+        assert_almost_equal(a.dot(b['1']), expected['1'])
+        assert_almost_equal(a.dot(b2['1']), expected['1'])
+
+        pytest.raises(Exception, a.dot, a.values[:3])
+        pytest.raises(ValueError, a.dot, b.T)
+
+    @pytest.mark.skipif(sys.version_info < (3, 5),
+                        reason='matmul supported for Python>=3.5')
+    def test_matmul(self):
+        # matmul test is for GH #10259
+        a = Series(np.random.randn(4), index=['p', 'q', 'r', 's'])
+        b = DataFrame(np.random.randn(3, 4), index=['1', '2', '3'],
+                      columns=['p', 'q', 'r', 's']).T
+
+        # Series @ DataFrame
+        result = operator.matmul(a, b)
+        expected = Series(np.dot(a.values, b.values), index=['1', '2', '3'])
+        assert_series_equal(result, expected)
+
+        # DataFrame @ Series
+        result = operator.matmul(b.T, a)
+        expected = Series(np.dot(b.T.values, a.T.values),
+                          index=['1', '2', '3'])
+        assert_series_equal(result, expected)
+
+        # Series @ Series
+        result = operator.matmul(a, a)
+        expected = np.dot(a.values, a.values)
+        assert_almost_equal(result, expected)
+
+        # np.array @ Series  (__rmatmul__)
+        result = operator.matmul(a.values, a)
+        expected = np.dot(a.values, a.values)
+        assert_almost_equal(result, expected)
 
         pytest.raises(Exception, a.dot, a.values[:3])
         pytest.raises(ValueError, a.dot, b.T)

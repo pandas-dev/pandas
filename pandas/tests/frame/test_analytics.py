@@ -5,6 +5,7 @@ from __future__ import print_function
 import warnings
 from datetime import timedelta
 from distutils.version import LooseVersion
+import operator
 import sys
 import pytest
 
@@ -2091,42 +2092,40 @@ class TestDataFrameAnalytics(TestData):
                               self.frame)
 
     # Matrix-like
-    @pytest.mark.parametrize('dot_fn', [DataFrame.dot, DataFrame.__matmul__])
-    def test_dot(self, dot_fn):
-        # __matmul__ test is for GH #10259
+    def test_dot(self):
         a = DataFrame(np.random.randn(3, 4), index=['a', 'b', 'c'],
                       columns=['p', 'q', 'r', 's'])
         b = DataFrame(np.random.randn(4, 2), index=['p', 'q', 'r', 's'],
                       columns=['one', 'two'])
 
-        result = dot_fn(a, b)
+        result = a.dot(b)
         expected = DataFrame(np.dot(a.values, b.values),
                              index=['a', 'b', 'c'],
                              columns=['one', 'two'])
         # Check alignment
         b1 = b.reindex(index=reversed(b.index))
-        result = dot_fn(a, b)
+        result = a.dot(b)
         tm.assert_frame_equal(result, expected)
 
         # Check series argument
-        result = dot_fn(a, b['one'])
+        result = a.dot(b['one'])
         tm.assert_series_equal(result, expected['one'], check_names=False)
         assert result.name is None
 
-        result = dot_fn(a, b1['one'])
+        result = a.dot(b1['one'])
         tm.assert_series_equal(result, expected['one'], check_names=False)
         assert result.name is None
 
         # can pass correct-length arrays
         row = a.iloc[0].values
 
-        result = dot_fn(a, row)
-        exp = dot_fn(a, a.iloc[0])
+        result = a.dot(row)
+        exp = a.dot(a.iloc[0])
         tm.assert_series_equal(result, exp)
 
         with tm.assert_raises_regex(ValueError,
                                     'Dot product shape mismatch'):
-            dot_fn(a, row[:-1])
+            a.dot(row[:-1])
 
         a = np.random.rand(1, 5)
         b = np.random.rand(5, 1)
@@ -2136,14 +2135,55 @@ class TestDataFrameAnalytics(TestData):
         B = DataFrame(b)  # noqa
 
         # it works
-        result = dot_fn(A, b)
+        result = A.dot(b)
 
         # unaligned
         df = DataFrame(randn(3, 4), index=[1, 2, 3], columns=lrange(4))
         df2 = DataFrame(randn(5, 3), index=lrange(5), columns=[1, 2, 3])
 
         with tm.assert_raises_regex(ValueError, 'aligned'):
-            dot_fn(df, df2)
+            df.dot(df2)
+
+    @pytest.mark.skipif(sys.version_info < (3, 5),
+                        reason='matmul supported for Python>=3.5')
+    def test_matmul(self):
+        # matmul test is for GH #10259
+        a = DataFrame(np.random.randn(3, 4), index=['a', 'b', 'c'],
+                      columns=['p', 'q', 'r', 's'])
+        b = DataFrame(np.random.randn(4, 2), index=['p', 'q', 'r', 's'],
+                      columns=['one', 'two'])
+
+        # DataFrame @ DataFrame
+        result = operator.matmul(a, b)
+        expected = DataFrame(np.dot(a.values, b.values),
+                             index=['a', 'b', 'c'],
+                             columns=['one', 'two'])
+        tm.assert_frame_equal(result, expected)
+
+        # DataFrame @ Series
+        result = operator.matmul(a, b.one)
+        expected = Series(np.dot(a.values, b.one.values),
+                          index=['a', 'b', 'c'])
+        tm.assert_series_equal(result, expected)
+
+        # np.array @ DataFrame
+        result = operator.matmul(a.values, b)
+        expected = np.dot(a.values, b.values)
+        tm.assert_almost_equal(result, expected)
+
+        # nested list @ DataFrame (__rmatmul__)
+        result = operator.matmul(a.values.tolist(), b)
+        expected = DataFrame(np.dot(a.values, b.values),
+                             index=['a', 'b', 'c'],
+                             columns=['one', 'two'])
+        tm.assert_almost_equal(result.values, expected.values)
+
+        # unaligned
+        df = DataFrame(randn(3, 4), index=[1, 2, 3], columns=lrange(4))
+        df2 = DataFrame(randn(5, 3), index=lrange(5), columns=[1, 2, 3])
+
+        with tm.assert_raises_regex(ValueError, 'aligned'):
+            operator.matmul(df, df2)
 
 
 @pytest.fixture
