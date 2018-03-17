@@ -8487,19 +8487,19 @@ class NDFrame(PandasObject, SelectionMixin):
         cls.compound = compound
 
         cls.cummin = _make_cum_function(
-            cls, 'cummin', name, name2, axis_descr, "cumulative minimum",
+            cls, 'cummin', name, name2, axis_descr, "minimum",
             lambda y, axis: np.minimum.accumulate(y, axis), "min",
             np.inf, np.nan, _cummin_examples)
         cls.cumsum = _make_cum_function(
-            cls, 'cumsum', name, name2, axis_descr, "cumulative sum",
+            cls, 'cumsum', name, name2, axis_descr, "sum",
             lambda y, axis: y.cumsum(axis), "sum", 0.,
             np.nan, _cumsum_examples)
         cls.cumprod = _make_cum_function(
-            cls, 'cumprod', name, name2, axis_descr, "cumulative product",
+            cls, 'cumprod', name, name2, axis_descr, "product",
             lambda y, axis: y.cumprod(axis), "prod", 1.,
             np.nan, _cumprod_examples)
         cls.cummax = _make_cum_function(
-            cls, 'cummax', name, name2, axis_descr, "cumulative maximum",
+            cls, 'cummax', name, name2, axis_descr, "maximum",
             lambda y, axis: np.maximum.accumulate(y, axis), "max",
             -np.inf, np.nan, _cummax_examples)
 
@@ -8763,9 +8763,10 @@ pandas.DataFrame.any : Return True if one (or more) elements are True
 """
 
 _cnum_doc = """
-Return %(desc)s over a DataFrame or Series axis.
+Return cumulative %(desc)s over a DataFrame or Series axis.
 
-Returns a DataFrame or Series of the same size containing the %(desc)s.
+Returns a DataFrame or Series of the same size containing the cumulative
+%(desc)s.
 
 Parameters
 ----------
@@ -8786,8 +8787,8 @@ See also
 --------
 pandas.core.window.Expanding.%(accum_func_name)s : Similar functionality
     but ignores ``NaN`` values.
-Series.%(outname)s : Return %(desc)s over Series axis.
-%(name2)s.%(accum_func_name)s : Return the %(accum_func_name)s over
+Series.%(outname)s : Return cumulative %(desc)s over Series axis.
+%(name2)s.%(accum_func_name)s : Return the %(desc)s over
     %(name2)s axis.
 DataFrame.cummax : Return cumulative maximum over DataFrame axis.
 %(name2)s.cummin : Return cumulative minimum over %(name2)s axis.
@@ -8906,7 +8907,7 @@ dtype: float64
 1  3.0  NaN
 2  1.0  0.0
 
-By default, iterates over rows and finds the minimum
+By default, iterates over rows and finds the sum
 in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
 
 >>> df.cumsum()
@@ -8915,7 +8916,7 @@ in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
 1  5.0  NaN
 2  6.0  1.0
 
-To iterate over columns and find the minimum in each row,
+To iterate over columns and find the sum in each row,
 use ``axis=1``
 
 >>> df.cumsum(axis=1)
@@ -8971,7 +8972,7 @@ dtype: float64
 1  3.0  NaN
 2  1.0  0.0
 
-By default, iterates over rows and finds the minimum
+By default, iterates over rows and finds the product
 in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
 
 >>> df.cumprod()
@@ -8980,7 +8981,7 @@ in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
 1  6.0  NaN
 2  6.0  0.0
 
-To iterate over columns and find the minimum in each row,
+To iterate over columns and find the product in each row,
 use ``axis=1``
 
 >>> df.cumprod(axis=1)
@@ -9036,7 +9037,7 @@ dtype: float64
 1  3.0  NaN
 2  1.0  0.0
 
-By default, iterates over rows and finds the minimum
+By default, iterates over rows and finds the maximum
 in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
 
 >>> df.cummax()
@@ -9045,7 +9046,7 @@ in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
 1  3.0  NaN
 2  3.0  1.0
 
-To iterate over columns and find the minimum in each row,
+To iterate over columns and find the maximum in each row,
 use ``axis=1``
 
 >>> df.cummax(axis=1)
