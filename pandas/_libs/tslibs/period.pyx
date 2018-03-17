@@ -974,8 +974,8 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
                 if stamps[i] == NPY_NAT:
                     result[i] = NPY_NAT
                     continue
-                dt64_to_dtstruct(stamps[i] + deltas[0], & dts)
-                result[i] = get_period_ordinal(& dts, freq)
+                dt64_to_dtstruct(stamps[i] + deltas[0], &dts)
+                result[i] = get_period_ordinal(&dts, freq)
         else:
             for i in range(n):
                 if stamps[i] == NPY_NAT:
