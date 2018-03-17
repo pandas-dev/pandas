@@ -457,7 +457,7 @@ class Index(IndexOpsMixin, PandasObject):
         Must be careful not to recurse.
         """
         if not hasattr(values, 'dtype'):
-            if values is None and dtype is not None:
+            if (values is None or not len(values)) and dtype is not None:
                 values = np.empty(0, dtype=dtype)
             else:
                 values = np.array(values, copy=False)
@@ -491,6 +491,8 @@ class Index(IndexOpsMixin, PandasObject):
             values = self.values
         attributes = self._get_attributes_dict()
         attributes.update(kwargs)
+        if not len(values) and 'dtype' not in kwargs:
+            attributes['dtype'] = self.dtype
         return self._simple_new(values, **attributes)
 
     def _shallow_copy_with_infer(self, values=None, **kwargs):
@@ -511,6 +513,8 @@ class Index(IndexOpsMixin, PandasObject):
         attributes = self._get_attributes_dict()
         attributes.update(kwargs)
         attributes['copy'] = False
+        if not len(values) and 'dtype' not in kwargs:
+            attributes['dtype'] = self.dtype
         if self._infer_as_myclass:
             try:
                 return self._constructor(values, **attributes)
@@ -1189,6 +1193,11 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         DataFrame
             DataFrame containing the original Index data.
+
+        See Also
+        --------
+        Index.to_series : Convert an Index to a Series.
+        Series.to_frame : Convert Series to DataFrame.
 
         Examples
         --------
@@ -2836,7 +2845,7 @@ class Index(IndexOpsMixin, PandasObject):
         self._assert_can_do_setop(other)
 
         if self.equals(other):
-            return Index([], name=self.name)
+            return self._shallow_copy([])
 
         other, result_name = self._convert_can_do_setop(other)
 

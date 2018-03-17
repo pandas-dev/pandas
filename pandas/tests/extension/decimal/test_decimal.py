@@ -67,44 +67,7 @@ class TestConstructors(BaseDecimal, base.BaseConstructorsTests):
 
 
 class TestReshaping(BaseDecimal, base.BaseReshapingTests):
-
-    def test_align(self, data, na_value):
-        # Have to override since assert_series_equal doesn't
-        # compare Decimal(NaN) properly.
-        a = data[:3]
-        b = data[2:5]
-        r1, r2 = pd.Series(a).align(pd.Series(b, index=[1, 2, 3]))
-
-        # NaN handling
-        e1 = pd.Series(type(data)(list(a) + [na_value]))
-        e2 = pd.Series(type(data)([na_value] + list(b)))
-        tm.assert_series_equal(r1.iloc[:3], e1.iloc[:3])
-        assert r1[3].is_nan()
-        assert e1[3].is_nan()
-
-        tm.assert_series_equal(r2.iloc[1:], e2.iloc[1:])
-        assert r2[0].is_nan()
-        assert e2[0].is_nan()
-
-    def test_align_frame(self, data, na_value):
-        # Override for Decimal(NaN) comparison
-        a = data[:3]
-        b = data[2:5]
-        r1, r2 = pd.DataFrame({'A': a}).align(
-            pd.DataFrame({'A': b}, index=[1, 2, 3])
-        )
-
-        # Assumes that the ctor can take a list of scalars of the type
-        e1 = pd.DataFrame({'A': type(data)(list(a) + [na_value])})
-        e2 = pd.DataFrame({'A': type(data)([na_value] + list(b))})
-
-        tm.assert_frame_equal(r1.iloc[:3], e1.iloc[:3])
-        assert r1.loc[3, 'A'].is_nan()
-        assert e1.loc[3, 'A'].is_nan()
-
-        tm.assert_frame_equal(r2.iloc[1:], e2.iloc[1:])
-        assert r2.loc[0, 'A'].is_nan()
-        assert e2.loc[0, 'A'].is_nan()
+    pass
 
 
 class TestGetitem(BaseDecimal, base.BaseGetitemTests):
