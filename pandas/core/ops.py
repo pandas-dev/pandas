@@ -345,7 +345,7 @@ def _get_op_name(op, special):
 
 _add_example_FRAME = """
 >>> a = pd.DataFrame([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'],
-                     columns=['one'])
+...                  columns=['one'])
 >>> a
    one
 a  1.0
@@ -353,8 +353,8 @@ b  1.0
 c  1.0
 d  NaN
 >>> b = pd.DataFrame(dict(one=[1, np.nan, 1, np.nan],
-                          two=[np.nan, 2, np.nan, 2]),
-                     index=['a', 'b', 'd', 'e'])
+...                       two=[np.nan, 2, np.nan, 2]),
+...                  index=['a', 'b', 'd', 'e'])
 >>> b
    one  two
 a  1.0  NaN
@@ -370,6 +370,7 @@ d  1.0  NaN
 e  NaN  2.0
 """
 
+<<<<<<< HEAD
 _gt_example_FRAME = """
 >>> df1 = pd.DataFrame({'num1': range(1,6),
                         'num2': range(2,11,2),
@@ -428,6 +429,33 @@ _ge_example_FRAME = """
 2  False  True   True
 3  False  True   True
 4  False  True   True
+=======
+_sub_example_FRAME = """
+>>> a = pd.DataFrame([2, 1, 1, np.nan], index=['a', 'b', 'c', 'd'],
+...                  columns=['one'])
+>>> a
+   one
+a  2.0
+b  1.0
+c  1.0
+d  NaN
+>>> b = pd.DataFrame(dict(one=[1, np.nan, 1, np.nan],
+...                       two=[3, 2, np.nan, 2]),
+...                  index=['a', 'b', 'd', 'e'])
+>>> b
+   one  two
+a  1.0  3.0
+b  NaN  2.0
+d  1.0  NaN
+e  NaN  2.0
+>>> a.sub(b, fill_value=0)
+   one  two
+a  1.0  -3.0
+b  1.0  -2.0
+c  1.0  NaN
+d  -1.0  NaN
+e  NaN  -2.0
+>>>>>>> 699a48bcd71da54da05caee85e5d006afabc3df6
 """
 
 _op_descriptions = {
@@ -439,7 +467,7 @@ _op_descriptions = {
     'sub': {'op': '-',
             'desc': 'Subtraction',
             'reverse': 'rsub',
-            'df_examples': None},
+            'df_examples': _sub_example_FRAME},
     'mul': {'op': '*',
             'desc': 'Multiplication',
             'reverse': 'rmul',
@@ -576,33 +604,6 @@ Mismatched indices will be unioned together
 Returns
 -------
 result : DataFrame
-
-Examples
---------
->>> a = pd.DataFrame([1, 1, 1, np.nan], index=['a', 'b', 'c', 'd'],
-                     columns=['one'])
->>> a
-   one
-a  1.0
-b  1.0
-c  1.0
-d  NaN
->>> b = pd.DataFrame(dict(one=[1, np.nan, 1, np.nan],
-                          two=[np.nan, 2, np.nan, 2]),
-                     index=['a', 'b', 'd', 'e'])
->>> b
-   one  two
-a  1.0  NaN
-b  NaN  2.0
-d  1.0  NaN
-e  NaN  2.0
->>> a.add(b, fill_value=0)
-   one  two
-a  2.0  NaN
-b  1.0  2.0
-c  1.0  NaN
-d  1.0  NaN
-e  NaN  2.0
 """
 
 _flex_doc_FRAME = """
@@ -616,14 +617,14 @@ Parameters
 other : Series, DataFrame, or constant
 axis : {{0, 1, 'index', 'columns'}}
     For Series input, axis to match Series index on
+level : int or name
+    Broadcast across a level, matching Index values on the
+    passed MultiIndex level
 fill_value : None or float value, default None
     Fill existing missing (NaN) values, and any new element needed for
     successful DataFrame alignment, with this value before computation.
     If data in both corresponding DataFrame locations is missing
     the result will be missing
-level : int or name
-    Broadcast across a level, matching Index values on the
-    passed MultiIndex level
 
 Notes
 -----
