@@ -7619,49 +7619,59 @@ class NDFrame(PandasObject, SelectionMixin):
             nanptp)
 
     _shared_docs['transform'] = ("""
-    Generate transformed same dimension Series or DataFrame.
+    Apply a function that returns a same-shaped object.
 
     .. versionadded:: 0.20.0
 
     Parameters
     ----------
-    func : Function, dictionary, or list of functions
+    func : callable, list of callables, or dict
+        The function or function to apply to the DataFrame or Series.
+        Each function should expect a Series and return an array-like
+        with the same shape. Accepted combinations are:
 
-        Function: Function to apply to the DataFrame/Series.
-        ``args``, and ``kwargs`` are passed into ``func``.
+        - function : Applied to the Series, or to each column of the
+          DataFrame independently.
+        - list of functions : Each function is applied to the Series
+          or to each column of the DataFrame independently.
+        - dict of column names -> functions or list of functions :
+          For DataFrames only, apply the function or functions for a
+          given key to a specific column.
 
-        Accepted Combinations are:
+    axis : {0 or 'index', 1 or 'columns'}, default 'index'
+        Axis to apply the function along (DataFrame only).
 
-        - function
-        - list of functions
-        - dict of column names -> functions (or list of functions).
+        * 0 or 'index' : apply along the index, i.e. the function
+          gets each column.
+        * 1 or 'columns' : apply along the columns, i.e. the function
+          gets each row.
 
-    args : Iterable, optional
-        Positional arguments passed into ``func``.
-
-        Example of accepted value:
-
-        - axis: 0 (default) to apply func to columns
-
-                 1 to apply func to rows.
-
-    kwargs : Mapping, optional
-        A dictionary of keyword arguments passed into ``func``.
+    *args
+        Additional positional arguments are passed to `func`.
+    **kwargs
+        Additional keyword arguments are passed to `func`.
 
     Returns
     -------
-    transformed : Series or DataFrame (same as input)
+    transformed : Series or DataFrame
+        The result type is the same as the input. Furthermore, it is
+        the same shape.
 
     Notes
-    --------
+    ------
     The function performs the transformation.
     It takes a Series as input and must return a same length Series.
     Note that the function may modify the Series index.
 
     If applied to a Series the function is applied once.
-    If applied to a DataFrame the function is applied on each row or column. 
+    If applied to a DataFrame the function is applied on each row or column.
     Note that if the function modifies the index it must do so consistently
     in the case of a DataFrame.
+
+    See also
+    --------
+    pandas.DataFrame.aggregate : Perform aggregate type of operations.
+    pandas.DataFrame.apply : Apply general functions.
 
     Examples
     --------
@@ -7682,6 +7692,8 @@ class NDFrame(PandasObject, SelectionMixin):
     2000-01-09  24.0  25.0  26.0
     2000-01-10  27.0  28.0  29.0
 
+    By default, `func` is applied to each column independently.
+
     >>> df.transform(lambda x: (x - x.mean()) / x.std())
                 A         B         C
     2000-01-01 -1.143001 -1.143001 -1.143001
@@ -7695,7 +7707,9 @@ class NDFrame(PandasObject, SelectionMixin):
     2000-01-09  0.889001  0.889001  0.889001
     2000-01-10  1.143001  1.143001  1.143001
 
-    >>> df.transform(lambda x: (x - x.mean()) / x.std(), axis=1)
+    Apply `func` to each row with ``axis='columns'``.
+
+    >>> df.transform(lambda x: (x - x.mean()) / x.std(), axis='columns')
                 A    B    C
     2000-01-01 -1.0  0.0  1.0
     2000-01-02 -1.0  0.0  1.0
@@ -7758,6 +7772,9 @@ class NDFrame(PandasObject, SelectionMixin):
     8  32.0  33.0  34.0
     9  36.0  37.0  38.0
 
+    Apply functions to specific columns by passing a dictionary mapping
+    column names to functions.
+
     >>> def log_T(s):
     ...     return np.log(10 + s)
     >>> def normalize_T(s):
@@ -7780,10 +7797,13 @@ class NDFrame(PandasObject, SelectionMixin):
     2000-01-09  25.0  27.0
     2000-01-10  28.0  30.0
 
+    When multiple functions are applied to a column, the result is a MultiIndex
+    in the columns.
+
     >>> dic = {'B': [log_T, normalize_T]}
     >>> df.transform(dic)
-                    B
-                log_T normalize_T
+                                   B
+                   log_T normalize_T
     2000-01-01  2.397895   -1.143001
     2000-01-02  2.639057   -0.889001
     2000-01-03  2.833213   -0.635001
@@ -7796,8 +7816,8 @@ class NDFrame(PandasObject, SelectionMixin):
     2000-01-10  3.637586    1.143001
 
     >>> df[['A', 'B']].transform([log_T, normalize_T])
-                    A                     B
-                log_T normalize_T     log_T normalize_T
+                                   A                     B
+                   log_T normalize_T     log_T normalize_T
     2000-01-01  2.302585   -1.143001  2.397895   -1.143001
     2000-01-02  2.564949   -0.889001  2.639057   -0.889001
     2000-01-03  2.772589   -0.635001  2.833213   -0.635001
@@ -7836,11 +7856,6 @@ class NDFrame(PandasObject, SelectionMixin):
     2000-01-09   -1.446060
     2000-01-10    1.364543
     Freq: D, Name: A, dtype: float64
-
-    See also
-    --------
-    pandas.DataFrame.aggregate : Perform aggregate type of operations.
-    pandas.DataFrame.apply : Apply general functions.
     """)
 
     @classmethod
