@@ -8704,8 +8704,8 @@ bool_only : boolean, default None
     Include only boolean columns. If None, will attempt to use everything,
     then use only boolean data. Not implemented for Series.
 **kwargs : any, default None
-    Additional keywords have no affect but might be accepted for
-    compatibility with numpy.
+    Additional keywords have no effect but might be accepted for
+    compatibility with NumPy.
 
 Returns
 -------
@@ -8774,7 +8774,9 @@ axis : {0 or 'index', 1 or 'columns'}, default 0
 skipna : boolean, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA.
-*args, **kwargs
+*args, **kwargs :
+    Additional keywords have no effect but might be accepted for
+    compatibility with NumPy.
 
 Returns
 -------
@@ -8798,7 +8800,7 @@ Examples
 --------
 **Series**
 
->>> s = pd.Series([2,np.nan,5,-1,0])
+>>> s = pd.Series([2, np.nan, 5, -1, 0])
 >>> s
 0    2.0
 1    NaN
@@ -8807,7 +8809,7 @@ Examples
 4    0.0
 dtype: float64
 
-skipna=True : Default value, ignores NaN values during operation:
+By default, NA values are ignored.
 
 >>> s.cummin()
 0    2.0
@@ -8817,7 +8819,7 @@ skipna=True : Default value, ignores NaN values during operation:
 4   -1.0
 dtype: float64
 
-skipna=False : Includes NaN values:
+To include NA values in the operation, use ``skipna=False``
 
 >>> s.cummin(skipna=False)
 0    2.0
@@ -8839,11 +8841,8 @@ dtype: float64
 1  3.0  NaN
 2  1.0  0.0
 
-skipna : Works in the same way as for Series.
-
-axis=0 : Default value, equivalent to axis=None or axis='index'.
-Iterates over rows and finds the minimum in each column.
-If value is smaller than the previous one, updates it:
+By default, iterates over rows and finds the minimum
+in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
 
 >>> df.cummin()
      A    B
@@ -8851,8 +8850,8 @@ If value is smaller than the previous one, updates it:
 1  2.0  NaN
 2  1.0  0.0
 
-axis=1 : Iterates over columns and finds the minimum in each row.
-If value is smaller than the previous one, updates it:
+To iterate over columns and find the minimum in each row,
+use ``axis=1``
 
 >>> df.cummin(axis=1)
      A    B
@@ -8866,7 +8865,7 @@ Examples
 --------
 **Series**
 
->>> s = pd.Series([2,np.nan,5,-1,0])
+>>> s = pd.Series([2, np.nan, 5, -1, 0])
 >>> s
 0    2.0
 1    NaN
@@ -8875,7 +8874,7 @@ Examples
 4    0.0
 dtype: float64
 
-skipna=True : Default value, ignores NaN values during operation:
+By default, NA values are ignored.
 
 >>> s.cumsum()
 0    2.0
@@ -8885,7 +8884,7 @@ skipna=True : Default value, ignores NaN values during operation:
 4    6.0
 dtype: float64
 
-skipna=False : Includes NaN values:
+To include NA values in the operation, use ``skipna=False``
 
 >>> s.cumsum(skipna=False)
 0    2.0
@@ -8907,10 +8906,8 @@ dtype: float64
 1  3.0  NaN
 2  1.0  0.0
 
-skipna : Works in the same way as for Series.
-
-axis=0 : Default value, equivalent to axis=None or axis='index'.
-Iterates over rows and finds the cumulative sum of values in each column.
+By default, iterates over rows and finds the minimum
+in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
 
 >>> df.cumsum()
      A    B
@@ -8918,8 +8915,8 @@ Iterates over rows and finds the cumulative sum of values in each column.
 1  5.0  NaN
 2  6.0  1.0
 
-axis=1 : Iterates over columns and finds the cumulative sum of
-values in each row.
+To iterate over columns and find the minimum in each row,
+use ``axis=1``
 
 >>> df.cumsum(axis=1)
      A    B
@@ -8933,7 +8930,7 @@ Examples
 --------
 **Series**
 
->>> s = pd.Series([2,np.nan,5,-1,0])
+>>> s = pd.Series([2, np.nan, 5, -1, 0])
 >>> s
 0    2.0
 1    NaN
@@ -8942,7 +8939,7 @@ Examples
 4    0.0
 dtype: float64
 
-skipna=True : Default value, ignores NaN values during operation:
+By default, NA values are ignored.
 
 >>> s.cumprod()
 0     2.0
@@ -8952,7 +8949,7 @@ skipna=True : Default value, ignores NaN values during operation:
 4    -0.0
 dtype: float64
 
-skipna=False : Includes NaN values:
+To include NA values in the operation, use ``skipna=False``
 
 >>> s.cumprod(skipna=False)
 0    2.0
@@ -8974,10 +8971,8 @@ dtype: float64
 1  3.0  NaN
 2  1.0  0.0
 
-skipna : Works in the same way as for Series.
-
-axis=0 : Default value, equivalent to axis=None or axis='index'.
-Iterates over rows and finds the cumulative product of values in each column.
+By default, iterates over rows and finds the minimum
+in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
 
 >>> df.cumprod()
      A    B
@@ -8985,8 +8980,8 @@ Iterates over rows and finds the cumulative product of values in each column.
 1  6.0  NaN
 2  6.0  0.0
 
-axis=1 : Iterates over columns and finds the cumulative product
-of values in each row.
+To iterate over columns and find the minimum in each row,
+use ``axis=1``
 
 >>> df.cumprod(axis=1)
      A    B
@@ -9000,7 +8995,7 @@ Examples
 --------
 **Series**
 
->>> s = pd.Series([2,np.nan,5,-1,0])
+>>> s = pd.Series([2, np.nan, 5, -1, 0])
 >>> s
 0    2.0
 1    NaN
@@ -9009,7 +9004,7 @@ Examples
 4    0.0
 dtype: float64
 
-skipna=True : Default value, ignores NaN values during operation:
+By default, NA values are ignored.
 
 >>> s.cummax()
 0    2.0
@@ -9019,7 +9014,7 @@ skipna=True : Default value, ignores NaN values during operation:
 4    5.0
 dtype: float64
 
-skipna=False : Includes NaN values:
+To include NA values in the operation, use ``skipna=False``
 
 >>> s.cummax(skipna=False)
 0    2.0
@@ -9041,11 +9036,8 @@ dtype: float64
 1  3.0  NaN
 2  1.0  0.0
 
-skipna : Works in the same way as for Series.
-
-axis=0 : Default value, equivalent to axis=None or axis='index'.
-Iterates over rows and finds the maximum in each column.
-If value is larger than the previous one, updates it:
+By default, iterates over rows and finds the minimum
+in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
 
 >>> df.cummax()
      A    B
@@ -9053,8 +9045,8 @@ If value is larger than the previous one, updates it:
 1  3.0  NaN
 2  3.0  1.0
 
-axis=1 : Iterates over columns and finds the maximum in each row.
-If value is larger than the previous one, updates it:
+To iterate over columns and find the minimum in each row,
+use ``axis=1``
 
 >>> df.cummax(axis=1)
      A    B
