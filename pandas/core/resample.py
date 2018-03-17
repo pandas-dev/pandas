@@ -639,24 +639,32 @@ one pass, you can do
         method : {'pad', 'backfill', 'ffill', 'bfill', 'nearest'}
             Method to use for filling holes in resampled data
 
-            * 'pad': use previous valid observation to fill gap (forward
-              fill).
-            * 'backfill': use next valid observation to fill gap.
+            * 'pad' or 'ffill': use previous valid observation to fill gap
+              (forward fill).
+            * 'backfill' or 'bfill': use next valid observation to fill gap.
             * 'nearest': use nearest valid observation to fill gap.
-            * 'ffill': same as 'pad'.
-            * 'bfill': same as 'backfill'.
+
         limit : integer, optional
-            Limit of how many consecutive values to fill.
+            Limit of how many consecutive missing values to fill.
 
         Returns
         -------
         Series or DataFrame
-            An upsampled Series or DataFrame with backward or forwards filled
-            NaN values.
+            An upsampled Series or DataFrame with missing values filled.
+
+        See Also
+        --------
+        backfill : Backward fill NaN values in the resampled data.
+        pad : Forward fill NaN values in the resampled data.
+        nearest : Fill NaN values in the resampled data
+            with nearest neighbor starting from center.
+        pandas.Series.fillna : Fill NaN values in the Series using the
+            specified method, which can be 'bfill' and 'ffill'.
+        pandas.DataFrame.fillna : Fill NaN values in the DataFrame using the
+            specified method, which can be 'bfill' and 'ffill'.
 
         Examples
         --------
-
         Resampling a Series:
 
         >>> s = pd.Series([1, 2, 3],
@@ -713,7 +721,7 @@ one pass, you can do
         2018-01-01 02:00:00    3
         Freq: 30T, dtype: int64
 
-        Resamping a Series that has missing values:
+        Missing values present before the upsampling are not affected.
 
         >>> sm = pd.Series([1, None, 3],
         ...               index=pd.date_range('20180101', periods=3, freq='h'))
@@ -747,8 +755,8 @@ one pass, you can do
         2018-01-01 02:00:00    3.0
         Freq: 30T, dtype: float64
 
-        Resampling a DataFrame that has missing values works similar as for
-        Series column-by-column:
+        DataFrame resampling is done column-wise. All the same options are
+        available.
 
         >>> df = pd.DataFrame({'a': [2, np.nan, 6], 'b': [1, 3, 5]},
         ...                   index=pd.date_range('20180101', periods=3,
@@ -766,29 +774,6 @@ one pass, you can do
         2018-01-01 01:00:00  NaN  3
         2018-01-01 01:30:00  6.0  5
         2018-01-01 02:00:00  6.0  5
-
-        >>> df.resample('15min').fillna("bfill", limit=2)
-                               a    b
-        2018-01-01 00:00:00  2.0  1.0
-        2018-01-01 00:15:00  NaN  NaN
-        2018-01-01 00:30:00  NaN  3.0
-        2018-01-01 00:45:00  NaN  3.0
-        2018-01-01 01:00:00  NaN  3.0
-        2018-01-01 01:15:00  NaN  NaN
-        2018-01-01 01:30:00  6.0  5.0
-        2018-01-01 01:45:00  6.0  5.0
-        2018-01-01 02:00:00  6.0  5.0
-
-        See Also
-        --------
-        backfill : Backward fill NaN values in the resampled data.
-        pad : Forward fill NaN values in the resampled data.
-        nearest : Fill NaN values in the resampled data
-            with nearest neighbor starting from center.
-        pandas.Series.fillna : Fill NaN values in the Series using the
-            specified method, which can be 'bfill' and 'ffill'.
-        pandas.DataFrame.fillna : Fill NaN values in the DataFrame using the
-            specified method, which can be 'bfill' and 'ffill'.
 
         References
         ----------
