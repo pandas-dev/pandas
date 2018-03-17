@@ -1946,7 +1946,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         'is_leap_year',
         'is_leap_year',
         """
-        Return a boolean indicating if the date belongs to a leap year.
+        Boolean indicator if the date belongs to a leap year.
 
         A leap year is a year, which has 366 days (instead of 365) including
         29th of February as an intercalary day.
@@ -1955,13 +1955,22 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         Returns
         -------
-        Series
+        Series or ndarray
              Booleans indicating if dates belong to a leap year.
 
         Examples
         --------
-        >>> dates = pd.date_range("2012-01-01", "2015-01-01", freq="Y")
-        >>> dates_series = pd.Series(dates)
+        This method is available on Series with datetime values under
+        the ``.dt`` accessor, and directly on DatetimeIndex.
+
+        >>> idx = pd.date_range("2012-01-01", "2015-01-01", freq="Y")
+        >>> idx
+        DatetimeIndex(['2012-12-31', '2013-12-31', '2014-12-31'],
+                      dtype='datetime64[ns]', freq='A-DEC')
+        >>> idx.is_leap_year
+        array([ True, False, False], dtype=bool)
+
+        >>> dates = pd.Series(idx)
         >>> dates_series
         0   2012-12-31
         1   2013-12-31
