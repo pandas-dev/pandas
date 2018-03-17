@@ -471,8 +471,8 @@ def _factorize_array(values, check_nulls, na_sentinel=-1, size_hint=None):
 _shared_docs['factorize'] = """
     Encode the object as an enumerated type or categorical variable.
 
-    This method is useful for obtaining a numeric representation of
-    when all that matters is identifying distinct values. `factorize`
+    This method is useful for obtaining a numeric representation of an
+    array when all that matters is identifying distinct values. `factorize`
     is available as both a top-level function :func:`pandas.factorize`,
     and as a method :meth:`Series.factorize` and :meth:`Index.factorize`.
 
