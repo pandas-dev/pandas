@@ -8787,10 +8787,9 @@ See also
 --------
 pandas.core.window.Expanding.%(accum_func_name)s : Similar functionality
     but ignores ``NaN`` values.
-Series.%(outname)s : Return cumulative %(desc)s over Series axis.
 %(name2)s.%(accum_func_name)s : Return the %(desc)s over
     %(name2)s axis.
-DataFrame.cummax : Return cumulative maximum over DataFrame axis.
+%(name2)s.cummax : Return cumulative maximum over %(name2)s axis.
 %(name2)s.cummin : Return cumulative minimum over %(name2)s axis.
 %(name2)s.cumsum : Return cumulative sum over %(name2)s axis.
 %(name2)s.cumprod : Return cumulative product over %(name2)s axis.
