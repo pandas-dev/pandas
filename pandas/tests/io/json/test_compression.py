@@ -21,14 +21,15 @@ def test_compression_roundtrip(compression_no_zip):
         assert_frame_equal(df, pd.read_json(result))
 
 
+@pytest.mark.xfail(reason='zip compression is now supported for json.')
 def test_compress_zip_value_error():
     df = pd.DataFrame([[0.123456, 0.234567, 0.567567],
                        [12.32112, 123123.2, 321321.2]],
                       index=['A', 'B'], columns=['X', 'Y', 'Z'])
 
     with tm.ensure_clean() as path:
-        import zipfile
-        pytest.raises(zipfile.BadZipfile, df.to_json, path, compression="zip")
+        from zipfile import BadZipfile
+        pytest.raises(BadZipfile, df.to_json, path, compression="zip")
 
 
 def test_read_zipped_json():
