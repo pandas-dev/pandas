@@ -770,8 +770,8 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
         Whether to compare number exactly.
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
-    obj : str, default 'Index'
-        Specify object name being compared, internally used to show appropriate
+    obj : str or 2-length sequence (tuple, list, ...), default 'Index'
+        Specify object(s) name(s) being compared, used to show appropriate
         assertion message
     """
 
@@ -908,8 +908,8 @@ def assert_attr_equal(attr, left, right, obj='Attributes'):
         Attribute name being compared.
     left : object
     right : object
-    obj : str, default 'Attributes'
-        Specify object name being compared, internally used to show appropriate
+    obj : str or 2-length sequence (tuple, list, ...), default 'Attributes'
+        Specify object(s) name(s) being compared, used to show appropriate
         assertion message
     """
 
@@ -975,8 +975,8 @@ def assert_categorical_equal(left, right, check_dtype=True,
         Categoricals to compare
     check_dtype : bool, default True
         Check that integer dtype of the codes are the same
-    obj : str, default 'Categorical'
-        Specify object name being compared, internally used to show appropriate
+    obj : str or 2-length sequence (tuple, list, ...), default 'Categorical'
+        Specify object(s) name(s) being compared, used to show appropriate
         assertion message
     check_category_order : bool, default True
         Whether the order of the categories should be compared, which
@@ -1059,8 +1059,8 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
         check dtype if both a and b are np.ndarray
     err_msg : str, default None
         If provided, used as assertion message
-    obj : str, default 'numpy array'
-        Specify object name being compared, internally used to show appropriate
+    obj : str or 2-length sequence (tuple, list, ...), default 'numpy array'
+        Specify object(s) name(s) being compared, used to show appropriate
         assertion message
     check_same : None|'copy'|'same', default None
         Ensure left and right refer/do not refer to the same memory area
@@ -1156,8 +1156,8 @@ def assert_series_equal(left, right, check_dtype=True,
         Compare datetime-like which is comparable ignoring dtype.
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
-    obj : str, default 'Series'
-        Specify object name being compared, internally used to show appropriate
+    obj : str or 2-length sequence (tuple, list, ...), default 'Series'
+        Specify object(s) name(s) being compared, used to show appropriate
         assertion message
     """
 
@@ -1286,8 +1286,8 @@ def assert_frame_equal(left, right, check_dtype=True,
         Whether to compare internal Categorical exactly.
     check_like : bool, default False
         If true, ignore the order of rows & columns
-    obj : str, default 'DataFrame'
-        Specify object name being compared, internally used to show appropriate
+    obj : str or 2-length sequence (tuple, list, ...), default 'DataFrame'
+        Specify object(s) name(s) being compared, used to show appropriate
         assertion message
     """
 
