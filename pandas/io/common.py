@@ -5,7 +5,8 @@ import csv
 import codecs
 import mmap
 from contextlib import contextmanager, closing
-
+from zipfile import ZipFile
+from io import BufferedIOBase
 from pandas.compat import StringIO, BytesIO, string_types, text_type
 from pandas import compat
 from pandas.io.formats.printing import pprint_thing
@@ -363,26 +364,6 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
 
         # ZIP Compression
         elif compression == 'zip':
-            import io
-            from zipfile import ZipFile
-            # GH 17778
-
-            class BytesZipFile(ZipFile, io.BufferedIOBase):
-                """override write method with writestr to accept bytes."""
-                def __init__(self, file, mode='r', **kwargs):
-                    if mode in ['wb', 'rb']:
-                        mode = mode.replace('b', '')
-                    super(BytesZipFile, self).__init__(file, mode, **kwargs)
-
-                def write(self, data):
-                    super(BytesZipFile, self).writestr(self.filename, data)
-
-                def writable(self):
-                    return self.mode == 'w'
-
-                def readable(self):
-                    return self.mode == 'r'
-
             zf = BytesZipFile(path_or_buf, mode)
             if zf.mode == 'w':
                 f = zf
@@ -445,6 +426,24 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
             pass
 
     return f, handles
+
+
+class BytesZipFile(ZipFile, BufferedIOBase):
+    """override write method with writestr to accept bytes."""
+    # GH 17778
+    def __init__(self, file, mode='r', **kwargs):
+        if mode in ['wb', 'rb']:
+            mode = mode.replace('b', '')
+        super(BytesZipFile, self).__init__(file, mode, **kwargs)
+
+    def write(self, data):
+        super(BytesZipFile, self).writestr(self.filename, data)
+
+    def writable(self):
+        return self.mode == 'w'
+
+    def readable(self):
+        return self.mode == 'r'
 
 
 class MMapWrapper(BaseIterator):
