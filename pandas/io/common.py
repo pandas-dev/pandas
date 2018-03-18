@@ -366,7 +366,11 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
         elif compression == 'zip':
             zf = BytesZipFile(path_or_buf, mode)
             if zf.mode == 'w':
-                f = zf
+                if compat.PY3:
+                    f = zf
+                elif compat.PY2:
+                    raise NotImplementedError('Writing zip compression is not'
+                                              ' supported in Python 2.')
             elif zf.mode == 'r':
                 zip_names = zf.namelist()
                 if len(zip_names) == 1:
