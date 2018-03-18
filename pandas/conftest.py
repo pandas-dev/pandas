@@ -3,6 +3,7 @@ import pytest
 import numpy
 import pandas
 import pandas.util._test_decorators as td
+from compat import PY2
 
 
 def pytest_addoption(parser):
@@ -66,7 +67,11 @@ def ip():
     return InteractiveShell()
 
 
-@pytest.fixture(params=[None, 'gzip', 'bz2', 'zip',
+@pytest.fixture(params=[None,
+                        'gzip',
+                        'bz2',
+                        pytest.mark.skipif(PY2, reason='zip compression not'
+                                           ' supported in Python 2.')('zip'),
                         pytest.param('xz', marks=td.skip_if_no_lzma)])
 def compression(request):
     """
