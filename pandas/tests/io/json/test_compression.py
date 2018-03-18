@@ -28,8 +28,8 @@ def test_compress_zip_value_error():
                       index=['A', 'B'], columns=['X', 'Y', 'Z'])
 
     with tm.ensure_clean() as path:
-        from zipfile import BadZipfile
-        pytest.raises(BadZipfile, df.to_json, path, compression="zip")
+        import zipfile
+        pytest.raises(zipfile.BadZipfile, df.to_json, path, compression="zip")
 
 
 def test_read_zipped_json():
