@@ -313,6 +313,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/testing.pyx',
                  'pandas/_libs/skiplist.pyx',
                  'pandas/_libs/sparse.pyx',
+                 'pandas/_libs/ops.pyx',
                  'pandas/_libs/parsers.pyx',
                  'pandas/_libs/tslibs/ccalendar.pyx',
                  'pandas/_libs/tslibs/period.pyx',
@@ -525,6 +526,10 @@ ext_data = {
     '_libs.reduction': {
         'pyxfile': '_libs/reduction',
         'pxdfiles': ['_libs/src/util']},
+    '_libs.ops': {
+        'pyxfile': '_libs/ops',
+        'pxdfiles': ['_libs/src/util',
+                     '_libs/missing']},
     '_libs.tslibs.period': {
         'pyxfile': '_libs/tslibs/period',
         'pxdfiles': ['_libs/src/util',

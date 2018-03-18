@@ -52,6 +52,7 @@ class TestSeriesPlots(TestPlotBase):
 @td.skip_if_no_mpl
 class TestDataFramePlots(TestPlotBase):
 
+    @td.xfail_if_mpl_2_2
     @td.skip_if_no_scipy
     def test_scatter_matrix_axis(self):
         scatter_matrix = plotting.scatter_matrix

@@ -33,11 +33,17 @@ class JSONArray(ExtensionArray):
                 raise TypeError
         self.data = values
 
+    @classmethod
+    def _constructor_from_sequence(cls, scalars):
+        return cls(scalars)
+
     def __getitem__(self, item):
         if isinstance(item, numbers.Integral):
             return self.data[item]
         elif isinstance(item, np.ndarray) and item.dtype == 'bool':
-            return type(self)([x for x, m in zip(self, item) if m])
+            return self._constructor_from_sequence([
+                x for x, m in zip(self, item) if m
+            ])
         else:
             return type(self)(self.data[item])
 
@@ -77,10 +83,17 @@ class JSONArray(ExtensionArray):
     def take(self, indexer, allow_fill=True, fill_value=None):
         output = [self.data[loc] if loc != -1 else self._na_value
                   for loc in indexer]
-        return type(self)(output)
+        return self._constructor_from_sequence(output)
 
     def copy(self, deep=False):
         return type(self)(self.data[:])
+
+    def unique(self):
+        # Parent method doesn't work since np.array will try to infer
+        # a 2-dim object.
+        return type(self)([
+            dict(x) for x in list(set(tuple(d.items()) for d in self.data))
+        ])
 
     @property
     def _na_value(self):

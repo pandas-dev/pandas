@@ -762,17 +762,17 @@ class TestXlrdReader(ReadingTestsBase):
         # GH 12453
         with ensure_clean('.xlsx') as path:
             df = DataFrame({
-                ('Zero', ''): {0: 0},
                 ('One', 'x'): {0: 1},
                 ('Two', 'X'): {0: 3},
-                ('Two', 'Y'): {0: 7}
+                ('Two', 'Y'): {0: 7},
+                ('Zero', ''): {0: 0}
             })
 
             expected = DataFrame({
-                ('Zero', 'Unnamed: 3_level_1'): {0: 0},
                 ('One', u'x'): {0: 1},
                 ('Two', u'X'): {0: 3},
-                ('Two', u'Y'): {0: 7}
+                ('Two', u'Y'): {0: 7},
+                ('Zero', 'Unnamed: 3_level_1'): {0: 0}
             })
 
             df.to_excel(path)
@@ -1014,7 +1014,7 @@ class _WriterBase(SharedItems):
     def set_engine_and_path(self, request, merge_cells, engine, ext):
         """Fixture to set engine and open file for use in each test case
 
-        Rather than requiring `engine=...` to be provided explictly as an
+        Rather than requiring `engine=...` to be provided explicitly as an
         argument in each test, this fixture sets a global option to dictate
         which engine should be used to write Excel files. After executing
         the test it rolls back said change to the global option.
@@ -1373,11 +1373,6 @@ class TestExcelWriter(_WriterBase):
 
     def test_to_excel_timedelta(self, merge_cells, engine, ext):
         # GH 19242, GH9155 - test writing timedelta to xls
-        if engine == 'openpyxl':
-            pytest.xfail('Timedelta roundtrip broken with openpyxl')
-        if engine == 'xlsxwriter' and (sys.version_info[0] == 2 and
-                                       sys.platform.startswith('linux')):
-            pytest.xfail('Not working on linux with Py2 and xlsxwriter')
         frame = DataFrame(np.random.randint(-10, 10, size=(20, 1)),
                           columns=['A'],
                           dtype=np.int64

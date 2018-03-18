@@ -11,7 +11,7 @@ import numpy as np
 from pandas._libs import lib, tslib
 
 from pandas import compat
-from pandas.compat import long, zip, iteritems
+from pandas.compat import long, zip, iteritems, PY36, OrderedDict
 from pandas.core.config import get_option
 from pandas.core.dtypes.generic import ABCSeries, ABCIndex
 from pandas.core.dtypes.common import _NS_DTYPE
@@ -184,6 +184,16 @@ def _try_sort(iterable):
         return sorted(listed)
     except Exception:
         return listed
+
+
+def _dict_keys_to_ordered_list(mapping):
+    # when pandas drops support for Python < 3.6, this function
+    # can be replaced by a simple list(mapping.keys())
+    if PY36 or isinstance(mapping, OrderedDict):
+        keys = list(mapping.keys())
+    else:
+        keys = _try_sort(mapping)
+    return keys
 
 
 def iterpairs(seq):

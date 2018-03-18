@@ -12,7 +12,7 @@ cross platform distribution for data analysis and scientific computing.
 This is the recommended installation method for most users.
 
 Instructions for installing from source,
-`PyPI <http://pypi.python.org/pypi/pandas>`__, various Linux distributions, or a
+`PyPI <http://pypi.python.org/pypi/pandas>`__, `ActivePython <https://www.activestate.com/activepython/downloads>`__, various Linux distributions, or a
 `development version <http://github.com/pandas-dev/pandas>`__ are also provided.
 
 Python version support
@@ -25,8 +25,8 @@ Installing pandas
 
 .. _install.anaconda:
 
-Installing pandas with Anaconda
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Installing with Anaconda
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 Installing pandas and the rest of the `NumPy <http://www.numpy.org/>`__ and
 `SciPy <http://www.scipy.org/>`__ stack can be a little
@@ -58,8 +58,8 @@ that folder).
 
 .. _install.miniconda:
 
-Installing pandas with Miniconda
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Installing with Miniconda
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The previous section outlined how to get pandas installed as part of the
 `Anaconda <http://docs.continuum.io/anaconda/>`__ distribution.
@@ -134,6 +134,13 @@ pandas can be installed via pip from
 
     pip install pandas
 
+Installing with ActivePython
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Installation instructions for 
+`ActivePython <https://www.activestate.com/activepython>`__ can be found 
+`here <https://www.activestate.com/activepython/downloads>`__. Versions
+2.7 and 3.5 include pandas.
 
 Installing using your Linux distribution's package manager.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -164,7 +171,7 @@ Installing from source
 See the :ref:`contributing documentation <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a development environment <contributing.dev_env>` if you wish to create a *pandas* development environment.
 
 Running the test suite
-~~~~~~~~~~~~~~~~~~~~~~
+----------------------
 
 pandas is equipped with an exhaustive set of unit tests, covering about 97% of
 the codebase as of this writing. To run it on your machine to verify that
@@ -259,6 +266,12 @@ Optional Dependencies
 * One of the following combinations of libraries is needed to use the
   top-level :func:`~pandas.read_html` function:
 
+  .. versionchanged:: 0.23.0
+
+  .. note::
+
+     If using BeautifulSoup4 a minimum version of 4.2.1 is required
+
   * `BeautifulSoup4`_ and `html5lib`_ (Any recent version of `html5lib`_ is
     okay.)
   * `BeautifulSoup4`_ and `lxml`_
@@ -275,9 +288,6 @@ Optional Dependencies
      * You are highly encouraged to read :ref:`HTML Table Parsing gotchas <io.html.gotchas>`.
        It explains issues surrounding the installation and
        usage of the above three libraries.
-     * You may need to install an older version of `BeautifulSoup4`_:
-       Versions 4.2.1, 4.1.3 and 4.0.2 have been confirmed for 64 and 32-bit
-       Ubuntu/Debian
 
   .. note::
 
@@ -299,5 +309,5 @@ Optional Dependencies
 
    Without the optional dependencies, many useful features will not
    work. Hence, it is highly recommended that you install these. A packaged
-   distribution like `Anaconda <http://docs.continuum.io/anaconda/>`__, or `Enthought Canopy
+   distribution like `Anaconda <http://docs.continuum.io/anaconda/>`__, `ActivePython <https://www.activestate.com/activepython/downloads>`__  (version 2.7 or 3.5), or `Enthought Canopy
    <http://enthought.com/products/canopy>`__ may be worth considering.
