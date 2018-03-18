@@ -11,7 +11,7 @@ import pandas.core.common as com
 from pandas.core.algorithms import checked_add_with_arr
 
 
-class DatetimeLikeArray(object):
+class DatetimeLikeArrayMixin(object):
     """
     Shared Base/Mixin class for DatetimeArray, TimedeltaArray, PeriodArray
 

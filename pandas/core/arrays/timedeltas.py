@@ -4,10 +4,10 @@ from pandas._libs.tslib import Timedelta
 
 from pandas.core.dtypes.common import _TD_DTYPE
 
-from .datetimelike import DatetimeLikeArray
+from .datetimelike import DatetimeLikeArrayMixin
 
 
-class TimedeltaArray(DatetimeLikeArray):
+class TimedeltaArray(DatetimeLikeArrayMixin):
     @property
     def _box_func(self):
         return lambda x: Timedelta(x, unit='ns')

@@ -6,10 +6,10 @@ from pandas.util._decorators import cache_readonly
 
 from pandas.core.dtypes.dtypes import PeriodDtype
 
-from .datetimelike import DatetimeLikeArray
+from .datetimelike import DatetimeLikeArrayMixin
 
 
-class PeriodArray(DatetimeLikeArray):
+class PeriodArray(DatetimeLikeArrayMixin):
     @property
     def _box_func(self):
         return lambda x: Period._from_ordinal(ordinal=x, freq=self.freq)

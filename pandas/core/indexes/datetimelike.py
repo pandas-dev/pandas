@@ -42,7 +42,7 @@ from pandas.core import common as com, algorithms, ops
 from pandas.errors import NullFrequencyError, PerformanceWarning
 import pandas.io.formats.printing as printing
 
-from pandas.core.arrays.datetimelike import DatetimeLikeArray
+from pandas.core.arrays.datetimelike import DatetimeLikeArrayMixin
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.util._decorators import Appender, cache_readonly
 import pandas.core.dtypes.concat as _concat
@@ -209,11 +209,15 @@ class TimelikeOps(object):
         return self._round(freq, np.ceil)
 
 
-class DatetimeIndexOpsMixin(DatetimeLikeArray):
+class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
     """ common ops mixin to support a unified interface datetimelike Index """
-    inferred_freq = cache_readonly(DatetimeLikeArray.inferred_freq.fget)
-    _isnan = cache_readonly(DatetimeLikeArray._isnan.fget)
-    hasnans = cache_readonly(DatetimeLikeArray.hasnans.fget)
+
+    # DatetimeLikeArrayMixin assumes subclasses are mutable, so these are
+    # properties there.  They can be made into cache_readonly for Index
+    # subclasses bc they are immutable
+    inferred_freq = cache_readonly(DatetimeLikeArrayMixin.inferred_freq.fget)
+    _isnan = cache_readonly(DatetimeLikeArrayMixin._isnan.fget)
+    hasnans = cache_readonly(DatetimeLikeArrayMixin.hasnans.fget)
 
     def equals(self, other):
         """

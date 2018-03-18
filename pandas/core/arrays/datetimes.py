@@ -10,10 +10,10 @@ from pandas.util._decorators import cache_readonly
 from pandas.core.dtypes.common import _NS_DTYPE, is_datetime64tz_dtype
 from pandas.core.dtypes.dtypes import DatetimeTZDtype
 
-from .datetimelike import DatetimeLikeArray
+from .datetimelike import DatetimeLikeArrayMixin
 
 
-class DatetimeArray(DatetimeLikeArray):
+class DatetimeArray(DatetimeLikeArrayMixin):
     """
     Assumes that subclass __new__/__init__ defines:
         tz
