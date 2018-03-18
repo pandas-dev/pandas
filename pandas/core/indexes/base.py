@@ -3396,10 +3396,10 @@ class Index(IndexOpsMixin, PandasObject):
 
     def isin(self, values, level=None):
         """
-        Boolean array on existence of index values in `values`.
+        Return a boolean array where the index values are in `values`.
 
         Compute boolean array of whether each index value is found in the
-        passed set of values. Length of the returned boolean array matches
+        passed set of values. The length of the returned boolean array matches
         the length of the index.
 
         Parameters
@@ -3411,10 +3411,9 @@ class Index(IndexOpsMixin, PandasObject):
 
             Support for values as a set.
 
-        level : str or int, optional in the case of Index, compulsory on
-            MultiIndex
+        level : str or int, optional
             Name or position of the index level to use (if the index is a
-            MultiIndex).
+            `MultiIndex`).
 
         Returns
         -------
@@ -3422,15 +3421,15 @@ class Index(IndexOpsMixin, PandasObject):
 
         See also
         --------
-        DatetimeIndex.isin : an Index of :class:`Datetime` s
-        TimedeltaIndex : an Index of :class:`Timedelta` s
-        PeriodIndex : an Index of :class:`Period` s
-        MultiIndex.isin : Same for `MultiIndex`
-        NumericIndex.isin : Same for `Int64Index`, `UInt64Index`,
-                            `Float64Index`
+        Series.isin: same for :class:`~pandas.Series`
 
         Notes
         -----
+        In the case of `MultiIndex` you must either specify `values` as a
+        list-like object containing tuples that are the same length as the
+        number of levels, or specify `level`. Otherwise it will raise
+        `ValueError`.
+
         If `level` is specified:
 
         - if it is the name of one *and only one* index level, use that level;
@@ -3450,21 +3449,26 @@ class Index(IndexOpsMixin, PandasObject):
         ...                                    ['red','blue','green']],
         ...                                    names=('number', 'color'))
         >>> midx
-        MultiIndex(levels=[[1, 2, 3], ['blue', 'green', 'red']],\
- labels=[[0, 1, 2], [2, 0, 1]],\
- names=['number', 'color'])
+        MultiIndex(levels=[[1, 2, 3], ['blue', 'green', 'red']],
+        labels=[[0, 1, 2], [2, 0, 1]],
+        names=['number', 'color'])
 
         Check whether a string index value is in the 'color' level of the
         MultiIndex:
 
-        >>> midx.isin(['red'],'color')
+        >>> midx.isin(['red'], level='color')
+        array([ True, False, False])
+
+        Check whether a pair of indexes is in the MultiIndex:
+
+        >>> midx.isin([(1, 'red'), (3, 'red')])
         array([ True, False, False])
 
         >>> dates = ['3/11/2000', '3/12/2000', '3/13/2000']
         >>> dti = pd.to_datetime(dates)
         >>> dti
-        DatetimeIndex(['2000-03-11', '2000-03-12', '2000-03-13'],\
- dtype='datetime64[ns]', freq=None)
+        DatetimeIndex(['2000-03-11', '2000-03-12', '2000-03-13'],
+        dtype='datetime64[ns]', freq=None)
 
         Check whether a datetime index value is in the DatetimeIndex:
 
