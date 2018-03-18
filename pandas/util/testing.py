@@ -47,7 +47,6 @@ from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
 from pandas._libs import testing as _testing
 from pandas.io.common import urlopen
 
-
 N = 30
 K = 4
 _RAISE_NETWORK_ERROR_DEFAULT = False
@@ -297,7 +296,6 @@ def _check_isinstance(left, right, cls):
 
 
 def assert_dict_equal(left, right, compare_keys=True):
-
     _check_isinstance(left, right, dict)
     return _testing.assert_dict_equal(left, right, compare_keys=compare_keys)
 
@@ -464,7 +462,7 @@ def get_locales(prefix=None, normalize=True,
         return _valid_locales(out_locales, normalize)
 
     found = re.compile('{prefix}.*'.format(prefix=prefix)) \
-              .findall('\n'.join(out_locales))
+        .findall('\n'.join(out_locales))
     return _valid_locales(found, normalize)
 
 
@@ -547,6 +545,7 @@ def _valid_locales(locales, normalize):
         normalizer = lambda x: x.strip()
 
     return list(filter(_can_set_locale, map(normalizer, locales)))
+
 
 # -----------------------------------------------------------------------------
 # Stdout / stderr decorators
@@ -647,6 +646,7 @@ def capture_stderr(f):
 
     return wrapper
 
+
 # -----------------------------------------------------------------------------
 # Console debugging tools
 
@@ -675,6 +675,7 @@ def set_trace():
     except Exception:
         from pdb import Pdb as OldPdb
         OldPdb().set_trace(sys._getframe().f_back)
+
 
 # -----------------------------------------------------------------------------
 # contextmanager to ensure the file cleanup
@@ -736,6 +737,7 @@ def get_data_path(f=''):
     _, filename, _, _, _, _ = inspect.getouterframes(inspect.currentframe())[1]
     base_dir = os.path.abspath(os.path.dirname(filename))
     return os.path.join(base_dir, 'data', f)
+
 
 # -----------------------------------------------------------------------------
 # Comparators
@@ -822,7 +824,8 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
             llevel = _get_ilevel_values(left, level)
             rlevel = _get_ilevel_values(right, level)
 
-            lobj = map_obj('{obj} MultiIndex level [{level}]', obj, level=level)
+            lobj = map_obj('{obj} MultiIndex level [{level}]', obj,
+                           level=level)
             assert_index_equal(llevel, rlevel,
                                exact=exact, check_names=check_names,
                                check_less_precise=check_less_precise,
@@ -889,7 +892,8 @@ def assert_class_equal(left, right, exact=True, obj='Input'):
             # allow equivalence of Int64Index/RangeIndex
             types = set([type(left).__name__, type(right).__name__])
             if len(types - set(['Int64Index', 'RangeIndex'])):
-                msg = '{obj} classes are not equivalent'.format(obj=join_obj(obj))
+                msg = '{obj} classes are not equivalent'.format(
+                    obj=join_obj(obj))
                 raise_assert_detail(obj, msg, repr_class(left),
                                     repr_class(right))
     elif exact:
@@ -962,7 +966,8 @@ def is_sorted(seq, obj='seq'):
     if isinstance(seq, (Index, Series)):
         seq = seq.values
     # sorting does not change precisions
-    return assert_numpy_array_equal(seq, np.sort(np.array(seq)), obj=(obj, 'sorted({})'.format(obj)))
+    return assert_numpy_array_equal(seq, np.sort(np.array(seq)),
+                                    obj=(obj, 'sorted({})'.format(obj)))
 
 
 def assert_categorical_equal(left, right, check_dtype=True,
@@ -1011,7 +1016,6 @@ def assert_categorical_equal(left, right, check_dtype=True,
 
 
 def raise_assert_detail(obj, message, left, right, diff=None):
-
     obj = com._maybe_make_list(obj)
 
     if len(obj) >= 2:
@@ -1021,7 +1025,6 @@ def raise_assert_detail(obj, message, left, right, diff=None):
 
     names_formatted = list(map(lambda x: '[{}]:'.format(x), names))
     max_len = max(map(len, names_formatted))
-
 
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
@@ -1036,7 +1039,9 @@ def raise_assert_detail(obj, message, left, right, diff=None):
 
 {message}
 {names[0]:<{max_len}} {left}
-{names[1]:<{max_len}} {right}""".format(obj=join_obj(obj), message=message, left=left, right=right, names=names_formatted, max_len=max_len)
+{names[1]:<{max_len}} {right}""".format(obj=join_obj(obj), message=message,
+                                        left=left, right=right,
+                                        names=names_formatted, max_len=max_len)
 
     if diff is not None:
         msg += "\n[diff]: {diff}".format(diff=diff)
@@ -1095,7 +1100,8 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
         if err_msg is None:
             if left.shape != right.shape:
                 raise_assert_detail(obj, '{obj} shapes are different'
-                                    .format(obj=join_obj(obj)), left.shape, right.shape)
+                                    .format(obj=join_obj(obj)), left.shape,
+                                    right.shape)
 
             diff = 0
             for l, r in zip(left, right):
@@ -1199,14 +1205,14 @@ def assert_series_equal(left, right, check_dtype=True,
     if check_exact:
         assert_numpy_array_equal(left.get_values(), right.get_values(),
                                  check_dtype=check_dtype,
-                                 obj=map_obj('{obj}', obj),)
+                                 obj=map_obj('{obj}', obj), )
     elif check_datetimelike_compat:
         # we want to check only if we have compat dtypes
         # e.g. integer and M|m are NOT compat, but we can simply check
         # the values in that case
         if (is_datetimelike_v_numeric(left, right) or
-            is_datetimelike_v_object(left, right) or
-            needs_i8_conversion(left) or
+                is_datetimelike_v_object(left, right) or
+                needs_i8_conversion(left) or
                 needs_i8_conversion(right)):
 
             # datetimelike may have different objects (e.g. datetime.datetime
@@ -1336,7 +1342,8 @@ def assert_frame_equal(left, right, check_dtype=True,
             assert dtype in lblocks
             assert dtype in rblocks
             assert_frame_equal(lblocks[dtype], rblocks[dtype],
-                               check_dtype=check_dtype, obj=map_obj('{obj}.blocks', obj))
+                               check_dtype=check_dtype,
+                               obj=map_obj('{obj}.blocks', obj))
 
     # compare by columns
     else:
@@ -1546,6 +1553,7 @@ def assert_sp_frame_equal(left, right, check_dtype=True, exact_indices=True,
     for col in right:
         assert (col in left)
 
+
 # -----------------------------------------------------------------------------
 # Others
 
@@ -1614,7 +1622,7 @@ def makeIntIndex(k=10, name=None):
 
 
 def makeUIntIndex(k=10, name=None):
-    return Index([2**63 + i for i in lrange(k)], name=name)
+    return Index([2 ** 63 + i for i in lrange(k)], name=name)
 
 
 def makeRangeIndex(k=10, name=None, **kwargs):
@@ -2099,8 +2107,8 @@ _network_errno_vals = (
     111,  # Connection refused
     110,  # Connection timed out
     104,  # Connection reset Error
-    54,   # Connection reset by peer
-    60,   # urllib.error.URLError: [Errno 60] Connection timed out
+    54,  # Connection reset by peer
+    60,  # urllib.error.URLError: [Errno 60] Connection timed out
 )
 
 # Both of the above shouldn't mask real issues such as 404's
@@ -2273,7 +2281,6 @@ with_connectivity_check = network
 
 
 class SimpleMock(object):
-
     """
     Poor man's mocking object
 
@@ -2289,7 +2296,7 @@ class SimpleMock(object):
     """
 
     def __init__(self, obj, *args, **kwds):
-        assert(len(args) % 2 == 0)
+        assert (len(args) % 2 == 0)
         attrs = kwds.get("attrs", {})
         for k, v in zip(args[::2], args[1::2]):
             # dict comprehensions break 2.6
@@ -2575,12 +2582,10 @@ class RNGContext(object):
         self.seed = seed
 
     def __enter__(self):
-
         self.start_state = np.random.get_state()
         np.random.seed(self.seed)
 
     def __exit__(self, exc_type, exc_value, traceback):
-
         np.random.set_state(self.start_state)
 
 
@@ -2642,7 +2647,9 @@ def test_parallel(num_threads=2, kwargs_list=None):
                 thread.start()
             for thread in threads:
                 thread.join()
+
         return inner
+
     return wrapper
 
 

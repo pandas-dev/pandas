@@ -616,7 +616,8 @@ The Holy Grail and The Life of Brian values are different \\(33.33333 %\\)
 \\[The Life of Brian\\]: \\[0, 2, 3\\]"""
 
         with tm.assert_raises_regex(AssertionError, expected):
-            assert_series_equal(pd.Series([1, 2, 3]), pd.Series([0, 2, 3]), obj=('The Holy Grail', 'The Life of Brian'))
+            assert_series_equal(pd.Series([1, 2, 3]), pd.Series([0, 2, 3]),
+                                obj=('The Holy Grail', 'The Life of Brian'))
 
 
 class TestAssertFrameEqual(object):
@@ -730,7 +731,6 @@ DataFrame\\.blocks\\.iloc\\[:, 1\\] values are different \\(33\\.33333 %\\)
 Potato and Mushroom shape mismatch
 \\[Potato\\]:   \\(3, 2\\)
 \\[Mushroom\\]: \\(3, 1\\)"""
-
 
         with tm.assert_raises_regex(AssertionError, expected):
             assert_frame_equal(pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]}),

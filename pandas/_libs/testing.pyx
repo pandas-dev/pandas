@@ -156,8 +156,8 @@ cpdef assert_almost_equal(a, b,
             else:
                 r = None
 
-            raise_assert_detail(obj, '{0} length are different'.format(join_obj(obj)),
-                                na, nb, r)
+            raise_assert_detail(obj, '{0} length are different'.format(
+                join_obj(obj)), na, nb, r)
 
         for i in xrange(len(a)):
             try:
@@ -169,8 +169,6 @@ cpdef assert_almost_equal(a, b,
 
         if is_unequal:
             from pandas.util.testing import raise_assert_detail, join_obj
-
-
 
             msg = '{0} values are different ({1} %)'.format(
                 join_obj(obj), np.round(diff * 100.0 / na, 5))
