@@ -265,7 +265,7 @@ class TestCut(object):
 
     def test_qcut_bool_coercion_to_int(self):
         # issue 20303
-        arr = np.random.randint(2, size=100) 
+        arr = np.random.randint(2, size=100)
         bool_arr = arr.astype(bool)
         bins = 6
 

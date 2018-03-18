@@ -351,7 +351,7 @@ def _coerce_to_type(x):
     handle it
     """
     dtype = None
-    
+
     if is_datetime64tz_dtype(x):
         dtype = x.dtype
     elif is_datetime64_dtype(x):
@@ -362,10 +362,10 @@ def _coerce_to_type(x):
         dtype = np.timedelta64
     elif is_bool_dtype(x):
         dtype = x.dtype
-    
+
     if dtype is not None:
         if is_bool_dtype(x):
-            # GH 20303: coerce bool to int 
+            # GH 20303: coerce bool to int
             x = np.where(np.isnan(x), np.nan, x.astype(int))
         else:
             # GH 19768: force NaT to NaN during integer conversion
