@@ -384,6 +384,7 @@ def group_any_all(ndarray[uint8_t] out,
 def group_quantile(ndarray[float64_t] out,
                    ndarray[int64_t] labels,
                    numeric[:] values,
+                   ndarray[uint8_t] mask,
                    double_t q):
     """
     Calculate the quantile per group.
@@ -406,13 +407,14 @@ def group_quantile(ndarray[float64_t] out,
     """
     cdef:
         Py_ssize_t i, N=len(labels)
-        int64_t lab, ngroups, grp_sz, grp_start=0, idx=0
+        int64_t lab, ngroups, grp_sz, non_na_sz, grp_start=0, idx=0
         numeric val, next_val
         double_t q_idx, frac
-        ndarray[int64_t] counts
+        ndarray[int64_t] counts, non_na_counts
         ndarray[int64_t] sort_arr
 
     counts = np.zeros_like(out, dtype=np.int64)
+    non_na_counts = np.zeros_like(out, dtype=np.int64)
     ngroups = len(counts)
 
     # First figure out the size of every group
@@ -420,6 +422,8 @@ def group_quantile(ndarray[float64_t] out,
         for i in range(N):
             lab = labels[i]
             counts[lab] += 1
+            if not mask[i]:
+                non_na_counts[lab] += 1
 
     # Get an index of values sorted by labels and then values
     assert len(values) == len(labels)
@@ -430,15 +434,16 @@ def group_quantile(ndarray[float64_t] out,
         for i in range(ngroups):
             # Figure out how many group elements there are
             grp_sz = counts[i]
+            non_na_sz = non_na_counts[i]
 
             # Calculate where to retrieve the desired value
             # Casting to int will intentionaly truncate result
-            idx = grp_start + <int64_t>(q * <double_t>(grp_sz - 1))
+            idx = grp_start + <int64_t>(q * <double_t>(non_na_sz - 1))
 
             val = values[sort_arr[idx]]
             # If requested quantile falls evenly on a particular index
             # then write that index's value out. Otherwise interpolate
-            q_idx = q * (grp_sz - 1)
+            q_idx = q * (non_na_sz - 1)
             frac = q_idx % 1
 
             if frac == 0.0:  # IEEE-754 always a safe comparison?

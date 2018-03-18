@@ -1770,6 +1770,7 @@ class GroupBy(_GroupBy):
         return self._get_cythonized_result('group_quantile', self.grouper,
                                            aggregate=True,
                                            needs_values=True,
+                                           needs_mask=True,
                                            cython_dtype=np.float64,
                                            pre_processing=assert_not_object,
                                            q=q)
