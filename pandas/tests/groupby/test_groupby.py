@@ -1901,12 +1901,18 @@ class TestGroupBy(MixIn):
         assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("bar_vals,foo_vals", [
+        # Ints
         ([1, 2, 3, 4, 5], [5, 4, 3, 2, 1]),
         ([1, 2, 3, 4], [4, 3, 2, 1]),
         ([1, 2, 3, 4, 5], [4, 3, 2, 1]),
+        # Floats
         ([1., 2., 3., 4., 5.], [5., 4., 3., 2., 1.]),
+        # Missing data
         ([1., np.nan, 3., np.nan, 5.], [5., np.nan, 3., np.nan, 1.]),
-        ([np.nan, 4., np.nan, 2., np.nan], [np.nan, 4., np.nan, 2., np.nan])
+        ([np.nan, 4., np.nan, 2., np.nan], [np.nan, 4., np.nan, 2., np.nan]),
+        # Timestamps
+        ([x for x in pd.date_range('1/1/18', freq='D', periods=5)],
+         [x for x in pd.date_range('1/1/18', freq='D', periods=5)[::-1]])
     ])
     @pytest.mark.parametrize('q', [0, .25, .5, .75, 1])
     def test_quantile(self, bar_vals, foo_vals, q):
@@ -1923,6 +1929,16 @@ class TestGroupBy(MixIn):
                         index=Index(['bar', 'foo'], name='key'))
         res = df.groupby('key').quantile(q)
         assert_frame_equal(exp, res)
+
+    def test_quantile_raises(self):
+        df = pd.DataFrame(
+            [['foo', 'a'],
+             ['foo', 'b'],
+             ['foo', 'c']], columns=['key', 'val'])
+
+        with tm.assert_raises_regex(TypeError, "cannot be performed against "
+                                    "'object' dtypes"):
+            df.groupby('key').quantile()
 
     def test_rank_apply(self):
         lev1 = tm.rands_array(10, 100)

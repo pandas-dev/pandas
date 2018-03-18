@@ -1760,10 +1760,23 @@ class GroupBy(_GroupBy):
         >>> df
         """
 
-        def assert_not_object(vals):
+        is_dt = False
+
+        def pre_processor(vals):
             if vals.dtype == np.object:
                 raise TypeError("'quantile' cannot be performed against "
                                 "'object' dtypes!")
+
+            if vals.dtype == 'datetime64[ns]':
+                vals = vals.astype(np.float)
+                nonlocal is_dt
+                is_dt = True
+
+            return vals
+
+        def post_processor(vals):
+            if is_dt:
+                vals = vals.astype('datetime64[ns]')
 
             return vals
 
@@ -1772,7 +1785,8 @@ class GroupBy(_GroupBy):
                                            needs_values=True,
                                            needs_mask=True,
                                            cython_dtype=np.float64,
-                                           pre_processing=assert_not_object,
+                                           pre_processing=pre_processor,
+                                           post_processing=post_processor,
                                            q=q)
 
     @Substitution(name='groupby')
