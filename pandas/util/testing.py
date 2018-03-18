@@ -822,7 +822,7 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
             llevel = _get_ilevel_values(left, level)
             rlevel = _get_ilevel_values(right, level)
 
-            lobj = 'MultiIndex level [{level}]'.format(level=level)
+            lobj = map_obj('{obj} MultiIndex level [{level}]', obj, level=level)
             assert_index_equal(llevel, rlevel,
                                exact=exact, check_names=check_names,
                                check_less_precise=check_less_precise,
@@ -1012,7 +1012,7 @@ def assert_categorical_equal(left, right, check_dtype=True,
 
 def raise_assert_detail(obj, message, left, right, diff=None):
 
-    # obj = com._maybe_make_list(obj)
+    obj = com._maybe_make_list(obj)
 
     if len(obj) >= 2:
         names = obj[:2]
