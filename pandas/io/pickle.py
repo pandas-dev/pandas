@@ -20,7 +20,8 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
         File path where the pickled object will be stored.
     compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
         A string representing the compression to use in the output file. By
-        default, infers from the file extension in specified path.
+        default, infers from the file extension in specified path. 'zip' only
+        supported with Python>=3.0
 
         .. versionadded:: 0.20.0
     protocol : int
@@ -62,7 +63,6 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
     2    2    7
     3    3    8
     4    4    9
-
     >>> import os
     >>> os.remove("./dummy.pkl")
     """
@@ -133,7 +133,6 @@ def read_pickle(path, compression='infer'):
     2    2    7
     3    3    8
     4    4    9
-
     >>> import os
     >>> os.remove("./dummy.pkl")
     """

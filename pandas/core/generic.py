@@ -1816,7 +1816,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         compression : {None, 'gzip', 'bz2', 'zip', 'xz'}
             A string representing the compression to use in the output file,
-            only used when the first argument is a filename
+            'zip' only supported with Python>=3.0, only used when the first
+            argument is a filename.
 
             .. versionadded:: 0.21.0
 
@@ -2130,7 +2131,6 @@ class NDFrame(PandasObject, SelectionMixin):
         2    2    7
         3    3    8
         4    4    9
-
         >>> import os
         >>> os.remove("./dummy.pkl")
         """
