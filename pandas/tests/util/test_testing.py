@@ -673,6 +673,12 @@ DataFrame\\.iloc\\[:, 1\\] values are different \\(33\\.33333 %\\)
             assert_frame_equal(pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]}),
                                pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 7]}))
 
+        expected = """DataFrame\\.blocks\\.iloc\\[:, 1\\] are different
+
+DataFrame\\.blocks\\.iloc\\[:, 1\\] values are different \\(33\\.33333 %\\)
+\\[left\\]:  \\[4, 5, 6\\]
+\\[right\\]: \\[4, 5, 7\\]"""
+
         with tm.assert_raises_regex(AssertionError, expected):
             assert_frame_equal(pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]}),
                                pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 7]}),
