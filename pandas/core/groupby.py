@@ -256,11 +256,11 @@ _numeric_operations_examples['max'] = dedent(
     apple       gala         8   2.50
     orange  valencia         3   1.25
 
-    By default, the `max` operation is performed on columns of all dtypes
-    (including the 'variety' columns which is of type `str`).
+    By default, the ``max`` operation will be applied to all columns (including
+    the 'variety' column which is of type `str`).
 
-    In order to only keep only the numeric columns ('quantity' and 'price'),
-    the `numeric_only` keyword argument can be used:
+    Specifying ``numeric_only=True`` will keep only the numeric columns
+    ('quantity' and 'price' in this example).
 
     >>> g.max(numeric_only=True)
             quantity  price
