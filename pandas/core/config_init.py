@@ -101,7 +101,7 @@ pc_max_info_cols_doc = """
     per column information will be printed.
 """
 
-pc_nb_repr_h_doc = """
+html_notebook_doc = """
 : boolean
     When True, IPython notebook will use html representation for
     pandas objects (if it is available).
@@ -327,7 +327,7 @@ with cf.config_prefix('display'):
                        validator=is_int)
     cf.register_option('colheader_justify', 'right', colheader_justify_doc,
                        validator=is_text)
-    cf.register_option('notebook_repr_html', True, pc_nb_repr_h_doc,
+    cf.register_option('notebook_repr_html', True, html_notebook_doc,
                        validator=is_bool)
     cf.register_option('date_dayfirst', False, pc_date_dayfirst_doc,
                        validator=is_bool)
@@ -371,7 +371,7 @@ with cf.config_prefix('display'):
                        validator=is_int)
     cf.register_option('html.use_mathjax', True, pc_html_use_mathjax_doc,
                        validator=is_bool)
-    cf.register_option('html.notebook', True, pc_nb_repr_h_doc,
+    cf.register_option('html.notebook', True, html_notebook_doc,
                        validator=is_bool)
 
 with cf.config_prefix('html'):
