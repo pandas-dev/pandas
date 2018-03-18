@@ -6,7 +6,7 @@ import codecs
 import mmap
 from contextlib import contextmanager, closing
 from zipfile import ZipFile
-from io import BufferedIOBase
+
 from pandas.compat import StringIO, BytesIO, string_types, text_type
 from pandas import compat
 from pandas.io.formats.printing import pprint_thing
@@ -428,7 +428,7 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
     return f, handles
 
 
-class BytesZipFile(ZipFile, BufferedIOBase):
+class BytesZipFile(ZipFile, BytesIO):
     """override write method with writestr to accept bytes."""
     # GH 17778
     def __init__(self, file, mode='r', **kwargs):
