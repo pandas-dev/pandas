@@ -343,6 +343,7 @@ Other Enhancements
 - :meth:`Timestamp.day_name` and :meth:`DatetimeIndex.day_name` are now available to return day names with a specified locale (:issue:`12806`)
 - :meth:`DataFrame.to_sql` now performs a multivalue insert if the underlying connection supports itk rather than inserting row by row.
   ``SQLAlchemy`` dialects supporting multivalue inserts include: ``mysql``, ``postgresql``, ``sqlite`` and any dialect with ``supports_multivalues_insert``. (:issue:`14315`, :issue:`8953`)
+- :func:`read_html` now accepts a ``displayed_only`` keyword argument to controls whether or not hidden elements are parsed (``True`` by default) (:issue:`20027`)
 
 .. _whatsnew_0230.api_breaking:
 
@@ -357,13 +358,15 @@ Dependencies have increased minimum versions
 We have updated our minimum supported versions of dependencies (:issue:`15184`).
 If installed, we now require:
 
-+-----------------+-----------------+----------+
-| Package         | Minimum Version | Required |
-+=================+=================+==========+
-| python-dateutil | 2.5.0           |    X     |
-+-----------------+-----------------+----------+
-| openpyxl        | 2.4.0           |          |
-+-----------------+-----------------+----------+
++-----------------+-----------------+----------+---------------+
+| Package         | Minimum Version | Required |     Issue     |
++=================+=================+==========+===============+
+| python-dateutil | 2.5.0           |    X     | :issue:`15184`|
++-----------------+-----------------+----------+---------------+
+| openpyxl        | 2.4.0           |          | :issue:`15184`|
++-----------------+-----------------+----------+---------------+
+| beautifulsoup4  | 4.2.1           |          | :issue:`20082`|
++-----------------+-----------------+----------+---------------+
 
 .. _whatsnew_0230.api_breaking.dict_insertion_order:
 
@@ -710,6 +713,7 @@ Other API Changes
 - ``Categorical.fillna`` now validates its ``value`` and ``method`` keyword arguments. It now raises when both or none are specified, matching the behavior of :meth:`Series.fillna` (:issue:`19682`)
 - ``pd.to_datetime('today')`` now returns a datetime, consistent with ``pd.Timestamp('today')``; previously ``pd.to_datetime('today')`` returned a ``.normalized()`` datetime (:issue:`19935`)
 - :func:`Series.str.replace` now takes an optional `regex` keyword which, when set to ``False``, uses literal string replacement rather than regex replacement (:issue:`16808`)
+- :func:`DatetimeIndex.strftime` and :func:`PeriodIndex.strftime` now return an ``Index`` instead of a numpy array to be consistent with similar accessors (:issue:`20127`)
 - :class:`PeriodIndex` subtraction of another ``PeriodIndex`` will now return a numeric ``Index`` instead of raising a ``TypeErrorr`` (:issue:`20049`)
 
 .. _whatsnew_0230.deprecations:
@@ -736,6 +740,7 @@ Deprecations
 - :attr:`Timestamp.weekday_name`, :attr:`DatetimeIndex.weekday_name`, and :attr:`Series.dt.weekday_name` are deprecated in favor of :meth:`Timestamp.day_name`, :meth:`DatetimeIndex.day_name`, and :meth:`Series.dt.day_name` (:issue:`12806`)
 
 - ``pandas.tseries.plotting.tsplot`` is deprecated. Use :func:`Series.plot` instead (:issue:`18627`)
+- ``Index.summary()`` is deprecated and will be removed in a future version (:issue:`18217`)
 
 .. _whatsnew_0230.prior_deprecations:
 
@@ -795,6 +800,7 @@ Performance Improvements
 - Improved performance of variable ``.rolling()`` on ``.min()`` and ``.max()`` (:issue:`19521`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.ffill` and :func:`pandas.core.groupby.GroupBy.bfill` (:issue:`11296`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.any` and :func:`pandas.core.groupby.GroupBy.all` (:issue:`15435`)
+- Improved performance of :func:`pandas.core.groupby.GroupBy.pct_change` (:issue:`19165`)
 
 .. _whatsnew_0230.docs:
 
@@ -838,8 +844,12 @@ Categorical
   ``self`` but in a different order (:issue:`19551`)
 - Bug in :meth:`Index.astype` with a categorical dtype where the resultant index is not converted to a :class:`CategoricalIndex` for all types of index (:issue:`18630`)
 - Bug in :meth:`Series.astype` and ``Categorical.astype()`` where an existing categorical data does not get updated (:issue:`10696`, :issue:`18593`)
+- Bug in :meth:`Series.str.split` with ``expand=True`` incorrectly raising an IndexError on empty strings (:issue:`20002`).
 - Bug in :class:`Index` constructor with ``dtype=CategoricalDtype(...)`` where ``categories`` and ``ordered`` are not maintained (issue:`19032`)
 - Bug in :class:`Series` constructor with scalar and ``dtype=CategoricalDtype(...)`` where ``categories`` and ``ordered`` are not maintained (issue:`19565`)
+- Bug in ``Categorical.__iter__`` not converting to Python types (:issue:`19909`)
+- Bug in :func:`pandas.factorize` returning the unique codes for the ``uniques``. This now returns a ``Categorical`` with the same dtype as the input (:issue:`19721`)
+- Bug in :func:`pandas.factorize` including an item for missing values in the ``uniques`` return value (:issue:`19721`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -895,6 +905,7 @@ Timezones
 - Bug in :func:`Timestamp.tz_localize` where localizing a timestamp near the minimum or maximum valid values could overflow and return a timestamp with an incorrect nanosecond value (:issue:`12677`)
 - Bug when iterating over :class:`DatetimeIndex` that was localized with fixed timezone offset that rounded nanosecond precision to microseconds (:issue:`19603`)
 - Bug in :func:`DataFrame.diff` that raised an ``IndexError`` with tz-aware values (:issue:`18578`)
+- Bug in :func:`melt` that converted tz-aware dtypes to tz-naive (:issue:`15785`)
 
 Offsets
 ^^^^^^^
@@ -908,6 +919,7 @@ Offsets
 
 Numeric
 ^^^^^^^
+- Bug in :meth:`DataFrame.rank` and :meth:`Series.rank` when ``method='dense'`` and ``pct=True`` in which percentile ranks were not being used with the number of distinct observations (:issue:`15630`)
 - Bug in :class:`Series` constructor with an int or float list where specifying ``dtype=str``, ``dtype='str'`` or ``dtype='U'`` failed to convert the data elements to strings (:issue:`16605`)
 - Bug in :class:`Index` multiplication and division methods where operating with a ``Series`` would return an ``Index`` object instead of a ``Series`` object (:issue:`19042`)
 - Bug in the :class:`DataFrame` constructor in which data containing very large positive or very large negative numbers was causing ``OverflowError`` (:issue:`18584`)
@@ -933,6 +945,8 @@ Indexing
 - Bug in :func:`IntervalIndex.symmetric_difference` where the symmetric difference with a non-``IntervalIndex`` did not raise (:issue:`18475`)
 - Bug in :class:`IntervalIndex` where set operations that returned an empty ``IntervalIndex`` had the wrong dtype (:issue:`19101`)
 - Bug in :meth:`DataFrame.drop_duplicates` where no ``KeyError`` is raised when passing in columns that don't exist on the ``DataFrame`` (issue:`19726`)
+- Bug in ``Index`` subclasses constructors that ignore unexpected keyword arguments (:issue:`19348`)
+- Bug in :meth:`Index.difference` when taking difference of an ``Index`` with itself (:issue:`20040`)
 
 
 MultiIndex
@@ -1019,6 +1033,7 @@ Reshaping
 - Bug in :func:`DataFrame.iterrows`, which would infers strings not compliant to `ISO8601 <https://en.wikipedia.org/wiki/ISO_8601>`_ to datetimes (:issue:`19671`)
 - Bug in :class:`Series` constructor with ``Categorical`` where a ```ValueError`` is not raised when an index of different length is given (:issue:`19342`)
 - Bug in :meth:`DataFrame.astype` where column metadata is lost when converting to categorical or a dictionary of dtypes (:issue:`19920`)
+- Bug in :func:`cut` and :func:`qcut` where timezone information was dropped (:issue:`19872`)
 
 Other
 ^^^^^
