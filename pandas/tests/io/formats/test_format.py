@@ -1243,7 +1243,7 @@ class TestDataFrameFormatting(object):
     def test_to_string_float_formatting(self):
         tm.reset_display_options()
         fmt.set_option('display.precision', 5, 'display.column_space', 12,
-                       'display.notebook_repr_html', False)
+                       'display.html.notebook', False)
 
         df = DataFrame({'x': [0, 0.25, 3456.000, 12e+45, 1.64e+6, 1.7e+8,
                               1.253456, np.pi, -1e6]})
@@ -1421,7 +1421,7 @@ c  10  11  12  13  14\
         fmt.set_option('display.max_rows', 1, 'display.max_columns', 1)
         self.frame._repr_html_()
 
-        fmt.set_option('display.notebook_repr_html', False)
+        fmt.set_option('display.html.notebook', False)
         self.frame._repr_html_()
 
         tm.reset_display_options()
@@ -1650,6 +1650,12 @@ c  10  11  12  13  14\
                "1 2013-02       2011-02-01  b\n2 2013-03 2011-03-01 09:00  c\n"
                "3 2013-04          2011-04  d")
         assert str(df) == exp
+
+    @tm.capture_stdout
+    def test_option_notebook_repr_html_deprecated(self):
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False):
+            pd.options.display.notebook_repr_html
 
 
 def gen_series_formatting():
