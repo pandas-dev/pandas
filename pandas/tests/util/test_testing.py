@@ -356,9 +356,9 @@ Index levels are different
         with tm.assert_raises_regex(AssertionError, expected):
             assert_index_equal(idx1, idx2, exact=False)
 
-        expected = """MultiIndex level \\[1\\] are different
+        expected = """Index MultiIndex level \\[1\\] are different
 
-MultiIndex level \\[1\\] values are different \\(25\\.0 %\\)
+Index MultiIndex level \\[1\\] values are different \\(25\\.0 %\\)
 \\[left\\]:  Int64Index\\(\\[2, 2, 3, 4\\], dtype='int64'\\)
 \\[right\\]: Int64Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)"""
 
@@ -366,8 +366,10 @@ MultiIndex level \\[1\\] values are different \\(25\\.0 %\\)
                                           ('B', 3), ('B', 4)])
         idx2 = pd.MultiIndex.from_tuples([('A', 1), ('A', 2),
                                           ('B', 3), ('B', 4)])
+
         with tm.assert_raises_regex(AssertionError, expected):
             assert_index_equal(idx1, idx2)
+
         with tm.assert_raises_regex(AssertionError, expected):
             assert_index_equal(idx1, idx2, check_exact=False)
 
@@ -440,9 +442,9 @@ Index values are different \\(33\\.33333 %\\)
         with tm.assert_raises_regex(AssertionError, expected):
             assert_index_equal(idx1, idx2, check_less_precise=True)
 
-        expected = """MultiIndex level \\[1\\] are different
+        expected = """Index MultiIndex level \\[1\\] are different
 
-MultiIndex level \\[1\\] values are different \\(25\\.0 %\\)
+Index MultiIndex level \\[1\\] values are different \\(25\\.0 %\\)
 \\[left\\]:  Int64Index\\(\\[2, 2, 3, 4\\], dtype='int64'\\)
 \\[right\\]: Int64Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)"""
 
