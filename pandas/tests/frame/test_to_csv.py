@@ -8,7 +8,7 @@ import pytest
 from numpy import nan
 import numpy as np
 
-from pandas.compat import (lmap, range, lrange, StringIO, u)
+from pandas.compat import (lmap, range, lrange, StringIO, u, PY2)
 import pandas.core.common as com
 from pandas.errors import ParserError
 from pandas import (DataFrame, Index, Series, MultiIndex, Timestamp,
@@ -924,6 +924,9 @@ class TestDataFrameToCSV(TestData):
         df = DataFrame([[0.123456, 0.234567, 0.567567],
                         [12.32112, 123123.2, 321321.2]],
                        index=['A', 'B'], columns=['X', 'Y', 'Z'])
+
+        if PY2 and compression == 'zip':
+            pytest.xfail(reason='zip compression not supported in Python 2.')
 
         with ensure_clean() as filename:
 
