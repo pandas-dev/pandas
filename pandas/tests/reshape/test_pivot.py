@@ -398,6 +398,8 @@ class TestPivotTable(object):
                              columns=columns, dtype='object')
         tm.assert_frame_equal(result, expected)
 
+    @pytest.mark.xfail(reason='MultiIndexed unstack with tuple names fails'
+                              'with KeyError #19966')
     def test_pivot_with_multiindex(self):
         # issue #17160
         index = Index(data=[0, 1, 2, 3, 4, 5])
