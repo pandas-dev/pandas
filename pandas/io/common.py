@@ -437,7 +437,8 @@ class BytesZipFile(ZipFile, BytesIO):
         super(BytesZipFile, self).__init__(file, mode, **kwargs)
 
     def write(self, data):
-        super(BytesZipFile, self).writestr(self.filename, data)
+        if self.filename not in self.nameslist():
+            super(BytesZipFile, self).writestr(self.filename, data)
 
 
 class MMapWrapper(BaseIterator):
