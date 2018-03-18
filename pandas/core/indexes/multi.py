@@ -2755,7 +2755,7 @@ class MultiIndex(Index):
         other_tuples = other._ndarray_values
         uniq_tuples = sorted(set(self_tuples) & set(other_tuples))
         if len(uniq_tuples) == 0:
-            return MultiIndex(levels=[[]] * self.nlevels,
+            return MultiIndex(levels=self.levels,
                               labels=[[]] * self.nlevels,
                               names=result_names, verify_integrity=False)
         else:
@@ -2777,7 +2777,7 @@ class MultiIndex(Index):
             return self
 
         if self.equals(other):
-            return MultiIndex(levels=[[]] * self.nlevels,
+            return MultiIndex(levels=self.levels,
                               labels=[[]] * self.nlevels,
                               names=result_names, verify_integrity=False)
 

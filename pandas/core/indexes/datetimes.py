@@ -1773,7 +1773,41 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     is_month_end = _field_accessor(
         'is_month_end',
         'is_month_end',
-        "Logical indicating if last day of month (defined by frequency)")
+        """
+        Indicator for whether the date is the last day of the month.
+
+        Returns
+        -------
+        Series or array
+            For Series, returns a Series with boolean values. For
+            DatetimeIndex, returns a boolean array.
+
+        See Also
+        --------
+        is_month_start : Indicator for whether the date is the first day
+            of the month.
+
+        Examples
+        --------
+        This method is available on Series with datetime values under
+        the ``.dt`` accessor, and directly on DatetimeIndex.
+
+        >>> dates = pd.Series(pd.date_range("2018-02-27", periods=3))
+        >>> dates
+        0   2018-02-27
+        1   2018-02-28
+        2   2018-03-01
+        dtype: datetime64[ns]
+        >>> dates.dt.is_month_end
+        0    False
+        1    True
+        2    False
+        dtype: bool
+
+        >>> idx = pd.date_range("2018-02-27", periods=3)
+        >>> idx.is_month_end
+        array([False,  True, False], dtype=bool)
+        """)
     is_quarter_start = _field_accessor(
         'is_quarter_start',
         'is_quarter_start',
@@ -1945,7 +1979,43 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     is_leap_year = _field_accessor(
         'is_leap_year',
         'is_leap_year',
-        "Logical indicating if the date belongs to a leap year")
+        """
+        Boolean indicator if the date belongs to a leap year.
+
+        A leap year is a year, which has 366 days (instead of 365) including
+        29th of February as an intercalary day.
+        Leap years are years which are multiples of four with the exception
+        of years divisible by 100 but not by 400.
+
+        Returns
+        -------
+        Series or ndarray
+             Booleans indicating if dates belong to a leap year.
+
+        Examples
+        --------
+        This method is available on Series with datetime values under
+        the ``.dt`` accessor, and directly on DatetimeIndex.
+
+        >>> idx = pd.date_range("2012-01-01", "2015-01-01", freq="Y")
+        >>> idx
+        DatetimeIndex(['2012-12-31', '2013-12-31', '2014-12-31'],
+                      dtype='datetime64[ns]', freq='A-DEC')
+        >>> idx.is_leap_year
+        array([ True, False, False], dtype=bool)
+
+        >>> dates = pd.Series(idx)
+        >>> dates_series
+        0   2012-12-31
+        1   2013-12-31
+        2   2014-12-31
+        dtype: datetime64[ns]
+        >>> dates_series.dt.is_leap_year
+        0     True
+        1    False
+        2    False
+        dtype: bool
+        """)
 
     @property
     def time(self):
@@ -2507,36 +2577,34 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
     """
     Return a fixed frequency DatetimeIndex.
 
-    The default frequency is day (calendar).
+    Exactly two of the three parameters `start`, `end` and `periods`
+    must be specified.
 
     Parameters
     ----------
-    start : string or datetime-like, default None
+    start : str or datetime-like, optional
         Left bound for generating dates.
-    end : string or datetime-like, default None
+    end : str or datetime-like, optional
         Right bound for generating dates.
-    periods : integer, default None
+    periods : integer, optional
         Number of periods to generate.
-    freq : string or DateOffset, default 'D' (calendar daily)
-        Frequency strings can have multiples, e.g. '5H'.
-    tz : string, default None
+    freq : str or DateOffset, default 'D' (calendar daily)
+        Frequency strings can have multiples, e.g. '5H'. See
+        :ref:`here <timeseries.offset_aliases>` for a list of
+        frequency aliases.
+    tz : str or tzinfo, optional
         Time zone name for returning localized DatetimeIndex, for example
-        Asia/Hong_Kong.
+        'Asia/Hong_Kong'. By default, the resulting DatetimeIndex is
+        timezone-naive.
     normalize : bool, default False
         Normalize start/end dates to midnight before generating date range.
-    name : string, default None
+    name : str, default None
         Name of the resulting DatetimeIndex.
-    closed : string, default None
+    closed : {None, 'left', 'right'}, optional
         Make the interval closed with respect to the given frequency to
-        the 'left', 'right', or both sides (None).
-
-    Notes
-    -----
-    Of the three parameters: ``start``, ``end``, and ``periods``, exactly two
-    must be specified.
-
-    To learn more about the frequency strings, please see `this link
-    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
+        the 'left', 'right', or both sides (None, the default).
+    **kwargs
+        For compatibility. Has no effect on the result.
 
     Returns
     -------
@@ -2544,19 +2612,87 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
 
     See Also
     --------
+    pandas.DatetimeIndex : An immutable container for datetimes.
     pandas.period_range : Return a fixed frequency PeriodIndex.
     pandas.interval_range : Return a fixed frequency IntervalIndex.
 
     Examples
     --------
-    >>> pd.date_range('2018-10-03', periods=2) # doctest: +NORMALIZE_WHITESPACE
-    DatetimeIndex(['2018-10-03', '2018-10-04'], dtype='datetime64[ns]',
-                   freq='D')
+    **Specifying the values**
 
-    >>> pd.date_range(start='2018-01-01', end='20180103')
-    ... # doctest: +NORMALIZE_WHITESPACE
-    DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03'],
-                    dtype='datetime64[ns]', freq='D')
+    The next three examples generate the same `DatetimeIndex`, but vary
+    the combination of `start`, `end` and `periods`.
+
+    Specify `start` and `end`, with the default daily frequency.
+
+    >>> pd.date_range(start='1/1/2018', end='1/08/2018')
+    DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03', '2018-01-04',
+                   '2018-01-05', '2018-01-06', '2018-01-07', '2018-01-08'],
+                  dtype='datetime64[ns]', freq='D')
+
+    Specify `start` and `periods`, the number of periods (days).
+
+    >>> pd.date_range(start='1/1/2018', periods=8)
+    DatetimeIndex(['2018-01-01', '2018-01-02', '2018-01-03', '2018-01-04',
+                   '2018-01-05', '2018-01-06', '2018-01-07', '2018-01-08'],
+                  dtype='datetime64[ns]', freq='D')
+
+    Specify `end` and `periods`, the number of periods (days).
+
+    >>> pd.date_range(end='1/1/2018', periods=8)
+    DatetimeIndex(['2017-12-25', '2017-12-26', '2017-12-27', '2017-12-28',
+                   '2017-12-29', '2017-12-30', '2017-12-31', '2018-01-01'],
+                  dtype='datetime64[ns]', freq='D')
+
+    **Other Parameters**
+
+    Changed the `freq` (frequency) to ``'M'`` (month end frequency).
+
+    >>> pd.date_range(start='1/1/2018', periods=5, freq='M')
+    DatetimeIndex(['2018-01-31', '2018-02-28', '2018-03-31', '2018-04-30',
+                   '2018-05-31'],
+                  dtype='datetime64[ns]', freq='M')
+
+    Multiples are allowed
+
+    >>> pd.date_range(start='1/1/2018', periods=5, freq='3M')
+    DatetimeIndex(['2018-01-31', '2018-04-30', '2018-07-31', '2018-10-31',
+                   '2019-01-31'],
+                  dtype='datetime64[ns]', freq='3M')
+
+    `freq` can also be specified as an Offset object.
+
+    >>> pd.date_range(start='1/1/2018', periods=5, freq=pd.offsets.MonthEnd(3))
+    DatetimeIndex(['2018-01-31', '2018-04-30', '2018-07-31', '2018-10-31',
+                   '2019-01-31'],
+                  dtype='datetime64[ns]', freq='3M')
+
+    Specify `tz` to set the timezone.
+
+    >>> pd.date_range(start='1/1/2018', periods=5, tz='Asia/Tokyo')
+    DatetimeIndex(['2018-01-01 00:00:00+09:00', '2018-01-02 00:00:00+09:00',
+                   '2018-01-03 00:00:00+09:00', '2018-01-04 00:00:00+09:00',
+                   '2018-01-05 00:00:00+09:00'],
+                  dtype='datetime64[ns, Asia/Tokyo]', freq='D')
+
+    `closed` controls whether to include `start` and `end` that are on the
+    boundary. The default includes boundary points on either end.
+
+    >>> pd.date_range(start='2017-01-01', end='2017-01-04', closed=None)
+    DatetimeIndex(['2017-01-01', '2017-01-02', '2017-01-03', '2017-01-04'],
+                  dtype='datetime64[ns]', freq='D')
+
+    Use ``closed='left'`` to exclude `end` if it falls on the boundary.
+
+    >>> pd.date_range(start='2017-01-01', end='2017-01-04', closed='left')
+    DatetimeIndex(['2017-01-01', '2017-01-02', '2017-01-03'],
+                  dtype='datetime64[ns]', freq='D')
+
+    Use ``closed='right'`` to exclude `start` if it falls on the boundary.
+
+    >>> pd.date_range(start='2017-01-01', end='2017-01-04', closed='right')
+    DatetimeIndex(['2017-01-02', '2017-01-03', '2017-01-04'],
+                  dtype='datetime64[ns]', freq='D')
     """
     return DatetimeIndex(start=start, end=end, periods=periods,
                          freq=freq, tz=tz, normalize=normalize, name=name,
