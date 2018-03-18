@@ -439,12 +439,6 @@ class BytesZipFile(ZipFile, BytesIO):
     def write(self, data):
         super(BytesZipFile, self).writestr(self.filename, data)
 
-    def writable(self):
-        return self.mode == 'w'
-
-    def readable(self):
-        return self.mode == 'r'
-
 
 class MMapWrapper(BaseIterator):
     """
