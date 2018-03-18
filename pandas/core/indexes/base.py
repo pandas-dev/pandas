@@ -3446,8 +3446,8 @@ class Index(IndexOpsMixin, PandasObject):
         array([ True, False, False])
 
         >>> midx = pd.MultiIndex.from_arrays([[1,2,3],
-        ...                                    ['red','blue','green']],
-        ...                                    names=('number', 'color'))
+        ...                                  ['red','blue','green']],
+        ...                                  names=('number', 'color'))
         >>> midx
         MultiIndex(levels=[[1, 2, 3], ['blue', 'green', 'red']],
         labels=[[0, 1, 2], [2, 0, 1]],
