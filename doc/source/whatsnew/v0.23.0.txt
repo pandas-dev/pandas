@@ -714,6 +714,7 @@ Other API Changes
 - ``pd.to_datetime('today')`` now returns a datetime, consistent with ``pd.Timestamp('today')``; previously ``pd.to_datetime('today')`` returned a ``.normalized()`` datetime (:issue:`19935`)
 - :func:`Series.str.replace` now takes an optional `regex` keyword which, when set to ``False``, uses literal string replacement rather than regex replacement (:issue:`16808`)
 - :func:`DatetimeIndex.strftime` and :func:`PeriodIndex.strftime` now return an ``Index`` instead of a numpy array to be consistent with similar accessors (:issue:`20127`)
+``Series`` construction with a ``string``, ``dtype=str`` specified, and ``index`` specified will now return an ``object`` dtyped ``Series``, previously this would raise an AttributeError (:issue:`19853`)
 
 .. _whatsnew_0230.deprecations:
 
