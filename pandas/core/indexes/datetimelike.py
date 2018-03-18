@@ -58,12 +58,12 @@ class DatelikeOps(object):
     """ common ops for DatetimeIndex/PeriodIndex, but not TimedeltaIndex """
 
     def strftime(self, date_format):
-        return np.asarray(self.format(date_format=date_format),
-                          dtype=compat.text_type)
+        return Index(self.format(date_format=date_format),
+                     dtype=compat.text_type)
     strftime.__doc__ = """
-    Convert to string array using specified date_format.
+    Convert to Index using specified date_format.
 
-    Return an array of formatted strings specified by date_format, which
+    Return an Index of formatted strings specified by date_format, which
     supports the same string format as the python standard library. Details
     of the string format can be found in `python string format doc <{0}>`__
 
@@ -74,8 +74,8 @@ class DatelikeOps(object):
 
     Returns
     -------
-    numpy.ndarray
-        NumPy array of formatted strings
+    Index
+        Index of formatted strings
 
     See Also
     --------
@@ -1049,9 +1049,18 @@ class DatetimeIndexOpsMixin(object):
         return self._shallow_copy(result,
                                   **self._get_attributes_dict())
 
-    def summary(self, name=None):
+    def _summary(self, name=None):
         """
-        return a summarized representation
+        Return a summarized representation
+
+        Parameters
+        ----------
+        name : str
+            name to use in the summary representation
+
+        Returns
+        -------
+        String with a summarized representation of the index
         """
         formatter = self._formatter_func
         if len(self) > 0:
