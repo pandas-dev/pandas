@@ -1305,7 +1305,7 @@ def assert_frame_equal(left, right, check_dtype=True,
     # shape comparison
     if left.shape != right.shape:
         raise_assert_detail(obj,
-                            'DataFrame shape mismatch',
+                            '{obj} shape mismatch'.format(obj=join_obj(obj)),
                             '{shape!r}'.format(shape=left.shape),
                             '{shape!r}'.format(shape=right.shape))
 
