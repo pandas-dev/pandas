@@ -344,6 +344,7 @@ Other Enhancements
 - :meth:`DataFrame.to_sql` now performs a multivalue insert if the underlying connection supports itk rather than inserting row by row.
   ``SQLAlchemy`` dialects supporting multivalue inserts include: ``mysql``, ``postgresql``, ``sqlite`` and any dialect with ``supports_multivalues_insert``. (:issue:`14315`, :issue:`8953`)
 - :func:`read_html` now accepts a ``displayed_only`` keyword argument to controls whether or not hidden elements are parsed (``True`` by default) (:issue:`20027`)
+- :func:`qcut` now coerces ``dtype='bool'`` `ndarrays` and `Series` to int (equal to `.astype` method) (:issue:`20303`)
 
 .. _whatsnew_0230.api_breaking:
 
