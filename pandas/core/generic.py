@@ -1814,7 +1814,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.19.0
 
-        compression : {None, 'gzip', 'bz2', 'xz'}
+        compression : {None, 'gzip', 'bz2', 'zip', 'xz'}
             A string representing the compression to use in the output file,
             only used when the first argument is a filename
 
@@ -2085,8 +2085,8 @@ class NDFrame(PandasObject, SelectionMixin):
         ----------
         path : str
             File path where the pickled object will be stored.
-        compression : {'infer', 'gzip', 'bz2', 'xz', 'zip', None},
-                default 'infer'
+        compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, \
+        default 'infer'
             A string representing the compression to use in the output file. By
             default, infers from the file extension in specified path.
 
