@@ -28,10 +28,10 @@
 IO Tools (Text, CSV, HDF5, ...)
 ===============================
 
-The pandas I/O API is a set of top level ``reader`` functions accessed like 
-:func:`pandas.read_csv` that generally return a pandas object. The corresponding 
-``writer`` functions are object methods that are accessed like 
-:meth:`DataFrame.to_csv`. Below is a table containing available ``readers`` and 
+The pandas I/O API is a set of top level ``reader`` functions accessed like
+:func:`pandas.read_csv` that generally return a pandas object. The corresponding
+``writer`` functions are object methods that are accessed like
+:meth:`DataFrame.to_csv`. Below is a table containing available ``readers`` and
 ``writers``.
 
 .. csv-table::
@@ -74,7 +74,7 @@ intelligently convert tabular data into a ``DataFrame`` object. See the
 Parsing options
 '''''''''''''''
 
-The functions :func:`read_csv` and :func:`read_table` accept the following 
+The functions :func:`read_csv` and :func:`read_table` accept the following
 common arguments:
 
 Basic
@@ -351,8 +351,8 @@ Error Handling
 
 error_bad_lines : boolean, default ``True``
   Lines with too many fields (e.g. a csv line with too many commas) will by
-  default cause an exception to be raised, and no ``DataFrame`` will be 
-  returned. If ``False``, then these "bad lines" will dropped from the 
+  default cause an exception to be raised, and no ``DataFrame`` will be
+  returned. If ``False``, then these "bad lines" will dropped from the
   ``DataFrame`` that is returned. See :ref:`bad lines <io.bad_lines>`
   below.
 warn_bad_lines : boolean, default ``True``
@@ -364,7 +364,7 @@ warn_bad_lines : boolean, default ``True``
 Specifying column data types
 ''''''''''''''''''''''''''''
 
-You can indicate the data type for the whole ``DataFrame`` or individual 
+You can indicate the data type for the whole ``DataFrame`` or individual
 columns:
 
 .. ipython:: python
@@ -463,7 +463,7 @@ Specifying Categorical dtype
    pd.read_csv(StringIO(data)).dtypes
    pd.read_csv(StringIO(data), dtype='category').dtypes
 
-Individual columns can be parsed as a ``Categorical`` using a dict 
+Individual columns can be parsed as a ``Categorical`` using a dict
 specification:
 
 .. ipython:: python
@@ -562,7 +562,7 @@ If the header is in a row other than the first, pass the row number to
 Duplicate names parsing
 '''''''''''''''''''''''
 
-If the file or header contains duplicate names, pandas will by default 
+If the file or header contains duplicate names, pandas will by default
 distinguish between them so as to prevent overwriting data:
 
 .. ipython :: python
@@ -570,9 +570,9 @@ distinguish between them so as to prevent overwriting data:
    data = 'a,b,a\n0,1,2\n3,4,5'
    pd.read_csv(StringIO(data))
 
-There is no more duplicate data because ``mangle_dupe_cols=True`` by default, 
-which modifies a series of duplicate columns 'X', ..., 'X' to become 
-'X', 'X.1', ..., 'X.N'.  If ``mangle_dupe_cols=False``, duplicate data can 
+There is no more duplicate data because ``mangle_dupe_cols=True`` by default,
+which modifies a series of duplicate columns 'X', ..., 'X' to become
+'X', 'X.1', ..., 'X.N'.  If ``mangle_dupe_cols=False``, duplicate data can
 arise:
 
 .. code-block :: python
@@ -927,9 +927,9 @@ Note that performance-wise, you should try these methods of parsing dates in ord
    For optimal performance, this should be vectorized, i.e., it should accept arrays
    as arguments.
 
-You can explore the date parsing functionality in 
-`date_converters.py <https://github.com/pandas-dev/pandas/blob/master/pandas/io/date_converters.py>`__ 
-and add your own. We would love to turn this module into a community supported 
+You can explore the date parsing functionality in
+`date_converters.py <https://github.com/pandas-dev/pandas/blob/master/pandas/io/date_converters.py>`__
+and add your own. We would love to turn this module into a community supported
 set of date/time parsers. To get you started, ``date_converters.py`` contains
 functions to parse dual date and time columns, year/month/day columns,
 and year/month/day/hour/minute/second columns. It also contains a
@@ -1073,11 +1073,11 @@ The ``thousands`` keyword allows integers to be parsed correctly:
 NA Values
 '''''''''
 
-To control which values are parsed as missing values (which are signified by 
-``NaN``), specify a string in ``na_values``. If you specify a list of strings, 
-then all values in it are considered to be missing values. If you specify a 
-number (a ``float``, like ``5.0`` or an ``integer`` like ``5``), the 
-corresponding equivalent values will also imply a missing value (in this case 
+To control which values are parsed as missing values (which are signified by
+``NaN``), specify a string in ``na_values``. If you specify a list of strings,
+then all values in it are considered to be missing values. If you specify a
+number (a ``float``, like ``5.0`` or an ``integer`` like ``5``), the
+corresponding equivalent values will also imply a missing value (in this case
 effectively ``[5.0, 5]`` are recognized as ``NaN``).
 
 To completely override the default values that are recognized as missing, specify ``keep_default_na=False``.
@@ -1094,7 +1094,7 @@ Let us consider some examples:
    read_csv(path, na_values=[5])
 
 In the example above ``5`` and ``5.0`` will be recognized as ``NaN``, in
-addition to the defaults. A string will first be interpreted as a numerical 
+addition to the defaults. A string will first be interpreted as a numerical
 ``5``, then as a ``NaN``.
 
 .. code-block:: python
@@ -1113,7 +1113,7 @@ Above, both ``NA`` and ``0`` as strings are ``NaN``.
 
    read_csv(path, na_values=["Nope"])
 
-The default values, in addition to the string ``"Nope"`` are recognized as 
+The default values, in addition to the string ``"Nope"`` are recognized as
 ``NaN``.
 
 .. _io.infinity:
@@ -1272,8 +1272,8 @@ after a delimiter:
    print(data)
    pd.read_csv(StringIO(data), skipinitialspace=True)
 
-The parsers make every attempt to "do the right thing" and not be fragile. Type 
-inference is a pretty big deal. If a column can be coerced to integer dtype 
+The parsers make every attempt to "do the right thing" and not be fragile. Type
+inference is a pretty big deal. If a column can be coerced to integer dtype
 without altering the contents, the parser will do so. Any non-numeric
 columns will come through as object dtype as with the rest of pandas objects.
 
@@ -1814,7 +1814,7 @@ Writing to a file, with a date index and a date column:
 Fallback Behavior
 +++++++++++++++++
 
-If the JSON serializer cannot handle the container contents directly it will 
+If the JSON serializer cannot handle the container contents directly it will
 fall back in the following manner:
 
 - if the dtype is unsupported (e.g. ``np.complex``) then the ``default_handler``, if provided, will be called
@@ -1908,10 +1908,10 @@ overview.
 Data Conversion
 +++++++++++++++
 
-The default of ``convert_axes=True``, ``dtype=True``, and ``convert_dates=True`` 
-will try to parse the axes, and all of the data into appropriate types, 
-including dates. If you need to override specific dtypes, pass a dict to 
-``dtype``. ``convert_axes`` should only be set to ``False`` if you need to 
+The default of ``convert_axes=True``, ``dtype=True``, and ``convert_dates=True``
+will try to parse the axes, and all of the data into appropriate types,
+including dates. If you need to override specific dtypes, pass a dict to
+``dtype``. ``convert_axes`` should only be set to ``False`` if you need to
 preserve string-like numbers (e.g. '1', '2') in an axes.
 
 .. note::
@@ -2675,7 +2675,7 @@ The :func:`~pandas.read_excel` method can read Excel 2003 (``.xls``) and
 Excel 2007+ (``.xlsx``) files using the ``xlrd`` Python
 module.  The :meth:`~DataFrame.to_excel` instance method is used for
 saving a ``DataFrame`` to Excel.  Generally the semantics are
-similar to working with :ref:`csv<io.read_csv_table>` data.  
+similar to working with :ref:`csv<io.read_csv_table>` data.
 See the :ref:`cookbook<cookbook.excel>` for some advanced strategies.
 
 .. _io.excel_reader:
@@ -3065,9 +3065,9 @@ The look and feel of Excel worksheets created from pandas can be modified using 
 Clipboard
 ---------
 
-A handy way to grab data is to use the :meth:`~DataFrame.read_clipboard` method, 
-which takes the contents of the clipboard buffer and passes them to the 
-``read_table`` method. For instance, you can copy the following text to the 
+A handy way to grab data is to use the :meth:`~DataFrame.read_clipboard` method,
+which takes the contents of the clipboard buffer and passes them to the
+``read_table`` method. For instance, you can copy the following text to the
 clipboard (CTRL-C on many operating systems):
 
 .. code-block:: python
@@ -4550,7 +4550,7 @@ Several caveats.
   on an attempt at serialization.
 
 You can specify an ``engine`` to direct the serialization. This can be one of ``pyarrow``, or ``fastparquet``, or ``auto``.
-If the engine is NOT specified, then the ``pd.options.io.parquet.engine`` option is checked; if this is also ``auto``, 
+If the engine is NOT specified, then the ``pd.options.io.parquet.engine`` option is checked; if this is also ``auto``,
 then ``pyarrow`` is tried, and falling back to ``fastparquet``.
 
 See the documentation for `pyarrow <http://arrow.apache.org/docs/python/>`__ and `fastparquet <https://fastparquet.readthedocs.io/en/latest/>`__.
@@ -4710,6 +4710,12 @@ writes ``data`` to the database in batches of 1000 rows at a time:
 .. ipython:: python
 
     data.to_sql('data_chunked', engine, chunksize=1000)
+
+.. note::
+
+    The function :func:`~pandas.DataFrame.to_sql` will perform a multivalue
+    insert if the engine dialect ``supports_multivalues_insert``. This will
+    greatly speed up the insert in some cases.
 
 SQL data types
 ++++++++++++++
@@ -5194,7 +5200,7 @@ ignored.
    dtypes: float64(1), int64(1)
    memory usage: 15.3 MB
 
-When writing, the top-three functions in terms of speed are are 
+When writing, the top-three functions in terms of speed are are
 ``test_pickle_write``, ``test_feather_write`` and ``test_hdf_fixed_write_compress``.
 
 .. code-block:: ipython

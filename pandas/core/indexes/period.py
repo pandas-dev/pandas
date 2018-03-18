@@ -234,8 +234,15 @@ class PeriodIndex(PeriodArray, DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         cls.__ge__ = _period_index_cmp('__ge__', cls)
 
     def __new__(cls, data=None, ordinal=None, freq=None, start=None, end=None,
-                periods=None, copy=False, name=None, tz=None, dtype=None,
-                **kwargs):
+                periods=None, tz=None, dtype=None, copy=False, name=None,
+                **fields):
+
+        valid_field_set = {'year', 'month', 'day', 'quarter',
+                           'hour', 'minute', 'second'}
+
+        if not set(fields).issubset(valid_field_set):
+            raise TypeError('__new__() got an unexpected keyword argument {}'.
+                            format(list(set(fields) - valid_field_set)[0]))
 
         if periods is not None:
             if is_float(periods):
@@ -267,7 +274,7 @@ class PeriodIndex(PeriodArray, DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 data = np.asarray(ordinal, dtype=np.int64)
             else:
                 data, freq = cls._generate_range(start, end, periods,
-                                                 freq, kwargs)
+                                                 freq, fields)
             return cls._from_ordinals(data, name=name, freq=freq)
 
         if isinstance(data, PeriodIndex):
