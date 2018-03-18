@@ -2955,8 +2955,8 @@ class FramePlotMethods(BasePlotMethods):
 
         A histogram is a representation of the distribution of data.
         This function groups the values of all given Series in the DataFrame
-        into bins, and draws all bins in only one matplotlib.AxesSubplot. This
-        is useful when the DataFrame's Series are in a similar scale.
+        into bins, and draws all bins in only one :ref:`matplotlib.axes.Axes`.
+        This is useful when the DataFrame's Series are in a similar scale.
 
         Parameters
         ----------
@@ -2964,7 +2964,7 @@ class FramePlotMethods(BasePlotMethods):
             Column in the DataFrame to group by.
         bins : int, default 10
             Number of histogram bins to be used.
-        **kwds : optional
+        **kwds
             Additional keyword arguments are documented in
             :meth:`pandas.DataFrame.plot`.
 
@@ -2974,8 +2974,8 @@ class FramePlotMethods(BasePlotMethods):
 
         See Also
         --------
-        pandas.DataFrame.hist : Draw histograms per DataFrame's Series.
-        pandas.Series.hist : Draw a histogram with Series' data.
+        DataFrame.hist : Draw histograms per DataFrame's Series.
+        Series.hist : Draw a histogram with Series' data.
 
         Examples
         --------
