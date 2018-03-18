@@ -781,17 +781,17 @@ class _Rolling(_Window):
 class _Rolling_and_Expanding(_Rolling):
 
     _shared_docs['count'] = dedent(r"""
-    The %(name)'s count of any non-Nan values inside the window.  
+    The %(name)s count of any non-Nan observations inside the window.
 
     Returns
     -------
-    Series or Dataframe
-        Returned object type is determined by the caller of %(name)
+    Returned object type is determined by the caller of the %(name)s
+    calculation.
 
     See Also
     --------
-    pandas.Series.%(name)
-    pandas.DataFrame.%(name)
+    pandas.Series.%(name)s : Calling object with Series data
+    pandas.DataFrame.%(name)s : Calling object with DataFrames
 
     Examples
     --------
