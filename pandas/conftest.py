@@ -3,7 +3,7 @@ import pytest
 import numpy
 import pandas
 import pandas.util._test_decorators as td
-from compat import PY2
+from pandas.compat import PY2
 
 
 def pytest_addoption(parser):
