@@ -20,7 +20,7 @@ import os
 from distutils.version import LooseVersion
 import pandas as pd
 from pandas import Index
-from pandas.compat import is_platform_little_endian, PY2
+from pandas.compat import is_platform_little_endian
 import pandas
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
@@ -356,9 +356,6 @@ class TestCompression(object):
         base = get_random_path
         path1 = base + ".compressed"
         path2 = base + ".raw"
-
-        if PY2 and compression == 'zip':
-            pytest.xfail(reason='zip compression not supported in Python 2.')
 
         with tm.ensure_clean(path1) as p1, tm.ensure_clean(path2) as p2:
             df = tm.makeDataFrame()
