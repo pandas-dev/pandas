@@ -191,10 +191,20 @@ _apply_docs = dict(
     dtype: int64
     """)
 
-_numeric_operations_doc_template = """
-    Compute %(f)s of group values.
+_numeric_operations_full_names = dict(
+    sum='the sum',
+    prod='the product',
+    min='the minimum',
+    max='the maximum',
+    first='the first value',
+    last='the last value'
+)
 
-    For multiple groupings, the result index will be a
+_numeric_operations_doc_template = dedent(
+    """
+    Compute %(full_name)s of each group.
+
+    For multiple groupers, the result index will be a
     :class:`~pandas.MultiIndex`.
 
     Parameters
@@ -202,51 +212,85 @@ _numeric_operations_doc_template = """
     kwargs : dict
         Optional keyword arguments to pass to `%(f)s`.
 
+        `numeric_only` : bool
+            Include only float, int, boolean columns.
+        `min_count` : int
+            The required number of valid values to perform the operation.
+            If fewer than `min_count` non-NA values are present the result
+            will be NA.
+
     Returns
     -------
     Series or DataFrame
-
     {examples}
     {see_also}
     """
+)
 
-_numeric_operations_examples = dict(
-    max="""Examples
+_numeric_operations_examples = dict()
+
+_numeric_operations_examples['max'] = dedent(
+    """
+    Examples
     --------
-    Grouping by one column.
-
-    >>> df = pd.DataFrame({'A': 'a b b b'.split(), 'B': [1,2,2,3], 'C': [4,5,6,7]})
+    >>> df = pd.DataFrame(
+    ...     {'type': ['apple', 'apple', 'apple', 'orange', 'orange'],
+    ...      'variety': ['gala', 'fuji', 'fuji', 'valencia', 'navel'],
+    ...      'quantity': [2, 4, 8, 3, 1],
+    ...      'price': [0.8, 1.25, 2.5, 1.25, 1.0],
+    ...     },
+    ...     columns=['type', 'variety', 'quantity', 'price']
+    ... )
     >>> df
-       A  B  C
-    0  a  1  4
-    1  b  2  5
-    2  b  2  6
-    3  b  3  7
-    >>> g = df.groupby('A')
-    >>> g.max()
-       B  C
-    A
-    a  1  4
-    b  3  7
+         type   variety  quantity  price
+    0   apple      gala         2   0.80
+    1   apple      fuji         4   1.25
+    2   apple      fuji         8   2.50
+    3  orange  valencia         3   1.25
+    4  orange     navel         1   1.00
 
-    Grouping by more than one column results in :class:`~pandas.DataFrame` with a 
-    :class:`~pandas.MultiIndex`.
-
-    >>> g = df.groupby(['A', 'B'])
+    >>> g = df.groupby('type')
     >>> g.max()
-         C
-    A B
-    a 1  4
-    b 2  6
-      3  7
+             variety  quantity  price
+    type
+    apple       gala         8   2.50
+    orange  valencia         3   1.25
+
+    By default, the `max` operation is performed on columns of all dtypes
+    (including the 'variety' columns which is of type `str`).
+
+    In order to only keep only the numeric columns ('quantity' and 'price'),
+    the `numeric_only` keyword argument can be used:
+
+    >>> g.max(numeric_only=True)
+            quantity  price
+    type
+    apple          8   2.50
+    orange         3   1.25
+
+    Grouping by more than one column results in :class:`~pandas.DataFrame` with
+    a :class:`~pandas.MultiIndex`.
+
+    >>> g = df.groupby(['type', 'variety'])
+    >>> g.max()
+                     quantity  price
+    type   variety
+    apple  fuji             8   2.50
+           gala             2   0.80
+    orange navel            1   1.00
+           valencia         3   1.25
     """  # noqa
 )
 
-_numeric_operations_see_also = """See Also
+_numeric_operations_see_also = dedent(
+    """See Also
     --------
+    pandas.Series.%(f)s: compute %(f)s of values
+    pandas.DataFrame.%(f)s: compute %(f)s of values
     pandas.Series.%(name)s: groupby method of Series
     pandas.DataFrame.%(name)s: groupby method of DataFrame
     pandas.Panel.%(name)s: groupby method of Panel"""
+)
 
 _pipe_template = """\
 Apply a function ``func`` with arguments to this %(klass)s object and return
@@ -1445,7 +1489,11 @@ class GroupBy(_GroupBy):
                              numeric_only=True, _convert=False,
                              min_count=-1):
 
-            @Substitution(name='groupby', f=name)
+            @Substitution(
+                name='groupby',
+                f=name,
+                full_name=_numeric_operations_full_names.get(name)
+            )
             @Appender(
                 _numeric_operations_doc_template.format(
                     examples=_numeric_operations_examples.get(name, ''),
