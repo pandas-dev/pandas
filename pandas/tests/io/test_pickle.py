@@ -357,6 +357,9 @@ class TestCompression(object):
         path1 = base + ".compressed"
         path2 = base + ".raw"
 
+        if PY2 and compression == 'zip':
+            pytest.xfail(reason='zip compression not supported in Python 2.')
+
         with tm.ensure_clean(path1) as p1, tm.ensure_clean(path2) as p2:
             df = tm.makeDataFrame()
 
@@ -415,9 +418,6 @@ class TestCompression(object):
         base = get_random_path
         path1 = base + ".raw"
         path2 = base + ".compressed"
-
-        if PY2 and compression == 'zip':
-            pytest.xfail(reason='zip compression not supported in Python 2.')
 
         with tm.ensure_clean(path1) as p1, tm.ensure_clean(path2) as p2:
             df = tm.makeDataFrame()
