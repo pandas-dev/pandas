@@ -13,7 +13,9 @@ from pandas.util._decorators import Appender
 
 import re
 from pandas.core.dtypes.missing import notna
+from pandas.core.dtypes.common import is_extension_type
 from pandas.core.tools.numeric import to_numeric
+from pandas.core.reshape.concat import concat
 
 
 @Appender(_shared_docs['melt'] %
@@ -70,7 +72,12 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
 
     mdata = {}
     for col in id_vars:
-        mdata[col] = np.tile(frame.pop(col).values, K)
+        id_data = frame.pop(col)
+        if is_extension_type(id_data):
+            id_data = concat([id_data] * K, ignore_index=True)
+        else:
+            id_data = np.tile(id_data.values, K)
+        mdata[col] = id_data
 
     mcolumns = id_vars + var_name + [value_name]
 
