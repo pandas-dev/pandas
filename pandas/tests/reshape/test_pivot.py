@@ -372,10 +372,33 @@ class TestPivotTable(object):
         tm.assert_frame_equal(pv, expected)
 
     @pytest.mark.parametrize('values', [
+        ['baz', 'zoo'], np.array(['baz', 'zoo']),
+        pd.Series(['baz', 'zoo']), pd.Index(['baz', 'zoo'])
+    ])
+    def test_pivot_with_list_like_values(self, values):
+        # issue #17160
+        df = pd.DataFrame({'foo': ['one', 'one', 'one', 'two', 'two', 'two'],
+                           'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
+                           'baz': [1, 2, 3, 4, 5, 6],
+                           'zoo': ['x', 'y', 'z', 'q', 'w', 't']})
+
+        result = df.pivot(index='foo', columns='bar', values=values)
+
+        data = [[1, 2, 3, 'x', 'y', 'z'],
+                [4, 5, 6, 'q', 'w', 't']]
+        index = Index(data=['one', 'two'], name='foo')
+        columns = MultiIndex(levels=[['baz', 'zoo'], ['A', 'B', 'C']],
+                             labels=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]],
+                             names=[None, 'bar'])
+        expected = DataFrame(data=data, index=index,
+                             columns=columns, dtype='object')
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('values', [
         ['bar', 'baz'], np.array(['bar', 'baz']),
         pd.Series(['bar', 'baz']), pd.Index(['bar', 'baz'])
     ])
-    def test_pivot_with_list_like_values(self, values):
+    def test_pivot_with_list_like_values_nans(self, values):
         # issue #17160
         df = pd.DataFrame({'foo': ['one', 'one', 'one', 'two', 'two', 'two'],
                            'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
