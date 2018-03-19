@@ -14,7 +14,7 @@ from .pandas_vb_common import setup  # noqa
 method_blacklist = {
     'object': {'median', 'prod', 'sem', 'cumsum', 'sum', 'cummin', 'mean',
                'max', 'skew', 'cumprod', 'cummax', 'rank', 'pct_change', 'min',
-               'var', 'mad', 'describe', 'std'},
+               'var', 'mad', 'describe', 'std', 'quantile'},
     'datetime': {'median', 'prod', 'sem', 'cumsum', 'sum', 'mean', 'skew',
                  'cumprod', 'cummax', 'pct_change', 'var', 'mad', 'describe',
                  'std'}
@@ -343,8 +343,8 @@ class GroupByMethods(object):
               ['all', 'any', 'bfill', 'count', 'cumcount', 'cummax', 'cummin',
                'cumprod', 'cumsum', 'describe', 'ffill', 'first', 'head',
                'last', 'mad', 'max', 'min', 'median', 'mean', 'nunique',
-               'pct_change', 'prod', 'rank', 'sem', 'shift', 'size', 'skew',
-               'std', 'sum', 'tail', 'unique', 'value_counts', 'var'],
+               'pct_change', 'prod', 'quantile', 'rank', 'sem', 'shift', 'size',
+               'skew', 'std', 'sum', 'tail', 'unique', 'value_counts', 'var'],
               ['direct', 'transformation']]
 
     def setup(self, dtype, method, application):
