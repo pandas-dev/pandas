@@ -47,6 +47,12 @@ class BaseMissingTests(BaseExtensionTests):
         expected = df.iloc[:0]
         self.assert_frame_equal(result, expected)
 
+    def test_fillna_scalar(self, data_missing):
+        valid = data_missing[1]
+        result = data_missing.fillna(valid)
+        expected = data_missing.fillna(valid)
+        self.assert_extension_array_equal(result, expected)
+
     def test_fillna_limit_pad(self, data_missing):
         arr = data_missing.take([1, 0, 0, 0, 1])
         result = pd.Series(arr).fillna(method='ffill', limit=2)
