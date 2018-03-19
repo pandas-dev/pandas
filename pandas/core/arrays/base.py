@@ -77,7 +77,21 @@ class ExtensionArray(object):
         raise AbstractMethodError(cls)
 
     @classmethod
-    def _constructor_from_simple_ndarray(cls, values, instance):
+    def _from_factorized(cls, values, original):
+        """Reconstruct an ExtensionArray after factorization.
+
+        Parameters
+        ----------
+        values : ndarray
+            An integer ndarray with the factorized values.
+        original : ExtensionArray
+            The original ndarray that was factorized.
+
+        See Also
+        --------
+        pandas.factorize
+        ExtensionArray.factorize
+        """
         raise AbstractMethodError(cls)
 
     # ------------------------------------------------------------------------
@@ -305,7 +319,16 @@ class ExtensionArray(object):
         uniques = unique(self.astype(object))
         return self._constructor_from_sequence(uniques)
 
-    def _simple_ndarray(self):
+    def _values_for_factorize(self):
+        """Return an array suitable for factorization.
+
+        Returns
+        -------
+        ndarray
+            An array suitable for factoraization. This should maintain order
+            and be a supported dtype.
+
+        """
         return self.astype(object)
 
     def factorize(self, na_sentinel=-1):
@@ -337,17 +360,17 @@ class ExtensionArray(object):
         -----
         :meth:`pandas.factorize` offers a `sort` keyword as well.
         """
-        # Implementor note: make sure to exclude missing values from your
-        # `uniques`. It should only contain non-NA values.
+        # Implementor notes: There are two options for overriding the
+        # behavior of `factorize`: here and `_values_for_factorize`.
         from pandas.core.algorithms import _factorize_array
 
         mask = self.isna()
-        arr = self._simple_ndarray()
+        arr = self._values_for_factorize()
         arr[mask] = np.nan
 
         labels, uniques = _factorize_array(arr, check_nulls=True,
                                            na_sentinel=na_sentinel)
-        uniques = self._constructor_from_simple_ndarray(uniques, instance=arr)
+        uniques = self._from_factorized(uniques, arr)
         return labels, uniques
 
     # ------------------------------------------------------------------------

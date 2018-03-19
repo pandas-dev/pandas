@@ -7,7 +7,6 @@ import sys
 
 import numpy as np
 
-import pandas as pd
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.arrays import ExtensionArray
 
@@ -37,6 +36,10 @@ class JSONArray(ExtensionArray):
     @classmethod
     def _constructor_from_sequence(cls, scalars):
         return cls(scalars)
+
+    @classmethod
+    def _from_factorized(cls, values, original):
+        return cls([collections.UserDict(x) for x in values if x != ()])
 
     def __getitem__(self, item):
         if isinstance(item, numbers.Integral):
@@ -105,20 +108,9 @@ class JSONArray(ExtensionArray):
         data = list(itertools.chain.from_iterable([x.data for x in to_concat]))
         return cls(data)
 
-    def factorize(self, na_sentinel=-1):
+    def _values_for_factorize(self):
         frozen = tuple(tuple(x.items()) for x in self)
-        labels, uniques = pd.factorize(frozen)
-
-        # fixup NA
-        if self.isna().any():
-            na_code = labels[self.isna()][0]
-
-            labels[labels == na_code] = na_sentinel
-            labels[labels > na_code] -= 1
-
-        uniques = JSONArray([collections.UserDict(x)
-                             for x in uniques if x != ()])
-        return labels, uniques
+        return np.array(frozen, dtype=object)
 
 
 def make_data():
