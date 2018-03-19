@@ -107,9 +107,17 @@ backticks. It is considered inline code:
 - The name of a parameter
 - Python code, a module, function, built-in, type, literal... (e.g. ``os``,
   ``list``, ``numpy.abs``, ``datetime.date``, ``True``)
-- A pandas class (in the form ``:class:`~pandas.Series```)
+- A pandas class (in the form ``:class:`pandas.Series```)
 - A pandas method (in the form ``:meth:`pandas.Series.sum```)
 - A pandas function (in the form ``:func:`pandas.to_datetime```)
+
+.. note::
+    To display only the last component of the linked class, method or
+    function, prefix it with ``~``. For example, ``:class:`~pandas.Series```
+    will link to ``pandas.Series`` but only display the last part, ``Series``
+    as the link text. See `Sphinx cross-referencing syntax
+    <http://www.sphinx-doc.org/en/stable/domains.html#cross-referencing-syntax>`_
+    for details.
 
 **Good:**
 
