@@ -1417,7 +1417,7 @@ cdef class _Period(object):
 
         See Also
         --------
-        Period.qyear : Return the year of the date
+        Period.year : Return the year of the date
         Period.pqyear : Return the year of the period
 
         Examples
