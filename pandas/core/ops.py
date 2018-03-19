@@ -398,7 +398,7 @@ e  NaN  -2.0
 """
 
 _mod_example_FRAME = """
->>> a = pd.DataFrame([2, 4, np.nan, 6.2], index=["a","b","c","d"], 
+>>> a = pd.DataFrame([2, 4, np.nan, 6.2], index=["a","b","c","d"],
 ...                  columns=['one'])
 >>> a
     one
@@ -412,7 +412,6 @@ a   2.0
 b   1.0
 c   2.0
 d   0.2
-
 >>> b = pd.DataFrame(dict(one=[np.nan, 2, 3, 14], two=[np.nan, 1, 1, 3]),
 ...                  index=['a', 'b', 'c', 'd'])
 >>> b
@@ -424,7 +423,7 @@ d   14.0  3.0
 >>> c = pd.DataFrame(dict(one=[np.nan, np.nan, 6, np.nan],
 ...                       three=[np.nan, 10, np.nan, -7]),
 ...                  index=['a', 'b', 'd', 'e'])
->>> c                    
+>>> c
     one three
 a   NaN NaN
 b   NaN 10.0
