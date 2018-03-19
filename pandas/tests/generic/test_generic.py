@@ -1008,3 +1008,11 @@ class TestNDFrame(object):
 
             with pytest.raises(ValueError):
                 result = wp.pipe((f, 'y'), x=1, y=1)
+
+    # GH18243
+    def test_get_ftype_counts_deprecated(self):
+        a = [['a', 1, 1.0], ['b', 2, 2.0], ['c', 3, 3.0]]
+        df = DataFrame(a, columns=['str', 'int', 'float'])
+
+        with tm.assert_produces_warning(FutureWarning):
+            df.get_ftype_counts()
