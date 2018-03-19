@@ -395,7 +395,48 @@ class _Window(PandasObject, SelectionMixin):
     """)
 
     _shared_docs['mean'] = dedent("""
-    %(name)s mean""")
+    Calculate the %(name)s mean of the values.
+
+    Parameters
+    ----------
+    *args
+        Under Review.
+    **kwargs
+        Under Review.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returned object type is determined by the caller of the %(name)s
+        calculation.
+
+    See Also
+    --------
+    Series.%(name)s : Calling object with Series data
+    DataFrame.%(name)s : Calling object with DataFrames
+    Series.mean : Equivalent method for Series
+    DataFrame.mean : Equivalent method for DataFrame
+
+    Examples
+    --------
+    The below examples will show rolling mean calculations with window sizes of
+    two and three, respectively.
+
+    >>> s = pd.Series([1, 2, 3, 4])
+    >>> s.rolling(2).mean()
+    0    NaN
+    1    1.5
+    2    2.5
+    3    3.5
+    dtype: float64
+
+    >>> s.rolling(3).mean()
+    0    NaN
+    1    NaN
+    2    2.0
+    3    3.0
+    dtype: float64
+    """)
 
 
 class Window(_Window):
@@ -718,7 +759,6 @@ class Window(_Window):
         return self._apply_window(mean=False, **kwargs)
 
     @Substitution(name='window')
-    @Appender(_doc_template)
     @Appender(_shared_docs['mean'])
     def mean(self, *args, **kwargs):
         nv.validate_window_func('mean', args, kwargs)
@@ -1447,7 +1487,6 @@ class Rolling(_Rolling_and_Expanding):
         return super(Rolling, self).min(*args, **kwargs)
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['mean'])
     def mean(self, *args, **kwargs):
         nv.validate_rolling_func('mean', args, kwargs)
@@ -1707,7 +1746,6 @@ class Expanding(_Rolling_and_Expanding):
         return super(Expanding, self).min(*args, **kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['mean'])
     def mean(self, *args, **kwargs):
         nv.validate_expanding_func('mean', args, kwargs)
