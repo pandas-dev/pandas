@@ -714,7 +714,6 @@ Other API Changes
 - ``pd.to_datetime('today')`` now returns a datetime, consistent with ``pd.Timestamp('today')``; previously ``pd.to_datetime('today')`` returned a ``.normalized()`` datetime (:issue:`19935`)
 - :func:`Series.str.replace` now takes an optional `regex` keyword which, when set to ``False``, uses literal string replacement rather than regex replacement (:issue:`16808`)
 - :func:`DatetimeIndex.strftime` and :func:`PeriodIndex.strftime` now return an ``Index`` instead of a numpy array to be consistent with similar accessors (:issue:`20127`)
-``Series`` construction with a ``string``, ``dtype=str`` specified, and ``index`` specified will now return an ``object`` dtyped ``Series``, previously this would raise an AttributeError (:issue:`19853`)
 
 .. _whatsnew_0230.deprecations:
 
@@ -1033,6 +1032,7 @@ Reshaping
 - Bug in :class:`Series` constructor with ``Categorical`` where a ```ValueError`` is not raised when an index of different length is given (:issue:`19342`)
 - Bug in :meth:`DataFrame.astype` where column metadata is lost when converting to categorical or a dictionary of dtypes (:issue:`19920`)
 - Bug in :func:`cut` and :func:`qcut` where timezone information was dropped (:issue:`19872`)
+- Bug in :class:`Series` constructor with a ``dtype=str``, previously raised in some cases (:issue:`19853`)
 
 Other
 ^^^^^
