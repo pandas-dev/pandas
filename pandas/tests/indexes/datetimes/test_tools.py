@@ -213,6 +213,7 @@ class TestTimeConversionFormats(object):
     def test_to_datetime_parse_tzname_or_tzoffset(self, box, const,
                                                   assert_equal, fmt,
                                                   dates, expected_dates):
+        # GH 13486
         # %z or %Z parsing
         result = pd.to_datetime(dates, format=fmt, box=box)
         expected = const(expected_dates)
@@ -238,6 +239,7 @@ class TestTimeConversionFormats(object):
     def test_to_datetime_parse_tzname_and_tzoffset(self, box, const,
                                                    assert_equal, dates,
                                                    expected_dates):
+        # GH 13486
         # %z and %Z parsing
         fmt = '%Y-%m-%d %H:%M:%S %Z %z'
         result = pd.to_datetime(dates, format=fmt, box=box)
