@@ -1653,6 +1653,7 @@ c  10  11  12  13  14\
 
     @tm.capture_stdout
     def test_option_notebook_repr_html_deprecated(self):
+        # GH11784
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             pd.options.display.notebook_repr_html
