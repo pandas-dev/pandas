@@ -237,31 +237,21 @@ class ExtensionArray(object):
         """
         raise AbstractMethodError(self)
 
-    def _simple_ndarray(self):
+    def _values_for_argsort(self):
         # type: () -> ndarray
-        """Convert the array to a simple ndarray representaiton.
-
-        Many methods can operate indirectly on a cheap-to-compute array that
-        is somehow representative of the extension array. For example, rather
-        than sorting an ExtensionArray directly, which might be expensive,
-        we could convert the ExtensionArray to a representative ndarray of
-        integers, sort the integers, and perform a ``take``.
-
-        The coversion between ExtensionArray and the simple ndarray should be
-        strictly monotonic https://en.wikipedia.org/wiki/Monotonic_function,
-        and as cheap to compute as possible.
+        """Return values for sorting.
 
         Returns
         -------
-        values : ndarray
+        ndarray
+            The transformed values should maintain the ordering between values
+            within the array.
 
         See Also
         --------
         ExtensionArray.argsort
         """
-        # Implemnetor note: This method is currently used in
-        # - ExtensionArray.argsort
-
+        # Note: this is used in `ExtensionArray.argsort`.
         return np.array(self)
 
     def argsort(self, ascending=True, kind='quicksort', *args, **kwargs):
@@ -289,11 +279,10 @@ class ExtensionArray(object):
         """
         # Implementor note: You have two places to override the behavior of
         # argsort.
-        # 1. _simple_ndarray : construct the values passed to np.argsort
+        # 1. _values_for_argsort : construct the values passed to np.argsort
         # 2. argsort : total control over sorting.
-
         ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
-        values = self._simple_ndarray()
+        values = self._values_for_argsort()
         result = np.argsort(values, kind=kind, **kwargs)
         if not ascending:
             result = result[::-1]
