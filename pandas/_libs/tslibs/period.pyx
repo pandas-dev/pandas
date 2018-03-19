@@ -1413,7 +1413,7 @@ cdef class _Period(object):
 
         Returns
         -------
-        int
+        int --> qyear : int
 
         See Also
         --------
