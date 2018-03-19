@@ -2486,6 +2486,7 @@ class TestDataFramePlots(TestPlotBase):
 
         tm.close()
 
+    @td.xfail_if_mpl_2_2
     def test_table(self):
         df = DataFrame(np.random.rand(10, 3),
                        index=list(string.ascii_letters[:10]))

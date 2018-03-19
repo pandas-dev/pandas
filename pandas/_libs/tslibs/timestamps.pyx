@@ -766,7 +766,7 @@ class Timestamp(_Timestamp):
         """
         warnings.warn("`weekday_name` is deprecated and will be removed in a "
                       "future version. Use `day_name` instead",
-                      DeprecationWarning)
+                      FutureWarning)
         return self.day_name()
 
     @property

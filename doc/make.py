@@ -11,6 +11,7 @@ Usage
     $ python make.py html
     $ python make.py latex
 """
+import importlib
 import sys
 import os
 import shutil
@@ -19,8 +20,6 @@ import argparse
 from contextlib import contextmanager
 import webbrowser
 import jinja2
-
-import pandas
 
 
 DOC_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -134,7 +133,7 @@ class DocBuilder:
             self.single_doc = single_doc
         elif single_doc is not None:
             try:
-                obj = pandas
+                obj = pandas  # noqa: F821
                 for name in single_doc.split('.'):
                     obj = getattr(obj, name)
             except AttributeError:
@@ -332,7 +331,7 @@ def main():
                                  'compile, e.g. "indexing", "DataFrame.join"'))
     argparser.add_argument('--python-path',
                            type=str,
-                           default=os.path.join(DOC_PATH, '..'),
+                           default=os.path.dirname(DOC_PATH),
                            help='path')
     argparser.add_argument('-v', action='count', dest='verbosity', default=0,
                            help=('increase verbosity (can be repeated), '
@@ -343,7 +342,13 @@ def main():
         raise ValueError('Unknown command {}. Available options: {}'.format(
             args.command, ', '.join(cmds)))
 
+    # Below we update both os.environ and sys.path. The former is used by
+    # external libraries (namely Sphinx) to compile this module and resolve
+    # the import of `python_path` correctly. The latter is used to resolve
+    # the import within the module, injecting it into the global namespace
     os.environ['PYTHONPATH'] = args.python_path
+    sys.path.append(args.python_path)
+    globals()['pandas'] = importlib.import_module('pandas')
 
     builder = DocBuilder(args.num_jobs, not args.no_api, args.single,
                          args.verbosity)
