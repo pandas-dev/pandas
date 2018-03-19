@@ -2979,19 +2979,18 @@ class FramePlotMethods(BasePlotMethods):
 
         Examples
         --------
-        When using values between 0 and 3, calling hist() with bins = 3 will
-        create three bins: one that groups values between 0 and 1, another
-        for values between 1 and 2, and another for values between 2 and 3.
-        We use alpha parameter to be able to see overlapping columns.
+        When we draw a dice 6000 times, we expect to get each value around 1000
+        times. But when we draw two dices and sum the result, the distribution
+        is going to be quite different. Let's display it.
 
         .. plot::
             :context: close-figs
 
-            >>> df = pd.DataFrame({
-            ...     'length': [ 1.5, 0.5, 1.2, 0.9, 3],
-            ...     'width': [ 0.7, 0.2, 0.15, 0.2,  1.1]
-            ...     }, index = ['pig', 'rabbit', 'duck', 'chicken', 'horse'])
-            >>> hist = df.plot.hist(bins = 3, xticks = range(4), alpha = 0.5)
+            >>> df = pd.DataFrame(
+            ...     np.random.randint(1, 7, 6000),
+            ...     columns = ['one'])
+            >>> df['two'] = df['one'] + np.random.randint(1, 7, 6000)
+            >>> hist = df.plot.hist(bins = 12, alpha = 0.5)
         """
         return self(kind='hist', by=by, bins=bins, **kwds)
 
