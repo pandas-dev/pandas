@@ -1749,7 +1749,8 @@ class StringMethods(NoNewAttributesMixin):
             if result:
                 # propagate nan values to match longest sequence (GH 18450)
                 max_len = max(len(x) for x in result)
-                result = [x * max_len if x[0] is np.nan else x for x in result]
+                result = [x * max_len if len(x) == 0 or x[0] is np.nan
+                          else x for x in result]
 
         if not isinstance(expand, bool):
             raise ValueError("expand must be True or False")

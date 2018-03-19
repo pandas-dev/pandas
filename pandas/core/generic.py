@@ -8487,19 +8487,21 @@ class NDFrame(PandasObject, SelectionMixin):
         cls.compound = compound
 
         cls.cummin = _make_cum_function(
-            cls, 'cummin', name, name2, axis_descr, "cumulative minimum",
+            cls, 'cummin', name, name2, axis_descr, "minimum",
             lambda y, axis: np.minimum.accumulate(y, axis), "min",
-            np.inf, np.nan)
+            np.inf, np.nan, _cummin_examples)
         cls.cumsum = _make_cum_function(
-            cls, 'cumsum', name, name2, axis_descr, "cumulative sum",
-            lambda y, axis: y.cumsum(axis), "sum", 0., np.nan)
+            cls, 'cumsum', name, name2, axis_descr, "sum",
+            lambda y, axis: y.cumsum(axis), "sum", 0.,
+            np.nan, _cumsum_examples)
         cls.cumprod = _make_cum_function(
-            cls, 'cumprod', name, name2, axis_descr, "cumulative product",
-            lambda y, axis: y.cumprod(axis), "prod", 1., np.nan)
+            cls, 'cumprod', name, name2, axis_descr, "product",
+            lambda y, axis: y.cumprod(axis), "prod", 1.,
+            np.nan, _cumprod_examples)
         cls.cummax = _make_cum_function(
-            cls, 'cummax', name, name2, axis_descr, "cumulative max",
+            cls, 'cummax', name, name2, axis_descr, "maximum",
             lambda y, axis: np.maximum.accumulate(y, axis), "max",
-            -np.inf, np.nan)
+            -np.inf, np.nan, _cummax_examples)
 
         cls.sum = _make_min_count_stat_function(
             cls, 'sum', name, name2, axis_descr,
@@ -8702,8 +8704,8 @@ bool_only : boolean, default None
     Include only boolean columns. If None, will attempt to use everything,
     then use only boolean data. Not implemented for Series.
 **kwargs : any, default None
-    Additional keywords have no affect but might be accepted for
-    compatibility with numpy.
+    Additional keywords have no effect but might be accepted for
+    compatibility with NumPy.
 
 Returns
 -------
@@ -8761,24 +8763,296 @@ pandas.DataFrame.any : Return True if one (or more) elements are True
 """
 
 _cnum_doc = """
+Return cumulative %(desc)s over a DataFrame or Series axis.
+
+Returns a DataFrame or Series of the same size containing the cumulative
+%(desc)s.
 
 Parameters
 ----------
-axis : %(axis_descr)s
+axis : {0 or 'index', 1 or 'columns'}, default 0
+    The index or the name of the axis. 0 is equivalent to None or 'index'.
 skipna : boolean, default True
     Exclude NA/null values. If an entire row/column is NA, the result
-    will be NA
+    will be NA.
+*args, **kwargs :
+    Additional keywords have no effect but might be accepted for
+    compatibility with NumPy.
 
 Returns
 -------
-%(outname)s : %(name1)s\n
-
-
+%(outname)s : %(name1)s or %(name2)s\n
+%(examples)s
 See also
 --------
 pandas.core.window.Expanding.%(accum_func_name)s : Similar functionality
     but ignores ``NaN`` values.
+%(name2)s.%(accum_func_name)s : Return the %(desc)s over
+    %(name2)s axis.
+%(name2)s.cummax : Return cumulative maximum over %(name2)s axis.
+%(name2)s.cummin : Return cumulative minimum over %(name2)s axis.
+%(name2)s.cumsum : Return cumulative sum over %(name2)s axis.
+%(name2)s.cumprod : Return cumulative product over %(name2)s axis.
+"""
 
+_cummin_examples = """\
+Examples
+--------
+**Series**
+
+>>> s = pd.Series([2, np.nan, 5, -1, 0])
+>>> s
+0    2.0
+1    NaN
+2    5.0
+3   -1.0
+4    0.0
+dtype: float64
+
+By default, NA values are ignored.
+
+>>> s.cummin()
+0    2.0
+1    NaN
+2    2.0
+3   -1.0
+4   -1.0
+dtype: float64
+
+To include NA values in the operation, use ``skipna=False``
+
+>>> s.cummin(skipna=False)
+0    2.0
+1    NaN
+2    NaN
+3    NaN
+4    NaN
+dtype: float64
+
+**DataFrame**
+
+>>> df = pd.DataFrame([[2.0, 1.0],
+...                    [3.0, np.nan],
+...                    [1.0, 0.0]],
+...                    columns=list('AB'))
+>>> df
+     A    B
+0  2.0  1.0
+1  3.0  NaN
+2  1.0  0.0
+
+By default, iterates over rows and finds the minimum
+in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
+
+>>> df.cummin()
+     A    B
+0  2.0  1.0
+1  2.0  NaN
+2  1.0  0.0
+
+To iterate over columns and find the minimum in each row,
+use ``axis=1``
+
+>>> df.cummin(axis=1)
+     A    B
+0  2.0  1.0
+1  3.0  NaN
+2  1.0  0.0
+"""
+
+_cumsum_examples = """\
+Examples
+--------
+**Series**
+
+>>> s = pd.Series([2, np.nan, 5, -1, 0])
+>>> s
+0    2.0
+1    NaN
+2    5.0
+3   -1.0
+4    0.0
+dtype: float64
+
+By default, NA values are ignored.
+
+>>> s.cumsum()
+0    2.0
+1    NaN
+2    7.0
+3    6.0
+4    6.0
+dtype: float64
+
+To include NA values in the operation, use ``skipna=False``
+
+>>> s.cumsum(skipna=False)
+0    2.0
+1    NaN
+2    NaN
+3    NaN
+4    NaN
+dtype: float64
+
+**DataFrame**
+
+>>> df = pd.DataFrame([[2.0, 1.0],
+...                    [3.0, np.nan],
+...                    [1.0, 0.0]],
+...                    columns=list('AB'))
+>>> df
+     A    B
+0  2.0  1.0
+1  3.0  NaN
+2  1.0  0.0
+
+By default, iterates over rows and finds the sum
+in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
+
+>>> df.cumsum()
+     A    B
+0  2.0  1.0
+1  5.0  NaN
+2  6.0  1.0
+
+To iterate over columns and find the sum in each row,
+use ``axis=1``
+
+>>> df.cumsum(axis=1)
+     A    B
+0  2.0  3.0
+1  3.0  NaN
+2  1.0  1.0
+"""
+
+_cumprod_examples = """\
+Examples
+--------
+**Series**
+
+>>> s = pd.Series([2, np.nan, 5, -1, 0])
+>>> s
+0    2.0
+1    NaN
+2    5.0
+3   -1.0
+4    0.0
+dtype: float64
+
+By default, NA values are ignored.
+
+>>> s.cumprod()
+0     2.0
+1     NaN
+2    10.0
+3   -10.0
+4    -0.0
+dtype: float64
+
+To include NA values in the operation, use ``skipna=False``
+
+>>> s.cumprod(skipna=False)
+0    2.0
+1    NaN
+2    NaN
+3    NaN
+4    NaN
+dtype: float64
+
+**DataFrame**
+
+>>> df = pd.DataFrame([[2.0, 1.0],
+...                    [3.0, np.nan],
+...                    [1.0, 0.0]],
+...                    columns=list('AB'))
+>>> df
+     A    B
+0  2.0  1.0
+1  3.0  NaN
+2  1.0  0.0
+
+By default, iterates over rows and finds the product
+in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
+
+>>> df.cumprod()
+     A    B
+0  2.0  1.0
+1  6.0  NaN
+2  6.0  0.0
+
+To iterate over columns and find the product in each row,
+use ``axis=1``
+
+>>> df.cumprod(axis=1)
+     A    B
+0  2.0  2.0
+1  3.0  NaN
+2  1.0  0.0
+"""
+
+_cummax_examples = """\
+Examples
+--------
+**Series**
+
+>>> s = pd.Series([2, np.nan, 5, -1, 0])
+>>> s
+0    2.0
+1    NaN
+2    5.0
+3   -1.0
+4    0.0
+dtype: float64
+
+By default, NA values are ignored.
+
+>>> s.cummax()
+0    2.0
+1    NaN
+2    5.0
+3    5.0
+4    5.0
+dtype: float64
+
+To include NA values in the operation, use ``skipna=False``
+
+>>> s.cummax(skipna=False)
+0    2.0
+1    NaN
+2    NaN
+3    NaN
+4    NaN
+dtype: float64
+
+**DataFrame**
+
+>>> df = pd.DataFrame([[2.0, 1.0],
+...                    [3.0, np.nan],
+...                    [1.0, 0.0]],
+...                    columns=list('AB'))
+>>> df
+     A    B
+0  2.0  1.0
+1  3.0  NaN
+2  1.0  0.0
+
+By default, iterates over rows and finds the maximum
+in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
+
+>>> df.cummax()
+     A    B
+0  2.0  1.0
+1  3.0  NaN
+2  3.0  1.0
+
+To iterate over columns and find the maximum in each row,
+use ``axis=1``
+
+>>> df.cummax(axis=1)
+     A    B
+0  2.0  2.0
+1  3.0  NaN
+2  1.0  1.0
 """
 
 _any_see_also = """\
@@ -8975,11 +9249,11 @@ def _make_stat_function_ddof(cls, name, name1, name2, axis_descr, desc, f):
 
 
 def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
-                       accum_func, accum_func_name, mask_a, mask_b):
+                       accum_func, accum_func_name, mask_a, mask_b, examples):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
-                  axis_descr=axis_descr, accum_func_name=accum_func_name)
-    @Appender("Return {0} over requested axis.".format(desc) +
-              _cnum_doc)
+                  axis_descr=axis_descr, accum_func_name=accum_func_name,
+                  examples=examples)
+    @Appender(_cnum_doc)
     def cum_func(self, axis=None, skipna=True, *args, **kwargs):
         skipna = nv.validate_cum_func_with_skipna(skipna, args, kwargs, name)
         if axis is None:

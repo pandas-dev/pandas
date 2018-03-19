@@ -1773,7 +1773,41 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     is_month_end = _field_accessor(
         'is_month_end',
         'is_month_end',
-        "Logical indicating if last day of month (defined by frequency)")
+        """
+        Indicator for whether the date is the last day of the month.
+
+        Returns
+        -------
+        Series or array
+            For Series, returns a Series with boolean values. For
+            DatetimeIndex, returns a boolean array.
+
+        See Also
+        --------
+        is_month_start : Indicator for whether the date is the first day
+            of the month.
+
+        Examples
+        --------
+        This method is available on Series with datetime values under
+        the ``.dt`` accessor, and directly on DatetimeIndex.
+
+        >>> dates = pd.Series(pd.date_range("2018-02-27", periods=3))
+        >>> dates
+        0   2018-02-27
+        1   2018-02-28
+        2   2018-03-01
+        dtype: datetime64[ns]
+        >>> dates.dt.is_month_end
+        0    False
+        1    True
+        2    False
+        dtype: bool
+
+        >>> idx = pd.date_range("2018-02-27", periods=3)
+        >>> idx.is_month_end
+        array([False,  True, False], dtype=bool)
+        """)
     is_quarter_start = _field_accessor(
         'is_quarter_start',
         'is_quarter_start',
