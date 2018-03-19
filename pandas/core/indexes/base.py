@@ -2378,10 +2378,11 @@ class Index(IndexOpsMixin, PandasObject):
 
     def asof(self, label):
         """
-        Return the latest index label up to and including the passed label.
+        Return the label from the index, or, if not present, the previous one.
 
-        For sorted indexes, return the index label that is the latest among
-        the labels that are not later than the passed index label.
+        Assuming that the index is sorted, return the passed index label if it
+        is in the index, or return the previous index label if the passed one
+        is not in the index.
 
         Parameters
         ----------
@@ -2390,10 +2391,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        object : The index label that is the latest as of the passed label,
-            or NaN if there is no such label.
+        object : The passed label if it is in the index. The previous label
+            if the passed label is not in the sorted index, or NaN if there
+            is no such label.
 
-        See also
+        See Also
         --------
         Index.get_loc : `asof` is a thin wrapper around `get_loc`
             with method='pad'.
@@ -2402,23 +2404,25 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         The method returns the latest index label up to the passed label.
 
-        >>> pd.Index([13, 18, 20]).asof(14)
+        >>> idx = pd.Index([13, 18, 20])
+        >>> idx.asof(14)
         13
 
         If the label is in the index, the method returns the passed label.
 
-        >>> pd.Index([13, 18, 20]).asof(18)
+        >>> idx.asof(18)
         18
 
         If all of the labels in the index are later than the passed label,
         NaN is returned.
 
-        >>> pd.Index([13, 18, 20]).asof(1)
+        >>> idx.asof(1)
         nan
 
         If the index is not sorted, an error is raised.
 
-        >>> pd.Index([13, 20, 18]).asof(18)
+        >>> idx_not_sorted = pd.Index([13, 20, 18])
+        >>> idx_not_sorted.asof(18)
         Traceback (most recent call last):
         ValueError: index must be monotonic increasing or decreasing
         """
