@@ -819,7 +819,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         label :  object
 
         """
-
         assert kind in ['ix', 'loc', 'getitem', None]
 
         if isinstance(label, compat.string_types):
