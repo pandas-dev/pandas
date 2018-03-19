@@ -4059,13 +4059,9 @@ def _sanitize_array(data, index, dtype=None, copy=False,
     if issubclass(subarr.dtype.type, compat.string_types):
         # GH 16605
         # If not empty convert the data to dtype
-        try:
-            all_elements_na = isna(data).all()
-        except AttributeError:
-            # GH 19853: If data is a scalar, subarr has already the result
-            pass
-        else:
-            if not all_elements_na:
+        # GH 19853: If data is a scalar, subarr has already the result
+        if not np.isscalar(data):
+            if not np.all(isna(data)):
                 data = np.array(data, dtype=dtype, copy=False)
             subarr = np.array(data, dtype=object, copy=copy)
 
