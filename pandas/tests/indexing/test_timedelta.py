@@ -68,3 +68,15 @@ class TestTimedeltaIndexing(object):
         series.iloc[0] = value
         expected = pd.Series([pd.NaT, 1, 2], dtype='timedelta64[ns]')
         tm.assert_series_equal(series, expected)
+
+    @pytest.mark.parametrize('start,stop, expected_slice', [
+        [np.timedelta64(0, 'ns'), None, slice(0, 11)],
+        [np.timedelta64(1, 'D'), np.timedelta64(6, 'D'), slice(1, 7)],
+        [None, np.timedelta64(4, 'D'), slice(0, 5)]])
+    def test_numpy_timedelta_scalar_indexing(self, start, stop,
+                                             expected_slice):
+        # GH 20393
+        s = pd.Series(range(11), pd.timedelta_range('0 days', '10 days'))
+        result = s.loc[slice(start, stop)]
+        expected = s.iloc[expected_slice]
+        tm.assert_series_equal(result, expected)
