@@ -20,6 +20,7 @@ from numpy.random import randn, rand
 import numpy as np
 
 import pandas as pd
+from pandas.core.arrays import ExtensionArray
 from pandas.core.dtypes.missing import array_equivalent
 from pandas.core.dtypes.common import (
     is_datetimelike_v_numeric,
@@ -1081,6 +1082,32 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
             assert_attr_equal('dtype', left, right, obj=obj)
 
     return True
+
+
+def assert_extension_array_equal(left, right):
+    """Check that left and right ExtensionArrays are equal.
+
+    Parameters
+    ----------
+    left, right : ExtensionArray
+        The two arrays to compare
+
+    Notes
+    -----
+    Missing values are checked separately from valid values.
+    A mask of missing values is computed for each and checked to match.
+    The remaining all-valid values are cast to object dtype and checked.
+    """
+    assert isinstance(left, ExtensionArray)
+    assert left.dtype == right.dtype
+    left_na = left.isna()
+    right_na = right.isna()
+    assert_numpy_array_equal(left_na, right_na)
+
+    left_valid = left[~left_na].astype(object)
+    right_valid = right[~right_na].astype(object)
+
+    assert_numpy_array_equal(left_valid, right_valid)
 
 
 # This could be refactored to use the NDFrame.equals method
