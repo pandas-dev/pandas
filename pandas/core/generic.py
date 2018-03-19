@@ -1816,8 +1816,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         compression : {None, 'gzip', 'bz2', 'zip', 'xz'}
             A string representing the compression to use in the output file,
-            'zip' only supported with Python>=3.0, only used when the first
-            argument is a filename.
+            only used when the first argument is a filename.
 
             .. versionadded:: 0.21.0
 
@@ -2089,8 +2088,7 @@ class NDFrame(PandasObject, SelectionMixin):
         compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, \
         default 'infer'
             A string representing the compression to use in the output file. By
-            default, infers from the file extension in specified path. 'zip'
-            only supported with Python>=3.0
+            default, infers from the file extension in specified path.
 
             .. versionadded:: 0.20.0
         protocol : int
