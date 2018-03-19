@@ -76,6 +76,10 @@ class ExtensionArray(object):
         """
         raise AbstractMethodError(cls)
 
+    @classmethod
+    def _constructor_from_simple_ndarray(cls, values, instance):
+        raise AbstractMethodError(cls)
+
     # ------------------------------------------------------------------------
     # Must be a Sequence
     # ------------------------------------------------------------------------
@@ -301,6 +305,9 @@ class ExtensionArray(object):
         uniques = unique(self.astype(object))
         return self._constructor_from_sequence(uniques)
 
+    def _simple_ndarray(self):
+        return self.astype(object)
+
     def factorize(self, na_sentinel=-1):
         """Encode the extension array as an enumerated type.
 
@@ -335,12 +342,12 @@ class ExtensionArray(object):
         from pandas.core.algorithms import _factorize_array
 
         mask = self.isna()
-        arr = self.astype(object)
+        arr = self._simple_ndarray()
         arr[mask] = np.nan
 
         labels, uniques = _factorize_array(arr, check_nulls=True,
                                            na_sentinel=na_sentinel)
-        uniques = self._constructor_from_sequence(uniques)
+        uniques = self._constructor_from_simple_ndarray(uniques, instance=arr)
         return labels, uniques
 
     # ------------------------------------------------------------------------
