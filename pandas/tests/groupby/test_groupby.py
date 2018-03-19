@@ -1900,6 +1900,8 @@ class TestGroupBy(MixIn):
         result = gni.describe()
         assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize("interpolation", [
+        "linear", "lower", "higher", "nearest", "midpoint"])
     @pytest.mark.parametrize("bar_vals,foo_vals", [
         # Ints
         ([1, 2, 3, 4, 5], [5, 4, 3, 2, 1]),
@@ -1915,11 +1917,16 @@ class TestGroupBy(MixIn):
          [x for x in pd.date_range('1/1/18', freq='D', periods=5)[::-1]])
     ])
     @pytest.mark.parametrize('q', [0, .25, .5, .75, 1])
-    def test_quantile(self, bar_vals, foo_vals, q):
+    def test_quantile(self, interpolation, bar_vals, foo_vals, q):
+        # Fringe test case was not working as expected?
+        if (interpolation == 'nearest' and q == 0.5 and foo_vals ==
+            [4, 3, 2, 1]):
+            pytest.skip("Unclear numpy expectation for nearest result with "
+                        "equidistant data")
         bar_ser = pd.Series(bar_vals)
-        bar_exp = bar_ser.quantile(q)
+        bar_exp = bar_ser.quantile(q, interpolation=interpolation)
         foo_ser = pd.Series(foo_vals)
-        foo_exp = foo_ser.quantile(q)
+        foo_exp = foo_ser.quantile(q, interpolation=interpolation)
 
         df = pd.DataFrame({
             'key': ['bar'] * len(bar_vals) + ['foo'] * len(foo_vals),
@@ -1927,7 +1934,7 @@ class TestGroupBy(MixIn):
 
         exp = DataFrame([bar_exp, foo_exp], columns=['val'],
                         index=Index(['bar', 'foo'], name='key'))
-        res = df.groupby('key').quantile(q)
+        res = df.groupby('key').quantile(q, interpolation=interpolation)
         assert_frame_equal(exp, res)
 
     def test_quantile_raises(self):

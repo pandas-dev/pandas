@@ -1732,7 +1732,7 @@ class GroupBy(_GroupBy):
 
         return result
 
-    def quantile(self, q=0.5):
+    def quantile(self, q=0.5, interpolation='linear'):
         """
         Return group values at the given quantile, a la numpy.percentile.
 
@@ -1740,6 +1740,8 @@ class GroupBy(_GroupBy):
         ----------
         q : float or array-like, default 0.5 (50% quantile)
             0 <= q <= 1, the quantile(s) to compute
+        interpolation : str
+            Method to use when the desired quantile falls between two points.
 
         Returns
         -------
@@ -1761,13 +1763,16 @@ class GroupBy(_GroupBy):
         """
 
         is_dt = False
+        is_int = False
 
         def pre_processor(vals):
             if vals.dtype == np.object:
                 raise TypeError("'quantile' cannot be performed against "
                                 "'object' dtypes!")
-
-            if vals.dtype == 'datetime64[ns]':
+            elif vals.dtype == np.int:
+                nonlocal is_int
+                is_int = True
+            elif vals.dtype == 'datetime64[ns]':
                 vals = vals.astype(np.float)
                 nonlocal is_dt
                 is_dt = True
@@ -1777,6 +1782,8 @@ class GroupBy(_GroupBy):
         def post_processor(vals):
             if is_dt:
                 vals = vals.astype('datetime64[ns]')
+            elif is_int and interpolation in ['lower', 'higher', 'nearest']:
+                vals = vals.astype(np.int)
 
             return vals
 
@@ -1787,7 +1794,7 @@ class GroupBy(_GroupBy):
                                            cython_dtype=np.float64,
                                            pre_processing=pre_processor,
                                            post_processing=post_processor,
-                                           q=q)
+                                           q=q, interpolation=interpolation)
 
     @Substitution(name='groupby')
     def ngroup(self, ascending=True):

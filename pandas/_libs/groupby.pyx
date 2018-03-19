@@ -385,7 +385,8 @@ def group_quantile(ndarray[float64_t] out,
                    ndarray[int64_t] labels,
                    numeric[:] values,
                    ndarray[uint8_t] mask,
-                   double_t q):
+                   double_t q,
+                   object interpolation):
     """
     Calculate the quantile per group.
 
@@ -408,10 +409,20 @@ def group_quantile(ndarray[float64_t] out,
     cdef:
         Py_ssize_t i, N=len(labels)
         int64_t lab, ngroups, grp_sz, non_na_sz, grp_start=0, idx=0
+        uint8_t interp, offset
         numeric val, next_val
         double_t q_idx, frac
         ndarray[int64_t] counts, non_na_counts
         ndarray[int64_t] sort_arr
+
+    inter_methods = {
+        'linear': INTERPOLATION_LINEAR,
+        'lower': INTERPOLATION_LOWER,
+        'higher': INTERPOLATION_HIGHER,
+        'nearest': INTERPOLATION_NEAREST,
+        'midpoint': INTERPOLATION_MIDPOINT,
+    }
+    interp = inter_methods[interpolation]
 
     counts = np.zeros_like(out, dtype=np.int64)
     non_na_counts = np.zeros_like(out, dtype=np.int64)
@@ -446,11 +457,21 @@ def group_quantile(ndarray[float64_t] out,
             q_idx = q * (non_na_sz - 1)
             frac = q_idx % 1
 
-            if frac == 0.0:  # IEEE-754 always a safe comparison?
+            if frac == 0.0 or interp == INTERPOLATION_LOWER:
                 out[i] = val
             else:
                 next_val = values[sort_arr[idx + 1]]
-                out[i] = val + (next_val - val) * frac
+                if interp == INTERPOLATION_LINEAR:
+                    out[i] = val + (next_val - val) * frac
+                elif interp == INTERPOLATION_HIGHER:
+                    out[i] = next_val
+                elif interp == INTERPOLATION_MIDPOINT:
+                    out[i] = (val + next_val) / 2.0
+                elif interp == INTERPOLATION_NEAREST:
+                    if frac > .5 or (frac == .5 and q > .5):  # Always safe?
+                        out[i] = next_val
+                    else:
+                        out[i] = val
 
             # Increment the index reference in sorted_arr for the next group
             grp_start += grp_sz
