@@ -1919,8 +1919,8 @@ class TestGroupBy(MixIn):
     @pytest.mark.parametrize('q', [0, .25, .5, .75, 1])
     def test_quantile(self, interpolation, bar_vals, foo_vals, q):
         # Fringe test case was not working as expected?
-        if (interpolation == 'nearest' and q == 0.5 and foo_vals ==
-            [4, 3, 2, 1]):
+        if (interpolation == 'nearest' and q == 0.5 and foo_vals == [
+                4, 3, 2, 1]):
             pytest.skip("Unclear numpy expectation for nearest result with "
                         "equidistant data")
         bar_ser = pd.Series(bar_vals)
