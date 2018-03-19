@@ -2981,7 +2981,8 @@ class FramePlotMethods(BasePlotMethods):
         --------
         When we draw a dice 6000 times, we expect to get each value around 1000
         times. But when we draw two dices and sum the result, the distribution
-        is going to be quite different. Let's display it.
+        is going to be quite different. A histogram illustrates those
+        distributions.
 
         .. plot::
             :context: close-figs
@@ -2990,7 +2991,7 @@ class FramePlotMethods(BasePlotMethods):
             ...     np.random.randint(1, 7, 6000),
             ...     columns = ['one'])
             >>> df['two'] = df['one'] + np.random.randint(1, 7, 6000)
-            >>> hist = df.plot.hist(bins = 12, alpha = 0.5)
+            >>> ax = df.plot.hist(bins=12, alpha=0.5)
         """
         return self(kind='hist', by=by, bins=bins, **kwds)
 
