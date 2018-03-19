@@ -781,17 +781,19 @@ class _Rolling(_Window):
 class _Rolling_and_Expanding(_Rolling):
 
     _shared_docs['count'] = dedent(r"""
-    The %(name)s count of any non-Nan observations inside the window.
+    The %(name)s count of any non-NaN observations inside the window.
 
     Returns
     -------
-    Returned object type is determined by the caller of the %(name)s
-    calculation.
+    Series or DataFrame
+        Returned object type is determined by the caller of the %(name)s
+        calculation.
 
     See Also
     --------
     pandas.Series.%(name)s : Calling object with Series data
     pandas.DataFrame.%(name)s : Calling object with DataFrames
+    pandas.DataFrame.count : Count of the full DataFrame
 
     Examples
     --------
@@ -1475,7 +1477,6 @@ class Expanding(_Rolling_and_Expanding):
     agg = aggregate
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['count'])
     def count(self, **kwargs):
         return super(Expanding, self).count(**kwargs)
