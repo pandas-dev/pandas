@@ -74,7 +74,7 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
     if protocol < 0:
         protocol = pkl.HIGHEST_PROTOCOL
     try:
-        pkl.dump(obj, f, protocol=protocol)
+        f.write(pkl.dumps(obj, protocol=protocol))
     finally:
         for _f in fh:
             _f.close()
