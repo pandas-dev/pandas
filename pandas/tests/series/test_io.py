@@ -10,7 +10,7 @@ import pandas as pd
 
 from pandas import Series, DataFrame
 
-from pandas.compat import StringIO, u
+from pandas.compat import StringIO, u, PY2
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal, ensure_clean)
 import pandas.util.testing as tm
@@ -142,6 +142,10 @@ class TestSeriesToCSV(TestData):
 
         s = Series([0.123456, 0.234567, 0.567567], index=['A', 'B', 'C'],
                    name='X')
+
+        if PY2 and compression == 'zip':
+            pytest.xfail(reason='zip compression for csv not suppported in'
+                                'Python 2')
 
         with ensure_clean() as filename:
 
