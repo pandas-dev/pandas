@@ -45,8 +45,6 @@ cdef class AxisProperty(object):
 
     cdef readonly:
         Py_ssize_t axis
-
-    cdef readonly:
         object __doc__
 
     def __init__(self, axis=0, doc=""):
