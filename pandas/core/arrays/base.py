@@ -261,7 +261,7 @@ class ExtensionArray(object):
         -------
         filled : ExtensionArray with NA/NaN filled
         """
-        from pandas.api.types import is_scalar
+        from pandas.api.types import is_array_like
         from pandas.util._validators import validate_fillna_kwargs
         from pandas.core.missing import pad_1d, backfill_1d
 
@@ -269,7 +269,7 @@ class ExtensionArray(object):
 
         mask = self.isna()
 
-        if not is_scalar(value):
+        if is_array_like(value):
             if len(value) != len(self):
                 raise ValueError("Length of 'value' does not match. Got ({}) "
                                  " expected {}".format(len(value), len(self)))

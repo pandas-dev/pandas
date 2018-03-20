@@ -715,6 +715,7 @@ Other API Changes
 - ``pd.to_datetime('today')`` now returns a datetime, consistent with ``pd.Timestamp('today')``; previously ``pd.to_datetime('today')`` returned a ``.normalized()`` datetime (:issue:`19935`)
 - :func:`Series.str.replace` now takes an optional `regex` keyword which, when set to ``False``, uses literal string replacement rather than regex replacement (:issue:`16808`)
 - :func:`DatetimeIndex.strftime` and :func:`PeriodIndex.strftime` now return an ``Index`` instead of a numpy array to be consistent with similar accessors (:issue:`20127`)
+- Constructing a Series from a list of length 1 no longer broadcasts this list when a longer index is specified (:issue:`19714`, :issue:`20391`).
 
 .. _whatsnew_0230.deprecations:
 
@@ -888,7 +889,8 @@ Timedelta
 - Bug in :func:`Timedelta.total_seconds()` causing precision errors i.e. ``Timedelta('30S').total_seconds()==30.000000000000004`` (:issue:`19458`)
 - Bug in :func: `Timedelta.__rmod__` where operating with a ``numpy.timedelta64`` returned a ``timedelta64`` object instead of a ``Timedelta`` (:issue:`19820`)
 - Multiplication of :class:`TimedeltaIndex` by ``TimedeltaIndex`` will now raise ``TypeError`` instead of raising ``ValueError`` in cases of length mis-match (:issue`19333`)
--
+- Bug in indexing a :class:`TimedeltaIndex` with a ``np.timedelta64`` object which was raising a ``TypeError`` (:issue:`20393`)
+
 
 Timezones
 ^^^^^^^^^
@@ -980,6 +982,7 @@ I/O
 - :class:`Timedelta` now supported in :func:`DataFrame.to_excel` for all Excel file types (:issue:`19242`, :issue:`9155`, :issue:`19900`)
 - Bug in :meth:`pandas.io.stata.StataReader.value_labels` raising an ``AttributeError`` when called on very old files. Now returns an empty dict (:issue:`19417`)
 - Bug in :func:`read_pickle` when unpickling objects with :class:`TimedeltaIndex` or :class:`Float64Index` created with pandas prior to version 0.20 (:issue:`19939`)
+- Bug in :meth:`pandas.io.json.json_normalize` where subrecords are not properly normalized if any subrecords values are NoneType (:issue:`20030`)
 
 Plotting
 ^^^^^^^^

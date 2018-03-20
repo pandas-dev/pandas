@@ -829,7 +829,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             else:
                 return (lbound + to_offset(parsed.resolution) -
                         Timedelta(1, 'ns'))
-        elif is_integer(label) or is_float(label):
+        elif ((is_integer(label) or is_float(label)) and
+              not is_timedelta64_dtype(label)):
             self._invalid_indexer('slice', label)
 
         return label
