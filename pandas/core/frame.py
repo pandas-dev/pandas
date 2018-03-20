@@ -5154,17 +5154,18 @@ class DataFrame(NDFrame):
         columns of the current dataframe:
 
           - if the columns have a single level, the output is a Series;
-          - if the columns have multiple levels, the new index level
-            is taken from the prescribed level(s) and the output is a
-            DataFrame.
+          - if the columns have multiple levels, the new index
+            level(s) is (are) taken from the prescribed level(s) and
+            the output is a DataFrame.
 
         The new index levels are sorted.
 
         Parameters
         ----------
         level : int, string, list, default last level
-            Level(s) to stack from the column axis, defined as
-            integers or strings.
+            Level(s) to stack from the column axis onto the index
+            axis, defined as one index or label, or a list of indices
+            or labels.
         dropna : boolean, default True
             Whether to drop rows in the resulting Frame/Series with no
             valid values.
