@@ -5145,36 +5145,51 @@ class DataFrame(NDFrame):
 
     def stack(self, level=-1, dropna=True):
         """
-        Pivot a level of the (possibly hierarchical) column labels, returning a
-        DataFrame (or Series in the case of an object with a single level of
-        column labels) having a hierarchical index with a new inner-most level
-        of row labels.
-        The level involved will automatically get sorted.
+        Stack the prescribed level(s) from the column axis onto the index
+        axis.
+
+        Return a reshaped DataFrame or Series having a multi-level
+        index with one or more new inner-most levels compared to the current
+        dataframe. The new inner-most levels are created by pivoting the
+        columns of the current dataframe:
+
+          - if the columns have a single level, the output is a Series;
+          - if the columns have multiple levels, the new index level
+            is taken from the prescribed level(s) and the output is a
+            DataFrame.
+
+        The new index levels are sorted.
 
         Parameters
         ----------
-        level : int, string, or list of these, default last level
-            Level(s) to stack, can pass level name
+        level : int, string, list, default last level
+            Level(s) to stack from the column axis, defined as
+            integers or strings.
         dropna : boolean, default True
-            Whether to drop rows in the resulting Frame/Series with no valid
-            values
+            Whether to drop rows in the resulting Frame/Series with no
+            valid values.
 
         Examples
         ----------
+        >>> s = pd.DataFrame([[0, 1], [2, 3]], index=['one', 'two'], columns=['a', 'b'])
         >>> s
              a   b
-        one  1.  2.
-        two  3.  4.
-
+        one  0   1
+        two  2   3
         >>> s.stack()
-        one a    1
-            b    2
-        two a    3
-            b    4
+        one  a    0
+             b    1
+        two  a    2
+             b    3
+        dtype: int64
 
         Returns
         -------
         stacked : DataFrame or Series
+
+        See Also
+        --------
+        pandas.DataFrame.unstack: unstack prescribed level(s) from index axis onto column axis.
         """
         from pandas.core.reshape.reshape import stack, stack_multiple
 
