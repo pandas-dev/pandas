@@ -5225,8 +5225,8 @@ class DataFrame(NDFrame):
 
         It is common to have missing values when stacking a dataframe
         with multi-level columns, as the stacked dataframe typically
-        has more values than the original dataframe. By default the
-        missing values are filled with NaNs:
+        has more values than the original dataframe. Missing values
+        are filled with NaNs:
 
         >>> df_multi_level_cols2
                X     Y
@@ -5240,13 +5240,19 @@ class DataFrame(NDFrame):
         two a  2.0  NaN
             b  NaN  3.0
 
-        Multiple levels can be stacked at once
+        The first parameter controls which level or levels are stacked:
 
-        >>> df_multi_level_cols2.stack([1, 0])
-        one  a  X    0.0
-             b  Y    1.0
-        two  a  X    2.0
-             b  Y    3.0
+        >>> df_multi_level_cols2.stack(0)
+                 a    b
+        one X  0.0  NaN
+            Y  NaN  1.0
+        two X  2.0  NaN
+            Y  NaN  3.0
+        >>> df_multi_level_cols2.stack([0, 1])
+        one  X  a    0.0
+             Y  b    1.0
+        two  X  a    2.0
+             Y  b    3.0
         dtype: float64
 
         Note that rows where all values are missing are dropped by
