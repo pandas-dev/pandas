@@ -681,7 +681,8 @@ class ExcelFile(object):
                 output[asheetname] = parser.read(nrows=nrows)
                 dtypes = output[asheetname].dtypes
                 output[asheetname].replace('nan', np.nan, inplace=True)
-                output[asheetname] = output[asheetname].astype(dtypes, copy=False)
+                output[asheetname] = output[asheetname].astype(dtypes,
+                                                               copy=False)
 
                 if names is not None:
                     output[asheetname].columns = names
