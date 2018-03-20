@@ -207,12 +207,27 @@ class ReadingTestsBase(SharedItems):
                              columns=['Test'])
         tm.assert_frame_equal(parsed, expected)
 
+        # gh-20377 dtype=str (all 'nan' turn to np.nan)
+
+        parsed = read_excel(excel, 'Sheet1', dtype=str, keep_default_na=False,
+                            na_values=['apple'])
+        expected = DataFrame([['NA'], ['1'], ['NA'], [np.nan], ['rabbit']],
+                             columns=['Test'])
+        tm.assert_frame_equal(parsed, expected)
+
+        parsed = read_excel(excel, 'Sheet1', dtype=str, keep_default_na=True,
+                            na_values=['apple'])
+        expected = DataFrame([[np.nan], ['1'], [np.nan], [np.nan], ['rabbit']],
+                             columns=['Test'])
+        tm.assert_frame_equal(parsed, expected)
+
         # 13967
         excel = self.get_excelfile('test5', ext)
 
         parsed = read_excel(excel, 'Sheet1', keep_default_na=False,
                             na_values=['apple'])
-        expected = DataFrame([['1.#QNAN'], [1], ['nan'], [np.nan], ['rabbit']],
+        # gh-20377 'nan' was given in the spreadsheet, but turned to np.nan as well
+        expected = DataFrame([['1.#QNAN'], [1], [np.nan], [np.nan], ['rabbit']],
                              columns=['Test'])
         tm.assert_frame_equal(parsed, expected)
 

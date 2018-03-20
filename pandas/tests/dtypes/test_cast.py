@@ -440,13 +440,3 @@ class TestCommonTypes(object):
         tm.assert_categorical_equal(result, expected,
                                     check_category_order=True,
                                     check_dtype=True)
-
-
-class TestAstypeNansafe(object):
-
-    def test_astype_nansafe_nan_to_str(self):
-        arr = np.array([np.nan, 'a', 'b'], dtype=object)
-        arr2 = astype_nansafe(arr, dtype=str)
-        assert arr[0] is np.nan
-        assert arr2[0] is np.nan
-        assert np.array_equal(arr[1:], arr2[1:])
