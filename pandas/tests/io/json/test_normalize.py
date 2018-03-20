@@ -238,12 +238,14 @@ class TestJSONNormalize(object):
         tm.assert_frame_equal(result, expected)
 
     def test_missing_field(self, author_missing_data):
+        # GH20030: Checks for robustness of json_normalize - should
+        # unnest records where only the first record has a None value
         result = json_normalize(author_missing_data)
         ex_data = [
-            {'author_name.first': float('nan'),
-             'author_name.last_name': float('nan'),
-             'info.created_at': float('nan'),
-             'info.last_updated': float('nan')},
+            {'author_name.first': np.nan,
+             'author_name.last_name': np.nan,
+             'info.created_at': np.nan,
+             'info.last_updated': np.nan},
             {'author_name.first': 'Jane',
              'author_name.last_name': 'Doe',
              'info.created_at': '11/08/1993',
@@ -350,6 +352,8 @@ class TestNestedToRecord(object):
                       )
 
     def test_nonetype_dropping(self):
+        # GH20030: Checks that None values are dropped in nested_to_record
+        # to prevent additional columns of nans when passed to DataFrame
         data = [
             {'info': None,
              'author_name':
