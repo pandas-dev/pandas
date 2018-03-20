@@ -5391,7 +5391,8 @@ def is_uniform_join_units(join_units):
         # all blocks need to have the same type
         all(type(ju.block) is type(join_units[0].block) for ju in join_units) and  # noqa
         # no blocks that would get missing values (can lead to type upcasts)
-        all(not ju.is_na for ju in join_units) and
+        # unless we're an extension dtype.
+        all(not ju.is_na or ju.block.is_extension for ju in join_units) and
         # no blocks with indexers (as then the dimensions do not fit)
         all(not ju.indexers for ju in join_units) and
         # disregard Panels
