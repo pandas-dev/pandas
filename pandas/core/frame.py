@@ -5284,9 +5284,12 @@ class DataFrame(NDFrame):
 
         See Also
         --------
-        DataFrame.unstack: unstack prescribed level(s) from index axis onto column axis.
-        DataFrame.pivot: reshape dataframe from long format to wide format.
-        DataFrame.pivot_table: create a spreadsheet-style pivot table as a DataFrame.
+        DataFrame.unstack: unstack prescribed level(s) from index axis
+             onto column axis.
+        DataFrame.pivot: reshape dataframe from long format to wide
+             format.
+        DataFrame.pivot_table: create a spreadsheet-style pivot table
+             as a DataFrame.
         """
         from pandas.core.reshape.reshape import stack, stack_multiple
 
