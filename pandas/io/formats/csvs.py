@@ -150,6 +150,7 @@ class CSVFormatter(object):
 
             self._save()
 
+        finally:
             # GH 17778 handles compression for byte strings.
             if not close and self.compression:
                 f.close()
@@ -160,7 +161,6 @@ class CSVFormatter(object):
                                          compression=self.compression)
                 f.write(data)
                 close = True
-        finally:
             if close:
                 f.close()
 
