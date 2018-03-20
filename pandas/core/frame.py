@@ -5172,6 +5172,9 @@ class DataFrame(NDFrame):
 
         Examples
         ----------
+
+        Stacking a simple dataframe with a single level column axis
+
         >>> s = pd.DataFrame([[0, 1], [2, 3]], index=['one', 'two'], columns=['a', 'b'])
         >>> s
              a   b
