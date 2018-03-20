@@ -5167,13 +5167,16 @@ class DataFrame(NDFrame):
             axis, defined as one index or label, or a list of indices
             or labels.
         dropna : boolean, default True
-            Whether to drop rows in the resulting Frame/Series with no
-            valid values.
+            Whether to drop rows in the resulting Frame/Series with
+            missing values. Stacking a column level onto the index
+            axis can create combinations of index and column values
+            that are missing from the original dataframe. See Examples
+            section.
 
         Examples
-        ----------
+        --------
 
-        Stacking a simple dataframe with a single level column axis
+        Stacking a dataframe with a single level column axis:
 
         >>> s = pd.DataFrame([[0, 1], [2, 3]], index=['one', 'two'], columns=['a', 'b'])
         >>> s
@@ -5187,7 +5190,7 @@ class DataFrame(NDFrame):
              b    3
         dtype: int64
 
-        Stacking a simple dataframe with a multi-level column axis
+        Stacking a dataframe with a multi-level column axis with no missing values:
 
         >>> multicol = pd.MultiIndex.from_tuples([('X', 'a'), ('X', 'b')])
         >>> s = pd.DataFrame([[0, 1], [2, 3]], index=['one', 'two'], columns=multicol)
@@ -5203,6 +5206,47 @@ class DataFrame(NDFrame):
         two  a    2
              b    3
 
+        Stacking a dataframe with a multi-level column axis with no missing values
+
+        >>> multicol = pd.MultiIndex.from_tuples([('X', 'a'), ('Y', 'b')])
+        >>> s = pd.DataFrame([[0.0, 1.0], [2.0, 3.0]], index=['one', 'two'], columns=multicol)
+        >>> s
+               X     Y
+               a     b
+        one  0.0   1.0
+        two  2.0   3.0
+
+        By default the missing values are filled with NaNs:
+        >>> s.stack()
+                 X    Y
+        one a  0.0  NaN
+            b  NaN  1.0
+        two a  2.0  NaN
+            b  NaN  3.0
+
+        Rows where all values are missing are dropped by default:
+
+        >>> multicol = pd.MultiIndex.from_tuples([('X', 'a'), ('Y', 'b')])
+        >>> s = pd.DataFrame([[None, 1.0], [2.0, 3.0]], index=['one', 'two'], columns=multicol)
+        >>> s
+               X     Y
+               a     b
+        one  NaN   1.0
+        two  2.0   3.0
+
+        >>> s.stack(dropna=False)
+                 X    Y
+        one a  NaN  NaN
+            b  NaN  1.0
+        two a  2.0  NaN
+            b  NaN  3.0
+
+        >>> s.stack(dropna=True)
+                 X    Y
+        one b  NaN  1.0
+        two a  2.0  NaN
+            b  NaN  3.0
+
         Returns
         -------
         stacked : DataFrame or Series
@@ -5210,6 +5254,8 @@ class DataFrame(NDFrame):
         See Also
         --------
         pandas.DataFrame.unstack: unstack prescribed level(s) from index axis onto column axis.
+        pandas.DataFrame.pivot: reshape dataframe from long format to wide format.
+        pandas.DataFrame.pivot_table: create a spreadsheet-style pivot table as a DataFrame.
         """
         from pandas.core.reshape.reshape import stack, stack_multiple
 
