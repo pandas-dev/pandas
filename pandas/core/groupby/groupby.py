@@ -1462,22 +1462,25 @@ class GroupBy(_GroupBy):
         """
         Provide resampling when using a TimeGrouper.
 
-        Given a grouper the function resamples it according to a string and an
-        optional list and dictionary of parameters. Returns a new grouper with
-        our resampler appended.
+        Given a grouper the function resamples it according to a string
+        "string" -> "frequency".
+
+        See the :ref:`frequency aliases <timeseries.offset-aliases>`
+        documentation for more details.
 
         Parameters
         ----------
-        rule : str
+        rule : str or Offset
             The offset string or object representing target grouper conversion.
-        *args
-            These parameters will be passed to the get_resampler_for_grouping
-            function which builds the approriate resampler and checks for
-            deprecated parameters.
-        **kwargs
-            These parameters will be passed to the get_resampler_for_grouping
-            function which builds the approriate resampler and checks for
-            deprecated parameters.
+        *args, **kwargs
+            For compatibility with other groupby methods. See below for some
+            example parameters.
+        closed : {‘right’, ‘left’}
+            Which side of bin interval is closed.
+        label : {‘right’, ‘left’}
+            Which bin edge label to label bucket with.
+        loffset : timedelta
+            Adjust the resampled time labels.
 
         Returns
         -------
@@ -1486,13 +1489,13 @@ class GroupBy(_GroupBy):
 
         Examples
         --------
-        Start by creating a DataFrame with 9 one minute timestamps.
+        Start by creating a length-9 DataFrame with minute frequency.
 
         >>> idx = pd.date_range('1/1/2000', periods=9, freq='T')
-        >>> df = pd.DataFrame(data=9*[range(4)],
+        >>> df = pd.DataFrame(data=9 * [range(4)],
         ...                   index=idx,
         ...                   columns=['a', 'b', 'c', 'd'])
-        >>> df.iloc[[6], [0]] = 5  # change a value for grouping
+        >>> df.iloc[6, 0] = 5
         >>> df
                              a  b  c  d
         2000-01-01 00:00:00  0  1  2  3
@@ -1547,6 +1550,48 @@ class GroupBy(_GroupBy):
         a
         0   2000-01-31  0  8  16  24
         5   2000-01-31  5  1   2   3
+
+        Downsample the series into 3 minute bins as above, but close the right
+        side of the bin interval.
+
+        >>> df.groupby('a').resample('3T', closed='right').sum()
+                                 a  b  c  d
+        a
+        0   1999-12-31 23:57:00  0  1  2  3
+            2000-01-01 00:00:00  0  3  6  9
+            2000-01-01 00:03:00  0  2  4  6
+            2000-01-01 00:06:00  0  2  4  6
+        5   2000-01-01 00:03:00  5  1  2  3
+
+        Downsample the series into 3 minute bins and close the right side of
+        the bin interval, but label each bin using the right edge instead of
+        the left.
+
+        >>> df.groupby('a').resample('3T', closed='right', label='right').sum()
+                                 a  b  c  d
+        a
+        0   2000-01-01 00:00:00  0  1  2  3
+            2000-01-01 00:03:00  0  3  6  9
+            2000-01-01 00:06:00  0  2  4  6
+            2000-01-01 00:09:00  0  2  4  6
+        5   2000-01-01 00:06:00  5  1  2  3
+
+        Add an offset of twenty seconds.
+
+        >>> df.groupby('a').resample('3T', loffset='20s').sum()
+                                 a  b  c  d
+        a
+        0   2000-01-01 00:00:20  0  3  6  9
+            2000-01-01 00:03:20  0  3  6  9
+            2000-01-01 00:06:20  0  2  4  6
+        5   2000-01-01 00:06:20  5  1  2  3
+
+        See Also
+        --------
+        pandas.Grouper : specify a frequency to resample with when
+            grouping by a key.
+        DatetimeIndex.resample : Frequency conversion and resampling of
+            time series.
         """
         from pandas.core.resample import get_resampler_for_grouping
         return get_resampler_for_grouping(self, rule, *args, **kwargs)
