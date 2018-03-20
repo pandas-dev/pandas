@@ -36,7 +36,7 @@ def data_for_sorting():
 
 @pytest.fixture
 def data_missing_for_sorting():
-    return JSONArray([{'b': 1}, {}, {'c': 4}])
+    return JSONArray([{'b': 1}, {}, {'a': 4}])
 
 
 @pytest.fixture
@@ -80,28 +80,15 @@ class TestMissing(base.BaseMissingTests):
 
 
 class TestMethods(base.BaseMethodsTests):
-    @pytest.mark.skip(reason="Unhashable")
+    unhashable = pytest.mark.skip(reason="Unhashable")
+
+    @unhashable
     def test_value_counts(self, all_data, dropna):
         pass
 
-    @pytest.mark.skip(reason="Dictionaries are not orderable.")
-    def test_argsort(self):
-        pass
-
-    @pytest.mark.skip(reason="Dictionaries are not orderable.")
-    def test_argsort_missing(self):
-        pass
-
-    @pytest.mark.skip(reason="Dictionaries are not orderable.")
-    def test_sort_values(self):
-        pass
-
-    @pytest.mark.skip(reason="Dictionaries are not orderable.")
-    def test_sort_values_missing(self):
-        pass
-
-    @pytest.mark.skip(reason="Dictionaries are not orderable.")
+    @unhashable
     def test_sort_values_frame(self):
+        # TODO (EA.factorize): see if _values_for_factorize allows this.
         pass
 
 
