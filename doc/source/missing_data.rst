@@ -170,9 +170,8 @@ The descriptive statistics and computational methods discussed in the
 account for missing data. For example:
 
 * When summing data, NA (missing) values will be treated as zero.
-* If the data are all NA, the result will be NA.
-* Methods like **cumsum** and **cumprod** ignore NA values, but preserve them
-  in the resulting arrays.
+* If the data are all NA, the result will be 0.
+* Cumulative methods like :meth:`~DataFrame.cumsum` and :meth:`~DataFrame.cumprod` ignore NA values by default, but preserve them in the resulting arrays. To override this behaviour and include NA values, use ``skipna=False``.
 
 .. ipython:: python
 
@@ -180,6 +179,7 @@ account for missing data. For example:
    df['one'].sum()
    df.mean(1)
    df.cumsum()
+   df.cumsum(skipna=False)
 
 
 .. _missing_data.numeric_sum:
@@ -187,35 +187,21 @@ account for missing data. For example:
 Sum/Prod of Empties/Nans
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. warning::
-
-   This behavior is now standard as of v0.21.0; previously sum/prod would give different
-   results if the ``bottleneck`` package was installed.
-   See the :ref:`v0.21.0 whatsnew <whatsnew_0210.api_breaking.bottleneck>`.
-
-With ``sum`` or ``prod`` on an empty or all-``NaN`` ``Series``, or columns of a ``DataFrame``, the result will be all-``NaN``.
+With ``sum`` on an empty or all-``NaN`` ``Series``, or columns of a ``DataFrame``, the result will be 0.
 
 .. ipython:: python
 
-   s = pd.Series([np.nan])
-
-   s.sum()
-
-Summing over an empty ``Series`` will return ``NaN``:
-
-.. ipython:: python
-
+   pd.Series([np.nan]).sum()
+   
    pd.Series([]).sum()
 
-.. warning::
+With ``prod`` on an empty or all-``NaN`` ``Series``, or columns of a ``DataFrame``, the result will be 1.
 
-   These behaviors differ from the default in ``numpy`` where an empty sum returns zero.
+.. ipython:: python
 
-   .. ipython:: python
-
-      np.nansum(np.array([np.nan]))
-      np.nansum(np.array([]))
-
+   pd.Series([np.nan]).prod()
+   
+   pd.Series([]).prod()
 
 
 NA values in GroupBy
@@ -242,7 +228,7 @@ with missing data.
 Filling missing values: fillna
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The **fillna** function can "fill in" NA values with non-NA data in a couple
+The :meth:`~DataFrame.fillna` function can "fill in" NA values with non-NA data in a couple
 of ways, which we illustrate:
 
 **Replace NA with a scalar value**
@@ -292,8 +278,8 @@ To remind you, these are the available filling methods:
 With time series data, using pad/ffill is extremely common so that the "last
 known value" is available at every time point.
 
-The ``ffill()`` function is equivalent to ``fillna(method='ffill')``
-and ``bfill()`` is equivalent to ``fillna(method='bfill')``
+The :meth:`~DataFrame.ffill` function is equivalent to ``fillna(method='ffill')``
+and :meth:`~DataFrame.bfill` is equivalent to ``fillna(method='bfill')``
 
 .. _missing_data.PandasObject:
 
@@ -486,7 +472,7 @@ at the new values.
 Interpolation Limits
 ^^^^^^^^^^^^^^^^^^^^
 
-Like other pandas fill methods, ``interpolate`` accepts a ``limit`` keyword
+Like other pandas fill methods, :meth:`~DataFrame.interpolate` accepts a ``limit`` keyword
 argument. Use this argument to limit the number of consecutive ``NaN`` values
 filled since the last valid observation:
 
@@ -534,7 +520,7 @@ the ``limit_area`` parameter restricts filling to either inside or outside value
 Replacing Generic Values
 ~~~~~~~~~~~~~~~~~~~~~~~~
 Often times we want to replace arbitrary values with other values. The
-``replace`` method in Series/DataFrame provides an efficient yet
+:meth:`~DataFrame.replace` method in Series/DataFrame provides an efficient yet
 flexible way to perform such replacements.
 
 For a Series, you can replace a single value or a list of values by another
@@ -763,7 +749,7 @@ contains NAs, an exception will be generated:
    reindexed = s.reindex(list(range(8))).fillna(0)
    reindexed[crit]
 
-However, these can be filled in using **fillna** and it will work fine:
+However, these can be filled in using :meth:`~DataFrame.fillna` and it will work fine:
 
 .. ipython:: python
 
