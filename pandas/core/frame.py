@@ -5162,11 +5162,11 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        level : int, string, list, default last level
+        level : int, str, list, default -1
             Level(s) to stack from the column axis onto the index
             axis, defined as one index or label, or a list of indices
             or labels.
-        dropna : boolean, default True
+        dropna : bool, default True
             Whether to drop rows in the resulting Frame/Series with
             missing values. Stacking a column level onto the index
             axis can create combinations of index and column values
