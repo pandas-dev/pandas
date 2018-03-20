@@ -23,8 +23,7 @@ from pandas.core.dtypes.cast import (
     maybe_convert_scalar,
     find_common_type,
     construct_1d_object_array_from_listlike,
-    construct_1d_arraylike_from_scalar,
-    astype_nansafe)
+    construct_1d_arraylike_from_scalar)
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
