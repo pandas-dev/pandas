@@ -4955,11 +4955,14 @@ class DataFrame(NDFrame):
             Column to use to make new frame's index. If None, uses
             existing index.
         columns : string or object
-            Column name to use to make new frame's columns
-        values : string, object or a list (0.23.0) of the previous, optional
-            Column name(s) to use for populating new frame's values. If not
+            Column to use to make new frame's columns.
+        values : string, object or a list of the previous, optional
+            Column(s) to use for populating new frame's values. If not
             specified, all remaining columns will be used and the result will
             have hierarchically indexed columns.
+
+            .. versionchanged :: 0.23.0
+               Also accept list of column names.
 
         Returns
         -------
@@ -5013,13 +5016,14 @@ class DataFrame(NDFrame):
         two  4   5   6
 
         >>> df.pivot(index='foo', columns='bar', values=['baz', 'zoo'])
-                baz       zoo
+              baz       zoo
         bar   A  B  C   A  B  C
         foo
         one   1  2  3   x  y  z
         two   4  5  6   q  w  t
 
         A ValueError is raised if there are any duplicates.
+
         >>> df = pd.DataFrame({"foo": ['one', 'one', 'two', 'two'],
         ...                    "bar": ['A', 'A', 'B', 'C'],
         ...                    "baz": [1, 2, 3, 4]})
@@ -5029,8 +5033,10 @@ class DataFrame(NDFrame):
         1  one   A    2
         2  two   B    3
         3  two   C    4
+
         Notice that the first two rows are the same for our `index`
         and `columns` arguments.
+
         >>> df.pivot(index='foo', columns='bar', values='baz')
         Traceback (most recent call last):
            ...
