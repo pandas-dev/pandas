@@ -370,66 +370,6 @@ d  1.0  NaN
 e  NaN  2.0
 """
 
-<<<<<<< HEAD
-_gt_example_FRAME = """
->>> df1 = pd.DataFrame({'num1': range(1,6),
-                        'num2': range(2,11,2),
-                        'num3': range(1,20,4)})
->>> df1
-   num1  num2  num3
-0     1     2     1
-1     2     4     5
-2     3     6     9
-3     4     8    13
-4     5    10    17
->>> df2 = pd.DataFrame({'num1': range(6,11),
-                        'num2': range(1,10,2),
-                        'num3': range(1,20,4)})
->>> df2
-   num1  num2  num3
-0     6     1     1
-1     7     3     5
-2     8     5     9
-3     9     7    13
-4    10     9    17
->>> df1.gt(df2)
-    num1  num2   num3
-0  False  True  False
-1  False  True  False
-2  False  True  False
-3  False  True  False
-4  False  True  False
-"""
-
-_ge_example_FRAME = """
->>> df1 = pd.DataFrame({'num1': range(1,6),
-                        'num2': range(2,11,2),
-                        'num3': range(1,20,4)})
->>> df1
-   num1  num2  num3
-0     1     2     1
-1     2     4     5
-2     3     6     9
-3     4     8    13
-4     5    10    17
->>> df2 = pd.DataFrame({'num1': range(6,11),
-                        'num2': range(1,10,2),
-                        'num3': range(1,20,4)})
->>> df2
-   num1  num2  num3
-0     6     1     1
-1     7     3     5
-2     8     5     9
-3     9     7    13
-4    10     9    17
->>> df1.ge(df2)
-    num1  num2   num3
-0  False  True   True
-1  False  True   True
-2  False  True   True
-3  False  True   True
-4  False  True   True
-=======
 _sub_example_FRAME = """
 >>> a = pd.DataFrame([2, 1, 1, np.nan], index=['a', 'b', 'c', 'd'],
 ...                  columns=['one'])
@@ -455,7 +395,66 @@ b  1.0  -2.0
 c  1.0  NaN
 d  -1.0  NaN
 e  NaN  -2.0
->>>>>>> 699a48bcd71da54da05caee85e5d006afabc3df6
+"""
+
+_gt_example_FRAME = """
+>>> df1 = pd.DataFrame({'num1': range(1,6),
+...                     'num2': range(2,11,2),
+...                     'num3': range(1,20,4)})
+>>> df1
+   num1  num2  num3
+0     1     2     1
+1     2     4     5
+2     3     6     9
+3     4     8    13
+4     5    10    17
+>>> df2 = pd.DataFrame({'num1': range(6,11),
+...                     'num2': range(1,10,2),
+...                     'num3': range(1,20,4)})
+>>> df2
+   num1  num2  num3
+0     6     1     1
+1     7     3     5
+2     8     5     9
+3     9     7    13
+4    10     9    17
+>>> df1.gt(df2)
+    num1  num2   num3
+0  False  True  False
+1  False  True  False
+2  False  True  False
+3  False  True  False
+4  False  True  False
+"""
+
+_ge_example_FRAME = """
+>>> df1 = pd.DataFrame({'num1': range(1,6),
+...                     'num2': range(2,11,2),
+...                     'num3': range(1,20,4)})
+>>> df1
+   num1  num2  num3
+0     1     2     1
+1     2     4     5
+2     3     6     9
+3     4     8    13
+4     5    10    17
+>>> df2 = pd.DataFrame({'num1': range(6,11),
+...                     'num2': range(1,10,2),
+...                     'num3': range(1,20,4)})
+>>> df2
+   num1  num2  num3
+0     6     1     1
+1     7     3     5
+2     8     5     9
+3     9     7    13
+4    10     9    17
+>>> df1.ge(df2)
+    num1  num2   num3
+0  False  True   True
+1  False  True   True
+2  False  True   True
+3  False  True   True
+4  False  True   True
 """
 
 _op_descriptions = {
@@ -641,6 +640,14 @@ Examples
 See also
 --------
 DataFrame.{reverse}
+"""
+
+_flex_comp_doc_FRAME = """
+Wrapper for flexible comparison methods {name}
+
+Examples
+--------
+{df_examples}
 """
 
 _flex_doc_PANEL = """
@@ -1607,8 +1614,18 @@ def _flex_comp_method_FRAME(cls, op, special):
             result = mask_cmp_op(x, y, op, (np.ndarray, ABCSeries))
         return result
 
-    @Appender('Wrapper for flexible comparison methods {name}'
-              .format(name=op_name))
+    doc = ('Wrapper for flexible comparison methods {name}'
+           .format(name=op_name))
+
+    if op_name in _op_descriptions:
+        op_desc = _op_descriptions[op_name]
+
+        if op_desc['df_examples'] is not None:  
+            base_doc = _flex_comp_doc_FRAME         
+            doc = base_doc.format(name=op_name,
+                                  df_examples=op_desc['df_examples'])
+
+    @Appender(doc)
     def f(self, other, axis=default_axis, level=None):
 
         other = _align_method_FRAME(self, other, axis)
