@@ -429,7 +429,13 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
 
 
 class BytesZipFile(ZipFile, BytesIO):
-    """override write method with writestr to accept bytes."""
+    """
+    Wrapper for standard library class ZipFile and allow the returned file-like
+    handle to accept byte strings via `write` method.
+
+    BytesIO provides attributes of file-like object and ZipFile.writestr writes
+    bytes strings into a member of the archive.
+    """
     # GH 17778
     def __init__(self, file, mode='r', **kwargs):
         if mode in ['wb', 'rb']:
