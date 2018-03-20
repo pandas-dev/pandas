@@ -147,6 +147,9 @@ class TestSeriesDtypes(TestData):
         # see gh-4405
         result = series.astype(dtype)
         expected = series.map(compat.text_type)
+        if result[3] is np.nan:
+            assert result.pop(3) is np.nan  # gh-20377 np.nan stays as it is even if we cast to str/basestring
+            assert expected.pop(3) == 'nan'
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", [str, compat.text_type])

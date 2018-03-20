@@ -23,7 +23,8 @@ from pandas.core.dtypes.cast import (
     maybe_convert_scalar,
     find_common_type,
     construct_1d_object_array_from_listlike,
-    construct_1d_arraylike_from_scalar)
+    construct_1d_arraylike_from_scalar,
+    astype_nansafe)
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
@@ -439,3 +440,13 @@ class TestCommonTypes(object):
         tm.assert_categorical_equal(result, expected,
                                     check_category_order=True,
                                     check_dtype=True)
+
+
+class TestAstypeNansafe(object):
+
+    def test_astype_nansafe_nan_to_str(self):
+        arr = np.array([np.nan, 'a', 'b'], dtype=object)
+        arr2 = astype_nansafe(arr, dtype=str)
+        assert arr[0] is np.nan
+        assert arr2[0] is np.nan
+        assert np.array_equal(arr[1:], arr2[1:])
