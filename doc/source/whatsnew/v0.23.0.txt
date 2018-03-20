@@ -984,7 +984,6 @@ I/O
 - Bug in :meth:`pandas.io.json.json_normalize` where subrecords are not properly normalized if any subrecords values are NoneType (:issue:`20030`)
 - Bug in :`read_excel` where it transforms np.nan to 'nan' if dtype=str is chosen. Now keeps np.nan as they are. (:issue:`20377`)
 
-
 Plotting
 ^^^^^^^^
 
