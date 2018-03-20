@@ -5175,15 +5175,21 @@ class DataFrame(NDFrame):
 
         Examples
         --------
+        >>> df_single_level_cols = pd.DataFrame([[0, 1], [2, 3]],
+        ...                                     index=['one', 'two'],
+        ...                                     columns=['a', 'b'])
+        >>> multicol = pd.MultiIndex.from_tuples([('X', 'a'), ('X', 'b')])
+        >>> df_multi_level_cols = pd.DataFrame([[0, 1], [2, 3]],
+        ...                                    index=['one', 'two'],
+        ...                                    columns=multicol)
 
-        Stacking a dataframe with a single level column axis:
+        Stacking a dataframe with a single level column axis returns a Series:
 
-        >>> s = pd.DataFrame([[0, 1], [2, 3]], index=['one', 'two'], columns=['a', 'b'])
-        >>> s
+        >>> df_single_level_cols
              a   b
         one  0   1
         two  2   3
-        >>> s.stack()
+        >>> df_single_level_cols.stack()
         one  a    0
              b    1
         two  a    2
@@ -5192,14 +5198,12 @@ class DataFrame(NDFrame):
 
         Stacking a dataframe with a multi-level column axis with no missing values:
 
-        >>> multicol = pd.MultiIndex.from_tuples([('X', 'a'), ('X', 'b')])
-        >>> s = pd.DataFrame([[0, 1], [2, 3]], index=['one', 'two'], columns=multicol)
-        >>> s
+        >>> df_multi_level_cols
              X
              a   b
         one  0   1
         two  2   3
-        >>> s.stack()
+        >>> df_multi_level_cols.stack()
                   X
         one  a    0
              b    1
