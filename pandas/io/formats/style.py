@@ -325,9 +325,19 @@ class Styler(object):
                                   .format(row=r, col=c)})
             body.append(row_es)
 
+        table_attr = self.table_attributes
+        use_mathjax = get_option("display.html.use_mathjax")
+        if not use_mathjax:
+            table_attr = table_attr or ''
+            if 'class="' in table_attr:
+                table_attr = table_attr.replace('class="',
+                                                'class="tex2jax_ignore ')
+            else:
+                table_attr += ' class="tex2jax_ignore"'
+
         return dict(head=head, cellstyle=cellstyle, body=body, uuid=uuid,
                     precision=precision, table_styles=table_styles,
-                    caption=caption, table_attributes=self.table_attributes)
+                    caption=caption, table_attributes=table_attr)
 
     def format(self, formatter, subset=None):
         """
@@ -364,7 +374,7 @@ class Styler(object):
         >>> df = pd.DataFrame(np.random.randn(4, 2), columns=['a', 'b'])
         >>> df.style.format("{:.2%}")
         >>> df['c'] = ['a', 'b', 'c', 'd']
-        >>> df.style.format({'C': str.upper})
+        >>> df.style.format({'c': str.upper})
         """
         if subset is None:
             row_locs = range(len(self.data))
@@ -509,7 +519,9 @@ class Styler(object):
         subset = _non_reducing_slice(subset)
         data = self.data.loc[subset]
         if axis is not None:
-            result = data.apply(func, axis=axis, **kwargs)
+            result = data.apply(func, axis=axis,
+                                result_type='expand', **kwargs)
+            result.columns = data.columns
         else:
             result = func(data, **kwargs)
             if not isinstance(result, pd.DataFrame):

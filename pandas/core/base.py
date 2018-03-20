@@ -9,14 +9,15 @@ import numpy as np
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries, ABCIndexClass
 from pandas.core.dtypes.common import (
+    is_datetimelike,
     is_object_dtype,
     is_list_like,
     is_scalar,
-    is_datetimelike,
-    is_extension_type)
+    is_extension_type,
+    is_extension_array_dtype)
 
 from pandas.util._validators import validate_bool_kwarg
-
+from pandas.errors import AbstractMethodError
 from pandas.core import common as com, algorithms
 import pandas.core.nanops as nanops
 import pandas._libs.lib as lib
@@ -45,7 +46,7 @@ class StringMixin(object):
     # Formatting
 
     def __unicode__(self):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def __str__(self):
         """
@@ -277,10 +278,10 @@ class SelectionMixin(object):
             subset to act on
 
         """
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     def aggregate(self, func, *args, **kwargs):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)
 
     agg = aggregate
 
@@ -392,6 +393,10 @@ class SelectionMixin(object):
 
                     elif isinstance(obj, ABCSeries):
                         nested_renaming_depr()
+                    elif isinstance(obj, ABCDataFrame) and \
+                            k not in obj.columns:
+                        raise KeyError(
+                            "Column '{col}' does not exist!".format(col=k))
 
                 arg = new_arg
 
@@ -734,7 +739,7 @@ class IndexOpsMixin(object):
     @property
     def itemsize(self):
         """ return the size of the dtype of the item of the underlying data """
-        return self._values.itemsize
+        return self._ndarray_values.itemsize
 
     @property
     def nbytes(self):
@@ -744,7 +749,7 @@ class IndexOpsMixin(object):
     @property
     def strides(self):
         """ return the strides of the underlying data """
-        return self._values.strides
+        return self._ndarray_values.strides
 
     @property
     def size(self):
@@ -764,8 +769,17 @@ class IndexOpsMixin(object):
         return self.values.base
 
     @property
-    def _values(self):
-        """ the internal implementation """
+    def _ndarray_values(self):
+        """The data as an ndarray, possibly losing information.
+
+        The expectation is that this is cheap to compute, and is primarily
+        used for interacting with our indexers.
+
+        - categorical -> codes
+        """
+        # type: () -> np.ndarray
+        if is_extension_array_dtype(self):
+            return self.values._ndarray_values
         return self.values
 
     @property
@@ -773,7 +787,36 @@ class IndexOpsMixin(object):
         return not self.size
 
     def max(self):
-        """ The maximum value of the object """
+        """
+        Return the maximum value of the Index.
+
+        Returns
+        -------
+        scalar
+            Maximum value.
+
+        See Also
+        --------
+        Index.min : Return the minimum value in an Index.
+        Series.max : Return the maximum value in a Series.
+        DataFrame.max : Return the maximum values in a DataFrame.
+
+        Examples
+        --------
+        >>> idx = pd.Index([3, 2, 1])
+        >>> idx.max()
+        3
+
+        >>> idx = pd.Index(['c', 'b', 'a'])
+        >>> idx.max()
+        'c'
+
+        For a MultiIndex, the maximum is determined lexicographically.
+
+        >>> idx = pd.MultiIndex.from_product([('a', 'b'), (2, 1)])
+        >>> idx.max()
+        ('b', 2)
+        """
         return nanops.nanmax(self.values)
 
     def argmax(self, axis=None):
@@ -787,7 +830,35 @@ class IndexOpsMixin(object):
         return nanops.nanargmax(self.values)
 
     def min(self):
-        """ The minimum value of the object """
+        """
+        Return the minimum value of the Index.
+
+        Returns
+        -------
+        scalar
+            Minimum value.
+
+        See Also
+        --------
+        Index.max : Return the maximum value of the object.
+        Series.min : Return the minimum value in a Series.
+        DataFrame.min : Return the minimum values in a DataFrame.
+
+        Examples
+        --------
+        >>> idx = pd.Index([3, 2, 1])
+        >>> idx.min()
+        1
+
+        >>> idx = pd.Index(['c', 'b', 'a'])
+        >>> idx.min()
+        'a'
+
+        For a MultiIndex, the minimum is determined lexicographically.
+        >>> idx = pd.MultiIndex.from_product([('a', 'b'), (2, 1)])
+        >>> idx.min()
+        ('a', 1)
+        """
         return nanops.nanmin(self.values)
 
     def argmin(self, axis=None):
@@ -812,9 +883,10 @@ class IndexOpsMixin(object):
         --------
         numpy.ndarray.tolist
         """
-
-        if is_datetimelike(self):
+        if is_datetimelike(self._values):
             return [com._maybe_box_datetimelike(x) for x in self._values]
+        elif is_extension_array_dtype(self._values):
+            return list(self._values)
         else:
             return self._values.tolist()
 
@@ -975,6 +1047,7 @@ class IndexOpsMixin(object):
         values = self._values
 
         if hasattr(values, 'unique'):
+
             result = values.unique()
         else:
             from pandas.core.algorithms import unique1d
@@ -1048,7 +1121,7 @@ class IndexOpsMixin(object):
 
     def memory_usage(self, deep=False):
         """
-        Memory usage of my values
+        Memory usage of the values
 
         Parameters
         ----------
@@ -1150,21 +1223,16 @@ class IndexOpsMixin(object):
         >>> x.searchsorted([1, 3], side='right')
         array([1, 3])
 
-        >>> x = pd.Categorical(['apple', 'bread', 'bread', 'cheese', 'milk' ])
+        >>> x = pd.Categorical(['apple', 'bread', 'bread',
+                                'cheese', 'milk'], ordered=True)
         [apple, bread, bread, cheese, milk]
         Categories (4, object): [apple < bread < cheese < milk]
 
         >>> x.searchsorted('bread')
         array([1])     # Note: an array, not a scalar
 
-        >>> x.searchsorted(['bread'])
-        array([1])
-
-        >>> x.searchsorted(['bread', 'eggs'])
-        array([1, 4])
-
-        >>> x.searchsorted(['bread', 'eggs'], side='right')
-        array([3, 4])    # eggs before milk
+        >>> x.searchsorted(['bread'], side='right')
+        array([3])
         """)
 
     @Substitution(klass='IndexOpsMixin')
@@ -1174,24 +1242,6 @@ class IndexOpsMixin(object):
         # needs coercion on the key (DatetimeIndex does already)
         return self.values.searchsorted(value, side=side, sorter=sorter)
 
-    _shared_docs['drop_duplicates'] = (
-        """Return %(klass)s with duplicate values removed
-
-        Parameters
-        ----------
-
-        keep : {'first', 'last', False}, default 'first'
-            - ``first`` : Drop duplicates except for the first occurrence.
-            - ``last`` : Drop duplicates except for the last occurrence.
-            - False : Drop all duplicates.
-        %(inplace)s
-
-        Returns
-        -------
-        deduplicated : %(klass)s
-        """)
-
-    @Appender(_shared_docs['drop_duplicates'] % _indexops_doc_kwargs)
     def drop_duplicates(self, keep='first', inplace=False):
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if isinstance(self, ABCIndexClass):
@@ -1205,24 +1255,6 @@ class IndexOpsMixin(object):
         else:
             return result
 
-    _shared_docs['duplicated'] = (
-        """Return boolean %(duplicated)s denoting duplicate values
-
-        Parameters
-        ----------
-        keep : {'first', 'last', False}, default 'first'
-            - ``first`` : Mark duplicates as ``True`` except for the first
-              occurrence.
-            - ``last`` : Mark duplicates as ``True`` except for the last
-              occurrence.
-            - False : Mark all duplicates as ``True``.
-
-        Returns
-        -------
-        duplicated : %(duplicated)s
-        """)
-
-    @Appender(_shared_docs['duplicated'] % _indexops_doc_kwargs)
     def duplicated(self, keep='first'):
         from pandas.core.algorithms import duplicated
         if isinstance(self, ABCIndexClass):
@@ -1237,4 +1269,4 @@ class IndexOpsMixin(object):
     # abstracts
 
     def _update_inplace(self, result, **kwargs):
-        raise com.AbstractMethodError(self)
+        raise AbstractMethodError(self)

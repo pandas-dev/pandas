@@ -5,7 +5,7 @@ cimport cython
 from cython cimport Py_ssize_t
 
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 from numpy cimport (ndarray, PyArray_NDIM, PyArray_GETITEM,
                     PyArray_ITER_DATA, PyArray_ITER_NEXT, PyArray_IterNew,
                     flatiter, NPY_OBJECT,
@@ -13,9 +13,7 @@ from numpy cimport (ndarray, PyArray_NDIM, PyArray_GETITEM,
                     float32_t, float64_t,
                     uint8_t, uint64_t,
                     complex128_t)
-# initialize numpy
-np.import_array()
-np.import_ufunc()
+cnp.import_array()
 
 from cpython cimport (Py_INCREF, PyTuple_SET_ITEM,
                       PyList_Check, PyFloat_Check,
@@ -23,24 +21,15 @@ from cpython cimport (Py_INCREF, PyTuple_SET_ITEM,
                       PyBytes_Check,
                       PyUnicode_Check,
                       PyTuple_New,
-                      PyObject_RichCompareBool,
-                      PyBytes_GET_SIZE,
-                      PyUnicode_GET_SIZE)
-
-try:
-    from cpython cimport PyString_GET_SIZE
-except ImportError:
-    from cpython cimport PyUnicode_GET_SIZE as PyString_GET_SIZE
-
-cimport cpython
-
+                      Py_EQ,
+                      PyObject_RichCompareBool)
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                PyTime_Check, PyDelta_Check,
                                PyDateTime_IMPORT)
 PyDateTime_IMPORT
 
-from tslib import NaT, Timestamp, Timedelta, array_to_datetime
+from tslib import NaT, array_to_datetime
 from missing cimport checknull
 
 
@@ -95,7 +84,7 @@ cpdef bint is_scalar(object val):
 
     """
 
-    return (np.PyArray_IsAnyScalar(val)
+    return (cnp.PyArray_IsAnyScalar(val)
             # As of numpy-1.9, PyArray_IsAnyScalar misses bytearrays on Py3.
             or PyBytes_Check(val)
             # We differ from numpy (as of 1.10), which claims that None is
@@ -114,6 +103,14 @@ def item_from_zerodim(object val):
     """
     If the value is a zerodim array, return the item it contains.
 
+    Parameters
+    ----------
+    val : object
+
+    Returns
+    -------
+    result : object
+
     Examples
     --------
     >>> item_from_zerodim(1)
@@ -126,29 +123,9 @@ def item_from_zerodim(object val):
     array([1])
 
     """
-    return util.unbox_if_zerodim(val)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def fast_unique(ndarray[object] values):
-    cdef:
-        Py_ssize_t i, n = len(values)
-        list uniques = []
-        dict table = {}
-        object val, stub = 0
-
-    for i from 0 <= i < n:
-        val = values[i]
-        if val not in table:
-            table[val] = stub
-            uniques.append(val)
-    try:
-        uniques.sort()
-    except Exception:
-        pass
-
-    return uniques
+    if cnp.PyArray_IsZeroDim(val):
+        return cnp.PyArray_ToScalar(cnp.PyArray_DATA(val), val)
+    return val
 
 
 @cython.wraparound(False)
@@ -370,30 +347,6 @@ def has_infs_f8(ndarray[float64_t] arr):
     return False
 
 
-def convert_timestamps(ndarray values):
-    cdef:
-        object val, f, result
-        dict cache = {}
-        Py_ssize_t i, n = len(values)
-        ndarray[object] out
-
-    # for HDFStore, a bit temporary but...
-
-    from datetime import datetime
-    f = datetime.fromtimestamp
-
-    out = np.empty(n, dtype='O')
-
-    for i in range(n):
-        val = util.get_value_1d(values, i)
-        if val in cache:
-            out[i] = cache[val]
-        else:
-            cache[val] = out[i] = f(val)
-
-    return out
-
-
 def maybe_indices_to_slice(ndarray[int64_t] indices, int max_len):
     cdef:
         Py_ssize_t i, n = len(indices)
@@ -462,72 +415,6 @@ def maybe_booleans_to_slice(ndarray[uint8_t] mask):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def scalar_compare(ndarray[object] values, object val, object op):
-    cdef:
-        Py_ssize_t i, n = len(values)
-        ndarray[uint8_t, cast=True] result
-        bint isnull_val
-        int flag
-        object x
-
-    if op is operator.lt:
-        flag = cpython.Py_LT
-    elif op is operator.le:
-        flag = cpython.Py_LE
-    elif op is operator.gt:
-        flag = cpython.Py_GT
-    elif op is operator.ge:
-        flag = cpython.Py_GE
-    elif op is operator.eq:
-        flag = cpython.Py_EQ
-    elif op is operator.ne:
-        flag = cpython.Py_NE
-    else:
-        raise ValueError('Unrecognized operator')
-
-    result = np.empty(n, dtype=bool).view(np.uint8)
-    isnull_val = checknull(val)
-
-    if flag == cpython.Py_NE:
-        for i in range(n):
-            x = values[i]
-            if checknull(x):
-                result[i] = True
-            elif isnull_val:
-                result[i] = True
-            else:
-                try:
-                    result[i] = PyObject_RichCompareBool(x, val, flag)
-                except (TypeError):
-                    result[i] = True
-    elif flag == cpython.Py_EQ:
-        for i in range(n):
-            x = values[i]
-            if checknull(x):
-                result[i] = False
-            elif isnull_val:
-                result[i] = False
-            else:
-                try:
-                    result[i] = PyObject_RichCompareBool(x, val, flag)
-                except (TypeError):
-                    result[i] = False
-
-    else:
-        for i in range(n):
-            x = values[i]
-            if checknull(x):
-                result[i] = False
-            elif isnull_val:
-                result[i] = False
-            else:
-                result[i] = PyObject_RichCompareBool(x, val, flag)
-
-    return result.view(bool)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
 cpdef bint array_equivalent_object(object[:] left, object[:] right):
     """ perform an element by element comparion on 1-d object arrays
         taking into account nan positions """
@@ -541,113 +428,10 @@ cpdef bint array_equivalent_object(object[:] left, object[:] right):
 
         # we are either not equal or both nan
         # I think None == None will be true here
-        if not (PyObject_RichCompareBool(x, y, cpython.Py_EQ) or
+        if not (PyObject_RichCompareBool(x, y, Py_EQ) or
                 _checknull(x) and _checknull(y)):
             return False
     return True
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def vec_compare(ndarray[object] left, ndarray[object] right, object op):
-    cdef:
-        Py_ssize_t i, n = len(left)
-        ndarray[uint8_t, cast=True] result
-        int flag
-
-    if n != len(right):
-        raise ValueError('Arrays were different lengths: %d vs %d'
-                         % (n, len(right)))
-
-    if op is operator.lt:
-        flag = cpython.Py_LT
-    elif op is operator.le:
-        flag = cpython.Py_LE
-    elif op is operator.gt:
-        flag = cpython.Py_GT
-    elif op is operator.ge:
-        flag = cpython.Py_GE
-    elif op is operator.eq:
-        flag = cpython.Py_EQ
-    elif op is operator.ne:
-        flag = cpython.Py_NE
-    else:
-        raise ValueError('Unrecognized operator')
-
-    result = np.empty(n, dtype=bool).view(np.uint8)
-
-    if flag == cpython.Py_NE:
-        for i in range(n):
-            x = left[i]
-            y = right[i]
-
-            if checknull(x) or checknull(y):
-                result[i] = True
-            else:
-                result[i] = PyObject_RichCompareBool(x, y, flag)
-    else:
-        for i in range(n):
-            x = left[i]
-            y = right[i]
-
-            if checknull(x) or checknull(y):
-                result[i] = False
-            else:
-                result[i] = PyObject_RichCompareBool(x, y, flag)
-
-    return result.view(bool)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def scalar_binop(ndarray[object] values, object val, object op):
-    cdef:
-        Py_ssize_t i, n = len(values)
-        ndarray[object] result
-        object x
-
-    result = np.empty(n, dtype=object)
-    if _checknull(val):
-        result.fill(val)
-        return result
-
-    for i in range(n):
-        x = values[i]
-        if _checknull(x):
-            result[i] = x
-        else:
-            result[i] = op(x, val)
-
-    return maybe_convert_bool(result)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def vec_binop(ndarray[object] left, ndarray[object] right, object op):
-    cdef:
-        Py_ssize_t i, n = len(left)
-        ndarray[object] result
-
-    if n != len(right):
-        raise ValueError('Arrays were different lengths: %d vs %d'
-                         % (n, len(right)))
-
-    result = np.empty(n, dtype=object)
-
-    for i in range(n):
-        x = left[i]
-        y = right[i]
-        try:
-            result[i] = op(x, y)
-        except TypeError:
-            if _checknull(x):
-                result[i] = x
-            elif _checknull(y):
-                result[i] = y
-            else:
-                raise
-
-    return maybe_convert_bool(result)
 
 
 def astype_intsafe(ndarray[object] arr, new_dtype):
@@ -710,7 +494,7 @@ def clean_index_list(list obj):
 
     for i in range(n):
         v = obj[i]
-        if not (PyList_Check(v) or np.PyArray_Check(v) or hasattr(v, '_data')):
+        if not (PyList_Check(v) or util.is_array(v) or hasattr(v, '_data')):
             all_arrays = 0
             break
 
@@ -731,145 +515,6 @@ def clean_index_list(list obj):
             return np.asarray(obj, dtype='object'), 0
 
     return np.asarray(obj), 0
-
-
-ctypedef fused pandas_string:
-    str
-    unicode
-    bytes
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cpdef Py_ssize_t max_len_string_array(pandas_string[:] arr):
-    """ return the maximum size of elements in a 1-dim string array """
-    cdef:
-        Py_ssize_t i, m = 0, l = 0, length = arr.shape[0]
-        pandas_string v
-
-    for i in range(length):
-        v = arr[i]
-        if PyString_Check(v):
-            l = PyString_GET_SIZE(v)
-        elif PyBytes_Check(v):
-            l = PyBytes_GET_SIZE(v)
-        elif PyUnicode_Check(v):
-            l = PyUnicode_GET_SIZE(v)
-
-        if l > m:
-            m = l
-
-    return m
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def string_array_replace_from_nan_rep(
-        ndarray[object, ndim=1] arr, object nan_rep,
-        object replace=None):
-    """
-    Replace the values in the array with 'replacement' if
-    they are 'nan_rep'. Return the same array.
-    """
-
-    cdef int length = arr.shape[0], i = 0
-    if replace is None:
-        replace = np.nan
-
-    for i from 0 <= i < length:
-        if arr[i] == nan_rep:
-            arr[i] = replace
-
-    return arr
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def convert_json_to_lines(object arr):
-    """
-    replace comma separated json with line feeds, paying special attention
-    to quotes & brackets
-    """
-    cdef:
-        Py_ssize_t i = 0, num_open_brackets_seen = 0, length
-        bint in_quotes = 0, is_escaping = 0
-        ndarray[uint8_t] narr
-        unsigned char v, comma, left_bracket, right_brack, newline
-
-    newline = ord('\n')
-    comma = ord(',')
-    left_bracket = ord('{')
-    right_bracket = ord('}')
-    quote = ord('"')
-    backslash = ord('\\')
-
-    narr = np.frombuffer(arr.encode('utf-8'), dtype='u1').copy()
-    length = narr.shape[0]
-    for i in range(length):
-        v = narr[i]
-        if v == quote and i > 0 and not is_escaping:
-            in_quotes = ~in_quotes
-        if v == backslash or is_escaping:
-            is_escaping = ~is_escaping
-        if v == comma:  # commas that should be \n
-            if num_open_brackets_seen == 0 and not in_quotes:
-                narr[i] = newline
-        elif v == left_bracket:
-            if not in_quotes:
-                num_open_brackets_seen += 1
-        elif v == right_bracket:
-            if not in_quotes:
-                num_open_brackets_seen -= 1
-
-    return narr.tostring().decode('utf-8')
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def write_csv_rows(list data, ndarray data_index,
-                   int nlevels, ndarray cols, object writer):
-
-    cdef int N, j, i, ncols
-    cdef list rows
-    cdef object val
-
-    # In crude testing, N>100 yields little marginal improvement
-    N=100
-
-    # pre-allocate rows
-    ncols = len(cols)
-    rows = [[None] * (nlevels + ncols) for x in range(N)]
-
-    j = -1
-    if nlevels == 1:
-        for j in range(len(data_index)):
-            row = rows[j % N]
-            row[0] = data_index[j]
-            for i in range(ncols):
-                row[1 + i] = data[i][j]
-
-            if j >= N - 1 and j % N == N - 1:
-                writer.writerows(rows)
-    elif nlevels > 1:
-        for j in range(len(data_index)):
-            row = rows[j % N]
-            row[:nlevels] = list(data_index[j])
-            for i in range(ncols):
-                row[nlevels + i] = data[i][j]
-
-            if j >= N - 1 and j % N == N - 1:
-                writer.writerows(rows)
-    else:
-        for j in range(len(data_index)):
-            row = rows[j % N]
-            for i in range(ncols):
-                row[i] = data[i][j]
-
-            if j >= N - 1 and j % N == N - 1:
-                writer.writerows(rows)
-
-    if j >= 0 and (j < N - 1 or (j % N) != N - 1):
-        writer.writerows(rows[:((j + 1) % N)])
 
 
 # ------------------------------------------------------------------------------

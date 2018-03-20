@@ -1219,8 +1219,8 @@ see :ref:`here <basics.pipe>`.
 Combining ``.groupby`` and ``.pipe`` is often useful when you need to reuse
 GroupBy objects.
 
-For an example, imagine having a DataFrame with columns for stores, products,
-revenue and sold quantity. We'd like to do a groupwise calculation of *prices*
+As an example, imagine having a DataFrame with columns for stores, products,
+revenue and quantity sold. We'd like to do a groupwise calculation of *prices*
 (i.e. revenue/quantity) per store and per product. We could do this in a
 multi-step operation, but expressing it in terms of piping can make the
 code more readable. First we set the data:
@@ -1230,7 +1230,8 @@ code more readable. First we set the data:
    import numpy as np
    n = 1000
    df = pd.DataFrame({'Store': np.random.choice(['Store_1', 'Store_2'], n),
-                      'Product': np.random.choice(['Product_1', 'Product_2', 'Product_3'], n),
+                      'Product': np.random.choice(['Product_1',
+                                                   'Product_2'], n),
                       'Revenue': (np.random.random(n)*50+10).round(2),
                       'Quantity': np.random.randint(1, 10, size=n)})
    df.head(2)

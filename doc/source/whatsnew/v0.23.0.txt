@@ -3,7 +3,7 @@
 v0.23.0
 -------
 
-This is a major release from 0.21.1 and includes a number of API changes,
+This is a major release from 0.22.0 and includes a number of API changes,
 deprecations, new features, enhancements, and performance improvements along
 with a large number of bug fixes. We recommend that all users upgrade to this
 version.
@@ -13,10 +13,38 @@ version.
 New features
 ~~~~~~~~~~~~
 
--
--
--
+.. _whatsnew_0210.enhancements.limit_area:
 
+``DataFrame.interpolate`` has gained the ``limit_area`` kwarg
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`DataFrame.interpolate` has gained a ``limit_area`` parameter to allow further control of which ``NaN`` s are replaced.
+Use ``limit_area='inside'`` to fill only NaNs surrounded by valid values or use ``limit_area='outside'`` to fill only ``NaN`` s
+outside the existing valid values while preserving those inside.  (:issue:`16284`) See the :ref:`full documentation here <missing_data.interp_limits>`.
+
+
+.. ipython:: python
+
+   ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan, np.nan, 13, np.nan, np.nan])
+   ser
+
+Fill one consecutive inside value in both directions
+
+.. ipython:: python
+
+   ser.interpolate(limit_direction='both', limit_area='inside', limit=1)
+
+Fill all consecutive outside values backward
+
+.. ipython:: python
+
+   ser.interpolate(limit_direction='backward', limit_area='outside')
+
+Fill all consecutive outside values in both directions
+
+.. ipython:: python
+
+   ser.interpolate(limit_direction='both', limit_area='outside')
 
 .. _whatsnew_0210.enhancements.get_dummies_dtype:
 
@@ -89,6 +117,20 @@ resetting indexes. See the :ref:`Sorting by Indexes and Values
    # Sort by 'second' (index) and 'A' (column)
    df_multi.sort_values(by=['second', 'A'])
 
+.. _whatsnew_0230.enhancements.timedelta_mod:
+
+Timedelta mod method
+^^^^^^^^^^^^^^^^^^^^
+
+``mod`` (%) and ``divmod`` operations are now defined on ``Timedelta`` objects
+when operating with either timedelta-like or with numeric arguments.
+See the :ref:`documentation here <timedeltas.mod_divmod>`. (:issue:`19365`)
+
+.. ipython:: python
+
+    td = pd.Timedelta(hours=37)
+    td % pd.Timedelta(minutes=45)
+
 .. _whatsnew_0230.enhancements.ran_inf:
 
 ``.rank()`` handles ``inf`` values when ``NaN`` are present
@@ -114,7 +156,7 @@ Previous Behavior:
     4    NaN
     dtype: float64
 
-Current Behavior
+Current Behavior:
 
 .. ipython:: python
 
@@ -139,7 +181,7 @@ Previous Behavior:
     3    2.5
     dtype: float64
 
-Current Behavior
+Current Behavior:
 
 .. ipython:: python
 
@@ -169,18 +211,100 @@ A ``DataFrame`` can now be written to and subsequently read back via JSON while 
 Please note that the string `index` is not supported with the round trip format, as it is used by default in ``write_json`` to indicate a missing index name.
 
 .. ipython:: python
+   :okwarning:
 
    df.index.name = 'index'
+
    df.to_json('test.json', orient='table')
    new_df = pd.read_json('test.json', orient='table')
    new_df
-   print(new_df.index.name)
+   new_df.dtypes
+
+.. ipython:: python
+   :suppress:
+
+   import os
+   os.remove('test.json')
+
+
+.. _whatsnew_0230.enhancements.assign_dependent:
+
+
+``.assign()`` accepts dependent arguments
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The :func:`DataFrame.assign` now accepts dependent keyword arguments for python version later than 3.6 (see also `PEP 468
+<https://www.python.org/dev/peps/pep-0468/>`_). Later keyword arguments may now refer to earlier ones if the argument is a callable. See the
+:ref:`documentation here <dsintro.chained_assignment>` (:issue:`14207`)
+
+.. ipython:: python
+
+    df = pd.DataFrame({'A': [1, 2, 3]})
+    df
+    df.assign(B=df.A, C=lambda x:x['A']+ x['B'])
+
+.. warning::
+
+  This may subtly change the behavior of your code when you're
+  using ``.assign()`` to update an existing column. Previously, callables
+  referring to other variables being updated would get the "old" values
+
+  Previous Behavior:
+
+  .. code-block:: ipython
+
+      In [2]: df = pd.DataFrame({"A": [1, 2, 3]})
+
+      In [3]: df.assign(A=lambda df: df.A + 1, C=lambda df: df.A * -1)
+      Out[3]:
+         A  C
+      0  2 -1
+      1  3 -2
+      2  4 -3
+
+  New Behavior:
+
+  .. ipython:: python
+
+      df.assign(A=df.A+1, C= lambda df: df.A* -1)
+
+
+.. _whatsnew_0230.enhancements.astype_category:
+
+``DataFrame.astype`` performs column-wise conversion to ``Categorical``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`DataFrame.astype` can now perform column-wise conversion to ``Categorical`` by supplying the string ``'category'`` or
+a :class:`~pandas.api.types.CategoricalDtype`. Previously, attempting this would raise a ``NotImplementedError``. See the
+:ref:`categorical.objectcreation` section of the documentation for more details and examples. (:issue:`12860`, :issue:`18099`)
+
+Supplying the string ``'category'`` performs column-wise conversion, with only labels appearing in a given column set as categories:
+
+.. ipython:: python
+
+    df = pd.DataFrame({'A': list('abca'), 'B': list('bccd')})
+    df = df.astype('category')
+    df['A'].dtype
+    df['B'].dtype
+
+
+Supplying a ``CategoricalDtype`` will make the categories in each column consistent with the supplied dtype:
+
+.. ipython:: python
+
+    from pandas.api.types import CategoricalDtype
+    df = pd.DataFrame({'A': list('abca'), 'B': list('bccd')})
+    cdt = CategoricalDtype(categories=list('abcd'), ordered=True)
+    df = df.astype(cdt)
+    df['A'].dtype
+    df['B'].dtype
 
 .. _whatsnew_0230.enhancements.other:
 
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
+- Unary ``+`` now permitted for ``Series`` and ``DataFrame`` as  numeric operator (:issue:`16073`)
 - Better support for :func:`Dataframe.style.to_excel` output with the ``xlsxwriter`` engine. (:issue:`16149`)
 - :func:`pandas.tseries.frequencies.to_offset` now accepts leading '+' signs e.g. '+1h'. (:issue:`18171`)
 - :func:`MultiIndex.unique` now supports the ``level=`` argument, to get unique values from a specific index level (:issue:`17896`)
@@ -207,8 +331,19 @@ Other Enhancements
   :func:`pandas.api.extensions.register_index_accessor`, accessor for libraries downstream of pandas
   to register custom accessors like ``.cat`` on pandas objects. See
   :ref:`Registering Custom Accessors <developer.register-accessors>` for more (:issue:`14781`).
+
 - ``IntervalIndex.astype`` now supports conversions between subtypes when passed an ``IntervalDtype`` (:issue:`19197`)
 - :class:`IntervalIndex` and its associated constructor methods (``from_arrays``, ``from_breaks``, ``from_tuples``) have gained a ``dtype`` parameter (:issue:`19262`)
+- Added :func:`SeriesGroupBy.is_monotonic_increasing` and :func:`SeriesGroupBy.is_monotonic_decreasing` (:issue:`17015`)
+- For subclassed ``DataFrames``, :func:`DataFrame.apply` will now preserve the ``Series`` subclass (if defined) when passing the data to the applied function (:issue:`19822`)
+- :func:`DataFrame.from_dict` now accepts a ``columns`` argument that can be used to specify the column names when ``orient='index'`` is used (:issue:`18529`)
+- Added option ``display.html.use_mathjax`` so `MathJax <https://www.mathjax.org/>`_ can be disabled when rendering tables in ``Jupyter`` notebooks (:issue:`19856`, :issue:`19824`)
+- :func:`DataFrame.replace` now supports the ``method`` parameter, which can be used to specify the replacement method when ``to_replace`` is a scalar, list or tuple and ``value`` is ``None`` (:issue:`19632`)
+- :meth:`Timestamp.month_name`, :meth:`DatetimeIndex.month_name`, and :meth:`Series.dt.month_name` are now available (:issue:`12805`)
+- :meth:`Timestamp.day_name` and :meth:`DatetimeIndex.day_name` are now available to return day names with a specified locale (:issue:`12806`)
+- :meth:`DataFrame.to_sql` now performs a multivalue insert if the underlying connection supports itk rather than inserting row by row.
+  ``SQLAlchemy`` dialects supporting multivalue inserts include: ``mysql``, ``postgresql``, ``sqlite`` and any dialect with ``supports_multivalues_insert``. (:issue:`14315`, :issue:`8953`)
+- :func:`read_html` now accepts a ``displayed_only`` keyword argument to controls whether or not hidden elements are parsed (``True`` by default) (:issue:`20027`)
 
 .. _whatsnew_0230.api_breaking:
 
@@ -223,13 +358,66 @@ Dependencies have increased minimum versions
 We have updated our minimum supported versions of dependencies (:issue:`15184`).
 If installed, we now require:
 
-   +-----------------+-----------------+----------+
-   | Package         | Minimum Version | Required |
-   +=================+=================+==========+
-   | python-dateutil | 2.5.0           |    X     |
-   +-----------------+-----------------+----------+
-   | openpyxl        | 2.4.0           |          |
-   +-----------------+-----------------+----------+
++-----------------+-----------------+----------+---------------+
+| Package         | Minimum Version | Required |     Issue     |
++=================+=================+==========+===============+
+| python-dateutil | 2.5.0           |    X     | :issue:`15184`|
++-----------------+-----------------+----------+---------------+
+| openpyxl        | 2.4.0           |          | :issue:`15184`|
++-----------------+-----------------+----------+---------------+
+| beautifulsoup4  | 4.2.1           |          | :issue:`20082`|
++-----------------+-----------------+----------+---------------+
+
+.. _whatsnew_0230.api_breaking.dict_insertion_order:
+
+Instantation from dicts preserves dict insertion order for python 3.6+
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Until Python 3.6, dicts in Python had no formally defined ordering. For Python
+version 3.6 and later, dicts are ordered by insertion order, see
+`PEP 468 <https://www.python.org/dev/peps/pep-0468/>`_.
+Pandas will use the dict's insertion order, when creating a ``Series`` or
+``DataFrame`` from a dict and you're using Python version 3.6 or
+higher. (:issue:`19884`)
+
+Previous Behavior (and current behavior if on Python < 3.6):
+
+.. code-block:: ipython
+
+   In [1]: pd.Series({'Income': 2000,
+   ...                'Expenses': -1500,
+   ...                'Taxes': -200,
+   ...                'Net result': 300})
+   Expenses     -1500
+   Income        2000
+   Net result     300
+   Taxes         -200
+   dtype: int64
+
+Note the Series above is ordered alphabetically by the index values.
+
+New Behavior (for Python >= 3.6):
+
+.. ipython:: python
+
+    pd.Series({'Income': 2000,
+               'Expenses': -1500,
+               'Taxes': -200,
+               'Net result': 300})
+
+Notice that the Series is now ordered by insertion order. This new behavior is
+used for all relevant pandas types (``Series``, ``DataFrame``, ``SparseSeries``
+and ``SparseDataFrame``).
+
+If you wish to retain the old behavior while using Python >= 3.6, you can use
+``.sort_index()``:
+
+.. ipython:: python
+
+    pd.Series({'Income': 2000,
+               'Expenses': -1500,
+               'Taxes': -200,
+               'Net result': 300}).sort_index()
 
 .. _whatsnew_0230.api_breaking.deprecate_panel:
 
@@ -260,6 +448,93 @@ Convert to an xarray DataArray
    p.to_xarray()
 
 
+
+.. _whatsnew_0230.api_breaking.core_common:
+
+pandas.core.common removals
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The following error & warning messages are removed from ``pandas.core.common`` (:issue:`13634`, :issue:`19769`):
+
+- ``PerformanceWarning``
+- ``UnsupportedFunctionCall``
+- ``UnsortedIndexError``
+- ``AbstractMethodError``
+
+These are available from import from ``pandas.errors`` (since 0.19.0).
+
+
+.. _whatsnew_0230.api_breaking.apply:
+
+Changes to make output of ``DataFrame.apply`` consistent
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`DataFrame.apply` was inconsistent when applying an arbitrary user-defined-function that returned a list-like with ``axis=1``. Several bugs and inconsistencies
+are resolved. If the applied function returns a Series, then pandas will return a DataFrame; otherwise a Series will be returned, this includes the case
+where a list-like (e.g. ``tuple`` or ``list`` is returned) (:issue:`16353`, :issue:`17437`, :issue:`17970`, :issue:`17348`, :issue:`17892`, :issue:`18573`,
+:issue:`17602`, :issue:`18775`, :issue:`18901`, :issue:`18919`).
+
+.. ipython:: python
+
+    df = pd.DataFrame(np.tile(np.arange(3), 6).reshape(6, -1) + 1, columns=['A', 'B', 'C'])
+    df
+
+Previous Behavior: if the returned shape happened to match the length of original columns, this would return a ``DataFrame``.
+If the return shape did not match, a ``Series`` with lists was returned.
+
+.. code-block:: python
+
+   In [3]: df.apply(lambda x: [1, 2, 3], axis=1)
+   Out[3]:
+      A  B  C
+   0  1  2  3
+   1  1  2  3
+   2  1  2  3
+   3  1  2  3
+   4  1  2  3
+   5  1  2  3
+
+   In [4]: df.apply(lambda x: [1, 2], axis=1)
+   Out[4]:
+   0    [1, 2]
+   1    [1, 2]
+   2    [1, 2]
+   3    [1, 2]
+   4    [1, 2]
+   5    [1, 2]
+   dtype: object
+
+
+New Behavior: When the applied function returns a list-like, this will now *always* return a ``Series``.
+
+.. ipython:: python
+
+    df.apply(lambda x: [1, 2, 3], axis=1)
+    df.apply(lambda x: [1, 2], axis=1)
+
+To have expanded columns, you can use ``result_type='expand'``
+
+.. ipython:: python
+
+    df.apply(lambda x: [1, 2, 3], axis=1, result_type='expand')
+
+To broadcast the result across the original columns (the old behaviour for
+list-likes of the correct length), you can use ``result_type='broadcast'``.
+The shape must match the original columns.
+
+.. ipython:: python
+
+    df.apply(lambda x: [1, 2, 3], axis=1, result_type='broadcast')
+
+Returning a ``Series`` allows one to control the exact return structure and column names:
+
+.. ipython:: python
+
+    df.apply(lambda x: Series([1, 2, 3], index=['D', 'E', 'F']), axis=1)
+
+
+.. _whatsnew_0230.api_breaking.build_changes:
+
 Build Changes
 ^^^^^^^^^^^^^
 
@@ -267,7 +542,144 @@ Build Changes
 - Building from source now explicitly requires ``setuptools`` in ``setup.py`` (:issue:`18113`)
 - Updated conda recipe to be in compliance with conda-build 3.0+ (:issue:`18002`)
 
-.. _whatsnew_0230.api:
+.. _whatsnew_0230.api_breaking.index_division_by_zero:
+
+Index Division By Zero Fills Correctly
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Division operations on ``Index`` and subclasses will now fill division of positive numbers by zero with ``np.inf``, division of negative numbers by zero with ``-np.inf`` and `0 / 0` with ``np.nan``.  This matches existing ``Series`` behavior. (:issue:`19322`, :issue:`19347`)
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [6]: index = pd.Int64Index([-1, 0, 1])
+
+    In [7]: index / 0
+    Out[7]: Int64Index([0, 0, 0], dtype='int64')
+
+    # Previous behavior yielded different results depending on the type of zero in the divisor
+    In [8]: index / 0.0
+    Out[8]: Float64Index([-inf, nan, inf], dtype='float64')
+
+    In [9]: index = pd.UInt64Index([0, 1])
+
+    In [10]: index / np.array([0, 0], dtype=np.uint64)
+    Out[10]: UInt64Index([0, 0], dtype='uint64')
+
+    In [11]: pd.RangeIndex(1, 5) / 0
+    ZeroDivisionError: integer division or modulo by zero
+
+Current Behavior:
+
+.. ipython:: python
+
+    index = pd.Int64Index([-1, 0, 1])
+    # division by zero gives -infinity where negative, +infinity where positive, and NaN for 0 / 0
+    index / 0
+
+    # The result of division by zero should not depend on whether the zero is int or float
+    index / 0.0
+
+    index = pd.UInt64Index([0, 1])
+    index / np.array([0, 0], dtype=np.uint64)
+
+    pd.RangeIndex(1, 5) / 0
+
+.. _whatsnew_0230.api_breaking.extract:
+
+Extraction of matching patterns from strings
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+By default, extracting matching patterns from strings with :func:`str.extract` used to return a
+``Series`` if a single group was being extracted (a ``DataFrame`` if more than one group was
+extracted``). As of Pandas 0.23.0 :func:`str.extract` always returns a ``DataFrame``, unless
+``expand`` is set to ``False``. Finallay, ``None`` was an accepted value for
+the ``expand`` parameter (which was equivalent to ``False``), but now raises a ``ValueError``. (:issue:`11386`)
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [1]: s = pd.Series(['number 10', '12 eggs'])
+
+    In [2]: extracted = s.str.extract('.*(\d\d).*')
+
+    In [3]: extracted
+    Out [3]:
+    0    10
+    1    12
+    dtype: object
+
+    In [4]: type(extracted)
+    Out [4]:
+    pandas.core.series.Series
+
+New Behavior:
+
+.. ipython:: python
+
+    s = pd.Series(['number 10', '12 eggs'])
+    extracted = s.str.extract('.*(\d\d).*')
+    extracted
+    type(extracted)
+
+To restore previous behavior, simply set ``expand`` to ``False``:
+
+.. ipython:: python
+
+    s = pd.Series(['number 10', '12 eggs'])
+    extracted = s.str.extract('.*(\d\d).*', expand=False)
+    extracted
+    type(extracted)
+
+.. _whatsnew_0230.api_breaking.cdt_ordered:
+
+Default value for the ``ordered`` parameter of ``CategoricalDtype``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The default value of the ``ordered`` parameter for :class:`~pandas.api.types.CategoricalDtype` has changed from ``False`` to ``None`` to allow updating of ``categories`` without impacting ``ordered``.  Behavior should remain consistent for downstream objects, such as :class:`Categorical` (:issue:`18790`)
+
+In previous versions, the default value for the ``ordered`` parameter was ``False``.  This could potentially lead to the ``ordered`` parameter unintentionally being changed from ``True`` to ``False`` when users attempt to update ``categories`` if ``ordered`` is not explicitly specified, as it would silently default to ``False``.  The new behavior for ``ordered=None`` is to retain the existing value of ``ordered``.
+
+New Behavior:
+
+.. ipython:: python
+
+    from pandas.api.types import CategoricalDtype
+    cat = pd.Categorical(list('abcaba'), ordered=True, categories=list('cba'))
+    cat
+    cdt = CategoricalDtype(categories=list('cbad'))
+    cat.astype(cdt)
+
+Notice in the example above that the converted ``Categorical`` has retained ``ordered=True``.  Had the default value for ``ordered`` remained as ``False``, the converted ``Categorical`` would have become unordered, despite ``ordered=False`` never being explicitly specified.  To change the value of ``ordered``, explicitly pass it to the new dtype, e.g. ``CategoricalDtype(categories=list('cbad'), ordered=False)``.
+
+Note that the unintenional conversion of ``ordered`` discussed above did not arise in previous versions due to separate bugs that prevented ``astype`` from doing any type of category to category conversion (:issue:`10696`, :issue:`18593`).  These bugs have been fixed in this release, and motivated changing the default value of ``ordered``.
+
+.. _whatsnew_0230.api.datetimelike:
+
+Datetimelike API Changes
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+- The default ``Timedelta`` constructor now accepts an ``ISO 8601 Duration`` string as an argument (:issue:`19040`)
+- Addition or subtraction of ``NaT`` from :class:`TimedeltaIndex` will return ``TimedeltaIndex`` instead of ``DatetimeIndex`` (:issue:`19124`)
+- :func:`DatetimeIndex.shift` and :func:`TimedeltaIndex.shift` will now raise ``NullFrequencyError`` (which subclasses ``ValueError``, which was raised in older versions) when the index object frequency is ``None`` (:issue:`19147`)
+- Addition and subtraction of ``NaN`` from a :class:`Series` with ``dtype='timedelta64[ns]'`` will raise a ``TypeError` instead of treating the ``NaN`` as ``NaT`` (:issue:`19274`)
+- ``NaT`` division with :class:`datetime.timedelta` will now return ``NaN`` instead of raising (:issue:`17876`)
+- :class:`Timestamp` will no longer silently ignore unused or invalid ``tz`` or ``tzinfo`` keyword arguments (:issue:`17690`)
+- :class:`Timestamp` will no longer silently ignore invalid ``freq`` arguments (:issue:`5168`)
+- :class:`CacheableOffset` and :class:`WeekDay` are no longer available in the ``pandas.tseries.offsets`` module (:issue:`17830`)
+- ``pandas.tseries.frequencies.get_freq_group()`` and ``pandas.tseries.frequencies.DAYS`` are removed from the public API (:issue:`18034`)
+- :func:`Series.truncate` and :func:`DataFrame.truncate` will raise a ``ValueError`` if the index is not sorted instead of an unhelpful ``KeyError`` (:issue:`17935`)
+- Restricted ``DateOffset`` keyword arguments. Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior. Now, only valid arguments will be accepted. (:issue:`17176`, :issue:`18226`).
+- Subtracting ``NaT`` from a :class:`Series` with ``dtype='datetime64[ns]'`` returns a ``Series`` with ``dtype='timedelta64[ns]'`` instead of ``dtype='datetime64[ns]'`` (:issue:`18808`)
+- Operations between a :class:`Series` with dtype ``dtype='datetime64[ns]'`` and a :class:`PeriodIndex` will correctly raises ``TypeError`` (:issue:`18850`)
+- Subtraction of :class:`Series` with timezone-aware ``dtype='datetime64[ns]'`` with mis-matched timezones will raise ``TypeError`` instead of ``ValueError`` (:issue:`18817`)
+- :func:`pandas.merge` provides a more informative error message when trying to merge on timezone-aware and timezone-naive columns (:issue:`15800`)
+- For :class:`DatetimeIndex` and :class:`TimedeltaIndex` with ``freq=None``, addition or subtraction of integer-dtyped array or ``Index`` will raise ``NullFrequencyError`` instead of ``TypeError`` (:issue:`19895`)
+- :class:`Timestamp` constructor now accepts a `nanosecond` keyword or positional argument (:issue:`18898`)
+
+.. _whatsnew_0230.api.other:
 
 Other API Changes
 ^^^^^^^^^^^^^^^^^
@@ -275,43 +687,34 @@ Other API Changes
 - :func:`Series.astype` and :func:`Index.astype` with an incompatible dtype will now raise a ``TypeError`` rather than a ``ValueError`` (:issue:`18231`)
 - ``Series`` construction with an ``object`` dtyped tz-aware datetime and ``dtype=object`` specified, will now return an ``object`` dtyped ``Series``, previously this would infer the datetime dtype (:issue:`18231`)
 - A :class:`Series` of ``dtype=category`` constructed from an empty ``dict`` will now have categories of ``dtype=object`` rather than ``dtype=float64``, consistently with the case in which an empty list is passed (:issue:`18515`)
-- ``NaT`` division with :class:`datetime.timedelta` will now return ``NaN`` instead of raising (:issue:`17876`)
 - All-NaN levels in a ``MultiIndex`` are now assigned ``float`` rather than ``object`` dtype, promoting consistency with ``Index`` (:issue:`17929`).
 - Levels names of a ``MultiIndex`` (when not None) are now required to be unique: trying to create a ``MultiIndex`` with repeated names will raise a ``ValueError`` (:issue:`18872`)
-- :class:`Timestamp` will no longer silently ignore unused or invalid ``tz`` or ``tzinfo`` keyword arguments (:issue:`17690`)
-- :class:`Timestamp` will no longer silently ignore invalid ``freq`` arguments (:issue:`5168`)
-- :class:`CacheableOffset` and :class:`WeekDay` are no longer available in the ``pandas.tseries.offsets`` module (:issue:`17830`)
-- ``pandas.tseries.frequencies.get_freq_group()`` and ``pandas.tseries.frequencies.DAYS`` are removed from the public API (:issue:`18034`)
-- :func:`Series.truncate` and :func:`DataFrame.truncate` will raise a ``ValueError`` if the index is not sorted instead of an unhelpful ``KeyError`` (:issue:`17935`)
 - :func:`Index.map` can now accept ``Series`` and dictionary input objects (:issue:`12756`, :issue:`18482`, :issue:`18509`).
-- :func:`Dataframe.unstack` will now default to filling with ``np.nan`` for ``object`` columns. (:issue:`12815`)
+- :func:`DataFrame.unstack` will now default to filling with ``np.nan`` for ``object`` columns. (:issue:`12815`)
 - :class:`IntervalIndex` constructor will raise if the ``closed`` parameter conflicts with how the input data is inferred to be closed (:issue:`18421`)
 - Inserting missing values into indexes will work for all types of indexes and automatically insert the correct type of missing value (``NaN``, ``NaT``, etc.) regardless of the type passed in (:issue:`18295`)
-- Restricted ``DateOffset`` keyword arguments. Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior. Now, only valid arguments will be accepted. (:issue:`17176`, :issue:`18226`).
-- :func:`DataFrame.from_items` provides a more informative error message when passed scalar values (:issue:`17312`)
 - When created with duplicate labels, ``MultiIndex`` now raises a ``ValueError``. (:issue:`17464`)
 - :func:`Series.fillna` now raises a ``TypeError`` instead of a ``ValueError`` when passed a list, tuple or DataFrame as a ``value`` (:issue:`18293`)
 - :func:`pandas.DataFrame.merge` no longer casts a ``float`` column to ``object`` when merging on ``int`` and ``float`` columns (:issue:`16572`)
+- :func:`pandas.merge` now raises a ``ValueError`` when trying to merge on incompatible data types (:issue:`9780`)
 - The default NA value for :class:`UInt64Index` has changed from 0 to ``NaN``, which impacts methods that mask with NA, such as ``UInt64Index.where()`` (:issue:`18398`)
 - Refactored ``setup.py`` to use ``find_packages`` instead of explicitly listing out all subpackages (:issue:`18535`)
 - Rearranged the order of keyword arguments in :func:`read_excel()` to align with :func:`read_csv()` (:issue:`16672`)
-- :func:`pandas.merge` now raises a ``ValueError`` when trying to merge on incompatible data types (:issue:`9780`)
 - :func:`wide_to_long` previously kept numeric-like suffixes as ``object`` dtype. Now they are cast to numeric if possible (:issue:`17627`)
 - In :func:`read_excel`, the ``comment`` argument is now exposed as a named parameter (:issue:`18735`)
 - Rearranged the order of keyword arguments in :func:`read_excel()` to align with :func:`read_csv()` (:issue:`16672`)
 - The options ``html.border`` and ``mode.use_inf_as_null`` were deprecated in prior versions, these will now show ``FutureWarning`` rather than a ``DeprecationWarning`` (:issue:`19003`)
-- Subtracting ``NaT`` from a :class:`Series` with ``dtype='datetime64[ns]'`` returns a ``Series`` with ``dtype='timedelta64[ns]'`` instead of ``dtype='datetime64[ns]'``(:issue:`18808`)
-- Operations between a :class:`Series` with dtype ``dtype='datetime64[ns]'`` and a :class:`PeriodIndex` will correctly raises ``TypeError`` (:issue:`18850`)
-- Subtraction of :class:`Series` with timezone-aware ``dtype='datetime64[ns]'`` with mis-matched timezones will raise ``TypeError`` instead of ``ValueError`` (issue:`18817`)
 - :class:`IntervalIndex` and ``IntervalDtype`` no longer support categorical, object, and string subtypes (:issue:`19016`)
-- The default ``Timedelta`` constructor now accepts an ``ISO 8601 Duration`` string as an argument (:issue:`19040`)
 - ``IntervalDtype`` now returns ``True`` when compared against ``'interval'`` regardless of subtype, and ``IntervalDtype.name`` now returns ``'interval'`` regardless of subtype (:issue:`18980`)
 - ``KeyError`` now raises instead of ``ValueError`` in :meth:`~DataFrame.drop`, :meth:`~Panel.drop`, :meth:`~Series.drop`, :meth:`~Index.drop` when dropping a non-existent element in an axis with duplicates (:issue:`19186`)
 - :func:`Series.to_csv` now accepts a ``compression`` argument that works in the same way as the ``compression`` argument in :func:`DataFrame.to_csv` (:issue:`18958`)
-- Addition or subtraction of ``NaT`` from :class:`TimedeltaIndex` will return ``TimedeltaIndex`` instead of ``DatetimeIndex`` (:issue:`19124`)
-- :func:`DatetimeIndex.shift` and :func:`TimedeltaIndex.shift` will now raise ``NullFrequencyError`` (which subclasses ``ValueError``, which was raised in older versions) when the index object frequency is ``None`` (:issue:`19147`)
-- Addition and subtraction of ``NaN`` from a :class:`Series` with ``dtype='timedelta64[ns]'`` will raise a ``TypeError` instead of treating the ``NaN`` as ``NaT`` (:issue:`19274`)
 - Set operations (union, difference...) on :class:`IntervalIndex` with incompatible index types will now raise a ``TypeError`` rather than a ``ValueError`` (:issue:`19329`)
+- :class:`DateOffset` objects render more simply, e.g. ``<DateOffset: days=1>`` instead of ``<DateOffset: kwds={'days': 1}>`` (:issue:`19403`)
+- ``Categorical.fillna`` now validates its ``value`` and ``method`` keyword arguments. It now raises when both or none are specified, matching the behavior of :meth:`Series.fillna` (:issue:`19682`)
+- ``pd.to_datetime('today')`` now returns a datetime, consistent with ``pd.Timestamp('today')``; previously ``pd.to_datetime('today')`` returned a ``.normalized()`` datetime (:issue:`19935`)
+- :func:`Series.str.replace` now takes an optional `regex` keyword which, when set to ``False``, uses literal string replacement rather than regex replacement (:issue:`16808`)
+- :func:`DatetimeIndex.strftime` and :func:`PeriodIndex.strftime` now return an ``Index`` instead of a numpy array to be consistent with similar accessors (:issue:`20127`)
+- Constructing a Series from a list of length 1 no longer broadcasts this list when a longer index is specified (:issue:`19714`, :issue:`20391`).
 
 .. _whatsnew_0230.deprecations:
 
@@ -329,7 +732,15 @@ Deprecations
 - :func:`read_excel` has deprecated the ``skip_footer`` parameter. Use ``skipfooter`` instead (:issue:`18836`)
 - The ``is_copy`` attribute is deprecated and will be removed in a future version (:issue:`18801`).
 - ``IntervalIndex.from_intervals`` is deprecated in favor of the :class:`IntervalIndex` constructor (:issue:`19263`)
+- ``DataFrame.from_items`` is deprecated. Use :func:`DataFrame.from_dict` instead, or ``DataFrame.from_dict(OrderedDict())`` if you wish to preserve the key order (:issue:`17320`, :issue:`17312`)
 
+- The ``broadcast`` parameter of ``.apply()`` is deprecated in favor of ``result_type='broadcast'`` (:issue:`18577`)
+- The ``reduce`` parameter of ``.apply()`` is deprecated in favor of ``result_type='reduce'`` (:issue:`18577`)
+- The ``order`` parameter of :func:`factorize` is deprecated and will be removed in a future release (:issue:`19727`)
+- :attr:`Timestamp.weekday_name`, :attr:`DatetimeIndex.weekday_name`, and :attr:`Series.dt.weekday_name` are deprecated in favor of :meth:`Timestamp.day_name`, :meth:`DatetimeIndex.day_name`, and :meth:`Series.dt.day_name` (:issue:`12806`)
+
+- ``pandas.tseries.plotting.tsplot`` is deprecated. Use :func:`Series.plot` instead (:issue:`18627`)
+- ``Index.summary()`` is deprecated and will be removed in a future version (:issue:`18217`)
 
 .. _whatsnew_0230.prior_deprecations:
 
@@ -345,7 +756,7 @@ Removal of prior version deprecations/changes
 - The ``pandas.io.wb`` and ``pandas.io.data`` stub modules have been removed (:issue:`13735`)
 - ``Categorical.from_array`` has been removed (:issue:`13854`)
 - The ``freq`` and ``how`` parameters have been removed from the ``rolling``/``expanding``/``ewm`` methods of DataFrame
-  and Series (deprecated since v0.18). Instead, resample before calling the methods. (:issue:18601 & :issue:18668)
+  and Series (deprecated since v0.18). Instead, resample before calling the methods. (:issue:`18601` & :issue:`18668`)
 - ``DatetimeIndex.to_datetime``, ``Timestamp.to_datetime``, ``PeriodIndex.to_datetime``, and ``Index.to_datetime`` have been removed (:issue:`8254`, :issue:`14096`, :issue:`14113`)
 - :func:`read_csv` has dropped the ``skip_footer`` parameter (:issue:`13386`)
 - :func:`read_csv` has dropped the ``as_recarray`` parameter (:issue:`13373`)
@@ -356,11 +767,14 @@ Removal of prior version deprecations/changes
 - ``pandas.tseries.frequencies.get_standard_freq`` has been removed in favor of ``pandas.tseries.frequencies.to_offset(freq).rule_code`` (:issue:`13874`)
 - The ``freqstr`` keyword has been removed from ``pandas.tseries.frequencies.to_offset`` in favor of ``freq`` (:issue:`13874`)
 - The ``Panel4D`` and ``PanelND`` classes have been removed (:issue:`13776`)
-- The ``Panel``class has dropped the ``to_long``and ``toLong`` methods (:issue:`19077`)
+- The ``Panel`` class has dropped the ``to_long`` and ``toLong`` methods (:issue:`19077`)
 - The options ``display.line_with`` and ``display.height`` are removed in favor of ``display.width`` and ``display.max_rows`` respectively (:issue:`4391`, :issue:`19107`)
-- The ``labels`` attribute of the ``Categorical`` class has been removed in favor of :attribute:`Categorical.codes` (:issue:`7768`)
+- The ``labels`` attribute of the ``Categorical`` class has been removed in favor of :attr:`Categorical.codes` (:issue:`7768`)
 - The ``flavor`` parameter have been removed from func:`to_sql` method (:issue:`13611`)
-- The modules `pandas.tools.hashing` and `pandas.util.hashing` have been removed (:issue:`16223`)
+- The modules ``pandas.tools.hashing`` and ``pandas.util.hashing`` have been removed (:issue:`16223`)
+- The top-level functions ``pd.rolling_*``, ``pd.expanding_*`` and ``pd.ewm*`` have been removed (Deprecated since v0.18).
+  Instead, use the DataFrame/Series methods :attr:`~DataFrame.rolling`, :attr:`~DataFrame.expanding` and :attr:`~DataFrame.ewm` (:issue:`18723`)
+- Imports from ``pandas.core.common`` for functions such as ``is_datetime64_dtype`` are now removed. These are located in ``pandas.api.types``. (:issue:`13634`, :issue:`19769`)
 
 .. _whatsnew_0230.performance:
 
@@ -369,7 +783,7 @@ Performance Improvements
 
 - Indexers on ``Series`` or ``DataFrame`` no longer create a reference cycle (:issue:`17956`)
 - Added a keyword argument, ``cache``, to :func:`to_datetime` that improved the performance of converting duplicate datetime arguments (:issue:`11665`)
-- :class`DateOffset` arithmetic performance is improved (:issue:`18218`)
+- :class:`DateOffset` arithmetic performance is improved (:issue:`18218`)
 - Converting a ``Series`` of ``Timedelta`` objects to days, seconds, etc... sped up through vectorization of underlying methods (:issue:`18092`)
 - Improved performance of ``.map()`` with a ``Series/dict`` input (:issue:`15081`)
 - The overridden ``Timedelta`` properties of days, seconds and microseconds have been removed, leveraging their built-in Python versions instead (:issue:`18242`)
@@ -380,7 +794,13 @@ Performance Improvements
 - Improved performance of ``DatetimeIndex`` and ``Series`` arithmetic operations with Business-Month and Business-Quarter frequencies (:issue:`18489`)
 - :func:`Series` / :func:`DataFrame` tab completion limits to 100 values, for better performance. (:issue:`18587`)
 - Improved performance of :func:`DataFrame.median` with ``axis=1`` when bottleneck is not installed (:issue:`16468`)
-
+- Improved performance of :func:`MultiIndex.get_loc` for large indexes, at the cost of a reduction in performance for small ones (:issue:`18519`)
+- Improved performance of pairwise ``.rolling()`` and ``.expanding()`` with ``.cov()`` and ``.corr()`` operations (:issue:`17917`)
+- Improved performance of :func:`pandas.core.groupby.GroupBy.rank` (:issue:`15779`)
+- Improved performance of variable ``.rolling()`` on ``.min()`` and ``.max()`` (:issue:`19521`)
+- Improved performance of :func:`pandas.core.groupby.GroupBy.ffill` and :func:`pandas.core.groupby.GroupBy.bfill` (:issue:`11296`)
+- Improved performance of :func:`pandas.core.groupby.GroupBy.any` and :func:`pandas.core.groupby.GroupBy.all` (:issue:`15435`)
+- Improved performance of :func:`pandas.core.groupby.GroupBy.pct_change` (:issue:`19165`)
 
 .. _whatsnew_0230.docs:
 
@@ -392,33 +812,84 @@ Documentation Changes
   Rewrote some sentences for greater clarity, added more dynamic references
   to functions, methods and classes.
   (:issue:`18941`, :issue:`18948`, :issue:`18973`, :issue:`19017`)
--
+- Added a reference to :func:`DataFrame.assign` in the concatenate section of the merging documentation (:issue:`18665`)
 
 .. _whatsnew_0230.bug_fixes:
 
 Bug Fixes
 ~~~~~~~~~
 
+Categorical
+^^^^^^^^^^^
+
+.. warning::
+
+   A class of bugs were introduced in pandas 0.21 with ``CategoricalDtype`` that
+   affects the correctness of operations like ``merge``, ``concat``, and
+   indexing when comparing multiple unordered ``Categorical`` arrays that have
+   the same categories, but in a different order. We highly recommend upgrading
+   or manually aligning your categories before doing these operations.
+
+- Bug in ``Categorical.equals`` returning the wrong result when comparing two
+  unordered ``Categorical`` arrays with the same categories, but in a different
+  order (:issue:`16603`)
+- Bug in :func:`pandas.api.types.union_categoricals` returning the wrong result
+  when for unordered categoricals with the categories in a different order.
+  This affected :func:`pandas.concat` with Categorical data (:issue:`19096`).
+- Bug in :func:`pandas.merge` returning the wrong result when joining on an
+  unordered ``Categorical`` that had the same categories but in a different
+  order (:issue:`19551`)
+- Bug in :meth:`CategoricalIndex.get_indexer` returning the wrong result when
+  ``target`` was an unordered ``Categorical`` that had the same categories as
+  ``self`` but in a different order (:issue:`19551`)
+- Bug in :meth:`Index.astype` with a categorical dtype where the resultant index is not converted to a :class:`CategoricalIndex` for all types of index (:issue:`18630`)
+- Bug in :meth:`Series.astype` and ``Categorical.astype()`` where an existing categorical data does not get updated (:issue:`10696`, :issue:`18593`)
+- Bug in :meth:`Series.str.split` with ``expand=True`` incorrectly raising an IndexError on empty strings (:issue:`20002`).
+- Bug in :class:`Index` constructor with ``dtype=CategoricalDtype(...)`` where ``categories`` and ``ordered`` are not maintained (issue:`19032`)
+- Bug in :class:`Series` constructor with scalar and ``dtype=CategoricalDtype(...)`` where ``categories`` and ``ordered`` are not maintained (issue:`19565`)
+- Bug in ``Categorical.__iter__`` not converting to Python types (:issue:`19909`)
+- Bug in :func:`pandas.factorize` returning the unique codes for the ``uniques``. This now returns a ``Categorical`` with the same dtype as the input (:issue:`19721`)
+- Bug in :func:`pandas.factorize` including an item for missing values in the ``uniques`` return value (:issue:`19721`)
 
 Datetimelike
 ^^^^^^^^^^^^
 
 - Bug in :func:`Series.__sub__` subtracting a non-nanosecond ``np.datetime64`` object from a ``Series`` gave incorrect results (:issue:`7996`)
 - Bug in :class:`DatetimeIndex`, :class:`TimedeltaIndex` addition and subtraction of zero-dimensional integer arrays gave incorrect results (:issue:`19012`)
+- Bug in :class:`DatetimeIndex` and :class:`TimedeltaIndex` where adding or subtracting an array-like of ``DateOffset`` objects either raised (``np.array``, ``pd.Index``) or broadcast incorrectly (``pd.Series``) (:issue:`18849`)
 - Bug in :func:`Series.__add__` adding Series with dtype ``timedelta64[ns]`` to a timezone-aware ``DatetimeIndex`` incorrectly dropped timezone information (:issue:`13905`)
-- Bug in :func:`Timedelta.__floordiv__` and :func:`Timedelta.__rfloordiv__` dividing by many incompatible numpy objects was incorrectly allowed (:issue:`18846`)
 - Adding a ``Period`` object to a ``datetime`` or ``Timestamp`` object will now correctly raise a ``TypeError`` (:issue:`17983`)
 - Bug in :class:`Timestamp` where comparison with an array of ``Timestamp`` objects would result in a ``RecursionError`` (:issue:`15183`)
-- Bug in :class:`DatetimeIndex` and :class:`TimedeltaIndex` where adding or subtracting an array-like of ``DateOffset`` objects either raised (``np.array``, ``pd.Index``) or broadcast incorrectly (``pd.Series``) (:issue:`18849`)
 - Bug in :class:`Series` floor-division where operating on a scalar ``timedelta`` raises an exception (:issue:`18846`)
-- Bug in :class:`Series`` with ``dtype='timedelta64[ns]`` where addition or subtraction of ``TimedeltaIndex`` had results cast to ``dtype='int64'`` (:issue:`17250`)
-- Bug in :class:`TimedeltaIndex` where division by a ``Series`` would return a ``TimedeltaIndex`` instead of a ``Series`` (issue:`19042`)
-- Bug in :class:`Series` with ``dtype='timedelta64[ns]`` where addition or subtraction of ``TimedeltaIndex`` could return a ``Series`` with an incorrect name (issue:`19043`)
 - Bug in :class:`DatetimeIndex` where the repr was not showing high-precision time values at the end of a day (e.g., 23:59:59.999999999) (:issue:`19030`)
-- Bug where dividing a scalar timedelta-like object with :class:`TimedeltaIndex` performed the reciprocal operation (:issue:`19125`)
 - Bug in ``.astype()`` to non-ns timedelta units would hold the incorrect dtype (:issue:`19176`, :issue:`19223`, :issue:`12425`)
 - Bug in subtracting :class:`Series` from ``NaT`` incorrectly returning ``NaT`` (:issue:`19158`)
 - Bug in :func:`Series.truncate` which raises ``TypeError`` with a monotonic ``PeriodIndex`` (:issue:`17717`)
+- Bug in :func:`~DataFrame.pct_change` using ``periods`` and ``freq`` returned different length outputs (:issue:`7292`)
+- Bug in comparison of :class:`DatetimeIndex` against ``None`` or ``datetime.date`` objects raising ``TypeError`` for ``==`` and ``!=`` comparisons instead of all-``False`` and all-``True``, respectively (:issue:`19301`)
+- Bug in :class:`Timestamp` and :func:`to_datetime` where a string representing a barely out-of-bounds timestamp would be incorrectly rounded down instead of raising ``OutOfBoundsDatetime`` (:issue:`19382`)
+- Bug in :func:`Timestamp.floor` :func:`DatetimeIndex.floor` where time stamps far in the future and past were not rounded correctly (:issue:`19206`)
+- Bug in :func:`to_datetime` where passing an out-of-bounds datetime with ``errors='coerce'`` and ``utc=True`` would raise ``OutOfBoundsDatetime`` instead of parsing to ``NaT`` (:issue:`19612`)
+- Bug in :class:`DatetimeIndex` and :class:`TimedeltaIndex` addition and subtraction where name of the returned object was not always set consistently. (:issue:`19744`)
+- Bug in :class:`DatetimeIndex` and :class:`TimedeltaIndex` addition and subtraction where operations with numpy arrays raised ``TypeError`` (:issue:`19847`)
+
+Timedelta
+^^^^^^^^^
+
+- Bug in :func:`Timedelta.__mul__` where multiplying by ``NaT`` returned ``NaT`` instead of raising a ``TypeError`` (:issue:`19819`)
+- Bug in :class:`Series` with ``dtype='timedelta64[ns]`` where addition or subtraction of ``TimedeltaIndex`` had results cast to ``dtype='int64'`` (:issue:`17250`)
+- Bug in :class:`Series` with ``dtype='timedelta64[ns]`` where addition or subtraction of ``TimedeltaIndex`` could return a ``Series`` with an incorrect name (:issue:`19043`)
+- Bug in :func:`Timedelta.__floordiv__` and :func:`Timedelta.__rfloordiv__` dividing by many incompatible numpy objects was incorrectly allowed (:issue:`18846`)
+- Bug where dividing a scalar timedelta-like object with :class:`TimedeltaIndex` performed the reciprocal operation (:issue:`19125`)
+- Bug in :class:`TimedeltaIndex` where division by a ``Series`` would return a ``TimedeltaIndex`` instead of a ``Series`` (:issue:`19042`)
+- Bug in :func:`Timedelta.__add__`, :func:`Timedelta.__sub__` where adding or subtracting a ``np.timedelta64`` object would return another ``np.timedelta64`` instead of a ``Timedelta`` (:issue:`19738`)
+- Bug in :func:`Timedelta.__floordiv__`, :func:`Timedelta.__rfloordiv__` where operating with a ``Tick`` object would raise a ``TypeError`` instead of returning a numeric value (:issue:`19738`)
+- Bug in :func:`Period.asfreq` where periods near ``datetime(1, 1, 1)`` could be converted incorrectly (:issue:`19643`, :issue:`19834`)
+- Bug in :func:`Timedelta.total_seconds()` causing precision errors i.e. ``Timedelta('30S').total_seconds()==30.000000000000004`` (:issue:`19458`)
+- Bug in :func: `Timedelta.__rmod__` where operating with a ``numpy.timedelta64`` returned a ``timedelta64`` object instead of a ``Timedelta`` (:issue:`19820`)
+- Multiplication of :class:`TimedeltaIndex` by ``TimedeltaIndex`` will now raise ``TypeError`` instead of raising ``ValueError`` in cases of length mis-match (:issue`19333`)
+- Bug in indexing a :class:`TimedeltaIndex` with a ``np.timedelta64`` object which was raising a ``TypeError`` (:issue:`20393`)
+
 
 Timezones
 ^^^^^^^^^
@@ -431,11 +902,16 @@ Timezones
 - :func:`Timestamp.replace` will now handle Daylight Savings transitions gracefully (:issue:`18319`)
 - Bug in tz-aware :class:`DatetimeIndex` where addition/subtraction with a :class:`TimedeltaIndex` or array with ``dtype='timedelta64[ns]'`` was incorrect (:issue:`17558`)
 - Bug in :func:`DatetimeIndex.insert` where inserting ``NaT`` into a timezone-aware index incorrectly raised (:issue:`16357`)
+- Bug in the :class:`DataFrame` constructor, where tz-aware Datetimeindex and a given column name will result in an empty ``DataFrame`` (:issue:`19157`)
+- Bug in :func:`Timestamp.tz_localize` where localizing a timestamp near the minimum or maximum valid values could overflow and return a timestamp with an incorrect nanosecond value (:issue:`12677`)
+- Bug when iterating over :class:`DatetimeIndex` that was localized with fixed timezone offset that rounded nanosecond precision to microseconds (:issue:`19603`)
+- Bug in :func:`DataFrame.diff` that raised an ``IndexError`` with tz-aware values (:issue:`18578`)
+- Bug in :func:`melt` that converted tz-aware dtypes to tz-naive (:issue:`15785`)
 
 Offsets
 ^^^^^^^
 
-- Bug in :class:`WeekOfMonth` and class:`Week` where addition and subtraction did not roll correctly (:issue:`18510`,:issue:`18672`,:issue:`18864`)
+- Bug in :class:`WeekOfMonth` and :class:`Week` where addition and subtraction did not roll correctly (:issue:`18510`, :issue:`18672`, :issue:`18864`)
 - Bug in :class:`WeekOfMonth` and :class:`LastWeekOfMonth` where default keyword arguments for constructor raised ``ValueError`` (:issue:`19142`)
 - Bug in :class:`FY5253Quarter`, :class:`LastWeekOfMonth` where rollback and rollforward behavior was inconsistent with addition and subtraction behavior (:issue:`18854`)
 - Bug in :class:`FY5253` where ``datetime`` addition and subtraction incremented incorrectly for dates on the year-end but not normalized to midnight (:issue:`18854`)
@@ -444,12 +920,14 @@ Offsets
 
 Numeric
 ^^^^^^^
+- Bug in :meth:`DataFrame.rank` and :meth:`Series.rank` when ``method='dense'`` and ``pct=True`` in which percentile ranks were not being used with the number of distinct observations (:issue:`15630`)
 - Bug in :class:`Series` constructor with an int or float list where specifying ``dtype=str``, ``dtype='str'`` or ``dtype='U'`` failed to convert the data elements to strings (:issue:`16605`)
 - Bug in :class:`Index` multiplication and division methods where operating with a ``Series`` would return an ``Index`` object instead of a ``Series`` object (:issue:`19042`)
 - Bug in the :class:`DataFrame` constructor in which data containing very large positive or very large negative numbers was causing ``OverflowError`` (:issue:`18584`)
 - Bug in :class:`Index` constructor with ``dtype='uint64'`` where int-like floats were not coerced to :class:`UInt64Index` (:issue:`18400`)
-
--
+- Bug in :class:`DataFrame` flex arithmetic (e.g. ``df.add(other, fill_value=foo)``) with a ``fill_value`` other than ``None`` failed to raise ``NotImplementedError`` in corner cases where either the frame or ``other`` has length zero (:issue:`19522`)
+- Multiplication and division of numeric-dtyped :class:`Index` objects with timedelta-like scalars returns ``TimedeltaIndex`` instead of raising ``TypeError`` (:issue:`19333`)
+- Bug where ``NaN`` was returned instead of 0 by :func:`Series.pct_change` and :func:`DataFrame.pct_change` when ``fill_method`` is not ``None`` (provided) (:issue:`19873`)
 
 
 Indexing
@@ -467,6 +945,10 @@ Indexing
 - Bug in :class:`IntervalIndex` where empty and purely NA data was constructed inconsistently depending on the construction method (:issue:`18421`)
 - Bug in :func:`IntervalIndex.symmetric_difference` where the symmetric difference with a non-``IntervalIndex`` did not raise (:issue:`18475`)
 - Bug in :class:`IntervalIndex` where set operations that returned an empty ``IntervalIndex`` had the wrong dtype (:issue:`19101`)
+- Bug in :meth:`DataFrame.drop_duplicates` where no ``KeyError`` is raised when passing in columns that don't exist on the ``DataFrame`` (issue:`19726`)
+- Bug in ``Index`` subclasses constructors that ignore unexpected keyword arguments (:issue:`19348`)
+- Bug in :meth:`Index.difference` when taking difference of an ``Index`` with itself (:issue:`20040`)
+
 
 MultiIndex
 ^^^^^^^^^^
@@ -475,13 +957,19 @@ MultiIndex
 - Bug in :func:`MultiIndex.set_labels` which would cause casting (and potentially clipping) of the new labels if the ``level`` argument is not 0 or a list like [0, 1, ... ]  (:issue:`19057`)
 - Bug in :func:`MultiIndex.get_level_values` which would return an invalid index on level of ints with missing values (:issue:`17924`)
 - Bug in :func:`MultiIndex.remove_unused_levels` which would fill nan values (:issue:`18417`)
-- Bug in :func:`MultiIndex.from_tuples`` which would fail to take zipped tuples in python3 (:issue:`18434`)
--
+- Bug in :func:`MultiIndex.from_tuples` which would fail to take zipped tuples in python3 (:issue:`18434`)
+- Bug in :func:`MultiIndex.get_loc` which would fail to automatically cast values between float and int (:issue:`18818`, :issue:`15994`)
+- Bug in :func:`MultiIndex.get_loc` which would cast boolean to integer labels (:issue:`19086`)
+- Bug in :func:`MultiIndex.get_loc` which would fail to locate keys containing ``NaN`` (:issue:`18485`)
+- Bug in :func:`MultiIndex.get_loc` in large :class:`MultiIndex`, would fail when levels had different dtypes (:issue:`18520`)
+- Bug in indexing where nested indexers having only numpy arrays are handled incorrectly (:issue:`19686`)
+
 
 I/O
 ^^^
 
 - :func:`read_html` now rewinds seekable IO objects after parse failure, before attempting to parse with a new parser. If a parser errors and the object is non-seekable, an informative error is raised suggesting the use of a different parser (:issue:`17975`)
+- :meth:`DataFrame.to_html` now has an option to add an id to the leading `<table>` tag (:issue:`8496`)
 - Bug in :func:`read_msgpack` with a non existent file is passed in Python 2 (:issue:`15296`)
 - Bug in :func:`read_csv` where a ``MultiIndex`` with duplicate columns was not being mangled appropriately (:issue:`18062`)
 - Bug in :func:`read_csv` where missing values were not being handled properly when ``keep_default_na=False`` with dictionary ``na_values`` (:issue:`19227`)
@@ -489,15 +977,19 @@ I/O
 - Bug in :func:`DataFrame.to_latex()` where pairs of braces meant to serve as invisible placeholders were escaped (:issue:`18667`)
 - Bug in :func:`read_json` where large numeric values were causing an ``OverflowError`` (:issue:`18842`)
 - Bug in :func:`DataFrame.to_parquet` where an exception was raised if the write destination is S3 (:issue:`19134`)
--
+- :class:`Interval` now supported in :func:`DataFrame.to_excel` for all Excel file types (:issue:`19242`)
+- :class:`Timedelta` now supported in :func:`DataFrame.to_excel` for all Excel file types (:issue:`19242`, :issue:`9155`, :issue:`19900`)
+- Bug in :meth:`pandas.io.stata.StataReader.value_labels` raising an ``AttributeError`` when called on very old files. Now returns an empty dict (:issue:`19417`)
+- Bug in :func:`read_pickle` when unpickling objects with :class:`TimedeltaIndex` or :class:`Float64Index` created with pandas prior to version 0.20 (:issue:`19939`)
+- Bug in :meth:`pandas.io.json.json_normalize` where subrecords are not properly normalized if any subrecords values are NoneType (:issue:`20030`)
 
 Plotting
 ^^^^^^^^
 
-- :func: `DataFrame.plot` now raises a ``ValueError`` when the ``x`` or ``y`` argument is improperly formed (:issue:`18671`)
+- :func:`DataFrame.plot` now raises a ``ValueError`` when the ``x`` or ``y`` argument is improperly formed (:issue:`18671`)
 - Bug in formatting tick labels with ``datetime.time()`` and fractional seconds (:issue:`18478`).
--
--
+- :meth:`Series.plot.kde` has exposed the args ``ind`` and ``bw_method`` in the docstring (:issue:`18461`). The argument ``ind`` may now also be an integer (number of sample points).
+
 
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -506,15 +998,20 @@ Groupby/Resample/Rolling
 - Fixed regression in :func:`DataFrame.groupby` which would not emit an error when called with a tuple key not in the index (:issue:`18798`)
 - Bug in :func:`DataFrame.resample` which silently ignored unsupported (or mistyped) options for ``label``, ``closed`` and ``convention`` (:issue:`19303`)
 - Bug in :func:`DataFrame.groupby` where tuples were interpreted as lists of keys rather than as keys (:issue:`17979`, :issue:`18249`)
-- Bug in ``transform`` where particular aggregation functions were being incorrectly cast to match the dtype(s) of the grouped data (:issue:`19200`)
--
+- Bug in :func:`DataFrame.groupby` where aggregation by ``first``/``last``/``min``/``max`` was causing timestamps to lose precision (:issue:`19526`)
+- Bug in :func:`DataFrame.transform` where particular aggregation functions were being incorrectly cast to match the dtype(s) of the grouped data (:issue:`19200`)
+- Bug in :func:`DataFrame.groupby` passing the `on=` kwarg, and subsequently using ``.apply()`` (:issue:`17813`)
+- Bug in :func:`DataFrame.resample().aggregate` not raising a ``KeyError`` when aggregating a non-existent column (:issue:`16766`, :issue:`19566`)
+- Fixed a performance regression for ``GroupBy.nth`` and ``GroupBy.last`` with some object columns (:issue:`19283`)
+- Bug in :func:`DataFrameGroupBy.cumsum` and :func:`DataFrameGroupBy.cumprod` when ``skipna`` was passed (:issue:`19806`)
 
 Sparse
 ^^^^^^
 
--
--
--
+- Bug in which creating a ``SparseDataFrame`` from a dense ``Series`` or an unsupported type raised an uncontrolled exception (:issue:`19374`)
+- Bug in :class:`SparseDataFrame.to_csv` causing exception (:issue:`19384`)
+- Bug in :class:`SparseSeries.memory_usage` which caused segfault by accessing non sparse elements (:issue:`19368`)
+- Bug in constructing a ``SparseArray``: if ``data`` is a scalar and ``index`` is defined it will coerce to ``float64`` regardless of scalar's dtype. (:issue:`19163`)
 
 Reshaping
 ^^^^^^^^^
@@ -525,27 +1022,23 @@ Reshaping
 - Fixed construction of a :class:`Series` from a ``dict`` containing ``NaN`` as key (:issue:`18480`)
 - Bug in :func:`Series.rank` where ``Series`` containing ``NaT`` modifies the ``Series`` inplace (:issue:`18521`)
 - Bug in :func:`cut` which fails when using readonly arrays (:issue:`18773`)
-- Bug in :func:`Dataframe.pivot_table` which fails when the ``aggfunc`` arg is of type string.  The behavior is now consistent with other methods like ``agg`` and ``apply`` (:issue:`18713`)
+- Bug in :func:`DataFrame.pivot_table` which fails when the ``aggfunc`` arg is of type string.  The behavior is now consistent with other methods like ``agg`` and ``apply`` (:issue:`18713`)
 - Bug in :func:`DataFrame.merge` in which merging using ``Index`` objects as vectors raised an Exception (:issue:`19038`)
 - Bug in :func:`DataFrame.stack`, :func:`DataFrame.unstack`, :func:`Series.unstack` which were not returning subclasses (:issue:`15563`)
 - Bug in timezone comparisons, manifesting as a conversion of the index to UTC in ``.concat()`` (:issue:`18523`)
--
-
-
-Categorical
-^^^^^^^^^^^
-
--
-- Bug in :func:`pandas.api.types.union_categoricals` returning the wrong result
-  when all the categoricals had the same categories, but in a different order.
-  This affected :func:`pandas.concat` with Categorical data (:issue:`19096`).
-- Bug in ``Categorical.equals`` between two unordered categories with the same categories, but in a different order (:issue:`16603`)
-- Bug in :meth:`Index.astype` with a categorical dtype where the resultant index is not converted to a :class:`CategoricalIndex` for all types of index (:issue:`18630`)
-- Bug in :meth:`Series.astype` and ``Categorical.astype()`` where an existing categorical data does not get updated (:issue:`10696`, :issue:`18593`)
-- Bug in :class:`Index` constructor with ``dtype=CategoricalDtype(...)`` where ``categories`` and ``ordered`` are not maintained (issue:`19032`)
--
+- Bug in :func:`concat` when concatting sparse and dense series it returns only a ``SparseDataFrame``. Should be a ``DataFrame``. (:issue:`18914`, :issue:`18686`, and :issue:`16874`)
+- Improved error message for :func:`DataFrame.merge` when there is no common merge key (:issue:`19427`)
+- Bug in :func:`DataFrame.join` which does an ``outer`` instead of a ``left`` join when being called with multiple DataFrames and some have non-unique indices (:issue:`19624`)
+- :func:`Series.rename` now accepts ``axis`` as a kwarg (:issue:`18589`)
+- Comparisons between :class:`Series` and :class:`Index` would return a ``Series`` with an incorrect name, ignoring the ``Index``'s name attribute (:issue:`19582`)
+- Bug in :func:`qcut` where datetime and timedelta data with ``NaT`` present raised a ``ValueError`` (:issue:`19768`)
+- Bug in :func:`DataFrame.iterrows`, which would infers strings not compliant to `ISO8601 <https://en.wikipedia.org/wiki/ISO_8601>`_ to datetimes (:issue:`19671`)
+- Bug in :class:`Series` constructor with ``Categorical`` where a ```ValueError`` is not raised when an index of different length is given (:issue:`19342`)
+- Bug in :meth:`DataFrame.astype` where column metadata is lost when converting to categorical or a dictionary of dtypes (:issue:`19920`)
+- Bug in :func:`cut` and :func:`qcut` where timezone information was dropped (:issue:`19872`)
 
 Other
 ^^^^^
 
 - Improved error message when attempting to use a Python keyword as an identifier in a ``numexpr`` backed query (:issue:`18221`)
+- Bug in accessing a :func:`pandas.get_option`, which raised ``KeyError`` rather than ``OptionError`` when looking up a non-existant option key in some cases (:issue:`19789`)

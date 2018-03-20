@@ -107,7 +107,7 @@ class PyArrowImpl(BaseImpl):
         self.validate_dataframe(df)
         if self._pyarrow_lt_070:
             self._validate_write_lt_070(df)
-        path, _, _ = get_filepath_or_buffer(path, mode='wb')
+        path, _, _, _ = get_filepath_or_buffer(path, mode='wb')
 
         if self._pyarrow_lt_060:
             table = self.api.Table.from_pandas(df, timestamps_to_ms=True)
@@ -121,13 +121,21 @@ class PyArrowImpl(BaseImpl):
                 coerce_timestamps=coerce_timestamps, **kwargs)
 
     def read(self, path, columns=None, **kwargs):
-        path, _, _ = get_filepath_or_buffer(path)
+        path, _, _, should_close = get_filepath_or_buffer(path)
         if self._pyarrow_lt_070:
-            return self.api.parquet.read_pandas(path, columns=columns,
-                                                **kwargs).to_pandas()
-        kwargs['use_pandas_metadata'] = True
-        return self.api.parquet.read_table(path, columns=columns,
-                                           **kwargs).to_pandas()
+            result = self.api.parquet.read_pandas(path, columns=columns,
+                                                  **kwargs).to_pandas()
+        else:
+            kwargs['use_pandas_metadata'] = True
+            result = self.api.parquet.read_table(path, columns=columns,
+                                                 **kwargs).to_pandas()
+        if should_close:
+            try:
+                path.close()
+            except:  # noqa: flake8
+                pass
+
+        return result
 
     def _validate_write_lt_070(self, df):
         # Compatibility shim for pyarrow < 0.7.0
@@ -199,11 +207,11 @@ class FastParquetImpl(BaseImpl):
             # path is s3:// so we need to open the s3file in 'wb' mode.
             # TODO: Support 'ab'
 
-            path, _, _ = get_filepath_or_buffer(path, mode='wb')
+            path, _, _, _ = get_filepath_or_buffer(path, mode='wb')
             # And pass the opened s3file to the fastparquet internal impl.
             kwargs['open_with'] = lambda path, _: path
         else:
-            path, _, _ = get_filepath_or_buffer(path)
+            path, _, _, _ = get_filepath_or_buffer(path)
 
         with catch_warnings(record=True):
             self.api.write(path, df,
@@ -214,10 +222,13 @@ class FastParquetImpl(BaseImpl):
             # When path is s3:// an S3File is returned.
             # We need to retain the original path(str) while also
             # pass the S3File().open function to fsatparquet impl.
-            s3, _, _ = get_filepath_or_buffer(path)
-            parquet_file = self.api.ParquetFile(path, open_with=s3.s3.open)
+            s3, _, _, should_close = get_filepath_or_buffer(path)
+            try:
+                parquet_file = self.api.ParquetFile(path, open_with=s3.s3.open)
+            finally:
+                s3.close()
         else:
-            path, _, _ = get_filepath_or_buffer(path)
+            path, _, _, _ = get_filepath_or_buffer(path)
             parquet_file = self.api.ParquetFile(path)
 
         return parquet_file.to_pandas(columns=columns, **kwargs)
@@ -233,9 +244,10 @@ def to_parquet(df, path, engine='auto', compression='snappy', **kwargs):
     path : string
         File path
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
-        Parquet reader library to use. If 'auto', then the option
-        'io.parquet.engine' is used. If 'auto', then the first
-        library to be installed is used.
+        Parquet library to use. If 'auto', then the option
+        ``io.parquet.engine`` is used. The default ``io.parquet.engine``
+        behavior is to try 'pyarrow', falling back to 'fastparquet' if
+        'pyarrow' is unavailable.
     compression : {'snappy', 'gzip', 'brotli', None}, default 'snappy'
         Name of the compression to use. Use ``None`` for no compression.
     kwargs
@@ -260,9 +272,10 @@ def read_parquet(path, engine='auto', columns=None, **kwargs):
 
         .. versionadded 0.21.1
     engine : {'auto', 'pyarrow', 'fastparquet'}, default 'auto'
-        Parquet reader library to use. If 'auto', then the option
-        'io.parquet.engine' is used. If 'auto', then the first
-        library to be installed is used.
+        Parquet library to use. If 'auto', then the option
+        ``io.parquet.engine`` is used. The default ``io.parquet.engine``
+        behavior is to try 'pyarrow', falling back to 'fastparquet' if
+        'pyarrow' is unavailable.
     kwargs are passed to the engine
 
     Returns

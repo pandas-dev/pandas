@@ -1,3 +1,4 @@
+import warnings
 from datetime import timedelta
 
 import numpy as np
@@ -74,7 +75,8 @@ class TzLocalize(object):
                                                   freq='S'))
 
     def time_infer_dst(self):
-        self.index.tz_localize('US/Eastern', infer_dst=True)
+        with warnings.catch_warnings(record=True):
+            self.index.tz_localize('US/Eastern', infer_dst=True)
 
 
 class ResetIndex(object):
@@ -365,7 +367,7 @@ class ToDatetimeCache(object):
 
     def setup(self, cache):
         N = 10000
-        self.unique_numeric_seconds = range(N)
+        self.unique_numeric_seconds = list(range(N))
         self.dup_numeric_seconds = [1000] * N
         self.dup_string_dates = ['2000-02-11'] * N
         self.dup_string_with_tz = ['2000-02-11 15:00:00-0800'] * N

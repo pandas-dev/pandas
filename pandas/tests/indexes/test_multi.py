@@ -19,7 +19,7 @@ from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
-from pandas._libs.lib import Timestamp
+from pandas._libs.tslib import Timestamp
 
 import pandas.util.testing as tm
 
@@ -450,11 +450,11 @@ class TestMultiIndex(Base):
 
         # Make sure label setting works too
         labels2 = [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]]
-        exp_values = np.empty((6, ), dtype=object)
+        exp_values = np.empty((6,), dtype=object)
         exp_values[:] = [(long(1), 'a')] * 6
 
         # Must be 1d array of tuples
-        assert exp_values.shape == (6, )
+        assert exp_values.shape == (6,)
         new_values = mi2.set_labels(labels2).values
 
         # Not inplace shouldn't change
@@ -583,7 +583,7 @@ class TestMultiIndex(Base):
 
     def test_constructor_no_levels(self):
         tm.assert_raises_regex(ValueError, "non-zero number "
-                               "of levels/labels",
+                                           "of levels/labels",
                                MultiIndex, levels=[], labels=[])
         both_re = re.compile('Must pass both levels and labels')
         with tm.assert_raises_regex(TypeError, both_re):
@@ -595,7 +595,7 @@ class TestMultiIndex(Base):
         labels = [np.array([1]), np.array([2]), np.array([3])]
         levels = ["a"]
         tm.assert_raises_regex(ValueError, "Length of levels and labels "
-                               "must be the same", MultiIndex,
+                                           "must be the same", MultiIndex,
                                levels=levels, labels=labels)
         length_error = re.compile('>= length of level')
         label_error = re.compile(r'Unequal label lengths: \[4, 2\]')
@@ -844,19 +844,19 @@ class TestMultiIndex(Base):
         idx1 = [1, 2, 3]
         idx2 = ['a', 'b']
         tm.assert_raises_regex(ValueError, '^all arrays must '
-                               'be same length$',
+                                           'be same length$',
                                MultiIndex.from_arrays, [idx1, idx2])
 
         idx1 = []
         idx2 = ['a', 'b']
         tm.assert_raises_regex(ValueError, '^all arrays must '
-                               'be same length$',
+                                           'be same length$',
                                MultiIndex.from_arrays, [idx1, idx2])
 
         idx1 = [1, 2, 3]
         idx2 = []
         tm.assert_raises_regex(ValueError, '^all arrays must '
-                               'be same length$',
+                                           'be same length$',
                                MultiIndex.from_arrays, [idx1, idx2])
 
     def test_from_product(self):
@@ -962,6 +962,53 @@ class TestMultiIndex(Base):
         # Check that code branches for boxed values produce identical results
         tm.assert_numpy_array_equal(result.values[:4], result[:4].values)
 
+    def test_values_multiindex_datetimeindex(self):
+        # Test to ensure we hit the boxing / nobox part of MI.values
+        ints = np.arange(10 ** 18, 10 ** 18 + 5)
+        naive = pd.DatetimeIndex(ints)
+        aware = pd.DatetimeIndex(ints, tz='US/Central')
+
+        idx = pd.MultiIndex.from_arrays([naive, aware])
+        result = idx.values
+
+        outer = pd.DatetimeIndex([x[0] for x in result])
+        tm.assert_index_equal(outer, naive)
+
+        inner = pd.DatetimeIndex([x[1] for x in result])
+        tm.assert_index_equal(inner, aware)
+
+        # n_lev > n_lab
+        result = idx[:2].values
+
+        outer = pd.DatetimeIndex([x[0] for x in result])
+        tm.assert_index_equal(outer, naive[:2])
+
+        inner = pd.DatetimeIndex([x[1] for x in result])
+        tm.assert_index_equal(inner, aware[:2])
+
+    def test_values_multiindex_periodindex(self):
+        # Test to ensure we hit the boxing / nobox part of MI.values
+        ints = np.arange(2007, 2012)
+        pidx = pd.PeriodIndex(ints, freq='D')
+
+        idx = pd.MultiIndex.from_arrays([ints, pidx])
+        result = idx.values
+
+        outer = pd.Int64Index([x[0] for x in result])
+        tm.assert_index_equal(outer, pd.Int64Index(ints))
+
+        inner = pd.PeriodIndex([x[1] for x in result])
+        tm.assert_index_equal(inner, pidx)
+
+        # n_lev > n_lab
+        result = idx[:2].values
+
+        outer = pd.Int64Index([x[0] for x in result])
+        tm.assert_index_equal(outer, pd.Int64Index(ints[:2]))
+
+        inner = pd.PeriodIndex([x[1] for x in result])
+        tm.assert_index_equal(inner, pidx[:2])
+
     def test_append(self):
         result = self.index[:3].append(self.index[3:])
         assert result.equals(self.index)
@@ -976,7 +1023,7 @@ class TestMultiIndex(Base):
 
     def test_append_mixed_dtypes(self):
         # GH 13660
-        dti = date_range('2011-01-01', freq='M', periods=3,)
+        dti = date_range('2011-01-01', freq='M', periods=3, )
         dti_tz = date_range('2011-01-01', freq='M', periods=3, tz='US/Eastern')
         pi = period_range('2011-01', freq='M', periods=3)
 
@@ -1020,9 +1067,12 @@ class TestMultiIndex(Base):
         tm.assert_index_equal(result, expected)
 
         # GH 10460
-        index = MultiIndex(levels=[CategoricalIndex(
-            ['A', 'B']), CategoricalIndex([1, 2, 3])], labels=[np.array(
-                [0, 0, 0, 1, 1, 1]), np.array([0, 1, 2, 0, 1, 2])])
+        index = MultiIndex(
+            levels=[CategoricalIndex(['A', 'B']),
+                    CategoricalIndex([1, 2, 3])],
+            labels=[np.array([0, 0, 0, 1, 1, 1]),
+                    np.array([0, 1, 2, 0, 1, 2])])
+
         exp = CategoricalIndex(['A', 'A', 'A', 'B', 'B', 'B'])
         tm.assert_index_equal(index.get_level_values(0), exp)
         exp = CategoricalIndex([1, 2, 3, 1, 2, 3])
@@ -1258,6 +1308,17 @@ class TestMultiIndex(Base):
         assert result == expected
         assert new_index.equals(index.droplevel(0))
 
+    @pytest.mark.parametrize('level', [0, 1])
+    @pytest.mark.parametrize('null_val', [np.nan, pd.NaT, None])
+    def test_get_loc_nan(self, level, null_val):
+        # GH 18485 : NaN in MultiIndex
+        levels = [['a', 'b'], ['c', 'd']]
+        key = ['b', 'd']
+        levels[level] = np.array([0, null_val], dtype=type(null_val))
+        key[level] = null_val
+        idx = MultiIndex.from_product(levels)
+        assert idx.get_loc(tuple(key)) == 3
+
     def test_get_loc_missing_nan(self):
         # GH 8569
         idx = MultiIndex.from_arrays([[1.0, 2.0], [3.0, 4.0]])
@@ -1265,6 +1326,38 @@ class TestMultiIndex(Base):
         pytest.raises(KeyError, idx.get_loc, 3)
         pytest.raises(KeyError, idx.get_loc, np.nan)
         pytest.raises(KeyError, idx.get_loc, [np.nan])
+
+    @pytest.mark.parametrize('dtype1', [int, float, bool, str])
+    @pytest.mark.parametrize('dtype2', [int, float, bool, str])
+    def test_get_loc_multiple_dtypes(self, dtype1, dtype2):
+        # GH 18520
+        levels = [np.array([0, 1]).astype(dtype1),
+                  np.array([0, 1]).astype(dtype2)]
+        idx = pd.MultiIndex.from_product(levels)
+        assert idx.get_loc(idx[2]) == 2
+
+    @pytest.mark.parametrize('level', [0, 1])
+    @pytest.mark.parametrize('dtypes', [[int, float], [float, int]])
+    def test_get_loc_implicit_cast(self, level, dtypes):
+        # GH 18818, GH 15994 : as flat index, cast int to float and vice-versa
+        levels = [['a', 'b'], ['c', 'd']]
+        key = ['b', 'd']
+        lev_dtype, key_dtype = dtypes
+        levels[level] = np.array([0, 1], dtype=lev_dtype)
+        key[level] = key_dtype(1)
+        idx = MultiIndex.from_product(levels)
+        assert idx.get_loc(tuple(key)) == 3
+
+    def test_get_loc_cast_bool(self):
+        # GH 19086 : int is casted to bool, but not vice-versa
+        levels = [[False, True], np.arange(2, dtype='int64')]
+        idx = MultiIndex.from_product(levels)
+
+        assert idx.get_loc((0, 1)) == 1
+        assert idx.get_loc((1, 0)) == 2
+
+        pytest.raises(KeyError, idx.get_loc, (False, True))
+        pytest.raises(KeyError, idx.get_loc, (True, False))
 
     def test_slice_locs(self):
         df = tm.makeTimeDataFrame()
@@ -1307,7 +1400,7 @@ class TestMultiIndex(Base):
                 [0, 1, 0, 0, 0, 1, 0, 1]), np.array([1, 0, 1, 1, 0, 0, 1, 0])])
 
         tm.assert_raises_regex(KeyError, "[Kk]ey length.*greater than "
-                               "MultiIndex lexsort depth",
+                                         "MultiIndex lexsort depth",
                                index.slice_locs, (1, 0, 1), (2, 1, 0))
 
         # works
@@ -1797,12 +1890,12 @@ class TestMultiIndex(Base):
         expected.names = first.names
         assert first.names == result.names
         tm.assert_raises_regex(TypeError, "other must be a MultiIndex "
-                               "or a list of tuples",
+                                          "or a list of tuples",
                                first.difference, [1, 2, 3, 4, 5])
 
     def test_from_tuples(self):
         tm.assert_raises_regex(TypeError, 'Cannot infer number of levels '
-                               'from empty list',
+                                          'from empty list',
                                MultiIndex.from_tuples, [])
 
         expected = MultiIndex(levels=[[1, 3], [2, 4]],
@@ -1949,8 +2042,9 @@ class TestMultiIndex(Base):
         dropped = index.droplevel(0)
         assert dropped.name == 'second'
 
-        index = MultiIndex(levels=[Index(lrange(4)), Index(lrange(4)), Index(
-            lrange(4))], labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
+        index = MultiIndex(
+            levels=[Index(lrange(4)), Index(lrange(4)), Index(lrange(4))],
+            labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
                 [0, 1, 0, 0, 0, 1, 0, 1]), np.array([1, 0, 1, 1, 0, 0, 1, 0])],
             names=['one', 'two', 'three'])
         dropped = index.droplevel(0)
@@ -1961,8 +2055,9 @@ class TestMultiIndex(Base):
         assert dropped.equals(expected)
 
     def test_droplevel_multiple(self):
-        index = MultiIndex(levels=[Index(lrange(4)), Index(lrange(4)), Index(
-            lrange(4))], labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
+        index = MultiIndex(
+            levels=[Index(lrange(4)), Index(lrange(4)), Index(lrange(4))],
+            labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
                 [0, 1, 0, 0, 0, 1, 0, 1]), np.array([1, 0, 1, 1, 0, 0, 1, 0])],
             names=['one', 'two', 'three'])
 
@@ -2011,7 +2106,7 @@ class TestMultiIndex(Base):
         # key wrong length
         msg = "Item must have length equal to number of levels"
         with tm.assert_raises_regex(ValueError, msg):
-            self.index.insert(0, ('foo2', ))
+            self.index.insert(0, ('foo2',))
 
         left = pd.DataFrame([['a', 'b', 0], ['b', 'd', 1]],
                             columns=['1st', '2nd', '3rd'])
@@ -2044,8 +2139,8 @@ class TestMultiIndex(Base):
 
         # GH9250
         idx = [('test1', i) for i in range(5)] + \
-            [('test2', i) for i in range(6)] + \
-            [('test', 17), ('test', 18)]
+              [('test2', i) for i in range(6)] + \
+              [('test', 17), ('test', 18)]
 
         left = pd.Series(np.linspace(0, 10, 11),
                          pd.MultiIndex.from_tuples(idx[:-2]))
@@ -2120,42 +2215,36 @@ class TestMultiIndex(Base):
         tm.assert_raises_regex(ValueError, msg, idx.take,
                                indices, mode='clip')
 
-    def test_join_level(self):
-        def _check_how(other, how):
-            join_index, lidx, ridx = other.join(self.index, how=how,
-                                                level='second',
-                                                return_indexers=True)
+    @pytest.mark.parametrize('other',
+                             [Index(['three', 'one', 'two']),
+                              Index(['one']),
+                              Index(['one', 'three'])])
+    def test_join_level(self, other, join_type):
+        join_index, lidx, ridx = other.join(self.index, how=join_type,
+                                            level='second',
+                                            return_indexers=True)
 
-            exp_level = other.join(self.index.levels[1], how=how)
-            assert join_index.levels[0].equals(self.index.levels[0])
-            assert join_index.levels[1].equals(exp_level)
+        exp_level = other.join(self.index.levels[1], how=join_type)
+        assert join_index.levels[0].equals(self.index.levels[0])
+        assert join_index.levels[1].equals(exp_level)
 
-            # pare down levels
-            mask = np.array(
-                [x[1] in exp_level for x in self.index], dtype=bool)
-            exp_values = self.index.values[mask]
-            tm.assert_numpy_array_equal(join_index.values, exp_values)
+        # pare down levels
+        mask = np.array(
+            [x[1] in exp_level for x in self.index], dtype=bool)
+        exp_values = self.index.values[mask]
+        tm.assert_numpy_array_equal(join_index.values, exp_values)
 
-            if how in ('outer', 'inner'):
-                join_index2, ridx2, lidx2 = \
-                    self.index.join(other, how=how, level='second',
-                                    return_indexers=True)
+        if join_type in ('outer', 'inner'):
+            join_index2, ridx2, lidx2 = \
+                self.index.join(other, how=join_type, level='second',
+                                return_indexers=True)
 
-                assert join_index.equals(join_index2)
-                tm.assert_numpy_array_equal(lidx, lidx2)
-                tm.assert_numpy_array_equal(ridx, ridx2)
-                tm.assert_numpy_array_equal(join_index2.values, exp_values)
+            assert join_index.equals(join_index2)
+            tm.assert_numpy_array_equal(lidx, lidx2)
+            tm.assert_numpy_array_equal(ridx, ridx2)
+            tm.assert_numpy_array_equal(join_index2.values, exp_values)
 
-        def _check_all(other):
-            _check_how(other, 'outer')
-            _check_how(other, 'inner')
-            _check_how(other, 'left')
-            _check_how(other, 'right')
-
-        _check_all(Index(['three', 'one', 'two']))
-        _check_all(Index(['one']))
-        _check_all(Index(['one', 'three']))
-
+    def test_join_level_corner_case(self):
         # some corner cases
         idx = Index(['three', 'one', 'two'])
         result = idx.join(self.index, level='second')
@@ -2164,12 +2253,10 @@ class TestMultiIndex(Base):
         tm.assert_raises_regex(TypeError, "Join.*MultiIndex.*ambiguous",
                                self.index.join, self.index, level=1)
 
-    def test_join_self(self):
-        kinds = 'outer', 'inner', 'left', 'right'
-        for kind in kinds:
-            res = self.index
-            joined = res.join(res, how=kind)
-            assert res is joined
+    def test_join_self(self, join_type):
+        res = self.index
+        joined = res.join(res, how=join_type)
+        assert res is joined
 
     def test_join_multi(self):
         # GH 10665
@@ -2245,7 +2332,7 @@ class TestMultiIndex(Base):
         assert self.index.append(self.index).has_duplicates
 
         index = MultiIndex(levels=[[0, 1], [0, 1, 2]], labels=[
-                           [0, 0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 0, 1, 2]])
+            [0, 0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 0, 1, 2]])
         assert index.has_duplicates
 
         # GH 9075
@@ -2344,8 +2431,11 @@ class TestMultiIndex(Base):
 
     def test_duplicate_meta_data(self):
         # GH 10115
-        index = MultiIndex(levels=[[0, 1], [0, 1, 2]], labels=[
-                           [0, 0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 0, 1, 2]])
+        index = MultiIndex(
+            levels=[[0, 1], [0, 1, 2]],
+            labels=[[0, 0, 0, 0, 1, 1, 1],
+                    [0, 1, 2, 0, 0, 1, 2]])
+
         for idx in [index,
                     index.set_names([None, None]),
                     index.set_names([None, 'Num']),

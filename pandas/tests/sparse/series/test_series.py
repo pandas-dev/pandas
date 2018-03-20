@@ -14,7 +14,7 @@ from pandas import (Series, DataFrame, bdate_range,
 from pandas.tseries.offsets import BDay
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
-from pandas.compat import range
+from pandas.compat import range, PY36
 from pandas.core.reshape.util import cartesian_product
 
 import pandas.core.sparse.frame as spf
@@ -22,6 +22,8 @@ import pandas.core.sparse.frame as spf
 from pandas._libs.sparse import BlockIndex, IntIndex
 from pandas.core.sparse.api import SparseSeries
 from pandas.tests.series.test_api import SharedWithSparse
+
+from itertools import product
 
 
 def _test_data1():
@@ -110,6 +112,18 @@ class TestSparseSeries(SharedWithSparse):
         expected = SparseSeries(series)
 
         result = SparseSeries(constructor_dict)
+        tm.assert_sp_series_equal(result, expected)
+
+    def test_constructor_dict_order(self):
+        # GH19018
+        # initialization ordering: by insertion order if python>= 3.6, else
+        # order by value
+        d = {'b': 1, 'a': 0, 'c': 2}
+        result = SparseSeries(d)
+        if PY36:
+            expected = SparseSeries([1, 0, 2], index=list('bac'))
+        else:
+            expected = SparseSeries([0, 1, 2], index=list('abc'))
         tm.assert_sp_series_equal(result, expected)
 
     def test_constructor_dtype(self):
@@ -970,6 +984,17 @@ class TestSparseSeries(SharedWithSparse):
 
         tm.assert_sp_series_equal(result, result2)
         tm.assert_sp_series_equal(result, expected)
+
+    @pytest.mark.parametrize('deep,fill_values', [([True, False],
+                                                   [0, 1, np.nan, None])])
+    def test_memory_usage_deep(self, deep, fill_values):
+        for deep, fill_value in product(deep, fill_values):
+            sparse_series = SparseSeries(fill_values, fill_value=fill_value)
+            dense_series = Series(fill_values)
+            sparse_usage = sparse_series.memory_usage(deep=deep)
+            dense_usage = dense_series.memory_usage(deep=deep)
+
+            assert sparse_usage < dense_usage
 
 
 class TestSparseHandlingMultiIndexes(object):

@@ -57,6 +57,32 @@ class TestDataFrameTimeSeriesMethods(TestData):
             1), 'z': pd.Series(1)}).astype('float64')
         assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize('tz', [None, 'UTC'])
+    def test_diff_datetime_axis0(self, tz):
+        # GH 18578
+        df = DataFrame({0: date_range('2010', freq='D', periods=2, tz=tz),
+                        1: date_range('2010', freq='D', periods=2, tz=tz)})
+
+        result = df.diff(axis=0)
+        expected = DataFrame({0: pd.TimedeltaIndex(['NaT', '1 days']),
+                              1: pd.TimedeltaIndex(['NaT', '1 days'])})
+        assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('tz', [None, 'UTC'])
+    def test_diff_datetime_axis1(self, tz):
+        # GH 18578
+        df = DataFrame({0: date_range('2010', freq='D', periods=2, tz=tz),
+                        1: date_range('2010', freq='D', periods=2, tz=tz)})
+        if tz is None:
+            result = df.diff(axis=1)
+            expected = DataFrame({0: pd.TimedeltaIndex(['NaT', 'NaT']),
+                                  1: pd.TimedeltaIndex(['0 days',
+                                                        '0 days'])})
+            assert_frame_equal(result, expected)
+        else:
+            with pytest.raises(NotImplementedError):
+                result = df.diff(axis=1)
+
     def test_diff_timedelta(self):
         # GH 4533
         df = DataFrame(dict(time=[Timestamp('20130101 9:01'),
@@ -108,7 +134,9 @@ class TestDataFrameTimeSeriesMethods(TestData):
 
         rs = self.tsframe.pct_change(freq='5D')
         filled = self.tsframe.fillna(method='pad')
-        assert_frame_equal(rs, filled / filled.shift(freq='5D') - 1)
+        assert_frame_equal(rs,
+                           (filled / filled.shift(freq='5D') - 1)
+                           .reindex_like(filled))
 
     def test_pct_change_shift_over_nas(self):
         s = Series([1., 1.5, np.nan, 2.5, 3.])
@@ -116,9 +144,36 @@ class TestDataFrameTimeSeriesMethods(TestData):
         df = DataFrame({'a': s, 'b': s})
 
         chg = df.pct_change()
-        expected = Series([np.nan, 0.5, np.nan, 2.5 / 1.5 - 1, .2])
+        expected = Series([np.nan, 0.5, 0., 2.5 / 1.5 - 1, .2])
         edf = DataFrame({'a': expected, 'b': expected})
         assert_frame_equal(chg, edf)
+
+    @pytest.mark.parametrize("freq, periods, fill_method, limit",
+                             [('5B', 5, None, None),
+                              ('3B', 3, None, None),
+                              ('3B', 3, 'bfill', None),
+                              ('7B', 7, 'pad', 1),
+                              ('7B', 7, 'bfill', 3),
+                              ('14B', 14, None, None)])
+    def test_pct_change_periods_freq(self, freq, periods, fill_method, limit):
+        # GH 7292
+        rs_freq = self.tsframe.pct_change(freq=freq,
+                                          fill_method=fill_method,
+                                          limit=limit)
+        rs_periods = self.tsframe.pct_change(periods,
+                                             fill_method=fill_method,
+                                             limit=limit)
+        assert_frame_equal(rs_freq, rs_periods)
+
+        empty_ts = DataFrame(index=self.tsframe.index,
+                             columns=self.tsframe.columns)
+        rs_freq = empty_ts.pct_change(freq=freq,
+                                      fill_method=fill_method,
+                                      limit=limit)
+        rs_periods = empty_ts.pct_change(periods,
+                                         fill_method=fill_method,
+                                         limit=limit)
+        assert_frame_equal(rs_freq, rs_periods)
 
     def test_frame_ctor_datetime64_column(self):
         rng = date_range('1/1/2000 00:00:00', '1/1/2000 1:59:50', freq='10s')
@@ -704,12 +759,3 @@ class TestDataFrameTimeSeriesMethods(TestData):
         with assert_raises_regex(ValueError, 'not valid'):
             df = DataFrame(index=l0)
             df = getattr(df, fn)('US/Pacific', level=1)
-
-    @pytest.mark.parametrize('timestamps', [
-        [Timestamp('2012-01-01 13:00:00+00:00')] * 2,
-        [Timestamp('2012-01-01 13:00:00')] * 2])
-    def test_tz_aware_scalar_comparison(self, timestamps):
-        # Test for issue #15966
-        df = DataFrame({'test': timestamps})
-        expected = DataFrame({'test': [False, False]})
-        assert_frame_equal(df == -1, expected)

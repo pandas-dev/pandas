@@ -746,7 +746,7 @@ What if the function you wish to apply takes its data as, say, the second argume
 In this case, provide ``pipe`` with a tuple of ``(callable, data_keyword)``.
 ``.pipe`` will route the ``DataFrame`` to the argument specified in the tuple.
 
-For example, we can fit a regression using statsmodels. Their API expects a formula first and a ``DataFrame`` as the second argument, ``data``. We pass in the function, keyword pair ``(sm.poisson, 'data')`` to ``pipe``:
+For example, we can fit a regression using statsmodels. Their API expects a formula first and a ``DataFrame`` as the second argument, ``data``. We pass in the function, keyword pair ``(sm.ols, 'data')`` to ``pipe``:
 
 .. ipython:: python
 
@@ -756,7 +756,7 @@ For example, we can fit a regression using statsmodels. Their API expects a form
 
    (bb.query('h > 0')
       .assign(ln_h = lambda df: np.log(df.h))
-      .pipe((sm.poisson, 'data'), 'hr ~ ln_h + year + g + C(lg)')
+      .pipe((sm.ols, 'data'), 'hr ~ ln_h + year + g + C(lg)')
       .fit()
       .summary()
    )
@@ -774,9 +774,9 @@ We encourage you to view the source code of :meth:`~DataFrame.pipe`.
 Row or Column-wise Function Application
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Arbitrary functions can be applied along the axes of a DataFrame or Panel
+Arbitrary functions can be applied along the axes of a DataFrame
 using the :meth:`~DataFrame.apply` method, which, like the descriptive
-statistics methods, take an optional ``axis`` argument:
+statistics methods, takes an optional ``axis`` argument:
 
 .. ipython:: python
 
@@ -793,8 +793,16 @@ The :meth:`~DataFrame.apply` method will also dispatch on a string method name.
    df.apply('mean')
    df.apply('mean', axis=1)
 
-Depending on the return type of the function passed to :meth:`~DataFrame.apply`,
-the result will either be of lower dimension or the same dimension.
+The return type of the function passed to :meth:`~DataFrame.apply` affects the
+type of the final output from ``DataFrame.apply`` for the default behaviour:
+
+* If the applied function returns a ``Series``, the final output is a ``DataFrame``.
+  The columns match the index of the ``Series`` returned by the applied function.
+* If the applied function returns any other type, the final output is a ``Series``.
+
+This default behaviour can be overridden using the ``result_type``, which
+accepts three options: ``reduce``, ``broadcast``, and ``expand``.
+These will determine how list-likes return values expand (or not) to a ``DataFrame``.
 
 :meth:`~DataFrame.apply` combined with some cleverness can be used to answer many questions
 about a data set. For example, suppose we wanted to extract the date where the
@@ -2304,4 +2312,4 @@ All NumPy dtypes are subclasses of ``numpy.generic``:
 .. note::
 
     Pandas also defines the types ``category``, and ``datetime64[ns, tz]``, which are not integrated into the normal
-    NumPy hierarchy and wont show up with the above function.
+    NumPy hierarchy and won't show up with the above function.

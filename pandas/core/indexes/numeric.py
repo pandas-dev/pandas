@@ -1,6 +1,6 @@
 import numpy as np
 from pandas._libs import (index as libindex,
-                          algos as libalgos, join as libjoin)
+                          join as libjoin)
 from pandas.core.dtypes.common import (
     is_dtype_equal,
     pandas_dtype,
@@ -131,7 +131,7 @@ _num_index_shared_docs['class_descr'] = """
 
     Attributes
     ----------
-    inferred_type
+    None
 
     Methods
     -------
@@ -158,7 +158,6 @@ class Int64Index(NumericIndex):
     __doc__ = _num_index_shared_docs['class_descr'] % _int64_descr_args
 
     _typ = 'int64index'
-    _arrmap = libalgos.arrmap_int64
     _left_indexer_unique = libjoin.left_join_indexer_unique_int64
     _left_indexer = libjoin.left_join_indexer_int64
     _inner_indexer = libjoin.inner_join_indexer_int64
@@ -217,7 +216,6 @@ class UInt64Index(NumericIndex):
     __doc__ = _num_index_shared_docs['class_descr'] % _uint64_descr_args
 
     _typ = 'uint64index'
-    _arrmap = libalgos.arrmap_uint64
     _left_indexer_unique = libjoin.left_join_indexer_unique_uint64
     _left_indexer = libjoin.left_join_indexer_uint64
     _inner_indexer = libjoin.inner_join_indexer_uint64
@@ -296,7 +294,6 @@ class Float64Index(NumericIndex):
 
     _typ = 'float64index'
     _engine_type = libindex.Float64Engine
-    _arrmap = libalgos.arrmap_float64
     _left_indexer_unique = libjoin.left_join_indexer_unique_float64
     _left_indexer = libjoin.left_join_indexer_float64
     _inner_indexer = libjoin.inner_join_indexer_float64
@@ -381,7 +378,7 @@ class Float64Index(NumericIndex):
             if (not is_dtype_equal(self.dtype, other.dtype) or
                     self.shape != other.shape):
                 return False
-            left, right = self._values, other._values
+            left, right = self._ndarray_values, other._ndarray_values
             return ((left == right) | (self._isnan & other._isnan)).all()
         except (TypeError, ValueError):
             return False

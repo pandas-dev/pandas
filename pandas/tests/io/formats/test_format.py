@@ -539,8 +539,8 @@ class TestDataFrameFormatting(object):
         assert _rep(df) == expected
 
         # column name
-        df = DataFrame({u'あああああ': [1, 222, 33333, 4],
-                        'b': [u'あ', u'いいい', u'う', u'ええええええ']},
+        df = DataFrame({'b': [u'あ', u'いいい', u'う', u'ええええええ'],
+                        u'あああああ': [1, 222, 33333, 4]},
                        index=['a', 'bb', 'c', 'ddd'])
         expected = (u"          b  あああああ\na         あ      1\n"
                     u"bb      いいい    222\nc         う  33333\n"
@@ -647,8 +647,8 @@ class TestDataFrameFormatting(object):
             assert _rep(df) == expected
 
             # column name
-            df = DataFrame({u'あああああ': [1, 222, 33333, 4],
-                            'b': [u'あ', u'いいい', u'う', u'ええええええ']},
+            df = DataFrame({'b': [u'あ', u'いいい', u'う', u'ええええええ'],
+                            u'あああああ': [1, 222, 33333, 4]},
                            index=['a', 'bb', 'c', 'ddd'])
             expected = (u"                b  あああああ\n"
                         u"a              あ           1\n"
@@ -733,8 +733,8 @@ class TestDataFrameFormatting(object):
                 assert _rep(df) == expected
 
             # ambiguous unicode
-            df = DataFrame({u'あああああ': [1, 222, 33333, 4],
-                            'b': [u'あ', u'いいい', u'¡¡', u'ええええええ']},
+            df = DataFrame({'b': [u'あ', u'いいい', u'¡¡', u'ええええええ'],
+                            u'あああああ': [1, 222, 33333, 4]},
                            index=['a', 'bb', 'c', '¡¡¡'])
             expected = (u"                b  あああああ\n"
                         u"a              あ           1\n"
@@ -1434,6 +1434,13 @@ c  10  11  12  13  14\
 
         tm.reset_display_options()
 
+    def test_repr_html_mathjax(self):
+        df = DataFrame([[1, 2], [3, 4]])
+        assert 'tex2jax_ignore' not in df._repr_html_()
+
+        with pd.option_context('display.html.use_mathjax', False):
+            assert 'tex2jax_ignore' in df._repr_html_()
+
     def test_repr_html_wide(self):
         max_cols = get_option('display.max_columns')
         df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)))
@@ -1492,7 +1499,7 @@ c  10  11  12  13  14\
                             'B': np.arange(41, 41 + h)}).set_index('idx')
             reg_repr = df._repr_html_()
             assert '..' not in reg_repr
-            assert str(40 + h) in reg_repr
+            assert '<td>{val}</td>'.format(val=str(40 + h)) in reg_repr
 
             h = max_rows + 1
             df = DataFrame({'idx': np.linspace(-10, 10, h),
@@ -1500,7 +1507,7 @@ c  10  11  12  13  14\
                             'B': np.arange(41, 41 + h)}).set_index('idx')
             long_repr = df._repr_html_()
             assert '..' in long_repr
-            assert '31' not in long_repr
+            assert '<td>{val}</td>'.format(val='31') not in long_repr
             assert u('{h} rows ').format(h=h) in long_repr
             assert u('2 columns') in long_repr
 
@@ -2531,7 +2538,7 @@ class TestDatetimeIndexFormat(object):
             [datetime(2013, 1, 1), pd.NaT], utc=True).format()
         assert formatted[0] == "2013-01-01 00:00:00+00:00"
 
-    def test_date_explict_date_format(self):
+    def test_date_explicit_date_format(self):
         formatted = pd.to_datetime([datetime(2003, 2, 1), pd.NaT]).format(
             date_format="%m-%d-%Y", na_rep="UT")
         assert formatted[0] == "02-01-2003"

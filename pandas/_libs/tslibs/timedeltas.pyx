@@ -10,9 +10,9 @@ from cython cimport Py_ssize_t
 from cpython cimport PyUnicode_Check, Py_NE, Py_EQ, PyObject_RichCompare
 
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 from numpy cimport int64_t, ndarray
-np.import_array()
+cnp.import_array()
 
 from cpython.datetime cimport (datetime, timedelta,
                                PyDateTime_CheckExact,
@@ -471,18 +471,26 @@ def _binary_op_method_timedeltalike(op, name):
     # define a binary operation that only works if the other argument is
     # timedelta like or an array of timedeltalike
     def f(self, other):
-        if hasattr(other, 'delta') and not PyDelta_Check(other):
-            # offsets.Tick
-            return op(self, other.delta)
+        if hasattr(other, '_typ'):
+            # Series, DataFrame, ...
+            if other._typ == 'dateoffset' and hasattr(other, 'delta'):
+                # Tick offset
+                return op(self, other.delta)
+            return NotImplemented
 
         elif other is NaT:
             return NaT
+
+        elif is_timedelta64_object(other):
+            # convert to Timedelta below; avoid catching this in
+            # has-dtype check before then
+            pass
 
         elif is_datetime64_object(other) or PyDateTime_CheckExact(other):
             # the PyDateTime_CheckExact case is for a datetime object that
             # is specifically *not* a Timestamp, as the Timestamp case will be
             # handled after `_validate_ops_compat` returns False below
-            from ..tslib import Timestamp
+            from timestamps import Timestamp
             return op(self, Timestamp(other))
             # We are implicitly requiring the canonical behavior to be
             # defined by Timestamp methods.
@@ -503,6 +511,9 @@ def _binary_op_method_timedeltalike(op, name):
             # failed to parse as timedelta
             return NotImplemented
 
+        if other is NaT:
+            # e.g. if original other was timedelta64('NaT')
+            return NaT
         return Timedelta(op(self.value, other.value), unit='ns')
 
     f.__name__ = name
@@ -731,7 +742,7 @@ cdef class _Timedelta(timedelta):
         """
         Total duration of timedelta in seconds (to ns precision)
         """
-        return 1e-9 * self.value
+        return self.value / 1e9
 
     def view(self, dtype):
         """ array view compat """
@@ -897,7 +908,7 @@ class Timedelta(_Timedelta):
     Represents a duration, the difference between two dates or times.
 
     Timedelta is the pandas equivalent of python's ``datetime.timedelta``
-    and is interchangable with it in most cases.
+    and is interchangeable with it in most cases.
 
     Parameters
     ----------
@@ -1044,12 +1055,19 @@ class Timedelta(_Timedelta):
     __rsub__ = _binary_op_method_timedeltalike(lambda x, y: y - x, '__rsub__')
 
     def __mul__(self, other):
-        if hasattr(other, 'dtype'):
+        if hasattr(other, '_typ'):
+            # Series, DataFrame, ...
+            if other._typ == 'dateoffset' and hasattr(other, 'delta'):
+                # Tick offset; this op will raise TypeError
+                return other.delta * self
+            return NotImplemented
+
+        elif hasattr(other, 'dtype'):
             # ndarray-like
             return other * self.to_timedelta64()
 
         elif other is NaT:
-            return NaT
+            raise TypeError('Cannot multiply Timedelta with NaT')
 
         elif not (is_integer_object(other) or is_float_object(other)):
             # only integers and floats allowed
@@ -1060,7 +1078,18 @@ class Timedelta(_Timedelta):
     __rmul__ = __mul__
 
     def __truediv__(self, other):
-        if hasattr(other, 'dtype'):
+        if hasattr(other, '_typ'):
+            # Series, DataFrame, ...
+            if other._typ == 'dateoffset' and hasattr(other, 'delta'):
+                # Tick offset
+                return self / other.delta
+            return NotImplemented
+
+        elif is_timedelta64_object(other):
+            # convert to Timedelta below
+            pass
+
+        elif hasattr(other, 'dtype'):
             return self.to_timedelta64() / other
 
         elif is_integer_object(other) or is_float_object(other):
@@ -1076,7 +1105,18 @@ class Timedelta(_Timedelta):
         return self.value / float(other.value)
 
     def __rtruediv__(self, other):
-        if hasattr(other, 'dtype'):
+        if hasattr(other, '_typ'):
+            # Series, DataFrame, ...
+            if other._typ == 'dateoffset' and hasattr(other, 'delta'):
+                # Tick offset
+                return other.delta / self
+            return NotImplemented
+
+        elif is_timedelta64_object(other):
+            # convert to Timedelta below
+            pass
+
+        elif hasattr(other, 'dtype'):
             return other / self.to_timedelta64()
 
         elif not _validate_ops_compat(other):
@@ -1096,9 +1136,16 @@ class Timedelta(_Timedelta):
         # just defer
         if hasattr(other, '_typ'):
             # Series, DataFrame, ...
+            if other._typ == 'dateoffset' and hasattr(other, 'delta'):
+                # Tick offset
+                return self // other.delta
             return NotImplemented
 
-        if hasattr(other, 'dtype'):
+        elif is_timedelta64_object(other):
+            # convert to Timedelta below
+            pass
+
+        elif hasattr(other, 'dtype'):
             if other.dtype.kind == 'm':
                 # also timedelta-like
                 return _broadcast_floordiv_td64(self.value, other, _floordiv)
@@ -1128,9 +1175,16 @@ class Timedelta(_Timedelta):
         # just defer
         if hasattr(other, '_typ'):
             # Series, DataFrame, ...
+            if other._typ == 'dateoffset' and hasattr(other, 'delta'):
+                # Tick offset
+                return other.delta // self
             return NotImplemented
 
-        if hasattr(other, 'dtype'):
+        elif is_timedelta64_object(other):
+            # convert to Timedelta below
+            pass
+
+        elif hasattr(other, 'dtype'):
             if other.dtype.kind == 'm':
                 # also timedelta-like
                 return _broadcast_floordiv_td64(self.value, other, _rfloordiv)
@@ -1138,9 +1192,10 @@ class Timedelta(_Timedelta):
                             '{op}'.format(dtype=other.dtype,
                                           op='__floordiv__'))
 
-        if is_float_object(other) and util._checknull(other):
+        elif is_float_object(other) and util._checknull(other):
             # i.e. np.nan
             return NotImplemented
+
         elif not _validate_ops_compat(other):
             return NotImplemented
 
@@ -1148,6 +1203,24 @@ class Timedelta(_Timedelta):
         if other is NaT:
             return np.nan
         return other.value // self.value
+
+    def __mod__(self, other):
+        # Naive implementation, room for optimization
+        return self.__divmod__(other)[1]
+
+    def __rmod__(self, other):
+        # Naive implementation, room for optimization
+        return self.__rdivmod__(other)[1]
+
+    def __divmod__(self, other):
+        # Naive implementation, room for optimization
+        div = self // other
+        return div, self - div * other
+
+    def __rdivmod__(self, other):
+        # Naive implementation, room for optimization
+        div = other // self
+        return div, other - div * self
 
 
 cdef _floordiv(int64_t value, right):

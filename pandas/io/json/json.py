@@ -348,7 +348,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     to denote a missing :class:`Index` name, and the subsequent
     :func:`read_json` operation cannot distinguish between the two. The same
     limitation is encountered with a :class:`MultiIndex` and any names
-    beginning with 'level_'.
+    beginning with ``'level_'``.
 
     See Also
     --------
@@ -404,7 +404,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     """
 
     compression = _infer_compression(path_or_buf, compression)
-    filepath_or_buffer, _, compression = get_filepath_or_buffer(
+    filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
         path_or_buf, encoding=encoding, compression=compression,
     )
 
@@ -419,7 +419,13 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     if chunksize:
         return json_reader
 
-    return json_reader.read()
+    result = json_reader.read()
+    if should_close:
+        try:
+            filepath_or_buffer.close()
+        except:  # noqa: flake8
+            pass
+    return result
 
 
 class JsonReader(BaseIterator):

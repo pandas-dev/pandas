@@ -44,15 +44,15 @@ class Convert(object):
 
     goal_time = 0.5
     params = (['DataFrame', 'Series'], ['Timestamp', 'Timedelta'])
-    param_names = ['contructor', 'replace_data']
+    param_names = ['constructor', 'replace_data']
 
-    def setup(self, contructor, replace_data):
+    def setup(self, constructor, replace_data):
         N = 10**3
         data = {'Series': pd.Series(np.random.randint(N, size=N)),
                 'DataFrame': pd.DataFrame({'A': np.random.randint(N, size=N),
                                            'B': np.random.randint(N, size=N)})}
         self.to_replace = {i: getattr(pd, replace_data) for i in range(N)}
-        self.data = data[contructor]
+        self.data = data[constructor]
 
-    def time_replace(self, contructor, replace_data):
+    def time_replace(self, constructor, replace_data):
         self.data.replace(self.to_replace)

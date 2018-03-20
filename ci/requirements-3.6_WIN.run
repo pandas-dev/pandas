@@ -12,5 +12,6 @@ numexpr
 pytables
 matplotlib
 blosc
+thrift=0.10*
 fastparquet
 pyarrow

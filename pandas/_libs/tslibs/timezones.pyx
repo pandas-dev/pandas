@@ -18,9 +18,9 @@ UTC = pytz.utc
 
 
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 from numpy cimport ndarray, int64_t
-np.import_array()
+cnp.import_array()
 
 # ----------------------------------------------------------------------
 from util cimport is_string_object, is_integer_object, get_nat
@@ -295,7 +295,7 @@ cpdef bint tz_compare(object start, object end):
     timezones. For example
     `<DstTzInfo 'Europe/Paris' LMT+0:09:00 STD>` and
     `<DstTzInfo 'Europe/Paris' CET+1:00:00 STD>` are essentially same
-    timezones but aren't evaluted such, but the string representation
+    timezones but aren't evaluated such, but the string representation
     for both of these is `'Europe/Paris'`.
 
     This exists only to add a notion of equality to pytz-style zones

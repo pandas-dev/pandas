@@ -147,6 +147,11 @@ class Indexing(object):
         self.idx = getattr(tm, 'make{}Index'.format(dtype))(N)
         self.array_mask = (np.arange(N) % 3) == 0
         self.series_mask = Series(self.array_mask)
+        self.sorted = self.idx.sort_values()
+        half = N // 2
+        self.non_unique = self.idx[:half].append(self.idx[:half])
+        self.non_unique_sorted = self.sorted[:half].append(self.sorted[:half])
+        self.key = self.sorted[N // 4]
 
     def time_boolean_array(self, dtype):
         self.idx[self.array_mask]
@@ -162,6 +167,18 @@ class Indexing(object):
 
     def time_slice_step(self, dtype):
         self.idx[::2]
+
+    def time_get_loc(self, dtype):
+        self.idx.get_loc(self.key)
+
+    def time_get_loc_sorted(self, dtype):
+        self.sorted.get_loc(self.key)
+
+    def time_get_loc_non_unique(self, dtype):
+        self.non_unique.get_loc(self.key)
+
+    def time_get_loc_non_unique_sorted(self, dtype):
+        self.non_unique_sorted.get_loc(self.key)
 
 
 class Float64IndexMethod(object):

@@ -16,7 +16,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import notna
 
 import pandas.core.ops as ops
-import pandas.core.missing as missing
 import pandas.core.common as com
 from pandas import compat
 from pandas.compat import (map, zip, range, u, OrderedDict)
@@ -205,10 +204,8 @@ class Panel(NDFrame):
                                for k, v in compat.iteritems(data)
                                if k in haxis)
         else:
-            ks = list(data.keys())
-            if not isinstance(data, OrderedDict):
-                ks = com._try_sort(ks)
-            haxis = Index(ks)
+            keys = com._dict_keys_to_ordered_list(data)
+            haxis = Index(keys)
 
         for k, v in compat.iteritems(data):
             if isinstance(v, dict):
@@ -1021,7 +1018,7 @@ class Panel(NDFrame):
 
         Equivalent to previous:
 
-        >>> p.apply(lambda x: x.sum(), axis='minor')
+        >>> p.apply(lambda x: x.sum(), axis='major')
 
         Return the shapes of each DataFrame over axis 2 (i.e the shapes of
         items x major), as a Series
@@ -1521,52 +1518,6 @@ class Panel(NDFrame):
 
         return _ensure_index(index)
 
-    @classmethod
-    def _add_aggregate_operations(cls, use_numexpr=True):
-        """ add the operations to the cls; evaluate the doc strings again """
-
-        def _panel_arith_method(op, name, str_rep=None, default_axis=None):
-
-            eval_kwargs = ops._gen_eval_kwargs(name)
-            fill_zeros = ops._gen_fill_zeros(name)
-
-            def na_op(x, y):
-                import pandas.core.computation.expressions as expressions
-
-                try:
-                    result = expressions.evaluate(op, str_rep, x, y,
-                                                  errors='raise',
-                                                  **eval_kwargs)
-                except TypeError:
-                    result = op(x, y)
-
-                # handles discrepancy between numpy and numexpr on division/mod
-                # by 0 though, given that these are generally (always?)
-                # non-scalars, I'm not sure whether it's worth it at the moment
-                result = missing.fill_zeros(result, x, y, name, fill_zeros)
-                return result
-
-            if name in ops._op_descriptions:
-                doc = ops._make_flex_doc(name, 'panel')
-            else:
-                # doc strings substitors
-                doc = ops._agg_doc_PANEL.format(
-                    construct=cls._constructor_sliced.__name__,
-                    cls_name=cls.__name__, wrp_method=name,
-                    axis_order=', '.join(cls._AXIS_ORDERS))
-
-            @Appender(doc)
-            def f(self, other, axis=0):
-                return self._combine(other, na_op, axis=axis)
-
-            f.__name__ = name
-            return f
-
-        # add `div`, `mul`, `pow`, etc..
-        ops.add_flex_arithmetic_methods(
-            cls, _panel_arith_method, use_numexpr=use_numexpr,
-            flex_comp_method=ops._comp_method_PANEL)
-
 
 Panel._setup_axes(axes=['items', 'major_axis', 'minor_axis'], info_axis=0,
                   stat_axis=1, aliases={'major': 'major_axis',
@@ -1574,8 +1525,8 @@ Panel._setup_axes(axes=['items', 'major_axis', 'minor_axis'], info_axis=0,
                   slicers={'major_axis': 'index',
                            'minor_axis': 'columns'})
 
-ops.add_special_arithmetic_methods(Panel, **ops.panel_special_funcs)
-Panel._add_aggregate_operations()
+ops.add_special_arithmetic_methods(Panel)
+ops.add_flex_arithmetic_methods(Panel)
 Panel._add_numeric_operations()
 
 

@@ -1,20 +1,14 @@
 # cython: profile=False
 
-cimport numpy as np
-import numpy as np
-
 cimport cython
 from cython cimport Py_ssize_t
 
-np.import_array()
-
-cdef float64_t FP_ERR = 1e-13
-
-cimport util
-
 from libc.stdlib cimport malloc, free
 from libc.string cimport memmove
+from libc.math cimport fabs, sqrt
 
+import numpy as np
+cimport numpy as cnp
 from numpy cimport (ndarray,
                     NPY_INT64, NPY_UINT64, NPY_INT32, NPY_INT16, NPY_INT8,
                     NPY_FLOAT32, NPY_FLOAT64,
@@ -22,27 +16,20 @@ from numpy cimport (ndarray,
                     int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
                     uint32_t, uint64_t, float32_t, float64_t,
                     double_t)
+cnp.import_array()
 
 
-cdef double NaN = <double> np.NaN
-cdef double nan = NaN
-
-from libc.math cimport fabs, sqrt
-
-# this is our util.pxd
+cimport util
 from util cimport numeric, get_nat
 
 import missing
 
-cdef int64_t iNaT = get_nat()
+cdef float64_t FP_ERR = 1e-13
 
-cdef:
-    int TIEBREAK_AVERAGE = 0
-    int TIEBREAK_MIN = 1
-    int TIEBREAK_MAX = 2
-    int TIEBREAK_FIRST = 3
-    int TIEBREAK_FIRST_DESCENDING = 4
-    int TIEBREAK_DENSE = 5
+cdef double NaN = <double> np.NaN
+cdef double nan = NaN
+
+cdef int64_t iNaT = get_nat()
 
 tiebreakers = {
     'average': TIEBREAK_AVERAGE,

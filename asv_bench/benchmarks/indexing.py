@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pandas.util.testing as tm
 from pandas import (Series, DataFrame, MultiIndex, Int64Index, Float64Index,
@@ -91,7 +93,8 @@ class NonNumericSeriesIndexing(object):
         self.s[:80000]
 
     def time_get_value(self, index):
-        self.s.get_value(self.lbl)
+        with warnings.catch_warnings(record=True):
+            self.s.get_value(self.lbl)
 
     def time_getitem_scalar(self, index):
         self.s[self.lbl]
@@ -112,7 +115,8 @@ class DataFrameStringIndexing(object):
         self.bool_obj_indexer = self.bool_indexer.astype(object)
 
     def time_get_value(self):
-        self.df.get_value(self.idx_scalar, self.col_scalar)
+        with warnings.catch_warnings(record=True):
+            self.df.get_value(self.idx_scalar, self.col_scalar)
 
     def time_ix(self):
         self.df.ix[self.idx_scalar, self.col_scalar]
@@ -231,11 +235,13 @@ class PanelIndexing(object):
     goal_time = 0.2
 
     def setup(self):
-        self.p = Panel(np.random.randn(100, 100, 100))
-        self.inds = range(0, 100, 10)
+        with warnings.catch_warnings(record=True):
+            self.p = Panel(np.random.randn(100, 100, 100))
+            self.inds = range(0, 100, 10)
 
     def time_subset(self):
-        self.p.ix[(self.inds, self.inds, self.inds)]
+        with warnings.catch_warnings(record=True):
+            self.p.ix[(self.inds, self.inds, self.inds)]
 
 
 class MethodLookup(object):
@@ -295,7 +301,8 @@ class InsertColumns(object):
     def time_insert(self):
         np.random.seed(1234)
         for i in range(100):
-            self.df.insert(0, i, np.random.randn(self.N))
+            self.df.insert(0, i, np.random.randn(self.N),
+                           allow_duplicates=True)
 
     def time_assign_with_setitem(self):
         np.random.seed(1234)

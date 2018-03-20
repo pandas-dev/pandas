@@ -11,9 +11,8 @@ import re
 from distutils.version import LooseVersion
 import itertools
 from pandas import (Index, MultiIndex, DataFrame, DatetimeIndex,
-                    Series, Categorical)
+                    Series, Categorical, TimedeltaIndex, SparseArray)
 from pandas.compat import OrderedDict, lrange
-from pandas.core.sparse.array import SparseArray
 from pandas.core.internals import (BlockPlacement, SingleBlockManager,
                                    make_block, BlockManager)
 import pandas.core.algorithms as algos
@@ -284,6 +283,14 @@ class TestBlock(object):
         newb = self.fblock.copy()
         with pytest.raises(Exception):
             newb.delete(3)
+
+    def test_make_block_same_class(self):
+        # issue 19431
+        block = create_block('M8[ns, US/Eastern]', [3])
+        with tm.assert_produces_warning(DeprecationWarning,
+                                        check_stacklevel=False):
+            block.make_block_same_class(block.values.values,
+                                        dtype=block.values.dtype)
 
 
 class TestDatetimeBlock(object):
@@ -1255,9 +1262,30 @@ class TestCanHoldElement(object):
         assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize('typestr, holder', [
+    ('category', Categorical),
+    ('M8[ns]', DatetimeIndex),
+    ('M8[ns, US/Central]', DatetimeIndex),
+    ('m8[ns]', TimedeltaIndex),
+    ('sparse', SparseArray),
+])
+def test_holder(typestr, holder):
+    blk = create_block(typestr, [1])
+    assert blk._holder is holder
+
+
 def test_deprecated_fastpath():
     # GH#19265
     values = np.random.rand(3, 3)
     with tm.assert_produces_warning(DeprecationWarning,
                                     check_stacklevel=False):
         make_block(values, placement=np.arange(3), fastpath=True)
+
+
+def test_validate_ndim():
+    values = np.array([1.0, 2.0])
+    placement = slice(2)
+    msg = "Wrong number of dimensions. values.ndim != ndim \[1 != 2\]"
+
+    with tm.assert_raises_regex(ValueError, msg):
+        make_block(values, placement, ndim=2)

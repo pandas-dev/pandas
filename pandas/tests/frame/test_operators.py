@@ -10,7 +10,7 @@ import pytest
 from numpy import nan, random
 import numpy as np
 
-from pandas.compat import lrange, range
+from pandas.compat import range
 from pandas import compat
 from pandas import (DataFrame, Series, MultiIndex, Timestamp,
                     date_range)
@@ -26,53 +26,6 @@ import pandas.util.testing as tm
 
 from pandas.tests.frame.common import (TestData, _check_mixed_float,
                                        _check_mixed_int)
-
-
-class TestDataFrameArithmetic(object):
-
-    @pytest.mark.xfail(reason='GH#7996 datetime64 units not converted to nano')
-    def test_frame_sub_datetime64_not_ns(self):
-        df = pd.DataFrame(date_range('20130101', periods=3))
-        dt64 = np.datetime64('2013-01-01')
-        assert dt64.dtype == 'datetime64[D]'
-        res = df - dt64
-        expected = pd.DataFrame([pd.Timedelta(days=0), pd.Timedelta(days=1),
-                                 pd.Timedelta(days=2)])
-        tm.assert_frame_equal(res, expected)
-
-    @pytest.mark.parametrize('data', [
-        [1, 2, 3],
-        [1.1, 2.2, 3.3],
-        [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'), pd.NaT],
-        ['x', 'y', 1]])
-    @pytest.mark.parametrize('dtype', [None, object])
-    def test_frame_radd_str_invalid(self, dtype, data):
-        df = DataFrame(data, dtype=dtype)
-        with pytest.raises(TypeError):
-            'foo_' + df
-
-    @pytest.mark.parametrize('dtype', [None, object])
-    def test_frame_with_dtype_radd_int(self, dtype):
-        df = pd.DataFrame([1, 2, 3], dtype=dtype)
-        expected = pd.DataFrame([2, 3, 4], dtype=dtype)
-        result = 1 + df
-        assert_frame_equal(result, expected)
-        result = df + 1
-        assert_frame_equal(result, expected)
-
-    @pytest.mark.parametrize('dtype', [None, object])
-    def test_frame_with_dtype_radd_nan(self, dtype):
-        df = pd.DataFrame([1, 2, 3], dtype=dtype)
-        expected = pd.DataFrame([np.nan, np.nan, np.nan], dtype=dtype)
-        result = np.nan + df
-        assert_frame_equal(result, expected)
-        result = df + np.nan
-        assert_frame_equal(result, expected)
-
-    def test_frame_radd_str(self):
-        df = pd.DataFrame(['x', np.nan, 'x'])
-        assert_frame_equal('a' + df, pd.DataFrame(['ax', np.nan, 'ax']))
-        assert_frame_equal(df + 'a', pd.DataFrame(['xa', np.nan, 'xa']))
 
 
 class TestDataFrameOperators(TestData):
@@ -250,76 +203,6 @@ class TestDataFrameOperators(TestData):
             result = right_f(Timestamp('nat'), df)
             assert_frame_equal(result, expected)
 
-    def test_modulo(self):
-        # GH3590, modulo as ints
-        p = DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-
-        # this is technically wrong as the integer portion is coerced to float
-        # ###
-        expected = DataFrame({'first': Series([0, 0, 0, 0], dtype='float64'),
-                              'second': Series([np.nan, np.nan, np.nan, 0])})
-        result = p % p
-        assert_frame_equal(result, expected)
-
-        # numpy has a slightly different (wrong) treatement
-        with np.errstate(all='ignore'):
-            arr = p.values % p.values
-        result2 = DataFrame(arr, index=p.index,
-                            columns=p.columns, dtype='float64')
-        result2.iloc[0:3, 1] = np.nan
-        assert_frame_equal(result2, expected)
-
-        result = p % 0
-        expected = DataFrame(np.nan, index=p.index, columns=p.columns)
-        assert_frame_equal(result, expected)
-
-        # numpy has a slightly different (wrong) treatement
-        with np.errstate(all='ignore'):
-            arr = p.values.astype('float64') % 0
-        result2 = DataFrame(arr, index=p.index, columns=p.columns)
-        assert_frame_equal(result2, expected)
-
-        # not commutative with series
-        p = DataFrame(np.random.randn(10, 5))
-        s = p[0]
-        res = s % p
-        res2 = p % s
-        assert not res.fillna(0).equals(res2.fillna(0))
-
-    def test_div(self):
-
-        # integer div, but deal with the 0's (GH 9144)
-        p = DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-        result = p / p
-
-        expected = DataFrame({'first': Series([1.0, 1.0, 1.0, 1.0]),
-                              'second': Series([nan, nan, nan, 1])})
-        assert_frame_equal(result, expected)
-
-        with np.errstate(all='ignore'):
-            arr = p.values.astype('float') / p.values
-        result2 = DataFrame(arr, index=p.index,
-                            columns=p.columns)
-        assert_frame_equal(result2, expected)
-
-        result = p / 0
-        expected = DataFrame(np.inf, index=p.index, columns=p.columns)
-        expected.iloc[0:3, 1] = nan
-        assert_frame_equal(result, expected)
-
-        # numpy has a slightly different (wrong) treatement
-        with np.errstate(all='ignore'):
-            arr = p.values.astype('float64') / 0
-        result2 = DataFrame(arr, index=p.index,
-                            columns=p.columns)
-        assert_frame_equal(result2, expected)
-
-        p = DataFrame(np.random.randn(10, 5))
-        s = p[0]
-        res = s / p
-        res2 = p / s
-        assert not res.fillna(0).equals(res2.fillna(0))
-
     def test_logical_operators(self):
 
         def _check_bin_op(op):
@@ -388,12 +271,49 @@ class TestDataFrameOperators(TestData):
         expected = Series([True, True])
         assert_series_equal(result, expected)
 
-    def test_neg(self):
-        # what to do?
-        assert_frame_equal(-self.frame, -1 * self.frame)
+    @pytest.mark.parametrize('df,expected', [
+        (pd.DataFrame({'a': [-1, 1]}), pd.DataFrame({'a': [1, -1]})),
+        (pd.DataFrame({'a': [False, True]}),
+            pd.DataFrame({'a': [True, False]})),
+        (pd.DataFrame({'a': pd.Series(pd.to_timedelta([-1, 1]))}),
+            pd.DataFrame({'a': pd.Series(pd.to_timedelta([1, -1]))}))
+    ])
+    def test_neg_numeric(self, df, expected):
+        assert_frame_equal(-df, expected)
+        assert_series_equal(-df['a'], expected['a'])
+
+    @pytest.mark.parametrize('df', [
+        pd.DataFrame({'a': ['a', 'b']}),
+        pd.DataFrame({'a': pd.to_datetime(['2017-01-22', '1970-01-01'])}),
+    ])
+    def test_neg_raises(self, df):
+        with pytest.raises(TypeError):
+            (- df)
+        with pytest.raises(TypeError):
+            (- df['a'])
 
     def test_invert(self):
         assert_frame_equal(-(self.frame < 0), ~(self.frame < 0))
+
+    @pytest.mark.parametrize('df', [
+        pd.DataFrame({'a': [-1, 1]}),
+        pd.DataFrame({'a': [False, True]}),
+        pd.DataFrame({'a': pd.Series(pd.to_timedelta([-1, 1]))}),
+    ])
+    def test_pos_numeric(self, df):
+        # GH 16073
+        assert_frame_equal(+df, df)
+        assert_series_equal(+df['a'], df['a'])
+
+    @pytest.mark.parametrize('df', [
+        pd.DataFrame({'a': ['a', 'b']}),
+        pd.DataFrame({'a': pd.to_datetime(['2017-01-22', '1970-01-01'])}),
+    ])
+    def test_pos_raises(self, df):
+        with pytest.raises(TypeError):
+            (+ df)
+        with pytest.raises(TypeError):
+            (+ df['a'])
 
     def test_arith_flex_frame(self):
         ops = ['add', 'sub', 'mul', 'div', 'truediv', 'pow', 'floordiv', 'mod']
@@ -497,6 +417,19 @@ class TestDataFrameOperators(TestData):
             self.frame.add(self.frame.iloc[0], fill_value=3)
         with tm.assert_raises_regex(NotImplementedError, 'fill_value'):
             self.frame.add(self.frame.iloc[0], axis='index', fill_value=3)
+
+    def test_arith_flex_zero_len_raises(self):
+        # GH#19522 passing fill_value to frame flex arith methods should
+        # raise even in the zero-length special cases
+        ser_len0 = pd.Series([])
+        df_len0 = pd.DataFrame([], columns=['A', 'B'])
+        df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
+
+        with tm.assert_raises_regex(NotImplementedError, 'fill_value'):
+            df.add(ser_len0, fill_value='E')
+
+        with tm.assert_raises_regex(NotImplementedError, 'fill_value'):
+            df_len0.sub(df['A'], axis=None, fill_value=3)
 
     def test_binary_ops_align(self):
 
@@ -713,22 +646,6 @@ class TestDataFrameOperators(TestData):
         result = df1.ne(df2)
         exp = DataFrame({'col': [False, True, False]})
         assert_frame_equal(result, exp)
-
-    def test_return_dtypes_bool_op_costant(self):
-        # GH15077
-        df = DataFrame({'x': [1, 2, 3], 'y': [1., 2., 3.]})
-        const = 2
-
-        # not empty DataFrame
-        for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
-            result = getattr(df, op)(const).get_dtype_counts()
-            tm.assert_series_equal(result, Series([2], ['bool']))
-
-        # empty DataFrame
-        empty = df.iloc[:0]
-        for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
-            result = getattr(empty, op)(const).get_dtype_counts()
-            tm.assert_series_equal(result, Series([2], ['bool']))
 
     def test_dti_tz_convert_to_utc(self):
         base = pd.DatetimeIndex(['2011-01-01', '2011-01-02',
@@ -1009,22 +926,6 @@ class TestDataFrameOperators(TestData):
             result = (missing_df < 0).values
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_string_comparison(self):
-        df = DataFrame([{"a": 1, "b": "foo"}, {"a": 2, "b": "bar"}])
-        mask_a = df.a > 1
-        assert_frame_equal(df[mask_a], df.loc[1:1, :])
-        assert_frame_equal(df[-mask_a], df.loc[0:0, :])
-
-        mask_b = df.b == "foo"
-        assert_frame_equal(df[mask_b], df.loc[0:0, :])
-        assert_frame_equal(df[-mask_b], df.loc[1:1, :])
-
-    def test_float_none_comparison(self):
-        df = DataFrame(np.random.randn(8, 3), index=lrange(8),
-                       columns=['A', 'B', 'C'])
-
-        pytest.raises(TypeError, df.__eq__, None)
-
     def test_boolean_comparison(self):
 
         # GH 4576
@@ -1090,16 +991,6 @@ class TestDataFrameOperators(TestData):
 
         result = df == tup
         assert_frame_equal(result, expected)
-
-    def test_boolean_comparison_error(self):
-
-        # GH 4576
-        # boolean comparisons with a tuple/list give unexpected results
-        df = DataFrame(np.arange(6).reshape((3, 2)))
-
-        # not shape compatible
-        pytest.raises(ValueError, lambda: df == (2, 2))
-        pytest.raises(ValueError, lambda: df == [2, 2])
 
     def test_combine_generic(self):
         df1 = self.frame

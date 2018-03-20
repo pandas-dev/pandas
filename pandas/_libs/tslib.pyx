@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
 
-cimport numpy as np
+cimport numpy as cnp
 from numpy cimport int64_t, ndarray, float64_t
 import numpy as np
-np.import_array()
+cnp.import_array()
 
 
-from cpython cimport PyFloat_Check
+from cpython cimport PyFloat_Check, PyUnicode_Check
 
 from util cimport (is_integer_object, is_float_object, is_string_object,
                    is_datetime64_object)
@@ -46,7 +46,8 @@ from tslibs.timezones cimport (is_utc, is_tzlocal, is_fixed_offset,
                                treat_tz_as_pytz, get_dst_info)
 from tslibs.conversion cimport (tz_convert_single, _TSObject,
                                 convert_datetime_to_tsobject,
-                                get_datetime64_nanos)
+                                get_datetime64_nanos,
+                                tz_convert_utc_to_tzlocal)
 from tslibs.conversion import tz_convert_single
 
 from tslibs.nattype import NaT, nat_strings, iNaT
@@ -55,6 +56,8 @@ from tslibs.nattype cimport checknull_with_nat, NPY_NAT
 from tslibs.timestamps cimport (create_timestamp_from_ts,
                                 _NS_UPPER_BOUND, _NS_LOWER_BOUND)
 from tslibs.timestamps import Timestamp
+
+cdef bint PY2 = str == bytes
 
 
 cdef inline object create_datetime_from_ts(
@@ -142,12 +145,12 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
                 if value == NPY_NAT:
                     result[i] = NaT
                 else:
-                    dt64_to_dtstruct(value, &dts)
-                    dt = create_datetime_from_ts(value, dts, tz, freq)
-                    dt = dt + tz.utcoffset(dt)
-                    if box:
-                        dt = Timestamp(dt)
-                    result[i] = dt
+                    # Python datetime objects do not support nanosecond
+                    # resolution (yet, PEP 564). Need to compute new value
+                    # using the i8 representation.
+                    local_value = tz_convert_utc_to_tzlocal(value, tz)
+                    dt64_to_dtstruct(local_value, &dts)
+                    result[i] = func_create(value, dts, tz, freq)
         else:
             trans, deltas, typ = get_dst_info(tz)
 
@@ -522,11 +525,10 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                 seen_datetime = 1
                 if val.tzinfo is not None:
                     if utc_convert:
-                        _ts = convert_datetime_to_tsobject(val, None)
-                        iresult[i] = _ts.value
                         try:
-                            check_dts_bounds(&_ts.dts)
-                        except ValueError:
+                            _ts = convert_datetime_to_tsobject(val, None)
+                            iresult[i] = _ts.value
+                        except OutOfBoundsDatetime:
                             if is_coerce:
                                 iresult[i] = NPY_NAT
                                 continue
@@ -542,31 +544,31 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                         iresult[i] += val.nanosecond
                     try:
                         check_dts_bounds(&dts)
-                    except ValueError:
+                    except OutOfBoundsDatetime:
                         if is_coerce:
                             iresult[i] = NPY_NAT
                             continue
                         raise
 
             elif PyDate_Check(val):
+                seen_datetime = 1
                 iresult[i] = pydate_to_dt64(val, &dts)
                 try:
                     check_dts_bounds(&dts)
-                    seen_datetime = 1
-                except ValueError:
+                except OutOfBoundsDatetime:
                     if is_coerce:
                         iresult[i] = NPY_NAT
                         continue
                     raise
 
             elif is_datetime64_object(val):
+                seen_datetime = 1
                 if get_datetime64_value(val) == NPY_NAT:
                     iresult[i] = NPY_NAT
                 else:
                     try:
                         iresult[i] = get_datetime64_nanos(val)
-                        seen_datetime = 1
-                    except ValueError:
+                    except OutOfBoundsDatetime:
                         if is_coerce:
                             iresult[i] = NPY_NAT
                             continue
@@ -574,19 +576,18 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
             elif is_integer_object(val) or is_float_object(val):
                 # these must be ns unit by-definition
+                seen_integer = 1
 
                 if val != val or val == NPY_NAT:
                     iresult[i] = NPY_NAT
                 elif is_raise or is_ignore:
                     iresult[i] = val
-                    seen_integer = 1
                 else:
                     # coerce
                     # we now need to parse this as if unit='ns'
                     # we can ONLY accept integers at this point
                     # if we have previously (or in future accept
                     # datetimes/strings, then we must coerce)
-                    seen_integer = 1
                     try:
                         iresult[i] = cast_from_unit(val, 'ns')
                     except:
@@ -594,42 +595,37 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
 
             elif is_string_object(val):
                 # string
+                seen_string = 1
 
                 if len(val) == 0 or val in nat_strings:
                     iresult[i] = NPY_NAT
                     continue
-
-                seen_string = 1
+                if PyUnicode_Check(val) and PY2:
+                    val = val.encode('utf-8')
 
                 try:
                     _string_to_dts(val, &dts, &out_local, &out_tzoffset)
-                    value = dtstruct_to_dt64(&dts)
-                    if out_local == 1:
-                        tz = pytz.FixedOffset(out_tzoffset)
-                        value = tz_convert_single(value, tz, 'UTC')
-                    iresult[i] = value
-                    check_dts_bounds(&dts)
                 except ValueError:
-                    # if requiring iso8601 strings, skip trying other formats
-                    if require_iso8601:
-                        if _parse_today_now(val, &iresult[i]):
-                            continue
+                    # A ValueError at this point is a _parsing_ error
+                    # specifically _not_ OutOfBoundsDatetime
+                    if _parse_today_now(val, &iresult[i]):
+                        continue
+                    elif require_iso8601:
+                        # if requiring iso8601 strings, skip trying
+                        # other formats
                         if is_coerce:
                             iresult[i] = NPY_NAT
                             continue
                         elif is_raise:
-                            raise ValueError(
-                                "time data %r doesn't match format "
-                                "specified" % (val,))
-                        else:
-                            return values
+                            raise ValueError("time data {val} doesn't match "
+                                             "format specified"
+                                             .format(val=val))
+                        return values
 
                     try:
                         py_dt = parse_datetime_string(val, dayfirst=dayfirst,
                                                       yearfirst=yearfirst)
                     except Exception:
-                        if _parse_today_now(val, &iresult[i]):
-                            continue
                         if is_coerce:
                             iresult[i] = NPY_NAT
                             continue
@@ -638,16 +634,42 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                     try:
                         _ts = convert_datetime_to_tsobject(py_dt, None)
                         iresult[i] = _ts.value
-                    except ValueError:
+                    except OutOfBoundsDatetime:
                         if is_coerce:
                             iresult[i] = NPY_NAT
                             continue
                         raise
                 except:
+                    # TODO: What exception are we concerned with here?
                     if is_coerce:
                         iresult[i] = NPY_NAT
                         continue
                     raise
+                else:
+                    # No error raised by string_to_dts, pick back up
+                    # where we left off
+                    value = dtstruct_to_dt64(&dts)
+                    if out_local == 1:
+                        tz = pytz.FixedOffset(out_tzoffset)
+                        value = tz_convert_single(value, tz, 'UTC')
+                    iresult[i] = value
+                    try:
+                        check_dts_bounds(&dts)
+                    except OutOfBoundsDatetime:
+                        # GH#19382 for just-barely-OutOfBounds falling back to
+                        # dateutil parser will return incorrect result because
+                        # it will ignore nanoseconds
+                        if is_coerce:
+                            iresult[i] = NPY_NAT
+                            continue
+                        elif require_iso8601:
+                            if is_raise:
+                                raise ValueError("time data {val} doesn't "
+                                                 "match format specified"
+                                                 .format(val=val))
+                            return values
+                        raise
+
             else:
                 if is_coerce:
                     iresult[i] = NPY_NAT
@@ -733,8 +755,7 @@ cdef inline bint _parse_today_now(str val, int64_t* iresult):
         iresult[0] = Timestamp.utcnow().value
         return True
     elif val == 'today':
-        # Note: this is *not* the same as Timestamp('today')
-        iresult[0] = Timestamp.now().normalize().value
+        iresult[0] = Timestamp.today().value
         return True
     return False
 

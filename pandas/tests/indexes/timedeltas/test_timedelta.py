@@ -4,7 +4,6 @@ import numpy as np
 from datetime import timedelta
 
 import pandas as pd
-from pandas.errors import NullFrequencyError
 import pandas.util.testing as tm
 from pandas import (timedelta_range, date_range, Series, Timedelta,
                     TimedeltaIndex, Index, DataFrame,
@@ -19,7 +18,6 @@ randn = np.random.randn
 
 class TestTimedeltaIndex(DatetimeLike):
     _holder = TimedeltaIndex
-    _multiprocess_can_split_ = True
 
     def setup_method(self, method):
         self.indices = dict(index=tm.makeTimedeltaIndex(10))
@@ -34,28 +32,7 @@ class TestTimedeltaIndex(DatetimeLike):
         pass
 
     def test_shift(self):
-        # test shift for TimedeltaIndex
-        # err8083
-
-        drange = self.create_index()
-        result = drange.shift(1)
-        expected = TimedeltaIndex(['1 days 01:00:00', '2 days 01:00:00',
-                                   '3 days 01:00:00',
-                                   '4 days 01:00:00', '5 days 01:00:00'],
-                                  freq='D')
-        tm.assert_index_equal(result, expected)
-
-        result = drange.shift(3, freq='2D 1s')
-        expected = TimedeltaIndex(['6 days 01:00:03', '7 days 01:00:03',
-                                   '8 days 01:00:03', '9 days 01:00:03',
-                                   '10 days 01:00:03'], freq='D')
-        tm.assert_index_equal(result, expected)
-
-    def test_shift_no_freq(self):
-        # GH#19147
-        tdi = TimedeltaIndex(['1 days 01:00:00', '2 days 01:00:00'], freq=None)
-        with pytest.raises(NullFrequencyError):
-            tdi.shift(2)
+        pass  # this is handled in test_arithmetic.py
 
     def test_pickle_compat_construction(self):
         pass
@@ -125,13 +102,10 @@ class TestTimedeltaIndex(DatetimeLike):
         tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, idx3)
 
-    def test_join_self(self):
-
+    def test_join_self(self, join_type):
         index = timedelta_range('1 day', periods=10)
-        kinds = 'outer', 'inner', 'left', 'right'
-        for kind in kinds:
-            joined = index.join(index, how=kind)
-            tm.assert_index_equal(index, joined)
+        joined = index.join(index, how=join_type)
+        tm.assert_index_equal(index, joined)
 
     def test_does_not_convert_mixed_integer(self):
         df = tm.makeCustomDataframe(10, 10,
@@ -202,31 +176,6 @@ class TestTimedeltaIndex(DatetimeLike):
         result = rng.map(f)
         exp = Int64Index([f(x) for x in rng])
         tm.assert_index_equal(result, exp)
-
-    def test_total_seconds(self):
-        # GH 10939
-        # test index
-        rng = timedelta_range('1 days, 10:11:12.100123456', periods=2,
-                              freq='s')
-        expt = [1 * 86400 + 10 * 3600 + 11 * 60 + 12 + 100123456. / 1e9,
-                1 * 86400 + 10 * 3600 + 11 * 60 + 13 + 100123456. / 1e9]
-        tm.assert_almost_equal(rng.total_seconds(), Index(expt))
-
-        # test Series
-        s = Series(rng)
-        s_expt = Series(expt, index=[0, 1])
-        tm.assert_series_equal(s.dt.total_seconds(), s_expt)
-
-        # with nat
-        s[1] = np.nan
-        s_expt = Series([1 * 86400 + 10 * 3600 + 11 * 60 +
-                         12 + 100123456. / 1e9, np.nan], index=[0, 1])
-        tm.assert_series_equal(s.dt.total_seconds(), s_expt)
-
-        # with both nat
-        s = Series([np.nan, np.nan], dtype='timedelta64[ns]')
-        tm.assert_series_equal(s.dt.total_seconds(),
-                               Series([np.nan, np.nan], index=[0, 1]))
 
     def test_pass_TimedeltaIndex_to_index(self):
 
@@ -347,7 +296,6 @@ class TestTimedeltaIndex(DatetimeLike):
 
 
 class TestTimeSeries(object):
-    _multiprocess_can_split_ = True
 
     def test_series_box_timedelta(self):
         rng = timedelta_range('1 day 1 s', periods=5, freq='h')

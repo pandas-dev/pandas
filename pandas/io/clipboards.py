@@ -63,7 +63,7 @@ def read_clipboard(sep=r'\s+', **kwargs):  # pragma: no cover
     return read_table(StringIO(text), sep=sep, **kwargs)
 
 
-def to_clipboard(obj, excel=None, sep=None, **kwargs):  # pragma: no cover
+def to_clipboard(obj, excel=True, sep=None, **kwargs):  # pragma: no cover
     """
     Attempt to write text representation of object to the system clipboard
     The clipboard can be then pasted into Excel for example.

@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 import operator
 from itertools import product, starmap
 
-from numpy import nan, inf
+from numpy import nan
 import numpy as np
 import pandas as pd
 
@@ -19,6 +19,7 @@ from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.indexes.timedeltas import Timedelta
 import pandas.core.nanops as nanops
 
+from pandas.errors import PerformanceWarning
 from pandas.compat import range, zip
 from pandas import compat
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
@@ -26,11 +27,6 @@ from pandas.util.testing import (assert_series_equal, assert_almost_equal,
 import pandas.util.testing as tm
 
 from .common import TestData
-
-
-@pytest.fixture
-def tdser():
-    return Series(['59 Days', '59 Days', 'NaT'], dtype='timedelta64[ns]')
 
 
 class TestSeriesComparisons(object):
@@ -578,287 +574,7 @@ class TestSeriesComparisons(object):
                 left.to_frame() < right.to_frame()
 
 
-class TestSeriesArithmetic(object):
-    def test_divide_decimal(self):
-        """ resolves issue #9787 """
-        from decimal import Decimal
-
-        expected = Series([Decimal(5)])
-
-        s = Series([Decimal(10)])
-        s = s / Decimal(2)
-
-        assert_series_equal(expected, s)
-
-        s = Series([Decimal(10)])
-        s = s // Decimal(2)
-
-        assert_series_equal(expected, s)
-
-    def test_div(self):
-        with np.errstate(all='ignore'):
-            # no longer do integer div for any ops, but deal with the 0's
-            p = DataFrame({'first': [3, 4, 5, 8], 'second': [0, 0, 0, 3]})
-            result = p['first'] / p['second']
-            expected = Series(
-                p['first'].values.astype(float) / p['second'].values,
-                dtype='float64')
-            expected.iloc[0:3] = np.inf
-            assert_series_equal(result, expected)
-
-            result = p['first'] / 0
-            expected = Series(np.inf, index=p.index, name='first')
-            assert_series_equal(result, expected)
-
-            p = p.astype('float64')
-            result = p['first'] / p['second']
-            expected = Series(p['first'].values / p['second'].values)
-            assert_series_equal(result, expected)
-
-            p = DataFrame({'first': [3, 4, 5, 8], 'second': [1, 1, 1, 1]})
-            result = p['first'] / p['second']
-            assert_series_equal(result, p['first'].astype('float64'),
-                                check_names=False)
-            assert result.name is None
-            assert not result.equals(p['second'] / p['first'])
-
-            # inf signing
-            s = Series([np.nan, 1., -1.])
-            result = s / 0
-            expected = Series([np.nan, np.inf, -np.inf])
-            assert_series_equal(result, expected)
-
-            # float/integer issue
-            # GH 7785
-            p = DataFrame({'first': (1, 0), 'second': (-0.01, -0.02)})
-            expected = Series([-0.01, -np.inf])
-
-            result = p['second'].div(p['first'])
-            assert_series_equal(result, expected, check_names=False)
-
-            result = p['second'] / p['first']
-            assert_series_equal(result, expected)
-
-            # GH 9144
-            s = Series([-1, 0, 1])
-
-            result = 0 / s
-            expected = Series([0.0, nan, 0.0])
-            assert_series_equal(result, expected)
-
-            result = s / 0
-            expected = Series([-inf, nan, inf])
-            assert_series_equal(result, expected)
-
-            result = s // 0
-            expected = Series([-inf, nan, inf])
-            assert_series_equal(result, expected)
-
-            # GH 8674
-            zero_array = np.array([0] * 5)
-            data = np.random.randn(5)
-            expected = pd.Series([0.] * 5)
-            result = zero_array / pd.Series(data)
-            assert_series_equal(result, expected)
-
-            result = pd.Series(zero_array) / data
-            assert_series_equal(result, expected)
-
-            result = pd.Series(zero_array) / pd.Series(data)
-            assert_series_equal(result, expected)
-
-
-class TestTimedeltaSeriesArithmeticWithIntegers(object):
-    # Tests for Series with dtype 'timedelta64[ns]' arithmetic operations
-    # with integer and int-like others
-
-    # ------------------------------------------------------------------
-    # Addition and Subtraction
-
-    def test_td64series_add_int_series_invalid(self, tdser):
-        with pytest.raises(TypeError):
-            tdser + Series([2, 3, 4])
-
-    @pytest.mark.xfail(reason='GH#19123 integer interpreted as nanoseconds')
-    def test_td64series_radd_int_series_invalid(self, tdser):
-        with pytest.raises(TypeError):
-            Series([2, 3, 4]) + tdser
-
-    def test_td64series_sub_int_series_invalid(self, tdser):
-        with pytest.raises(TypeError):
-            tdser - Series([2, 3, 4])
-
-    @pytest.mark.xfail(reason='GH#19123 integer interpreted as nanoseconds')
-    def test_td64series_rsub_int_series_invalid(self, tdser):
-        with pytest.raises(TypeError):
-            Series([2, 3, 4]) - tdser
-
-    def test_td64_series_add_intlike(self):
-        # GH#19123
-        tdi = pd.TimedeltaIndex(['59 days', '59 days', 'NaT'])
-        ser = Series(tdi)
-
-        other = Series([20, 30, 40], dtype='uint8')
-
-        pytest.raises(TypeError, ser.__add__, 1)
-        pytest.raises(TypeError, ser.__sub__, 1)
-
-        pytest.raises(TypeError, ser.__add__, other)
-        pytest.raises(TypeError, ser.__sub__, other)
-
-        pytest.raises(TypeError, ser.__add__, other.values)
-        pytest.raises(TypeError, ser.__sub__, other.values)
-
-        pytest.raises(TypeError, ser.__add__, pd.Index(other))
-        pytest.raises(TypeError, ser.__sub__, pd.Index(other))
-
-    @pytest.mark.parametrize('scalar', [1, 1.5, np.array(2)])
-    def test_td64series_add_sub_numeric_scalar_invalid(self, scalar, tdser):
-        with pytest.raises(TypeError):
-            tdser + scalar
-        with pytest.raises(TypeError):
-            scalar + tdser
-        with pytest.raises(TypeError):
-            tdser - scalar
-        with pytest.raises(TypeError):
-            scalar - tdser
-
-    @pytest.mark.parametrize('dtype', ['int64', 'int32', 'int16',
-                                       'uint64', 'uint32', 'uint16', 'uint8',
-                                       'float64', 'float32', 'float16'])
-    @pytest.mark.parametrize('vector', [
-        np.array([1, 2, 3]),
-        pd.Index([1, 2, 3]),
-        pytest.param(Series([1, 2, 3]),
-                     marks=pytest.mark.xfail(reason='GH#19123 integer '
-                                                    'interpreted as nanos'))
-    ])
-    def test_td64series_add_sub_numeric_array_invalid(self, vector,
-                                                      dtype, tdser):
-        vector = vector.astype(dtype)
-        with pytest.raises(TypeError):
-            tdser + vector
-        with pytest.raises(TypeError):
-            vector + tdser
-        with pytest.raises(TypeError):
-            tdser - vector
-        with pytest.raises(TypeError):
-            vector - tdser
-
-    # ------------------------------------------------------------------
-    # Multiplicaton and Division
-
-    @pytest.mark.parametrize('dtype', ['int64', 'int32', 'int16',
-                                       'uint64', 'uint32', 'uint16', 'uint8',
-                                       'float64', 'float32', 'float16'])
-    @pytest.mark.parametrize('vector', [np.array([20, 30, 40]),
-                                        pd.Index([20, 30, 40]),
-                                        Series([20, 30, 40])])
-    def test_td64series_div_numeric_array(self, vector, dtype, tdser):
-        # GH 4521
-        # divide/multiply by integers
-        vector = vector.astype(dtype)
-        expected = Series(['2.95D', '1D 23H 12m', 'NaT'],
-                          dtype='timedelta64[ns]')
-
-        result = tdser / vector
-        assert_series_equal(result, expected)
-
-        with pytest.raises(TypeError):
-            vector / tdser
-
-    @pytest.mark.parametrize('dtype', ['int64', 'int32', 'int16',
-                                       'uint64', 'uint32', 'uint16', 'uint8',
-                                       'float64', 'float32', 'float16'])
-    @pytest.mark.parametrize('vector', [np.array([20, 30, 40]),
-                                        pd.Index([20, 30, 40]),
-                                        Series([20, 30, 40])])
-    def test_td64series_mul_numeric_array(self, vector, dtype, tdser):
-        # GH 4521
-        # divide/multiply by integers
-        vector = vector.astype(dtype)
-
-        expected = Series(['1180 Days', '1770 Days', 'NaT'],
-                          dtype='timedelta64[ns]')
-
-        result = tdser * vector
-        assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize('dtype', ['int64', 'int32', 'int16',
-                                       'uint64', 'uint32', 'uint16', 'uint8',
-                                       'float64', 'float32', 'float16'])
-    @pytest.mark.parametrize('vector', [
-        np.array([20, 30, 40]),
-        pytest.param(pd.Index([20, 30, 40]),
-                     marks=pytest.mark.xfail(reason='__mul__ raises '
-                                                    'instead of returning '
-                                                    'NotImplemented')),
-        Series([20, 30, 40])
-    ])
-    def test_td64series_rmul_numeric_array(self, vector, dtype, tdser):
-        # GH 4521
-        # divide/multiply by integers
-        vector = vector.astype(dtype)
-
-        expected = Series(['1180 Days', '1770 Days', 'NaT'],
-                          dtype='timedelta64[ns]')
-
-        result = vector * tdser
-        assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize('one', [1, np.array(1), 1.0, np.array(1.0)])
-    def test_td64series_mul_numeric_scalar(self, one, tdser):
-        # GH 4521
-        # divide/multiply by integers
-        expected = Series(['-59 Days', '-59 Days', 'NaT'],
-                          dtype='timedelta64[ns]')
-
-        result = tdser * (-one)
-        assert_series_equal(result, expected)
-        result = (-one) * tdser
-        assert_series_equal(result, expected)
-
-        expected = Series(['118 Days', '118 Days', 'NaT'],
-                          dtype='timedelta64[ns]')
-
-        result = tdser * (2 * one)
-        assert_series_equal(result, expected)
-        result = (2 * one) * tdser
-        assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize('two', [
-        2, 2.0,
-        pytest.param(np.array(2),
-                     marks=pytest.mark.xfail(reason='GH#19011 is_list_like '
-                                                    'incorrectly True.')),
-        pytest.param(np.array(2.0),
-                     marks=pytest.mark.xfail(reason='GH#19011 is_list_like '
-                                                    'incorrectly True.')),
-    ])
-    def test_td64series_div_numeric_scalar(self, two, tdser):
-        # GH 4521
-        # divide/multiply by integers
-        expected = Series(['29.5D', '29.5D', 'NaT'], dtype='timedelta64[ns]')
-
-        result = tdser / two
-        assert_series_equal(result, expected)
-
-
 class TestTimedeltaSeriesArithmetic(object):
-    def test_td64series_add_sub_timestamp(self):
-        # GH11925
-        tdser = Series(timedelta_range('1 day', periods=3))
-        ts = Timestamp('2012-01-01')
-        expected = Series(date_range('2012-01-02', periods=3))
-        assert_series_equal(ts + tdser, expected)
-        assert_series_equal(tdser + ts, expected)
-
-        expected2 = Series(date_range('2011-12-31', periods=3, freq='-1D'))
-        assert_series_equal(ts - tdser, expected2)
-        assert_series_equal(ts + (-tdser), expected2)
-
-        with pytest.raises(TypeError):
-            tdser - ts
 
     def test_timedelta64_operations_with_DateOffset(self):
         # GH 10699
@@ -871,8 +587,9 @@ class TestTimedeltaSeriesArithmetic(object):
         expected = Series([timedelta(minutes=4, seconds=3)] * 3)
         assert_series_equal(result, expected)
 
-        result = td + Series([pd.offsets.Minute(1), pd.offsets.Second(3),
-                              pd.offsets.Hour(2)])
+        with tm.assert_produces_warning(PerformanceWarning):
+            result = td + Series([pd.offsets.Minute(1), pd.offsets.Second(3),
+                                  pd.offsets.Hour(2)])
         expected = Series([timedelta(minutes=6, seconds=3), timedelta(
             minutes=5, seconds=6), timedelta(hours=2, minutes=5, seconds=3)])
         assert_series_equal(result, expected)
@@ -1075,13 +792,6 @@ class TestTimedeltaSeriesArithmetic(object):
         assert_series_equal(timedelta_series / nan,
                             nat_series_dtype_timedelta)
 
-    def test_td64_sub_NaT(self):
-        # GH#18808
-        ser = Series([NaT, Timedelta('1s')])
-        res = ser - NaT
-        expected = Series([NaT, NaT], dtype='timedelta64[ns]')
-        tm.assert_series_equal(res, expected)
-
     @pytest.mark.parametrize('scalar_td', [timedelta(minutes=5, seconds=4),
                                            Timedelta(minutes=5, seconds=4),
                                            Timedelta('5m4s').to_timedelta64()])
@@ -1096,135 +806,6 @@ class TestTimedeltaSeriesArithmetic(object):
         scalar_td - td1
         td1 / scalar_td
         scalar_td / td1
-
-    @pytest.mark.parametrize('scalar_td', [
-        timedelta(minutes=5, seconds=4),
-        Timedelta('5m4s'),
-        Timedelta('5m4s').to_timedelta64()])
-    def test_operators_timedelta64_with_timedelta_invalid(self, scalar_td):
-        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
-        td1.iloc[2] = np.nan
-
-        # check that we are getting a TypeError
-        # with 'operate' (from core/ops.py) for the ops that are not
-        # defined
-        pattern = 'operate|unsupported|cannot|not supported'
-        with tm.assert_raises_regex(TypeError, pattern):
-            td1 * scalar_td
-        with tm.assert_raises_regex(TypeError, pattern):
-            scalar_td * td1
-        with tm.assert_raises_regex(TypeError, pattern):
-            scalar_td ** td1
-        with tm.assert_raises_regex(TypeError, pattern):
-            td1 ** scalar_td
-
-    @pytest.mark.parametrize('scalar_td', [
-        timedelta(minutes=5, seconds=4),
-        Timedelta('5m4s'),
-        Timedelta('5m4s').to_timedelta64()])
-    def test_timedelta_rfloordiv(self, scalar_td):
-        # GH#18831
-        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
-        td1.iloc[2] = np.nan
-        result = scalar_td // td1
-        expected = Series([1, 1, np.nan])
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize('scalar_td', [
-        timedelta(minutes=5, seconds=4),
-        Timedelta('5m4s'),
-        Timedelta('5m4s').to_timedelta64()])
-    def test_timedelta_rfloordiv_explicit(self, scalar_td):
-        # GH#18831
-        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
-        td1.iloc[2] = np.nan
-
-        # We can test __rfloordiv__ using this syntax,
-        # see `test_timedelta_rfloordiv`
-        result = td1.__rfloordiv__(scalar_td)
-        expected = Series([1, 1, np.nan])
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize('scalar_td', [
-        timedelta(minutes=5, seconds=4),
-        Timedelta('5m4s'),
-        Timedelta('5m4s').to_timedelta64()])
-    def test_timedelta_floordiv(self, scalar_td):
-        # GH#18831
-        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
-        td1.iloc[2] = np.nan
-
-        result = td1 // scalar_td
-        expected = Series([0, 0, np.nan])
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize('names', [(None, None, None),
-                                       ('Egon', 'Venkman', None),
-                                       ('NCC1701D', 'NCC1701D', 'NCC1701D')])
-    def test_td64_series_with_tdi(self, names):
-        # GH#17250 make sure result dtype is correct
-        # GH#19043 make sure names are propogated correctly
-        tdi = pd.TimedeltaIndex(['0 days', '1 day'], name=names[0])
-        ser = Series([Timedelta(hours=3), Timedelta(hours=4)], name=names[1])
-        expected = Series([Timedelta(hours=3), Timedelta(days=1, hours=4)],
-                          name=names[2])
-
-        result = tdi + ser
-        tm.assert_series_equal(result, expected)
-        assert result.dtype == 'timedelta64[ns]'
-
-        result = ser + tdi
-        tm.assert_series_equal(result, expected)
-        assert result.dtype == 'timedelta64[ns]'
-
-        expected = Series([Timedelta(hours=-3), Timedelta(days=1, hours=-4)],
-                          name=names[2])
-
-        result = tdi - ser
-        tm.assert_series_equal(result, expected)
-        assert result.dtype == 'timedelta64[ns]'
-
-        result = ser - tdi
-        tm.assert_series_equal(result, -expected)
-        assert result.dtype == 'timedelta64[ns]'
-
-    @pytest.mark.parametrize('names', [(None, None, None),
-                                       ('Egon', 'Venkman', None),
-                                       ('NCC1701D', 'NCC1701D', 'NCC1701D')])
-    def test_tdi_mul_int_series(self, names):
-        # GH#19042
-        tdi = pd.TimedeltaIndex(['0days', '1day', '2days', '3days', '4days'],
-                                name=names[0])
-        ser = Series([0, 1, 2, 3, 4], dtype=np.int64, name=names[1])
-
-        expected = Series(['0days', '1day', '4days', '9days', '16days'],
-                          dtype='timedelta64[ns]',
-                          name=names[2])
-
-        result = ser * tdi
-        tm.assert_series_equal(result, expected)
-
-        # The direct operation tdi * ser still needs to be fixed.
-        result = ser.__rmul__(tdi)
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize('names', [(None, None, None),
-                                       ('Egon', 'Venkman', None),
-                                       ('NCC1701D', 'NCC1701D', 'NCC1701D')])
-    def test_float_series_rdiv_tdi(self, names):
-        # GH#19042
-        # TODO: the direct operation TimedeltaIndex / Series still
-        # needs to be fixed.
-        tdi = pd.TimedeltaIndex(['0days', '1day', '2days', '3days', '4days'],
-                                name=names[0])
-        ser = Series([1.5, 3, 4.5, 6, 7.5], dtype=np.float64, name=names[1])
-
-        expected = Series([tdi[n] / ser[n] for n in range(len(ser))],
-                          dtype='timedelta64[ns]',
-                          name=names[2])
-
-        result = ser.__rdiv__(tdi)
-        tm.assert_series_equal(result, expected)
 
 
 class TestDatetimeSeriesArithmetic(object):
@@ -1574,33 +1155,42 @@ class TestDatetimeSeriesArithmetic(object):
 
 
 class TestSeriesOperators(TestData):
-    def test_op_method(self):
-        def check(series, other, check_reverse=False):
-            simple_ops = ['add', 'sub', 'mul', 'floordiv', 'truediv', 'pow']
-            if not compat.PY3:
-                simple_ops.append('div')
+    @pytest.mark.parametrize(
+        'ts',
+        [
+            (lambda x: x, lambda x: x * 2, False),
+            (lambda x: x, lambda x: x[::2], False),
+            (lambda x: x, lambda x: 5, True),
+            (lambda x: tm.makeFloatSeries(),
+             lambda x: tm.makeFloatSeries(),
+             True)
+        ])
+    @pytest.mark.parametrize('opname', ['add', 'sub', 'mul', 'floordiv',
+                                        'truediv', 'div', 'pow'])
+    def test_op_method(self, opname, ts):
+        # check that Series.{opname} behaves like Series.__{opname}__,
+        series = ts[0](self.ts)
+        other = ts[1](self.ts)
+        check_reverse = ts[2]
 
-            for opname in simple_ops:
-                op = getattr(Series, opname)
+        if opname == 'div' and compat.PY3:
+            pytest.skip('div test only for Py3')
 
-                if op == 'div':
-                    alt = operator.truediv
-                else:
-                    alt = getattr(operator, opname)
+        op = getattr(Series, opname)
 
-                result = op(series, other)
-                expected = alt(series, other)
-                assert_almost_equal(result, expected)
-                if check_reverse:
-                    rop = getattr(Series, "r" + opname)
-                    result = rop(series, other)
-                    expected = alt(other, series)
-                    assert_almost_equal(result, expected)
+        if op == 'div':
+            alt = operator.truediv
+        else:
+            alt = getattr(operator, opname)
 
-        check(self.ts, self.ts * 2)
-        check(self.ts, self.ts[::2])
-        check(self.ts, 5, check_reverse=True)
-        check(tm.makeFloatSeries(), tm.makeFloatSeries(), check_reverse=True)
+        result = op(series, other)
+        expected = alt(series, other)
+        assert_almost_equal(result, expected)
+        if check_reverse:
+            rop = getattr(Series, "r" + opname)
+            result = rop(series, other)
+            expected = alt(other, series)
+            assert_almost_equal(result, expected)
 
     def test_neg(self):
         assert_series_equal(-self.series, -1 * self.series)
@@ -1683,15 +1273,6 @@ class TestSeriesOperators(TestData):
         s1 = Series([], [], dtype=np.int32)
         s2 = Series({'x': 0.})
         assert_series_equal(s1 * s2, Series([np.nan], index=['x']))
-
-    def test_invalid_ops(self):
-        # invalid ops
-        pytest.raises(Exception, self.objSeries.__add__, 1)
-        pytest.raises(Exception, self.objSeries.__add__,
-                      np.array(1, dtype=np.int64))
-        pytest.raises(Exception, self.objSeries.__sub__, 1)
-        pytest.raises(Exception, self.objSeries.__sub__,
-                      np.array(1, dtype=np.int64))
 
     @pytest.mark.parametrize("m", [1, 3, 10])
     @pytest.mark.parametrize("unit", ['D', 'h', 'm', 's', 'ms', 'us', 'ns'])
@@ -1814,20 +1395,6 @@ class TestSeriesOperators(TestData):
         expected = Series(expected, name=0)
         result = (dt2.to_frame() - dt.to_frame())[0]
         assert_series_equal(result, expected)
-
-    def test_return_dtypes_bool_op_costant(self):
-        # gh15115
-        s = pd.Series([1, 3, 2], index=range(3))
-        const = 2
-        for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
-            result = getattr(s, op)(const).get_dtype_counts()
-            tm.assert_series_equal(result, Series([1], ['bool']))
-
-        # empty Series
-        empty = s.iloc[:0]
-        for op in ['eq', 'ne', 'gt', 'lt', 'ge', 'le']:
-            result = getattr(empty, op)(const).get_dtype_counts()
-            tm.assert_series_equal(result, Series([1], ['bool']))
 
     def test_operators_bitwise(self):
         # GH 9016: support bitwise op for integer types
@@ -1992,190 +1559,15 @@ class TestSeriesOperators(TestData):
                           index=self.ts.index[:-5], name='ts')
         tm.assert_series_equal(added[:-5], expected)
 
-    def test_operators_reverse_object(self):
+    @pytest.mark.parametrize('op', [operator.add, operator.sub, operator.mul,
+                                    operator.truediv, operator.floordiv])
+    def test_operators_reverse_object(self, op):
         # GH 56
         arr = Series(np.random.randn(10), index=np.arange(10), dtype=object)
 
-        def _check_op(arr, op):
-            result = op(1., arr)
-            expected = op(1., arr.astype(float))
-            assert_series_equal(result.astype(float), expected)
-
-        _check_op(arr, operator.add)
-        _check_op(arr, operator.sub)
-        _check_op(arr, operator.mul)
-        _check_op(arr, operator.truediv)
-        _check_op(arr, operator.floordiv)
-
-    def test_arith_ops_df_compat(self):
-        # GH 1134
-        s1 = pd.Series([1, 2, 3], index=list('ABC'), name='x')
-        s2 = pd.Series([2, 2, 2], index=list('ABD'), name='x')
-
-        exp = pd.Series([3.0, 4.0, np.nan, np.nan],
-                        index=list('ABCD'), name='x')
-        assert_series_equal(s1 + s2, exp)
-        assert_series_equal(s2 + s1, exp)
-
-        exp = pd.DataFrame({'x': [3.0, 4.0, np.nan, np.nan]},
-                           index=list('ABCD'))
-        assert_frame_equal(s1.to_frame() + s2.to_frame(), exp)
-        assert_frame_equal(s2.to_frame() + s1.to_frame(), exp)
-
-        # different length
-        s3 = pd.Series([1, 2, 3], index=list('ABC'), name='x')
-        s4 = pd.Series([2, 2, 2, 2], index=list('ABCD'), name='x')
-
-        exp = pd.Series([3, 4, 5, np.nan],
-                        index=list('ABCD'), name='x')
-        assert_series_equal(s3 + s4, exp)
-        assert_series_equal(s4 + s3, exp)
-
-        exp = pd.DataFrame({'x': [3, 4, 5, np.nan]},
-                           index=list('ABCD'))
-        assert_frame_equal(s3.to_frame() + s4.to_frame(), exp)
-        assert_frame_equal(s4.to_frame() + s3.to_frame(), exp)
-
-    def test_bool_ops_df_compat(self):
-        # GH 1134
-        s1 = pd.Series([True, False, True], index=list('ABC'), name='x')
-        s2 = pd.Series([True, True, False], index=list('ABD'), name='x')
-
-        exp = pd.Series([True, False, False, False],
-                        index=list('ABCD'), name='x')
-        assert_series_equal(s1 & s2, exp)
-        assert_series_equal(s2 & s1, exp)
-
-        # True | np.nan => True
-        exp = pd.Series([True, True, True, False],
-                        index=list('ABCD'), name='x')
-        assert_series_equal(s1 | s2, exp)
-        # np.nan | True => np.nan, filled with False
-        exp = pd.Series([True, True, False, False],
-                        index=list('ABCD'), name='x')
-        assert_series_equal(s2 | s1, exp)
-
-        # DataFrame doesn't fill nan with False
-        exp = pd.DataFrame({'x': [True, False, np.nan, np.nan]},
-                           index=list('ABCD'))
-        assert_frame_equal(s1.to_frame() & s2.to_frame(), exp)
-        assert_frame_equal(s2.to_frame() & s1.to_frame(), exp)
-
-        exp = pd.DataFrame({'x': [True, True, np.nan, np.nan]},
-                           index=list('ABCD'))
-        assert_frame_equal(s1.to_frame() | s2.to_frame(), exp)
-        assert_frame_equal(s2.to_frame() | s1.to_frame(), exp)
-
-        # different length
-        s3 = pd.Series([True, False, True], index=list('ABC'), name='x')
-        s4 = pd.Series([True, True, True, True], index=list('ABCD'), name='x')
-
-        exp = pd.Series([True, False, True, False],
-                        index=list('ABCD'), name='x')
-        assert_series_equal(s3 & s4, exp)
-        assert_series_equal(s4 & s3, exp)
-
-        # np.nan | True => np.nan, filled with False
-        exp = pd.Series([True, True, True, False],
-                        index=list('ABCD'), name='x')
-        assert_series_equal(s3 | s4, exp)
-        # True | np.nan => True
-        exp = pd.Series([True, True, True, True],
-                        index=list('ABCD'), name='x')
-        assert_series_equal(s4 | s3, exp)
-
-        exp = pd.DataFrame({'x': [True, False, True, np.nan]},
-                           index=list('ABCD'))
-        assert_frame_equal(s3.to_frame() & s4.to_frame(), exp)
-        assert_frame_equal(s4.to_frame() & s3.to_frame(), exp)
-
-        exp = pd.DataFrame({'x': [True, True, True, np.nan]},
-                           index=list('ABCD'))
-        assert_frame_equal(s3.to_frame() | s4.to_frame(), exp)
-        assert_frame_equal(s4.to_frame() | s3.to_frame(), exp)
-
-    def test_series_frame_radd_bug(self):
-        # GH 353
-        vals = Series(tm.rands_array(5, 10))
-        result = 'foo_' + vals
-        expected = vals.map(lambda x: 'foo_' + x)
-        assert_series_equal(result, expected)
-
-        frame = DataFrame({'vals': vals})
-        result = 'foo_' + frame
-        expected = DataFrame({'vals': vals.map(lambda x: 'foo_' + x)})
-        assert_frame_equal(result, expected)
-
-        # really raise this time
-        with pytest.raises(TypeError):
-            datetime.now() + self.ts
-
-        with pytest.raises(TypeError):
-            self.ts + datetime.now()
-
-    def test_series_radd_str(self):
-        ser = pd.Series(['x', np.nan, 'x'])
-        assert_series_equal('a' + ser, pd.Series(['ax', np.nan, 'ax']))
-        assert_series_equal(ser + 'a', pd.Series(['xa', np.nan, 'xa']))
-
-    @pytest.mark.parametrize('dtype', [None, object])
-    def test_series_with_dtype_radd_timedelta(self, dtype):
-        ser = pd.Series([pd.Timedelta('1 days'), pd.Timedelta('2 days'),
-                         pd.Timedelta('3 days')], dtype=dtype)
-        expected = pd.Series([pd.Timedelta('4 days'), pd.Timedelta('5 days'),
-                              pd.Timedelta('6 days')])
-
-        result = pd.Timedelta('3 days') + ser
-        assert_series_equal(result, expected)
-
-        result = ser + pd.Timedelta('3 days')
-        assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize('dtype', [None, object])
-    def test_series_with_dtype_radd_int(self, dtype):
-        ser = pd.Series([1, 2, 3], dtype=dtype)
-        expected = pd.Series([2, 3, 4], dtype=dtype)
-
-        result = 1 + ser
-        assert_series_equal(result, expected)
-
-        result = ser + 1
-        assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize('dtype', [None, object])
-    def test_series_with_dtype_radd_nan(self, dtype):
-        ser = pd.Series([1, 2, 3], dtype=dtype)
-        expected = pd.Series([np.nan, np.nan, np.nan], dtype=dtype)
-
-        result = np.nan + ser
-        assert_series_equal(result, expected)
-
-        result = ser + np.nan
-        assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize('data', [
-        [1, 2, 3],
-        [1.1, 2.2, 3.3],
-        [pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02'), pd.NaT],
-        ['x', 'y', 1]])
-    @pytest.mark.parametrize('dtype', [None, object])
-    def test_series_radd_str_invalid(self, dtype, data):
-        ser = Series(data, dtype=dtype)
-        with pytest.raises(TypeError):
-            'foo_' + ser
-
-    def test_operators_frame(self):
-        # rpow does not work with DataFrame
-        df = DataFrame({'A': self.ts})
-
-        assert_series_equal(self.ts + self.ts, self.ts + df['A'],
-                            check_names=False)
-        assert_series_equal(self.ts ** self.ts, self.ts ** df['A'],
-                            check_names=False)
-        assert_series_equal(self.ts < self.ts, self.ts < df['A'],
-                            check_names=False)
-        assert_series_equal(self.ts / self.ts, self.ts / df['A'],
-                            check_names=False)
+        result = op(1., arr)
+        expected = op(1., arr.astype(float))
+        assert_series_equal(result.astype(float), expected)
 
     def test_operators_combine(self):
         def _check_fill(meth, op, a, b, fill_value=0):
@@ -2282,15 +1674,6 @@ class TestSeriesOperators(TestData):
         df['result'] = df['date'] - df.index
         assert_series_equal(df['result'], df['expected'], check_names=False)
 
-    def test_dti_tz_convert_to_utc(self):
-        base = pd.DatetimeIndex(['2011-01-01', '2011-01-02', '2011-01-03'],
-                                tz='UTC')
-        idx1 = base.tz_convert('Asia/Tokyo')[:2]
-        idx2 = base.tz_convert('US/Eastern')[1:]
-
-        res = Series([1, 2], index=idx1) + Series([1, 1], index=idx2)
-        assert_series_equal(res, Series([np.nan, 3, np.nan], index=base))
-
     def test_op_duplicate_index(self):
         # GH14227
         s1 = Series([1, 2], index=[1, 1])
@@ -2345,3 +1728,130 @@ class TestSeriesOperators(TestData):
             assert np.isnan(s.idxmin(skipna=False))
             assert s.idxmax() == 0
             np.isnan(s.idxmax(skipna=False))
+
+
+class TestSeriesOperationsDataFrameCompat(object):
+    def test_operators_frame(self):
+        # rpow does not work with DataFrame
+        ts = tm.makeTimeSeries()
+        ts.name = 'ts'
+
+        df = DataFrame({'A': ts})
+
+        assert_series_equal(ts + ts, ts + df['A'],
+                            check_names=False)
+        assert_series_equal(ts ** ts, ts ** df['A'],
+                            check_names=False)
+        assert_series_equal(ts < ts, ts < df['A'],
+                            check_names=False)
+        assert_series_equal(ts / ts, ts / df['A'],
+                            check_names=False)
+
+    def test_series_frame_radd_bug(self):
+        # GH#353
+        vals = Series(tm.rands_array(5, 10))
+        result = 'foo_' + vals
+        expected = vals.map(lambda x: 'foo_' + x)
+        assert_series_equal(result, expected)
+
+        frame = DataFrame({'vals': vals})
+        result = 'foo_' + frame
+        expected = DataFrame({'vals': vals.map(lambda x: 'foo_' + x)})
+        assert_frame_equal(result, expected)
+
+        ts = tm.makeTimeSeries()
+        ts.name = 'ts'
+
+        # really raise this time
+        with pytest.raises(TypeError):
+            datetime.now() + ts
+
+        with pytest.raises(TypeError):
+            ts + datetime.now()
+
+    def test_bool_ops_df_compat(self):
+        # GH 1134
+        s1 = pd.Series([True, False, True], index=list('ABC'), name='x')
+        s2 = pd.Series([True, True, False], index=list('ABD'), name='x')
+
+        exp = pd.Series([True, False, False, False],
+                        index=list('ABCD'), name='x')
+        assert_series_equal(s1 & s2, exp)
+        assert_series_equal(s2 & s1, exp)
+
+        # True | np.nan => True
+        exp = pd.Series([True, True, True, False],
+                        index=list('ABCD'), name='x')
+        assert_series_equal(s1 | s2, exp)
+        # np.nan | True => np.nan, filled with False
+        exp = pd.Series([True, True, False, False],
+                        index=list('ABCD'), name='x')
+        assert_series_equal(s2 | s1, exp)
+
+        # DataFrame doesn't fill nan with False
+        exp = pd.DataFrame({'x': [True, False, np.nan, np.nan]},
+                           index=list('ABCD'))
+        assert_frame_equal(s1.to_frame() & s2.to_frame(), exp)
+        assert_frame_equal(s2.to_frame() & s1.to_frame(), exp)
+
+        exp = pd.DataFrame({'x': [True, True, np.nan, np.nan]},
+                           index=list('ABCD'))
+        assert_frame_equal(s1.to_frame() | s2.to_frame(), exp)
+        assert_frame_equal(s2.to_frame() | s1.to_frame(), exp)
+
+        # different length
+        s3 = pd.Series([True, False, True], index=list('ABC'), name='x')
+        s4 = pd.Series([True, True, True, True], index=list('ABCD'), name='x')
+
+        exp = pd.Series([True, False, True, False],
+                        index=list('ABCD'), name='x')
+        assert_series_equal(s3 & s4, exp)
+        assert_series_equal(s4 & s3, exp)
+
+        # np.nan | True => np.nan, filled with False
+        exp = pd.Series([True, True, True, False],
+                        index=list('ABCD'), name='x')
+        assert_series_equal(s3 | s4, exp)
+        # True | np.nan => True
+        exp = pd.Series([True, True, True, True],
+                        index=list('ABCD'), name='x')
+        assert_series_equal(s4 | s3, exp)
+
+        exp = pd.DataFrame({'x': [True, False, True, np.nan]},
+                           index=list('ABCD'))
+        assert_frame_equal(s3.to_frame() & s4.to_frame(), exp)
+        assert_frame_equal(s4.to_frame() & s3.to_frame(), exp)
+
+        exp = pd.DataFrame({'x': [True, True, True, np.nan]},
+                           index=list('ABCD'))
+        assert_frame_equal(s3.to_frame() | s4.to_frame(), exp)
+        assert_frame_equal(s4.to_frame() | s3.to_frame(), exp)
+
+    def test_arith_ops_df_compat(self):
+        # GH#1134
+        s1 = pd.Series([1, 2, 3], index=list('ABC'), name='x')
+        s2 = pd.Series([2, 2, 2], index=list('ABD'), name='x')
+
+        exp = pd.Series([3.0, 4.0, np.nan, np.nan],
+                        index=list('ABCD'), name='x')
+        assert_series_equal(s1 + s2, exp)
+        assert_series_equal(s2 + s1, exp)
+
+        exp = pd.DataFrame({'x': [3.0, 4.0, np.nan, np.nan]},
+                           index=list('ABCD'))
+        assert_frame_equal(s1.to_frame() + s2.to_frame(), exp)
+        assert_frame_equal(s2.to_frame() + s1.to_frame(), exp)
+
+        # different length
+        s3 = pd.Series([1, 2, 3], index=list('ABC'), name='x')
+        s4 = pd.Series([2, 2, 2, 2], index=list('ABCD'), name='x')
+
+        exp = pd.Series([3, 4, 5, np.nan],
+                        index=list('ABCD'), name='x')
+        assert_series_equal(s3 + s4, exp)
+        assert_series_equal(s4 + s3, exp)
+
+        exp = pd.DataFrame({'x': [3, 4, 5, np.nan]},
+                           index=list('ABCD'))
+        assert_frame_equal(s3.to_frame() + s4.to_frame(), exp)
+        assert_frame_equal(s4.to_frame() + s3.to_frame(), exp)

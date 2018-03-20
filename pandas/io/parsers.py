@@ -43,6 +43,7 @@ from pandas.util._decorators import Appender
 
 import pandas._libs.lib as lib
 import pandas._libs.parsers as parsers
+import pandas._libs.ops as libops
 from pandas._libs.tslibs import parsing
 
 # BOM character (byte order mark)
@@ -102,7 +103,12 @@ usecols : array-like or callable, default None
     that correspond to column names provided either by the user in `names` or
     inferred from the document header row(s). For example, a valid array-like
     `usecols` parameter would be [0, 1, 2] or ['foo', 'bar', 'baz']. Element
-    order is ignored, so usecols=[1,0] is the same as [0,1].
+    order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``.
+    To instantiate a DataFrame from ``data`` with element order preserved use
+    ``pd.read_csv(data, usecols=['foo', 'bar'])[['foo', 'bar']]`` for columns
+    in ``['foo', 'bar']`` order or
+    ``pd.read_csv(data, usecols=['foo', 'bar'])[['bar', 'foo']]``
+    for ``['bar', 'foo']`` order.
 
     If callable, the callable function will be evaluated against the column
     names, returning names where the callable function evaluates to True. An
@@ -413,7 +419,7 @@ def _read(filepath_or_buffer, kwds):
 
     compression = kwds.get('compression')
     compression = _infer_compression(filepath_or_buffer, compression)
-    filepath_or_buffer, _, compression = get_filepath_or_buffer(
+    filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
         filepath_or_buffer, encoding, compression)
     kwds['compression'] = compression
 
@@ -439,6 +445,13 @@ def _read(filepath_or_buffer, kwds):
         data = parser.read(nrows)
     finally:
         parser.close()
+
+    if should_close:
+        try:
+            filepath_or_buffer.close()
+        except:  # noqa: flake8
+            pass
+
     return data
 
 
@@ -1596,16 +1609,17 @@ class ParserBase(object):
             except Exception:
                 result = values
                 if values.dtype == np.object_:
-                    na_count = lib.sanitize_objects(result, na_values, False)
+                    na_count = parsers.sanitize_objects(result, na_values,
+                                                        False)
         else:
             result = values
             if values.dtype == np.object_:
-                na_count = lib.sanitize_objects(values, na_values, False)
+                na_count = parsers.sanitize_objects(values, na_values, False)
 
         if result.dtype == np.object_ and try_num_bool:
-            result = lib.maybe_convert_bool(values,
-                                            true_values=self.true_values,
-                                            false_values=self.false_values)
+            result = libops.maybe_convert_bool(values,
+                                               true_values=self.true_values,
+                                               false_values=self.false_values)
 
         return result, na_count
 

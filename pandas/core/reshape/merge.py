@@ -12,6 +12,7 @@ import pandas.compat as compat
 
 from pandas import (Categorical, DataFrame,
                     Index, MultiIndex, Timedelta)
+from pandas.core.arrays.categorical import _recode_for_categories
 from pandas.core.frame import _merge_doc
 from pandas.core.dtypes.common import (
     is_datetime64tz_dtype,
@@ -194,19 +195,17 @@ def merge_ordered(left, right, on=None,
     5   e       3     b
 
     >>> merge_ordered(A, B, fill_method='ffill', left_by='group')
-       key  lvalue group  rvalue
-    0    a       1     a     NaN
-    1    b       1     a       1
-    2    c       2     a       2
-    3    d       2     a       3
-    4    e       3     a       3
-    5    f       3     a       4
-    6    a       1     b     NaN
-    7    b       1     b       1
-    8    c       2     b       2
-    9    d       2     b       3
-    10   e       3     b       3
-    11   f       3     b       4
+      group key  lvalue  rvalue
+    0     a   a       1     NaN
+    1     a   b       1     1.0
+    2     a   c       2     2.0
+    3     a   d       2     3.0
+    4     a   e       3     3.0
+    5     b   a       1     NaN
+    6     b   b       1     1.0
+    7     b   c       2     2.0
+    8     b   d       2     3.0
+    9     b   e       3     3.0
 
     Returns
     -------
@@ -458,8 +457,8 @@ def merge_asof(left, right, on=None,
                          time ticker   price  quantity     bid     ask
     0 2016-05-25 13:30:00.023   MSFT   51.95        75     NaN     NaN
     1 2016-05-25 13:30:00.038   MSFT   51.95       155   51.97   51.98
-    2 2016-05-25 13:30:00.048   GOOG  720.77       100  720.50  720.93
-    3 2016-05-25 13:30:00.048   GOOG  720.92       100  720.50  720.93
+    2 2016-05-25 13:30:00.048   GOOG  720.77       100     NaN     NaN
+    3 2016-05-25 13:30:00.048   GOOG  720.92       100     NaN     NaN
     4 2016-05-25 13:30:00.048   AAPL   98.00       100     NaN     NaN
 
     See also
@@ -942,6 +941,11 @@ class _MergeOperation(object):
             elif is_dtype_equal(lk.dtype, rk.dtype):
                 continue
 
+            msg = ("You are trying to merge on {lk_dtype} and "
+                   "{rk_dtype} columns. If you wish to proceed "
+                   "you should use pd.concat".format(lk_dtype=lk.dtype,
+                                                     rk_dtype=rk.dtype))
+
             # if we are numeric, then allow differing
             # kinds to proceed, eg. int64 and int8, int and float
             # further if we are object, but we infer to
@@ -970,30 +974,18 @@ class _MergeOperation(object):
                     pass
 
             # Check if we are trying to merge on obviously
-            # incompatible dtypes GH 9780
+            # incompatible dtypes GH 9780, GH 15800
             elif is_numeric_dtype(lk) and not is_numeric_dtype(rk):
-                msg = ("You are trying to merge on {lk_dtype} and "
-                       "{rk_dtype} columns. If you wish to proceed "
-                       "you should use pd.concat".format(lk_dtype=lk.dtype,
-                                                         rk_dtype=rk.dtype))
                 raise ValueError(msg)
             elif not is_numeric_dtype(lk) and is_numeric_dtype(rk):
-                msg = ("You are trying to merge on {lk_dtype} and "
-                       "{rk_dtype} columns. If you wish to proceed "
-                       "you should use pd.concat".format(lk_dtype=lk.dtype,
-                                                         rk_dtype=rk.dtype))
                 raise ValueError(msg)
             elif is_datetimelike(lk) and not is_datetimelike(rk):
-                msg = ("You are trying to merge on {lk_dtype} and "
-                       "{rk_dtype} columns. If you wish to proceed "
-                       "you should use pd.concat".format(lk_dtype=lk.dtype,
-                                                         rk_dtype=rk.dtype))
                 raise ValueError(msg)
             elif not is_datetimelike(lk) and is_datetimelike(rk):
-                msg = ("You are trying to merge on {lk_dtype} and "
-                       "{rk_dtype} columns. If you wish to proceed "
-                       "you should use pd.concat".format(lk_dtype=lk.dtype,
-                                                         rk_dtype=rk.dtype))
+                raise ValueError(msg)
+            elif is_datetime64tz_dtype(lk) and not is_datetime64tz_dtype(rk):
+                raise ValueError(msg)
+            elif not is_datetime64tz_dtype(lk) and is_datetime64tz_dtype(rk):
                 raise ValueError(msg)
 
             # Houston, we have a problem!
@@ -1030,7 +1022,12 @@ class _MergeOperation(object):
                 common_cols = self.left.columns.intersection(
                     self.right.columns)
                 if len(common_cols) == 0:
-                    raise MergeError('No common columns to perform merge on')
+                    raise MergeError(
+                        'No common columns to perform merge on. '
+                        'Merge options: left_on={lon}, right_on={ron}, '
+                        'left_index={lidx}, right_index={ridx}'
+                        .format(lon=self.left_on, ron=self.right_on,
+                                lidx=self.left_index, ridx=self.right_index))
                 if not common_cols.is_unique:
                     raise MergeError("Data columns not unique: {common!r}"
                                      .format(common=common_cols))
@@ -1544,8 +1541,15 @@ def _factorize_keys(lk, rk, sort=True):
             is_categorical_dtype(rk) and
             lk.is_dtype_equal(rk)):
         klass = libhashtable.Int64Factorizer
+
+        if lk.categories.equals(rk.categories):
+            rk = rk.codes
+        else:
+            # Same categories in different orders -> recode
+            rk = _recode_for_categories(rk.codes, rk.categories, lk.categories)
+
         lk = _ensure_int64(lk.codes)
-        rk = _ensure_int64(rk.codes)
+        rk = _ensure_int64(rk)
     elif is_int_or_datetime_dtype(lk) and is_int_or_datetime_dtype(rk):
         klass = libhashtable.Int64Factorizer
         lk = _ensure_int64(com._values_from_object(lk))

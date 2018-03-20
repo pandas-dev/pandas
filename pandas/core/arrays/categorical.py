@@ -7,6 +7,7 @@ import types
 from pandas import compat
 from pandas.compat import u, lzip
 from pandas._libs import lib, algos as libalgos
+from pandas._libs.tslib import iNaT
 
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCIndexClass, ABCCategoricalIndex)
@@ -40,8 +41,10 @@ from pandas.util._decorators import (
     Appender, cache_readonly, deprecate_kwarg, Substitution)
 
 from pandas.io.formats.terminal import get_terminal_size
-from pandas.util._validators import validate_bool_kwarg
+from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 from pandas.core.config import get_option
+
+from .base import ExtensionArray
 
 
 def _cat_compare_op(op):
@@ -51,6 +54,9 @@ def _cat_compare_op(op):
         # results depending whether categories are the same or not is kind of
         # insane, so be a bit stricter here and use the python3 idea of
         # comparing only things of equal type.
+        if isinstance(other, ABCSeries):
+            return NotImplemented
+
         if not self.ordered:
             if op in ['__lt__', '__gt__', '__le__', '__ge__']:
                 raise TypeError("Unordered Categoricals can only compare "
@@ -148,7 +154,7 @@ setter to change values in the categorical.
 """
 
 
-class Categorical(PandasObject):
+class Categorical(ExtensionArray, PandasObject):
     """
     Represents a categorical variable in classic R / S-plus fashion
 
@@ -241,7 +247,7 @@ class Categorical(PandasObject):
     # For comparisons, so that numpy uses our implementation if the compare
     # ops, which raise
     __array_priority__ = 1000
-    _dtype = CategoricalDtype()
+    _dtype = CategoricalDtype(ordered=False)
     _deprecations = frozenset(['labels'])
     _typ = 'categorical'
 
@@ -292,7 +298,7 @@ class Categorical(PandasObject):
 
         if fastpath:
             self._codes = coerce_indexer_dtype(values, categories)
-            self._dtype = dtype
+            self._dtype = self._dtype.update_dtype(dtype)
             return
 
         # null_mask indicates missing values we want to exclude from inference.
@@ -356,7 +362,7 @@ class Categorical(PandasObject):
             full_codes[~null_mask] = codes
             codes = full_codes
 
-        self._dtype = dtype
+        self._dtype = self._dtype.update_dtype(dtype)
         self._codes = coerce_indexer_dtype(codes, dtype.categories)
 
     @property
@@ -409,8 +415,16 @@ class Categorical(PandasObject):
         return self._dtype
 
     @property
+    def _ndarray_values(self):
+        return self.codes
+
+    @property
     def _constructor(self):
         return Categorical
+
+    @classmethod
+    def _constructor_from_sequence(cls, scalars):
+        return Categorical(scalars)
 
     def copy(self):
         """ Copy constructor. """
@@ -436,7 +450,7 @@ class Categorical(PandasObject):
         """
         if is_categorical_dtype(dtype):
             # GH 10696/18593
-            dtype = self.dtype._update_dtype(dtype)
+            dtype = self.dtype.update_dtype(dtype)
             self = self.copy() if copy else self
             if dtype == self.dtype:
                 return self
@@ -466,9 +480,7 @@ class Categorical(PandasObject):
         (for str, int, float) or a pandas scalar
         (for Timestamp/Timedelta/Interval/Period)
         """
-        if is_datetimelike(self.categories):
-            return [com._maybe_box_datetimelike(x) for x in self]
-        return np.array(self).tolist()
+        return list(self)
 
     @property
     def base(self):
@@ -512,7 +524,7 @@ class Categorical(PandasObject):
                 cats = to_timedelta(inferred_categories, errors='coerce')
 
         if known_categories:
-            # recode from observation oder to dtype.categories order
+            # recode from observation order to dtype.categories order
             categories = dtype.categories
             codes = _recode_for_categories(inferred_codes, cats, categories)
         elif not cats.is_monotonic_increasing:
@@ -558,7 +570,7 @@ class Categorical(PandasObject):
             raise ValueError(
                 "codes need to be convertible to an arrays of integers")
 
-        categories = CategoricalDtype._validate_categories(categories)
+        categories = CategoricalDtype.validate_categories(categories)
 
         if len(codes) and (codes.max() >= len(categories) or codes.min() < -1):
             raise ValueError("codes need to be between -1 and "
@@ -1163,7 +1175,7 @@ class Categorical(PandasObject):
 
         # Provide compatibility with pre-0.15.0 Categoricals.
         if '_categories' not in state and '_levels' in state:
-            state['_categories'] = self.dtype._validate_categories(state.pop(
+            state['_categories'] = self.dtype.validate_categories(state.pop(
                 '_levels'))
         if '_codes' not in state and 'labels' in state:
             state['_codes'] = coerce_indexer_dtype(
@@ -1244,7 +1256,7 @@ class Categorical(PandasObject):
         """
         Detect missing values
 
-        Both missing values (-1 in .codes) and NA as a category are detected.
+        Missing values (-1 in .codes) are detected.
 
         Returns
         -------
@@ -1259,13 +1271,6 @@ class Categorical(PandasObject):
         """
 
         ret = self._codes == -1
-
-        # String/object and float categories can hold np.nan
-        if self.categories.dtype.kind in ['S', 'O', 'f']:
-            if np.nan in self.categories:
-                nan_pos = np.where(isna(self.categories))[0]
-                # we only have one NA in categories
-                ret = np.logical_or(ret, self._codes == nan_pos)
         return ret
     isnull = isna
 
@@ -1301,16 +1306,14 @@ class Categorical(PandasObject):
         """
         Return the Categorical without null values.
 
-        Both missing values (-1 in .codes) and NA as a category are detected.
-        NA is removed from the categories if present.
+        Missing values (-1 in .codes) are detected.
 
         Returns
         -------
         valid : Categorical
         """
         result = self[self.notna()]
-        if isna(result.categories).any():
-            result = result.remove_categories([np.nan])
+
         return result
 
     def value_counts(self, dropna=True):
@@ -1322,7 +1325,7 @@ class Categorical(PandasObject):
         Parameters
         ----------
         dropna : boolean, default True
-            Don't include counts of NaN, even if NaN is a category.
+            Don't include counts of NaN.
 
         Returns
         -------
@@ -1334,11 +1337,9 @@ class Categorical(PandasObject):
 
         """
         from numpy import bincount
-        from pandas import isna, Series, CategoricalIndex
+        from pandas import Series, CategoricalIndex
 
-        obj = (self.remove_categories([np.nan]) if dropna and
-               isna(self.categories).any() else self)
-        code, cat = obj._codes, obj.categories
+        code, cat = self._codes, self.categories
         ncat, mask = len(cat), 0 <= code
         ix, clean = np.arange(ncat), mask.all()
 
@@ -1578,16 +1579,16 @@ class Categorical(PandasObject):
 
         Parameters
         ----------
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            Method to use for filling holes in reindexed Series
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
         value : scalar, dict, Series
             If a scalar value is passed it is used to fill all missing values.
             Alternatively, a Series or dict can be used to fill in different
             values for each index. The value should not be a list. The
             value(s) passed should either be in the categories or should be
             NaN.
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
+            Method to use for filling holes in reindexed Series
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill gap
         limit : int, default None
             (Not implemented yet for Categorical!)
             If method is specified, this is the maximum number of consecutive
@@ -1601,6 +1602,9 @@ class Categorical(PandasObject):
         -------
         filled : Categorical with NA/NaN filled
         """
+        value, method = validate_fillna_kwargs(
+            value, method, validate_scalar_dict_value=False
+        )
 
         if value is None:
             value = np.nan
@@ -1609,14 +1613,6 @@ class Categorical(PandasObject):
                                       "been implemented yet")
 
         values = self._codes
-
-        # Make sure that we also get NA in categories
-        if self.categories.dtype.kind in ['S', 'O', 'f']:
-            if np.nan in self.categories:
-                values = values.copy()
-                nan_pos = np.where(isna(self.categories))[0]
-                # we only have one NA in categories
-                values[values == nan_pos] = -1
 
         # pad / bfill
         if method is not None:
@@ -1700,7 +1696,7 @@ class Categorical(PandasObject):
 
     def __iter__(self):
         """Returns an Iterator over the values of this Categorical."""
-        return iter(self.get_values())
+        return iter(self.get_values().tolist())
 
     def _tidy_repr(self, max_vals=10, footer=True):
         """ a short repr displaying only max_vals and an optional (but default
@@ -1871,15 +1867,6 @@ class Categorical(PandasObject):
             key = np.asarray(key)
 
         lindexer = self.categories.get_indexer(rvalue)
-
-        # FIXME: the following can be removed after GH7820 is fixed:
-        # https://github.com/pandas-dev/pandas/issues/7820
-        # float categories do currently return -1 for np.nan, even if np.nan is
-        # included in the index -> "repair" this here
-        if isna(rvalue).any() and isna(self.categories).any():
-            nan_pos = np.where(isna(self.categories))[0]
-            lindexer[lindexer == -1] = nan_pos
-
         lindexer = self._maybe_coerce_indexer(lindexer)
         self._codes[key] = lindexer
 
@@ -2056,6 +2043,60 @@ class Categorical(PandasObject):
             take_codes = sorted(take_codes)
         return cat.set_categories(cat.categories.take(take_codes))
 
+    def factorize(self, na_sentinel=-1):
+        """Encode the Categorical as an enumerated type.
+
+        Parameters
+        ----------
+        sort : boolean, default False
+            Sort by values
+        na_sentinel: int, default -1
+            Value to mark "not found"
+
+        Returns
+        -------
+        labels : ndarray
+            An integer NumPy array that's an indexer into the original
+            Categorical
+        uniques : Categorical
+            A Categorical whose values are the unique values and
+            whose dtype matches the original CategoricalDtype. Note that if
+            there any unobserved categories in ``self`` will not be present
+            in ``uniques.values``. They will be present in
+            ``uniques.categories``
+
+        Examples
+        --------
+        >>> cat = pd.Categorical(['a', 'a', 'c'], categories=['a', 'b', 'c'])
+        >>> labels, uniques = cat.factorize()
+        >>> labels
+        (array([0, 0, 1]),
+        >>> uniques
+        [a, c]
+        Categories (3, object): [a, b, c])
+
+        Missing values are handled
+
+        >>> labels, uniques = pd.factorize(pd.Categorical(['a', 'b', None]))
+        >>> labels
+        array([ 0,  1, -1])
+        >>> uniques
+        [a, b]
+        Categories (2, object): [a, b]
+        """
+        from pandas.core.algorithms import _factorize_array
+
+        codes = self.codes.astype('int64')
+        codes[codes == -1] = iNaT
+        # We set missing codes, normally -1, to iNaT so that the
+        # Int64HashTable treats them as missing values.
+        labels, uniques = _factorize_array(codes, check_nulls=True,
+                                           na_sentinel=na_sentinel)
+        uniques = self._constructor(self.categories.take(uniques),
+                                    categories=self.categories,
+                                    ordered=self.ordered)
+        return labels, uniques
+
     def equals(self, other):
         """
         Returns True if categorical arrays are equal.
@@ -2129,6 +2170,20 @@ class Categorical(PandasObject):
         codes = self._codes.repeat(repeats)
         return self._constructor(values=codes, categories=self.categories,
                                  ordered=self.ordered, fastpath=True)
+
+    # Implement the ExtensionArray interface
+    @property
+    def _can_hold_na(self):
+        return True
+
+    @classmethod
+    def _concat_same_type(self, to_concat):
+        from pandas.core.dtypes.concat import _concat_categorical
+
+        return _concat_categorical(to_concat)
+
+    def _formatting_values(self):
+        return self
 
 # The Series.cat accessor
 

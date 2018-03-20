@@ -15,7 +15,8 @@ from pandas import compat
 from numpy.random import randn
 import numpy as np
 
-from pandas import DataFrame, Series, date_range, timedelta_range, Categorical
+from pandas import (DataFrame, Series, date_range, timedelta_range,
+                    Categorical, SparseDataFrame)
 import pandas as pd
 
 from pandas.util.testing import (assert_almost_equal,
@@ -212,6 +213,18 @@ class SharedWithSparse(object):
 
         for k, v in self.mixed_frame.iterrows():
             exp = self.mixed_frame.loc[k]
+            self._assert_series_equal(v, exp)
+
+    def test_iterrows_iso8601(self):
+        # GH19671
+        if self.klass == SparseDataFrame:
+            pytest.xfail(reason='SparseBlock datetime type not implemented.')
+
+        s = self.klass(
+            {'non_iso8601': ['M1701', 'M1802', 'M1903', 'M2004'],
+             'iso8601': date_range('2000-01-01', periods=4, freq='M')})
+        for k, v in s.iterrows():
+            exp = s.loc[k]
             self._assert_series_equal(v, exp)
 
     def test_itertuples(self):

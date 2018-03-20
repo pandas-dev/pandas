@@ -139,6 +139,18 @@ class TestSparseDataFrame(SharedWithSparse):
 
         repr(self.frame)
 
+    def test_constructor_dict_order(self):
+        # GH19018
+        # initialization ordering: by insertion order if python>= 3.6, else
+        # order by value
+        d = {'b': [2, 3], 'a': [0, 1]}
+        frame = SparseDataFrame(data=d)
+        if compat.PY36:
+            expected = SparseDataFrame(data=d, columns=list('ba'))
+        else:
+            expected = SparseDataFrame(data=d, columns=list('ab'))
+        tm.assert_sp_frame_equal(frame, expected)
+
     def test_constructor_ndarray(self):
         # no index or columns
         sp = SparseDataFrame(self.frame.values)
@@ -199,6 +211,29 @@ class TestSparseDataFrame(SharedWithSparse):
         # without sparse value raises error
         # df2 = SparseDataFrame([x2_sparse, y])
 
+    def test_constructor_from_dense_series(self):
+        # GH 19393
+        # series with name
+        x = Series(np.random.randn(10000), name='a')
+        result = SparseDataFrame(x)
+        expected = x.to_frame().to_sparse()
+        tm.assert_sp_frame_equal(result, expected)
+
+        # series with no name
+        x = Series(np.random.randn(10000))
+        result = SparseDataFrame(x)
+        expected = x.to_frame().to_sparse()
+        tm.assert_sp_frame_equal(result, expected)
+
+    def test_constructor_from_unknown_type(self):
+        # GH 19393
+        class Unknown:
+            pass
+        with pytest.raises(TypeError,
+                           message='SparseDataFrame called with unknown type '
+                                   '"Unknown" for data argument'):
+            SparseDataFrame(Unknown())
+
     def test_constructor_preserve_attr(self):
         # GH 13866
         arr = pd.SparseArray([1, 0, 3, 0], dtype=np.int64, fill_value=0)
@@ -224,10 +259,10 @@ class TestSparseDataFrame(SharedWithSparse):
     def test_constructor_nan_dataframe(self):
         # GH 10079
         trains = np.arange(100)
-        tresholds = [10, 20, 30, 40, 50, 60]
-        tuples = [(i, j) for i in trains for j in tresholds]
+        thresholds = [10, 20, 30, 40, 50, 60]
+        tuples = [(i, j) for i in trains for j in thresholds]
         index = pd.MultiIndex.from_tuples(tuples,
-                                          names=['trains', 'tresholds'])
+                                          names=['trains', 'thresholds'])
         matrix = np.empty((len(index), len(trains)))
         matrix.fill(np.nan)
         df = pd.DataFrame(matrix, index=index, columns=trains, dtype=float)
@@ -551,6 +586,15 @@ class TestSparseDataFrame(SharedWithSparse):
                                   self.frame['F'].reindex(index),
                                   check_names=False)
 
+    def test_setitem_chained_no_consolidate(self):
+        # https://github.com/pandas-dev/pandas/pull/19268
+        # issuecomment-361696418
+        # chained setitem used to cause consolidation
+        sdf = pd.SparseDataFrame([[np.nan, 1], [2, np.nan]])
+        with pd.option_context('mode.chained_assignment', None):
+            sdf[0][1] = 2
+        assert len(sdf._data.blocks) == 2
+
     def test_delitem(self):
         A = self.frame['A']
         C = self.frame['C']
@@ -588,52 +632,6 @@ class TestSparseDataFrame(SharedWithSparse):
         appended = a.append(b)
         tm.assert_sp_frame_equal(appended.iloc[:, :3], self.frame.iloc[:, :3],
                                  exact_indices=False)
-
-    def test_apply(self):
-        applied = self.frame.apply(np.sqrt)
-        assert isinstance(applied, SparseDataFrame)
-        tm.assert_almost_equal(applied.values, np.sqrt(self.frame.values))
-
-        applied = self.fill_frame.apply(np.sqrt)
-        assert applied['A'].fill_value == np.sqrt(2)
-
-        # agg / broadcast
-        broadcasted = self.frame.apply(np.sum, broadcast=True)
-        assert isinstance(broadcasted, SparseDataFrame)
-
-        exp = self.frame.to_dense().apply(np.sum, broadcast=True)
-        tm.assert_frame_equal(broadcasted.to_dense(), exp)
-
-        assert self.empty.apply(np.sqrt) is self.empty
-
-        from pandas.core import nanops
-        applied = self.frame.apply(np.sum)
-        tm.assert_series_equal(applied,
-                               self.frame.to_dense().apply(nanops.nansum))
-
-    def test_apply_nonuq(self):
-        orig = DataFrame([[1, 2, 3], [4, 5, 6], [7, 8, 9]],
-                         index=['a', 'a', 'c'])
-        sparse = orig.to_sparse()
-        res = sparse.apply(lambda s: s[0], axis=1)
-        exp = orig.apply(lambda s: s[0], axis=1)
-        # dtype must be kept
-        assert res.dtype == np.int64
-        # ToDo: apply must return subclassed dtype
-        assert isinstance(res, pd.Series)
-        tm.assert_series_equal(res.to_dense(), exp)
-
-        # df.T breaks
-        sparse = orig.T.to_sparse()
-        res = sparse.apply(lambda s: s[0], axis=0)  # noqa
-        exp = orig.T.apply(lambda s: s[0], axis=0)
-        # TODO: no non-unique columns supported in sparse yet
-        # tm.assert_series_equal(res.to_dense(), exp)
-
-    def test_applymap(self):
-        # just test that it works
-        result = self.frame.applymap(lambda x: x * 2)
-        assert isinstance(result, SparseDataFrame)
 
     def test_astype(self):
         sparse = pd.SparseDataFrame({'A': SparseArray([1, 2, 3, 4],
@@ -1271,3 +1269,14 @@ class TestSparseDataFrameAnalytics(object):
 
         tm.assert_frame_equal(result, dense_expected)
         tm.assert_sp_frame_equal(result, sparse_expected)
+
+    def test_assign_with_sparse_frame(self):
+        # GH 19163
+        df = pd.DataFrame({"a": [1, 2, 3]})
+        res = df.to_sparse(fill_value=False).assign(newcol=False)
+        exp = df.assign(newcol=False).to_sparse(fill_value=False)
+
+        tm.assert_sp_frame_equal(res, exp)
+
+        for column in res.columns:
+            assert type(res[column]) is SparseSeries

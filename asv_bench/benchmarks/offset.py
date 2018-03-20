@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import warnings
 from datetime import datetime
 
 import numpy as np
@@ -76,7 +77,8 @@ class OffsetSeriesArithmetic(object):
         self.data = pd.Series(rng)
 
     def time_add_offset(self, offset):
-        self.data + offset
+        with warnings.catch_warnings(record=True):
+            self.data + offset
 
 
 class OffsetDatetimeIndexArithmetic(object):
@@ -90,7 +92,8 @@ class OffsetDatetimeIndexArithmetic(object):
         self.data = pd.date_range(start='1/1/2000', periods=N, freq='T')
 
     def time_add_offset(self, offset):
-        self.data + offset
+        with warnings.catch_warnings(record=True):
+            self.data + offset
 
 
 class OffestDatetimeArithmetic(object):

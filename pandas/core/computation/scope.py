@@ -48,7 +48,7 @@ def _raw_hex_id(obj):
 
 
 _DEFAULT_GLOBALS = {
-    'Timestamp': pandas._libs.lib.Timestamp,
+    'Timestamp': pandas._libs.tslib.Timestamp,
     'datetime': datetime.datetime,
     'True': True,
     'False': False,

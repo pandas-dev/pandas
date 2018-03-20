@@ -8,10 +8,11 @@ import codecs
 import re
 import sys
 from datetime import datetime
+from collections import OrderedDict
 
 import pytest
 import numpy as np
-from pandas._libs.lib import Timestamp
+from pandas._libs.tslib import Timestamp
 
 import pandas as pd
 import pandas.util.testing as tm
@@ -924,8 +925,9 @@ A,B,C
 
     def test_scientific_no_exponent(self):
         # see gh-12215
-        df = DataFrame.from_items([('w', ['2e']), ('x', ['3E']),
-                                   ('y', ['42e']), ('z', ['632E'])])
+        df = DataFrame.from_dict(OrderedDict([('w', ['2e']), ('x', ['3E']),
+                                              ('y', ['42e']),
+                                              ('z', ['632E'])]))
         data = df.to_csv(index=False)
         for prec in self.float_precision_choices:
             df_roundtrip = self.read_csv(

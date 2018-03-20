@@ -1,17 +1,23 @@
 # cython: profile=False
+from datetime import datetime, timedelta, date
 
-from numpy cimport (ndarray, float64_t, int32_t, int64_t, uint8_t, uint64_t,
-                    NPY_DATETIME, NPY_TIMEDELTA)
 cimport cython
 
-cimport numpy as cnp
-
-cnp.import_array()
-cnp.import_ufunc()
-
-cimport util
+from cpython cimport PyTuple_Check, PyList_Check
+from cpython.slice cimport PySlice_Check
 
 import numpy as np
+cimport numpy as cnp
+from numpy cimport ndarray, float64_t, int32_t, int64_t, uint8_t, uint64_t
+cnp.import_array()
+
+cdef extern from "numpy/arrayobject.h":
+    # These can be cimported directly from numpy in cython>=0.27.3
+    cdef enum NPY_TYPES:
+        NPY_DATETIME
+        NPY_TIMEDELTA
+
+cimport util
 
 from tslibs.conversion cimport maybe_datetimelike_to_i8
 
@@ -20,15 +26,12 @@ from hashtable cimport HashTable
 from pandas._libs import algos, hashtable as _hash
 from pandas._libs.tslibs import period as periodlib
 from pandas._libs.tslib import Timestamp, Timedelta
-from datetime import datetime, timedelta, date
-
-from cpython cimport PyTuple_Check, PyList_Check
-from cpython.slice cimport PySlice_Check
+from pandas._libs.missing import checknull
 
 cdef int64_t iNaT = util.get_nat()
 
 
-cdef inline is_definitely_invalid_key(object val):
+cdef inline bint is_definitely_invalid_key(object val):
     if PyTuple_Check(val):
         try:
             hash(val)
@@ -583,70 +586,137 @@ cpdef convert_scalar(ndarray arr, object value):
     return value
 
 
-cdef class MultiIndexObjectEngine(ObjectEngine):
+cdef class BaseMultiIndexCodesEngine:
     """
-    provide the same interface as the MultiIndexEngine
-    but use the IndexEngine for computation
+    Base class for MultiIndexUIntEngine and MultiIndexPyIntEngine, which
+    represent each label in a MultiIndex as an integer, by juxtaposing the bits
+    encoding each level, with appropriate offsets.
 
-    This provides good performance with samller MI's
+    For instance: if 3 levels have respectively 3, 6 and 1 possible values,
+    then their labels can be represented using respectively 2, 3 and 1 bits,
+    as follows:
+     _ _ _ _____ _ __ __ __
+    |0|0|0| ... |0| 0|a1|a0| -> offset 0 (first level)
+     — — — ————— — —— —— ——
+    |0|0|0| ... |0|b2|b1|b0| -> offset 2 (bits required for first level)
+     — — — ————— — —— —— ——
+    |0|0|0| ... |0| 0| 0|c0| -> offset 5 (bits required for first two levels)
+     ‾ ‾ ‾ ‾‾‾‾‾ ‾ ‾‾ ‾‾ ‾‾
+    and the resulting unsigned integer representation will be:
+     _ _ _ _____ _ __ __ __ __ __ __
+    |0|0|0| ... |0|c0|b2|b1|b0|a1|a0|
+     ‾ ‾ ‾ ‾‾‾‾‾ ‾ ‾‾ ‾‾ ‾‾ ‾‾ ‾‾ ‾‾
+
+    Offsets are calculated at initialization, labels are transformed by method
+    _codes_to_ints.
+
+    Keys are located by first locating each component against the respective
+    level, then locating (the integer representation of) codes.
     """
-    def get_indexer(self, values):
-        # convert a MI to an ndarray
-        if hasattr(values, 'values'):
-            values = values.values
-        return super(MultiIndexObjectEngine, self).get_indexer(values)
+    def __init__(self, object levels, object labels,
+                 ndarray[uint64_t, ndim=1] offsets):
+        """
+        Parameters
+        ----------
+        levels : list-like of numpy arrays
+            Levels of the MultiIndex
+        labels : list-like of numpy arrays of integer dtype
+            Labels of the MultiIndex
+        offsets : numpy array of uint64 dtype
+            Pre-calculated offsets, one for each level of the index
+        """
 
-    cpdef get_loc(self, object val):
+        self.levels = levels
+        self.offsets = offsets
 
-        # convert a MI to an ndarray
-        if hasattr(val, 'values'):
-            val = val.values
-        return super(MultiIndexObjectEngine, self).get_loc(val)
+        # Transform labels in a single array, and add 1 so that we are working
+        # with positive integers (-1 for NaN becomes 0):
+        codes = (np.array(labels, dtype='int64').T + 1).astype('uint64',
+                                                               copy=False)
 
+        # Map each codes combination in the index to an integer unambiguously
+        # (no collisions possible), based on the "offsets", which describe the
+        # number of bits to switch labels for each level:
+        lab_ints = self._codes_to_ints(codes)
 
-cdef class MultiIndexHashEngine(ObjectEngine):
-    """
-    Use a hashing based MultiIndex impl
-    but use the IndexEngine for computation
+        # Initialize underlying index (e.g. libindex.UInt64Engine) with
+        # integers representing labels: we will use its get_loc and get_indexer
+        self._base.__init__(self, lambda: lab_ints, len(lab_ints))
 
-    This provides good performance with larger MI's
-    """
+    def _extract_level_codes(self, object target, object method=None):
+        """
+        Map the requested list of (tuple) keys to their integer representations
+        for searching in the underlying integer index.
 
-    def _call_monotonic(self, object mi):
-        # defer these back to the mi iteself
-        return (mi.is_monotonic_increasing,
-                mi.is_monotonic_decreasing,
-                mi.is_unique)
+        Parameters
+        ----------
+        target : list-like of keys
+            Each key is a tuple, with a label for each level of the index.
 
-    def get_backfill_indexer(self, other, limit=None):
-        # we coerce to ndarray-of-tuples
-        values = np.array(self._get_index_values())
-        return algos.backfill_object(values, other, limit=limit)
+        Returns
+        ------
+        int_keys : 1-dimensional array of dtype uint64 or object
+            Integers representing one combination each
+        """
 
-    def get_pad_indexer(self, other, limit=None):
-        # we coerce to ndarray-of-tuples
-        values = np.array(self._get_index_values())
-        return algos.pad_object(values, other, limit=limit)
+        level_codes = [lev.get_indexer(codes) + 1 for lev, codes
+                       in zip(self.levels, zip(*target))]
+        return self._codes_to_ints(np.array(level_codes, dtype='uint64').T)
 
-    cpdef get_loc(self, object val):
-        if is_definitely_invalid_key(val):
-            raise TypeError("'{val}' is an invalid key".format(val=val))
+    def get_indexer(self, object target, object method=None,
+                    object limit=None):
+        lab_ints = self._extract_level_codes(target)
 
-        self._ensure_mapping_populated()
-        if not self.unique:
-            return self._get_loc_duplicates(val)
+        # All methods (exact, backfill, pad) directly map to the respective
+        # methods of the underlying (integers) index...
+        if method is not None:
+            # but underlying backfill and pad methods require index and keys
+            # to be sorted. The index already is (checked in
+            # Index._get_fill_indexer), sort (integer representations of) keys:
+            order = np.argsort(lab_ints)
+            lab_ints = lab_ints[order]
+            indexer = (getattr(self._base, 'get_{}_indexer'.format(method))
+                       (self, lab_ints, limit=limit))
+            indexer = indexer[order]
+        else:
+            indexer = self._base.get_indexer(self, lab_ints)
 
+        return indexer
+
+    def get_loc(self, object key):
+        if is_definitely_invalid_key(key):
+            raise TypeError("'{key}' is an invalid key".format(key=key))
+        if not PyTuple_Check(key):
+            raise KeyError(key)
         try:
-            return self.mapping.get_item(val)
-        except TypeError:
-            raise KeyError(val)
+            indices = [0 if checknull(v) else lev.get_loc(v) + 1
+                       for lev, v in zip(self.levels, key)]
+        except KeyError:
+            raise KeyError(key)
 
-    def get_indexer(self, values):
-        self._ensure_mapping_populated()
-        return self.mapping.lookup(values)
+        # Transform indices into single integer:
+        lab_int = self._codes_to_ints(np.array(indices, dtype='uint64'))
 
-    cdef _make_hash_table(self, n):
-        return _hash.MultiIndexHashTable(n)
+        return self._base.get_loc(self, lab_int)
+
+    def get_indexer_non_unique(self, object target):
+        # This needs to be overridden just because the default one works on
+        # target._values, and target can be itself a MultiIndex.
+
+        lab_ints = self._extract_level_codes(target)
+        indexer = self._base.get_indexer_non_unique(self, lab_ints)
+
+        return indexer
+
+    def __contains__(self, object val):
+        # Default __contains__ looks in the underlying mapping, which in this
+        # case only contains integer representations.
+        try:
+            self.get_loc(val)
+            return True
+        except (KeyError, TypeError, ValueError):
+            return False
+
 
 # Generated from template.
 include "index_class_helper.pxi"

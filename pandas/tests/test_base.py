@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import pandas.compat as compat
 from pandas.core.dtypes.common import (
-    is_object_dtype, is_datetimetz,
+    is_object_dtype, is_datetimetz, is_datetime64_dtype,
     needs_i8_conversion)
 import pandas.util.testing as tm
 from pandas import (Series, Index, DatetimeIndex, TimedeltaIndex,
@@ -265,8 +265,8 @@ class TestIndexOps(Ops):
 
     def setup_method(self, method):
         super(TestIndexOps, self).setup_method(method)
-        self.is_valid_objs = [o for o in self.objs if o._allow_index_ops]
-        self.not_valid_objs = [o for o in self.objs if not o._allow_index_ops]
+        self.is_valid_objs = self.objs
+        self.not_valid_objs = []
 
     def test_none_comparison(self):
 
@@ -296,14 +296,21 @@ class TestIndexOps(Ops):
                 # result = None != o  # noqa
                 # assert result.iat[0]
                 # assert result.iat[1]
+                if (is_datetime64_dtype(o) or is_datetimetz(o)):
+                    # Following DatetimeIndex (and Timestamp) convention,
+                    # inequality comparisons with Series[datetime64] raise
+                    with pytest.raises(TypeError):
+                        None > o
+                    with pytest.raises(TypeError):
+                        o > None
+                else:
+                    result = None > o
+                    assert not result.iat[0]
+                    assert not result.iat[1]
 
-                result = None > o
-                assert not result.iat[0]
-                assert not result.iat[1]
-
-                result = o < None
-                assert not result.iat[0]
-                assert not result.iat[1]
+                    result = o < None
+                    assert not result.iat[0]
+                    assert not result.iat[1]
 
     def test_ndarray_compat_properties(self):
 
@@ -338,8 +345,9 @@ class TestIndexOps(Ops):
                 if not isinstance(o, PeriodIndex):
                     expected = getattr(o.values, op)()
                 else:
-                    expected = pd.Period(ordinal=getattr(o._values, op)(),
-                                         freq=o.freq)
+                    expected = pd.Period(
+                        ordinal=getattr(o._ndarray_values, op)(),
+                        freq=o.freq)
                 try:
                     assert result == expected
                 except TypeError:
@@ -450,7 +458,7 @@ class TestIndexOps(Ops):
             for orig in self.objs:
                 o = orig.copy()
                 klass = type(o)
-                values = o._values
+                values = o._ndarray_values
 
                 if not self._allow_na_ops(o):
                     continue
@@ -1175,3 +1183,55 @@ class TestToIterable(object):
             assert isinstance(res, pd.Period)
             assert res.freq == 'M'
             assert res == exp
+
+
+@pytest.mark.parametrize('array, expected_type, dtype', [
+    (np.array([0, 1], dtype=np.int64), np.ndarray, 'int64'),
+    (np.array(['a', 'b']), np.ndarray, 'object'),
+    (pd.Categorical(['a', 'b']), pd.Categorical, 'category'),
+    (pd.DatetimeIndex(['2017', '2018']), np.ndarray, 'datetime64[ns]'),
+    (pd.DatetimeIndex(['2017', '2018'], tz="US/Central"), pd.DatetimeIndex,
+     'datetime64[ns, US/Central]'),
+    (pd.TimedeltaIndex([10**10]), np.ndarray, 'm8[ns]'),
+    (pd.PeriodIndex([2018, 2019], freq='A'), np.ndarray, 'object'),
+    (pd.IntervalIndex.from_breaks([0, 1, 2]), np.ndarray, 'object'),
+])
+def test_values_consistent(array, expected_type, dtype):
+    l_values = pd.Series(array)._values
+    r_values = pd.Index(array)._values
+    assert type(l_values) is expected_type
+    assert type(l_values) is type(r_values)
+
+    if isinstance(l_values, np.ndarray):
+        tm.assert_numpy_array_equal(l_values, r_values)
+    elif isinstance(l_values, pd.Index):
+        tm.assert_index_equal(l_values, r_values)
+    elif pd.api.types.is_categorical(l_values):
+        tm.assert_categorical_equal(l_values, r_values)
+    else:
+        raise TypeError("Unexpected type {}".format(type(l_values)))
+
+    assert l_values.dtype == dtype
+    assert r_values.dtype == dtype
+
+
+@pytest.mark.parametrize('array, expected', [
+    (np.array([0, 1], dtype=np.int64), np.array([0, 1], dtype=np.int64)),
+    (np.array(['0', '1']), np.array(['0', '1'], dtype=object)),
+    (pd.Categorical(['a', 'a']), np.array([0, 0], dtype='int8')),
+    (pd.DatetimeIndex(['2017-01-01T00:00:00']),
+     np.array(['2017-01-01T00:00:00'], dtype='M8[ns]')),
+    (pd.DatetimeIndex(['2017-01-01T00:00:00'], tz="US/Eastern"),
+     np.array(['2017-01-01T05:00:00'], dtype='M8[ns]')),
+    (pd.TimedeltaIndex([10**10]), np.array([10**10], dtype='m8[ns]')),
+    pytest.param(
+        pd.PeriodIndex(['2017', '2018'], freq='D'),
+        np.array([17167, 17532]),
+        marks=pytest.mark.xfail(reason="PeriodArray Not implemented")
+    ),
+])
+def test_ndarray_values(array, expected):
+    l_values = pd.Series(array)._ndarray_values
+    r_values = pd.Index(array)._ndarray_values
+    tm.assert_numpy_array_equal(l_values, r_values)
+    tm.assert_numpy_array_equal(l_values, expected)

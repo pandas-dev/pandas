@@ -311,9 +311,9 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/missing.pyx',
                  'pandas/_libs/reduction.pyx',
                  'pandas/_libs/testing.pyx',
-                 'pandas/_libs/window.pyx',
                  'pandas/_libs/skiplist.pyx',
                  'pandas/_libs/sparse.pyx',
+                 'pandas/_libs/ops.pyx',
                  'pandas/_libs/parsers.pyx',
                  'pandas/_libs/tslibs/ccalendar.pyx',
                  'pandas/_libs/tslibs/period.pyx',
@@ -328,7 +328,12 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/tslibs/frequencies.pyx',
                  'pandas/_libs/tslibs/resolution.pyx',
                  'pandas/_libs/tslibs/parsing.pyx',
+                 'pandas/_libs/writers.pyx',
                  'pandas/io/sas/sas.pyx']
+
+    _cpp_pyxfiles = ['pandas/_libs/window.pyx',
+                     'pandas/io/msgpack/_packer.pyx',
+                     'pandas/io/msgpack/_unpacker.pyx']
 
     def initialize_options(self):
         sdist_class.initialize_options(self)
@@ -337,12 +342,17 @@ class CheckSDist(sdist_class):
         if 'cython' in cmdclass:
             self.run_command('cython')
         else:
-            for pyxfile in self._pyxfiles:
-                cfile = pyxfile[:-3] + 'c'
-                msg = ("C-source file '{source}' not found.\n"
-                       "Run 'setup.py cython' before sdist.".format(
-                           source=cfile))
-                assert os.path.isfile(cfile), msg
+            # If we are not running cython then
+            # compile the extensions correctly
+            pyx_files = [(self._pyxfiles, 'c'), (self._cpp_pyxfiles, 'cpp')]
+
+            for pyxfiles, extension in pyx_files:
+                for pyxfile in pyxfiles:
+                    sourcefile = pyxfile[:-3] + extension
+                    msg = ("{extension}-source file '{source}' not found.\n"
+                           "Run 'setup.py cython' before sdist.".format(
+                               source=sourcefile, extension=extension))
+                    assert os.path.isfile(sourcefile), msg
         sdist_class.run(self)
 
 
@@ -416,7 +426,12 @@ else:
     cmdclass['build_src'] = DummyBuildSrc
     cmdclass['build_ext'] = CheckingBuildExt
 
-lib_depends = ['reduce', 'inference']
+if sys.byteorder == 'big':
+    endian_macro = [('__BIG_ENDIAN__', '1')]
+else:
+    endian_macro = [('__LITTLE_ENDIAN__', '1')]
+
+lib_depends = ['inference']
 
 
 def srcpath(name=None, suffix='.pyx', subdir='src'):
@@ -452,6 +467,7 @@ np_datetime_headers = ['pandas/_libs/src/datetime/np_datetime.h',
                        'pandas/_libs/src/datetime/np_datetime_strings.h']
 np_datetime_sources = ['pandas/_libs/src/datetime/np_datetime.c',
                        'pandas/_libs/src/datetime/np_datetime_strings.c']
+
 tseries_depends = np_datetime_headers + ['pandas/_libs/tslibs/np_datetime.pxd']
 
 # some linux distros require it
@@ -508,11 +524,17 @@ ext_data = {
         'sources': ['pandas/_libs/src/parser/tokenizer.c',
                     'pandas/_libs/src/parser/io.c']},
     '_libs.reduction': {
-        'pyxfile': '_libs/reduction'},
+        'pyxfile': '_libs/reduction',
+        'pxdfiles': ['_libs/src/util']},
+    '_libs.ops': {
+        'pyxfile': '_libs/ops',
+        'pxdfiles': ['_libs/src/util',
+                     '_libs/missing']},
     '_libs.tslibs.period': {
         'pyxfile': '_libs/tslibs/period',
         'pxdfiles': ['_libs/src/util',
-                     '_libs/lib',
+                     '_libs/missing',
+                     '_libs/tslibs/ccalendar',
                      '_libs/tslibs/timedeltas',
                      '_libs/tslibs/timezones',
                      '_libs/tslibs/nattype'],
@@ -614,14 +636,43 @@ ext_data = {
         'pyxfile': '_libs/testing'},
     '_libs.window': {
         'pyxfile': '_libs/window',
-        'pxdfiles': ['_libs/skiplist', '_libs/src/util']},
+        'pxdfiles': ['_libs/skiplist', '_libs/src/util'],
+        'language': 'c++',
+        'suffix': '.cpp'},
+    '_libs.writers': {
+        'pyxfile': '_libs/writers',
+        'pxdfiles': ['_libs/src/util']},
     'io.sas._sas': {
-        'pyxfile': 'io/sas/sas'}}
+        'pyxfile': 'io/sas/sas'},
+    'io.msgpack._packer': {
+        'macros': endian_macro,
+        'depends': ['pandas/_libs/src/msgpack/pack.h',
+                    'pandas/_libs/src/msgpack/pack_template.h'],
+        'include': ['pandas/_libs/src/msgpack'] + common_include,
+        'language': 'c++',
+        'suffix': '.cpp',
+        'pyxfile': 'io/msgpack/_packer',
+        'subdir': 'io/msgpack'},
+    'io.msgpack._unpacker': {
+        'depends': ['pandas/_libs/src/msgpack/unpack.h',
+                    'pandas/_libs/src/msgpack/unpack_define.h',
+                    'pandas/_libs/src/msgpack/unpack_template.h'],
+        'macros': endian_macro,
+        'include': ['pandas/_libs/src/msgpack'] + common_include,
+        'language': 'c++',
+        'suffix': '.cpp',
+        'pyxfile': 'io/msgpack/_unpacker',
+        'subdir': 'io/msgpack'
+    }
+}
 
 extensions = []
 
 for name, data in ext_data.items():
-    sources = [srcpath(data['pyxfile'], suffix=suffix, subdir='')]
+    source_suffix = suffix if suffix == '.pyx' else data.get('suffix', '.c')
+
+    sources = [srcpath(data['pyxfile'], suffix=source_suffix, subdir='')]
+
     pxds = [pxd(x) for x in data.get('pxdfiles', [])]
     if suffix == '.pyx' and pxds:
         sources.extend(pxds)
@@ -634,46 +685,11 @@ for name, data in ext_data.items():
                     sources=sources,
                     depends=data.get('depends', []),
                     include_dirs=include,
+                    language=data.get('language', 'c'),
+                    define_macros=data.get('macros', []),
                     extra_compile_args=extra_compile_args)
 
     extensions.append(obj)
-
-
-# ----------------------------------------------------------------------
-# msgpack
-
-if sys.byteorder == 'big':
-    macros = [('__BIG_ENDIAN__', '1')]
-else:
-    macros = [('__LITTLE_ENDIAN__', '1')]
-
-msgpack_include = ['pandas/_libs/src/msgpack'] + common_include
-msgpack_suffix = suffix if suffix == '.pyx' else '.cpp'
-unpacker_depends = ['pandas/_libs/src/msgpack/unpack.h',
-                    'pandas/_libs/src/msgpack/unpack_define.h',
-                    'pandas/_libs/src/msgpack/unpack_template.h']
-
-packer_ext = Extension('pandas.io.msgpack._packer',
-                       depends=['pandas/_libs/src/msgpack/pack.h',
-                                'pandas/_libs/src/msgpack/pack_template.h'],
-                       sources=[srcpath('_packer',
-                                suffix=msgpack_suffix,
-                                subdir='io/msgpack')],
-                       language='c++',
-                       include_dirs=msgpack_include,
-                       define_macros=macros,
-                       extra_compile_args=extra_compile_args)
-unpacker_ext = Extension('pandas.io.msgpack._unpacker',
-                         depends=unpacker_depends,
-                         sources=[srcpath('_unpacker',
-                                  suffix=msgpack_suffix,
-                                  subdir='io/msgpack')],
-                         language='c++',
-                         include_dirs=msgpack_include,
-                         define_macros=macros,
-                         extra_compile_args=extra_compile_args)
-extensions.append(packer_ext)
-extensions.append(unpacker_ext)
 
 # ----------------------------------------------------------------------
 # ujson
@@ -686,18 +702,16 @@ if suffix == '.pyx':
             ext.sources[0] = root + suffix
 
 ujson_ext = Extension('pandas._libs.json',
-                      depends=['pandas/_libs/src/ujson/lib/ultrajson.h',
-                               'pandas/_libs/src/numpy_helper.h'],
+                      depends=['pandas/_libs/src/ujson/lib/ultrajson.h'],
                       sources=(['pandas/_libs/src/ujson/python/ujson.c',
                                 'pandas/_libs/src/ujson/python/objToJSON.c',
                                 'pandas/_libs/src/ujson/python/JSONtoObj.c',
                                 'pandas/_libs/src/ujson/lib/ultrajsonenc.c',
                                 'pandas/_libs/src/ujson/lib/ultrajsondec.c'] +
                                np_datetime_sources),
-                      include_dirs=(['pandas/_libs/src/ujson/python',
-                                     'pandas/_libs/src/ujson/lib',
-                                     'pandas/_libs/src/datetime'] +
-                                    common_include),
+                      include_dirs=['pandas/_libs/src/ujson/python',
+                                    'pandas/_libs/src/ujson/lib',
+                                    'pandas/_libs/src/datetime'],
                       extra_compile_args=(['-D_GNU_SOURCE'] +
                                           extra_compile_args))
 

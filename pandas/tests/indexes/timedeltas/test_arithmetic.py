@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import operator
+
 import pytest
 import numpy as np
 from datetime import timedelta
@@ -10,7 +12,8 @@ from pandas import (DatetimeIndex, TimedeltaIndex, Float64Index, Int64Index,
                     to_timedelta, timedelta_range, date_range,
                     Series,
                     Timestamp, Timedelta)
-from pandas.errors import PerformanceWarning
+from pandas.errors import PerformanceWarning, NullFrequencyError
+from pandas.core import ops
 
 
 @pytest.fixture(params=[pd.offsets.Hour(2), timedelta(hours=2),
@@ -123,11 +126,161 @@ class TestTimedeltaIndexComparisons(object):
             tm.assert_numpy_array_equal(result, expected)
 
 
+class TestTimedeltaIndexMultiplicationDivision(object):
+    # __mul__, __rmul__,
+    # __div__, __rdiv__, __floordiv__, __rfloordiv__,
+    # __mod__, __rmod__, __divmod__, __rdivmod__
+
+    # -------------------------------------------------------------
+    # Multiplication
+    # organized with scalar others first, then array-like
+
+    def test_tdi_mul_int(self):
+        idx = TimedeltaIndex(np.arange(5, dtype='int64'))
+        result = idx * 1
+        tm.assert_index_equal(result, idx)
+
+    def test_tdi_rmul_int(self):
+        idx = TimedeltaIndex(np.arange(5, dtype='int64'))
+        result = 1 * idx
+        tm.assert_index_equal(result, idx)
+
+    def test_tdi_mul_tdlike_scalar_raises(self, delta):
+        rng = timedelta_range('1 days', '10 days', name='foo')
+        with pytest.raises(TypeError):
+            rng * delta
+
+    def test_tdi_mul_int_array_zerodim(self):
+        rng5 = np.arange(5, dtype='int64')
+        idx = TimedeltaIndex(rng5)
+        expected = TimedeltaIndex(rng5 * 5)
+        result = idx * np.array(5, dtype='int64')
+        tm.assert_index_equal(result, expected)
+
+    def test_tdi_mul_int_array(self):
+        rng5 = np.arange(5, dtype='int64')
+        idx = TimedeltaIndex(rng5)
+        didx = TimedeltaIndex(rng5 ** 2)
+
+        result = idx * rng5
+        tm.assert_index_equal(result, didx)
+
+    def test_tdi_mul_dti_raises(self):
+        idx = TimedeltaIndex(np.arange(5, dtype='int64'))
+        with pytest.raises(TypeError):
+            idx * idx
+
+    def test_tdi_mul_too_short_raises(self):
+        idx = TimedeltaIndex(np.arange(5, dtype='int64'))
+        with pytest.raises(TypeError):
+            idx * TimedeltaIndex(np.arange(3))
+        with pytest.raises(ValueError):
+            idx * np.array([1, 2])
+
+    def test_tdi_mul_int_series(self):
+        idx = TimedeltaIndex(np.arange(5, dtype='int64'))
+        didx = TimedeltaIndex(np.arange(5, dtype='int64') ** 2)
+
+        result = idx * Series(np.arange(5, dtype='int64'))
+
+        tm.assert_series_equal(result, Series(didx))
+
+    def test_tdi_mul_float_series(self):
+        idx = TimedeltaIndex(np.arange(5, dtype='int64'))
+
+        rng5f = np.arange(5, dtype='float64')
+        result = idx * Series(rng5f + 0.1)
+        expected = Series(TimedeltaIndex(rng5f * (rng5f + 0.1)))
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('other', [np.arange(1, 11),
+                                       pd.Int64Index(range(1, 11)),
+                                       pd.UInt64Index(range(1, 11)),
+                                       pd.Float64Index(range(1, 11)),
+                                       pd.RangeIndex(1, 11)])
+    def test_tdi_rmul_arraylike(self, other):
+        tdi = TimedeltaIndex(['1 Day'] * 10)
+        expected = timedelta_range('1 days', '10 days')
+
+        result = other * tdi
+        tm.assert_index_equal(result, expected)
+        commute = tdi * other
+        tm.assert_index_equal(commute, expected)
+
+    # -------------------------------------------------------------
+    # TimedeltaIndex.__div__
+
+    def test_tdi_div_int(self):
+        idx = TimedeltaIndex(np.arange(5, dtype='int64'))
+        result = idx / 1
+        tm.assert_index_equal(result, idx)
+
+    def test_tdi_div_tdlike_scalar(self, delta):
+        rng = timedelta_range('1 days', '10 days', name='foo')
+        expected = Int64Index((np.arange(10) + 1) * 12, name='foo')
+
+        result = rng / delta
+        tm.assert_index_equal(result, expected, exact=False)
+
+    def test_tdi_div_tdlike_scalar_with_nat(self, delta):
+        rng = TimedeltaIndex(['1 days', pd.NaT, '2 days'], name='foo')
+        expected = Float64Index([12, np.nan, 24], name='foo')
+        result = rng / delta
+        tm.assert_index_equal(result, expected)
+
+    def test_tdi_div_nat_raises(self):
+        # don't allow division by NaT (make could in the future)
+        rng = timedelta_range('1 days', '10 days', name='foo')
+        with pytest.raises(TypeError):
+            rng / pd.NaT
+
+    # -------------------------------------------------------------
+    # TimedeltaIndex.__floordiv__
+
+    def test_tdi_floordiv_int(self):
+        idx = TimedeltaIndex(np.arange(5, dtype='int64'))
+        result = idx // 1
+        tm.assert_index_equal(result, idx)
+
+    def test_tdi_floordiv_tdlike_scalar(self, delta):
+        tdi = timedelta_range('1 days', '10 days', name='foo')
+        expected = Int64Index((np.arange(10) + 1) * 12, name='foo')
+
+        result = tdi // delta
+        tm.assert_index_equal(result, expected, exact=False)
+
+    @pytest.mark.parametrize('scalar_td', [
+        timedelta(minutes=10, seconds=7),
+        Timedelta('10m7s'),
+        Timedelta('10m7s').to_timedelta64()])
+    def test_tdi_floordiv_timedelta_scalar(self, scalar_td):
+        # GH#19125
+        tdi = TimedeltaIndex(['00:05:03', '00:05:03', pd.NaT], freq=None)
+        expected = pd.Index([2.0, 2.0, np.nan])
+
+        res = tdi.__rfloordiv__(scalar_td)
+        tm.assert_index_equal(res, expected)
+
+        expected = pd.Index([0.0, 0.0, np.nan])
+
+        res = tdi // (scalar_td)
+        tm.assert_index_equal(res, expected)
+
+
 class TestTimedeltaIndexArithmetic(object):
-    _holder = TimedeltaIndex
+    # Addition and Subtraction Operations
 
     # -------------------------------------------------------------
     # Invalid Operations
+
+    @pytest.mark.parametrize('other', [3.14, np.array([2.0, 3.0])])
+    @pytest.mark.parametrize('op', [operator.add, ops.radd,
+                                    operator.sub, ops.rsub])
+    def test_tdi_add_sub_float(self, op, other):
+        dti = DatetimeIndex(['2011-01-01', '2011-01-02'], freq='D')
+        tdi = dti - dti.shift(1)
+        with pytest.raises(TypeError):
+            op(tdi, other)
 
     def test_tdi_add_str_invalid(self):
         # GH 13624
@@ -138,13 +291,101 @@ class TestTimedeltaIndexArithmetic(object):
         with pytest.raises(TypeError):
             'a' + tdi
 
+    @pytest.mark.parametrize('freq', [None, 'H'])
+    def test_tdi_sub_period(self, freq):
+        # GH#13078
+        # not supported, check TypeError
+        p = pd.Period('2011-01-01', freq='D')
+
+        idx = pd.TimedeltaIndex(['1 hours', '2 hours'], freq=freq)
+
+        with pytest.raises(TypeError):
+            idx - p
+
+        with pytest.raises(TypeError):
+            p - idx
+
+    # -------------------------------------------------------------
+    # TimedeltaIndex.shift is used by __add__/__sub__
+
+    def test_tdi_shift_empty(self):
+        # GH#9903
+        idx = pd.TimedeltaIndex([], name='xxx')
+        tm.assert_index_equal(idx.shift(0, freq='H'), idx)
+        tm.assert_index_equal(idx.shift(3, freq='H'), idx)
+
+    def test_tdi_shift_hours(self):
+        # GH#9903
+        idx = pd.TimedeltaIndex(['5 hours', '6 hours', '9 hours'], name='xxx')
+        tm.assert_index_equal(idx.shift(0, freq='H'), idx)
+        exp = pd.TimedeltaIndex(['8 hours', '9 hours', '12 hours'], name='xxx')
+        tm.assert_index_equal(idx.shift(3, freq='H'), exp)
+        exp = pd.TimedeltaIndex(['2 hours', '3 hours', '6 hours'], name='xxx')
+        tm.assert_index_equal(idx.shift(-3, freq='H'), exp)
+
+    def test_tdi_shift_minutes(self):
+        # GH#9903
+        idx = pd.TimedeltaIndex(['5 hours', '6 hours', '9 hours'], name='xxx')
+        tm.assert_index_equal(idx.shift(0, freq='T'), idx)
+        exp = pd.TimedeltaIndex(['05:03:00', '06:03:00', '9:03:00'],
+                                name='xxx')
+        tm.assert_index_equal(idx.shift(3, freq='T'), exp)
+        exp = pd.TimedeltaIndex(['04:57:00', '05:57:00', '8:57:00'],
+                                name='xxx')
+        tm.assert_index_equal(idx.shift(-3, freq='T'), exp)
+
+    def test_tdi_shift_int(self):
+        # GH#8083
+        trange = pd.to_timedelta(range(5), unit='d') + pd.offsets.Hour(1)
+        result = trange.shift(1)
+        expected = TimedeltaIndex(['1 days 01:00:00', '2 days 01:00:00',
+                                   '3 days 01:00:00',
+                                   '4 days 01:00:00', '5 days 01:00:00'],
+                                  freq='D')
+        tm.assert_index_equal(result, expected)
+
+    def test_tdi_shift_nonstandard_freq(self):
+        # GH#8083
+        trange = pd.to_timedelta(range(5), unit='d') + pd.offsets.Hour(1)
+        result = trange.shift(3, freq='2D 1s')
+        expected = TimedeltaIndex(['6 days 01:00:03', '7 days 01:00:03',
+                                   '8 days 01:00:03', '9 days 01:00:03',
+                                   '10 days 01:00:03'], freq='D')
+        tm.assert_index_equal(result, expected)
+
+    def test_shift_no_freq(self):
+        # GH#19147
+        tdi = TimedeltaIndex(['1 days 01:00:00', '2 days 01:00:00'], freq=None)
+        with pytest.raises(NullFrequencyError):
+            tdi.shift(2)
+
     # -------------------------------------------------------------
 
-    @pytest.mark.parametrize('box', [np.array, pd.Index])
-    def test_tdi_add_offset_array(self, box):
+    @pytest.mark.parametrize('names', [(None, None, None),
+                                       ('foo', 'bar', None),
+                                       ('foo', 'foo', 'foo')])
+    def test_tdi_add_offset_index(self, names):
+        # GH#18849, GH#19744
+        tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'],
+                             name=names[0])
+        other = pd.Index([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)],
+                         name=names[1])
+
+        expected = TimedeltaIndex([tdi[n] + other[n] for n in range(len(tdi))],
+                                  freq='infer', name=names[2])
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res = tdi + other
+        tm.assert_index_equal(res, expected)
+
+        with tm.assert_produces_warning(PerformanceWarning):
+            res2 = other + tdi
+        tm.assert_index_equal(res2, expected)
+
+    def test_tdi_add_offset_array(self):
         # GH#18849
         tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'])
-        other = box([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)])
+        other = np.array([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)])
 
         expected = TimedeltaIndex([tdi[n] + other[n] for n in range(len(tdi))],
                                   freq='infer')
@@ -157,23 +398,27 @@ class TestTimedeltaIndexArithmetic(object):
             res2 = other + tdi
         tm.assert_index_equal(res2, expected)
 
-        anchored = box([pd.offsets.QuarterEnd(),
-                        pd.offsets.Week(weekday=2)])
+    @pytest.mark.parametrize('names', [(None, None, None),
+                                       ('foo', 'bar', None),
+                                       ('foo', 'foo', 'foo')])
+    def test_tdi_sub_offset_index(self, names):
+        # GH#18824, GH#19744
+        tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'],
+                             name=names[0])
+        other = pd.Index([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)],
+                         name=names[1])
 
-        # addition/subtraction ops with anchored offsets should issue
-        # a PerformanceWarning and _then_ raise a TypeError.
-        with pytest.raises(TypeError):
-            with tm.assert_produces_warning(PerformanceWarning):
-                tdi + anchored
-        with pytest.raises(TypeError):
-            with tm.assert_produces_warning(PerformanceWarning):
-                anchored + tdi
+        expected = TimedeltaIndex([tdi[n] - other[n] for n in range(len(tdi))],
+                                  freq='infer', name=names[2])
 
-    @pytest.mark.parametrize('box', [np.array, pd.Index])
-    def test_tdi_sub_offset_array(self, box):
+        with tm.assert_produces_warning(PerformanceWarning):
+            res = tdi - other
+        tm.assert_index_equal(res, expected)
+
+    def test_tdi_sub_offset_array(self):
         # GH#18824
         tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'])
-        other = box([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)])
+        other = np.array([pd.offsets.Hour(n=1), pd.offsets.Minute(n=-2)])
 
         expected = TimedeltaIndex([tdi[n] - other[n] for n in range(len(tdi))],
                                   freq='infer')
@@ -181,17 +426,6 @@ class TestTimedeltaIndexArithmetic(object):
         with tm.assert_produces_warning(PerformanceWarning):
             res = tdi - other
         tm.assert_index_equal(res, expected)
-
-        anchored = box([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
-
-        # addition/subtraction ops with anchored offsets should issue
-        # a PerformanceWarning and _then_ raise a TypeError.
-        with pytest.raises(TypeError):
-            with tm.assert_produces_warning(PerformanceWarning):
-                tdi - anchored
-        with pytest.raises(TypeError):
-            with tm.assert_produces_warning(PerformanceWarning):
-                anchored - tdi
 
     @pytest.mark.parametrize('names', [(None, None, None),
                                        ('foo', 'bar', None),
@@ -221,8 +455,12 @@ class TestTimedeltaIndexArithmetic(object):
             res3 = tdi - other
         tm.assert_series_equal(res3, expected_sub)
 
-        anchored = Series([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)],
-                          name=names[1])
+    @pytest.mark.parametrize('box', [np.array, pd.Index, pd.Series])
+    def test_tdi_add_sub_anchored_offset_arraylike(self, box):
+        # GH#18824
+        tdi = TimedeltaIndex(['1 days 00:00:00', '3 days 04:00:00'])
+
+        anchored = box([pd.offsets.MonthEnd(), pd.offsets.Day(n=2)])
 
         # addition/subtraction ops with anchored offsets should issue
         # a PerformanceWarning and _then_ raise a TypeError.
@@ -238,69 +476,6 @@ class TestTimedeltaIndexArithmetic(object):
         with pytest.raises(TypeError):
             with tm.assert_produces_warning(PerformanceWarning):
                 anchored - tdi
-
-    def test_mul_int(self):
-        idx = self._holder(np.arange(5, dtype='int64'))
-        result = idx * 1
-        tm.assert_index_equal(result, idx)
-
-    def test_rmul_int(self):
-        idx = self._holder(np.arange(5, dtype='int64'))
-        result = 1 * idx
-        tm.assert_index_equal(result, idx)
-
-    def test_div_int(self):
-        idx = self._holder(np.arange(5, dtype='int64'))
-        result = idx / 1
-        tm.assert_index_equal(result, idx)
-
-    def test_floordiv_int(self):
-        idx = self._holder(np.arange(5, dtype='int64'))
-        result = idx // 1
-        tm.assert_index_equal(result, idx)
-
-    def test_mul_int_array_zerodim(self):
-        rng5 = np.arange(5, dtype='int64')
-        idx = self._holder(rng5)
-        expected = self._holder(rng5 * 5)
-        result = idx * np.array(5, dtype='int64')
-        tm.assert_index_equal(result, expected)
-
-    def test_mul_int_array(self):
-        rng5 = np.arange(5, dtype='int64')
-        idx = self._holder(rng5)
-        didx = self._holder(rng5 ** 2)
-
-        result = idx * rng5
-        tm.assert_index_equal(result, didx)
-
-    def test_mul_int_series(self):
-        idx = self._holder(np.arange(5, dtype='int64'))
-        didx = self._holder(np.arange(5, dtype='int64') ** 2)
-
-        result = idx * Series(np.arange(5, dtype='int64'))
-
-        tm.assert_series_equal(result, Series(didx))
-
-    def test_mul_float_series(self):
-        idx = self._holder(np.arange(5, dtype='int64'))
-
-        rng5f = np.arange(5, dtype='float64')
-        result = idx * Series(rng5f + 0.1)
-        expected = Series(self._holder(rng5f * (rng5f + 0.1)))
-        tm.assert_series_equal(result, expected)
-
-    def test_dti_mul_dti_raises(self):
-        idx = self._holder(np.arange(5, dtype='int64'))
-        with pytest.raises(TypeError):
-            idx * idx
-
-    def test_dti_mul_too_short_raises(self):
-        idx = self._holder(np.arange(5, dtype='int64'))
-        with pytest.raises(ValueError):
-            idx * self._holder(np.arange(3))
-        with pytest.raises(ValueError):
-            idx * np.array([1, 2])
 
     def test_ufunc_coercions(self):
         # normal ops are also tested in tseries/test_timedeltas.py
@@ -424,54 +599,55 @@ class TestTimedeltaIndexArithmetic(object):
         tm.assert_index_equal(result, expected)
 
     # -------------------------------------------------------------
+    # __add__/__sub__ with ndarray[datetime64] and ndarray[timedelta64]
 
-    @pytest.mark.parametrize('scalar_td', [
-        timedelta(minutes=10, seconds=7),
-        Timedelta('10m7s'),
-        Timedelta('10m7s').to_timedelta64()])
-    def test_tdi_floordiv_timedelta_scalar(self, scalar_td):
-        # GH#19125
-        tdi = TimedeltaIndex(['00:05:03', '00:05:03', pd.NaT], freq=None)
-        expected = pd.Index([2.0, 2.0, np.nan])
+    def test_tdi_sub_dt64_array(self):
+        dti = pd.date_range('2016-01-01', periods=3)
+        tdi = dti - dti.shift(1)
+        dtarr = dti.values
 
-        res = tdi.__rfloordiv__(scalar_td)
-        tm.assert_index_equal(res, expected)
-
-        expected = pd.Index([0.0, 0.0, np.nan])
-
-        res = tdi // (scalar_td)
-        tm.assert_index_equal(res, expected)
-
-    def test_tdi_floordiv_tdlike_scalar(self, delta):
-        tdi = timedelta_range('1 days', '10 days', name='foo')
-        expected = Int64Index((np.arange(10) + 1) * 12, name='foo')
-
-        result = tdi // delta
-        tm.assert_index_equal(result, expected, exact=False)
-
-    def test_tdi_mul_tdlike_scalar_raises(self, delta):
-        rng = timedelta_range('1 days', '10 days', name='foo')
         with pytest.raises(TypeError):
-            rng * delta
+            tdi - dtarr
 
-    def test_tdi_div_nat_raises(self):
-        # don't allow division by NaT (make could in the future)
-        rng = timedelta_range('1 days', '10 days', name='foo')
-        with pytest.raises(TypeError):
-            rng / pd.NaT
-
-    def test_tdi_div_tdlike_scalar(self, delta):
-        rng = timedelta_range('1 days', '10 days', name='foo')
-        expected = Int64Index((np.arange(10) + 1) * 12, name='foo')
-
-        result = rng / delta
-        tm.assert_index_equal(result, expected, exact=False)
-
-    def test_tdi_div_tdlike_scalar_with_nat(self, delta):
-        rng = TimedeltaIndex(['1 days', pd.NaT, '2 days'], name='foo')
-        expected = Float64Index([12, np.nan, 24], name='foo')
-        result = rng / delta
+        # TimedeltaIndex.__rsub__
+        expected = pd.DatetimeIndex(dtarr) - tdi
+        result = dtarr - tdi
         tm.assert_index_equal(result, expected)
+
+    def test_tdi_add_dt64_array(self):
+        dti = pd.date_range('2016-01-01', periods=3)
+        tdi = dti - dti.shift(1)
+        dtarr = dti.values
+
+        expected = pd.DatetimeIndex(dtarr) + tdi
+        result = tdi + dtarr
+        tm.assert_index_equal(result, expected)
+        result = dtarr + tdi
+        tm.assert_index_equal(result, expected)
+
+    def test_tdi_add_td64_array(self):
+        dti = pd.date_range('2016-01-01', periods=3)
+        tdi = dti - dti.shift(1)
+        tdarr = tdi.values
+
+        expected = 2 * tdi
+        result = tdi + tdarr
+        tm.assert_index_equal(result, expected)
+        result = tdarr + tdi
+        tm.assert_index_equal(result, expected)
+
+    def test_tdi_sub_td64_array(self):
+        dti = pd.date_range('2016-01-01', periods=3)
+        tdi = dti - dti.shift(1)
+        tdarr = tdi.values
+
+        expected = 0 * tdi
+        result = tdi - tdarr
+        tm.assert_index_equal(result, expected)
+        result = tdarr - tdi
+        tm.assert_index_equal(result, expected)
+
+    # -------------------------------------------------------------
 
     def test_subtraction_ops(self):
         # with datetimes/timedelta and tdi/dti
@@ -600,20 +776,6 @@ class TestTimedeltaIndexArithmetic(object):
         expected = DatetimeIndex(['20121231', pd.NaT, '20130101'])
         tm.assert_index_equal(result, expected)
 
-    def test_sub_period(self):
-        # GH 13078
-        # not supported, check TypeError
-        p = pd.Period('2011-01-01', freq='D')
-
-        for freq in [None, 'H']:
-            idx = pd.TimedeltaIndex(['1 hours', '2 hours'], freq=freq)
-
-            with pytest.raises(TypeError):
-                idx - p
-
-            with pytest.raises(TypeError):
-                p - idx
-
     def test_addition_ops(self):
         # with datetimes/timedelta and tdi/dti
         tdi = TimedeltaIndex(['1 days', pd.NaT, '2 days'], name='foo')
@@ -642,7 +804,7 @@ class TestTimedeltaIndexArithmetic(object):
         pytest.raises(ValueError, lambda: tdi[0:1] + dti)
 
         # random indexes
-        pytest.raises(TypeError, lambda: tdi + Int64Index([1, 2, 3]))
+        pytest.raises(NullFrequencyError, lambda: tdi + Int64Index([1, 2, 3]))
 
         # this is a union!
         # pytest.raises(TypeError, lambda : Int64Index([1,2,3]) + tdi)

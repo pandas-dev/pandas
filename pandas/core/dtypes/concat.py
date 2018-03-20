@@ -19,7 +19,7 @@ from pandas.core.dtypes.common import (
     _TD_DTYPE)
 from pandas.core.dtypes.generic import (
     ABCDatetimeIndex, ABCTimedeltaIndex,
-    ABCPeriodIndex, ABCRangeIndex)
+    ABCPeriodIndex, ABCRangeIndex, ABCSparseDataFrame)
 
 
 def get_dtype_kinds(l):
@@ -89,14 +89,37 @@ def _get_series_result_type(result, objs=None):
 def _get_frame_result_type(result, objs):
     """
     return appropriate class of DataFrame-like concat
-    if any block is SparseBlock, return SparseDataFrame
+    if all blocks are SparseBlock, return SparseDataFrame
     otherwise, return 1st obj
     """
-    if any(b.is_sparse for b in result.blocks):
+
+    if result.blocks and all(b.is_sparse for b in result.blocks):
         from pandas.core.sparse.api import SparseDataFrame
         return SparseDataFrame
     else:
-        return objs[0]
+        return next(obj for obj in objs if not isinstance(obj,
+                                                          ABCSparseDataFrame))
+
+
+def _get_sliced_frame_result_type(data, obj):
+    """
+    return appropriate class of Series. When data is sparse
+    it will return a SparseSeries, otherwise it will return
+    the Series.
+
+    Parameters
+    ----------
+    data : array-like
+    obj : DataFrame
+
+    Returns
+    -------
+    Series or SparseSeries
+    """
+    if is_sparse(data):
+        from pandas.core.sparse.api import SparseSeries
+        return SparseSeries
+    return obj._constructor_sliced
 
 
 def _concat_compat(to_concat, axis=0):
@@ -486,12 +509,14 @@ def _concat_index_asobject(to_concat, name=None):
     concat all inputs as object. DatetimeIndex, TimedeltaIndex and
     PeriodIndex are converted to object dtype before concatenation
     """
+    from pandas import Index
+    from pandas.core.arrays import ExtensionArray
 
-    klasses = ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex
+    klasses = (ABCDatetimeIndex, ABCTimedeltaIndex, ABCPeriodIndex,
+               ExtensionArray)
     to_concat = [x.astype(object) if isinstance(x, klasses) else x
                  for x in to_concat]
 
-    from pandas import Index
     self = to_concat[0]
     attribs = self._get_attributes_dict()
     attribs['name'] = name

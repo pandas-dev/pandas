@@ -1,4 +1,4 @@
-beautifulsoup4
+beautifulsoup4>=4.2.1
 blosc
 bottleneck
 fastparquet

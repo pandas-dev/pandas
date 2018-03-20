@@ -1,3 +1,5 @@
+import operator
+
 import numpy as np
 from pandas._libs import index as libindex
 
@@ -20,7 +22,6 @@ from pandas.core.config import get_option
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core import accessor
 import pandas.core.common as com
-import pandas.core.base as base
 import pandas.core.missing as missing
 import pandas.core.indexes.base as ibase
 
@@ -74,7 +75,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     _attributes = ['name']
 
     def __new__(cls, data=None, categories=None, ordered=None, dtype=None,
-                copy=False, name=None, fastpath=False, **kwargs):
+                copy=False, name=None, fastpath=False):
 
         if fastpath:
             return cls._simple_new(data, name=name, dtype=dtype)
@@ -293,6 +294,11 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         """ return the underlying data, which is a Categorical """
         return self._data
 
+    @property
+    def itemsize(self):
+        # Size of the items in categories, not codes.
+        return self.values.itemsize
+
     def get_values(self):
         """ return the underlying data as an ndarray """
         return self._data.get_values()
@@ -344,7 +350,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             return IntervalIndex(np.array(self))
         elif is_categorical_dtype(dtype):
             # GH 18630
-            dtype = self.dtype._update_dtype(dtype)
+            dtype = self.dtype.update_dtype(dtype)
             if dtype == self.dtype:
                 return self.copy() if copy else self
 
@@ -386,13 +392,13 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def unique(self, level=None):
         if level is not None:
             self._validate_index_level(level)
-        result = base.IndexOpsMixin.unique(self)
-        # CategoricalIndex._shallow_copy uses keeps original categories
+        result = self.values.unique()
+        # CategoricalIndex._shallow_copy keeps original categories
         # and ordered if not otherwise specified
         return self._shallow_copy(result, categories=result.categories,
                                   ordered=result.ordered)
 
-    @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)
+    @Appender(Index.duplicated.__doc__)
     def duplicated(self, keep='first'):
         from pandas._libs.hashtable import duplicated_int64
         codes = self.codes.astype('i8')
@@ -553,6 +559,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
     def get_indexer(self, target, method=None, limit=None, tolerance=None):
+        from pandas.core.arrays.categorical import _recode_for_categories
+
         method = missing.clean_reindex_fill_method(method)
         target = ibase._ensure_index(target)
 
@@ -568,8 +576,13 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
         if (isinstance(target, CategoricalIndex) and
                 self.values.is_dtype_equal(target)):
-            # we have the same codes
-            codes = target.codes
+            if self.values.equals(target.values):
+                # we have the same codes
+                codes = target.codes
+            else:
+                codes = _recode_for_categories(target.codes,
+                                               target.categories,
+                                               self.values.categories)
         else:
             if isinstance(target, CategoricalIndex):
                 code_indexer = self.categories.get_indexer(target.categories)
@@ -726,7 +739,9 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def _add_comparison_methods(cls):
         """ add in comparison methods """
 
-        def _make_compare(opname):
+        def _make_compare(op):
+            opname = '__{op}__'.format(op=op.__name__)
+
             def _evaluate_compare(self, other):
 
                 # if we have a Categorical type, then must have the same
@@ -749,16 +764,21 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                                         "have the same categories and ordered "
                                         "attributes")
 
-                return getattr(self.values, opname)(other)
+                result = op(self.values, other)
+                if isinstance(result, ABCSeries):
+                    # Dispatch to pd.Categorical returned NotImplemented
+                    # and we got a Series back; down-cast to ndarray
+                    result = result.values
+                return result
 
             return compat.set_function_name(_evaluate_compare, opname, cls)
 
-        cls.__eq__ = _make_compare('__eq__')
-        cls.__ne__ = _make_compare('__ne__')
-        cls.__lt__ = _make_compare('__lt__')
-        cls.__gt__ = _make_compare('__gt__')
-        cls.__le__ = _make_compare('__le__')
-        cls.__ge__ = _make_compare('__ge__')
+        cls.__eq__ = _make_compare(operator.eq)
+        cls.__ne__ = _make_compare(operator.ne)
+        cls.__lt__ = _make_compare(operator.lt)
+        cls.__gt__ = _make_compare(operator.gt)
+        cls.__le__ = _make_compare(operator.le)
+        cls.__ge__ = _make_compare(operator.ge)
 
     def _delegate_method(self, name, *args, **kwargs):
         """ method delegation to the ._values """

@@ -344,14 +344,42 @@ class TestTimeSeries(TestData):
 
         rs = self.ts.pct_change(freq='5D')
         filled = self.ts.fillna(method='pad')
-        assert_series_equal(rs, filled / filled.shift(freq='5D') - 1)
+        assert_series_equal(rs,
+                            (filled / filled.shift(freq='5D') - 1)
+                            .reindex_like(filled))
 
     def test_pct_change_shift_over_nas(self):
         s = Series([1., 1.5, np.nan, 2.5, 3.])
 
         chg = s.pct_change()
-        expected = Series([np.nan, 0.5, np.nan, 2.5 / 1.5 - 1, .2])
+        expected = Series([np.nan, 0.5, 0., 2.5 / 1.5 - 1, .2])
         assert_series_equal(chg, expected)
+
+    @pytest.mark.parametrize("freq, periods, fill_method, limit",
+                             [('5B', 5, None, None),
+                              ('3B', 3, None, None),
+                              ('3B', 3, 'bfill', None),
+                              ('7B', 7, 'pad', 1),
+                              ('7B', 7, 'bfill', 3),
+                              ('14B', 14, None, None)])
+    def test_pct_change_periods_freq(self, freq, periods, fill_method, limit):
+        # GH 7292
+        rs_freq = self.ts.pct_change(freq=freq,
+                                     fill_method=fill_method,
+                                     limit=limit)
+        rs_periods = self.ts.pct_change(periods,
+                                        fill_method=fill_method,
+                                        limit=limit)
+        assert_series_equal(rs_freq, rs_periods)
+
+        empty_ts = Series(index=self.ts.index)
+        rs_freq = empty_ts.pct_change(freq=freq,
+                                      fill_method=fill_method,
+                                      limit=limit)
+        rs_periods = empty_ts.pct_change(periods,
+                                         fill_method=fill_method,
+                                         limit=limit)
+        assert_series_equal(rs_freq, rs_periods)
 
     def test_autocorr(self):
         # Just run the function

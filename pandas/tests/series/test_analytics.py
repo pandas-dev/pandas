@@ -43,7 +43,7 @@ class TestSeriesAnalytics(TestData):
             result = getattr(s, method)()
             assert result == unit
 
-            # Explict
+            # Explicit
             result = getattr(s, method)(min_count=0)
             assert result == unit
 

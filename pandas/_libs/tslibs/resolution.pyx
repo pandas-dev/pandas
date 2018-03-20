@@ -4,9 +4,9 @@
 from cython cimport Py_ssize_t
 
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 from numpy cimport ndarray, int64_t
-np.import_array()
+cnp.import_array()
 
 from util cimport is_string_object, get_nat
 
@@ -23,6 +23,7 @@ from timezones cimport (is_utc, is_tzlocal,
                         maybe_get_tz, get_dst_info, get_utcoffset)
 from fields import build_field_sarray
 from conversion import tz_convert
+from conversion cimport tz_convert_utc_to_tzlocal
 from ccalendar import MONTH_ALIASES, int_to_weekday
 
 from pandas._libs.properties import cache_readonly
@@ -78,6 +79,7 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
         int reso = RESO_DAY, curr_reso
         ndarray[int64_t] trans, deltas, pos
         pandas_datetimestruct dts
+        int64_t local_val
 
     if is_utc(tz):
         for i in range(n):
@@ -91,11 +93,8 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
         for i in range(n):
             if stamps[i] == NPY_NAT:
                 continue
-            dt64_to_dtstruct(stamps[i], &dts)
-            dt = datetime(dts.year, dts.month, dts.day, dts.hour,
-                          dts.min, dts.sec, dts.us, tz)
-            delta = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
-            dt64_to_dtstruct(stamps[i] + delta, &dts)
+            local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
+            dt64_to_dtstruct(local_val, &dts)
             curr_reso = _reso_stamp(&dts)
             if curr_reso < reso:
                 reso = curr_reso

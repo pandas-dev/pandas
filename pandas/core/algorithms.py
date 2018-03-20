@@ -10,16 +10,18 @@ from pandas.core.dtypes.cast import (
     maybe_promote, construct_1d_object_array_from_listlike)
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCIndex,
-    ABCIndexClass, ABCCategorical)
+    ABCIndexClass)
 from pandas.core.dtypes.common import (
+    is_array_like,
     is_unsigned_integer_dtype, is_signed_integer_dtype,
     is_integer_dtype, is_complex_dtype,
     is_object_dtype,
+    is_extension_array_dtype,
     is_categorical_dtype, is_sparse,
     is_period_dtype,
     is_numeric_dtype, is_float_dtype,
     is_bool_dtype, needs_i8_conversion,
-    is_categorical, is_datetimetz,
+    is_datetimetz,
     is_datetime64_any_dtype, is_datetime64tz_dtype,
     is_timedelta64_dtype, is_interval_dtype,
     is_scalar, is_list_like,
@@ -32,6 +34,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core import common as com
 from pandas._libs import algos, lib, hashtable as htable
 from pandas._libs.tslib import iNaT
+from pandas.util._decorators import deprecate_kwarg
 
 
 # --------------- #
@@ -166,8 +169,7 @@ def _ensure_arraylike(values):
     """
     ensure that we are arraylike if not already
     """
-    if not isinstance(values, (np.ndarray, ABCCategorical,
-                               ABCIndexClass, ABCSeries)):
+    if not is_array_like(values):
         inferred = lib.infer_dtype(values)
         if inferred in ['mixed', 'string', 'unicode']:
             if isinstance(values, tuple):
@@ -351,11 +353,8 @@ def unique(values):
 
     values = _ensure_arraylike(values)
 
-    # categorical is a fast-path
-    # this will coerce Categorical, CategoricalIndex,
-    # and category dtypes Series to same return of Category
-    if is_categorical_dtype(values):
-        values = getattr(values, '.values', values)
+    if is_extension_array_dtype(values):
+        # Dispatch to extension dtype's unique.
         return values.unique()
 
     original = values
@@ -436,14 +435,45 @@ def isin(comps, values):
     return f(comps, values)
 
 
+def _factorize_array(values, check_nulls, na_sentinel=-1, size_hint=None):
+    """Factorize an array-like to labels and uniques.
+
+    This doesn't do any coercion of types or unboxing before factorization.
+
+    Parameters
+    ----------
+    values : ndarray
+    check_nulls : bool
+        Whether to check for nulls in the hashtable's 'get_labels' method.
+    na_sentinel : int, default -1
+    size_hint : int, optional
+        Passsed through to the hashtable's 'get_labels' method
+
+    Returns
+    -------
+    labels, uniques : ndarray
+    """
+    (hash_klass, vec_klass), values = _get_data_algo(values, _hashtables)
+
+    table = hash_klass(size_hint or len(values))
+    uniques = vec_klass()
+    labels = table.get_labels(values, uniques, 0, na_sentinel, check_nulls)
+
+    labels = _ensure_platform_int(labels)
+    uniques = uniques.to_array()
+    return labels, uniques
+
+
+@deprecate_kwarg(old_arg_name='order', new_arg_name=None)
 def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     """
     Encode input values as an enumerated type or categorical variable
 
     Parameters
     ----------
-    values : ndarray (1-d)
-        Sequence
+    values : Sequence
+        ndarrays must be 1-D. Sequences that aren't pandas objects are
+        coereced to ndarrays before factorization.
     sort : boolean, default False
         Sort by values
     na_sentinel : int, default -1
@@ -458,26 +488,43 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
         Series
 
     note: an array of Periods will ignore sort as it returns an always sorted
-    PeriodIndex
+    PeriodIndex.
     """
+    # Implementation notes: This method is responsible for 3 things
+    # 1.) coercing data to array-like (ndarray, Index, extension array)
+    # 2.) factorizing labels and uniques
+    # 3.) Maybe boxing the output in an Index
+    #
+    # Step 2 is dispatched to extension types (like Categorical). They are
+    # responsible only for factorization. All data coercion, sorting and boxing
+    # should happen here.
 
     values = _ensure_arraylike(values)
     original = values
-    values, dtype, _ = _ensure_data(values)
-    (hash_klass, vec_klass), values = _get_data_algo(values, _hashtables)
 
-    table = hash_klass(size_hint or len(values))
-    uniques = vec_klass()
-    check_nulls = not is_integer_dtype(original)
-    labels = table.get_labels(values, uniques, 0, na_sentinel, check_nulls)
-
-    labels = _ensure_platform_int(labels)
-    uniques = uniques.to_array()
+    if is_categorical_dtype(values):
+        values = getattr(values, '_values', values)
+        labels, uniques = values.factorize()
+        dtype = original.dtype
+    else:
+        values, dtype, _ = _ensure_data(values)
+        check_nulls = not is_integer_dtype(original)
+        labels, uniques = _factorize_array(values, check_nulls,
+                                           na_sentinel=na_sentinel,
+                                           size_hint=size_hint)
 
     if sort and len(uniques) > 0:
         from pandas.core.sorting import safe_sort
-        uniques, labels = safe_sort(uniques, labels, na_sentinel=na_sentinel,
-                                    assume_unique=True)
+        try:
+            order = uniques.argsort()
+            order2 = order.argsort()
+            labels = take_1d(order2, labels, fill_value=na_sentinel)
+            uniques = uniques.take(order)
+        except TypeError:
+            # Mixed types, where uniques.argsort fails.
+            uniques, labels = safe_sort(uniques, labels,
+                                        na_sentinel=na_sentinel,
+                                        assume_unique=True)
 
     uniques = _reconstruct_data(uniques, dtype, original)
 
@@ -545,7 +592,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
         if is_categorical_dtype(values) or is_sparse(values):
 
             # handle Categorical and sparse,
-            result = Series(values).values.value_counts(dropna=dropna)
+            result = Series(values)._values.value_counts(dropna=dropna)
             result.name = name
             counts = result.values
 
@@ -1290,10 +1337,13 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
     """
     Specialized Cython take which sets NaN values in one pass
 
+    This dispatches to ``take`` defined on ExtensionArrays. It does not
+    currently dispatch to ``SparseArray.take`` for sparse ``arr``.
+
     Parameters
     ----------
-    arr : ndarray
-        Input array
+    arr : array-like
+        Input array.
     indexer : ndarray
         1-D array of indices to take, subarrays corresponding to -1 value
         indicies are filed with fill_value
@@ -1313,16 +1363,24 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
         If False, indexer is assumed to contain no -1 values so no filling
         will be done.  This short-circuits computation of a mask.  Result is
         undefined if allow_fill == False and -1 is present in indexer.
+
+    Returns
+    -------
+    subarray : array-like
+        May be the same type as the input, or cast to an ndarray.
     """
 
+    # TODO(EA): Remove these if / elifs as datetimeTZ, interval, become EAs
     # dispatch to internal type takes
-    if is_categorical(arr):
-        return arr.take_nd(indexer, fill_value=fill_value,
-                           allow_fill=allow_fill)
+    if is_extension_array_dtype(arr):
+        return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
     elif is_datetimetz(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
     elif is_interval_dtype(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
+
+    if is_sparse(arr):
+        arr = arr.get_values()
 
     if indexer is None:
         indexer = np.arange(arr.shape[axis], dtype=np.int64)

@@ -15,7 +15,8 @@ import numpy as np
 
 from pandas.compat import lrange, product
 from pandas import (compat, isna, notna, DataFrame, Series,
-                    MultiIndex, date_range, Timestamp, Categorical)
+                    MultiIndex, date_range, Timestamp, Categorical,
+                    _np_version_under1p15)
 import pandas as pd
 import pandas.core.nanops as nanops
 import pandas.core.algorithms as algorithms
@@ -1492,6 +1493,19 @@ class TestDataFrameAnalytics(TestData):
         for keep in ['first', 'last', False]:
             assert df.duplicated(keep=keep).sum() == 0
 
+    @pytest.mark.parametrize('subset', ['a', ['a'], ['a', 'B']])
+    def test_duplicated_with_misspelled_column_name(self, subset):
+        # GH 19730
+        df = pd.DataFrame({'A': [0, 0, 1],
+                           'B': [0, 0, 1],
+                           'C': [0, 0, 1]})
+
+        with pytest.raises(KeyError):
+            df.duplicated(subset)
+
+        with pytest.raises(KeyError):
+            df.drop_duplicates(subset)
+
     def test_drop_duplicates_with_duplicate_column_names(self):
         # GH17836
         df = DataFrame([
@@ -1928,12 +1942,9 @@ class TestDataFrameAnalytics(TestData):
         pnl.iat[1, 1] = np.nan
         pnl.iat[2, 3] = 60
 
-        mask = pnl.isnull()
-
         for axis in range(2):
             expected = pnl.ffill(axis=axis) / pnl.ffill(axis=axis).shift(
                 axis=axis) - 1
-            expected[mask] = np.nan
             result = pnl.pct_change(axis=axis, fill_method='pad')
 
             tm.assert_frame_equal(result, expected)
@@ -2047,6 +2058,9 @@ class TestDataFrameAnalytics(TestData):
             result = original
         tm.assert_frame_equal(result, expected, check_exact=True)
 
+    @pytest.mark.xfail(
+        not _np_version_under1p15,
+        reason="failing under numpy-dev gh-19976")
     @pytest.mark.parametrize("axis", [0, 1, None])
     def test_clip_against_frame(self, axis):
         df = DataFrame(np.random.randn(1000, 2))

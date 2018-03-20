@@ -12,13 +12,12 @@ from datetime import datetime, date, time
 from distutils.version import LooseVersion
 
 import pandas as pd
-from pandas.conftest import is_dateutil_le_261, is_dateutil_gt_261
 from pandas._libs import tslib
 from pandas._libs.tslibs import parsing
 from pandas.core.tools import datetimes as tools
 
-from pandas.compat import lmap
-from pandas.compat.numpy import np_array_datetime64_compat
+from pandas.errors import OutOfBoundsDatetime
+from pandas.compat import lmap, PY3
 from pandas.core.dtypes.common import is_datetime64_ns_dtype
 from pandas.util import testing as tm
 import pandas.util._test_decorators as td
@@ -186,6 +185,18 @@ class TestTimeConversionFormats(object):
 
 
 class TestToDatetime(object):
+    def test_to_datetime_pydatetime(self):
+        actual = pd.to_datetime(datetime(2008, 1, 15))
+        assert actual == datetime(2008, 1, 15)
+
+    def test_to_datetime_YYYYMMDD(self):
+        actual = pd.to_datetime('20080115')
+        assert actual == datetime(2008, 1, 15)
+
+    def test_to_datetime_unparseable_ignore(self):
+        # unparseable
+        s = 'Month 1, 1999'
+        assert pd.to_datetime(s, errors='ignore') == s
 
     @td.skip_if_windows  # `tm.set_timezone` does not work in windows
     def test_to_datetime_now(self):
@@ -212,30 +223,44 @@ class TestToDatetime(object):
         # this both of these timezones _and_ UTC will all be in the same day,
         # so this test will not detect the regression introduced in #18666.
         with tm.set_timezone('Pacific/Auckland'):  # 12-13 hours ahead of UTC
-            nptoday = np.datetime64('today').astype('datetime64[ns]')
+            nptoday = np.datetime64('today')\
+                .astype('datetime64[ns]').astype(np.int64)
             pdtoday = pd.to_datetime('today')
             pdtoday2 = pd.to_datetime(['today'])[0]
 
+            tstoday = pd.Timestamp('today')
+            tstoday2 = pd.Timestamp.today()
+
             # These should all be equal with infinite perf; this gives
             # a generous margin of 10 seconds
-            assert abs(pdtoday.value - nptoday.astype(np.int64)) < 1e10
-            assert abs(pdtoday2.value - nptoday.astype(np.int64)) < 1e10
+            assert abs(pdtoday.normalize().value - nptoday) < 1e10
+            assert abs(pdtoday2.normalize().value - nptoday) < 1e10
+            assert abs(pdtoday.value - tstoday.value) < 1e10
+            assert abs(pdtoday.value - tstoday2.value) < 1e10
 
             assert pdtoday.tzinfo is None
             assert pdtoday2.tzinfo is None
 
         with tm.set_timezone('US/Samoa'):  # 11 hours behind UTC
-            nptoday = np.datetime64('today').astype('datetime64[ns]')
+            nptoday = np.datetime64('today')\
+                .astype('datetime64[ns]').astype(np.int64)
             pdtoday = pd.to_datetime('today')
             pdtoday2 = pd.to_datetime(['today'])[0]
 
             # These should all be equal with infinite perf; this gives
             # a generous margin of 10 seconds
-            assert abs(pdtoday.value - nptoday.astype(np.int64)) < 1e10
-            assert abs(pdtoday2.value - nptoday.astype(np.int64)) < 1e10
+            assert abs(pdtoday.normalize().value - nptoday) < 1e10
+            assert abs(pdtoday2.normalize().value - nptoday) < 1e10
 
             assert pdtoday.tzinfo is None
             assert pdtoday2.tzinfo is None
+
+    def test_to_datetime_today_now_unicode_bytes(self):
+        to_datetime([u'now'])
+        to_datetime([u'today'])
+        if not PY3:
+            to_datetime(['now'])
+            to_datetime(['today'])
 
     @pytest.mark.parametrize('cache', [True, False])
     def test_to_datetime_dt64s(self, cache):
@@ -783,6 +808,14 @@ class TestToDatetimeUnit(object):
 
 
 class TestToDatetimeMisc(object):
+    def test_to_datetime_barely_out_of_bounds(self):
+        # GH#19529
+        # GH#19382 close enough to bounds that dropping nanos would result
+        # in an in-bounds datetime
+        arr = np.array(['2262-04-11 23:47:16.854775808'], dtype=object)
+
+        with pytest.raises(OutOfBoundsDatetime):
+            to_datetime(arr)
 
     @pytest.mark.parametrize('cache', [True, False])
     def test_to_datetime_iso8601(self, cache):
@@ -986,18 +1019,20 @@ class TestToDatetimeMisc(object):
         assert_series_equal(dresult, expected, check_names=False)
         assert dresult.name == 'foo'
 
+    @pytest.mark.parametrize('dtype', [
+        'datetime64[h]', 'datetime64[m]',
+        'datetime64[s]', 'datetime64[ms]',
+        'datetime64[us]', 'datetime64[ns]'])
     @pytest.mark.parametrize('cache', [True, False])
-    def test_dti_constructor_numpy_timeunits(self, cache):
+    def test_dti_constructor_numpy_timeunits(self, cache, dtype):
         # GH 9114
         base = pd.to_datetime(['2000-01-01T00:00', '2000-01-02T00:00', 'NaT'],
                               cache=cache)
 
-        for dtype in ['datetime64[h]', 'datetime64[m]', 'datetime64[s]',
-                      'datetime64[ms]', 'datetime64[us]', 'datetime64[ns]']:
-            values = base.values.astype(dtype)
+        values = base.values.astype(dtype)
 
-            tm.assert_index_equal(DatetimeIndex(values), base)
-            tm.assert_index_equal(to_datetime(values, cache=cache), base)
+        tm.assert_index_equal(DatetimeIndex(values), base)
+        tm.assert_index_equal(to_datetime(values, cache=cache), base)
 
     @pytest.mark.parametrize('cache', [True, False])
     def test_dayfirst(self, cache):
@@ -1022,7 +1057,6 @@ class TestToDatetimeMisc(object):
 class TestGuessDatetimeFormat(object):
 
     @td.skip_if_not_us_locale
-    @is_dateutil_le_261
     def test_guess_datetime_format_for_array(self):
         expected_format = '%Y-%m-%d %H:%M:%S.%f'
         dt_string = datetime(2011, 12, 30, 0, 0, 0).strftime(expected_format)
@@ -1036,27 +1070,6 @@ class TestGuessDatetimeFormat(object):
         for test_array in test_arrays:
             assert tools._guess_datetime_format_for_array(
                 test_array) == expected_format
-
-        format_for_string_of_nans = tools._guess_datetime_format_for_array(
-            np.array(
-                [np.nan, np.nan, np.nan], dtype='O'))
-        assert format_for_string_of_nans is None
-
-    @td.skip_if_not_us_locale
-    @is_dateutil_gt_261
-    def test_guess_datetime_format_for_array_gt_261(self):
-        expected_format = '%Y-%m-%d %H:%M:%S.%f'
-        dt_string = datetime(2011, 12, 30, 0, 0, 0).strftime(expected_format)
-
-        test_arrays = [
-            np.array([dt_string, dt_string, dt_string], dtype='O'),
-            np.array([np.nan, np.nan, dt_string], dtype='O'),
-            np.array([dt_string, 'random_string'], dtype='O'),
-        ]
-
-        for test_array in test_arrays:
-            assert tools._guess_datetime_format_for_array(
-                test_array) is None
 
         format_for_string_of_nans = tools._guess_datetime_format_for_array(
             np.array(
@@ -1444,157 +1457,6 @@ class TestDatetimeParsingWrappers(object):
             assert base == dt_time
             converted_time = dt_time.tz_localize('UTC').tz_convert(tz)
             assert dt_string_repr == repr(converted_time)
-
-    def test_parsers_iso8601(self):
-        # GH 12060
-        # test only the iso parser - flexibility to different
-        # separators and leadings 0s
-        # Timestamp construction falls back to dateutil
-        cases = {'2011-01-02': datetime(2011, 1, 2),
-                 '2011-1-2': datetime(2011, 1, 2),
-                 '2011-01': datetime(2011, 1, 1),
-                 '2011-1': datetime(2011, 1, 1),
-                 '2011 01 02': datetime(2011, 1, 2),
-                 '2011.01.02': datetime(2011, 1, 2),
-                 '2011/01/02': datetime(2011, 1, 2),
-                 '2011\\01\\02': datetime(2011, 1, 2),
-                 '2013-01-01 05:30:00': datetime(2013, 1, 1, 5, 30),
-                 '2013-1-1 5:30:00': datetime(2013, 1, 1, 5, 30)}
-        for date_str, exp in compat.iteritems(cases):
-            actual = tslib._test_parse_iso8601(date_str)
-            assert actual == exp
-
-        # separators must all match - YYYYMM not valid
-        invalid_cases = ['2011-01/02', '2011^11^11',
-                         '201401', '201111', '200101',
-                         # mixed separated and unseparated
-                         '2005-0101', '200501-01',
-                         '20010101 12:3456', '20010101 1234:56',
-                         # HHMMSS must have two digits in each component
-                         # if unseparated
-                         '20010101 1', '20010101 123', '20010101 12345',
-                         '20010101 12345Z',
-                         # wrong separator for HHMMSS
-                         '2001-01-01 12-34-56']
-        for date_str in invalid_cases:
-            with pytest.raises(ValueError):
-                tslib._test_parse_iso8601(date_str)
-                # If no ValueError raised, let me know which case failed.
-                raise Exception(date_str)
-
-
-class TestArrayToDatetime(object):
-    def test_parsing_valid_dates(self):
-        arr = np.array(['01-01-2013', '01-02-2013'], dtype=object)
-        tm.assert_numpy_array_equal(
-            tslib.array_to_datetime(arr),
-            np_array_datetime64_compat(
-                [
-                    '2013-01-01T00:00:00.000000000-0000',
-                    '2013-01-02T00:00:00.000000000-0000'
-                ],
-                dtype='M8[ns]'
-            )
-        )
-
-        arr = np.array(['Mon Sep 16 2013', 'Tue Sep 17 2013'], dtype=object)
-        tm.assert_numpy_array_equal(
-            tslib.array_to_datetime(arr),
-            np_array_datetime64_compat(
-                [
-                    '2013-09-16T00:00:00.000000000-0000',
-                    '2013-09-17T00:00:00.000000000-0000'
-                ],
-                dtype='M8[ns]'
-            )
-        )
-
-    def test_parsing_timezone_offsets(self):
-        # All of these datetime strings with offsets are equivalent
-        # to the same datetime after the timezone offset is added
-        dt_strings = [
-            '01-01-2013 08:00:00+08:00',
-            '2013-01-01T08:00:00.000000000+0800',
-            '2012-12-31T16:00:00.000000000-0800',
-            '12-31-2012 23:00:00-01:00'
-        ]
-
-        expected_output = tslib.array_to_datetime(np.array(
-            ['01-01-2013 00:00:00'], dtype=object))
-
-        for dt_string in dt_strings:
-            tm.assert_numpy_array_equal(
-                tslib.array_to_datetime(
-                    np.array([dt_string], dtype=object)
-                ),
-                expected_output
-            )
-
-    def test_number_looking_strings_not_into_datetime(self):
-        # #4601
-        # These strings don't look like datetimes so they shouldn't be
-        # attempted to be converted
-        arr = np.array(['-352.737091', '183.575577'], dtype=object)
-        tm.assert_numpy_array_equal(
-            tslib.array_to_datetime(arr, errors='ignore'), arr)
-
-        arr = np.array(['1', '2', '3', '4', '5'], dtype=object)
-        tm.assert_numpy_array_equal(
-            tslib.array_to_datetime(arr, errors='ignore'), arr)
-
-    def test_coercing_dates_outside_of_datetime64_ns_bounds(self):
-        invalid_dates = [
-            date(1000, 1, 1),
-            datetime(1000, 1, 1),
-            '1000-01-01',
-            'Jan 1, 1000',
-            np.datetime64('1000-01-01'),
-        ]
-
-        for invalid_date in invalid_dates:
-            pytest.raises(ValueError,
-                          tslib.array_to_datetime,
-                          np.array([invalid_date], dtype='object'),
-                          errors='raise', )
-            tm.assert_numpy_array_equal(
-                tslib.array_to_datetime(
-                    np.array([invalid_date], dtype='object'),
-                    errors='coerce'),
-                np.array([tslib.iNaT], dtype='M8[ns]')
-            )
-
-        arr = np.array(['1/1/1000', '1/1/2000'], dtype=object)
-        tm.assert_numpy_array_equal(
-            tslib.array_to_datetime(arr, errors='coerce'),
-            np_array_datetime64_compat(
-                [
-                    tslib.iNaT,
-                    '2000-01-01T00:00:00.000000000-0000'
-                ],
-                dtype='M8[ns]'
-            )
-        )
-
-    def test_coerce_of_invalid_datetimes(self):
-        arr = np.array(['01-01-2013', 'not_a_date', '1'], dtype=object)
-
-        # Without coercing, the presence of any invalid dates prevents
-        # any values from being converted
-        tm.assert_numpy_array_equal(
-            tslib.array_to_datetime(arr, errors='ignore'), arr)
-
-        # With coercing, the invalid dates becomes iNaT
-        tm.assert_numpy_array_equal(
-            tslib.array_to_datetime(arr, errors='coerce'),
-            np_array_datetime64_compat(
-                [
-                    '2013-01-01T00:00:00.000000000-0000',
-                    tslib.iNaT,
-                    tslib.iNaT
-                ],
-                dtype='M8[ns]'
-            )
-        )
 
 
 def test_normalize_date():

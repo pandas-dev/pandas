@@ -1,24 +1,76 @@
-from numpy cimport ndarray
+from numpy cimport ndarray, NPY_C_CONTIGUOUS, NPY_F_CONTIGUOUS
 cimport numpy as cnp
-cimport cpython
+cnp.import_array()
 
+cimport cpython
+from cpython cimport PyTypeObject
+
+cdef extern from "Python.h":
+    # Note: importing extern-style allows us to declare these as nogil
+    # functions, whereas `from cpython cimport` does not.
+    bint PyUnicode_Check(object obj) nogil
+    bint PyString_Check(object obj) nogil
+    bint PyBool_Check(object obj) nogil
+    bint PyFloat_Check(object obj) nogil
+    bint PyComplex_Check(object obj) nogil
+    bint PyObject_TypeCheck(object obj, PyTypeObject* type) nogil
+
+
+cdef extern from "numpy/arrayobject.h":
+    PyTypeObject PyFloatingArrType_Type
+
+cdef extern from "numpy/ndarrayobject.h":
+    PyTypeObject PyTimedeltaArrType_Type
+    PyTypeObject PyDatetimeArrType_Type
+    PyTypeObject PyComplexFloatingArrType_Type
+    PyTypeObject PyBoolArrType_Type
+
+    bint PyArray_IsIntegerScalar(obj) nogil
+    bint PyArray_Check(obj) nogil
+
+# --------------------------------------------------------------------
+# Type Checking
+
+cdef inline bint is_string_object(object obj) nogil:
+    return PyString_Check(obj) or PyUnicode_Check(obj)
+
+
+cdef inline bint is_integer_object(object obj) nogil:
+    return not PyBool_Check(obj) and PyArray_IsIntegerScalar(obj)
+
+
+cdef inline bint is_float_object(object obj) nogil:
+    return (PyFloat_Check(obj) or
+            (PyObject_TypeCheck(obj, &PyFloatingArrType_Type)))
+
+
+cdef inline bint is_complex_object(object obj) nogil:
+    return (PyComplex_Check(obj) or
+            PyObject_TypeCheck(obj, &PyComplexFloatingArrType_Type))
+
+
+cdef inline bint is_bool_object(object obj) nogil:
+    return (PyBool_Check(obj) or
+            PyObject_TypeCheck(obj, &PyBoolArrType_Type))
+
+
+cdef inline bint is_timedelta64_object(object obj) nogil:
+    return PyObject_TypeCheck(obj, &PyTimedeltaArrType_Type)
+
+
+cdef inline bint is_datetime64_object(object obj) nogil:
+    return PyObject_TypeCheck(obj, &PyDatetimeArrType_Type)
+
+# --------------------------------------------------------------------
 
 cdef extern from "numpy_helper.h":
     void set_array_not_contiguous(ndarray ao)
 
-    int is_integer_object(object)
-    int is_float_object(object)
-    int is_complex_object(object)
-    int is_bool_object(object)
-    int is_string_object(object)
-    int is_datetime64_object(object)
-    int is_timedelta64_object(object)
     int assign_value_1d(ndarray, Py_ssize_t, object) except -1
     cnp.int64_t get_nat()
     object get_value_1d(ndarray, Py_ssize_t)
     char *get_c_string(object) except NULL
     object char_to_string(char*)
-    object unbox_if_zerodim(object arr)
 
 ctypedef fused numeric:
     cnp.int8_t

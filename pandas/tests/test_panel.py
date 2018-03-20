@@ -2368,14 +2368,16 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
             pan.update(other)
 
             expected = Panel(
-                {'two': DataFrame([[3.6, 2., 3],
-                                   [1.5, np.nan, 7],
+                {'one': DataFrame([[1.5, np.nan, 3.],
+                                   [1.5, np.nan, 3.],
                                    [1.5, np.nan, 3.],
                                    [1.5, np.nan, 3.]]),
-                 'one': DataFrame([[1.5, np.nan, 3.],
-                                   [1.5, np.nan, 3.],
-                                   [1.5, np.nan, 3.],
-                                   [1.5, np.nan, 3.]])})
+                 'two': DataFrame([[3.6, 2., 3],
+                                  [1.5, np.nan, 7],
+                                  [1.5, np.nan, 3.],
+                                  [1.5, np.nan, 3.]])
+                 }
+            )
 
             assert_panel_equal(pan, expected)
 

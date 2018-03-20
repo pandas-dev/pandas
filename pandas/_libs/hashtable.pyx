@@ -1,6 +1,22 @@
 # cython: profile=False
 
-from cpython cimport PyObject, Py_INCREF, PyList_Check, PyTuple_Check
+cimport cython
+
+from cpython cimport (PyObject, Py_INCREF, PyList_Check, PyTuple_Check,
+                      PyMem_Malloc, PyMem_Realloc, PyMem_Free,
+                      PyString_Check, PyBytes_Check,
+                      PyUnicode_Check)
+
+from libc.stdlib cimport malloc, free
+
+import numpy as np
+cimport numpy as cnp
+from numpy cimport ndarray, uint8_t, uint32_t
+cnp.import_array()
+
+cdef extern from "numpy/npy_math.h":
+    double NAN "NPY_NAN"
+
 
 from khash cimport (
     khiter_t,
@@ -23,29 +39,13 @@ from khash cimport (
     kh_put_pymap, kh_resize_pymap)
 
 
-from numpy cimport ndarray, uint8_t, uint32_t
-
-from libc.stdlib cimport malloc, free
-from cpython cimport (PyMem_Malloc, PyMem_Realloc, PyMem_Free,
-                      PyString_Check, PyBytes_Check,
-                      PyUnicode_Check)
-
 from util cimport _checknan
 cimport util
 
-import numpy as np
-nan = np.nan
-
-cdef extern from "numpy/npy_math.h":
-    double NAN "NPY_NAN"
-
-cimport cython
-cimport numpy as cnp
-
 from missing cimport checknull
 
-cnp.import_array()
-cnp.import_ufunc()
+
+nan = np.nan
 
 cdef int64_t iNaT = util.get_nat()
 _SIZE_HINT_LIMIT = (1 << 20) + 7

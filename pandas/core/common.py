@@ -2,8 +2,6 @@
 Misc tools for implementing data structures
 """
 
-import sys
-import warnings
 from datetime import datetime, timedelta
 from functools import partial
 import inspect
@@ -13,71 +11,14 @@ import numpy as np
 from pandas._libs import lib, tslib
 
 from pandas import compat
-from pandas.compat import long, zip, iteritems
+from pandas.compat import long, zip, iteritems, PY36, OrderedDict
 from pandas.core.config import get_option
 from pandas.core.dtypes.generic import ABCSeries, ABCIndex
 from pandas.core.dtypes.common import _NS_DTYPE
 from pandas.core.dtypes.inference import _iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
 from pandas.api import types
-from pandas.core.dtypes import common
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
-
-# compat
-from pandas.errors import (  # noqa
-    PerformanceWarning, UnsupportedFunctionCall, UnsortedIndexError)
-
-# back-compat of public API
-# deprecate these functions
-m = sys.modules['pandas.core.common']
-for t in [t for t in dir(types) if not t.startswith('_')]:
-
-    def outer(t=t):
-
-        def wrapper(*args, **kwargs):
-            warnings.warn("pandas.core.common.{t} is deprecated. "
-                          "import from the public API: "
-                          "pandas.api.types.{t} instead".format(t=t),
-                          DeprecationWarning, stacklevel=3)
-            return getattr(types, t)(*args, **kwargs)
-        return wrapper
-
-    setattr(m, t, outer(t))
-
-# back-compat for non-public functions
-# deprecate these functions
-for t in ['is_datetime_arraylike',
-          'is_datetime_or_timedelta_dtype',
-          'is_datetimelike',
-          'is_datetimelike_v_numeric',
-          'is_datetimelike_v_object',
-          'is_datetimetz',
-          'is_int_or_datetime_dtype',
-          'is_period_arraylike',
-          'is_string_like',
-          'is_string_like_dtype']:
-
-    def outer(t=t):
-
-        def wrapper(*args, **kwargs):
-            warnings.warn("pandas.core.common.{t} is deprecated. "
-                          "These are not longer public API functions, "
-                          "but can be imported from "
-                          "pandas.api.types.{t} instead".format(t=t),
-                          DeprecationWarning, stacklevel=3)
-            return getattr(common, t)(*args, **kwargs)
-        return wrapper
-
-    setattr(m, t, outer(t))
-
-
-# deprecate array_equivalent
-
-def array_equivalent(*args, **kwargs):
-    warnings.warn("'pandas.core.common.array_equivalent' is deprecated and "
-                  "is no longer public API", DeprecationWarning, stacklevel=2)
-    from pandas.core.dtypes import missing
-    return missing.array_equivalent(*args, **kwargs)
 
 
 class SettingWithCopyError(ValueError):
@@ -86,19 +27,6 @@ class SettingWithCopyError(ValueError):
 
 class SettingWithCopyWarning(Warning):
     pass
-
-
-class AbstractMethodError(NotImplementedError):
-    """Raise this error instead of NotImplementedError for abstract methods
-    while keeping compatibility with Python 2 and Python 3.
-    """
-
-    def __init__(self, class_instance):
-        self.class_instance = class_instance
-
-    def __str__(self):
-        msg = "This method must be defined in the concrete class of {name}"
-        return (msg.format(name=self.class_instance.__class__.__name__))
 
 
 def flatten(l):
@@ -131,21 +59,6 @@ def _consensus_name_attr(objs):
         if obj.name != name:
             return None
     return name
-
-
-def _maybe_match_name(a, b):
-    a_has = hasattr(a, 'name')
-    b_has = hasattr(b, 'name')
-    if a_has and b_has:
-        if a.name == b.name:
-            return a.name
-        else:
-            return None
-    elif a_has:
-        return a.name
-    elif b_has:
-        return b.name
-    return None
 
 
 def _get_info_slice(obj, indexer):
@@ -271,6 +184,16 @@ def _try_sort(iterable):
         return sorted(listed)
     except Exception:
         return listed
+
+
+def _dict_keys_to_ordered_list(mapping):
+    # when pandas drops support for Python < 3.6, this function
+    # can be replaced by a simple list(mapping.keys())
+    if PY36 or isinstance(mapping, OrderedDict):
+        keys = list(mapping.keys())
+    else:
+        keys = _try_sort(mapping)
+    return keys
 
 
 def iterpairs(seq):
