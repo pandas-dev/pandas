@@ -1620,8 +1620,8 @@ def _flex_comp_method_FRAME(cls, op, special):
     if op_name in _op_descriptions:
         op_desc = _op_descriptions[op_name]
 
-        if op_desc['df_examples'] is not None:  
-            base_doc = _flex_comp_doc_FRAME         
+        if op_desc['df_examples'] is not None:
+            base_doc = _flex_comp_doc_FRAME
             doc = base_doc.format(name=op_name,
                                   df_examples=op_desc['df_examples'])
 
