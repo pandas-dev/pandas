@@ -6789,8 +6789,9 @@ class DataFrame(NDFrame):
 
 DataFrame._setup_axes(['index', 'columns'], info_axis=1, stat_axis=0,
                       axes_are_reversed=True, aliases={'rows': 0},
-                      docs={'index': 'The index of the DataFrame.',
-                            'columns': 'The columns of the DataFrame.'})
+                      docs={
+                          'index': 'The index (row labels) of the DataFrame.',
+                          'columns': 'The column labels of the DataFrame.'})
 DataFrame._add_numeric_operations()
 DataFrame._add_series_or_dataframe_operations()
 
