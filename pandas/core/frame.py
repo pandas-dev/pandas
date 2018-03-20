@@ -5173,6 +5173,12 @@ class DataFrame(NDFrame):
             that are missing from the original dataframe. See Examples
             section.
 
+        Notes
+        -----
+        The function is named by analogy with a stack of books
+        (levels) being re-organised from a horizontal position (column
+        levels) to a vertical position (index levels).
+
         Examples
         --------
         >>> df_single_level_cols = pd.DataFrame([[0, 1], [2, 3]],
@@ -5203,7 +5209,7 @@ class DataFrame(NDFrame):
              b    3
         dtype: int64
 
-        Stacking a dataframe with a multi-level column axis with no missing values:
+        Stacking a dataframe with a multi-level column axis:
 
         >>> df_multi_level_cols1
              X
@@ -5218,8 +5224,8 @@ class DataFrame(NDFrame):
              b    3
 
         It is common to have missing values when stacking a dataframe
-        with multi-level columns, since the stacked dataframe can have
-        more values than the original dataframe. By default the
+        with multi-level columns, as the stacked dataframe typically
+        has more values than the original dataframe. By default the
         missing values are filled with NaNs:
 
         >>> df_multi_level_cols2
@@ -5234,9 +5240,18 @@ class DataFrame(NDFrame):
         two a  2.0  NaN
             b  NaN  3.0
 
-        Rows where all values are missing are dropped by default but
-        this behaviour can be controlled via the dropna keyword
-        parameter:
+        Multiple levels can be stacked at once
+
+        >>> df_multi_level_cols2.stack([1, 0])
+        one  a  X    0.0
+             b  Y    1.0
+        two  a  X    2.0
+             b  Y    3.0
+        dtype: float64
+
+        Note that rows where all values are missing are dropped by
+        default but this behaviour can be controlled via the dropna
+        keyword parameter:
 
         >>> df_multi_level_cols3
                X     Y
