@@ -62,6 +62,7 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
     2    2    7
     3    3    8
     4    4    9
+
     >>> import os
     >>> os.remove("./dummy.pkl")
     """
@@ -132,6 +133,7 @@ def read_pickle(path, compression='infer'):
     2    2    7
     3    3    8
     4    4    9
+
     >>> import os
     >>> os.remove("./dummy.pkl")
     """

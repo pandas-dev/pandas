@@ -2130,6 +2130,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2    2    7
         3    3    8
         4    4    9
+
         >>> import os
         >>> os.remove("./dummy.pkl")
         """
