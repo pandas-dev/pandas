@@ -5217,6 +5217,7 @@ class DataFrame(NDFrame):
         two  2.0   3.0
 
         By default the missing values are filled with NaNs:
+
         >>> s.stack()
                  X    Y
         one a  0.0  NaN
