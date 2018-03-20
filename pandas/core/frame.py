@@ -5187,6 +5187,22 @@ class DataFrame(NDFrame):
              b    3
         dtype: int64
 
+        Stacking a simple dataframe with a multi-level column axis
+
+        >>> multicol = pd.MultiIndex.from_tuples([('X', 'a'), ('X', 'b')])
+        >>> s = pd.DataFrame([[0, 1], [2, 3]], index=['one', 'two'], columns=multicol)
+        >>> s
+             X
+             a   b
+        one  0   1
+        two  2   3
+        >>> s.stack()
+                  X
+        one  a    0
+             b    1
+        two  a    2
+             b    3
+
         Returns
         -------
         stacked : DataFrame or Series
