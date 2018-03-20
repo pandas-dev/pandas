@@ -75,7 +75,7 @@ arise and we wish to also consider that "missing" or "not available" or "NA".
 To make detecting missing values easier (and across different array dtypes),
 pandas provides the :func:`isna` and
 :func:`notna` functions, which are also methods on
-``Series`` and ``DataFrame`` objects:
+Series and DataFrame objects:
 
 .. ipython:: python
 
@@ -187,7 +187,7 @@ account for missing data. For example:
 Sum/Prod of Empties/Nans
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-With ``sum`` on an empty or all-``NaN`` ``Series``, or columns of a ``DataFrame``, the result will be 0.
+The sum of an empty or all-NA Series or column of a DataFrame is 0.
 
 .. ipython:: python
 
@@ -195,7 +195,7 @@ With ``sum`` on an empty or all-``NaN`` ``Series``, or columns of a ``DataFrame`
    
    pd.Series([]).sum()
 
-With ``prod`` on an empty or all-``NaN`` ``Series``, or columns of a ``DataFrame``, the result will be 1.
+The product of an empty or all-NA Series or column of a DataFrame is 1.
 
 .. ipython:: python
 
@@ -228,7 +228,7 @@ with missing data.
 Filling missing values: fillna
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The :meth:`~DataFrame.fillna` function can "fill in" NA values with non-NA data in a couple
+:meth:`~DataFrame.fillna` can "fill in" NA values with non-NA data in a couple
 of ways, which we illustrate:
 
 **Replace NA with a scalar value**
@@ -278,7 +278,7 @@ To remind you, these are the available filling methods:
 With time series data, using pad/ffill is extremely common so that the "last
 known value" is available at every time point.
 
-The :meth:`~DataFrame.ffill` function is equivalent to ``fillna(method='ffill')``
+:meth:`~DataFrame.ffill` is equivalent to ``fillna(method='ffill')``
 and :meth:`~DataFrame.bfill` is equivalent to ``fillna(method='bfill')``
 
 .. _missing_data.PandasObject:
@@ -315,7 +315,7 @@ Dropping axis labels with missing data: dropna
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 You may wish to simply exclude labels from a data set which refer to missing
-data. To do this, use the :meth:`~DataFrame.dropna` method:
+data. To do this, use :meth:`~DataFrame.dropna`:
 
 .. ipython:: python
    :suppress:
@@ -330,7 +330,7 @@ data. To do this, use the :meth:`~DataFrame.dropna` method:
    df.dropna(axis=1)
    df['one'].dropna()
 
-An equivalent :meth:`~Series.dropna` method is available for Series.
+An equivalent :meth:`~Series.dropna` is available for Series.
 DataFrame.dropna has considerably more options than Series.dropna, which can be
 examined :ref:`in the API <api.dataframe.missing>`.
 
@@ -343,7 +343,7 @@ Interpolation
 
   The ``limit_area`` keyword argument was added.
 
-Both Series and DataFrame objects have an :meth:`~DataFrame.interpolate` method
+Both Series and DataFrame objects have :meth:`~DataFrame.interpolate`
 that, by default, performs linear interpolation at missing datapoints.
 
 .. ipython:: python
@@ -519,8 +519,9 @@ the ``limit_area`` parameter restricts filling to either inside or outside value
 
 Replacing Generic Values
 ~~~~~~~~~~~~~~~~~~~~~~~~
-Often times we want to replace arbitrary values with other values. The
-:meth:`~DataFrame.replace` method in Series/DataFrame provides an efficient yet
+Often times we want to replace arbitrary values with other values.
+
+:meth:`~Series.replace` in Series and :meth:`~DataFrame.replace` in DataFrame provides an efficient yet
 flexible way to perform such replacements.
 
 For a Series, you can replace a single value or a list of values by another
@@ -660,7 +661,7 @@ want to use a regular expression.
 Numeric Replacement
 ~~~~~~~~~~~~~~~~~~~
 
-The :meth:`~DataFrame.replace` method is similar to :meth:`~DataFrame.fillna`.
+:meth:`~DataFrame.replace` is similar to :meth:`~DataFrame.fillna`.
 
 .. ipython:: python
 
