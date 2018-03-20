@@ -1760,28 +1760,13 @@ def _plot(data, x=None, y=None, subplots=False,
                 data = data.set_index(x)
 
             if y is not None:
-                int_y = is_integer(y) or all(is_integer(c) for c in y)
-                if int_y and not data.columns.holds_integer():
+                # check if we have y as int or list of ints
+                int_ylist = is_list_like(y) and all(is_integer(c) for c in y)
+                int_y_arg = is_integer(y) or int_ylist
+                if int_y_arg and not data.columns.holds_integer():
                     y = data_cols[y]
-                elif not isinstance(data[y], (ABCSeries, ABCDataFrame)):
-                    raise ValueError(
-                        "y must be a label or position or list of them"
-                    )
+
                 label_kw = kwds['label'] if 'label' in kwds else False
-                new_data = data[y].copy()
-
-                if isinstance(data[y], ABCSeries):
-                    label_name = label_kw or y
-                    new_data.name = label_name
-                else:
-                    match = is_list_like(label_kw) and len(label_kw) == len(y)
-                    if label_kw and not match:
-                        raise ValueError(
-                            "label should be list-like and same length as y"
-                        )
-                    label_name = label_kw or data[y].columns
-                    new_data.columns = label_name
-
                 for kw in ['xerr', 'yerr']:
                     if (kw in kwds) and \
                         (isinstance(kwds[kw], string_types) or
@@ -1790,7 +1775,22 @@ def _plot(data, x=None, y=None, subplots=False,
                             kwds[kw] = data[kwds[kw]]
                         except (IndexError, KeyError, TypeError):
                             pass
-                data = new_data
+
+                # don't overwrite
+                data = data[y].copy()
+
+                if isinstance(data, ABCSeries):
+                    label_name = label_kw or y
+                    data.name = label_name
+                else:
+                    match = is_list_like(label_kw) and len(label_kw) == len(y)
+                    if label_kw and not match:
+                        raise ValueError(
+                            "label should be list-like and same length as y"
+                        )
+                    label_name = label_kw or data.columns
+                    data.columns = label_name
+
         plot_obj = klass(data, subplots=subplots, ax=ax, kind=kind, **kwds)
 
     plot_obj.generate()

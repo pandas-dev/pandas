@@ -2197,7 +2197,7 @@ class TestDataFramePlots(TestPlotBase):
         (0, [1, 2], ['bokeh', 'cython'], ['green', 'yellow'])
     ])
     def test_y_listlike(self, x, y, lbl, colors):
-        # GH 19699
+        # GH 19699: tests list-like y and verifies lbls & colors
         df = DataFrame({"A": [1, 2], 'B': [3, 4], 'C': [5, 6]})
         _check_plot_works(df.plot, x='A', y=y, label=lbl)
 
@@ -2210,7 +2210,7 @@ class TestDataFramePlots(TestPlotBase):
         (1, 0, [0, 1])
     ])
     def test_xy_args_integer(self, x, y, colnames):
-        # GH 20056
+        # GH 20056: tests integer args for xy and checks col names
         df = DataFrame({"A": [1, 2], 'B': [3, 4]})
         df.columns = colnames
         _check_plot_works(df.plot, x=x, y=y)
