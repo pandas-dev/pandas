@@ -5178,10 +5178,17 @@ class DataFrame(NDFrame):
         >>> df_single_level_cols = pd.DataFrame([[0, 1], [2, 3]],
         ...                                     index=['one', 'two'],
         ...                                     columns=['a', 'b'])
-        >>> multicol = pd.MultiIndex.from_tuples([('X', 'a'), ('X', 'b')])
-        >>> df_multi_level_cols = pd.DataFrame([[0, 1], [2, 3]],
+        >>> multicol1 = pd.MultiIndex.from_tuples([('X', 'a'), ('X', 'b')])
+        >>> df_multi_level_cols1 = pd.DataFrame([[0, 1], [2, 3]],
         ...                                    index=['one', 'two'],
-        ...                                    columns=multicol)
+        ...                                    columns=multicol1)
+        >>> multicol2 = pd.MultiIndex.from_tuples([('X', 'a'), ('Y', 'b')])
+        >>> df_multi_level_cols2 = pd.DataFrame([[0.0, 1.0], [2.0, 3.0]],
+        ...                                     index=['one', 'two'],
+        ...                                     columns=multicol2)
+        >>> df_multi_level_cols3 = pd.DataFrame([[None, 1.0], [2.0, 3.0]],
+        ...                                     index=['one', 'two'],
+        ...                                     columns=multicol2)
 
         Stacking a dataframe with a single level column axis returns a Series:
 
@@ -5198,31 +5205,27 @@ class DataFrame(NDFrame):
 
         Stacking a dataframe with a multi-level column axis with no missing values:
 
-        >>> df_multi_level_cols
+        >>> df_multi_level_cols1
              X
              a   b
         one  0   1
         two  2   3
-        >>> df_multi_level_cols.stack()
+        >>> df_multi_level_cols1.stack()
                   X
         one  a    0
              b    1
         two  a    2
              b    3
 
-        Stacking a dataframe with a multi-level column axis with no missing values
+        Stacking a dataframe with a multi-level column axis with no missing values.
+        By default the missing values are filled with NaNs:
 
-        >>> multicol = pd.MultiIndex.from_tuples([('X', 'a'), ('Y', 'b')])
-        >>> s = pd.DataFrame([[0.0, 1.0], [2.0, 3.0]], index=['one', 'two'], columns=multicol)
-        >>> s
+        >>> df_multi_level_cols2
                X     Y
                a     b
         one  0.0   1.0
         two  2.0   3.0
-
-        By default the missing values are filled with NaNs:
-
-        >>> s.stack()
+        >>> df_multi_level_cols2.stack()
                  X    Y
         one a  0.0  NaN
             b  NaN  1.0
@@ -5231,22 +5234,20 @@ class DataFrame(NDFrame):
 
         Rows where all values are missing are dropped by default:
 
-        >>> multicol = pd.MultiIndex.from_tuples([('X', 'a'), ('Y', 'b')])
-        >>> s = pd.DataFrame([[None, 1.0], [2.0, 3.0]], index=['one', 'two'], columns=multicol)
-        >>> s
+        >>> df_multi_level_cols3
                X     Y
                a     b
         one  NaN   1.0
         two  2.0   3.0
 
-        >>> s.stack(dropna=False)
+        >>> df_multi_level_cols3.stack(dropna=False)
                  X    Y
         one a  NaN  NaN
             b  NaN  1.0
         two a  2.0  NaN
             b  NaN  3.0
 
-        >>> s.stack(dropna=True)
+        >>> df_multi_level_cols3.stack(dropna=True)
                  X    Y
         one b  NaN  1.0
         two a  2.0  NaN
