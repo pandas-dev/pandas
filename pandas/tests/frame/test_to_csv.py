@@ -943,20 +943,6 @@ class TestDataFrameToCSV(TestData):
             with tm.decompress_file(filename, compression) as fh:
                 assert_frame_equal(df, read_csv(fh, index_col=0))
 
-    @pytest.mark.xfail(reason='zip compression is now supported for csv.')
-    def test_to_csv_compression_value_error(self):
-        # GH7615
-        # use the compression kw in to_csv
-        df = DataFrame([[0.123456, 0.234567, 0.567567],
-                        [12.32112, 123123.2, 321321.2]],
-                       index=['A', 'B'], columns=['X', 'Y', 'Z'])
-
-        with ensure_clean() as filename:
-            # zip compression is not supported and should raise ValueError
-            import zipfile
-            pytest.raises(zipfile.BadZipfile, df.to_csv,
-                          filename, compression="zip")
-
     def test_to_csv_date_format(self):
         with ensure_clean('__tmp_to_csv_date_format__') as path:
             dt_index = self.tsframe.index
