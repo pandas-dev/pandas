@@ -664,8 +664,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         Map values using input correspondence (a dict, Series, or function).
 
         Maps the values (their categories, not the codes) of the index to new
-        categories. If the mapping correspondence is a bijection (maps each
-        original category to a different new category) the result is a
+        categories. If the mapping correspondence is a one-to-one mapping (maps
+        each original category to a different new category) the result is a
         :class:`~pandas.CategoricalIndex` which has the same order property as
         the original, otherwise an :class:`~pandas.Index` is returned.
 
@@ -705,7 +705,17 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         CategoricalIndex(['first', 'second', 'third'], categories=['first',
                          'second', 'third'], ordered=False, dtype='category')
 
-        If the mapping is not bijective an :class:`~pandas.Index` is returned:
+        The ordering of the categories is preserved by the map:
+
+        >>> idx = pd.CategoricalIndex(['a', 'b', 'c'], ordered=True)
+        >>> idx
+        CategoricalIndex(['a', 'b', 'c'], categories=['a', 'b', 'c'],
+                         ordered=True, dtype='category')
+        >>> idx.map({'a': 3, 'b': 2, 'c': 1})
+        CategoricalIndex([3, 2, 1], categories=[3, 2, 1], ordered=True,
+                         dtype='category')
+
+        If the mapping is not one-to-one an :class:`~pandas.Index` is returned:
 
         >>> idx.map({'a': 'first', 'b': 'second', 'c': 'first'})
         Index(['first', 'second', 'first'], dtype='object')
