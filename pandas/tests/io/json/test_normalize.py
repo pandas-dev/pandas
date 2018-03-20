@@ -54,6 +54,17 @@ def state_data():
          'state': 'Ohio'}]
 
 
+@pytest.fixture
+def author_missing_data():
+    return [
+        {'info': None},
+        {'info':
+            {'created_at': '11/08/1993', 'last_updated': '26/05/2012'},
+            'author_name':
+         {'first': 'Jane', 'last_name': 'Doe'}
+         }]
+
+
 class TestJSONNormalize(object):
 
     def test_simple_records(self):
@@ -226,6 +237,23 @@ class TestJSONNormalize(object):
         result = json_normalize(json.loads(testjson))
         tm.assert_frame_equal(result, expected)
 
+    def test_missing_field(self, author_missing_data):
+        # GH20030: Checks for robustness of json_normalize - should
+        # unnest records where only the first record has a None value
+        result = json_normalize(author_missing_data)
+        ex_data = [
+            {'author_name.first': np.nan,
+             'author_name.last_name': np.nan,
+             'info.created_at': np.nan,
+             'info.last_updated': np.nan},
+            {'author_name.first': 'Jane',
+             'author_name.last_name': 'Doe',
+             'info.created_at': '11/08/1993',
+             'info.last_updated': '26/05/2012'}
+        ]
+        expected = DataFrame(ex_data)
+        tm.assert_frame_equal(result, expected)
+
 
 class TestNestedToRecord(object):
 
@@ -322,3 +350,28 @@ class TestNestedToRecord(object):
                             ['general', 'trade_version']],
                       errors='raise'
                       )
+
+    def test_nonetype_dropping(self):
+        # GH20030: Checks that None values are dropped in nested_to_record
+        # to prevent additional columns of nans when passed to DataFrame
+        data = [
+            {'info': None,
+             'author_name':
+             {'first': 'Smith', 'last_name': 'Appleseed'}
+             },
+            {'info':
+                {'created_at': '11/08/1993', 'last_updated': '26/05/2012'},
+             'author_name':
+                {'first': 'Jane', 'last_name': 'Doe'}
+             }
+        ]
+        result = nested_to_record(data)
+        expected = [
+            {'author_name.first': 'Smith',
+             'author_name.last_name': 'Appleseed'},
+            {'author_name.first': 'Jane',
+             'author_name.last_name': 'Doe',
+             'info.created_at': '11/08/1993',
+             'info.last_updated': '26/05/2012'}]
+
+        assert result == expected
