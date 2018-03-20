@@ -903,11 +903,12 @@ Timezones
 - :func:`Timestamp.replace` will now handle Daylight Savings transitions gracefully (:issue:`18319`)
 - Bug in tz-aware :class:`DatetimeIndex` where addition/subtraction with a :class:`TimedeltaIndex` or array with ``dtype='timedelta64[ns]'`` was incorrect (:issue:`17558`)
 - Bug in :func:`DatetimeIndex.insert` where inserting ``NaT`` into a timezone-aware index incorrectly raised (:issue:`16357`)
-- Bug in the :class:`DataFrame` constructor, where tz-aware Datetimeindex and a given column name will result in an empty ``DataFrame`` (:issue:`19157`)
+- Bug in :class:`DataFrame` constructor, where tz-aware Datetimeindex and a given column name will result in an empty ``DataFrame`` (:issue:`19157`)
 - Bug in :func:`Timestamp.tz_localize` where localizing a timestamp near the minimum or maximum valid values could overflow and return a timestamp with an incorrect nanosecond value (:issue:`12677`)
 - Bug when iterating over :class:`DatetimeIndex` that was localized with fixed timezone offset that rounded nanosecond precision to microseconds (:issue:`19603`)
 - Bug in :func:`DataFrame.diff` that raised an ``IndexError`` with tz-aware values (:issue:`18578`)
 - Bug in :func:`melt` that converted tz-aware dtypes to tz-naive (:issue:`15785`)
+- Bug in :func:`Dataframe.count` that raised an ``ValueError`` if .dropna() method is invoked for single column timezone-aware values. (:issue:`13407`)
 
 Offsets
 ^^^^^^^
