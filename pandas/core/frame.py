@@ -5173,6 +5173,20 @@ class DataFrame(NDFrame):
             that are missing from the original dataframe. See Examples
             section.
 
+        Returns
+        -------
+        DataFrame or Series
+            Stacked dataframe or series.
+
+        See Also
+        --------
+        DataFrame.unstack: unstack prescribed level(s) from index axis
+             onto column axis.
+        DataFrame.pivot: reshape dataframe from long format to wide
+             format.
+        DataFrame.pivot_table: create a spreadsheet-style pivot table
+             as a DataFrame.
+
         Notes
         -----
         The function is named by analogy with a stack of books
@@ -5276,20 +5290,6 @@ class DataFrame(NDFrame):
         one b  NaN  1.0
         two a  2.0  NaN
             b  NaN  3.0
-
-        Returns
-        -------
-        DataFrame or Series
-            Stacked dataframe or series.
-
-        See Also
-        --------
-        DataFrame.unstack: unstack prescribed level(s) from index axis
-             onto column axis.
-        DataFrame.pivot: reshape dataframe from long format to wide
-             format.
-        DataFrame.pivot_table: create a spreadsheet-style pivot table
-             as a DataFrame.
         """
         from pandas.core.reshape.reshape import stack, stack_multiple
 
