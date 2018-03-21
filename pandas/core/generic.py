@@ -1796,9 +1796,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
         In order to add another :class:`~pandas.DataFrame` or
         :class:`~pandas.Series` to an existing HDF file please use append mode
-        and different a key.
+        and a different a key.
 
-        For more information see the :ref:`user guide <io.hdf5>`.
+        For more information see the :ref:`user guide <io.html#io-hdf5>`.
 
         Parameters
         ----------
