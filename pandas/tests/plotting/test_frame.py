@@ -205,9 +205,6 @@ class TestDataFramePlots(TestPlotBase):
     def test_plot_xy(self):
         # columns.inferred_type == 'string'
         df = self.tdf
-        self._check_data(df.plot(x=0, y=1), df.set_index('A')['B'].plot())
-        self._check_data(df.plot(x=0), df.set_index('A').plot())
-        self._check_data(df.plot(y=0), df.B.plot())
         self._check_data(df.plot(x='A', y='B'), df.set_index('A').B.plot())
         self._check_data(df.plot(x='A'), df.set_index('A').plot())
         self._check_data(df.plot(y='B'), df.B.plot())
@@ -1019,7 +1016,6 @@ class TestDataFramePlots(TestPlotBase):
                        columns=['x', 'y', 'z', 'four'])
 
         _check_plot_works(df.plot.scatter, x='x', y='y')
-        _check_plot_works(df.plot.scatter, x=1, y=2)
 
         with pytest.raises(TypeError):
             df.plot.scatter(x='x')
@@ -1054,17 +1050,15 @@ class TestDataFramePlots(TestPlotBase):
                        index=list(string.ascii_letters[:6]),
                        columns=['x', 'y', 'z', 'four'])
 
-        axes = [df.plot.scatter(x='x', y='y', c='z'),
-                df.plot.scatter(x=0, y=1, c=2)]
-        for ax in axes:
-            # default to Greys
-            assert ax.collections[0].cmap.name == 'Greys'
+        axes = df.plot.scatter(x='x', y='y', c='z')
 
-            if self.mpl_ge_1_3_1:
+        # default to Greys
+        assert axes.collections[0].cmap.name == 'Greys'
 
-                # n.b. there appears to be no public method to get the colorbar
-                # label
-                assert ax.collections[0].colorbar._label == 'z'
+        if self.mpl_ge_1_3_1:
+            # n.b. there appears to be no public method to get the colorbar
+            # label
+            assert axes.collections[0].colorbar._label == 'z'
 
         cm = 'cubehelix'
         ax = df.plot.scatter(x='x', y='y', c='z', colormap=cm)
@@ -1075,7 +1069,7 @@ class TestDataFramePlots(TestPlotBase):
         assert ax.collections[0].colorbar is None
 
         # verify that we can still plot a solid color
-        ax = df.plot.scatter(x=0, y=1, c='red')
+        ax = df.plot.scatter(x='x', y='y', c='red')
         assert ax.collections[0].colorbar is None
         self._check_colors(ax.collections, facecolors=['r'])
 
@@ -2172,13 +2166,26 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.parametrize("x,y", [
         (['B', 'C'], 'A'),
-        ('A', ['B', 'C'])
+        ('A', ['B', 'C']),
+        (0, 'A'),
+        ('A', 0),
+        (0, 1)
     ])
     def test_invalid_xy_args(self, x, y):
-        # GH 18671
+        # GH 18671 and # GH 20056
         df = DataFrame({"A": [1, 2], 'B': [3, 4], 'C': [5, 6]})
         with pytest.raises(ValueError):
             df.plot(x=x, y=y)
+
+    @pytest.mark.parametrize("x,y,colnames", [
+        (0, 1, [0, 1]),
+        (1, 'A', ['A', 1])
+    ])
+    def test_xy_args_ints(self, x, y, colnames):
+        # GH 20056
+        df = DataFrame({"A": [1, 2], 'B': [3, 4]})
+        df.columns = colnames
+        _check_plot_works(df.plot, x=x, y=y)
 
     @pytest.mark.parametrize("x,y", [
         ('A', 'B'),
@@ -2253,9 +2260,6 @@ class TestDataFramePlots(TestPlotBase):
             df.plot.pie()
 
         ax = _check_plot_works(df.plot.pie, y='Y')
-        self._check_text_labels(ax.texts, df.index)
-
-        ax = _check_plot_works(df.plot.pie, y=2)
         self._check_text_labels(ax.texts, df.index)
 
         # _check_plot_works adds an ax so catch warning. see GH #13188
