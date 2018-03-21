@@ -2020,7 +2020,7 @@ _shared_docs['boxplot'] = """
     ax : object of class matplotlib.axes.Axes, optional
         The matplotlib axes to be used by boxplot.
     fontsize : float or str
-        Tick label font size in points or as a string (e.g., ‘large’).
+        Tick label font size in points or as a string (e.g., `large`).
     rot : int or float, default 0
         The rotation angle of labels (in degrees)
         with respect to the screen coordinate sytem.
@@ -2126,7 +2126,6 @@ _shared_docs['boxplot'] = """
 
         >>> boxplot = df.boxplot(grid=False, rot=45, fontsize=15)
 
-
     The parameter ``return_type`` can be used to select the type of element
     returned by `boxplot`.  When ``return_type='axes'`` is selected,
     the matplotlib axes on which the boxplot is drawn are returned:
@@ -2134,50 +2133,8 @@ _shared_docs['boxplot'] = """
         >>> df.boxplot(column=['Col1','Col2'], return_type='axes')
         <matplotlib.axes._subplots.AxesSubplot object at ...>
 
-    If selecting ``return_type='dict'`` a dictionary containing the
-    lines is returned:
-
-        >>> df.boxplot(column=['Col1','Col2'], return_type='dict')
-            {'boxes': [<matplotlib.lines.Line2D at ...>,
-              <matplotlib.lines.Line2D at ...>],
-             'caps': [<matplotlib.lines.Line2D at ...>,
-              <matplotlib.lines.Line2D at ...>,
-              <matplotlib.lines.Line2D at ...>,
-              <matplotlib.lines.Line2D at ...>],
-             'fliers': [<matplotlib.lines.Line2D at ...>,
-              <matplotlib.lines.Line2D at ...>],
-             'means': [],
-             'medians': [<matplotlib.lines.Line2D at ...>,
-              <matplotlib.lines.Line2D at ...>],
-             'whiskers': [<matplotlib.lines.Line2D at ...>,
-              <matplotlib.lines.Line2D at ...>,
-              <matplotlib.lines.Line2D at ...>,
-              <matplotlib.lines.Line2D at ...>]}
-
-    If selecting ``return_type='both'``, a namedtuple with matplotlib axes and
-    Line objets is returned:
-
-        >>> df.boxplot(column=['Col1','Col2'], return_type='both')
-            Boxplot(ax=<matplotlib.axes._subplots.AxesSubplot object
-            at 0x115821128>, lines={'whiskers':
-            [<matplotlib.lines.Line2D object at ...>,
-            <matplotlib.lines.Line2D object at ...>,
-            <matplotlib.lines.Line2D object at ...>,
-            <matplotlib.lines.Line2D object at ...>],
-            'caps': [<matplotlib.lines.Line2D object at ...>,
-            <matplotlib.lines.Line2D object at ...>,
-            <matplotlib.lines.Line2D object at ...>,
-            <matplotlib.lines.Line2D object at ...>],
-            'boxes': [<matplotlib.lines.Line2D object at ...>,
-            <matplotlib.lines.Line2D object at ...>],
-            'medians': [<matplotlib.lines.Line2D object at ...>,
-            <matplotlib.lines.Line2D object at ...>],
-            'fliers': [<matplotlib.lines.Line2D object at ...>,
-            <matplotlib.lines.Line2D object at ...>], 'means': []})
-
     When grouping with ``by``, a Series mapping columns to ``return_type``
     is returned:
-
 
         >>> df.boxplot(column=['Col1','Col2'], by='X', return_type='axes')
             Col1         AxesSubplot(0.1,0.15;0.363636x0.75)
@@ -2191,8 +2148,8 @@ _shared_docs['boxplot'] = """
             array([<matplotlib.axes._subplots.AxesSubplot object at ...>,
                    <matplotlib.axes._subplots.AxesSubplot object at ...>],
                    dtype=object)
-
     """
+
 
 @Appender(_shared_docs['boxplot'] % _shared_doc_kwargs)
 def boxplot(data, column=None, by=None, ax=None, fontsize=None,
