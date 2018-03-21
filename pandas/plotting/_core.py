@@ -2130,24 +2130,25 @@ _shared_docs['boxplot'] = """
     returned by `boxplot`.  When ``return_type='axes'`` is selected,
     the matplotlib axes on which the boxplot is drawn are returned:
 
-        >>> df.boxplot(column=['Col1','Col2'], return_type='axes')
-        <matplotlib.axes._subplots.AxesSubplot object at ...>
+        >>> boxplot = df.boxplot(column=['Col1','Col2'], return_type='axes')
+        >>> type(boxplot)
+        <class 'matplotlib.axes._subplots.AxesSubplot'>
 
     When grouping with ``by``, a Series mapping columns to ``return_type``
     is returned:
 
-        >>> df.boxplot(column=['Col1','Col2'], by='X', return_type='axes')
-            Col1         AxesSubplot(0.1,0.15;0.363636x0.75)
-            Col2    AxesSubplot(0.536364,0.15;0.363636x0.75)
-            dtype: object
+        >>> boxplot = df.boxplot(column=['Col1','Col2'], by='X',
+        ...                      return_type='axes')
+        >>> type(boxplot)
+        <class 'pandas.core.series.Series'>
 
     If ``return_type`` is `None`, a NumPy array of axes with the same shape
     as ``layout`` is returned:
 
-        >>> df.boxplot(column=['Col1','Col2'], by='X', return_type=None)
-            array([<matplotlib.axes._subplots.AxesSubplot object at ...>,
-                   <matplotlib.axes._subplots.AxesSubplot object at ...>],
-                   dtype=object)
+        >>> boxplot =  df.boxplot(column=['Col1','Col2'], by='X',
+        ...                       return_type=None)
+        >>> type(boxplot)
+        <class 'numpy.ndarray'>
     """
 
 
