@@ -3204,7 +3204,10 @@ class DataFrame(NDFrame):
             value = reindexer(value).T
 
         elif isinstance(value, ExtensionArray):
+            from pandas.core.series import _sanitize_index
             value = value.copy()
+            # Copy donesn't have any effect at the moment
+            value = _sanitize_index(value, self.index, copy=False)
 
         elif isinstance(value, Index) or is_sequence(value):
             from pandas.core.series import _sanitize_index

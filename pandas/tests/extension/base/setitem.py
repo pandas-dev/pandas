@@ -131,3 +131,9 @@ class BaseSetitemTests(BaseExtensionTests):
         result = df.copy()
         result.loc[:, 'B'] = data
         self.assert_frame_equal(result, expected)
+
+    def test_setitem_frame_invalid_length(self, data):
+        df = pd.DataFrame({"A": [1] * len(data)})
+        xpr = "Length of values does not match length of index"
+        with tm.assert_raises_regex(ValueError, xpr):
+            df['B'] = data[:5]
