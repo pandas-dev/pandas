@@ -664,14 +664,13 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         Map values using input correspondence (a dict, Series, or function).
 
         Maps the values (their categories, not the codes) of the index to new
-        categories. If the mapping correspondence is a one-to-one mapping (maps
-        each original category to a different new category) the result is a
+        categories. If the mapping correspondence is one-to-one the result is a
         :class:`~pandas.CategoricalIndex` which has the same order property as
         the original, otherwise an :class:`~pandas.Index` is returned.
 
         If a `dict` or :class:`~pandas.Series` is used any unmapped category is
-        mapped to NaN. Note that if this happens an :class:`~pandas.Index` will
-        be returned.
+        mapped to `NaN`. Note that if this happens an :class:`~pandas.Index`
+        will be returned.
 
         Parameters
         ----------
@@ -705,7 +704,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         CategoricalIndex(['first', 'second', 'third'], categories=['first',
                          'second', 'third'], ordered=False, dtype='category')
 
-        The ordering of the categories is preserved by the map:
+        If the mapping is one-to-one the ordering of the categories is
+        preserved:
 
         >>> idx = pd.CategoricalIndex(['a', 'b', 'c'], ordered=True)
         >>> idx
@@ -720,7 +720,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         >>> idx.map({'a': 'first', 'b': 'second', 'c': 'first'})
         Index(['first', 'second', 'first'], dtype='object')
 
-        If a `dict` is used, all unmapped categories are mapped to NaN and
+        If a `dict` is used, all unmapped categories are mapped to `NaN` and
         the result is an :class:`~pandas.Index`:
 
         >>> idx.map({'a': 'first', 'b': 'second'})

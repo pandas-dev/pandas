@@ -1084,14 +1084,13 @@ class Categorical(ExtensionArray, PandasObject):
         Map categories using input correspondence (dict, Series, or function).
 
         Maps the categories to new categories. If the mapping correspondence is
-        a one-to-one mapping (maps each original category to a different new
-        category) the result is a :class:`~pandas.Categorical` which has the
+        one-to-one the result is a :class:`~pandas.Categorical` which has the
         same order property as the original, otherwise a :class:`~pandas.Index`
         is returned.
 
         If a `dict` or :class:`~pandas.Series` is used any unmapped category is
-        mapped to NaN. Note that if this happens an :class:`~pandas.Index` will
-        be returned.
+        mapped to `NaN`. Note that if this happens an :class:`~pandas.Index`
+        will be returned.
 
         Parameters
         ----------
@@ -1127,7 +1126,8 @@ class Categorical(ExtensionArray, PandasObject):
         [first, second, third]
         Categories (3, object): [first, second, third]
 
-        The ordering of the categories is preserved by the map:
+        If the mapping is one-to-one the ordering of the categories is
+        preserved:
 
         >>> cat = pd.Categorical(['a', 'b', 'c'], ordered=True)
         >>> cat
@@ -1142,7 +1142,7 @@ class Categorical(ExtensionArray, PandasObject):
         >>> cat.map({'a': 'first', 'b': 'second', 'c': 'first'})
         Index(['first', 'second', 'first'], dtype='object')
 
-        If a `dict` is used, all unmapped categories are mapped to NaN and
+        If a `dict` is used, all unmapped categories are mapped to `NaN` and
         the result is an :class:`~pandas.Index`:
 
         >>> cat.map({'a': 'first', 'b': 'second'})
