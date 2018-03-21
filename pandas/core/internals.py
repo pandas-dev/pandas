@@ -1921,7 +1921,6 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         'indexer' is a direct slice/positional indexer. 'value' must
         be a compatible shape.
         """
-        print(type(indexer), indexer)
         if isinstance(indexer, tuple):
             # we are always 1-D
             indexer = indexer[0]
