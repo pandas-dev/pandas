@@ -7317,9 +7317,9 @@ class NDFrame(PandasObject, SelectionMixin):
         Describing a ``DataFrame``. By default only numeric fields
         are returned.
 
-        >>> df = pd.DataFrame({ 'categorical': pd.Categorical(['d','e','f']),
-        ...                     'numeric': [1, 2, 3],
-        ...                     'object': ['a', 'b', 'c']
+        >>> df = pd.DataFrame({'categorical': pd.Categorical(['d','e','f']),
+        ...                    'numeric': [1, 2, 3],
+        ...                    'object': ['a', 'b', 'c']
         ...                   })
         >>> df.describe()
                numeric
