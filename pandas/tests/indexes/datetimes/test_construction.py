@@ -441,6 +441,18 @@ class TestDatetimeIndex(object):
 
         assert idx.nanosecond[0] == t1.nanosecond
 
+    @pytest.mark.parametrize('tz', [None, 'America/Los_Angeles'])
+    def test_constructor_start_end_with_tz(self, tz):
+        start = Timestamp('2013-01-01 06:00:00', tz='America/Los_Angeles')
+        end = Timestamp('2013-01-02 06:00:00', tz='America/Los_Angeles')
+        result = DatetimeIndex(freq='D', start=start, end=end, tz=tz)
+        expected = DatetimeIndex(['2013-01-01 06:00:00',
+                                  '2013-01-02 06:00:00'],
+                                 tz='America/Los_Angeles')
+        tm.assert_index_equal(result, expected)
+        # Especially assert that the timezone is LMT for pytz
+        assert pytz.timezone('America/Los_Angeles') == result.tz
+
 
 class TestTimeSeries(object):
 

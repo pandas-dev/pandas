@@ -6,6 +6,7 @@ from datetime import time, datetime, timedelta
 
 import numpy as np
 from pytz import utc
+from pytz.tzinfo import BaseTzInfo
 
 from pandas.core.base import _shared_docs
 
@@ -516,13 +517,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                             'different timezones')
 
         inferred_tz = timezones.maybe_get_tz(inferred_tz)
-
-        # these may need to be localized
         tz = timezones.maybe_get_tz(tz)
-        if tz is not None:
-            date = start or end
-            if date.tzinfo is not None and hasattr(tz, 'localize'):
-                tz = tz.localize(date.replace(tzinfo=None)).tzinfo
 
         if tz is not None and inferred_tz is not None:
             if not timezones.tz_compare(inferred_tz, tz):
@@ -530,7 +525,12 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                                      "time zone")
 
         elif inferred_tz is not None:
-            tz = inferred_tz
+            # If inferred_tz is a pytz timezone, make sure to return the LMT
+            # based zone
+            if isinstance(inferred_tz, BaseTzInfo):
+                tz = timezones.maybe_get_tz(inferred_tz.zone)
+            else:
+                tz = inferred_tz
 
         if start is not None:
             if normalize:
