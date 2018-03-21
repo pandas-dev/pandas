@@ -1798,6 +1798,8 @@ class NDFrame(PandasObject, SelectionMixin):
         :class:`~pandas.Series` to an existing HDF file please use append mode
         and different a key.
 
+        For more information see the :ref:`user guide <io.hdf5>`.
+
         Parameters
         ----------
         path_or_buf : str or pandas.HDFStore
@@ -1806,18 +1808,24 @@ class NDFrame(PandasObject, SelectionMixin):
             Identifier for the group in the store.
         mode : {'a', 'w', 'r+'}, default is 'a'
             Mode to open file:
-                - ``'w'``: write, a new file is created (an existing file with
-                    the same name would be deleted).
-                - ``'a'``: append, an existing file is opened for reading and
-                    writing, and if the file does not exist it is created.
-                - `'r+'`: similar to ``'a'``, but the file must already exist.
-        format : {'fixed', 'table'}, default is 'fixed'
+            
+            - 'w': write, a new file is created (an existing file with
+            the same name would be deleted).
+            
+            - 'a': append, an existing file is opened for reading and
+            writing, and if the file does not exist it is created.
+            
+            - 'r+': similar to 'a', but the file must already exist.
+        format : {'fixed', 'table'}, default 'fixed'
+            
             Possible values:
-                - fixed: Fixed format. Fast writing/reading. Not-appendable,
-                    nor searchable.
-                - table: Table format. Write as a PyTables Table structure
-                    which may perform worse but allow more flexible operations
-                    like searching / selecting subsets of the data.
+            
+            - 'fixed': Fixed format. Fast writing/reading. Not-appendable,
+            nor searchable.
+            
+            - 'table': Table format. Write as a PyTables Table structure
+            which may perform worse but allow more flexible operations
+            like searching / selecting subsets of the data.
         append : boolean, default False
             For Table formats, append the input data to the existing.
         data_columns :  list of columns or True, optional
@@ -1856,7 +1864,7 @@ class NDFrame(PandasObject, SelectionMixin):
         ...                   index=['a', 'b', 'c'])
         >>> df.to_hdf('data.h5', key='df', mode='w')
 
-        We can append another object to the same file:
+        We can add another object to the same file:
 
         >>> s = pd.Series([1, 2, 3, 4])
         >>> s.to_hdf('data.h5', key='s')
@@ -1874,6 +1882,12 @@ class NDFrame(PandasObject, SelectionMixin):
         2    3
         3    4
         dtype: int64
+
+        Deleting file with data:
+
+        >>> import os
+        >>> os.remove('data.h5')
+
         """
         from pandas.io import pytables
         return pytables.to_hdf(path_or_buf, key, self, **kwargs)
