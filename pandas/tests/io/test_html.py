@@ -4,17 +4,8 @@ import glob
 import os
 import re
 import threading
-import warnings
 
-
-# imports needed for Python 3.x but will fail under Python 2.x
-try:
-    from importlib import import_module, reload
-except ImportError:
-    import_module = __import__
-
-
-from distutils.version import LooseVersion
+from functools import partial
 
 import pytest
 
@@ -23,46 +14,16 @@ from numpy.random import rand
 
 from pandas import (DataFrame, MultiIndex, read_csv, Timestamp, Index,
                     date_range, Series)
-from pandas.compat import (map, zip, StringIO, string_types, BytesIO,
-                           is_platform_windows, PY3)
-from pandas.io.common import URLError, urlopen, file_path_to_url
+from pandas.compat import (map, zip, StringIO, BytesIO,
+                           is_platform_windows, PY3, reload)
+from pandas.io.common import URLError, file_path_to_url
 import pandas.io.html
 from pandas.io.html import read_html
 from pandas._libs.parsers import ParserError
 
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas.util.testing import makeCustomDataframe as mkdf, network
-
-
-def _have_module(module_name):
-    try:
-        import_module(module_name)
-        return True
-    except ImportError:
-        return False
-
-
-def _skip_if_no(module_name):
-    if not _have_module(module_name):
-        pytest.skip("{0!r} not found".format(module_name))
-
-
-def _skip_if_none_of(module_names):
-    if isinstance(module_names, string_types):
-        _skip_if_no(module_names)
-        if module_names == 'bs4':
-            import bs4
-            if LooseVersion(bs4.__version__) == LooseVersion('4.2.0'):
-                pytest.skip("Bad version of bs4: 4.2.0")
-    else:
-        not_found = [module_name for module_name in module_names if not
-                     _have_module(module_name)]
-        if set(not_found) & set(module_names):
-            pytest.skip("{0!r} not found".format(not_found))
-        if 'bs4' in module_names:
-            import bs4
-            if LooseVersion(bs4.__version__) == LooseVersion('4.2.0'):
-                pytest.skip("Bad version of bs4: 4.2.0")
 
 
 DATA_PATH = tm.get_data_path()
@@ -82,33 +43,45 @@ def assert_framelist_equal(list1, list2, *args, **kwargs):
         assert not frame_i.empty, 'frames are both empty'
 
 
-def test_bs4_version_fails():
-    _skip_if_none_of(('bs4', 'html5lib'))
+@td.skip_if_no('bs4')
+def test_bs4_version_fails(monkeypatch):
     import bs4
-    if LooseVersion(bs4.__version__) == LooseVersion('4.2.0'):
-        tm.assert_raises(AssertionError, read_html, os.path.join(DATA_PATH,
-                                                                 "spam.html"),
-                         flavor='bs4')
+    monkeypatch.setattr(bs4, '__version__', '4.2')
+    with tm.assert_raises_regex(ValueError, "minimum version"):
+        read_html(os.path.join(DATA_PATH, "spam.html"), flavor='bs4')
 
 
-class ReadHtmlMixin(object):
+def test_invalid_flavor():
+    url = 'google.com'
+    with pytest.raises(ValueError):
+        read_html(url, 'google', flavor='not a* valid**++ flaver')
 
-    def read_html(self, *args, **kwargs):
-        kwargs.setdefault('flavor', self.flavor)
-        return read_html(*args, **kwargs)
+
+@td.skip_if_no('bs4')
+@td.skip_if_no('lxml')
+def test_same_ordering():
+    filename = os.path.join(DATA_PATH, 'valid_markup.html')
+    dfs_lxml = read_html(filename, index_col=0, flavor=['lxml'])
+    dfs_bs4 = read_html(filename, index_col=0, flavor=['bs4'])
+    assert_framelist_equal(dfs_lxml, dfs_bs4)
 
 
-class TestReadHtml(ReadHtmlMixin):
-    flavor = 'bs4'
+@pytest.mark.parametrize("flavor", [
+    pytest.param('bs4', marks=pytest.mark.skipif(
+        not td.safe_import('lxml'), reason='No bs4')),
+    pytest.param('lxml', marks=pytest.mark.skipif(
+        not td.safe_import('lxml'), reason='No lxml'))], scope="class")
+class TestReadHtml(object):
     spam_data = os.path.join(DATA_PATH, 'spam.html')
     spam_data_kwargs = {}
     if PY3:
         spam_data_kwargs['encoding'] = 'UTF-8'
     banklist_data = os.path.join(DATA_PATH, 'banklist.html')
 
-    @classmethod
-    def setup_class(cls):
-        _skip_if_none_of(('bs4', 'html5lib'))
+    @pytest.fixture(autouse=True, scope="function")
+    def set_defaults(self, flavor, request):
+        self.read_html = partial(read_html, flavor=flavor)
+        yield
 
     def test_to_html_compat(self):
         df = mkdf(4, 3, data_gen_f=lambda *args: rand(), c_idx_names=False,
@@ -150,7 +123,6 @@ class TestReadHtml(ReadHtmlMixin):
         df1 = self.read_html(self.spam_data, '.*Water.*')
         df2 = self.read_html(self.spam_data, 'Unit')
         assert_framelist_equal(df1, df2)
-
         assert df1[0].iloc[0, 0] == 'Proximates'
         assert df1[0].columns[0] == 'Nutrient'
 
@@ -667,45 +639,15 @@ class TestReadHtml(ReadHtmlMixin):
                                     r"multi_index of columns"):
             self.read_html(data, header=[0, 1])
 
+        data = os.path.join(DATA_PATH, 'computer_sales_page.html')
+        assert self.read_html(data, header=[1, 2])
+
     def test_wikipedia_states_table(self):
         data = os.path.join(DATA_PATH, 'wikipedia_states.html')
         assert os.path.isfile(data), '%r is not a file' % data
         assert os.path.getsize(data), '%r is an empty file' % data
         result = self.read_html(data, 'Arizona', header=1)[0]
         assert result['sq mi'].dtype == np.dtype('float64')
-
-    @pytest.mark.parametrize("displayed_only,exp0,exp1", [
-        (True, DataFrame(["foo"]), None),
-        (False, DataFrame(["foo  bar  baz  qux"]), DataFrame(["foo"]))])
-    def test_displayed_only(self, displayed_only, exp0, exp1):
-        # GH 20027
-        data = StringIO("""<html>
-          <body>
-            <table>
-              <tr>
-                <td>
-                  foo
-                  <span style="display:none;text-align:center">bar</span>
-                  <span style="display:none">baz</span>
-                  <span style="display: none">qux</span>
-                </td>
-              </tr>
-            </table>
-            <table style="display: none">
-              <tr>
-                <td>foo</td>
-              </tr>
-            </table>
-          </body>
-        </html>""")
-
-        dfs = self.read_html(data, displayed_only=displayed_only)
-        tm.assert_frame_equal(dfs[0], exp0)
-
-        if exp1 is not None:
-            tm.assert_frame_equal(dfs[1], exp1)
-        else:
-            assert len(dfs) == 1  # Should not parse hidden table
 
     def test_decimal_rows(self):
 
@@ -815,80 +757,6 @@ class TestReadHtml(ReadHtmlMixin):
         html_df = read_html(html, )[0]
         tm.assert_frame_equal(expected_df, html_df)
 
-
-def _lang_enc(filename):
-    return os.path.splitext(os.path.basename(filename))[0].split('_')
-
-
-class TestReadHtmlEncoding(object):
-    files = glob.glob(os.path.join(DATA_PATH, 'html_encoding', '*.html'))
-    flavor = 'bs4'
-
-    @classmethod
-    def setup_class(cls):
-        _skip_if_none_of((cls.flavor, 'html5lib'))
-
-    def read_html(self, *args, **kwargs):
-        kwargs['flavor'] = self.flavor
-        return read_html(*args, **kwargs)
-
-    def read_filename(self, f, encoding):
-        return self.read_html(f, encoding=encoding, index_col=0)
-
-    def read_file_like(self, f, encoding):
-        with open(f, 'rb') as fobj:
-            return self.read_html(BytesIO(fobj.read()), encoding=encoding,
-                                  index_col=0)
-
-    def read_string(self, f, encoding):
-        with open(f, 'rb') as fobj:
-            return self.read_html(fobj.read(), encoding=encoding, index_col=0)
-
-    def test_encode(self):
-        assert self.files, 'no files read from the data folder'
-        for f in self.files:
-            _, encoding = _lang_enc(f)
-            try:
-                from_string = self.read_string(f, encoding).pop()
-                from_file_like = self.read_file_like(f, encoding).pop()
-                from_filename = self.read_filename(f, encoding).pop()
-                tm.assert_frame_equal(from_string, from_file_like)
-                tm.assert_frame_equal(from_string, from_filename)
-            except Exception:
-                # seems utf-16/32 fail on windows
-                if is_platform_windows():
-                    if '16' in encoding or '32' in encoding:
-                        continue
-                    raise
-
-
-class TestReadHtmlEncodingLxml(TestReadHtmlEncoding):
-    flavor = 'lxml'
-
-    @classmethod
-    def setup_class(cls):
-        super(TestReadHtmlEncodingLxml, cls).setup_class()
-        _skip_if_no(cls.flavor)
-
-
-class TestReadHtmlLxml(ReadHtmlMixin):
-    flavor = 'lxml'
-
-    @classmethod
-    def setup_class(cls):
-        _skip_if_no('lxml')
-
-    def test_data_fail(self):
-        from lxml.etree import XMLSyntaxError
-        spam_data = os.path.join(DATA_PATH, 'spam.html')
-        banklist_data = os.path.join(DATA_PATH, 'banklist.html')
-
-        with pytest.raises(XMLSyntaxError):
-            self.read_html(spam_data)
-
-        with pytest.raises(XMLSyntaxError):
-            self.read_html(banklist_data)
-
     def test_works_on_valid_markup(self):
         filename = os.path.join(DATA_PATH, 'valid_markup.html')
         dfs = self.read_html(filename, index_col=0)
@@ -897,7 +765,6 @@ class TestReadHtmlLxml(ReadHtmlMixin):
 
     @pytest.mark.slow
     def test_fallback_success(self):
-        _skip_if_none_of(('bs4', 'html5lib'))
         banklist_data = os.path.join(DATA_PATH, 'banklist.html')
         self.read_html(banklist_data, '.*Water.*', flavor=['lxml', 'html5lib'])
 
@@ -907,27 +774,6 @@ class TestReadHtmlLxml(ReadHtmlMixin):
 
         result = df.to_html()
         assert '2000-01-01' in result
-
-    def test_parse_dates_list(self):
-        df = DataFrame({'date': date_range('1/1/2001', periods=10)})
-        expected = df.to_html()
-        res = self.read_html(expected, parse_dates=[1], index_col=0)
-        tm.assert_frame_equal(df, res[0])
-        res = self.read_html(expected, parse_dates=['date'], index_col=0)
-        tm.assert_frame_equal(df, res[0])
-
-    def test_parse_dates_combine(self):
-        raw_dates = Series(date_range('1/1/2001', periods=10))
-        df = DataFrame({'date': raw_dates.map(lambda x: str(x.date())),
-                        'time': raw_dates.map(lambda x: str(x.time()))})
-        res = self.read_html(df.to_html(), parse_dates={'datetime': [1, 2]},
-                             index_col=1)
-        newdf = DataFrame({'datetime': raw_dates})
-        tm.assert_frame_equal(newdf, res[0])
-
-    def test_computer_sales_page(self):
-        data = os.path.join(DATA_PATH, 'computer_sales_page.html')
-        self.read_html(data, header=[0, 1])
 
     @pytest.mark.parametrize("displayed_only,exp0,exp1", [
         (True, DataFrame(["foo"]), None),
@@ -962,134 +808,99 @@ class TestReadHtmlLxml(ReadHtmlMixin):
         else:
             assert len(dfs) == 1  # Should not parse hidden table
 
+    @pytest.mark.parametrize("f", glob.glob(
+        os.path.join(DATA_PATH, 'html_encoding', '*.html')))
+    def test_encode(self, f):
+        _, encoding = os.path.splitext(os.path.basename(f))[0].split('_')
 
-def test_invalid_flavor():
-    url = 'google.com'
-    with pytest.raises(ValueError):
-        read_html(url, 'google', flavor='not a* valid**++ flaver')
-
-
-def get_elements_from_file(url, element='table'):
-    _skip_if_none_of(('bs4', 'html5lib'))
-    url = file_path_to_url(url)
-    from bs4 import BeautifulSoup
-    with urlopen(url) as f:
-        soup = BeautifulSoup(f, features='html5lib')
-    return soup.find_all(element)
-
-
-@pytest.mark.slow
-def test_bs4_finds_tables():
-    filepath = os.path.join(DATA_PATH, "spam.html")
-    with warnings.catch_warnings():
-        warnings.filterwarnings('ignore')
-        assert get_elements_from_file(filepath, 'table')
-
-
-def get_lxml_elements(url, element):
-    _skip_if_no('lxml')
-    from lxml.html import parse
-    doc = parse(url)
-    return doc.xpath('.//{0}'.format(element))
-
-
-@pytest.mark.slow
-def test_lxml_finds_tables():
-    filepath = os.path.join(DATA_PATH, "spam.html")
-    assert get_lxml_elements(filepath, 'table')
-
-
-@pytest.mark.slow
-def test_lxml_finds_tbody():
-    filepath = os.path.join(DATA_PATH, "spam.html")
-    assert get_lxml_elements(filepath, 'tbody')
-
-
-def test_same_ordering():
-    _skip_if_none_of(['bs4', 'lxml', 'html5lib'])
-    filename = os.path.join(DATA_PATH, 'valid_markup.html')
-    dfs_lxml = read_html(filename, index_col=0, flavor=['lxml'])
-    dfs_bs4 = read_html(filename, index_col=0, flavor=['bs4'])
-    assert_framelist_equal(dfs_lxml, dfs_bs4)
-
-
-class ErrorThread(threading.Thread):
-    def run(self):
         try:
-            super(ErrorThread, self).run()
-        except Exception as e:
-            self.err = e
-        else:
-            self.err = None
+            with open(f, 'rb') as fobj:
+                from_string = self.read_html(fobj.read(), encoding=encoding,
+                                             index_col=0).pop()
 
+            with open(f, 'rb') as fobj:
+                from_file_like = self.read_html(BytesIO(fobj.read()),
+                                                encoding=encoding,
+                                                index_col=0).pop()
 
-@pytest.mark.slow
-def test_importcheck_thread_safety():
-    # see gh-16928
+            from_filename = self.read_html(f, encoding=encoding,
+                                           index_col=0).pop()
+            tm.assert_frame_equal(from_string, from_file_like)
+            tm.assert_frame_equal(from_string, from_filename)
+        except Exception:
+            # seems utf-16/32 fail on windows
+            if is_platform_windows():
+                if '16' in encoding or '32' in encoding:
+                    pytest.skip()
+                raise
 
-    # force import check by reinitalising global vars in html.py
-    pytest.importorskip('lxml')
-    reload(pandas.io.html)
+    def test_parse_failure_unseekable(self):
+        # Issue #17975
 
-    filename = os.path.join(DATA_PATH, 'valid_markup.html')
-    helper_thread1 = ErrorThread(target=read_html, args=(filename,))
-    helper_thread2 = ErrorThread(target=read_html, args=(filename,))
+        if self.read_html.keywords.get('flavor') == 'lxml':
+            pytest.skip("Not applicable for lxml")
 
-    helper_thread1.start()
-    helper_thread2.start()
+        class UnseekableStringIO(StringIO):
+            def seekable(self):
+                return False
 
-    while helper_thread1.is_alive() or helper_thread2.is_alive():
-        pass
-    assert None is helper_thread1.err is helper_thread2.err
+        bad = UnseekableStringIO('''
+            <table><tr><td>spam<foobr />eggs</td></tr></table>''')
 
+        assert self.read_html(bad)
 
-def test_parse_failure_unseekable():
-    # Issue #17975
-    _skip_if_no('lxml')
-    _skip_if_no('bs4')
+        with pytest.raises(ValueError,
+                           match='passed a non-rewindable file object'):
+            self.read_html(bad)
 
-    class UnseekableStringIO(StringIO):
-        def seekable(self):
-            return False
+    def test_parse_failure_rewinds(self):
+        # Issue #17975
 
-    good = UnseekableStringIO('''
-        <table><tr><td>spam<br />eggs</td></tr></table>''')
-    bad = UnseekableStringIO('''
-        <table><tr><td>spam<foobr />eggs</td></tr></table>''')
+        class MockFile(object):
+            def __init__(self, data):
+                self.data = data
+                self.at_end = False
 
-    assert read_html(good)
-    assert read_html(bad, flavor='bs4')
+            def read(self, size=None):
+                data = '' if self.at_end else self.data
+                self.at_end = True
+                return data
 
-    bad.seek(0)
+            def seek(self, offset):
+                self.at_end = False
 
-    with pytest.raises(ValueError,
-                       match='passed a non-rewindable file object'):
-        read_html(bad)
+            def seekable(self):
+                return True
 
+        good = MockFile('<table><tr><td>spam<br />eggs</td></tr></table>')
+        bad = MockFile('<table><tr><td>spam<foobr />eggs</td></tr></table>')
 
-def test_parse_failure_rewinds():
-    # Issue #17975
-    _skip_if_no('lxml')
-    _skip_if_no('bs4')
+        assert self.read_html(good)
+        assert self.read_html(bad)
 
-    class MockFile(object):
-        def __init__(self, data):
-            self.data = data
-            self.at_end = False
+    @pytest.mark.slow
+    def test_importcheck_thread_safety(self):
+        # see gh-16928
 
-        def read(self, size=None):
-            data = '' if self.at_end else self.data
-            self.at_end = True
-            return data
+        class ErrorThread(threading.Thread):
+            def run(self):
+                try:
+                    super(ErrorThread, self).run()
+                except Exception as e:
+                    self.err = e
+                else:
+                    self.err = None
 
-        def seek(self, offset):
-            self.at_end = False
+        # force import check by reinitalising global vars in html.py
+        reload(pandas.io.html)
 
-        def seekable(self):
-            return True
+        filename = os.path.join(DATA_PATH, 'valid_markup.html')
+        helper_thread1 = ErrorThread(target=self.read_html, args=(filename,))
+        helper_thread2 = ErrorThread(target=self.read_html, args=(filename,))
 
-    good = MockFile('<table><tr><td>spam<br />eggs</td></tr></table>')
-    bad = MockFile('<table><tr><td>spam<foobr />eggs</td></tr></table>')
+        helper_thread1.start()
+        helper_thread2.start()
 
-    assert read_html(good)
-    assert read_html(bad)
+        while helper_thread1.is_alive() or helper_thread2.is_alive():
+            pass
+        assert None is helper_thread1.err is helper_thread2.err

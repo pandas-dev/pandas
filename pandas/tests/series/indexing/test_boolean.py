@@ -16,8 +16,6 @@ from pandas.tseries.offsets import BDay
 from pandas.util.testing import (assert_series_equal)
 import pandas.util.testing as tm
 
-JOIN_TYPES = ['inner', 'outer', 'left', 'right']
-
 
 def test_getitem_boolean(test_data):
     s = test_data.series
