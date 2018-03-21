@@ -4,9 +4,7 @@ for validating data or function arguments
 """
 import warnings
 
-import numpy as np
-
-from pandas.core.dtypes.common import is_bool, is_list_like
+from pandas.core.dtypes.common import is_bool
 
 
 def _check_arg_length(fname, args, max_fname_arg_count, compat_args):
