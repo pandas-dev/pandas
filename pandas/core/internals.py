@@ -66,7 +66,7 @@ import pandas.core.common as com
 import pandas.core.algorithms as algos
 
 from pandas.core.index import Index, MultiIndex, _ensure_index
-from pandas.core.indexing import maybe_convert_indices
+from pandas.core.indexing import maybe_convert_indices, check_setitem_lengths
 from pandas.core.arrays import Categorical
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
@@ -80,8 +80,7 @@ from pandas._libs.internals import BlockPlacement
 from pandas._libs.tslibs import conversion
 
 from pandas.util._decorators import cache_readonly
-from pandas.util._validators import (
-    validate_bool_kwarg, validate_setitem_lengths)
+from pandas.util._validators import validate_bool_kwarg
 from pandas import compat
 from pandas.compat import range, map, zip, u
 
@@ -890,7 +889,7 @@ class Block(PandasObject):
         values = transf(values)
 
         # length checking
-        validate_setitem_lengths(indexer, value, values)
+        check_setitem_lengths(indexer, value, values)
 
         def _is_scalar_indexer(indexer):
             # return True if we are all scalar indexers
@@ -1922,11 +1921,12 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         'indexer' is a direct slice/positional indexer. 'value' must
         be a compatible shape.
         """
+        print(type(indexer), indexer)
         if isinstance(indexer, tuple):
             # we are always 1-D
             indexer = indexer[0]
 
-        validate_setitem_lengths(indexer, value, self.values)
+        check_setitem_lengths(indexer, value, self.values)
         self.values[indexer] = value
         return self
 
