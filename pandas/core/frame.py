@@ -5195,9 +5195,6 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df_single_level_cols = pd.DataFrame([[0, 1], [2, 3]],
-        ...                                     index=['one', 'two'],
-        ...                                     columns=['a', 'b'])
         >>> multicol1 = pd.MultiIndex.from_tuples([('X', 'a'), ('X', 'b')])
         >>> df_multi_level_cols1 = pd.DataFrame([[0, 1], [2, 3]],
         ...                                    index=['one', 'two'],
@@ -5209,6 +5206,12 @@ class DataFrame(NDFrame):
         >>> df_multi_level_cols3 = pd.DataFrame([[None, 1.0], [2.0, 3.0]],
         ...                                     index=['one', 'two'],
         ...                                     columns=multicol2)
+
+        **Single level columns**
+
+        >>> df_single_level_cols = pd.DataFrame([[0, 1], [2, 3]],
+        ...                                     index=['one', 'two'],
+        ...                                     columns=['a', 'b'])
 
         Stacking a dataframe with a single level column axis returns a Series:
 
