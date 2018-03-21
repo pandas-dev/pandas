@@ -137,3 +137,9 @@ class BaseSetitemTests(BaseExtensionTests):
         xpr = "Length of values does not match length of index"
         with tm.assert_raises_regex(ValueError, xpr):
             df['B'] = data[:5]
+
+    def test_setitem_tuple_index(self, data):
+        s = pd.Series(data[:2], index=[(0, 0), (0, 1)])
+        expected = pd.Series(data.take([1, 1]), index=s.index)
+        s[0] = data[1]
+        self.assert_series_equal(s, expected)

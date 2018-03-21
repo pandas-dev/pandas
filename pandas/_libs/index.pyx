@@ -120,20 +120,23 @@ cdef class IndexEngine:
                 return Timedelta(util.get_value_at(arr, loc))
             return util.get_value_at(arr, loc)
 
-    cpdef set_value(self, ndarray arr, object key, object value):
+    cpdef set_value(self, object arr, object key, object value):
         """
-        arr : 1-dimensional ndarray
+        arr : ndarray or ExtensionArray
+            Should be 1 dimensional.
         """
         cdef:
             object loc
             void* data_ptr
 
         loc = self.get_loc(key)
-        value = convert_scalar(arr, value)
+        if cnp.PyArray_Check(arr):
+            value = convert_scalar(arr, value)
 
-        if PySlice_Check(loc) or cnp.PyArray_Check(loc):
+        if (PySlice_Check(loc) or cnp.PyArray_Check(loc) or
+                not cnp.PyArray_Check(arr)):
             arr[loc] = value
-        else:
+        elif cnp.PyArray_Check(arr):
             util.set_value_at(arr, loc, value)
 
     cpdef get_loc(self, object val):
