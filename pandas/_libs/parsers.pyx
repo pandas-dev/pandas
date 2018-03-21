@@ -1045,7 +1045,7 @@ cdef class TextReader:
                 usecols = set()
                 if callable(self.usecols):
                     if self.usecols(name):
-                        usecols = set([i])
+                        usecols = {i}
                 else:
                     usecols = self.usecols
                 if self.has_usecols and not (i in usecols or

@@ -1219,6 +1219,54 @@ class GroupBy(_GroupBy):
     """
     _apply_whitelist = _common_apply_whitelist
 
+    def _bool_agg(self, val_test, skipna):
+        """Shared func to call any / all Cython GroupBy implementations"""
+
+        def objs_to_bool(vals):
+            try:
+                vals = vals.astype(np.bool)
+            except ValueError:  # for objects
+                vals = np.array([bool(x) for x in vals])
+
+            return vals.view(np.uint8)
+
+        def result_to_bool(result):
+            return result.astype(np.bool, copy=False)
+
+        return self._get_cythonized_result('group_any_all', self.grouper,
+                                           aggregate=True,
+                                           cython_dtype=np.uint8,
+                                           needs_values=True,
+                                           needs_mask=True,
+                                           pre_processing=objs_to_bool,
+                                           post_processing=result_to_bool,
+                                           val_test=val_test, skipna=skipna)
+
+    @Substitution(name='groupby')
+    @Appender(_doc_template)
+    def any(self, skipna=True):
+        """
+        Returns True if any value in the group is truthful, else False
+
+        Parameters
+        ----------
+        skipna : bool, default True
+            Flag to ignore nan values during truth testing
+        """
+        return self._bool_agg('any', skipna)
+
+    @Substitution(name='groupby')
+    @Appender(_doc_template)
+    def all(self, skipna=True):
+        """Returns True if all values in the group are truthful, else False
+
+        Parameters
+        ----------
+        skipna : bool, default True
+            Flag to ignore nan values during truth testing
+        """
+        return self._bool_agg('all', skipna)
+
     @Substitution(name='groupby')
     @Appender(_doc_template)
     def count(self):
@@ -1485,6 +1533,8 @@ class GroupBy(_GroupBy):
 
         return self._get_cythonized_result('group_fillna_indexer',
                                            self.grouper, needs_mask=True,
+                                           cython_dtype=np.int64,
+                                           result_is_index=True,
                                            direction=direction, limit=limit)
 
     @Substitution(name='groupby')
@@ -1839,7 +1889,8 @@ class GroupBy(_GroupBy):
     @Appender(_doc_template)
     def cumprod(self, axis=0, *args, **kwargs):
         """Cumulative product for each group"""
-        nv.validate_groupby_func('cumprod', args, kwargs, ['numeric_only'])
+        nv.validate_groupby_func('cumprod', args, kwargs,
+                                 ['numeric_only', 'skipna'])
         if axis != 0:
             return self.apply(lambda x: x.cumprod(axis=axis, **kwargs))
 
@@ -1849,7 +1900,8 @@ class GroupBy(_GroupBy):
     @Appender(_doc_template)
     def cumsum(self, axis=0, *args, **kwargs):
         """Cumulative sum for each group"""
-        nv.validate_groupby_func('cumsum', args, kwargs, ['numeric_only'])
+        nv.validate_groupby_func('cumsum', args, kwargs,
+                                 ['numeric_only', 'skipna'])
         if axis != 0:
             return self.apply(lambda x: x.cumsum(axis=axis, **kwargs))
 
@@ -1873,18 +1925,40 @@ class GroupBy(_GroupBy):
 
         return self._cython_transform('cummax', numeric_only=False)
 
-    def _get_cythonized_result(self, how, grouper, needs_mask=False,
-                               needs_ngroups=False, **kwargs):
+    def _get_cythonized_result(self, how, grouper, aggregate=False,
+                               cython_dtype=None, needs_values=False,
+                               needs_mask=False, needs_ngroups=False,
+                               result_is_index=False,
+                               pre_processing=None, post_processing=None,
+                               **kwargs):
         """Get result for Cythonized functions
 
         Parameters
         ----------
         how : str, Cythonized function name to be called
         grouper : Grouper object containing pertinent group info
+        aggregate : bool, default False
+            Whether the result should be aggregated to match the number of
+            groups
+        cython_dtype : default None
+            Type of the array that will be modified by the Cython call. If
+            `None`, the type will be inferred from the values of each slice
+        needs_values : bool, default False
+            Whether the values should be a part of the Cython call
+            signature
         needs_mask : bool, default False
-            Whether boolean mask needs to be part of the Cython call signature
+            Whether boolean mask needs to be part of the Cython call
+            signature
         needs_ngroups : bool, default False
-            Whether number of groups part of the Cython call signature
+            Whether number of groups is part of the Cython call signature
+        result_is_index : bool, default False
+            Whether the result of the Cython operation is an index of
+            values to be retrieved, instead of the actual values themselves
+        pre_processing : function, default None
+            Function to be applied to `values` prior to passing to Cython
+            Raises if `needs_values` is False
+        post_processing : function, default None
+            Function to be applied to result of Cython function
         **kwargs : dict
             Extra arguments to be passed back to Cython funcs
 
@@ -1892,14 +1966,40 @@ class GroupBy(_GroupBy):
         -------
         `Series` or `DataFrame`  with filled values
         """
+        if result_is_index and aggregate:
+            raise ValueError("'result_is_index' and 'aggregate' cannot both "
+                             "be True!")
+        if post_processing:
+            if not callable(pre_processing):
+                raise ValueError("'post_processing' must be a callable!")
+        if pre_processing:
+            if not callable(pre_processing):
+                raise ValueError("'pre_processing' must be a callable!")
+            if not needs_values:
+                raise ValueError("Cannot use 'pre_processing' without "
+                                 "specifying 'needs_values'!")
 
         labels, _, ngroups = grouper.group_info
         output = collections.OrderedDict()
         base_func = getattr(libgroupby, how)
 
         for name, obj in self._iterate_slices():
-            indexer = np.zeros_like(labels, dtype=np.int64)
-            func = partial(base_func, indexer, labels)
+            if aggregate:
+                result_sz = ngroups
+            else:
+                result_sz = len(obj.values)
+
+            if not cython_dtype:
+                cython_dtype = obj.values.dtype
+
+            result = np.zeros(result_sz, dtype=cython_dtype)
+            func = partial(base_func, result, labels)
+            if needs_values:
+                vals = obj.values
+                if pre_processing:
+                    vals = pre_processing(vals)
+                func = partial(func, vals)
+
             if needs_mask:
                 mask = isnull(obj.values).view(np.uint8)
                 func = partial(func, mask)
@@ -1908,9 +2008,19 @@ class GroupBy(_GroupBy):
                 func = partial(func, ngroups)
 
             func(**kwargs)  # Call func to modify indexer values in place
-            output[name] = algorithms.take_nd(obj.values, indexer)
 
-        return self._wrap_transformed_output(output)
+            if result_is_index:
+                result = algorithms.take_nd(obj.values, result)
+
+            if post_processing:
+                result = post_processing(result)
+
+            output[name] = result
+
+        if aggregate:
+            return self._wrap_aggregated_output(output)
+        else:
+            return self._wrap_transformed_output(output)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -1930,8 +2040,27 @@ class GroupBy(_GroupBy):
             return self.apply(lambda x: x.shift(periods, freq, axis))
 
         return self._get_cythonized_result('group_shift_indexer',
-                                           self.grouper, needs_ngroups=True,
+                                           self.grouper, cython_dtype=np.int64,
+                                           needs_ngroups=True,
+                                           result_is_index=True,
                                            periods=periods)
+
+    @Substitution(name='groupby')
+    @Appender(_doc_template)
+    def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None,
+                   axis=0):
+        """Calcuate pct_change of each value to previous entry in group"""
+        if freq is not None or axis != 0:
+            return self.apply(lambda x: x.pct_change(periods=periods,
+                                                     fill_method=fill_method,
+                                                     limit=limit, freq=freq,
+                                                     axis=axis))
+
+        filled = getattr(self, fill_method)(limit=limit).drop(
+            self.grouper.names, axis=1)
+        shifted = filled.shift(periods=periods, freq=freq)
+
+        return (filled / shifted) - 1
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -3303,7 +3432,8 @@ class SeriesGroupBy(GroupBy):
     @Appender(_agg_doc)
     @Appender(_shared_docs['aggregate'] % dict(
         klass='Series',
-        versionadded=''))
+        versionadded='',
+        axis=''))
     def aggregate(self, func_or_funcs, *args, **kwargs):
         _level = kwargs.pop('_level', None)
         if isinstance(func_or_funcs, compat.string_types):
@@ -3772,6 +3902,13 @@ class SeriesGroupBy(GroupBy):
     def _apply_to_column_groupbys(self, func):
         """ return a pass thru """
         return func(self)
+
+    def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None):
+        """Calculate percent change of each value to previous entry in group"""
+        filled = getattr(self, fill_method)(limit=limit)
+        shifted = filled.shift(periods=periods, freq=freq)
+
+        return (filled / shifted) - 1
 
 
 class NDFrameGroupBy(GroupBy):
@@ -4475,7 +4612,8 @@ class DataFrameGroupBy(NDFrameGroupBy):
     @Appender(_agg_doc)
     @Appender(_shared_docs['aggregate'] % dict(
         klass='DataFrame',
-        versionadded=''))
+        versionadded='',
+        axis=''))
     def aggregate(self, arg, *args, **kwargs):
         return super(DataFrameGroupBy, self).aggregate(arg, *args, **kwargs)
 
@@ -4646,7 +4784,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
             keys=self._selected_obj.columns, axis=1)
 
     def _fill(self, direction, limit=None):
-        """Overriden method to join grouped columns in output"""
+        """Overridden method to join grouped columns in output"""
         res = super(DataFrameGroupBy, self)._fill(direction, limit=limit)
         output = collections.OrderedDict(
             (grp.name, grp.grouper) for grp in self.grouper.groupings)

@@ -252,7 +252,7 @@ cpdef int64_t pydt_to_i8(object pydt) except? -1:
 
 
 cdef convert_to_tsobject(object ts, object tz, object unit,
-                         bint dayfirst, bint yearfirst):
+                         bint dayfirst, bint yearfirst, int32_t nanos=0):
     """
     Extract datetime and int64 from any of:
         - np.int64 (with unit providing a possible modifier)
@@ -297,7 +297,7 @@ cdef convert_to_tsobject(object ts, object tz, object unit,
             obj.value = ts
             dt64_to_dtstruct(ts, &obj.dts)
     elif PyDateTime_Check(ts):
-        return convert_datetime_to_tsobject(ts, tz)
+        return convert_datetime_to_tsobject(ts, tz, nanos)
     elif PyDate_Check(ts):
         # Keep the converter same as PyDateTime's
         ts = datetime.combine(ts, datetime_time())
