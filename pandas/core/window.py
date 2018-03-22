@@ -1276,9 +1276,21 @@ class _Rolling_and_Expanding(_Rolling):
     Parameters
     ----------
     quantile : float
-        0 <= quantile <= 1""")
+        0 <= quantile <= 1
+    interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
+        .. versionadded:: 0.23.0
 
-    def quantile(self, quantile, **kwargs):
+        This optional parameter specifies the interpolation method to use,
+        when the desired quantile lies between two data points `i` and `j`:
+
+            * linear: `i + (j - i) * fraction`, where `fraction` is the
+              fractional part of the index surrounded by `i` and `j`.
+            * lower: `i`.
+            * higher: `j`.
+            * nearest: `i` or `j` whichever is nearest.
+            * midpoint: (`i` + `j`) / 2.""")
+
+    def quantile(self, quantile, interpolation='linear', **kwargs):
         window = self._get_window()
         index, indexi = self._get_index()
 
@@ -1292,7 +1304,8 @@ class _Rolling_and_Expanding(_Rolling):
                                         self.closed)
             else:
                 return _window.roll_quantile(arg, window, minp, indexi,
-                                             self.closed, quantile)
+                                             self.closed, quantile,
+                                             interpolation)
 
         return self._apply(f, 'quantile', quantile=quantile,
                            **kwargs)
@@ -1613,8 +1626,10 @@ class Rolling(_Rolling_and_Expanding):
     @Substitution(name='rolling')
     @Appender(_doc_template)
     @Appender(_shared_docs['quantile'])
-    def quantile(self, quantile, **kwargs):
-        return super(Rolling, self).quantile(quantile=quantile, **kwargs)
+    def quantile(self, quantile, interpolation='linear', **kwargs):  # here
+        return super(Rolling, self).quantile(quantile=quantile,
+                                             interpolation=interpolation,
+                                             **kwargs)
 
     @Substitution(name='rolling')
     @Appender(_doc_template)

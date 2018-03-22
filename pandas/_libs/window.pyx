@@ -1356,15 +1356,37 @@ cdef _roll_min_max(ndarray[numeric] input, int64_t win, int64_t minp,
     # print("output: {0}".format(output))
     return output
 
+def _get_interpolation_id(str interpolation):
+    """
+    Converts string to interpolation id
+
+    Parameters
+    ----------
+    interpolation: 'linear', 'lower', 'higher', 'nearest', 'midpoint'
+    """
+    if interpolation == 'linear':
+        return 0
+    elif interpolation == 'lower':
+        return 1
+    elif interpolation == 'higher':
+        return 2
+    elif interpolation == 'nearest':
+        return 3
+    elif interpolation == 'midpoint':
+        return 4
+    else:
+        raise ValueError("Interpolation {} is not supported"
+                         .format(interpolation))
+
 
 def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
                   int64_t minp, object index, object closed,
-                  double quantile):
+                  double quantile, str interpolation):
     """
     O(N log(window)) implementation using skip list
     """
     cdef:
-        double val, prev, midpoint
+        double val, prev, midpoint, idx_with_fraction
         IndexableSkiplist skiplist
         int64_t nobs = 0, i, j, s, e, N
         Py_ssize_t idx
@@ -1372,9 +1394,14 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
         ndarray[int64_t] start, end
         ndarray[double_t] output
         double vlow, vhigh
+        int interpolation_id
 
     if quantile <= 0.0 or quantile >= 1.0:
         raise ValueError("quantile value {0} not in [0, 1]".format(quantile))
+
+    # interpolation_id is needed to avoid string comparisons inside the loop
+    # I tried to use callback but it resulted in worse performance
+    interpolation_id = _get_interpolation_id(interpolation)
 
     # we use the Fixed/Variable Indexer here as the
     # actual skiplist ops outweigh any window computation costs
@@ -1414,18 +1441,31 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
                     skiplist.insert(val)
 
         if nobs >= minp:
-            idx = int(quantile * <double>(nobs - 1))
-
-            # Single value in skip list
             if nobs == 1:
+                # Single value in skip list
                 output[i] = skiplist.get(0)
-
-            # Interpolated quantile
             else:
-                vlow = skiplist.get(idx)
-                vhigh = skiplist.get(idx + 1)
-                output[i] = ((vlow + (vhigh - vlow) *
-                             (quantile * (nobs - 1) - idx)))
+                idx_with_fraction = quantile * <double> (nobs - 1)
+                idx = int(idx_with_fraction)
+
+                if interpolation_id == 0:  # linear
+                    vlow = skiplist.get(idx)
+                    vhigh = skiplist.get(idx + 1)
+                    output[i] = ((vlow + (vhigh - vlow) *
+                        (idx_with_fraction - idx)))
+                elif interpolation_id == 1:  # lower
+                    output[i] = skiplist.get(idx)
+                elif interpolation_id == 2:  # higher
+                    output[i] = skiplist.get(idx + 1)
+                elif interpolation_id == 3:  # nearest
+                    if idx_with_fraction - idx < 0.5:
+                        output[i] = skiplist.get(idx)
+                    else:
+                        output[i] = skiplist.get(idx + 1)
+                elif interpolation_id == 4:  # midpoint
+                    vlow = skiplist.get(idx)
+                    vhigh = skiplist.get(idx + 1)
+                    output[i] = <double> (vlow + vhigh) / 2
         else:
             output[i] = NaN
 
