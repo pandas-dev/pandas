@@ -26,6 +26,20 @@ def data_missing():
 
 
 @pytest.fixture
+def data_for_sorting():
+    return DecimalArray([decimal.Decimal('1'),
+                         decimal.Decimal('2'),
+                         decimal.Decimal('0')])
+
+
+@pytest.fixture
+def data_missing_for_sorting():
+    return DecimalArray([decimal.Decimal('1'),
+                         decimal.Decimal('NaN'),
+                         decimal.Decimal('0')])
+
+
+@pytest.fixture
 def na_cmp():
     return lambda x, y: x.is_nan() and y.is_nan()
 
@@ -48,10 +62,16 @@ class BaseDecimal(object):
                                       *args, **kwargs)
 
     def assert_frame_equal(self, left, right, *args, **kwargs):
-        self.assert_series_equal(left.dtypes, right.dtypes)
-        for col in left.columns:
+        # TODO(EA): select_dtypes
+        decimals = (left.dtypes == 'decimal').index
+
+        for col in decimals:
             self.assert_series_equal(left[col], right[col],
                                      *args, **kwargs)
+
+        left = left.drop(columns=decimals)
+        right = right.drop(columns=decimals)
+        tm.assert_frame_equal(left, right, *args, **kwargs)
 
 
 class TestDtype(BaseDecimal, base.BaseDtypeTests):
