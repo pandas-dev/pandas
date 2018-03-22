@@ -2145,11 +2145,61 @@ class StringMethods(NoNewAttributesMixin):
 
     _shared_docs['casemethods'] = ("""
     Convert strings in the Series/Index to %(type)s.
+
     Equivalent to :meth:`str.%(method)s`.
 
     Returns
     -------
-    converted : Series/Index of objects
+    Series/Index of objects
+
+    See Also
+    --------
+    Series.str.lower : Converts all characters to lower case.
+    Series.str.upper : Converts all characters to upper case.
+    Series.str.title : Converts first character of each word to upper case and
+        remaining to lower case.
+    Series.str.capitalize : Converts first character to upper case and
+        remaining to lower case.
+    Series.str.swapcase : Converts upper case to lower case and lower case to
+        upper case.
+
+    Examples
+    --------
+    >>> s = pd.Series(['lower', 'CAPITALS', 'this is a sentence', 'SwApCaSe'])
+    >>> s.str.lower()
+    0                 lower
+    1              capitals
+    2    this is a sentence
+    3              swapcase
+    dtype: object
+
+    >>> s.str.upper()
+    0                 LOWER
+    1              CAPITALS
+    2    THIS IS A SENTENCE
+    3              SWAPCASE
+    dtype: object
+
+    >>> s.str.title()
+    0                 Lower
+    1              Capitals
+    2    This Is A Sentence
+    3              Swapcase
+    dtype: object
+
+    >>> s.str.capitalize()
+    0                 Lower
+    1              Capitals
+    2    This is a sentence
+    3              Swapcase
+    dtype: object
+
+    >>> s.str.swapcase()
+    0                 LOWER
+    1              capitals
+    2    THIS IS A SENTENCE
+    3              sWaPcAsE
+    dtype: object
     """)
     _shared_docs['lower'] = dict(type='lowercase', method='lower')
     _shared_docs['upper'] = dict(type='uppercase', method='upper')
