@@ -941,13 +941,14 @@ def str_get_dummies(arr, sep='|'):
 
 def str_join(arr, sep):
     """
-    Join lists contained as elements in the Series/Index with
-    passed delimiter. Equivalent to :meth:`str.join`.
+    Join lists contained as elements in the Series/Index with passed delimiter.
+
+    This function is an equivalent to :meth:`str.join`.
 
     Parameters
     ----------
     sep : string
-        Delimiter
+        Delimiter to use between list entries.
 
     Returns
     -------
@@ -958,16 +959,23 @@ def str_join(arr, sep):
     If any of the lists does not contain string objects the result of the join
     will be `NaN`.
 
+    See Also
+    --------
+    split: Split strings around given separator/delimiter.
+
     Examples
     --------
 
     >>> df = pd.Series({1: ["foo", "bar", "foobar"],
-                        2: ['test', 'test2', 'test3'],
-                        3: ['ham', 'eggs', 'chicken']})
+    ...    2: ['test', 'test2', 'test3'],
+    ...    3: ['ham', 'eggs', 'chicken']})
+    >>> df
     1      [foo, bar, foobar]
     2    [test, test2, test3]
     3    [ham, eggs, chicken]
     dtype: object
+
+    Join all lists using "_".
 
     >>> df.str.join("_")
     1      foo_bar_foobar
@@ -975,13 +983,18 @@ def str_join(arr, sep):
     3    ham_eggs_chicken
     dtype: object
 
+    Example with a list that contains non-string elements.
+
     >>> df = pd.Series({1: [1.1, 2.2, 3.3],
-                        2: ['test', 'test2', 'test3'],
-                        3: ['ham', 'eggs', 'chicken']})
+    ...    2: ['test', 'test2', 'test3'],
+    ...    3: ['ham', 'eggs', 'chicken']})
+    >>> df
     1         [1.1, 2.2, 3.3]
     2    [test, test2, test3]
     3    [ham, eggs, chicken]
     dtype: object
+
+    Join all lists using an "-", the list of floats will become a NaN.
 
     >>> df.str.join("-")
     1                 NaN
