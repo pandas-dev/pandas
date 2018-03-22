@@ -3633,9 +3633,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             a string representing the encoding to use if the contents are
             non-ascii, for python versions prior to 3
         compression : string, optional
-            a string representing the compression to use in the output file,
-            allowed values are 'gzip', 'bz2', 'xz', only used when the first
-            argument is a filename
+            A string representing the compression to use in the output file.
+            Allowed values are 'gzip', 'bz2', 'zip', 'xz'. This input is only
+            used when the first argument is a filename.
         date_format: string, default None
             Format string for datetime objects.
         decimal: string, default '.'
