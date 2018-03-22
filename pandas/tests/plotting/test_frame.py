@@ -2170,25 +2170,50 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(ValueError):
             df.plot(kind='aasdf')
 
-    @pytest.mark.parametrize("x,y", [
-        (['B', 'C'], 'A'),
-        ('A', ['B', 'C'])
+    @pytest.mark.parametrize("x,y,lbl", [
+        (['B', 'C'], 'A', 'a'),
+        (['A'], ['B', 'C'], ['b', 'c']),
+        ('A', ['B', 'C'], 'badlabel')
     ])
-    def test_invalid_xy_args(self, x, y):
-        # GH 18671
+    def test_invalid_xy_args(self, x, y, lbl):
+        # GH 18671, 19699 allows y to be list-like but not x
         df = DataFrame({"A": [1, 2], 'B': [3, 4], 'C': [5, 6]})
         with pytest.raises(ValueError):
-            df.plot(x=x, y=y)
+            df.plot(x=x, y=y, label=lbl)
 
     @pytest.mark.parametrize("x,y", [
         ('A', 'B'),
-        ('B', 'A')
+        (['A'], 'B')
     ])
     def test_invalid_xy_args_dup_cols(self, x, y):
-        # GH 18671
+        # GH 18671, 19699 allows y to be list-like but not x
         df = DataFrame([[1, 3, 5], [2, 4, 6]], columns=list('AAB'))
         with pytest.raises(ValueError):
             df.plot(x=x, y=y)
+
+    @pytest.mark.parametrize("x,y,lbl,colors", [
+        ('A', ['B'], ['b'], ['red']),
+        ('A', ['B', 'C'], ['b', 'c'], ['red', 'blue']),
+        (0, [1, 2], ['bokeh', 'cython'], ['green', 'yellow'])
+    ])
+    def test_y_listlike(self, x, y, lbl, colors):
+        # GH 19699: tests list-like y and verifies lbls & colors
+        df = DataFrame({"A": [1, 2], 'B': [3, 4], 'C': [5, 6]})
+        _check_plot_works(df.plot, x='A', y=y, label=lbl)
+
+        ax = df.plot(x=x, y=y, label=lbl, color=colors)
+        assert len(ax.lines) == len(y)
+        self._check_colors(ax.get_lines(), linecolors=colors)
+
+    @pytest.mark.parametrize("x,y,colnames", [
+        (0, 1, ['A', 'B']),
+        (1, 0, [0, 1])
+    ])
+    def test_xy_args_integer(self, x, y, colnames):
+        # GH 20056: tests integer args for xy and checks col names
+        df = DataFrame({"A": [1, 2], 'B': [3, 4]})
+        df.columns = colnames
+        _check_plot_works(df.plot, x=x, y=y)
 
     @pytest.mark.slow
     def test_hexbin_basic(self):

@@ -1751,22 +1751,22 @@ def _plot(data, x=None, y=None, subplots=False,
         plot_obj = klass(data, subplots=subplots, ax=ax, kind=kind, **kwds)
     else:
         if isinstance(data, ABCDataFrame):
+            data_cols = data.columns
             if x is not None:
                 if is_integer(x) and not data.columns.holds_integer():
-                    x = data.columns[x]
+                    x = data_cols[x]
                 elif not isinstance(data[x], ABCSeries):
                     raise ValueError("x must be a label or position")
                 data = data.set_index(x)
 
             if y is not None:
-                if is_integer(y) and not data.columns.holds_integer():
-                    y = data.columns[y]
-                elif not isinstance(data[y], ABCSeries):
-                    raise ValueError("y must be a label or position")
-                label = kwds['label'] if 'label' in kwds else y
-                series = data[y].copy()  # Don't modify
-                series.name = label
+                # check if we have y as int or list of ints
+                int_ylist = is_list_like(y) and all(is_integer(c) for c in y)
+                int_y_arg = is_integer(y) or int_ylist
+                if int_y_arg and not data.columns.holds_integer():
+                    y = data_cols[y]
 
+                label_kw = kwds['label'] if 'label' in kwds else False
                 for kw in ['xerr', 'yerr']:
                     if (kw in kwds) and \
                         (isinstance(kwds[kw], string_types) or
@@ -1775,7 +1775,22 @@ def _plot(data, x=None, y=None, subplots=False,
                             kwds[kw] = data[kwds[kw]]
                         except (IndexError, KeyError, TypeError):
                             pass
-                data = series
+
+                # don't overwrite
+                data = data[y].copy()
+
+                if isinstance(data, ABCSeries):
+                    label_name = label_kw or y
+                    data.name = label_name
+                else:
+                    match = is_list_like(label_kw) and len(label_kw) == len(y)
+                    if label_kw and not match:
+                        raise ValueError(
+                            "label should be list-like and same length as y"
+                        )
+                    label_name = label_kw or data.columns
+                    data.columns = label_name
+
         plot_obj = klass(data, subplots=subplots, ax=ax, kind=kind, **kwds)
 
     plot_obj.generate()
@@ -1788,7 +1803,7 @@ df_kind = """- 'scatter' : scatter plot
 series_kind = ""
 
 df_coord = """x : label or position, default None
-    y : label or position, default None
+    y : label, position or list of label, positions, default None
         Allows plotting of one column versus another"""
 series_coord = ""
 
