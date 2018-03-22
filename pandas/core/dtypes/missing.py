@@ -227,8 +227,7 @@ def _isna_ndarraylike_old(obj):
 
 
 def notna(obj):
-    """Replacement for numpy.isfinite / -numpy.isnan which is suitable for use
-    on object arrays.
+    """Detect non-missing values for an array-like object.
 
     This function takes an array-like object, for each element, if it is *not*
     a missing.value (`NaN` in numeric arrays, `None`/`NaN` in object arrays)
