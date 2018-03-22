@@ -943,16 +943,18 @@ def str_join(arr, sep):
     """
     Join lists contained as elements in the Series/Index with passed delimiter.
 
+    If the elements of a Series are lists themselves, join the content of these
+    lists using the delimiter passed to the function.
     This function is an equivalent to :meth:`str.join`.
 
     Parameters
     ----------
-    sep : string
+    sep : str
         Delimiter to use between list entries.
 
     Returns
     -------
-    joined : Series/Index of objects
+    Series/Index of objects
 
     Notes
     -----
@@ -961,45 +963,46 @@ def str_join(arr, sep):
 
     See Also
     --------
-    split: Split strings around given separator/delimiter.
+    str.join : Standard library version of this method.
+    Series.str.split : Split strings around given separator/delimiter.
 
     Examples
     --------
 
-    >>> df = pd.Series({1: ["foo", "bar", "foobar"],
-    ...    2: ['test', 'test2', 'test3'],
-    ...    3: ['ham', 'eggs', 'chicken']})
+    >>> df = pd.Series({1: ['dog', 'cat', 'fish'],
+    ...                 2: ['lion', 'elephant', 'zebra'],
+    ...                 3: ['cow', 'pig', 'chicken']})
     >>> df
-    1      [foo, bar, foobar]
-    2    [test, test2, test3]
-    3    [ham, eggs, chicken]
+    1           [dog, cat, fish]
+    2    [lion, elephant, zebra]
+    3        [cow, pig, chicken]
     dtype: object
 
-    Join all lists using "_".
+    Join all lists using '_'.
 
-    >>> df.str.join("_")
-    1      foo_bar_foobar
-    2    test_test2_test3
-    3    ham_eggs_chicken
+    >>> df.str.join('_')
+    1           dog_cat_fish
+    2    lion_elephant_zebra
+    3        cow_pig_chicken
     dtype: object
 
     Example with a list that contains non-string elements.
 
     >>> df = pd.Series({1: [1.1, 2.2, 3.3],
-    ...    2: ['test', 'test2', 'test3'],
-    ...    3: ['ham', 'eggs', 'chicken']})
+    ...                 2: ['lion', 'elephant', 'zebra'],
+    ...                 3: ['cow', 'pig', 'chicken']})
     >>> df
-    1         [1.1, 2.2, 3.3]
-    2    [test, test2, test3]
-    3    [ham, eggs, chicken]
+    1            [1.1, 2.2, 3.3]
+    2    [lion, elephant, zebra]
+    3        [cow, pig, chicken]
     dtype: object
 
-    Join all lists using an "-", the list of floats will become a NaN.
+    Join all lists using an '-', the list of floats will become a NaN.
 
-    >>> df.str.join("-")
-    1                 NaN
-    2    test-test2-test3
-    3    ham-eggs-chicken
+    >>> df.str.join('-')
+    1                    NaN
+    2    lion-elephant-zebra
+    3        cow-pig-chicken
     dtype: object
     """
     return _na_map(sep.join, arr)
