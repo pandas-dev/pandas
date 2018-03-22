@@ -5195,17 +5195,6 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> multicol1 = pd.MultiIndex.from_tuples([('X', 'a'), ('X', 'b')])
-        >>> df_multi_level_cols1 = pd.DataFrame([[0, 1], [2, 3]],
-        ...                                    index=['one', 'two'],
-        ...                                    columns=multicol1)
-        >>> multicol2 = pd.MultiIndex.from_tuples([('X', 'a'), ('Y', 'b')])
-        >>> df_multi_level_cols2 = pd.DataFrame([[0.0, 1.0], [2.0, 3.0]],
-        ...                                     index=['one', 'two'],
-        ...                                     columns=multicol2)
-        >>> df_multi_level_cols3 = pd.DataFrame([[None, 1.0], [2.0, 3.0]],
-        ...                                     index=['one', 'two'],
-        ...                                     columns=multicol2)
 
         **Single level columns**
 
@@ -5226,6 +5215,13 @@ class DataFrame(NDFrame):
              b    3
         dtype: int64
 
+        **Multi level columns: simple case**
+
+        >>> multicol1 = pd.MultiIndex.from_tuples([('X', 'a'), ('X', 'b')])
+        >>> df_multi_level_cols1 = pd.DataFrame([[0, 1], [2, 3]],
+        ...                                    index=['one', 'two'],
+        ...                                    columns=multicol1)
+
         Stacking a dataframe with a multi-level column axis:
 
         >>> df_multi_level_cols1
@@ -5239,6 +5235,13 @@ class DataFrame(NDFrame):
              b    1
         two  a    2
              b    3
+
+        **Missing values**
+
+        >>> multicol2 = pd.MultiIndex.from_tuples([('X', 'a'), ('Y', 'b')])
+        >>> df_multi_level_cols2 = pd.DataFrame([[0.0, 1.0], [2.0, 3.0]],
+        ...                                     index=['one', 'two'],
+        ...                                     columns=multicol2)
 
         It is common to have missing values when stacking a dataframe
         with multi-level columns, as the stacked dataframe typically
@@ -5257,6 +5260,8 @@ class DataFrame(NDFrame):
         two a  2.0  NaN
             b  NaN  3.0
 
+        **Prescribing the level(s) to be stacked**
+
         The first parameter controls which level or levels are stacked:
 
         >>> df_multi_level_cols2.stack(0)
@@ -5271,6 +5276,13 @@ class DataFrame(NDFrame):
         two  X  a    2.0
              Y  b    3.0
         dtype: float64
+
+        **Dropping missing values**
+
+        >>> df_multi_level_cols3 = pd.DataFrame([[None, 1.0], [2.0, 3.0]],
+        ...                                     index=['one', 'two'],
+        ...                                     columns=multicol2)
+
 
         Note that rows where all values are missing are dropped by
         default but this behaviour can be controlled via the dropna
