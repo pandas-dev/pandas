@@ -30,16 +30,6 @@ def data_missing():
 
 
 @pytest.fixture
-def data_for_sorting():
-    return JSONArray([{'b': 1}, {'c': 4}, {'a': 2, 'c': 3}])
-
-
-@pytest.fixture
-def data_missing_for_sorting():
-    return JSONArray([{'b': 1}, {}, {'a': 4}])
-
-
-@pytest.fixture
 def na_value():
     return {}
 
