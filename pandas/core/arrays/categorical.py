@@ -1378,9 +1378,6 @@ class Categorical(ExtensionArray, PandasObject):
                             "you can use .as_ordered() to change the "
                             "Categorical to an ordered one\n".format(op=op))
 
-    def _values_for_argsort(self):
-        return self._codes.copy()
-
     def argsort(self, ascending=True, kind='quicksort', *args, **kwargs):
         """
         Returns the indices that would sort the Categorical instance if
@@ -1392,7 +1389,6 @@ class Categorical(ExtensionArray, PandasObject):
         based on matching category values. Thus, this function can be
         called on an unordered Categorical instance unlike the functions
         'Categorical.min' and 'Categorical.max'.
-
 
         Returns
         -------
