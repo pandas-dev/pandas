@@ -1910,20 +1910,20 @@ class NDFrame(PandasObject, SelectionMixin):
             Identifier for the group in the store.
         mode : {'a', 'w', 'r+'}, default 'a'
             Mode to open file:
-            
+
             - 'w': write, a new file is created (an existing file with
-            the same name would be deleted).
+              the same name would be deleted).
             - 'a': append, an existing file is opened for reading and
-            writing, and if the file does not exist it is created.
+              writing, and if the file does not exist it is created.
             - 'r+': similar to 'a', but the file must already exist.
         format : {'fixed', 'table'}, default 'fixed'
             Possible values:
-            
+
             - 'fixed': Fixed format. Fast writing/reading. Not-appendable,
-            nor searchable.
+              nor searchable.
             - 'table': Table format. Write as a PyTables Table structure
-            which may perform worse but allow more flexible operations
-            like searching / selecting subsets of the data.
+              which may perform worse but allow more flexible operations
+              like searching / selecting subsets of the data.
         append : bool, default False
             For Table formats, append the input data to the existing.
         data_columns :  list of columns or True, optional
@@ -5795,10 +5795,11 @@ class NDFrame(PandasObject, SelectionMixin):
             * None: (default) no fill restriction
             * 'inside' Only fill NaNs surrounded by valid values (interpolate).
             * 'outside' Only fill NaNs outside valid values (extrapolate).
-            .. versionadded:: 0.21.0
 
             If limit is specified, consecutive NaNs will be filled in this
             direction.
+
+            .. versionadded:: 0.21.0
         inplace : bool, default False
             Update the NDFrame in place if possible.
         downcast : optional, 'infer' or None, defaults to None
@@ -7717,6 +7718,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         The index values in ``truncate`` can be datetimes or string
         dates.
+
         >>> dates = pd.date_range('2016-01-01', '2016-02-01', freq='s')
         >>> df = pd.DataFrame(index=dates, data={'A': 1})
         >>> df.tail()
@@ -7960,7 +7962,7 @@ class NDFrame(PandasObject, SelectionMixin):
         0   1 days
         dtype: timedelta64[ns]
 
-        Select rows with data closest to certian value using argsort (from
+        Select rows with data closest to certain value using argsort (from
         `StackOverflow <https://stackoverflow.com/a/17758115>`__).
 
         >>> df = pd.DataFrame({

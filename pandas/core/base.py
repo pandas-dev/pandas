@@ -855,6 +855,7 @@ class IndexOpsMixin(object):
         'a'
 
         For a MultiIndex, the minimum is determined lexicographically.
+
         >>> idx = pd.MultiIndex.from_product([('a', 'b'), (2, 1)])
         >>> idx.min()
         ('a', 1)

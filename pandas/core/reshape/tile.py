@@ -51,7 +51,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     right : bool, default True
         Indicates whether `bins` includes the rightmost edge or not. If
         ``right == True`` (the default), then the `bins` ``[1, 2, 3, 4]``
-         indicate (1,2], (2,3], (3,4]. This argument is ignored when
+        indicate (1,2], (2,3], (3,4]. This argument is ignored when
         `bins` is an IntervalIndex.
     labels : array or bool, optional
         Specifies the labels for the returned bins. Must be the same length as
