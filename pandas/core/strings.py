@@ -952,6 +952,42 @@ def str_join(arr, sep):
     Returns
     -------
     joined : Series/Index of objects
+
+    Notes
+    -----
+    If any of the lists does not contain string objects the result of the join
+    will be `NaN`.
+
+    Examples
+    --------
+
+    >>> df = pd.Series({1: ["foo", "bar", "foobar"],
+                        2: ['test', 'test2', 'test3'],
+                        3: ['ham', 'eggs', 'chicken']})
+    1      [foo, bar, foobar]
+    2    [test, test2, test3]
+    3    [ham, eggs, chicken]
+    dtype: object
+
+    >>> df.str.join("_")
+    1      foo_bar_foobar
+    2    test_test2_test3
+    3    ham_eggs_chicken
+    dtype: object
+
+    >>> df = pd.Series({1: [1.1, 2.2, 3.3],
+                        2: ['test', 'test2', 'test3'],
+                        3: ['ham', 'eggs', 'chicken']})
+    1         [1.1, 2.2, 3.3]
+    2    [test, test2, test3]
+    3    [ham, eggs, chicken]
+    dtype: object
+
+    >>> df.str.join("-")
+    1                 NaN
+    2    test-test2-test3
+    3    ham-eggs-chicken
+    dtype: object
     """
     return _na_map(sep.join, arr)
 
