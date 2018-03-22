@@ -3352,14 +3352,16 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     def map(self, mapper, na_action=None):
-        """Map values of Series using input correspondence
+        """
+        Map values using input correspondence (a dict, Series, or function).
 
         Parameters
         ----------
         mapper : function, dict, or Series
+            Mapping correspondence.
         na_action : {None, 'ignore'}
             If 'ignore', propagate NA values, without passing them to the
-            mapping function
+            mapping correspondence.
 
         Returns
         -------
@@ -3367,7 +3369,6 @@ class Index(IndexOpsMixin, PandasObject):
             The output of the mapping function applied to the index.
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
-
         """
 
         from .multi import MultiIndex
