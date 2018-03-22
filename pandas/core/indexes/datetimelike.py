@@ -86,7 +86,6 @@ class DatelikeOps(object):
 
     Examples
     --------
-    >>> import datetime
     >>> rng = pd.date_range(pd.Timestamp("2018-03-10 09:00"),
     ...                     periods=3, freq='s')
     >>> rng.strftime('%B %d, %Y, %r')
