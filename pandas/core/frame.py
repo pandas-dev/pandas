@@ -2293,7 +2293,8 @@ class DataFrame(NDFrame):
         Transpose index and columns.
 
         Reflect the dataframe over its main diagonal by writing rows as columns
-        and vice-versa.
+        and vice-versa. The property :attr:`.T` is an accessor to the method
+        :meth:`transpose`.
 
         Parameters
         ----------
