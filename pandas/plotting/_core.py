@@ -870,7 +870,8 @@ class ScatterPlot(PlanePlot):
         scatter = ax.scatter(data[x].values, data[y].values, c=c_values,
                              label=label, cmap=cmap, **self.kwds)
         if cb:
-            ax._pandas_colorbar_axes = True
+            if PATCH_MODE:
+                ax._pandas_colorbar_axes = True
             img = ax.collections[0]
             kws = dict(ax=ax)
             if self.mpl_ge_1_3_1():
@@ -917,7 +918,8 @@ class HexBinPlot(PlanePlot):
         ax.hexbin(data[x].values, data[y].values, C=c_values, cmap=cmap,
                   **self.kwds)
         if cb:
-            ax._pandas_colorbar_axes = True
+            if PATCH_MODE:
+                ax._pandas_colorbar_axes = True
             img = ax.collections[0]
             self.fig.colorbar(img, ax=ax)
 
@@ -2793,6 +2795,7 @@ class FramePlotMethods(BasePlotMethods):
                  rot=None, fontsize=None, colormap=None, table=False,
                  yerr=None, xerr=None,
                  secondary_y=False, sort_columns=False, **kwds):
+        
         return plot_frame(self._data, kind=kind, x=x, y=y, ax=ax,
                           subplots=subplots, sharex=sharex, sharey=sharey,
                           layout=layout, figsize=figsize, use_index=use_index,
@@ -3210,7 +3213,7 @@ class FramePlotMethods(BasePlotMethods):
         """
         return self(kind='pie', y=y, **kwds)
 
-    def scatter(self, x, y, s=None, c=None, **kwds):
+    def scatter(self, x, y, s=None, c=None,PATCH_MODE_FLAG = False, **kwds):
         """
         Create a scatter plot with varying marker point size and color.
 
@@ -3289,9 +3292,13 @@ class FramePlotMethods(BasePlotMethods):
             ...                       c='species',
             ...                       colormap='viridis')
         """
+        
+        global PATCH_MODE
+        PATCH_MODE = PATCH_MODE_FLAG
+
         return self(kind='scatter', x=x, y=y, c=c, s=s, **kwds)
 
-    def hexbin(self, x, y, C=None, reduce_C_function=None, gridsize=None,
+    def hexbin(self, x, y, C=None, reduce_C_function=None, gridsize=None, PATCH_MODE_FLAG = False,
                **kwds):
         """
         Generate a hexagonal binning plot.
@@ -3374,6 +3381,9 @@ class FramePlotMethods(BasePlotMethods):
             ...                     gridsize=10,
             ...                     cmap="viridis")
         """
+        global PATCH_MODE
+        PATCH_MODE = PATCH_MODE_FLAG
+
         if reduce_C_function is not None:
             kwds['reduce_C_function'] = reduce_C_function
         if gridsize is not None:
