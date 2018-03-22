@@ -5216,29 +5216,29 @@ class DataFrame(NDFrame):
 
         **Multi level columns: simple case**
 
-        >>> multicol1 = pd.MultiIndex.from_tuples([('size', 'weight'), ('size', 'height')])
-        >>> df_multi_level_cols1 = pd.DataFrame([[0, 1], [2, 3]],
+        >>> multicol1 = pd.MultiIndex.from_tuples([('weight', 'kg'), ('weight', 'pounds')])
+        >>> df_multi_level_cols1 = pd.DataFrame([[1, 2], [2, 4]],
         ...                                    index=['cat', 'dog'],
         ...                                    columns=multicol1)
 
         Stacking a dataframe with a multi-level column axis:
 
         >>> df_multi_level_cols1
-             size
-             weight   height
-        cat       0        1
-        dog       2        3
+             weight
+                 kg    pounds
+        cat       1        2
+        dog       2        4
         >>> df_multi_level_cols1.stack()
-                    size
-        cat height     1
-            weight     0
-        dog height     3
-            weight     2
+                    weight
+        cat kg           1
+            pounds       2
+        dog kg           2
+            pounds       4
 
         **Missing values**
 
-        >>> multicol2 = pd.MultiIndex.from_tuples([('X', 'a'), ('Y', 'b')])
-        >>> df_multi_level_cols2 = pd.DataFrame([[0.0, 1.0], [2.0, 3.0]],
+        >>> multicol2 = pd.MultiIndex.from_tuples([('weight', 'kg'), ('height', 'm')])
+        >>> df_multi_level_cols2 = pd.DataFrame([[1.0, 2.0], [3.0, 4.0]],
         ...                                     index=['cat', 'dog'],
         ...                                     columns=multicol2)
 
@@ -5248,32 +5248,32 @@ class DataFrame(NDFrame):
         are filled with NaNs:
 
         >>> df_multi_level_cols2
-               X     Y
-               a     b
-        cat  0.0   1.0
-        dog  2.0   3.0
+            weight height
+                kg      m
+        cat    1.0    2.0
+        dog    3.0    4.0
         >>> df_multi_level_cols2.stack()
-                 X    Y
-        cat a  0.0  NaN
-            b  NaN  1.0
-        dog a  2.0  NaN
-            b  NaN  3.0
+                height  weight
+        cat kg     NaN     1.0
+            m      2.0     NaN
+        dog kg     NaN     3.0
+            m      4.0     NaN
 
         **Prescribing the level(s) to be stacked**
 
         The first parameter controls which level or levels are stacked:
 
         >>> df_multi_level_cols2.stack(0)
-                 a    b
-        cat X  0.0  NaN
-            Y  NaN  1.0
-        dog X  2.0  NaN
-            Y  NaN  3.0
+                     kg    m
+        cat height  NaN  2.0
+            weight  1.0  NaN
+        dog height  NaN  4.0
+            weight  3.0  NaN
         >>> df_multi_level_cols2.stack([0, 1])
-        cat  X  a    0.0
-             Y  b    1.0
-        dog  X  a    2.0
-             Y  b    3.0
+        cat  height  m     2.0
+             weight  kg    1.0
+        dog  height  m     4.0
+             weight  kg    3.0
         dtype: float64
 
         **Dropping missing values**
@@ -5287,21 +5287,21 @@ class DataFrame(NDFrame):
         keyword parameter:
 
         >>> df_multi_level_cols3
-               X     Y
-               a     b
-        cat  NaN   1.0
-        dog  2.0   3.0
+            weight height
+                kg      m
+        cat    NaN    1.0
+        dog    2.0    3.0
         >>> df_multi_level_cols3.stack(dropna=False)
-                 X    Y
-        cat a  NaN  NaN
-            b  NaN  1.0
-        dog a  2.0  NaN
-            b  NaN  3.0
+                height  weight
+        cat kg     NaN     NaN
+            m      1.0     NaN
+        dog kg     NaN     2.0
+            m      3.0     NaN
         >>> df_multi_level_cols3.stack(dropna=True)
-                 X    Y
-        cat b  NaN  1.0
-        dog a  2.0  NaN
-            b  NaN  3.0
+                height  weight
+        cat m      1.0     NaN
+        dog kg     NaN     2.0
+            m      3.0     NaN
         """
         from pandas.core.reshape.reshape import stack, stack_multiple
 
