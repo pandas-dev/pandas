@@ -3619,9 +3619,9 @@ class DataFrame(NDFrame):
                                               method=method, axis=axis)
 
     @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
-    def shift(self, periods=1, freq=None, axis=0):
+    def shift(self, periods=1, freq=None, axis=0, fill_value=np.nan):
         return super(DataFrame, self).shift(periods=periods, freq=freq,
-                                            axis=axis)
+                                            axis=axis, fill_value=fill_value)
 
     def set_index(self, keys, drop=True, append=False, inplace=False,
                   verify_integrity=False):
