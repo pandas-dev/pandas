@@ -2315,22 +2315,49 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> d = {'col1': [1, 2], 'col2': [3, 4]}
-        >>> df = pd.DataFrame(data=d)
-        >>> df
+        >>> d1 = {'col1': [1, 2], 'col2': [3, 4]}
+        >>> df1 = pd.DataFrame(data=d1)
+        >>> df1
            col1  col2
         0     1     3
         1     2     4
 
-        >>> df.T
+        >>> df1.T
               0  1
         col1  1  2
         col2  3  4
 
-        >>> df.transpose()
+        >>> df1.transpose()
               0  1
         col1  1  2
         col2  3  4
+
+        **Non-square DataFrame and mixed data types**
+
+        >>> d2 = {'name': ['Alice', 'Bob'],
+        ...       'score': [9.5, 8],
+        ...       'employed': [False, True],
+        ...       'kids': [0, 0]}
+
+        >>> df2 = pd.DataFrame(data=d2)
+        >>> df2
+            name  score  employed  kids
+        0  Alice    9.5     False     0
+        1    Bob    8.0      True     0
+
+        >>> df2.T
+                      0     1
+        name      Alice   Bob
+        score       9.5     8
+        employed  False  True
+        kids          0     0
+
+        >>> df2.transpose()
+                      0     1
+        name      Alice   Bob
+        score       9.5     8
+        employed  False  True
+        kids          0     0
         """
         nv.validate_transpose(args, dict())
         return super(DataFrame, self).transpose(1, 0, **kwargs)
