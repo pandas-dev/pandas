@@ -38,7 +38,7 @@ def isna(obj):
 
     Parameters
     ----------
-    arr : array-like or object
+    obj : array-like or object
         Object to check for null-ness.
 
     Returns
@@ -51,6 +51,9 @@ def isna(obj):
     --------
     notna : boolean inverse of pandas.isna
     isnull : alias of isna
+    Series.isna
+    DataFrame.isna
+    Index.isna
 
     Examples
     --------
@@ -234,7 +237,7 @@ def notna(obj):
 
     Parameters
     ----------
-    arr : array-like or object value
+    obj : array-like or object value
         Object to check for *not*-null-ness
 
     Returns
@@ -247,6 +250,9 @@ def notna(obj):
     --------
     isna : boolean inverse of pandas.notna
     notnull : alias of notna
+    Series.notna
+    DataFrame.notna
+    Index.notna
 
     Examples
     --------
