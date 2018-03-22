@@ -2839,7 +2839,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Parameters
         ----------
-        arg : function, dict, or Seriess
+        arg : function, dict, or Series
             Mapping correspondence.
         na_action : {None, 'ignore'}
             If 'ignore', propagate NA values, without passing them to the
