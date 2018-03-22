@@ -6,6 +6,7 @@ import pytest
 
 # pylint: disable-msg=W0612,E1101
 from copy import deepcopy
+import pydoc
 import sys
 from distutils.version import LooseVersion
 
@@ -362,8 +363,9 @@ class SharedWithSparse(object):
 
     def test_class_axis(self):
         # https://github.com/pandas-dev/pandas/issues/18147
-        DataFrame.index  # no exception!
-        DataFrame.columns  # no exception!
+        # no exception and no empty docstring
+        assert pydoc.getdoc(DataFrame.index)
+        assert pydoc.getdoc(DataFrame.columns)
 
     def test_more_values(self):
         values = self.mixed_frame.values

@@ -1523,7 +1523,8 @@ Panel._setup_axes(axes=['items', 'major_axis', 'minor_axis'], info_axis=0,
                   stat_axis=1, aliases={'major': 'major_axis',
                                         'minor': 'minor_axis'},
                   slicers={'major_axis': 'index',
-                           'minor_axis': 'columns'})
+                           'minor_axis': 'columns'},
+                  docs={})
 
 ops.add_special_arithmetic_methods(Panel)
 ops.add_flex_arithmetic_methods(Panel)
