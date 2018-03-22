@@ -311,5 +311,7 @@ class TestDataFrameConvertTo(TestData):
                         'float_col': [1.0, 2.0, 3.0]})
 
         result = df.to_dict(orient='index', into=into)
-        tm.assert_frame_equal(DataFrame.from_dict(result, orient='index'),
-                              DataFrame.from_dict(expected, orient='index'))
+        cols = ['int_col', 'float_col']
+        result = DataFrame.from_dict(result, orient='index')[cols]
+        expected = DataFrame.from_dict(expected, orient='index')[cols]
+        tm.assert_frame_equal(result, expected)
