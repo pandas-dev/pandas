@@ -1005,12 +1005,6 @@ class TestNankurtFixedValues(object):
         return np.random.RandomState(1234)
 
 
-def _compare_nan_method_output(data, method, nan_method):
-    tm.assert_almost_equal(data.agg(method),
-                           data.agg(nan_method),
-                           check_exact=True)
-
-
 @pytest.fixture(params=[
     pd.Series([1, 2, 3, 4, 5, 6]),
     pd.DataFrame([[1, 2, 3], [4, 5, 6]])
@@ -1029,14 +1023,16 @@ def nan_test_object(request):
     (np.min, np.nanmin)
 ])
 def test_np_nan_functions(standard, nan_method, nan_test_object):
-    _compare_nan_method_output(nan_test_object, standard, nan_method)
-    _compare_nan_method_output(nan_test_object, standard, nan_method)
+    tm.assert_almost_equal(nan_test_object.agg(standard),
+                           nan_test_object.agg(nan_method),
+                           check_exact=True)
 
 
 @td.skip_if_no("numpy", min_version="1.10.0")
 def test_np_nanprod(nan_test_object):
-    _compare_nan_method_output(nan_test_object, np.prod, np.nanprod)
-    _compare_nan_method_output(nan_test_object, np.prod, np.nanprod)
+    tm.assert_almost_equal(nan_test_object.agg(np.prod),
+                           nan_test_object.agg(np.nanprod),
+                           check_exact=True)
 
 
 @td.skip_if_no("numpy", min_version="1.12.0")
@@ -1047,8 +1043,9 @@ def test_np_nancumprod(nan_test_object):
         (np.cumsum, np.nancumsum)
     ]
     for standard, nan_method in methods:
-        _compare_nan_method_output(nan_test_object, standard, nan_method)
-        _compare_nan_method_output(nan_test_object, standard, nan_method)
+        tm.assert_almost_equal(nan_test_object.agg(standard),
+                               nan_test_object.agg(nan_method),
+                               check_exact=True)
 
 
 def test_use_bottleneck():
