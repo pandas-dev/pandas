@@ -184,7 +184,7 @@ class TestS3(object):
         tm.assert_frame_equal(result, expected)
 
     def test_read_csv_chunked_download(self, s3_resource, caplog):
-        # 8 MB, S3FS usees ~5MB chunks
+        # 8 MB, S3FS usees 5MB chunks
         df = DataFrame(np.random.randn(100000, 4), columns=list('abcd'))
         buf = BytesIO()
         str_buf = StringIO()
@@ -200,4 +200,4 @@ class TestS3(object):
         with caplog.at_level(logging.DEBUG, logger='s3fs.core'):
             read_csv("s3://pandas-test/large-file.csv", nrows=5)
             # log of fetch_range (start, stop)
-            assert caplog.records[-1].args[-2:] == (0, 5505024)
+            assert ((0, 5505024) in set(x.args[-2:] for x in caplog.records))
