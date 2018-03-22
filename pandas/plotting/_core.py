@@ -869,7 +869,6 @@ class ScatterPlot(PlanePlot):
             label = None
         scatter = ax.scatter(data[x].values, data[y].values, c=c_values,
                              label=label, cmap=cmap, **self.kwds)
-
         if cb:
             ax._pandas_colorbar_axes = True
             img = ax.collections[0]
@@ -877,8 +876,6 @@ class ScatterPlot(PlanePlot):
             if self.mpl_ge_1_3_1():
                 kws['label'] = c if c_is_column else ''
             self.fig.colorbar(img, **kws)
-            
-
 
         if label is not None:
             self._add_legend_handle(scatter, label)
