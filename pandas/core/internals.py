@@ -1279,12 +1279,12 @@ class Block(PandasObject):
         new_values = algos.diff(self.values, n, axis=axis)
         return [self.make_block(values=new_values)]
 
-    def shift(self, periods, axis=0, mgr=None):
+    def shift(self, periods, axis=0, mgr=None, fill_value=np.nan):
         """ shift the block by periods, possibly upcast """
 
         # convert integer to float if necessary. need to do a lot more than
         # that, handle boolean etc also
-        new_values, fill_value = maybe_upcast(self.values)
+        new_values, fill_value = maybe_upcast(self.values, fill_value)
 
         # make sure array sent to np.roll is c_contiguous
         f_ordered = new_values.flags.f_contiguous
