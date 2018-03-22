@@ -5,6 +5,7 @@ import csv
 import codecs
 import mmap
 from contextlib import contextmanager, closing
+from zipfile import ZipFile
 
 from pandas.compat import StringIO, BytesIO, string_types, text_type
 from pandas import compat
@@ -363,18 +364,20 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
 
         # ZIP Compression
         elif compression == 'zip':
-            import zipfile
-            zip_file = zipfile.ZipFile(path_or_buf)
-            zip_names = zip_file.namelist()
-            if len(zip_names) == 1:
-                f = zip_file.open(zip_names.pop())
-            elif len(zip_names) == 0:
-                raise ValueError('Zero files found in ZIP file {}'
-                                 .format(path_or_buf))
-            else:
-                raise ValueError('Multiple files found in ZIP file.'
-                                 ' Only one file per ZIP: {}'
-                                 .format(zip_names))
+            zf = BytesZipFile(path_or_buf, mode)
+            if zf.mode == 'w':
+                f = zf
+            elif zf.mode == 'r':
+                zip_names = zf.namelist()
+                if len(zip_names) == 1:
+                    f = zf.open(zip_names.pop())
+                elif len(zip_names) == 0:
+                    raise ValueError('Zero files found in ZIP file {}'
+                                     .format(path_or_buf))
+                else:
+                    raise ValueError('Multiple files found in ZIP file.'
+                                     ' Only one file per ZIP: {}'
+                                     .format(zip_names))
 
         # XZ Compression
         elif compression == 'xz':
@@ -423,6 +426,24 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
             pass
 
     return f, handles
+
+
+class BytesZipFile(ZipFile, BytesIO):
+    """
+    Wrapper for standard library class ZipFile and allow the returned file-like
+    handle to accept byte strings via `write` method.
+
+    BytesIO provides attributes of file-like object and ZipFile.writestr writes
+    bytes strings into a member of the archive.
+    """
+    # GH 17778
+    def __init__(self, file, mode='r', **kwargs):
+        if mode in ['wb', 'rb']:
+            mode = mode.replace('b', '')
+        super(BytesZipFile, self).__init__(file, mode, **kwargs)
+
+    def write(self, data):
+        super(BytesZipFile, self).writestr(self.filename, data)
 
 
 class MMapWrapper(BaseIterator):

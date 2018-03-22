@@ -18,7 +18,7 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
         Any python object.
     path : str
         File path where the pickled object will be stored.
-    compression : {'infer', 'gzip', 'bz2', 'xz', None}, default 'infer'
+    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
         A string representing the compression to use in the output file. By
         default, infers from the file extension in specified path.
 
@@ -74,7 +74,7 @@ def to_pickle(obj, path, compression='infer', protocol=pkl.HIGHEST_PROTOCOL):
     if protocol < 0:
         protocol = pkl.HIGHEST_PROTOCOL
     try:
-        pkl.dump(obj, f, protocol=protocol)
+        f.write(pkl.dumps(obj, protocol=protocol))
     finally:
         for _f in fh:
             _f.close()
@@ -93,7 +93,7 @@ def read_pickle(path, compression='infer'):
     ----------
     path : str
         File path where the pickled object will be loaded.
-    compression : {'infer', 'gzip', 'bz2', 'xz', 'zip', None}, default 'infer'
+    compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, default 'infer'
         For on-the-fly decompression of on-disk data. If 'infer', then use
         gzip, bz2, xz or zip if path ends in '.gz', '.bz2', '.xz',
         or '.zip' respectively, and no decompression otherwise.
