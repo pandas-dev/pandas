@@ -2831,12 +2831,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def map(self, arg, na_action=None):
         """
-        Map values of Series using input correspondence (a dict, Series, or
-        function).
+        Map values of Series according to input correspondence.
+
+        Used for substituting each value in a Series with another value,
+        that may be derived from a function, a ``dict`` or
+        a :class:`pandas.Series`.
 
         Parameters
         ----------
-        arg : function, dict, or Series
+        arg : function, dict, or Seriess
             Mapping correspondence.
         na_action : {None, 'ignore'}
             If 'ignore', propagate NA values, without passing them to the
@@ -2850,7 +2853,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Examples
         --------
 
-        Map inputs to outputs (both of type `Series`):
+        Map inputs to outputs (both of type :class:`pandas.Series`):
 
         >>> x = pd.Series([1,2,3], index=['one', 'two', 'three'])
         >>> x
@@ -2864,14 +2867,24 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         1    foo
         2    bar
         3    baz
+        dtype: object
 
         >>> x.map(y)
         one   foo
         two   bar
         three baz
+        dtype: object
 
-        If `arg` is a dictionary, return a new Series with values converted
-        according to the dictionary's mapping:
+        Map a function to a :class:`pandas.Series`.
+
+        >>> x.map(lambda x: x**2)
+        one      1
+        two      4
+        three    9
+        dtype: int64
+
+        If ``arg`` is a dictionary, return a new :class:`pandas.Series` with
+        values converted according to the dictionary's mapping:
 
         >>> z = {1: 'A', 2: 'B', 3: 'C'}
 
@@ -2879,20 +2892,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         one   A
         two   B
         three C
+        dtype: object
 
-        Use na_action to control whether NA values are affected by the mapping
-        function.
+        Use ``na_action`` to control whether NA values are affected by the
+        mapping function.
 
         >>> s = pd.Series([1, 2, 3, np.nan])
 
-        >>> s2 = s.map('this is a string {}'.format, na_action=None)
+        >>> s.map('this is a string {}'.format, na_action=None)
         0    this is a string 1.0
         1    this is a string 2.0
         2    this is a string 3.0
         3    this is a string nan
         dtype: object
 
-        >>> s3 = s.map('this is a string {}'.format, na_action='ignore')
+        >>> s.map('this is a string {}'.format, na_action='ignore')
         0    this is a string 1.0
         1    this is a string 2.0
         2    this is a string 3.0
