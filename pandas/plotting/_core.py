@@ -869,12 +869,16 @@ class ScatterPlot(PlanePlot):
             label = None
         scatter = ax.scatter(data[x].values, data[y].values, c=c_values,
                              label=label, cmap=cmap, **self.kwds)
+
         if cb:
+            ax._pandas_colorbar_axes = True
             img = ax.collections[0]
             kws = dict(ax=ax)
             if self.mpl_ge_1_3_1():
                 kws['label'] = c if c_is_column else ''
             self.fig.colorbar(img, **kws)
+            
+
 
         if label is not None:
             self._add_legend_handle(scatter, label)
@@ -902,6 +906,7 @@ class HexBinPlot(PlanePlot):
     def _make_plot(self):
         x, y, data, C = self.x, self.y, self.data, self.C
         ax = self.axes[0]
+        
         # pandas uses colormap, matplotlib uses cmap.
         cmap = self.colormap or 'BuGn'
         cmap = self.plt.cm.get_cmap(cmap)
@@ -915,6 +920,7 @@ class HexBinPlot(PlanePlot):
         ax.hexbin(data[x].values, data[y].values, C=c_values, cmap=cmap,
                   **self.kwds)
         if cb:
+            ax._pandas_colorbar_axes = True
             img = ax.collections[0]
             self.fig.colorbar(img, ax=ax)
 

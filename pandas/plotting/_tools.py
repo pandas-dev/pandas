@@ -298,7 +298,6 @@ def _remove_labels_from_axis(axis):
 
 def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
     if nplots > 1:
-
         if nrows > 1:
             try:
                 # first find out the ax layout,
@@ -306,12 +305,11 @@ def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
                 layout = np.zeros((nrows + 1, ncols + 1), dtype=np.bool)
                 for ax in axarr:
                     layout[ax.rowNum, ax.colNum] = ax.get_visible()
-
                 for ax in axarr:
                     # only the last row of subplots should get x labels -> all
                     # other off layout handles the case that the subplot is
-                    # the last in the column, because below is no subplot/gap.
-                    if not layout[ax.rowNum + 1, ax.colNum]:
+                    # the last in the column, because below is no subplot/gap.                    
+                    if not layout[ax.rowNum + 1, ax.colNum] or getattr(ax, '_pandas_colorbar_axes', False):
                         continue
                     if sharex or len(ax.get_shared_x_axes()
                                      .get_siblings(ax)) > 1:
