@@ -410,7 +410,7 @@ class DataFrame(NDFrame):
                 arr = np.array(data, dtype=dtype, copy=copy)
             except (ValueError, TypeError) as e:
                 exc = TypeError('DataFrame constructor called with '
-                                'incompatible data and dtype: %s' % e)
+                                'incompatible data and dtype: {e}'.format(e=e))
                 raise_with_traceback(exc)
 
             if arr.ndim == 0 and index is not None and columns is not None:
@@ -536,8 +536,9 @@ class DataFrame(NDFrame):
                 try:
                     values = values.astype(dtype)
                 except Exception as orig:
-                    e = ValueError("failed to cast to '%s' (Exception was: %s)"
-                                   % (dtype, orig))
+                    e = ValueError("failed to cast to '{dtype}' (Exception "
+                                   "was: {orig})".format(dtype=dtype,
+                                                         orig=orig))
                     raise_with_traceback(e)
 
         index, columns = _get_axes(*values.shape)
@@ -888,8 +889,9 @@ class DataFrame(NDFrame):
             lvals = self.values
             rvals = np.asarray(other)
             if lvals.shape[1] != rvals.shape[0]:
-                raise ValueError('Dot product shape mismatch, %s vs %s' %
-                                 (lvals.shape, rvals.shape))
+                raise ValueError('Dot product shape mismatch, '
+                                 '{l} vs {r}'.format(l=lvals.shape,
+                                                     r=rvals.shape))
 
         if isinstance(other, DataFrame):
             return self._constructor(np.dot(lvals, rvals), index=left.index,
@@ -903,7 +905,7 @@ class DataFrame(NDFrame):
             else:
                 return Series(result, index=left.index)
         else:  # pragma: no cover
-            raise TypeError('unsupported type: %s' % type(other))
+            raise TypeError('unsupported type: {oth}'.format(oth=type(other)))
 
     # ----------------------------------------------------------------------
     # IO methods (to / from other formats)
@@ -1104,7 +1106,7 @@ class DataFrame(NDFrame):
         elif orient.lower().startswith('i'):
             return into_c((k, v.to_dict(into)) for k, v in self.iterrows())
         else:
-            raise ValueError("orient '%s' not understood" % orient)
+            raise ValueError("orient '{o}' not understood".format(o=orient))
 
     def to_gbq(self, destination_table, project_id, chunksize=10000,
                verbose=True, reauth=False, if_exists='fail', private_key=None):
@@ -2107,7 +2109,7 @@ class DataFrame(NDFrame):
         lines.append(self.index._summary())
 
         if len(self.columns) == 0:
-            lines.append('Empty %s' % type(self).__name__)
+            lines.append('Empty {name}'.format(name=type(self).__name__))
             fmt.buffer_put_lines(buf, lines)
             return
 
@@ -2133,13 +2135,15 @@ class DataFrame(NDFrame):
             space = max(len(pprint_thing(k)) for k in self.columns) + 4
             counts = None
 
-            tmpl = "%s%s"
+            tmpl = "{count}{dtype}"
             if show_counts:
                 counts = self.count()
                 if len(cols) != len(counts):  # pragma: no cover
-                    raise AssertionError('Columns must equal counts (%d != %d)'
-                                         % (len(cols), len(counts)))
-                tmpl = "%s non-null %s"
+                    raise AssertionError(
+                        'Columns must equal counts '
+                        '({cols:d} != {counts:d})'.format(
+                            cols=len(cols), counts=len(counts)))
+                tmpl = "{count} non-null {dtype}"
 
             dtypes = self.dtypes
             for i, col in enumerate(self.columns):
@@ -2150,7 +2154,8 @@ class DataFrame(NDFrame):
                 if show_counts:
                     count = counts.iloc[i]
 
-                lines.append(_put_str(col, space) + tmpl % (count, dtype))
+                lines.append(_put_str(col, space) + tmpl.format(count=count,
+                                                                dtype=dtype))
 
         def _non_verbose_repr():
             lines.append(self.columns.summary(name='Columns'))
@@ -2159,9 +2164,12 @@ class DataFrame(NDFrame):
             # returns size in human readable format
             for x in ['bytes', 'KB', 'MB', 'GB', 'TB']:
                 if num < 1024.0:
-                    return "%3.1f%s %s" % (num, size_qualifier, x)
+                    return ("{num:3.1f}{size_q}"
+                            "{x}".format(num=num, size_q=size_qualifier, x=x))
                 num /= 1024.0
-            return "%3.1f%s %s" % (num, size_qualifier, 'PB')
+            return "{num:3.1f}{size_q} {pb}".format(num=num,
+                                                    size_q=size_qualifier,
+                                                    pb='PB')
 
         if verbose:
             _verbose_repr()
@@ -2174,8 +2182,9 @@ class DataFrame(NDFrame):
                 _verbose_repr()
 
         counts = self.get_dtype_counts()
-        dtypes = ['%s(%d)' % k for k in sorted(compat.iteritems(counts))]
-        lines.append('dtypes: %s' % ', '.join(dtypes))
+        dtypes = ['{k}({kk:d})'.format(k=k[0], kk=k[1]) for k
+                  in sorted(compat.iteritems(counts))]
+        lines.append('dtypes: {types}'.format(types=', '.join(dtypes)))
 
         if memory_usage is None:
             memory_usage = get_option('display.memory_usage')
@@ -2193,8 +2202,9 @@ class DataFrame(NDFrame):
                         self.index._is_memory_usage_qualified()):
                     size_qualifier = '+'
             mem_usage = self.memory_usage(index=True, deep=deep).sum()
-            lines.append("memory usage: %s\n" %
-                         _sizeof_fmt(mem_usage, size_qualifier))
+            lines.append("memory usage: {mem}\n".format(
+                mem=_sizeof_fmt(mem_usage, size_qualifier)))
+
         fmt.buffer_put_lines(buf, lines)
 
     def memory_usage(self, index=True, deep=False):
@@ -2887,8 +2897,8 @@ class DataFrame(NDFrame):
 
         # can't both include AND exclude!
         if not include.isdisjoint(exclude):
-            raise ValueError('include and exclude overlap on %s' %
-                             (include & exclude))
+            raise ValueError('include and exclude overlap on {inc_ex}'.format(
+                inc_ex=(include & exclude)))
 
         # empty include/exclude -> defaults to True
         # three cases (we've already raised if both are empty)
@@ -3737,7 +3747,8 @@ class DataFrame(NDFrame):
 
         if verify_integrity and not index.is_unique:
             duplicates = index.get_duplicates()
-            raise ValueError('Index has duplicate keys: %s' % duplicates)
+            raise ValueError('Index has duplicate keys: {dup}'.format(
+                dup=duplicates))
 
         for c in to_remove:
             del frame[c]
@@ -4109,7 +4120,7 @@ class DataFrame(NDFrame):
                 mask = count > 0
             else:
                 if how is not None:
-                    raise ValueError('invalid how option: %s' % how)
+                    raise ValueError('invalid how option: {h}'.format(h=how))
                 else:
                     raise TypeError('must specify how or thresh')
 
@@ -6500,8 +6511,8 @@ class DataFrame(NDFrame):
         agg_axis = frame._get_agg_axis(axis)
 
         if not isinstance(count_axis, MultiIndex):
-            raise TypeError("Can only count levels on hierarchical %s." %
-                            self._get_axis_name(axis))
+            raise TypeError("Can only count levels on hierarchical "
+                            "{ax}.".format(ax=self._get_axis_name(axis)))
 
         if frame._is_mixed_type:
             # Since we have mixed types, calling notna(frame.values) might
@@ -6579,9 +6590,9 @@ class DataFrame(NDFrame):
                 elif filter_type == 'bool':
                     data = self._get_bool_data()
                 else:  # pragma: no cover
-                    e = NotImplementedError("Handling exception with filter_"
-                                            "type %s not implemented." %
-                                            filter_type)
+                    e = NotImplementedError(
+                        "Handling exception with filter_type {f} not"
+                        "implemented.".format(f=filter_type))
                     raise_with_traceback(e)
                 with np.errstate(all='ignore'):
                     result = f(data.values)
@@ -6593,8 +6604,8 @@ class DataFrame(NDFrame):
                 elif filter_type == 'bool':
                     data = self._get_bool_data()
                 else:  # pragma: no cover
-                    msg = ("Generating numeric_only data with filter_type %s"
-                           "not supported." % filter_type)
+                    msg = ("Generating numeric_only data with filter_type {f}"
+                           "not supported.".format(f=filter_type))
                     raise NotImplementedError(msg)
                 values = data.values
                 labels = data._get_agg_axis(axis)
@@ -6869,7 +6880,8 @@ class DataFrame(NDFrame):
         elif axis == 1:
             new_data.set_axis(0, self.columns.to_timestamp(freq=freq, how=how))
         else:  # pragma: no cover
-            raise AssertionError('Axis must be 0 or 1. Got %s' % str(axis))
+            raise AssertionError('Axis must be 0 or 1. Got {ax}'.format(
+                ax=str(axis)))
 
         return self._constructor(new_data)
 
@@ -6900,7 +6912,8 @@ class DataFrame(NDFrame):
         elif axis == 1:
             new_data.set_axis(0, self.columns.to_period(freq=freq))
         else:  # pragma: no cover
-            raise AssertionError('Axis must be 0 or 1. Got %s' % str(axis))
+            raise AssertionError('Axis must be 0 or 1. Got {ax!s}'.format(
+                ax=axis))
 
         return self._constructor(new_data)
 
@@ -7261,8 +7274,9 @@ def _convert_object_array(content, columns, coerce_float=False, dtype=None):
     else:
         if len(columns) != len(content):  # pragma: no cover
             # caller's responsibility to check for this...
-            raise AssertionError('%d columns passed, passed data had %s '
-                                 'columns' % (len(columns), len(content)))
+            raise AssertionError('{col:d} columns passed, passed data had '
+                                 '{con} columns'.format(col=len(columns),
+                                                        con=len(content)))
 
     # provide soft conversion of object dtypes
     def convert(arr):
@@ -7337,4 +7351,4 @@ def _from_nested_dict(data):
 
 
 def _put_str(s, space):
-    return ('%s' % s)[:space].ljust(space)
+    return '{s}'.format(s=s)[:space].ljust(space)
