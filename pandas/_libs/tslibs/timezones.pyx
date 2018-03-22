@@ -314,3 +314,21 @@ cpdef bint tz_compare(object start, object end):
     """
     # GH 18523
     return get_timezone(start) == get_timezone(end)
+
+
+cpdef tz_normalize(object tz):
+    """
+    If the passed tz is a pytz timezone object, "normalize" it to the LMT
+    version
+
+    Parameters
+    ----------
+    tz : tz object
+
+    Returns:
+    -------
+    tz object
+    """
+    if treat_tz_as_pytz(tz):
+        return pytz.timezone(str(tz))
+    return tz

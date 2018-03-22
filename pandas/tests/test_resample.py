@@ -2532,6 +2532,18 @@ class TestPeriodIndex(Base):
         expected = Series(1, index=expected_index)
         assert_series_equal(result, expected)
 
+    def test_resample_with_pytz(self):
+        # GH 13238
+        s = Series(2, index=pd.date_range('2017-01-01', periods=48, freq="H",
+                                          tz="US/Eastern"))
+        result = s.resample("D").mean()
+        expected = Series(2, index=pd.DatetimeIndex(['2017-01-01',
+                                                     '2017-01-02'],
+                                                    tz="US/Eastern"))
+        assert_series_equal(result, expected)
+        # Especially assert that the timezone is LMT for pytz
+        assert result.index.tz == expected.index.tz
+
     def test_with_local_timezone_dateutil(self):
         # see gh-5430
         local_timezone = 'dateutil/America/Los_Angeles'

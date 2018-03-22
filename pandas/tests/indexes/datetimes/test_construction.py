@@ -441,7 +441,9 @@ class TestDatetimeIndex(object):
 
         assert idx.nanosecond[0] == t1.nanosecond
 
-    @pytest.mark.parametrize('tz', [None, 'America/Los_Angeles'])
+    @pytest.mark.parametrize('tz',
+        [None, 'America/Los_Angeles',
+         Timestamp('2000', tz='America/Los_Angeles').tz])
     def test_constructor_start_end_with_tz(self, tz):
         start = Timestamp('2013-01-01 06:00:00', tz='America/Los_Angeles')
         end = Timestamp('2013-01-02 06:00:00', tz='America/Los_Angeles')

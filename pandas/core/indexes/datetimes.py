@@ -518,6 +518,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         inferred_tz = timezones.maybe_get_tz(inferred_tz)
         tz = timezones.maybe_get_tz(tz)
+        tz = timezones.tz_normalize(tz)
 
         if tz is not None and inferred_tz is not None:
             if not timezones.tz_compare(inferred_tz, tz):
@@ -525,12 +526,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                                      "time zone")
 
         elif inferred_tz is not None:
-            # If inferred_tz is a pytz timezone, make sure to return the LMT
-            # based zone
-            if isinstance(inferred_tz, BaseTzInfo):
-                tz = timezones.maybe_get_tz(inferred_tz.zone)
-            else:
-                tz = inferred_tz
+            tz = timezones.tz_normalize(inferred_tz)
 
         if start is not None:
             if normalize:
