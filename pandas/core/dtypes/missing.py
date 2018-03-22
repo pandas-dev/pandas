@@ -29,7 +29,12 @@ isneginf_scalar = libmissing.isneginf_scalar
 
 
 def isna(obj):
-    """Detect missing values (NaN in numeric arrays, None/NaN in object arrays)
+    """Detect missing values for an array
+
+    This function takes an array-like object, for each element, if it is
+    a missing value (NaN in numeric arrays, None/NaN in object arrays)
+    the correisponding element of the output boolean array will be true,
+    otherwise false.
 
     Parameters
     ----------
@@ -46,6 +51,18 @@ def isna(obj):
     --------
     pandas.notna: boolean inverse of pandas.isna
     pandas.isnull: alias of isna
+
+    Examples
+    --------
+    >>> df = pd.DataFrame([[1, pd.np.nan, 3], [4, 5, pd.np.nan]])
+    >>> df
+       0    1    2
+    0  1  NaN  3.0
+    1  4  5.0  NaN
+    >>> pd.isna(df)
+           0      1      2
+    0  False   True  False
+    1  False  False   True
     """
     return _isna(obj)
 
@@ -200,6 +217,11 @@ def notna(obj):
     """Replacement for numpy.isfinite / -numpy.isnan which is suitable for use
     on object arrays.
 
+    This function takes an array-like object, for each element, if it is *not*
+    a missing.value (NaN in numeric arrays, None/NaN in object arrays) the
+    correisponding element of the output boolean array will be true,
+    otherwise false.
+
     Parameters
     ----------
     arr : ndarray or object value
@@ -215,6 +237,18 @@ def notna(obj):
     --------
     pandas.isna : boolean inverse of pandas.notna
     pandas.notnull : alias of notna
+
+    Examples
+    --------
+    >>> df = pd.DataFrame([[1, pd.np.nan, 3], [4, 5, pd.np.nan]])
+    >>> df
+       0    1    2
+    0  1  NaN  3.0
+    1  4  5.0  NaN
+    >>> pd.notna(df)
+           0      1      2
+    0  True  False   True
+    1  True   True  False
     """
     res = isna(obj)
     if is_scalar(res):
