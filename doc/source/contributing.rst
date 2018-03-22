@@ -32,8 +32,9 @@ Bug reports and enhancement requests
 
 Bug reports are an important part of making *pandas* more stable. Having a complete bug report
 will allow others to reproduce the bug and provide insight into fixing. See
-`this stackoverflow article <https://stackoverflow.com/help/mcve>`_ for tips on
-writing a good bug report.
+`this stackoverflow article <https://stackoverflow.com/help/mcve>`_ and
+`this blogpost <http://matthewrocklin.com/blog/work/2018/02/28/minimal-bug-reports>`_
+for tips on writing a good bug report.
 
 Trying the bug-producing code out on the *master* branch is often a worthwhile exercise
 to confirm the bug still exists. It is also worth searching existing bug reports and pull requests

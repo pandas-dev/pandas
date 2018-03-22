@@ -2831,25 +2831,26 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def map(self, arg, na_action=None):
         """
-        Map values of Series using input correspondence (which can be
-        a dict, Series, or function)
+        Map values of Series using input correspondence (a dict, Series, or
+        function).
 
         Parameters
         ----------
         arg : function, dict, or Series
+            Mapping correspondence.
         na_action : {None, 'ignore'}
             If 'ignore', propagate NA values, without passing them to the
-            mapping function
+            mapping correspondence.
 
         Returns
         -------
         y : Series
-            same index as caller
+            Same index as caller.
 
         Examples
         --------
 
-        Map inputs to outputs (both of type `Series`)
+        Map inputs to outputs (both of type `Series`):
 
         >>> x = pd.Series([1,2,3], index=['one', 'two', 'three'])
         >>> x
@@ -2900,9 +2901,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        Series.apply: For applying more complex functions on a Series
-        DataFrame.apply: Apply a function row-/column-wise
-        DataFrame.applymap: Apply a function elementwise on a whole DataFrame
+        Series.apply : For applying more complex functions on a Series.
+        DataFrame.apply : Apply a function row-/column-wise.
+        DataFrame.applymap : Apply a function elementwise on a whole DataFrame.
 
         Notes
         -----
@@ -3870,7 +3871,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     hist = gfx.hist_series
 
 
-Series._setup_axes(['index'], info_axis=0, stat_axis=0, aliases={'rows': 0})
+Series._setup_axes(['index'], info_axis=0, stat_axis=0, aliases={'rows': 0},
+                   docs={'index': 'The index (axis labels) of the Series.'})
 Series._add_numeric_operations()
 Series._add_series_only_operations()
 Series._add_series_or_dataframe_operations()

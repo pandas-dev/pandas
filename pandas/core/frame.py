@@ -5480,8 +5480,6 @@ class DataFrame(NDFrame):
         return self[key]
 
     _agg_doc = dedent("""
-    Notes
-    -----
     The aggregation operations are always performed over an axis, either the
     index (default) or the column axis. This behavior is different from
     `numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
@@ -7004,7 +7002,10 @@ class DataFrame(NDFrame):
 
 
 DataFrame._setup_axes(['index', 'columns'], info_axis=1, stat_axis=0,
-                      axes_are_reversed=True, aliases={'rows': 0})
+                      axes_are_reversed=True, aliases={'rows': 0},
+                      docs={
+                          'index': 'The index (row labels) of the DataFrame.',
+                          'columns': 'The column labels of the DataFrame.'})
 DataFrame._add_numeric_operations()
 DataFrame._add_series_or_dataframe_operations()
 

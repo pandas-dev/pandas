@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 import warnings
 import operator
+from textwrap import dedent
 
 import numpy as np
 from pandas._libs import (lib, index as libindex, tslib as libts,
@@ -2183,7 +2184,7 @@ class Index(IndexOpsMixin, PandasObject):
         mapped to ``True`` values.
         Everything else get mapped to ``False`` values. Characters such as
         empty strings `''` or :attr:`numpy.inf` are not considered NA values
-        (unless you set :attr:`pandas.options.mode.use_inf_as_na` `= True`).
+        (unless you set ``pandas.options.mode.use_inf_as_na = True``).
 
         .. versionadded:: 0.20.0
 
@@ -3352,14 +3353,16 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     def map(self, mapper, na_action=None):
-        """Map values of Series using input correspondence
+        """
+        Map values using input correspondence (a dict, Series, or function).
 
         Parameters
         ----------
         mapper : function, dict, or Series
+            Mapping correspondence.
         na_action : {None, 'ignore'}
             If 'ignore', propagate NA values, without passing them to the
-            mapping function
+            mapping correspondence.
 
         Returns
         -------
@@ -3367,7 +3370,6 @@ class Index(IndexOpsMixin, PandasObject):
             The output of the mapping function applied to the index.
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
-
         """
 
         from .multi import MultiIndex
@@ -4699,7 +4701,7 @@ class Index(IndexOpsMixin, PandasObject):
         %(outname)s : bool or array_like (if axis is specified)
             A single element array_like may be converted to bool."""
 
-        _index_shared_docs['index_all'] = """
+        _index_shared_docs['index_all'] = dedent("""
 
         See Also
         --------
@@ -4737,9 +4739,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> pd.Index([0, 0, 0]).any()
         False
-        """
+        """)
 
-        _index_shared_docs['index_any'] = """
+        _index_shared_docs['index_any'] = dedent("""
 
         See Also
         --------
@@ -4760,7 +4762,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> index = pd.Index([0, 0, 0])
         >>> index.any()
         False
-        """
+        """)
 
         def _make_logical_function(name, desc, f):
             @Substitution(outname=name, desc=desc)
