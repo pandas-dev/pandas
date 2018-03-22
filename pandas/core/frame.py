@@ -5465,8 +5465,6 @@ class DataFrame(NDFrame):
         return self[key]
 
     _agg_doc = dedent("""
-    Notes
-    -----
     The aggregation operations are always performed over an axis, either the
     index (default) or the column axis. This behavior is different from
     `numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
