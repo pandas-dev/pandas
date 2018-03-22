@@ -5195,7 +5195,6 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-
         **Single level columns**
 
         >>> df_single_level_cols = pd.DataFrame([[0, 1], [2, 3]],
@@ -5283,7 +5282,6 @@ class DataFrame(NDFrame):
         ...                                     index=['one', 'two'],
         ...                                     columns=multicol2)
 
-
         Note that rows where all values are missing are dropped by
         default but this behaviour can be controlled via the dropna
         keyword parameter:
@@ -5299,7 +5297,6 @@ class DataFrame(NDFrame):
             b  NaN  1.0
         two a  2.0  NaN
             b  NaN  3.0
-
         >>> df_multi_level_cols3.stack(dropna=True)
                  X    Y
         one b  NaN  1.0
