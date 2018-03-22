@@ -1005,46 +1005,50 @@ class TestNankurtFixedValues(object):
         return np.random.RandomState(1234)
 
 
-class TestNumpyNaNFunctions(object):
+def _compare_nan_method_output(data, method, nan_method):
+    tm.assert_almost_equal(data.agg(method),
+                           data.agg(nan_method),
+                           check_exact=True)
 
-    # xref GH 19629
-    def setup_method(self, method):
-        self.test_series = pd.Series([1, 2, 3, 4, 5, 6])
-        self.test_df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
 
-    def compare_method_output(self, data, method, nan_method):
-        tm.assert_almost_equal(data.agg(method),
-                               data.agg(nan_method),
-                               check_exact=True)
+@pytest.fixture(params=[
+    pd.Series([1, 2, 3, 4, 5, 6]),
+    pd.DataFrame([[1, 2, 3], [4, 5, 6]])
+])
+def nan_test_object(request):
+    return request.param
 
-    @pytest.mark.parametrize("standard, nan_method", [
-        (np.sum, np.nansum),
-        (np.mean, np.nanmean),
-        (np.std, np.nanstd),
-        (np.var, np.nanvar),
-        (np.median, np.nanmedian),
-        (np.max, np.nanmax),
-        (np.min, np.nanmin)
-    ])
-    def test_np_nan_functions(self, standard, nan_method):
-        self.compare_method_output(self.test_series, standard, nan_method)
-        self.compare_method_output(self.test_df, standard, nan_method)
 
-    @td.skip_if_no("numpy", min_version="1.10.0")
-    def test_np_nanprod(self):
-        self.compare_method_output(self.test_series, np.prod, np.nanprod)
-        self.compare_method_output(self.test_df, np.prod, np.nanprod)
+@pytest.mark.parametrize("standard, nan_method", [
+    (np.sum, np.nansum),
+    (np.mean, np.nanmean),
+    (np.std, np.nanstd),
+    (np.var, np.nanvar),
+    (np.median, np.nanmedian),
+    (np.max, np.nanmax),
+    (np.min, np.nanmin)
+])
+def test_np_nan_functions(standard, nan_method, nan_test_object):
+    _compare_nan_method_output(nan_test_object, standard, nan_method)
+    _compare_nan_method_output(nan_test_object, standard, nan_method)
 
-    @td.skip_if_no("numpy", min_version="1.12.0")
-    def test_np_nancumprod(self):
-        # Not using pytest params as fails at build time
-        methods = [
-            (np.cumprod, np.nancumprod),
-            (np.cumsum, np.nancumsum)
-        ]
-        for standard, nan_method in methods:
-            self.compare_method_output(self.test_series, standard, nan_method)
-            self.compare_method_output(self.test_df, standard, nan_method)
+
+@td.skip_if_no("numpy", min_version="1.10.0")
+def test_np_nanprod(nan_test_object):
+    _compare_nan_method_output(nan_test_object, np.prod, np.nanprod)
+    _compare_nan_method_output(nan_test_object, np.prod, np.nanprod)
+
+
+@td.skip_if_no("numpy", min_version="1.12.0")
+def test_np_nancumprod(nan_test_object):
+    # Not using pytest params for methods as will fail at build time
+    methods = [
+        (np.cumprod, np.nancumprod),
+        (np.cumsum, np.nancumsum)
+    ]
+    for standard, nan_method in methods:
+        _compare_nan_method_output(nan_test_object, standard, nan_method)
+        _compare_nan_method_output(nan_test_object, standard, nan_method)
 
 
 def test_use_bottleneck():
