@@ -29,40 +29,50 @@ isneginf_scalar = libmissing.isneginf_scalar
 
 
 def isna(obj):
-    """Detect missing values for an array
+    """Detect missing values for an array-like object.
 
     This function takes an array-like object, for each element, if it is
-    a missing value (NaN in numeric arrays, None/NaN in object arrays)
-    the correisponding element of the output boolean array will be true,
-    otherwise false.
+    a missing value (`NaN` in numeric arrays, `None`/`NaN` in object arrays)
+    the correisponding element of the output boolean array will be `True`,
+    otherwise `False`.
 
     Parameters
     ----------
-    arr : ndarray or object value
-        Object to check for null-ness
+    arr : array-like or object
+        Object to check for null-ness.
 
     Returns
     -------
-    isna : array-like of bool or bool
+    array-like of bool or bool
         Array or bool indicating whether an object is null or if an array is
         given which of the element is null.
 
-    See also
+    See Also
     --------
-    pandas.notna: boolean inverse of pandas.isna
-    pandas.isnull: alias of isna
+    notna : boolean inverse of pandas.isna
+    isnull : alias of isna
 
     Examples
     --------
-    >>> df = pd.DataFrame([[1, pd.np.nan, 3], [4, 5, pd.np.nan]])
+    >>> pd.isna('dog')
+    False
+    >>> pd.isna(np.nan)
+    True
+    >>> array
+    array([[ 1., nan,  3.],
+           [ 4.,  5., nan]])
+    >>> pd.isna(array)
+    array([[False,  True, False],
+           [False, False,  True]])
+    >>> df = pd.DataFrame([['ant', 'bee', 'cat'], ['dog', None, 'fly']])
     >>> df
-       0    1    2
-    0  1  NaN  3.0
-    1  4  5.0  NaN
+         0     1    2
+    0  ant   bee  cat
+    1  dog  None  fly
     >>> pd.isna(df)
            0      1      2
-    0  False   True  False
-    1  False  False   True
+    0  False  False  False
+    1  False   True  False
     """
     return _isna(obj)
 
@@ -218,37 +228,47 @@ def notna(obj):
     on object arrays.
 
     This function takes an array-like object, for each element, if it is *not*
-    a missing.value (NaN in numeric arrays, None/NaN in object arrays) the
-    correisponding element of the output boolean array will be true,
-    otherwise false.
+    a missing.value (`NaN` in numeric arrays, `None`/`NaN` in object arrays)
+    the correisponding element of the output boolean array will be `True`,
+    otherwise `False`.
 
     Parameters
     ----------
-    arr : ndarray or object value
+    arr : array-like or object value
         Object to check for *not*-null-ness
 
     Returns
     -------
-    notisna : array-like of bool or bool
+    array-like of bool or bool
         Array or bool indicating whether an object is *not* null or if an array
         is given which of the element is *not* null.
 
-    See also
+    See Also
     --------
-    pandas.isna : boolean inverse of pandas.notna
-    pandas.notnull : alias of notna
+    isna : boolean inverse of pandas.notna
+    notnull : alias of notna
 
     Examples
     --------
-    >>> df = pd.DataFrame([[1, pd.np.nan, 3], [4, 5, pd.np.nan]])
+    >>> pd.notna('dog')
+    True
+    >>> pd.notna(np.nan)
+    False
+    >>> array
+    array([[ 1., nan,  3.],
+           [ 4.,  5., nan]])
+    >>> pd.notna(array)
+    array([[ True, False,  True],
+           [ True,  True, False]])
+    >>> df = pd.DataFrame([['ant', 'bee', 'cat'], ['dog', None, 'fly']])
     >>> df
-       0    1    2
-    0  1  NaN  3.0
-    1  4  5.0  NaN
+         0     1    2
+    0  ant   bee  cat
+    1  dog  None  fly
     >>> pd.notna(df)
-           0      1      2
-    0  True  False   True
-    1  True   True  False
+          0      1     2
+    0  True   True  True
+    1  True  False  True
     """
     res = isna(obj)
     if is_scalar(res):
