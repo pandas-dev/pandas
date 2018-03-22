@@ -5198,48 +5198,48 @@ class DataFrame(NDFrame):
         **Single level columns**
 
         >>> df_single_level_cols = pd.DataFrame([[0, 1], [2, 3]],
-        ...                                     index=['one', 'two'],
-        ...                                     columns=['a', 'b'])
+        ...                                     index=['cat', 'dog'],
+        ...                                     columns=['weight', 'height'])
 
         Stacking a dataframe with a single level column axis returns a Series:
 
         >>> df_single_level_cols
-             a   b
-        one  0   1
-        two  2   3
+             weight height
+        cat       0      1
+        dog       2      3
         >>> df_single_level_cols.stack()
-        one  a    0
-             b    1
-        two  a    2
-             b    3
+        cat  weight    0
+             height    1
+        dog  weight    2
+             height    3
         dtype: int64
 
         **Multi level columns: simple case**
 
-        >>> multicol1 = pd.MultiIndex.from_tuples([('X', 'a'), ('X', 'b')])
+        >>> multicol1 = pd.MultiIndex.from_tuples([('size', 'weight'), ('size', 'height')])
         >>> df_multi_level_cols1 = pd.DataFrame([[0, 1], [2, 3]],
-        ...                                    index=['one', 'two'],
+        ...                                    index=['cat', 'dog'],
         ...                                    columns=multicol1)
 
         Stacking a dataframe with a multi-level column axis:
 
         >>> df_multi_level_cols1
-             X
-             a   b
-        one  0   1
-        two  2   3
+             size
+             weight   height
+        cat       0        1
+        dog       2        3
         >>> df_multi_level_cols1.stack()
-                  X
-        one  a    0
-             b    1
-        two  a    2
-             b    3
+                    size
+        cat height     1
+            weight     0
+        dog height     3
+            weight     2
 
         **Missing values**
 
         >>> multicol2 = pd.MultiIndex.from_tuples([('X', 'a'), ('Y', 'b')])
         >>> df_multi_level_cols2 = pd.DataFrame([[0.0, 1.0], [2.0, 3.0]],
-        ...                                     index=['one', 'two'],
+        ...                                     index=['cat', 'dog'],
         ...                                     columns=multicol2)
 
         It is common to have missing values when stacking a dataframe
@@ -5250,13 +5250,13 @@ class DataFrame(NDFrame):
         >>> df_multi_level_cols2
                X     Y
                a     b
-        one  0.0   1.0
-        two  2.0   3.0
+        cat  0.0   1.0
+        dog  2.0   3.0
         >>> df_multi_level_cols2.stack()
                  X    Y
-        one a  0.0  NaN
+        cat a  0.0  NaN
             b  NaN  1.0
-        two a  2.0  NaN
+        dog a  2.0  NaN
             b  NaN  3.0
 
         **Prescribing the level(s) to be stacked**
@@ -5265,21 +5265,21 @@ class DataFrame(NDFrame):
 
         >>> df_multi_level_cols2.stack(0)
                  a    b
-        one X  0.0  NaN
+        cat X  0.0  NaN
             Y  NaN  1.0
-        two X  2.0  NaN
+        dog X  2.0  NaN
             Y  NaN  3.0
         >>> df_multi_level_cols2.stack([0, 1])
-        one  X  a    0.0
+        cat  X  a    0.0
              Y  b    1.0
-        two  X  a    2.0
+        dog  X  a    2.0
              Y  b    3.0
         dtype: float64
 
         **Dropping missing values**
 
         >>> df_multi_level_cols3 = pd.DataFrame([[None, 1.0], [2.0, 3.0]],
-        ...                                     index=['one', 'two'],
+        ...                                     index=['cat', 'dog'],
         ...                                     columns=multicol2)
 
         Note that rows where all values are missing are dropped by
@@ -5289,18 +5289,18 @@ class DataFrame(NDFrame):
         >>> df_multi_level_cols3
                X     Y
                a     b
-        one  NaN   1.0
-        two  2.0   3.0
+        cat  NaN   1.0
+        dog  2.0   3.0
         >>> df_multi_level_cols3.stack(dropna=False)
                  X    Y
-        one a  NaN  NaN
+        cat a  NaN  NaN
             b  NaN  1.0
-        two a  2.0  NaN
+        dog a  2.0  NaN
             b  NaN  3.0
         >>> df_multi_level_cols3.stack(dropna=True)
                  X    Y
-        one b  NaN  1.0
-        two a  2.0  NaN
+        cat b  NaN  1.0
+        dog a  2.0  NaN
             b  NaN  3.0
         """
         from pandas.core.reshape.reshape import stack, stack_multiple
