@@ -6880,8 +6880,8 @@ class DataFrame(NDFrame):
         elif axis == 1:
             new_data.set_axis(0, self.columns.to_timestamp(freq=freq, how=how))
         else:  # pragma: no cover
-            raise AssertionError('Axis must be 0 or 1. Got {ax}'.format(
-                ax=str(axis)))
+            raise AssertionError('Axis must be 0 or 1. Got {ax!s}'.format(
+                ax=axis))
 
         return self._constructor(new_data)
 
