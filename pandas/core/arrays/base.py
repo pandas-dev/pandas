@@ -86,7 +86,7 @@ class ExtensionArray(object):
         values : ndarray
             An integer ndarray with the factorized values.
         original : ExtensionArray
-            The original ndarray that was factorized.
+            The original ExtensionArray that factorize was called on.
 
         See Also
         --------
@@ -372,16 +372,20 @@ class ExtensionArray(object):
         return self._constructor_from_sequence(uniques)
 
     def _values_for_factorize(self):
-        """Return an array suitable for factorization.
+        """Return an array and missing value suitable for factorization.
 
         Returns
         -------
-        ndarray
+        values : ndarray
             An array suitable for factoraization. This should maintain order
-            and be a supported dtype.
-
+            and be a supported dtype. By default, the extension array is cast
+            to object dtype.
+        na_value : scalar
+            The missing value to insert before factorization. Note that this
+            differs from `na_sentinel`, which is in the missing value sentinel
+            after factorization. By default, ``np.nan`` is used.
         """
-        return self.astype(object)
+        return self.astype(object), np.nan
 
     def factorize(self, na_sentinel=-1):
         """Encode the extension array as an enumerated type.
@@ -417,12 +421,12 @@ class ExtensionArray(object):
         from pandas.core.algorithms import _factorize_array
 
         mask = self.isna()
-        arr = self._values_for_factorize()
-        arr[mask] = np.nan
+        arr, na_value = self._values_for_factorize()
+        arr[mask] = na_value
 
         labels, uniques = _factorize_array(arr, check_nulls=True,
                                            na_sentinel=na_sentinel)
-        uniques = self._from_factorized(uniques, arr)
+        uniques = self._from_factorized(uniques, self)
         return labels, uniques
 
     # ------------------------------------------------------------------------

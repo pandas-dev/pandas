@@ -31,7 +31,6 @@ from pandas.core.dtypes.common import (
     is_dict_like)
 
 from pandas.core.algorithms import factorize, take_1d, unique1d
-from pandas.core.algorithms import _shared_docs as _algos_shared_docs
 from pandas.core.accessor import PandasDelegate
 from pandas.core.base import (PandasObject,
                               NoNewAttributesMixin, _shared_docs)
@@ -2067,21 +2066,17 @@ class Categorical(ExtensionArray, PandasObject):
             take_codes = sorted(take_codes)
         return cat.set_categories(cat.categories.take(take_codes))
 
-    @Substitution(values='', size_hint='', sort='', order='')
-    @Appender(_algos_shared_docs['factorize'])
-    def factorize(self, na_sentinel=-1):
-        from pandas.core.algorithms import _factorize_array
-
+    def _values_for_factorize(self):
         codes = self.codes.astype('int64')
-        codes[codes == -1] = iNaT
         # We set missing codes, normally -1, to iNaT so that the
         # Int64HashTable treats them as missing values.
-        labels, uniques = _factorize_array(codes, check_nulls=True,
-                                           na_sentinel=na_sentinel)
-        uniques = self._constructor(self.categories.take(uniques),
-                                    categories=self.categories,
-                                    ordered=self.ordered)
-        return labels, uniques
+        return codes, iNaT
+
+    @classmethod
+    def _from_factorized(cls, uniques, original):
+        return original._constructor(original.categories.take(uniques),
+                                     categories=original.categories,
+                                     ordered=original.ordered)
 
     def equals(self, other):
         """
