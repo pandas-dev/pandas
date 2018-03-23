@@ -409,26 +409,37 @@ cdef class {{name}}HashTable(HashTable):
     def get_labels(self, {{dtype}}_t[:] values, {{name}}Vector uniques,
                    Py_ssize_t count_prior, Py_ssize_t na_sentinel,
                    bint check_null=True,
-                   {{dtype}}_t na_value={{default_na_value}},
-                   bint use_na_value=False):
+                   object na_value=None):
         cdef:
             Py_ssize_t i, n = len(values)
             int64_t[:] labels
             Py_ssize_t idx, count = count_prior
             int ret = 0
-            {{dtype}}_t val
+            {{dtype}}_t val, na_value2
             khiter_t k
             {{name}}VectorData *ud
+            bint use_na_value
 
         labels = np.empty(n, dtype=np.int64)
         ud = uniques.data
+        use_na_value = na_value is not None
+
+        if use_na_value:
+            # We need this na_value2 because we want to allow users
+            # to *optionally* specify an NA sentinel *of the correct* type.
+            # We use None, to make it optional, which requires `object` type
+            # for the parameter. To please the compiler, we use na_value2,
+            # which is only used if it's *specified*.
+            na_value2 = <{{dtype}}_t>na_value
+        else:
+            na_value2 = {{default_na_value}}
 
         with nogil:
             for i in range(n):
                 val = values[i]
 
                 if ((check_null and {{null_condition}}) or
-                        (use_na_value and val == na_value)):
+                        (use_na_value and val == na_value2)):
                     labels[i] = na_sentinel
                     continue
 
@@ -699,22 +710,23 @@ cdef class StringHashTable(HashTable):
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
                    Py_ssize_t count_prior, int64_t na_sentinel,
                    bint check_null=1,
-                   object na_value=na_string_sentinel,
-                   bint use_na_value=False):
+                   object na_value=None):
         cdef:
             Py_ssize_t i, n = len(values)
             int64_t[:] labels
             int64_t[:] uindexer
             Py_ssize_t idx, count = count_prior
             int ret = 0
-            object val
+            object val, na_value2
             char *v
             char **vecs
             khiter_t k
+            bint use_na_value
 
         # these by-definition *must* be strings
         labels = np.zeros(n, dtype=np.int64)
         uindexer = np.empty(n, dtype=np.int64)
+        use_na_value = na_value is not None
 
         # pre-filter out missing
         # and assign pointers
@@ -875,8 +887,7 @@ cdef class PyObjectHashTable(HashTable):
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
                    Py_ssize_t count_prior, int64_t na_sentinel,
                    bint check_null=True,
-                   object na_value=na_sentinel,
-                   bint use_na_value=False):
+                   object na_value=None):
         cdef:
             Py_ssize_t i, n = len(values)
             int64_t[:] labels
@@ -884,8 +895,10 @@ cdef class PyObjectHashTable(HashTable):
             int ret = 0
             object val
             khiter_t k
+            bint use_na_value
 
         labels = np.empty(n, dtype=np.int64)
+        use_na_value = na_value is not None
 
         for i in range(n):
             val = values[i]

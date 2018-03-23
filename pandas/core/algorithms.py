@@ -456,16 +456,10 @@ def _factorize_array(values, check_nulls, na_sentinel=-1, size_hint=None,
     """
     (hash_klass, vec_klass), values = _get_data_algo(values, _hashtables)
 
-    use_na_value = na_value is not None
-    kwargs = dict(use_na_value=use_na_value)
-
-    if use_na_value:
-        kwargs['na_value'] = na_value
-
     table = hash_klass(size_hint or len(values))
     uniques = vec_klass()
     labels = table.get_labels(values, uniques, 0, na_sentinel, check_nulls,
-                              **kwargs)
+                              na_value=na_value)
 
     labels = _ensure_platform_int(labels)
     uniques = uniques.to_array()

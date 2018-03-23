@@ -272,8 +272,10 @@ class TestFactorize(object):
 
     @pytest.mark.parametrize('data, na_value', [
         (np.array([0, 1, 0, 2], dtype='u8'), 0),
+        (np.array([1, 0, 1, 2], dtype='u8'), 1),
         (np.array([-2**63, 1, -2**63, 0], dtype='i8'), -2**63),
-        (np.array(['', 'a', '', 'b'], dtype=object), '')
+        (np.array([1, -2**63, 1, 0], dtype='i8'), 1),
+        (np.array(['a', '', 'a', 'b'], dtype=object), 'a')
     ])
     def test_parametrized_factorize_na_value(self, data, na_value):
         l, u = pd.factorize(data, na_value=na_value)
