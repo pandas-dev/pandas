@@ -1654,9 +1654,9 @@ class DataFrame(NDFrame):
             A string representing the encoding to use in the output file,
             defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
         compression : string, optional
-            a string representing the compression to use in the output file,
-            allowed values are 'gzip', 'bz2', 'xz',
-            only used when the first argument is a filename
+            A string representing the compression to use in the output file.
+            Allowed values are 'gzip', 'bz2', 'zip', 'xz'. This input is only
+            used when the first argument is a filename.
         line_terminator : string, default ``'\n'``
             The newline character or character sequence to use in the output
             file
@@ -2289,7 +2289,100 @@ class DataFrame(NDFrame):
         return result
 
     def transpose(self, *args, **kwargs):
-        """Transpose index and columns"""
+        """
+        Transpose index and columns.
+
+        Reflect the DataFrame over its main diagonal by writing rows as columns
+        and vice-versa. The property :attr:`.T` is an accessor to the method
+        :meth:`transpose`.
+
+        Parameters
+        ----------
+        copy : bool, default False
+            If True, the underlying data is copied. Otherwise (default), no
+            copy is made if possible.
+        *args, **kwargs
+            Additional keywords have no effect but might be accepted for
+            compatibility with numpy.
+
+        Returns
+        -------
+        DataFrame
+            The transposed DataFrame.
+
+        See Also
+        --------
+        numpy.transpose : Permute the dimensions of a given array.
+
+        Notes
+        -----
+        Transposing a DataFrame with mixed dtypes will result in a homogeneous
+        DataFrame with the `object` dtype. In such a case, a copy of the data
+        is always made.
+
+        Examples
+        --------
+        **Square DataFrame with homogeneous dtype**
+
+        >>> d1 = {'col1': [1, 2], 'col2': [3, 4]}
+        >>> df1 = pd.DataFrame(data=d1)
+        >>> df1
+           col1  col2
+        0     1     3
+        1     2     4
+
+        >>> df1_transposed = df1.T # or df1.transpose()
+        >>> df1_transposed
+              0  1
+        col1  1  2
+        col2  3  4
+
+        When the dtype is homogeneous in the original DataFrame, we get a
+        transposed DataFrame with the same dtype:
+
+        >>> df1.dtypes
+        col1    int64
+        col2    int64
+        dtype: object
+        >>> df1_transposed.dtypes
+        0    int64
+        1    int64
+        dtype: object
+
+        **Non-square DataFrame with mixed dtypes**
+
+        >>> d2 = {'name': ['Alice', 'Bob'],
+        ...       'score': [9.5, 8],
+        ...       'employed': [False, True],
+        ...       'kids': [0, 0]}
+        >>> df2 = pd.DataFrame(data=d2)
+        >>> df2
+            name  score  employed  kids
+        0  Alice    9.5     False     0
+        1    Bob    8.0      True     0
+
+        >>> df2_transposed = df2.T # or df2.transpose()
+        >>> df2_transposed
+                      0     1
+        name      Alice   Bob
+        score       9.5     8
+        employed  False  True
+        kids          0     0
+
+        When the DataFrame has mixed dtypes, we get a transposed DataFrame with
+        the `object` dtype:
+
+        >>> df2.dtypes
+        name         object
+        score       float64
+        employed       bool
+        kids          int64
+        dtype: object
+        >>> df2_transposed.dtypes
+        0    object
+        1    object
+        dtype: object
+        """
         nv.validate_transpose(args, dict())
         return super(DataFrame, self).transpose(1, 0, **kwargs)
 
@@ -5465,8 +5558,6 @@ class DataFrame(NDFrame):
         return self[key]
 
     _agg_doc = dedent("""
-    Notes
-    -----
     The aggregation operations are always performed over an axis, either the
     index (default) or the column axis. This behavior is different from
     `numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
@@ -6989,7 +7080,10 @@ class DataFrame(NDFrame):
 
 
 DataFrame._setup_axes(['index', 'columns'], info_axis=1, stat_axis=0,
-                      axes_are_reversed=True, aliases={'rows': 0})
+                      axes_are_reversed=True, aliases={'rows': 0},
+                      docs={
+                          'index': 'The index (row labels) of the DataFrame.',
+                          'columns': 'The column labels of the DataFrame.'})
 DataFrame._add_numeric_operations()
 DataFrame._add_series_or_dataframe_operations()
 

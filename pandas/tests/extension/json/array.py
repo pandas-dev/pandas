@@ -116,6 +116,13 @@ class JSONArray(ExtensionArray):
         frozen = tuple(tuple(x.items()) for x in self)
         return np.array(frozen, dtype=object), np.nan
 
+    def _values_for_argsort(self):
+        # Disable NumPy's shape inference by including an empty tuple...
+        # If all the elemnts of self are the same size P, NumPy will
+        # cast them to an (N, P) array, instead of an (N,) array of tuples.
+        frozen = [()] + list(tuple(x.items()) for x in self)
+        return np.array(frozen, dtype=object)[1:]
+
 
 def make_data():
     # TODO: Use a regular dict. See _NDFrameIndexer._setitem_with_indexer

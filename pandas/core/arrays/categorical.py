@@ -1080,20 +1080,73 @@ class Categorical(ExtensionArray, PandasObject):
             return cat
 
     def map(self, mapper):
-        """Apply mapper function to its categories (not codes).
+        """
+        Map categories using input correspondence (dict, Series, or function).
+
+        Maps the categories to new categories. If the mapping correspondence is
+        one-to-one the result is a :class:`~pandas.Categorical` which has the
+        same order property as the original, otherwise a :class:`~pandas.Index`
+        is returned.
+
+        If a `dict` or :class:`~pandas.Series` is used any unmapped category is
+        mapped to `NaN`. Note that if this happens an :class:`~pandas.Index`
+        will be returned.
 
         Parameters
         ----------
-        mapper : callable
-            Function to be applied. When all categories are mapped
-            to different categories, the result will be Categorical which has
-            the same order property as the original. Otherwise, the result will
-            be np.ndarray.
+        mapper : function, dict, or Series
+            Mapping correspondence.
 
         Returns
         -------
-        applied : Categorical or Index.
+        pandas.Categorical or pandas.Index
+            Mapped categorical.
 
+        See Also
+        --------
+        CategoricalIndex.map : Apply a mapping correspondence on a
+            :class:`~pandas.CategoricalIndex`.
+        Index.map : Apply a mapping correspondence on an
+            :class:`~pandas.Index`.
+        Series.map : Apply a mapping correspondence on a
+            :class:`~pandas.Series`.
+        Series.apply : Apply more complex functions on a
+            :class:`~pandas.Series`.
+
+        Examples
+        --------
+        >>> cat = pd.Categorical(['a', 'b', 'c'])
+        >>> cat
+        [a, b, c]
+        Categories (3, object): [a, b, c]
+        >>> cat.map(lambda x: x.upper())
+        [A, B, C]
+        Categories (3, object): [A, B, C]
+        >>> cat.map({'a': 'first', 'b': 'second', 'c': 'third'})
+        [first, second, third]
+        Categories (3, object): [first, second, third]
+
+        If the mapping is one-to-one the ordering of the categories is
+        preserved:
+
+        >>> cat = pd.Categorical(['a', 'b', 'c'], ordered=True)
+        >>> cat
+        [a, b, c]
+        Categories (3, object): [a < b < c]
+        >>> cat.map({'a': 3, 'b': 2, 'c': 1})
+        [3, 2, 1]
+        Categories (3, int64): [3 < 2 < 1]
+
+        If the mapping is not one-to-one an :class:`~pandas.Index` is returned:
+
+        >>> cat.map({'a': 'first', 'b': 'second', 'c': 'first'})
+        Index(['first', 'second', 'first'], dtype='object')
+
+        If a `dict` is used, all unmapped categories are mapped to `NaN` and
+        the result is an :class:`~pandas.Index`:
+
+        >>> cat.map({'a': 'first', 'b': 'second'})
+        Index(['first', 'second', nan], dtype='object')
         """
         new_categories = self.categories.map(mapper)
         try:
@@ -1378,17 +1431,24 @@ class Categorical(ExtensionArray, PandasObject):
                             "you can use .as_ordered() to change the "
                             "Categorical to an ordered one\n".format(op=op))
 
-    def argsort(self, ascending=True, kind='quicksort', *args, **kwargs):
-        """
-        Returns the indices that would sort the Categorical instance if
-        'sort_values' was called. This function is implemented to provide
-        compatibility with numpy ndarray objects.
+    def _values_for_argsort(self):
+        return self._codes.copy()
 
-        While an ordering is applied to the category values, arg-sorting
-        in this context refers more to organizing and grouping together
-        based on matching category values. Thus, this function can be
-        called on an unordered Categorical instance unlike the functions
-        'Categorical.min' and 'Categorical.max'.
+    def argsort(self, *args, **kwargs):
+        # TODO(PY2): use correct signature
+        # We have to do *args, **kwargs to avoid a a py2-only signature
+        # issue since np.argsort differs from argsort.
+        """Return the indicies that would sort the Categorical.
+
+        Parameters
+        ----------
+        ascending : bool, default True
+            Whether the indices should result in an ascending
+            or descending sort.
+        kind : {'quicksort', 'mergesort', 'heapsort'}, optional
+            Sorting algorithm.
+        *args, **kwargs:
+            passed through to :func:`numpy.argsort`.
 
         Returns
         -------
@@ -1397,12 +1457,28 @@ class Categorical(ExtensionArray, PandasObject):
         See also
         --------
         numpy.ndarray.argsort
+
+        Notes
+        -----
+        While an ordering is applied to the category values, arg-sorting
+        in this context refers more to organizing and grouping together
+        based on matching category values. Thus, this function can be
+        called on an unordered Categorical instance unlike the functions
+        'Categorical.min' and 'Categorical.max'.
+
+        Examples
+        --------
+        >>> pd.Categorical(['b', 'b', 'a', 'c']).argsort()
+        array([2, 0, 1, 3])
+
+        >>> cat = pd.Categorical(['b', 'b', 'a', 'c'],
+        ...                      categories=['c', 'b', 'a'],
+        ...                      ordered=True)
+        >>> cat.argsort()
+        array([3, 0, 1, 2])
         """
-        ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
-        result = np.argsort(self._codes.copy(), kind=kind, **kwargs)
-        if not ascending:
-            result = result[::-1]
-        return result
+        # Keep the implementation here just for the docstring.
+        return super(Categorical, self).argsort(*args, **kwargs)
 
     def sort_values(self, inplace=False, ascending=True, na_position='last'):
         """ Sorts the Categorical by category value returning a new
