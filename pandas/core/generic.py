@@ -4516,8 +4516,7 @@ class NDFrame(PandasObject, SelectionMixin):
         When `deep=False`, a new object will be created without copying
         the calling object's data or index (only references to the data
         and index are copied). Any changes to the data of the original
-        will be reflected in the shallow copy (and vice versa). Changes
-        to the index will result in a new index as indices are immutable.
+        will be reflected in the shallow copy (and vice versa).
 
         Parameters
         ----------
@@ -4532,10 +4531,15 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Notes
         -----
-        When `deep=True`, data is copied but actual Python objects
+        When ``deep=True``, data is copied but actual Python objects
         will not be copied recursively, only the reference to the object.
         This is in contrast to `copy.deepcopy` in the Standard Library,
         which recursively copies object data (see examples below).
+
+        While ``Index`` objects are copied when ``deep=True``, the underlying
+        numpy array is not copied for performance reasons. Since ``Index`` is
+        immutable, the underlying data can be safely shared and a copy
+        is not needed.
 
         Examples
         --------
@@ -4589,9 +4593,9 @@ class NDFrame(PandasObject, SelectionMixin):
         b    2
         dtype: int64
 
-        When copying an object containing Python objects, a deep copy will
-        copy the data, but will not do so recursively. Updating a nested data
-        object will be reflected in the deep copy.
+        Note that when copying an object containing Python objects, a deep copy
+        will copy the data, but will not do so recursively. Updating a nested
+        data object will be reflected in the deep copy.
 
         >>> s = pd.Series([[1, 2], [3, 4]])
         >>> deep = s.copy()
