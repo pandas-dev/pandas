@@ -380,6 +380,11 @@ class ExtensionArray(object):
             An array suitable for factoraization. This should maintain order
             and be a supported dtype. By default, the extension array is cast
             to object dtype.
+
+        Notes
+        -----
+        The value returned by `_values_for_factorized` may be modified
+        inplace. Make sure it isn't a view on the original data.
         """
         return self.astype(object)
 
@@ -412,22 +417,22 @@ class ExtensionArray(object):
         -----
         :meth:`pandas.factorize` offers a `sort` keyword as well.
         """
-        from pandas.core.algorithms import _factorize_array
+        # Impelmentor note: There are two ways to override the behavior of
+        # pandas.factorize
+        # 1. ExtensionArray._values_for_factories and
+        #    ExtensionArray._from_factorize
+        # 2. ExtensionArray.factorize
+        # For the first, you get control over which values are passed to
+        # pandas' internal factorization method.
+        from pandas.core.algorithms import factorize
         import pandas.core.dtypes.common as com
         from pandas._libs.tslib import iNaT
 
         mask = self.isna()
         arr = self._values_for_factorize()
 
-        # Mask values going into the hash table with the appropriate
-        # NA type.
-        if com.is_signed_integer_dtype(arr):
-            arr[mask] = iNaT
-        elif com.is_float_dtype(arr) or com.is_object_dtype(arr):
-            arr[mask] = np.nan
+        labels, uniques = factorize(arr, na_sentinel=na_sentinel, mask=mask)
 
-        labels, uniques = _factorize_array(arr, check_nulls=True,
-                                           na_sentinel=na_sentinel)
         uniques = self._from_factorized(uniques, self)
         return labels, uniques
 

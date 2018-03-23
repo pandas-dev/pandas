@@ -585,7 +585,7 @@ _shared_docs['factorize'] = """
 )
 @Appender(_shared_docs['factorize'])
 @deprecate_kwarg(old_arg_name='order', new_arg_name=None)
-def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
+def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None, mask=None):
     # Implementation notes: This method is responsible for 3 things
     # 1.) coercing data to array-like (ndarray, Index, extension array)
     # 2.) factorizing labels and uniques
@@ -596,7 +596,19 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     # should happen here.
 
     values = _ensure_arraylike(values)
+
     original = values
+
+    # Mask values going into the hash table with the appropriate
+    # NA type.
+    if mask is not None:
+        values = values.copy()
+        if com.is_signed_integer_dtype(values):
+            values[mask] = iNaT
+        elif com.is_float_dtype(values) or com.is_object_dtype(values):
+            values[mask] = np.nan
+
+        # ughhhhhhhhhhhhhhhhhh still have uint64 issues
 
     if is_extension_array_dtype(values):
         values = getattr(values, '_values', values)
@@ -604,6 +616,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
         dtype = original.dtype
     else:
         values, dtype, _ = _ensure_data(values)
+        import pdb; pdb.set_trace()
         check_nulls = not is_integer_dtype(original)
         labels, uniques = _factorize_array(values, check_nulls,
                                            na_sentinel=na_sentinel,
