@@ -175,6 +175,8 @@ def _new_DatetimeIndex(cls, d):
 class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                     Int64Index):
     """
+    Store timestamps using NumPy’s datetime64 dtype.
+
     Immutable ndarray of datetime64 data, represented internally as int64, and
     which can be boxed to Timestamp objects that are subclasses of datetime and
     carry metadata such as frequency information.
@@ -261,6 +263,14 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     to_frame
     month_name
     day_name
+
+    Examples
+    --------
+    >>> dates = pd.DatetimeIndex(freq='M', start='2018-3-10', periods=6)
+    >>> dates
+    DatetimeIndex(['2018-03-31', '2018-04-30', '2018-05-31',
+                   '2018-06-30', '2018-07-31', '2018-08-31'],
+                  dtype='datetime64[ns]', freq='M')
 
     Notes
     -----
