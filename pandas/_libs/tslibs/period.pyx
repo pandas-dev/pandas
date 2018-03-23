@@ -1422,9 +1422,15 @@ cdef class _Period(object):
 
         Examples
         --------
-        >>> p = pd.Period("2014-9-21", freq="A")
+        >>> p = pd.Period('2014Q1', freq="Q")
         >>> p.qyear
         2014
+
+        p = pd.Period('2014Q1', freq="Q-JUN")
+        >>> p.qyear
+        2014
+        >>> p.year
+        2013
         """
         base, mult = get_freq_code(self.freq)
         return pqyear(self.ordinal, base)
