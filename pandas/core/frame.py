@@ -2153,7 +2153,7 @@ class DataFrame(NDFrame):
                 lines.append(_put_str(col, space) + tmpl % (count, dtype))
 
         def _non_verbose_repr():
-            lines.append(self.columns.summary(name='Columns'))
+            lines.append(self.columns._summary(name='Columns'))
 
         def _sizeof_fmt(num, size_qualifier):
             # returns size in human readable format
