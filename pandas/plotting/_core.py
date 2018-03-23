@@ -3075,7 +3075,7 @@ class FramePlotMethods(BasePlotMethods):
 
             >>> data = np.random.randn(25, 4)
             >>> df = pd.DataFrame(data, columns=list('ABCD'))
-            >>> plot = df.plot.box()
+            >>> ax = df.plot.box()
         """
         return self(kind='box', by=by, **kwds)
 
