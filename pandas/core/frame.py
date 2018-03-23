@@ -2292,14 +2292,15 @@ class DataFrame(NDFrame):
         """
         Transpose index and columns.
 
-        Reflect the dataframe over its main diagonal by writing rows as columns
+        Reflect the DataFrame over its main diagonal by writing rows as columns
         and vice-versa. The property :attr:`.T` is an accessor to the method
         :meth:`transpose`.
 
         Parameters
         ----------
         copy : bool, default False
-            Whether to make a copy of the underlying data.
+            If True, the underlying data is copied. Otherwise (default), no
+            copy is made if possible.
         *args, **kwargs
             Additional keywords have no effect but might be accepted for
             compatibility with numpy.
@@ -2316,7 +2317,8 @@ class DataFrame(NDFrame):
         Notes
         -----
         Transposing a DataFrame with mixed dtypes will result in a homogeneous
-        DataFrame with the `object` dtype.
+        DataFrame with the `object` dtype. In such a case, a copy of the data
+        is always made.
 
         Examples
         --------
