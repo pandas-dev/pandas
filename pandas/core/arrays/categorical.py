@@ -2121,8 +2121,6 @@ class Categorical(ExtensionArray, PandasObject):
 
     def _values_for_factorize(self):
         codes = self.codes.astype('int64')
-        # We set missing codes, normally -1, to iNaT so that the
-        # Int64HashTable treats them as missing values.
         return codes
 
     @classmethod
