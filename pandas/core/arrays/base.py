@@ -380,12 +380,8 @@ class ExtensionArray(object):
             An array suitable for factoraization. This should maintain order
             and be a supported dtype. By default, the extension array is cast
             to object dtype.
-        na_value : scalar
-            The missing value to insert before factorization. Note that this
-            differs from `na_sentinel`, which is in the missing value sentinel
-            after factorization. By default, ``np.nan`` is used.
         """
-        return self.astype(object), np.nan
+        return self.astype(object)
 
     def factorize(self, na_sentinel=-1):
         """Encode the extension array as an enumerated type.
@@ -416,13 +412,19 @@ class ExtensionArray(object):
         -----
         :meth:`pandas.factorize` offers a `sort` keyword as well.
         """
-        # Implementor notes: There are two options for overriding the
-        # behavior of `factorize`: here and `_values_for_factorize`.
         from pandas.core.algorithms import _factorize_array
+        import pandas.core.dtypes.common as com
+        from pandas._libs.tslib import iNaT
 
         mask = self.isna()
-        arr, na_value = self._values_for_factorize()
-        arr[mask] = na_value
+        arr = self._values_for_factorize()
+
+        # Mask values going into the hash table with the appropriate
+        # NA type.
+        if com.is_signed_integer_dtype(arr):
+            arr[mask] = iNaT
+        elif com.is_float_dtype(arr) or com.is_object_dtype(arr):
+            arr[mask] = np.nan
 
         labels, uniques = _factorize_array(arr, check_nulls=True,
                                            na_sentinel=na_sentinel)

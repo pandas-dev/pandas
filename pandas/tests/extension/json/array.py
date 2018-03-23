@@ -114,7 +114,7 @@ class JSONArray(ExtensionArray):
 
     def _values_for_factorize(self):
         frozen = tuple(tuple(x.items()) for x in self)
-        return np.array(frozen, dtype=object), np.nan
+        return np.array(frozen, dtype=object)
 
     def _values_for_argsort(self):
         # Disable NumPy's shape inference by including an empty tuple...
