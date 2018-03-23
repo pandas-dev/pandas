@@ -1654,9 +1654,9 @@ class DataFrame(NDFrame):
             A string representing the encoding to use in the output file,
             defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
         compression : string, optional
-            a string representing the compression to use in the output file,
-            allowed values are 'gzip', 'bz2', 'xz',
-            only used when the first argument is a filename
+            A string representing the compression to use in the output file.
+            Allowed values are 'gzip', 'bz2', 'zip', 'xz'. This input is only
+            used when the first argument is a filename.
         line_terminator : string, default ``'\n'``
             The newline character or character sequence to use in the output
             file
@@ -5465,8 +5465,6 @@ class DataFrame(NDFrame):
         return self[key]
 
     _agg_doc = dedent("""
-    Notes
-    -----
     The aggregation operations are always performed over an axis, either the
     index (default) or the column axis. This behavior is different from
     `numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
@@ -6989,7 +6987,10 @@ class DataFrame(NDFrame):
 
 
 DataFrame._setup_axes(['index', 'columns'], info_axis=1, stat_axis=0,
-                      axes_are_reversed=True, aliases={'rows': 0})
+                      axes_are_reversed=True, aliases={'rows': 0},
+                      docs={
+                          'index': 'The index (row labels) of the DataFrame.',
+                          'columns': 'The column labels of the DataFrame.'})
 DataFrame._add_numeric_operations()
 DataFrame._add_series_or_dataframe_operations()
 
