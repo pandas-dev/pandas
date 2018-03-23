@@ -81,7 +81,7 @@ class TestMissing(base.BaseMissingTests):
 
 class TestMethods(base.BaseMethodsTests):
     unhashable = pytest.mark.skip(reason="Unhashable")
-    unstable = pytest.mark.skipif(sys.version_info <= (3, 5),
+    unstable = pytest.mark.skipif(sys.version_info < (3, 6),
                                   reason="Dictionary order unstable")
 
     @unhashable
