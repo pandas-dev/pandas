@@ -703,7 +703,7 @@ class DataFrame(NDFrame):
             val = val.replace('>', r'&gt;', 1)
             return '<pre>' + val + '</pre>'
 
-        if get_option("display.notebook_repr_html"):
+        if get_option("display.html.notebook"):
             max_rows = get_option("display.max_rows")
             max_cols = get_option("display.max_columns")
             show_dimensions = get_option("display.show_dimensions")

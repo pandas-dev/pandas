@@ -372,7 +372,7 @@ display.memory_usage                    True         This specifies if the memor
 display.multi_sparse                    True         "Sparsify" MultiIndex display (don't
                                                      display repeated elements in outer
                                                      levels within groups)
-display.notebook_repr_html              True         When True, IPython notebook will
+display.html.notebook                   True         When True, IPython notebook will
                                                      use html representation for
                                                      pandas objects (if it is available).
 display.pprint_nest_depth               3            Controls the number of nested levels

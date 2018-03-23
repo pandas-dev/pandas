@@ -742,6 +742,7 @@ Deprecations
 
 - ``pandas.tseries.plotting.tsplot`` is deprecated. Use :func:`Series.plot` instead (:issue:`18627`)
 - ``Index.summary()`` is deprecated and will be removed in a future version (:issue:`18217`)
+- ``pd.options.display.notebook_repr_html`` is deprecated in favor of ``pd.options.display.html.notebook`` (:issue:`11784`)
 
 .. _whatsnew_0230.prior_deprecations:
 
