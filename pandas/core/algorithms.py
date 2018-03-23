@@ -435,7 +435,8 @@ def isin(comps, values):
     return f(comps, values)
 
 
-def _factorize_array(values, check_nulls, na_sentinel=-1, size_hint=None):
+def _factorize_array(values, check_nulls, na_sentinel=-1, size_hint=None,
+                     na_value=None):
     """Factorize an array-like to labels and uniques.
 
     This doesn't do any coercion of types or unboxing before factorization.
@@ -455,7 +456,13 @@ def _factorize_array(values, check_nulls, na_sentinel=-1, size_hint=None):
     """
     (hash_klass, vec_klass), values = _get_data_algo(values, _hashtables)
 
-    table = hash_klass(size_hint or len(values))
+    use_na_value = na_value is not None
+    kwargs = dict(use_na_value=use_na_value)
+
+    if use_na_value:
+        kwargs['na_value'] = na_value
+
+    table = hash_klass(size_hint or len(values), **kwargs)
     uniques = vec_klass()
     labels = table.get_labels(values, uniques, 0, na_sentinel, check_nulls)
 
@@ -465,7 +472,8 @@ def _factorize_array(values, check_nulls, na_sentinel=-1, size_hint=None):
 
 
 @deprecate_kwarg(old_arg_name='order', new_arg_name=None)
-def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
+def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None,
+              na_value=None):
     """
     Encode input values as an enumerated type or categorical variable
 
@@ -479,6 +487,8 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     na_sentinel : int, default -1
         Value to mark "not found"
     size_hint : hint to the hashtable sizer
+    na_value : object, optional
+        A value in `values` to consider missing.
 
     Returns
     -------
@@ -509,9 +519,11 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     else:
         values, dtype, _ = _ensure_data(values)
         check_nulls = not is_integer_dtype(original)
+
         labels, uniques = _factorize_array(values, check_nulls,
                                            na_sentinel=na_sentinel,
-                                           size_hint=size_hint)
+                                           size_hint=size_hint,
+                                           na_value=na_value)
 
     if sort and len(uniques) > 0:
         from pandas.core.sorting import safe_sort

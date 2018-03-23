@@ -8,32 +8,47 @@ cdef class HashTable:
     pass
 
 cdef class UInt64HashTable(HashTable):
-    cdef kh_uint64_t *table
+    cdef:
+        kh_uint64_t *table
+        uint64_t na_value
+        bint use_na_value
 
     cpdef get_item(self, uint64_t val)
     cpdef set_item(self, uint64_t key, Py_ssize_t val)
 
 cdef class Int64HashTable(HashTable):
-    cdef kh_int64_t *table
+    cdef:
+        kh_int64_t *table
+        int64_t na_value
+        bint use_na_value
 
     cpdef get_item(self, int64_t val)
     cpdef set_item(self, int64_t key, Py_ssize_t val)
 
 cdef class Float64HashTable(HashTable):
-    cdef kh_float64_t *table
+    cdef:
+        kh_float64_t *table
+        float64_t na_value
+        bint use_na_value
 
     cpdef get_item(self, float64_t val)
     cpdef set_item(self, float64_t key, Py_ssize_t val)
 
 cdef class PyObjectHashTable(HashTable):
-    cdef kh_pymap_t *table
+    cdef:
+        kh_pymap_t *table
+        object na_value
+        bint use_na_value
 
     cpdef get_item(self, object val)
     cpdef set_item(self, object key, Py_ssize_t val)
 
 
 cdef class StringHashTable(HashTable):
-    cdef kh_str_t *table
+    cdef:
+        kh_str_t *table
+        object na_value
+        bint use_na_value
 
     cpdef get_item(self, object val)
     cpdef set_item(self, object key, Py_ssize_t val)
