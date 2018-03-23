@@ -308,11 +308,8 @@ def get_dispatch(dtypes):
 
 cdef class {{name}}HashTable(HashTable):
 
-    def __cinit__(self, size_hint=1, {{dtype}}_t na_value={{default_na_value}},
-                  bint use_na_value=False):
+    def __cinit__(self, size_hint=1):
         self.table = kh_init_{{dtype}}()
-        self.na_value = na_value
-        self.use_na_value = use_na_value
         if size_hint is not None:
             kh_resize_{{dtype}}(self.table, size_hint)
 
@@ -411,21 +408,20 @@ cdef class {{name}}HashTable(HashTable):
     @cython.boundscheck(False)
     def get_labels(self, {{dtype}}_t[:] values, {{name}}Vector uniques,
                    Py_ssize_t count_prior, Py_ssize_t na_sentinel,
-                   bint check_null=True):
+                   bint check_null=True,
+                   {{dtype}}_t na_value={{default_na_value}},
+                   bint use_na_value=False):
         cdef:
             Py_ssize_t i, n = len(values)
             int64_t[:] labels
             Py_ssize_t idx, count = count_prior
             int ret = 0
-            {{dtype}}_t val, na_value
+            {{dtype}}_t val
             khiter_t k
             {{name}}VectorData *ud
-            bint use_na_value
 
         labels = np.empty(n, dtype=np.int64)
         ud = uniques.data
-        na_value = self.na_value
-        use_na_value = self.use_na_value
 
         with nogil:
             for i in range(n):
@@ -526,11 +522,8 @@ cdef class StringHashTable(HashTable):
     # or a sentinel np.nan / None missing value
     na_string_sentinel = '__nan__'
 
-    def __init__(self, int size_hint=1, object na_value=na_string_sentinel,
-                 bint use_na_value=False):
+    def __init__(self, int size_hint=1):
         self.table = kh_init_str()
-        self.na_value = na_value
-        self.use_na_value = use_na_value
         if size_hint is not None:
             kh_resize_str(self.table, size_hint)
 
@@ -705,7 +698,9 @@ cdef class StringHashTable(HashTable):
     @cython.boundscheck(False)
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
                    Py_ssize_t count_prior, int64_t na_sentinel,
-                   bint check_null=1):
+                   bint check_null=1,
+                   object na_value=na_string_sentinel,
+                   bint use_na_value=False):
         cdef:
             Py_ssize_t i, n = len(values)
             int64_t[:] labels
@@ -716,14 +711,10 @@ cdef class StringHashTable(HashTable):
             char *v
             char **vecs
             khiter_t k
-            bint use_na_value
 
         # these by-definition *must* be strings
         labels = np.zeros(n, dtype=np.int64)
         uindexer = np.empty(n, dtype=np.int64)
-
-        na_value = self.na_value
-        use_na_value = self.use_na_value
 
         # pre-filter out missing
         # and assign pointers
@@ -768,11 +759,8 @@ na_sentinel = object
 
 cdef class PyObjectHashTable(HashTable):
 
-    def __init__(self, size_hint=1, object na_value=na_sentinel,
-                 bint use_na_value=False):
+    def __init__(self, size_hint=1):
         self.table = kh_init_pymap()
-        self.na_value = na_value
-        self.use_na_value = use_na_value
         kh_resize_pymap(self.table, size_hint)
 
     def __dealloc__(self):
@@ -886,7 +874,9 @@ cdef class PyObjectHashTable(HashTable):
 
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
                    Py_ssize_t count_prior, int64_t na_sentinel,
-                   bint check_null=True):
+                   bint check_null=True,
+                   object na_value=na_sentinel,
+                   bint use_na_value=False):
         cdef:
             Py_ssize_t i, n = len(values)
             int64_t[:] labels
@@ -894,11 +884,8 @@ cdef class PyObjectHashTable(HashTable):
             int ret = 0
             object val
             khiter_t k
-            bint use_na_value
 
         labels = np.empty(n, dtype=np.int64)
-        na_value = self.na_value
-        use_na_value = self.use_na_value
 
         for i in range(n):
             val = values[i]

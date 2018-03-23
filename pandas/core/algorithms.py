@@ -462,9 +462,10 @@ def _factorize_array(values, check_nulls, na_sentinel=-1, size_hint=None,
     if use_na_value:
         kwargs['na_value'] = na_value
 
-    table = hash_klass(size_hint or len(values), **kwargs)
+    table = hash_klass(size_hint or len(values))
     uniques = vec_klass()
-    labels = table.get_labels(values, uniques, 0, na_sentinel, check_nulls)
+    labels = table.get_labels(values, uniques, 0, na_sentinel, check_nulls,
+                              **kwargs)
 
     labels = _ensure_platform_int(labels)
     uniques = uniques.to_array()
