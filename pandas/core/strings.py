@@ -954,7 +954,7 @@ def str_join(arr, sep):
 
     Returns
     -------
-    Series/Index of objects
+    Series/Index: object
 
     Notes
     -----
@@ -971,21 +971,28 @@ def str_join(arr, sep):
 
     Example with a list that contains non-string elements.
 
-    >>> s = pd.Series({1: ['lion', 'elephant', 'zebra'],
-    ...                2: [1.1, 2.2, 3.3],
-    ...                3: [np.nan, np.nan, np.nan]})
+    >>> s = pd.Series([['lion', 'elephant', 'zebra'],
+    ...                [1.1, 2.2, 3.3],
+    ...                ['cat', np.nan, 'dog'],
+    ...                ['cow', 4.5, 'goat']
+    ...                ['duck', ['swan', 'fish'], 'guppy']])
     >>> s
-    1    [lion, elephant, zebra]
-    2            [1.1, 2.2, 3.3]
-    3            [nan, nan, nan]
+    0        [lion, elephant, zebra]
+    1                [1.1, 2.2, 3.3]
+    2                [cat, nan, dog]
+    3               [cow, 4.5, goat]
+    4    [duck, [swan, fish], guppy]
     dtype: object
 
-    Join all lists using an '-', the list of floats will become a NaN.
+    Join all lists using an '-', the lists containing object(s) of types other
+    than str will become a NaN.
 
     >>> s.str.join('-')
-    1    lion-elephant-zebra
+    0    lion-elephant-zebra
+    1                    NaN
     2                    NaN
     3                    NaN
+    4                    NaN
     dtype: object
     """
     return _na_map(sep.join, arr)
