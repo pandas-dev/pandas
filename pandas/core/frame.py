@@ -2298,6 +2298,8 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
+        copy : bool, default False
+            Whether to make a copy of the underlying data.
         *args, **kwargs
             Additional keywords have no effect but might be accepted for
             compatibility with numpy.
