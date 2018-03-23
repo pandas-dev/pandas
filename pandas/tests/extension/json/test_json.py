@@ -4,6 +4,7 @@ import sys
 import pytest
 
 
+from pandas.compat import PY36
 from pandas.tests.extension import base
 
 from .array import JSONArray, JSONDtype, make_data
@@ -81,7 +82,7 @@ class TestMissing(base.BaseMissingTests):
 
 class TestMethods(base.BaseMethodsTests):
     unhashable = pytest.mark.skip(reason="Unhashable")
-    unstable = pytest.mark.skipif(sys.version_info < (3, 6),
+    unstable = pytest.mark.skipif(not PY36,  # 3.6 or higher
                                   reason="Dictionary order unstable")
 
     @unhashable
