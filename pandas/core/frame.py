@@ -2298,11 +2298,9 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        *args
-            These arguments will be passed to
-            :func:`pandas.compat.numpy.function.validate_transpose`.
-        **kwargs
-            Keyword arguments used to create the transposed DataFrame.
+        *args, **kwargs
+            Additional keywords have no effect but might be accepted for
+            compatibility with numpy.
 
         Returns
         -------
