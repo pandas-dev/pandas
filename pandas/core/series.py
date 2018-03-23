@@ -1429,8 +1429,28 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # TODO: Add option for bins like value_counts()
         return algorithms.mode(self)
 
-    @Appender(base._shared_docs['unique'] % _shared_doc_kwargs)
     def unique(self):
+        """
+        Return unique values in the object. Uniques are returned in order
+        of appearance, this does NOT sort. Hash table-based unique.
+
+        Parameters
+        ----------
+        values : 1d array-like
+
+        Returns
+        -------
+        unique values.
+          - If the input is an Index, the return is an Index
+          - If the input is a Categorical dtype, the return is a Categorical
+          - If the input is a Series/ndarray, the return will be an ndarray
+
+        See Also
+        --------
+        unique
+        Index.unique
+        Series.unique
+        """
         result = super(Series, self).unique()
 
         if is_datetime64tz_dtype(self.dtype):
