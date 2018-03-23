@@ -738,6 +738,7 @@ class _MergeOperation(object):
                     result[name] = key_col
                 elif result._is_level_reference(name):
                     if isinstance(result.index, MultiIndex):
+                        key_col.name = name
                         idx_list = [result.index.get_level_values(level_name)
                                     if level_name != name else key_col
                                     for level_name in result.index.names]

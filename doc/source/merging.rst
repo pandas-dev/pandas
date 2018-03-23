@@ -1125,17 +1125,42 @@ This is equivalent but less verbose and more memory efficient / faster than this
 Joining with two multi-indexes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This is not implemented via ``join`` at-the-moment, however it can be done using
-the following code.
+This is supported in a limited way, provided that the index for the right
+argument is completely used in the join, and is a subset of the indices in 
+the left argument, as in this example:
 
 .. ipython:: python
 
-   index = pd.MultiIndex.from_tuples([('K0', 'X0'), ('K0', 'X1'),
-                                      ('K1', 'X2')],
-                                       names=['key', 'X'])
+   leftindex = pd.MultiIndex.from_product([list('abc'), list('xy'), [1, 2]],
+                                          names=['abc', 'xy', 'num'])
+   left = pd.DataFrame({'v1' : range(12)}, index=leftindex)
+   left
+    
+   rightindex = pd.MultiIndex.from_product([list('abc'), list('xy')],
+                                           names=['abc', 'xy'])
+   right = pd.DataFrame({'v2': [100*i for i in range(1, 7)]}, index=rightindex)
+   right
+    
+   left.join(right, on=['abc', 'xy'], how='inner')
+
+If that condition is not satisfied, a join with two multi-indexes can be 
+done using the following code.
+
+.. ipython:: python
+
+   leftindex = pd.MultiIndex.from_tuples([('K0', 'X0'), ('K0', 'X1'),
+                                          ('K1', 'X2')],
+                                         names=['key', 'X'])
    left = pd.DataFrame({'A': ['A0', 'A1', 'A2'],
                         'B': ['B0', 'B1', 'B2']},
-                         index=index)
+                        index=leftindex)
+
+   rightindex = pd.MultiIndex.from_tuples([('K0', 'Y0'), ('K1', 'Y1'),
+                                           ('K2', 'Y2'), ('K2', 'Y3')],
+                                          names=['key', 'Y'])
+   right = pd.DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
+                         'D': ['D0', 'D1', 'D2', 'D3']},
+                         index=rightindex)
 
    result = pd.merge(left.reset_index(), right.reset_index(),
                      on=['key'], how='inner').set_index(['key','X','Y'])
@@ -1153,7 +1178,7 @@ the following code.
 Merging on a combination of columns and index levels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. versionadded:: 0.22
+.. versionadded:: 0.23
 
 Strings passed as the ``on``, ``left_on``, and ``right_on`` parameters
 may refer to either column names or index level names.  This enables merging
@@ -1191,6 +1216,12 @@ resetting indexes.
    When DataFrames are merged on a string that matches an index level in both
    frames, the index level is preserved as an index level in the resulting
    DataFrame.
+   
+.. note::
+   When DataFrames are merged using only some of the levels of a `MultiIndex`,
+   the extra levels will be dropped from the resulting merge. In order to
+   preserve those levels, use ``reset_index`` on those level names to move
+   those levels to columns prior to doing the merge.
 
 .. note::
 
