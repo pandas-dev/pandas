@@ -1,15 +1,14 @@
 import operator
-import sys
 
 import pytest
 
 
+from pandas.compat import PY2, PY36
 from pandas.tests.extension import base
 
 from .array import JSONArray, JSONDtype, make_data
 
-pytestmark = pytest.mark.skipif(sys.version_info[0] == 2,
-                                reason="Py2 doesn't have a UserDict")
+pytestmark = pytest.mark.skipif(PY2, reason="Py2 doesn't have a UserDict")
 
 
 @pytest.fixture
@@ -81,7 +80,7 @@ class TestMissing(base.BaseMissingTests):
 
 class TestMethods(base.BaseMethodsTests):
     unhashable = pytest.mark.skip(reason="Unhashable")
-    unstable = pytest.mark.skipif(sys.version_info <= (3, 5),
+    unstable = pytest.mark.skipif(not PY36,  # 3.6 or higher
                                   reason="Dictionary order unstable")
 
     @unhashable
