@@ -236,7 +236,7 @@ class NDFrame(PandasObject, SelectionMixin):
     @classmethod
     def _setup_axes(cls, axes, info_axis=None, stat_axis=None, aliases=None,
                     slicers=None, axes_are_reversed=False, build_axes=True,
-                    ns=None):
+                    ns=None, docs=None):
         """Provide axes setup for the major PandasObjects.
 
         Parameters
@@ -278,7 +278,7 @@ class NDFrame(PandasObject, SelectionMixin):
         if build_axes:
 
             def set_axis(a, i):
-                setattr(cls, a, properties.AxisProperty(i))
+                setattr(cls, a, properties.AxisProperty(i, docs.get(a, a)))
                 cls._internal_names_set.add(a)
 
             if axes_are_reversed:
@@ -1814,9 +1814,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.19.0
 
-        compression : {None, 'gzip', 'bz2', 'xz'}
+        compression : {None, 'gzip', 'bz2', 'zip', 'xz'}
             A string representing the compression to use in the output file,
-            only used when the first argument is a filename
+            only used when the first argument is a filename.
 
             .. versionadded:: 0.21.0
 
@@ -1889,40 +1889,50 @@ class NDFrame(PandasObject, SelectionMixin):
                             index=index)
 
     def to_hdf(self, path_or_buf, key, **kwargs):
-        """Write the contained data to an HDF5 file using HDFStore.
+        """
+        Write the contained data to an HDF5 file using HDFStore.
+
+        Hierarchical Data Format (HDF) is self-describing, allowing an
+        application to interpret the structure and contents of a file with
+        no outside information. One HDF file can hold a mix of related objects
+        which can be accessed as a group or as individual objects.
+
+        In order to add another DataFrame or Series to an existing HDF file
+        please use append mode and a different a key.
+
+        For more information see the :ref:`user guide <io.html#io-hdf5>`.
 
         Parameters
         ----------
-        path_or_buf : the path (string) or HDFStore object
-        key : string
-            identifier for the group in the store
-        mode : optional, {'a', 'w', 'r+'}, default 'a'
+        path_or_buf : str or pandas.HDFStore
+            File path or HDFStore object.
+        key : str
+            Identifier for the group in the store.
+        mode : {'a', 'w', 'r+'}, default 'a'
+            Mode to open file:
 
-          ``'w'``
-              Write; a new file is created (an existing file with the same
-              name would be deleted).
-          ``'a'``
-              Append; an existing file is opened for reading and writing,
-              and if the file does not exist it is created.
-          ``'r+'``
-              It is similar to ``'a'``, but the file must already exist.
-        format : 'fixed(f)|table(t)', default is 'fixed'
-            fixed(f) : Fixed format
-                       Fast writing/reading. Not-appendable, nor searchable
-            table(t) : Table format
-                       Write as a PyTables Table structure which may perform
-                       worse but allow more flexible operations like searching
-                       / selecting subsets of the data
-        append : boolean, default False
-            For Table formats, append the input data to the existing
-        data_columns :  list of columns, or True, default None
+            - 'w': write, a new file is created (an existing file with
+              the same name would be deleted).
+            - 'a': append, an existing file is opened for reading and
+              writing, and if the file does not exist it is created.
+            - 'r+': similar to 'a', but the file must already exist.
+        format : {'fixed', 'table'}, default 'fixed'
+            Possible values:
+
+            - 'fixed': Fixed format. Fast writing/reading. Not-appendable,
+              nor searchable.
+            - 'table': Table format. Write as a PyTables Table structure
+              which may perform worse but allow more flexible operations
+              like searching / selecting subsets of the data.
+        append : bool, default False
+            For Table formats, append the input data to the existing.
+        data_columns :  list of columns or True, optional
             List of columns to create as indexed data columns for on-disk
             queries, or True to use all columns. By default only the axes
             of the object are indexed. See `here
             <http://pandas.pydata.org/pandas-docs/stable/io.html#query-via-data-columns>`__.
-
             Applicable only to format='table'.
-        complevel : int, 0-9, default None
+        complevel : {0-9}, optional
             Specifies a compression level for data.
             A value of 0 disables compression.
         complib : {'zlib', 'lzo', 'bzip2', 'blosc'}, default 'zlib'
@@ -1934,11 +1944,49 @@ class NDFrame(PandasObject, SelectionMixin):
             Specifying a compression library which is not available issues
             a ValueError.
         fletcher32 : bool, default False
-            If applying compression use the fletcher32 checksum
-        dropna : boolean, default False.
+            If applying compression use the fletcher32 checksum.
+        dropna : bool, default False
             If true, ALL nan rows will not be written to store.
-        """
 
+        See Also
+        --------
+        DataFrame.read_hdf : Read from HDF file.
+        DataFrame.to_parquet : Write a DataFrame to the binary parquet format.
+        DataFrame.to_sql : Write to a sql table.
+        DataFrame.to_feather : Write out feather-format for DataFrames.
+        DataFrame.to_csv : Write out to a csv file.
+
+        Examples
+        --------
+        >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]},
+        ...                   index=['a', 'b', 'c'])
+        >>> df.to_hdf('data.h5', key='df', mode='w')
+
+        We can add another object to the same file:
+
+        >>> s = pd.Series([1, 2, 3, 4])
+        >>> s.to_hdf('data.h5', key='s')
+
+        Reading from HDF file:
+
+        >>> pd.read_hdf('data.h5', 'df')
+        A  B
+        a  1  4
+        b  2  5
+        c  3  6
+        >>> pd.read_hdf('data.h5', 's')
+        0    1
+        1    2
+        2    3
+        3    4
+        dtype: int64
+
+        Deleting file with data:
+
+        >>> import os
+        >>> os.remove('data.h5')
+
+        """
         from pandas.io import pytables
         return pytables.to_hdf(path_or_buf, key, self, **kwargs)
 
@@ -2085,7 +2133,8 @@ class NDFrame(PandasObject, SelectionMixin):
         ----------
         path : str
             File path where the pickled object will be stored.
-        compression : {'infer', 'gzip', 'bz2', 'xz', None}, default 'infer'
+        compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, \
+        default 'infer'
             A string representing the compression to use in the output file. By
             default, infers from the file extension in specified path.
 
@@ -4956,22 +5005,108 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def copy(self, deep=True):
         """
-        Make a copy of this objects data.
+        Make a copy of this object's indices and data.
+
+        When ``deep=True`` (default), a new object will be created with a
+        copy of the calling object's data and indices. Modifications to
+        the data or indices of the copy will not be reflected in the
+        original object (see notes below).
+
+        When ``deep=False``, a new object will be created without copying
+        the calling object's data or index (only references to the data
+        and index are copied). Any changes to the data of the original
+        will be reflected in the shallow copy (and vice versa).
 
         Parameters
         ----------
-        deep : boolean or string, default True
+        deep : bool, default True
             Make a deep copy, including a copy of the data and the indices.
-            With ``deep=False`` neither the indices or the data are copied.
-
-            Note that when ``deep=True`` data is copied, actual python objects
-            will not be copied recursively, only the reference to the object.
-            This is in contrast to ``copy.deepcopy`` in the Standard Library,
-            which recursively copies object data.
+            With ``deep=False`` neither the indices nor the data are copied.
 
         Returns
         -------
-        copy : type of caller
+        copy : Series, DataFrame or Panel
+            Object type matches caller.
+
+        Notes
+        -----
+        When ``deep=True``, data is copied but actual Python objects
+        will not be copied recursively, only the reference to the object.
+        This is in contrast to `copy.deepcopy` in the Standard Library,
+        which recursively copies object data (see examples below).
+
+        While ``Index`` objects are copied when ``deep=True``, the underlying
+        numpy array is not copied for performance reasons. Since ``Index`` is
+        immutable, the underlying data can be safely shared and a copy
+        is not needed.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2], index=["a", "b"])
+        >>> s
+        a    1
+        b    2
+        dtype: int64
+
+        >>> s_copy = s.copy()
+        >>> s_copy
+        a    1
+        b    2
+        dtype: int64
+
+        **Shallow copy versus default (deep) copy:**
+
+        >>> s = pd.Series([1, 2], index=["a", "b"])
+        >>> deep = s.copy()
+        >>> shallow = s.copy(deep=False)
+
+        Shallow copy shares data and index with original.
+
+        >>> s is shallow
+        False
+        >>> s.values is shallow.values and s.index is shallow.index
+        True
+
+        Deep copy has own copy of data and index.
+
+        >>> s is deep
+        False
+        >>> s.values is deep.values or s.index is deep.index
+        False
+
+        Updates to the data shared by shallow copy and original is reflected
+        in both; deep copy remains unchanged.
+
+        >>> s[0] = 3
+        >>> shallow[1] = 4
+        >>> s
+        a    3
+        b    4
+        dtype: int64
+        >>> shallow
+        a    3
+        b    4
+        dtype: int64
+        >>> deep
+        a    1
+        b    2
+        dtype: int64
+
+        Note that when copying an object containing Python objects, a deep copy
+        will copy the data, but will not do so recursively. Updating a nested
+        data object will be reflected in the deep copy.
+
+        >>> s = pd.Series([[1, 2], [3, 4]])
+        >>> deep = s.copy()
+        >>> s[0][0] = 10
+        >>> s
+        0    [10, 2]
+        1     [3, 4]
+        dtype: object
+        >>> deep
+        0    [10, 2]
+        1     [3, 4]
+        dtype: object
         """
         data = self._data.copy(deep=deep)
         return self._constructor(data).__finalize__(self)
@@ -5747,10 +5882,11 @@ class NDFrame(PandasObject, SelectionMixin):
             * None: (default) no fill restriction
             * 'inside' Only fill NaNs surrounded by valid values (interpolate).
             * 'outside' Only fill NaNs outside valid values (extrapolate).
-            .. versionadded:: 0.21.0
 
             If limit is specified, consecutive NaNs will be filled in this
             direction.
+
+            .. versionadded:: 0.21.0
         inplace : bool, default False
             Update the NDFrame in place if possible.
         downcast : optional, 'infer' or None, defaults to None
@@ -7669,6 +7805,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         The index values in ``truncate`` can be datetimes or string
         dates.
+
         >>> dates = pd.date_range('2016-01-01', '2016-02-01', freq='s')
         >>> df = pd.DataFrame(index=dates, data={'A': 1})
         >>> df.tail()
@@ -7912,7 +8049,7 @@ class NDFrame(PandasObject, SelectionMixin):
         0   1 days
         dtype: timedelta64[ns]
 
-        Select rows with data closest to certian value using argsort (from
+        Select rows with data closest to certain value using argsort (from
         `StackOverflow <https://stackoverflow.com/a/17758115>`__).
 
         >>> df = pd.DataFrame({
@@ -8487,19 +8624,21 @@ class NDFrame(PandasObject, SelectionMixin):
         cls.compound = compound
 
         cls.cummin = _make_cum_function(
-            cls, 'cummin', name, name2, axis_descr, "cumulative minimum",
+            cls, 'cummin', name, name2, axis_descr, "minimum",
             lambda y, axis: np.minimum.accumulate(y, axis), "min",
-            np.inf, np.nan)
+            np.inf, np.nan, _cummin_examples)
         cls.cumsum = _make_cum_function(
-            cls, 'cumsum', name, name2, axis_descr, "cumulative sum",
-            lambda y, axis: y.cumsum(axis), "sum", 0., np.nan)
+            cls, 'cumsum', name, name2, axis_descr, "sum",
+            lambda y, axis: y.cumsum(axis), "sum", 0.,
+            np.nan, _cumsum_examples)
         cls.cumprod = _make_cum_function(
-            cls, 'cumprod', name, name2, axis_descr, "cumulative product",
-            lambda y, axis: y.cumprod(axis), "prod", 1., np.nan)
+            cls, 'cumprod', name, name2, axis_descr, "product",
+            lambda y, axis: y.cumprod(axis), "prod", 1.,
+            np.nan, _cumprod_examples)
         cls.cummax = _make_cum_function(
-            cls, 'cummax', name, name2, axis_descr, "cumulative max",
+            cls, 'cummax', name, name2, axis_descr, "maximum",
             lambda y, axis: np.maximum.accumulate(y, axis), "max",
-            -np.inf, np.nan)
+            -np.inf, np.nan, _cummax_examples)
 
         cls.sum = _make_min_count_stat_function(
             cls, 'sum', name, name2, axis_descr,
@@ -8702,8 +8841,8 @@ bool_only : boolean, default None
     Include only boolean columns. If None, will attempt to use everything,
     then use only boolean data. Not implemented for Series.
 **kwargs : any, default None
-    Additional keywords have no affect but might be accepted for
-    compatibility with numpy.
+    Additional keywords have no effect but might be accepted for
+    compatibility with NumPy.
 
 Returns
 -------
@@ -8761,24 +8900,296 @@ pandas.DataFrame.any : Return True if one (or more) elements are True
 """
 
 _cnum_doc = """
+Return cumulative %(desc)s over a DataFrame or Series axis.
+
+Returns a DataFrame or Series of the same size containing the cumulative
+%(desc)s.
 
 Parameters
 ----------
-axis : %(axis_descr)s
+axis : {0 or 'index', 1 or 'columns'}, default 0
+    The index or the name of the axis. 0 is equivalent to None or 'index'.
 skipna : boolean, default True
     Exclude NA/null values. If an entire row/column is NA, the result
-    will be NA
+    will be NA.
+*args, **kwargs :
+    Additional keywords have no effect but might be accepted for
+    compatibility with NumPy.
 
 Returns
 -------
-%(outname)s : %(name1)s\n
-
-
+%(outname)s : %(name1)s or %(name2)s\n
+%(examples)s
 See also
 --------
 pandas.core.window.Expanding.%(accum_func_name)s : Similar functionality
     but ignores ``NaN`` values.
+%(name2)s.%(accum_func_name)s : Return the %(desc)s over
+    %(name2)s axis.
+%(name2)s.cummax : Return cumulative maximum over %(name2)s axis.
+%(name2)s.cummin : Return cumulative minimum over %(name2)s axis.
+%(name2)s.cumsum : Return cumulative sum over %(name2)s axis.
+%(name2)s.cumprod : Return cumulative product over %(name2)s axis.
+"""
 
+_cummin_examples = """\
+Examples
+--------
+**Series**
+
+>>> s = pd.Series([2, np.nan, 5, -1, 0])
+>>> s
+0    2.0
+1    NaN
+2    5.0
+3   -1.0
+4    0.0
+dtype: float64
+
+By default, NA values are ignored.
+
+>>> s.cummin()
+0    2.0
+1    NaN
+2    2.0
+3   -1.0
+4   -1.0
+dtype: float64
+
+To include NA values in the operation, use ``skipna=False``
+
+>>> s.cummin(skipna=False)
+0    2.0
+1    NaN
+2    NaN
+3    NaN
+4    NaN
+dtype: float64
+
+**DataFrame**
+
+>>> df = pd.DataFrame([[2.0, 1.0],
+...                    [3.0, np.nan],
+...                    [1.0, 0.0]],
+...                    columns=list('AB'))
+>>> df
+     A    B
+0  2.0  1.0
+1  3.0  NaN
+2  1.0  0.0
+
+By default, iterates over rows and finds the minimum
+in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
+
+>>> df.cummin()
+     A    B
+0  2.0  1.0
+1  2.0  NaN
+2  1.0  0.0
+
+To iterate over columns and find the minimum in each row,
+use ``axis=1``
+
+>>> df.cummin(axis=1)
+     A    B
+0  2.0  1.0
+1  3.0  NaN
+2  1.0  0.0
+"""
+
+_cumsum_examples = """\
+Examples
+--------
+**Series**
+
+>>> s = pd.Series([2, np.nan, 5, -1, 0])
+>>> s
+0    2.0
+1    NaN
+2    5.0
+3   -1.0
+4    0.0
+dtype: float64
+
+By default, NA values are ignored.
+
+>>> s.cumsum()
+0    2.0
+1    NaN
+2    7.0
+3    6.0
+4    6.0
+dtype: float64
+
+To include NA values in the operation, use ``skipna=False``
+
+>>> s.cumsum(skipna=False)
+0    2.0
+1    NaN
+2    NaN
+3    NaN
+4    NaN
+dtype: float64
+
+**DataFrame**
+
+>>> df = pd.DataFrame([[2.0, 1.0],
+...                    [3.0, np.nan],
+...                    [1.0, 0.0]],
+...                    columns=list('AB'))
+>>> df
+     A    B
+0  2.0  1.0
+1  3.0  NaN
+2  1.0  0.0
+
+By default, iterates over rows and finds the sum
+in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
+
+>>> df.cumsum()
+     A    B
+0  2.0  1.0
+1  5.0  NaN
+2  6.0  1.0
+
+To iterate over columns and find the sum in each row,
+use ``axis=1``
+
+>>> df.cumsum(axis=1)
+     A    B
+0  2.0  3.0
+1  3.0  NaN
+2  1.0  1.0
+"""
+
+_cumprod_examples = """\
+Examples
+--------
+**Series**
+
+>>> s = pd.Series([2, np.nan, 5, -1, 0])
+>>> s
+0    2.0
+1    NaN
+2    5.0
+3   -1.0
+4    0.0
+dtype: float64
+
+By default, NA values are ignored.
+
+>>> s.cumprod()
+0     2.0
+1     NaN
+2    10.0
+3   -10.0
+4    -0.0
+dtype: float64
+
+To include NA values in the operation, use ``skipna=False``
+
+>>> s.cumprod(skipna=False)
+0    2.0
+1    NaN
+2    NaN
+3    NaN
+4    NaN
+dtype: float64
+
+**DataFrame**
+
+>>> df = pd.DataFrame([[2.0, 1.0],
+...                    [3.0, np.nan],
+...                    [1.0, 0.0]],
+...                    columns=list('AB'))
+>>> df
+     A    B
+0  2.0  1.0
+1  3.0  NaN
+2  1.0  0.0
+
+By default, iterates over rows and finds the product
+in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
+
+>>> df.cumprod()
+     A    B
+0  2.0  1.0
+1  6.0  NaN
+2  6.0  0.0
+
+To iterate over columns and find the product in each row,
+use ``axis=1``
+
+>>> df.cumprod(axis=1)
+     A    B
+0  2.0  2.0
+1  3.0  NaN
+2  1.0  0.0
+"""
+
+_cummax_examples = """\
+Examples
+--------
+**Series**
+
+>>> s = pd.Series([2, np.nan, 5, -1, 0])
+>>> s
+0    2.0
+1    NaN
+2    5.0
+3   -1.0
+4    0.0
+dtype: float64
+
+By default, NA values are ignored.
+
+>>> s.cummax()
+0    2.0
+1    NaN
+2    5.0
+3    5.0
+4    5.0
+dtype: float64
+
+To include NA values in the operation, use ``skipna=False``
+
+>>> s.cummax(skipna=False)
+0    2.0
+1    NaN
+2    NaN
+3    NaN
+4    NaN
+dtype: float64
+
+**DataFrame**
+
+>>> df = pd.DataFrame([[2.0, 1.0],
+...                    [3.0, np.nan],
+...                    [1.0, 0.0]],
+...                    columns=list('AB'))
+>>> df
+     A    B
+0  2.0  1.0
+1  3.0  NaN
+2  1.0  0.0
+
+By default, iterates over rows and finds the maximum
+in each column. This is equivalent to ``axis=None`` or ``axis='index'``.
+
+>>> df.cummax()
+     A    B
+0  2.0  1.0
+1  3.0  NaN
+2  3.0  1.0
+
+To iterate over columns and find the maximum in each row,
+use ``axis=1``
+
+>>> df.cummax(axis=1)
+     A    B
+0  2.0  2.0
+1  3.0  NaN
+2  1.0  1.0
 """
 
 _any_see_also = """\
@@ -8975,11 +9386,11 @@ def _make_stat_function_ddof(cls, name, name1, name2, axis_descr, desc, f):
 
 
 def _make_cum_function(cls, name, name1, name2, axis_descr, desc,
-                       accum_func, accum_func_name, mask_a, mask_b):
+                       accum_func, accum_func_name, mask_a, mask_b, examples):
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
-                  axis_descr=axis_descr, accum_func_name=accum_func_name)
-    @Appender("Return {0} over requested axis.".format(desc) +
-              _cnum_doc)
+                  axis_descr=axis_descr, accum_func_name=accum_func_name,
+                  examples=examples)
+    @Appender(_cnum_doc)
     def cum_func(self, axis=None, skipna=True, *args, **kwargs):
         skipna = nv.validate_cum_func_with_skipna(skipna, args, kwargs, name)
         if axis is None:

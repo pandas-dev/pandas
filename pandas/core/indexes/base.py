@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 import warnings
 import operator
+from textwrap import dedent
 
 import numpy as np
 from pandas._libs import (lib, index as libindex, tslib as libts,
@@ -2183,7 +2184,7 @@ class Index(IndexOpsMixin, PandasObject):
         mapped to ``True`` values.
         Everything else get mapped to ``False`` values. Characters such as
         empty strings `''` or :attr:`numpy.inf` are not considered NA values
-        (unless you set :attr:`pandas.options.mode.use_inf_as_na` `= True`).
+        (unless you set ``pandas.options.mode.use_inf_as_na = True``).
 
         .. versionadded:: 0.20.0
 
@@ -3352,14 +3353,16 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     def map(self, mapper, na_action=None):
-        """Map values of Series using input correspondence
+        """
+        Map values using input correspondence (a dict, Series, or function).
 
         Parameters
         ----------
         mapper : function, dict, or Series
+            Mapping correspondence.
         na_action : {None, 'ignore'}
             If 'ignore', propagate NA values, without passing them to the
-            mapping function
+            mapping correspondence.
 
         Returns
         -------
@@ -3367,7 +3370,6 @@ class Index(IndexOpsMixin, PandasObject):
             The output of the mapping function applied to the index.
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
-
         """
 
         from .multi import MultiIndex
@@ -3396,8 +3398,11 @@ class Index(IndexOpsMixin, PandasObject):
 
     def isin(self, values, level=None):
         """
+        Return a boolean array where the index values are in `values`.
+
         Compute boolean array of whether each index value is found in the
-        passed set of values.
+        passed set of values. The length of the returned boolean array matches
+        the length of the index.
 
         Parameters
         ----------
@@ -3406,23 +3411,74 @@ class Index(IndexOpsMixin, PandasObject):
 
             .. versionadded:: 0.18.1
 
-            Support for values as a set
+               Support for values as a set.
 
         level : str or int, optional
             Name or position of the index level to use (if the index is a
-            MultiIndex).
+            `MultiIndex`).
+
+        Returns
+        -------
+        is_contained : ndarray
+            NumPy array of boolean values.
+
+        See also
+        --------
+        Series.isin : Same for Series.
+        DataFrame.isin : Same method for DataFrames.
 
         Notes
         -----
+        In the case of `MultiIndex` you must either specify `values` as a
+        list-like object containing tuples that are the same length as the
+        number of levels, or specify `level`. Otherwise it will raise a
+        ``ValueError``.
+
         If `level` is specified:
 
         - if it is the name of one *and only one* index level, use that level;
         - otherwise it should be a number indicating level position.
 
-        Returns
-        -------
-        is_contained : ndarray (boolean dtype)
+        Examples
+        --------
+        >>> idx = pd.Index([1,2,3])
+        >>> idx
+        Int64Index([1, 2, 3], dtype='int64')
 
+        Check whether each index value in a list of values.
+        >>> idx.isin([1, 4])
+        array([ True, False, False])
+
+        >>> midx = pd.MultiIndex.from_arrays([[1,2,3],
+        ...                                  ['red', 'blue', 'green']],
+        ...                                  names=('number', 'color'))
+        >>> midx
+        MultiIndex(levels=[[1, 2, 3], ['blue', 'green', 'red']],
+                   labels=[[0, 1, 2], [2, 0, 1]],
+                   names=['number', 'color'])
+
+        Check whether the strings in the 'color' level of the MultiIndex
+        are in a list of colors.
+
+        >>> midx.isin(['red', 'orange', 'yellow'], level='color')
+        array([ True, False, False])
+
+        To check across the levels of a MultiIndex, pass a list of tuples:
+
+        >>> midx.isin([(1, 'red'), (3, 'red')])
+        array([ True, False, False])
+
+        For a DatetimeIndex, string values in `values` are converted to
+        Timestamps.
+
+        >>> dates = ['2000-03-11', '2000-03-12', '2000-03-13']
+        >>> dti = pd.to_datetime(dates)
+        >>> dti
+        DatetimeIndex(['2000-03-11', '2000-03-12', '2000-03-13'],
+        dtype='datetime64[ns]', freq=None)
+
+        >>> dti.isin(['2000-03-11'])
+        array([ True, False, False])
         """
         if level is not None:
             self._validate_index_level(level)
@@ -4645,7 +4701,7 @@ class Index(IndexOpsMixin, PandasObject):
         %(outname)s : bool or array_like (if axis is specified)
             A single element array_like may be converted to bool."""
 
-        _index_shared_docs['index_all'] = """
+        _index_shared_docs['index_all'] = dedent("""
 
         See Also
         --------
@@ -4683,9 +4739,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         >>> pd.Index([0, 0, 0]).any()
         False
-        """
+        """)
 
-        _index_shared_docs['index_any'] = """
+        _index_shared_docs['index_any'] = dedent("""
 
         See Also
         --------
@@ -4706,7 +4762,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> index = pd.Index([0, 0, 0])
         >>> index.any()
         False
-        """
+        """)
 
         def _make_logical_function(name, desc, f):
             @Substitution(outname=name, desc=desc)
