@@ -716,7 +716,7 @@ cdef class StringHashTable(HashTable):
             int64_t[:] uindexer
             Py_ssize_t idx, count = count_prior
             int ret = 0
-            object val, na_value2
+            object val
             char *v
             char **vecs
             khiter_t k
