@@ -17,7 +17,7 @@ from pandas.core.dtypes.common import (
 import pandas.core.algorithms as algos
 import pandas.core.nanops as nanops
 from pandas._libs.lib import infer_dtype
-from pandas import (to_timedelta, to_datetime,
+from pandas import (to_timedelta, to_datetime, notna,
                     Categorical, Timestamp, Timedelta,
                     Series, Interval, IntervalIndex)
 
@@ -361,15 +361,13 @@ def _coerce_to_type(x):
         x = to_timedelta(x)
         dtype = np.timedelta64
     elif is_bool_dtype(x):
-        dtype = x.dtype
+        # GH 20303: coerce bool dtype to int 
+        x = x.astype(np.int64)
+        dtype = np.bool_
 
     if dtype is not None:
-        if is_bool_dtype(x):
-            # GH 20303: coerce bool to int
-            x = np.where(np.isnan(x), np.nan, x.astype(int))
-        else:
-            # GH 19768: force NaT to NaN during integer conversion
-            x = np.where(x.notna(), x.view(np.int64), np.nan)
+        # GH 19768: force NaT to NaN during integer conversion
+        x = np.where(notna(x), x.view(np.int64), np.nan)
 
     return x, dtype
 
