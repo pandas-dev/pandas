@@ -1445,8 +1445,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        unique
-        Index.unique
+        unique : return unique values of 1d array-like objects.
+        Index.unique : return Index with unique values from an Index object.
 
         Examples
         --------
