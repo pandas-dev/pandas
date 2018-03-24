@@ -50,44 +50,45 @@ class BaseSetitemTests(BaseExtensionTests):
         assert arr[1] == data[2]
 
     @pytest.mark.parametrize('setter', ['loc', 'iloc'])
-    def test_set_scalar(self, data, setter):
+    def test_setitem_scalar(self, data, setter):
         arr = pd.Series(data)
         setter = getattr(arr, setter)
         operator.setitem(setter, 0, data[1])
         assert arr[0] == data[1]
 
-    def test_set_loc_scalar_mixed(self, data):
+    def test_setitem_loc_scalar_mixed(self, data):
         df = pd.DataFrame({"A": np.arange(len(data)), "B": data})
         df.loc[0, 'B'] = data[1]
         assert df.loc[0, 'B'] == data[1]
 
-    def test_set_loc_scalar_single(self, data):
+    def test_setitem_loc_scalar_single(self, data):
         df = pd.DataFrame({"B": data})
         df.loc[10, 'B'] = data[1]
         assert df.loc[10, 'B'] == data[1]
 
-    def test_set_loc_scalar_multiple_homogoneous(self, data):
+    def test_setitem_loc_scalar_multiple_homogoneous(self, data):
         df = pd.DataFrame({"A": data, "B": data})
         df.loc[10, 'B'] = data[1]
         assert df.loc[10, 'B'] == data[1]
 
-    def test_set_iloc_scalar_mixed(self, data):
+    def test_setitem_iloc_scalar_mixed(self, data):
         df = pd.DataFrame({"A": np.arange(len(data)), "B": data})
         df.iloc[0, 1] = data[1]
         assert df.loc[0, 'B'] == data[1]
 
-    def test_set_iloc_scalar_single(self, data):
+    def test_setitem_iloc_scalar_single(self, data):
         df = pd.DataFrame({"B": data})
         df.iloc[10, 0] = data[1]
         assert df.loc[10, 'B'] == data[1]
 
-    def test_set_iloc_scalar_multiple_homogoneous(self, data):
+    def test_setitem_iloc_scalar_multiple_homogoneous(self, data):
         df = pd.DataFrame({"A": data, "B": data})
         df.iloc[10, 1] = data[1]
         assert df.loc[10, 'B'] == data[1]
 
     @pytest.mark.parametrize('as_callable', [True, False])
-    def test_set_mask_aligned(self, data, as_callable):
+    @pytest.mark.parametrize('setter', ['loc', None])
+    def test_setitem_mask_aligned(self, data, as_callable, setter):
         ser = pd.Series(data)
         mask = np.zeros(len(data), dtype=bool)
         mask[:2] = True
@@ -97,16 +98,31 @@ class BaseSetitemTests(BaseExtensionTests):
         else:
             mask2 = mask
 
+        if setter:
+            # loc
+            target = getattr(ser, setter)
+        else:
+            # Series.__setitem__
+            target = ser
+
+        operator.setitem(target, mask2, data[5:7])
+
         ser[mask2] = data[5:7]
         assert ser[0] == data[5]
         assert ser[1] == data[6]
 
-    def test_set_mask_broadcast(self, data):
+    @pytest.mark.parametrize('setter', ['loc', None])
+    def test_setitem_mask_broadcast(self, data, setter):
         ser = pd.Series(data)
         mask = np.zeros(len(data), dtype=bool)
         mask[:2] = True
 
-        ser[mask] = data[10]
+        if setter:   # loc
+            target = getattr(ser, setter)
+        else:  # __setitem__
+            target = ser
+
+        operator.setitem(target, mask, data[10])
         assert ser[0] == data[10]
         assert ser[1] == data[10]
 
@@ -119,6 +135,11 @@ class BaseSetitemTests(BaseExtensionTests):
 
         result = df.copy()
         result.loc[:, 'B'] = 1
+        self.assert_frame_equal(result, expected)
+
+        # overwrite with new type
+        result['B'] = data
+        expected = pd.DataFrame({"A": data, "B": data})
         self.assert_frame_equal(result, expected)
 
     def test_setitem_expand_with_extension(self, data):
