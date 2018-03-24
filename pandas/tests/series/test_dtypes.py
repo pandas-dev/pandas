@@ -142,7 +142,7 @@ class TestSeriesDtypes(TestData):
                                                 tm.rands(1000)]),
                                         Series([string.digits * 10,
                                                 tm.rands(63),
-                                                tm.rands(64), nan, 1.0])])
+                                                tm.rands(64), '', 1.0])])
     def test_astype_str_map(self, dtype, series):
         # see gh-4405
         result = series.astype(dtype)
