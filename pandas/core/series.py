@@ -1431,12 +1431,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def unique(self):
         """
-        Return unique values in the object. Uniques are returned in order
-        of appearance, this does NOT sort. Hash table-based unique.
+        Return unique values in the Series.
 
-        Parameters
-        ----------
-        values : 1d array-like
+        Uniques are returned in order of appearance. Hash table-based unique,
+        therefore does NOT sort.
 
         Returns
         -------
@@ -1449,7 +1447,36 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         --------
         unique
         Index.unique
-        Series.unique
+
+        Examples
+        --------
+        >>> pd.Series([2, 1, 3, 3], name='A').unique()
+        array([2, 1, 3])
+
+        >>> pd.Series([2] + [1] * 5).unique()
+        array([2, 1])
+
+        >>> pd.Series([pd.Timestamp('20160101') for _ in range(3)]).unique()
+        array(['2016-01-01T00:00:00.000000000'], dtype='datetime64[ns]')
+
+        >>> pd.Series([pd.Timestamp('20160101', tz='US/Eastern')
+                       for _ in range(3)]).unique()
+        array([Timestamp('2016-01-01 00:00:00-0500', tz='US/Eastern')],
+              dtype=object)
+
+        An unordered Categorical will return categories in the order of
+        appearance.
+
+        >>> pd.Series(pd.Categorical(list('baabc'))).unique()
+        [b, a, c]
+        Categories (3, object): [b, a, c]
+
+        An ordered Categorical preserves the category ordering.
+
+        >>> pd.Series(pd.Categorical(list('baabc'), categories=list('abc'),
+                                     ordered=True)).unique()
+        [b, a, c]
+        Categories (3, object): [a < b < c]
         """
         result = super(Series, self).unique()
 
