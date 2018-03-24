@@ -1431,7 +1431,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def unique(self):
         """
-        Return unique values in the Series.
+        Return unique values of Series object.
 
         Uniques are returned in order of appearance. Hash table-based unique,
         therefore does NOT sort.
