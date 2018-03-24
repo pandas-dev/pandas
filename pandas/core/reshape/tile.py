@@ -361,7 +361,7 @@ def _coerce_to_type(x):
         x = to_timedelta(x)
         dtype = np.timedelta64
     elif is_bool_dtype(x):
-        # GH 20303: coerce bool dtype to int 
+        # GH 20303: coerce bool dtype to int
         x = x.astype(np.int64)
         dtype = np.bool_
 
