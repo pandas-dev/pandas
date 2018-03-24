@@ -2172,7 +2172,7 @@ class StringMethods(NoNewAttributesMixin):
     2    this is a SentEnce
     3          The is Paris
     dtype: object
-    
+
     >>> s.str.lower()
     0                 lower
     1              capitals
