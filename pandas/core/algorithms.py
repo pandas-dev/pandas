@@ -513,7 +513,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None,
         dtype = original.dtype
     else:
         values, dtype, _ = _ensure_data(values)
-        check_nulls = not is_integer_dtype(original)
+        check_nulls = na_value is not None or not is_integer_dtype(original)
 
         labels, uniques = _factorize_array(values, check_nulls,
                                            na_sentinel=na_sentinel,

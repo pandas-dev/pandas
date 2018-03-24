@@ -2163,11 +2163,11 @@ class Categorical(ExtensionArray, PandasObject):
         from pandas.core.algorithms import _factorize_array
 
         codes = self.codes.astype('int64')
-        codes[codes == -1] = iNaT
         # We set missing codes, normally -1, to iNaT so that the
         # Int64HashTable treats them as missing values.
         labels, uniques = _factorize_array(codes, check_nulls=True,
-                                           na_sentinel=na_sentinel)
+                                           na_sentinel=na_sentinel,
+                                           na_value=-1)
         uniques = self._constructor(self.categories.take(uniques),
                                     categories=self.categories,
                                     ordered=self.ordered)

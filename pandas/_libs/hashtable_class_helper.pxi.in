@@ -250,13 +250,13 @@ cdef class HashTable:
 
 {{py:
 
-# name, dtype, null_condition, float_group, default_na_value
-dtypes = [('Float64', 'float64', 'val != val', True, 'nan'),
-          ('UInt64', 'uint64', 'False', False, 0),
-          ('Int64', 'int64', 'val == iNaT', False, 'iNaT')]
+# name, dtype, float_group, default_na_value
+dtypes = [('Float64', 'float64', True, 'nan'),
+          ('UInt64', 'uint64', False, 0),
+          ('Int64', 'int64', False, 'iNaT')]
 
 def get_dispatch(dtypes):
-  for (name, dtype, null_condition, float_group, default_na_value) in dtypes:
+  for (name, dtype, float_group, default_na_value) in dtypes:
     unique_template = """\
         cdef:
            Py_ssize_t i, n = len(values)
@@ -298,13 +298,13 @@ def get_dispatch(dtypes):
         return uniques.to_array()
       """
 
-    unique_template = unique_template.format(name=name, dtype=dtype, null_condition=null_condition, float_group=float_group)
+    unique_template = unique_template.format(name=name, dtype=dtype, float_group=float_group)
 
-    yield (name, dtype, null_condition, float_group, default_na_value, unique_template)
+    yield (name, dtype, float_group, default_na_value, unique_template)
 }}
 
 
-{{for name, dtype, null_condition, float_group, default_na_value, unique_template in get_dispatch(dtypes)}}
+{{for name, dtype, float_group, default_na_value, unique_template in get_dispatch(dtypes)}}
 
 cdef class {{name}}HashTable(HashTable):
 
@@ -438,8 +438,7 @@ cdef class {{name}}HashTable(HashTable):
             for i in range(n):
                 val = values[i]
 
-                if ((check_null and {{null_condition}}) or
-                        (use_na_value and val == na_value2)):
+                if check_null and (val != val or val == na_value2):
                     labels[i] = na_sentinel
                     continue
 
