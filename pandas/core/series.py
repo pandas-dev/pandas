@@ -3528,11 +3528,19 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        is_between : Series
+        Series of bool
+
+        Notes
+        -----
+        This function is equivalent to `(left <= series) & (series <= right)`
+
+        See Also
+        --------
+        pandas.Series.gt : Greater than of series and other
+        pandas.Series.lt : Less than of series and other
 
         Examples
         --------
-
         >>> s = pd.Series([2, 0, 4, 8, np.nan])
 
         Boundary values are included by default:
@@ -3564,11 +3572,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         2     True
         3    False
         dtype: bool
-
-        See Also
-        --------
-        DataFrame.query : Query the columns of a frame with a boolean
-            expression.
         """
         if inclusive:
             lmask = self >= left
