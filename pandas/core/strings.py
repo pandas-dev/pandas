@@ -330,40 +330,41 @@ def str_startswith(arr, pat, na=np.nan):
     """
     Test if the start of each string element matches a pattern.
 
-    Return a Series of booleans indicating whether the given pattern matches
-    the start of each string element.
-    Equivalent to :meth: `str.startswith`.
+    Equivalent to :meth:`str.startswith`.
 
     Parameters
     ----------
-    pat : string
-        Character sequence.
+    pat : str
+        Character sequence. Regular expressions are not accepted.
     na : object, default NaN
-        Character sequence shown if element tested is not a string.
+        Object shown if element tested is not a string.
 
     Returns
     -------
-    startswith : Series/array of boolean values
-
-    Examples
-    --------
-    >>> s = pd.Series(['bat', 'bear', 'cat'])
-    >>> s.str.startswith('b')
-    0     True
-    1     True
-    2    False
-    dtype: bool
-    >>> s = pd.Series(['bat', 'bear', 'cat', np.nan])
-    >>> s.str.startswith('b', na='not_a_string')
-    0            True
-    1            True
-    2           False
-    3    not_a_string
-    dtype: object
+    startswith : Series or array-like of bool
+        A Series of booleans indicating whether the given pattern matches
+        the start of each string element.
 
     See Also
     --------
-    endswith : same as startswith, but tests the end of string
+    str_endswith : Same as startswith, but tests the end of string.
+    str.startswith : Python standard library string method.
+
+    Examples
+    --------
+    >>> s = pd.Series(['bat', 'Bear', 'cat', np.nan])
+    >>> s.str.startswith('b')
+    0     True
+    1    False
+    2    False
+    3      NaN
+    dtype: object
+    >>> s.str.startswith('b', na=False)
+    0     True
+    1    False
+    2    False
+    3    False
+    dtype: bool
     """
     f = lambda x: x.startswith(pat)
     return _na_map(f, arr, na, dtype=bool)
