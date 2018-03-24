@@ -264,7 +264,7 @@ class TestFactorize(object):
     ])
     def test_parametrized_factorize_na_value_default(self, data):
         # arrays that include the NA default for that type, but isn't used.
-        l, u = pd.factorize(data)
+        l, u = algos.factorize(data)
         expected_uniques = data[[0, 1]]
         expected_labels = np.array([0, 1, 0])
         tm.assert_numpy_array_equal(l, expected_labels)
@@ -278,7 +278,8 @@ class TestFactorize(object):
         (np.array(['a', '', 'a', 'b'], dtype=object), 'a')
     ])
     def test_parametrized_factorize_na_value(self, data, na_value):
-        l, u = pd.factorize(data, na_value=na_value)
+        l, u = algos._factorize_array(data, check_nulls=True,
+                                      na_value=na_value)
         expected_uniques = data[[1, 3]]
         expected_labels = np.array([-1, 0, -1, 1])
         tm.assert_numpy_array_equal(l, expected_labels)

@@ -446,15 +446,22 @@ def _factorize_array(values, check_nulls, na_sentinel=-1, size_hint=None,
     values : ndarray
     check_nulls : bool
         Whether to check for nulls in the hashtable's 'get_labels' method.
+        Nulls are always checked when `na_value` is specified.
     na_sentinel : int, default -1
     size_hint : int, optional
         Passsed through to the hashtable's 'get_labels' method
+    na_value : object, optional
+        A value in `values` to consider missing. Note: only use this
+        parameter when you know that you don't have any values pandas would
+        consider missing in the array (NaN for float data, iNaT for
+        datetimes, etc.).
 
     Returns
     -------
     labels, uniques : ndarray
     """
     (hash_klass, vec_klass), values = _get_data_algo(values, _hashtables)
+    check_nulls = check_nulls or na_value is not None
 
     table = hash_klass(size_hint or len(values))
     uniques = vec_klass()
@@ -467,8 +474,7 @@ def _factorize_array(values, check_nulls, na_sentinel=-1, size_hint=None,
 
 
 @deprecate_kwarg(old_arg_name='order', new_arg_name=None)
-def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None,
-              na_value=None):
+def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     """
     Encode input values as an enumerated type or categorical variable
 
@@ -482,8 +488,6 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None,
     na_sentinel : int, default -1
         Value to mark "not found"
     size_hint : hint to the hashtable sizer
-    na_value : object, optional
-        A value in `values` to consider missing.
 
     Returns
     -------
@@ -513,12 +517,11 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None,
         dtype = original.dtype
     else:
         values, dtype, _ = _ensure_data(values)
-        check_nulls = na_value is not None or not is_integer_dtype(original)
+        check_nulls = not is_integer_dtype(original)
 
         labels, uniques = _factorize_array(values, check_nulls,
                                            na_sentinel=na_sentinel,
-                                           size_hint=size_hint,
-                                           na_value=na_value)
+                                           size_hint=size_hint)
 
     if sort and len(uniques) > 0:
         from pandas.core.sorting import safe_sort
