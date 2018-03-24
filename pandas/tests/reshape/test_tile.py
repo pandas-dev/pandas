@@ -263,24 +263,24 @@ class TestCut(object):
         expected = Categorical(intervals, ordered=True)
         tm.assert_categorical_equal(result, expected)
 
-    def test_qcut_bool_array_to_int(self):
+    def test_qcut_bool_series_to_int(self):
         # GH 20303
-        arr = Series(np.random.randint(2, size=100))
+        x = Series(np.random.randint(2, size=100))
         bins = 6
 
-        expected = qcut(arr, bins, duplicates='drop')
+        expected = qcut(x, bins, duplicates='drop')
 
-        data = arr.astype(bool)
+        data = x.astype(bool)
         result = qcut(data, bins, duplicates='drop')
         tm.assert_series_equal(result, expected)
 
-    def test_qcut_bool_series_to_int(self):
-        arr = np.random.randint(2, size=100)
+    def test_qcut_bool_array_to_int(self):
+        x = np.random.randint(2, size=100)
         bins = 6
 
         expected = qcut(arr, bins, duplicates='drop')
 
-        data = arr.astype(bool)
+        data = x.astype(bool)
         result = qcut(data, bins, duplicates='drop')
         tm.assert_categorical_equal(result, expected)
 
