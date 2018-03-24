@@ -2154,18 +2154,25 @@ class StringMethods(NoNewAttributesMixin):
 
     See Also
     --------
-    Series.str.lower : Converts all characters to lower case.
-    Series.str.upper : Converts all characters to upper case.
-    Series.str.title : Converts first character of each word to upper case and
-        remaining to lower case.
-    Series.str.capitalize : Converts first character to upper case and
-        remaining to lower case.
-    Series.str.swapcase : Converts upper case to lower case and lower case to
-        upper case.
+    Series.str.lower : Converts all characters to lowercase.
+    Series.str.upper : Converts all characters to uppercase.
+    Series.str.title : Converts first character of each word to uppercase and
+        remaining to lowercase.
+    Series.str.capitalize : Converts first character to uppercase and
+        remaining to lowercase.
+    Series.str.swapcase : Converts uppercase to lowercase and lowercase to
+        uppercase.
 
     Examples
     --------
     >>> s = pd.Series(['lower', 'CAPITALS', 'this is a sentence', 'SwApCaSe'])
+    >>> s
+    0                 lower
+    1              CAPITALS
+    2    this is a SentEnce
+    3          The is Paris
+    dtype: object
+    
     >>> s.str.lower()
     0                 lower
     1              capitals
