@@ -1459,7 +1459,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> pd.Series([pd.Timestamp('20160101') for _ in range(3)]).unique()
         array(['2016-01-01T00:00:00.000000000'], dtype='datetime64[ns]')
 
-        >>> pd.Series([pd.Timestamp('20160101', tz='US/Eastern')
+        >>> pd.Series([pd.Timestamp('20160101', tz='US/Eastern') \
                        for _ in range(3)]).unique()
         array([Timestamp('2016-01-01 00:00:00-0500', tz='US/Eastern')],
               dtype=object)
@@ -1473,7 +1473,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         An ordered Categorical preserves the category ordering.
 
-        >>> pd.Series(pd.Categorical(list('baabc'), categories=list('abc'),
+        >>> pd.Series(pd.Categorical(list('baabc'), categories=list('abc'), \
                                      ordered=True)).unique()
         [b, a, c]
         Categories (3, object): [a < b < c]
