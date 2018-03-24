@@ -7,7 +7,6 @@ import types
 from pandas import compat
 from pandas.compat import u, lzip
 from pandas._libs import lib, algos as libalgos
-from pandas._libs.tslib import iNaT
 
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCIndexClass, ABCCategoricalIndex)
