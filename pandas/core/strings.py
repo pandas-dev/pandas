@@ -347,8 +347,9 @@ def str_startswith(arr, pat, na=np.nan):
 
     See Also
     --------
-    str_endswith : Same as startswith, but tests the end of string.
     str.startswith : Python standard library string method.
+    Series.str.endswith : Same as startswith, but tests the end of string.
+    Series.str.contains : Tests if string element contains a pattern.
 
     Examples
     --------
