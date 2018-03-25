@@ -354,6 +354,13 @@ def str_startswith(arr, pat, na=np.nan):
     Examples
     --------
     >>> s = pd.Series(['bat', 'Bear', 'cat', np.nan])
+    >>> s
+    0     bat
+    1    Bear
+    2     cat
+    3     NaN
+    dtype: object
+
     >>> s.str.startswith('b')
     0     True
     1    False
@@ -363,7 +370,6 @@ def str_startswith(arr, pat, na=np.nan):
 
     Specifying `na` to be `False` instead of `NaN`.
 
-    >>> s = pd.Series(['bat', 'Bear', 'cat', np.nan])
     >>> s.str.startswith('b', na=False)
     0     True
     1    False
