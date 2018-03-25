@@ -308,6 +308,14 @@ class TestDataFrameTimeSeriesMethods(TestData):
                        columns=['high', 'low'])
         assert_frame_equal(rs, xp)
 
+    def test_shift_bool_fillna(self):
+        df = DataFrame({'high': [True, False],
+                        'low': [False, False]})
+        rs = df.shift(1, fill_value=True)
+        xp = DataFrame({'high': [True, True],
+                        'low': [True, False]})
+        assert_frame_equal(rs, xp)
+
     def test_shift_categorical(self):
         # GH 9416
         s1 = pd.Series(['a', 'b', 'c'], dtype='category')
