@@ -341,7 +341,7 @@ def str_startswith(arr, pat, na=np.nan):
 
     Returns
     -------
-    startswith : Series or array-like of bool
+    Series or Index of bool
         A Series of booleans indicating whether the given pattern matches
         the start of each string element.
 
@@ -360,6 +360,10 @@ def str_startswith(arr, pat, na=np.nan):
     2    False
     3      NaN
     dtype: object
+
+    Specifying `na` to be `False` instead of `NaN`.
+
+    >>> s = pd.Series(['bat', 'Bear', 'cat', np.nan])
     >>> s.str.startswith('b', na=False)
     0     True
     1    False
