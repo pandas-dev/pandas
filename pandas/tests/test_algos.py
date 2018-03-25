@@ -281,8 +281,7 @@ class TestFactorize(object):
          ('a', 1)),
     ])
     def test_parametrized_factorize_na_value(self, data, na_value):
-        l, u = algos._factorize_array(data, check_nulls=True,
-                                      na_value=na_value)
+        l, u = algos._factorize_array(data, na_value=na_value)
         expected_uniques = data[[1, 3]]
         expected_labels = np.array([-1, 0, -1, 1], dtype='i8')
         tm.assert_numpy_array_equal(l, expected_labels)

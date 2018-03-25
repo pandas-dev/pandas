@@ -408,7 +408,6 @@ cdef class {{name}}HashTable(HashTable):
     @cython.boundscheck(False)
     def get_labels(self, {{dtype}}_t[:] values, {{name}}Vector uniques,
                    Py_ssize_t count_prior, Py_ssize_t na_sentinel,
-                   bint check_null=True,
                    object na_value=None):
         cdef:
             Py_ssize_t i, n = len(values)
@@ -438,7 +437,7 @@ cdef class {{name}}HashTable(HashTable):
             for i in range(n):
                 val = values[i]
 
-                if check_null and (val != val or val == na_value2):
+                if val != val or (use_na_value and val == na_value2):
                     labels[i] = na_sentinel
                     continue
 
@@ -708,7 +707,6 @@ cdef class StringHashTable(HashTable):
     @cython.boundscheck(False)
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
                    Py_ssize_t count_prior, int64_t na_sentinel,
-                   bint check_null=1,
                    object na_value=None):
         cdef:
             Py_ssize_t i, n = len(values)
@@ -885,7 +883,6 @@ cdef class PyObjectHashTable(HashTable):
 
     def get_labels(self, ndarray[object] values, ObjectVector uniques,
                    Py_ssize_t count_prior, int64_t na_sentinel,
-                   bint check_null=True,
                    object na_value=None):
         cdef:
             Py_ssize_t i, n = len(values)
@@ -903,7 +900,7 @@ cdef class PyObjectHashTable(HashTable):
             val = values[i]
             hash(val)
 
-            if ((check_null and val != val or val is None) or
+            if ((val != val or val is None) or
                     (use_na_value and val == na_value)):
                 labels[i] = na_sentinel
                 continue
