@@ -5188,9 +5188,11 @@ class DataFrame(NDFrame):
 
         Notes
         -----
-        The function is named by analogy with a stack of books
-        (levels) being re-organised from a horizontal position (column
-        levels) to a vertical position (index levels).
+        The function is named by analogy with a collection of books
+        being re-organised from being side by side on a horizontal
+        position (the columns of the dataframe) to being stacked
+        vertically on top of of each other (in the index of the
+        dataframe).
 
         Examples
         --------
