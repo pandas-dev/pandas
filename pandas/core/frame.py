@@ -5216,7 +5216,8 @@ class DataFrame(NDFrame):
 
         **Multi level columns: simple case**
 
-        >>> multicol1 = pd.MultiIndex.from_tuples([('weight', 'kg'), ('weight', 'pounds')])
+        >>> multicol1 = pd.MultiIndex.from_tuples([('weight', 'kg'),
+        ...                                        ('weight', 'pounds')])
         >>> df_multi_level_cols1 = pd.DataFrame([[1, 2], [2, 4]],
         ...                                    index=['cat', 'dog'],
         ...                                    columns=multicol1)
@@ -5237,7 +5238,8 @@ class DataFrame(NDFrame):
 
         **Missing values**
 
-        >>> multicol2 = pd.MultiIndex.from_tuples([('weight', 'kg'), ('height', 'm')])
+        >>> multicol2 = pd.MultiIndex.from_tuples([('weight', 'kg'),
+        ...                                        ('height', 'm')])
         >>> df_multi_level_cols2 = pd.DataFrame([[1.0, 2.0], [3.0, 4.0]],
         ...                                     index=['cat', 'dog'],
         ...                                     columns=multicol2)
