@@ -5145,8 +5145,7 @@ class DataFrame(NDFrame):
 
     def stack(self, level=-1, dropna=True):
         """
-        Stack the prescribed level(s) from the column axis onto the index
-        axis.
+        Stack the prescribed level(s) from columns to index.
 
         Return a reshaped DataFrame or Series having a multi-level
         index with one or more new inner-most levels compared to the current
