@@ -7545,7 +7545,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         block_axis = self._get_block_manager_axis(axis)
         if freq is None:
-            new_data = self._data.shift(periods=periods, axis=block_axis, fill_value=fill_value)
+            new_data = self._data.shift(periods=periods, axis=block_axis,
+                                        fill_value=fill_value)
         else:
             return self.tshift(periods, freq, fill_value)
 
