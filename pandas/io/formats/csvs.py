@@ -133,8 +133,8 @@ class CSVFormatter(object):
         else:
             f, handles = _get_handle(self.path_or_buf, self.mode,
                                      encoding=encoding,
-                                     compression=self.compression)
-            close = True
+                                     compression=None)
+            close = True if self.compression is None else False
 
         try:
             writer_kwargs = dict(lineterminator=self.line_terminator,
@@ -151,6 +151,16 @@ class CSVFormatter(object):
             self._save()
 
         finally:
+            # GH 17778 handles compression for byte strings.
+            if not close and self.compression:
+                f.close()
+                with open(self.path_or_buf, 'r') as f:
+                    data = f.read()
+                f, handles = _get_handle(self.path_or_buf, self.mode,
+                                         encoding=encoding,
+                                         compression=self.compression)
+                f.write(data)
+                close = True
             if close:
                 f.close()
 
