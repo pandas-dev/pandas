@@ -15,7 +15,7 @@ def test_factorize(categories, ordered):
                          categories=categories,
                          ordered=ordered)
     labels, uniques = pd.factorize(cat)
-    expected_labels = np.array([0, 0, 1, 2, -1], dtype='int64')
+    expected_labels = np.array([0, 0, 1, 2, -1], dtype=np.intp)
     expected_uniques = pd.Categorical(['b', 'a', 'c'],
                                       categories=categories,
                                       ordered=ordered)
@@ -27,7 +27,7 @@ def test_factorize(categories, ordered):
 def test_factorized_sort():
     cat = pd.Categorical(['b', 'b', None, 'a'])
     labels, uniques = pd.factorize(cat, sort=True)
-    expected_labels = np.array([1, 1, -1, 0], dtype='int64')
+    expected_labels = np.array([1, 1, -1, 0], dtype=np.intp)
     expected_uniques = pd.Categorical(['a', 'b'])
 
     tm.assert_numpy_array_equal(labels, expected_labels)
@@ -40,7 +40,7 @@ def test_factorized_sort_ordered():
                          ordered=True)
 
     labels, uniques = pd.factorize(cat, sort=True)
-    expected_labels = np.array([0, 0, -1, 1], dtype='int64')
+    expected_labels = np.array([0, 0, -1, 1], dtype=np.intp)
     expected_uniques = pd.Categorical(['b', 'a'],
                                       categories=['c', 'b', 'a'],
                                       ordered=True)
