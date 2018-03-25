@@ -1102,7 +1102,8 @@ class DataFrame(NDFrame):
                            for k, v in zip(self.columns, np.atleast_1d(row)))
                     for row in self.values]
         elif orient.lower().startswith('i'):
-            return into_c((k, v.to_dict(into)) for k, v in self.iterrows())
+            return into_c((t[0], dict(zip(self.columns, t[1:])))
+                          for t in self.itertuples())
         else:
             raise ValueError("orient '%s' not understood" % orient)
 
