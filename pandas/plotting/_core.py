@@ -2001,9 +2001,9 @@ _shared_docs['boxplot'] = """
     by some other columns. A box plot is a method for graphically depicting
     groups of numerical data through their quartiles.
     The box extends from the Q1 to Q3 quartile values of the data,
-    with a line at the median (Q2).The whiskers extend from the edges
+    with a line at the median (Q2). The whiskers extend from the edges
     of box to show the range of the data. The position of the whiskers
-    is set by default to 1.5*IQR (IQR = Q3 - Q1) from the edges of the box.
+    is set by default to `1.5 * IQR (IQR = Q3 - Q1)` from the edges of the box.
     Outlier points are those past the end of the whiskers.
 
     For further details see
@@ -2031,7 +2031,7 @@ _shared_docs['boxplot'] = """
     layout : tuple (rows, columns), optional
         For example, (3, 5) will display the subplots
         using 3 columns and 5 rows, starting from the top-left.
-    return_type : {None, 'axes', 'dict', 'both'}, default 'axes'
+    return_type : {'axes', 'dict', 'both'} or None, default 'axes'
         The kind of object to return. The default is ``axes``.
 
         * 'axes' returns the matplotlib axes the boxplot is drawn on.
@@ -2049,22 +2049,23 @@ _shared_docs['boxplot'] = """
 
     Returns
     -------
-    result:
-        Options:
+    result :
 
-        * ax : object of class
-          matplotlib.axes.Axes (for ``return_type='axes'``)
-        * lines : dict (for ``return_type='dict'``)
-        * (ax, lines): namedtuple (for ``return_type='both'``)
-        * :class:`~pandas.Series` (for ``return_type != None``
-          and data grouped with ``by``)
-        * :class:`~numpy.array` (for ``return_type=None``
-          and data grouped with ``by``)
+        The return type depends on the `return_type` parameter:
+
+        * 'axes' : object of class matplotlib.axes.Axes
+        * 'dict' : dict of matplotlib.lines.Line2D objects
+        * 'both' : a nametuple with strucure (ax, lines)
+
+        For data grouped with ``by``:
+
+        * :class:`~pandas.Series`
+        * :class:`~numpy.array` (for ``return_type = None``)
 
     See Also
     --------
-    matplotlib.pyplot.boxplot : Make a box and whisker plot.
-    matplotlib.pyplot.hist : Make a histogram.
+    Series.plot.hist: Make a histogram.
+    matplotlib.pyplot.boxplot : Matplotlib equivalent plot.
 
     Notes
     -----
