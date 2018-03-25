@@ -7544,9 +7544,11 @@ class NDFrame(PandasObject, SelectionMixin):
             return self
 
         block_axis = self._get_block_manager_axis(axis)
+        shift_kwargs = {'periods': periods, 'axis': block_axis}
+        if not is_categorical_dtype(self):
+            shift_kwargs['fill_value'] = fill_value
         if freq is None:
-            new_data = self._data.shift(periods=periods, axis=block_axis,
-                                        fill_value=fill_value)
+                new_data = self._data.shift(**shift_kwargs)
         else:
             return self.tshift(periods, freq, fill_value)
 
