@@ -7550,7 +7550,10 @@ class NDFrame(PandasObject, SelectionMixin):
         if freq is None:
                 new_data = self._data.shift(**shift_kwargs)
         else:
-            return self.tshift(periods, freq, fill_value)
+            tshift_kwargs = {'periods': periods, 'freq': freq}
+            if not is_categorical_dtype(self):
+                tshift_kwargs['fill_value'] = fill_value
+            return self.tshift(**tshift_kwargs)
 
         return self._constructor(new_data).__finalize__(self)
 
