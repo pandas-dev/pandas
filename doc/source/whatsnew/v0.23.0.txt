@@ -716,6 +716,7 @@ Other API Changes
 - :func:`Series.str.replace` now takes an optional `regex` keyword which, when set to ``False``, uses literal string replacement rather than regex replacement (:issue:`16808`)
 - :func:`DatetimeIndex.strftime` and :func:`PeriodIndex.strftime` now return an ``Index`` instead of a numpy array to be consistent with similar accessors (:issue:`20127`)
 - Constructing a Series from a list of length 1 no longer broadcasts this list when a longer index is specified (:issue:`19714`, :issue:`20391`).
+- :func:`DataFrame.to_dict` with ``orient='index'`` no longer casts int columns to float for a DataFrame with only int and float columns (:issue:`18580`)
 
 .. _whatsnew_0230.deprecations:
 
