@@ -6579,7 +6579,9 @@ class DataFrame(NDFrame):
                 # column frames with an extension array
                 result = notna(frame).sum(axis=axis)
             else:
-                counts = notna(frame.values).sum(axis=axis)
+                # GH13407
+                series_counts = notna(frame).sum(axis=axis)
+                counts = series_counts.values
                 result = Series(counts, index=frame._get_agg_axis(axis))
 
         return result.astype('int64')

@@ -8,6 +8,9 @@ from distutils.version import LooseVersion
 from numpy import nan, random
 import numpy as np
 
+import datetime
+import dateutil
+
 from pandas.compat import lrange
 from pandas import (DataFrame, Series, Timestamp,
                     date_range, Categorical)
@@ -182,6 +185,26 @@ class TestDataFrameMissingData(TestData):
         inp = df.copy()
         inp.dropna(how='all', axis=(0, 1), inplace=True)
         assert_frame_equal(inp, expected)
+
+    def test_dropna_tz_aware_datetime(self):
+        # GH13407
+        df = DataFrame()
+        dt1 = datetime.datetime(2015, 1, 1,
+                                tzinfo=dateutil.tz.tzutc())
+        dt2 = datetime.datetime(2015, 2, 2,
+                                tzinfo=dateutil.tz.tzutc())
+        df['Time'] = [dt1]
+        result = df.dropna(axis=0)
+        expected = DataFrame({'Time': [dt1]})
+        assert_frame_equal(result, expected)
+
+        # Ex2
+        df = DataFrame({'Time': [dt1, None, np.nan, dt2]})
+        result = df.dropna(axis=0)
+        expected = DataFrame([dt1, dt2],
+                             columns=['Time'],
+                             index=[0, 3])
+        assert_frame_equal(result, expected)
 
     def test_fillna(self):
         tf = self.tsframe
