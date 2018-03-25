@@ -4310,16 +4310,45 @@ class DataFrame(NDFrame):
             raise ValueError('Length of ascending (%d) != length of by (%d)' %
                              (len(ascending), len(by)))
         if len(by) > 1:
-            from pandas.core.sorting import lexsort_indexer
+            if any([is_object_dtype(self._get_label_or_level_values(
+                    x, axis=axis, stacklevel=stacklevel)) for x in by]):
+                from pandas.core.sorting import lexsort_indexer
 
-            keys = []
-            for x in by:
-                k = self._get_label_or_level_values(x, axis=axis,
-                                                    stacklevel=stacklevel)
-                keys.append(k)
-            indexer = lexsort_indexer(keys, orders=ascending,
-                                      na_position=na_position)
-            indexer = _ensure_platform_int(indexer)
+                keys = []
+                for x in by:
+                    k = self._get_label_or_level_values(x, axis=axis,
+                                                        stacklevel=stacklevel)
+                    keys.append(k)
+                indexer = lexsort_indexer(keys, orders=ascending,
+                                          na_position=na_position)
+                indexer = _ensure_platform_int(indexer)
+
+                new_data = self._data.take(indexer,
+                                           axis=self._get_block_manager_axis(
+                                               axis),
+                                           verify=False)
+            else:
+                if not is_list_like(ascending):
+                    ascending = [ascending] * len(by)
+                ascending = ascending[::-1]
+                new_data = self
+                from pandas.core.sorting import nargsort
+                kind = 'mergesort'
+
+                for i, by_step in enumerate(by[::-1]):
+                    k = self._get_label_or_level_values(
+                        by_step, axis=axis, stacklevel=stacklevel)
+
+                    indexer = nargsort(k, kind=kind, ascending=ascending[i],
+                                       na_position=na_position)
+
+                    new_data = new_data._data.take(
+                        indexer,
+                        axis=self._get_block_manager_axis(axis),
+                        convert=False, verify=False)
+
+                    new_data = self._constructor(new_data).__finalize__(self)
+
         else:
             from pandas.core.sorting import nargsort
 
@@ -4333,9 +4362,9 @@ class DataFrame(NDFrame):
             indexer = nargsort(k, kind=kind, ascending=ascending,
                                na_position=na_position)
 
-        new_data = self._data.take(indexer,
-                                   axis=self._get_block_manager_axis(axis),
-                                   verify=False)
+            new_data = self._data.take(indexer,
+                                       axis=self._get_block_manager_axis(axis),
+                                       verify=False)
 
         if inplace:
             return self._update_inplace(new_data)

@@ -4,7 +4,7 @@ import warnings
 import numpy as np
 import pandas.util.testing as tm
 from pandas import (DataFrame, Series, MultiIndex, date_range, period_range,
-                    isnull, NaT)
+                    isnull, NaT, timedelta_range)
 
 from .pandas_vb_common import setup  # noqa
 
@@ -443,6 +443,55 @@ class XS(object):
         self.df.xs(self.N / 2, axis=axis)
 
 
+class SortValuesMultipleColumns(object):
+    goal_time = 0.1
+
+    param_names = ['columns']
+    # params = generate_column_combinations(
+    #     column_names=['less_repeated_strings',
+    #                   'repeated_category', 'less_repeated_category',
+    #                   'float', 'int_sorted', 'int_random',
+    #                   'date', 'timedelta'], r=[2, 5], num=20)
+    params = ['repeated_strings|int_same_cardinality_as_repeated_strings',
+              'int_same_cardinality_as_repeated_strings|'
+              'int_same_cardinality_as_repeated_strings_copy']
+
+    def setup(self, columns):
+        N = 1000000
+
+        self.df = DataFrame(
+            {'repeated_strings': Series(tm.makeStringIndex(100).take(
+                np.random.randint(0, 100, size=N))),
+                'less_repeated_strings': Series(
+                    tm.makeStringIndex(10000).take(
+                        np.random.randint(0, 10000, size=N))),
+                'float': np.random.randn(N),
+                'int_sorted': np.arange(N),
+                'int_random': np.random.randint(0, 10000000, N),
+                'date': date_range('20110101', freq='s', periods=N),
+                'timedelta': timedelta_range('1 day', freq='s', periods=N),
+             })
+        self.df['repeated_category'] = \
+            self.df['repeated_strings'].astype('category')
+        self.df['less_repeated_category'] = \
+            self.df['less_repeated_strings'].astype('category')
+        self.df['int_same_cardinality_as_repeated_strings'] = \
+            self.df['repeated_strings'].rank(method='dense')
+        self.df['int_same_cardinality_as_repeated_strings_copy'] = \
+            self.df['repeated_strings'].rank(method='dense')
+        self.df['int_same_cardinality_as_less_repeated_strings'] = \
+            self.df['less_repeated_strings'].rank(method='dense')
+        assert self.df['repeated_strings'].nunique() == \
+            self.df['int_same_cardinality_as_repeated_strings'].nunique()
+        assert self.df['less_repeated_strings'].nunique() == \
+            self.df['int_same_cardinality_as_less_repeated_strings']\
+                   .nunique()
+
+    def time_frame_sort_values_by_multiple_columns(self, columns):
+        columns_list = columns.split('|')
+        DataFrame(self.df[columns_list]).sort_values(by=columns_list)
+
+
 class SortValues(object):
 
     goal_time = 0.2
@@ -450,10 +499,13 @@ class SortValues(object):
     param_names = ['ascending']
 
     def setup(self, ascending):
-        self.df = DataFrame(np.random.randn(1000000, 2), columns=list('AB'))
+        self.df = DataFrame(np.random.randn(1000000, 5), columns=list('ABCDE'))
 
     def time_frame_sort_values(self, ascending):
         self.df.sort_values(by='A', ascending=ascending)
+
+    def time_frame_sort_values_two_columns(self, ascending):
+        self.df.sort_values(by=['A', 'B', 'C', 'D', 'E'], ascending=ascending)
 
 
 class SortIndexByColumns(object):
