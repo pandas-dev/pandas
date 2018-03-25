@@ -1445,7 +1445,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        unique : return unique values of 1d array-like objects.
+        pandas.unique : top-level unique method for any 1-d array-like object.
         Index.unique : return Index with unique values from an Index object.
 
         Examples
