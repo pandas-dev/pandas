@@ -981,6 +981,7 @@ I/O
 - :class:`Timedelta` now supported in :func:`DataFrame.to_excel` for all Excel file types (:issue:`19242`, :issue:`9155`, :issue:`19900`)
 - Bug in :meth:`pandas.io.stata.StataReader.value_labels` raising an ``AttributeError`` when called on very old files. Now returns an empty dict (:issue:`19417`)
 - Bug in :func:`read_pickle` when unpickling objects with :class:`TimedeltaIndex` or :class:`Float64Index` created with pandas prior to version 0.20 (:issue:`19939`)
+- Bug in :func:`read_excel` and :class:`TextReader` now turn np.nan to empty string when dtype=str. They used to turn np.nan to 'nan' (:issue `20377`)
 
 Plotting
 ^^^^^^^^
