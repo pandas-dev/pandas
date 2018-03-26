@@ -5149,7 +5149,7 @@ class DataFrame(NDFrame):
 
         Return a reshaped DataFrame or Series having a multi-level
         index with one or more new inner-most levels compared to the current
-        dataframe. The new inner-most levels are created by pivoting the
+        DataFrame. The new inner-most levels are created by pivoting the
         columns of the current dataframe:
 
           - if the columns have a single level, the output is a Series;
@@ -5220,8 +5220,8 @@ class DataFrame(NDFrame):
         >>> multicol1 = pd.MultiIndex.from_tuples([('weight', 'kg'),
         ...                                        ('weight', 'pounds')])
         >>> df_multi_level_cols1 = pd.DataFrame([[1, 2], [2, 4]],
-        ...                                    index=['cat', 'dog'],
-        ...                                    columns=multicol1)
+        ...                                     index=['cat', 'dog'],
+        ...                                     columns=multicol1)
 
         Stacking a dataframe with a multi-level column axis:
 
