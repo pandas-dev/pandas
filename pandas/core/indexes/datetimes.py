@@ -290,6 +290,12 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                    '2018-03-10 00:08:00', '2018-03-10 00:09:00'],
                   dtype='datetime64[ns]', freq='T')
 
+    >>> pd.date_range('2018-03-01', '2018-04-30', freq='W', closed='right')
+    DatetimeIndex(['2018-03-04', '2018-03-11', '2018-03-18',
+                   '2018-03-25', '2018-04-01', '2018-04-08',
+                   '2018-04-15', '2018-04-22', '2018-04-29'],
+                  dtype='datetime64[ns]', freq='W-SUN')
+
     See Also
     ---------
     Index : The base pandas Index type
