@@ -441,10 +441,17 @@ class TestDatetimeIndex(object):
 
         assert idx.nanosecond[0] == t1.nanosecond
 
+    def test_disallow_setting_tz(self):
+        # GH 3746
+        dti = DatetimeIndex(['2010'], tz='UTC')
+        with pytest.raises(ValueError):
+            dti.tz = pytz.timezone('US/Pacific')
+
     @pytest.mark.parametrize('tz',
         [None, 'America/Los_Angeles',
          Timestamp('2000', tz='America/Los_Angeles').tz])
     def test_constructor_start_end_with_tz(self, tz):
+        # GH 18595
         start = Timestamp('2013-01-01 06:00:00', tz='America/Los_Angeles')
         end = Timestamp('2013-01-02 06:00:00', tz='America/Los_Angeles')
         result = DatetimeIndex(freq='D', start=start, end=end, tz=tz)
@@ -454,6 +461,13 @@ class TestDatetimeIndex(object):
         tm.assert_index_equal(result, expected)
         # Especially assert that the timezone is LMT for pytz
         assert pytz.timezone('America/Los_Angeles') == result.tz
+
+    @pytest.mark.parametrize('tz', ['US/Pacific', 'US/Eastern', 'Asia/Tokyo'])
+    def test_constructor_with_non_normalized_pytz(self, tz):
+        # GH 18595
+        non_norm_tz = Timestamp('2010', tz=tz).tz
+        result = DatetimeIndex(['2010'], tz=non_norm_tz)
+        assert pytz.timezone(tz) == result.tz
 
 
 class TestTimeSeries(object):
