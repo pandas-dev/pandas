@@ -1102,7 +1102,8 @@ class DataFrame(NDFrame):
                            for k, v in zip(self.columns, np.atleast_1d(row)))
                     for row in self.values]
         elif orient.lower().startswith('i'):
-            return into_c((k, v.to_dict(into)) for k, v in self.iterrows())
+            return into_c((t[0], dict(zip(self.columns, t[1:])))
+                          for t in self.itertuples())
         else:
             raise ValueError("orient '%s' not understood" % orient)
 
@@ -5049,10 +5050,13 @@ class DataFrame(NDFrame):
             existing index.
         columns : string or object
             Column to use to make new frame's columns.
-        values : string or object, optional
-            Column to use for populating new frame's values. If not
+        values : string, object or a list of the previous, optional
+            Column(s) to use for populating new frame's values. If not
             specified, all remaining columns will be used and the result will
             have hierarchically indexed columns.
+
+            .. versionchanged :: 0.23.0
+               Also accept list of column names.
 
         Returns
         -------
@@ -5082,15 +5086,16 @@ class DataFrame(NDFrame):
         >>> df = pd.DataFrame({'foo': ['one', 'one', 'one', 'two', 'two',
         ...                            'two'],
         ...                    'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
-        ...                    'baz': [1, 2, 3, 4, 5, 6]})
+        ...                    'baz': [1, 2, 3, 4, 5, 6],
+        ...                    'zoo': ['x', 'y', 'z', 'q', 'w', 't']})
         >>> df
-            foo   bar  baz
-        0   one   A    1
-        1   one   B    2
-        2   one   C    3
-        3   two   A    4
-        4   two   B    5
-        5   two   C    6
+            foo   bar  baz  zoo
+        0   one   A    1    x
+        1   one   B    2    y
+        2   one   C    3    z
+        3   two   A    4    q
+        4   two   B    5    w
+        5   two   C    6    t
 
         >>> df.pivot(index='foo', columns='bar', values='baz')
         bar  A   B   C
@@ -5103,6 +5108,13 @@ class DataFrame(NDFrame):
         foo
         one  1   2   3
         two  4   5   6
+
+        >>> df.pivot(index='foo', columns='bar', values=['baz', 'zoo'])
+              baz       zoo
+        bar   A  B  C   A  B  C
+        foo
+        one   1  2  3   x  y  z
+        two   4  5  6   q  w  t
 
         A ValueError is raised if there are any duplicates.
 
@@ -6578,7 +6590,9 @@ class DataFrame(NDFrame):
                 # column frames with an extension array
                 result = notna(frame).sum(axis=axis)
             else:
-                counts = notna(frame.values).sum(axis=axis)
+                # GH13407
+                series_counts = notna(frame).sum(axis=axis)
+                counts = series_counts.values
                 result = Series(counts, index=frame._get_agg_axis(axis))
 
         return result.astype('int64')

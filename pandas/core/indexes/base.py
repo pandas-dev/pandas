@@ -99,9 +99,14 @@ def _make_comparison_op(op, cls):
             # don't pass MultiIndex
             with np.errstate(all='ignore'):
                 result = ops._comp_method_OBJECT_ARRAY(op, self.values, other)
+
         else:
-            with np.errstate(all='ignore'):
-                result = op(self.values, np.asarray(other))
+
+            # numpy will show a DeprecationWarning on invalid elementwise
+            # comparisons, this will raise in the future
+            with warnings.catch_warnings(record=True):
+                with np.errstate(all='ignore'):
+                    result = op(self.values, np.asarray(other))
 
         # technically we could support bool dtyped Index
         # for now just return the indexing array directly
