@@ -1255,6 +1255,17 @@ class TestSeriesAnalytics(TestData):
         result = s.isin(empty)
         tm.assert_series_equal(expected, result)
 
+    def test_isin_cats(self):
+        s = Series(["a", "b", np.nan]).astype("category")
+
+        result = s.isin(["a", np.nan])
+        expected = Series([True, False, True])
+        tm.assert_series_equal(expected, result)
+
+        result = s.isin(["a", "c"])
+        expected = Series([True, False, False])
+        tm.assert_series_equal(expected, result)
+
     def test_timedelta64_analytics(self):
         from pandas import date_range
 

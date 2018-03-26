@@ -403,8 +403,15 @@ def isin(comps, values):
     if not isinstance(values, (ABCIndex, ABCSeries, np.ndarray)):
         values = construct_1d_object_array_from_listlike(list(values))
 
-    comps, dtype, _ = _ensure_data(comps)
-    values, _, _ = _ensure_data(values, dtype=dtype)
+    if not is_categorical_dtype(comps):
+        comps, dtype, _ = _ensure_data(comps)
+        values, _, _ = _ensure_data(values, dtype=dtype)
+    else:
+        cats = comps.cat.categories
+        comps = comps.cat.codes.values
+        mask = isna(values)
+        values = cats.get_indexer(values)
+        values = values[mask | (values >= 0)]
 
     # faster for larger cases to use np.in1d
     f = lambda x, y: htable.ismember_object(x, values)
