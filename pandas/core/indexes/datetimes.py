@@ -271,11 +271,25 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     Examples
     --------
-    >>> pd.DatetimeIndex(freq='M', start='2018-3-10', periods=6)
+    >>> pd.DatetimeIndex(start='2018-3-10', freq='M', periods=6)
     DatetimeIndex(['2018-03-31', '2018-04-30', '2018-05-31',
                    '2018-06-30', '2018-07-31', '2018-08-31'],
                   dtype='datetime64[ns]', freq='M')
-                  
+
+    >>> pd.DatetimeIndex(start ='2015-03-01 19:00:00', end='2015-03-02',freq='H')
+    DatetimeIndex(['2015-03-01 19:00:00', '2015-03-01 20:00:00',
+                   '2015-03-01 21:00:00', '2015-03-01 22:00:00',
+                   '2015-03-01 23:00:00', '2015-03-02 00:00:00'],
+                  dtype='datetime64[ns]', freq='H')
+
+    >>> pd.date_range("2018-03-10", periods = 10, freq = "1min")
+    DatetimeIndex(['2018-03-10 00:00:00', '2018-03-10 00:01:00',
+                   '2018-03-10 00:02:00', '2018-03-10 00:03:00',
+                   '2018-03-10 00:04:00', '2018-03-10 00:05:00',
+                   '2018-03-10 00:06:00', '2018-03-10 00:07:00',
+                   '2018-03-10 00:08:00', '2018-03-10 00:09:00'],
+                  dtype='datetime64[ns]', freq='T')
+
     See Also
     ---------
     Index : The base pandas Index type
