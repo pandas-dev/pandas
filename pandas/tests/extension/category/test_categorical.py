@@ -30,6 +30,18 @@ def data_missing():
 
 
 @pytest.fixture
+def data_for_sorting():
+    return Categorical(['A', 'B', 'C'], categories=['C', 'A', 'B'],
+                       ordered=True)
+
+
+@pytest.fixture
+def data_missing_for_sorting():
+    return Categorical(['A', None, 'B'], categories=['B', 'A'],
+                       ordered=True)
+
+
+@pytest.fixture
 def na_value():
     return np.nan
 
@@ -69,7 +81,14 @@ class TestGetitem(base.BaseGetitemTests):
 
 
 class TestMissing(base.BaseMissingTests):
-    pass
+
+    @pytest.mark.skip(reason="Not implemented")
+    def test_fillna_limit_pad(self):
+        pass
+
+    @pytest.mark.skip(reason="Not implemented")
+    def test_fillna_limit_backfill(self):
+        pass
 
 
 class TestMethods(base.BaseMethodsTests):

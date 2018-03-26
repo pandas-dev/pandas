@@ -44,7 +44,11 @@ class JSONArray(ExtensionArray):
             return self._constructor_from_sequence([
                 x for x, m in zip(self, item) if m
             ])
+        elif isinstance(item, collections.Iterable):
+            # fancy indexing
+            return type(self)([self.data[i] for i in item])
         else:
+            # slice
             return type(self)(self.data[item])
 
     def __setitem__(self, key, value):
@@ -88,6 +92,13 @@ class JSONArray(ExtensionArray):
     def copy(self, deep=False):
         return type(self)(self.data[:])
 
+    def unique(self):
+        # Parent method doesn't work since np.array will try to infer
+        # a 2-dim object.
+        return type(self)([
+            dict(x) for x in list(set(tuple(d.items()) for d in self.data))
+        ])
+
     @property
     def _na_value(self):
         return {}
@@ -96,6 +107,13 @@ class JSONArray(ExtensionArray):
     def _concat_same_type(cls, to_concat):
         data = list(itertools.chain.from_iterable([x.data for x in to_concat]))
         return cls(data)
+
+    def _values_for_argsort(self):
+        # Disable NumPy's shape inference by including an empty tuple...
+        # If all the elemnts of self are the same size P, NumPy will
+        # cast them to an (N, P) array, instead of an (N,) array of tuples.
+        frozen = [()] + list(tuple(x.items()) for x in self)
+        return np.array(frozen, dtype=object)[1:]
 
 
 def make_data():
