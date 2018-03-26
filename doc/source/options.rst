@@ -352,7 +352,7 @@ display.max_info_rows                   1690785      df.info() will usually show
                                                      and max_info_cols limit this null
                                                      check only to frames with smaller
                                                      dimensions then specified.
-display.max_rows                        20           This sets the maximum number of rows
+display.max_rows                        60           This sets the maximum number of rows
                                                      pandas should output when printing
                                                      out various output. For example,
                                                      this value determines whether the
@@ -402,9 +402,9 @@ display.html.table_schema               False        Whether to publish a Table 
 display.html.border                     1            A ``border=value`` attribute is
                                                      inserted in the ``<table>`` tag
                                                      for the DataFrame HTML repr.
-display.html.use_mathjax                True         When True, Jupyter notebook will process 
-                                                     table contents using MathJax, rendering 
-                                                     mathematical expressions enclosed by the 
+display.html.use_mathjax                True         When True, Jupyter notebook will process
+                                                     table contents using MathJax, rendering
+                                                     mathematical expressions enclosed by the
                                                      dollar symbol.
 io.excel.xls.writer                     xlwt         The default Excel writer engine for
                                                      'xls' files.
