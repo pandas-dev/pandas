@@ -371,6 +371,89 @@ class TestPivotTable(object):
         pv = df.pivot(index='p1', columns='p2', values='data1')
         tm.assert_frame_equal(pv, expected)
 
+    @pytest.mark.parametrize('values', [
+        ['baz', 'zoo'], np.array(['baz', 'zoo']),
+        pd.Series(['baz', 'zoo']), pd.Index(['baz', 'zoo'])
+    ])
+    def test_pivot_with_list_like_values(self, values):
+        # issue #17160
+        df = pd.DataFrame({'foo': ['one', 'one', 'one', 'two', 'two', 'two'],
+                           'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
+                           'baz': [1, 2, 3, 4, 5, 6],
+                           'zoo': ['x', 'y', 'z', 'q', 'w', 't']})
+
+        result = df.pivot(index='foo', columns='bar', values=values)
+
+        data = [[1, 2, 3, 'x', 'y', 'z'],
+                [4, 5, 6, 'q', 'w', 't']]
+        index = Index(data=['one', 'two'], name='foo')
+        columns = MultiIndex(levels=[['baz', 'zoo'], ['A', 'B', 'C']],
+                             labels=[[0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2]],
+                             names=[None, 'bar'])
+        expected = DataFrame(data=data, index=index,
+                             columns=columns, dtype='object')
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('values', [
+        ['bar', 'baz'], np.array(['bar', 'baz']),
+        pd.Series(['bar', 'baz']), pd.Index(['bar', 'baz'])
+    ])
+    def test_pivot_with_list_like_values_nans(self, values):
+        # issue #17160
+        df = pd.DataFrame({'foo': ['one', 'one', 'one', 'two', 'two', 'two'],
+                           'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
+                           'baz': [1, 2, 3, 4, 5, 6],
+                           'zoo': ['x', 'y', 'z', 'q', 'w', 't']})
+
+        result = df.pivot(index='zoo', columns='foo', values=values)
+
+        data = [[np.nan, 'A', np.nan, 4],
+                [np.nan, 'C', np.nan, 6],
+                [np.nan, 'B', np.nan, 5],
+                ['A', np.nan, 1, np.nan],
+                ['B', np.nan, 2, np.nan],
+                ['C', np.nan, 3, np.nan]]
+        index = Index(data=['q', 't', 'w', 'x', 'y', 'z'], name='zoo')
+        columns = MultiIndex(levels=[['bar', 'baz'], ['one', 'two']],
+                             labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
+                             names=[None, 'foo'])
+        expected = DataFrame(data=data, index=index,
+                             columns=columns, dtype='object')
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.xfail(reason='MultiIndexed unstack with tuple names fails'
+                              'with KeyError #19966')
+    def test_pivot_with_multiindex(self):
+        # issue #17160
+        index = Index(data=[0, 1, 2, 3, 4, 5])
+        data = [['one', 'A', 1, 'x'],
+                ['one', 'B', 2, 'y'],
+                ['one', 'C', 3, 'z'],
+                ['two', 'A', 4, 'q'],
+                ['two', 'B', 5, 'w'],
+                ['two', 'C', 6, 't']]
+        columns = MultiIndex(levels=[['bar', 'baz'], ['first', 'second']],
+                             labels=[[0, 0, 1, 1], [0, 1, 0, 1]])
+        df = DataFrame(data=data, index=index, columns=columns, dtype='object')
+        result = df.pivot(index=('bar', 'first'), columns=('bar', 'second'),
+                          values=('baz', 'first'))
+
+        data = {'A': Series([1, 4], index=['one', 'two']),
+                'B': Series([2, 5], index=['one', 'two']),
+                'C': Series([3, 6], index=['one', 'two'])}
+        expected = DataFrame(data)
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_with_tuple_of_values(self):
+        # issue #17160
+        df = pd.DataFrame({'foo': ['one', 'one', 'one', 'two', 'two', 'two'],
+                           'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
+                           'baz': [1, 2, 3, 4, 5, 6],
+                           'zoo': ['x', 'y', 'z', 'q', 'w', 't']})
+        with pytest.raises(KeyError):
+            # tuple is seen as a single column name
+            df.pivot(index='zoo', columns='foo', values=('bar', 'baz'))
+
     def test_margins(self):
         def _check_output(result, values_col, index=['A', 'B'],
                           columns=['C'],
