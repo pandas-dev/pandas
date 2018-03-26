@@ -183,25 +183,31 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     Parameters
     ----------
-    end : end time, datetime-like, optional
-        If periods is none, generated index will extend to first conforming
-        time on or just past end argument.
     data : array-like (1-dimensional), optional
         Optional datetime-like data to construct index with.
-    copy : bool
-        Make a copy of input ndarray.
     freq : string or pandas offset object, optional
         One of pandas date offset strings or corresponding objects.
     start : starting value, datetime-like, optional
         If data is None, start is used as the start point in generating regular
         timestamp data.
+    end : end time, datetime-like, optional
+        If periods is none, generated index will extend to first conforming
+        time on or just past end argument.
     periods : int, optional, > 0
         Number of periods to generate, if generating index. Takes precedence
         over end argument.
+    copy : bool
+        Make a copy of input ndarray.
+    name : object
+        Name to be stored in the index.
+    tz : pytz.timezone or dateutil.tz.tzfile.
+    verify_integrity : boolean, default False
+        Check new index for duplicates. Otherwise defer until necessary.
+    normalize : boolean
+        Return DatetimeIndex with times to midnight.
     closed : string or None, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None).
-    tz : pytz.timezone or dateutil.tz.tzfile.
     ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
         - 'infer' will attempt to infer fall dst-transition hours based on
           order.
@@ -210,19 +216,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
           times).
         - 'NaT' will return NaT where there are ambiguous times.
         - 'raise' will raise an AmbiguousTimeError if there are ambiguous times
-    infer_dst : boolean, default False.
-        .. deprecated:: 0.15.0
-           Attempt to infer fall dst-transition hours based on order.
-    name : object
-        Name to be stored in the index.
-    verify_integrity : boolean, default False
-        Check new index for duplicates. Otherwise defer until necessary.
-    kwargs : Keyword arguments
-        use to handle named arguments in a function.
     dtype : object
         Specify the datatype to DataFrame constructor.
-    normalize : boolean
-        Return DatetimeIndex with times to midnight
+    kwargs : Keyword arguments
+        use to handle named arguments in a function.
 
     Attributes
     ----------
