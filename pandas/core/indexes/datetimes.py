@@ -175,7 +175,7 @@ def _new_DatetimeIndex(cls, d):
 class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                     Int64Index):
     """
-    Store timestamps using NumPy’s datetime64 dtype.
+    Store Datetime index using NumPy's datetime64 dtype.
 
     Immutable ndarray of datetime64 data, represented internally as int64, and
     which can be boxed to Timestamp objects that are subclasses of datetime and
@@ -183,38 +183,46 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     Parameters
     ----------
-    data  : array-like (1-dimensional), optional
-        Optional datetime-like data to construct index with
-    copy  : bool
-        Make a copy of input ndarray
+    end : end time, datetime-like, optional
+        If periods is none, generated index will extend to first conforming
+        time on or just past end argument.
+    data : array-like (1-dimensional), optional
+        Optional datetime-like data to construct index with.
+    copy : bool
+        Make a copy of input ndarray.
     freq : string or pandas offset object, optional
-        One of pandas date offset strings or corresponding objects
+        One of pandas date offset strings or corresponding objects.
     start : starting value, datetime-like, optional
         If data is None, start is used as the start point in generating regular
         timestamp data.
-    periods  : int, optional, > 0
+    periods : int, optional, > 0
         Number of periods to generate, if generating index. Takes precedence
-        over end argument
-    end   : end time, datetime-like, optional
-        If periods is none, generated index will extend to first conforming
-        time on or just past end argument
+        over end argument.
     closed : string or None, default None
         Make the interval closed with respect to the given frequency to
-        the 'left', 'right', or both sides (None)
-    tz : pytz.timezone or dateutil.tz.tzfile
+        the 'left', 'right', or both sides (None).
+    tz : pytz.timezone or dateutil.tz.tzfile.
     ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
         - 'infer' will attempt to infer fall dst-transition hours based on
-          order
+          order.
         - bool-ndarray where True signifies a DST time, False signifies a
           non-DST time (note that this flag is only applicable for ambiguous
-          times)
-        - 'NaT' will return NaT where there are ambiguous times
+          times).
+        - 'NaT' will return NaT where there are ambiguous times.
         - 'raise' will raise an AmbiguousTimeError if there are ambiguous times
-    infer_dst : boolean, default False
+    infer_dst : boolean, default False.
         .. deprecated:: 0.15.0
-           Attempt to infer fall dst-transition hours based on order
+           Attempt to infer fall dst-transition hours based on order.
     name : object
-        Name to be stored in the index
+        Name to be stored in the index.
+    verify_integrity : boolean, default False
+        Check new index for duplicates. Otherwise defer until necessary.
+    kwargs : Keyword arguments
+        use to handle named arguments in a function.
+    dtype : object
+        Specify the datatype to DataFrame constructor.
+    normalize : boolean
+        Return DatetimeIndex with times to midnight
 
     Attributes
     ----------
@@ -269,6 +277,12 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
 
+    See Also
+    ---------
+    Index : The base pandas Index type
+    TimedeltaIndex : Index of timedelta64 data
+    PeriodIndex : Index of Period data
+
     Examples
     --------
     >>> pd.DatetimeIndex(start='2018-3-10', freq='M', periods=6)
@@ -276,7 +290,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                    '2018-06-30', '2018-07-31', '2018-08-31'],
                   dtype='datetime64[ns]', freq='M')
 
-    >>> pd.DatetimeIndex(start ='2015-03-01 19:00:00', end='2015-03-02',freq='H')
+    >>> pd.DatetimeIndex(start='2015-03-01 19:00:00',end='2015-03-02',freq='H')
     DatetimeIndex(['2015-03-01 19:00:00', '2015-03-01 20:00:00',
                    '2015-03-01 21:00:00', '2015-03-01 22:00:00',
                    '2015-03-01 23:00:00', '2015-03-02 00:00:00'],
@@ -296,11 +310,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                    '2018-04-15', '2018-04-22', '2018-04-29'],
                   dtype='datetime64[ns]', freq='W-SUN')
 
-    See Also
-    ---------
-    Index : The base pandas Index type
-    TimedeltaIndex : Index of timedelta64 data
-    PeriodIndex : Index of Period data
     """
 
     _typ = 'datetimeindex'
