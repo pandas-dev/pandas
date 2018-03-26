@@ -22,7 +22,6 @@ from pandas.core.config import get_option
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core import accessor
 import pandas.core.common as com
-import pandas.core.base as base
 import pandas.core.missing as missing
 import pandas.core.indexes.base as ibase
 
@@ -399,7 +398,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         return self._shallow_copy(result, categories=result.categories,
                                   ordered=result.ordered)
 
-    @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)
+    @Appender(Index.duplicated.__doc__)
     def duplicated(self, keep='first'):
         from pandas._libs.hashtable import duplicated_int64
         codes = self.codes.astype('i8')
@@ -661,20 +660,71 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     take_nd = take
 
     def map(self, mapper):
-        """Apply mapper function to its categories (not codes).
+        """
+        Map values using input correspondence (a dict, Series, or function).
+
+        Maps the values (their categories, not the codes) of the index to new
+        categories. If the mapping correspondence is one-to-one the result is a
+        :class:`~pandas.CategoricalIndex` which has the same order property as
+        the original, otherwise an :class:`~pandas.Index` is returned.
+
+        If a `dict` or :class:`~pandas.Series` is used any unmapped category is
+        mapped to `NaN`. Note that if this happens an :class:`~pandas.Index`
+        will be returned.
 
         Parameters
         ----------
-        mapper : callable
-            Function to be applied. When all categories are mapped
-            to different categories, the result will be a CategoricalIndex
-            which has the same order property as the original. Otherwise,
-            the result will be a Index.
+        mapper : function, dict, or Series
+            Mapping correspondence.
 
         Returns
         -------
-        applied : CategoricalIndex or Index
+        pandas.CategoricalIndex or pandas.Index
+            Mapped index.
 
+        See Also
+        --------
+        Index.map : Apply a mapping correspondence on an
+            :class:`~pandas.Index`.
+        Series.map : Apply a mapping correspondence on a
+            :class:`~pandas.Series`.
+        Series.apply : Apply more complex functions on a
+            :class:`~pandas.Series`.
+
+        Examples
+        --------
+        >>> idx = pd.CategoricalIndex(['a', 'b', 'c'])
+        >>> idx
+        CategoricalIndex(['a', 'b', 'c'], categories=['a', 'b', 'c'],
+                         ordered=False, dtype='category')
+        >>> idx.map(lambda x: x.upper())
+        CategoricalIndex(['A', 'B', 'C'], categories=['A', 'B', 'C'],
+                         ordered=False, dtype='category')
+        >>> idx.map({'a': 'first', 'b': 'second', 'c': 'third'})
+        CategoricalIndex(['first', 'second', 'third'], categories=['first',
+                         'second', 'third'], ordered=False, dtype='category')
+
+        If the mapping is one-to-one the ordering of the categories is
+        preserved:
+
+        >>> idx = pd.CategoricalIndex(['a', 'b', 'c'], ordered=True)
+        >>> idx
+        CategoricalIndex(['a', 'b', 'c'], categories=['a', 'b', 'c'],
+                         ordered=True, dtype='category')
+        >>> idx.map({'a': 3, 'b': 2, 'c': 1})
+        CategoricalIndex([3, 2, 1], categories=[3, 2, 1], ordered=True,
+                         dtype='category')
+
+        If the mapping is not one-to-one an :class:`~pandas.Index` is returned:
+
+        >>> idx.map({'a': 'first', 'b': 'second', 'c': 'first'})
+        Index(['first', 'second', 'first'], dtype='object')
+
+        If a `dict` is used, all unmapped categories are mapped to `NaN` and
+        the result is an :class:`~pandas.Index`:
+
+        >>> idx.map({'a': 'first', 'b': 'second'})
+        Index(['first', 'second', nan], dtype='object')
         """
         return self._shallow_copy_with_infer(self.values.map(mapper))
 

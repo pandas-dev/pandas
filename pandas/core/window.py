@@ -320,10 +320,123 @@ class _Window(PandasObject, SelectionMixin):
     agg = aggregate
 
     _shared_docs['sum'] = dedent("""
-    %(name)s sum""")
+    Calculate %(name)s sum of given DataFrame or Series.
+
+    Parameters
+    ----------
+    *args, **kwargs
+        For compatibility with other %(name)s methods. Has no effect
+        on the computed value.
+
+    Returns
+    -------
+    Series or DataFrame
+        Same type as the input, with the same index, containing the
+        %(name)s sum.
+
+    See Also
+    --------
+    Series.sum : Reducing sum for Series.
+    DataFrame.sum : Reducing sum for DataFrame.
+
+    Examples
+    --------
+    >>> s = pd.Series([1, 2, 3, 4, 5])
+    >>> s
+    0    1
+    1    2
+    2    3
+    3    4
+    4    5
+    dtype: int64
+
+    >>> s.rolling(3).sum()
+    0     NaN
+    1     NaN
+    2     6.0
+    3     9.0
+    4    12.0
+    dtype: float64
+
+    >>> s.expanding(3).sum()
+    0     NaN
+    1     NaN
+    2     6.0
+    3    10.0
+    4    15.0
+    dtype: float64
+
+    >>> s.rolling(3, center=True).sum()
+    0     NaN
+    1     6.0
+    2     9.0
+    3    12.0
+    4     NaN
+    dtype: float64
+
+    For DataFrame, each %(name)s sum is computed column-wise.
+
+    >>> df = pd.DataFrame({"A": s, "B": s ** 2})
+    >>> df
+       A   B
+    0  1   1
+    1  2   4
+    2  3   9
+    3  4  16
+    4  5  25
+
+    >>> df.rolling(3).sum()
+          A     B
+    0   NaN   NaN
+    1   NaN   NaN
+    2   6.0  14.0
+    3   9.0  29.0
+    4  12.0  50.0
+    """)
 
     _shared_docs['mean'] = dedent("""
-    %(name)s mean""")
+    Calculate the %(name)s mean of the values.
+
+    Parameters
+    ----------
+    *args
+        Under Review.
+    **kwargs
+        Under Review.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returned object type is determined by the caller of the %(name)s
+        calculation.
+
+    See Also
+    --------
+    Series.%(name)s : Calling object with Series data
+    DataFrame.%(name)s : Calling object with DataFrames
+    Series.mean : Equivalent method for Series
+    DataFrame.mean : Equivalent method for DataFrame
+
+    Examples
+    --------
+    The below examples will show rolling mean calculations with window sizes of
+    two and three, respectively.
+
+    >>> s = pd.Series([1, 2, 3, 4])
+    >>> s.rolling(2).mean()
+    0    NaN
+    1    1.5
+    2    2.5
+    3    3.5
+    dtype: float64
+
+    >>> s.rolling(3).mean()
+    0    NaN
+    1    NaN
+    2    2.0
+    3    3.0
+    dtype: float64
+    """)
 
 
 class Window(_Window):
@@ -626,7 +739,8 @@ class Window(_Window):
     @Appender(_agg_doc)
     @Appender(_shared_docs['aggregate'] % dict(
         versionadded='',
-        klass='Series/DataFrame'))
+        klass='Series/DataFrame',
+        axis=''))
     def aggregate(self, arg, *args, **kwargs):
         result, how = self._aggregate(arg, *args, **kwargs)
         if result is None:
@@ -639,14 +753,12 @@ class Window(_Window):
     agg = aggregate
 
     @Substitution(name='window')
-    @Appender(_doc_template)
     @Appender(_shared_docs['sum'])
     def sum(self, *args, **kwargs):
         nv.validate_window_func('sum', args, kwargs)
         return self._apply_window(mean=False, **kwargs)
 
     @Substitution(name='window')
-    @Appender(_doc_template)
     @Appender(_shared_docs['mean'])
     def mean(self, *args, **kwargs):
         nv.validate_window_func('mean', args, kwargs)
@@ -780,8 +892,43 @@ class _Rolling(_Window):
 
 class _Rolling_and_Expanding(_Rolling):
 
-    _shared_docs['count'] = """%(name)s count of number of non-NaN
-    observations inside provided window."""
+    _shared_docs['count'] = dedent(r"""
+    The %(name)s count of any non-NaN observations inside the window.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returned object type is determined by the caller of the %(name)s
+        calculation.
+
+    See Also
+    --------
+    pandas.Series.%(name)s : Calling object with Series data
+    pandas.DataFrame.%(name)s : Calling object with DataFrames
+    pandas.DataFrame.count : Count of the full DataFrame
+
+    Examples
+    --------
+    >>> s = pd.Series([2, 3, np.nan, 10])
+    >>> s.rolling(2).count()
+    0    1.0
+    1    2.0
+    2    1.0
+    3    1.0
+    dtype: float64
+    >>> s.rolling(3).count()
+    0    1.0
+    1    2.0
+    2    2.0
+    3    2.0
+    dtype: float64
+    >>> s.rolling(4).count()
+    0    1.0
+    1    2.0
+    2    2.0
+    3    3.0
+    dtype: float64
+    """)
 
     def count(self):
 
@@ -838,7 +985,38 @@ class _Rolling_and_Expanding(_Rolling):
         return self._apply('roll_max', 'max', **kwargs)
 
     _shared_docs['min'] = dedent("""
-    %(name)s minimum
+    Calculate the %(name)s minimum.
+
+    Parameters
+    ----------
+    **kwargs
+        Under Review.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returned object type is determined by the caller of the %(name)s
+        calculation.
+
+    See Also
+    --------
+    Series.%(name)s : Calling object with a Series
+    DataFrame.%(name)s : Calling object with a DataFrame
+    Series.min : Similar method for Series
+    DataFrame.min : Similar method for DataFrame
+
+    Examples
+    --------
+    Performing a rolling minimum with a window size of 3.
+
+    >>> s = pd.Series([4, 3, 5, 2, 6])
+    >>> s.rolling(3).min()
+    0    NaN
+    1    NaN
+    2    3.0
+    3    2.0
+    4    2.0
+    dtype: float64
     """)
 
     def min(self, *args, **kwargs):
@@ -850,7 +1028,38 @@ class _Rolling_and_Expanding(_Rolling):
         return self._apply('roll_mean', 'mean', **kwargs)
 
     _shared_docs['median'] = dedent("""
-    %(name)s median
+    Calculate the %(name)s median.
+
+    Parameters
+    ----------
+    **kwargs
+        For compatibility with other %(name)s methods. Has no effect
+        on the computed median.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returned type is the same as the original object.
+
+    See Also
+    --------
+    Series.%(name)s : Calling object with Series data
+    DataFrame.%(name)s : Calling object with DataFrames
+    Series.median : Equivalent method for Series
+    DataFrame.median : Equivalent method for DataFrame
+
+    Examples
+    --------
+    Compute the rolling median of a series with a window size of 3.
+
+    >>> s = pd.Series([0, 1, 2, 3, 4])
+    >>> s.rolling(3).median()
+    0    NaN
+    1    NaN
+    2    1.0
+    3    2.0
+    4    3.0
+    dtype: float64
     """)
 
     def median(self, **kwargs):
@@ -1269,14 +1478,14 @@ class Rolling(_Rolling_and_Expanding):
     @Appender(_agg_doc)
     @Appender(_shared_docs['aggregate'] % dict(
         versionadded='',
-        klass='Series/DataFrame'))
+        klass='Series/DataFrame',
+        axis=''))
     def aggregate(self, arg, *args, **kwargs):
         return super(Rolling, self).aggregate(arg, *args, **kwargs)
 
     agg = aggregate
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['count'])
     def count(self):
 
@@ -1293,7 +1502,6 @@ class Rolling(_Rolling_and_Expanding):
         return super(Rolling, self).apply(func, args=args, kwargs=kwargs)
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['sum'])
     def sum(self, *args, **kwargs):
         nv.validate_rolling_func('sum', args, kwargs)
@@ -1307,21 +1515,18 @@ class Rolling(_Rolling_and_Expanding):
         return super(Rolling, self).max(*args, **kwargs)
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['min'])
     def min(self, *args, **kwargs):
         nv.validate_rolling_func('min', args, kwargs)
         return super(Rolling, self).min(*args, **kwargs)
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['mean'])
     def mean(self, *args, **kwargs):
         nv.validate_rolling_func('mean', args, kwargs)
         return super(Rolling, self).mean(*args, **kwargs)
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['median'])
     def median(self, **kwargs):
         return super(Rolling, self).median(**kwargs)
@@ -1536,14 +1741,14 @@ class Expanding(_Rolling_and_Expanding):
     @Appender(_agg_doc)
     @Appender(_shared_docs['aggregate'] % dict(
         versionadded='',
-        klass='Series/DataFrame'))
+        klass='Series/DataFrame',
+        axis=''))
     def aggregate(self, arg, *args, **kwargs):
         return super(Expanding, self).aggregate(arg, *args, **kwargs)
 
     agg = aggregate
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['count'])
     def count(self, **kwargs):
         return super(Expanding, self).count(**kwargs)
@@ -1555,7 +1760,6 @@ class Expanding(_Rolling_and_Expanding):
         return super(Expanding, self).apply(func, args=args, kwargs=kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['sum'])
     def sum(self, *args, **kwargs):
         nv.validate_expanding_func('sum', args, kwargs)
@@ -1569,21 +1773,18 @@ class Expanding(_Rolling_and_Expanding):
         return super(Expanding, self).max(*args, **kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['min'])
     def min(self, *args, **kwargs):
         nv.validate_expanding_func('min', args, kwargs)
         return super(Expanding, self).min(*args, **kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['mean'])
     def mean(self, *args, **kwargs):
         nv.validate_expanding_func('mean', args, kwargs)
         return super(Expanding, self).mean(*args, **kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['median'])
     def median(self, **kwargs):
         return super(Expanding, self).median(**kwargs)
@@ -1840,7 +2041,8 @@ class EWM(_Rolling):
     @Appender(_agg_doc)
     @Appender(_shared_docs['aggregate'] % dict(
         versionadded='',
-        klass='Series/DataFrame'))
+        klass='Series/DataFrame',
+        axis=''))
     def aggregate(self, arg, *args, **kwargs):
         return super(EWM, self).aggregate(arg, *args, **kwargs)
 

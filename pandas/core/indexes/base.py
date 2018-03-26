@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 import warnings
 import operator
+from textwrap import dedent
 
 import numpy as np
 from pandas._libs import (lib, index as libindex, tslib as libts,
@@ -47,7 +48,6 @@ from pandas.core.dtypes.common import (
 
 from pandas.core.base import PandasObject, IndexOpsMixin
 import pandas.core.common as com
-import pandas.core.base as base
 from pandas.core import ops
 from pandas.util._decorators import (
     Appender, Substitution, cache_readonly, deprecate_kwarg)
@@ -99,9 +99,14 @@ def _make_comparison_op(op, cls):
             # don't pass MultiIndex
             with np.errstate(all='ignore'):
                 result = ops._comp_method_OBJECT_ARRAY(op, self.values, other)
+
         else:
-            with np.errstate(all='ignore'):
-                result = op(self.values, np.asarray(other))
+
+            # numpy will show a DeprecationWarning on invalid elementwise
+            # comparisons, this will raise in the future
+            with warnings.catch_warnings(record=True):
+                with np.errstate(all='ignore'):
+                    result = op(self.values, np.asarray(other))
 
         # technically we could support bool dtyped Index
         # for now just return the indexing array directly
@@ -458,7 +463,7 @@ class Index(IndexOpsMixin, PandasObject):
         Must be careful not to recurse.
         """
         if not hasattr(values, 'dtype'):
-            if values is None and dtype is not None:
+            if (values is None or not len(values)) and dtype is not None:
                 values = np.empty(0, dtype=dtype)
             else:
                 values = np.array(values, copy=False)
@@ -492,6 +497,8 @@ class Index(IndexOpsMixin, PandasObject):
             values = self.values
         attributes = self._get_attributes_dict()
         attributes.update(kwargs)
+        if not len(values) and 'dtype' not in kwargs:
+            attributes['dtype'] = self.dtype
         return self._simple_new(values, **attributes)
 
     def _shallow_copy_with_infer(self, values=None, **kwargs):
@@ -512,6 +519,8 @@ class Index(IndexOpsMixin, PandasObject):
         attributes = self._get_attributes_dict()
         attributes.update(kwargs)
         attributes['copy'] = False
+        if not len(values) and 'dtype' not in kwargs:
+            attributes['dtype'] = self.dtype
         if self._infer_as_myclass:
             try:
                 return self._constructor(values, **attributes)
@@ -1191,6 +1200,11 @@ class Index(IndexOpsMixin, PandasObject):
         DataFrame
             DataFrame containing the original Index data.
 
+        See Also
+        --------
+        Index.to_series : Convert an Index to a Series.
+        Series.to_frame : Convert Series to DataFrame.
+
         Examples
         --------
         >>> idx = pd.Index(['Ant', 'Bear', 'Cow'], name='animal')
@@ -1385,7 +1399,19 @@ class Index(IndexOpsMixin, PandasObject):
         # to disable groupby tricks in MultiIndex
         return False
 
-    def summary(self, name=None):
+    def _summary(self, name=None):
+        """
+        Return a summarized representation
+
+        Parameters
+        ----------
+        name : str
+            name to use in the summary representation
+
+        Returns
+        -------
+        String with a summarized representation of the index
+        """
         if len(self) > 0:
             head = self[0]
             if (hasattr(head, 'format') and
@@ -1403,6 +1429,15 @@ class Index(IndexOpsMixin, PandasObject):
         if name is None:
             name = type(self).__name__
         return '%s: %s entries%s' % (name, len(self), index_summary)
+
+    def summary(self, name=None):
+        """
+        Return a summarized representation
+        .. deprecated:: 0.23.0
+        """
+        warnings.warn("'summary' is deprecated and will be removed in a "
+                      "future version.", FutureWarning, stacklevel=2)
+        return self._summary(name)
 
     def _mpl_repr(self):
         # how to represent ourselves to matplotlib
@@ -1534,10 +1569,10 @@ class Index(IndexOpsMixin, PandasObject):
         >>> idx.is_categorical()
         False
 
-        >>> s = pd.Series(["Peter", "Víctor", "Elisabeth", "Mar"])
+        >>> s = pd.Series(["Peter", "Victor", "Elisabeth", "Mar"])
         >>> s
         0        Peter
-        1       Víctor
+        1       Victor
         2    Elisabeth
         3          Mar
         dtype: object
@@ -1810,6 +1845,10 @@ class Index(IndexOpsMixin, PandasObject):
         [2.0, 3.0]
         >>> pd.Index(['a', 'b', 'b', 'c', 'c', 'c', 'd']).get_duplicates()
         ['b', 'c']
+
+        Note that for a DatetimeIndex, it does not return a list but a new
+        DatetimeIndex:
+
         >>> dates = pd.to_datetime(['2018-01-01', '2018-01-02', '2018-01-03',
         ...                         '2018-01-03', '2018-01-04', '2018-01-04'],
         ...                        format='%Y-%m-%d')
@@ -1830,11 +1869,6 @@ class Index(IndexOpsMixin, PandasObject):
         ...                        format='%Y-%m-%d')
         >>> pd.Index(dates).get_duplicates()
         DatetimeIndex([], dtype='datetime64[ns]', freq=None)
-
-        Notes
-        -----
-        In case of datetime-like indexes, the function is overridden where the
-        result is converted to DatetimeIndex.
         """
         from collections import defaultdict
         counter = defaultdict(lambda: 0)
@@ -2148,36 +2182,105 @@ class Index(IndexOpsMixin, PandasObject):
 
     def isna(self):
         """
-        Detect missing values
+        Detect missing values.
+
+        Return a boolean same-sized object indicating if the values are NA.
+        NA values, such as ``None``, :attr:`numpy.NaN` or :attr:`pd.NaT`, get
+        mapped to ``True`` values.
+        Everything else get mapped to ``False`` values. Characters such as
+        empty strings `''` or :attr:`numpy.inf` are not considered NA values
+        (unless you set ``pandas.options.mode.use_inf_as_na = True``).
 
         .. versionadded:: 0.20.0
 
         Returns
         -------
-        a boolean array of whether my values are NA
+        numpy.ndarray
+            A boolean array of whether my values are NA
 
-        See also
+        See Also
         --------
-        isnull : alias of isna
-        pandas.isna : top-level isna
+        pandas.Index.notna : boolean inverse of isna.
+        pandas.Index.dropna : omit entries with missing values.
+        pandas.isna : top-level isna.
+        Series.isna : detect missing values in Series object.
+
+        Examples
+        --------
+        Show which entries in a pandas.Index are NA. The result is an
+        array.
+
+        >>> idx = pd.Index([5.2, 6.0, np.NaN])
+        >>> idx
+        Float64Index([5.2, 6.0, nan], dtype='float64')
+        >>> idx.isna()
+        array([False, False,  True], dtype=bool)
+
+        Empty strings are not considered NA values. None is considered an NA
+        value.
+
+        >>> idx = pd.Index(['black', '', 'red', None])
+        >>> idx
+        Index(['black', '', 'red', None], dtype='object')
+        >>> idx.isna()
+        array([False, False, False,  True], dtype=bool)
+
+        For datetimes, `NaT` (Not a Time) is considered as an NA value.
+
+        >>> idx = pd.DatetimeIndex([pd.Timestamp('1940-04-25'),
+        ...                         pd.Timestamp(''), None, pd.NaT])
+        >>> idx
+        DatetimeIndex(['1940-04-25', 'NaT', 'NaT', 'NaT'],
+                      dtype='datetime64[ns]', freq=None)
+        >>> idx.isna()
+        array([False,  True,  True,  True], dtype=bool)
         """
         return self._isnan
     isnull = isna
 
     def notna(self):
         """
-        Inverse of isna
+        Detect existing (non-missing) values.
+
+        Return a boolean same-sized object indicating if the values are not NA.
+        Non-missing values get mapped to ``True``. Characters such as empty
+        strings ``''`` or :attr:`numpy.inf` are not considered NA values
+        (unless you set ``pandas.options.mode.use_inf_as_na = True``).
+        NA values, such as None or :attr:`numpy.NaN`, get mapped to ``False``
+        values.
 
         .. versionadded:: 0.20.0
 
         Returns
         -------
-        a boolean array of whether my values are not NA
+        numpy.ndarray
+            Boolean array to indicate which entries are not NA.
 
         See also
         --------
-        notnull : alias of notna
+        Index.notnull : alias of notna
+        Index.isna: inverse of notna
         pandas.notna : top-level notna
+
+        Examples
+        --------
+        Show which entries in an Index are not NA. The result is an
+        array.
+
+        >>> idx = pd.Index([5.2, 6.0, np.NaN])
+        >>> idx
+        Float64Index([5.2, 6.0, nan], dtype='float64')
+        >>> idx.notna()
+        array([ True,  True, False])
+
+        Empty strings are not considered NA values. None is considered a NA
+        value.
+
+        >>> idx = pd.Index(['black', '', 'red', None])
+        >>> idx
+        Index(['black', '', 'red', None], dtype='object')
+        >>> idx.notna()
+        array([ True,  True,  True, False])
         """
         return ~self.isna()
     notnull = notna
@@ -2344,7 +2447,46 @@ class Index(IndexOpsMixin, PandasObject):
 
     def sort_values(self, return_indexer=False, ascending=True):
         """
-        Return sorted copy of Index
+        Return a sorted copy of the index.
+
+        Return a sorted copy of the index, and optionally return the indices
+        that sorted the index itself.
+
+        Parameters
+        ----------
+        return_indexer : bool, default False
+            Should the indices that would sort the index be returned.
+        ascending : bool, default True
+            Should the index values be sorted in an ascending order.
+
+        Returns
+        -------
+        sorted_index : pandas.Index
+            Sorted copy of the index.
+        indexer : numpy.ndarray, optional
+            The indices that the index itself was sorted by.
+
+        See Also
+        --------
+        pandas.Series.sort_values : Sort values of a Series.
+        pandas.DataFrame.sort_values : Sort values in a DataFrame.
+
+        Examples
+        --------
+        >>> idx = pd.Index([10, 100, 1, 1000])
+        >>> idx
+        Int64Index([10, 100, 1, 1000], dtype='int64')
+
+        Sort values in ascending order (default behavior).
+
+        >>> idx.sort_values()
+        Int64Index([1, 10, 100, 1000], dtype='int64')
+
+        Sort values in descending order, and also get the indices `idx` was
+        sorted by.
+
+        >>> idx.sort_values(ascending=False, return_indexer=True)
+        (Int64Index([1000, 100, 10, 1], dtype='int64'), array([3, 1, 0, 2]))
         """
         _as = self.argsort()
         if not ascending:
@@ -2709,7 +2851,7 @@ class Index(IndexOpsMixin, PandasObject):
         self._assert_can_do_setop(other)
 
         if self.equals(other):
-            return Index([], name=self.name)
+            return self._shallow_copy([])
 
         other, result_name = self._convert_can_do_setop(other)
 
@@ -3216,14 +3358,16 @@ class Index(IndexOpsMixin, PandasObject):
         return result
 
     def map(self, mapper, na_action=None):
-        """Map values of Series using input correspondence
+        """
+        Map values using input correspondence (a dict, Series, or function).
 
         Parameters
         ----------
         mapper : function, dict, or Series
+            Mapping correspondence.
         na_action : {None, 'ignore'}
             If 'ignore', propagate NA values, without passing them to the
-            mapping function
+            mapping correspondence.
 
         Returns
         -------
@@ -3231,7 +3375,6 @@ class Index(IndexOpsMixin, PandasObject):
             The output of the mapping function applied to the index.
             If the function returns a tuple with more than one element
             a MultiIndex will be returned.
-
         """
 
         from .multi import MultiIndex
@@ -3260,8 +3403,11 @@ class Index(IndexOpsMixin, PandasObject):
 
     def isin(self, values, level=None):
         """
+        Return a boolean array where the index values are in `values`.
+
         Compute boolean array of whether each index value is found in the
-        passed set of values.
+        passed set of values. The length of the returned boolean array matches
+        the length of the index.
 
         Parameters
         ----------
@@ -3270,23 +3416,74 @@ class Index(IndexOpsMixin, PandasObject):
 
             .. versionadded:: 0.18.1
 
-            Support for values as a set
+               Support for values as a set.
 
         level : str or int, optional
             Name or position of the index level to use (if the index is a
-            MultiIndex).
+            `MultiIndex`).
+
+        Returns
+        -------
+        is_contained : ndarray
+            NumPy array of boolean values.
+
+        See also
+        --------
+        Series.isin : Same for Series.
+        DataFrame.isin : Same method for DataFrames.
 
         Notes
         -----
+        In the case of `MultiIndex` you must either specify `values` as a
+        list-like object containing tuples that are the same length as the
+        number of levels, or specify `level`. Otherwise it will raise a
+        ``ValueError``.
+
         If `level` is specified:
 
         - if it is the name of one *and only one* index level, use that level;
         - otherwise it should be a number indicating level position.
 
-        Returns
-        -------
-        is_contained : ndarray (boolean dtype)
+        Examples
+        --------
+        >>> idx = pd.Index([1,2,3])
+        >>> idx
+        Int64Index([1, 2, 3], dtype='int64')
 
+        Check whether each index value in a list of values.
+        >>> idx.isin([1, 4])
+        array([ True, False, False])
+
+        >>> midx = pd.MultiIndex.from_arrays([[1,2,3],
+        ...                                  ['red', 'blue', 'green']],
+        ...                                  names=('number', 'color'))
+        >>> midx
+        MultiIndex(levels=[[1, 2, 3], ['blue', 'green', 'red']],
+                   labels=[[0, 1, 2], [2, 0, 1]],
+                   names=['number', 'color'])
+
+        Check whether the strings in the 'color' level of the MultiIndex
+        are in a list of colors.
+
+        >>> midx.isin(['red', 'orange', 'yellow'], level='color')
+        array([ True, False, False])
+
+        To check across the levels of a MultiIndex, pass a list of tuples:
+
+        >>> midx.isin([(1, 'red'), (3, 'red')])
+        array([ True, False, False])
+
+        For a DatetimeIndex, string values in `values` are converted to
+        Timestamps.
+
+        >>> dates = ['2000-03-11', '2000-03-12', '2000-03-13']
+        >>> dti = pd.to_datetime(dates)
+        >>> dti
+        DatetimeIndex(['2000-03-11', '2000-03-12', '2000-03-13'],
+        dtype='datetime64[ns]', freq=None)
+
+        >>> dti.isin(['2000-03-11'])
+        array([ True, False, False])
         """
         if level is not None:
             self._validate_index_level(level)
@@ -4218,8 +4415,60 @@ class Index(IndexOpsMixin, PandasObject):
         """
         return super(Index, self).drop_duplicates(keep=keep)
 
-    @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)
     def duplicated(self, keep='first'):
+        """
+        Indicate duplicate index values.
+
+        Duplicated values are indicated as ``True`` values in the resulting
+        array. Either all duplicates, all except the first, or all except the
+        last occurrence of duplicates can be indicated.
+
+        Parameters
+        ----------
+        keep : {'first', 'last', False}, default 'first'
+            The value or values in a set of duplicates to mark as missing.
+
+            - 'first' : Mark duplicates as ``True`` except for the first
+              occurrence.
+            - 'last' : Mark duplicates as ``True`` except for the last
+              occurrence.
+            - ``False`` : Mark all duplicates as ``True``.
+
+        Examples
+        --------
+        By default, for each set of duplicated values, the first occurrence is
+        set to False and all others to True:
+
+        >>> idx = pd.Index(['lama', 'cow', 'lama', 'beetle', 'lama'])
+        >>> idx.duplicated()
+        array([False, False,  True, False,  True])
+
+        which is equivalent to
+
+        >>> idx.duplicated(keep='first')
+        array([False, False,  True, False,  True])
+
+        By using 'last', the last occurrence of each set of duplicated values
+        is set on False and all others on True:
+
+        >>> idx.duplicated(keep='last')
+        array([ True, False,  True, False, False])
+
+        By setting keep on ``False``, all duplicates are True:
+
+        >>> idx.duplicated(keep=False)
+        array([ True, False,  True, False,  True])
+
+        Returns
+        -------
+        numpy.ndarray
+
+        See Also
+        --------
+        pandas.Series.duplicated : Equivalent method on pandas.Series
+        pandas.DataFrame.duplicated : Equivalent method on pandas.DataFrame
+        pandas.Index.drop_duplicates : Remove duplicate values from Index
+        """
         return super(Index, self).duplicated(keep=keep)
 
     _index_shared_docs['fillna'] = """
@@ -4443,20 +4692,86 @@ class Index(IndexOpsMixin, PandasObject):
         """ add in logical methods """
 
         _doc = """
-
         %(desc)s
 
         Parameters
         ----------
-        All arguments to numpy.%(outname)s are accepted.
+        *args
+            These parameters will be passed to numpy.%(outname)s.
+        **kwargs
+            These parameters will be passed to numpy.%(outname)s.
 
         Returns
         -------
         %(outname)s : bool or array_like (if axis is specified)
             A single element array_like may be converted to bool."""
 
+        _index_shared_docs['index_all'] = dedent("""
+
+        See Also
+        --------
+        pandas.Index.any : Return whether any element in an Index is True.
+        pandas.Series.any : Return whether any element in a Series is True.
+        pandas.Series.all : Return whether all elements in a Series are True.
+
+        Notes
+        -----
+        Not a Number (NaN), positive infinity and negative infinity
+        evaluate to True because these are not equal to zero.
+
+        Examples
+        --------
+        **all**
+
+        True, because nonzero integers are considered True.
+
+        >>> pd.Index([1, 2, 3]).all()
+        True
+
+        False, because ``0`` is considered False.
+
+        >>> pd.Index([0, 1, 2]).all()
+        False
+
+        **any**
+
+        True, because ``1`` is considered True.
+
+        >>> pd.Index([0, 0, 1]).any()
+        True
+
+        False, because ``0`` is considered False.
+
+        >>> pd.Index([0, 0, 0]).any()
+        False
+        """)
+
+        _index_shared_docs['index_any'] = dedent("""
+
+        See Also
+        --------
+        pandas.Index.all : Return whether all elements are True.
+        pandas.Series.all : Return whether all elements are True.
+
+        Notes
+        -----
+        Not a Number (NaN), positive infinity and negative infinity
+        evaluate to True because these are not equal to zero.
+
+        Examples
+        --------
+        >>> index = pd.Index([0, 1, 2])
+        >>> index.any()
+        True
+
+        >>> index = pd.Index([0, 0, 0])
+        >>> index.any()
+        False
+        """)
+
         def _make_logical_function(name, desc, f):
             @Substitution(outname=name, desc=desc)
+            @Appender(_index_shared_docs['index_' + name])
             @Appender(_doc)
             def logical_func(self, *args, **kwargs):
                 result = f(self.values)
@@ -4471,10 +4786,10 @@ class Index(IndexOpsMixin, PandasObject):
             return logical_func
 
         cls.all = _make_logical_function('all', 'Return whether all elements '
-                                                'are True',
+                                                'are True.',
                                          np.all)
         cls.any = _make_logical_function('any',
-                                         'Return whether any element is True',
+                                         'Return whether any element is True.',
                                          np.any)
 
     @classmethod

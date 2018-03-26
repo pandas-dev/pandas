@@ -131,6 +131,9 @@ if PY3:
     def lfilter(*args, **kwargs):
         return list(filter(*args, **kwargs))
 
+    from importlib import reload
+    reload = reload
+
 else:
     # Python 2
     import re
@@ -184,6 +187,7 @@ else:
     lmap = builtins.map
     lfilter = builtins.filter
 
+    reload = builtins.reload
 
 if PY2:
     def iteritems(obj, **kw):

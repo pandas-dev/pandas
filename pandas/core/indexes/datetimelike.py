@@ -58,21 +58,40 @@ class DatelikeOps(object):
     """ common ops for DatetimeIndex/PeriodIndex, but not TimedeltaIndex """
 
     def strftime(self, date_format):
-        return np.asarray(self.format(date_format=date_format),
-                          dtype=compat.text_type)
+        return Index(self.format(date_format=date_format),
+                     dtype=compat.text_type)
     strftime.__doc__ = """
-    Return an array of formatted strings specified by date_format, which
+    Convert to Index using specified date_format.
+
+    Return an Index of formatted strings specified by date_format, which
     supports the same string format as the python standard library. Details
     of the string format can be found in `python string format doc <{0}>`__
 
     Parameters
     ----------
     date_format : str
-        date format string (e.g. "%Y-%m-%d")
+        Date format string (e.g. "%Y-%m-%d").
 
     Returns
     -------
-    ndarray of formatted strings
+    Index
+        Index of formatted strings
+
+    See Also
+    --------
+    pandas.to_datetime : Convert the given argument to datetime
+    DatetimeIndex.normalize : Return DatetimeIndex with times to midnight.
+    DatetimeIndex.round : Round the DatetimeIndex to the specified freq.
+    DatetimeIndex.floor : Floor the DatetimeIndex to the specified freq.
+
+    Examples
+    --------
+    >>> rng = pd.date_range(pd.Timestamp("2018-03-10 09:00"),
+    ...                     periods=3, freq='s')
+    >>> rng.strftime('%B %d, %Y, %r')
+    Index(['March 10, 2018, 09:00:00 AM', 'March 10, 2018, 09:00:01 AM',
+           'March 10, 2018, 09:00:02 AM'],
+          dtype='object')
     """.format("https://docs.python.org/3/library/datetime.html"
                "#strftime-and-strptime-behavior")
 
@@ -1026,9 +1045,18 @@ class DatetimeIndexOpsMixin(object):
         return self._shallow_copy(result,
                                   **self._get_attributes_dict())
 
-    def summary(self, name=None):
+    def _summary(self, name=None):
         """
-        return a summarized representation
+        Return a summarized representation
+
+        Parameters
+        ----------
+        name : str
+            name to use in the summary representation
+
+        Returns
+        -------
+        String with a summarized representation of the index
         """
         formatter = self._formatter_func
         if len(self) > 0:

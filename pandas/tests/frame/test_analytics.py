@@ -529,7 +529,8 @@ class TestDataFrameAnalytics(TestData):
         self._check_stat_op('median', wrapper, check_dates=True)
 
     def test_min(self):
-        self._check_stat_op('min', np.min, check_dates=True)
+        with warnings.catch_warnings(record=True):
+            self._check_stat_op('min', np.min, check_dates=True)
         self._check_stat_op('min', np.min, frame=self.intframe)
 
     def test_cummin(self):
@@ -579,7 +580,8 @@ class TestDataFrameAnalytics(TestData):
         assert np.shape(cummax_xs) == np.shape(self.tsframe)
 
     def test_max(self):
-        self._check_stat_op('max', np.max, check_dates=True)
+        with warnings.catch_warnings(record=True):
+            self._check_stat_op('max', np.max, check_dates=True)
         self._check_stat_op('max', np.max, frame=self.intframe)
 
     def test_mad(self):
