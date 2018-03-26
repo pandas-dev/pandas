@@ -32,20 +32,21 @@ def isna(obj):
     """Detect missing values for an array-like object.
 
     This function takes an array-like object, for each element, if it is
-    a missing value (`NaN` in numeric arrays, `None`/`NaN` in object arrays)
-    the correisponding element of the output boolean array will be `True`,
-    otherwise `False`.
+    a missing value (`NaN` in numeric arrays, `None`/`NaN` in object arrays,
+    `NaT` in datetimelike) the correisponding element of the output boolean
+    array will be `True`, otherwise `False`.
 
     Parameters
     ----------
     obj : array-like or object
-        Object to check for null-ness.
+        Object to check for null or missing values.
 
     Returns
     -------
-    array-like of bool or bool
-        Array or bool indicating whether an object is null or if an array is
-        given which of the element is null.
+    bool or array-like of bool
+        For scalar input, a scalar boolean is returned.
+        For array input, an array of boolean indicating whether the
+        correisponding element is missing is returned.
 
     See Also
     --------
@@ -59,14 +60,25 @@ def isna(obj):
     --------
     >>> pd.isna('dog')
     False
+
     >>> pd.isna(np.nan)
     True
+
+    >>> index = pd.DatetimeIndex(["2017-07-05","2017-07-06",None,"2017-07-08"])
+    >>> index
+    DatetimeIndex(['2017-07-05', '2017-07-06', 'NaT', '2017-07-08'],
+    dtype='datetime64[ns]', freq=None)
+    >>> pd.isna(index)
+    array([False, False,  True, False])
+
+    >>> array = np.array([[1, np.nan, 3], [4, 5, np.nan]])
     >>> array
     array([[ 1., nan,  3.],
            [ 4.,  5., nan]])
     >>> pd.isna(array)
     array([[False,  True, False],
            [False, False,  True]])
+
     >>> df = pd.DataFrame([['ant', 'bee', 'cat'], ['dog', None, 'fly']])
     >>> df
          0     1    2
@@ -230,20 +242,21 @@ def notna(obj):
     """Detect non-missing values for an array-like object.
 
     This function takes an array-like object, for each element, if it is *not*
-    a missing.value (`NaN` in numeric arrays, `None`/`NaN` in object arrays)
-    the correisponding element of the output boolean array will be `True`,
-    otherwise `False`.
+    a missing.value (`NaN` in numeric arrays, `None`/`NaN` in object arrays,
+    `NaT` in datetimelike) the correisponding element of the output boolean
+    array will be `True`, otherwise `False`.
 
     Parameters
     ----------
     obj : array-like or object value
-        Object to check for *not*-null-ness
+        Object to check for *not* null or *non*-missing values.
 
     Returns
     -------
-    array-like of bool or bool
-        Array or bool indicating whether an object is *not* null or if an array
-        is given which of the element is *not* null.
+    bool or array-like of bool
+        For scalar input, a scalar boolean is returned.
+        For array input, an array of boolean indicating whether the
+        correisponding element is *not* missing is returned.
 
     See Also
     --------
@@ -257,14 +270,25 @@ def notna(obj):
     --------
     >>> pd.notna('dog')
     True
+
     >>> pd.notna(np.nan)
     False
+
+    >>> index = pd.DatetimeIndex(["2017-07-05","2017-07-06",None,"2017-07-08"])
+    >>> index
+    DatetimeIndex(['2017-07-05', '2017-07-06', 'NaT', '2017-07-08'],
+    dtype='datetime64[ns]', freq=None)
+    >>> pd.notna(index)
+    array([ True,  True, False,  True])
+
+    >>> array = np.array([[1, np.nan, 3], [4, 5, np.nan]])
     >>> array
     array([[ 1., nan,  3.],
            [ 4.,  5., nan]])
     >>> pd.notna(array)
     array([[ True, False,  True],
            [ True,  True, False]])
+
     >>> df = pd.DataFrame([['ant', 'bee', 'cat'], ['dog', None, 'fly']])
     >>> df
          0     1    2

@@ -326,6 +326,7 @@ Other Enhancements
 - ``Resampler`` objects now have a functioning :attr:`~pandas.core.resample.Resampler.pipe` method.
   Previously, calls to ``pipe`` were diverted to  the ``mean`` method (:issue:`17905`).
 - :func:`~pandas.api.types.is_scalar` now returns ``True`` for ``DateOffset`` objects (:issue:`18943`).
+- :func:`DataFrame.pivot` now accepts a list for the ``values=`` kwarg (:issue:`17160`).
 - Added :func:`pandas.api.extensions.register_dataframe_accessor`,
   :func:`pandas.api.extensions.register_series_accessor`, and
   :func:`pandas.api.extensions.register_index_accessor`, accessor for libraries downstream of pandas
@@ -344,6 +345,7 @@ Other Enhancements
 - :meth:`DataFrame.to_sql` now performs a multivalue insert if the underlying connection supports itk rather than inserting row by row.
   ``SQLAlchemy`` dialects supporting multivalue inserts include: ``mysql``, ``postgresql``, ``sqlite`` and any dialect with ``supports_multivalues_insert``. (:issue:`14315`, :issue:`8953`)
 - :func:`read_html` now accepts a ``displayed_only`` keyword argument to controls whether or not hidden elements are parsed (``True`` by default) (:issue:`20027`)
+- zip compression is supported via ``compression=zip`` in :func:`DataFrame.to_pickle`, :func:`Series.to_pickle`, :func:`DataFrame.to_csv`, :func:`Series.to_csv`, :func:`DataFrame.to_json`, :func:`Series.to_json`. (:issue:`17778`)
 
 .. _whatsnew_0230.api_breaking:
 
@@ -715,6 +717,7 @@ Other API Changes
 - :func:`Series.str.replace` now takes an optional `regex` keyword which, when set to ``False``, uses literal string replacement rather than regex replacement (:issue:`16808`)
 - :func:`DatetimeIndex.strftime` and :func:`PeriodIndex.strftime` now return an ``Index`` instead of a numpy array to be consistent with similar accessors (:issue:`20127`)
 - Constructing a Series from a list of length 1 no longer broadcasts this list when a longer index is specified (:issue:`19714`, :issue:`20391`).
+- :func:`DataFrame.to_dict` with ``orient='index'`` no longer casts int columns to float for a DataFrame with only int and float columns (:issue:`18580`)
 
 .. _whatsnew_0230.deprecations:
 
@@ -902,11 +905,12 @@ Timezones
 - :func:`Timestamp.replace` will now handle Daylight Savings transitions gracefully (:issue:`18319`)
 - Bug in tz-aware :class:`DatetimeIndex` where addition/subtraction with a :class:`TimedeltaIndex` or array with ``dtype='timedelta64[ns]'`` was incorrect (:issue:`17558`)
 - Bug in :func:`DatetimeIndex.insert` where inserting ``NaT`` into a timezone-aware index incorrectly raised (:issue:`16357`)
-- Bug in the :class:`DataFrame` constructor, where tz-aware Datetimeindex and a given column name will result in an empty ``DataFrame`` (:issue:`19157`)
+- Bug in :class:`DataFrame` constructor, where tz-aware Datetimeindex and a given column name will result in an empty ``DataFrame`` (:issue:`19157`)
 - Bug in :func:`Timestamp.tz_localize` where localizing a timestamp near the minimum or maximum valid values could overflow and return a timestamp with an incorrect nanosecond value (:issue:`12677`)
 - Bug when iterating over :class:`DatetimeIndex` that was localized with fixed timezone offset that rounded nanosecond precision to microseconds (:issue:`19603`)
 - Bug in :func:`DataFrame.diff` that raised an ``IndexError`` with tz-aware values (:issue:`18578`)
 - Bug in :func:`melt` that converted tz-aware dtypes to tz-naive (:issue:`15785`)
+- Bug in :func:`Dataframe.count` that raised an ``ValueError`` if .dropna() method is invoked for single column timezone-aware values. (:issue:`13407`)
 
 Offsets
 ^^^^^^^
