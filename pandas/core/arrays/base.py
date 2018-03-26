@@ -256,7 +256,7 @@ class ExtensionArray(object):
         raise AbstractMethodError(self)
 
     def _values_for_argsort(self):
-        # type: () -> ndarray
+        # type: () -> Tuple[ndarray, object]
         """Return values for sorting.
 
         Returns
@@ -372,6 +372,7 @@ class ExtensionArray(object):
         return self._constructor_from_sequence(uniques)
 
     def _values_for_factorize(self):
+        # type: () -> Tuple[ndarray, Any]
         """Return an array and missing value suitable for factorization.
 
         Returns
@@ -380,15 +381,15 @@ class ExtensionArray(object):
             An array suitable for factoraization. This should maintain order
             and be a supported dtype. By default, the extension array is cast
             to object dtype.
-
-        Notes
-        -----
-        The value returned by `_values_for_factorized` may be modified
-        inplace. Make sure it isn't a view on the original data.
+        na_value : object
+            The value in `values` to consider missing. This will be treated
+            as NA in the factorization routines, so it will be coded as
+            `na_sentinal` and not included in `uniques`.
         """
-        return self.astype(object)
+        return self.astype(object), np.nan
 
     def factorize(self, na_sentinel=-1):
+        # type: (int) -> Tuple[ndarray, ExtensionArray]
         """Encode the extension array as an enumerated type.
 
         Parameters
@@ -406,12 +407,13 @@ class ExtensionArray(object):
 
             .. note::
 
-               uniques should *not* contain a value for the NA sentinel,
-               if values in `self` are missing.
+               uniques will *not* contain an entry for the NA value of
+               the ExtensionArray if there are any missing values present
+               in `self`.
 
         See Also
         --------
-        pandas.factorize : top-level factorize method that dispatches here.
+        pandas.factorize : Top-level factorize method that dispatches here.
 
         Notes
         -----
@@ -419,19 +421,18 @@ class ExtensionArray(object):
         """
         # Impelmentor note: There are two ways to override the behavior of
         # pandas.factorize
-        # 1. ExtensionArray._values_for_factories and
-        #    ExtensionArray._from_factorize
-        # 2. ExtensionArray.factorize
-        # For the first, you get control over which values are passed to
-        # pandas' internal factorization method.
-        from pandas.core.algorithms import factorize
-        import pandas.core.dtypes.common as com
-        from pandas._libs.tslib import iNaT
+        # 1. _values_for_factorize and _from_factorize.
+        #    Specify the values passed to pandas' internal factorization
+        #    routines, and how to convert from those values back to the
+        #    original ExtensionArray.
+        # 2. ExtensionArray.factorize.
+        #    Complete control over factorization.
+        from pandas.core.algorithms import _factorize_array
 
-        mask = self.isna()
-        arr = self._values_for_factorize()
+        arr, na_value = self._values_for_factorize()
 
-        labels, uniques = factorize(arr, na_sentinel=na_sentinel, mask=mask)
+        labels, uniques = _factorize_array(arr, na_sentinel=na_sentinel,
+                                           na_value=na_value)
 
         uniques = self._from_factorized(uniques, self)
         return labels, uniques

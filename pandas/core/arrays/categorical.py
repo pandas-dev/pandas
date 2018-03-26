@@ -2120,7 +2120,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def _values_for_factorize(self):
         codes = self.codes.astype('int64')
-        return codes
+        return codes, -1
 
     @classmethod
     def _from_factorized(cls, uniques, original):
