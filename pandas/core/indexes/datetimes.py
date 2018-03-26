@@ -264,19 +264,18 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     month_name
     day_name
 
-    Examples
-    --------
-    >>> dates = pd.DatetimeIndex(freq='M', start='2018-3-10', periods=6)
-    >>> dates
-    DatetimeIndex(['2018-03-31', '2018-04-30', '2018-05-31',
-                   '2018-06-30', '2018-07-31', '2018-08-31'],
-                  dtype='datetime64[ns]', freq='M')
-
     Notes
     -----
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
 
+    Examples
+    --------
+    >>> pd.DatetimeIndex(freq='M', start='2018-3-10', periods=6)
+    DatetimeIndex(['2018-03-31', '2018-04-30', '2018-05-31',
+                   '2018-06-30', '2018-07-31', '2018-08-31'],
+                  dtype='datetime64[ns]', freq='M')
+                  
     See Also
     ---------
     Index : The base pandas Index type
