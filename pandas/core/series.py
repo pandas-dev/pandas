@@ -1438,10 +1438,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        unique values.
-          - If the input is an Index, the return is an Index
-          - If the input is a Categorical dtype, the return is a Categorical
-          - If the input is a Series/ndarray, the return will be an ndarray
+        unique values : Series or Categorical
 
         See Also
         --------
