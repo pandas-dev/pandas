@@ -29,47 +29,43 @@ isneginf_scalar = libmissing.isneginf_scalar
 
 
 def isna(obj):
-    """Detect missing values for an array-like object.
+    """
+    Detect missing values for an array-like object.
 
-    This function takes an array-like object, for each element, if it is
-    a missing value (`NaN` in numeric arrays, `None`/`NaN` in object arrays,
-    `NaT` in datetimelike) the correisponding element of the output boolean
-    array will be `True`, otherwise `False`.
+    This function takes a scalar or array-like object and indictates
+    whether values are missing (``NaN`` in numeric arrays, ``None`` or ``NaN``
+    in object arrays, ``NaT`` in datetimelike).
 
     Parameters
     ----------
-    obj : array-like or object
+    obj : scalar or array-like
         Object to check for null or missing values.
 
     Returns
     -------
     bool or array-like of bool
-        For scalar input, a scalar boolean is returned.
-        For array input, an array of boolean indicating whether the
-        correisponding element is missing is returned.
+        For scalar input, returns a scalar boolean.
+        For array input, returns an array of boolean indicating whether each
+        corresponding element is missing.
 
     See Also
     --------
-    notna : boolean inverse of pandas.isna
-    isnull : alias of isna
-    Series.isna
-    DataFrame.isna
-    Index.isna
+    notna : boolean inverse of pandas.isna.
+    Series.isna : Detetct missing values in a Series.
+    DataFrame.isna : Detect missing values in a DataFrame.
+    Index.isna : Detect missing values in an Index.
 
     Examples
     --------
+    Scalar arguments (including strings) result in a scalar boolean.
+
     >>> pd.isna('dog')
     False
 
     >>> pd.isna(np.nan)
     True
 
-    >>> index = pd.DatetimeIndex(["2017-07-05","2017-07-06",None,"2017-07-08"])
-    >>> index
-    DatetimeIndex(['2017-07-05', '2017-07-06', 'NaT', '2017-07-08'],
-    dtype='datetime64[ns]', freq=None)
-    >>> pd.isna(index)
-    array([False, False,  True, False])
+    ndarrays result in an ndarray of booleans.
 
     >>> array = np.array([[1, np.nan, 3], [4, 5, np.nan]])
     >>> array
@@ -78,6 +74,18 @@ def isna(obj):
     >>> pd.isna(array)
     array([[False,  True, False],
            [False, False,  True]])
+
+    For indexes, an ndarray of booleans is returned.
+
+    >>> index = pd.DatetimeIndex(["2017-07-05", "2017-07-06", None,
+    ...                           "2017-07-08"])
+    >>> index
+    DatetimeIndex(['2017-07-05', '2017-07-06', 'NaT', '2017-07-08'],
+                  dtype='datetime64[ns]', freq=None)
+    >>> pd.isna(index)
+    array([False, False,  True, False])
+
+    For Series and DataFrame, the same type is returned, containing booleans.
 
     >>> df = pd.DataFrame([['ant', 'bee', 'cat'], ['dog', None, 'fly']])
     >>> df
@@ -88,6 +96,11 @@ def isna(obj):
            0      1      2
     0  False  False  False
     1  False   True  False
+
+    >>> pd.isna(df[1])
+    0    False
+    1     True
+    Name: 1, dtype: bool
     """
     return _isna(obj)
 
@@ -239,12 +252,12 @@ def _isna_ndarraylike_old(obj):
 
 
 def notna(obj):
-    """Detect non-missing values for an array-like object.
+    """
+    Detect non-missing values for an array-like object.
 
-    This function takes an array-like object, for each element, if it is *not*
-    a missing.value (`NaN` in numeric arrays, `None`/`NaN` in object arrays,
-    `NaT` in datetimelike) the correisponding element of the output boolean
-    array will be `True`, otherwise `False`.
+    This function takes a scalar or array-like object and indictates
+    whether values are valid (not missing, which is ``NaN`` in numeric
+    arrays, ``None`` or ``NaN`` in object arrays, ``NaT`` in datetimelike).
 
     Parameters
     ----------
@@ -254,32 +267,28 @@ def notna(obj):
     Returns
     -------
     bool or array-like of bool
-        For scalar input, a scalar boolean is returned.
-        For array input, an array of boolean indicating whether the
-        correisponding element is *not* missing is returned.
+        For scalar input, returns a scalar boolean.
+        For array input, returns an array of boolean indicating whether each
+        corresponding element is valid.
 
     See Also
     --------
-    isna : boolean inverse of pandas.notna
-    notnull : alias of notna
-    Series.notna
-    DataFrame.notna
-    Index.notna
+    isna : boolean inverse of pandas.notna.
+    Series.notna : Detetct valid values in a Series.
+    DataFrame.notna : Detect valid values in a DataFrame.
+    Index.notna : Detect valid values in an Index.
 
     Examples
     --------
+    Scalar arguments (including strings) result in a scalar boolean.
+
     >>> pd.notna('dog')
     True
 
     >>> pd.notna(np.nan)
     False
 
-    >>> index = pd.DatetimeIndex(["2017-07-05","2017-07-06",None,"2017-07-08"])
-    >>> index
-    DatetimeIndex(['2017-07-05', '2017-07-06', 'NaT', '2017-07-08'],
-    dtype='datetime64[ns]', freq=None)
-    >>> pd.notna(index)
-    array([ True,  True, False,  True])
+    ndarrays result in an ndarray of booleans.
 
     >>> array = np.array([[1, np.nan, 3], [4, 5, np.nan]])
     >>> array
@@ -288,6 +297,18 @@ def notna(obj):
     >>> pd.notna(array)
     array([[ True, False,  True],
            [ True,  True, False]])
+
+    For indexes, an ndarray of booleans is returned.
+
+    >>> index = pd.DatetimeIndex(["2017-07-05", "2017-07-06", None,
+    ...                          "2017-07-08"])
+    >>> index
+    DatetimeIndex(['2017-07-05', '2017-07-06', 'NaT', '2017-07-08'],
+                  dtype='datetime64[ns]', freq=None)
+    >>> pd.notna(index)
+    array([ True,  True, False,  True])
+
+    For Series and DataFrame, the same type is returned, containing booleans.
 
     >>> df = pd.DataFrame([['ant', 'bee', 'cat'], ['dog', None, 'fly']])
     >>> df
@@ -298,6 +319,11 @@ def notna(obj):
           0      1     2
     0  True   True  True
     1  True  False  True
+
+    >>> pd.notna(df[1])
+    0     True
+    1    False
+    Name: 1, dtype: bool
     """
     res = isna(obj)
     if is_scalar(res):
