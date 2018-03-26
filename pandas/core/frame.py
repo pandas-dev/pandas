@@ -5250,36 +5250,166 @@ class DataFrame(NDFrame):
 
     def stack(self, level=-1, dropna=True):
         """
-        Pivot a level of the (possibly hierarchical) column labels, returning a
-        DataFrame (or Series in the case of an object with a single level of
-        column labels) having a hierarchical index with a new inner-most level
-        of row labels.
-        The level involved will automatically get sorted.
+        Stack the prescribed level(s) from columns to index.
+
+        Return a reshaped DataFrame or Series having a multi-level
+        index with one or more new inner-most levels compared to the current
+        DataFrame. The new inner-most levels are created by pivoting the
+        columns of the current dataframe:
+
+          - if the columns have a single level, the output is a Series;
+          - if the columns have multiple levels, the new index
+            level(s) is (are) taken from the prescribed level(s) and
+            the output is a DataFrame.
+
+        The new index levels are sorted.
 
         Parameters
         ----------
-        level : int, string, or list of these, default last level
-            Level(s) to stack, can pass level name
-        dropna : boolean, default True
-            Whether to drop rows in the resulting Frame/Series with no valid
-            values
-
-        Examples
-        ----------
-        >>> s
-             a   b
-        one  1.  2.
-        two  3.  4.
-
-        >>> s.stack()
-        one a    1
-            b    2
-        two a    3
-            b    4
+        level : int, str, list, default -1
+            Level(s) to stack from the column axis onto the index
+            axis, defined as one index or label, or a list of indices
+            or labels.
+        dropna : bool, default True
+            Whether to drop rows in the resulting Frame/Series with
+            missing values. Stacking a column level onto the index
+            axis can create combinations of index and column values
+            that are missing from the original dataframe. See Examples
+            section.
 
         Returns
         -------
-        stacked : DataFrame or Series
+        DataFrame or Series
+            Stacked dataframe or series.
+
+        See Also
+        --------
+        DataFrame.unstack : Unstack prescribed level(s) from index axis
+             onto column axis.
+        DataFrame.pivot : Reshape dataframe from long format to wide
+             format.
+        DataFrame.pivot_table : Create a spreadsheet-style pivot table
+             as a DataFrame.
+
+        Notes
+        -----
+        The function is named by analogy with a collection of books
+        being re-organised from being side by side on a horizontal
+        position (the columns of the dataframe) to being stacked
+        vertically on top of of each other (in the index of the
+        dataframe).
+
+        Examples
+        --------
+        **Single level columns**
+
+        >>> df_single_level_cols = pd.DataFrame([[0, 1], [2, 3]],
+        ...                                     index=['cat', 'dog'],
+        ...                                     columns=['weight', 'height'])
+
+        Stacking a dataframe with a single level column axis returns a Series:
+
+        >>> df_single_level_cols
+             weight height
+        cat       0      1
+        dog       2      3
+        >>> df_single_level_cols.stack()
+        cat  weight    0
+             height    1
+        dog  weight    2
+             height    3
+        dtype: int64
+
+        **Multi level columns: simple case**
+
+        >>> multicol1 = pd.MultiIndex.from_tuples([('weight', 'kg'),
+        ...                                        ('weight', 'pounds')])
+        >>> df_multi_level_cols1 = pd.DataFrame([[1, 2], [2, 4]],
+        ...                                     index=['cat', 'dog'],
+        ...                                     columns=multicol1)
+
+        Stacking a dataframe with a multi-level column axis:
+
+        >>> df_multi_level_cols1
+             weight
+                 kg    pounds
+        cat       1        2
+        dog       2        4
+        >>> df_multi_level_cols1.stack()
+                    weight
+        cat kg           1
+            pounds       2
+        dog kg           2
+            pounds       4
+
+        **Missing values**
+
+        >>> multicol2 = pd.MultiIndex.from_tuples([('weight', 'kg'),
+        ...                                        ('height', 'm')])
+        >>> df_multi_level_cols2 = pd.DataFrame([[1.0, 2.0], [3.0, 4.0]],
+        ...                                     index=['cat', 'dog'],
+        ...                                     columns=multicol2)
+
+        It is common to have missing values when stacking a dataframe
+        with multi-level columns, as the stacked dataframe typically
+        has more values than the original dataframe. Missing values
+        are filled with NaNs:
+
+        >>> df_multi_level_cols2
+            weight height
+                kg      m
+        cat    1.0    2.0
+        dog    3.0    4.0
+        >>> df_multi_level_cols2.stack()
+                height  weight
+        cat kg     NaN     1.0
+            m      2.0     NaN
+        dog kg     NaN     3.0
+            m      4.0     NaN
+
+        **Prescribing the level(s) to be stacked**
+
+        The first parameter controls which level or levels are stacked:
+
+        >>> df_multi_level_cols2.stack(0)
+                     kg    m
+        cat height  NaN  2.0
+            weight  1.0  NaN
+        dog height  NaN  4.0
+            weight  3.0  NaN
+        >>> df_multi_level_cols2.stack([0, 1])
+        cat  height  m     2.0
+             weight  kg    1.0
+        dog  height  m     4.0
+             weight  kg    3.0
+        dtype: float64
+
+        **Dropping missing values**
+
+        >>> df_multi_level_cols3 = pd.DataFrame([[None, 1.0], [2.0, 3.0]],
+        ...                                     index=['cat', 'dog'],
+        ...                                     columns=multicol2)
+
+        Note that rows where all values are missing are dropped by
+        default but this behaviour can be controlled via the dropna
+        keyword parameter:
+
+        >>> df_multi_level_cols3
+            weight height
+                kg      m
+        cat    NaN    1.0
+        dog    2.0    3.0
+        >>> df_multi_level_cols3.stack(dropna=False)
+                height  weight
+        cat kg     NaN     NaN
+            m      1.0     NaN
+        dog kg     NaN     2.0
+            m      3.0     NaN
+        >>> df_multi_level_cols3.stack(dropna=True)
+                height  weight
+        cat m      1.0     NaN
+        dog kg     NaN     2.0
+            m      3.0     NaN
         """
         from pandas.core.reshape.reshape import stack, stack_multiple
 
