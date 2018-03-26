@@ -53,6 +53,7 @@ from pandas.core.panel import Panel
 from pandas.core.sorting import (get_group_index_sorter, get_group_index,
                                  compress_group_index, get_flattened_iterator,
                                  decons_obs_group_ids, get_indexer_dict)
+from pandas.core.util._dispatching import CythonDispatcher
 from pandas.util._decorators import (cache_readonly, Substitution,
                                      Appender, make_signature)
 from pandas.io.formats.printing import pprint_thing
@@ -592,6 +593,8 @@ class _GroupBy(PandasObject, SelectionMixin):
 
         # we accept no other args
         validate_kwargs('group', kwargs, {})
+
+        self._dispatcher = CythonDispatcher(self)  # circle-ref
 
     def __len__(self):
         return len(self.groups)
@@ -1202,29 +1205,6 @@ class GroupBy(_GroupBy):
     """
     _apply_whitelist = _common_apply_whitelist
 
-    def _bool_agg(self, val_test, skipna):
-        """Shared func to call any / all Cython GroupBy implementations"""
-
-        def objs_to_bool(vals):
-            try:
-                vals = vals.astype(np.bool)
-            except ValueError:  # for objects
-                vals = np.array([bool(x) for x in vals])
-
-            return vals.view(np.uint8)
-
-        def result_to_bool(result):
-            return result.astype(np.bool, copy=False)
-
-        return self._get_cythonized_result('group_any_all', self.grouper,
-                                           aggregate=True,
-                                           cython_dtype=np.uint8,
-                                           needs_values=True,
-                                           needs_mask=True,
-                                           pre_processing=objs_to_bool,
-                                           post_processing=result_to_bool,
-                                           val_test=val_test, skipna=skipna)
-
     @Substitution(name='groupby')
     @Appender(_doc_template)
     def any(self, skipna=True):
@@ -1236,7 +1216,7 @@ class GroupBy(_GroupBy):
         skipna : bool, default True
             Flag to ignore nan values during truth testing
         """
-        return self._bool_agg('any', skipna)
+        return self._dispatcher.dispatch('any', skipna=skipna)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -1248,7 +1228,7 @@ class GroupBy(_GroupBy):
         skipna : bool, default True
             Flag to ignore nan values during truth testing
         """
-        return self._bool_agg('all', skipna)
+        return self._dispatcher.dispatch('all', skipna=skipna)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
