@@ -185,27 +185,24 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     ----------
     data : array-like (1-dimensional), optional
         Optional datetime-like data to construct index with.
-    freq : string or pandas offset object, optional
+    freq : str or pandas offset object, optional
         One of pandas date offset strings or corresponding objects.
-    start : starting value, datetime-like, optional
-        If data is None, start is used as the start point in generating regular
-        timestamp data.
-    end : end time, datetime-like, optional
-        If periods is none, generated index will extend to first conforming
-        time on or just past end argument.
-    periods : int, optional, > 0
-        Number of periods to generate, if generating index. Takes precedence
-        over end argument.
+    start : datetime-like, optional
+        Shapes the starting value and if data is None,
+        start is used as the start point in generating regular timestamp data.
+    end : datetime-like, optional
+        Shapes the end time, if periods is none, generated index will extend
+        to first conforming time on or just past end argument.
     copy : bool
         Make a copy of input ndarray.
     name : object
         Name to be stored in the index.
     tz : pytz.timezone or dateutil.tz.tzfile.
-    verify_integrity : boolean, default False
-        Check new index for duplicates. Otherwise defer until necessary.
-    normalize : boolean
+    verify_integrity : bool, default False
+        Check new index for duplicates, otherwise defer until necessary.
+    normalize : bool
         Return DatetimeIndex with times to midnight.
-    closed : string or None, default None
+    closed : str or None, default None
         Make the interval closed with respect to the given frequency to
         the 'left', 'right', or both sides (None).
     ambiguous : 'infer', bool-ndarray, 'NaT', default 'raise'
@@ -218,8 +215,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         - 'raise' will raise an AmbiguousTimeError if there are ambiguous times
     dtype : object
         Specify the datatype to DataFrame constructor.
-    kwargs : Keyword arguments
-        use to handle named arguments in a function.
+    **kwargs
+        For compatibility. Has no effect on the result.
 
     Attributes
     ----------
@@ -282,31 +279,28 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     Examples
     --------
-    >>> pd.DatetimeIndex(start='2018-3-10', freq='M', periods=6)
-    DatetimeIndex(['2018-03-31', '2018-04-30', '2018-05-31',
-                   '2018-06-30', '2018-07-31', '2018-08-31'],
+    >>> # Generate a date range with month end frequency
+    >>> pd.DatetimeIndex(start='2018-3-10', freq='M', periods=4)
+    DatetimeIndex(['2018-03-31', '2018-04-30',
+                   '2018-05-31', '2018-06-30'],
                   dtype='datetime64[ns]', freq='M')
 
-    >>> pd.DatetimeIndex(start='2015-03-01 19:00:00',end='2015-03-02',freq='H')
-    DatetimeIndex(['2015-03-01 19:00:00', '2015-03-01 20:00:00',
-                   '2015-03-01 21:00:00', '2015-03-01 22:00:00',
+    >>> # Hourly time range with end conforming the period
+    >>> pd.DatetimeIndex(start='2015-03-01 21:00:00', end='2015-03-02', freq='H')
+    DatetimeIndex(['2015-03-01 21:00:00', '2015-03-01 22:00:00',
                    '2015-03-01 23:00:00', '2015-03-02 00:00:00'],
                   dtype='datetime64[ns]', freq='H')
 
-    >>> pd.date_range("2018-03-10", periods = 10, freq = "1min")
+    >>> # Generate time range with with 1 minute frequency
+    >>> pd.date_range('2018-03-10', periods=4, freq='1min')
     DatetimeIndex(['2018-03-10 00:00:00', '2018-03-10 00:01:00',
-                   '2018-03-10 00:02:00', '2018-03-10 00:03:00',
-                   '2018-03-10 00:04:00', '2018-03-10 00:05:00',
-                   '2018-03-10 00:06:00', '2018-03-10 00:07:00',
-                   '2018-03-10 00:08:00', '2018-03-10 00:09:00'],
+                   '2018-03-10 00:02:00', '2018-03-10 00:03:00'],
                   dtype='datetime64[ns]', freq='T')
 
-    >>> pd.date_range('2018-03-01', '2018-04-30', freq='W', closed='right')
-    DatetimeIndex(['2018-03-04', '2018-03-11', '2018-03-18',
-                   '2018-03-25', '2018-04-01', '2018-04-08',
-                   '2018-04-15', '2018-04-22', '2018-04-29'],
+    >>> # Weekly date range with closed argument to mark end date interval
+    >>> pd.date_range('2018-03-10', '2018-03-31', freq='W', closed='right')
+    DatetimeIndex(['2018-03-11', '2018-03-18', '2018-03-25'],
                   dtype='datetime64[ns]', freq='W-SUN')
-
     """
 
     _typ = 'datetimeindex'
