@@ -515,7 +515,8 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
         values, dtype, _ = _ensure_data(values)
 
         if (is_datetime64_any_dtype(original) or
-                is_timedelta64_dtype(original)):
+                is_timedelta64_dtype(original) or
+                is_period_dtype(original)):
             na_value = iNaT
         else:
             na_value = None
