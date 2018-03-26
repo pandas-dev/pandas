@@ -100,10 +100,12 @@ class SafeForLongAndSparse(object):
         self._check_stat_op('median', wrapper)
 
     def test_min(self):
-        self._check_stat_op('min', np.min)
+        with catch_warnings(record=True):
+            self._check_stat_op('min', np.min)
 
     def test_max(self):
-        self._check_stat_op('max', np.max)
+        with catch_warnings(record=True):
+            self._check_stat_op('max', np.max)
 
     @td.skip_if_no_scipy
     def test_skew(self):

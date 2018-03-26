@@ -3860,7 +3860,7 @@ class SeriesGroupBy(GroupBy):
 
         mask = (ids != -1) & ~isna(val)
         ids = _ensure_platform_int(ids)
-        out = np.bincount(ids[mask], minlength=ngroups or None)
+        out = np.bincount(ids[mask], minlength=ngroups or 0)
 
         return Series(out,
                       index=self.grouper.result_index,
