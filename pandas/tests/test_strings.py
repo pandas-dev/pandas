@@ -530,6 +530,27 @@ class TestStringMethods(object):
         exp = Series(['foObaD__baRbaD', NA])
         tm.assert_series_equal(result, exp)
 
+    def test_replace_literal(self):
+        # GH16808 literal replace (regex=False vs regex=True)
+        values = Series(['f.o', 'foo', NA])
+        exp = Series(['bao', 'bao', NA])
+        result = values.str.replace('f.', 'ba')
+        tm.assert_series_equal(result, exp)
+
+        exp = Series(['bao', 'foo', NA])
+        result = values.str.replace('f.', 'ba', regex=False)
+        tm.assert_series_equal(result, exp)
+
+        # Cannot do a literal replace if given a callable repl or compiled
+        # pattern
+        callable_repl = lambda m: m.group(0).swapcase()
+        compiled_pat = re.compile('[a-z][A-Z]{2}')
+
+        pytest.raises(ValueError, values.str.replace, 'abc', callable_repl,
+                      regex=False)
+        pytest.raises(ValueError, values.str.replace, compiled_pat, '',
+                      regex=False)
+
     def test_repeat(self):
         values = Series(['a', 'b', NA, 'c', NA, 'd'])
 
@@ -1970,6 +1991,19 @@ class TestStringMethods(object):
         result = values.str.rsplit('_', n=1)
         exp = Series([['a_b', 'c'], ['c_d', 'e'], NA, ['f_g', 'h']])
         tm.assert_series_equal(result, exp)
+
+    def test_split_blank_string(self):
+        # expand blank split GH 20067
+        values = Series([''], name='test')
+        result = values.str.split(expand=True)
+        exp = DataFrame([[]])
+        tm.assert_frame_equal(result, exp)
+
+        values = Series(['a b c', 'a b', '', ' '], name='test')
+        result = values.str.split(expand=True)
+        exp = DataFrame([['a', 'b', 'c'], ['a', 'b', np.nan],
+                         [np.nan, np.nan, np.nan], [np.nan, np.nan, np.nan]])
+        tm.assert_frame_equal(result, exp)
 
     def test_split_noargs(self):
         # #1859

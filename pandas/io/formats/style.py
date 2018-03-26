@@ -325,9 +325,19 @@ class Styler(object):
                                   .format(row=r, col=c)})
             body.append(row_es)
 
+        table_attr = self.table_attributes
+        use_mathjax = get_option("display.html.use_mathjax")
+        if not use_mathjax:
+            table_attr = table_attr or ''
+            if 'class="' in table_attr:
+                table_attr = table_attr.replace('class="',
+                                                'class="tex2jax_ignore ')
+            else:
+                table_attr += ' class="tex2jax_ignore"'
+
         return dict(head=head, cellstyle=cellstyle, body=body, uuid=uuid,
                     precision=precision, table_styles=table_styles,
-                    caption=caption, table_attributes=self.table_attributes)
+                    caption=caption, table_attributes=table_attr)
 
     def format(self, formatter, subset=None):
         """

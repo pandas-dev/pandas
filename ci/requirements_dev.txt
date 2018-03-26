@@ -2,9 +2,10 @@
 # Do not modify directly
 Cython
 NumPy
+flake8
 moto
 pytest>=3.1
 python-dateutil>=2.5.0
 pytz
 setuptools>=3.3
-sphinx=1.5*
+sphinx

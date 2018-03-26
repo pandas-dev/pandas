@@ -1,11 +1,11 @@
 ipython
 ipykernel
 ipywidgets
-sphinx=1.5*
+sphinx
 nbconvert
 nbformat
 notebook
-matplotlib
+matplotlib=2.1*
 seaborn
 scipy
 lxml

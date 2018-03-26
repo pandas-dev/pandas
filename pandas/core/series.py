@@ -14,12 +14,14 @@ import numpy as np
 import numpy.ma as ma
 
 from pandas.core.accessor import CachedAccessor
+from pandas.core.arrays import ExtensionArray
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_bool,
     is_integer, is_integer_dtype,
     is_float_dtype,
     is_extension_type,
+    is_extension_array_dtype,
     is_datetime64tz_dtype,
     is_timedelta64_dtype,
     is_list_like,
@@ -52,7 +54,7 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas import compat
 from pandas.io.formats.terminal import get_terminal_size
 from pandas.compat import (
-    zip, u, OrderedDict, StringIO, range, get_range_parameters)
+    zip, u, OrderedDict, StringIO, range, get_range_parameters, PY36)
 from pandas.compat.numpy import function as nv
 
 import pandas.core.ops as ops
@@ -74,7 +76,11 @@ import pandas.plotting._core as gfx
 __all__ = ['Series']
 
 _shared_doc_kwargs = dict(
-    axes='index', klass='Series', axes_single_arg="{0, 'index'}",
+    axes='index', klass='Series', axes_single_arg="{0 or 'index'}",
+    axis="""
+    axis : {0 or 'index'}
+        Parameter needed for compatibility with DataFrame.
+    """,
     inplace="""inplace : boolean, default False
         If True, performs operation inplace and returns None.""",
     unique='np.ndarray', duplicated='Series',
@@ -128,6 +134,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     ----------
     data : array-like, dict, or scalar value
         Contains data stored in Series
+
+        .. versionchanged :: 0.23.0
+           If data is a dict, argument order is maintained for Python 3.6
+           and later.
+
     index : array-like or Index (1d)
         Values must be hashable and have the same length as `data`.
         Non-unique index values are allowed. Will default to
@@ -173,12 +184,17 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 raise NotImplementedError("initializing a Series from a "
                                           "MultiIndex is not supported")
             elif isinstance(data, Index):
-                # need to copy to avoid aliasing issues
                 if name is None:
                     name = data.name
 
-                data = data._to_embed(keep_tz=True, dtype=dtype)
+                if dtype is not None:
+                    # astype copies
+                    data = data.astype(dtype)
+                else:
+                    # need to copy to avoid aliasing issues
+                    data = data._values.copy()
                 copy = False
+
             elif isinstance(data, np.ndarray):
                 pass
             elif isinstance(data, Series):
@@ -203,13 +219,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                          '`data` argument and a different '
                                          '`index` argument.  `copy` must '
                                          'be False.')
-            elif isinstance(data, Categorical):
-                # GH12574: Allow dtype=category only, otherwise error
-                if ((dtype is not None) and
-                        not is_categorical_dtype(dtype)):
-                    raise ValueError("cannot specify a dtype with a "
-                                     "Categorical unless "
-                                     "dtype='category'")
+
+            elif is_extension_array_dtype(data) and dtype is not None:
+                if not data.dtype.is_dtype(dtype):
+                    raise ValueError("Cannot specify a dtype '{}' with an "
+                                     "extension array of a different "
+                                     "dtype ('{}').".format(dtype,
+                                                            data.dtype))
+
             elif (isinstance(data, types.GeneratorType) or
                   (compat.PY3 and isinstance(data, map))):
                 data = list(data)
@@ -226,6 +243,18 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 if not is_list_like(data):
                     data = [data]
                 index = com._default_index(len(data))
+            elif is_list_like(data):
+
+                # a scalar numpy array is list-like but doesn't
+                # have a proper length
+                try:
+                    if len(index) != len(data):
+                        raise ValueError(
+                            'Length of passed values is {val}, '
+                            'index implies {ind}'
+                            .format(val=len(data), ind=len(index)))
+                except TypeError:
+                    pass
 
             # create/copy the manager
             if isinstance(data, SingleBlockManager):
@@ -277,7 +306,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # Now we just make sure the order is respected, if any
         if index is not None:
             s = s.reindex(index, copy=False)
-        elif not isinstance(data, OrderedDict):
+        elif not PY36 and not isinstance(data, OrderedDict):
             try:
                 s = s.sort_index()
             except TypeError:
@@ -296,25 +325,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         warnings.warn("'from_array' is deprecated and will be removed in a "
                       "future version. Please use the pd.Series(..) "
                       "constructor instead.", FutureWarning, stacklevel=2)
-        return cls._from_array(arr, index=index, name=name, dtype=dtype,
-                               copy=copy, fastpath=fastpath)
-
-    @classmethod
-    def _from_array(cls, arr, index=None, name=None, dtype=None, copy=False,
-                    fastpath=False):
-        """
-        Internal method used in DataFrame.__setitem__/__getitem__.
-        Difference with Series(..) is that this method checks if a sparse
-        array is passed.
-
-        """
-        # return a sparse series here
         if isinstance(arr, ABCSparseArray):
             from pandas.core.sparse.series import SparseSeries
             cls = SparseSeries
-
-        return cls(arr, index=index, name=name, dtype=dtype, copy=copy,
-                   fastpath=fastpath)
+        return cls(arr, index=index, name=name, dtype=dtype,
+                   copy=copy, fastpath=fastpath)
 
     @property
     def _constructor(self):
@@ -536,6 +551,71 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return len(self._data)
 
     def view(self, dtype=None):
+        """
+        Create a new view of the Series.
+
+        This function will return a new Series with a view of the same
+        underlying values in memory, optionally reinterpreted with a new data
+        type. The new data type must preserve the same size in bytes as to not
+        cause index misalignment.
+
+        Parameters
+        ----------
+        dtype : data type
+            Data type object or one of their string representations.
+
+        Returns
+        -------
+        Series
+            A new Series object as a view of the same data in memory.
+
+        See Also
+        --------
+        numpy.ndarray.view : Equivalent numpy function to create a new view of
+            the same data in memory.
+
+        Notes
+        -----
+        Series are instantiated with ``dtype=float64`` by default. While
+        ``numpy.ndarray.view()`` will return a view with the same data type as
+        the original array, ``Series.view()`` (without specified dtype)
+        will try using ``float64`` and may fail if the original data type size
+        in bytes is not the same.
+
+        Examples
+        --------
+        >>> s = pd.Series([-2, -1, 0, 1, 2], dtype='int8')
+        >>> s
+        0   -2
+        1   -1
+        2    0
+        3    1
+        4    2
+        dtype: int8
+
+        The 8 bit signed integer representation of `-1` is `0b11111111`, but
+        the same bytes represent 255 if read as an 8 bit unsigned integer:
+
+        >>> us = s.view('uint8')
+        >>> us
+        0    254
+        1    255
+        2      0
+        3      1
+        4      2
+        dtype: uint8
+
+        The views share the same underlying values:
+
+        >>> us[0] = 128
+        >>> s
+        0   -128
+        1     -1
+        2      0
+        3      1
+        4      2
+        dtype: int8
+        """
         return self._constructor(self._values.view(dtype),
                                  index=self.index).__finalize__(self)
 
@@ -991,55 +1071,112 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def reset_index(self, level=None, drop=False, name=None, inplace=False):
         """
-        Analogous to the :meth:`pandas.DataFrame.reset_index` function, see
-        docstring there.
+        Generate a new DataFrame or Series with the index reset.
+
+        This is useful when the index needs to be treated as a column, or
+        when the index is meaningless and needs to be reset to the default
+        before another operation.
 
         Parameters
         ----------
-        level : int, str, tuple, or list, default None
-            Only remove the given levels from the index. Removes all levels by
-            default
-        drop : boolean, default False
-            Do not try to insert index into dataframe columns
-        name : object, default None
-            The name of the column corresponding to the Series values
-        inplace : boolean, default False
-            Modify the Series in place (do not create a new object)
+        level : int, str, tuple, or list, default optional
+            For a Series with a MultiIndex, only remove the specified levels
+            from the index. Removes all levels by default.
+        drop : bool, default False
+            Just reset the index, without inserting it as a column in
+            the new DataFrame.
+        name : object, optional
+            The name to use for the column containing the original Series
+            values. Uses ``self.name`` by default. This argument is ignored
+            when `drop` is True.
+        inplace : bool, default False
+            Modify the Series in place (do not create a new object).
 
         Returns
-        ----------
-        resetted : DataFrame, or Series if drop == True
+        -------
+        Series or DataFrame
+            When `drop` is False (the default), a DataFrame is returned.
+            The newly created columns will come first in the DataFrame,
+            followed by the original Series values.
+            When `drop` is True, a `Series` is returned.
+            In either case, if ``inplace=True``, no value is returned.
+
+        See Also
+        --------
+        DataFrame.reset_index: Analogous function for DataFrame.
 
         Examples
         --------
-        >>> s = pd.Series([1, 2, 3, 4], index=pd.Index(['a', 'b', 'c', 'd'],
-        ...                                            name = 'idx'))
-        >>> s.reset_index()
-             idx  0
-        0      0  1
-        1      1  2
-        2      2  3
-        3      3  4
 
-        >>> arrays = [np.array(['bar', 'bar', 'baz', 'baz', 'foo',
-        ...                     'foo', 'qux', 'qux']),
-        ...           np.array(['one', 'two', 'one', 'two', 'one', 'two',
-        ...                     'one', 'two'])]
+        >>> s = pd.Series([1, 2, 3, 4], name='foo',
+        ...               index=pd.Index(['a', 'b', 'c', 'd'], name='idx'))
+
+        Generate a DataFrame with default index.
+
+        >>> s.reset_index()
+          idx  foo
+        0   a    1
+        1   b    2
+        2   c    3
+        3   d    4
+
+        To specify the name of the new column use `name`.
+
+        >>> s.reset_index(name='values')
+          idx  values
+        0   a       1
+        1   b       2
+        2   c       3
+        3   d       4
+
+        To generate a new Series with the default set `drop` to True.
+
+        >>> s.reset_index(drop=True)
+        0    1
+        1    2
+        2    3
+        3    4
+        Name: foo, dtype: int64
+
+        To update the Series in place, without generating a new one
+        set `inplace` to True. Note that it also requires ``drop=True``.
+
+        >>> s.reset_index(inplace=True, drop=True)
+        >>> s
+        0    1
+        1    2
+        2    3
+        3    4
+        Name: foo, dtype: int64
+
+        The `level` parameter is interesting for Series with a multi-level
+        index.
+
+        >>> arrays = [np.array(['bar', 'bar', 'baz', 'baz']),
+        ...           np.array(['one', 'two', 'one', 'two'])]
         >>> s2 = pd.Series(
-        ...     np.random.randn(8),
+        ...     range(4), name='foo',
         ...     index=pd.MultiIndex.from_arrays(arrays,
         ...                                     names=['a', 'b']))
+
+        To remove a specific level from the Index, use `level`.
+
         >>> s2.reset_index(level='a')
-               a         0
+               a  foo
         b
-        one  bar -0.286320
-        two  bar -0.587934
-        one  baz  0.710491
-        two  baz -1.429006
-        one  foo  0.790700
-        two  foo  0.824863
-        one  qux -0.718963
-        two  qux -0.055028
+        one  bar    0
+        two  bar    1
+        one  baz    2
+        two  baz    3
+
+        If `level` is not set, all levels are removed from the Index.
+
+        >>> s2.reset_index()
+             a    b  foo
+        0  bar  one    0
+        1  bar  two    1
+        2  baz  one    2
+        3  baz  two    3
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if drop:
@@ -1305,32 +1442,180 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         return result
 
-    @Appender(base._shared_docs['drop_duplicates'] % _shared_doc_kwargs)
     def drop_duplicates(self, keep='first', inplace=False):
+        """
+        Return Series with duplicate values removed.
+
+        Parameters
+        ----------
+        keep : {'first', 'last', ``False``}, default 'first'
+            - 'first' : Drop duplicates except for the first occurrence.
+            - 'last' : Drop duplicates except for the last occurrence.
+            - ``False`` : Drop all duplicates.
+        inplace : boolean, default ``False``
+            If ``True``, performs operation inplace and returns None.
+
+        Returns
+        -------
+        deduplicated : Series
+
+        See Also
+        --------
+        Index.drop_duplicates : equivalent method on Index
+        DataFrame.drop_duplicates : equivalent method on DataFrame
+        Series.duplicated : related method on Series, indicating duplicate
+            Series values.
+
+        Examples
+        --------
+        Generate an Series with duplicated entries.
+
+        >>> s = pd.Series(['lama', 'cow', 'lama', 'beetle', 'lama', 'hippo'],
+        ...               name='animal')
+        >>> s
+        0      lama
+        1       cow
+        2      lama
+        3    beetle
+        4      lama
+        5     hippo
+        Name: animal, dtype: object
+
+        With the 'keep' parameter, the selection behaviour of duplicated values
+        can be changed. The value 'first' keeps the first occurrence for each
+        set of duplicated entries. The default value of keep is 'first'.
+
+        >>> s.drop_duplicates()
+        0      lama
+        1       cow
+        3    beetle
+        5     hippo
+        Name: animal, dtype: object
+
+        The value 'last' for parameter 'keep' keeps the last occurrence for
+        each set of duplicated entries.
+
+        >>> s.drop_duplicates(keep='last')
+        1       cow
+        3    beetle
+        4      lama
+        5     hippo
+        Name: animal, dtype: object
+
+        The value ``False`` for parameter 'keep' discards all sets of
+        duplicated entries. Setting the value of 'inplace' to ``True`` performs
+        the operation inplace and returns ``None``.
+
+        >>> s.drop_duplicates(keep=False, inplace=True)
+        >>> s
+        1       cow
+        3    beetle
+        5     hippo
+        Name: animal, dtype: object
+        """
         return super(Series, self).drop_duplicates(keep=keep, inplace=inplace)
 
-    @Appender(base._shared_docs['duplicated'] % _shared_doc_kwargs)
     def duplicated(self, keep='first'):
+        """
+        Indicate duplicate Series values.
+
+        Duplicated values are indicated as ``True`` values in the resulting
+        Series. Either all duplicates, all except the first or all except the
+        last occurrence of duplicates can be indicated.
+
+        Parameters
+        ----------
+        keep : {'first', 'last', False}, default 'first'
+            - 'first' : Mark duplicates as ``True`` except for the first
+              occurrence.
+            - 'last' : Mark duplicates as ``True`` except for the last
+              occurrence.
+            - ``False`` : Mark all duplicates as ``True``.
+
+        Examples
+        --------
+        By default, for each set of duplicated values, the first occurrence is
+        set on False and all others on True:
+
+        >>> animals = pd.Series(['lama', 'cow', 'lama', 'beetle', 'lama'])
+        >>> animals.duplicated()
+        0    False
+        1    False
+        2     True
+        3    False
+        4     True
+        dtype: bool
+
+        which is equivalent to
+
+        >>> animals.duplicated(keep='first')
+        0    False
+        1    False
+        2     True
+        3    False
+        4     True
+        dtype: bool
+
+        By using 'last', the last occurrence of each set of duplicated values
+        is set on False and all others on True:
+
+        >>> animals.duplicated(keep='last')
+        0     True
+        1    False
+        2     True
+        3    False
+        4    False
+        dtype: bool
+
+        By setting keep on ``False``, all duplicates are True:
+
+        >>> animals.duplicated(keep=False)
+        0     True
+        1    False
+        2     True
+        3    False
+        4     True
+        dtype: bool
+
+        Returns
+        -------
+        pandas.core.series.Series
+
+        See Also
+        --------
+        pandas.Index.duplicated : Equivalent method on pandas.Index
+        pandas.DataFrame.duplicated : Equivalent method on pandas.DataFrame
+        pandas.Series.drop_duplicates : Remove duplicate values from Series
+        """
         return super(Series, self).duplicated(keep=keep)
 
     def idxmin(self, axis=None, skipna=True, *args, **kwargs):
         """
-        Index *label* of the first occurrence of minimum of values.
+        Return the row label of the minimum value.
+
+        If multiple values equal the minimum, the first row label with that
+        value is returned.
 
         Parameters
         ----------
         skipna : boolean, default True
             Exclude NA/null values. If the entire Series is NA, the result
             will be NA.
+        axis : int, default 0
+            For compatibility with DataFrame.idxmin. Redundant for application
+            on Series.
+        *args, **kwargs
+            Additional keywors have no effect but might be accepted
+            for compatibility with NumPy.
+
+        Returns
+        -------
+        idxmin : Index of minimum of values.
 
         Raises
         ------
         ValueError
-            * If the Series is empty
-
-        Returns
-        -------
-        idxmin : Index of minimum of values
+            If the Series is empty.
 
         Notes
         -----
@@ -1340,8 +1625,32 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        DataFrame.idxmin
-        numpy.ndarray.argmin
+        numpy.argmin : Return indices of the minimum values
+            along the given axis.
+        DataFrame.idxmin : Return index of first occurrence of minimum
+            over requested axis.
+        Series.idxmax : Return index *label* of the first occurrence
+            of maximum of values.
+
+        Examples
+        --------
+        >>> s = pd.Series(data=[1, None, 4, 1],
+        ...               index=['A' ,'B' ,'C' ,'D'])
+        >>> s
+        A    1.0
+        B    NaN
+        C    4.0
+        D    1.0
+        dtype: float64
+
+        >>> s.idxmin()
+        'A'
+
+        If `skipna` is False and there is an NA value in the data,
+        the function returns ``nan``.
+
+        >>> s.idxmin(skipna=False)
+        nan
         """
         skipna = nv.validate_argmin_with_skipna(skipna, args, kwargs)
         i = nanops.nanargmin(com._values_from_object(self), skipna=skipna)
@@ -1349,24 +1658,33 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return np.nan
         return self.index[i]
 
-    def idxmax(self, axis=None, skipna=True, *args, **kwargs):
+    def idxmax(self, axis=0, skipna=True, *args, **kwargs):
         """
-        Index *label* of the first occurrence of maximum of values.
+        Return the row label of the maximum value.
+
+        If multiple values equal the maximum, the first row label with that
+        value is returned.
 
         Parameters
         ----------
         skipna : boolean, default True
             Exclude NA/null values. If the entire Series is NA, the result
             will be NA.
+        axis : int, default 0
+            For compatibility with DataFrame.idxmax. Redundant for application
+            on Series.
+        *args, **kwargs
+            Additional keywors have no effect but might be accepted
+            for compatibility with NumPy.
+
+        Returns
+        -------
+        idxmax : Index of maximum of values.
 
         Raises
         ------
         ValueError
-            * If the Series is empty
-
-        Returns
-        -------
-        idxmax : Index of maximum of values
+            If the Series is empty.
 
         Notes
         -----
@@ -1376,8 +1694,33 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        DataFrame.idxmax
-        numpy.ndarray.argmax
+        numpy.argmax : Return indices of the maximum values
+            along the given axis.
+        DataFrame.idxmax : Return index of first occurrence of maximum
+            over requested axis.
+        Series.idxmin : Return index *label* of the first occurrence
+            of minimum of values.
+
+        Examples
+        --------
+        >>> s = pd.Series(data=[1, None, 4, 3, 4],
+        ...               index=['A', 'B', 'C', 'D', 'E'])
+        >>> s
+        A    1.0
+        B    NaN
+        C    4.0
+        D    3.0
+        E    4.0
+        dtype: float64
+
+        >>> s.idxmax()
+        'C'
+
+        If `skipna` is False and there is an NA value in the data,
+        the function returns ``nan``.
+
+        >>> s.idxmax(skipna=False)
+        nan
         """
         skipna = nv.validate_argmax_with_skipna(skipna, args, kwargs)
         i = nanops.nanargmax(com._values_from_object(self), skipna=skipna)
@@ -1527,16 +1870,63 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def diff(self, periods=1):
         """
-        1st discrete difference of object
+        First discrete difference of element.
+
+        Calculates the difference of a Series element compared with another
+        element in the Series (default is element in previous row).
 
         Parameters
         ----------
         periods : int, default 1
-            Periods to shift for forming difference
+            Periods to shift for calculating difference, accepts negative
+            values.
 
         Returns
         -------
         diffed : Series
+
+        See Also
+        --------
+        Series.pct_change: Percent change over given number of periods.
+        Series.shift: Shift index by desired number of periods with an
+            optional time freq.
+        DataFrame.diff: First discrete difference of object
+
+        Examples
+        --------
+        Difference with previous row
+
+        >>> s = pd.Series([1, 1, 2, 3, 5, 8])
+        >>> s.diff()
+        0    NaN
+        1    0.0
+        2    1.0
+        3    1.0
+        4    2.0
+        5    3.0
+        dtype: float64
+
+        Difference with 3rd previous row
+
+        >>> s.diff(periods=3)
+        0    NaN
+        1    NaN
+        2    NaN
+        3    2.0
+        4    4.0
+        5    6.0
+        dtype: float64
+
+        Difference with following row
+
+        >>> s.diff(periods=-1)
+        0    0.0
+        1   -1.0
+        2   -1.0
+        3   -2.0
+        4   -3.0
+        5    NaN
+        dtype: float64
         """
         result = algorithms.diff(com._values_from_object(self), periods)
         return self._constructor(result, index=self.index).__finalize__(self)
@@ -1874,10 +2264,112 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # ----------------------------------------------------------------------
     # Reindexing, sorting
 
-    @Appender(generic._shared_docs['sort_values'] % _shared_doc_kwargs)
     def sort_values(self, axis=0, ascending=True, inplace=False,
                     kind='quicksort', na_position='last'):
+        """
+        Sort by the values.
 
+        Sort a Series in ascending or descending order by some
+        criterion.
+
+        Parameters
+        ----------
+        axis : {0 or 'index'}, default 0
+            Axis to direct sorting. The value 'index' is accepted for
+            compatibility with DataFrame.sort_values.
+        ascending : bool, default True
+            If True, sort values in ascending order, otherwise descending.
+        inplace : bool, default False
+            If True, perform operation in-place.
+        kind : {'quicksort', 'mergesort' or 'heapsort'}, default 'quicksort'
+            Choice of sorting algorithm. See also :func:`numpy.sort` for more
+            information. 'mergesort' is the only stable  algorithm.
+        na_position : {'first' or 'last'}, default 'last'
+            Argument 'first' puts NaNs at the beginning, 'last' puts NaNs at
+            the end.
+
+        Returns
+        -------
+        Series
+            Series ordered by values.
+
+        See Also
+        --------
+        Series.sort_index : Sort by the Series indices.
+        DataFrame.sort_values : Sort DataFrame by the values along either axis.
+        DataFrame.sort_index : Sort DataFrame by indices.
+
+        Examples
+        --------
+        >>> s = pd.Series([np.nan, 1, 3, 10, 5])
+        >>> s
+        0     NaN
+        1     1.0
+        2     3.0
+        3     10.0
+        4     5.0
+        dtype: float64
+
+        Sort values ascending order (default behaviour)
+
+        >>> s.sort_values(ascending=True)
+        1     1.0
+        2     3.0
+        4     5.0
+        3    10.0
+        0     NaN
+        dtype: float64
+
+        Sort values descending order
+
+        >>> s.sort_values(ascending=False)
+        3    10.0
+        4     5.0
+        2     3.0
+        1     1.0
+        0     NaN
+        dtype: float64
+
+        Sort values inplace
+
+        >>> s.sort_values(ascending=False, inplace=True)
+        >>> s
+        3    10.0
+        4     5.0
+        2     3.0
+        1     1.0
+        0     NaN
+        dtype: float64
+
+        Sort values putting NAs first
+
+        >>> s.sort_values(na_position='first')
+        0     NaN
+        1     1.0
+        2     3.0
+        4     5.0
+        3    10.0
+        dtype: float64
+
+        Sort a series of strings
+
+        >>> s = pd.Series(['z', 'b', 'd', 'a', 'c'])
+        >>> s
+        0    z
+        1    b
+        2    d
+        3    a
+        4    c
+        dtype: object
+
+        >>> s.sort_values()
+        3    a
+        1    b
+        4    c
+        2    d
+        0    z
+        dtype: object
+        """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         axis = self._get_axis_number(axis)
 
@@ -1936,10 +2428,118 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         else:
             return result.__finalize__(self)
 
-    @Appender(generic._shared_docs['sort_index'] % _shared_doc_kwargs)
     def sort_index(self, axis=0, level=None, ascending=True, inplace=False,
                    kind='quicksort', na_position='last', sort_remaining=True):
+        """
+        Sort Series by index labels.
 
+        Returns a new Series sorted by label if `inplace` argument is
+        ``False``, otherwise updates the original series and returns None.
+
+        Parameters
+        ----------
+        axis : int, default 0
+            Axis to direct sorting. This can only be 0 for Series.
+        level : int, optional
+            If not None, sort on values in specified index level(s).
+        ascending : bool, default true
+            Sort ascending vs. descending.
+        inplace : bool, default False
+            If True, perform operation in-place.
+        kind : {'quicksort', 'mergesort', 'heapsort'}, default 'quicksort'
+            Choice of sorting algorithm. See also :func:`numpy.sort` for more
+            information.  'mergesort' is the only stable algorithm. For
+            DataFrames, this option is only applied when sorting on a single
+            column or label.
+        na_position : {'first', 'last'}, default 'last'
+            If 'first' puts NaNs at the beginning, 'last' puts NaNs at the end.
+            Not implemented for MultiIndex.
+        sort_remaining : bool, default True
+            If true and sorting by level and index is multilevel, sort by other
+            levels too (in order) after sorting by specified level.
+
+        Returns
+        -------
+        pandas.Series
+            The original Series sorted by the labels
+
+        See Also
+        --------
+        DataFrame.sort_index: Sort DataFrame by the index
+        DataFrame.sort_values: Sort DataFrame by the value
+        Series.sort_values : Sort Series by the value
+
+        Examples
+        --------
+        >>> s = pd.Series(['a', 'b', 'c', 'd'], index=[3, 2, 1, 4])
+        >>> s.sort_index()
+        1    c
+        2    b
+        3    a
+        4    d
+        dtype: object
+
+        Sort Descending
+
+        >>> s.sort_index(ascending=False)
+        4    d
+        3    a
+        2    b
+        1    c
+        dtype: object
+
+        Sort Inplace
+
+        >>> s.sort_index(inplace=True)
+        >>> s
+        1    c
+        2    b
+        3    a
+        4    d
+        dtype: object
+
+        By default NaNs are put at the end, but use `na_position` to place
+        them at the beginning
+
+        >>> s = pd.Series(['a', 'b', 'c', 'd'], index=[3, 2, 1, np.nan])
+        >>> s.sort_index(na_position='first')
+        NaN     d
+         1.0    c
+         2.0    b
+         3.0    a
+        dtype: object
+
+        Specify index level to sort
+
+        >>> arrays = [np.array(['qux', 'qux', 'foo', 'foo',
+        ...                     'baz', 'baz', 'bar', 'bar']),
+        ...           np.array(['two', 'one', 'two', 'one',
+        ...                     'two', 'one', 'two', 'one'])]
+        >>> s = pd.Series([1, 2, 3, 4, 5, 6, 7, 8], index=arrays)
+        >>> s.sort_index(level=1)
+        bar  one    8
+        baz  one    6
+        foo  one    4
+        qux  one    2
+        bar  two    7
+        baz  two    5
+        foo  two    3
+        qux  two    1
+        dtype: int64
+
+        Does not sort by remaining levels when sorting by levels
+
+        >>> s.sort_index(level=1, sort_remaining=False)
+        qux  one    2
+        foo  one    4
+        baz  one    6
+        bar  one    8
+        qux  two    1
+        foo  two    3
+        baz  two    5
+        bar  two    7
+        dtype: int64
+        """
         # TODO: this can be combined with DataFrame.sort_index impl as
         # almost identical
         inplace = validate_bool_kwarg(inplace, 'inplace')
@@ -2231,25 +2831,26 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def map(self, arg, na_action=None):
         """
-        Map values of Series using input correspondence (which can be
-        a dict, Series, or function)
+        Map values of Series using input correspondence (a dict, Series, or
+        function).
 
         Parameters
         ----------
         arg : function, dict, or Series
+            Mapping correspondence.
         na_action : {None, 'ignore'}
             If 'ignore', propagate NA values, without passing them to the
-            mapping function
+            mapping correspondence.
 
         Returns
         -------
         y : Series
-            same index as caller
+            Same index as caller.
 
         Examples
         --------
 
-        Map inputs to outputs (both of type `Series`)
+        Map inputs to outputs (both of type `Series`):
 
         >>> x = pd.Series([1,2,3], index=['one', 'two', 'three'])
         >>> x
@@ -2300,9 +2901,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        Series.apply: For applying more complex functions on a Series
-        DataFrame.apply: Apply a function row-/column-wise
-        DataFrame.applymap: Apply a function elementwise on a whole DataFrame
+        Series.apply : For applying more complex functions on a Series.
+        DataFrame.apply : Apply a function row-/column-wise.
+        DataFrame.applymap : Apply a function elementwise on a whole DataFrame.
 
         Notes
         -----
@@ -2556,8 +3157,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 return self.copy()
             return self
 
-        # be subclass-friendly
-        new_values = algorithms.take_1d(self.get_values(), indexer)
+        new_values = algorithms.take_1d(self._values, indexer)
         return self._constructor(new_values, index=new_index)
 
     def _needs_reindex_multi(self, axes, method, level):
@@ -2650,6 +3250,97 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def reindex(self, index=None, **kwargs):
         return super(Series, self).reindex(index=index, **kwargs)
 
+    def drop(self, labels=None, axis=0, index=None, columns=None,
+             level=None, inplace=False, errors='raise'):
+        """
+        Return Series with specified index labels removed.
+
+        Remove elements of a Series based on specifying the index labels.
+        When using a multi-index, labels on different levels can be removed
+        by specifying the level.
+
+        Parameters
+        ----------
+        labels : single label or list-like
+            Index labels to drop.
+        axis : 0, default 0
+            Redundant for application on Series.
+        index, columns : None
+            Redundant for application on Series, but index can be used instead
+            of labels.
+
+            .. versionadded:: 0.21.0
+        level : int or level name, optional
+            For MultiIndex, level for which the labels will be removed.
+        inplace : bool, default False
+            If True, do operation inplace and return None.
+        errors : {'ignore', 'raise'}, default 'raise'
+            If 'ignore', suppress error and only existing labels are dropped.
+
+        Returns
+        -------
+        dropped : pandas.Series
+
+        See Also
+        --------
+        Series.reindex : Return only specified index labels of Series.
+        Series.dropna : Return series without null values.
+        Series.drop_duplicates : Return Series with duplicate values removed.
+        DataFrame.drop : Drop specified labels from rows or columns.
+
+        Raises
+        ------
+        KeyError
+            If none of the labels are found in the index.
+
+        Examples
+        --------
+        >>> s = pd.Series(data=np.arange(3), index=['A','B','C'])
+        >>> s
+        A  0
+        B  1
+        C  2
+        dtype: int64
+
+        Drop labels B en C
+
+        >>> s.drop(labels=['B','C'])
+        A  0
+        dtype: int64
+
+        Drop 2nd level label in MultiIndex Series
+
+        >>> midx = pd.MultiIndex(levels=[['lama', 'cow', 'falcon'],
+        ...                              ['speed', 'weight', 'length']],
+        ...                      labels=[[0, 0, 0, 1, 1, 1, 2, 2, 2],
+        ...                              [0, 1, 2, 0, 1, 2, 0, 1, 2]])
+        >>> s = pd.Series([45, 200, 1.2, 30, 250, 1.5, 320, 1, 0.3],
+        ...               index=midx)
+        >>> s
+        lama    speed      45.0
+                weight    200.0
+                length      1.2
+        cow     speed      30.0
+                weight    250.0
+                length      1.5
+        falcon  speed     320.0
+                weight      1.0
+                length      0.3
+        dtype: float64
+
+        >>> s.drop(labels='weight', level=1)
+        lama    speed      45.0
+                length      1.2
+        cow     speed      30.0
+                length      1.5
+        falcon  speed     320.0
+                length      0.3
+        dtype: float64
+        """
+        return super(Series, self).drop(labels=labels, axis=axis, index=index,
+                                        columns=columns, level=level,
+                                        inplace=inplace, errors=errors)
+
     @Appender(generic._shared_docs['fillna'] % _shared_doc_kwargs)
     def fillna(self, value=None, method=None, axis=None, inplace=False,
                limit=None, downcast=None, **kwargs):
@@ -2686,28 +3377,54 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self.reindex(index=labels, **kwargs)
 
     def memory_usage(self, index=True, deep=False):
-        """Memory usage of the Series
+        """
+        Return the memory usage of the Series.
+
+        The memory usage can optionally include the contribution of
+        the index and of elements of `object` dtype.
 
         Parameters
         ----------
-        index : bool
-            Specifies whether to include memory usage of Series index
-        deep : bool
-            Introspect the data deeply, interrogate
-            `object` dtypes for system-level memory consumption
+        index : bool, default True
+            Specifies whether to include the memory usage of the Series index.
+        deep : bool, default False
+            If True, introspect the data deeply by interrogating
+            `object` dtypes for system-level memory consumption, and include
+            it in the returned value.
 
         Returns
         -------
-        scalar bytes of memory consumed
-
-        Notes
-        -----
-        Memory usage does not include memory consumed by elements that
-        are not components of the array if deep=False
+        int
+            Bytes of memory consumed.
 
         See Also
         --------
-        numpy.ndarray.nbytes
+        numpy.ndarray.nbytes : Total bytes consumed by the elements of the
+            array.
+        DataFrame.memory_usage : Bytes consumed by a DataFrame.
+
+        Examples
+        --------
+
+        >>> s = pd.Series(range(3))
+        >>> s.memory_usage()
+        104
+
+        Not including the index gives the size of the rest of the data, which
+        is necessarily smaller:
+
+        >>> s.memory_usage(index=False)
+        24
+
+        The memory footprint of `object` values is ignored by default:
+
+        >>> s = pd.Series(["a", "b"])
+        >>> s.values
+        array(['a', 'b'], dtype=object)
+        >>> s.memory_usage()
+        96
+        >>> s.memory_usage(deep=True)
+        212
         """
         v = super(Series, self).memory_usage(deep=deep)
         if index:
@@ -2735,20 +3452,21 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def isin(self, values):
         """
-        Return a boolean :class:`~pandas.Series` showing whether each element
-        in the :class:`~pandas.Series` is exactly contained in the passed
-        sequence of ``values``.
+        Check whether `values` are contained in Series.
+
+        Return a boolean Series showing whether each element in the Series
+        matches an element in the passed sequence of `values` exactly.
 
         Parameters
         ----------
         values : set or list-like
             The sequence of values to test. Passing in a single string will
             raise a ``TypeError``. Instead, turn a single string into a
-            ``list`` of one element.
+            list of one element.
 
             .. versionadded:: 0.18.1
 
-            Support for values as a set
+              Support for values as a set.
 
         Returns
         -------
@@ -2757,31 +3475,37 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Raises
         ------
         TypeError
-          * If ``values`` is a string
+          * If `values` is a string
 
         See Also
         --------
-        pandas.DataFrame.isin
+        pandas.DataFrame.isin : equivalent method on DataFrame
 
         Examples
         --------
 
-        >>> s = pd.Series(list('abc'))
-        >>> s.isin(['a', 'c', 'e'])
+        >>> s = pd.Series(['lama', 'cow', 'lama', 'beetle', 'lama',
+        ...                'hippo'], name='animal')
+        >>> s.isin(['cow', 'lama'])
+        0     True
+        1     True
+        2     True
+        3    False
+        4     True
+        5    False
+        Name: animal, dtype: bool
+
+        Passing a single string as ``s.isin('lama')`` will raise an error. Use
+        a list of one element instead:
+
+        >>> s.isin(['lama'])
         0     True
         1    False
         2     True
-        dtype: bool
-
-        Passing a single string as ``s.isin('a')`` will raise an error. Use
-        a list of one element instead:
-
-        >>> s.isin(['a'])
-        0     True
-        1    False
-        2    False
-        dtype: bool
-
+        3    False
+        4     True
+        5    False
+        Name: animal, dtype: bool
         """
         result = algorithms.isin(com._values_from_object(self), values)
         return self._constructor(result, index=self.index).__finalize__(self)
@@ -2909,9 +3633,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             a string representing the encoding to use if the contents are
             non-ascii, for python versions prior to 3
         compression : string, optional
-            a string representing the compression to use in the output file,
-            allowed values are 'gzip', 'bz2', 'xz', only used when the first
-            argument is a filename
+            A string representing the compression to use in the output file.
+            Allowed values are 'gzip', 'bz2', 'zip', 'xz'. This input is only
+            used when the first argument is a filename.
         date_format: string, default None
             Format string for datetime objects.
         decimal: string, default '.'
@@ -2960,13 +3684,74 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def dropna(self, axis=0, inplace=False, **kwargs):
         """
-        Return Series without null values
+        Return a new Series with missing values removed.
+
+        See the :ref:`User Guide <missing_data>` for more on which values are
+        considered missing, and how to work with missing data.
+
+        Parameters
+        ----------
+        axis : {0 or 'index'}, default 0
+            There is only one axis to drop values from.
+        inplace : bool, default False
+            If True, do operation inplace and return None.
+        **kwargs
+            Not in use.
 
         Returns
         -------
-        valid : Series
-        inplace : boolean, default False
-            Do operation in place.
+        Series
+            Series with NA entries dropped from it.
+
+        See Also
+        --------
+        Series.isna: Indicate missing values.
+        Series.notna : Indicate existing (non-missing) values.
+        Series.fillna : Replace missing values.
+        DataFrame.dropna : Drop rows or columns which contain NA values.
+        Index.dropna : Drop missing indices.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1., 2., np.nan])
+        >>> ser
+        0    1.0
+        1    2.0
+        2    NaN
+        dtype: float64
+
+        Drop NA values from a Series.
+
+        >>> ser.dropna()
+        0    1.0
+        1    2.0
+        dtype: float64
+
+        Keep the Series with valid entries in the same variable.
+
+        >>> ser.dropna(inplace=True)
+        >>> ser
+        0    1.0
+        1    2.0
+        dtype: float64
+
+        Empty strings are not considered NA values. ``None`` is considered an
+        NA value.
+
+        >>> ser = pd.Series([np.NaN, 2, pd.NaT, '', None, 'I stay'])
+        >>> ser
+        0       NaN
+        1         2
+        2       NaT
+        3
+        4      None
+        5    I stay
+        dtype: object
+        >>> ser.dropna()
+        1         2
+        3
+        5    I stay
+        dtype: object
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         kwargs.pop('how', None)
@@ -3086,14 +3871,15 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     hist = gfx.hist_series
 
 
-Series._setup_axes(['index'], info_axis=0, stat_axis=0, aliases={'rows': 0})
+Series._setup_axes(['index'], info_axis=0, stat_axis=0, aliases={'rows': 0},
+                   docs={'index': 'The index (axis labels) of the Series.'})
 Series._add_numeric_operations()
 Series._add_series_only_operations()
 Series._add_series_or_dataframe_operations()
 
 # Add arithmetic!
-ops.add_flex_arithmetic_methods(Series, **ops.series_flex_funcs)
-ops.add_special_arithmetic_methods(Series, **ops.series_special_funcs)
+ops.add_flex_arithmetic_methods(Series)
+ops.add_special_arithmetic_methods(Series)
 
 
 # -----------------------------------------------------------------------------
@@ -3113,10 +3899,11 @@ def _sanitize_index(data, index, copy=False):
 
     if isinstance(data, ABCIndexClass) and not copy:
         pass
-    elif isinstance(data, PeriodIndex):
-        data = data.astype(object).values
-    elif isinstance(data, DatetimeIndex):
-        data = data._to_embed(keep_tz=True)
+    elif isinstance(data, (PeriodIndex, DatetimeIndex)):
+        data = data._values
+        if copy:
+            data = data.copy()
+
     elif isinstance(data, np.ndarray):
 
         # coerce datetimelike types
@@ -3156,8 +3943,17 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 subarr = np.array(subarr, dtype=dtype, copy=copy)
         except (ValueError, TypeError):
             if is_categorical_dtype(dtype):
+                # We *do* allow casting to categorical, since we know
+                # that Categorical is the only array type for 'category'.
                 subarr = Categorical(arr, dtype.categories,
                                      ordered=dtype.ordered)
+            elif is_extension_array_dtype(dtype):
+                # We don't allow casting to third party dtypes, since we don't
+                # know what array belongs to which type.
+                msg = ("Cannot cast data to extension dtype '{}'. "
+                       "Pass the extension array directly.".format(dtype))
+                raise ValueError(msg)
+
             elif dtype is not None and raise_cast_failure:
                 raise
             else:
@@ -3189,8 +3985,14 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             # we will try to copy be-definition here
             subarr = _try_cast(data, True)
 
-    elif isinstance(data, Categorical):
+    elif isinstance(data, ExtensionArray):
         subarr = data
+
+        if dtype is not None and not data.dtype.is_dtype(dtype):
+            msg = ("Cannot coerce extension array to dtype '{typ}'. "
+                   "Do the coercion before passing to the constructor "
+                   "instead.".format(typ=dtype))
+            raise ValueError(msg)
 
         if copy:
             subarr = data.copy()

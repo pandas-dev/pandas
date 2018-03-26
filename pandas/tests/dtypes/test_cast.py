@@ -22,7 +22,8 @@ from pandas.core.dtypes.cast import (
     maybe_convert_string_to_object,
     maybe_convert_scalar,
     find_common_type,
-    construct_1d_object_array_from_listlike)
+    construct_1d_object_array_from_listlike,
+    construct_1d_arraylike_from_scalar)
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
@@ -300,6 +301,10 @@ class TestMaybe(object):
                                      [NaT, 'b', 1]]))
         assert result.size == 6
 
+        # GH19671
+        result = Series(['M1701', Timestamp('20130101')])
+        assert result.dtype.kind == 'O'
+
 
 class TestConvert(object):
 
@@ -422,3 +427,15 @@ class TestCommonTypes(object):
     @pytest.mark.parametrize('val', [1, 2., None])
     def test_cast_1d_array_invalid_scalar(self, val):
         pytest.raises(TypeError, construct_1d_object_array_from_listlike, val)
+
+    def test_cast_1d_arraylike_from_scalar_categorical(self):
+        # GH 19565 - Categorical result from scalar did not maintain categories
+        # and ordering of the passed dtype
+        cats = ['a', 'b', 'c']
+        cat_type = CategoricalDtype(categories=cats, ordered=False)
+        expected = pd.Categorical(['a', 'a'], categories=cats)
+        result = construct_1d_arraylike_from_scalar('a', len(expected),
+                                                    cat_type)
+        tm.assert_categorical_equal(result, expected,
+                                    check_category_order=True,
+                                    check_dtype=True)

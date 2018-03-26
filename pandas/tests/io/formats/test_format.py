@@ -539,8 +539,8 @@ class TestDataFrameFormatting(object):
         assert _rep(df) == expected
 
         # column name
-        df = DataFrame({u'あああああ': [1, 222, 33333, 4],
-                        'b': [u'あ', u'いいい', u'う', u'ええええええ']},
+        df = DataFrame({'b': [u'あ', u'いいい', u'う', u'ええええええ'],
+                        u'あああああ': [1, 222, 33333, 4]},
                        index=['a', 'bb', 'c', 'ddd'])
         expected = (u"          b  あああああ\na         あ      1\n"
                     u"bb      いいい    222\nc         う  33333\n"
@@ -647,8 +647,8 @@ class TestDataFrameFormatting(object):
             assert _rep(df) == expected
 
             # column name
-            df = DataFrame({u'あああああ': [1, 222, 33333, 4],
-                            'b': [u'あ', u'いいい', u'う', u'ええええええ']},
+            df = DataFrame({'b': [u'あ', u'いいい', u'う', u'ええええええ'],
+                            u'あああああ': [1, 222, 33333, 4]},
                            index=['a', 'bb', 'c', 'ddd'])
             expected = (u"                b  あああああ\n"
                         u"a              あ           1\n"
@@ -733,8 +733,8 @@ class TestDataFrameFormatting(object):
                 assert _rep(df) == expected
 
             # ambiguous unicode
-            df = DataFrame({u'あああああ': [1, 222, 33333, 4],
-                            'b': [u'あ', u'いいい', u'¡¡', u'ええええええ']},
+            df = DataFrame({'b': [u'あ', u'いいい', u'¡¡', u'ええええええ'],
+                            u'あああああ': [1, 222, 33333, 4]},
                            index=['a', 'bb', 'c', '¡¡¡'])
             expected = (u"                b  あああああ\n"
                         u"a              あ           1\n"
@@ -1433,6 +1433,13 @@ c  10  11  12  13  14\
         assert '2 rows' not in df._repr_html_()
 
         tm.reset_display_options()
+
+    def test_repr_html_mathjax(self):
+        df = DataFrame([[1, 2], [3, 4]])
+        assert 'tex2jax_ignore' not in df._repr_html_()
+
+        with pd.option_context('display.html.use_mathjax', False):
+            assert 'tex2jax_ignore' in df._repr_html_()
 
     def test_repr_html_wide(self):
         max_cols = get_option('display.max_columns')

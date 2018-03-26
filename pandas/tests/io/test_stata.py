@@ -336,7 +336,7 @@ class TestStata(object):
         with tm.ensure_clean() as path:
             original.to_stata(path, {'datetime': 'tc'})
             written_and_read_again = self.read_dta(path)
-            # original.index is np.int32, readed index is np.int64
+            # original.index is np.int32, read index is np.int64
             tm.assert_frame_equal(written_and_read_again.set_index('index'),
                                   original, check_index_type=False)
 

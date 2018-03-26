@@ -100,10 +100,12 @@ class SafeForLongAndSparse(object):
         self._check_stat_op('median', wrapper)
 
     def test_min(self):
-        self._check_stat_op('min', np.min)
+        with catch_warnings(record=True):
+            self._check_stat_op('min', np.min)
 
     def test_max(self):
-        self._check_stat_op('max', np.max)
+        with catch_warnings(record=True):
+            self._check_stat_op('max', np.max)
 
     @td.skip_if_no_scipy
     def test_skew(self):
@@ -2368,14 +2370,16 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
             pan.update(other)
 
             expected = Panel(
-                {'two': DataFrame([[3.6, 2., 3],
-                                   [1.5, np.nan, 7],
+                {'one': DataFrame([[1.5, np.nan, 3.],
+                                   [1.5, np.nan, 3.],
                                    [1.5, np.nan, 3.],
                                    [1.5, np.nan, 3.]]),
-                 'one': DataFrame([[1.5, np.nan, 3.],
-                                   [1.5, np.nan, 3.],
-                                   [1.5, np.nan, 3.],
-                                   [1.5, np.nan, 3.]])})
+                 'two': DataFrame([[3.6, 2., 3],
+                                  [1.5, np.nan, 7],
+                                  [1.5, np.nan, 3.],
+                                  [1.5, np.nan, 3.]])
+                 }
+            )
 
             assert_panel_equal(pan, expected)
 

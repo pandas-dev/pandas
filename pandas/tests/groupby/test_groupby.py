@@ -9,6 +9,7 @@ from datetime import datetime
 from pandas import (date_range, bdate_range, Timestamp,
                     Index, MultiIndex, DataFrame, Series,
                     concat, Panel, DatetimeIndex, read_csv)
+from pandas.core.dtypes.missing import isna
 from pandas.errors import UnsupportedFunctionCall, PerformanceWarning
 from pandas.util.testing import (assert_frame_equal, assert_index_equal,
                                  assert_series_equal, assert_almost_equal)
@@ -99,9 +100,9 @@ class TestGroupBy(MixIn):
 
         applied = df.groupby('A').apply(max_value)
         result = applied.get_dtype_counts().sort_values()
-        expected = Series({'object': 2,
-                           'float64': 2,
-                           'int64': 1}).sort_values()
+        expected = Series({'float64': 2,
+                           'int64': 1,
+                           'object': 2}).sort_values()
         assert_series_equal(result, expected)
 
     def test_groupby_return_type(self):
@@ -232,6 +233,36 @@ class TestGroupBy(MixIn):
             lambda x: x['time'][x['value'].idxmax()])
         assert_series_equal(result, expected)
 
+    def test_apply_trivial(self):
+        # GH 20066
+        # trivial apply: ignore input and return a constant dataframe.
+        df = pd.DataFrame({'key': ['a', 'a', 'b', 'b', 'a'],
+                           'data': [1.0, 2.0, 3.0, 4.0, 5.0]},
+                          columns=['key', 'data'])
+        expected = pd.concat([df.iloc[1:], df.iloc[1:]],
+                             axis=1, keys=['float64', 'object'])
+        result = df.groupby([str(x) for x in df.dtypes],
+                            axis=1).apply(lambda x: df.iloc[1:])
+
+        assert_frame_equal(result, expected)
+
+    @pytest.mark.xfail(reason=("GH 20066; function passed into apply "
+                               "returns a DataFrame with the same index "
+                               "as the one to create GroupBy object."))
+    def test_apply_trivial_fail(self):
+        # GH 20066
+        # trivial apply fails if the constant dataframe has the same index
+        # with the one used to create GroupBy object.
+        df = pd.DataFrame({'key': ['a', 'a', 'b', 'b', 'a'],
+                           'data': [1.0, 2.0, 3.0, 4.0, 5.0]},
+                          columns=['key', 'data'])
+        expected = pd.concat([df, df],
+                             axis=1, keys=['float64', 'object'])
+        result = df.groupby([str(x) for x in df.dtypes],
+                            axis=1).apply(lambda x: df)
+
+        assert_frame_equal(result, expected)
+
     def test_time_field_bug(self):
         # Test a fix for the following error related to GH issue 11324 When
         # non-key fields in a group-by dataframe contained time-based fields
@@ -244,7 +275,7 @@ class TestGroupBy(MixIn):
             return pd.Series({'c': 2})
 
         def func_with_date(batch):
-            return pd.Series({'c': 2, 'b': datetime(2015, 1, 1)})
+            return pd.Series({'b': datetime(2015, 1, 1), 'c': 2})
 
         dfg_no_conversion = df.groupby(by=['a']).apply(func_with_no_date)
         dfg_no_conversion_expected = pd.DataFrame({'c': 2}, index=[1])
@@ -1628,8 +1659,8 @@ class TestGroupBy(MixIn):
 
     def test_apply_with_mixed_dtype(self):
         # GH3480, apply with mixed dtype on axis=1 breaks in 0.11
-        df = DataFrame({'foo1': ['one', 'two', 'two', 'three', 'one', 'two'],
-                        'foo2': np.random.randn(6)})
+        df = DataFrame({'foo1': np.random.randn(6),
+                        'foo2': ['one', 'two', 'two', 'three', 'one', 'two']})
         result = df.apply(lambda x: x, axis=1)
         assert_series_equal(df.get_dtype_counts(), result.get_dtype_counts())
 
@@ -2061,6 +2092,30 @@ class TestGroupBy(MixIn):
                                    ascending=ascending,
                                    na_option=na_option, pct=pct)
 
+    @pytest.mark.parametrize("agg_func", ['any', 'all'])
+    @pytest.mark.parametrize("skipna", [True, False])
+    @pytest.mark.parametrize("vals", [
+        ['foo', 'bar', 'baz'], ['foo', '', ''], ['', '', ''],
+        [1, 2, 3], [1, 0, 0], [0, 0, 0],
+        [1., 2., 3.], [1., 0., 0.], [0., 0., 0.],
+        [True, True, True], [True, False, False], [False, False, False],
+        [np.nan, np.nan, np.nan]
+    ])
+    def test_groupby_bool_aggs(self, agg_func, skipna, vals):
+        df = DataFrame({'key': ['a'] * 3 + ['b'] * 3, 'val': vals * 2})
+
+        # Figure out expectation using Python builtin
+        exp = getattr(compat.builtins, agg_func)(vals)
+
+        # edge case for missing data with skipna and 'any'
+        if skipna and all(isna(vals)) and agg_func == 'any':
+            exp = False
+
+        exp_df = DataFrame([exp] * 2, columns=['val'], index=pd.Index(
+            ['a', 'b'], name='key'))
+        result = getattr(df.groupby('key'), agg_func)(skipna=skipna)
+        assert_frame_equal(result, exp_df)
+
     def test_dont_clobber_name_column(self):
         df = DataFrame({'key': ['a', 'a', 'a', 'b', 'b', 'b'],
                         'name': ['foo', 'bar', 'baz'] * 2})
@@ -2113,10 +2168,10 @@ class TestGroupBy(MixIn):
 
     def test_handle_dict_return_value(self):
         def f(group):
-            return {'min': group.min(), 'max': group.max()}
+            return {'max': group.max(), 'min': group.min()}
 
         def g(group):
-            return Series({'min': group.min(), 'max': group.max()})
+            return Series({'max': group.max(), 'min': group.min()})
 
         result = self.df.groupby('A')['C'].apply(f)
         expected = self.df.groupby('A')['C'].apply(g)

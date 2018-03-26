@@ -719,9 +719,10 @@ class TestDataFrameReshape(TestData):
         assert_frame_equal(left, right)
 
         # GH7401
-        df = pd.DataFrame({'A': list('aaaaabbbbb'), 'C': np.arange(10),
+        df = pd.DataFrame({'A': list('aaaaabbbbb'),
                            'B': (date_range('2012-01-01', periods=5)
-                                 .tolist() * 2)})
+                                 .tolist() * 2),
+                           'C': np.arange(10)})
 
         df.iloc[3, 1] = np.NaN
         left = df.set_index(['A', 'B']).unstack()

@@ -139,6 +139,18 @@ class TestSparseDataFrame(SharedWithSparse):
 
         repr(self.frame)
 
+    def test_constructor_dict_order(self):
+        # GH19018
+        # initialization ordering: by insertion order if python>= 3.6, else
+        # order by value
+        d = {'b': [2, 3], 'a': [0, 1]}
+        frame = SparseDataFrame(data=d)
+        if compat.PY36:
+            expected = SparseDataFrame(data=d, columns=list('ba'))
+        else:
+            expected = SparseDataFrame(data=d, columns=list('ab'))
+        tm.assert_sp_frame_equal(frame, expected)
+
     def test_constructor_ndarray(self):
         # no index or columns
         sp = SparseDataFrame(self.frame.values)
@@ -247,10 +259,10 @@ class TestSparseDataFrame(SharedWithSparse):
     def test_constructor_nan_dataframe(self):
         # GH 10079
         trains = np.arange(100)
-        tresholds = [10, 20, 30, 40, 50, 60]
-        tuples = [(i, j) for i in trains for j in tresholds]
+        thresholds = [10, 20, 30, 40, 50, 60]
+        tuples = [(i, j) for i in trains for j in thresholds]
         index = pd.MultiIndex.from_tuples(tuples,
-                                          names=['trains', 'tresholds'])
+                                          names=['trains', 'thresholds'])
         matrix = np.empty((len(index), len(trains)))
         matrix.fill(np.nan)
         df = pd.DataFrame(matrix, index=index, columns=trains, dtype=float)

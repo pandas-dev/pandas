@@ -81,9 +81,28 @@ index is passed, one will be created having values ``[0, ..., len(data) - 1]``.
 
 **From dict**
 
-If ``data`` is a dict, if **index** is passed the values in data corresponding
-to the labels in the index will be pulled out. Otherwise, an index will be
-constructed from the sorted keys of the dict, if possible.
+Series can be instantiated from dicts:
+
+.. ipython:: python
+
+   d = {'b' : 1, 'a' : 0, 'c' : 2}
+   pd.Series(d)
+
+.. note::
+
+   When the data is a dict, and an index is not passed, the ``Series`` index
+   will be ordered by the dict's insertion order, if you're using Python
+   version >= 3.6 and Pandas version >= 0.23.
+
+   If you're using Python < 3.6 or Pandas < 0.23, and an index is not passed,
+   the ``Series`` index will be the lexically ordered list of dict keys.
+
+In the example above, if you were on a Python version lower than 3.6 or a
+Pandas version lower than 0.23, the ``Series`` would be ordered by the lexical
+order of the dict keys (i.e. ``['a', 'b', 'c']`` rather than ``['b', 'a', 'c']``).
+
+If an index is passed, the values in data corresponding to the labels in the
+index will be pulled out.
 
 .. ipython:: python
 
@@ -243,12 +262,22 @@ not matching up to the passed index.
 If axis labels are not passed, they will be constructed from the input data
 based on common sense rules.
 
+.. note::
+
+   When the data is a dict, and ``columns`` is not specified, the ``DataFrame``
+   columns will be ordered by the dict's insertion order, if you are using
+   Python version >= 3.6 and Pandas >= 0.23.
+
+   If you are using Python < 3.6 or Pandas < 0.23, and ``columns`` is not
+   specified, the ``DataFrame`` columns will be the lexically ordered list of dict
+   keys.
+
 From dict of Series or dicts
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The resulting **index** will be the **union** of the indexes of the various
 Series. If there are any nested dicts, these will first be converted to
-Series. If no columns are passed, the columns will be the sorted list of dict
+Series. If no columns are passed, the columns will be the ordered list of dict
 keys.
 
 .. ipython:: python
@@ -364,6 +393,19 @@ and returns a DataFrame. It operates like the ``DataFrame`` constructor except
 for the ``orient`` parameter which is ``'columns'`` by default, but which can be
 set to ``'index'`` in order to use the dict keys as row labels.
 
+
+.. ipython:: python
+
+   pd.DataFrame.from_dict(dict([('A', [1, 2, 3]), ('B', [4, 5, 6])]))
+
+If you pass ``orient='index'``, the keys will be the row labels. In this
+case, you can also pass the desired column names:
+
+.. ipython:: python
+
+   pd.DataFrame.from_dict(dict([('A', [1, 2, 3]), ('B', [4, 5, 6])]),
+                          orient='index', columns=['one', 'two', 'three'])
+
 .. _basics.dataframe.from_records:
 
 **DataFrame.from_records**
@@ -378,28 +420,6 @@ dtype. For example:
    data
    pd.DataFrame.from_records(data, index='C')
 
-.. _basics.dataframe.from_items:
-
-**DataFrame.from_items**
-
-``DataFrame.from_items`` works analogously to the form of the ``dict``
-constructor that takes a sequence of ``(key, value)`` pairs, where the keys are
-column (or row, in the case of ``orient='index'``) names, and the value are the
-column values (or row values). This can be useful for constructing a DataFrame
-with the columns in a particular order without having to pass an explicit list
-of columns:
-
-.. ipython:: python
-
-   pd.DataFrame.from_items([('A', [1, 2, 3]), ('B', [4, 5, 6])])
-
-If you pass ``orient='index'``, the keys will be the row labels. But in this
-case you must also pass the desired column names:
-
-.. ipython:: python
-
-   pd.DataFrame.from_items([('A', [1, 2, 3]), ('B', [4, 5, 6])],
-                           orient='index', columns=['one', 'two', 'three'])
 
 Column selection, addition, deletion
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -539,7 +559,7 @@ To write code compatible with all versions of Python, split the assignment in tw
    you'll need to take care when passing ``assign`` expressions that
 
    * Updating an existing column
-   * Refering to the newly updated column in the same ``assign``
+   * Referring to the newly updated column in the same ``assign``
 
    For example, we'll update column "A" and then refer to it when creating "B".
 

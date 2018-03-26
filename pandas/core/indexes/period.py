@@ -12,7 +12,6 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_datetime64_dtype,
     is_datetime64_any_dtype,
-    is_timedelta64_dtype,
     is_period_dtype,
     is_bool_dtype,
     pandas_dtype,
@@ -22,11 +21,11 @@ from pandas.core.dtypes.generic import ABCSeries
 
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import get_freq_code as _gfc
+from pandas.tseries.offsets import Tick, DateOffset
+
 from pandas.core.indexes.datetimes import DatetimeIndex, Int64Index, Index
-from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.core.indexes.datetimelike import DatelikeOps, DatetimeIndexOpsMixin
 from pandas.core.tools.datetimes import parse_time_string
-import pandas.tseries.offsets as offsets
 
 from pandas._libs.lib import infer_dtype
 from pandas._libs import tslib, index as libindex
@@ -44,7 +43,6 @@ from pandas import compat
 from pandas.util._decorators import (Appender, Substitution, cache_readonly,
                                      deprecate_kwarg)
 from pandas.compat import zip, u
-from pandas.errors import PerformanceWarning
 
 import pandas.core.indexes.base as ibase
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -76,26 +74,25 @@ def dt64arr_to_periodarr(data, freq, tz):
 _DIFFERENT_FREQ_INDEX = period._DIFFERENT_FREQ_INDEX
 
 
-def _period_index_cmp(opname, cls, nat_result=False):
+def _period_index_cmp(opname, cls):
     """
-    Wrap comparison operations to convert datetime-like to datetime64
+    Wrap comparison operations to convert Period-like to PeriodDtype
     """
+    nat_result = True if opname == '__ne__' else False
 
     def wrapper(self, other):
+        op = getattr(self._ndarray_values, opname)
         if isinstance(other, Period):
-            func = getattr(self._ndarray_values, opname)
-            other_base, _ = _gfc(other.freq)
             if other.freq != self.freq:
                 msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
                 raise IncompatibleFrequency(msg)
 
-            result = func(other.ordinal)
+            result = op(other.ordinal)
         elif isinstance(other, PeriodIndex):
             if other.freq != self.freq:
                 msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
                 raise IncompatibleFrequency(msg)
 
-            op = getattr(self._ndarray_values, opname)
             result = op(other._ndarray_values)
 
             mask = self._isnan | other._isnan
@@ -108,8 +105,7 @@ def _period_index_cmp(opname, cls, nat_result=False):
             result.fill(nat_result)
         else:
             other = Period(other, freq=self.freq)
-            func = getattr(self._ndarray_values, opname)
-            result = func(other.ordinal)
+            result = op(other.ordinal)
 
         if self.hasnans:
             result[self._isnan] = nat_result
@@ -231,15 +227,22 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     def _add_comparison_methods(cls):
         """ add in comparison methods """
         cls.__eq__ = _period_index_cmp('__eq__', cls)
-        cls.__ne__ = _period_index_cmp('__ne__', cls, nat_result=True)
+        cls.__ne__ = _period_index_cmp('__ne__', cls)
         cls.__lt__ = _period_index_cmp('__lt__', cls)
         cls.__gt__ = _period_index_cmp('__gt__', cls)
         cls.__le__ = _period_index_cmp('__le__', cls)
         cls.__ge__ = _period_index_cmp('__ge__', cls)
 
     def __new__(cls, data=None, ordinal=None, freq=None, start=None, end=None,
-                periods=None, copy=False, name=None, tz=None, dtype=None,
-                **kwargs):
+                periods=None, tz=None, dtype=None, copy=False, name=None,
+                **fields):
+
+        valid_field_set = {'year', 'month', 'day', 'quarter',
+                           'hour', 'minute', 'second'}
+
+        if not set(fields).issubset(valid_field_set):
+            raise TypeError('__new__() got an unexpected keyword argument {}'.
+                            format(list(set(fields) - valid_field_set)[0]))
 
         if periods is not None:
             if is_float(periods):
@@ -271,7 +274,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 data = np.asarray(ordinal, dtype=np.int64)
             else:
                 data, freq = cls._generate_range(start, end, periods,
-                                                 freq, kwargs)
+                                                 freq, fields)
             return cls._from_ordinals(data, name=name, freq=freq)
 
         if isinstance(data, PeriodIndex):
@@ -685,9 +688,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
     def _maybe_convert_timedelta(self, other):
         if isinstance(
-                other, (timedelta, np.timedelta64, offsets.Tick, np.ndarray)):
+                other, (timedelta, np.timedelta64, Tick, np.ndarray)):
             offset = frequencies.to_offset(self.freq.rule_code)
-            if isinstance(offset, offsets.Tick):
+            if isinstance(offset, Tick):
                 if isinstance(other, np.ndarray):
                     nanos = np.vectorize(delta_to_nanoseconds)(other)
                 else:
@@ -696,23 +699,13 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 check = np.all(nanos % offset_nanos == 0)
                 if check:
                     return nanos // offset_nanos
-        elif isinstance(other, offsets.DateOffset):
+        elif isinstance(other, DateOffset):
             freqstr = other.rule_code
             base = frequencies.get_base_alias(freqstr)
             if base == self.freq.rule_code:
                 return other.n
             msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
-        elif isinstance(other, np.ndarray):
-            if is_integer_dtype(other):
-                return other
-            elif is_timedelta64_dtype(other):
-                offset = frequencies.to_offset(self.freq)
-                if isinstance(offset, offsets.Tick):
-                    nanos = delta_to_nanoseconds(other)
-                    offset_nanos = delta_to_nanoseconds(offset)
-                    if (nanos % offset_nanos).all() == 0:
-                        return nanos // offset_nanos
         elif is_integer(other):
             # integer is passed to .shift via
             # _add_datetimelike_methods basically
@@ -722,15 +715,36 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         msg = "Input has different freq from PeriodIndex(freq={0})"
         raise IncompatibleFrequency(msg.format(self.freqstr))
 
+    def _add_offset(self, other):
+        assert not isinstance(other, Tick)
+        base = frequencies.get_base_alias(other.rule_code)
+        if base != self.freq.rule_code:
+            msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
+            raise IncompatibleFrequency(msg)
+        return self.shift(other.n)
+
+    def _add_delta_td(self, other):
+        assert isinstance(other, (timedelta, np.timedelta64, Tick))
+        nanos = delta_to_nanoseconds(other)
+        own_offset = frequencies.to_offset(self.freq.rule_code)
+
+        if isinstance(own_offset, Tick):
+            offset_nanos = delta_to_nanoseconds(own_offset)
+            if np.all(nanos % offset_nanos == 0):
+                return self.shift(nanos // offset_nanos)
+
+        # raise when input doesn't have freq
+        raise IncompatibleFrequency("Input has different freq from "
+                                    "{cls}(freq={freqstr})"
+                                    .format(cls=type(self).__name__,
+                                            freqstr=self.freqstr))
+
     def _add_delta(self, other):
         ordinal_delta = self._maybe_convert_timedelta(other)
         return self.shift(ordinal_delta)
 
     def _sub_datelike(self, other):
-        if other is tslib.NaT:
-            new_data = np.empty(len(self), dtype=np.int64)
-            new_data.fill(tslib.iNaT)
-            return TimedeltaIndex(new_data)
+        assert other is not tslib.NaT
         return NotImplemented
 
     def _sub_period(self, other):
@@ -746,28 +760,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             new_data[self._isnan] = np.nan
         # result must be Int64Index or Float64Index
         return Index(new_data)
-
-    def _add_offset_array(self, other):
-        # Array/Index of DateOffset objects
-        if len(other) == 1:
-            return self + other[0]
-        else:
-            warnings.warn("Adding/subtracting array of DateOffsets to "
-                          "{cls} not vectorized"
-                          .format(cls=type(self).__name__), PerformanceWarning)
-            res_values = self.astype('O').values + np.array(other)
-            return self.__class__(res_values)
-
-    def _sub_offset_array(self, other):
-        # Array/Index of DateOffset objects
-        if len(other) == 1:
-            return self - other[0]
-        else:
-            warnings.warn("Adding/subtracting array of DateOffsets to "
-                          "{cls} not vectorized"
-                          .format(cls=type(self).__name__), PerformanceWarning)
-            res_values = self.astype('O').values - np.array(other)
-            return self.__class__(res_values)
 
     def shift(self, n):
         """

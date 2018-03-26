@@ -42,10 +42,10 @@ static int floordiv(int x, int divisor) {
 static int monthToQuarter(int month) { return ((month - 1) / 3) + 1; }
 
 
-/* Find the absdate (days elapsed since datetime(1, 1, 1)
+/* Find the unix_date (days elapsed since datetime(1970, 1, 1)
  * for the given year/month/day.
  * Assumes GREGORIAN_CALENDAR */
-npy_int64 absdate_from_ymd(int year, int month, int day) {
+npy_int64 unix_date_from_ymd(int year, int month, int day) {
     /* Calculate the absolute date */
     pandas_datetimestruct dts;
     npy_int64 unix_date;
@@ -55,21 +55,9 @@ npy_int64 absdate_from_ymd(int year, int month, int day) {
     dts.month = month;
     dts.day = day;
     unix_date = pandas_datetimestruct_to_datetime(PANDAS_FR_D, &dts);
-    return ORD_OFFSET + unix_date;
+    return unix_date;
 }
 
-/* Sets the date part of the date_info struct
-   Assumes GREGORIAN_CALENDAR */
-static int dInfoCalc_SetFromAbsDate(register struct date_info *dinfo,
-                                    npy_int64 absdate) {
-    pandas_datetimestruct dts;
-
-    pandas_datetime_to_datetimestruct(absdate - ORD_OFFSET, PANDAS_FR_D, &dts);
-    dinfo->year = dts.year;
-    dinfo->month = dts.month;
-    dinfo->day = dts.day;
-    return 0;
-}
 
 ///////////////////////////////////////////////
 
@@ -89,13 +77,11 @@ static npy_int64 daytime_conversion_factor_matrix[7][7] = {
     {0,  0,   0,      0,        0,           1,           1000},
     {0,  0,   0,      0,        0,           0,              1}};
 
-PANDAS_INLINE int max_value(int a, int b) { return a > b ? a : b; }
+int max_value(int a, int b) { return a > b ? a : b; }
 
 PANDAS_INLINE int min_value(int a, int b) { return a < b ? a : b; }
 
 PANDAS_INLINE int get_freq_group(int freq) { return (freq / 1000) * 1000; }
-
-PANDAS_INLINE int get_freq_group_index(int freq) { return freq / 1000; }
 
 
 npy_int64 get_daytime_conversion_factor(int from_index, int to_index) {
@@ -137,59 +123,59 @@ PANDAS_INLINE npy_int64 transform_via_day(npy_int64 ordinal,
     return result;
 }
 
-static npy_int64 DtoB_weekday(npy_int64 absdate) {
-    return floordiv(absdate, 7) * 5 + mod_compat(absdate, 7) - BDAY_OFFSET;
+static npy_int64 DtoB_weekday(npy_int64 unix_date) {
+    return floordiv(unix_date + 4, 7) * 5 + mod_compat(unix_date + 4, 7) - 4;
 }
 
-static npy_int64 DtoB(struct date_info *dinfo,
-                      int roll_back, npy_int64 absdate) {
-    int day_of_week = dayofweek(dinfo->year, dinfo->month, dinfo->day);
+static npy_int64 DtoB(pandas_datetimestruct *dts,
+                      int roll_back, npy_int64 unix_date) {
+    int day_of_week = dayofweek(dts->year, dts->month, dts->day);
 
     if (roll_back == 1) {
         if (day_of_week > 4) {
             // change to friday before weekend
-            absdate -= (day_of_week - 4);
+            unix_date -= (day_of_week - 4);
         }
     } else {
         if (day_of_week > 4) {
             // change to Monday after weekend
-            absdate += (7 - day_of_week);
+            unix_date += (7 - day_of_week);
         }
     }
-    return DtoB_weekday(absdate);
+    return DtoB_weekday(unix_date);
 }
 
 
 //************ FROM DAILY ***************
 
 static npy_int64 asfreq_DTtoA(npy_int64 ordinal, asfreq_info *af_info) {
-    struct date_info dinfo;
+    pandas_datetimestruct dts;
     ordinal = downsample_daytime(ordinal, af_info);
-    dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET);
-    if (dinfo.month > af_info->to_a_year_end) {
-        return (npy_int64)(dinfo.year + 1 - BASE_YEAR);
+    pandas_datetime_to_datetimestruct(ordinal, PANDAS_FR_D, &dts);
+    if (dts.month > af_info->to_end) {
+        return (npy_int64)(dts.year + 1 - 1970);
     } else {
-        return (npy_int64)(dinfo.year - BASE_YEAR);
+        return (npy_int64)(dts.year - 1970);
     }
 }
 
-static npy_int64 DtoQ_yq(npy_int64 ordinal, asfreq_info *af_info, int *year,
-                         int *quarter) {
-    struct date_info dinfo;
-    dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET);
-    if (af_info->to_q_year_end != 12) {
-        dinfo.month -= af_info->to_q_year_end;
-        if (dinfo.month <= 0) {
-            dinfo.month += 12;
+static int DtoQ_yq(npy_int64 ordinal, asfreq_info *af_info, int *year) {
+    pandas_datetimestruct dts;
+    int quarter;
+
+    pandas_datetime_to_datetimestruct(ordinal, PANDAS_FR_D, &dts);
+    if (af_info->to_end != 12) {
+        dts.month -= af_info->to_end;
+        if (dts.month <= 0) {
+            dts.month += 12;
         } else {
-            dinfo.year += 1;
+            dts.year += 1;
         }
     }
 
-    *year = dinfo.year;
-    *quarter = monthToQuarter(dinfo.month);
-
-    return 0;
+    *year = dts.year;
+    quarter = monthToQuarter(dts.month);
+    return quarter;
 }
 
 static npy_int64 asfreq_DTtoQ(npy_int64 ordinal, asfreq_info *af_info) {
@@ -197,56 +183,39 @@ static npy_int64 asfreq_DTtoQ(npy_int64 ordinal, asfreq_info *af_info) {
 
     ordinal = downsample_daytime(ordinal, af_info);
 
-    DtoQ_yq(ordinal, af_info, &year, &quarter);
-    return (npy_int64)((year - BASE_YEAR) * 4 + quarter - 1);
+    quarter = DtoQ_yq(ordinal, af_info, &year);
+    return (npy_int64)((year - 1970) * 4 + quarter - 1);
 }
 
 static npy_int64 asfreq_DTtoM(npy_int64 ordinal, asfreq_info *af_info) {
-    struct date_info dinfo;
+    pandas_datetimestruct dts;
 
     ordinal = downsample_daytime(ordinal, af_info);
 
-    dInfoCalc_SetFromAbsDate(&dinfo, ordinal + ORD_OFFSET);
-    return (npy_int64)((dinfo.year - BASE_YEAR) * 12 + dinfo.month - 1);
+    pandas_datetime_to_datetimestruct(ordinal, PANDAS_FR_D, &dts);
+    return (npy_int64)((dts.year - 1970) * 12 + dts.month - 1);
 }
 
 static npy_int64 asfreq_DTtoW(npy_int64 ordinal, asfreq_info *af_info) {
     ordinal = downsample_daytime(ordinal, af_info);
-    return (ordinal + ORD_OFFSET - (1 + af_info->to_week_end)) / 7 + 1 -
-           WEEK_OFFSET;
+    return floordiv(ordinal + 3 - af_info->to_end, 7) + 1;
 }
 
 static npy_int64 asfreq_DTtoB(npy_int64 ordinal, asfreq_info *af_info) {
-    struct date_info dinfo;
-    npy_int64 absdate;
     int roll_back;
-
-    ordinal = downsample_daytime(ordinal, af_info);
-    absdate = ordinal + ORD_OFFSET;
-    dInfoCalc_SetFromAbsDate(&dinfo, absdate);
+    pandas_datetimestruct dts;
+    npy_int64 unix_date = downsample_daytime(ordinal, af_info);
+    pandas_datetime_to_datetimestruct(unix_date, PANDAS_FR_D, &dts);
 
     // This usage defines roll_back the opposite way from the others
     roll_back = 1 - af_info->is_end;
-    return DtoB(&dinfo, roll_back, absdate);
+    return DtoB(&dts, roll_back, unix_date);
 }
 
-// all intra day calculations are now done within one function
-static npy_int64 asfreq_DownsampleWithinDay(npy_int64 ordinal,
-                                            asfreq_info *af_info) {
-    return downsample_daytime(ordinal, af_info);
-}
-
-static npy_int64 asfreq_UpsampleWithinDay(npy_int64 ordinal,
-                                          asfreq_info *af_info) {
-    return upsample_daytime(ordinal, af_info);
-}
 //************ FROM BUSINESS ***************
 
 static npy_int64 asfreq_BtoDT(npy_int64 ordinal, asfreq_info *af_info) {
-    ordinal += BDAY_OFFSET;
-    ordinal =
-        (floordiv(ordinal - 1, 5) * 7 + mod_compat(ordinal - 1, 5) + 1 -
-         ORD_OFFSET);
+    ordinal = floordiv(ordinal + 3, 5) * 7 + mod_compat(ordinal + 3, 5) - 3;
 
     return upsample_daytime(ordinal, af_info);
 }
@@ -270,8 +239,7 @@ static npy_int64 asfreq_BtoW(npy_int64 ordinal, asfreq_info *af_info) {
 //************ FROM WEEKLY ***************
 
 static npy_int64 asfreq_WtoDT(npy_int64 ordinal, asfreq_info *af_info) {
-    ordinal = (ordinal + WEEK_OFFSET) * 7 +
-               af_info->from_week_end - ORD_OFFSET +
+    ordinal = ordinal * 7 + af_info->from_end - 4 +
                (7 - 1) * (af_info->is_end - 1);
     return upsample_daytime(ordinal, af_info);
 }
@@ -293,31 +261,31 @@ static npy_int64 asfreq_WtoW(npy_int64 ordinal, asfreq_info *af_info) {
 }
 
 static npy_int64 asfreq_WtoB(npy_int64 ordinal, asfreq_info *af_info) {
-    struct date_info dinfo;
-    npy_int64 absdate = asfreq_WtoDT(ordinal, af_info) + ORD_OFFSET;
-    int roll_back = af_info->is_end;
-    dInfoCalc_SetFromAbsDate(&dinfo, absdate);
+    int roll_back;
+    pandas_datetimestruct dts;
+    npy_int64 unix_date = asfreq_WtoDT(ordinal, af_info);
 
-    return DtoB(&dinfo, roll_back, absdate);
+    pandas_datetime_to_datetimestruct(unix_date, PANDAS_FR_D, &dts);
+    roll_back = af_info->is_end;
+    return DtoB(&dts, roll_back, unix_date);
 }
 
 //************ FROM MONTHLY ***************
-static void MtoD_ym(npy_int64 ordinal, int *y, int *m) {
-    *y = floordiv(ordinal, 12) + BASE_YEAR;
-    *m = mod_compat(ordinal, 12) + 1;
+static void MtoD_ym(npy_int64 ordinal, int *year, int *month) {
+    *year = floordiv(ordinal, 12) + 1970;
+    *month = mod_compat(ordinal, 12) + 1;
 }
 
 static npy_int64 asfreq_MtoDT(npy_int64 ordinal, asfreq_info *af_info) {
-    npy_int64 absdate;
-    int y, m;
+    npy_int64 unix_date;
+    int year, month;
 
     ordinal += af_info->is_end;
-    MtoD_ym(ordinal, &y, &m);
-    absdate = absdate_from_ymd(y, m, 1);
-    ordinal = absdate - ORD_OFFSET;
+    MtoD_ym(ordinal, &year, &month);
 
-    ordinal -= af_info->is_end;
-    return upsample_daytime(ordinal, af_info);
+    unix_date = unix_date_from_ymd(year, month, 1);
+    unix_date -= af_info->is_end;
+    return upsample_daytime(unix_date, af_info);
 }
 
 static npy_int64 asfreq_MtoA(npy_int64 ordinal, asfreq_info *af_info) {
@@ -333,42 +301,42 @@ static npy_int64 asfreq_MtoW(npy_int64 ordinal, asfreq_info *af_info) {
 }
 
 static npy_int64 asfreq_MtoB(npy_int64 ordinal, asfreq_info *af_info) {
-    struct date_info dinfo;
-    npy_int64 absdate = asfreq_MtoDT(ordinal, af_info) + ORD_OFFSET;
-    int roll_back = af_info->is_end;
+    int roll_back;
+    pandas_datetimestruct dts;
+    npy_int64 unix_date = asfreq_MtoDT(ordinal, af_info);
 
-    dInfoCalc_SetFromAbsDate(&dinfo, absdate);
-
-    return DtoB(&dinfo, roll_back, absdate);
+    pandas_datetime_to_datetimestruct(unix_date, PANDAS_FR_D, &dts);
+    roll_back = af_info->is_end;
+    return DtoB(&dts, roll_back, unix_date);
 }
 
 //************ FROM QUARTERLY ***************
 
-static void QtoD_ym(npy_int64 ordinal, int *y, int *m, asfreq_info *af_info) {
-    *y = floordiv(ordinal, 4) + BASE_YEAR;
-    *m = mod_compat(ordinal, 4) * 3 + 1;
+static void QtoD_ym(npy_int64 ordinal, int *year, int *month,
+                    asfreq_info *af_info) {
+    *year = floordiv(ordinal, 4) + 1970;
+    *month = mod_compat(ordinal, 4) * 3 + 1;
 
-    if (af_info->from_q_year_end != 12) {
-        *m += af_info->from_q_year_end;
-        if (*m > 12) {
-            *m -= 12;
+    if (af_info->from_end != 12) {
+        *month += af_info->from_end;
+        if (*month > 12) {
+            *month -= 12;
         } else {
-            *y -= 1;
+            *year -= 1;
         }
     }
 }
 
 static npy_int64 asfreq_QtoDT(npy_int64 ordinal, asfreq_info *af_info) {
-    npy_int64 absdate;
-    int y, m;
+    npy_int64 unix_date;
+    int year, month;
 
     ordinal += af_info->is_end;
-    QtoD_ym(ordinal, &y, &m, af_info);
+    QtoD_ym(ordinal, &year, &month, af_info);
 
-    absdate = absdate_from_ymd(y, m, 1);
-
-    absdate -= af_info->is_end;
-    return upsample_daytime(absdate - ORD_OFFSET, af_info);
+    unix_date = unix_date_from_ymd(year, month, 1);
+    unix_date -= af_info->is_end;
+    return upsample_daytime(unix_date, af_info);
 }
 
 static npy_int64 asfreq_QtoQ(npy_int64 ordinal, asfreq_info *af_info) {
@@ -388,33 +356,44 @@ static npy_int64 asfreq_QtoW(npy_int64 ordinal, asfreq_info *af_info) {
 }
 
 static npy_int64 asfreq_QtoB(npy_int64 ordinal, asfreq_info *af_info) {
-    struct date_info dinfo;
-    npy_int64 absdate = asfreq_QtoDT(ordinal, af_info) + ORD_OFFSET;
-    int roll_back = af_info->is_end;
+    int roll_back;
+    pandas_datetimestruct dts;
+    npy_int64 unix_date = asfreq_QtoDT(ordinal, af_info);
 
-    dInfoCalc_SetFromAbsDate(&dinfo, absdate);
-
-    return DtoB(&dinfo, roll_back, absdate);
+    pandas_datetime_to_datetimestruct(unix_date, PANDAS_FR_D, &dts);
+    roll_back = af_info->is_end;
+    return DtoB(&dts, roll_back, unix_date);
 }
 
 //************ FROM ANNUAL ***************
 
-static npy_int64 asfreq_AtoDT(npy_int64 ordinal, asfreq_info *af_info) {
-    npy_int64 absdate;
+static void AtoD_ym(npy_int64 ordinal, npy_int64 *year, int *month,
+                    asfreq_info *af_info) {
+    *year = ordinal + 1970;
+    *month = 1;
 
-    // start from 1970
-    npy_int64 year = ordinal + BASE_YEAR;
-
-    int month = (af_info->from_a_year_end % 12) + 1;
-    if (af_info->from_a_year_end != 12) {
-        year -= 1;
+    if (af_info->from_end != 12) {
+        *month += af_info->from_end;
+        if (*month > 12) {
+            // This case is never reached, but is kept for symmetry
+            // with QtoD_ym
+            *month -= 12;
+        } else {
+            *year -= 1;
+        }
     }
+}
 
-    year += af_info->is_end;
-    absdate = absdate_from_ymd(year, month, 1);
+static npy_int64 asfreq_AtoDT(npy_int64 ordinal, asfreq_info *af_info) {
+    npy_int64 unix_date, year;
+    int month;
 
-    absdate -= af_info->is_end;
-    return upsample_daytime(absdate - ORD_OFFSET, af_info);
+    ordinal += af_info->is_end;
+    AtoD_ym(ordinal, &year, &month, af_info);
+
+    unix_date = unix_date_from_ymd(year, month, 1);
+    unix_date -= af_info->is_end;
+    return upsample_daytime(unix_date, af_info);
 }
 
 static npy_int64 asfreq_AtoA(npy_int64 ordinal, asfreq_info *af_info) {
@@ -434,12 +413,13 @@ static npy_int64 asfreq_AtoW(npy_int64 ordinal, asfreq_info *af_info) {
 }
 
 static npy_int64 asfreq_AtoB(npy_int64 ordinal, asfreq_info *af_info) {
-    struct date_info dinfo;
-    npy_int64 absdate = asfreq_AtoDT(ordinal, af_info) + ORD_OFFSET;
-    int roll_back = af_info->is_end;
-    dInfoCalc_SetFromAbsDate(&dinfo, absdate);
+    int roll_back;
+    pandas_datetimestruct dts;
+    npy_int64 unix_date = asfreq_AtoDT(ordinal, af_info);
 
-    return DtoB(&dinfo, roll_back, absdate);
+    pandas_datetime_to_datetimestruct(unix_date, PANDAS_FR_D, &dts);
+    roll_back = af_info->is_end;
+    return DtoB(&dts, roll_back, unix_date);
 }
 
 static npy_int64 nofunc(npy_int64 ordinal, asfreq_info *af_info) {
@@ -450,57 +430,6 @@ static npy_int64 no_op(npy_int64 ordinal, asfreq_info *af_info) {
 }
 
 // end of frequency specific conversion routines
-
-static int calc_a_year_end(int freq, int group) {
-    int result = (freq - group) % 12;
-    if (result == 0) {
-        return 12;
-    } else {
-        return result;
-    }
-}
-
-static int calc_week_end(int freq, int group) { return freq - group; }
-
-void get_asfreq_info(int fromFreq, int toFreq, char relation,
-                     asfreq_info *af_info) {
-    int fromGroup = get_freq_group(fromFreq);
-    int toGroup = get_freq_group(toFreq);
-
-    if (relation == 'E') {
-        af_info->is_end = 1;
-    } else {
-        af_info->is_end = 0;
-    }
-
-    af_info->intraday_conversion_factor = get_daytime_conversion_factor(
-        get_freq_group_index(max_value(fromGroup, FR_DAY)),
-        get_freq_group_index(max_value(toGroup, FR_DAY)));
-
-    switch (fromGroup) {
-        case FR_WK:
-            af_info->from_week_end = calc_week_end(fromFreq, fromGroup);
-            break;
-        case FR_ANN:
-            af_info->from_a_year_end = calc_a_year_end(fromFreq, fromGroup);
-            break;
-        case FR_QTR:
-            af_info->from_q_year_end = calc_a_year_end(fromFreq, fromGroup);
-            break;
-    }
-
-    switch (toGroup) {
-        case FR_WK:
-            af_info->to_week_end = calc_week_end(toFreq, toGroup);
-            break;
-        case FR_ANN:
-            af_info->to_a_year_end = calc_a_year_end(toFreq, toGroup);
-            break;
-        case FR_QTR:
-            af_info->to_q_year_end = calc_a_year_end(toFreq, toGroup);
-            break;
-    }
-}
 
 freq_conv_func get_asfreq_func(int fromFreq, int toFreq) {
     int fromGroup = get_freq_group(fromFreq);
@@ -658,9 +587,9 @@ freq_conv_func get_asfreq_func(int fromFreq, int toFreq) {
                 case FR_US:
                 case FR_NS:
                     if (fromGroup > toGroup) {
-                        return &asfreq_DownsampleWithinDay;
+                        return &downsample_daytime;
                     } else {
-                        return &asfreq_UpsampleWithinDay;
+                        return &upsample_daytime;
                     }
                 default:
                     return &nofunc;
@@ -669,21 +598,4 @@ freq_conv_func get_asfreq_func(int fromFreq, int toFreq) {
         default:
             return &nofunc;
     }
-}
-
-/* ------------------------------------------------------------------
- * New pandas API-helper code, to expose to cython
- * ------------------------------------------------------------------*/
-
-npy_int64 asfreq(npy_int64 period_ordinal, int freq1, int freq2,
-                 char relation) {
-    npy_int64 val;
-    freq_conv_func func;
-    asfreq_info finfo;
-
-    func = get_asfreq_func(freq1, freq2);
-
-    get_asfreq_info(freq1, freq2, relation, &finfo);
-    val = (*func)(period_ordinal, &finfo);
-    return val;
 }

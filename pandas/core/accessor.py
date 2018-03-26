@@ -191,9 +191,9 @@ In your library code::
 
         @property
         def center(self):
-            # return the geographic center point of this DataFarme
-            lon = self._obj.latitude
-            lat = self._obj.longitude
+            # return the geographic center point of this DataFrame
+            lat = self._obj.latitude
+            lon = self._obj.longitude
             return (float(lon.mean()), float(lat.mean()))
 
         def plot(self):

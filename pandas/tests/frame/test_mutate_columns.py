@@ -95,7 +95,7 @@ class TestDataFrameMutateColumns(TestData):
     def test_assign_dependent_old_python(self):
         df = DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
 
-        # Key C does not exist at defition time of df
+        # Key C does not exist at definition time of df
         with pytest.raises(KeyError):
             df.assign(C=lambda df: df.A,
                       D=lambda df: df['A'] + df['C'])
@@ -166,17 +166,17 @@ class TestDataFrameMutateColumns(TestData):
 
         # new item
         df['x'] = df['a'].astype('float32')
-        result = Series(dict(float64=5, float32=1))
-        assert (df.get_dtype_counts() == result).all()
+        result = Series(dict(float32=1, float64=5))
+        assert (df.get_dtype_counts().sort_index() == result).all()
 
         # replacing current (in different block)
         df['a'] = df['a'].astype('float32')
-        result = Series(dict(float64=4, float32=2))
-        assert (df.get_dtype_counts() == result).all()
+        result = Series(dict(float32=2, float64=4))
+        assert (df.get_dtype_counts().sort_index() == result).all()
 
         df['y'] = df['a'].astype('int32')
-        result = Series(dict(float64=4, float32=2, int32=1))
-        assert (df.get_dtype_counts() == result).all()
+        result = Series(dict(float32=2, float64=4, int32=1))
+        assert (df.get_dtype_counts().sort_index() == result).all()
 
         with tm.assert_raises_regex(ValueError, 'already exists'):
             df.insert(1, 'a', df['b'])

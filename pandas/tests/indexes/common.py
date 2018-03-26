@@ -127,16 +127,17 @@ class Base(object):
         idx = self.create_index()
         tm.assert_raises_regex(TypeError, "cannot perform __mul__",
                                lambda: idx * 1)
-        tm.assert_raises_regex(TypeError, "cannot perform __mul__",
+        tm.assert_raises_regex(TypeError, "cannot perform __rmul__",
                                lambda: 1 * idx)
 
         div_err = "cannot perform __truediv__" if PY3 \
             else "cannot perform __div__"
         tm.assert_raises_regex(TypeError, div_err, lambda: idx / 1)
+        div_err = div_err.replace(' __', ' __r')
         tm.assert_raises_regex(TypeError, div_err, lambda: 1 / idx)
         tm.assert_raises_regex(TypeError, "cannot perform __floordiv__",
                                lambda: idx // 1)
-        tm.assert_raises_regex(TypeError, "cannot perform __floordiv__",
+        tm.assert_raises_regex(TypeError, "cannot perform __rfloordiv__",
                                lambda: 1 // idx)
 
     def test_logical_compat(self):
@@ -977,11 +978,10 @@ class Base(object):
         assert not index.empty
         assert index[:0].empty
 
-    @pytest.mark.parametrize('how', ['outer', 'inner', 'left', 'right'])
-    def test_join_self_unique(self, how):
+    def test_join_self_unique(self, join_type):
         index = self.create_index()
         if index.is_unique:
-            joined = index.join(index, how=how)
+            joined = index.join(index, how=join_type)
             assert (index == joined).all()
 
     def test_searchsorted_monotonic(self, indices):

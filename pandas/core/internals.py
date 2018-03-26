@@ -17,6 +17,7 @@ from pandas.core.base import PandasObject
 
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype, DatetimeTZDtype,
+    PandasExtensionDtype,
     CategoricalDtype)
 from pandas.core.dtypes.common import (
     _TD_DTYPE, _NS_DTYPE,
@@ -56,7 +57,11 @@ from pandas.core.dtypes.missing import (
     is_null_datelike_scalar)
 import pandas.core.dtypes.concat as _concat
 
-from pandas.core.dtypes.generic import ABCSeries, ABCDatetimeIndex
+from pandas.core.dtypes.generic import (
+    ABCSeries,
+    ABCDatetimeIndex,
+    ABCExtensionArray,
+    ABCIndexClass)
 import pandas.core.common as com
 import pandas.core.algorithms as algos
 
@@ -99,6 +104,7 @@ class Block(PandasObject):
     is_object = False
     is_categorical = False
     is_sparse = False
+    is_extension = False
     _box_to_block_values = True
     _can_hold_na = False
     _can_consolidate = True
@@ -593,7 +599,8 @@ class Block(PandasObject):
                                list(errors_legal_values), errors))
             raise ValueError(invalid_arg)
 
-        if inspect.isclass(dtype) and issubclass(dtype, ExtensionDtype):
+        if (inspect.isclass(dtype) and
+                issubclass(dtype, (PandasExtensionDtype, ExtensionDtype))):
             msg = ("Expected an instance of {}, but got the class instead. "
                    "Try instantiating 'dtype'.".format(dtype.__name__))
             raise TypeError(msg)
@@ -1854,10 +1861,39 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
     ExtensionArrays are limited to 1-D.
     """
+    is_extension = True
+
+    def __init__(self, values, placement, ndim=None):
+        values = self._maybe_coerce_values(values)
+        super(ExtensionBlock, self).__init__(values, placement, ndim)
+
+    def _maybe_coerce_values(self, values):
+        """Unbox to an extension array.
+
+        This will unbox an ExtensionArray stored in an Index or Series.
+        ExtensionArrays pass through. No dtype coercion is done.
+
+        Parameters
+        ----------
+        values : Index, Series, ExtensionArray
+
+        Returns
+        -------
+        ExtensionArray
+        """
+        if isinstance(values, (ABCIndexClass, ABCSeries)):
+            values = values._values
+        return values
+
     @property
     def _holder(self):
         # For extension blocks, the holder is values-dependent.
         return type(self.values)
+
+    @property
+    def _can_hold_na(self):
+        # The default ExtensionArray._can_hold_na is True
+        return self._holder._can_hold_na
 
     @property
     def is_view(self):
@@ -1928,6 +1964,23 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         placement = placement or slice(0, len(values), 1)
         return self.make_block_same_class(values, ndim=self.ndim,
                                           placement=placement)
+
+    def fillna(self, value, limit=None, inplace=False, downcast=None,
+               mgr=None):
+        values = self.values if inplace else self.values.copy()
+        values = values.fillna(value=value, limit=limit)
+        return [self.make_block_same_class(values=values,
+                                           placement=self.mgr_locs,
+                                           ndim=self.ndim)]
+
+    def interpolate(self, method='pad', axis=0, inplace=False, limit=None,
+                    fill_value=None, **kwargs):
+
+        values = self.values if inplace else self.values.copy()
+        return self.make_block_same_class(
+            values=values.fillna(value=fill_value, method=method,
+                                 limit=limit),
+            placement=self.mgr_locs)
 
 
 class NumericBlock(Block):
@@ -2488,27 +2541,6 @@ class CategoricalBlock(ExtensionBlock):
 
         return result
 
-    def fillna(self, value, limit=None, inplace=False, downcast=None,
-               mgr=None):
-        # we may need to upcast our fill to match our dtype
-        if limit is not None:
-            raise NotImplementedError("specifying a limit for 'fillna' has "
-                                      "not been implemented yet")
-
-        values = self.values if inplace else self.values.copy()
-        values = self._try_coerce_result(values.fillna(value=value,
-                                                       limit=limit))
-        return [self.make_block(values=values)]
-
-    def interpolate(self, method='pad', axis=0, inplace=False, limit=None,
-                    fill_value=None, **kwargs):
-
-        values = self.values if inplace else self.values.copy()
-        return self.make_block_same_class(
-            values=values.fillna(fill_value=fill_value, method=method,
-                                 limit=limit),
-            placement=self.mgr_locs)
-
     def shift(self, periods, axis=0, mgr=None):
         return self.make_block_same_class(values=self.values.shift(periods),
                                           placement=self.mgr_locs)
@@ -2566,12 +2598,12 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
     def _maybe_coerce_values(self, values):
         """Input validation for values passed to __init__. Ensure that
-        we have datetime64ns, coercing if nescessary.
+        we have datetime64ns, coercing if necessary.
 
-        Parametetrs
-        -----------
+        Parameters
+        ----------
         values : array-like
-            Must be convertable to datetime64
+            Must be convertible to datetime64
 
         Returns
         -------
@@ -2726,12 +2758,12 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
 
     def _maybe_coerce_values(self, values, dtype=None):
         """Input validation for values passed to __init__. Ensure that
-        we have datetime64TZ, coercing if nescessary.
+        we have datetime64TZ, coercing if necessary.
 
         Parametetrs
         -----------
         values : array-like
-            Must be convertable to datetime64
+            Must be convertible to datetime64
         dtype : string or DatetimeTZDtype, optional
             Does a shallow copy to this tz
 
@@ -2870,6 +2902,35 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         new_values = self.values._shallow_copy(new_values)
         return [self.make_block_same_class(new_values,
                                            placement=self.mgr_locs)]
+
+    def diff(self, n, axis=0, mgr=None):
+        """1st discrete difference
+
+        Parameters
+        ----------
+        n : int, number of periods to diff
+        axis : int, axis to diff upon. default 0
+        mgr : default None
+
+        Return
+        ------
+        A list with a new TimeDeltaBlock.
+
+        Note
+        ----
+        The arguments here are mimicking shift so they are called correctly
+        by apply.
+        """
+        if axis == 0:
+            # Cannot currently calculate diff across multiple blocks since this
+            # function is invoked via apply
+            raise NotImplementedError
+        new_values = (self.values - self.shift(n, axis=axis)[0].values).asi8
+
+        # Reshape the new_values like how algos.diff does for timedelta data
+        new_values = new_values.reshape(1, len(new_values))
+        new_values = new_values.astype('timedelta64[ns]')
+        return [TimeDeltaBlock(new_values, placement=self.mgr_locs.indexer)]
 
     def concat_same_type(self, to_concat, placement=None):
         """
@@ -3451,6 +3512,8 @@ class BlockManager(PandasObject):
         else:
             align_keys = []
 
+        # TODO(EA): may interfere with ExtensionBlock.setitem for blocks
+        # with a .values attribute.
         aligned_args = dict((k, kwargs[k])
                             for k in align_keys
                             if hasattr(kwargs[k], 'values'))
@@ -3695,6 +3758,11 @@ class BlockManager(PandasObject):
         # Warning, consolidation needs to get checked upstairs
         self._consolidate_inplace()
         return any(block.is_datelike for block in self.blocks)
+
+    @property
+    def any_extension_types(self):
+        """Whether any of the blocks in this manager are extension blocks"""
+        return any(block.is_extension for block in self.blocks)
 
     @property
     def is_view(self):
@@ -4101,7 +4169,10 @@ class BlockManager(PandasObject):
         # FIXME: refactor, clearly separate broadcasting & zip-like assignment
         #        can prob also fix the various if tests for sparse/categorical
 
-        value_is_extension_type = is_extension_type(value)
+        # TODO(EA): Remove an is_extension_ when all extension types satisfy
+        # the interface
+        value_is_extension_type = (is_extension_type(value) or
+                                   is_extension_array_dtype(value))
 
         # categorical/spares/datetimetz
         if value_is_extension_type:
@@ -4833,15 +4904,11 @@ def form_blocks(arrays, names, axes):
 
     if len(items_dict['ExtensionBlock']):
 
-        external_blocks = []
-        for i, _, array in items_dict['ExtensionBlock']:
-            if isinstance(array, ABCSeries):
-                array = array.values
-            # Allow our internal arrays to chose their block type.
-            block_type = getattr(array, '_block_type', ExtensionBlock)
-            external_blocks.append(
-                make_block(array, klass=block_type,
-                           fastpath=True, placement=[i]))
+        external_blocks = [
+            make_block(array, klass=ExtensionBlock, placement=[i])
+            for i, _, array in items_dict['ExtensionBlock']
+        ]
+
         blocks.extend(external_blocks)
 
     if len(extra_locs):
@@ -4936,7 +5003,7 @@ def _interleaved_dtype(blocks):
     dtype = find_common_type([b.dtype for b in blocks])
 
     # only numpy compat
-    if isinstance(dtype, ExtensionDtype):
+    if isinstance(dtype, (PandasExtensionDtype, ExtensionDtype)):
         dtype = np.object
 
     return dtype
@@ -5162,7 +5229,7 @@ def _safe_reshape(arr, new_shape):
     """
     if isinstance(arr, ABCSeries):
         arr = arr._values
-    if not isinstance(arr, Categorical):
+    if not isinstance(arr, ABCExtensionArray):
         arr = arr.reshape(new_shape)
     return arr
 
@@ -5324,7 +5391,8 @@ def is_uniform_join_units(join_units):
         # all blocks need to have the same type
         all(type(ju.block) is type(join_units[0].block) for ju in join_units) and  # noqa
         # no blocks that would get missing values (can lead to type upcasts)
-        all(not ju.is_na for ju in join_units) and
+        # unless we're an extension dtype.
+        all(not ju.is_na or ju.block.is_extension for ju in join_units) and
         # no blocks with indexers (as then the dimensions do not fit)
         all(not ju.indexers for ju in join_units) and
         # disregard Panels
@@ -5673,6 +5741,8 @@ class JoinUnit(object):
             if not values._null_fill_value and values.sp_index.ngaps > 0:
                 return False
             values_flat = values.ravel(order='K')
+        elif isinstance(self.block, ExtensionBlock):
+            values_flat = values
         else:
             values_flat = values.ravel(order='K')
         total_len = values_flat.shape[0]
