@@ -519,8 +519,6 @@ class TestIndexOps(Ops):
                                     index=expected_index[9:1:-1],
                                     dtype='int64', name='a')
 
-                if isinstance(o, pd.PeriodIndex):
-                    import pdb; pdb.set_trace()
                 result_s_na = o.value_counts(dropna=False)
                 tm.assert_series_equal(result_s_na, expected_s_na)
                 assert result_s_na.index.name is None

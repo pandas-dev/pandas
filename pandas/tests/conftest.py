@@ -27,6 +27,7 @@ def datapath(request):
             if request.config.getoption("--strict-data-files"):
                 raise ValueError("Failed.")
             else:
-                pytest.skip("Data files not included in pandas distribution.")
+                pytest.skip("{} not included in pandas distribution."
+                            .format(path))
         return path
     return deco

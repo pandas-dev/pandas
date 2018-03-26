@@ -149,29 +149,27 @@ bar2,12,13,14,15
             reader(path)
 
     @pytest.mark.parametrize('reader, module, path', [
-        (pd.read_csv, 'os', os.path.join(HERE, 'data', 'iris.csv')),
-        (pd.read_table, 'os', os.path.join(HERE, 'data', 'iris.csv')),
-        (pd.read_fwf, 'os', os.path.join(HERE, 'data',
-                                         'fixed_width_format.txt')),
-        (pd.read_excel, 'xlrd', os.path.join(HERE, 'data', 'test1.xlsx')),
-        (pd.read_feather, 'feather', os.path.join(HERE, 'data',
-                                                  'feather-0_3_1.feather')),
-        (pd.read_hdf, 'tables', os.path.join(HERE, 'data', 'legacy_hdf',
+        (pd.read_csv, 'os', 'iris.csv'),
+        (pd.read_table, 'os', 'iris.csv'),
+        (pd.read_fwf, 'os', 'fixed_width_format.txt'),
+        (pd.read_excel, 'xlrd', 'test1.xlsx'),
+        (pd.read_feather, 'feather', 'feather-0_3_1.feather'),
+        (pd.read_hdf, 'tables', os.path.join('legacy_hdf',
                                              'datetimetz_object.h5')),
-        (pd.read_stata, 'os', os.path.join(HERE, 'data', 'stata10_115.dta')),
-        (pd.read_sas, 'os', os.path.join(HERE, 'sas', 'data',
+        (pd.read_stata, 'os', 'stata10_115.dta'),
+        # in the function, we go down to tests/io/data
+        # so step back up a level before going into sas
+        (pd.read_sas, 'os', os.path.join('..', 'sas', 'data',
                                          'test1.sas7bdat')),
-        (pd.read_json, 'os', os.path.join(HERE, 'json', 'data',
+        (pd.read_json, 'os', os.path.join('..', 'json', 'data',
                                           'tsframe_v012.json')),
-        (pd.read_msgpack, 'os', os.path.join(HERE, 'msgpack', 'data',
+        (pd.read_msgpack, 'os', os.path.join('..', 'msgpack', 'data',
                                              'frame.mp')),
-        (pd.read_pickle, 'os', os.path.join(HERE, 'data',
-                                            'categorical_0_14_1.pickle')),
+        (pd.read_pickle, 'os', 'categorical_0_14_1.pickle'),
     ])
-    def test_read_fspath_all(self, reader, module, path):
+    def test_read_fspath_all(self, reader, module, path, datapath):
         pytest.importorskip(module)
-        if not os.path.exists(path):
-            pytest.skip("Data files not included in pandas distribution.")
+        path = datapath('io', 'data', path)
 
         mypath = CustomFSPath(path)
         result = reader(mypath)
@@ -236,7 +234,7 @@ bar2,12,13,14,15
 
 @pytest.fixture
 def mmap_file(datapath):
-    return datapath(os.path.join('io', 'data', 'test_mmap.csv'))
+    return datapath('io', 'data', 'test_mmap.csv')
 
 
 class TestMMapWrapper(object):

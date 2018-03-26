@@ -1,5 +1,3 @@
-import os
-
 import pytest
 
 import pytz
@@ -23,57 +21,52 @@ def read_data(path, dedupe=False):
 
 @pytest.fixture
 def trades(datapath):
-    return read_data(datapath(os.path.join('reshape', 'merge', 'data',
-                                           'trades.csv')))
+    return read_data(datapath('reshape', 'merge', 'data', 'trades.csv'))
 
 
 @pytest.fixture
 def trades2(datapath):
-    return read_data(datapath(os.path.join('reshape', 'merge', 'data',
-                                           'trades2.csv')))
+    return read_data(datapath('reshape', 'merge', 'data', 'trades2.csv'))
 
 
 @pytest.fixture
 def quotes(datapath):
-    return read_data(datapath(os.path.join('reshape', 'merge', 'data',
-                                           'quotes.csv')), dedupe=True)
+    return read_data(datapath('reshape', 'merge', 'data', 'quotes.csv'),
+                     dedupe=True)
 
 
 @pytest.fixture
 def quotes2(datapath):
-    return read_data(datapath(os.path.join('reshape', 'merge', 'data',
-                                           'quotes2.csv')), dedupe=True)
+    return read_data(datapath('reshape', 'merge', 'data', 'quotes2.csv'),
+                     dedupe=True)
 
 
 @pytest.fixture
 def asof(datapath):
-    return read_data(datapath(os.path.join('reshape', 'merge', 'data',
-                                           'asof.csv')))
+    return read_data(datapath('reshape', 'merge', 'data', 'asof.csv'))
 
 
 @pytest.fixture
 def asof2(datapath):
-    return read_data(datapath(os.path.join('reshape', 'merge', 'data',
-                                           'asof2.csv')))
+    return read_data(datapath('reshape', 'merge', 'data', 'asof2.csv'))
 
 
 @pytest.fixture
 def tolerance(datapath):
-    return read_data(datapath(os.path.join('reshape', 'merge', 'data',
-                                           'tolerance.csv')))
+    return read_data(datapath('reshape', 'merge', 'data', 'tolerance.csv'))
 
 
 @pytest.fixture
 def allow_exact_matches(datapath):
-    return read_data(datapath(os.path.join('reshape', 'merge', 'data',
-                                           'allow_exact_matches.csv')))
+    return read_data(datapath('reshape', 'merge', 'data',
+                              'allow_exact_matches.csv'))
 
 
 @pytest.fixture
 def allow_exact_matches_and_tolerance(datapath):
-    return read_data(datapath(os.path.join(
+    return read_data(datapath(
         'reshape', 'merge', 'data', 'allow_exact_matches_and_tolerance.csv'
-    )))
+    ))
 
 
 class TestAsOfMerge(object):
