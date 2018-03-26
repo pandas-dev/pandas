@@ -29,7 +29,7 @@ from pandas.core.dtypes.common import (
     _ensure_float64, _ensure_uint64,
     _ensure_int64)
 from pandas.compat.numpy import _np_version_under1p10
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
 from pandas.core import common as com
 from pandas._libs import algos, lib, hashtable as htable
@@ -517,7 +517,7 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
         if (is_datetime64_any_dtype(original) or
                 is_timedelta64_dtype(original) or
                 is_period_dtype(original)):
-            na_value = iNaT
+            na_value = na_value_for_dtype(original.dtype)
         else:
             na_value = None
 
