@@ -945,7 +945,7 @@ substitute the children's class names in this docstring.
        def my_function(self):
            """Apply my function to %(klass)s."""
            ...
-           
+
    class ChildA(Parent):
        @Substitution(klass="ChildA")
        @Appender(Parent.my_function.__doc__)
@@ -957,7 +957,7 @@ substitute the children's class names in this docstring.
        @Appender(Parent.my_function.__doc__)
        def my_function(self):
            ...
-        
+
 The resulting docstrings are
 
 .. code-block:: python
