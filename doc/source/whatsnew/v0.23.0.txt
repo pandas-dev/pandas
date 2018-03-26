@@ -672,10 +672,11 @@ relatively difficult to read:
 
 If Python runs in a terminal, the maximum number of columns is now determined
 automatically so that the printed data frame fits within the current terminal
-width (``pd.options.display.max_columns=0``). If Python runs as a Jupyter
-kernel (such as the Jupyter QtConsole or a Jupyter notebook, as well as in many
-IDEs), this value cannot be inferred automatically and is thus set to `20` as
-in previos versions. In a terminal, this results in a much nicer output:
+width (``pd.options.display.max_columns=0``) (:issue:`17023`). If Python runs
+as a Jupyter kernel (such as the Jupyter QtConsole or a Jupyter notebook, as
+well as in many IDEs), this value cannot be inferred automatically and is thus
+set to `20` as in previous versions. In a terminal, this results in a much
+nicer output:
 
 .. image:: print_df_new.png
 
