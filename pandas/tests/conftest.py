@@ -21,8 +21,8 @@ def datapath(request):
     ValueError
         If the path doesn't exist and the --strict-data-files option is set.
     """
-    def deco(path):
-        path = os.path.join('pandas', 'tests', os.path.join(path))
+    def deco(*args):
+        path = os.path.join('pandas', 'tests', *args)
         if not os.path.exists(path):
             if request.config.getoption("--strict-data-files"):
                 raise ValueError("Failed.")
