@@ -613,7 +613,7 @@ class ClassDoc(NumpyDocString):
         return [name for name, func in inspect.getmembers(self._cls)
                 if (not name.startswith('_') and
                     (func is None or isinstance(func, property) or
-                     inspect.isgetsetdescriptor(func))
+                     inspect.isdatadescriptor(func))
                     and self._is_show_member(name))]
 
     def _is_show_member(self, name):
