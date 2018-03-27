@@ -729,21 +729,6 @@ def ensure_clean(filename=None, return_filelike=False):
                 print("Exception on removing file: {error}".format(error=e))
 
 
-def get_data_path(f=''):
-    """Return the path of a data file, these are relative to the current test
-    directory.
-    """
-    import pytest
-
-    # get our callers file
-    _, filename, _, _, _, _ = inspect.getouterframes(inspect.currentframe())[1]
-    base_dir = os.path.abspath(os.path.dirname(filename))
-    path = os.path.join(base_dir, 'data', f)
-    if not os.path.exists(path):
-        pytest.skip("Data files not included in pandas distribution.")
-
-    return path
-
 # -----------------------------------------------------------------------------
 # Comparators
 
