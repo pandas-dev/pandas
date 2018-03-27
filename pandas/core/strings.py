@@ -976,17 +976,59 @@ def str_get_dummies(arr, sep='|'):
 
 def str_join(arr, sep):
     """
-    Join lists contained as elements in the Series/Index with
-    passed delimiter. Equivalent to :meth:`str.join`.
+    Join lists contained as elements in the Series/Index with passed delimiter.
+
+    If the elements of a Series are lists themselves, join the content of these
+    lists using the delimiter passed to the function.
+    This function is an equivalent to :meth:`str.join`.
 
     Parameters
     ----------
-    sep : string
-        Delimiter
+    sep : str
+        Delimiter to use between list entries.
 
     Returns
     -------
-    joined : Series/Index of objects
+    Series/Index: object
+
+    Notes
+    -----
+    If any of the lists does not contain string objects the result of the join
+    will be `NaN`.
+
+    See Also
+    --------
+    str.join : Standard library version of this method.
+    Series.str.split : Split strings around given separator/delimiter.
+
+    Examples
+    --------
+
+    Example with a list that contains non-string elements.
+
+    >>> s = pd.Series([['lion', 'elephant', 'zebra'],
+    ...                [1.1, 2.2, 3.3],
+    ...                ['cat', np.nan, 'dog'],
+    ...                ['cow', 4.5, 'goat']
+    ...                ['duck', ['swan', 'fish'], 'guppy']])
+    >>> s
+    0        [lion, elephant, zebra]
+    1                [1.1, 2.2, 3.3]
+    2                [cat, nan, dog]
+    3               [cow, 4.5, goat]
+    4    [duck, [swan, fish], guppy]
+    dtype: object
+
+    Join all lists using an '-', the lists containing object(s) of types other
+    than str will become a NaN.
+
+    >>> s.str.join('-')
+    0    lion-elephant-zebra
+    1                    NaN
+    2                    NaN
+    3                    NaN
+    4                    NaN
+    dtype: object
     """
     return _na_map(sep.join, arr)
 
