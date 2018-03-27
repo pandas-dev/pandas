@@ -45,7 +45,8 @@ def _ok_for_gaussian_kde(kind):
 @td.skip_if_no_mpl
 class TestPlotBase(object):
 
-    def setup_method(self, method):
+    @pytest.fixture(autouse=True)
+    def setup_method(self, datapath):
 
         import matplotlib as mpl
         mpl.rcdefaults()
@@ -76,11 +77,7 @@ class TestPlotBase(object):
         self.default_tick_position = 'left' if self.mpl_ge_2_0_0 else 'default'
         # common test data
         from pandas import read_csv
-        base = os.path.join(os.path.dirname(curpath()), os.pardir)
-        path = os.path.join(base, 'tests', 'data', 'iris.csv')
-
-        if not os.path.exists(path):
-            pytest.skip("Data files not included in pandas distribution.")
+        path = datapath('data', 'iris.csv')
 
         self.iris = read_csv(path)
 
