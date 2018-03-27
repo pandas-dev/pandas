@@ -66,3 +66,14 @@ def na_cmp():
 def na_value():
     """The scalar missing value for this type. Default 'None'"""
     return None
+
+
+@pytest.fixture
+def data_for_grouping():
+    """Data for factorization, grouping, and unique tests.
+
+    Expected to be like [B, B, NA, NA, A, A, B, C]
+
+    Where A < B < C and NA is missing
+    """
+    raise NotImplementedError
