@@ -635,21 +635,19 @@ bar"""
         tm.assert_frame_equal(df, expected)
 
     @tm.network
-    def test_url(self):
+    def test_url(self, datapath):
         # HTTP(S)
         url = ('https://raw.github.com/pandas-dev/pandas/master/'
                'pandas/tests/io/parser/data/salaries.csv')
         url_table = self.read_table(url)
-        dirpath = tm.get_data_path()
-        localtable = os.path.join(dirpath, 'salaries.csv')
+        localtable = datapath('io', 'parser', 'data', 'salaries.csv')
         local_table = self.read_table(localtable)
         tm.assert_frame_equal(url_table, local_table)
         # TODO: ftp testing
 
     @pytest.mark.slow
-    def test_file(self):
-        dirpath = tm.get_data_path()
-        localtable = os.path.join(dirpath, 'salaries.csv')
+    def test_file(self, datapath):
+        localtable = datapath('io', 'parser', 'data', 'salaries.csv')
         local_table = self.read_table(localtable)
 
         try:
@@ -739,8 +737,8 @@ A,B,C
 
                     tm.assert_frame_equal(result, expected)
 
-    def test_utf16_example(self):
-        path = tm.get_data_path('utf16_ex.txt')
+    def test_utf16_example(self, datapath):
+        path = datapath('io', 'parser', 'data', 'utf16_ex.txt')
 
         # it works! and is the right length
         result = self.read_table(path, encoding='utf-16')
@@ -751,8 +749,8 @@ A,B,C
             result = self.read_table(buf, encoding='utf-16')
             assert len(result) == 50
 
-    def test_unicode_encoding(self):
-        pth = tm.get_data_path('unicode_series.csv')
+    def test_unicode_encoding(self, datapath):
+        pth = datapath('io', 'parser', 'data', 'unicode_series.csv')
 
         result = self.read_csv(pth, header=None, encoding='latin-1')
         result = result.set_index(0)
@@ -1499,10 +1497,9 @@ j,-inF"""
             result = self.read_csv(path)
             tm.assert_frame_equal(result, expected)
 
-    def test_sub_character(self):
+    def test_sub_character(self, datapath):
         # see gh-16893
-        dirpath = tm.get_data_path()
-        filename = os.path.join(dirpath, "sub_char.csv")
+        filename = datapath('io', 'parser', 'data', 'sub_char.csv')
 
         expected = DataFrame([[1, 2, 3]], columns=["a", "\x1ab", "c"])
         result = self.read_csv(filename)

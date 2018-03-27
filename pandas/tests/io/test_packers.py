@@ -843,7 +843,8 @@ class TestEncoding(TestPackers):
             assert_frame_equal(result, frame)
 
 
-def legacy_packers_versions():
+@pytest.fixture
+def legacy_packers_versions(datapath):
     # yield the packers versions
     path = tm.get_data_path('legacy_msgpack')
     if not os.path.exists(path):
