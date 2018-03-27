@@ -29,7 +29,7 @@ from pandas.core.dtypes.common import (
     _ensure_float64, _ensure_uint64,
     _ensure_int64)
 from pandas.compat.numpy import _np_version_under1p10
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
 from pandas.core import common as com
 from pandas._libs import algos, lib, hashtable as htable
@@ -435,7 +435,8 @@ def isin(comps, values):
     return f(comps, values)
 
 
-def _factorize_array(values, check_nulls, na_sentinel=-1, size_hint=None):
+def _factorize_array(values, na_sentinel=-1, size_hint=None,
+                     na_value=None):
     """Factorize an array-like to labels and uniques.
 
     This doesn't do any coercion of types or unboxing before factorization.
@@ -443,11 +444,14 @@ def _factorize_array(values, check_nulls, na_sentinel=-1, size_hint=None):
     Parameters
     ----------
     values : ndarray
-    check_nulls : bool
-        Whether to check for nulls in the hashtable's 'get_labels' method.
     na_sentinel : int, default -1
     size_hint : int, optional
         Passsed through to the hashtable's 'get_labels' method
+    na_value : object, optional
+        A value in `values` to consider missing. Note: only use this
+        parameter when you know that you don't have any values pandas would
+        consider missing in the array (NaN for float data, iNaT for
+        datetimes, etc.).
 
     Returns
     -------
@@ -457,7 +461,8 @@ def _factorize_array(values, check_nulls, na_sentinel=-1, size_hint=None):
 
     table = hash_klass(size_hint or len(values))
     uniques = vec_klass()
-    labels = table.get_labels(values, uniques, 0, na_sentinel, check_nulls)
+    labels = table.get_labels(values, uniques, 0, na_sentinel,
+                              na_value=na_value)
 
     labels = _ensure_platform_int(labels)
     uniques = uniques.to_array()
@@ -508,10 +513,18 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
         dtype = original.dtype
     else:
         values, dtype, _ = _ensure_data(values)
-        check_nulls = not is_integer_dtype(original)
-        labels, uniques = _factorize_array(values, check_nulls,
+
+        if (is_datetime64_any_dtype(original) or
+                is_timedelta64_dtype(original) or
+                is_period_dtype(original)):
+            na_value = na_value_for_dtype(original.dtype)
+        else:
+            na_value = None
+
+        labels, uniques = _factorize_array(values,
                                            na_sentinel=na_sentinel,
-                                           size_hint=size_hint)
+                                           size_hint=size_hint,
+                                           na_value=na_value)
 
     if sort and len(uniques) > 0:
         from pandas.core.sorting import safe_sort
