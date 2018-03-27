@@ -1438,7 +1438,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        unique values : Series or Categorical
+        unique values : ndarray or Categorical
+            The unique values returned as a NumPy array. In case of categorical
+            data type, returned as a Categorical.
 
         See Also
         --------
