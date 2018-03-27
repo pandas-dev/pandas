@@ -370,6 +370,9 @@ class TestConfig(object):
                 eq(25)
             eq(15)
         eq(0)
+        with self.cf.option_context(options={"a": 15}):
+            eq(15)
+        eq(0)
 
         self.cf.set_option("a", 17)
         eq(17)
