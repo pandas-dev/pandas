@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 
 import pandas as pd
+import pandas.util.testing as tm
 
 from .base import BaseExtensionTests
 
@@ -82,3 +83,23 @@ class BaseMethodsTests(BaseExtensionTests):
         assert len(result) == 1
         assert isinstance(result, type(data))
         assert result[0] == duplicated[0]
+
+    @pytest.mark.parametrize('na_sentinel', [-1, -2])
+    def test_factorize(self, data_for_grouping, na_sentinel):
+        labels, uniques = pd.factorize(data_for_grouping,
+                                       na_sentinel=na_sentinel)
+        expected_labels = np.array([0, 0, na_sentinel,
+                                   na_sentinel, 1, 1, 0, 2],
+                                   dtype='int64')
+        expected_uniques = data_for_grouping.take([0, 4, 7])
+
+        tm.assert_numpy_array_equal(labels, expected_labels)
+        self.assert_extension_array_equal(uniques, expected_uniques)
+
+    @pytest.mark.parametrize('na_sentinel', [-1, -2])
+    def test_factorize_equivalence(self, data_for_grouping, na_sentinel):
+        l1, u1 = pd.factorize(data_for_grouping, na_sentinel=na_sentinel)
+        l2, u2 = data_for_grouping.factorize(na_sentinel=na_sentinel)
+
+        tm.assert_numpy_array_equal(l1, l2)
+        self.assert_extension_array_equal(u1, u2)

@@ -36,6 +36,10 @@ class DecimalArray(ExtensionArray):
     def _constructor_from_sequence(cls, scalars):
         return cls(scalars)
 
+    @classmethod
+    def _from_factorized(cls, values, original):
+        return cls(values)
+
     def __getitem__(self, item):
         if isinstance(item, numbers.Integral):
             return self.values[item]

@@ -46,6 +46,11 @@ def na_value():
     return np.nan
 
 
+@pytest.fixture
+def data_for_grouping():
+    return Categorical(['a', 'a', None, None, 'b', 'b', 'a', 'c'])
+
+
 class TestDtype(base.BaseDtypeTests):
     pass
 

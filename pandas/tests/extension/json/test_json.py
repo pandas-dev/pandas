@@ -48,6 +48,17 @@ def na_cmp():
     return operator.eq
 
 
+@pytest.fixture
+def data_for_grouping():
+    return JSONArray([
+        {'b': 1}, {'b': 1},
+        {}, {},
+        {'a': 0, 'c': 2}, {'a': 0, 'c': 2},
+        {'b': 1},
+        {'c': 2},
+    ])
+
+
 class TestDtype(base.BaseDtypeTests):
     pass
 

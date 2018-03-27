@@ -37,6 +37,10 @@ class JSONArray(ExtensionArray):
     def _constructor_from_sequence(cls, scalars):
         return cls(scalars)
 
+    @classmethod
+    def _from_factorized(cls, values, original):
+        return cls([collections.UserDict(x) for x in values if x != ()])
+
     def __getitem__(self, item):
         if isinstance(item, numbers.Integral):
             return self.data[item]
@@ -107,6 +111,10 @@ class JSONArray(ExtensionArray):
     def _concat_same_type(cls, to_concat):
         data = list(itertools.chain.from_iterable([x.data for x in to_concat]))
         return cls(data)
+
+    def _values_for_factorize(self):
+        frozen = tuple(tuple(x.items()) for x in self)
+        return np.array(frozen, dtype=object), ()
 
     def _values_for_argsort(self):
         # Disable NumPy's shape inference by including an empty tuple...
