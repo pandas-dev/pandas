@@ -1849,7 +1849,6 @@ class TestCustomBusinessDay(Base):
         _check_roundtrip(self.offset * 2)
 
     def test_pickle_compat_0_14_1(self, datapath):
-        # /Users/taugspurger/sandbox/pandas-ip/pandas/pandas/tests/tseries/offsets/test_offsets.py
         hdays = [datetime(2013, 1, 1) for ele in range(4)]
         pth = datapath('tseries', 'offsets', 'data', 'cday-0.14.1.pickle')
         cday0_14_1 = read_pickle(pth)
