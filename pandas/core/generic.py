@@ -1929,8 +1929,7 @@ class NDFrame(PandasObject, SelectionMixin):
         data_columns :  list of columns or True, optional
             List of columns to create as indexed data columns for on-disk
             queries, or True to use all columns. By default only the axes
-            of the object are indexed. See `here
-            <http://pandas.pydata.org/pandas-docs/stable/io.html#query-via-data-columns>`__.
+            of the object are indexed. See :ref:`io.hdf5-query-data-columns`.
             Applicable only to format='table'.
         complevel : {0-9}, optional
             Specifies a compression level for data.
