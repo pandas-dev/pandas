@@ -69,7 +69,7 @@ class SharedItems(object):
 
     def get_excelfile(self, basename, ext):
         """
-        Return test data ExcelFile instance. Test data path is defined by
+        Return test data ExcelFile instance.
 
         Parameters
         ----------
@@ -86,7 +86,7 @@ class SharedItems(object):
 
     def get_exceldf(self, basename, ext, *args, **kwds):
         """
-        Return test data DataFrame. Test data path is defined by
+        Return test data DataFrame.
 
         Parameters
         ----------
