@@ -658,7 +658,7 @@ Notice in the example above that the converted ``Categorical`` has retained ``or
 
 Note that the unintenional conversion of ``ordered`` discussed above did not arise in previous versions due to separate bugs that prevented ``astype`` from doing any type of category to category conversion (:issue:`10696`, :issue:`18593`).  These bugs have been fixed in this release, and motivated changing the default value of ``ordered``.
 
-+.. _whatsnew_0230.api_breaking.pretty_printing:
+.. _whatsnew_0230.api_breaking.pretty_printing:
 
 Better pretty-printing of DataFrames in a terminal
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
