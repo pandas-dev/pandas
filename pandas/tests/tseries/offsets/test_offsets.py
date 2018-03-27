@@ -455,14 +455,15 @@ class TestCommon(Base):
         assert isinstance(result, Timestamp)
         assert result == expected_localize
 
-    def test_pickle_v0_15_2(self):
+    def test_pickle_v0_15_2(self, datapath):
         offsets = {'DateOffset': DateOffset(years=1),
                    'MonthBegin': MonthBegin(1),
                    'Day': Day(1),
                    'YearBegin': YearBegin(1),
                    'Week': Week(1)}
-        pickle_path = os.path.join(tm.get_data_path(),
-                                   'dateoffset_0_15_2.pickle')
+
+        pickle_path = datapath('tseries', 'offsets', 'data',
+                               'dateoffset_0_15_2.pickle')
         # This code was executed once on v0.15.2 to generate the pickle:
         # with open(pickle_path, 'wb') as f: pickle.dump(offsets, f)
         #
@@ -1848,12 +1849,11 @@ class TestCustomBusinessDay(Base):
         _check_roundtrip(self.offset2)
         _check_roundtrip(self.offset * 2)
 
-    def test_pickle_compat_0_14_1(self):
+    def test_pickle_compat_0_14_1(self, datapath):
+        # /Users/taugspurger/sandbox/pandas-ip/pandas/pandas/tests/tseries/offsets/test_offsets.py
         hdays = [datetime(2013, 1, 1) for ele in range(4)]
-
-        pth = tm.get_data_path()
-
-        cday0_14_1 = read_pickle(os.path.join(pth, 'cday-0.14.1.pickle'))
+        pth = datapath('tseries', 'offsets', 'data', 'cday-0.14.1.pickle')
+        cday0_14_1 = read_pickle(pth)
         cday = CDay(holidays=hdays)
         assert cday == cday0_14_1
 

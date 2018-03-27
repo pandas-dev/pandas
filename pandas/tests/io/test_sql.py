@@ -253,9 +253,9 @@ class PandasSQLTest(object):
         else:
             return self.conn.cursor()
 
-    def _load_iris_data(self):
+    def _load_iris_data(self, datapath):
         import io
-        iris_csv_file = os.path.join(tm.get_data_path(), 'iris.csv')
+        iris_csv_file = datapath('io', 'data', 'iris.csv')
 
         self.drop_table('iris')
         self._get_exec().execute(SQL_STRINGS['create_iris'][self.flavor])
