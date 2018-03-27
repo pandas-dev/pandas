@@ -7937,9 +7937,6 @@ class NDFrame(PandasObject, SelectionMixin):
         result.set_axis(ax, axis=axis, inplace=True)
         return result.__finalize__(self)
 
-    @deprecate_kwarg(old_arg_name='infer_dst', new_arg_name='ambiguous',
-                     mapping={True: 'infer',
-                              False: 'raise'})
     def tz_localize(self, tz, axis=0, level=None, copy=True,
                     ambiguous='raise'):
         """
@@ -7963,9 +7960,6 @@ class NDFrame(PandasObject, SelectionMixin):
             - 'NaT' will return NaT where there are ambiguous times
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
-        infer_dst : boolean, default False
-            .. deprecated:: 0.15.0
-               Attempt to infer fall dst-transition hours based on order
 
         Returns
         -------
