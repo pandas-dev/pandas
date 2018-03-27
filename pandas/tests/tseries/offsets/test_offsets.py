@@ -1,4 +1,3 @@
-import os
 from distutils.version import LooseVersion
 from datetime import date, datetime, timedelta
 

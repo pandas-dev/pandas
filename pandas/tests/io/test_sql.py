@@ -22,7 +22,6 @@ from warnings import catch_warnings
 import pytest
 import sqlite3
 import csv
-import os
 
 import warnings
 import numpy as np
