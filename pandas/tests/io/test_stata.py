@@ -39,7 +39,7 @@ def parsed_114(dirpath):
 
 class TestStata(object):
 
-    @pytest.fixture
+    @pytest.fixture(autouse=True)
     def setup_method(self, datapath):
         self.dirpath = datapath("io", "data")
         self.dta1_114 = os.path.join(self.dirpath, 'stata1_114.dta')
