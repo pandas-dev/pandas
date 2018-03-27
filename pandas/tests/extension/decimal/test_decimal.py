@@ -134,7 +134,7 @@ def test_series_constructor_with_same_dtype_ok():
 
 def test_series_constructor_coerce_extension_array_to_dtype_raises():
     arr = DecimalArray([decimal.Decimal('10.0')])
-    xpr = "Cannot specify a dtype 'int64' .* \('decimal'\)."
+    xpr = r"Cannot specify a dtype 'int64' .* \('decimal'\)."
 
     with tm.assert_raises_regex(ValueError, xpr):
         pd.Series(arr, dtype='int64')

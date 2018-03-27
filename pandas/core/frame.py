@@ -1102,7 +1102,8 @@ class DataFrame(NDFrame):
                            for k, v in zip(self.columns, np.atleast_1d(row)))
                     for row in self.values]
         elif orient.lower().startswith('i'):
-            return into_c((k, v.to_dict(into)) for k, v in self.iterrows())
+            return into_c((t[0], dict(zip(self.columns, t[1:])))
+                          for t in self.itertuples())
         else:
             raise ValueError("orient '%s' not understood" % orient)
 
@@ -2153,7 +2154,7 @@ class DataFrame(NDFrame):
                 lines.append(_put_str(col, space) + tmpl % (count, dtype))
 
         def _non_verbose_repr():
-            lines.append(self.columns.summary(name='Columns'))
+            lines.append(self.columns._summary(name='Columns'))
 
         def _sizeof_fmt(num, size_qualifier):
             # returns size in human readable format
@@ -2289,7 +2290,100 @@ class DataFrame(NDFrame):
         return result
 
     def transpose(self, *args, **kwargs):
-        """Transpose index and columns"""
+        """
+        Transpose index and columns.
+
+        Reflect the DataFrame over its main diagonal by writing rows as columns
+        and vice-versa. The property :attr:`.T` is an accessor to the method
+        :meth:`transpose`.
+
+        Parameters
+        ----------
+        copy : bool, default False
+            If True, the underlying data is copied. Otherwise (default), no
+            copy is made if possible.
+        *args, **kwargs
+            Additional keywords have no effect but might be accepted for
+            compatibility with numpy.
+
+        Returns
+        -------
+        DataFrame
+            The transposed DataFrame.
+
+        See Also
+        --------
+        numpy.transpose : Permute the dimensions of a given array.
+
+        Notes
+        -----
+        Transposing a DataFrame with mixed dtypes will result in a homogeneous
+        DataFrame with the `object` dtype. In such a case, a copy of the data
+        is always made.
+
+        Examples
+        --------
+        **Square DataFrame with homogeneous dtype**
+
+        >>> d1 = {'col1': [1, 2], 'col2': [3, 4]}
+        >>> df1 = pd.DataFrame(data=d1)
+        >>> df1
+           col1  col2
+        0     1     3
+        1     2     4
+
+        >>> df1_transposed = df1.T # or df1.transpose()
+        >>> df1_transposed
+              0  1
+        col1  1  2
+        col2  3  4
+
+        When the dtype is homogeneous in the original DataFrame, we get a
+        transposed DataFrame with the same dtype:
+
+        >>> df1.dtypes
+        col1    int64
+        col2    int64
+        dtype: object
+        >>> df1_transposed.dtypes
+        0    int64
+        1    int64
+        dtype: object
+
+        **Non-square DataFrame with mixed dtypes**
+
+        >>> d2 = {'name': ['Alice', 'Bob'],
+        ...       'score': [9.5, 8],
+        ...       'employed': [False, True],
+        ...       'kids': [0, 0]}
+        >>> df2 = pd.DataFrame(data=d2)
+        >>> df2
+            name  score  employed  kids
+        0  Alice    9.5     False     0
+        1    Bob    8.0      True     0
+
+        >>> df2_transposed = df2.T # or df2.transpose()
+        >>> df2_transposed
+                      0     1
+        name      Alice   Bob
+        score       9.5     8
+        employed  False  True
+        kids          0     0
+
+        When the DataFrame has mixed dtypes, we get a transposed DataFrame with
+        the `object` dtype:
+
+        >>> df2.dtypes
+        name         object
+        score       float64
+        employed       bool
+        kids          int64
+        dtype: object
+        >>> df2_transposed.dtypes
+        0    object
+        1    object
+        dtype: object
+        """
         nv.validate_transpose(args, dict())
         return super(DataFrame, self).transpose(1, 0, **kwargs)
 
@@ -4956,10 +5050,13 @@ class DataFrame(NDFrame):
             existing index.
         columns : string or object
             Column to use to make new frame's columns.
-        values : string or object, optional
-            Column to use for populating new frame's values. If not
+        values : string, object or a list of the previous, optional
+            Column(s) to use for populating new frame's values. If not
             specified, all remaining columns will be used and the result will
             have hierarchically indexed columns.
+
+            .. versionchanged :: 0.23.0
+               Also accept list of column names.
 
         Returns
         -------
@@ -4989,15 +5086,16 @@ class DataFrame(NDFrame):
         >>> df = pd.DataFrame({'foo': ['one', 'one', 'one', 'two', 'two',
         ...                            'two'],
         ...                    'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
-        ...                    'baz': [1, 2, 3, 4, 5, 6]})
+        ...                    'baz': [1, 2, 3, 4, 5, 6],
+        ...                    'zoo': ['x', 'y', 'z', 'q', 'w', 't']})
         >>> df
-            foo   bar  baz
-        0   one   A    1
-        1   one   B    2
-        2   one   C    3
-        3   two   A    4
-        4   two   B    5
-        5   two   C    6
+            foo   bar  baz  zoo
+        0   one   A    1    x
+        1   one   B    2    y
+        2   one   C    3    z
+        3   two   A    4    q
+        4   two   B    5    w
+        5   two   C    6    t
 
         >>> df.pivot(index='foo', columns='bar', values='baz')
         bar  A   B   C
@@ -5010,6 +5108,13 @@ class DataFrame(NDFrame):
         foo
         one  1   2   3
         two  4   5   6
+
+        >>> df.pivot(index='foo', columns='bar', values=['baz', 'zoo'])
+              baz       zoo
+        bar   A  B  C   A  B  C
+        foo
+        one   1  2  3   x  y  z
+        two   4  5  6   q  w  t
 
         A ValueError is raised if there are any duplicates.
 
@@ -5145,36 +5250,166 @@ class DataFrame(NDFrame):
 
     def stack(self, level=-1, dropna=True):
         """
-        Pivot a level of the (possibly hierarchical) column labels, returning a
-        DataFrame (or Series in the case of an object with a single level of
-        column labels) having a hierarchical index with a new inner-most level
-        of row labels.
-        The level involved will automatically get sorted.
+        Stack the prescribed level(s) from columns to index.
+
+        Return a reshaped DataFrame or Series having a multi-level
+        index with one or more new inner-most levels compared to the current
+        DataFrame. The new inner-most levels are created by pivoting the
+        columns of the current dataframe:
+
+          - if the columns have a single level, the output is a Series;
+          - if the columns have multiple levels, the new index
+            level(s) is (are) taken from the prescribed level(s) and
+            the output is a DataFrame.
+
+        The new index levels are sorted.
 
         Parameters
         ----------
-        level : int, string, or list of these, default last level
-            Level(s) to stack, can pass level name
-        dropna : boolean, default True
-            Whether to drop rows in the resulting Frame/Series with no valid
-            values
-
-        Examples
-        ----------
-        >>> s
-             a   b
-        one  1.  2.
-        two  3.  4.
-
-        >>> s.stack()
-        one a    1
-            b    2
-        two a    3
-            b    4
+        level : int, str, list, default -1
+            Level(s) to stack from the column axis onto the index
+            axis, defined as one index or label, or a list of indices
+            or labels.
+        dropna : bool, default True
+            Whether to drop rows in the resulting Frame/Series with
+            missing values. Stacking a column level onto the index
+            axis can create combinations of index and column values
+            that are missing from the original dataframe. See Examples
+            section.
 
         Returns
         -------
-        stacked : DataFrame or Series
+        DataFrame or Series
+            Stacked dataframe or series.
+
+        See Also
+        --------
+        DataFrame.unstack : Unstack prescribed level(s) from index axis
+             onto column axis.
+        DataFrame.pivot : Reshape dataframe from long format to wide
+             format.
+        DataFrame.pivot_table : Create a spreadsheet-style pivot table
+             as a DataFrame.
+
+        Notes
+        -----
+        The function is named by analogy with a collection of books
+        being re-organised from being side by side on a horizontal
+        position (the columns of the dataframe) to being stacked
+        vertically on top of of each other (in the index of the
+        dataframe).
+
+        Examples
+        --------
+        **Single level columns**
+
+        >>> df_single_level_cols = pd.DataFrame([[0, 1], [2, 3]],
+        ...                                     index=['cat', 'dog'],
+        ...                                     columns=['weight', 'height'])
+
+        Stacking a dataframe with a single level column axis returns a Series:
+
+        >>> df_single_level_cols
+             weight height
+        cat       0      1
+        dog       2      3
+        >>> df_single_level_cols.stack()
+        cat  weight    0
+             height    1
+        dog  weight    2
+             height    3
+        dtype: int64
+
+        **Multi level columns: simple case**
+
+        >>> multicol1 = pd.MultiIndex.from_tuples([('weight', 'kg'),
+        ...                                        ('weight', 'pounds')])
+        >>> df_multi_level_cols1 = pd.DataFrame([[1, 2], [2, 4]],
+        ...                                     index=['cat', 'dog'],
+        ...                                     columns=multicol1)
+
+        Stacking a dataframe with a multi-level column axis:
+
+        >>> df_multi_level_cols1
+             weight
+                 kg    pounds
+        cat       1        2
+        dog       2        4
+        >>> df_multi_level_cols1.stack()
+                    weight
+        cat kg           1
+            pounds       2
+        dog kg           2
+            pounds       4
+
+        **Missing values**
+
+        >>> multicol2 = pd.MultiIndex.from_tuples([('weight', 'kg'),
+        ...                                        ('height', 'm')])
+        >>> df_multi_level_cols2 = pd.DataFrame([[1.0, 2.0], [3.0, 4.0]],
+        ...                                     index=['cat', 'dog'],
+        ...                                     columns=multicol2)
+
+        It is common to have missing values when stacking a dataframe
+        with multi-level columns, as the stacked dataframe typically
+        has more values than the original dataframe. Missing values
+        are filled with NaNs:
+
+        >>> df_multi_level_cols2
+            weight height
+                kg      m
+        cat    1.0    2.0
+        dog    3.0    4.0
+        >>> df_multi_level_cols2.stack()
+                height  weight
+        cat kg     NaN     1.0
+            m      2.0     NaN
+        dog kg     NaN     3.0
+            m      4.0     NaN
+
+        **Prescribing the level(s) to be stacked**
+
+        The first parameter controls which level or levels are stacked:
+
+        >>> df_multi_level_cols2.stack(0)
+                     kg    m
+        cat height  NaN  2.0
+            weight  1.0  NaN
+        dog height  NaN  4.0
+            weight  3.0  NaN
+        >>> df_multi_level_cols2.stack([0, 1])
+        cat  height  m     2.0
+             weight  kg    1.0
+        dog  height  m     4.0
+             weight  kg    3.0
+        dtype: float64
+
+        **Dropping missing values**
+
+        >>> df_multi_level_cols3 = pd.DataFrame([[None, 1.0], [2.0, 3.0]],
+        ...                                     index=['cat', 'dog'],
+        ...                                     columns=multicol2)
+
+        Note that rows where all values are missing are dropped by
+        default but this behaviour can be controlled via the dropna
+        keyword parameter:
+
+        >>> df_multi_level_cols3
+            weight height
+                kg      m
+        cat    NaN    1.0
+        dog    2.0    3.0
+        >>> df_multi_level_cols3.stack(dropna=False)
+                height  weight
+        cat kg     NaN     NaN
+            m      1.0     NaN
+        dog kg     NaN     2.0
+            m      3.0     NaN
+        >>> df_multi_level_cols3.stack(dropna=True)
+                height  weight
+        cat m      1.0     NaN
+        dog kg     NaN     2.0
+            m      3.0     NaN
         """
         from pandas.core.reshape.reshape import stack, stack_multiple
 
@@ -6485,7 +6720,9 @@ class DataFrame(NDFrame):
                 # column frames with an extension array
                 result = notna(frame).sum(axis=axis)
             else:
-                counts = notna(frame.values).sum(axis=axis)
+                # GH13407
+                series_counts = notna(frame).sum(axis=axis)
+                counts = series_counts.values
                 result = Series(counts, index=frame._get_agg_axis(axis))
 
         return result.astype('int64')
