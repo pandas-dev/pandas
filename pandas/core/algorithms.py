@@ -601,8 +601,8 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
     # should happen here.
 
     values = _ensure_arraylike(values)
-
     original = values
+
     if is_extension_array_dtype(values):
         values = getattr(values, '_values', values)
         labels, uniques = values.factorize(na_sentinel=na_sentinel)
