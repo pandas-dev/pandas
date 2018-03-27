@@ -645,7 +645,6 @@ class DataFrameFormatter(TableFormatter):
                 # and then generate string representation
                 self._chk_truncate()
                 strcols = self._to_str_columns()
-                strcols[0] = ['\x1b[37m' + row + '\x1b[0m' for row in strcols[0]]
                 text = self.adj.adjoin(1, *strcols)
         if not self.index:
             text = text.replace('\n ', '\n').strip()
