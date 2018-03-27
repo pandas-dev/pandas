@@ -25,9 +25,10 @@ def datapath(request):
         path = os.path.join('pandas', 'tests', *args)
         if not os.path.exists(path):
             if request.config.getoption("--strict-data-files"):
-                raise ValueError("Failed.")
+                msg = "Could not find file {} and --strict-data-files is set."
+                raise ValueError(msg.format(path))
             else:
-                pytest.skip("{} not included in pandas distribution."
-                            .format(path))
+                msg = "Could not find {}."
+                pytest.skip(msg.format(path))
         return path
     return deco
