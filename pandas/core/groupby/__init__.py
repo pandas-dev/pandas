@@ -11,6 +11,7 @@ from pandas.core.groupby.groupby import BinGrouper  # noqa: F401
 from pandas.core.groupby.groupby import _GroupBy  # noqa: F401
 from pandas.core.groupby.groupby import GroupBy  # noqa: F401
 from pandas.core.groupby.groupby import SeriesGroupBy  # noqa: F401
+from pandas.core.groupby.groupby import DataFrameGroupBy  # noqa: F401
 from pandas.core.groupby.groupby import _pipe_template  # noqa: F401
 from pandas.core.groupby.groupby import PanelGroupBy  # noqa: F401
 from pandas.core.groupby.groupby import Grouping  # noqa: F401
