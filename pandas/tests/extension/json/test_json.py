@@ -126,3 +126,29 @@ class TestMethods(base.BaseMethodsTests):
 
 class TestCasting(base.BaseCastingTests):
     pass
+
+
+class TestGroupby(base.BaseGroupbyTests):
+    unhashable = pytest.mark.skip(reason="Unhashable")
+    incomparable = pytest.mark.skip(reason="Incomparable")
+
+    @unhashable
+    def test_groupby_extension_transform(self):
+        """
+        This currently fails in Series.name.setter, since the
+        name must be hashable, but the value is a dictionary.
+        I think this is what we want, i.e. `.name` should be the original
+        values, and not the values for factorization.
+        """
+
+    @unhashable
+    def test_groupby_extension_apply(self):
+        """
+        This fails in Index._do_unique_check with
+
+        >   hash(val)
+        E   TypeError: unhashable type: 'UserDict' with
+
+        I suspect that once we support Index[ExtensionArray],
+        we'll be able to dispatch unique.
+        """
