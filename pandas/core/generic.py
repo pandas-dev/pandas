@@ -4726,6 +4726,8 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return counts of unique ftypes in this object.
 
+        .. deprecated:: 0.23.0
+
         This is useful for SparseDataFrame or for DataFrames containing
         sparse arrays.
 
@@ -4756,6 +4758,10 @@ class NDFrame(PandasObject, SelectionMixin):
         object:dense     1
         dtype: int64
         """
+        warnings.warn("get_ftype_counts is deprecated and will "
+                      "be removed in a future version",
+                      FutureWarning, stacklevel=2)
+
         from pandas import Series
         return Series(self._data.get_ftype_counts())
 
