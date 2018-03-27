@@ -447,9 +447,9 @@ class TestDatetimeIndex(object):
         with pytest.raises(ValueError):
             dti.tz = pytz.timezone('US/Pacific')
 
-    @pytest.mark.parametrize('tz',
-        [None, 'America/Los_Angeles',
-         Timestamp('2000', tz='America/Los_Angeles').tz])
+    @pytest.mark.parametrize('tz', [
+        None, 'America/Los_Angeles',
+        Timestamp('2000', tz='America/Los_Angeles').tz])
     def test_constructor_start_end_with_tz(self, tz):
         # GH 18595
         start = Timestamp('2013-01-01 06:00:00', tz='America/Los_Angeles')
