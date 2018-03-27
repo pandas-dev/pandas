@@ -11,6 +11,7 @@ from .common import (is_string_dtype, is_datetimelike,
                      is_datetimelike_v_numeric, is_float_dtype,
                      is_datetime64_dtype, is_datetime64tz_dtype,
                      is_timedelta64_dtype, is_interval_dtype,
+                     is_period_dtype,
                      is_complex_dtype,
                      is_string_like_dtype, is_bool_dtype,
                      is_integer_dtype, is_dtype_equal,
@@ -502,7 +503,7 @@ def na_value_for_dtype(dtype, compat=True):
     dtype = pandas_dtype(dtype)
 
     if (is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype) or
-            is_timedelta64_dtype(dtype)):
+            is_timedelta64_dtype(dtype) or is_period_dtype(dtype)):
         return NaT
     elif is_float_dtype(dtype):
         return np.nan
