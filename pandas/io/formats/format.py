@@ -625,7 +625,7 @@ class DataFrameFormatter(TableFormatter):
                 max_len += size_tr_col  # Need to make space for largest row
                 # plus truncate dot col
                 dif = max_len - self.w
-                adj_dif = dif + 1
+                adj_dif = dif + 1  # see GH PR #17023
                 col_lens = Series([Series(ele).apply(len).max()
                                    for ele in strcols])
                 n_cols = len(col_lens)
@@ -645,6 +645,7 @@ class DataFrameFormatter(TableFormatter):
                 # and then generate string representation
                 self._chk_truncate()
                 strcols = self._to_str_columns()
+                strcols[0] = ['\x1b[37m' + row + '\x1b[0m' for row in strcols[0]]
                 text = self.adj.adjoin(1, *strcols)
         if not self.index:
             text = text.replace('\n ', '\n').strip()
