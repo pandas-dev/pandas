@@ -70,7 +70,7 @@ cdef class Factorizer:
         return self.count
 
     def factorize(self, ndarray[object] values, sort=False, na_sentinel=-1,
-                  check_null=True):
+                  na_value=None):
         """
         Factorize values with nans replaced by na_sentinel
         >>> factorize(np.array([1,2,np.nan], dtype='O'), na_sentinel=20)
@@ -81,7 +81,7 @@ cdef class Factorizer:
             uniques.extend(self.uniques.to_array())
             self.uniques = uniques
         labels = self.table.get_labels(values, self.uniques,
-                                       self.count, na_sentinel, check_null)
+                                       self.count, na_sentinel, na_value)
         mask = (labels == na_sentinel)
         # sort on
         if sort:
@@ -114,7 +114,7 @@ cdef class Int64Factorizer:
         return self.count
 
     def factorize(self, int64_t[:] values, sort=False,
-                  na_sentinel=-1, check_null=True):
+                  na_sentinel=-1, na_value=None):
         """
         Factorize values with nans replaced by na_sentinel
         >>> factorize(np.array([1,2,np.nan], dtype='O'), na_sentinel=20)
@@ -126,7 +126,7 @@ cdef class Int64Factorizer:
             self.uniques = uniques
         labels = self.table.get_labels(values, self.uniques,
                                        self.count, na_sentinel,
-                                       check_null)
+                                       na_value=na_value)
 
         # sort on
         if sort:
