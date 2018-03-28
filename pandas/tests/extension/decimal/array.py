@@ -33,7 +33,7 @@ class DecimalArray(ExtensionArray):
         self.values = values
         # Some aliases for common attribute names to ensure pandas supports
         # these
-        self._values = self._items = self._data = self.data = self.values
+        self._items = self._data = self.data = self.values
 
     @classmethod
     def _constructor_from_sequence(cls, scalars):
@@ -65,7 +65,7 @@ class DecimalArray(ExtensionArray):
         return len(self.values)
 
     def __repr__(self):
-        return repr(self.values)
+        return 'DecimalArray({!r})'.format(self.values)
 
     @property
     def nbytes(self):
