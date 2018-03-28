@@ -625,7 +625,8 @@ class DataFrameFormatter(TableFormatter):
                 max_len += size_tr_col  # Need to make space for largest row
                 # plus truncate dot col
                 dif = max_len - self.w
-                adj_dif = dif
+                # '+ 1' to avoid too wide repr (GH PR #17023)
+                adj_dif = dif + 1
                 col_lens = Series([Series(ele).apply(len).max()
                                    for ele in strcols])
                 n_cols = len(col_lens)
