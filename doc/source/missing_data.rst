@@ -187,6 +187,11 @@ account for missing data. For example:
 Sum/Prod of Empties/Nans
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. warning::
+
+   This behavior is now standard as of v0.22.0 and is consistent with the default in ``numpy``; previously sum/prod of all-NA or empty Series/DataFrames would return NaN.
+   See :ref:`v0.22.0 whatsnew <whatsnew_0220>` for more.
+
 The sum of an empty or all-NA Series or column of a DataFrame is 0.
 
 .. ipython:: python
