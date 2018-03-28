@@ -1102,7 +1102,8 @@ class DataFrame(NDFrame):
                            for k, v in zip(self.columns, np.atleast_1d(row)))
                     for row in self.values]
         elif orient.lower().startswith('i'):
-            return into_c((k, v.to_dict(into)) for k, v in self.iterrows())
+            return into_c((t[0], dict(zip(self.columns, t[1:])))
+                          for t in self.itertuples())
         else:
             raise ValueError("orient '%s' not understood" % orient)
 
@@ -1654,9 +1655,9 @@ class DataFrame(NDFrame):
             A string representing the encoding to use in the output file,
             defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
         compression : string, optional
-            a string representing the compression to use in the output file,
-            allowed values are 'gzip', 'bz2', 'xz',
-            only used when the first argument is a filename
+            A string representing the compression to use in the output file.
+            Allowed values are 'gzip', 'bz2', 'zip', 'xz'. This input is only
+            used when the first argument is a filename.
         line_terminator : string, default ``'\n'``
             The newline character or character sequence to use in the output
             file
@@ -1970,33 +1971,132 @@ class DataFrame(NDFrame):
     def info(self, verbose=None, buf=None, max_cols=None, memory_usage=None,
              null_counts=None):
         """
-        Concise summary of a DataFrame.
+        Print a concise summary of a DataFrame.
+
+        This method prints information about a DataFrame including
+        the index dtype and column dtypes, non-null values and memory usage.
 
         Parameters
         ----------
-        verbose : {None, True, False}, optional
-            Whether to print the full summary.
-            None follows the `display.max_info_columns` setting.
-            True or False overrides the `display.max_info_columns` setting.
+        verbose : bool, optional
+            Whether to print the full summary. By default, the setting in
+            ``pandas.options.display.max_info_columns`` is followed.
         buf : writable buffer, defaults to sys.stdout
-        max_cols : int, default None
-            Determines whether full summary or short summary is printed.
-            None follows the `display.max_info_columns` setting.
-        memory_usage : boolean/string, default None
+            Where to send the output. By default, the output is printed to
+            sys.stdout. Pass a writable buffer if you need to further process
+            the output.
+        max_cols : int, optional
+            When to switch from the verbose to the truncated output. If the
+            DataFrame has more than `max_cols` columns, the truncated output
+            is used. By default, the setting in
+            ``pandas.options.display.max_info_columns`` is used.
+        memory_usage : bool, str, optional
             Specifies whether total memory usage of the DataFrame
-            elements (including index) should be displayed. None follows
-            the `display.memory_usage` setting. True or False overrides
-            the `display.memory_usage` setting. A value of 'deep' is equivalent
-            of True, with deep introspection. Memory usage is shown in
-            human-readable units (base-2 representation).
-        null_counts : boolean, default None
-            Whether to show the non-null counts
+            elements (including the index) should be displayed. By default,
+            this follows the ``pandas.options.display.memory_usage`` setting.
 
-            - If None, then only show if the frame is smaller than
-              max_info_rows and max_info_columns.
-            - If True, always show counts.
-            - If False, never show counts.
+            True always show memory usage. False never shows memory usage.
+            A value of 'deep' is equivalent to "True with deep introspection".
+            Memory usage is shown in human-readable units (base-2
+            representation). Without deep introspection a memory estimation is
+            made based in column dtype and number of rows assuming values
+            consume the same memory amount for corresponding dtypes. With deep
+            memory introspection, a real memory usage calculation is performed
+            at the cost of computational resources.
+        null_counts : bool, optional
+            Whether to show the non-null counts. By default, this is shown
+            only if the frame is smaller than
+            ``pandas.options.display.max_info_rows`` and
+            ``pandas.options.display.max_info_columns``. A value of True always
+            shows the counts, and False never shows the counts.
 
+        Returns
+        -------
+        None
+            This method prints a summary of a DataFrame and returns None.
+
+        See Also
+        --------
+        DataFrame.describe: Generate descriptive statistics of DataFrame
+            columns.
+        DataFrame.memory_usage: Memory usage of DataFrame columns.
+
+        Examples
+        --------
+        >>> int_values = [1, 2, 3, 4, 5]
+        >>> text_values = ['alpha', 'beta', 'gamma', 'delta', 'epsilon']
+        >>> float_values = [0.0, 0.25, 0.5, 0.75, 1.0]
+        >>> df = pd.DataFrame({"int_col": int_values, "text_col": text_values,
+        ...                   "float_col": float_values})
+        >>> df
+           int_col text_col  float_col
+        0        1    alpha       0.00
+        1        2     beta       0.25
+        2        3    gamma       0.50
+        3        4    delta       0.75
+        4        5  epsilon       1.00
+
+        Prints information of all columns:
+
+        >>> df.info(verbose=True)
+        <class 'pandas.core.frame.DataFrame'>
+        RangeIndex: 5 entries, 0 to 4
+        Data columns (total 3 columns):
+        int_col      5 non-null int64
+        text_col     5 non-null object
+        float_col    5 non-null float64
+        dtypes: float64(1), int64(1), object(1)
+        memory usage: 200.0+ bytes
+
+        Prints a summary of columns count and its dtypes but not per column
+        information:
+
+        >>> df.info(verbose=False)
+        <class 'pandas.core.frame.DataFrame'>
+        RangeIndex: 5 entries, 0 to 4
+        Columns: 3 entries, int_col to float_col
+        dtypes: float64(1), int64(1), object(1)
+        memory usage: 200.0+ bytes
+
+        Pipe output of DataFrame.info to buffer instead of sys.stdout, get
+        buffer content and writes to a text file:
+
+        >>> import io
+        >>> buffer = io.StringIO()
+        >>> df.info(buf=buffer)
+        >>> s = buffer.getvalue()
+        >>> with open("df_info.txt", "w", encoding="utf-8") as f:
+        ...     f.write(s)
+        260
+
+        The `memory_usage` parameter allows deep introspection mode, specially
+        useful for big DataFrames and fine-tune memory optimization:
+
+        >>> random_strings_array = np.random.choice(['a', 'b', 'c'], 10 ** 6)
+        >>> df = pd.DataFrame({
+        ...     'column_1': np.random.choice(['a', 'b', 'c'], 10 ** 6),
+        ...     'column_2': np.random.choice(['a', 'b', 'c'], 10 ** 6),
+        ...     'column_3': np.random.choice(['a', 'b', 'c'], 10 ** 6)
+        ... })
+        >>> df.info()
+        <class 'pandas.core.frame.DataFrame'>
+        RangeIndex: 1000000 entries, 0 to 999999
+        Data columns (total 3 columns):
+        column_1    1000000 non-null object
+        column_2    1000000 non-null object
+        column_3    1000000 non-null object
+        dtypes: object(3)
+        memory usage: 22.9+ MB
+
+        >>> df.info(memory_usage='deep')
+        <class 'pandas.core.frame.DataFrame'>
+        RangeIndex: 1000000 entries, 0 to 999999
+        Data columns (total 3 columns):
+        column_1    1000000 non-null object
+        column_2    1000000 non-null object
+        column_3    1000000 non-null object
+        dtypes: object(3)
+        memory usage: 188.8 MB
         """
 
         if buf is None:  # pragma: no cover
@@ -2054,7 +2154,7 @@ class DataFrame(NDFrame):
                 lines.append(_put_str(col, space) + tmpl % (count, dtype))
 
         def _non_verbose_repr():
-            lines.append(self.columns.summary(name='Columns'))
+            lines.append(self.columns._summary(name='Columns'))
 
         def _sizeof_fmt(num, size_qualifier):
             # returns size in human readable format
@@ -2190,7 +2290,100 @@ class DataFrame(NDFrame):
         return result
 
     def transpose(self, *args, **kwargs):
-        """Transpose index and columns"""
+        """
+        Transpose index and columns.
+
+        Reflect the DataFrame over its main diagonal by writing rows as columns
+        and vice-versa. The property :attr:`.T` is an accessor to the method
+        :meth:`transpose`.
+
+        Parameters
+        ----------
+        copy : bool, default False
+            If True, the underlying data is copied. Otherwise (default), no
+            copy is made if possible.
+        *args, **kwargs
+            Additional keywords have no effect but might be accepted for
+            compatibility with numpy.
+
+        Returns
+        -------
+        DataFrame
+            The transposed DataFrame.
+
+        See Also
+        --------
+        numpy.transpose : Permute the dimensions of a given array.
+
+        Notes
+        -----
+        Transposing a DataFrame with mixed dtypes will result in a homogeneous
+        DataFrame with the `object` dtype. In such a case, a copy of the data
+        is always made.
+
+        Examples
+        --------
+        **Square DataFrame with homogeneous dtype**
+
+        >>> d1 = {'col1': [1, 2], 'col2': [3, 4]}
+        >>> df1 = pd.DataFrame(data=d1)
+        >>> df1
+           col1  col2
+        0     1     3
+        1     2     4
+
+        >>> df1_transposed = df1.T # or df1.transpose()
+        >>> df1_transposed
+              0  1
+        col1  1  2
+        col2  3  4
+
+        When the dtype is homogeneous in the original DataFrame, we get a
+        transposed DataFrame with the same dtype:
+
+        >>> df1.dtypes
+        col1    int64
+        col2    int64
+        dtype: object
+        >>> df1_transposed.dtypes
+        0    int64
+        1    int64
+        dtype: object
+
+        **Non-square DataFrame with mixed dtypes**
+
+        >>> d2 = {'name': ['Alice', 'Bob'],
+        ...       'score': [9.5, 8],
+        ...       'employed': [False, True],
+        ...       'kids': [0, 0]}
+        >>> df2 = pd.DataFrame(data=d2)
+        >>> df2
+            name  score  employed  kids
+        0  Alice    9.5     False     0
+        1    Bob    8.0      True     0
+
+        >>> df2_transposed = df2.T # or df2.transpose()
+        >>> df2_transposed
+                      0     1
+        name      Alice   Bob
+        score       9.5     8
+        employed  False  True
+        kids          0     0
+
+        When the DataFrame has mixed dtypes, we get a transposed DataFrame with
+        the `object` dtype:
+
+        >>> df2.dtypes
+        name         object
+        score       float64
+        employed       bool
+        kids          int64
+        dtype: object
+        >>> df2_transposed.dtypes
+        0    object
+        1    object
+        dtype: object
+        """
         nv.validate_transpose(args, dict())
         return super(DataFrame, self).transpose(1, 0, **kwargs)
 
@@ -3885,71 +4078,101 @@ class DataFrame(NDFrame):
     def dropna(self, axis=0, how='any', thresh=None, subset=None,
                inplace=False):
         """
-        Return object with labels on given axis omitted where alternately any
-        or all of the data are missing
+        Remove missing values.
+
+        See the :ref:`User Guide <missing_data>` for more on which values are
+        considered missing, and how to work with missing data.
 
         Parameters
         ----------
         axis : {0 or 'index', 1 or 'columns'}, or tuple/list thereof
-            Pass tuple or list to drop on multiple axes
-        how : {'any', 'all'}
-            * any : if any NA values are present, drop that label
-            * all : if all values are NA, drop that label
-        thresh : int, default None
-            int value : require that many non-NA values
-        subset : array-like
+            Determine if rows or columns which contain missing values are
+            removed.
+
+            * 0, or 'index' : Drop rows which contain missing values.
+            * 1, or 'columns' : Drop columns which contain missing value.
+
+            Pass tuple or list to drop on multiple axes.
+        how : {'any', 'all'}, default 'any'
+            Determine if row or column is removed from DataFrame, when we have
+            at least one NA or all NA.
+
+            * 'any' : If any NA values are present, drop that row or column.
+            * 'all' : If all values are NA, drop that row or column.
+        thresh : int, optional
+            Require that many non-NA values.
+        subset : array-like, optional
             Labels along other axis to consider, e.g. if you are dropping rows
-            these would be a list of columns to include
-        inplace : boolean, default False
+            these would be a list of columns to include.
+        inplace : bool, default False
             If True, do operation inplace and return None.
 
         Returns
         -------
-        dropped : DataFrame
+        DataFrame
+            DataFrame with NA entries dropped from it.
+
+        See Also
+        --------
+        DataFrame.isna: Indicate missing values.
+        DataFrame.notna : Indicate existing (non-missing) values.
+        DataFrame.fillna : Replace missing values.
+        Series.dropna : Drop missing values.
+        Index.dropna : Drop missing indices.
 
         Examples
         --------
-        >>> df = pd.DataFrame([[np.nan, 2, np.nan, 0], [3, 4, np.nan, 1],
-        ...                    [np.nan, np.nan, np.nan, 5]],
-        ...                   columns=list('ABCD'))
+        >>> df = pd.DataFrame({"name": ['Alfred', 'Batman', 'Catwoman'],
+        ...                    "toy": [np.nan, 'Batmobile', 'Bullwhip'],
+        ...                    "born": [pd.NaT, pd.Timestamp("1940-04-25"),
+        ...                             pd.NaT]})
         >>> df
-             A    B   C  D
-        0  NaN  2.0 NaN  0
-        1  3.0  4.0 NaN  1
-        2  NaN  NaN NaN  5
+               name        toy       born
+        0    Alfred        NaN        NaT
+        1    Batman  Batmobile 1940-04-25
+        2  Catwoman   Bullwhip        NaT
 
-        Drop the columns where all elements are nan:
+        Drop the rows where at least one element is missing.
 
-        >>> df.dropna(axis=1, how='all')
-             A    B  D
-        0  NaN  2.0  0
-        1  3.0  4.0  1
-        2  NaN  NaN  5
+        >>> df.dropna()
+             name        toy       born
+        1  Batman  Batmobile 1940-04-25
 
-        Drop the columns where any of the elements is nan
+        Drop the columns where at least one element is missing.
 
-        >>> df.dropna(axis=1, how='any')
-           D
-        0  0
-        1  1
-        2  5
+        >>> df.dropna(axis='columns')
+               name
+        0    Alfred
+        1    Batman
+        2  Catwoman
 
-        Drop the rows where all of the elements are nan
-        (there is no row to drop, so df stays the same):
+        Drop the rows where all elements are missing.
 
-        >>> df.dropna(axis=0, how='all')
-             A    B   C  D
-        0  NaN  2.0 NaN  0
-        1  3.0  4.0 NaN  1
-        2  NaN  NaN NaN  5
+        >>> df.dropna(how='all')
+               name        toy       born
+        0    Alfred        NaN        NaT
+        1    Batman  Batmobile 1940-04-25
+        2  Catwoman   Bullwhip        NaT
 
-        Keep only the rows with at least 2 non-na values:
+        Keep only the rows with at least 2 non-NA values.
 
         >>> df.dropna(thresh=2)
-             A    B   C  D
-        0  NaN  2.0 NaN  0
-        1  3.0  4.0 NaN  1
+               name        toy       born
+        1    Batman  Batmobile 1940-04-25
+        2  Catwoman   Bullwhip        NaT
 
+        Define in which columns to look for missing values.
+
+        >>> df.dropna(subset=['name', 'born'])
+               name        toy       born
+        1    Batman  Batmobile 1940-04-25
+
+        Keep the DataFrame with valid entries in the same variable.
+
+        >>> df.dropna(inplace=True)
+        >>> df
+             name        toy       born
+        1  Batman  Batmobile 1940-04-25
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if isinstance(axis, (tuple, list)):
@@ -4219,34 +4442,93 @@ class DataFrame(NDFrame):
                                inplace=inplace, sort_remaining=sort_remaining)
 
     def nlargest(self, n, columns, keep='first'):
-        """Get the rows of a DataFrame sorted by the `n` largest
-        values of `columns`.
+        """
+        Return the first `n` rows ordered by `columns` in descending order.
+
+        Return the first `n` rows with the largest values in `columns`, in
+        descending order. The columns that are not specified are returned as
+        well, but not used for ordering.
+
+        This method is equivalent to
+        ``df.sort_values(columns, ascending=False).head(n)``, but more
+        performant.
 
         Parameters
         ----------
         n : int
-            Number of items to retrieve
-        columns : list or str
-            Column name or names to order by
+            Number of rows to return.
+        columns : label or list of labels
+            Column label(s) to order by.
         keep : {'first', 'last'}, default 'first'
             Where there are duplicate values:
-            - ``first`` : take the first occurrence.
-            - ``last`` : take the last occurrence.
+
+            - `first` : prioritize the first occurrence(s)
+            - `last` : prioritize the last occurrence(s)
 
         Returns
         -------
         DataFrame
+            The first `n` rows ordered by the given columns in descending
+            order.
+
+        See Also
+        --------
+        DataFrame.nsmallest : Return the first `n` rows ordered by `columns` in
+            ascending order.
+        DataFrame.sort_values : Sort DataFrame by the values
+        DataFrame.head : Return the first `n` rows without re-ordering.
+
+        Notes
+        -----
+        This function cannot be used with all column types. For example, when
+        specifying columns with `object` or `category` dtypes, ``TypeError`` is
+        raised.
 
         Examples
         --------
-        >>> df = pd.DataFrame({'a': [1, 10, 8, 11, -1],
+        >>> df = pd.DataFrame({'a': [1, 10, 8, 10, -1],
         ...                    'b': list('abdce'),
         ...                    'c': [1.0, 2.0, np.nan, 3.0, 4.0]})
+        >>> df
+            a  b    c
+        0   1  a  1.0
+        1  10  b  2.0
+        2   8  d  NaN
+        3  10  c  3.0
+        4  -1  e  4.0
+
+        In the following example, we will use ``nlargest`` to select the three
+        rows having the largest values in column "a".
+
         >>> df.nlargest(3, 'a')
-            a  b   c
-        3  11  c   3
-        1  10  b   2
-        2   8  d NaN
+            a  b    c
+        1  10  b  2.0
+        3  10  c  3.0
+        2   8  d  NaN
+
+        When using ``keep='last'``, ties are resolved in reverse order:
+
+        >>> df.nlargest(3, 'a', keep='last')
+            a  b    c
+        3  10  c  3.0
+        1  10  b  2.0
+        2   8  d  NaN
+
+        To order by the largest values in column "a" and then "c", we can
+        specify multiple columns like in the next example.
+
+        >>> df.nlargest(3, ['a', 'c'])
+            a  b    c
+        3  10  c  3.0
+        1  10  b  2.0
+        2   8  d  NaN
+
+        Attempting to use ``nlargest`` on non-numeric dtypes will raise a
+        ``TypeError``:
+
+        >>> df.nlargest(3, 'b')
+        Traceback (most recent call last):
+        TypeError: Column 'b' has dtype object, cannot use method 'nlargest'
         """
         return algorithms.SelectNFrame(self,
                                        n=n,
@@ -4768,10 +5050,13 @@ class DataFrame(NDFrame):
             existing index.
         columns : string or object
             Column to use to make new frame's columns.
-        values : string or object, optional
-            Column to use for populating new frame's values. If not
+        values : string, object or a list of the previous, optional
+            Column(s) to use for populating new frame's values. If not
             specified, all remaining columns will be used and the result will
             have hierarchically indexed columns.
+
+            .. versionchanged :: 0.23.0
+               Also accept list of column names.
 
         Returns
         -------
@@ -4801,15 +5086,16 @@ class DataFrame(NDFrame):
         >>> df = pd.DataFrame({'foo': ['one', 'one', 'one', 'two', 'two',
         ...                            'two'],
         ...                    'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
-        ...                    'baz': [1, 2, 3, 4, 5, 6]})
+        ...                    'baz': [1, 2, 3, 4, 5, 6],
+        ...                    'zoo': ['x', 'y', 'z', 'q', 'w', 't']})
         >>> df
-            foo   bar  baz
-        0   one   A    1
-        1   one   B    2
-        2   one   C    3
-        3   two   A    4
-        4   two   B    5
-        5   two   C    6
+            foo   bar  baz  zoo
+        0   one   A    1    x
+        1   one   B    2    y
+        2   one   C    3    z
+        3   two   A    4    q
+        4   two   B    5    w
+        5   two   C    6    t
 
         >>> df.pivot(index='foo', columns='bar', values='baz')
         bar  A   B   C
@@ -4822,6 +5108,13 @@ class DataFrame(NDFrame):
         foo
         one  1   2   3
         two  4   5   6
+
+        >>> df.pivot(index='foo', columns='bar', values=['baz', 'zoo'])
+              baz       zoo
+        bar   A  B  C   A  B  C
+        foo
+        one   1  2  3   x  y  z
+        two   4  5  6   q  w  t
 
         A ValueError is raised if there are any duplicates.
 
@@ -4957,36 +5250,166 @@ class DataFrame(NDFrame):
 
     def stack(self, level=-1, dropna=True):
         """
-        Pivot a level of the (possibly hierarchical) column labels, returning a
-        DataFrame (or Series in the case of an object with a single level of
-        column labels) having a hierarchical index with a new inner-most level
-        of row labels.
-        The level involved will automatically get sorted.
+        Stack the prescribed level(s) from columns to index.
+
+        Return a reshaped DataFrame or Series having a multi-level
+        index with one or more new inner-most levels compared to the current
+        DataFrame. The new inner-most levels are created by pivoting the
+        columns of the current dataframe:
+
+          - if the columns have a single level, the output is a Series;
+          - if the columns have multiple levels, the new index
+            level(s) is (are) taken from the prescribed level(s) and
+            the output is a DataFrame.
+
+        The new index levels are sorted.
 
         Parameters
         ----------
-        level : int, string, or list of these, default last level
-            Level(s) to stack, can pass level name
-        dropna : boolean, default True
-            Whether to drop rows in the resulting Frame/Series with no valid
-            values
-
-        Examples
-        ----------
-        >>> s
-             a   b
-        one  1.  2.
-        two  3.  4.
-
-        >>> s.stack()
-        one a    1
-            b    2
-        two a    3
-            b    4
+        level : int, str, list, default -1
+            Level(s) to stack from the column axis onto the index
+            axis, defined as one index or label, or a list of indices
+            or labels.
+        dropna : bool, default True
+            Whether to drop rows in the resulting Frame/Series with
+            missing values. Stacking a column level onto the index
+            axis can create combinations of index and column values
+            that are missing from the original dataframe. See Examples
+            section.
 
         Returns
         -------
-        stacked : DataFrame or Series
+        DataFrame or Series
+            Stacked dataframe or series.
+
+        See Also
+        --------
+        DataFrame.unstack : Unstack prescribed level(s) from index axis
+             onto column axis.
+        DataFrame.pivot : Reshape dataframe from long format to wide
+             format.
+        DataFrame.pivot_table : Create a spreadsheet-style pivot table
+             as a DataFrame.
+
+        Notes
+        -----
+        The function is named by analogy with a collection of books
+        being re-organised from being side by side on a horizontal
+        position (the columns of the dataframe) to being stacked
+        vertically on top of of each other (in the index of the
+        dataframe).
+
+        Examples
+        --------
+        **Single level columns**
+
+        >>> df_single_level_cols = pd.DataFrame([[0, 1], [2, 3]],
+        ...                                     index=['cat', 'dog'],
+        ...                                     columns=['weight', 'height'])
+
+        Stacking a dataframe with a single level column axis returns a Series:
+
+        >>> df_single_level_cols
+             weight height
+        cat       0      1
+        dog       2      3
+        >>> df_single_level_cols.stack()
+        cat  weight    0
+             height    1
+        dog  weight    2
+             height    3
+        dtype: int64
+
+        **Multi level columns: simple case**
+
+        >>> multicol1 = pd.MultiIndex.from_tuples([('weight', 'kg'),
+        ...                                        ('weight', 'pounds')])
+        >>> df_multi_level_cols1 = pd.DataFrame([[1, 2], [2, 4]],
+        ...                                     index=['cat', 'dog'],
+        ...                                     columns=multicol1)
+
+        Stacking a dataframe with a multi-level column axis:
+
+        >>> df_multi_level_cols1
+             weight
+                 kg    pounds
+        cat       1        2
+        dog       2        4
+        >>> df_multi_level_cols1.stack()
+                    weight
+        cat kg           1
+            pounds       2
+        dog kg           2
+            pounds       4
+
+        **Missing values**
+
+        >>> multicol2 = pd.MultiIndex.from_tuples([('weight', 'kg'),
+        ...                                        ('height', 'm')])
+        >>> df_multi_level_cols2 = pd.DataFrame([[1.0, 2.0], [3.0, 4.0]],
+        ...                                     index=['cat', 'dog'],
+        ...                                     columns=multicol2)
+
+        It is common to have missing values when stacking a dataframe
+        with multi-level columns, as the stacked dataframe typically
+        has more values than the original dataframe. Missing values
+        are filled with NaNs:
+
+        >>> df_multi_level_cols2
+            weight height
+                kg      m
+        cat    1.0    2.0
+        dog    3.0    4.0
+        >>> df_multi_level_cols2.stack()
+                height  weight
+        cat kg     NaN     1.0
+            m      2.0     NaN
+        dog kg     NaN     3.0
+            m      4.0     NaN
+
+        **Prescribing the level(s) to be stacked**
+
+        The first parameter controls which level or levels are stacked:
+
+        >>> df_multi_level_cols2.stack(0)
+                     kg    m
+        cat height  NaN  2.0
+            weight  1.0  NaN
+        dog height  NaN  4.0
+            weight  3.0  NaN
+        >>> df_multi_level_cols2.stack([0, 1])
+        cat  height  m     2.0
+             weight  kg    1.0
+        dog  height  m     4.0
+             weight  kg    3.0
+        dtype: float64
+
+        **Dropping missing values**
+
+        >>> df_multi_level_cols3 = pd.DataFrame([[None, 1.0], [2.0, 3.0]],
+        ...                                     index=['cat', 'dog'],
+        ...                                     columns=multicol2)
+
+        Note that rows where all values are missing are dropped by
+        default but this behaviour can be controlled via the dropna
+        keyword parameter:
+
+        >>> df_multi_level_cols3
+            weight height
+                kg      m
+        cat    NaN    1.0
+        dog    2.0    3.0
+        >>> df_multi_level_cols3.stack(dropna=False)
+                height  weight
+        cat kg     NaN     NaN
+            m      1.0     NaN
+        dog kg     NaN     2.0
+            m      3.0     NaN
+        >>> df_multi_level_cols3.stack(dropna=True)
+                height  weight
+        cat m      1.0     NaN
+        dog kg     NaN     2.0
+            m      3.0     NaN
         """
         from pandas.core.reshape.reshape import stack, stack_multiple
 
@@ -5277,8 +5700,6 @@ class DataFrame(NDFrame):
         return self[key]
 
     _agg_doc = dedent("""
-    Notes
-    -----
     The aggregation operations are always performed over an axis, either the
     index (default) or the column axis. This behavior is different from
     `numpy` aggregation functions (`mean`, `median`, `prod`, `sum`, `std`,
@@ -5533,39 +5954,52 @@ class DataFrame(NDFrame):
 
     def applymap(self, func):
         """
-        Apply a function to a DataFrame that is intended to operate
-        elementwise, i.e. like doing map(func, series) for each series in the
-        DataFrame
+        Apply a function to a Dataframe elementwise.
+
+        This method applies a function that accepts and returns a scalar
+        to every element of a DataFrame.
 
         Parameters
         ----------
-        func : function
-            Python function, returns a single value from a single value
-
-        Examples
-        --------
-
-        >>> df = pd.DataFrame(np.random.randn(3, 3))
-        >>> df
-            0         1          2
-        0  -0.029638  1.081563   1.280300
-        1   0.647747  0.831136  -1.549481
-        2   0.513416 -0.884417   0.195343
-        >>> df = df.applymap(lambda x: '%.2f' % x)
-        >>> df
-            0         1          2
-        0  -0.03      1.08       1.28
-        1   0.65      0.83      -1.55
-        2   0.51     -0.88       0.20
+        func : callable
+            Python function, returns a single value from a single value.
 
         Returns
         -------
-        applied : DataFrame
+        DataFrame
+            Transformed DataFrame.
 
         See also
         --------
-        DataFrame.apply : For operations on rows/columns
+        DataFrame.apply : Apply a function along input axis of DataFrame
 
+        Examples
+        --------
+        >>> df = pd.DataFrame([[1, 2.12], [3.356, 4.567]])
+        >>> df
+               0      1
+        0  1.000  2.120
+        1  3.356  4.567
+
+        >>> df.applymap(lambda x: len(str(x)))
+           0  1
+        0  3  4
+        1  5  5
+
+        Note that a vectorized version of `func` often exists, which will
+        be much faster. You could square each number elementwise.
+
+        >>> df.applymap(lambda x: x**2)
+                   0          1
+        0   1.000000   4.494400
+        1  11.262736  20.857489
+
+        But it's better to avoid applymap in that case.
+
+        >>> df ** 2
+                   0          1
+        0   1.000000   4.494400
+        1  11.262736  20.857489
         """
 
         # if we have a dtype == 'M8[ns]', provide boxed values
@@ -6286,7 +6720,9 @@ class DataFrame(NDFrame):
                 # column frames with an extension array
                 result = notna(frame).sum(axis=axis)
             else:
-                counts = notna(frame.values).sum(axis=axis)
+                # GH13407
+                series_counts = notna(frame).sum(axis=axis)
+                counts = series_counts.values
                 result = Series(counts, index=frame._get_agg_axis(axis))
 
         return result.astype('int64')
@@ -6788,7 +7224,10 @@ class DataFrame(NDFrame):
 
 
 DataFrame._setup_axes(['index', 'columns'], info_axis=1, stat_axis=0,
-                      axes_are_reversed=True, aliases={'rows': 0})
+                      axes_are_reversed=True, aliases={'rows': 0},
+                      docs={
+                          'index': 'The index (row labels) of the DataFrame.',
+                          'columns': 'The column labels of the DataFrame.'})
 DataFrame._add_numeric_operations()
 DataFrame._add_series_or_dataframe_operations()
 

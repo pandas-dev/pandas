@@ -80,6 +80,8 @@ def nested_to_record(ds, prefix="", sep=".", level=0):
                 if level != 0:  # so we skip copying for top level, common case
                     v = new_d.pop(k)
                     new_d[newkey] = v
+                if v is None:  # pop the key if the value is None
+                    new_d.pop(k)
                 continue
             else:
                 v = new_d.pop(k)
@@ -189,7 +191,8 @@ def json_normalize(data, record_path=None, meta=None,
         data = [data]
 
     if record_path is None:
-        if any(isinstance(x, dict) for x in compat.itervalues(data[0])):
+        if any([[isinstance(x, dict)
+                for x in compat.itervalues(y)] for y in data]):
             # naive normalization, this is idempotent for flat records
             # and potentially will inflate the data considerably for
             # deeply nested structures:

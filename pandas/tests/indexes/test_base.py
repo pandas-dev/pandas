@@ -20,7 +20,7 @@ import numpy as np
 from pandas import (period_range, date_range, Series,
                     DataFrame, Float64Index, Int64Index, UInt64Index,
                     CategoricalIndex, DatetimeIndex, TimedeltaIndex,
-                    PeriodIndex, isna)
+                    PeriodIndex, RangeIndex, isna)
 from pandas.core.index import _get_combined_index, _ensure_index_from_sequences
 from pandas.util.testing import assert_almost_equal
 from pandas.compat.numpy import np_datetime64_compat
@@ -44,7 +44,7 @@ class TestIndex(Base):
                             tdIndex=tm.makeTimedeltaIndex(100),
                             intIndex=tm.makeIntIndex(100),
                             uintIndex=tm.makeUIntIndex(100),
-                            rangeIndex=tm.makeIntIndex(100),
+                            rangeIndex=tm.makeRangeIndex(100),
                             floatIndex=tm.makeFloatIndex(100),
                             boolIndex=Index([True, False]),
                             catIndex=tm.makeCategoricalIndex(100),
@@ -56,6 +56,15 @@ class TestIndex(Base):
 
     def create_index(self):
         return Index(list('abcde'))
+
+    def generate_index_types(self, skip_index_keys=[]):
+        """
+        Return a generator of the various index types, leaving
+        out the ones with a key in skip_index_keys
+        """
+        for key, idx in self.indices.items():
+            if key not in skip_index_keys:
+                yield key, idx
 
     def test_new_axis(self):
         new_index = self.dateIndex[None, :]
@@ -405,6 +414,27 @@ class TestIndex(Base):
             for res in [pd.TimedeltaIndex(values, dtype=dtype),
                         pd.TimedeltaIndex(list(values), dtype=dtype)]:
                 tm.assert_index_equal(res, idx)
+
+    def test_constructor_empty(self):
+        skip_index_keys = ["repeats", "periodIndex", "rangeIndex",
+                           "tuples"]
+        for key, idx in self.generate_index_types(skip_index_keys):
+            empty = idx.__class__([])
+            assert isinstance(empty, idx.__class__)
+            assert not len(empty)
+
+        empty = PeriodIndex([], freq='B')
+        assert isinstance(empty, PeriodIndex)
+        assert not len(empty)
+
+        empty = RangeIndex(step=1)
+        assert isinstance(empty, pd.RangeIndex)
+        assert not len(empty)
+
+        empty = MultiIndex(levels=[[1, 2], ['blue', 'red']],
+                           labels=[[], []])
+        assert isinstance(empty, MultiIndex)
+        assert not len(empty)
 
     def test_view_with_args(self):
 
@@ -1033,6 +1063,27 @@ class TestIndex(Base):
         result = idx1.symmetric_difference(idx2, result_name='new_name')
         assert tm.equalContents(result, expected)
         assert result.name == 'new_name'
+
+    def test_difference_type(self):
+        # GH 20040
+        # If taking difference of a set and itself, it
+        # needs to preserve the type of the index
+        skip_index_keys = ['repeats']
+        for key, idx in self.generate_index_types(skip_index_keys):
+            result = idx.difference(idx)
+            expected = idx.drop(idx)
+            tm.assert_index_equal(result, expected)
+
+    def test_intersection_difference(self):
+        # GH 20040
+        # Test that the intersection of an index with an
+        # empty index produces the same index as the difference
+        # of an index with itself.  Test for all types
+        skip_index_keys = ['repeats']
+        for key, idx in self.generate_index_types(skip_index_keys):
+            inter = idx.intersection(idx.drop(idx))
+            diff = idx.difference(idx)
+            tm.assert_index_equal(inter, diff)
 
     def test_is_numeric(self):
         assert not self.dateIndex.is_numeric()
@@ -2004,6 +2055,11 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
 
         ser.index -= 1
         assert ser.index.name == "foo"
+
+    def test_cached_properties_not_settable(self):
+        idx = pd.Index([1, 2, 3])
+        with tm.assert_raises_regex(AttributeError, "Can't set attribute"):
+            idx.is_unique = False
 
 
 class TestMixedIntIndex(Base):

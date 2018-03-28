@@ -1429,8 +1429,51 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # TODO: Add option for bins like value_counts()
         return algorithms.mode(self)
 
-    @Appender(base._shared_docs['unique'] % _shared_doc_kwargs)
     def unique(self):
+        """
+        Return unique values of Series object.
+
+        Uniques are returned in order of appearance. Hash table-based unique,
+        therefore does NOT sort.
+
+        Returns
+        -------
+        ndarray or Categorical
+            The unique values returned as a NumPy array. In case of categorical
+            data type, returned as a Categorical.
+
+        See Also
+        --------
+        pandas.unique : top-level unique method for any 1-d array-like object.
+        Index.unique : return Index with unique values from an Index object.
+
+        Examples
+        --------
+        >>> pd.Series([2, 1, 3, 3], name='A').unique()
+        array([2, 1, 3])
+
+        >>> pd.Series([pd.Timestamp('2016-01-01') for _ in range(3)]).unique()
+        array(['2016-01-01T00:00:00.000000000'], dtype='datetime64[ns]')
+
+        >>> pd.Series([pd.Timestamp('2016-01-01', tz='US/Eastern')
+        ...            for _ in range(3)]).unique()
+        array([Timestamp('2016-01-01 00:00:00-0500', tz='US/Eastern')],
+              dtype=object)
+
+        An unordered Categorical will return categories in the order of
+        appearance.
+
+        >>> pd.Series(pd.Categorical(list('baabc'))).unique()
+        [b, a, c]
+        Categories (3, object): [b, a, c]
+
+        An ordered Categorical preserves the category ordering.
+
+        >>> pd.Series(pd.Categorical(list('baabc'), categories=list('abc'),
+        ...                          ordered=True)).unique()
+        [b, a, c]
+        Categories (3, object): [a < b < c]
+        """
         result = super(Series, self).unique()
 
         if is_datetime64tz_dtype(self.dtype):
@@ -2831,25 +2874,26 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def map(self, arg, na_action=None):
         """
-        Map values of Series using input correspondence (which can be
-        a dict, Series, or function)
+        Map values of Series using input correspondence (a dict, Series, or
+        function).
 
         Parameters
         ----------
         arg : function, dict, or Series
+            Mapping correspondence.
         na_action : {None, 'ignore'}
             If 'ignore', propagate NA values, without passing them to the
-            mapping function
+            mapping correspondence.
 
         Returns
         -------
         y : Series
-            same index as caller
+            Same index as caller.
 
         Examples
         --------
 
-        Map inputs to outputs (both of type `Series`)
+        Map inputs to outputs (both of type `Series`):
 
         >>> x = pd.Series([1,2,3], index=['one', 'two', 'three'])
         >>> x
@@ -2900,9 +2944,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        Series.apply: For applying more complex functions on a Series
-        DataFrame.apply: Apply a function row-/column-wise
-        DataFrame.applymap: Apply a function elementwise on a whole DataFrame
+        Series.apply : For applying more complex functions on a Series.
+        DataFrame.apply : Apply a function row-/column-wise.
+        DataFrame.applymap : Apply a function elementwise on a whole DataFrame.
 
         Notes
         -----
@@ -3632,9 +3676,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             a string representing the encoding to use if the contents are
             non-ascii, for python versions prior to 3
         compression : string, optional
-            a string representing the compression to use in the output file,
-            allowed values are 'gzip', 'bz2', 'xz', only used when the first
-            argument is a filename
+            A string representing the compression to use in the output file.
+            Allowed values are 'gzip', 'bz2', 'zip', 'xz'. This input is only
+            used when the first argument is a filename.
         date_format: string, default None
             Format string for datetime objects.
         decimal: string, default '.'
@@ -3683,13 +3727,74 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def dropna(self, axis=0, inplace=False, **kwargs):
         """
-        Return Series without null values
+        Return a new Series with missing values removed.
+
+        See the :ref:`User Guide <missing_data>` for more on which values are
+        considered missing, and how to work with missing data.
+
+        Parameters
+        ----------
+        axis : {0 or 'index'}, default 0
+            There is only one axis to drop values from.
+        inplace : bool, default False
+            If True, do operation inplace and return None.
+        **kwargs
+            Not in use.
 
         Returns
         -------
-        valid : Series
-        inplace : boolean, default False
-            Do operation in place.
+        Series
+            Series with NA entries dropped from it.
+
+        See Also
+        --------
+        Series.isna: Indicate missing values.
+        Series.notna : Indicate existing (non-missing) values.
+        Series.fillna : Replace missing values.
+        DataFrame.dropna : Drop rows or columns which contain NA values.
+        Index.dropna : Drop missing indices.
+
+        Examples
+        --------
+        >>> ser = pd.Series([1., 2., np.nan])
+        >>> ser
+        0    1.0
+        1    2.0
+        2    NaN
+        dtype: float64
+
+        Drop NA values from a Series.
+
+        >>> ser.dropna()
+        0    1.0
+        1    2.0
+        dtype: float64
+
+        Keep the Series with valid entries in the same variable.
+
+        >>> ser.dropna(inplace=True)
+        >>> ser
+        0    1.0
+        1    2.0
+        dtype: float64
+
+        Empty strings are not considered NA values. ``None`` is considered an
+        NA value.
+
+        >>> ser = pd.Series([np.NaN, 2, pd.NaT, '', None, 'I stay'])
+        >>> ser
+        0       NaN
+        1         2
+        2       NaT
+        3
+        4      None
+        5    I stay
+        dtype: object
+        >>> ser.dropna()
+        1         2
+        3
+        5    I stay
+        dtype: object
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         kwargs.pop('how', None)
@@ -3809,7 +3914,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     hist = gfx.hist_series
 
 
-Series._setup_axes(['index'], info_axis=0, stat_axis=0, aliases={'rows': 0})
+Series._setup_axes(['index'], info_axis=0, stat_axis=0, aliases={'rows': 0},
+                   docs={'index': 'The index (axis labels) of the Series.'})
 Series._add_numeric_operations()
 Series._add_series_only_operations()
 Series._add_series_or_dataframe_operations()

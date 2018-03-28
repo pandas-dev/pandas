@@ -395,7 +395,48 @@ class _Window(PandasObject, SelectionMixin):
     """)
 
     _shared_docs['mean'] = dedent("""
-    %(name)s mean""")
+    Calculate the %(name)s mean of the values.
+
+    Parameters
+    ----------
+    *args
+        Under Review.
+    **kwargs
+        Under Review.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returned object type is determined by the caller of the %(name)s
+        calculation.
+
+    See Also
+    --------
+    Series.%(name)s : Calling object with Series data
+    DataFrame.%(name)s : Calling object with DataFrames
+    Series.mean : Equivalent method for Series
+    DataFrame.mean : Equivalent method for DataFrame
+
+    Examples
+    --------
+    The below examples will show rolling mean calculations with window sizes of
+    two and three, respectively.
+
+    >>> s = pd.Series([1, 2, 3, 4])
+    >>> s.rolling(2).mean()
+    0    NaN
+    1    1.5
+    2    2.5
+    3    3.5
+    dtype: float64
+
+    >>> s.rolling(3).mean()
+    0    NaN
+    1    NaN
+    2    2.0
+    3    3.0
+    dtype: float64
+    """)
 
 
 class Window(_Window):
@@ -718,7 +759,6 @@ class Window(_Window):
         return self._apply_window(mean=False, **kwargs)
 
     @Substitution(name='window')
-    @Appender(_doc_template)
     @Appender(_shared_docs['mean'])
     def mean(self, *args, **kwargs):
         nv.validate_window_func('mean', args, kwargs)
@@ -852,8 +892,43 @@ class _Rolling(_Window):
 
 class _Rolling_and_Expanding(_Rolling):
 
-    _shared_docs['count'] = """%(name)s count of number of non-NaN
-    observations inside provided window."""
+    _shared_docs['count'] = dedent(r"""
+    The %(name)s count of any non-NaN observations inside the window.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returned object type is determined by the caller of the %(name)s
+        calculation.
+
+    See Also
+    --------
+    pandas.Series.%(name)s : Calling object with Series data
+    pandas.DataFrame.%(name)s : Calling object with DataFrames
+    pandas.DataFrame.count : Count of the full DataFrame
+
+    Examples
+    --------
+    >>> s = pd.Series([2, 3, np.nan, 10])
+    >>> s.rolling(2).count()
+    0    1.0
+    1    2.0
+    2    1.0
+    3    1.0
+    dtype: float64
+    >>> s.rolling(3).count()
+    0    1.0
+    1    2.0
+    2    2.0
+    3    2.0
+    dtype: float64
+    >>> s.rolling(4).count()
+    0    1.0
+    1    2.0
+    2    2.0
+    3    3.0
+    dtype: float64
+    """)
 
     def count(self):
 
@@ -910,7 +985,38 @@ class _Rolling_and_Expanding(_Rolling):
         return self._apply('roll_max', 'max', **kwargs)
 
     _shared_docs['min'] = dedent("""
-    %(name)s minimum
+    Calculate the %(name)s minimum.
+
+    Parameters
+    ----------
+    **kwargs
+        Under Review.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returned object type is determined by the caller of the %(name)s
+        calculation.
+
+    See Also
+    --------
+    Series.%(name)s : Calling object with a Series
+    DataFrame.%(name)s : Calling object with a DataFrame
+    Series.min : Similar method for Series
+    DataFrame.min : Similar method for DataFrame
+
+    Examples
+    --------
+    Performing a rolling minimum with a window size of 3.
+
+    >>> s = pd.Series([4, 3, 5, 2, 6])
+    >>> s.rolling(3).min()
+    0    NaN
+    1    NaN
+    2    3.0
+    3    2.0
+    4    2.0
+    dtype: float64
     """)
 
     def min(self, *args, **kwargs):
@@ -1380,7 +1486,6 @@ class Rolling(_Rolling_and_Expanding):
     agg = aggregate
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['count'])
     def count(self):
 
@@ -1410,14 +1515,12 @@ class Rolling(_Rolling_and_Expanding):
         return super(Rolling, self).max(*args, **kwargs)
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['min'])
     def min(self, *args, **kwargs):
         nv.validate_rolling_func('min', args, kwargs)
         return super(Rolling, self).min(*args, **kwargs)
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['mean'])
     def mean(self, *args, **kwargs):
         nv.validate_rolling_func('mean', args, kwargs)
@@ -1646,7 +1749,6 @@ class Expanding(_Rolling_and_Expanding):
     agg = aggregate
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['count'])
     def count(self, **kwargs):
         return super(Expanding, self).count(**kwargs)
@@ -1671,14 +1773,12 @@ class Expanding(_Rolling_and_Expanding):
         return super(Expanding, self).max(*args, **kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['min'])
     def min(self, *args, **kwargs):
         nv.validate_expanding_func('min', args, kwargs)
         return super(Expanding, self).min(*args, **kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['mean'])
     def mean(self, *args, **kwargs):
         nv.validate_expanding_func('mean', args, kwargs)

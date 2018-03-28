@@ -1751,22 +1751,22 @@ def _plot(data, x=None, y=None, subplots=False,
         plot_obj = klass(data, subplots=subplots, ax=ax, kind=kind, **kwds)
     else:
         if isinstance(data, ABCDataFrame):
+            data_cols = data.columns
             if x is not None:
                 if is_integer(x) and not data.columns.holds_integer():
-                    x = data.columns[x]
+                    x = data_cols[x]
                 elif not isinstance(data[x], ABCSeries):
                     raise ValueError("x must be a label or position")
                 data = data.set_index(x)
 
             if y is not None:
-                if is_integer(y) and not data.columns.holds_integer():
-                    y = data.columns[y]
-                elif not isinstance(data[y], ABCSeries):
-                    raise ValueError("y must be a label or position")
-                label = kwds['label'] if 'label' in kwds else y
-                series = data[y].copy()  # Don't modify
-                series.name = label
+                # check if we have y as int or list of ints
+                int_ylist = is_list_like(y) and all(is_integer(c) for c in y)
+                int_y_arg = is_integer(y) or int_ylist
+                if int_y_arg and not data.columns.holds_integer():
+                    y = data_cols[y]
 
+                label_kw = kwds['label'] if 'label' in kwds else False
                 for kw in ['xerr', 'yerr']:
                     if (kw in kwds) and \
                         (isinstance(kwds[kw], string_types) or
@@ -1775,7 +1775,22 @@ def _plot(data, x=None, y=None, subplots=False,
                             kwds[kw] = data[kwds[kw]]
                         except (IndexError, KeyError, TypeError):
                             pass
-                data = series
+
+                # don't overwrite
+                data = data[y].copy()
+
+                if isinstance(data, ABCSeries):
+                    label_name = label_kw or y
+                    data.name = label_name
+                else:
+                    match = is_list_like(label_kw) and len(label_kw) == len(y)
+                    if label_kw and not match:
+                        raise ValueError(
+                            "label should be list-like and same length as y"
+                        )
+                    label_name = label_kw or data.columns
+                    data.columns = label_name
+
         plot_obj = klass(data, subplots=subplots, ax=ax, kind=kind, **kwds)
 
     plot_obj.generate()
@@ -1788,7 +1803,7 @@ df_kind = """- 'scatter' : scatter plot
 series_kind = ""
 
 df_coord = """x : label or position, default None
-    y : label or position, default None
+    y : label, position or list of label, positions, default None
         Allows plotting of one column versus another"""
 series_coord = ""
 
@@ -3031,39 +3046,97 @@ class FramePlotMethods(BasePlotMethods):
 
     def box(self, by=None, **kwds):
         r"""
-        Boxplot
+        Make a box plot of the DataFrame columns.
+
+        A box plot is a method for graphically depicting groups of numerical
+        data through their quartiles.
+        The box extends from the Q1 to Q3 quartile values of the data,
+        with a line at the median (Q2). The whiskers extend from the edges
+        of box to show the range of the data. The position of the whiskers
+        is set by default to 1.5*IQR (IQR = Q3 - Q1) from the edges of the
+        box. Outlier points are those past the end of the whiskers.
+
+        For further details see Wikipedia's
+        entry for `boxplot <https://en.wikipedia.org/wiki/Box_plot>`__.
+
+        A consideration when using this chart is that the box and the whiskers
+        can overlap, which is very common when plotting small sets of data.
 
         Parameters
         ----------
         by : string or sequence
             Column in the DataFrame to group by.
-        `**kwds` : optional
-            Additional keyword arguments are documented in
+        **kwds : optional
+            Additional keywords are documented in
             :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
         axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+
+        See Also
+        --------
+        pandas.DataFrame.boxplot: Another method to draw a box plot.
+        pandas.Series.plot.box: Draw a box plot from a Series object.
+        matplotlib.pyplot.boxplot: Draw a box plot in matplotlib.
+
+        Examples
+        --------
+        Draw a box plot from a DataFrame with four columns of randomly
+        generated data.
+
+        .. plot::
+            :context: close-figs
+
+            >>> data = np.random.randn(25, 4)
+            >>> df = pd.DataFrame(data, columns=list('ABCD'))
+            >>> ax = df.plot.box()
         """
         return self(kind='box', by=by, **kwds)
 
     def hist(self, by=None, bins=10, **kwds):
         """
-        Histogram
+        Draw one histogram of the DataFrame's columns.
+
+        A histogram is a representation of the distribution of data.
+        This function groups the values of all given Series in the DataFrame
+        into bins, and draws all bins in only one :ref:`matplotlib.axes.Axes`.
+        This is useful when the DataFrame's Series are in a similar scale.
 
         Parameters
         ----------
-        by : string or sequence
+        by : str or sequence, optional
             Column in the DataFrame to group by.
-        bins: integer, default 10
-            Number of histogram bins to be used
-        `**kwds` : optional
+        bins : int, default 10
+            Number of histogram bins to be used.
+        **kwds
             Additional keyword arguments are documented in
             :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        axes : matplotlib.AxesSubplot histogram.
+
+        See Also
+        --------
+        DataFrame.hist : Draw histograms per DataFrame's Series.
+        Series.hist : Draw a histogram with Series' data.
+
+        Examples
+        --------
+        When we draw a dice 6000 times, we expect to get each value around 1000
+        times. But when we draw two dices and sum the result, the distribution
+        is going to be quite different. A histogram illustrates those
+        distributions.
+
+        .. plot::
+            :context: close-figs
+
+            >>> df = pd.DataFrame(
+            ...     np.random.randint(1, 7, 6000),
+            ...     columns = ['one'])
+            >>> df['two'] = df['one'] + np.random.randint(1, 7, 6000)
+            >>> ax = df.plot.hist(bins=12, alpha=0.5)
         """
         return self(kind='hist', by=by, bins=bins, **kwds)
 
@@ -3133,19 +3206,51 @@ class FramePlotMethods(BasePlotMethods):
 
     def pie(self, y=None, **kwds):
         """
-        Pie chart
+        Generate a pie plot.
+
+        A pie plot is a proportional representation of the numerical data in a
+        column. This function wraps :meth:`matplotlib.pyplot.pie` for the
+        specified column. If no column reference is passed and
+        ``subplots=True`` a pie plot is drawn for each numerical column
+        independently.
 
         Parameters
         ----------
-        y : label or position, optional
-            Column to plot.
-        `**kwds` : optional
-            Additional keyword arguments are documented in
-            :meth:`pandas.DataFrame.plot`.
+        y : int or label, optional
+            Label or position of the column to plot.
+            If not provided, ``subplots=True`` argument must be passed.
+        **kwds
+            Keyword arguments to pass on to :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        axes : matplotlib.axes.Axes or np.ndarray of them.
+            A NumPy array is returned when `subplots` is True.
+
+        See Also
+        --------
+        Series.plot.pie : Generate a pie plot for a Series.
+        DataFrame.plot : Make plots of a DataFrame.
+
+        Examples
+        --------
+        In the example below we have a DataFrame with the information about
+        planet's mass and radius. We pass the the 'mass' column to the
+        pie function to get a pie plot.
+
+        .. plot::
+            :context: close-figs
+
+            >>> df = pd.DataFrame({'mass': [0.330, 4.87 , 5.97],
+            ...                    'radius': [2439.7, 6051.8, 6378.1]},
+            ...                   index=['Mercury', 'Venus', 'Earth'])
+            >>> plot = df.plot.pie(y='mass', figsize=(5, 5))
+
+        .. plot::
+            :context: close-figs
+
+            >>> plot = df.plot.pie(subplots=True, figsize=(6, 3))
+
         """
         return self(kind='pie', y=y, **kwds)
 
