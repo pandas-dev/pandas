@@ -2178,6 +2178,22 @@ class TestDataFrameAnalytics(TestData):
                              columns=['one', 'two'])
         tm.assert_almost_equal(result.values, expected.values)
 
+        # mixed dtype DataFrame @ DataFrame
+        a['q'] = a.q.round().astype(int)
+        result = operator.matmul(a, b)
+        expected = DataFrame(np.dot(a.values, b.values),
+                             index=['a', 'b', 'c'],
+                             columns=['one', 'two'])
+        tm.assert_frame_equal(result, expected)
+
+        # different dtypes DataFrame @ DataFrame
+        a = a.astype(int)
+        result = operator.matmul(a, b)
+        expected = DataFrame(np.dot(a.values, b.values),
+                             index=['a', 'b', 'c'],
+                             columns=['one', 'two'])
+        tm.assert_frame_equal(result, expected)
+
         # unaligned
         df = DataFrame(randn(3, 4), index=[1, 2, 3], columns=lrange(4))
         df2 = DataFrame(randn(5, 3), index=lrange(5), columns=[1, 2, 3])
