@@ -680,7 +680,7 @@ Datetimelike API Changes
 - :func:`pandas.merge` provides a more informative error message when trying to merge on timezone-aware and timezone-naive columns (:issue:`15800`)
 - For :class:`DatetimeIndex` and :class:`TimedeltaIndex` with ``freq=None``, addition or subtraction of integer-dtyped array or ``Index`` will raise ``NullFrequencyError`` instead of ``TypeError`` (:issue:`19895`)
 - :class:`Timestamp` constructor now accepts a `nanosecond` keyword or positional argument (:issue:`18898`)
-- :class:`DatetimeIndex` will no longer allow the ``tz`` property to be directly set (:issue:`3746`)
+- :class:`DatetimeIndex` will now raise a ``ValueError`` when the ``tz`` attribute is set after instantiation (:issue:`3746`)
 - :class:`DatetimeIndex` with a ``pytz`` timezone will now return ``pytz``'s default, LMT timezone (:issue:`18595`)
 
 .. _whatsnew_0230.api.other:
