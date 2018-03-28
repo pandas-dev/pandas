@@ -2542,7 +2542,7 @@ class TestPeriodIndex(Base):
                                                     tz="US/Eastern"))
         assert_series_equal(result, expected)
         # Especially assert that the timezone is LMT for pytz
-        assert result.index.tz == expected.index.tz
+        assert result.index.tz == pytz.timezone('US/Eastern')
 
     def test_with_local_timezone_dateutil(self):
         # see gh-5430
