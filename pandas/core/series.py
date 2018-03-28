@@ -3528,11 +3528,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Returns
         -------
-        Series of bool
+        Series
+            Each element will be a boolean.
 
         Notes
         -----
-        This function is equivalent to `(left <= series) & (series <= right)`
+        This function is equivalent to ``(left <= ser) & (ser <= right)``
 
         See Also
         --------
@@ -3553,7 +3554,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         4    False
         dtype: bool
 
-        With `inclusive` set to `False` boundary values are excluded:
+        With `inclusive` set to ``False`` boundary values are excluded:
 
         >>> s.between(1, 4, inclusive=False)
         0     True
