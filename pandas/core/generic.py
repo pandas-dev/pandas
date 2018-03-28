@@ -2140,7 +2140,7 @@ class NDFrame(PandasObject, SelectionMixin):
             .. versionadded:: 0.20.0
         protocol : int
             Int which indicates which protocol should be used by the pickler,
-            default HIGHEST_PROTOCOL (see [1], paragraph 12.1.2). The possible
+            default HIGHEST_PROTOCOL (see [1]_ paragraph 12.1.2). The possible
             values for this parameter depend on the version of Python. For
             Python 2.x, possible values are 0, 1, 2. For Python>=3.0, 3 is a
             valid value. For Python >= 3.4, 4 is a valid value. A negative
