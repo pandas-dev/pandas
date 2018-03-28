@@ -903,7 +903,7 @@ class HexBinPlot(PlanePlot):
     def _make_plot(self):
         x, y, data, C = self.x, self.y, self.data, self.C
         ax = self.axes[0]
-        
+
         # pandas uses colormap, matplotlib uses cmap.
         cmap = self.colormap or 'BuGn'
         cmap = self.plt.cm.get_cmap(cmap)
@@ -2793,7 +2793,7 @@ class FramePlotMethods(BasePlotMethods):
                  rot=None, fontsize=None, colormap=None, table=False,
                  yerr=None, xerr=None,
                  secondary_y=False, sort_columns=False, **kwds):
-        
+
         return plot_frame(self._data, kind=kind, x=x, y=y, ax=ax,
                           subplots=subplots, sharex=sharex, sharey=sharey,
                           layout=layout, figsize=figsize, use_index=use_index,
