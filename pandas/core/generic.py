@@ -1900,7 +1900,7 @@ class NDFrame(PandasObject, SelectionMixin):
         In order to add another DataFrame or Series to an existing HDF file
         please use append mode and a different a key.
 
-        For more information see the :ref:`user guide <io.html#io-hdf5>`.
+        For more information see the :ref:`user guide <io.hdf5>`.
 
         Parameters
         ----------
