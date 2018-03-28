@@ -2169,8 +2169,8 @@ class StringMethods(NoNewAttributesMixin):
     >>> s
     0                 lower
     1              CAPITALS
-    2    this is a SentEnce
-    3          The is Paris
+    2    this is a sentence
+    3              SwApCaSe
     dtype: object
 
     >>> s.str.lower()
