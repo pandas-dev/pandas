@@ -1814,9 +1814,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.19.0
 
-        compression : {None, 'gzip', 'bz2', 'xz'}
+        compression : {None, 'gzip', 'bz2', 'zip', 'xz'}
             A string representing the compression to use in the output file,
-            only used when the first argument is a filename
+            only used when the first argument is a filename.
 
             .. versionadded:: 0.21.0
 
@@ -2133,7 +2133,8 @@ class NDFrame(PandasObject, SelectionMixin):
         ----------
         path : str
             File path where the pickled object will be stored.
-        compression : {'infer', 'gzip', 'bz2', 'xz', None}, default 'infer'
+        compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, \
+        default 'infer'
             A string representing the compression to use in the output file. By
             default, infers from the file extension in specified path.
 
@@ -4725,6 +4726,8 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return counts of unique ftypes in this object.
 
+        .. deprecated:: 0.23.0
+
         This is useful for SparseDataFrame or for DataFrames containing
         sparse arrays.
 
@@ -4755,6 +4758,10 @@ class NDFrame(PandasObject, SelectionMixin):
         object:dense     1
         dtype: int64
         """
+        warnings.warn("get_ftype_counts is deprecated and will "
+                      "be removed in a future version",
+                      FutureWarning, stacklevel=2)
+
         from pandas import Series
         return Series(self._data.get_ftype_counts())
 
@@ -5004,22 +5011,108 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def copy(self, deep=True):
         """
-        Make a copy of this objects data.
+        Make a copy of this object's indices and data.
+
+        When ``deep=True`` (default), a new object will be created with a
+        copy of the calling object's data and indices. Modifications to
+        the data or indices of the copy will not be reflected in the
+        original object (see notes below).
+
+        When ``deep=False``, a new object will be created without copying
+        the calling object's data or index (only references to the data
+        and index are copied). Any changes to the data of the original
+        will be reflected in the shallow copy (and vice versa).
 
         Parameters
         ----------
-        deep : boolean or string, default True
+        deep : bool, default True
             Make a deep copy, including a copy of the data and the indices.
-            With ``deep=False`` neither the indices or the data are copied.
-
-            Note that when ``deep=True`` data is copied, actual python objects
-            will not be copied recursively, only the reference to the object.
-            This is in contrast to ``copy.deepcopy`` in the Standard Library,
-            which recursively copies object data.
+            With ``deep=False`` neither the indices nor the data are copied.
 
         Returns
         -------
-        copy : type of caller
+        copy : Series, DataFrame or Panel
+            Object type matches caller.
+
+        Notes
+        -----
+        When ``deep=True``, data is copied but actual Python objects
+        will not be copied recursively, only the reference to the object.
+        This is in contrast to `copy.deepcopy` in the Standard Library,
+        which recursively copies object data (see examples below).
+
+        While ``Index`` objects are copied when ``deep=True``, the underlying
+        numpy array is not copied for performance reasons. Since ``Index`` is
+        immutable, the underlying data can be safely shared and a copy
+        is not needed.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2], index=["a", "b"])
+        >>> s
+        a    1
+        b    2
+        dtype: int64
+
+        >>> s_copy = s.copy()
+        >>> s_copy
+        a    1
+        b    2
+        dtype: int64
+
+        **Shallow copy versus default (deep) copy:**
+
+        >>> s = pd.Series([1, 2], index=["a", "b"])
+        >>> deep = s.copy()
+        >>> shallow = s.copy(deep=False)
+
+        Shallow copy shares data and index with original.
+
+        >>> s is shallow
+        False
+        >>> s.values is shallow.values and s.index is shallow.index
+        True
+
+        Deep copy has own copy of data and index.
+
+        >>> s is deep
+        False
+        >>> s.values is deep.values or s.index is deep.index
+        False
+
+        Updates to the data shared by shallow copy and original is reflected
+        in both; deep copy remains unchanged.
+
+        >>> s[0] = 3
+        >>> shallow[1] = 4
+        >>> s
+        a    3
+        b    4
+        dtype: int64
+        >>> shallow
+        a    3
+        b    4
+        dtype: int64
+        >>> deep
+        a    1
+        b    2
+        dtype: int64
+
+        Note that when copying an object containing Python objects, a deep copy
+        will copy the data, but will not do so recursively. Updating a nested
+        data object will be reflected in the deep copy.
+
+        >>> s = pd.Series([[1, 2], [3, 4]])
+        >>> deep = s.copy()
+        >>> s[0][0] = 10
+        >>> s
+        0    [10, 2]
+        1     [3, 4]
+        dtype: object
+        >>> deep
+        0    [10, 2]
+        1     [3, 4]
+        dtype: object
         """
         data = self._data.copy(deep=deep)
         return self._constructor(data).__finalize__(self)
@@ -5159,7 +5252,9 @@ class NDFrame(PandasObject, SelectionMixin):
     # ----------------------------------------------------------------------
     # Filling NA's
 
-    _shared_docs['fillna'] = ("""
+    def fillna(self, value=None, method=None, axis=None, inplace=False,
+               limit=None, downcast=None):
+        """
         Fill NA/NaN values using the specified method
 
         Parameters
@@ -5250,11 +5345,7 @@ class NDFrame(PandasObject, SelectionMixin):
         1   3.0 4.0 NaN 1
         2   NaN 1.0 NaN 5
         3   NaN 3.0 NaN 4
-        """)
-
-    @Appender(_shared_docs['fillna'] % _shared_doc_kwargs)
-    def fillna(self, value=None, method=None, axis=None, inplace=False,
-               limit=None, downcast=None):
+        """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         value, method = validate_fillna_kwargs(value, method)
 
@@ -7850,9 +7941,6 @@ class NDFrame(PandasObject, SelectionMixin):
         result.set_axis(ax, axis=axis, inplace=True)
         return result.__finalize__(self)
 
-    @deprecate_kwarg(old_arg_name='infer_dst', new_arg_name='ambiguous',
-                     mapping={True: 'infer',
-                              False: 'raise'})
     def tz_localize(self, tz, axis=0, level=None, copy=True,
                     ambiguous='raise'):
         """
@@ -7876,9 +7964,6 @@ class NDFrame(PandasObject, SelectionMixin):
             - 'NaT' will return NaT where there are ambiguous times
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
-        infer_dst : boolean, default False
-            .. deprecated:: 0.15.0
-               Attempt to infer fall dst-transition hours based on order
 
         Returns
         -------
