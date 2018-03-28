@@ -1356,6 +1356,7 @@ cdef _roll_min_max(ndarray[numeric] input, int64_t win, int64_t minp,
     # print("output: {0}".format(output))
     return output
 
+
 def _get_interpolation_id(str interpolation):
     """
     Converts string to interpolation id
@@ -1452,7 +1453,7 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
                     vlow = skiplist.get(idx)
                     vhigh = skiplist.get(idx + 1)
                     output[i] = ((vlow + (vhigh - vlow) *
-                        (idx_with_fraction - idx)))
+                                  (idx_with_fraction - idx)))
                 elif interpolation_id == 1:  # lower
                     output[i] = skiplist.get(idx)
                 elif interpolation_id == 2:  # higher
