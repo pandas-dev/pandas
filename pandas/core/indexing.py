@@ -2336,8 +2336,6 @@ def check_setitem_lengths(indexer, value, values):
         When the indexer is an ndarray or list and the lengths don't
         match.
     """
-    from pandas.core.indexing import length_of_indexer
-
     # boolean with truth values == len of the value is ok too
     if isinstance(indexer, (np.ndarray, list)):
         if is_list_like(value) and len(indexer) != len(value):
