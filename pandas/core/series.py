@@ -3556,19 +3556,68 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def between(self, left, right, inclusive=True):
         """
-        Return boolean Series equivalent to left <= series <= right. NA values
-        will be treated as False
+        Return boolean Series equivalent to left <= series <= right.
+
+        This function returns a boolean vector containing `True` wherever the
+        corresponding Series element is between the boundary values `left` and
+        `right`. NA values are treated as `False`.
 
         Parameters
         ----------
         left : scalar
-            Left boundary
+            Left boundary.
         right : scalar
-            Right boundary
+            Right boundary.
+        inclusive : bool, default True
+            Include boundaries.
 
         Returns
         -------
-        is_between : Series
+        Series
+            Each element will be a boolean.
+
+        Notes
+        -----
+        This function is equivalent to ``(left <= ser) & (ser <= right)``
+
+        See Also
+        --------
+        pandas.Series.gt : Greater than of series and other
+        pandas.Series.lt : Less than of series and other
+
+        Examples
+        --------
+        >>> s = pd.Series([2, 0, 4, 8, np.nan])
+
+        Boundary values are included by default:
+
+        >>> s.between(1, 4)
+        0     True
+        1    False
+        2     True
+        3    False
+        4    False
+        dtype: bool
+
+        With `inclusive` set to ``False`` boundary values are excluded:
+
+        >>> s.between(1, 4, inclusive=False)
+        0     True
+        1    False
+        2    False
+        3    False
+        4    False
+        dtype: bool
+
+        `left` and `right` can be any scalar value:
+
+        >>> s = pd.Series(['Alice', 'Bob', 'Carol', 'Eve'])
+        >>> s.between('Anna', 'Daniel')
+        0    False
+        1     True
+        2     True
+        3    False
+        dtype: bool
         """
         if inclusive:
             lmask = self >= left
