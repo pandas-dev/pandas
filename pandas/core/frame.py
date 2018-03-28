@@ -3696,7 +3696,8 @@ class DataFrame(NDFrame):
         kwargs.pop('mapper', None)
         return super(DataFrame, self).rename(**kwargs)
 
-    @Appender(_shared_docs['fillna'] % _shared_doc_kwargs)
+    @Substitution(**_shared_doc_kwargs)
+    @Appender(NDFrame.fillna.__doc__)
     def fillna(self, value=None, method=None, axis=None, inplace=False,
                limit=None, downcast=None, **kwargs):
         return super(DataFrame,
