@@ -454,7 +454,7 @@ Convert to an xarray DataArray
 .. _whatsnew_0230.api_breaking.core_common:
 
 pandas.core.common removals
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following error & warning messages are removed from ``pandas.core.common`` (:issue:`13634`, :issue:`19769`):
 
@@ -657,6 +657,35 @@ New Behavior:
 Notice in the example above that the converted ``Categorical`` has retained ``ordered=True``.  Had the default value for ``ordered`` remained as ``False``, the converted ``Categorical`` would have become unordered, despite ``ordered=False`` never being explicitly specified.  To change the value of ``ordered``, explicitly pass it to the new dtype, e.g. ``CategoricalDtype(categories=list('cbad'), ordered=False)``.
 
 Note that the unintenional conversion of ``ordered`` discussed above did not arise in previous versions due to separate bugs that prevented ``astype`` from doing any type of category to category conversion (:issue:`10696`, :issue:`18593`).  These bugs have been fixed in this release, and motivated changing the default value of ``ordered``.
+
+.. _whatsnew_0230.api_breaking.pretty_printing:
+
+Better pretty-printing of DataFrames in a terminal
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Previously, the default value for the maximum number of columns was
+``pd.options.display.max_columns=20``. This meant that relatively wide data
+frames would not fit within the terminal width, and pandas would introduce line
+breaks to display these 20 columns. This resulted in an output that was
+relatively difficult to read:
+
+.. image:: _static/print_df_old.png
+
+If Python runs in a terminal, the maximum number of columns is now determined
+automatically so that the printed data frame fits within the current terminal
+width (``pd.options.display.max_columns=0``) (:issue:`17023`). If Python runs
+as a Jupyter kernel (such as the Jupyter QtConsole or a Jupyter notebook, as
+well as in many IDEs), this value cannot be inferred automatically and is thus
+set to `20` as in previous versions. In a terminal, this results in a much
+nicer output:
+
+.. image:: _static/print_df_new.png
+
+Note that if you don't like the new default, you can always set this option
+yourself. To revert to the old setting, you can run this line:
+
+.. code-block:: python
+
+  pd.options.display.max_columns = 20
 
 .. _whatsnew_0230.api.datetimelike:
 
@@ -894,8 +923,8 @@ Timedelta
 - Bug in :func:`Timedelta.__floordiv__`, :func:`Timedelta.__rfloordiv__` where operating with a ``Tick`` object would raise a ``TypeError`` instead of returning a numeric value (:issue:`19738`)
 - Bug in :func:`Period.asfreq` where periods near ``datetime(1, 1, 1)`` could be converted incorrectly (:issue:`19643`, :issue:`19834`)
 - Bug in :func:`Timedelta.total_seconds()` causing precision errors i.e. ``Timedelta('30S').total_seconds()==30.000000000000004`` (:issue:`19458`)
-- Bug in :func: `Timedelta.__rmod__` where operating with a ``numpy.timedelta64`` returned a ``timedelta64`` object instead of a ``Timedelta`` (:issue:`19820`)
-- Multiplication of :class:`TimedeltaIndex` by ``TimedeltaIndex`` will now raise ``TypeError`` instead of raising ``ValueError`` in cases of length mis-match (:issue`19333`)
+- Bug in :func:`Timedelta.__rmod__` where operating with a ``numpy.timedelta64`` returned a ``timedelta64`` object instead of a ``Timedelta`` (:issue:`19820`)
+- Multiplication of :class:`TimedeltaIndex` by ``TimedeltaIndex`` will now raise ``TypeError`` instead of raising ``ValueError`` in cases of length mis-match (:issue:`19333`)
 - Bug in indexing a :class:`TimedeltaIndex` with a ``np.timedelta64`` object which was raising a ``TypeError`` (:issue:`20393`)
 
 
@@ -936,7 +965,7 @@ Numeric
 - Bug in :class:`Index` constructor with ``dtype='uint64'`` where int-like floats were not coerced to :class:`UInt64Index` (:issue:`18400`)
 - Bug in :class:`DataFrame` flex arithmetic (e.g. ``df.add(other, fill_value=foo)``) with a ``fill_value`` other than ``None`` failed to raise ``NotImplementedError`` in corner cases where either the frame or ``other`` has length zero (:issue:`19522`)
 - Multiplication and division of numeric-dtyped :class:`Index` objects with timedelta-like scalars returns ``TimedeltaIndex`` instead of raising ``TypeError`` (:issue:`19333`)
-- Bug where ``NaN`` was returned instead of 0 by :func:`Series.pct_change` and :func:`DataFrame.pct_change` when ``fill_method`` is not ``None`` (provided) (:issue:`19873`)
+- Bug where ``NaN`` was returned instead of 0 by :func:`Series.pct_change` and :func:`DataFrame.pct_change` when ``fill_method`` is not ``None`` (:issue:`19873`)
 
 
 Indexing
