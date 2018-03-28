@@ -45,8 +45,7 @@ def _ok_for_gaussian_kde(kind):
 @td.skip_if_no_mpl
 class TestPlotBase(object):
 
-    @pytest.fixture(autouse=True)
-    def setup_method(self, datapath):
+    def setup_method(self, method):
 
         import matplotlib as mpl
         mpl.rcdefaults()
@@ -75,11 +74,6 @@ class TestPlotBase(object):
         else:
             self.default_figsize = (8.0, 6.0)
         self.default_tick_position = 'left' if self.mpl_ge_2_0_0 else 'default'
-        # common test data
-        from pandas import read_csv
-        path = datapath('data', 'iris.csv')
-
-        self.iris = read_csv(path)
 
         n = 100
         with tm.RNGContext(42):

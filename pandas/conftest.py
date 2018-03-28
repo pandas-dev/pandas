@@ -122,3 +122,9 @@ def datapath(request):
                 pytest.skip(msg.format(path))
         return path
     return deco
+
+
+@pytest.fixture
+def iris(datapath):
+    """The iris dataset as a DataFrame."""
+    return pandas.read_csv(datapath('data', 'iris.csv'))
