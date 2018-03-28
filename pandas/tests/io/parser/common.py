@@ -76,7 +76,7 @@ bar2,12,13,14,15
             else:
                 prefix = u("file://")
 
-            fname = prefix + compat.text_type(self.csv1)
+            fname = prefix + compat.text_type(os.path.abspath(self.csv1))
             self.read_csv(fname, index_col=0, parse_dates=True)
 
     def test_1000_sep(self):
