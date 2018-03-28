@@ -352,7 +352,7 @@ display.max_info_rows                   1690785      df.info() will usually show
                                                      and max_info_cols limit this null
                                                      check only to frames with smaller
                                                      dimensions then specified.
-display.max_rows                        60           This sets the maximum number of rows
+display.max_rows                        20           This sets the maximum number of rows
                                                      pandas should output when printing
                                                      out various output. For example,
                                                      this value determines whether the

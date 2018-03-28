@@ -310,7 +310,7 @@ with cf.config_prefix('display'):
     cf.register_option('column_space', 12, validator=is_int)
     cf.register_option('max_info_rows', 1690785, pc_max_info_rows_doc,
                        validator=is_instance_factory((int, type(None))))
-    cf.register_option('max_rows', 60, pc_max_rows_doc,
+    cf.register_option('max_rows', 20, pc_max_rows_doc,
                        validator=is_instance_factory([type(None), int]))
     cf.register_option('max_categories', 8, pc_max_categories_doc,
                        validator=is_int)
