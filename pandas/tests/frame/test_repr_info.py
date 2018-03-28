@@ -172,8 +172,8 @@ class TestDataFrameReprInfoEtc(TestData):
                                       'the CSV file externally. I want to Call'
                                       ' the File through the code..')})
 
-        result = repr(df)
-        assert 'StringCol' in result
+        with option_context('display.max_columns', 20):
+            assert 'StringCol' in repr(df)
 
     def test_latex_repr(self):
         result = r"""\begin{tabular}{llll}
