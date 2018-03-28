@@ -263,7 +263,11 @@ Constructor
 Attributes
 ~~~~~~~~~~
 **Axes**
-  * **index**: axis labels
+
+.. autosummary::
+   :toctree: generated/
+
+   Series.index
 
 .. autosummary::
    :toctree: generated/
@@ -845,13 +849,15 @@ Attributes and underlying data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Axes**
 
-  * **index**: row labels
-  * **columns**: column labels
+.. autosummary::
+   :toctree: generated/
+
+   DataFrame.index
+   DataFrame.columns
 
 .. autosummary::
    :toctree: generated/
 
-   DataFrame.as_matrix
    DataFrame.dtypes
    DataFrame.ftypes
    DataFrame.get_dtype_counts
@@ -2546,12 +2552,13 @@ objects.
    :hidden:
 
    generated/pandas.DataFrame.blocks
-   generated/pandas.DataFrame.columns
-   generated/pandas.DataFrame.index
+   generated/pandas.DataFrame.as_matrix
    generated/pandas.DataFrame.ix
    generated/pandas.Index.asi8
    generated/pandas.Index.data
    generated/pandas.Index.flags
+   generated/pandas.Index.holds_integer
+   generated/pandas.Index.is_type_compatible
    generated/pandas.Index.nlevels
    generated/pandas.Index.sort
    generated/pandas.Panel.agg
@@ -2566,6 +2573,7 @@ objects.
    generated/pandas.Series.asobject
    generated/pandas.Series.blocks
    generated/pandas.Series.from_array
-   generated/pandas.Series.index
    generated/pandas.Series.ix
+   generated/pandas.Series.imag
+   generated/pandas.Series.real
    generated/pandas.Timestamp.offset

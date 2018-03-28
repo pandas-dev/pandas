@@ -17,7 +17,7 @@ import os
 import sys
 import shutil
 
-__all__ = ['get_terminal_size']
+__all__ = ['get_terminal_size', 'is_terminal']
 
 
 def get_terminal_size():
@@ -46,6 +46,23 @@ def get_terminal_size():
     if tuple_xy is None:
         tuple_xy = (80, 25)      # default value
     return tuple_xy
+
+
+def is_terminal():
+    """
+    Detect if Python is running in a terminal.
+
+    Returns True if Python is running in a terminal or False if not.
+    """
+    try:
+        ip = get_ipython()
+    except NameError:  # assume standard Python interpreter in a terminal
+        return True
+    else:
+        if hasattr(ip, 'kernel'):  # IPython as a Jupyter kernel
+            return False
+        else:  # IPython in a terminal
+            return True
 
 
 def _get_terminal_size_windows():

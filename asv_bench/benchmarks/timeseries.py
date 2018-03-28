@@ -75,8 +75,7 @@ class TzLocalize(object):
                                                   freq='S'))
 
     def time_infer_dst(self):
-        with warnings.catch_warnings(record=True):
-            self.index.tz_localize('US/Eastern', infer_dst=True)
+        self.index.tz_localize('US/Eastern', ambiguous='infer')
 
 
 class ResetIndex(object):

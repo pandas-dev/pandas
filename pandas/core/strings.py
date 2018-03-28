@@ -328,19 +328,54 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
 
 def str_startswith(arr, pat, na=np.nan):
     """
-    Return boolean Series/``array`` indicating whether each string in the
-    Series/Index starts with passed pattern. Equivalent to
-    :meth:`str.startswith`.
+    Test if the start of each string element matches a pattern.
+
+    Equivalent to :meth:`str.startswith`.
 
     Parameters
     ----------
-    pat : string
-        Character sequence
-    na : bool, default NaN
+    pat : str
+        Character sequence. Regular expressions are not accepted.
+    na : object, default NaN
+        Object shown if element tested is not a string.
 
     Returns
     -------
-    startswith : Series/array of boolean values
+    Series or Index of bool
+        A Series of booleans indicating whether the given pattern matches
+        the start of each string element.
+
+    See Also
+    --------
+    str.startswith : Python standard library string method.
+    Series.str.endswith : Same as startswith, but tests the end of string.
+    Series.str.contains : Tests if string element contains a pattern.
+
+    Examples
+    --------
+    >>> s = pd.Series(['bat', 'Bear', 'cat', np.nan])
+    >>> s
+    0     bat
+    1    Bear
+    2     cat
+    3     NaN
+    dtype: object
+
+    >>> s.str.startswith('b')
+    0     True
+    1    False
+    2    False
+    3      NaN
+    dtype: object
+
+    Specifying `na` to be `False` instead of `NaN`.
+
+    >>> s.str.startswith('b', na=False)
+    0     True
+    1    False
+    2    False
+    3    False
+    dtype: bool
     """
     f = lambda x: x.startswith(pat)
     return _na_map(f, arr, na, dtype=bool)
@@ -941,17 +976,59 @@ def str_get_dummies(arr, sep='|'):
 
 def str_join(arr, sep):
     """
-    Join lists contained as elements in the Series/Index with
-    passed delimiter. Equivalent to :meth:`str.join`.
+    Join lists contained as elements in the Series/Index with passed delimiter.
+
+    If the elements of a Series are lists themselves, join the content of these
+    lists using the delimiter passed to the function.
+    This function is an equivalent to :meth:`str.join`.
 
     Parameters
     ----------
-    sep : string
-        Delimiter
+    sep : str
+        Delimiter to use between list entries.
 
     Returns
     -------
-    joined : Series/Index of objects
+    Series/Index: object
+
+    Notes
+    -----
+    If any of the lists does not contain string objects the result of the join
+    will be `NaN`.
+
+    See Also
+    --------
+    str.join : Standard library version of this method.
+    Series.str.split : Split strings around given separator/delimiter.
+
+    Examples
+    --------
+
+    Example with a list that contains non-string elements.
+
+    >>> s = pd.Series([['lion', 'elephant', 'zebra'],
+    ...                [1.1, 2.2, 3.3],
+    ...                ['cat', np.nan, 'dog'],
+    ...                ['cow', 4.5, 'goat']
+    ...                ['duck', ['swan', 'fish'], 'guppy']])
+    >>> s
+    0        [lion, elephant, zebra]
+    1                [1.1, 2.2, 3.3]
+    2                [cat, nan, dog]
+    3               [cow, 4.5, goat]
+    4    [duck, [swan, fish], guppy]
+    dtype: object
+
+    Join all lists using an '-', the lists containing object(s) of types other
+    than str will become a NaN.
+
+    >>> s.str.join('-')
+    0    lion-elephant-zebra
+    1                    NaN
+    2                    NaN
+    3                    NaN
+    4                    NaN
+    dtype: object
     """
     return _na_map(sep.join, arr)
 

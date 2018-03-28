@@ -44,7 +44,7 @@ from pandas.core.base import (PandasObject, SelectionMixin, GroupByError,
                               DataError, SpecificationError)
 from pandas.core.index import (Index, MultiIndex,
                                CategoricalIndex, _ensure_index)
-from pandas.core.arrays import Categorical
+from pandas.core.arrays import ExtensionArray, Categorical
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.internals import BlockManager, make_block
@@ -943,23 +943,6 @@ b  2""")
         rev = np.empty(count, dtype=np.intp)
         rev[sorter] = np.arange(count, dtype=np.intp)
         return out[rev].astype(np.int64, copy=False)
-
-    def _index_with_as_index(self, b):
-        """
-        Take boolean mask of index to be returned from apply, if as_index=True
-
-        """
-        # TODO perf, it feels like this should already be somewhere...
-        from itertools import chain
-        original = self._selected_obj.index
-        gp = self.grouper
-        levels = chain((gp.levels[i][gp.labels[i][b]]
-                        for i in range(len(gp.groupings))),
-                       (original._get_level_values(i)[b]
-                        for i in range(original.nlevels)))
-        new = MultiIndex.from_arrays(list(levels))
-        new.names = gp.names + original.names
-        return new
 
     def _try_cast(self, result, obj, numeric_only=False):
         """
@@ -2296,18 +2279,6 @@ class BaseGrouper(object):
                       dtype='int64')
 
     @cache_readonly
-    def _max_groupsize(self):
-        """
-        Compute size of largest group
-        """
-        # For many items in each group this is much faster than
-        # self.size().max(), in worst case marginally slower
-        if self.indices:
-            return max(len(v) for v in self.indices.values())
-        else:
-            return 0
-
-    @cache_readonly
     def groups(self):
         """ dict {group name -> group labels} """
         if len(self.groupings) == 1:
@@ -2941,9 +2912,6 @@ class Grouping(object):
         if isinstance(grouper, MultiIndex):
             self.grouper = grouper.values
 
-        # pre-computed
-        self._should_compress = True
-
         # we have a single grouper which may be a myriad of things,
         # some of which are dependent on the passing in level
 
@@ -3000,7 +2968,7 @@ class Grouping(object):
 
             # no level passed
             elif not isinstance(self.grouper,
-                                (Series, Index, Categorical, np.ndarray)):
+                                (Series, Index, ExtensionArray, np.ndarray)):
                 if getattr(self.grouper, 'ndim', 1) != 1:
                     t = self.name or str(type(self.grouper))
                     raise ValueError("Grouper for '%s' not 1-dimensional" % t)
@@ -3892,7 +3860,7 @@ class SeriesGroupBy(GroupBy):
 
         mask = (ids != -1) & ~isna(val)
         ids = _ensure_platform_int(ids)
-        out = np.bincount(ids[mask], minlength=ngroups or None)
+        out = np.bincount(ids[mask], minlength=ngroups or 0)
 
         return Series(out,
                       index=self.grouper.result_index,
@@ -4964,10 +4932,6 @@ class PanelGroupBy(NDFrameGroupBy):
         raise com.AbstractMethodError(self)
 
 
-class NDArrayGroupBy(GroupBy):
-    pass
-
-
 # ----------------------------------------------------------------------
 # Splitting / application
 
@@ -5018,10 +4982,6 @@ class DataSplitter(object):
 
     def apply(self, f):
         raise com.AbstractMethodError(self)
-
-
-class ArraySplitter(DataSplitter):
-    pass
 
 
 class SeriesSplitter(DataSplitter):
