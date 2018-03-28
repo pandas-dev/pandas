@@ -3384,7 +3384,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                         columns=columns, level=level,
                                         inplace=inplace, errors=errors)
 
-    @Appender(generic._shared_docs['fillna'] % _shared_doc_kwargs)
+    @Substitution(**_shared_doc_kwargs)
+    @Appender(generic.NDFrame.fillna.__doc__)
     def fillna(self, value=None, method=None, axis=None, inplace=False,
                limit=None, downcast=None, **kwargs):
         return super(Series, self).fillna(value=value, method=method,
