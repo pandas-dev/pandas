@@ -3642,6 +3642,10 @@ class DataFrame(NDFrame):
         level : int or level name, default None
             In case of a MultiIndex, only rename labels in the specified
             level.
+        tupleize_cols : boolean, default False
+            In case of an Index, when True, create MultiIndex if possible.
+            False ensures that an Index will not be converted to a
+            MultiIndex if labels are 'rename'd.
 
         Returns
         -------
