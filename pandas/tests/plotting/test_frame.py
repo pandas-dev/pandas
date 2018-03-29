@@ -1041,12 +1041,12 @@ class TestDataFramePlots(TestPlotBase):
         assert all([vis[0].get_visible() == vis[1].get_visible() for vis in
                     zip(ax1.xaxis.get_minorticklabels(),
                         ax2.xaxis.get_minorticklabels())]), \
-            'minor x-axis tick labels visibility'
+            'minor x-axis tick labels visibility ' \
             'changes when colorbar included'
         assert all([vis[0].get_visible() == vis[1].get_visible() for vis in 
                     zip(ax1.xaxis.get_majorticklabels(),
                         ax2.xaxis.get_majorticklabels())]), \
-            'major x-axis tick labels visibility' 
+            'major x-axis tick labels visibility ' \
             'changes when colorbar included'
         assert ax1.xaxis.get_label().get_visible() == \
             ax2.xaxis.get_label().get_visible(), \
