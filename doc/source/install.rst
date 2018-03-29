@@ -15,6 +15,31 @@ Instructions for installing from source,
 `PyPI <http://pypi.python.org/pypi/pandas>`__, `ActivePython <https://www.activestate.com/activepython/downloads>`__, various Linux distributions, or a
 `development version <http://github.com/pandas-dev/pandas>`__ are also provided.
 
+.. _install.dropping_27
+
+Plan for dropping Python 2.7
+----------------------------
+
+The Python core team plans to stop supporting Python 2.7 on January 1st, 2020.
+In line with `NumPy's plans`_, all pandas releases through December 31, 2018 will
+support Python 2.
+
+The final major release before **December 31, 2018** will be a long term support (LTS) release.
+The pandas maintainers will backport bugfixes and make releases supporting Python 2 to that branch.
+For example, if ``0.25.0`` is the last major release, we'll make make releases for ``0.25.1``, ``0.25.2``, etc., as needed.
+This branch will not receive new features.
+
+Starting **January 1, 2019**, all major release will be Python 3 only.
+
+Starting **January 1, 2020**, the pandas maintainers will stop supporting Python 2. The released packages will still be
+available on PyPI and through conda, but will not recieve any more bugfixes.
+
+For more information, see the `Python 3 statement`_ and the `Porting to Python 3 guide`_.
+
+.. _NumPy's plans: https://github.com/numpy/numpy/blob/master/doc/neps/nep-0014-dropping-python2.7-proposal.rst#plan-for-dropping-python-27-support
+.. _Python 3 statement: http://python3statement.org/
+.. _Porting to Python 3 guide: https://docs.python.org/3/howto/pyporting.html
+
 Python version support
 ----------------------
 
