@@ -263,6 +263,27 @@ class TestCut(object):
         expected = Categorical(intervals, ordered=True)
         tm.assert_categorical_equal(result, expected)
 
+    def test_qcut_bool_series_to_int(self):
+        # GH 20303
+        x = Series(np.random.randint(2, size=100))
+        bins = 6
+
+        expected = qcut(x, bins, duplicates='drop')
+
+        data = x.astype(bool)
+        result = qcut(data, bins, duplicates='drop')
+        tm.assert_series_equal(result, expected)
+
+    def test_qcut_bool_array_to_int(self):
+        x = np.random.randint(2, size=100)
+        bins = 6
+
+        expected = qcut(arr, bins, duplicates='drop')
+
+        data = x.astype(bool)
+        result = qcut(data, bins, duplicates='drop')
+        tm.assert_categorical_equal(result, expected)
+
     def test_round_frac(self):
         # it works
         result = cut(np.arange(11.), 2)

@@ -7,6 +7,7 @@ from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.common import (
     is_integer,
     is_scalar,
+    is_bool_dtype,
     is_categorical_dtype,
     is_datetime64_dtype,
     is_timedelta64_dtype,
@@ -16,7 +17,7 @@ from pandas.core.dtypes.common import (
 import pandas.core.algorithms as algos
 import pandas.core.nanops as nanops
 from pandas._libs.lib import infer_dtype
-from pandas import (to_timedelta, to_datetime,
+from pandas import (to_timedelta, to_datetime, notna,
                     Categorical, Timestamp, Timedelta,
                     Series, Interval, IntervalIndex)
 
@@ -345,7 +346,7 @@ def _trim_zeros(x):
 
 def _coerce_to_type(x):
     """
-    if the passed data is of datetime/timedelta type,
+    if the passed data is of datetime/timedelta or bool type,
     this method converts it to numeric so that cut method can
     handle it
     """
@@ -359,10 +360,14 @@ def _coerce_to_type(x):
     elif is_timedelta64_dtype(x):
         x = to_timedelta(x)
         dtype = np.timedelta64
+    elif is_bool_dtype(x):
+        # GH 20303: coerce bool dtype to int
+        x = x.astype(np.int64)
+        dtype = np.bool_
 
     if dtype is not None:
         # GH 19768: force NaT to NaN during integer conversion
-        x = np.where(x.notna(), x.view(np.int64), np.nan)
+        x = np.where(notna(x), x.view(np.int64), np.nan)
 
     return x, dtype
 
