@@ -2,6 +2,7 @@
 import numpy as np
 
 from pandas.errors import AbstractMethodError
+from pandas.compat.numpy import function as nv
 
 _not_implemented_message = "{} does not implement {}."
 
@@ -73,6 +74,24 @@ class ExtensionArray(object):
         Returns
         -------
         ExtensionArray
+        """
+        raise AbstractMethodError(cls)
+
+    @classmethod
+    def _from_factorized(cls, values, original):
+        """Reconstruct an ExtensionArray after factorization.
+
+        Parameters
+        ----------
+        values : ndarray
+            An integer ndarray with the factorized values.
+        original : ExtensionArray
+            The original ExtensionArray that factorize was called on.
+
+        See Also
+        --------
+        pandas.factorize
+        ExtensionArray.factorize
         """
         raise AbstractMethodError(cls)
 
@@ -236,6 +255,57 @@ class ExtensionArray(object):
         """
         raise AbstractMethodError(self)
 
+    def _values_for_argsort(self):
+        # type: () -> ndarray
+        """Return values for sorting.
+
+        Returns
+        -------
+        ndarray
+            The transformed values should maintain the ordering between values
+            within the array.
+
+        See Also
+        --------
+        ExtensionArray.argsort
+        """
+        # Note: this is used in `ExtensionArray.argsort`.
+        return np.array(self)
+
+    def argsort(self, ascending=True, kind='quicksort', *args, **kwargs):
+        """
+        Return the indices that would sort this array.
+
+        Parameters
+        ----------
+        ascending : bool, default True
+            Whether the indices should result in an ascending
+            or descending sort.
+        kind : {'quicksort', 'mergesort', 'heapsort'}, optional
+            Sorting algorithm.
+        *args, **kwargs:
+            passed through to :func:`numpy.argsort`.
+
+        Returns
+        -------
+        index_array : ndarray
+            Array of indices that sort ``self``.
+
+        See Also
+        --------
+        numpy.argsort : Sorting implementation used internally.
+        """
+        # Implementor note: You have two places to override the behavior of
+        # argsort.
+        # 1. _values_for_argsort : construct the values passed to np.argsort
+        # 2. argsort : total control over sorting.
+        ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
+        values = self._values_for_argsort()
+        result = np.argsort(values, kind=kind, **kwargs)
+        if not ascending:
+            result = result[::-1]
+        return result
+
     def fillna(self, value=None, method=None, limit=None):
         """ Fill NA/NaN values using the specified method.
 
@@ -261,7 +331,7 @@ class ExtensionArray(object):
         -------
         filled : ExtensionArray with NA/NaN filled
         """
-        from pandas.api.types import is_scalar
+        from pandas.api.types import is_array_like
         from pandas.util._validators import validate_fillna_kwargs
         from pandas.core.missing import pad_1d, backfill_1d
 
@@ -269,7 +339,7 @@ class ExtensionArray(object):
 
         mask = self.isna()
 
-        if not is_scalar(value):
+        if is_array_like(value):
             if len(value) != len(self):
                 raise ValueError("Length of 'value' does not match. Got ({}) "
                                  " expected {}".format(len(value), len(self)))
@@ -300,6 +370,73 @@ class ExtensionArray(object):
 
         uniques = unique(self.astype(object))
         return self._constructor_from_sequence(uniques)
+
+    def _values_for_factorize(self):
+        # type: () -> Tuple[ndarray, Any]
+        """Return an array and missing value suitable for factorization.
+
+        Returns
+        -------
+        values : ndarray
+            An array suitable for factoraization. This should maintain order
+            and be a supported dtype (Float64, Int64, UInt64, String, Object).
+            By default, the extension array is cast to object dtype.
+        na_value : object
+            The value in `values` to consider missing. This will be treated
+            as NA in the factorization routines, so it will be coded as
+            `na_sentinal` and not included in `uniques`. By default,
+            ``np.nan`` is used.
+        """
+        return self.astype(object), np.nan
+
+    def factorize(self, na_sentinel=-1):
+        # type: (int) -> Tuple[ndarray, ExtensionArray]
+        """Encode the extension array as an enumerated type.
+
+        Parameters
+        ----------
+        na_sentinel : int, default -1
+            Value to use in the `labels` array to indicate missing values.
+
+        Returns
+        -------
+        labels : ndarray
+            An interger NumPy array that's an indexer into the original
+            ExtensionArray.
+        uniques : ExtensionArray
+            An ExtensionArray containing the unique values of `self`.
+
+            .. note::
+
+               uniques will *not* contain an entry for the NA value of
+               the ExtensionArray if there are any missing values present
+               in `self`.
+
+        See Also
+        --------
+        pandas.factorize : Top-level factorize method that dispatches here.
+
+        Notes
+        -----
+        :meth:`pandas.factorize` offers a `sort` keyword as well.
+        """
+        # Impelmentor note: There are two ways to override the behavior of
+        # pandas.factorize
+        # 1. _values_for_factorize and _from_factorize.
+        #    Specify the values passed to pandas' internal factorization
+        #    routines, and how to convert from those values back to the
+        #    original ExtensionArray.
+        # 2. ExtensionArray.factorize.
+        #    Complete control over factorization.
+        from pandas.core.algorithms import _factorize_array
+
+        arr, na_value = self._values_for_factorize()
+
+        labels, uniques = _factorize_array(arr, na_sentinel=na_sentinel,
+                                           na_value=na_value)
+
+        uniques = self._from_factorized(uniques, self)
+        return labels, uniques
 
     # ------------------------------------------------------------------------
     # Indexing methods

@@ -919,7 +919,7 @@ class TestDataFrameToCSV(TestData):
         recons = pd.read_csv(StringIO(csv_str), index_col=0)
         assert_frame_equal(self.frame, recons)
 
-    def test_to_csv_compression(self, compression_no_zip):
+    def test_to_csv_compression(self, compression):
 
         df = DataFrame([[0.123456, 0.234567, 0.567567],
                         [12.32112, 123123.2, 321321.2]],
@@ -927,34 +927,21 @@ class TestDataFrameToCSV(TestData):
 
         with ensure_clean() as filename:
 
-            df.to_csv(filename, compression=compression_no_zip)
+            df.to_csv(filename, compression=compression)
 
             # test the round trip - to_csv -> read_csv
-            rs = read_csv(filename, compression=compression_no_zip,
+            rs = read_csv(filename, compression=compression,
                           index_col=0)
             assert_frame_equal(df, rs)
 
             # explicitly make sure file is compressed
-            with tm.decompress_file(filename, compression_no_zip) as fh:
+            with tm.decompress_file(filename, compression) as fh:
                 text = fh.read().decode('utf8')
                 for col in df.columns:
                     assert col in text
 
-            with tm.decompress_file(filename, compression_no_zip) as fh:
+            with tm.decompress_file(filename, compression) as fh:
                 assert_frame_equal(df, read_csv(fh, index_col=0))
-
-    def test_to_csv_compression_value_error(self):
-        # GH7615
-        # use the compression kw in to_csv
-        df = DataFrame([[0.123456, 0.234567, 0.567567],
-                        [12.32112, 123123.2, 321321.2]],
-                       index=['A', 'B'], columns=['X', 'Y', 'Z'])
-
-        with ensure_clean() as filename:
-            # zip compression is not supported and should raise ValueError
-            import zipfile
-            pytest.raises(zipfile.BadZipfile, df.to_csv,
-                          filename, compression="zip")
 
     def test_to_csv_date_format(self):
         with ensure_clean('__tmp_to_csv_date_format__') as path:

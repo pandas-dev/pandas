@@ -397,7 +397,7 @@ In Python, this list would be a list of tuples, so
    pd.DataFrame(a)
 
 For more details and examples see :ref:`the Into to Data Structures
-documentation <basics.dataframe.from_items>`.
+documentation <dsintro>`.
 
 |meltdf|_
 ~~~~~~~~~~~~~~~~
