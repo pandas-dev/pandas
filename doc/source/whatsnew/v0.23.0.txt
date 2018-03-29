@@ -299,6 +299,61 @@ Supplying a ``CategoricalDtype`` will make the categories in each column consist
     df['A'].dtype
     df['B'].dtype
 
+Extension Types
+^^^^^^^^^^^^^^^
+
+Pandas now supports storing array-like objects that aren't necessarily 1-D NumPy
+arrays as columns in a DataFrame or values in a Series. This allows third-party
+libraries to implement extensions to NumPy's types, similar to how pandas
+implemented categoricals, datetimes with timezones, periods, and intervals.
+
+As a demonstration, we'll use cyberpandas_, which provides an ``IPArray`` type
+for storing ip addresses.
+
+.. code-block:: ipython
+
+   In [1]: import pandas as pd; from cyberpandas import IPArray
+
+   In [2]: values = IPArray([
+      ...:     0,
+      ...:     3232235777,
+      ...:     42540766452641154071740215577757643572
+      ...: ])
+      ...:
+      ...:
+
+``IPArray`` isn't a normal 1-D NumPy array, but because it's a pandas
+ExtensionArray, it can be stored properly inside pandas' containers.
+
+.. code-block:: ipython
+
+   In [3]: ser = pd.Series(values)
+      ...:
+
+   In [4]: ser
+   Out[4]:
+   0                         0.0.0.0
+   1                     192.168.1.1
+   2    2001:db8:85a3::8a2e:370:7334
+   dtype: ip
+
+Notice that the dtype is ``ip``. The missing value semantics of the underlying
+array are respected:
+
+   In [5]: ser.isna()
+      ...:
+   Out[5]:
+   0     True
+   1    False
+   2    False
+   dtype: bool
+
+For more, see the :ref:`extension types <extending.extension-types>`
+documentation. If you build an extension array, publicize it on our
+:ref:`ecosystem page <ecosystem.extensions>`.
+
+.. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest/
+
 .. _whatsnew_0230.enhancements.other:
 
 Other Enhancements
