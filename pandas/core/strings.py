@@ -383,19 +383,54 @@ def str_startswith(arr, pat, na=np.nan):
 
 def str_endswith(arr, pat, na=np.nan):
     """
-    Return boolean Series indicating whether each string in the
-    Series/Index ends with passed pattern. Equivalent to
-    :meth:`str.endswith`.
+    Test if the end of each string element matches a pattern.
+
+    Equivalent to :meth:`str.endswith`.
 
     Parameters
     ----------
-    pat : string
-        Character sequence
-    na : bool, default NaN
+    pat : str
+        Character sequence. Regular expressions are not accepted.
+    na : object, default NaN
+        Object shown if element tested is not a string.
 
     Returns
     -------
-    endswith : Series/array of boolean values
+    Series or Index of bool
+        A Series of booleans indicating whether the given pattern matches
+        the end of each string element.
+
+    See Also
+    --------
+    str.endswith : Python standard library string method.
+    Series.str.startswith : Same as endswith, but tests the start of string.
+    Series.str.contains : Tests if string element contains a pattern.
+
+    Examples
+    --------
+    >>> s = pd.Series(['bat', 'bear', 'caT', np.nan])
+    >>> s
+    0     bat
+    1    bear
+    2     caT
+    3     NaN
+    dtype: object
+
+    >>> s.str.endswith('t')
+    0     True
+    1    False
+    2    False
+    3      NaN
+    dtype: object
+
+    Specifying `na` to be `False` instead of `NaN`.
+
+    >>> s.str.endswith('t', na=False)
+    0     True
+    1    False
+    2    False
+    3    False
+    dtype: bool
     """
     f = lambda x: x.endswith(pat)
     return _na_map(f, arr, na, dtype=bool)
@@ -2222,11 +2257,68 @@ class StringMethods(NoNewAttributesMixin):
 
     _shared_docs['casemethods'] = ("""
     Convert strings in the Series/Index to %(type)s.
+
     Equivalent to :meth:`str.%(method)s`.
 
     Returns
     -------
-    converted : Series/Index of objects
+    Series/Index of objects
+
+    See Also
+    --------
+    Series.str.lower : Converts all characters to lowercase.
+    Series.str.upper : Converts all characters to uppercase.
+    Series.str.title : Converts first character of each word to uppercase and
+        remaining to lowercase.
+    Series.str.capitalize : Converts first character to uppercase and
+        remaining to lowercase.
+    Series.str.swapcase : Converts uppercase to lowercase and lowercase to
+        uppercase.
+
+    Examples
+    --------
+    >>> s = pd.Series(['lower', 'CAPITALS', 'this is a sentence', 'SwApCaSe'])
+    >>> s
+    0                 lower
+    1              CAPITALS
+    2    this is a sentence
+    3              SwApCaSe
+    dtype: object
+
+    >>> s.str.lower()
+    0                 lower
+    1              capitals
+    2    this is a sentence
+    3              swapcase
+    dtype: object
+
+    >>> s.str.upper()
+    0                 LOWER
+    1              CAPITALS
+    2    THIS IS A SENTENCE
+    3              SWAPCASE
+    dtype: object
+
+    >>> s.str.title()
+    0                 Lower
+    1              Capitals
+    2    This Is A Sentence
+    3              Swapcase
+    dtype: object
+
+    >>> s.str.capitalize()
+    0                 Lower
+    1              Capitals
+    2    This is a sentence
+    3              Swapcase
+    dtype: object
+
+    >>> s.str.swapcase()
+    0                 LOWER
+    1              capitals
+    2    THIS IS A SENTENCE
+    3              sWaPcAsE
+    dtype: object
     """)
     _shared_docs['lower'] = dict(type='lowercase', method='lower')
     _shared_docs['upper'] = dict(type='uppercase', method='upper')

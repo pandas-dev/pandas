@@ -31,7 +31,7 @@ from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_blocks)
 from pandas.core.series import Series
 from pandas.core.reshape.util import cartesian_product
-from pandas.util._decorators import Appender
+from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_axis_style_args
 
 _shared_doc_kwargs = dict(
@@ -1254,7 +1254,8 @@ class Panel(NDFrame):
 
         return super(Panel, self).transpose(*axes, **kwargs)
 
-    @Appender(_shared_docs['fillna'] % _shared_doc_kwargs)
+    @Substitution(**_shared_doc_kwargs)
+    @Appender(NDFrame.fillna.__doc__)
     def fillna(self, value=None, method=None, axis=None, inplace=False,
                limit=None, downcast=None, **kwargs):
         return super(Panel, self).fillna(value=value, method=method, axis=axis,
