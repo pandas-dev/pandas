@@ -13,6 +13,8 @@ pandas' own :ref:`10 Minutes to pandas<10min>`.
 
 More complex recipes are in the :ref:`Cookbook<cookbook>`.
 
+A handy pandas `cheat sheet <http://pandas.pydata.org/Pandas_Cheat_Sheet.pdf>`_.
+
 pandas Cookbook
 ---------------
 
@@ -180,13 +182,13 @@ Video Tutorials
 
 - `Pandas From The Ground Up <https://www.youtube.com/watch?v=5JnMutdy6Fw>`_ 
   (2015) (2:24)
-  `GitHub repo <https://github.com/brandon-rhodes/pycon-pandas-tutorial>`_ 
+  `GitHub repo <https://github.com/brandon-rhodes/pycon-pandas-tutorial>`__
 - `Introduction Into Pandas <https://www.youtube.com/watch?v=-NR-ynQg0YM>`_ 
   (2016) (1:28)
-  `GitHub repo <https://github.com/chendaniely/2016-pydata-carolinas-pandas>`_ 
+  `GitHub repo <https://github.com/chendaniely/2016-pydata-carolinas-pandas>`__
 - `Pandas: .head() to .tail() <https://www.youtube.com/watch?v=7vuO9QXDN50>`_ 
   (2016) (1:26)
-  `GitHub repo <https://github.com/TomAugspurger/pydata-chi-h2t>`_ 
+  `GitHub repo <https://github.com/TomAugspurger/pydata-chi-h2t>`__
 
 
 Various Tutorials

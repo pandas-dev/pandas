@@ -57,6 +57,32 @@ class TestDataFrameTimeSeriesMethods(TestData):
             1), 'z': pd.Series(1)}).astype('float64')
         assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize('tz', [None, 'UTC'])
+    def test_diff_datetime_axis0(self, tz):
+        # GH 18578
+        df = DataFrame({0: date_range('2010', freq='D', periods=2, tz=tz),
+                        1: date_range('2010', freq='D', periods=2, tz=tz)})
+
+        result = df.diff(axis=0)
+        expected = DataFrame({0: pd.TimedeltaIndex(['NaT', '1 days']),
+                              1: pd.TimedeltaIndex(['NaT', '1 days'])})
+        assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('tz', [None, 'UTC'])
+    def test_diff_datetime_axis1(self, tz):
+        # GH 18578
+        df = DataFrame({0: date_range('2010', freq='D', periods=2, tz=tz),
+                        1: date_range('2010', freq='D', periods=2, tz=tz)})
+        if tz is None:
+            result = df.diff(axis=1)
+            expected = DataFrame({0: pd.TimedeltaIndex(['NaT', 'NaT']),
+                                  1: pd.TimedeltaIndex(['0 days',
+                                                        '0 days'])})
+            assert_frame_equal(result, expected)
+        else:
+            with pytest.raises(NotImplementedError):
+                result = df.diff(axis=1)
+
     def test_diff_timedelta(self):
         # GH 4533
         df = DataFrame(dict(time=[Timestamp('20130101 9:01'),

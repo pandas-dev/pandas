@@ -21,10 +21,11 @@ from pandas.core.dtypes.generic import ABCSeries
 
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import get_freq_code as _gfc
+from pandas.tseries.offsets import Tick, DateOffset
+
 from pandas.core.indexes.datetimes import DatetimeIndex, Int64Index, Index
 from pandas.core.indexes.datetimelike import DatelikeOps, DatetimeIndexOpsMixin
 from pandas.core.tools.datetimes import parse_time_string
-import pandas.tseries.offsets as offsets
 
 from pandas._libs.lib import infer_dtype
 from pandas._libs import tslib, index as libindex
@@ -233,8 +234,15 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         cls.__ge__ = _period_index_cmp('__ge__', cls)
 
     def __new__(cls, data=None, ordinal=None, freq=None, start=None, end=None,
-                periods=None, copy=False, name=None, tz=None, dtype=None,
-                **kwargs):
+                periods=None, tz=None, dtype=None, copy=False, name=None,
+                **fields):
+
+        valid_field_set = {'year', 'month', 'day', 'quarter',
+                           'hour', 'minute', 'second'}
+
+        if not set(fields).issubset(valid_field_set):
+            raise TypeError('__new__() got an unexpected keyword argument {}'.
+                            format(list(set(fields) - valid_field_set)[0]))
 
         if periods is not None:
             if is_float(periods):
@@ -266,7 +274,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 data = np.asarray(ordinal, dtype=np.int64)
             else:
                 data, freq = cls._generate_range(start, end, periods,
-                                                 freq, kwargs)
+                                                 freq, fields)
             return cls._from_ordinals(data, name=name, freq=freq)
 
         if isinstance(data, PeriodIndex):
@@ -680,9 +688,9 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
 
     def _maybe_convert_timedelta(self, other):
         if isinstance(
-                other, (timedelta, np.timedelta64, offsets.Tick, np.ndarray)):
+                other, (timedelta, np.timedelta64, Tick, np.ndarray)):
             offset = frequencies.to_offset(self.freq.rule_code)
-            if isinstance(offset, offsets.Tick):
+            if isinstance(offset, Tick):
                 if isinstance(other, np.ndarray):
                     nanos = np.vectorize(delta_to_nanoseconds)(other)
                 else:
@@ -691,7 +699,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 check = np.all(nanos % offset_nanos == 0)
                 if check:
                     return nanos // offset_nanos
-        elif isinstance(other, offsets.DateOffset):
+        elif isinstance(other, DateOffset):
             freqstr = other.rule_code
             base = frequencies.get_base_alias(freqstr)
             if base == self.freq.rule_code:
@@ -706,6 +714,30 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         # raise when input doesn't have freq
         msg = "Input has different freq from PeriodIndex(freq={0})"
         raise IncompatibleFrequency(msg.format(self.freqstr))
+
+    def _add_offset(self, other):
+        assert not isinstance(other, Tick)
+        base = frequencies.get_base_alias(other.rule_code)
+        if base != self.freq.rule_code:
+            msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
+            raise IncompatibleFrequency(msg)
+        return self.shift(other.n)
+
+    def _add_delta_td(self, other):
+        assert isinstance(other, (timedelta, np.timedelta64, Tick))
+        nanos = delta_to_nanoseconds(other)
+        own_offset = frequencies.to_offset(self.freq.rule_code)
+
+        if isinstance(own_offset, Tick):
+            offset_nanos = delta_to_nanoseconds(own_offset)
+            if np.all(nanos % offset_nanos == 0):
+                return self.shift(nanos // offset_nanos)
+
+        # raise when input doesn't have freq
+        raise IncompatibleFrequency("Input has different freq from "
+                                    "{cls}(freq={freqstr})"
+                                    .format(cls=type(self).__name__,
+                                            freqstr=self.freqstr))
 
     def _add_delta(self, other):
         ordinal_delta = self._maybe_convert_timedelta(other)
@@ -1063,7 +1095,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         """
         raise NotImplementedError("Not yet implemented for PeriodIndex")
 
-    def tz_localize(self, tz, infer_dst=False):
+    def tz_localize(self, tz, ambiguous='raise'):
         """
         Localize tz-naive DatetimeIndex to given time zone (using
         pytz/dateutil), or remove timezone from tz-aware DatetimeIndex
@@ -1074,8 +1106,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             Time zone for time. Corresponding timestamps would be converted to
             time zone of the TimeSeries.
             None will remove timezone holding local time.
-        infer_dst : boolean, default False
-            Attempt to infer fall dst-transition hours based on order
 
         Returns
         -------
