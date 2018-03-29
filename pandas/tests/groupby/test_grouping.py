@@ -340,7 +340,7 @@ class TestGrouping(MixIn):
         pytest.raises(AssertionError, ts.groupby, lambda key: key[0:6])
 
     def test_grouping_error_on_multidim_input(self):
-        from pandas.core.groupby import Grouping
+        from pandas.core.groupby.groupby import Grouping
         pytest.raises(ValueError,
                       Grouping, self.df.index, self.df[['A', 'A']])
 
