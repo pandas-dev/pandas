@@ -252,11 +252,7 @@ class TestModuleMoves(object):
         with tm.assert_produces_warning(FutureWarning):
             from pandas.core.categorical import CategoricalDtype  # noqa
 
-    @pytest.mark.parametrize("attr", [
-        "Grouper", "groupby", "BinGrouper", "Grouper", "_GroupBy", "GroupBy",
-        "SeriesGroupBy", "_pipe_template", "PanelGroupBy", "Grouping",
-        "SpecificationError", "DataError", "generate_bins_generic",
-        "DataFrameGroupBy"])
+    @pytest.mark.parametrize("attr", ["Grouper"])
     def test_groupby_move(self, attr):
         # May have been cached by another import, e.g. pickle tests.
         sys.modules.pop("pandas.core.groupby", None)
