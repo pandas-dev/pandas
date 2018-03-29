@@ -331,7 +331,7 @@ Other Enhancements
   :func:`pandas.api.extensions.register_series_accessor`, and
   :func:`pandas.api.extensions.register_index_accessor`, accessor for libraries downstream of pandas
   to register custom accessors like ``.cat`` on pandas objects. See
-  :ref:`Registering Custom Accessors <developer.register-accessors>` for more (:issue:`14781`).
+  :ref:`Registering Custom Accessors <extending.register-accessors>` for more (:issue:`14781`).
 
 - ``IntervalIndex.astype`` now supports conversions between subtypes when passed an ``IntervalDtype`` (:issue:`19197`)
 - :class:`IntervalIndex` and its associated constructor methods (``from_arrays``, ``from_breaks``, ``from_tuples``) have gained a ``dtype`` parameter (:issue:`19262`)

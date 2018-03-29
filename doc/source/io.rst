@@ -3862,6 +3862,8 @@ Then create the index when finished appending.
 
 See `here <http://stackoverflow.com/questions/17893370/ptrepack-sortby-needs-full-index>`__ for how to create a completely-sorted-index (CSI) on an existing store.
 
+.. _io.hdf5-query-data-columns:
+
 Query via Data Columns
 ++++++++++++++++++++++
 

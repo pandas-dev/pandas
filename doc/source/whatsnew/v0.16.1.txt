@@ -26,7 +26,7 @@ Highlights include:
 
 .. warning::
 
-   In pandas 0.17.0, the sub-package ``pandas.io.data`` will be removed in favor of a separately installable package. See :ref:`here for details <remote_data.pandas_datareader>` (:issue:`8961`)
+   In pandas 0.17.0, the sub-package ``pandas.io.data`` will be removed in favor of a separately installable package (:issue:`8961`).
 
 Enhancements
 ~~~~~~~~~~~~

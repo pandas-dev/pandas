@@ -16,12 +16,12 @@ New features
 - Add PyQt table widget to sandbox (:issue:`435`)
 - DataFrame.align can :ref:`accept Series arguments <basics.align.frame.series>`
   and an :ref:`axis option <basics.df_join>` (:issue:`461`)
-- Implement new :ref:`SparseArray <sparse.array>` and :ref:`SparseList <sparse.list>`
+- Implement new :ref:`SparseArray <sparse.array>` and `SparseList`
   data structures. SparseSeries now derives from SparseArray (:issue:`463`)
 - :ref:`Better console printing options <basics.console_output>` (:issue:`453`)
 - Implement fast :ref:`data ranking <computation.ranking>` for Series and
   DataFrame, fast versions of scipy.stats.rankdata (:issue:`428`)
-- Implement :ref:`DataFrame.from_items <basics.dataframe.from_items>` alternate
+- Implement `DataFrame.from_items` alternate
   constructor (:issue:`444`)
 - DataFrame.convert_objects method for :ref:`inferring better dtypes <basics.cast>`
   for object columns (:issue:`302`)

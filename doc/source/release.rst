@@ -71,7 +71,7 @@ Highlights include:
 
 - Temporarily restore matplotlib datetime plotting functionality. This should
   resolve issues for users who relied implicitly on pandas to plot datetimes
-  with matplotlib. See :ref:`here <whatsnew_0211.special>`.
+  with matplotlib. See :ref:`here <whatsnew_0211.converters>`.
 - Improvements to the Parquet IO functions introduced in 0.21.0. See
   :ref:`here <whatsnew_0211.enhancements.parquet>`.
 

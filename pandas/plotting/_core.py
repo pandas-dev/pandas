@@ -3100,7 +3100,7 @@ class FramePlotMethods(BasePlotMethods):
 
         A histogram is a representation of the distribution of data.
         This function groups the values of all given Series in the DataFrame
-        into bins, and draws all bins in only one :ref:`matplotlib.axes.Axes`.
+        into bins and draws all bins in one :class:`matplotlib.axes.Axes`.
         This is useful when the DataFrame's Series are in a similar scale.
 
         Parameters

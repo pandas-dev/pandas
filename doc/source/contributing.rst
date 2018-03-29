@@ -298,6 +298,11 @@ Some other important things to know about the docs:
   Standard**. Follow the :ref:`pandas docstring guide <docstring>` for detailed
   instructions on how to write a correct docstring.
 
+  .. toctree::
+     :maxdepth: 2
+
+     contributing_docstring.rst
+
 - The tutorials make heavy use of the `ipython directive
   <http://matplotlib.org/sampledoc/ipython_directive.html>`_ sphinx extension.
   This directive lets you put code in the documentation which will be run
@@ -900,7 +905,7 @@ Documenting your code
 Changes should be reflected in the release notes located in ``doc/source/whatsnew/vx.y.z.txt``.
 This file contains an ongoing change log for each release.  Add an entry to this file to
 document your fix, enhancement or (unavoidable) breaking change.  Make sure to include the
-GitHub issue number when adding your entry (using `` :issue:`1234` `` where `1234` is the
+GitHub issue number when adding your entry (using ``:issue:`1234``` where ``1234`` is the
 issue/pull request number).
 
 If your code is an enhancement, it is most likely necessary to add usage
@@ -1020,7 +1025,7 @@ release.  To submit a pull request:
 #. Click ``Send Pull Request``.
 
 This request then goes to the repository maintainers, and they will review
-the code. 
+the code.
 
 .. _contributing.update-pr:
 
@@ -1028,7 +1033,7 @@ Updating your pull request
 --------------------------
 
 Based on the review you get on your pull request, you will probably need to make
-some changes to the code. In that case, you can make them in your branch, 
+some changes to the code. In that case, you can make them in your branch,
 add a new commit to that branch, push it to GitHub, and the pull request will be
 automatically updated.  Pushing them to GitHub again is done by::
 
@@ -1039,7 +1044,7 @@ This will automatically update your pull request with the latest code and restar
 
 Another reason you might need to update your pull request is to solve conflicts
 with changes that have been merged into the master branch since you opened your
-pull request. 
+pull request.
 
 To do this, you need to "merge upstream master" in your branch::
 
