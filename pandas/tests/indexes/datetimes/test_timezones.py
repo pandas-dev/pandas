@@ -341,9 +341,6 @@ class TestDatetimeIndexTimezones(object):
         di = DatetimeIndex(times)
         localized = di.tz_localize(tz, ambiguous='infer')
         tm.assert_index_equal(dr, localized)
-        with tm.assert_produces_warning(FutureWarning):
-            localized_old = di.tz_localize(tz, infer_dst=True)
-        tm.assert_index_equal(dr, localized_old)
         tm.assert_index_equal(dr, DatetimeIndex(times, tz=tz,
                                                 ambiguous='infer'))
 
@@ -353,9 +350,6 @@ class TestDatetimeIndexTimezones(object):
         localized = dr.tz_localize(tz)
         localized_infer = dr.tz_localize(tz, ambiguous='infer')
         tm.assert_index_equal(localized, localized_infer)
-        with tm.assert_produces_warning(FutureWarning):
-            localized_infer_old = dr.tz_localize(tz, infer_dst=True)
-        tm.assert_index_equal(localized, localized_infer_old)
 
     @pytest.mark.parametrize('tz', [pytz.timezone('US/Eastern'),
                                     gettz('US/Eastern')])
@@ -525,7 +519,7 @@ class TestDatetimeIndexTimezones(object):
         localized = DatetimeIndex(times, tz=tz, ambiguous=is_dst)
         tm.assert_index_equal(dr, localized)
 
-        # Test duplicate times where infer_dst fails
+        # Test duplicate times where inferring the dst fails
         times += times
         di = DatetimeIndex(times)
 
@@ -700,18 +694,17 @@ class TestDatetimeIndexTimezones(object):
     # -------------------------------------------------------------
     # Unsorted
 
-    @pytest.mark.parametrize('how', ['inner', 'outer', 'left', 'right'])
-    def test_join_utc_convert(self, how):
+    def test_join_utc_convert(self, join_type):
         rng = date_range('1/1/2011', periods=100, freq='H', tz='utc')
 
         left = rng.tz_convert('US/Eastern')
         right = rng.tz_convert('Europe/Berlin')
 
-        result = left.join(left[:-5], how=how)
+        result = left.join(left[:-5], how=join_type)
         assert isinstance(result, DatetimeIndex)
         assert result.tz == left.tz
 
-        result = left.join(right[:-5], how=how)
+        result = left.join(right[:-5], how=join_type)
         assert isinstance(result, DatetimeIndex)
         assert result.tz.zone == 'UTC'
 

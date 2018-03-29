@@ -5,6 +5,7 @@ channels:
 dependencies:
   - Cython
   - NumPy
+  - flake8
   - moto
   - pytest>=3.1
   - python-dateutil>=2.5.0

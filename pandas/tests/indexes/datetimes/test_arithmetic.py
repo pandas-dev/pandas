@@ -14,6 +14,7 @@ from pandas.errors import PerformanceWarning, NullFrequencyError
 from pandas import (Timestamp, Timedelta, Series,
                     DatetimeIndex, TimedeltaIndex,
                     date_range)
+from pandas.core import ops
 from pandas._libs import tslib
 from pandas._libs.tslibs.offsets import shift_months
 
@@ -306,6 +307,17 @@ class TestDatetimeIndexComparisons(object):
 
 
 class TestDatetimeIndexArithmetic(object):
+
+    # -------------------------------------------------------------
+    # Invalid Operations
+
+    @pytest.mark.parametrize('other', [3.14, np.array([2.0, 3.0])])
+    @pytest.mark.parametrize('op', [operator.add, ops.radd,
+                                    operator.sub, ops.rsub])
+    def test_dti_add_sub_float(self, op, other):
+        dti = DatetimeIndex(['2011-01-01', '2011-01-02'], freq='D')
+        with pytest.raises(TypeError):
+            op(dti, other)
 
     def test_dti_add_timestamp_raises(self):
         idx = DatetimeIndex(['2011-01-01', '2011-01-02'])

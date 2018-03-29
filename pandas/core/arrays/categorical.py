@@ -421,6 +421,10 @@ class Categorical(ExtensionArray, PandasObject):
     def _constructor(self):
         return Categorical
 
+    @classmethod
+    def _constructor_from_sequence(cls, scalars):
+        return Categorical(scalars)
+
     def copy(self):
         """ Copy constructor. """
         return self._constructor(values=self._codes.copy(),
@@ -475,9 +479,7 @@ class Categorical(ExtensionArray, PandasObject):
         (for str, int, float) or a pandas scalar
         (for Timestamp/Timedelta/Interval/Period)
         """
-        if is_datetimelike(self.categories):
-            return [com._maybe_box_datetimelike(x) for x in self]
-        return np.array(self).tolist()
+        return list(self)
 
     @property
     def base(self):
@@ -1077,20 +1079,73 @@ class Categorical(ExtensionArray, PandasObject):
             return cat
 
     def map(self, mapper):
-        """Apply mapper function to its categories (not codes).
+        """
+        Map categories using input correspondence (dict, Series, or function).
+
+        Maps the categories to new categories. If the mapping correspondence is
+        one-to-one the result is a :class:`~pandas.Categorical` which has the
+        same order property as the original, otherwise a :class:`~pandas.Index`
+        is returned.
+
+        If a `dict` or :class:`~pandas.Series` is used any unmapped category is
+        mapped to `NaN`. Note that if this happens an :class:`~pandas.Index`
+        will be returned.
 
         Parameters
         ----------
-        mapper : callable
-            Function to be applied. When all categories are mapped
-            to different categories, the result will be Categorical which has
-            the same order property as the original. Otherwise, the result will
-            be np.ndarray.
+        mapper : function, dict, or Series
+            Mapping correspondence.
 
         Returns
         -------
-        applied : Categorical or Index.
+        pandas.Categorical or pandas.Index
+            Mapped categorical.
 
+        See Also
+        --------
+        CategoricalIndex.map : Apply a mapping correspondence on a
+            :class:`~pandas.CategoricalIndex`.
+        Index.map : Apply a mapping correspondence on an
+            :class:`~pandas.Index`.
+        Series.map : Apply a mapping correspondence on a
+            :class:`~pandas.Series`.
+        Series.apply : Apply more complex functions on a
+            :class:`~pandas.Series`.
+
+        Examples
+        --------
+        >>> cat = pd.Categorical(['a', 'b', 'c'])
+        >>> cat
+        [a, b, c]
+        Categories (3, object): [a, b, c]
+        >>> cat.map(lambda x: x.upper())
+        [A, B, C]
+        Categories (3, object): [A, B, C]
+        >>> cat.map({'a': 'first', 'b': 'second', 'c': 'third'})
+        [first, second, third]
+        Categories (3, object): [first, second, third]
+
+        If the mapping is one-to-one the ordering of the categories is
+        preserved:
+
+        >>> cat = pd.Categorical(['a', 'b', 'c'], ordered=True)
+        >>> cat
+        [a, b, c]
+        Categories (3, object): [a < b < c]
+        >>> cat.map({'a': 3, 'b': 2, 'c': 1})
+        [3, 2, 1]
+        Categories (3, int64): [3 < 2 < 1]
+
+        If the mapping is not one-to-one an :class:`~pandas.Index` is returned:
+
+        >>> cat.map({'a': 'first', 'b': 'second', 'c': 'first'})
+        Index(['first', 'second', 'first'], dtype='object')
+
+        If a `dict` is used, all unmapped categories are mapped to `NaN` and
+        the result is an :class:`~pandas.Index`:
+
+        >>> cat.map({'a': 'first', 'b': 'second'})
+        Index(['first', 'second', nan], dtype='object')
         """
         new_categories = self.categories.map(mapper)
         try:
@@ -1253,7 +1308,7 @@ class Categorical(ExtensionArray, PandasObject):
         """
         Detect missing values
 
-        Both missing values (-1 in .codes) and NA as a category are detected.
+        Missing values (-1 in .codes) are detected.
 
         Returns
         -------
@@ -1268,13 +1323,6 @@ class Categorical(ExtensionArray, PandasObject):
         """
 
         ret = self._codes == -1
-
-        # String/object and float categories can hold np.nan
-        if self.categories.dtype.kind in ['S', 'O', 'f']:
-            if np.nan in self.categories:
-                nan_pos = np.where(isna(self.categories))[0]
-                # we only have one NA in categories
-                ret = np.logical_or(ret, self._codes == nan_pos)
         return ret
     isnull = isna
 
@@ -1310,16 +1358,14 @@ class Categorical(ExtensionArray, PandasObject):
         """
         Return the Categorical without null values.
 
-        Both missing values (-1 in .codes) and NA as a category are detected.
-        NA is removed from the categories if present.
+        Missing values (-1 in .codes) are detected.
 
         Returns
         -------
         valid : Categorical
         """
         result = self[self.notna()]
-        if isna(result.categories).any():
-            result = result.remove_categories([np.nan])
+
         return result
 
     def value_counts(self, dropna=True):
@@ -1331,7 +1377,7 @@ class Categorical(ExtensionArray, PandasObject):
         Parameters
         ----------
         dropna : boolean, default True
-            Don't include counts of NaN, even if NaN is a category.
+            Don't include counts of NaN.
 
         Returns
         -------
@@ -1343,11 +1389,9 @@ class Categorical(ExtensionArray, PandasObject):
 
         """
         from numpy import bincount
-        from pandas import isna, Series, CategoricalIndex
+        from pandas import Series, CategoricalIndex
 
-        obj = (self.remove_categories([np.nan]) if dropna and
-               isna(self.categories).any() else self)
-        code, cat = obj._codes, obj.categories
+        code, cat = self._codes, self.categories
         ncat, mask = len(cat), 0 <= code
         ix, clean = np.arange(ncat), mask.all()
 
@@ -1386,17 +1430,24 @@ class Categorical(ExtensionArray, PandasObject):
                             "you can use .as_ordered() to change the "
                             "Categorical to an ordered one\n".format(op=op))
 
-    def argsort(self, ascending=True, kind='quicksort', *args, **kwargs):
-        """
-        Returns the indices that would sort the Categorical instance if
-        'sort_values' was called. This function is implemented to provide
-        compatibility with numpy ndarray objects.
+    def _values_for_argsort(self):
+        return self._codes.copy()
 
-        While an ordering is applied to the category values, arg-sorting
-        in this context refers more to organizing and grouping together
-        based on matching category values. Thus, this function can be
-        called on an unordered Categorical instance unlike the functions
-        'Categorical.min' and 'Categorical.max'.
+    def argsort(self, *args, **kwargs):
+        # TODO(PY2): use correct signature
+        # We have to do *args, **kwargs to avoid a a py2-only signature
+        # issue since np.argsort differs from argsort.
+        """Return the indicies that would sort the Categorical.
+
+        Parameters
+        ----------
+        ascending : bool, default True
+            Whether the indices should result in an ascending
+            or descending sort.
+        kind : {'quicksort', 'mergesort', 'heapsort'}, optional
+            Sorting algorithm.
+        *args, **kwargs:
+            passed through to :func:`numpy.argsort`.
 
         Returns
         -------
@@ -1405,12 +1456,28 @@ class Categorical(ExtensionArray, PandasObject):
         See also
         --------
         numpy.ndarray.argsort
+
+        Notes
+        -----
+        While an ordering is applied to the category values, arg-sorting
+        in this context refers more to organizing and grouping together
+        based on matching category values. Thus, this function can be
+        called on an unordered Categorical instance unlike the functions
+        'Categorical.min' and 'Categorical.max'.
+
+        Examples
+        --------
+        >>> pd.Categorical(['b', 'b', 'a', 'c']).argsort()
+        array([2, 0, 1, 3])
+
+        >>> cat = pd.Categorical(['b', 'b', 'a', 'c'],
+        ...                      categories=['c', 'b', 'a'],
+        ...                      ordered=True)
+        >>> cat.argsort()
+        array([3, 0, 1, 2])
         """
-        ascending = nv.validate_argsort_with_ascending(ascending, args, kwargs)
-        result = np.argsort(self._codes.copy(), kind=kind, **kwargs)
-        if not ascending:
-            result = result[::-1]
-        return result
+        # Keep the implementation here just for the docstring.
+        return super(Categorical, self).argsort(*args, **kwargs)
 
     def sort_values(self, inplace=False, ascending=True, na_position='last'):
         """ Sorts the Categorical by category value returning a new
@@ -1587,16 +1654,16 @@ class Categorical(ExtensionArray, PandasObject):
 
         Parameters
         ----------
-        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
-            Method to use for filling holes in reindexed Series
-            pad / ffill: propagate last valid observation forward to next valid
-            backfill / bfill: use NEXT valid observation to fill gap
         value : scalar, dict, Series
             If a scalar value is passed it is used to fill all missing values.
             Alternatively, a Series or dict can be used to fill in different
             values for each index. The value should not be a list. The
             value(s) passed should either be in the categories or should be
             NaN.
+        method : {'backfill', 'bfill', 'pad', 'ffill', None}, default None
+            Method to use for filling holes in reindexed Series
+            pad / ffill: propagate last valid observation forward to next valid
+            backfill / bfill: use NEXT valid observation to fill gap
         limit : int, default None
             (Not implemented yet for Categorical!)
             If method is specified, this is the maximum number of consecutive
@@ -1621,14 +1688,6 @@ class Categorical(ExtensionArray, PandasObject):
                                       "been implemented yet")
 
         values = self._codes
-
-        # Make sure that we also get NA in categories
-        if self.categories.dtype.kind in ['S', 'O', 'f']:
-            if np.nan in self.categories:
-                values = values.copy()
-                nan_pos = np.where(isna(self.categories))[0]
-                # we only have one NA in categories
-                values[values == nan_pos] = -1
 
         # pad / bfill
         if method is not None:
@@ -1712,7 +1771,7 @@ class Categorical(ExtensionArray, PandasObject):
 
     def __iter__(self):
         """Returns an Iterator over the values of this Categorical."""
-        return iter(self.get_values())
+        return iter(self.get_values().tolist())
 
     def _tidy_repr(self, max_vals=10, footer=True):
         """ a short repr displaying only max_vals and an optional (but default
@@ -1883,15 +1942,6 @@ class Categorical(ExtensionArray, PandasObject):
             key = np.asarray(key)
 
         lindexer = self.categories.get_indexer(rvalue)
-
-        # FIXME: the following can be removed after GH7820 is fixed:
-        # https://github.com/pandas-dev/pandas/issues/7820
-        # float categories do currently return -1 for np.nan, even if np.nan is
-        # included in the index -> "repair" this here
-        if isna(rvalue).any() and isna(self.categories).any():
-            nan_pos = np.where(isna(self.categories))[0]
-            lindexer[lindexer == -1] = nan_pos
-
         lindexer = self._maybe_coerce_indexer(lindexer)
         self._codes[key] = lindexer
 
@@ -2067,6 +2117,16 @@ class Categorical(ExtensionArray, PandasObject):
         if self.ordered:
             take_codes = sorted(take_codes)
         return cat.set_categories(cat.categories.take(take_codes))
+
+    def _values_for_factorize(self):
+        codes = self.codes.astype('int64')
+        return codes, -1
+
+    @classmethod
+    def _from_factorized(cls, uniques, original):
+        return original._constructor(original.categories.take(uniques),
+                                     categories=original.categories,
+                                     ordered=original.ordered)
 
     def equals(self, other):
         """

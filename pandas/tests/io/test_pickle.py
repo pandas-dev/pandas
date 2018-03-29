@@ -352,7 +352,7 @@ class TestCompression(object):
                 f.write(fh.read())
             f.close()
 
-    def test_write_explicit(self, compression_no_zip, get_random_path):
+    def test_write_explicit(self, compression, get_random_path):
         base = get_random_path
         path1 = base + ".compressed"
         path2 = base + ".raw"
@@ -361,10 +361,10 @@ class TestCompression(object):
             df = tm.makeDataFrame()
 
             # write to compressed file
-            df.to_pickle(p1, compression=compression_no_zip)
+            df.to_pickle(p1, compression=compression)
 
             # decompress
-            with tm.decompress_file(p1, compression=compression_no_zip) as f:
+            with tm.decompress_file(p1, compression=compression) as f:
                 with open(p2, "wb") as fh:
                     fh.write(f.read())
 
