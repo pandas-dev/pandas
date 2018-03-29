@@ -1046,7 +1046,7 @@ class TestDataFramePlots(TestPlotBase):
         'major x-axis tick labels visibility changes when colorbar included'
         assert ax1.xaxis.get_label().get_visible()==ax2.xaxis.get_label().get_visible(),\
         'x-axis label visibility changes when colorbar included'
-        
+
     @pytest.mark.slow
     def test_if_hexbin_xaxis_label_is_visible(self):
         random_array = np.random.random((1000,3))
