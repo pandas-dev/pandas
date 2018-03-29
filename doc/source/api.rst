@@ -2576,4 +2576,3 @@ objects.
    generated/pandas.Series.ix
    generated/pandas.Series.imag
    generated/pandas.Series.real
-   generated/pandas.Timestamp.offset
