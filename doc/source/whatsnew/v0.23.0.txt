@@ -914,8 +914,8 @@ Timedelta
 ^^^^^^^^^
 
 - Bug in :func:`Timedelta.__mul__` where multiplying by ``NaT`` returned ``NaT`` instead of raising a ``TypeError`` (:issue:`19819`)
-- Bug in :class:`Series` with ``dtype='timedelta64[ns]`` where addition or subtraction of ``TimedeltaIndex`` had results cast to ``dtype='int64'`` (:issue:`17250`)
-- Bug in :class:`Series` with ``dtype='timedelta64[ns]`` where addition or subtraction of ``TimedeltaIndex`` could return a ``Series`` with an incorrect name (:issue:`19043`)
+- Bug in :class:`Series` with ``dtype='timedelta64[ns]'`` where addition or subtraction of ``TimedeltaIndex`` had results cast to ``dtype='int64'`` (:issue:`17250`)
+- Bug in :class:`Series` with ``dtype='timedelta64[ns]'`` where addition or subtraction of ``TimedeltaIndex`` could return a ``Series`` with an incorrect name (:issue:`19043`)
 - Bug in :func:`Timedelta.__floordiv__` and :func:`Timedelta.__rfloordiv__` dividing by many incompatible numpy objects was incorrectly allowed (:issue:`18846`)
 - Bug where dividing a scalar timedelta-like object with :class:`TimedeltaIndex` performed the reciprocal operation (:issue:`19125`)
 - Bug in :class:`TimedeltaIndex` where division by a ``Series`` would return a ``TimedeltaIndex`` instead of a ``Series`` (:issue:`19042`)
@@ -944,7 +944,7 @@ Timezones
 - Bug when iterating over :class:`DatetimeIndex` that was localized with fixed timezone offset that rounded nanosecond precision to microseconds (:issue:`19603`)
 - Bug in :func:`DataFrame.diff` that raised an ``IndexError`` with tz-aware values (:issue:`18578`)
 - Bug in :func:`melt` that converted tz-aware dtypes to tz-naive (:issue:`15785`)
-- Bug in :func:`Dataframe.count` that raised an ``ValueError`` if .dropna() method is invoked for single column timezone-aware values. (:issue:`13407`)
+- Bug in :func:`Dataframe.count` that raised an ``ValueError``, if :func:`Dataframe.dropna` was called for a single column with timezone-aware values. (:issue:`13407`)
 
 Offsets
 ^^^^^^^
@@ -1028,6 +1028,7 @@ Plotting
 - Bug in :func:`DataFrame.plot` when ``x`` and ``y`` arguments given as positions caused incorrect referenced columns for line, bar and area plots (:issue:`20056`)
 - Bug in formatting tick labels with ``datetime.time()`` and fractional seconds (:issue:`18478`).
 - :meth:`Series.plot.kde` has exposed the args ``ind`` and ``bw_method`` in the docstring (:issue:`18461`). The argument ``ind`` may now also be an integer (number of sample points).
+- :func:`DataFrame.plot` now supports multiple columns to the ``y`` argument (:issue:`19699`)
 
 
 Groupby/Resample/Rolling
@@ -1081,4 +1082,3 @@ Other
 
 - Improved error message when attempting to use a Python keyword as an identifier in a ``numexpr`` backed query (:issue:`18221`)
 - Bug in accessing a :func:`pandas.get_option`, which raised ``KeyError`` rather than ``OptionError`` when looking up a non-existant option key in some cases (:issue:`19789`)
-- :func:`DataFrame.plot` now supports multiple columns to the ``y`` argument (:issue:`19699`)
