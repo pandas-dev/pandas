@@ -1288,7 +1288,36 @@ class _Rolling_and_Expanding(_Rolling):
             * lower: `i`.
             * higher: `j`.
             * nearest: `i` or `j` whichever is nearest.
-            * midpoint: (`i` + `j`) / 2.""")
+            * midpoint: (`i` + `j`) / 2.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returned object type is determined by the caller of the %(name)s
+        calculation
+
+    Examples
+    --------
+    >>> s = Series([1, 2, 3, 4])
+    >>> s.rolling(2).quantile(.4, interpolation='lower')
+    0    NaN
+    1    1.0
+    2    2.0
+    3    3.0
+    dtype: float64
+    >>> s.rolling(2).quantile(.4, interpolation='midpoint')
+    0    NaN
+    1    1.5
+    2    2.5
+    3    3.5
+    dtype: float64
+
+    See Also
+    --------
+    pandas.Series.quantile
+    pandas.DataFrame.quantile
+    
+    """)
 
     def quantile(self, quantile, interpolation='linear', **kwargs):
         window = self._get_window()

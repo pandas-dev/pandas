@@ -7079,6 +7079,10 @@ class DataFrame(NDFrame):
                a     b
         0.1  1.3   3.7
         0.5  2.5  55.0
+
+        See Also
+        --------
+        pandas.core.window.Rolling.quantile
         """
         self._check_percentile(q)
 
