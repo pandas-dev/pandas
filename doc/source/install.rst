@@ -212,7 +212,7 @@ Recommended Dependencies
   ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
   If installed, must be Version 2.4.6 or higher.
 
-* `bottleneck <http://berkeleyanalytics.com/bottleneck>`__: for accelerating certain types of ``nan``
+* `bottleneck <https://github.com/kwgoodman/bottleneck>`__: for accelerating certain types of ``nan``
   evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups. If installed,
   must be Version 1.0.0 or higher.
 
@@ -233,7 +233,7 @@ Optional Dependencies
 * `xarray <http://xarray.pydata.org>`__: pandas like handling for > 2 dims, needed for converting Panels to xarray objects. Version 0.7.0 or higher is recommended.
 * `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage. Version 3.0.0 or higher required, Version 3.2.1 or higher highly recommended.
 * `Feather Format <https://github.com/wesm/feather>`__: necessary for feather-based storage, version 0.3.1 or higher.
-* `Apache Parquet <https://parquet.apache.org/>`__, either `pyarrow <http://arrow.apache.org/docs/python/>`__ (>= 0.4.1) or `fastparquet <https://fastparquet.readthedocs.io/en/latest/necessary>`__ (>= 0.0.6) for parquet-based storage. The `snappy <https://pypi.python.org/pypi/python-snappy>`__ and `brotli <https://pypi.python.org/pypi/brotlipy>`__ are available for compression support.
+* `Apache Parquet <https://parquet.apache.org/>`__, either `pyarrow <http://arrow.apache.org/docs/python/>`__ (>= 0.4.1) or `fastparquet <https://fastparquet.readthedocs.io/en/latest>`__ (>= 0.0.6) for parquet-based storage. The `snappy <https://pypi.python.org/pypi/python-snappy>`__ and `brotli <https://pypi.python.org/pypi/brotlipy>`__ are available for compression support.
 * `SQLAlchemy <http://www.sqlalchemy.org>`__: for SQL database support. Version 0.8.1 or higher recommended. Besides SQLAlchemy, you also need a database specific driver. You can find an overview of supported drivers for each SQL dialect in the `SQLAlchemy docs <http://docs.sqlalchemy.org/en/latest/dialects/index.html>`__. Some common drivers are:
 
   * `psycopg2 <http://initd.org/psycopg/>`__: for PostgreSQL
@@ -266,6 +266,12 @@ Optional Dependencies
 * One of the following combinations of libraries is needed to use the
   top-level :func:`~pandas.read_html` function:
 
+  .. versionchanged:: 0.23.0
+
+  .. note::
+
+     If using BeautifulSoup4 a minimum version of 4.2.1 is required
+
   * `BeautifulSoup4`_ and `html5lib`_ (Any recent version of `html5lib`_ is
     okay.)
   * `BeautifulSoup4`_ and `lxml`_
@@ -282,9 +288,6 @@ Optional Dependencies
      * You are highly encouraged to read :ref:`HTML Table Parsing gotchas <io.html.gotchas>`.
        It explains issues surrounding the installation and
        usage of the above three libraries.
-     * You may need to install an older version of `BeautifulSoup4`_:
-       Versions 4.2.1, 4.1.3 and 4.0.2 have been confirmed for 64 and 32-bit
-       Ubuntu/Debian
 
   .. note::
 

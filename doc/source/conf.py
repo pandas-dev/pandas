@@ -63,6 +63,7 @@ extensions = ['sphinx.ext.autodoc',
               'ipython_sphinxext.ipython_console_highlighting',
               # lowercase didn't work
               'IPython.sphinxext.ipython_console_highlighting',
+              'matplotlib.sphinxext.plot_directive',
               'sphinx.ext.intersphinx',
               'sphinx.ext.coverage',
               'sphinx.ext.mathjax',
@@ -84,6 +85,20 @@ autosummary_generate = False
 
 if any(re.match("\s*api\s*", l) for l in index_rst_lines):
     autosummary_generate = True
+
+# numpydoc
+# for now use old parameter listing (styling + **kwargs problem)
+numpydoc_use_blockquotes = True
+# use member listing for attributes
+numpydoc_attributes_as_param_list = False
+
+# matplotlib plot directive
+plot_include_source = True
+plot_formats = [("png", 90)]
+plot_html_show_formats = False
+plot_html_show_source_link = False
+plot_pre_code = """import numpy as np
+import pandas as pd"""
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['../_templates']

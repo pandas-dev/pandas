@@ -2191,10 +2191,9 @@ Ambiguous Times when Localizing
 
 In some cases, localize cannot determine the DST and non-DST hours when there are
 duplicates.  This often happens when reading files or database records that simply
-duplicate the hours.  Passing ``ambiguous='infer'`` (``infer_dst`` argument in prior
-releases) into ``tz_localize`` will attempt to determine the right offset.  Below
-the top example will fail as it contains ambiguous times and the bottom will
-infer the right offset.
+duplicate the hours.  Passing ``ambiguous='infer'`` into ``tz_localize`` will
+attempt to determine the right offset.  Below the top example will fail as it
+contains ambiguous times and the bottom will infer the right offset.
 
 .. ipython:: python
 

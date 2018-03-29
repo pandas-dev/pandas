@@ -11,7 +11,8 @@ from pandas.compat import string_types, text_type, PY3
 from .common import (_ensure_object, is_bool, is_integer, is_float,
                      is_complex, is_datetimetz, is_categorical_dtype,
                      is_datetimelike,
-                     is_extension_type, is_object_dtype,
+                     is_extension_type,
+                     is_object_dtype,
                      is_datetime64tz_dtype, is_datetime64_dtype,
                      is_datetime64_ns_dtype,
                      is_timedelta64_dtype, is_timedelta64_ns_dtype,
@@ -26,7 +27,8 @@ from .common import (_ensure_object, is_bool, is_integer, is_float,
                      _ensure_int32, _ensure_int64,
                      _NS_DTYPE, _TD_DTYPE, _INT64_DTYPE,
                      _POSSIBLY_CAST_DTYPES)
-from .dtypes import ExtensionDtype, DatetimeTZDtype, PeriodDtype
+from .dtypes import (ExtensionDtype, PandasExtensionDtype, DatetimeTZDtype,
+                     PeriodDtype)
 from .generic import (ABCDatetimeIndex, ABCPeriodIndex,
                       ABCSeries)
 from .missing import isna, notna
@@ -1114,7 +1116,8 @@ def find_common_type(types):
     if all(is_dtype_equal(first, t) for t in types[1:]):
         return first
 
-    if any(isinstance(t, ExtensionDtype) for t in types):
+    if any(isinstance(t, (PandasExtensionDtype, ExtensionDtype))
+           for t in types):
         return np.object
 
     # take lowest unit

@@ -257,6 +257,36 @@ class TestFactorize(object):
         with tm.assert_produces_warning(False):
             algos.factorize(data)
 
+    @pytest.mark.parametrize('data', [
+        np.array([0, 1, 0], dtype='u8'),
+        np.array([-2**63, 1, -2**63], dtype='i8'),
+        np.array(['__nan__', 'foo', '__nan__'], dtype='object'),
+    ])
+    def test_parametrized_factorize_na_value_default(self, data):
+        # arrays that include the NA default for that type, but isn't used.
+        l, u = algos.factorize(data)
+        expected_uniques = data[[0, 1]]
+        expected_labels = np.array([0, 1, 0], dtype='i8')
+        tm.assert_numpy_array_equal(l, expected_labels)
+        tm.assert_numpy_array_equal(u, expected_uniques)
+
+    @pytest.mark.parametrize('data, na_value', [
+        (np.array([0, 1, 0, 2], dtype='u8'), 0),
+        (np.array([1, 0, 1, 2], dtype='u8'), 1),
+        (np.array([-2**63, 1, -2**63, 0], dtype='i8'), -2**63),
+        (np.array([1, -2**63, 1, 0], dtype='i8'), 1),
+        (np.array(['a', '', 'a', 'b'], dtype=object), 'a'),
+        (np.array([(), ('a', 1), (), ('a', 2)], dtype=object), ()),
+        (np.array([('a', 1), (), ('a', 1), ('a', 2)], dtype=object),
+         ('a', 1)),
+    ])
+    def test_parametrized_factorize_na_value(self, data, na_value):
+        l, u = algos._factorize_array(data, na_value=na_value)
+        expected_uniques = data[[1, 3]]
+        expected_labels = np.array([-1, 0, -1, 1], dtype='i8')
+        tm.assert_numpy_array_equal(l, expected_labels)
+        tm.assert_numpy_array_equal(u, expected_uniques)
+
 
 class TestUnique(object):
 

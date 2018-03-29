@@ -23,7 +23,6 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 
-import pandas.core.base as base
 from pandas.util._decorators import Appender, cache_readonly, deprecate_kwarg
 import pandas.core.common as com
 import pandas.core.missing as missing
@@ -208,8 +207,8 @@ class MultiIndex(Index):
     rename = Index.set_names
 
     def __new__(cls, levels=None, labels=None, sortorder=None, names=None,
-                copy=False, verify_integrity=True, _set_identity=True,
-                name=None, **kwargs):
+                dtype=None, copy=False, name=None,
+                verify_integrity=True, _set_identity=True):
 
         # compat with Index
         if name is not None:
@@ -916,7 +915,7 @@ class MultiIndex(Index):
                      for k, stringify in zip(key, self._have_mixed_levels)])
         return hash_tuple(key)
 
-    @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)
+    @Appender(Index.duplicated.__doc__)
     def duplicated(self, keep='first'):
         from pandas.core.sorting import get_group_index
         from pandas._libs.hashtable import duplicated_int64
@@ -1775,22 +1774,45 @@ class MultiIndex(Index):
 
     def swaplevel(self, i=-2, j=-1):
         """
-        Swap level i with level j. Do not change the ordering of anything
+        Swap level i with level j.
+
+        Calling this method does not change the ordering of the values.
 
         Parameters
         ----------
-        i, j : int, string (can be mixed)
-            Level of index to be swapped. Can pass level name as string.
+        i : int, str, default -2
+            First level of index to be swapped. Can pass level name as string.
+            Type of parameters can be mixed.
+        j : int, str, default -1
+            Second level of index to be swapped. Can pass level name as string.
+            Type of parameters can be mixed.
 
         Returns
         -------
-        swapped : MultiIndex
+        MultiIndex
+            A new MultiIndex
 
         .. versionchanged:: 0.18.1
 
            The indexes ``i`` and ``j`` are now optional, and default to
            the two innermost levels of the index.
 
+        See Also
+        --------
+        Series.swaplevel : Swap levels i and j in a MultiIndex
+        Dataframe.swaplevel : Swap levels i and j in a MultiIndex on a
+            particular axis
+
+        Examples
+        --------
+        >>> mi = pd.MultiIndex(levels=[['a', 'b'], ['bb', 'aa']],
+        ...                    labels=[[0, 0, 1, 1], [0, 1, 0, 1]])
+        >>> mi
+        MultiIndex(levels=[['a', 'b'], ['bb', 'aa']],
+           labels=[[0, 0, 1, 1], [0, 1, 0, 1]])
+        >>> mi.swaplevel(0, 1)
+        MultiIndex(levels=[['bb', 'aa'], ['a', 'b']],
+           labels=[[0, 1, 0, 1], [0, 0, 1, 1]])
         """
         new_levels = list(self.levels)
         new_labels = list(self.labels)
@@ -2733,7 +2755,7 @@ class MultiIndex(Index):
         other_tuples = other._ndarray_values
         uniq_tuples = sorted(set(self_tuples) & set(other_tuples))
         if len(uniq_tuples) == 0:
-            return MultiIndex(levels=[[]] * self.nlevels,
+            return MultiIndex(levels=self.levels,
                               labels=[[]] * self.nlevels,
                               names=result_names, verify_integrity=False)
         else:
@@ -2755,7 +2777,7 @@ class MultiIndex(Index):
             return self
 
         if self.equals(other):
-            return MultiIndex(levels=[[]] * self.nlevels,
+            return MultiIndex(levels=self.levels,
                               labels=[[]] * self.nlevels,
                               names=result_names, verify_integrity=False)
 

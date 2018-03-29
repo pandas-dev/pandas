@@ -36,6 +36,10 @@ class DecimalArray(ExtensionArray):
     def _constructor_from_sequence(cls, scalars):
         return cls(scalars)
 
+    @classmethod
+    def _from_factorized(cls, values, original):
+        return cls(values)
+
     def __getitem__(self, item):
         if isinstance(item, numbers.Integral):
             return self.values[item]
@@ -71,6 +75,7 @@ class DecimalArray(ExtensionArray):
         return np.array([x.is_nan() for x in self.values])
 
     def take(self, indexer, allow_fill=True, fill_value=None):
+        indexer = np.asarray(indexer)
         mask = indexer == -1
 
         indexer = _ensure_platform_int(indexer)
