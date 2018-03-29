@@ -1030,6 +1030,35 @@ class TestDataFramePlots(TestPlotBase):
         axes = df.plot(x='x', y='y', kind='scatter', subplots=True)
         self._check_axes_shape(axes, axes_num=1, layout=(1, 1))
 
+    @pytest.mark.slow        
+    def test_if_scatterplot_colorbar_affects_xaxis_visibility(self):
+        random_array = np.random.random((1000,3))
+        df = pd.DataFrame(random_array,columns=['A label','B label','C label'])
+
+        ax1 = df.plot.scatter(x='A label', y='B label')
+        ax2 = df.plot.scatter(x='A label', y='B label', c='C label')
+
+        assert all([vis[0].get_visible()==vis[1].get_visible() for vis in 
+                    zip(ax1.xaxis.get_minorticklabels(),ax2.xaxis.get_minorticklabels())]),\
+        'minor x-axis tick labels visibility changes when colorbar included'
+        assert all([vis[0].get_visible()==vis[1].get_visible() for vis in 
+                    zip(ax1.xaxis.get_majorticklabels(),ax2.xaxis.get_majorticklabels())]),\
+        'major x-axis tick labels visibility changes when colorbar included'
+        assert ax1.xaxis.get_label().get_visible()==ax2.xaxis.get_label().get_visible(),\
+        'x-axis label visibility changes when colorbar included'
+        
+    @pytest.mark.slow
+    def test_if_hexbin_xaxis_label_is_visible(self):
+        random_array = np.random.random((1000,3))
+        df = pd.DataFrame(random_array,columns=['A label','B label','C label'])
+
+        ax = df.plot.hexbin('A label','B label', gridsize=12);    
+        assert all([vis.get_visible() for vis in ax.xaxis.get_minorticklabels()]),\
+        'minor x-axis tick labels are not visible'
+        assert all([vis.get_visible() for vis in ax.xaxis.get_majorticklabels()]),\
+        'major x-axis tick labels are not visible'
+        assert ax.xaxis.get_label().get_visible(),'x-axis label is not visible'
+
     @pytest.mark.slow
     def test_plot_scatter_with_categorical_data(self):
         # GH 16199
