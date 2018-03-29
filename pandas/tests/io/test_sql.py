@@ -2249,7 +2249,6 @@ class TestXSQLite(SQLiteMixIn):
         with pytest.raises(Exception):
             sql.execute('INSERT INTO test VALUES("foo", "bar", 7)', self.conn)
 
-    @tm.capture_stdout
     def test_execute_closed_connection(self, request, datapath):
         create_sql = """
         CREATE TABLE test
@@ -2536,7 +2535,6 @@ class TestXMySQL(MySQLMixIn):
         with pytest.raises(Exception):
             sql.execute('INSERT INTO test VALUES("foo", "bar", 7)', self.conn)
 
-    @tm.capture_stdout
     def test_execute_closed_connection(self, request, datapath):
         _skip_if_no_pymysql()
         drop_sql = "DROP TABLE IF EXISTS test"
