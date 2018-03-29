@@ -444,7 +444,7 @@ class TestDatetimeIndex(object):
     def test_disallow_setting_tz(self):
         # GH 3746
         dti = DatetimeIndex(['2010'], tz='UTC')
-        with pytest.raises(ValueError):
+        with pytest.raises(AttributeError):
             dti.tz = pytz.timezone('US/Pacific')
 
     @pytest.mark.parametrize('tz', [
@@ -459,15 +459,15 @@ class TestDatetimeIndex(object):
                                   '2013-01-02 06:00:00'],
                                  tz='America/Los_Angeles')
         tm.assert_index_equal(result, expected)
-        # Especially assert that the timezone is LMT for pytz
-        assert pytz.timezone('America/Los_Angeles') == result.tz
+        # Especially assert that the timezone is consistent for pytz
+        assert pytz.timezone('America/Los_Angeles') is result.tz
 
     @pytest.mark.parametrize('tz', ['US/Pacific', 'US/Eastern', 'Asia/Tokyo'])
     def test_constructor_with_non_normalized_pytz(self, tz):
         # GH 18595
         non_norm_tz = Timestamp('2010', tz=tz).tz
         result = DatetimeIndex(['2010'], tz=non_norm_tz)
-        assert pytz.timezone(tz) == result.tz
+        assert pytz.timezone(tz) is result.tz
 
 
 class TestTimeSeries(object):

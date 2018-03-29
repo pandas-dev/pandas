@@ -316,10 +316,10 @@ cpdef bint tz_compare(object start, object end):
     return get_timezone(start) == get_timezone(end)
 
 
-cpdef tz_normalize(object tz):
+cpdef tz_standardize(object tz):
     """
-    If the passed tz is a pytz timezone object, "normalize" it to the LMT
-    version
+    If the passed tz is a pytz timezone object, "normalize" it to the a
+    consistent version
 
     Parameters
     ----------
@@ -328,6 +328,26 @@ cpdef tz_normalize(object tz):
     Returns:
     -------
     tz object
+
+    Examples:
+    --------
+    >>> tz
+    <DstTzInfo 'US/Pacific' PST-1 day, 16:00:00 STD>
+
+    >>> tz_standardize(tz)
+    <DstTzInfo 'US/Pacific' LMT-1 day, 16:07:00 STD>
+
+    >>> tz
+    <DstTzInfo 'US/Pacific' LMT-1 day, 16:07:00 STD>
+
+    >>> tz_standardize(tz)
+    <DstTzInfo 'US/Pacific' LMT-1 day, 16:07:00 STD>
+
+    >>> tz
+    dateutil.tz.tz.tzutc
+
+    >>> tz_standardize(tz)
+    dateutil.tz.tz.tzutc
     """
     if treat_tz_as_pytz(tz):
         return pytz.timezone(str(tz))
