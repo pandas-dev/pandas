@@ -687,6 +687,11 @@ yourself. To revert to the old setting, you can run this line:
 
   pd.options.display.max_columns = 20
 
+Furthermore, the default value for the maximum number of displayed rows is now
+20 (instead of 60) (``pd.options.display.max_rows=20``) (:issue:`20514`). This
+makes it easier to get an overview of a large dataframe in most standard
+terminal windows.
+
 .. _whatsnew_0230.api.datetimelike:
 
 Datetimelike API Changes
