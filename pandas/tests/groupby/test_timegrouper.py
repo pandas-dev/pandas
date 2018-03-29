@@ -81,7 +81,7 @@ class TestGroupBy(object):
             df = df.set_index('Date', drop=False)
             g = df.groupby(pd.Grouper(freq='6M'))
             assert g.group_keys
-            assert isinstance(g.grouper, pd.core.groupby.BinGrouper)
+            assert isinstance(g.grouper, pd.core.groupby.groupby.BinGrouper)
             groups = g.groups
             assert isinstance(groups, dict)
             assert len(groups) == 3
