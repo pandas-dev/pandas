@@ -3294,7 +3294,8 @@ class BlockManager(PandasObject):
 
         """
         obj = self.copy(deep=copy)
-        obj.set_axis(axis, _transform_index(self.axes[axis], mapper, level, tupleize_cols=tupleize_cols))
+        obj.set_axis(axis, _transform_index(self.axes[axis], mapper, level,
+                                            tupleize_cols=tupleize_cols))
         return obj
 
     def add_prefix(self, prefix):
