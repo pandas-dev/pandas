@@ -1900,7 +1900,7 @@ class NDFrame(PandasObject, SelectionMixin):
         In order to add another DataFrame or Series to an existing HDF file
         please use append mode and a different a key.
 
-        For more information see the :ref:`user guide <io.html#io-hdf5>`.
+        For more information see the :ref:`user guide <io.hdf5>`.
 
         Parameters
         ----------
@@ -1929,8 +1929,7 @@ class NDFrame(PandasObject, SelectionMixin):
         data_columns :  list of columns or True, optional
             List of columns to create as indexed data columns for on-disk
             queries, or True to use all columns. By default only the axes
-            of the object are indexed. See `here
-            <http://pandas.pydata.org/pandas-docs/stable/io.html#query-via-data-columns>`__.
+            of the object are indexed. See :ref:`io.hdf5-query-data-columns`.
             Applicable only to format='table'.
         complevel : {0-9}, optional
             Specifies a compression level for data.
@@ -2141,7 +2140,7 @@ class NDFrame(PandasObject, SelectionMixin):
             .. versionadded:: 0.20.0
         protocol : int
             Int which indicates which protocol should be used by the pickler,
-            default HIGHEST_PROTOCOL (see [1], paragraph 12.1.2). The possible
+            default HIGHEST_PROTOCOL (see [1]_ paragraph 12.1.2). The possible
             values for this parameter depend on the version of Python. For
             Python 2.x, possible values are 0, 1, 2. For Python>=3.0, 3 is a
             valid value. For Python >= 3.4, 4 is a valid value. A negative
