@@ -299,8 +299,10 @@ Supplying a ``CategoricalDtype`` will make the categories in each column consist
     df['A'].dtype
     df['B'].dtype
 
-Extension Types
-^^^^^^^^^^^^^^^
+.. _whatsnew_023.enhancements.extension:
+
+Extending Pandas with Custom Types
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Pandas now supports storing array-like objects that aren't necessarily 1-D NumPy
 arrays as columns in a DataFrame or values in a Series. This allows third-party
@@ -312,7 +314,7 @@ for storing ip addresses.
 
 .. code-block:: ipython
 
-   In [1]: import pandas as pd; from cyberpandas import IPArray
+   In [1]: from cyberpandas import IPArray
 
    In [2]: values = IPArray([
       ...:     0,
@@ -323,7 +325,7 @@ for storing ip addresses.
       ...:
 
 ``IPArray`` isn't a normal 1-D NumPy array, but because it's a pandas
-ExtensionArray, it can be stored properly inside pandas' containers.
+``ExtensionArray``, it can be stored properly inside pandas' containers.
 
 .. code-block:: ipython
 
