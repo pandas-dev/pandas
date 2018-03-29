@@ -175,7 +175,7 @@ def _new_DatetimeIndex(cls, d):
 class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                     Int64Index):
     """
-    Store Datetime index using NumPy's datetime64 dtype.
+    Datetime index using NumPy's datetime64 dtype.
 
     Immutable ndarray of datetime64 data, represented internally as int64, and
     which can be boxed to Timestamp objects that are subclasses of datetime and
@@ -188,16 +188,19 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     freq : str or pandas offset object, optional
         One of pandas date offset strings or corresponding objects.
     start : datetime-like, optional
-        Shapes the starting value and if data is None,
-        start is used as the start point in generating regular timestamp data.
+        The starting value. If `data` is None, `start` is used as the
+        start point in generating regular timestamp data.
     end : datetime-like, optional
-        Shapes the end time, if periods is none, generated index will extend
+        The end time. If `periods` is None, generated index will extend
         to first conforming time on or just past end argument.
-    copy : bool
+    periods : int (> 0), optional
+        Number of periods to generate, if generating index. Takes precedence
+        over `end` argument
+    copy : bool, default False
         Make a copy of input ndarray.
     name : object
         Name to be stored in the index.
-    tz : pytz.timezone or dateutil.tz.tzfile.
+    tz : pytz.timezone or dateutil.tz.tzfile, optional
     verify_integrity : bool, default False
         Check new index for duplicates, otherwise defer until necessary.
     normalize : bool
@@ -279,25 +282,29 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     Examples
     --------
-    >>> # Generate a date range with month end frequency
+    Generate a date range with month end frequency
+
     >>> pd.DatetimeIndex(start='2018-3-10', freq='M', periods=4)
     DatetimeIndex(['2018-03-31', '2018-04-30',
                    '2018-05-31', '2018-06-30'],
                   dtype='datetime64[ns]', freq='M')
 
-    >>> # Hourly time range with end conforming the period
+    Hourly time range with end conforming the period
+
     >>> pd.DatetimeIndex(start='2015-03-01 21:00:00', end='2015-03-02', freq='H')
     DatetimeIndex(['2015-03-01 21:00:00', '2015-03-01 22:00:00',
                    '2015-03-01 23:00:00', '2015-03-02 00:00:00'],
                   dtype='datetime64[ns]', freq='H')
 
-    >>> # Generate time range with with 1 minute frequency
+    Generate time range with with 1 minute frequency
+
     >>> pd.date_range('2018-03-10', periods=4, freq='1min')
     DatetimeIndex(['2018-03-10 00:00:00', '2018-03-10 00:01:00',
                    '2018-03-10 00:02:00', '2018-03-10 00:03:00'],
                   dtype='datetime64[ns]', freq='T')
 
-    >>> # Weekly date range with closed argument to mark end date interval
+    Weekly date range with closed argument to mark end date interval
+
     >>> pd.date_range('2018-03-10', '2018-03-31', freq='W', closed='right')
     DatetimeIndex(['2018-03-11', '2018-03-18', '2018-03-25'],
                   dtype='datetime64[ns]', freq='W-SUN')
