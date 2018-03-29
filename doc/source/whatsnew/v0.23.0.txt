@@ -1029,7 +1029,7 @@ Plotting
 - Bug in formatting tick labels with ``datetime.time()`` and fractional seconds (:issue:`18478`).
 - :meth:`Series.plot.kde` has exposed the args ``ind`` and ``bw_method`` in the docstring (:issue:`18461`). The argument ``ind`` may now also be an integer (number of sample points).
 - :func:`DataFrame.plot` now supports multiple columns to the ``y`` argument (:issue:`19699`)
-
+- Bug in :func:'DataFrame.plot.scatter' and :func:'DataFrame.plot.hexbin' caused x-axis label and ticklabels to disappear when colorbar was on (:issue:`10611` and :issue:`10678`)
 
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
