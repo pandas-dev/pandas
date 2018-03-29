@@ -1357,27 +1357,21 @@ cdef _roll_min_max(ndarray[numeric] input, int64_t win, int64_t minp,
     return output
 
 
-def _get_interpolation_id(str interpolation):
-    """
-    Converts string to interpolation id
+cdef enum InterpolationType:
+    LINEAR,
+    LOWER,
+    HIGHER,
+    NEAREST,
+    MIDPOINT
 
-    Parameters
-    ----------
-    interpolation: 'linear', 'lower', 'higher', 'nearest', 'midpoint'
-    """
-    if interpolation == 'linear':
-        return 0
-    elif interpolation == 'lower':
-        return 1
-    elif interpolation == 'higher':
-        return 2
-    elif interpolation == 'nearest':
-        return 3
-    elif interpolation == 'midpoint':
-        return 4
-    else:
-        raise ValueError("Interpolation {} is not supported"
-                         .format(interpolation))
+
+interpolation_types = {
+    'linear': LINEAR,
+    'lower': LOWER,
+    'higher': HIGHER,
+    'nearest': NEAREST,
+    'midpoint': MIDPOINT,
+}
 
 
 def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
@@ -1395,14 +1389,16 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
         ndarray[int64_t] start, end
         ndarray[double_t] output
         double vlow, vhigh
-        int interpolation_id
+        InterpolationType interpolation_type
 
     if quantile <= 0.0 or quantile >= 1.0:
         raise ValueError("quantile value {0} not in [0, 1]".format(quantile))
 
-    # interpolation_id is needed to avoid string comparisons inside the loop
-    # I tried to use callback but it resulted in worse performance
-    interpolation_id = _get_interpolation_id(interpolation)
+    try:
+        interpolation_type = interpolation_types[interpolation]
+    except ValueError:
+        raise ValueError("Interpolation {} is not supported"
+                         .format(interpolation))
 
     # we use the Fixed/Variable Indexer here as the
     # actual skiplist ops outweigh any window computation costs
@@ -1449,21 +1445,21 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
                 idx_with_fraction = quantile * <double> (nobs - 1)
                 idx = int(idx_with_fraction)
 
-                if interpolation_id == 0:  # linear
+                if interpolation_type == LINEAR:
                     vlow = skiplist.get(idx)
                     vhigh = skiplist.get(idx + 1)
                     output[i] = ((vlow + (vhigh - vlow) *
                                   (idx_with_fraction - idx)))
-                elif interpolation_id == 1:  # lower
+                elif interpolation_type == LOWER:
                     output[i] = skiplist.get(idx)
-                elif interpolation_id == 2:  # higher
+                elif interpolation_type == HIGHER:
                     output[i] = skiplist.get(idx + 1)
-                elif interpolation_id == 3:  # nearest
+                elif interpolation_type == NEAREST:
                     if idx_with_fraction - idx < 0.5:
                         output[i] = skiplist.get(idx)
                     else:
                         output[i] = skiplist.get(idx + 1)
-                elif interpolation_id == 4:  # midpoint
+                elif interpolation_type == MIDPOINT:
                     vlow = skiplist.get(idx)
                     vhigh = skiplist.get(idx + 1)
                     output[i] = <double> (vlow + vhigh) / 2
