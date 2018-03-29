@@ -1173,22 +1173,21 @@ class TestMoments(Base):
         s = Series(arr)
         q1 = s.quantile(0.1)
         q2 = s.rolling(100).quantile(0.1).iloc[-1]
+
         tm.assert_almost_equal(q1, q2)
 
-        q1 = s.quantile(0.1, interpolation='lower')
-        q2 = s.rolling(100).quantile(0.1, interpolation='lower').iloc[-1]
-        tm.assert_almost_equal(q1, q2)
+    @pytest.mark.parametrize('quantile', [0.0, 0.1, 0.45, 0.5, 1])
+    @pytest.mark.parametrize('interpolation', ['linear', 'lower', 'higher',
+                                               'nearest', 'midpoint'])
+    def test_rolling_quantile_interpolation_options(self, quantile,
+                                                    interpolation):
+        # Tests that rolling window's quantile behavior is analogus to
+        # Series' quantile for each interpolation option
+        size = 100
+        s = Series(np.arange(size))
+        q1 = s.quantile(quantile, interpolation)
+        q2 = s.rolling(size).quantile(quantile, interpolation).iloc[-1]
 
-        q1 = s.quantile(0.1, interpolation='higher')
-        q2 = s.rolling(100).quantile(0.1, interpolation='higher').iloc[-1]
-        tm.assert_almost_equal(q1, q2)
-
-        q1 = s.quantile(0.1, interpolation='nearest')
-        q2 = s.rolling(100).quantile(0.1, interpolation='nearest').iloc[-1]
-        tm.assert_almost_equal(q1, q2)
-
-        q1 = s.quantile(0.1, interpolation='midpoint')
-        q2 = s.rolling(100).quantile(0.1, interpolation='midpoint').iloc[-1]
         tm.assert_almost_equal(q1, q2)
 
     def test_rolling_quantile_param(self):
