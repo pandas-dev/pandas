@@ -378,7 +378,9 @@ cdef class TextReader:
 
         self.compression = compression
         self.memory_map = memory_map
+
         self.parser.usecols = (usecols is not None)
+
         self._setup_parser_source(source)
         parser_set_default_options(self.parser)
 

@@ -1684,6 +1684,7 @@ class CParserWrapper(ParserBase):
     def __init__(self, src, **kwds):
         self.kwds = kwds
         kwds = kwds.copy()
+
         ParserBase.__init__(self, kwds)
 
         if (kwds.get('compression') is None
