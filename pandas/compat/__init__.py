@@ -423,6 +423,12 @@ from dateutil import parser as _date_parser
 parse_date = _date_parser.parse
 
 
+if PY36:
+    import typing
+    re_type = typing.re.Pattern
+else:
+    re_type = type(re.compile(''))
+
 # https://github.com/pandas-dev/pandas/pull/9123
 def is_platform_little_endian():
     """ am I little endian """
