@@ -2379,7 +2379,10 @@ class ObjectBlock(Block):
         return not (issubclass(value.dtype.type,
                                (np.integer, np.floating, np.complexfloating,
                                 np.datetime64, np.bool_)) or
-                    is_extension_type(value))
+                    # TODO(ExtensionArray): remove is_extension_type
+                    # when all extension arrays have been ported.
+                    is_extension_type(value) or
+                    is_extension_array_dtype(value))
 
     def replace(self, to_replace, value, inplace=False, filter=None,
                 regex=False, convert=True, mgr=None):
