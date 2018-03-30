@@ -467,8 +467,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """Return object Series which contains boxed values.
 
         .. deprecated :: 0.23.0
-            Use ``astype(object) instead.
 
+           Use ``astype(object)`` instead.
 
         *this is an internal non-public method*
         """
@@ -1429,8 +1429,51 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # TODO: Add option for bins like value_counts()
         return algorithms.mode(self)
 
-    @Appender(base._shared_docs['unique'] % _shared_doc_kwargs)
     def unique(self):
+        """
+        Return unique values of Series object.
+
+        Uniques are returned in order of appearance. Hash table-based unique,
+        therefore does NOT sort.
+
+        Returns
+        -------
+        ndarray or Categorical
+            The unique values returned as a NumPy array. In case of categorical
+            data type, returned as a Categorical.
+
+        See Also
+        --------
+        pandas.unique : top-level unique method for any 1-d array-like object.
+        Index.unique : return Index with unique values from an Index object.
+
+        Examples
+        --------
+        >>> pd.Series([2, 1, 3, 3], name='A').unique()
+        array([2, 1, 3])
+
+        >>> pd.Series([pd.Timestamp('2016-01-01') for _ in range(3)]).unique()
+        array(['2016-01-01T00:00:00.000000000'], dtype='datetime64[ns]')
+
+        >>> pd.Series([pd.Timestamp('2016-01-01', tz='US/Eastern')
+        ...            for _ in range(3)]).unique()
+        array([Timestamp('2016-01-01 00:00:00-0500', tz='US/Eastern')],
+              dtype=object)
+
+        An unordered Categorical will return categories in the order of
+        appearance.
+
+        >>> pd.Series(pd.Categorical(list('baabc'))).unique()
+        [b, a, c]
+        Categories (3, object): [b, a, c]
+
+        An ordered Categorical preserves the category ordering.
+
+        >>> pd.Series(pd.Categorical(list('baabc'), categories=list('abc'),
+        ...                          ordered=True)).unique()
+        [b, a, c]
+        Categories (3, object): [a < b < c]
+        """
         result = super(Series, self).unique()
 
         if is_datetime64tz_dtype(self.dtype):
@@ -1729,18 +1772,20 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self.index[i]
 
     # ndarray compat
-    argmin = deprecate('argmin', idxmin, '0.21.0',
-                       msg="'argmin' is deprecated, use 'idxmin' instead. "
-                           "The behavior of 'argmin' will be corrected to "
-                           "return the positional minimum in the future. "
-                           "Use 'series.values.argmin' to get the position of "
-                           "the minimum now.")
-    argmax = deprecate('argmax', idxmax, '0.21.0',
-                       msg="'argmax' is deprecated, use 'idxmax' instead. "
-                           "The behavior of 'argmax' will be corrected to "
-                           "return the positional maximum in the future. "
-                           "Use 'series.values.argmax' to get the position of "
-                           "the maximum now.")
+    argmin = deprecate(
+        'argmin', idxmin, '0.21.0',
+        msg=dedent("""\
+        'argmin' is deprecated, use 'idxmin' instead. The behavior of 'argmin'
+        will be corrected to return the positional minimum in the future.
+        Use 'series.values.argmin' to get the position of the minimum now.""")
+    )
+    argmax = deprecate(
+        'argmax', idxmax, '0.21.0',
+        msg=dedent("""\
+        'argmax' is deprecated, use 'idxmax' instead. The behavior of 'argmax'
+        will be corrected to return the positional maximum in the future.
+        Use 'series.values.argmax' to get the position of the maximum now.""")
+    )
 
     def round(self, decimals=0, *args, **kwargs):
         """
@@ -2831,25 +2876,26 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def map(self, arg, na_action=None):
         """
-        Map values of Series using input correspondence (which can be
-        a dict, Series, or function)
+        Map values of Series using input correspondence (a dict, Series, or
+        function).
 
         Parameters
         ----------
         arg : function, dict, or Series
+            Mapping correspondence.
         na_action : {None, 'ignore'}
             If 'ignore', propagate NA values, without passing them to the
-            mapping function
+            mapping correspondence.
 
         Returns
         -------
         y : Series
-            same index as caller
+            Same index as caller.
 
         Examples
         --------
 
-        Map inputs to outputs (both of type `Series`)
+        Map inputs to outputs (both of type `Series`):
 
         >>> x = pd.Series([1,2,3], index=['one', 'two', 'three'])
         >>> x
@@ -2900,9 +2946,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         See Also
         --------
-        Series.apply: For applying more complex functions on a Series
-        DataFrame.apply: Apply a function row-/column-wise
-        DataFrame.applymap: Apply a function elementwise on a whole DataFrame
+        Series.apply : For applying more complex functions on a Series.
+        DataFrame.apply : Apply a function row-/column-wise.
+        DataFrame.applymap : Apply a function elementwise on a whole DataFrame.
 
         Notes
         -----
@@ -3340,7 +3386,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                         columns=columns, level=level,
                                         inplace=inplace, errors=errors)
 
-    @Appender(generic._shared_docs['fillna'] % _shared_doc_kwargs)
+    @Substitution(**_shared_doc_kwargs)
+    @Appender(generic.NDFrame.fillna.__doc__)
     def fillna(self, value=None, method=None, axis=None, inplace=False,
                limit=None, downcast=None, **kwargs):
         return super(Series, self).fillna(value=value, method=method,
@@ -3511,19 +3558,68 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def between(self, left, right, inclusive=True):
         """
-        Return boolean Series equivalent to left <= series <= right. NA values
-        will be treated as False
+        Return boolean Series equivalent to left <= series <= right.
+
+        This function returns a boolean vector containing `True` wherever the
+        corresponding Series element is between the boundary values `left` and
+        `right`. NA values are treated as `False`.
 
         Parameters
         ----------
         left : scalar
-            Left boundary
+            Left boundary.
         right : scalar
-            Right boundary
+            Right boundary.
+        inclusive : bool, default True
+            Include boundaries.
 
         Returns
         -------
-        is_between : Series
+        Series
+            Each element will be a boolean.
+
+        Notes
+        -----
+        This function is equivalent to ``(left <= ser) & (ser <= right)``
+
+        See Also
+        --------
+        pandas.Series.gt : Greater than of series and other
+        pandas.Series.lt : Less than of series and other
+
+        Examples
+        --------
+        >>> s = pd.Series([2, 0, 4, 8, np.nan])
+
+        Boundary values are included by default:
+
+        >>> s.between(1, 4)
+        0     True
+        1    False
+        2     True
+        3    False
+        4    False
+        dtype: bool
+
+        With `inclusive` set to ``False`` boundary values are excluded:
+
+        >>> s.between(1, 4, inclusive=False)
+        0     True
+        1    False
+        2    False
+        3    False
+        4    False
+        dtype: bool
+
+        `left` and `right` can be any scalar value:
+
+        >>> s = pd.Series(['Alice', 'Bob', 'Carol', 'Eve'])
+        >>> s.between('Anna', 'Daniel')
+        0    False
+        1     True
+        2     True
+        3    False
+        dtype: bool
         """
         if inclusive:
             lmask = self >= left
@@ -3632,9 +3728,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             a string representing the encoding to use if the contents are
             non-ascii, for python versions prior to 3
         compression : string, optional
-            a string representing the compression to use in the output file,
-            allowed values are 'gzip', 'bz2', 'xz', only used when the first
-            argument is a filename
+            A string representing the compression to use in the output file.
+            Allowed values are 'gzip', 'bz2', 'zip', 'xz'. This input is only
+            used when the first argument is a filename.
         date_format: string, default None
             Format string for datetime objects.
         decimal: string, default '.'
@@ -3870,7 +3966,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     hist = gfx.hist_series
 
 
-Series._setup_axes(['index'], info_axis=0, stat_axis=0, aliases={'rows': 0})
+Series._setup_axes(['index'], info_axis=0, stat_axis=0, aliases={'rows': 0},
+                   docs={'index': 'The index (axis labels) of the Series.'})
 Series._add_numeric_operations()
 Series._add_series_only_operations()
 Series._add_series_or_dataframe_operations()

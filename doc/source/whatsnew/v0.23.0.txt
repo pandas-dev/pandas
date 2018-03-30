@@ -299,6 +299,63 @@ Supplying a ``CategoricalDtype`` will make the categories in each column consist
     df['A'].dtype
     df['B'].dtype
 
+.. _whatsnew_023.enhancements.extension:
+
+Extending Pandas with Custom Types
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Pandas now supports storing array-like objects that aren't necessarily 1-D NumPy
+arrays as columns in a DataFrame or values in a Series. This allows third-party
+libraries to implement extensions to NumPy's types, similar to how pandas
+implemented categoricals, datetimes with timezones, periods, and intervals.
+
+As a demonstration, we'll use cyberpandas_, which provides an ``IPArray`` type
+for storing ip addresses.
+
+.. code-block:: ipython
+
+   In [1]: from cyberpandas import IPArray
+
+   In [2]: values = IPArray([
+      ...:     0,
+      ...:     3232235777,
+      ...:     42540766452641154071740215577757643572
+      ...: ])
+      ...:
+      ...:
+
+``IPArray`` isn't a normal 1-D NumPy array, but because it's a pandas
+``ExtensionArray``, it can be stored properly inside pandas' containers.
+
+.. code-block:: ipython
+
+   In [3]: ser = pd.Series(values)
+      ...:
+
+   In [4]: ser
+   Out[4]:
+   0                         0.0.0.0
+   1                     192.168.1.1
+   2    2001:db8:85a3::8a2e:370:7334
+   dtype: ip
+
+Notice that the dtype is ``ip``. The missing value semantics of the underlying
+array are respected:
+
+   In [5]: ser.isna()
+      ...:
+   Out[5]:
+   0     True
+   1    False
+   2    False
+   dtype: bool
+
+For more, see the :ref:`extension types <extending.extension-types>`
+documentation. If you build an extension array, publicize it on our
+:ref:`ecosystem page <ecosystem.extensions>`.
+
+.. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest/
+
 .. _whatsnew_0230.enhancements.other:
 
 Other Enhancements
@@ -326,11 +383,12 @@ Other Enhancements
 - ``Resampler`` objects now have a functioning :attr:`~pandas.core.resample.Resampler.pipe` method.
   Previously, calls to ``pipe`` were diverted to  the ``mean`` method (:issue:`17905`).
 - :func:`~pandas.api.types.is_scalar` now returns ``True`` for ``DateOffset`` objects (:issue:`18943`).
+- :func:`DataFrame.pivot` now accepts a list for the ``values=`` kwarg (:issue:`17160`).
 - Added :func:`pandas.api.extensions.register_dataframe_accessor`,
   :func:`pandas.api.extensions.register_series_accessor`, and
   :func:`pandas.api.extensions.register_index_accessor`, accessor for libraries downstream of pandas
   to register custom accessors like ``.cat`` on pandas objects. See
-  :ref:`Registering Custom Accessors <developer.register-accessors>` for more (:issue:`14781`).
+  :ref:`Registering Custom Accessors <extending.register-accessors>` for more (:issue:`14781`).
 
 - ``IntervalIndex.astype`` now supports conversions between subtypes when passed an ``IntervalDtype`` (:issue:`19197`)
 - :class:`IntervalIndex` and its associated constructor methods (``from_arrays``, ``from_breaks``, ``from_tuples``) have gained a ``dtype`` parameter (:issue:`19262`)
@@ -344,6 +402,7 @@ Other Enhancements
 - :meth:`DataFrame.to_sql` now performs a multivalue insert if the underlying connection supports itk rather than inserting row by row.
   ``SQLAlchemy`` dialects supporting multivalue inserts include: ``mysql``, ``postgresql``, ``sqlite`` and any dialect with ``supports_multivalues_insert``. (:issue:`14315`, :issue:`8953`)
 - :func:`read_html` now accepts a ``displayed_only`` keyword argument to controls whether or not hidden elements are parsed (``True`` by default) (:issue:`20027`)
+- zip compression is supported via ``compression=zip`` in :func:`DataFrame.to_pickle`, :func:`Series.to_pickle`, :func:`DataFrame.to_csv`, :func:`Series.to_csv`, :func:`DataFrame.to_json`, :func:`Series.to_json`. (:issue:`17778`)
 
 .. _whatsnew_0230.api_breaking:
 
@@ -452,7 +511,7 @@ Convert to an xarray DataArray
 .. _whatsnew_0230.api_breaking.core_common:
 
 pandas.core.common removals
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following error & warning messages are removed from ``pandas.core.common`` (:issue:`13634`, :issue:`19769`):
 
@@ -656,6 +715,35 @@ Notice in the example above that the converted ``Categorical`` has retained ``or
 
 Note that the unintenional conversion of ``ordered`` discussed above did not arise in previous versions due to separate bugs that prevented ``astype`` from doing any type of category to category conversion (:issue:`10696`, :issue:`18593`).  These bugs have been fixed in this release, and motivated changing the default value of ``ordered``.
 
+.. _whatsnew_0230.api_breaking.pretty_printing:
+
+Better pretty-printing of DataFrames in a terminal
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Previously, the default value for the maximum number of columns was
+``pd.options.display.max_columns=20``. This meant that relatively wide data
+frames would not fit within the terminal width, and pandas would introduce line
+breaks to display these 20 columns. This resulted in an output that was
+relatively difficult to read:
+
+.. image:: _static/print_df_old.png
+
+If Python runs in a terminal, the maximum number of columns is now determined
+automatically so that the printed data frame fits within the current terminal
+width (``pd.options.display.max_columns=0``) (:issue:`17023`). If Python runs
+as a Jupyter kernel (such as the Jupyter QtConsole or a Jupyter notebook, as
+well as in many IDEs), this value cannot be inferred automatically and is thus
+set to `20` as in previous versions. In a terminal, this results in a much
+nicer output:
+
+.. image:: _static/print_df_new.png
+
+Note that if you don't like the new default, you can always set this option
+yourself. To revert to the old setting, you can run this line:
+
+.. code-block:: python
+
+  pd.options.display.max_columns = 20
+
 .. _whatsnew_0230.api.datetimelike:
 
 Datetimelike API Changes
@@ -714,6 +802,8 @@ Other API Changes
 - ``pd.to_datetime('today')`` now returns a datetime, consistent with ``pd.Timestamp('today')``; previously ``pd.to_datetime('today')`` returned a ``.normalized()`` datetime (:issue:`19935`)
 - :func:`Series.str.replace` now takes an optional `regex` keyword which, when set to ``False``, uses literal string replacement rather than regex replacement (:issue:`16808`)
 - :func:`DatetimeIndex.strftime` and :func:`PeriodIndex.strftime` now return an ``Index`` instead of a numpy array to be consistent with similar accessors (:issue:`20127`)
+- Constructing a Series from a list of length 1 no longer broadcasts this list when a longer index is specified (:issue:`19714`, :issue:`20391`).
+- :func:`DataFrame.to_dict` with ``orient='index'`` no longer casts int columns to float for a DataFrame with only int and float columns (:issue:`18580`)
 
 .. _whatsnew_0230.deprecations:
 
@@ -740,6 +830,7 @@ Deprecations
 
 - ``pandas.tseries.plotting.tsplot`` is deprecated. Use :func:`Series.plot` instead (:issue:`18627`)
 - ``Index.summary()`` is deprecated and will be removed in a future version (:issue:`18217`)
+- ``NDFrame.get_ftype_counts()`` is deprecated and will be removed in a future version (:issue:`18243`)
 
 .. _whatsnew_0230.prior_deprecations:
 
@@ -774,6 +865,10 @@ Removal of prior version deprecations/changes
 - The top-level functions ``pd.rolling_*``, ``pd.expanding_*`` and ``pd.ewm*`` have been removed (Deprecated since v0.18).
   Instead, use the DataFrame/Series methods :attr:`~DataFrame.rolling`, :attr:`~DataFrame.expanding` and :attr:`~DataFrame.ewm` (:issue:`18723`)
 - Imports from ``pandas.core.common`` for functions such as ``is_datetime64_dtype`` are now removed. These are located in ``pandas.api.types``. (:issue:`13634`, :issue:`19769`)
+- The ``infer_dst`` keyword in :meth:`Series.tz_localize`, :meth:`DatetimeIndex.tz_localize`
+  and :class:`DatetimeIndex` have been removed. ``infer_dst=True`` is equivalent to
+  ``ambiguous='infer'``, and ``infer_dst=False`` to ``ambiguous='raise'`` (:issue:`7963`).
+
 
 .. _whatsnew_0230.performance:
 
@@ -876,8 +971,8 @@ Timedelta
 ^^^^^^^^^
 
 - Bug in :func:`Timedelta.__mul__` where multiplying by ``NaT`` returned ``NaT`` instead of raising a ``TypeError`` (:issue:`19819`)
-- Bug in :class:`Series` with ``dtype='timedelta64[ns]`` where addition or subtraction of ``TimedeltaIndex`` had results cast to ``dtype='int64'`` (:issue:`17250`)
-- Bug in :class:`Series` with ``dtype='timedelta64[ns]`` where addition or subtraction of ``TimedeltaIndex`` could return a ``Series`` with an incorrect name (:issue:`19043`)
+- Bug in :class:`Series` with ``dtype='timedelta64[ns]'`` where addition or subtraction of ``TimedeltaIndex`` had results cast to ``dtype='int64'`` (:issue:`17250`)
+- Bug in :class:`Series` with ``dtype='timedelta64[ns]'`` where addition or subtraction of ``TimedeltaIndex`` could return a ``Series`` with an incorrect name (:issue:`19043`)
 - Bug in :func:`Timedelta.__floordiv__` and :func:`Timedelta.__rfloordiv__` dividing by many incompatible numpy objects was incorrectly allowed (:issue:`18846`)
 - Bug where dividing a scalar timedelta-like object with :class:`TimedeltaIndex` performed the reciprocal operation (:issue:`19125`)
 - Bug in :class:`TimedeltaIndex` where division by a ``Series`` would return a ``TimedeltaIndex`` instead of a ``Series`` (:issue:`19042`)
@@ -885,9 +980,10 @@ Timedelta
 - Bug in :func:`Timedelta.__floordiv__`, :func:`Timedelta.__rfloordiv__` where operating with a ``Tick`` object would raise a ``TypeError`` instead of returning a numeric value (:issue:`19738`)
 - Bug in :func:`Period.asfreq` where periods near ``datetime(1, 1, 1)`` could be converted incorrectly (:issue:`19643`, :issue:`19834`)
 - Bug in :func:`Timedelta.total_seconds()` causing precision errors i.e. ``Timedelta('30S').total_seconds()==30.000000000000004`` (:issue:`19458`)
-- Bug in :func: `Timedelta.__rmod__` where operating with a ``numpy.timedelta64`` returned a ``timedelta64`` object instead of a ``Timedelta`` (:issue:`19820`)
-- Multiplication of :class:`TimedeltaIndex` by ``TimedeltaIndex`` will now raise ``TypeError`` instead of raising ``ValueError`` in cases of length mis-match (:issue`19333`)
--
+- Bug in :func:`Timedelta.__rmod__` where operating with a ``numpy.timedelta64`` returned a ``timedelta64`` object instead of a ``Timedelta`` (:issue:`19820`)
+- Multiplication of :class:`TimedeltaIndex` by ``TimedeltaIndex`` will now raise ``TypeError`` instead of raising ``ValueError`` in cases of length mis-match (:issue:`19333`)
+- Bug in indexing a :class:`TimedeltaIndex` with a ``np.timedelta64`` object which was raising a ``TypeError`` (:issue:`20393`)
+
 
 Timezones
 ^^^^^^^^^
@@ -900,11 +996,12 @@ Timezones
 - :func:`Timestamp.replace` will now handle Daylight Savings transitions gracefully (:issue:`18319`)
 - Bug in tz-aware :class:`DatetimeIndex` where addition/subtraction with a :class:`TimedeltaIndex` or array with ``dtype='timedelta64[ns]'`` was incorrect (:issue:`17558`)
 - Bug in :func:`DatetimeIndex.insert` where inserting ``NaT`` into a timezone-aware index incorrectly raised (:issue:`16357`)
-- Bug in the :class:`DataFrame` constructor, where tz-aware Datetimeindex and a given column name will result in an empty ``DataFrame`` (:issue:`19157`)
+- Bug in :class:`DataFrame` constructor, where tz-aware Datetimeindex and a given column name will result in an empty ``DataFrame`` (:issue:`19157`)
 - Bug in :func:`Timestamp.tz_localize` where localizing a timestamp near the minimum or maximum valid values could overflow and return a timestamp with an incorrect nanosecond value (:issue:`12677`)
 - Bug when iterating over :class:`DatetimeIndex` that was localized with fixed timezone offset that rounded nanosecond precision to microseconds (:issue:`19603`)
 - Bug in :func:`DataFrame.diff` that raised an ``IndexError`` with tz-aware values (:issue:`18578`)
 - Bug in :func:`melt` that converted tz-aware dtypes to tz-naive (:issue:`15785`)
+- Bug in :func:`Dataframe.count` that raised an ``ValueError``, if :func:`Dataframe.dropna` was called for a single column with timezone-aware values. (:issue:`13407`)
 
 Offsets
 ^^^^^^^
@@ -925,7 +1022,7 @@ Numeric
 - Bug in :class:`Index` constructor with ``dtype='uint64'`` where int-like floats were not coerced to :class:`UInt64Index` (:issue:`18400`)
 - Bug in :class:`DataFrame` flex arithmetic (e.g. ``df.add(other, fill_value=foo)``) with a ``fill_value`` other than ``None`` failed to raise ``NotImplementedError`` in corner cases where either the frame or ``other`` has length zero (:issue:`19522`)
 - Multiplication and division of numeric-dtyped :class:`Index` objects with timedelta-like scalars returns ``TimedeltaIndex`` instead of raising ``TypeError`` (:issue:`19333`)
-- Bug where ``NaN`` was returned instead of 0 by :func:`Series.pct_change` and :func:`DataFrame.pct_change` when ``fill_method`` is not ``None`` (provided) (:issue:`19873`)
+- Bug where ``NaN`` was returned instead of 0 by :func:`Series.pct_change` and :func:`DataFrame.pct_change` when ``fill_method`` is not ``None`` (:issue:`19873`)
 
 
 Indexing
@@ -979,13 +1076,16 @@ I/O
 - :class:`Timedelta` now supported in :func:`DataFrame.to_excel` for all Excel file types (:issue:`19242`, :issue:`9155`, :issue:`19900`)
 - Bug in :meth:`pandas.io.stata.StataReader.value_labels` raising an ``AttributeError`` when called on very old files. Now returns an empty dict (:issue:`19417`)
 - Bug in :func:`read_pickle` when unpickling objects with :class:`TimedeltaIndex` or :class:`Float64Index` created with pandas prior to version 0.20 (:issue:`19939`)
+- Bug in :meth:`pandas.io.json.json_normalize` where subrecords are not properly normalized if any subrecords values are NoneType (:issue:`20030`)
 
 Plotting
 ^^^^^^^^
 
 - :func:`DataFrame.plot` now raises a ``ValueError`` when the ``x`` or ``y`` argument is improperly formed (:issue:`18671`)
+- Bug in :func:`DataFrame.plot` when ``x`` and ``y`` arguments given as positions caused incorrect referenced columns for line, bar and area plots (:issue:`20056`)
 - Bug in formatting tick labels with ``datetime.time()`` and fractional seconds (:issue:`18478`).
 - :meth:`Series.plot.kde` has exposed the args ``ind`` and ``bw_method`` in the docstring (:issue:`18461`). The argument ``ind`` may now also be an integer (number of sample points).
+- :func:`DataFrame.plot` now supports multiple columns to the ``y`` argument (:issue:`19699`)
 
 
 Groupby/Resample/Rolling

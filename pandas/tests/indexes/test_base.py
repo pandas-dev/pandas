@@ -2056,6 +2056,11 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
         ser.index -= 1
         assert ser.index.name == "foo"
 
+    def test_cached_properties_not_settable(self):
+        idx = pd.Index([1, 2, 3])
+        with tm.assert_raises_regex(AttributeError, "Can't set attribute"):
+            idx.is_unique = False
+
 
 class TestMixedIntIndex(Base):
     # Mostly the tests from common.py for which the results differ
