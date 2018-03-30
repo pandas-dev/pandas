@@ -1,6 +1,5 @@
 """ test to_datetime """
 
-import sys
 import pytz
 import pytest
 import locale
@@ -149,9 +148,6 @@ class TestTimeConversionFormats(object):
         # GH 10834
         # 8904
         # exact kw
-        if sys.version_info < (2, 7):
-            pytest.skip('on python version < 2.7')
-
         s = Series(['19MAY11', 'foobar19MAY11', '19MAY11:00:00:00',
                     '19MAY11 00:00:00Z'])
         result = to_datetime(s, format='%d%b%y', exact=False, cache=cache)
