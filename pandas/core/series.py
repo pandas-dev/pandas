@@ -271,7 +271,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         generic.NDFrame.__init__(self, data, fastpath=True)
 
-        self.name = name
+        if name is not None and not is_hashable(name):
+            raise TypeError('Series.name must be a hashable type')
+        else:
+            self.name = name
         self._set_axis(0, index, fastpath=True)
 
     def _init_dict(self, data, index=None, dtype=None):
@@ -3288,7 +3291,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         non_mapping = is_scalar(index) or (is_list_like(index) and
                                            not is_dict_like(index))
         if non_mapping:
-            return self._set_name(index, inplace=kwargs.get('inplace'))
+            if not is_hashable(index):
+                raise TypeError('Series.name must be a hashable type')
+            else:
+                return self._set_name(index, inplace=kwargs.get('inplace'))
         return super(Series, self).rename(index=index, **kwargs)
 
     @Appender(generic._shared_docs['reindex'] % _shared_doc_kwargs)
