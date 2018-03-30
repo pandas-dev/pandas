@@ -576,3 +576,11 @@ class TestSeriesMap(TestData):
         result = s.map(f)
         exp = pd.Series(['Asia/Tokyo'] * 25, name='XX')
         tm.assert_series_equal(result, exp)
+
+    def test_map_missing_mixed(self):
+        s = pd.Series(list('abc') + [np.nan])
+        
+        result = s.map({np.nan: 'not NaN'})
+        result2 = s.map({'a': 42, np.nan: 'not NaN'})
+
+        tm.assert_series_equal(result, result2)
