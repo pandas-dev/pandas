@@ -378,9 +378,7 @@ cdef class TextReader:
 
         self.compression = compression
         self.memory_map = memory_map
-
         self.parser.usecols = (usecols is not None)
-
         self._setup_parser_source(source)
         parser_set_default_options(self.parser)
 
@@ -445,10 +443,8 @@ cdef class TextReader:
         # suboptimal
         if usecols is not None:
             self.has_usecols = 1
-            if callable(usecols):
-                self.usecols = usecols
-            else:
-                self.usecols = set(usecols)
+            # GH20529, validate usecols at higher level.
+            self.usecols = usecols
 
         # XXX
         if skipfooter > 0:
