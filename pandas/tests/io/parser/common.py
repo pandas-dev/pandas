@@ -1277,8 +1277,7 @@ eight,1,2,3"""
 
     def test_iteration_open_handle(self):
         if PY3:
-            pytest.skip(
-                "won't work in Python 3 {0}".format(sys.version_info))
+            pytest.skip("won't work in Python 3")
 
         with tm.ensure_clean() as path:
             with open(path, 'wb') as f:
