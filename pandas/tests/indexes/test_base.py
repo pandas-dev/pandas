@@ -2061,6 +2061,11 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
         with tm.assert_raises_regex(AttributeError, "Can't set attribute"):
             idx.is_unique = False
 
+    def test_get_duplicates_deprecated(self):
+        idx = pd.Index([1, 2, 3])
+        with tm.assert_produces_warning(FutureWarning):
+            idx.get_duplicates()
+
 
 class TestMixedIntIndex(Base):
     # Mostly the tests from common.py for which the results differ

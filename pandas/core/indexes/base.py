@@ -1824,6 +1824,9 @@ class Index(IndexOpsMixin, PandasObject):
         Returns a sorted list of index elements which appear more than once in
         the index.
 
+        .. deprecated:: 0.23.0
+            Use idx[idx.duplicated()].unique() instead
+
         Returns
         -------
         array-like
@@ -1870,13 +1873,19 @@ class Index(IndexOpsMixin, PandasObject):
         >>> pd.Index(dates).get_duplicates()
         DatetimeIndex([], dtype='datetime64[ns]', freq=None)
         """
+        warnings.warn("'get_duplicates' is deprecated and will be removed in "
+                      "a future release. You can use "
+                      "idx[idx.duplicated()].unique() instead",
+                      FutureWarning, stacklevel=2)
+
+        return self._get_duplicates()
+
+    def _get_duplicates(self):
         from collections import defaultdict
         counter = defaultdict(lambda: 0)
         for k in self.values:
             counter[k] += 1
         return sorted(k for k, v in compat.iteritems(counter) if v > 1)
-
-    _get_duplicates = get_duplicates
 
     def _cleanup(self):
         self._engine.clear_mapping()
