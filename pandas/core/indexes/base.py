@@ -42,6 +42,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
     is_datetime64tz_dtype,
     is_timedelta64_dtype,
+    is_hashable,
     needs_i8_conversion,
     is_iterator, is_list_like,
     is_scalar)
@@ -250,6 +251,9 @@ class Index(IndexOpsMixin, PandasObject):
 
         if name is None and hasattr(data, 'name'):
             name = data.name
+
+        if name is not None and not is_hashable(name):
+            raise TypeError('Index.name must be a hashable type')
 
         if fastpath:
             return cls._simple_new(data, name)
@@ -1392,7 +1396,10 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         new index (of same type and class...etc) [if inplace, returns None]
         """
-        return self.set_names([name], inplace=inplace)
+        if name is not None and not is_hashable(name):
+            raise TypeError('Index.name must be a hashable type')
+        else:
+            return self.set_names([name], inplace=inplace)
 
     @property
     def _has_complex_internals(self):
