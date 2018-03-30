@@ -97,11 +97,11 @@ index_col : int or sequence or False, default None
     MultiIndex is used. If you have a malformed file with delimiters at the end
     of each line, you might consider index_col=False to force pandas to _not_
     use the first column as the index (row names)
-usecols : array-like or callable, default None
-    Return a subset of the columns. If array-like, all elements must either
+usecols : list-like or callable, default None
+    Return a subset of the columns. If list-like, all elements must either
     be positional (i.e. integer indices into the document columns) or strings
     that correspond to column names provided either by the user in `names` or
-    inferred from the document header row(s). For example, a valid array-like
+    inferred from the document header row(s). For example, a valid list-like
     `usecols` parameter would be [0, 1, 2] or ['foo', 'bar', 'baz']. Element
     order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``.
     To instantiate a DataFrame from ``data`` with element order preserved use
@@ -1177,7 +1177,7 @@ def _validate_usecols_arg(usecols):
 
     Parameters
     ----------
-    usecols : array-like, callable, or None
+    usecols : list-like, callable, or None
         List of columns to use when parsing or a callable that can be used
         to filter a list of table columns.
 
