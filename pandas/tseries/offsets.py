@@ -2480,6 +2480,7 @@ prefix_mapping = dict((offset._prefix, offset) for offset in [
     Hour,                      # 'H'
     Day,                       # 'D'
     WeekOfMonth,               # 'WOM'
-    FY5253,
-    FY5253Quarter,
+    LastWeekOfMonth,           # 'LWOM'
+    FY5253,                    # 'RE'
+    FY5253Quarter,             # 'REQ'
 ])
