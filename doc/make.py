@@ -78,7 +78,7 @@ class DocBuilder:
     script.
     """
     def __init__(self, num_jobs=1, include_api=True, single_doc=None,
-                 verbosity=0, error=False):
+                 verbosity=0):
         self.num_jobs = num_jobs
         self.include_api = include_api
         self.verbosity = verbosity
@@ -87,7 +87,6 @@ class DocBuilder:
         if single_doc is not None:
             self._process_single_doc(single_doc)
         self.exclude_patterns = self._exclude_patterns
-        self.error = '-W' if error else ''
 
         self._generate_index()
         if self.single_doc_type == 'docstring':
@@ -235,7 +234,6 @@ class DocBuilder:
                          'v' * self.verbosity) if self.verbosity else '',
                      '-d{}'.format(os.path.join(BUILD_PATH, 'doctrees')),
                      '-Dexclude_patterns={}'.format(self.exclude_patterns),
-                     ''.format(self.error),
                      SOURCE_PATH,
                      os.path.join(BUILD_PATH, kind))
 
@@ -338,8 +336,6 @@ def main():
     argparser.add_argument('-v', action='count', dest='verbosity', default=0,
                            help=('increase verbosity (can be repeated), '
                                  'passed to the sphinx build command'))
-    argparser.add_argument('-W', action="store_true", dest='error',
-                           help="Treat Sphinx warnings as errors.")
     args = argparser.parse_args()
 
     if args.command not in cmds:
@@ -355,7 +351,7 @@ def main():
     globals()['pandas'] = importlib.import_module('pandas')
 
     builder = DocBuilder(args.num_jobs, not args.no_api, args.single,
-                         args.verbosity, error=args.error)
+                         args.verbosity)
     getattr(builder, args.command)()
 
 
