@@ -445,7 +445,8 @@ cdef class TextReader:
         # suboptimal
         if usecols is not None:
             self.has_usecols = 1
-            # GH20529, validate usecols at higher level.
+            # GH-20558, validate usecols at higher level and only pass clean
+            # usecols into TextReader.
             self.usecols = usecols
 
         # XXX
