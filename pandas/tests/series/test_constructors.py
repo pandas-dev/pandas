@@ -110,6 +110,11 @@ class TestSeriesConstructors(TestData):
             empty2 = Series(input_class(), index=lrange(10), dtype='float64')
             assert_series_equal(empty, empty2)
 
+            # GH 19853 : with empty string, index and dtype str
+            empty = Series('', dtype=str, index=range(3))
+            empty2 = Series('', index=range(3))
+            assert_series_equal(empty, empty2)
+
     @pytest.mark.parametrize('input_arg', [np.nan, float('nan')])
     def test_constructor_nan(self, input_arg):
         empty = Series(dtype='float64', index=lrange(10))
