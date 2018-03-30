@@ -583,4 +583,4 @@ class TestSeriesMap(TestData):
         result = s.map({np.nan: 'not NaN'})
         result2 = s.map({'a': 42, np.nan: 'not NaN'})
 
-        tm.assert_series_equal(result, result2)
+        tm.assert_series_equal(result[-1:], result2[-1:])
