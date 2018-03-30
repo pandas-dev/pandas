@@ -26,6 +26,7 @@ Other items:
 # pylint disable=W0611
 # flake8: noqa
 
+import re
 import functools
 import itertools
 from distutils.version import LooseVersion
@@ -136,7 +137,6 @@ if PY3:
 
 else:
     # Python 2
-    import re
     _name_re = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*$")
 
     FileNotFoundError = IOError
@@ -423,6 +423,7 @@ from dateutil import parser as _date_parser
 parse_date = _date_parser.parse
 
 
+# In Python 3.7, the private re._pattern_type is removed.
 if PY36:
     import typing
     re_type = typing.re.Pattern
