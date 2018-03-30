@@ -345,7 +345,6 @@ Other Enhancements
   ``SQLAlchemy`` dialects supporting multivalue inserts include: ``mysql``, ``postgresql``, ``sqlite`` and any dialect with ``supports_multivalues_insert``. (:issue:`14315`, :issue:`8953`)
 - :func:`read_html` now accepts a ``displayed_only`` keyword argument to controls whether or not hidden elements are parsed (``True`` by default) (:issue:`20027`)
 - zip compression is supported via ``compression=zip`` in :func:`DataFrame.to_pickle`, :func:`Series.to_pickle`, :func:`DataFrame.to_csv`, :func:`Series.to_csv`, :func:`DataFrame.to_json`, :func:`Series.to_json`. (:issue:`17778`)
-- Performance enhancement for :func:`Series.isin` in the case of categorical dtypes (:issue:`20003`)
 
 .. _whatsnew_0230.api_breaking:
 
@@ -803,6 +802,7 @@ Performance Improvements
 - Improved performance of :func:`pandas.core.groupby.GroupBy.ffill` and :func:`pandas.core.groupby.GroupBy.bfill` (:issue:`11296`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.any` and :func:`pandas.core.groupby.GroupBy.all` (:issue:`15435`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.pct_change` (:issue:`19165`)
+- Improved performance of :func:`Series.isin` in the case of categorical dtypes (:issue:`20003`)
 
 .. _whatsnew_0230.docs:
 
