@@ -933,6 +933,7 @@ class NDFrame(PandasObject, SelectionMixin):
         inplace = kwargs.pop('inplace', False)
         level = kwargs.pop('level', None)
         axis = kwargs.pop('axis', None)
+        tupleize_cols = kwargs.pop('tupleize_cols', False)
         if axis is not None:
             axis = self._get_axis_number(axis)
 
@@ -970,8 +971,10 @@ class NDFrame(PandasObject, SelectionMixin):
             baxis = self._get_block_manager_axis(axis)
             if level is not None:
                 level = self.axes[axis]._get_level_number(level)
-            result._data = result._data.rename_axis(f, axis=baxis, copy=copy,
-                                                    level=level)
+            result._data = \
+                result._data.rename_axis(f, axis=baxis, copy=copy,
+                                         level=level,
+                                         tupleize_cols=tupleize_cols)
             result._clear_item_cache()
 
         if inplace:

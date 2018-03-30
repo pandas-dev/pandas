@@ -3280,7 +3280,8 @@ class BlockManager(PandasObject):
 
         self.axes[axis] = new_labels
 
-    def rename_axis(self, mapper, axis, copy=True, level=None):
+    def rename_axis(self, mapper, axis, copy=True, level=None,
+                    tupleize_cols=False):
         """
         Rename one of axes.
 
@@ -3293,7 +3294,8 @@ class BlockManager(PandasObject):
 
         """
         obj = self.copy(deep=copy)
-        obj.set_axis(axis, _transform_index(self.axes[axis], mapper, level))
+        obj.set_axis(axis, _transform_index(self.axes[axis], mapper, level,
+                                            tupleize_cols=tupleize_cols))
         return obj
 
     def add_prefix(self, prefix):
@@ -5234,7 +5236,7 @@ def _safe_reshape(arr, new_shape):
     return arr
 
 
-def _transform_index(index, func, level=None):
+def _transform_index(index, func, level=None, tupleize_cols=True):
     """
     Apply function to all values found in index.
 
@@ -5251,7 +5253,7 @@ def _transform_index(index, func, level=None):
         return MultiIndex.from_tuples(items, names=index.names)
     else:
         items = [func(x) for x in index]
-        return Index(items, name=index.name)
+        return Index(items, name=index.name, tupleize_cols=tupleize_cols)
 
 
 def _putmask_smart(v, m, n):
