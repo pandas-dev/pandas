@@ -411,6 +411,8 @@ Levels
 `Flatten Hierarchical columns
 <http://stackoverflow.com/questions/14507794/python-pandas-how-to-flatten-a-hierarchical-index-in-columns>`__
 
+.. _cookbook.missing_data:
+
 Missing Data
 ------------
 

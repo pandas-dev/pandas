@@ -1751,22 +1751,22 @@ def _plot(data, x=None, y=None, subplots=False,
         plot_obj = klass(data, subplots=subplots, ax=ax, kind=kind, **kwds)
     else:
         if isinstance(data, ABCDataFrame):
+            data_cols = data.columns
             if x is not None:
                 if is_integer(x) and not data.columns.holds_integer():
-                    x = data.columns[x]
+                    x = data_cols[x]
                 elif not isinstance(data[x], ABCSeries):
                     raise ValueError("x must be a label or position")
                 data = data.set_index(x)
 
             if y is not None:
-                if is_integer(y) and not data.columns.holds_integer():
-                    y = data.columns[y]
-                elif not isinstance(data[y], ABCSeries):
-                    raise ValueError("y must be a label or position")
-                label = kwds['label'] if 'label' in kwds else y
-                series = data[y].copy()  # Don't modify
-                series.name = label
+                # check if we have y as int or list of ints
+                int_ylist = is_list_like(y) and all(is_integer(c) for c in y)
+                int_y_arg = is_integer(y) or int_ylist
+                if int_y_arg and not data.columns.holds_integer():
+                    y = data_cols[y]
 
+                label_kw = kwds['label'] if 'label' in kwds else False
                 for kw in ['xerr', 'yerr']:
                     if (kw in kwds) and \
                         (isinstance(kwds[kw], string_types) or
@@ -1775,7 +1775,22 @@ def _plot(data, x=None, y=None, subplots=False,
                             kwds[kw] = data[kwds[kw]]
                         except (IndexError, KeyError, TypeError):
                             pass
-                data = series
+
+                # don't overwrite
+                data = data[y].copy()
+
+                if isinstance(data, ABCSeries):
+                    label_name = label_kw or y
+                    data.name = label_name
+                else:
+                    match = is_list_like(label_kw) and len(label_kw) == len(y)
+                    if label_kw and not match:
+                        raise ValueError(
+                            "label should be list-like and same length as y"
+                        )
+                    label_name = label_kw or data.columns
+                    data.columns = label_name
+
         plot_obj = klass(data, subplots=subplots, ax=ax, kind=kind, **kwds)
 
     plot_obj.generate()
@@ -1788,7 +1803,7 @@ df_kind = """- 'scatter' : scatter plot
 series_kind = ""
 
 df_coord = """x : label or position, default None
-    y : label or position, default None
+    y : label, position or list of label, positions, default None
         Allows plotting of one column versus another"""
 series_coord = ""
 
@@ -3031,39 +3046,97 @@ class FramePlotMethods(BasePlotMethods):
 
     def box(self, by=None, **kwds):
         r"""
-        Boxplot
+        Make a box plot of the DataFrame columns.
+
+        A box plot is a method for graphically depicting groups of numerical
+        data through their quartiles.
+        The box extends from the Q1 to Q3 quartile values of the data,
+        with a line at the median (Q2). The whiskers extend from the edges
+        of box to show the range of the data. The position of the whiskers
+        is set by default to 1.5*IQR (IQR = Q3 - Q1) from the edges of the
+        box. Outlier points are those past the end of the whiskers.
+
+        For further details see Wikipedia's
+        entry for `boxplot <https://en.wikipedia.org/wiki/Box_plot>`__.
+
+        A consideration when using this chart is that the box and the whiskers
+        can overlap, which is very common when plotting small sets of data.
 
         Parameters
         ----------
         by : string or sequence
             Column in the DataFrame to group by.
-        `**kwds` : optional
-            Additional keyword arguments are documented in
+        **kwds : optional
+            Additional keywords are documented in
             :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
         axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+
+        See Also
+        --------
+        pandas.DataFrame.boxplot: Another method to draw a box plot.
+        pandas.Series.plot.box: Draw a box plot from a Series object.
+        matplotlib.pyplot.boxplot: Draw a box plot in matplotlib.
+
+        Examples
+        --------
+        Draw a box plot from a DataFrame with four columns of randomly
+        generated data.
+
+        .. plot::
+            :context: close-figs
+
+            >>> data = np.random.randn(25, 4)
+            >>> df = pd.DataFrame(data, columns=list('ABCD'))
+            >>> ax = df.plot.box()
         """
         return self(kind='box', by=by, **kwds)
 
     def hist(self, by=None, bins=10, **kwds):
         """
-        Histogram
+        Draw one histogram of the DataFrame's columns.
+
+        A histogram is a representation of the distribution of data.
+        This function groups the values of all given Series in the DataFrame
+        into bins and draws all bins in one :class:`matplotlib.axes.Axes`.
+        This is useful when the DataFrame's Series are in a similar scale.
 
         Parameters
         ----------
-        by : string or sequence
+        by : str or sequence, optional
             Column in the DataFrame to group by.
-        bins: integer, default 10
-            Number of histogram bins to be used
-        `**kwds` : optional
+        bins : int, default 10
+            Number of histogram bins to be used.
+        **kwds
             Additional keyword arguments are documented in
             :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        axes : matplotlib.AxesSubplot histogram.
+
+        See Also
+        --------
+        DataFrame.hist : Draw histograms per DataFrame's Series.
+        Series.hist : Draw a histogram with Series' data.
+
+        Examples
+        --------
+        When we draw a dice 6000 times, we expect to get each value around 1000
+        times. But when we draw two dices and sum the result, the distribution
+        is going to be quite different. A histogram illustrates those
+        distributions.
+
+        .. plot::
+            :context: close-figs
+
+            >>> df = pd.DataFrame(
+            ...     np.random.randint(1, 7, 6000),
+            ...     columns = ['one'])
+            >>> df['two'] = df['one'] + np.random.randint(1, 7, 6000)
+            >>> ax = df.plot.hist(bins=12, alpha=0.5)
         """
         return self(kind='hist', by=by, bins=bins, **kwds)
 
@@ -3133,67 +3206,217 @@ class FramePlotMethods(BasePlotMethods):
 
     def pie(self, y=None, **kwds):
         """
-        Pie chart
+        Generate a pie plot.
+
+        A pie plot is a proportional representation of the numerical data in a
+        column. This function wraps :meth:`matplotlib.pyplot.pie` for the
+        specified column. If no column reference is passed and
+        ``subplots=True`` a pie plot is drawn for each numerical column
+        independently.
 
         Parameters
         ----------
-        y : label or position, optional
-            Column to plot.
-        `**kwds` : optional
-            Additional keyword arguments are documented in
-            :meth:`pandas.DataFrame.plot`.
+        y : int or label, optional
+            Label or position of the column to plot.
+            If not provided, ``subplots=True`` argument must be passed.
+        **kwds
+            Keyword arguments to pass on to :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        axes : matplotlib.axes.Axes or np.ndarray of them.
+            A NumPy array is returned when `subplots` is True.
+
+        See Also
+        --------
+        Series.plot.pie : Generate a pie plot for a Series.
+        DataFrame.plot : Make plots of a DataFrame.
+
+        Examples
+        --------
+        In the example below we have a DataFrame with the information about
+        planet's mass and radius. We pass the the 'mass' column to the
+        pie function to get a pie plot.
+
+        .. plot::
+            :context: close-figs
+
+            >>> df = pd.DataFrame({'mass': [0.330, 4.87 , 5.97],
+            ...                    'radius': [2439.7, 6051.8, 6378.1]},
+            ...                   index=['Mercury', 'Venus', 'Earth'])
+            >>> plot = df.plot.pie(y='mass', figsize=(5, 5))
+
+        .. plot::
+            :context: close-figs
+
+            >>> plot = df.plot.pie(subplots=True, figsize=(6, 3))
+
         """
         return self(kind='pie', y=y, **kwds)
 
     def scatter(self, x, y, s=None, c=None, **kwds):
         """
-        Scatter plot
+        Create a scatter plot with varying marker point size and color.
+
+        The coordinates of each point are defined by two dataframe columns and
+        filled circles are used to represent each point. This kind of plot is
+        useful to see complex correlations between two variables. Points could
+        be for instance natural 2D coordinates like longitude and latitude in
+        a map or, in general, any pair of metrics that can be plotted against
+        each other.
 
         Parameters
         ----------
-        x, y : label or position, optional
-            Coordinates for each point.
+        x : int or str
+            The column name or column position to be used as horizontal
+            coordinates for each point.
+        y : int or str
+            The column name or column position to be used as vertical
+            coordinates for each point.
         s : scalar or array_like, optional
-            Size of each point.
-        c : label or position, optional
-            Color of each point.
-        `**kwds` : optional
-            Additional keyword arguments are documented in
-            :meth:`pandas.DataFrame.plot`.
+            The size of each point. Possible values are:
+
+            - A single scalar so all points have the same size.
+
+            - A sequence of scalars, which will be used for each point's size
+              recursively. For instance, when passing [2,14] all points size
+              will be either 2 or 14, alternatively.
+
+        c : str, int or array_like, optional
+            The color of each point. Possible values are:
+
+            - A single color string referred to by name, RGB or RGBA code,
+              for instance 'red' or '#a98d19'.
+
+            - A sequence of color strings referred to by name, RGB or RGBA
+              code, which will be used for each point's color recursively. For
+              intance ['green','yellow'] all points will be filled in green or
+              yellow, alternatively.
+
+            - A column name or position whose values will be used to color the
+              marker points according to a colormap.
+
+        **kwds
+            Keyword arguments to pass on to :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
         axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+
+        See Also
+        --------
+        matplotlib.pyplot.scatter : scatter plot using multiple input data
+            formats.
+
+        Examples
+        --------
+        Let's see how to draw a scatter plot using coordinates from the values
+        in a DataFrame's columns.
+
+        .. plot::
+            :context: close-figs
+
+            >>> df = pd.DataFrame([[5.1, 3.5, 0], [4.9, 3.0, 0], [7.0, 3.2, 1],
+            ...                    [6.4, 3.2, 1], [5.9, 3.0, 2]],
+            ...                   columns=['length', 'width', 'species'])
+            >>> ax1 = df.plot.scatter(x='length',
+            ...                       y='width',
+            ...                       c='DarkBlue')
+
+        And now with the color determined by a column as well.
+
+        .. plot::
+            :context: close-figs
+
+            >>> ax2 = df.plot.scatter(x='length',
+            ...                       y='width',
+            ...                       c='species',
+            ...                       colormap='viridis')
         """
         return self(kind='scatter', x=x, y=y, c=c, s=s, **kwds)
 
     def hexbin(self, x, y, C=None, reduce_C_function=None, gridsize=None,
                **kwds):
         """
-        Hexbin plot
+        Generate a hexagonal binning plot.
+
+        Generate a hexagonal binning plot of `x` versus `y`. If `C` is `None`
+        (the default), this is a histogram of the number of occurrences
+        of the observations at ``(x[i], y[i])``.
+
+        If `C` is specified, specifies values at given coordinates
+        ``(x[i], y[i])``. These values are accumulated for each hexagonal
+        bin and then reduced according to `reduce_C_function`,
+        having as default the NumPy's mean function (:meth:`numpy.mean`).
+        (If `C` is specified, it must also be a 1-D sequence
+        of the same length as `x` and `y`, or a column label.)
 
         Parameters
         ----------
-        x, y : label or position, optional
-            Coordinates for each point.
-        C : label or position, optional
-            The value at each `(x, y)` point.
-        reduce_C_function : callable, optional
+        x : int or str
+            The column label or position for x points.
+        y : int or str
+            The column label or position for y points.
+        C : int or str, optional
+            The column label or position for the value of `(x, y)` point.
+        reduce_C_function : callable, default `np.mean`
             Function of one argument that reduces all the values in a bin to
-            a single number (e.g. `mean`, `max`, `sum`, `std`).
-        gridsize : int, optional
-            Number of bins.
-        `**kwds` : optional
+            a single number (e.g. `np.mean`, `np.max`, `np.sum`, `np.std`).
+        gridsize : int or tuple of (int, int), default 100
+            The number of hexagons in the x-direction.
+            The corresponding number of hexagons in the y-direction is
+            chosen in a way that the hexagons are approximately regular.
+            Alternatively, gridsize can be a tuple with two elements
+            specifying the number of hexagons in the x-direction and the
+            y-direction.
+        **kwds
             Additional keyword arguments are documented in
             :meth:`pandas.DataFrame.plot`.
 
         Returns
         -------
-        axes : :class:`matplotlib.axes.Axes` or numpy.ndarray of them
+        matplotlib.AxesSubplot
+            The matplotlib ``Axes`` on which the hexbin is plotted.
+
+        See Also
+        --------
+        DataFrame.plot : Make plots of a DataFrame.
+        matplotlib.pyplot.hexbin : hexagonal binning plot using matplotlib,
+            the matplotlib function that is used under the hood.
+
+        Examples
+        --------
+        The following examples are generated with random data from
+        a normal distribution.
+
+        .. plot::
+            :context: close-figs
+
+            >>> n = 10000
+            >>> df = pd.DataFrame({'x': np.random.randn(n),
+            ...                    'y': np.random.randn(n)})
+            >>> ax = df.plot.hexbin(x='x', y='y', gridsize=20)
+
+        The next example uses `C` and `np.sum` as `reduce_C_function`.
+        Note that `'observations'` values ranges from 1 to 5 but the result
+        plot shows values up to more than 25. This is because of the
+        `reduce_C_function`.
+
+        .. plot::
+            :context: close-figs
+
+            >>> n = 500
+            >>> df = pd.DataFrame({
+            ...     'coord_x': np.random.uniform(-3, 3, size=n),
+            ...     'coord_y': np.random.uniform(30, 50, size=n),
+            ...     'observations': np.random.randint(1,5, size=n)
+            ...     })
+            >>> ax = df.plot.hexbin(x='coord_x',
+            ...                     y='coord_y',
+            ...                     C='observations',
+            ...                     reduce_C_function=np.sum,
+            ...                     gridsize=10,
+            ...                     cmap="viridis")
         """
         if reduce_C_function is not None:
             kwds['reduce_C_function'] = reduce_C_function

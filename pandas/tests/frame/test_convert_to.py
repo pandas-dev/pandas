@@ -5,6 +5,7 @@ from datetime import datetime
 import pytest
 import pytz
 import collections
+from collections import OrderedDict, defaultdict
 import numpy as np
 
 from pandas import compat
@@ -288,3 +289,29 @@ class TestDataFrameConvertTo(TestData):
         ]
         tm.assert_dict_equal(result[0], expected[0])
         tm.assert_dict_equal(result[1], expected[1])
+
+    @pytest.mark.parametrize('into, expected', [
+        (dict, {0: {'int_col': 1, 'float_col': 1.0},
+                1: {'int_col': 2, 'float_col': 2.0},
+                2: {'int_col': 3, 'float_col': 3.0}}),
+        (OrderedDict, OrderedDict([(0, {'int_col': 1, 'float_col': 1.0}),
+                                   (1, {'int_col': 2, 'float_col': 2.0}),
+                                   (2, {'int_col': 3, 'float_col': 3.0})])),
+        (defaultdict(list), defaultdict(list,
+                                        {0: {'int_col': 1, 'float_col': 1.0},
+                                         1: {'int_col': 2, 'float_col': 2.0},
+                                         2: {'int_col': 3, 'float_col': 3.0}}))
+    ])
+    def test_to_dict_index_dtypes(self, into, expected):
+        # GH 18580
+        # When using to_dict(orient='index') on a dataframe with int
+        # and float columns only the int columns were cast to float
+
+        df = DataFrame({'int_col': [1, 2, 3],
+                        'float_col': [1.0, 2.0, 3.0]})
+
+        result = df.to_dict(orient='index', into=into)
+        cols = ['int_col', 'float_col']
+        result = DataFrame.from_dict(result, orient='index')[cols]
+        expected = DataFrame.from_dict(expected, orient='index')[cols]
+        tm.assert_frame_equal(result, expected)

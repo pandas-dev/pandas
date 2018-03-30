@@ -58,12 +58,12 @@ class DatelikeOps(object):
     """ common ops for DatetimeIndex/PeriodIndex, but not TimedeltaIndex """
 
     def strftime(self, date_format):
-        return np.asarray(self.format(date_format=date_format),
-                          dtype=compat.text_type)
+        return Index(self.format(date_format=date_format),
+                     dtype=compat.text_type)
     strftime.__doc__ = """
-    Convert to string array using specified date_format.
+    Convert to Index using specified date_format.
 
-    Return an array of formatted strings specified by date_format, which
+    Return an Index of formatted strings specified by date_format, which
     supports the same string format as the python standard library. Details
     of the string format can be found in `python string format doc <{0}>`__
 
@@ -74,8 +74,8 @@ class DatelikeOps(object):
 
     Returns
     -------
-    numpy.ndarray
-        NumPy array of formatted strings
+    Index
+        Index of formatted strings
 
     See Also
     --------
@@ -86,16 +86,12 @@ class DatelikeOps(object):
 
     Examples
     --------
-    >>> import datetime
-    >>> data = pd.date_range(datetime.datetime(2018,3,10,19,27,52),
-    ...                      periods=4, freq='B')
-    >>> df = pd.DataFrame(data, columns=['date'])
-    >>> df.date[1]
-    Timestamp('2018-03-13 19:27:52')
-    >>> df.date[1].strftime('%d-%m-%Y')
-    '13-03-2018'
-    >>> df.date[1].strftime('%B %d, %Y, %r')
-    'March 13, 2018, 07:27:52 PM'
+    >>> rng = pd.date_range(pd.Timestamp("2018-03-10 09:00"),
+    ...                     periods=3, freq='s')
+    >>> rng.strftime('%B %d, %Y, %r')
+    Index(['March 10, 2018, 09:00:00 AM', 'March 10, 2018, 09:00:01 AM',
+           'March 10, 2018, 09:00:02 AM'],
+          dtype='object')
     """.format("https://docs.python.org/3/library/datetime.html"
                "#strftime-and-strptime-behavior")
 
@@ -1049,9 +1045,18 @@ class DatetimeIndexOpsMixin(object):
         return self._shallow_copy(result,
                                   **self._get_attributes_dict())
 
-    def summary(self, name=None):
+    def _summary(self, name=None):
         """
-        return a summarized representation
+        Return a summarized representation
+
+        Parameters
+        ----------
+        name : str
+            name to use in the summary representation
+
+        Returns
+        -------
+        String with a summarized representation of the index
         """
         formatter = self._formatter_func
         if len(self) > 0:
