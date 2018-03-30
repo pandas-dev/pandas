@@ -1032,7 +1032,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_if_scatterplot_colorbar_affects_xaxis_visibility(self):
-        # addressing issue #10611, to ensure colobar does not 
+        # addressing issue #10611, to ensure colobar does not
         # interfere with x-axis label and ticklabels
         random_array = np.random.random((1000, 3))
         df = pd.DataFrame(random_array,
@@ -1058,7 +1058,7 @@ class TestDataFramePlots(TestPlotBase):
 
     @pytest.mark.slow
     def test_if_hexbin_xaxis_label_is_visible(self):
-        # addressing issue #10678, to ensure colobar does not 
+        # addressing issue #10678, to ensure colobar does not
         # interfere with x-axis label and ticklabels
         random_array = np.random.random((1000, 3))
         df = pd.DataFrame(random_array,
