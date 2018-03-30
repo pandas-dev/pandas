@@ -410,7 +410,6 @@ def _validate_names(names):
     return names
 
 
-
 def _read(filepath_or_buffer, kwds):
     """Generic reader of line files."""
     encoding = kwds.get('encoding', None)
@@ -1194,7 +1193,7 @@ def _validate_usecols_arg(usecols):
         is passed in or None if a callable or None is passed in.
     """
     msg = ("'usecols' must either be list-like of all strings, all unicode, "
-           "all integers or a callable")
+           "all integers or a callable.")
     if usecols is not None:
         if callable(usecols):
             return usecols, None
@@ -1685,7 +1684,6 @@ class CParserWrapper(ParserBase):
     def __init__(self, src, **kwds):
         self.kwds = kwds
         kwds = kwds.copy()
-
         ParserBase.__init__(self, kwds)
 
         if (kwds.get('compression') is None
@@ -1700,11 +1698,12 @@ class CParserWrapper(ParserBase):
         # #2442
         kwds['allow_leading_cols'] = self.index_col is not False
 
-        self._reader = parsers.TextReader(src, **kwds)
-
-        # XXX
+        # GH20529, validate usecol arg before TextReader
         self.usecols, self.usecols_dtype = _validate_usecols_arg(
-            self._reader.usecols)
+            kwds['usecols'])
+        kwds['usecols'] = self.usecols
+
+        self._reader = parsers.TextReader(src, **kwds)
 
         passed_names = self.names is None
 
