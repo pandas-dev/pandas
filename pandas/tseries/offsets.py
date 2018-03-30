@@ -2164,6 +2164,7 @@ class Easter(DateOffset):
     the revised method which is valid in years
     1583-4099.
     """
+    _prefix = 'EASTER'
     _adjust_dst = True
     _attributes = frozenset(['n', 'normalize'])
 
@@ -2483,4 +2484,5 @@ prefix_mapping = dict((offset._prefix, offset) for offset in [
     LastWeekOfMonth,           # 'LWOM'
     FY5253,                    # 'RE'
     FY5253Quarter,             # 'REQ'
+    Easter,                    # 'EASTER'
 ])
