@@ -299,6 +299,41 @@ Supplying a ``CategoricalDtype`` will make the categories in each column consist
     df['A'].dtype
     df['B'].dtype
 
+.. _whatsnew_023.enhancements.interval:
+
+Storing Interval Data in Series and DataFrame
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Interval data may now be stored in a Series or DataFrame, in addition to an
+:class:`IntervalIndex` like before.
+
+.. ipython:: python
+
+   ser = pd.Series(pd.interval_range(0, 5))
+   ser
+   ser.dtype
+
+Previously, these would be cast to a NumPy array of Interval objects. In general,
+this should result in better performance when storing an array of intervals in
+a Series.
+
+Note that the ``.values`` of a Series containing intervals is no longer a NumPy
+array. Rather, it's an ``ExtensionArray``, composed of two arrays ``left`` and
+``right``.
+
+.. ipython:: python
+
+   ser.values
+
+To recover the NumPy array of Interval objects, use :func:`numpy.asarray`:
+
+.. ipython:: python
+
+   np.asarray(ser.values)
+
+This is the same behavior as ``Series.values`` for categorical data. See
+:ref:`whatsnew_0230.api_breaking.interval_values` for more.
+
 .. _whatsnew_023.enhancements.extension:
 
 Extending Pandas with Custom Types
@@ -478,6 +513,42 @@ If you wish to retain the old behavior while using Python >= 3.6, you can use
                'Expenses': -1500,
                'Taxes': -200,
                'Net result': 300}).sort_index()
+
+.. _whatsnew_0230.api_breaking.interval_values:
+
+``IntervalIndex.values`` is now an ``IntervalArray``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``.values`` attribute of an :class:`IntervalIndex` now returns an
+``IntervalArray``, rather than a NumPy array of :class:`Interval` objects.
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+   In [1]: idx = pd.interval_range(0, 4)
+
+   In [2]: idx.values
+   Out[2]:
+   array([Interval(0, 1, closed='right'), Interval(1, 2, closed='right'),
+          Interval(2, 3, closed='right'), Interval(3, 4, closed='right')],
+         dtype=object)
+
+New Behavior:
+
+.. ipython:: python
+
+   idx = pd.interval_range(0, 4)
+   idx.values
+
+This mirrors ``CateogricalIndex.values``, which returns a ``Categorical``.             
+
+For situations where you need an ``ndarray`` of Interval objects, use
+:meth:`numpy.asarray` or ``idx.astype(object)``.
+
+.. ipython:: python
+
+   idx.values.astype(object)
 
 .. _whatsnew_0230.api_breaking.deprecate_panel:
 

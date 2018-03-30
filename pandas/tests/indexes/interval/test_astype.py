@@ -51,7 +51,7 @@ class Base(object):
         'timedelta64', 'timedelta64[ns]', 'datetime64', 'datetime64[ns]',
         'datetime64[ns, US/Eastern]'])
     def test_astype_cannot_cast(self, index, dtype):
-        msg = 'Cannot cast IntervalIndex to dtype'
+        msg = 'Cannot cast IntervalArray to dtype'
         with tm.assert_raises_regex(TypeError, msg):
             index.astype(dtype)
 

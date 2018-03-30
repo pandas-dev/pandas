@@ -611,14 +611,13 @@ class IntervalDtypeType(type):
     pass
 
 
-class IntervalDtype(PandasExtensionDtype):
+class IntervalDtype(PandasExtensionDtype, ExtensionDtype):
     """
     A Interval duck-typed class, suitable for holding an interval
 
     THIS IS NOT A REAL NUMPY DTYPE
     """
     name = 'interval'
-    type = IntervalDtypeType
     kind = None
     str = '|O08'
     base = np.dtype('O')
@@ -682,6 +681,11 @@ class IntervalDtype(PandasExtensionDtype):
             return cls(string)
         msg = "a string needs to be passed, got type {typ}"
         raise TypeError(msg.format(typ=type(string)))
+
+    @property
+    def type(self):
+        from pandas import Interval
+        return Interval
 
     def __unicode__(self):
         if self.subtype is None:

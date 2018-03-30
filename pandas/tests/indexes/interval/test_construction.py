@@ -78,7 +78,7 @@ class Base(object):
 
         assert result.closed == closed
         assert result.dtype.subtype == expected_subtype
-        tm.assert_numpy_array_equal(result.values, expected_values)
+        tm.assert_numpy_array_equal(result._ndarray_values, expected_values)
 
     @pytest.mark.parametrize('breaks', [
         [],
@@ -97,7 +97,7 @@ class Base(object):
         assert result.empty
         assert result.closed == closed
         assert result.dtype.subtype == expected_subtype
-        tm.assert_numpy_array_equal(result.values, expected_values)
+        tm.assert_numpy_array_equal(result._ndarray_values, expected_values)
 
     @pytest.mark.parametrize('breaks', [
         tuple('0123456789'),

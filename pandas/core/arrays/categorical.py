@@ -19,6 +19,7 @@ from pandas.core.dtypes.common import (
     _ensure_int64,
     _ensure_object,
     _ensure_platform_int,
+    is_extension_array_dtype,
     is_dtype_equal,
     is_datetimelike,
     is_datetime64_dtype,
@@ -1218,6 +1219,8 @@ class Categorical(ExtensionArray, PandasObject):
         ret = take_1d(self.categories.values, self._codes)
         if dtype and not is_dtype_equal(dtype, self.categories.dtype):
             return np.asarray(ret, dtype)
+        if is_extension_array_dtype(ret):
+            ret = np.asarray(ret)
         return ret
 
     def __setstate__(self, state):

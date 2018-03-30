@@ -1,2 +1,10 @@
-from .base import ExtensionArray  # noqa
-from .categorical import Categorical  # noqa
+from .base import ExtensionArray
+from .categorical import Categorical
+from .interval import IntervalArray
+
+
+__all__ = [
+    'Categorical',
+    'ExtensionArray',
+    'IntervalArray',
+]
