@@ -40,6 +40,8 @@ from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender, cache_readonly, deprecate_kwarg, Substitution)
 
+import pandas.core.algorithms as algorithms
+
 from pandas.io.formats.terminal import get_terminal_size
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 from pandas.core.config import get_option
@@ -2260,6 +2262,15 @@ class Categorical(ExtensionArray, PandasObject):
 
     def _formatting_values(self):
         return self
+
+    def isin(self, values):
+        from pandas.core.series import _sanitize_array
+        values = _sanitize_array(values, None, None)
+        null_mask = isna(values)
+        code_values = self.categories.get_indexer(values)
+        code_values = code_values[null_mask | (code_values >= 0)]
+        return algorithms.isin(self.codes, code_values)
+
 
 # The Series.cat accessor
 
