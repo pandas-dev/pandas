@@ -4,8 +4,6 @@
 from itertools import product
 from distutils.version import LooseVersion
 import operator
-import sys
-
 import pytest
 
 from numpy import nan
@@ -20,7 +18,7 @@ from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.indexes.timedeltas import Timedelta
 import pandas.core.nanops as nanops
 
-from pandas.compat import lrange, range
+from pandas.compat import lrange, range, PY35
 from pandas import compat
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal, assert_index_equal)
@@ -923,7 +921,7 @@ class TestSeriesAnalytics(TestData):
         pytest.raises(Exception, a.dot, a.values[:3])
         pytest.raises(ValueError, a.dot, b.T)
 
-    @pytest.mark.skipif(sys.version_info < (3, 5),
+    @pytest.mark.skipif(not PY35,
                         reason='matmul supported for Python>=3.5')
     def test_matmul(self):
         # matmul test is for GH #10259

@@ -14,7 +14,7 @@ from numpy import nan
 from numpy.random import randn
 import numpy as np
 
-from pandas.compat import lrange, product
+from pandas.compat import lrange, product, PY35
 from pandas import (compat, isna, notna, DataFrame, Series,
                     MultiIndex, date_range, Timestamp, Categorical,
                     _np_version_under1p15)
@@ -2144,7 +2144,7 @@ class TestDataFrameAnalytics(TestData):
         with tm.assert_raises_regex(ValueError, 'aligned'):
             df.dot(df2)
 
-    @pytest.mark.skipif(sys.version_info < (3, 5),
+    @pytest.mark.skipif(not PY35,
                         reason='matmul supported for Python>=3.5')
     def test_matmul(self):
         # matmul test is for GH #10259
