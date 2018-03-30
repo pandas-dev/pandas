@@ -1155,6 +1155,8 @@ frequencies. We will refer to these aliases as *offset aliases*.
     "L, ms", "milliseconds"
     "U, us", "microseconds"
     "N", "nanoseconds"
+    "WOM, "x-th day of the y-th week of each month frequency"
+    "LWOM", "x-th day of the last week of each month frequency"
 
 Combining Aliases
 ~~~~~~~~~~~~~~~~~
