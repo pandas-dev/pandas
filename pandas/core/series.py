@@ -468,7 +468,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         .. deprecated :: 0.23.0
 
-           Use ``astype(object) instead.
+           Use ``astype(object)`` instead.
 
         *this is an internal non-public method*
         """
