@@ -24,17 +24,15 @@ The Python core team plans to stop supporting Python 2.7 on January 1st, 2020.
 In line with `NumPy's plans`_, all pandas releases through December 31, 2018
 will support Python 2.
 
-The final major release before **December 31, 2018** will be a long term support
-(LTS) release. The pandas maintainers will backport bugfixes and make releases
-supporting Python 2 to that branch. For example, if ``0.25.0`` is the last major
-release, we'll make make releases for ``0.25.1``, ``0.25.2``, etc., as needed.
-This branch will not receive new features.
+The final release before **December 31, 2018** will be the last release to
+support Python 2. The released package will continue to be available on
+PyPI and through conda.
 
-Starting **January 1, 2019**, all major release will be Python 3 only.
+Starting **January 1, 2019**, all releases will be Python 3 only.
 
-Starting **January 1, 2020**, the pandas maintainers will stop supporting
-Python 2. The released packages will still be available on PyPI and through
-conda, but will not receive any more bugfixes.
+If there are people interested in continued support for Python 2.7 past December
+31, 2018 (either backporting bugfixes or funding) please reach out to the
+maintainers on the issue tracker.
 
 For more information, see the `Python 3 statement`_ and the `Porting to Python 3 guide`_.
 
