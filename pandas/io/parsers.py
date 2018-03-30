@@ -410,6 +410,7 @@ def _validate_names(names):
     return names
 
 
+
 def _read(filepath_or_buffer, kwds):
     """Generic reader of line files."""
     encoding = kwds.get('encoding', None)
@@ -1192,17 +1193,19 @@ def _validate_usecols_arg(usecols):
         'usecols_dtype` is the inferred dtype of 'usecols' if an array-like
         is passed in or None if a callable or None is passed in.
     """
-    msg = ("'usecols' must either be all strings, all unicode, "
+    msg = ("'usecols' must either be list-like of all strings, all unicode, "
            "all integers or a callable")
-
     if usecols is not None:
         if callable(usecols):
             return usecols, None
-        usecols_dtype = lib.infer_dtype(usecols)
-        if usecols_dtype not in ('empty', 'integer',
-                                 'string', 'unicode'):
+        # GH20529, ensure is iterable container but not string.
+        elif not is_list_like(usecols):
             raise ValueError(msg)
-
+        else:
+            usecols_dtype = lib.infer_dtype(usecols)
+            if usecols_dtype not in ('empty', 'integer',
+                                     'string', 'unicode'):
+                raise ValueError(msg)
         return set(usecols), usecols_dtype
     return usecols, None
 
