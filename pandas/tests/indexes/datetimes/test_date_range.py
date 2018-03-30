@@ -238,7 +238,7 @@ class TestDateRanges(TestData):
 
     def test_wom_len_one(self):
         # https://github.com/pandas-dev/pandas/issues/20517
-        res = date_range(start='20110101', periods=1, freq='WOM-1MO')
+        res = date_range(start='20110101', periods=1, freq='WOM-1MON')
         assert len(res) == 1
 
 class TestGenRangeGeneration(object):
