@@ -467,8 +467,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """Return object Series which contains boxed values.
 
         .. deprecated :: 0.23.0
-            Use ``astype(object) instead.
 
+           Use ``astype(object)`` instead.
 
         *this is an internal non-public method*
         """
@@ -1772,18 +1772,20 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self.index[i]
 
     # ndarray compat
-    argmin = deprecate('argmin', idxmin, '0.21.0',
-                       msg="'argmin' is deprecated, use 'idxmin' instead. "
-                           "The behavior of 'argmin' will be corrected to "
-                           "return the positional minimum in the future. "
-                           "Use 'series.values.argmin' to get the position of "
-                           "the minimum now.")
-    argmax = deprecate('argmax', idxmax, '0.21.0',
-                       msg="'argmax' is deprecated, use 'idxmax' instead. "
-                           "The behavior of 'argmax' will be corrected to "
-                           "return the positional maximum in the future. "
-                           "Use 'series.values.argmax' to get the position of "
-                           "the maximum now.")
+    argmin = deprecate(
+        'argmin', idxmin, '0.21.0',
+        msg=dedent("""\
+        'argmin' is deprecated, use 'idxmin' instead. The behavior of 'argmin'
+        will be corrected to return the positional minimum in the future.
+        Use 'series.values.argmin' to get the position of the minimum now.""")
+    )
+    argmax = deprecate(
+        'argmax', idxmax, '0.21.0',
+        msg=dedent("""\
+        'argmax' is deprecated, use 'idxmax' instead. The behavior of 'argmax'
+        will be corrected to return the positional maximum in the future.
+        Use 'series.values.argmax' to get the position of the maximum now.""")
+    )
 
     def round(self, decimals=0, *args, **kwargs):
         """
@@ -3392,7 +3394,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                         columns=columns, level=level,
                                         inplace=inplace, errors=errors)
 
-    @Appender(generic._shared_docs['fillna'] % _shared_doc_kwargs)
+    @Substitution(**_shared_doc_kwargs)
+    @Appender(generic.NDFrame.fillna.__doc__)
     def fillna(self, value=None, method=None, axis=None, inplace=False,
                limit=None, downcast=None, **kwargs):
         return super(Series, self).fillna(value=value, method=method,
@@ -3563,19 +3566,68 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def between(self, left, right, inclusive=True):
         """
-        Return boolean Series equivalent to left <= series <= right. NA values
-        will be treated as False
+        Return boolean Series equivalent to left <= series <= right.
+
+        This function returns a boolean vector containing `True` wherever the
+        corresponding Series element is between the boundary values `left` and
+        `right`. NA values are treated as `False`.
 
         Parameters
         ----------
         left : scalar
-            Left boundary
+            Left boundary.
         right : scalar
-            Right boundary
+            Right boundary.
+        inclusive : bool, default True
+            Include boundaries.
 
         Returns
         -------
-        is_between : Series
+        Series
+            Each element will be a boolean.
+
+        Notes
+        -----
+        This function is equivalent to ``(left <= ser) & (ser <= right)``
+
+        See Also
+        --------
+        pandas.Series.gt : Greater than of series and other
+        pandas.Series.lt : Less than of series and other
+
+        Examples
+        --------
+        >>> s = pd.Series([2, 0, 4, 8, np.nan])
+
+        Boundary values are included by default:
+
+        >>> s.between(1, 4)
+        0     True
+        1    False
+        2     True
+        3    False
+        4    False
+        dtype: bool
+
+        With `inclusive` set to ``False`` boundary values are excluded:
+
+        >>> s.between(1, 4, inclusive=False)
+        0     True
+        1    False
+        2    False
+        3    False
+        4    False
+        dtype: bool
+
+        `left` and `right` can be any scalar value:
+
+        >>> s = pd.Series(['Alice', 'Bob', 'Carol', 'Eve'])
+        >>> s.between('Anna', 'Daniel')
+        0    False
+        1     True
+        2     True
+        3    False
+        dtype: bool
         """
         if inclusive:
             lmask = self >= left
@@ -4112,9 +4164,10 @@ def _sanitize_array(data, index, dtype=None, copy=False,
     if issubclass(subarr.dtype.type, compat.string_types):
         # GH 16605
         # If not empty convert the data to dtype
-        if not isna(data).all():
-            data = np.array(data, dtype=dtype, copy=False)
-
-        subarr = np.array(data, dtype=object, copy=copy)
+        # GH 19853: If data is a scalar, subarr has already the result
+        if not is_scalar(data):
+            if not np.all(isna(data)):
+                data = np.array(data, dtype=dtype, copy=False)
+            subarr = np.array(data, dtype=object, copy=copy)
 
     return subarr

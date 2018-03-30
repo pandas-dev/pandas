@@ -44,7 +44,7 @@ from pandas.core.base import (PandasObject, SelectionMixin, GroupByError,
                               DataError, SpecificationError)
 from pandas.core.index import (Index, MultiIndex,
                                CategoricalIndex, _ensure_index)
-from pandas.core.arrays import Categorical
+from pandas.core.arrays import ExtensionArray, Categorical
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.internals import BlockManager, make_block
@@ -2968,7 +2968,7 @@ class Grouping(object):
 
             # no level passed
             elif not isinstance(self.grouper,
-                                (Series, Index, Categorical, np.ndarray)):
+                                (Series, Index, ExtensionArray, np.ndarray)):
                 if getattr(self.grouper, 'ndim', 1) != 1:
                     t = self.name or str(type(self.grouper))
                     raise ValueError("Grouper for '%s' not 1-dimensional" % t)
