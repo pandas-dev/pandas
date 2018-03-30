@@ -161,5 +161,5 @@ class IsIn(object):
         self.sample = np.random.choice(arr, sample_size)
         self.ts = pd.Series(arr).astype('category')
 
-    def time_set_categories(self):
+    def time_isin_categorical_strings(self):
         self.ts.isin(self.sample)
