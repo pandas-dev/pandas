@@ -236,6 +236,10 @@ class TestDateRanges(TestData):
         pytest.raises(Exception, date_range, datetime(2011, 11, 11),
                       datetime(2011, 11, 12), freq=offset)
 
+    def test_wom_len_one(self):
+        # https://github.com/pandas-dev/pandas/issues/20517
+        res = date_range(start='20110101', periods=1, freq='WOM-1MO')
+        assert len(res) == 1
 
 class TestGenRangeGeneration(object):
 
