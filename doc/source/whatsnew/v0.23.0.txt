@@ -901,6 +901,22 @@ Performance Improvements
 Documentation Changes
 ~~~~~~~~~~~~~~~~~~~~~
 
+Thanks to all of the contributors who participated in the Pandas Documentation
+Sprint, which took place on March 10th. We had about 500 participants from over
+30 locations across the world. You should notice that many of the
+:ref:`API docstrings <api>` have greatly improved.
+
+There were too many simultaneous contributions to include a release note for each
+improvement, but this `GitHub search`_ should give you an idea of how many docstrings
+were improved.
+
+Special thanks to Marc Garcia for organizing the sprint. For more information,
+read the `NumFOCUS blogpost`_ recapping the sprint.
+
+.. _GitHub search: https://github.com/pandas-dev/pandas/pulls?utf8=%E2%9C%93&q=is%3Apr+label%3ADocs+created%3A2018-03-10..2018-03-15+
+.. _NumFOCUS blogpost: https://www.numfocus.org/blog/worldwide-pandas-sprint/
+
+
 - Changed spelling of "numpy" to "NumPy", and "python" to "Python". (:issue:`19017`)
 - Consistency when introducing code samples, using either colon or period.
   Rewrote some sentences for greater clarity, added more dynamic references
@@ -1133,6 +1149,7 @@ Reshaping
 - Bug in :class:`Series` constructor with ``Categorical`` where a ```ValueError`` is not raised when an index of different length is given (:issue:`19342`)
 - Bug in :meth:`DataFrame.astype` where column metadata is lost when converting to categorical or a dictionary of dtypes (:issue:`19920`)
 - Bug in :func:`cut` and :func:`qcut` where timezone information was dropped (:issue:`19872`)
+- Bug in :class:`Series` constructor with a ``dtype=str``, previously raised in some cases (:issue:`19853`)
 
 Other
 ^^^^^
