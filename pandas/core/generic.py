@@ -8763,6 +8763,37 @@ class NDFrame(PandasObject, SelectionMixin):
         scalar : type of index
         """
 
+    def _find_first_valid(self, direction=1):
+        if len(self) == 0:  # early stop
+            return None
+        is_valid = ~self.isna()
+
+        if self.ndim == 2:
+            is_valid = is_valid.any(1)  # reduce axis 1
+
+        if direction == 1:
+            i = is_valid.idxmax()
+            if not is_valid[i]:
+                return None
+            else:
+                return i
+        elif direction == -1:
+            i = is_valid.values[::-1].argmax()
+            if not is_valid.iat[len(self) - i - 1]:
+                return None
+            else:
+                return self.index[len(self) - i - 1]
+
+    @Appender(_shared_docs['valid_index'] % {'position': 'first',
+                                             'klass': 'NDFrame'})
+    def first_valid_index(self):
+        return self._find_first_valid(1)
+
+    @Appender(_shared_docs['valid_index'] % {'position': 'last',
+                                             'klass': 'NDFrame'})
+    def last_valid_index(self):
+        return self._find_first_valid(-1)
+
 
 def _doc_parms(cls):
     """Return a tuple of the doc parms."""

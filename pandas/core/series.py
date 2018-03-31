@@ -3887,32 +3887,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                       "Use .dropna instead.", FutureWarning, stacklevel=2)
         return self.dropna(inplace=inplace, **kwargs)
 
-    @Appender(generic._shared_docs['valid_index'] % {
-        'position': 'first', 'klass': 'Series'})
-    def first_valid_index(self):
-        if len(self) == 0:
-            return None
-
-        mask = isna(self._values)
-        i = mask.argmin()
-        if mask[i]:
-            return None
-        else:
-            return self.index[i]
-
-    @Appender(generic._shared_docs['valid_index'] % {
-        'position': 'last', 'klass': 'Series'})
-    def last_valid_index(self):
-        if len(self) == 0:
-            return None
-
-        mask = isna(self._values[::-1])
-        i = mask.argmin()
-        if mask[i]:
-            return None
-        else:
-            return self.index[len(self) - i - 1]
-
     # ----------------------------------------------------------------------
     # Time series-oriented methods
 
