@@ -88,6 +88,18 @@ a,b,c
         pytest.raises(ValueError, self.read_csv, StringIO(data),
                       names=['a', 'b'], usecols=[1], header=None)
 
+    def test_usecols_single_string(self):
+        # GH 20558
+        data = """foo, bar, baz
+        1000, 2000, 3000
+        4000, 5000, 6000
+        """
+
+        usecols = 'foo'
+
+        with tm.assert_raises_regex(ValueError, self.msg_validate_usecols_arg):
+            self.read_csv(StringIO(data), usecols=usecols)
+
     def test_usecols_index_col_False(self):
         # see gh-9082
         s = "a,b,c,d\n1,2,3,4\n5,6,7,8"
