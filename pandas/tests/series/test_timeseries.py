@@ -441,7 +441,6 @@ class TestTimeSeries(TestData):
         assert ts.first_valid_index().freq == ts.index.freq
         assert ts.last_valid_index().freq == ts.index.freq
 
-
     def test_mpl_compat_hack(self):
         result = self.ts[:, np.newaxis]
         expected = self.ts.values[:, np.newaxis]

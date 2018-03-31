@@ -539,7 +539,6 @@ class TestDataFrameTimeSeriesMethods(TestData):
         assert frame.first_valid_index().freq == frame.index.freq
         assert frame.last_valid_index().freq == frame.index.freq
 
-
     def test_at_time_frame(self):
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
