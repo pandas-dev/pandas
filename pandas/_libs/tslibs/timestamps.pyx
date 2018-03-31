@@ -700,6 +700,12 @@ class Timestamp(_Timestamp):
         """
         return self.tzinfo
 
+    @tz.setter
+    def tz(self, value):
+        # GH 3746
+        raise AttributeError("Cannot directly set timezone. Use tz_localize() "
+                             "or tz_convert() as appropriate")
+
     def __setstate__(self, state):
         self.value = state[0]
         self.freq = state[1]
