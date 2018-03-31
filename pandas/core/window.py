@@ -314,7 +314,7 @@ class _Window(PandasObject, SelectionMixin):
     def aggregate(self, arg, *args, **kwargs):
         result, how = self._aggregate(arg, *args, **kwargs)
         if result is None:
-            return self.apply(arg, args=args, kwargs=kwargs)
+            return self.apply(arg, raw=False, args=args, kwargs=kwargs)
         return result
 
     agg = aggregate
@@ -954,23 +954,53 @@ class _Rolling_and_Expanding(_Rolling):
     Parameters
     ----------
     func : function
-        Must produce a single value from an ndarray input
-        \*args and \*\*kwargs are passed to the function""")
+        Must produce a single value from an ndarray input if raw=True
+        or a Series if raw=False
+    raw : bool, default None
+        * ``False`` : passes each row or column as a Series to the
+          function.
+        * ``True`` or ``None`` : the passed function will receive ndarray
+          objects instead.
+          If you are just applying a NumPy reduction function this will
+          achieve much better performance.
 
-    def apply(self, func, args=(), kwargs={}):
+        The raw parameter is required and will show a FutureWarning if
+        not passed. In the futures raw will default to False.
+
+        .. versionadded:: 0.23.0
+
+    \*args and \*\*kwargs are passed to the function""")
+
+    def apply(self, func, raw=None, args=(), kwargs={}):
+        from pandas import Series
+
         # TODO: _level is unused?
         _level = kwargs.pop('_level', None)  # noqa
         window = self._get_window()
         offset = _offset(window, self.center)
         index, indexi = self._get_index()
 
+        # TODO: default is for backward compat
+        # change to False in the future
+        if raw is None:
+            warnings.warn(
+                "raw defaults to False "
+                "meaning a Series will be passed to the "
+                "applied function. In the future raw will default to True "
+                "meaning a ndarray is passed to the "
+                "applied function", FutureWarning, stacklevel=3)
+            raw = True
+
         def f(arg, window, min_periods, closed):
             minp = _use_window(min_periods, window)
-            return _window.roll_generic(arg, window, minp, indexi, closed,
-                                        offset, func, args, kwargs)
+            if not raw:
+                arg = Series(arg, index=self.obj.index)
+            return _window.roll_generic(
+                arg, window, minp, indexi,
+                closed, offset, func, raw, args, kwargs)
 
         return self._apply(f, func, args=args, kwargs=kwargs,
-                           center=False)
+                           center=False, raw=raw)
 
     def sum(self, *args, **kwargs):
         nv.validate_window_func('sum', args, kwargs)
@@ -1498,8 +1528,9 @@ class Rolling(_Rolling_and_Expanding):
     @Substitution(name='rolling')
     @Appender(_doc_template)
     @Appender(_shared_docs['apply'])
-    def apply(self, func, args=(), kwargs={}):
-        return super(Rolling, self).apply(func, args=args, kwargs=kwargs)
+    def apply(self, func, raw=None, args=(), kwargs={}):
+        return super(Rolling, self).apply(
+            func, raw=raw, args=args, kwargs=kwargs)
 
     @Substitution(name='rolling')
     @Appender(_shared_docs['sum'])
@@ -1756,8 +1787,9 @@ class Expanding(_Rolling_and_Expanding):
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['apply'])
-    def apply(self, func, args=(), kwargs={}):
-        return super(Expanding, self).apply(func, args=args, kwargs=kwargs)
+    def apply(self, func, raw=None, args=(), kwargs={}):
+        return super(Expanding, self).apply(
+            func, raw=raw, args=args, kwargs=kwargs)
 
     @Substitution(name='expanding')
     @Appender(_shared_docs['sum'])
