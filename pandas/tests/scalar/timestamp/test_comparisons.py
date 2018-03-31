@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import sys
 from datetime import datetime
 import operator
 
@@ -9,7 +8,7 @@ import numpy as np
 from dateutil.tz import tzutc
 from pytz import utc
 
-from pandas.compat import long
+from pandas.compat import long, PY2
 from pandas import Timestamp
 
 
@@ -104,7 +103,7 @@ class TestTimestampComparison(object):
         pytest.raises(Exception, b.__lt__, a)
         pytest.raises(Exception, b.__gt__, a)
 
-        if sys.version_info < (3, 3):
+        if PY2:
             pytest.raises(Exception, a.__eq__, b.to_pydatetime())
             pytest.raises(Exception, a.to_pydatetime().__eq__, b)
         else:
@@ -125,7 +124,7 @@ class TestTimestampComparison(object):
         pytest.raises(Exception, b.__lt__, a)
         pytest.raises(Exception, b.__gt__, a)
 
-        if sys.version_info < (3, 3):
+        if PY2:
             pytest.raises(Exception, a.__eq__, b.to_pydatetime())
             pytest.raises(Exception, a.to_pydatetime().__eq__, b)
         else:
@@ -146,7 +145,7 @@ class TestTimestampComparison(object):
         pytest.raises(Exception, b.__lt__, a)
         pytest.raises(Exception, b.__gt__, a)
 
-        if sys.version_info < (3, 3):
+        if PY2:
             pytest.raises(Exception, a.__eq__, b.to_pydatetime())
             pytest.raises(Exception, a.to_pydatetime().__eq__, b)
         else:

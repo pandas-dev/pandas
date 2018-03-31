@@ -1275,10 +1275,8 @@ eight,1,2,3"""
         else:  # Python engine
             assert output == 'Filled 1 NA values in column a\n'
 
+    @pytest.mark.skipif(PY3, reason="won't work in Python 3")
     def test_iteration_open_handle(self):
-        if PY3:
-            pytest.skip(
-                "won't work in Python 3 {0}".format(sys.version_info))
 
         with tm.ensure_clean() as path:
             with open(path, 'wb') as f:

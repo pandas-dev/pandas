@@ -7,7 +7,7 @@ from uuid import uuid4
 from collections import OrderedDict
 
 import pytest
-from pandas.compat import intern
+from pandas.compat import intern, PY3
 import pandas.core.common as com
 from pandas.util._move import move_into_mutable_buffer, BadMove, stolenbuf
 from pandas.util._decorators import deprecate_kwarg, make_signature
@@ -374,10 +374,7 @@ class TestMove(object):
         # materialize as bytearray to show that it is mutable
         assert bytearray(as_stolen_buf) == b'test'
 
-    @pytest.mark.skipif(
-        sys.version_info[0] > 2,
-        reason='bytes objects cannot be interned in py3',
-    )
+    @pytest.mark.skipif(PY3, reason='bytes objects cannot be interned in py3')
     def test_interned(self):
         salt = uuid4().hex
 
