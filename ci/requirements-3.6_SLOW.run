@@ -1,7 +1,7 @@
 python-dateutil
 pytz
-numpy=1.10*
-matplotlib=1.4.3
+numpy
+matplotlib
 scipy
 patsy
 xlwt
