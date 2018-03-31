@@ -1168,7 +1168,7 @@ class TestMoments(Base):
 
     def test_rolling_quantile_series(self):
         # #16211: Tests that rolling window's quantile default behavior
-        # is analogus to Series' quantile
+        # is analogous to Series' quantile
         arr = np.arange(100)
         s = Series(arr)
         q1 = s.quantile(0.1)
@@ -1177,16 +1177,29 @@ class TestMoments(Base):
         tm.assert_almost_equal(q1, q2)
 
     @pytest.mark.parametrize('quantile', [0.0, 0.1, 0.45, 0.5, 1])
+    @pytest.mark.parametrize('na_probability', [0.0, 0.3])
     @pytest.mark.parametrize('interpolation', ['linear', 'lower', 'higher',
                                                'nearest', 'midpoint'])
     def test_rolling_quantile_interpolation_options(self, quantile,
+                                                    na_probability,
                                                     interpolation):
-        # Tests that rolling window's quantile behavior is analogus to
+        # Tests that rolling window's quantile behavior is analogous to
         # Series' quantile for each interpolation option
         size = 100
-        s = Series(np.arange(size))
+        s = Series(np.random.rand(size))
+
+        # set NaN values
+        na_count = 0
+        na_total = int(size * na_probability)
+        while na_count < na_total:
+            index = np.random.randint(0, size)
+            if not np.isnan(s[index]):
+                s[index] = np.NaN
+                na_count += 1
+
         q1 = s.quantile(quantile, interpolation)
-        q2 = s.rolling(size).quantile(quantile, interpolation).iloc[-1]
+        q2 = s.rolling(size, min_periods=1).quantile(
+            quantile, interpolation).iloc[-1]
 
         tm.assert_almost_equal(q1, q2)
 

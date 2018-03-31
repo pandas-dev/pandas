@@ -449,6 +449,7 @@ Other Enhancements
 - Updated ``to_gbq`` and ``read_gbq`` signature and documentation to reflect changes from
   the Pandas-GBQ library version 0.4.0. Adds intersphinx mapping to Pandas-GBQ
   library. (:issue:`20564`)
+- :meth:`Rolling.quantile` and :meth:`Expanding.quantile` now accept ``interpolation`` keyword
 
 .. _whatsnew_0230.api_breaking:
 

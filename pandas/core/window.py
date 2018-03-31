@@ -1287,7 +1287,8 @@ class _Rolling_and_Expanding(_Rolling):
               fractional part of the index surrounded by `i` and `j`.
             * lower: `i`.
             * higher: `j`.
-            * nearest: `i` or `j` whichever is nearest.
+            * nearest: `i` or `j` whichever is nearest. Implementation uses
+              round() built-in.
             * midpoint: (`i` + `j`) / 2.
 
     Returns
@@ -1305,6 +1306,7 @@ class _Rolling_and_Expanding(_Rolling):
     2    2.0
     3    3.0
     dtype: float64
+
     >>> s.rolling(2).quantile(.4, interpolation='midpoint')
     0    NaN
     1    1.5
@@ -1316,7 +1318,7 @@ class _Rolling_and_Expanding(_Rolling):
     --------
     pandas.Series.quantile
     pandas.DataFrame.quantile
-    
+
     """)
 
     def quantile(self, quantile, interpolation='linear', **kwargs):
@@ -1655,7 +1657,7 @@ class Rolling(_Rolling_and_Expanding):
     @Substitution(name='rolling')
     @Appender(_doc_template)
     @Appender(_shared_docs['quantile'])
-    def quantile(self, quantile, interpolation='linear', **kwargs):  # here
+    def quantile(self, quantile, interpolation='linear', **kwargs):
         return super(Rolling, self).quantile(quantile=quantile,
                                              interpolation=interpolation,
                                              **kwargs)
@@ -1916,8 +1918,10 @@ class Expanding(_Rolling_and_Expanding):
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['quantile'])
-    def quantile(self, quantile, **kwargs):
-        return super(Expanding, self).quantile(quantile=quantile, **kwargs)
+    def quantile(self, quantile, interpolation='linear', **kwargs,):
+        return super(Expanding, self).quantile(quantile=quantile,
+                                               interpolation=interpolation,
+                                               **kwargs)
 
     @Substitution(name='expanding')
     @Appender(_doc_template)
