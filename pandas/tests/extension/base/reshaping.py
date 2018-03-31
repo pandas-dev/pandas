@@ -75,3 +75,9 @@ class BaseReshapingTests(BaseExtensionTests):
         df['B'] = [1] * len(data)
         expected = pd.DataFrame({"A": data, "B": [1] * len(data)})
         self.assert_frame_equal(df, expected)
+
+    def test_set_frame_overwrite_object(self, data):
+        # https://github.com/pandas-dev/pandas/issues/20555
+        df = pd.DataFrame({"A": [1] * len(data)}, dtype=object)
+        df['A'] = data
+        assert df.dtypes['A'] == data.dtype
