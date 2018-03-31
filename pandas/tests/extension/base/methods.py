@@ -90,7 +90,7 @@ class BaseMethodsTests(BaseExtensionTests):
                                        na_sentinel=na_sentinel)
         expected_labels = np.array([0, 0, na_sentinel,
                                    na_sentinel, 1, 1, 0, 2],
-                                   dtype='int64')
+                                   dtype=np.intp)
         expected_uniques = data_for_grouping.take([0, 4, 7])
 
         tm.assert_numpy_array_equal(labels, expected_labels)
