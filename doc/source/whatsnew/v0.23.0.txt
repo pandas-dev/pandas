@@ -1061,7 +1061,7 @@ Indexing
 - Bug in :meth:`DataFrame.drop_duplicates` where no ``KeyError`` is raised when passing in columns that don't exist on the ``DataFrame`` (issue:`19726`)
 - Bug in ``Index`` subclasses constructors that ignore unexpected keyword arguments (:issue:`19348`)
 - Bug in :meth:`Index.difference` when taking difference of an ``Index`` with itself (:issue:`20040`)
-
+- Bug in :meth:`DataFrame.first_valid_index` and :meth:`DataFrame.last_valid_index` in presence of entire rows of NaNs in the middle of values (:issue:`20499`).
 
 MultiIndex
 ^^^^^^^^^^
