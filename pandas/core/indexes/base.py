@@ -1366,7 +1366,7 @@ class Index(IndexOpsMixin, PandasObject):
                 names):
             raise TypeError("Names must be a string")
 
-        if names is not None and not is_hashable(names) and level is None:
+        if names is not None and not is_hashable(names):
             raise TypeError(__class__.__name__ +
                 '.name must be a hashable type')
 
@@ -1401,7 +1401,7 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         new index (of same type and class...etc) [if inplace, returns None]
         """
-        return self.set_names([name], inplace=inplace)
+        return self.set_names(name, inplace=inplace)
 
     @property
     def _has_complex_internals(self):
