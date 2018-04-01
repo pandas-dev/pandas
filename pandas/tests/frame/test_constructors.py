@@ -287,8 +287,50 @@ class TestDataFrameConstructors(TestData):
         with tm.assert_raises_regex(ValueError, msg):
             DataFrame({'a': 0.7}, columns=['a'])
 
-        with tm.assert_raises_regex(ValueError, msg):
-            DataFrame({'a': 0.7}, columns=['b'])
+    @pytest.mark.parametrize("scalar", [2, np.nan, None, 'D'])
+    def test_constructor_invalid_items_unused(self, scalar):
+        # No error if invalid (scalar) value is in fact not used:
+        result = DataFrame({'a': scalar}, columns=['b'])
+        expected = DataFrame(columns=['b'])
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("value", [2, np.nan, None, float('nan')])
+    def test_constructor_dict_nan_key(self, value):
+        # GH 18455
+        cols = [1, value, 3]
+        idx = ['a', value]
+        values = [[0, 3], [1, 4], [2, 5]]
+        data = {cols[c]: Series(values[c], index=idx) for c in range(3)}
+        result = DataFrame(data).sort_values(1).sort_values('a', axis=1)
+        expected = DataFrame(np.arange(6, dtype='int64').reshape(2, 3),
+                             index=idx, columns=cols)
+        tm.assert_frame_equal(result, expected)
+
+        result = DataFrame(data, index=idx).sort_values('a', axis=1)
+        tm.assert_frame_equal(result, expected)
+
+        result = DataFrame(data, index=idx, columns=cols)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize("value", [np.nan, None, float('nan')])
+    def test_constructor_dict_nan_tuple_key(self, value):
+        # GH 18455
+        cols = Index([(11, 21), (value, 22), (13, value)])
+        idx = Index([('a', value), (value, 2)])
+        values = [[0, 3], [1, 4], [2, 5]]
+        data = {cols[c]: Series(values[c], index=idx) for c in range(3)}
+        result = (DataFrame(data)
+                  .sort_values((11, 21))
+                  .sort_values(('a', value), axis=1))
+        expected = DataFrame(np.arange(6, dtype='int64').reshape(2, 3),
+                             index=idx, columns=cols)
+        tm.assert_frame_equal(result, expected)
+
+        result = DataFrame(data, index=idx).sort_values(('a', value), axis=1)
+        tm.assert_frame_equal(result, expected)
+
+        result = DataFrame(data, index=idx, columns=cols)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.skipif(not PY36, reason='Insertion order for Python>=3.6')
     def test_constructor_dict_order_insertion(self):
@@ -753,7 +795,7 @@ class TestDataFrameConstructors(TestData):
 
         # does not error but ends up float
         df = DataFrame(index=lrange(10), columns=['a', 'b'], dtype=int)
-        assert df.values.dtype == np.object_
+        assert df.values.dtype == np.dtype('float64')
 
         # #1783 empty dtype object
         df = DataFrame({}, columns=['foo', 'bar'])
@@ -761,7 +803,7 @@ class TestDataFrameConstructors(TestData):
 
         df = DataFrame({'b': 1}, index=lrange(10), columns=list('abc'),
                        dtype=int)
-        assert df.values.dtype == np.object_
+        assert df.values.dtype == np.dtype('float64')
 
     def test_constructor_scalar_inference(self):
         data = {'int': 1, 'bool': True,

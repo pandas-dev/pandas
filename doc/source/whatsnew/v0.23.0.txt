@@ -1138,6 +1138,10 @@ Reshaping
 - Bug in :func:`DataFrame.unstack` which casts int to float if ``columns`` is a ``MultiIndex`` with unused levels (:issue:`17845`)
 - Bug in :func:`DataFrame.unstack` which raises an error if ``index`` is a ``MultiIndex`` with unused labels on the unstacked level (:issue:`18562`)
 - Fixed construction of a :class:`Series` from a ``dict`` containing ``NaN`` as key (:issue:`18480`)
+- Fixed construction of a :class:`DataFrame` from a ``dict`` containing ``NaN`` as key (:issue:`18455`)
+- Suppressed error in the construction of a :class:`DataFrame` from a ``dict`` containing scalar values when the corresponding keys are not included in the passed index (:issue:`18600`)
+
+- Fixed (changed from ``object`` to ``float64``) dtype of :class:`DataFrame` initialized with axes, no data, and ``dtype=int`` (:issue:`19646`)
 - Bug in :func:`Series.rank` where ``Series`` containing ``NaT`` modifies the ``Series`` inplace (:issue:`18521`)
 - Bug in :func:`cut` which fails when using readonly arrays (:issue:`18773`)
 - Bug in :func:`DataFrame.pivot_table` which fails when the ``aggfunc`` arg is of type string.  The behavior is now consistent with other methods like ``agg`` and ``apply`` (:issue:`18713`)

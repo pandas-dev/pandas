@@ -16,11 +16,11 @@ class FromDicts(object):
 
     def setup(self):
         N, K = 5000, 50
-        index = tm.makeStringIndex(N)
-        columns = tm.makeStringIndex(K)
-        frame = DataFrame(np.random.randn(N, K), index=index, columns=columns)
+        self.index = tm.makeStringIndex(N)
+        self.columns = tm.makeStringIndex(K)
+        frame = DataFrame(np.random.randn(N, K), index=self.index,
+                          columns=self.columns)
         self.data = frame.to_dict()
-        self.some_dict = list(self.data.values())[0]
         self.dict_list = frame.to_dict(orient='records')
         self.data2 = {i: {j: float(j) for j in range(100)}
                       for i in range(2000)}
@@ -31,8 +31,14 @@ class FromDicts(object):
     def time_nested_dict(self):
         DataFrame(self.data)
 
-    def time_dict(self):
-        Series(self.some_dict)
+    def time_nested_dict_index(self):
+        DataFrame(self.data, index=self.index)
+
+    def time_nested_dict_columns(self):
+        DataFrame(self.data, columns=self.columns)
+
+    def time_nested_dict_index_columns(self):
+        DataFrame(self.data, index=self.index, columns=self.columns)
 
     def time_nested_dict_int64(self):
         # nested dict, integer indexes, regression described in #621

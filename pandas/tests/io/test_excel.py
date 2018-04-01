@@ -461,7 +461,7 @@ class ReadingTestsBase(SharedItems):
             )
         expected_header_none = DataFrame(pd.Series([0], dtype='int64'))
         tm.assert_frame_equal(actual_header_none, expected_header_none)
-        expected_header_zero = DataFrame(columns=[0], dtype='int64')
+        expected_header_zero = DataFrame(columns=[0])
         tm.assert_frame_equal(actual_header_zero, expected_header_zero)
 
     @td.skip_if_no('openpyxl')
