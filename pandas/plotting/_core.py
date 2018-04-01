@@ -843,15 +843,18 @@ class ScatterPlot(PlanePlot):
                 if size_data.cat.ordered:
                     size_data = size_data.cat.codes + 1
                 else:
-                    raise TypeError("'s' must be numeric or ordered categorical dtype")
+                    raise TypeError(
+                        "'s' must be numeric or ordered categorical dtype")
             if is_numeric_dtype(size_data):
                 self.size_title = s
                 self.s_data_max = size_data.max()
                 self.size_factor = size_factor
                 self.bubble_points = 200
-                s = self.bubble_points * size_factor * size_data / self.s_data_max
+                s = self.bubble_points * size_factor * size_data / \
+                    self.s_data_max
             else:
-                raise TypeError("'s' must be numeric or ordered categorical dtype")
+                raise TypeError("'s' must be numeric or "
+                                "ordered categorical dtype")
         super(ScatterPlot, self).__init__(data, x, y, s=s, **kwargs)
         if is_integer(c) and not self.data.columns.holds_integer():
             c = self.data.columns[c]

@@ -1127,7 +1127,7 @@ class TestDataFramePlots(TestPlotBase):
                         [4.4, 4.9, 0.8],
                         [2.7, 6.2, 1.49]])
         df = DataFrame(data,
-                       columns = ['x', 'y', 'z'])
+                       columns=['x', 'y', 'z'])
         ax = df.plot.scatter(x='x', y='y', s='z', size_factor=4)
         bubbles = ax.collections[0]
         bubble_sizes = bubbles.get_sizes()
@@ -1143,7 +1143,7 @@ class TestDataFramePlots(TestPlotBase):
                         [0.4, 3.4],
                         [4.4, 4.9],
                         [2.7, 6.2]])
-        df = DataFrame(data, columns = ['x', 'y'])
+        df = DataFrame(data, columns=['x', 'y'])
         df['z'] = pd.Categorical(['a', 'b', 'c', 'a', 'b', 'c'], ordered=True)
         ax = df.plot.scatter(x='x', y='y', s='z', size_factor=4)
         bubbles = ax.collections[0]
