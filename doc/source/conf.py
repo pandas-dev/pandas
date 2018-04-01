@@ -16,6 +16,7 @@ import os
 import re
 import inspect
 import importlib
+from sphinx.ext.autosummary import _import_by_name
 import warnings
 
 
@@ -46,6 +47,10 @@ sys.path.extend([
                  'sphinxext')
 
 ])
+
+# numpydoc is available in the sphinxext directory, and can't be imported
+# until sphinxext is available in the Python path
+from numpydoc.docscrape import NumpyDocString
 
 # -- General configuration -----------------------------------------------
 
@@ -505,9 +510,27 @@ class PandasAutosummary(Autosummary):
             summary = 'Series plotting accessor and method'
         return (display_name, sig, summary, real_name)
 
+    @staticmethod
+    def _is_deprecated(real_name):
+        try:
+            obj, parent, modname = _import_by_name(real_name)
+        except ImportError:
+            return False
+        doc = NumpyDocString(obj.__doc__ or '')
+        summary = ''.join(doc['Summary'] + doc['Extended Summary'])
+        return '.. deprecated::' in summary
+
+    def _add_deprecation_prefixes(self, items):
+        for item in items:
+            display_name, sig, summary, real_name = item
+            if self._is_deprecated(real_name):
+                summary = '(DEPRECATED) %s' % summary
+            yield display_name, sig, summary, real_name
+
     def get_items(self, names):
         items = Autosummary.get_items(self, names)
         items = [self._replace_pandas_items(*item) for item in items]
+        items = list(self._add_deprecation_prefixes(items))
         return items
 
 
