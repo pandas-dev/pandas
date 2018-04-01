@@ -863,7 +863,8 @@ class DataFrame(NDFrame):
 
     def dot(self, other):
         """
-        Matrix multiplication with DataFrame or Series objects
+        Matrix multiplication with DataFrame or Series objects.  Can also be
+        called using `self @ other` in Python >= 3.5.
 
         Parameters
         ----------
@@ -904,6 +905,14 @@ class DataFrame(NDFrame):
                 return Series(result, index=left.index)
         else:  # pragma: no cover
             raise TypeError('unsupported type: %s' % type(other))
+
+    def __matmul__(self, other):
+        """ Matrix multiplication using binary `@` operator in Python>=3.5 """
+        return self.dot(other)
+
+    def __rmatmul__(self, other):
+        """ Matrix multiplication using binary `@` operator in Python>=3.5 """
+        return self.T.dot(np.transpose(other)).T
 
     # ----------------------------------------------------------------------
     # IO methods (to / from other formats)
@@ -5005,31 +5014,6 @@ class DataFrame(NDFrame):
                 continue
 
             self[col] = expressions.where(mask, this, that)
-
-    # ----------------------------------------------------------------------
-    # Misc methods
-
-    def _get_valid_indices(self):
-        is_valid = self.count(1) > 0
-        return self.index[is_valid]
-
-    @Appender(_shared_docs['valid_index'] % {
-        'position': 'first', 'klass': 'DataFrame'})
-    def first_valid_index(self):
-        if len(self) == 0:
-            return None
-
-        valid_indices = self._get_valid_indices()
-        return valid_indices[0] if len(valid_indices) else None
-
-    @Appender(_shared_docs['valid_index'] % {
-        'position': 'last', 'klass': 'DataFrame'})
-    def last_valid_index(self):
-        if len(self) == 0:
-            return None
-
-        valid_indices = self._get_valid_indices()
-        return valid_indices[-1] if len(valid_indices) else None
 
     # ----------------------------------------------------------------------
     # Data reshaping

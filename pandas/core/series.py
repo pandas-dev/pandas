@@ -1994,7 +1994,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def dot(self, other):
         """
         Matrix multiplication with DataFrame or inner-product with Series
-        objects
+        objects. Can also be called using `self @ other` in Python >= 3.5.
 
         Parameters
         ----------
@@ -2032,6 +2032,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return np.dot(lvals, rvals)
         else:  # pragma: no cover
             raise TypeError('unsupported type: %s' % type(other))
+
+    def __matmul__(self, other):
+        """ Matrix multiplication using binary `@` operator in Python>=3.5 """
+        return self.dot(other)
+
+    def __rmatmul__(self, other):
+        """ Matrix multiplication using binary `@` operator in Python>=3.5 """
+        return self.dot(other)
 
     @Substitution(klass='Series')
     @Appender(base._shared_docs['searchsorted'])
@@ -3879,32 +3887,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                       "Use .dropna instead.", FutureWarning, stacklevel=2)
         return self.dropna(inplace=inplace, **kwargs)
 
-    @Appender(generic._shared_docs['valid_index'] % {
-        'position': 'first', 'klass': 'Series'})
-    def first_valid_index(self):
-        if len(self) == 0:
-            return None
-
-        mask = isna(self._values)
-        i = mask.argmin()
-        if mask[i]:
-            return None
-        else:
-            return self.index[i]
-
-    @Appender(generic._shared_docs['valid_index'] % {
-        'position': 'last', 'klass': 'Series'})
-    def last_valid_index(self):
-        if len(self) == 0:
-            return None
-
-        mask = isna(self._values[::-1])
-        i = mask.argmin()
-        if mask[i]:
-            return None
-        else:
-            return self.index[len(self) - i - 1]
-
     # ----------------------------------------------------------------------
     # Time series-oriented methods
 
@@ -4156,9 +4138,10 @@ def _sanitize_array(data, index, dtype=None, copy=False,
     if issubclass(subarr.dtype.type, compat.string_types):
         # GH 16605
         # If not empty convert the data to dtype
-        if not isna(data).all():
-            data = np.array(data, dtype=dtype, copy=False)
-
-        subarr = np.array(data, dtype=object, copy=copy)
+        # GH 19853: If data is a scalar, subarr has already the result
+        if not is_scalar(data):
+            if not np.all(isna(data)):
+                data = np.array(data, dtype=dtype, copy=False)
+            subarr = np.array(data, dtype=object, copy=copy)
 
     return subarr
