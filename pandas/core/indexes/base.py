@@ -1357,6 +1357,20 @@ class Index(IndexOpsMixin, PandasObject):
                    labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
                    names=[u'baz', u'bar'])
         """
+        # GH 20527
+        # All items in 'names' need to be hashable:
+        if names is not None:
+            for name in names:
+                if is_hashable(name):
+                    pass
+                else:
+                    if self.nlevels == 1:
+                        raise TypeError(__class__.__name__ +
+                            '.name must be a hashable type')
+                    else:
+                        raise TypeError(self.__class__.__name__ +
+                            '.name must be a hashable type')
+
         if level is not None and self.nlevels == 1:
             raise ValueError('Level must be None for non-MultiIndex')
 
@@ -1395,11 +1409,7 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         new index (of same type and class...etc) [if inplace, returns None]
         """
-        if name is not None and not is_hashable(name):
-            raise TypeError(__class__.__name__ +
-                '.name must be a hashable type')
-        else:
-            return self.set_names([name], inplace=inplace)
+        return self.set_names([name], inplace=inplace)
 
     @property
     def _has_complex_internals(self):

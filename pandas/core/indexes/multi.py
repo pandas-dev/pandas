@@ -16,6 +16,7 @@ from pandas.core.dtypes.common import (
     _ensure_platform_int,
     is_categorical_dtype,
     is_object_dtype,
+    is_hashable,
     is_iterator,
     is_list_like,
     pandas_dtype,
@@ -639,6 +640,14 @@ class MultiIndex(Index):
         Note that you generally want to set this *after* changing levels, so
         that it only acts on copies
         """
+        # GH 20527
+        # All items in 'names' need to be hashable:
+        for name in names:
+            if is_hashable(name):
+                pass
+            else:
+                raise TypeError(self.__class__.__name__ +
+                    '.name must be a hashable type')
 
         # GH 15110
         # Don't allow a single string for names in a MultiIndex
