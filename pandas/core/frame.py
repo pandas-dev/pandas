@@ -3840,8 +3840,9 @@ class DataFrame(NDFrame):
         index = _ensure_index_from_sequences(arrays, names)
 
         if verify_integrity and not index.is_unique:
-            duplicates = index.get_duplicates()
-            raise ValueError('Index has duplicate keys: %s' % duplicates)
+            duplicates = index[index.duplicated()].unique()
+            raise ValueError('Index has duplicate keys: {duplicates!s}'.format(
+                duplicates=duplicates))
 
         for c in to_remove:
             del frame[c]

@@ -501,10 +501,6 @@ class DatetimeIndexOpsMixin(object):
         freq = self.freq if isinstance(self, ABCPeriodIndex) else None
         return self._shallow_copy(taken, freq=freq)
 
-    def get_duplicates(self):
-        values = Index.get_duplicates(self)
-        return self._simple_new(values)
-
     _can_hold_na = True
 
     _na_value = NaT
