@@ -910,12 +910,12 @@ class ScatterPlot(PlanePlot):
                         linestyle='none', **err_kwds)
 
     def _sci_notation(self, num):
-        '''
-        Returns mantissa and exponent of the number passed in agument.
+        """
+        Returns mantissa and exponent of the number passed in argument.
         Example:
-        _sci_notation(89278.8924)
-        >>> (8.9, 5.0)
-        '''
+        >>> _sci_notation(89278.8924)
+        (8.9, 5.0)
+        """
         scientific_notation = '{:e}'.format(num)
         expnt = float(re.search(r'e([+-]\d*)$',
                                 scientific_notation).groups()[0])
@@ -924,11 +924,11 @@ class ScatterPlot(PlanePlot):
         return coef, expnt
 
     def _legend_bubbles(self, s_data_max, size_factor, bubble_points):
-        '''
+        """
         Computes and returns appropriate bubble sizes and labels for the
         legend of a  bubble plot. Creates 4 bubbles with round values for the
         labels, the largest of which is close to the maximum of the data.
-        '''
+        """
         coef, expnt = self._sci_notation(s_data_max)
         labels_catalog = {
             (9, 10): [10, 5, 2.5, 1],
