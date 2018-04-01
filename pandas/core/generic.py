@@ -6599,7 +6599,7 @@ class NDFrame(PandasObject, SelectionMixin):
                                          axis=axis, inplace=inplace)
 
     def groupby(self, by=None, axis=0, level=None, as_index=True, sort=True,
-                group_keys=True, squeeze=False, **kwargs):
+                group_keys=True, squeeze=False, observed=None, **kwargs):
         """
         Group series using mapper (dict or key function, apply given function
         to group, return result as series) or by a series of columns.
@@ -6632,6 +6632,13 @@ class NDFrame(PandasObject, SelectionMixin):
         squeeze : boolean, default False
             reduce the dimensionality of the return type if possible,
             otherwise return a consistent type
+        observed : boolean, default None
+            if True: only show observed values for categorical groupers
+            if False: show all values for categorical groupers
+            if None: if any categorical groupers, show a FutureWarning,
+                default to False
+
+            .. versionadded:: 0.23.0
 
         Returns
         -------
@@ -6665,7 +6672,7 @@ class NDFrame(PandasObject, SelectionMixin):
         axis = self._get_axis_number(axis)
         return groupby(self, by=by, axis=axis, level=level, as_index=as_index,
                        sort=sort, group_keys=group_keys, squeeze=squeeze,
-                       **kwargs)
+                       observed=observed, **kwargs)
 
     def asfreq(self, freq, method=None, how=None, normalize=False,
                fill_value=None):

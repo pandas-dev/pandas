@@ -527,6 +527,41 @@ If you wish to retain the old behavior while using Python >= 3.6, you can use
                'Taxes': -200,
                'Net result': 300}).sort_index()
 
+.. _whatsnew_0230.api_breaking.categorical_grouping:
+
+Categorical Groupers will now require passing the observed keyword
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In previous versions, grouping by 1 or more categorical columns would result in an index that was the cartesian product of all of the categories for
+each grouper, not just the observed values.``.groupby()`` has gained the ``observed`` keyword to toggle this behavior. The default remains backward
+compatible (generate a cartesian product). Pandas will show a ``FutureWarning`` if the ``observed`` keyword is not passed; the default will
+change to ``observed=True`` in the future. (:issue:`14942`, :issue:`8138`, :issue:`15217`, :issue:`17594`, :issue:`8669`, :issue:`20583`)
+
+
+.. ipython:: python
+
+   cat1 = pd.Categorical(["a", "a", "b", "b"],
+                         categories=["a", "b", "z"], ordered=True)
+   cat2 = pd.Categorical(["c", "d", "c", "d"],
+                         categories=["c", "d", "y"], ordered=True)
+   df = pd.DataFrame({"A": cat1, "B": cat2, "values": [1, 2, 3, 4]})
+   df['C'] = ['foo', 'bar'] * 2
+   df
+
+Previous Behavior (show all values):
+
+.. ipython:: python
+
+.. code-block:: python
+   df.groupby(['A', 'B', 'C'], observed=False).count()
+
+
+New Behavior (show only observed values):
+
+.. ipython:: python
+
+   df.groupby(['A', 'B', 'C'], observed=True).count()
+
 .. _whatsnew_0230.api_breaking.deprecate_panel:
 
 Deprecate Panel

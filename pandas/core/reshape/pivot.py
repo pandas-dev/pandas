@@ -79,7 +79,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
                 pass
         values = list(values)
 
-    grouped = data.groupby(keys)
+    grouped = data.groupby(keys, observed=dropna)
     agged = grouped.agg(aggfunc)
 
     table = agged
@@ -241,10 +241,13 @@ def _generate_marginal_results(table, data, values, rows, cols, aggfunc,
             return (key, margins_name) + ('',) * (len(cols) - 1)
 
         if len(rows) > 0:
-            margin = data[rows + values].groupby(rows).agg(aggfunc)
+            margin = data[rows + values].groupby(
+                rows, observed=True).agg(aggfunc)
             cat_axis = 1
 
-            for key, piece in table.groupby(level=0, axis=cat_axis):
+            for key, piece in table.groupby(level=0,
+                                            axis=cat_axis,
+                                            observed=True):
                 all_key = _all_key(key)
 
                 # we are going to mutate this, so need to copy!
@@ -264,7 +267,9 @@ def _generate_marginal_results(table, data, values, rows, cols, aggfunc,
         else:
             margin = grand_margin
             cat_axis = 0
-            for key, piece in table.groupby(level=0, axis=cat_axis):
+            for key, piece in table.groupby(level=0,
+                                            axis=cat_axis,
+                                            observed=True):
                 all_key = _all_key(key)
                 table_pieces.append(piece)
                 table_pieces.append(Series(margin[key], index=[all_key]))
@@ -279,7 +284,8 @@ def _generate_marginal_results(table, data, values, rows, cols, aggfunc,
         margin_keys = table.columns
 
     if len(cols) > 0:
-        row_margin = data[cols + values].groupby(cols).agg(aggfunc)
+        row_margin = data[cols + values].groupby(
+            cols, observed=True).agg(aggfunc)
         row_margin = row_margin.stack()
 
         # slight hack
@@ -304,14 +310,17 @@ def _generate_marginal_results_without_values(
             return (margins_name, ) + ('', ) * (len(cols) - 1)
 
         if len(rows) > 0:
-            margin = data[rows].groupby(rows).apply(aggfunc)
+            margin = data[rows].groupby(rows,
+                                        observed=True).apply(aggfunc)
             all_key = _all_key()
             table[all_key] = margin
             result = table
             margin_keys.append(all_key)
 
         else:
-            margin = data.groupby(level=0, axis=0).apply(aggfunc)
+            margin = data.groupby(level=0,
+                                  axis=0,
+                                  observed=True).apply(aggfunc)
             all_key = _all_key()
             table[all_key] = margin
             result = table
@@ -322,7 +331,7 @@ def _generate_marginal_results_without_values(
         margin_keys = table.columns
 
     if len(cols):
-        row_margin = data[cols].groupby(cols).apply(aggfunc)
+        row_margin = data[cols].groupby(cols, observed=True).apply(aggfunc)
     else:
         row_margin = Series(np.nan, index=result.columns)
 

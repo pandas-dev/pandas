@@ -556,7 +556,8 @@ class _GroupBy(PandasObject, SelectionMixin):
 
     def __init__(self, obj, keys=None, axis=0, level=None,
                  grouper=None, exclusions=None, selection=None, as_index=True,
-                 sort=True, group_keys=True, squeeze=False, **kwargs):
+                 sort=True, group_keys=True, squeeze=False,
+                 observed=None, **kwargs):
 
         self._selection = selection
 
@@ -576,6 +577,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         self.sort = sort
         self.group_keys = group_keys
         self.squeeze = squeeze
+        self.observed = observed
         self.mutated = kwargs.pop('mutated', False)
 
         if grouper is None:
@@ -583,6 +585,7 @@ class _GroupBy(PandasObject, SelectionMixin):
                                                     axis=axis,
                                                     level=level,
                                                     sort=sort,
+                                                    observed=observed,
                                                     mutated=self.mutated)
 
         self.obj = obj
@@ -2331,18 +2334,21 @@ class BaseGrouper(object):
     def recons_labels(self):
         comp_ids, obs_ids, _ = self.group_info
         labels = (ping.labels for ping in self.groupings)
-        return decons_obs_group_ids(comp_ids,
-                                    obs_ids, self.shape, labels, xnull=True)
+        return decons_obs_group_ids(
+            comp_ids, obs_ids, self.shape, labels, xnull=True)
 
     @cache_readonly
     def result_index(self):
         if not self.compressed and len(self.groupings) == 1:
             return self.groupings[0].group_index.rename(self.names[0])
 
-        return MultiIndex(levels=[ping.group_index for ping in self.groupings],
-                          labels=self.recons_labels,
-                          verify_integrity=False,
-                          names=self.names)
+        labels = self.recons_labels
+        levels = [ping.group_index for ping in self.groupings]
+        result = MultiIndex(levels=levels,
+                            labels=labels,
+                            verify_integrity=False,
+                            names=self.names)
+        return result
 
     def get_group_levels(self):
         if not self.compressed and len(self.groupings) == 1:
@@ -2883,6 +2889,7 @@ class Grouping(object):
     obj :
     name :
     level :
+    observed : If we are a Categorical, use the observed values
     in_axis : if the Grouping is a column in self.obj and hence among
         Groupby.exclusions list
 
@@ -2898,7 +2905,7 @@ class Grouping(object):
     """
 
     def __init__(self, index, grouper=None, obj=None, name=None, level=None,
-                 sort=True, in_axis=False):
+                 sort=True, observed=None, in_axis=False):
 
         self.name = name
         self.level = level
@@ -2906,6 +2913,7 @@ class Grouping(object):
         self.index = index
         self.sort = sort
         self.obj = obj
+        self.observed = observed
         self.in_axis = in_axis
 
         # right place for this?
@@ -2954,16 +2962,34 @@ class Grouping(object):
             elif is_categorical_dtype(self.grouper):
 
                 self.grouper = self.grouper._codes_for_groupby(self.sort)
+                codes = self.grouper.codes
+                categories = self.grouper.categories
 
                 # we make a CategoricalIndex out of the cat grouper
                 # preserving the categories / ordered attributes
-                self._labels = self.grouper.codes
+                self._labels = codes
 
-                c = self.grouper.categories
+                # Use the observed values of the grouper if inidcated
+                observed = self.observed
+                if observed is None:
+                    msg = ("pass observed=True to ensure that a "
+                           "categorical grouper only returns the "
+                           "observed groupers, or\n"
+                           "observed=False to return NA for non-observed"
+                           "values\n")
+                    warnings.warn(msg, FutureWarning, stacklevel=5)
+                    observed = False
+
+                if observed:
+                    codes = algorithms.unique1d(codes)
+                else:
+                    codes = np.arange(len(categories))
+
                 self._group_index = CategoricalIndex(
-                    Categorical.from_codes(np.arange(len(c)),
-                                           categories=c,
-                                           ordered=self.grouper.ordered))
+                    Categorical.from_codes(
+                        codes=codes,
+                        categories=categories,
+                        ordered=self.grouper.ordered))
 
             # we are done
             if isinstance(self.grouper, Grouping):
@@ -3048,7 +3074,7 @@ class Grouping(object):
 
 
 def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
-                 mutated=False, validate=True):
+                 observed=None, mutated=False, validate=True):
     """
     create and return a BaseGrouper, which is an internal
     mapping of how to create the grouper indexers.
@@ -3064,6 +3090,9 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
     This routine tries to figure out what the passing in references
     are and then creates a Grouping for each one, combined into
     a BaseGrouper.
+
+    If observed & we have a categorical grouper, only show the observed
+    values
 
     If validate, then check for key/level overlaps
 
@@ -3243,6 +3272,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
                         name=name,
                         level=level,
                         sort=sort,
+                        observed=observed,
                         in_axis=in_axis) \
             if not isinstance(gpr, Grouping) else gpr
 
@@ -4154,7 +4184,7 @@ class NDFrameGroupBy(GroupBy):
                                         not_indexed_same=not_indexed_same)
         elif self.grouper.groupings is not None:
             if len(self.grouper.groupings) > 1:
-                key_index = MultiIndex.from_tuples(keys, names=key_names)
+                key_index = self.grouper.result_index
 
             else:
                 ping = self.grouper.groupings[0]
@@ -4244,8 +4274,9 @@ class NDFrameGroupBy(GroupBy):
 
                         # normally use vstack as its faster than concat
                         # and if we have mi-columns
-                        if isinstance(v.index,
-                                      MultiIndex) or key_index is None:
+                        if (isinstance(v.index, MultiIndex) or
+                                key_index is None or
+                                isinstance(key_index, MultiIndex)):
                             stacked_values = np.vstack(map(np.asarray, values))
                             result = DataFrame(stacked_values, index=key_index,
                                                columns=index)
@@ -4696,6 +4727,14 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
         This can re-expand the output space
         """
+
+        # TODO(jreback): remove completely
+        # when observed parameter is defaulted to True
+        # gh-20583
+
+        if self.observed:
+            return result
+
         groupings = self.grouper.groupings
         if groupings is None:
             return result

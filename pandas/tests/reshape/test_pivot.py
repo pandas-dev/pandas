@@ -93,23 +93,23 @@ class TestPivotTable(object):
 
     def test_pivot_table_categorical(self):
 
-        raw_cat1 = Categorical(["a", "a", "b", "b"],
-                               categories=["a", "b", "z"], ordered=True)
-        raw_cat2 = Categorical(["c", "d", "c", "d"],
-                               categories=["c", "d", "y"], ordered=True)
-        df = DataFrame({"A": raw_cat1, "B": raw_cat2, "values": [1, 2, 3, 4]})
+        cat1 = Categorical(["a", "a", "b", "b"],
+                           categories=["a", "b", "z"], ordered=True)
+        cat2 = Categorical(["c", "d", "c", "d"],
+                           categories=["c", "d", "y"], ordered=True)
+        df = DataFrame({"A": cat1, "B": cat2, "values": [1, 2, 3, 4]})
         result = pd.pivot_table(df, values='values', index=['A', 'B'])
 
-        exp_index = pd.MultiIndex.from_product(
-            [Categorical(["a", "b", "z"], ordered=True),
-             Categorical(["c", "d", "y"], ordered=True)],
+        exp_index = pd.MultiIndex.from_arrays(
+            [cat1, cat2],
             names=['A', 'B'])
         expected = DataFrame(
-            {'values': [1, 2, np.nan, 3, 4, np.nan, np.nan, np.nan, np.nan]},
+            {'values': [1, 2, 3, 4]},
             index=exp_index)
         tm.assert_frame_equal(result, expected)
 
-    def test_pivot_table_dropna_categoricals(self):
+    @pytest.mark.parametrize('dropna', [True, False])
+    def test_pivot_table_dropna_categoricals(self, dropna):
         # GH 15193
         categories = ['a', 'b', 'c', 'd']
 
@@ -118,30 +118,23 @@ class TestPivotTable(object):
                         'C': range(0, 9)})
 
         df['A'] = df['A'].astype(CDT(categories, ordered=False))
-        result_true = df.pivot_table(index='B', columns='A', values='C',
-                                     dropna=True)
+        result = df.pivot_table(index='B', columns='A', values='C',
+                                dropna=dropna)
         expected_columns = Series(['a', 'b', 'c'], name='A')
         expected_columns = expected_columns.astype(
             CDT(categories, ordered=False))
         expected_index = Series([1, 2, 3], name='B')
-        expected_true = DataFrame([[0.0, 3.0, 6.0],
-                                   [1.0, 4.0, 7.0],
-                                   [2.0, 5.0, 8.0]],
-                                  index=expected_index,
-                                  columns=expected_columns,)
-        tm.assert_frame_equal(expected_true, result_true)
+        expected = DataFrame([[0, 3, 6],
+                              [1, 4, 7],
+                              [2, 5, 8]],
+                             index=expected_index,
+                             columns=expected_columns,)
+        if not dropna:
+            # add back the non observed to compare
+            expected = expected.reindex(
+                columns=Categorical(categories)).astype('float')
 
-        result_false = df.pivot_table(index='B', columns='A', values='C',
-                                      dropna=False)
-        expected_columns = (
-            Series(['a', 'b', 'c', 'd'], name='A').astype('category')
-        )
-        expected_false = DataFrame([[0.0, 3.0, 6.0, np.NaN],
-                                    [1.0, 4.0, 7.0, np.NaN],
-                                    [2.0, 5.0, 8.0, np.NaN]],
-                                   index=expected_index,
-                                   columns=expected_columns,)
-        tm.assert_frame_equal(expected_false, result_false)
+        tm.assert_frame_equal(result, expected)
 
     def test_pass_array(self):
         result = self.data.pivot_table(
@@ -1132,14 +1125,11 @@ class TestPivotTable(object):
                                 columns='Year',
                                 aggfunc='sum')
         expected_columns = pd.Int64Index([2013, 2014], name='Year')
-        expected_index = pd.CategoricalIndex(months,
+        expected_index = pd.CategoricalIndex(['January'],
                                              categories=months,
                                              ordered=False,
                                              name='Month')
-        expected_data = np.empty((12, 2))
-        expected_data.fill(np.nan)
-        expected_data[0, :] = [320., 120.]
-        expected = pd.DataFrame(expected_data,
+        expected = pd.DataFrame([[320, 120]],
                                 index=expected_index,
                                 columns=expected_columns)
         tm.assert_frame_equal(result, expected)
