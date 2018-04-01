@@ -338,6 +338,19 @@ Iterable values are different \\(50\\.0 %\\)
         with tm.assert_raises_regex(AssertionError, expected):
             assert_almost_equal([1, 2], [1, 3])
 
+    def test_numpy_array_equal_message_named(self):
+        a = np.array([1, 2, 3])
+        b = np.array([0, 2, 3])
+
+        expected = """a and bee are different
+
+a and bee values are different \\(33.33333 %\\)
+\\[a\\]:   \\[1, 2, 3\\]
+\\[bee\\]: \\[0, 2, 3\\]"""
+
+        with tm.assert_raises_regex(AssertionError, expected):
+            assert_numpy_array_equal(a, b, obj=('a', 'bee'))
+
 
 class TestAssertIndexEqual(object):
 
@@ -356,9 +369,9 @@ Index levels are different
         with tm.assert_raises_regex(AssertionError, expected):
             assert_index_equal(idx1, idx2, exact=False)
 
-        expected = """MultiIndex level \\[1\\] are different
+        expected = """Index MultiIndex level \\[1\\] are different
 
-MultiIndex level \\[1\\] values are different \\(25\\.0 %\\)
+Index MultiIndex level \\[1\\] values are different \\(25\\.0 %\\)
 \\[left\\]:  Int64Index\\(\\[2, 2, 3, 4\\], dtype='int64'\\)
 \\[right\\]: Int64Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)"""
 
@@ -366,8 +379,10 @@ MultiIndex level \\[1\\] values are different \\(25\\.0 %\\)
                                           ('B', 3), ('B', 4)])
         idx2 = pd.MultiIndex.from_tuples([('A', 1), ('A', 2),
                                           ('B', 3), ('B', 4)])
+
         with tm.assert_raises_regex(AssertionError, expected):
             assert_index_equal(idx1, idx2)
+
         with tm.assert_raises_regex(AssertionError, expected):
             assert_index_equal(idx1, idx2, check_exact=False)
 
@@ -440,9 +455,9 @@ Index values are different \\(33\\.33333 %\\)
         with tm.assert_raises_regex(AssertionError, expected):
             assert_index_equal(idx1, idx2, check_less_precise=True)
 
-        expected = """MultiIndex level \\[1\\] are different
+        expected = """Index MultiIndex level \\[1\\] are different
 
-MultiIndex level \\[1\\] values are different \\(25\\.0 %\\)
+Index MultiIndex level \\[1\\] values are different \\(25\\.0 %\\)
 \\[left\\]:  Int64Index\\(\\[2, 2, 3, 4\\], dtype='int64'\\)
 \\[right\\]: Int64Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)"""
 
@@ -484,6 +499,19 @@ Attribute "names" are different
         idx2 = pd.Index([1, 2, 3], name=pd.NaT)
         with tm.assert_raises_regex(AssertionError, expected):
             assert_index_equal(idx1, idx2)
+
+    def test_index_equal_message_named(self):
+
+        expected = """Index1 and Idx2 are different
+
+Index1 and Idx2 values are different \\(33.33333 %\\)
+\\[Index1\\]: Int64Index\\(\\[1, 2, 3\\], dtype='int64'\\)
+\\[Idx2\\]:   Int64Index\\(\\[0, 2, 3\\], dtype='int64'\\)"""
+
+        idx1 = pd.Index([1, 2, 3])
+        idx2 = pd.Index([0, 2, 3])
+        with tm.assert_raises_regex(AssertionError, expected):
+            assert_index_equal(idx1, idx2, obj=('Index1', 'Idx2'))
 
 
 class TestAssertSeriesEqual(object):
@@ -579,6 +607,18 @@ Series values are different \\(33\\.33333 %\\)
             assert_series_equal(pd.Series([1, 2, 3]), pd.Series([1, 2, 4]),
                                 check_less_precise=True)
 
+    def test_series_equal_message_named(self):
+
+        expected = """The Holy Grail and The Life of Brian are different
+
+The Holy Grail and The Life of Brian values are different \\(33.33333 %\\)
+\\[The Holy Grail\\]:    \\[1, 2, 3\\]
+\\[The Life of Brian\\]: \\[0, 2, 3\\]"""
+
+        with tm.assert_raises_regex(AssertionError, expected):
+            assert_series_equal(pd.Series([1, 2, 3]), pd.Series([0, 2, 3]),
+                                obj=('The Holy Grail', 'The Life of Brian'))
+
 
 class TestAssertFrameEqual(object):
 
@@ -673,10 +713,29 @@ DataFrame\\.iloc\\[:, 1\\] values are different \\(33\\.33333 %\\)
             assert_frame_equal(pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]}),
                                pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 7]}))
 
+        expected = """DataFrame\\.blocks\\.iloc\\[:, 1\\] are different
+
+DataFrame\\.blocks\\.iloc\\[:, 1\\] values are different \\(33\\.33333 %\\)
+\\[left\\]:  \\[4, 5, 6\\]
+\\[right\\]: \\[4, 5, 7\\]"""
+
         with tm.assert_raises_regex(AssertionError, expected):
             assert_frame_equal(pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]}),
                                pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 7]}),
                                by_blocks=True)
+
+    def test_frame_equal_message_named(self):
+
+        expected = """Potato and Mushroom are different
+
+Potato and Mushroom shape mismatch
+\\[Potato\\]:   \\(3, 2\\)
+\\[Mushroom\\]: \\(3, 1\\)"""
+
+        with tm.assert_raises_regex(AssertionError, expected):
+            assert_frame_equal(pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]}),
+                               pd.DataFrame({'A': [1, 2, 3]}),
+                               obj=('Potato', 'Mushroom'))
 
 
 class TestAssertCategoricalEqual(object):
@@ -715,6 +774,19 @@ Attribute "ordered" are different
         b = pd.Categorical([1, 2, 3, 4], ordered=True)
         with tm.assert_raises_regex(AssertionError, expected):
             tm.assert_categorical_equal(a, b)
+
+    def test_categorical_equal_message_named(self):
+
+        expected = """Blue.categories and Red.categories are different
+
+Blue.categories and Red.categories values are different \\(25.0 %\\)
+\\[Blue.categories\\]: Int64Index\\(\\[1, 2, 3, 4\\], dtype='int64'\\)
+\\[Red.categories\\]:  Int64Index\\(\\[1, 2, 3, 5\\], dtype='int64'\\)"""
+
+        a = pd.Categorical([1, 2, 3, 4])
+        b = pd.Categorical([1, 2, 3, 5])
+        with tm.assert_raises_regex(AssertionError, expected):
+            tm.assert_categorical_equal(a, b, obj=('Blue', 'Red'))
 
 
 class TestRNGContext(object):

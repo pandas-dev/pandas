@@ -48,7 +48,6 @@ from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
 from pandas._libs import testing as _testing
 from pandas.io.common import urlopen
 
-
 N = 30
 K = 4
 _RAISE_NETWORK_ERROR_DEFAULT = False
@@ -298,7 +297,6 @@ def _check_isinstance(left, right, cls):
 
 
 def assert_dict_equal(left, right, compare_keys=True):
-
     _check_isinstance(left, right, dict)
     return _testing.assert_dict_equal(left, right, compare_keys=compare_keys)
 
@@ -465,7 +463,7 @@ def get_locales(prefix=None, normalize=True,
         return _valid_locales(out_locales, normalize)
 
     found = re.compile('{prefix}.*'.format(prefix=prefix)) \
-              .findall('\n'.join(out_locales))
+        .findall('\n'.join(out_locales))
     return _valid_locales(found, normalize)
 
 
@@ -548,6 +546,7 @@ def _valid_locales(locales, normalize):
         normalizer = lambda x: x.strip()
 
     return list(filter(_can_set_locale, map(normalizer, locales)))
+
 
 # -----------------------------------------------------------------------------
 # Stdout / stderr decorators
@@ -648,6 +647,7 @@ def capture_stderr(f):
 
     return wrapper
 
+
 # -----------------------------------------------------------------------------
 # Console debugging tools
 
@@ -676,6 +676,7 @@ def set_trace():
     except Exception:
         from pdb import Pdb as OldPdb
         OldPdb().set_trace(sys._getframe().f_back)
+
 
 # -----------------------------------------------------------------------------
 # contextmanager to ensure the file cleanup
@@ -738,6 +739,7 @@ def get_data_path(f=''):
     base_dir = os.path.abspath(os.path.dirname(filename))
     return os.path.join(base_dir, 'data', f)
 
+
 # -----------------------------------------------------------------------------
 # Comparators
 
@@ -771,10 +773,12 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
         Whether to compare number exactly.
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
-    obj : str, default 'Index'
-        Specify object name being compared, internally used to show appropriate
+    obj : str or 2-length sequence (tuple, list, ...), default 'Index'
+        Specify object(s) name(s) being compared, used to show appropriate
         assertion message
     """
+
+    # obj = com._maybe_make_list(obj)
 
     def _check_types(l, r, obj='Index'):
         if exact:
@@ -802,14 +806,14 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
 
     # level comparison
     if left.nlevels != right.nlevels:
-        msg1 = '{obj} levels are different'.format(obj=obj)
+        msg1 = '{obj} levels are different'.format(obj=join_obj(obj))
         msg2 = '{nlevels}, {left}'.format(nlevels=left.nlevels, left=left)
         msg3 = '{nlevels}, {right}'.format(nlevels=right.nlevels, right=right)
         raise_assert_detail(obj, msg1, msg2, msg3)
 
     # length comparison
     if len(left) != len(right):
-        msg1 = '{obj} length are different'.format(obj=obj)
+        msg1 = '{obj} length are different'.format(obj=join_obj(obj))
         msg2 = '{length}, {left}'.format(length=len(left), left=left)
         msg3 = '{length}, {right}'.format(length=len(right), right=right)
         raise_assert_detail(obj, msg1, msg2, msg3)
@@ -821,7 +825,8 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
             llevel = _get_ilevel_values(left, level)
             rlevel = _get_ilevel_values(right, level)
 
-            lobj = 'MultiIndex level [{level}]'.format(level=level)
+            lobj = map_obj('{obj} MultiIndex level [{level}]', obj,
+                           level=level)
             assert_index_equal(llevel, rlevel,
                                exact=exact, check_names=check_names,
                                check_less_precise=check_less_precise,
@@ -834,7 +839,7 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
             diff = np.sum((left.values != right.values)
                           .astype(int)) * 100.0 / len(left)
             msg = '{obj} values are different ({pct} %)'.format(
-                obj=obj, pct=np.round(diff, 5))
+                obj=join_obj(obj), pct=np.round(diff, 5))
             raise_assert_detail(obj, msg, left, right)
     else:
         _testing.assert_almost_equal(left.values, right.values,
@@ -854,11 +859,24 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
     if check_categorical:
         if is_categorical_dtype(left) or is_categorical_dtype(right):
             assert_categorical_equal(left.values, right.values,
-                                     obj='{obj} category'.format(obj=obj))
+                                     obj=map_obj('{obj} category', obj))
+
+
+def join_obj(obj):
+    obj = com._maybe_make_list(obj)
+    return ' and '.join(obj)
+
+
+def map_obj(form, objs, **kwargs):
+    assert isinstance(form, str)
+    objs = com._maybe_make_list(objs)
+    return list(map(lambda obj: form.format(obj=obj, **kwargs), objs))
 
 
 def assert_class_equal(left, right, exact=True, obj='Input'):
     """checks classes are equal."""
+
+    obj = com._maybe_make_list(obj)
 
     def repr_class(x):
         if isinstance(x, Index):
@@ -875,12 +893,13 @@ def assert_class_equal(left, right, exact=True, obj='Input'):
             # allow equivalence of Int64Index/RangeIndex
             types = set([type(left).__name__, type(right).__name__])
             if len(types - set(['Int64Index', 'RangeIndex'])):
-                msg = '{obj} classes are not equivalent'.format(obj=obj)
+                msg = '{obj} classes are not equivalent'.format(
+                    obj=join_obj(obj))
                 raise_assert_detail(obj, msg, repr_class(left),
                                     repr_class(right))
     elif exact:
         if type(left) != type(right):
-            msg = '{obj} classes are different'.format(obj=obj)
+            msg = '{obj} classes are different'.format(obj=join_obj(obj))
             raise_assert_detail(obj, msg, repr_class(left),
                                 repr_class(right))
 
@@ -894,10 +913,12 @@ def assert_attr_equal(attr, left, right, obj='Attributes'):
         Attribute name being compared.
     left : object
     right : object
-    obj : str, default 'Attributes'
-        Specify object name being compared, internally used to show appropriate
+    obj : str or 2-length sequence (tuple, list, ...), default 'Attributes'
+        Specify object(s) name(s) being compared, used to show appropriate
         assertion message
     """
+
+    # obj = com._maybe_make_list(obj)
 
     left_attr = getattr(left, attr)
     right_attr = getattr(right, attr)
@@ -942,11 +963,12 @@ def isiterable(obj):
     return hasattr(obj, '__iter__')
 
 
-def is_sorted(seq):
+def is_sorted(seq, obj='seq'):
     if isinstance(seq, (Index, Series)):
         seq = seq.values
     # sorting does not change precisions
-    return assert_numpy_array_equal(seq, np.sort(np.array(seq)))
+    return assert_numpy_array_equal(seq, np.sort(np.array(seq)),
+                                    obj=(obj, 'sorted({})'.format(obj)))
 
 
 def assert_categorical_equal(left, right, check_dtype=True,
@@ -959,8 +981,8 @@ def assert_categorical_equal(left, right, check_dtype=True,
         Categoricals to compare
     check_dtype : bool, default True
         Check that integer dtype of the codes are the same
-    obj : str, default 'Categorical'
-        Specify object name being compared, internally used to show appropriate
+    obj : str or 2-length sequence (tuple, list, ...), default 'Categorical'
+        Specify object(s) name(s) being compared, used to show appropriate
         assertion message
     check_category_order : bool, default True
         Whether the order of the categories should be compared, which
@@ -968,26 +990,43 @@ def assert_categorical_equal(left, right, check_dtype=True,
         values are compared.  The ordered attribute is
         checked regardless.
     """
+
+    # obj = com._maybe_make_list(obj)
+
     _check_isinstance(left, right, Categorical)
+
+    obj = com._maybe_make_list(obj)
 
     if check_category_order:
         assert_index_equal(left.categories, right.categories,
-                           obj='{obj}.categories'.format(obj=obj))
+                           obj=map_obj('{obj}.categories', obj))
+
         assert_numpy_array_equal(left.codes, right.codes,
                                  check_dtype=check_dtype,
-                                 obj='{obj}.codes'.format(obj=obj))
+                                 obj=map_obj('{obj}.codes', obj))
     else:
         assert_index_equal(left.categories.sort_values(),
                            right.categories.sort_values(),
-                           obj='{obj}.categories'.format(obj=obj))
+                           obj=map_obj('{obj}.categories', obj))
+
         assert_index_equal(left.categories.take(left.codes),
                            right.categories.take(right.codes),
-                           obj='{obj}.values'.format(obj=obj))
+                           obj=map_obj('{obj}.values', obj))
 
     assert_attr_equal('ordered', left, right, obj=obj)
 
 
 def raise_assert_detail(obj, message, left, right, diff=None):
+    obj = com._maybe_make_list(obj)
+
+    if len(obj) >= 2:
+        names = obj[:2]
+    else:
+        names = ('left', 'right')
+
+    names_formatted = list(map(lambda x: '[{}]:'.format(x), names))
+    max_len = max(map(len, names_formatted))
+
     if isinstance(left, np.ndarray):
         left = pprint_thing(left)
     elif is_categorical_dtype(left):
@@ -1000,8 +1039,10 @@ def raise_assert_detail(obj, message, left, right, diff=None):
     msg = """{obj} are different
 
 {message}
-[left]:  {left}
-[right]: {right}""".format(obj=obj, message=message, left=left, right=right)
+{names[0]:<{max_len}} {left}
+{names[1]:<{max_len}} {right}""".format(obj=join_obj(obj), message=message,
+                                        left=left, right=right,
+                                        names=names_formatted, max_len=max_len)
 
     if diff is not None:
         msg += "\n[diff]: {diff}".format(diff=diff)
@@ -1024,12 +1065,14 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
         check dtype if both a and b are np.ndarray
     err_msg : str, default None
         If provided, used as assertion message
-    obj : str, default 'numpy array'
-        Specify object name being compared, internally used to show appropriate
+    obj : str or 2-length sequence (tuple, list, ...), default 'numpy array'
+        Specify object(s) name(s) being compared, used to show appropriate
         assertion message
     check_same : None|'copy'|'same', default None
         Ensure left and right refer/do not refer to the same memory area
     """
+
+    # obj = com._maybe_make_list(obj)
 
     # instance validation
     # Show a detailed error message when classes are different
@@ -1058,7 +1101,8 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
         if err_msg is None:
             if left.shape != right.shape:
                 raise_assert_detail(obj, '{obj} shapes are different'
-                                    .format(obj=obj), left.shape, right.shape)
+                                    .format(obj=join_obj(obj)), left.shape,
+                                    right.shape)
 
             diff = 0
             for l, r in zip(left, right):
@@ -1068,7 +1112,7 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
 
             diff = diff * 100.0 / left.size
             msg = '{obj} values are different ({pct} %)'.format(
-                obj=obj, pct=np.round(diff, 5))
+                obj=join_obj(obj), pct=np.round(diff, 5))
             raise_assert_detail(obj, msg, left, right)
 
         raise AssertionError(err_msg)
@@ -1145,10 +1189,12 @@ def assert_series_equal(left, right, check_dtype=True,
         Compare datetime-like which is comparable ignoring dtype.
     check_categorical : bool, default True
         Whether to compare internal Categorical exactly.
-    obj : str, default 'Series'
-        Specify object name being compared, internally used to show appropriate
+    obj : str or 2-length sequence (tuple, list, ...), default 'Series'
+        Specify object(s) name(s) being compared, used to show appropriate
         assertion message
     """
+
+    # obj = com._maybe_make_list(obj)
 
     # instance validation
     _check_isinstance(left, right, Series)
@@ -1171,7 +1217,7 @@ def assert_series_equal(left, right, check_dtype=True,
                        check_less_precise=check_less_precise,
                        check_exact=check_exact,
                        check_categorical=check_categorical,
-                       obj='{obj}.index'.format(obj=obj))
+                       obj=map_obj('{obj}.index', obj))
 
     if check_dtype:
         # We want to skip exact dtype checking when `check_categorical`
@@ -1186,14 +1232,14 @@ def assert_series_equal(left, right, check_dtype=True,
     if check_exact:
         assert_numpy_array_equal(left.get_values(), right.get_values(),
                                  check_dtype=check_dtype,
-                                 obj='{obj}'.format(obj=obj),)
+                                 obj=map_obj('{obj}', obj), )
     elif check_datetimelike_compat:
         # we want to check only if we have compat dtypes
         # e.g. integer and M|m are NOT compat, but we can simply check
         # the values in that case
         if (is_datetimelike_v_numeric(left, right) or
-            is_datetimelike_v_object(left, right) or
-            needs_i8_conversion(left) or
+                is_datetimelike_v_object(left, right) or
+                needs_i8_conversion(left) or
                 needs_i8_conversion(right)):
 
             # datetimelike may have different objects (e.g. datetime.datetime
@@ -1209,13 +1255,13 @@ def assert_series_equal(left, right, check_dtype=True,
         # TODO: big hack here
         left = pd.IntervalIndex(left)
         right = pd.IntervalIndex(right)
-        assert_index_equal(left, right, obj='{obj}.index'.format(obj=obj))
+        assert_index_equal(left, right, obj=map_obj('{obj}.index', obj))
 
     else:
         _testing.assert_almost_equal(left.get_values(), right.get_values(),
                                      check_less_precise=check_less_precise,
                                      check_dtype=check_dtype,
-                                     obj='{obj}'.format(obj=obj))
+                                     obj=map_obj('{obj}', obj))
 
     # metadata comparison
     if check_names:
@@ -1224,7 +1270,7 @@ def assert_series_equal(left, right, check_dtype=True,
     if check_categorical:
         if is_categorical_dtype(left) or is_categorical_dtype(right):
             assert_categorical_equal(left.values, right.values,
-                                     obj='{obj} category'.format(obj=obj))
+                                     obj=map_obj('{obj} category', obj))
 
 
 # This could be refactored to use the NDFrame.equals method
@@ -1273,10 +1319,12 @@ def assert_frame_equal(left, right, check_dtype=True,
         Whether to compare internal Categorical exactly.
     check_like : bool, default False
         If true, ignore the order of rows & columns
-    obj : str, default 'DataFrame'
-        Specify object name being compared, internally used to show appropriate
+    obj : str or 2-length sequence (tuple, list, ...), default 'DataFrame'
+        Specify object(s) name(s) being compared, used to show appropriate
         assertion message
     """
+
+    # obj = com._maybe_make_list(obj)
 
     # instance validation
     _check_isinstance(left, right, DataFrame)
@@ -1290,7 +1338,7 @@ def assert_frame_equal(left, right, check_dtype=True,
     # shape comparison
     if left.shape != right.shape:
         raise_assert_detail(obj,
-                            'DataFrame shape mismatch',
+                            '{obj} shape mismatch'.format(obj=join_obj(obj)),
                             '{shape!r}'.format(shape=left.shape),
                             '{shape!r}'.format(shape=right.shape))
 
@@ -1303,7 +1351,7 @@ def assert_frame_equal(left, right, check_dtype=True,
                        check_less_precise=check_less_precise,
                        check_exact=check_exact,
                        check_categorical=check_categorical,
-                       obj='{obj}.index'.format(obj=obj))
+                       obj=map_obj('{obj}.index', obj))
 
     # column comparison
     assert_index_equal(left.columns, right.columns, exact=check_column_type,
@@ -1311,7 +1359,7 @@ def assert_frame_equal(left, right, check_dtype=True,
                        check_less_precise=check_less_precise,
                        check_exact=check_exact,
                        check_categorical=check_categorical,
-                       obj='{obj}.columns'.format(obj=obj))
+                       obj=map_obj('{obj}.columns', obj))
 
     # compare by blocks
     if by_blocks:
@@ -1321,7 +1369,8 @@ def assert_frame_equal(left, right, check_dtype=True,
             assert dtype in lblocks
             assert dtype in rblocks
             assert_frame_equal(lblocks[dtype], rblocks[dtype],
-                               check_dtype=check_dtype, obj='DataFrame.blocks')
+                               check_dtype=check_dtype,
+                               obj=map_obj('{obj}.blocks', obj))
 
     # compare by columns
     else:
@@ -1336,7 +1385,7 @@ def assert_frame_equal(left, right, check_dtype=True,
                 check_exact=check_exact, check_names=check_names,
                 check_datetimelike_compat=check_datetimelike_compat,
                 check_categorical=check_categorical,
-                obj='DataFrame.iloc[:, {idx}]'.format(idx=i))
+                obj=map_obj('{obj}.iloc[:, {idx}]', obj, idx=i))
 
 
 def assert_panel_equal(left, right,
@@ -1369,6 +1418,8 @@ def assert_panel_equal(left, right,
         Specify the object name being compared, internally used to show
         the appropriate assertion message.
     """
+
+    # obj = com._maybe_make_list(obj)
 
     if check_panel_type:
         assert_class_equal(left, right, obj=obj)
@@ -1457,13 +1508,16 @@ def assert_sp_series_equal(left, right, check_dtype=True, exact_indices=True,
         Specify the object name being compared, internally used to show
         the appropriate assertion message.
     """
+
+    # obj = com._maybe_make_list(obj)
+
     _check_isinstance(left, right, pd.SparseSeries)
 
     if check_series_type:
         assert_class_equal(left, right, obj=obj)
 
     assert_index_equal(left.index, right.index,
-                       obj='{obj}.index'.format(obj=obj))
+                       obj=map_obj('{obj}.index', obj))
 
     assert_sp_array_equal(left.block.values, right.block.values)
 
@@ -1494,15 +1548,18 @@ def assert_sp_frame_equal(left, right, check_dtype=True, exact_indices=True,
         Specify the object name being compared, internally used to show
         the appropriate assertion message.
     """
+
+    # obj = com._maybe_make_list(obj)
+
     _check_isinstance(left, right, pd.SparseDataFrame)
 
     if check_frame_type:
         assert_class_equal(left, right, obj=obj)
 
     assert_index_equal(left.index, right.index,
-                       obj='{obj}.index'.format(obj=obj))
+                       obj=map_obj('{obj}.index', obj))
     assert_index_equal(left.columns, right.columns,
-                       obj='{obj}.columns'.format(obj=obj))
+                       obj=map_obj('{obj}.columns', obj))
 
     for col, series in compat.iteritems(left):
         assert (col in right)
@@ -1522,6 +1579,7 @@ def assert_sp_frame_equal(left, right, check_dtype=True, exact_indices=True,
 
     for col in right:
         assert (col in left)
+
 
 # -----------------------------------------------------------------------------
 # Others
@@ -1591,7 +1649,7 @@ def makeIntIndex(k=10, name=None):
 
 
 def makeUIntIndex(k=10, name=None):
-    return Index([2**63 + i for i in lrange(k)], name=name)
+    return Index([2 ** 63 + i for i in lrange(k)], name=name)
 
 
 def makeRangeIndex(k=10, name=None, **kwargs):
@@ -2076,8 +2134,8 @@ _network_errno_vals = (
     111,  # Connection refused
     110,  # Connection timed out
     104,  # Connection reset Error
-    54,   # Connection reset by peer
-    60,   # urllib.error.URLError: [Errno 60] Connection timed out
+    54,  # Connection reset by peer
+    60,  # urllib.error.URLError: [Errno 60] Connection timed out
 )
 
 # Both of the above shouldn't mask real issues such as 404's
@@ -2250,7 +2308,6 @@ with_connectivity_check = network
 
 
 class SimpleMock(object):
-
     """
     Poor man's mocking object
 
@@ -2266,7 +2323,7 @@ class SimpleMock(object):
     """
 
     def __init__(self, obj, *args, **kwds):
-        assert(len(args) % 2 == 0)
+        assert (len(args) % 2 == 0)
         attrs = kwds.get("attrs", {})
         for k, v in zip(args[::2], args[1::2]):
             # dict comprehensions break 2.6
@@ -2552,12 +2609,10 @@ class RNGContext(object):
         self.seed = seed
 
     def __enter__(self):
-
         self.start_state = np.random.get_state()
         np.random.seed(self.seed)
 
     def __exit__(self, exc_type, exc_value, traceback):
-
         np.random.set_state(self.start_state)
 
 
@@ -2619,7 +2674,9 @@ def test_parallel(num_threads=2, kwargs_list=None):
                 thread.start()
             for thread in threads:
                 thread.join()
+
         return inner
+
     return wrapper
 
 

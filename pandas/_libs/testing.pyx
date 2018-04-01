@@ -3,6 +3,7 @@ import numpy as np
 from pandas import compat
 from pandas.core.dtypes.missing import isna, array_equivalent
 from pandas.core.dtypes.common import is_dtype_equal
+from pandas.core.common import _maybe_make_list
 
 cdef NUMERIC_TYPES = (
     bool,
@@ -129,9 +130,9 @@ cpdef assert_almost_equal(a, b,
         if a_is_ndarray and b_is_ndarray:
             na, nb = a.size, b.size
             if a.shape != b.shape:
-                from pandas.util.testing import raise_assert_detail
+                from pandas.util.testing import raise_assert_detail, join_obj
                 raise_assert_detail(
-                    obj, '{0} shapes are different'.format(obj),
+                    obj, '{0} shapes are different'.format(join_obj(obj)),
                     a.shape, b.shape)
 
             if check_dtype and not is_dtype_equal(a, b):
@@ -147,7 +148,7 @@ cpdef assert_almost_equal(a, b,
             na, nb = len(a), len(b)
 
         if na != nb:
-            from pandas.util.testing import raise_assert_detail
+            from pandas.util.testing import raise_assert_detail, join_obj
 
             # if we have a small diff set, print it
             if abs(na - nb) < 10:
@@ -155,8 +156,8 @@ cpdef assert_almost_equal(a, b,
             else:
                 r = None
 
-            raise_assert_detail(obj, '{0} length are different'.format(obj),
-                                na, nb, r)
+            raise_assert_detail(obj, '{0} length are different'.format(
+                join_obj(obj)), na, nb, r)
 
         for i in xrange(len(a)):
             try:
@@ -167,9 +168,10 @@ cpdef assert_almost_equal(a, b,
                 diff += 1
 
         if is_unequal:
-            from pandas.util.testing import raise_assert_detail
+            from pandas.util.testing import raise_assert_detail, join_obj
+
             msg = '{0} values are different ({1} %)'.format(
-                obj, np.round(diff * 100.0 / na, 5))
+                join_obj(obj), np.round(diff * 100.0 / na, 5))
             raise_assert_detail(obj, msg, lobj, robj)
 
         return True
