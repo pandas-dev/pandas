@@ -8775,6 +8775,8 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         idx_first_valid : type of index
         """
+        assert how in ['first', 'last']
+
         if len(self) == 0:  # early stop
             return None
         is_valid = ~self.isna()
@@ -8787,17 +8789,14 @@ class NDFrame(PandasObject, SelectionMixin):
             i = is_valid.idxmax()
             if not is_valid[i]:
                 return None
-            else:
-                return i
+            return i
+
         elif how == 'last':
             # Last valid value case
             i = is_valid.values[::-1].argmax()
             if not is_valid.iat[len(self) - i - 1]:
                 return None
-            else:
-                return self.index[len(self) - i - 1]
-        else:
-            raise ValueError
+            return self.index[len(self) - i - 1]
 
     @Appender(_shared_docs['valid_index'] % {'position': 'first',
                                              'klass': 'NDFrame'})
