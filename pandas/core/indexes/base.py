@@ -1345,8 +1345,6 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> Index([1, 2, 3, 4]).set_names('foo')
         Int64Index([1, 2, 3, 4], dtype='int64')
-        >>> Index([1, 2, 3, 4]).set_names(['foo'])
-        Int64Index([1, 2, 3, 4], dtype='int64')
         >>> idx = MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
                                           (2, u'one'), (2, u'two')],
                                           names=['foo', 'bar'])
@@ -1365,10 +1363,6 @@ class Index(IndexOpsMixin, PandasObject):
         if level is not None and not is_list_like(level) and is_list_like(
                 names):
             raise TypeError("Names must be a string")
-
-        if names is not None and not is_hashable(names):
-            raise TypeError(__class__.__name__ +
-                '.name must be a hashable type')
 
         if not is_list_like(names) and level is None and self.nlevels > 1:
             raise TypeError("Must pass list-like as `names`.")
@@ -1401,7 +1395,11 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         new index (of same type and class...etc) [if inplace, returns None]
         """
-        return self.set_names(name, inplace=inplace)
+        if name is not None and not is_hashable(name):
+            raise TypeError(__class__.__name__ +
+                '.name must be a hashable type')
+        else:
+            return self.set_names([name], inplace=inplace)
 
     @property
     def _has_complex_internals(self):
