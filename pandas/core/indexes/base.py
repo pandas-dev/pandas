@@ -253,7 +253,8 @@ class Index(IndexOpsMixin, PandasObject):
             name = data.name
 
         if name is not None and not is_hashable(name):
-            raise TypeError('Index.name must be a hashable type')
+            raise TypeError(__class__.__name__ +
+                '.name must be a hashable type')
 
         if fastpath:
             return cls._simple_new(data, name)
@@ -1365,6 +1366,10 @@ class Index(IndexOpsMixin, PandasObject):
                 names):
             raise TypeError("Names must be a string")
 
+        if names is not None and not is_hashable(names) and level is None:
+            raise TypeError(__class__.__name__ +
+                '.name must be a hashable type')
+
         if not is_list_like(names) and level is None and self.nlevels > 1:
             raise TypeError("Must pass list-like as `names`.")
 
@@ -1396,10 +1401,7 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         new index (of same type and class...etc) [if inplace, returns None]
         """
-        if name is not None and not is_hashable(name):
-            raise TypeError('Index.name must be a hashable type')
-        else:
-            return self.set_names([name], inplace=inplace)
+        return self.set_names([name], inplace=inplace)
 
     @property
     def _has_complex_internals(self):
