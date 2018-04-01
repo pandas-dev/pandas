@@ -27,6 +27,7 @@ from pandas.core.accessor import CachedAccessor
 from pandas.core.dtypes.cast import (
     maybe_upcast,
     cast_scalar_to_array,
+    construct_1d_arraylike_from_scalar,
     maybe_cast_to_datetime,
     maybe_infer_to_datetimelike,
     maybe_convert_platform,
@@ -429,44 +430,27 @@ class DataFrame(NDFrame):
         Needs to handle a lot of exceptional cases.
         """
         if columns is not None:
-            columns = _ensure_index(columns)
+            arrays = Series(data, index=columns, dtype=object)
+            data_names = arrays.index
 
-            # GH10856
-            # raise ValueError if only scalars in dict
+            missing = arrays.isnull()
             if index is None:
-                extract_index(list(data.values()))
-
-            # prefilter if columns passed
-            data = {k: v for k, v in compat.iteritems(data) if k in columns}
-
-            if index is None:
-                index = extract_index(list(data.values()))
-
+                # GH10856
+                # raise ValueError if only scalars in dict
+                index = extract_index(arrays[~missing])
             else:
                 index = _ensure_index(index)
 
-            arrays = []
-            data_names = []
-            for k in columns:
-                if k not in data:
-                    # no obvious "empty" int column
-                    if dtype is not None and issubclass(dtype.type,
-                                                        np.integer):
-                        continue
-
-                    if dtype is None:
-                        # 1783
-                        v = np.empty(len(index), dtype=object)
-                    elif np.issubdtype(dtype, np.flexible):
-                        v = np.empty(len(index), dtype=object)
-                    else:
-                        v = np.empty(len(index), dtype=dtype)
-
-                    v.fill(np.nan)
+            # no obvious "empty" int column
+            if missing.any() and not is_integer_dtype(dtype):
+                if dtype is None or np.issubdtype(dtype, np.flexible):
+                    # 1783
+                    nan_dtype = object
                 else:
-                    v = data[k]
-                data_names.append(k)
-                arrays.append(v)
+                    nan_dtype = dtype
+                v = construct_1d_arraylike_from_scalar(np.nan, len(index),
+                                                       nan_dtype)
+                arrays.loc[missing] = [v] * missing.sum()
 
         else:
             keys = com._dict_keys_to_ordered_list(data)
@@ -5016,31 +5000,6 @@ class DataFrame(NDFrame):
             self[col] = expressions.where(mask, this, that)
 
     # ----------------------------------------------------------------------
-    # Misc methods
-
-    def _get_valid_indices(self):
-        is_valid = self.count(1) > 0
-        return self.index[is_valid]
-
-    @Appender(_shared_docs['valid_index'] % {
-        'position': 'first', 'klass': 'DataFrame'})
-    def first_valid_index(self):
-        if len(self) == 0:
-            return None
-
-        valid_indices = self._get_valid_indices()
-        return valid_indices[0] if len(valid_indices) else None
-
-    @Appender(_shared_docs['valid_index'] % {
-        'position': 'last', 'klass': 'DataFrame'})
-    def last_valid_index(self):
-        if len(self) == 0:
-            return None
-
-        valid_indices = self._get_valid_indices()
-        return valid_indices[-1] if len(valid_indices) else None
-
-    # ----------------------------------------------------------------------
     # Data reshaping
 
     def pivot(self, index=None, columns=None, values=None):
@@ -7253,8 +7212,6 @@ def _arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):
     # figure out the index, if necessary
     if index is None:
         index = extract_index(arrays)
-    else:
-        index = _ensure_index(index)
 
     # don't force copy because getting jammed in an ndarray anyway
     arrays = _homogenize(arrays, index, dtype)
