@@ -403,6 +403,7 @@ Other Enhancements
   ``SQLAlchemy`` dialects supporting multivalue inserts include: ``mysql``, ``postgresql``, ``sqlite`` and any dialect with ``supports_multivalues_insert``. (:issue:`14315`, :issue:`8953`)
 - :func:`read_html` now accepts a ``displayed_only`` keyword argument to controls whether or not hidden elements are parsed (``True`` by default) (:issue:`20027`)
 - zip compression is supported via ``compression=zip`` in :func:`DataFrame.to_pickle`, :func:`Series.to_pickle`, :func:`DataFrame.to_csv`, :func:`Series.to_csv`, :func:`DataFrame.to_json`, :func:`Series.to_json`. (:issue:`17778`)
+- :class:`DataFrame` and :class:`Series` now support matrix multiplication (```@```) operator (:issue:`10259`) for Python>=3.5
 
 .. _whatsnew_0230.api_breaking:
 
@@ -1038,6 +1039,7 @@ Numeric
 - Bug in :class:`Index` constructor with ``dtype='uint64'`` where int-like floats were not coerced to :class:`UInt64Index` (:issue:`18400`)
 - Bug in :class:`DataFrame` flex arithmetic (e.g. ``df.add(other, fill_value=foo)``) with a ``fill_value`` other than ``None`` failed to raise ``NotImplementedError`` in corner cases where either the frame or ``other`` has length zero (:issue:`19522`)
 - Multiplication and division of numeric-dtyped :class:`Index` objects with timedelta-like scalars returns ``TimedeltaIndex`` instead of raising ``TypeError`` (:issue:`19333`)
+- Bug in :meth:`Series.rank` and :meth:`DataFrame.rank` when ``ascending='False'`` failed to return correct ranks for infinity if ``NaN`` were present (:issue:`19538`)
 - Bug where ``NaN`` was returned instead of 0 by :func:`Series.pct_change` and :func:`DataFrame.pct_change` when ``fill_method`` is not ``None`` (:issue:`19873`)
 
 

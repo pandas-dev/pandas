@@ -863,7 +863,8 @@ class DataFrame(NDFrame):
 
     def dot(self, other):
         """
-        Matrix multiplication with DataFrame or Series objects
+        Matrix multiplication with DataFrame or Series objects.  Can also be
+        called using `self @ other` in Python >= 3.5.
 
         Parameters
         ----------
@@ -904,6 +905,14 @@ class DataFrame(NDFrame):
                 return Series(result, index=left.index)
         else:  # pragma: no cover
             raise TypeError('unsupported type: %s' % type(other))
+
+    def __matmul__(self, other):
+        """ Matrix multiplication using binary `@` operator in Python>=3.5 """
+        return self.dot(other)
+
+    def __rmatmul__(self, other):
+        """ Matrix multiplication using binary `@` operator in Python>=3.5 """
+        return self.T.dot(np.transpose(other)).T
 
     # ----------------------------------------------------------------------
     # IO methods (to / from other formats)
