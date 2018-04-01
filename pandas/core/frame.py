@@ -5016,31 +5016,6 @@ class DataFrame(NDFrame):
             self[col] = expressions.where(mask, this, that)
 
     # ----------------------------------------------------------------------
-    # Misc methods
-
-    def _get_valid_indices(self):
-        is_valid = self.count(1) > 0
-        return self.index[is_valid]
-
-    @Appender(_shared_docs['valid_index'] % {
-        'position': 'first', 'klass': 'DataFrame'})
-    def first_valid_index(self):
-        if len(self) == 0:
-            return None
-
-        valid_indices = self._get_valid_indices()
-        return valid_indices[0] if len(valid_indices) else None
-
-    @Appender(_shared_docs['valid_index'] % {
-        'position': 'last', 'klass': 'DataFrame'})
-    def last_valid_index(self):
-        if len(self) == 0:
-            return None
-
-        valid_indices = self._get_valid_indices()
-        return valid_indices[-1] if len(valid_indices) else None
-
-    # ----------------------------------------------------------------------
     # Data reshaping
 
     def pivot(self, index=None, columns=None, values=None):
