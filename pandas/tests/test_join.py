@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from pandas import Index, DataFrame, Categorical, merge, MultiIndex
+from pandas import Index, DataFrame, Categorical, merge
 
 from pandas._libs import join as _join
 import pandas.util.testing as tm
@@ -232,23 +232,4 @@ def test_merge_join_categorical_multiindex():
                      right_on=['Cat', 'Int'], how='left')
     result = a.join(b, on=['Cat1', 'Int1'])
     expected = expected.drop(['Cat', 'Int'], axis=1)
-    assert_frame_equal(expected, result)
-
-
-def test_join_multi_to_multi():
-    leftindex = MultiIndex.from_product([list('abc'), list('xy'), [1, 2]],
-                                        names=['abc', 'xy', 'num'])
-    left = DataFrame({'v1': range(12)}, index=leftindex)
-
-    rightindex = MultiIndex.from_product([list('abc'), list('xy')],
-                                         names=['abc', 'xy'])
-    right = DataFrame({'v2': [100 * i for i in range(1, 7)]},
-                      index=rightindex)
-
-    result = left.join(right, on=['abc', 'xy'], how='inner')
-    expected = (left.reset_index()
-                    .merge(right.reset_index(),
-                           on=['abc', 'xy'], how='inner')
-                    .set_index(['abc', 'xy', 'num'])
-                )
     assert_frame_equal(expected, result)
