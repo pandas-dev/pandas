@@ -19,7 +19,8 @@ class TestIntervalIndex(Base):
         tm.assert_numpy_array_equal(lidx, lidx_expected)
         tm.assert_numpy_array_equal(ridx, ridx_expected)
 
-    def test_intervalIndex_covers_intervalIndex(self):
+    @pytest.mark.parametrize("oth_side", ['right', 'left', 'both'])
+    def test_intervalIndex_covers_intervalIndex(self, idx):
 
         # class IntervalIndex:
         #     def covers(self, other: IntervalIndex) -> Tuple[IntegerArray1D,
@@ -27,25 +28,19 @@ class TestIntervalIndex(Base):
 
         idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
                                         closed="right")
+        other = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
+                                        closed=oth_side)
 
         result = idx.covers(idx)
-        expected = (np.array([0, 1, 2, 2]), np.array([0, 1, 1, 2]))
-        self._compare_tuple_of_numpy_array(result, expected)
+        expected = {
+            "right": (np.array([0, 1, 2, 2]), np.array([0, 1, 1, 2])),
+            "left": (np.array([2]), np.array([1])),
+            "both": (np.array([0, 1, 2, 2]), np.array([0, 1, 1, 2]))
+        }
 
-        idx2 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
-                                         closed="left")
+        self._compare_tuple_of_numpy_array(result, expected[oth_side])
 
-        result = idx.covers(idx2),
-        expected = (np.array([2]), np.array([1]))
-        self._compare_tuple_of_numpy_array(result, expected)
-
-        idx3 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
-                                         closed="both")
-
-        result = idx.covers(idx3),
-        expected = (np.array([0, 1, 2, 2]), np.array([0, 1, 1, 2]))
-        self._compare_tuple_of_numpy_array(result, expected)
-
+    @pytest.mark.parametrize("oth_side", ['right', 'left', 'both'])
     def test_intervalIndex_overlaps_intervalIndex(self):
 
         # class IntervalIndex:
@@ -54,21 +49,15 @@ class TestIntervalIndex(Base):
 
         idx = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
                                         closed="right")
+        other = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
+                                        closed=oth_side)
 
         result = idx.overlaps(idx)
-        expected = (np.array([0, 1, 2, 2]), np.array([0, 1, 1, 2]))
-        self._compare_tuple_of_numpy_array(result, expected)
-
-        idx2 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
-                                         closed="left")
-
-        result = idx.overlaps(idx2)
-        expected = (np.array([0, 0, 1, 1, 2, 2]), np.array([0, 2, 1, 2, 1, 2]))
-        self._compare_tuple_of_numpy_array(result, expected)
-
-        idx3 = IntervalIndex.from_tuples([(0, 1), (2, 3), (1, 3)],
-                                         closed="both")
-
-        result = idx.overlaps(idx3)
-        expected = (np.array([0, 0, 1, 1, 2, 2]), np.array([0, 2, 1, 2, 1, 2]))
-        self._compare_tuple_of_numpy_array(result, expected)
+        expected = {
+            "right": (np.array([0, 1, 2, 2]), np.array([0, 1, 1, 2])),
+            "left": (np.array([0, 0, 1, 1, 2, 2]),
+                     np.array([0, 2, 1, 2, 1, 2])),
+            "both": (np.array([0, 0, 1, 1, 2, 2]),
+                     np.array([0, 2, 1, 2, 1, 2]))
+        }
+        self._compare_tuple_of_numpy_array(result, expected[oth_side])
