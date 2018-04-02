@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 
 import pandas as pd
 from pandas.core.internals import ExtensionBlock
@@ -63,6 +64,20 @@ class BaseReshapingTests(BaseExtensionTests):
         e2 = pd.DataFrame({'A': type(data)([na_value] + list(b))})
         self.assert_frame_equal(r1, e1)
         self.assert_frame_equal(r2, e2)
+
+    def test_align_series_frame(self, data, na_value):
+        # /Users/taugspurger/sandbox/pandas-ip/pandas/pandas/tests/extension/base/reshaping.py
+        # https://github.com/pandas-dev/pandas/issues/20576
+        ser = pd.Series(data[:3], name='a')
+        df = pd.DataFrame({"col": np.arange(4)})
+        r1, r2 = ser.align(df)
+
+        e1 = pd.Series(
+            data._constructor_from_sequence(list(data[:3]) + [na_value]),
+            name=ser.name)
+
+        self.assert_series_equal(r1, e1)
+        self.assert_frame_equal(r2, df)
 
     def test_set_frame_expand_regular_with_extension(self, data):
         df = pd.DataFrame({"A": [1] * len(data)})
