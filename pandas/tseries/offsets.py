@@ -2467,7 +2467,6 @@ prefix_mapping = dict((offset._prefix, offset) for offset in [
     CustomBusinessMonthEnd,    # 'CBM'
     CustomBusinessMonthBegin,  # 'CBMS'
     Day,                       # 'D'
-    Easter,                    # 'EASTER'
     Hour,                      # 'H'
     Milli,                     # 'L'
     LastWeekOfMonth,           # 'LWOM'
