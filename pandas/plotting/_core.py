@@ -2043,7 +2043,7 @@ _shared_docs['boxplot'] = """
 
           If ``return_type`` is `None`, a NumPy array
           of axes with the same shape as ``layout`` is returned.
-    **kwds : Keyword Arguments, optional
+    **kwds
         All other plotting keyword arguments to be passed to
         :func:`matplotlib.pyplot.boxplot`.
 
@@ -2093,11 +2093,13 @@ _shared_docs['boxplot'] = """
     .. plot::
         :context: close-figs
 
-        >>> df = pd.DataFrame(np.random.randn(10,2), columns=['Col1', 'Col2'] )
-        >>> df['X'] = pd.Series(['A','A','A','A','A','B','B','B','B','B'])
+        >>> df = pd.DataFrame(np.random.randn(10, 2),
+        ...                   columns=['Col1', 'Col2'])
+        >>> df['X'] = pd.Series(['A', 'A', 'A', 'A', 'A',
+        ...                      'B', 'B', 'B', 'B', 'B'])
         >>> boxplot = df.boxplot(by='X')
 
-    A list of strings (i.e. ``['X','Y']``) can be passed to boxplot
+    A list of strings (i.e. ``['X', 'Y']``) can be passed to boxplot
     in order to group the data by combination of the variables in the x-axis:
 
     .. plot::
@@ -2105,18 +2107,19 @@ _shared_docs['boxplot'] = """
 
         >>> df = pd.DataFrame(np.random.randn(10,3),
         ...                   columns=['Col1', 'Col2', 'Col3'])
-        >>> df['X'] = pd.Series(['A','A','A','A','A','B','B','B','B','B'])
-        >>> df['Y'] = pd.Series(['A','B','A','B','A','B','A','B','A','B'])
-        >>> boxplot = df.boxplot(column=['Col1','Col2'], by=['X','Y'])
+        >>> df['X'] = pd.Series(['A', 'A', 'A', 'A', 'A',
+        ...                      'B', 'B', 'B', 'B', 'B'])
+        >>> df['Y'] = pd.Series(['A', 'B', 'A', 'B', 'A',
+        ...                      'B', 'A', 'B', 'A', 'B'])
+        >>> boxplot = df.boxplot(column=['Col1', 'Col2'], by=['X', 'Y'])
 
     The layout of boxplot can be adjusted giving a tuple to ``layout``:
 
     .. plot::
         :context: close-figs
 
-        >>> df = pd.DataFrame(np.random.randn(10,2), columns=['Col1', 'Col2'])
-        >>> df['X'] = pd.Series(['A','A','A','A','A','B','B','B','B','B'])
-        >>> boxplot = df.boxplot(by='X', layout=(2,1))
+        >>> boxplot = df.boxplot(column=['Col1', 'Col2'], by='X',
+        ...                      layout=(2, 1))
 
     Additional formatting can be done to the boxplot, like suppressing the grid
     (``grid=False``), rotating the labels in the x-axis (i.e. ``rot=45``)
@@ -2138,7 +2141,7 @@ _shared_docs['boxplot'] = """
     When grouping with ``by``, a Series mapping columns to ``return_type``
     is returned:
 
-        >>> boxplot = df.boxplot(column=['Col1','Col2'], by='X',
+        >>> boxplot = df.boxplot(column=['Col1', 'Col2'], by='X',
         ...                      return_type='axes')
         >>> type(boxplot)
         <class 'pandas.core.series.Series'>
@@ -2146,7 +2149,7 @@ _shared_docs['boxplot'] = """
     If ``return_type`` is `None`, a NumPy array of axes with the same shape
     as ``layout`` is returned:
 
-        >>> boxplot =  df.boxplot(column=['Col1','Col2'], by='X',
+        >>> boxplot =  df.boxplot(column=['Col1', 'Col2'], by='X',
         ...                       return_type=None)
         >>> type(boxplot)
         <class 'numpy.ndarray'>
