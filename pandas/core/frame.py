@@ -1116,17 +1116,84 @@ class DataFrame(NDFrame):
         else:
             raise ValueError("orient '%s' not understood" % orient)
 
-    def to_gbq(self, *args, **kwargs):
+    def to_gbq(
+            self, destination_table, project_id, chunksize=10000,
+            verbose=True, reauth=False, if_exists='fail', private_key=None,
+            **kwargs):
         """
         Write a DataFrame to a Google BigQuery table.
 
         This function requires the `pandas-gbq package
         <https://pandas-gbq.readthedocs.io>`__.
 
-        See: :meth:`pandas_gbq.to_gbq`
+        Authentication to the Google BigQuery service is via OAuth 2.0.
+
+        - If "private_key" is not provided:
+
+          By default "application default credentials" are used.
+
+          If default application credentials are not found or are restrictive,
+          user account credentials are used. In this case, you will be asked to
+          grant permissions for product name 'pandas GBQ'.
+
+        - If "private_key" is provided:
+
+          Service account credentials will be used to authenticate.
+
+        Parameters
+        ----------
+        destination_table : string
+            Name of table to be written, in the form 'dataset.tablename'.
+        project_id : str
+            Google BigQuery Account project ID.
+        chunksize : int (default 10000)
+            Number of rows to be inserted in each chunk from the dataframe.
+            Set to ``None`` to load the whole dataframe at once.
+        verbose : boolean (default True)
+            Show percentage complete.
+        reauth : boolean (default False)
+            Force Google BigQuery to reauthenticate the user. This is useful
+            if multiple accounts are used.
+        if_exists : {'fail', 'replace', 'append'}, default 'fail'
+            Behavior when the destination table exists.
+            'fail': If table exists, do nothing.
+            'replace': If table exists, drop it, recreate it, and insert data.
+            'append': If table exists, insert data. Create if does not exist.
+        private_key : str (optional)
+            Service account private key in JSON format. Can be file path
+            or string contents. This is useful for remote server
+            authentication (eg. Jupyter/IPython notebook on remote host).
+        kwargs : dict
+            Arbitrary keyword arguments.
+
+            auth_local_webserver (boolean): default False
+                Use the [local webserver flow] instead of the [console flow] when
+                getting user credentials.
+
+                .. [local webserver flow]
+                    http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server
+                .. [console flow]
+                    http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console
+                .. versionadded:: pandas-gbq 0.2.0
+            table_schema (list of dicts):
+                List of BigQuery table fields to which according DataFrame columns
+                conform to, e.g. `[{'name': 'col1', 'type': 'STRING'},...]`. If
+                schema is not provided, it will be generated according to dtypes
+                of DataFrame columns. See BigQuery API documentation on available
+                names of a field.
+                .. versionadded:: pandas-gbq 0.3.1
+
+        See Also
+        --------
+        pandas_gbq.to_gbq
+        pandas.io.to_gbq
         """
         from pandas.io import gbq
-        return gbq.to_gbq(self, *args, **kwargs)
+        return gbq.to_gbq(
+            self, destination_table, project_id, chunksize=chunksize,
+            verbose=verbose, reauth=reauth, if_exists=if_exists,
+            private_key=private_key, **kwargs)
+
 
     @classmethod
     def from_records(cls, data, index=None, exclude=None, columns=None,
