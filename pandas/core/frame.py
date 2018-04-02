@@ -1186,7 +1186,6 @@ class DataFrame(NDFrame):
         See Also
         --------
         pandas_gbq.to_gbq
-        pandas.io.to_gbq
         """
         from pandas.io import gbq
         return gbq.to_gbq(
