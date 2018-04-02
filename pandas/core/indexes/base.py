@@ -253,7 +253,7 @@ class Index(IndexOpsMixin, PandasObject):
             name = data.name
 
         if name is not None and not is_hashable(name):
-            raise TypeError(__class__.__name__ +
+            raise TypeError(cls.__name__ +
                             '.name must be a hashable type')
 
         if fastpath:
