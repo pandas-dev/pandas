@@ -3564,7 +3564,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         5    False
         Name: animal, dtype: bool
         """
-        if is_categorical_dtype(self):
+        if hasattr(self._values, 'isin'):
             result = self._values.isin(values)
         else:
             result = algorithms.isin(com._values_from_object(self), values)
