@@ -75,7 +75,6 @@ class DecimalArray(ExtensionArray):
         return np.array([x.is_nan() for x in self.values])
 
     def take(self, indexer, allow_fill=True, fill_value=None):
-
         indexer = np.asarray(indexer)
         mask = indexer == -1
 
