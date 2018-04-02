@@ -432,6 +432,15 @@ class TestTimeSeries(TestData):
         assert empty.last_valid_index() is None
         assert empty.first_valid_index() is None
 
+        # GH20499: its preserves freq with holes
+        ts.index = date_range("20110101", periods=len(ts), freq="B")
+        ts.iloc[1] = 1
+        ts.iloc[-2] = 1
+        assert ts.first_valid_index() == ts.index[1]
+        assert ts.last_valid_index() == ts.index[-2]
+        assert ts.first_valid_index().freq == ts.index.freq
+        assert ts.last_valid_index().freq == ts.index.freq
+
     def test_mpl_compat_hack(self):
         result = self.ts[:, np.newaxis]
         expected = self.ts.values[:, np.newaxis]

@@ -27,6 +27,7 @@ from pandas.core.accessor import CachedAccessor
 from pandas.core.dtypes.cast import (
     maybe_upcast,
     cast_scalar_to_array,
+    construct_1d_arraylike_from_scalar,
     maybe_cast_to_datetime,
     maybe_infer_to_datetimelike,
     maybe_convert_platform,
@@ -429,44 +430,27 @@ class DataFrame(NDFrame):
         Needs to handle a lot of exceptional cases.
         """
         if columns is not None:
-            columns = _ensure_index(columns)
+            arrays = Series(data, index=columns, dtype=object)
+            data_names = arrays.index
 
-            # GH10856
-            # raise ValueError if only scalars in dict
+            missing = arrays.isnull()
             if index is None:
-                extract_index(list(data.values()))
-
-            # prefilter if columns passed
-            data = {k: v for k, v in compat.iteritems(data) if k in columns}
-
-            if index is None:
-                index = extract_index(list(data.values()))
-
+                # GH10856
+                # raise ValueError if only scalars in dict
+                index = extract_index(arrays[~missing])
             else:
                 index = _ensure_index(index)
 
-            arrays = []
-            data_names = []
-            for k in columns:
-                if k not in data:
-                    # no obvious "empty" int column
-                    if dtype is not None and issubclass(dtype.type,
-                                                        np.integer):
-                        continue
-
-                    if dtype is None:
-                        # 1783
-                        v = np.empty(len(index), dtype=object)
-                    elif np.issubdtype(dtype, np.flexible):
-                        v = np.empty(len(index), dtype=object)
-                    else:
-                        v = np.empty(len(index), dtype=dtype)
-
-                    v.fill(np.nan)
+            # no obvious "empty" int column
+            if missing.any() and not is_integer_dtype(dtype):
+                if dtype is None or np.issubdtype(dtype, np.flexible):
+                    # 1783
+                    nan_dtype = object
                 else:
-                    v = data[k]
-                data_names.append(k)
-                arrays.append(v)
+                    nan_dtype = dtype
+                v = construct_1d_arraylike_from_scalar(np.nan, len(index),
+                                                       nan_dtype)
+                arrays.loc[missing] = [v] * missing.sum()
 
         else:
             keys = com._dict_keys_to_ordered_list(data)
@@ -863,7 +847,8 @@ class DataFrame(NDFrame):
 
     def dot(self, other):
         """
-        Matrix multiplication with DataFrame or Series objects
+        Matrix multiplication with DataFrame or Series objects.  Can also be
+        called using `self @ other` in Python >= 3.5.
 
         Parameters
         ----------
@@ -904,6 +889,14 @@ class DataFrame(NDFrame):
                 return Series(result, index=left.index)
         else:  # pragma: no cover
             raise TypeError('unsupported type: %s' % type(other))
+
+    def __matmul__(self, other):
+        """ Matrix multiplication using binary `@` operator in Python>=3.5 """
+        return self.dot(other)
+
+    def __rmatmul__(self, other):
+        """ Matrix multiplication using binary `@` operator in Python>=3.5 """
+        return self.T.dot(np.transpose(other)).T
 
     # ----------------------------------------------------------------------
     # IO methods (to / from other formats)
@@ -3696,7 +3689,8 @@ class DataFrame(NDFrame):
         kwargs.pop('mapper', None)
         return super(DataFrame, self).rename(**kwargs)
 
-    @Appender(_shared_docs['fillna'] % _shared_doc_kwargs)
+    @Substitution(**_shared_doc_kwargs)
+    @Appender(NDFrame.fillna.__doc__)
     def fillna(self, value=None, method=None, axis=None, inplace=False,
                limit=None, downcast=None, **kwargs):
         return super(DataFrame,
@@ -5006,31 +5000,6 @@ class DataFrame(NDFrame):
             self[col] = expressions.where(mask, this, that)
 
     # ----------------------------------------------------------------------
-    # Misc methods
-
-    def _get_valid_indices(self):
-        is_valid = self.count(1) > 0
-        return self.index[is_valid]
-
-    @Appender(_shared_docs['valid_index'] % {
-        'position': 'first', 'klass': 'DataFrame'})
-    def first_valid_index(self):
-        if len(self) == 0:
-            return None
-
-        valid_indices = self._get_valid_indices()
-        return valid_indices[0] if len(valid_indices) else None
-
-    @Appender(_shared_docs['valid_index'] % {
-        'position': 'last', 'klass': 'DataFrame'})
-    def last_valid_index(self):
-        if len(self) == 0:
-            return None
-
-        valid_indices = self._get_valid_indices()
-        return valid_indices[-1] if len(valid_indices) else None
-
-    # ----------------------------------------------------------------------
     # Data reshaping
 
     def pivot(self, index=None, columns=None, values=None):
@@ -5050,10 +5019,13 @@ class DataFrame(NDFrame):
             existing index.
         columns : string or object
             Column to use to make new frame's columns.
-        values : string or object, optional
-            Column to use for populating new frame's values. If not
+        values : string, object or a list of the previous, optional
+            Column(s) to use for populating new frame's values. If not
             specified, all remaining columns will be used and the result will
             have hierarchically indexed columns.
+
+            .. versionchanged :: 0.23.0
+               Also accept list of column names.
 
         Returns
         -------
@@ -5083,15 +5055,16 @@ class DataFrame(NDFrame):
         >>> df = pd.DataFrame({'foo': ['one', 'one', 'one', 'two', 'two',
         ...                            'two'],
         ...                    'bar': ['A', 'B', 'C', 'A', 'B', 'C'],
-        ...                    'baz': [1, 2, 3, 4, 5, 6]})
+        ...                    'baz': [1, 2, 3, 4, 5, 6],
+        ...                    'zoo': ['x', 'y', 'z', 'q', 'w', 't']})
         >>> df
-            foo   bar  baz
-        0   one   A    1
-        1   one   B    2
-        2   one   C    3
-        3   two   A    4
-        4   two   B    5
-        5   two   C    6
+            foo   bar  baz  zoo
+        0   one   A    1    x
+        1   one   B    2    y
+        2   one   C    3    z
+        3   two   A    4    q
+        4   two   B    5    w
+        5   two   C    6    t
 
         >>> df.pivot(index='foo', columns='bar', values='baz')
         bar  A   B   C
@@ -5104,6 +5077,13 @@ class DataFrame(NDFrame):
         foo
         one  1   2   3
         two  4   5   6
+
+        >>> df.pivot(index='foo', columns='bar', values=['baz', 'zoo'])
+              baz       zoo
+        bar   A  B  C   A  B  C
+        foo
+        one   1  2  3   x  y  z
+        two   4  5  6   q  w  t
 
         A ValueError is raised if there are any duplicates.
 
@@ -5239,36 +5219,166 @@ class DataFrame(NDFrame):
 
     def stack(self, level=-1, dropna=True):
         """
-        Pivot a level of the (possibly hierarchical) column labels, returning a
-        DataFrame (or Series in the case of an object with a single level of
-        column labels) having a hierarchical index with a new inner-most level
-        of row labels.
-        The level involved will automatically get sorted.
+        Stack the prescribed level(s) from columns to index.
+
+        Return a reshaped DataFrame or Series having a multi-level
+        index with one or more new inner-most levels compared to the current
+        DataFrame. The new inner-most levels are created by pivoting the
+        columns of the current dataframe:
+
+          - if the columns have a single level, the output is a Series;
+          - if the columns have multiple levels, the new index
+            level(s) is (are) taken from the prescribed level(s) and
+            the output is a DataFrame.
+
+        The new index levels are sorted.
 
         Parameters
         ----------
-        level : int, string, or list of these, default last level
-            Level(s) to stack, can pass level name
-        dropna : boolean, default True
-            Whether to drop rows in the resulting Frame/Series with no valid
-            values
-
-        Examples
-        ----------
-        >>> s
-             a   b
-        one  1.  2.
-        two  3.  4.
-
-        >>> s.stack()
-        one a    1
-            b    2
-        two a    3
-            b    4
+        level : int, str, list, default -1
+            Level(s) to stack from the column axis onto the index
+            axis, defined as one index or label, or a list of indices
+            or labels.
+        dropna : bool, default True
+            Whether to drop rows in the resulting Frame/Series with
+            missing values. Stacking a column level onto the index
+            axis can create combinations of index and column values
+            that are missing from the original dataframe. See Examples
+            section.
 
         Returns
         -------
-        stacked : DataFrame or Series
+        DataFrame or Series
+            Stacked dataframe or series.
+
+        See Also
+        --------
+        DataFrame.unstack : Unstack prescribed level(s) from index axis
+             onto column axis.
+        DataFrame.pivot : Reshape dataframe from long format to wide
+             format.
+        DataFrame.pivot_table : Create a spreadsheet-style pivot table
+             as a DataFrame.
+
+        Notes
+        -----
+        The function is named by analogy with a collection of books
+        being re-organised from being side by side on a horizontal
+        position (the columns of the dataframe) to being stacked
+        vertically on top of of each other (in the index of the
+        dataframe).
+
+        Examples
+        --------
+        **Single level columns**
+
+        >>> df_single_level_cols = pd.DataFrame([[0, 1], [2, 3]],
+        ...                                     index=['cat', 'dog'],
+        ...                                     columns=['weight', 'height'])
+
+        Stacking a dataframe with a single level column axis returns a Series:
+
+        >>> df_single_level_cols
+             weight height
+        cat       0      1
+        dog       2      3
+        >>> df_single_level_cols.stack()
+        cat  weight    0
+             height    1
+        dog  weight    2
+             height    3
+        dtype: int64
+
+        **Multi level columns: simple case**
+
+        >>> multicol1 = pd.MultiIndex.from_tuples([('weight', 'kg'),
+        ...                                        ('weight', 'pounds')])
+        >>> df_multi_level_cols1 = pd.DataFrame([[1, 2], [2, 4]],
+        ...                                     index=['cat', 'dog'],
+        ...                                     columns=multicol1)
+
+        Stacking a dataframe with a multi-level column axis:
+
+        >>> df_multi_level_cols1
+             weight
+                 kg    pounds
+        cat       1        2
+        dog       2        4
+        >>> df_multi_level_cols1.stack()
+                    weight
+        cat kg           1
+            pounds       2
+        dog kg           2
+            pounds       4
+
+        **Missing values**
+
+        >>> multicol2 = pd.MultiIndex.from_tuples([('weight', 'kg'),
+        ...                                        ('height', 'm')])
+        >>> df_multi_level_cols2 = pd.DataFrame([[1.0, 2.0], [3.0, 4.0]],
+        ...                                     index=['cat', 'dog'],
+        ...                                     columns=multicol2)
+
+        It is common to have missing values when stacking a dataframe
+        with multi-level columns, as the stacked dataframe typically
+        has more values than the original dataframe. Missing values
+        are filled with NaNs:
+
+        >>> df_multi_level_cols2
+            weight height
+                kg      m
+        cat    1.0    2.0
+        dog    3.0    4.0
+        >>> df_multi_level_cols2.stack()
+                height  weight
+        cat kg     NaN     1.0
+            m      2.0     NaN
+        dog kg     NaN     3.0
+            m      4.0     NaN
+
+        **Prescribing the level(s) to be stacked**
+
+        The first parameter controls which level or levels are stacked:
+
+        >>> df_multi_level_cols2.stack(0)
+                     kg    m
+        cat height  NaN  2.0
+            weight  1.0  NaN
+        dog height  NaN  4.0
+            weight  3.0  NaN
+        >>> df_multi_level_cols2.stack([0, 1])
+        cat  height  m     2.0
+             weight  kg    1.0
+        dog  height  m     4.0
+             weight  kg    3.0
+        dtype: float64
+
+        **Dropping missing values**
+
+        >>> df_multi_level_cols3 = pd.DataFrame([[None, 1.0], [2.0, 3.0]],
+        ...                                     index=['cat', 'dog'],
+        ...                                     columns=multicol2)
+
+        Note that rows where all values are missing are dropped by
+        default but this behaviour can be controlled via the dropna
+        keyword parameter:
+
+        >>> df_multi_level_cols3
+            weight height
+                kg      m
+        cat    NaN    1.0
+        dog    2.0    3.0
+        >>> df_multi_level_cols3.stack(dropna=False)
+                height  weight
+        cat kg     NaN     NaN
+            m      1.0     NaN
+        dog kg     NaN     2.0
+            m      3.0     NaN
+        >>> df_multi_level_cols3.stack(dropna=True)
+                height  weight
+        cat m      1.0     NaN
+        dog kg     NaN     2.0
+            m      3.0     NaN
         """
         from pandas.core.reshape.reshape import stack, stack_multiple
 
@@ -6579,7 +6689,9 @@ class DataFrame(NDFrame):
                 # column frames with an extension array
                 result = notna(frame).sum(axis=axis)
             else:
-                counts = notna(frame.values).sum(axis=axis)
+                # GH13407
+                series_counts = notna(frame).sum(axis=axis)
+                counts = series_counts.values
                 result = Series(counts, index=frame._get_agg_axis(axis))
 
         return result.astype('int64')
@@ -7100,8 +7212,6 @@ def _arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):
     # figure out the index, if necessary
     if index is None:
         index = extract_index(arrays)
-    else:
-        index = _ensure_index(index)
 
     # don't force copy because getting jammed in an ndarray anyway
     arrays = _homogenize(arrays, index, dtype)
