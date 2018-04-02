@@ -578,11 +578,11 @@ class TestSeriesMap(TestData):
         tm.assert_series_equal(result, exp)
 
     @pytest.mark.parametrize("vals,mapping,exp", [
-        (list('abc'), {np.nan: 'not NaN'}, pd.Series(['not NaN'])),
-        (list('abc'), {'string': 'another string'}, pd.Series(['another string'])),
-        (list(range(3)), {42: 'the answer'}, pd.Series(['the answer']))])
+        (list('abc'), {np.nan: 'not NaN'}, ['not NaN']),
+        (list('abc'), {'string': 'another string'}, ['another string']),
+        (list(range(3)), {42: 'the answer'}, ['the answer'])])
     def test_map_missing_mixed(self, vals, mapping, exp):
         s = pd.Series(vals + [list(mapping.keys())[0]])
         result = s.map(mapping)
 
-        tm.assert_series_equal(result[-1:].reset_index(drop=True), exp)
+        tm.assert_series_equal(result[-1:].reset_index(drop=True), pd.Series(exp))
