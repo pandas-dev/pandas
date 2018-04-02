@@ -627,7 +627,7 @@ class TestMultiIndex(Base):
                     names=names)
 
         # With .rename()
-        mi = pd.MultiIndex(levels=[[1, 2], [u'one', u'two']],
+        mi = MultiIndex(levels=[[1, 2], [u'one', u'two']],
                     labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
                     names=('foo', 'bar'))
         assert isinstance(mi, MultiIndex)
