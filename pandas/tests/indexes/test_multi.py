@@ -615,6 +615,27 @@ class TestMultiIndex(Base):
         with tm.assert_raises_regex(ValueError, label_error):
             self.index.copy().set_labels([[0, 0, 0, 0], [0, 0]])
 
+    def test_constructor_nonhashable_names(self):
+        # GH 20527
+        levels = [[1, 2], [u'one', u'two']]
+        labels = [[0, 0, 1, 1], [0, 1, 0, 1]]
+        names = ((['foo'], ['bar']))
+        tm.assert_raises_regex(TypeError, "MultiIndex.name must "
+            "be a hashable type",
+            MultiIndex, levels=levels,
+                    labels=labels,
+                    names=names)
+
+        # With .rename()
+        mi = pd.MultiIndex(levels=[[1, 2], [u'one', u'two']],
+                    labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
+                    names=('foo', 'bar'))
+        assert isinstance(mi, MultiIndex)
+        renamed = [['foor'], ['barr']]
+        tm.assert_raises_regex(TypeError, "MultiIndex.name must "
+            "be a hashable type",
+            mi.rename, names=renamed)
+
     @pytest.mark.parametrize('names', [['a', 'b', 'a'], ['1', '1', '2'],
                                        ['1', 'a', '1']])
     def test_duplicate_level_names(self, names):
