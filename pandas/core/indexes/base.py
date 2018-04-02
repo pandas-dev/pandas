@@ -1365,8 +1365,7 @@ class Index(IndexOpsMixin, PandasObject):
                     pass
                 else:
                     if self.nlevels == 1:
-                        raise TypeError(__class__.__name__ +
-                                        '.name must be a hashable type')
+                        raise TypeError('Index.name must be a hashable type')
                     else:
                         raise TypeError(self.__class__.__name__ +
                                         '.name must be a hashable type')
