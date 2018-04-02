@@ -383,11 +383,8 @@ class ReadingTestsBase(SharedItems):
         expected['a'] = expected['a'].astype('float64')
         expected['b'] = expected['b'].astype('float32')
         expected['c'] = ['001', '002', '003', '004']
-        expected['d'] = ['1', '2', '', '4']
+        expected['d'] = ['1', '2', np.nan, '4']
         tm.assert_frame_equal(actual, expected)
-
-        with pytest.raises(ValueError):
-            actual = self.get_exceldf(basename, ext, dtype={'d': 'int64'})
 
     def test_reading_all_sheets(self, ext):
         # Test reading all sheetnames by setting sheetname to None,

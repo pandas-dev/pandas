@@ -162,16 +162,6 @@ class TestSeriesToCSV(TestData):
                                                    index_col=0,
                                                    squeeze=True))
 
-    def test_from_csv_dtype_str(self):
-        # GH20377
-        s = Series([1, 2, np.nan, 4], index=['A', 'B', 'C', 'D'],
-                   name='X')
-        with ensure_clean() as filename:
-            s.to_csv(filename, header=True)
-            rs = pd.read_csv(filename, dtype=str)
-            expected = Series(['1.0', '2.0', '', '4.0'], name=s.name)
-            assert_series_equal(rs.X, expected)
-
 
 class TestSeriesIO(TestData):
 
