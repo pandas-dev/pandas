@@ -620,11 +620,11 @@ class TestMultiIndex(Base):
         levels = [[1, 2], [u'one', u'two']]
         labels = [[0, 0, 1, 1], [0, 1, 0, 1]]
         names = ((['foo'], ['bar']))
-        tm.assert_raises_regex(TypeError, "MultiIndex.name must "
-            "be a hashable type",
+        message = "MultiIndex.name must be a hashable type"
+        tm.assert_raises_regex(TypeError, message,
             MultiIndex, levels=levels,
-                    labels=labels,
-                    names=names)
+            labels=labels,
+            names=names)
 
         # With .rename()
         mi = MultiIndex(levels=[[1, 2], [u'one', u'two']],
@@ -632,8 +632,7 @@ class TestMultiIndex(Base):
                     names=('foo', 'bar'))
         assert isinstance(mi, MultiIndex)
         renamed = [['foor'], ['barr']]
-        tm.assert_raises_regex(TypeError, "MultiIndex.name must "
-            "be a hashable type",
+        tm.assert_raises_regex(TypeError, message,
             mi.rename, names=renamed)
 
     @pytest.mark.parametrize('names', [['a', 'b', 'a'], ['1', '1', '2'],
