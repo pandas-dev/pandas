@@ -1997,7 +1997,7 @@ def plot_series(data, kind='line', ax=None,                    # Series unique
 _shared_docs['boxplot'] = """
     Make a box plot from DataFrame columns.
 
-    Make a box-and-whisker plot from DataFrame columns optionally grouped
+    Make a box-and-whisker plot from DataFrame columns, optionally grouped
     by some other columns. A box plot is a method for graphically depicting
     groups of numerical data through their quartiles.
     The box extends from the Q1 to Q3 quartile values of the data,
