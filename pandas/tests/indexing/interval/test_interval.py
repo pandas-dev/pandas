@@ -12,25 +12,6 @@ class TestIntervalIndex(object):
     def setup_method(self, method):
         self.s = Series(np.arange(5), IntervalIndex.from_breaks(np.arange(6)))
 
-    # To be removed, replaced by test_interval_new.py (see #16316, #16386)
-    def test_loc_with_scalar(self):
-
-        s = self.s
-
-        expected = s.iloc[:3]
-        tm.assert_series_equal(expected, s.loc[:3])
-        tm.assert_series_equal(expected, s.loc[:2.5])
-        tm.assert_series_equal(expected, s.loc[0.1:2.5])
-        tm.assert_series_equal(expected, s.loc[-1:3])
-
-        expected = s.iloc[1:4]
-        tm.assert_series_equal(expected, s.loc[[1.5, 2.5, 3.5]])
-        tm.assert_series_equal(expected, s.loc[[2, 3, 4]])
-        tm.assert_series_equal(expected, s.loc[[1.5, 3, 4]])
-
-        expected = s.iloc[2:5]
-        tm.assert_series_equal(expected, s.loc[s >= 2])
-
     # TODO: check this behavior is consistent with test_interval_new.py
     def test_getitem_with_scalar(self):
 
@@ -49,6 +30,8 @@ class TestIntervalIndex(object):
 
         expected = s.iloc[2:5]
         tm.assert_series_equal(expected, s[s >= 2])
+
+    # TODO: where is test_getitem_with_interval?
 
     # TODO: check this behavior is consistent with test_interval_new.py
     @pytest.mark.parametrize('direction, closed',
