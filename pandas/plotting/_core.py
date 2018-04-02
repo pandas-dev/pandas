@@ -51,6 +51,12 @@ else:
         _converter.register(explicit=True)
 
 
+def _raise_if_no_mpl():
+    # TODO(mpl_converter): remove once converter is explicit
+    if not _HAS_MPL:
+        raise ImportError("matplotlib is required for plotting.")
+
+
 def _get_standard_kind(kind):
     return {'density': 'kde'}.get(kind, kind)
 
@@ -98,9 +104,7 @@ class MPLPlot(object):
                  secondary_y=False, colormap=None,
                  table=False, layout=None, **kwds):
 
-        if not _HAS_MPL:
-            raise ImportError("matplotlib is required for plotting.")
-
+        _raise_if_no_mpl()
         _converter._WARN = False
         self.data = data
         self.by = by
@@ -2268,9 +2272,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
         ...     }, index= ['pig', 'rabbit', 'duck', 'chicken', 'horse'])
         >>> hist = df.hist(bins=3)
     """
-    if not _HAS_MPL:
-        raise ImportError("matplotlib is required for plotting.")
-
+    _raise_if_no_mpl()
     _converter._WARN = False
     if by is not None:
         axes = grouped_hist(data, column=column, by=by, ax=ax, grid=grid,
@@ -2410,9 +2412,7 @@ def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
     -------
     axes: collection of Matplotlib Axes
     """
-    if not _HAS_MPL:
-        raise ImportError("matplotlib is required for plotting.")
-
+    _raise_if_no_mpl()
     _converter._WARN = False
 
     def plot_group(group, ax):
@@ -2479,9 +2479,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     >>> grouped = df.unstack(level='lvl1').groupby(level=0, axis=1)
     >>> boxplot_frame_groupby(grouped, subplots=False)
     """
-    if not _HAS_MPL:
-        raise ImportError("matplotlib is required for plotting.")
-
+    _raise_if_no_mpl()
     _converter._WARN = False
     if subplots is True:
         naxes = len(grouped)
