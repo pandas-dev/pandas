@@ -384,6 +384,7 @@ class ReadingTestsBase(SharedItems):
         expected['b'] = expected['b'].astype('float32')
         expected['c'] = ['001', '002', '003', '004']
         expected['d'] = ['1', '2', np.nan, '4']
+
         tm.assert_frame_equal(actual, expected)
 
     def test_reading_all_sheets(self, ext):
