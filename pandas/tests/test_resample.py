@@ -21,7 +21,7 @@ from pandas import (Series, DataFrame, Panel, Index, isna,
 from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame
 from pandas.compat import range, lrange, zip, product, OrderedDict
 from pandas.errors import UnsupportedFunctionCall
-from pandas.core.groupby import DataError
+from pandas.core.groupby.groupby import DataError
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import to_offset

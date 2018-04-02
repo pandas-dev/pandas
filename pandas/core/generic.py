@@ -6589,7 +6589,7 @@ class NDFrame(PandasObject, SelectionMixin):
         resample : Convenience method for frequency conversion and resampling
             of time series.
         """
-        from pandas.core.groupby import groupby
+        from pandas.core.groupby.groupby import groupby
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")

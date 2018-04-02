@@ -13,7 +13,7 @@ from pandas._libs import groupby
 from .common import MixIn, assert_fp_equal
 
 from pandas.util.testing import assert_frame_equal, assert_series_equal
-from pandas.core.groupby import DataError
+from pandas.core.groupby.groupby import DataError
 from pandas.core.config import option_context
 
 

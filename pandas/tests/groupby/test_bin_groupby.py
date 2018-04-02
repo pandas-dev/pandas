@@ -54,7 +54,7 @@ class TestBinGroupers(object):
         self.bins = np.array([3, 6], dtype=np.int64)
 
     def test_generate_bins(self):
-        from pandas.core.groupby import generate_bins_generic
+        from pandas.core.groupby.groupby import generate_bins_generic
         values = np.array([1, 2, 3, 4, 5, 6], dtype=np.int64)
         binner = np.array([0, 3, 6, 9], dtype=np.int64)
 
