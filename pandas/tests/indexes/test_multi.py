@@ -615,8 +615,8 @@ class TestMultiIndex(Base):
         with tm.assert_raises_regex(ValueError, label_error):
             self.index.copy().set_labels([[0, 0, 0, 0], [0, 0]])
 
-    @pytest.mark.parametrize('names', [['a', 'b', 'a'], [1, 1, 2],
-                                       [1, 'a', 1]])
+    @pytest.mark.parametrize('names', [['a', 'b', 'a'], ['1', '1', '2'],
+                                       ['1', 'a', '1']])
     def test_duplicate_level_names(self, names):
         # GH18872
         pytest.raises(ValueError, pd.MultiIndex.from_product,
