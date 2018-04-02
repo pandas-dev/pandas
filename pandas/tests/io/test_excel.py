@@ -365,8 +365,7 @@ class ReadingTestsBase(SharedItems):
         basename = 'testdtype'
         actual = self.get_exceldf(basename, ext)
 
-        expected = DataFrame({
-          'a': [1.0, 2.0, np.nan, 4.0]})
+        expected = DataFrame({'a': [1.0, 2.0, np.nan, 4.0]})
 
         tm.assert_frame_equal(actual, expected)
 
