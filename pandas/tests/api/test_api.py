@@ -238,7 +238,7 @@ class TestCDateRange(object):
             cdate_range('2017-01-01', '2017-12-31')
 
 
-class TestModuleMoves(object):
+class TestCategoricalMove(object):
 
     def test_categorical_move(self):
         # May have been cached by another import, e.g. pickle tests.
@@ -251,13 +251,3 @@ class TestModuleMoves(object):
 
         with tm.assert_produces_warning(FutureWarning):
             from pandas.core.categorical import CategoricalDtype  # noqa
-
-    @pytest.mark.parametrize("attr", ["Grouper"])
-    def test_groupby_move(self, attr):
-        # May have been cached by another import, e.g. pickle tests.
-        sys.modules.pop("pandas.core.groupby", None)
-
-        with tm.assert_produces_warning(FutureWarning):
-            import pandas.core.groupby as grpby  # noqa
-
-        getattr(grpby, attr)
