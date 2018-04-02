@@ -458,6 +458,15 @@ class ExtensionArray(object):
             Fill value to replace -1 values with. If applicable, this should
             use the sentinel missing value for this type.
 
+        Returns
+        -------
+        ExtensionArray
+
+        Raises
+        ------
+        IndexError
+            When the indexer is out of bounds for the array.
+
         Notes
         -----
         This should follow pandas' semantics where -1 indicates missing values.
@@ -477,6 +486,16 @@ class ExtensionArray(object):
            def take(self, indexer, allow_fill=True, fill_value=None):
                indexer = np.asarray(indexer)
                mask = indexer == -1
+
+               # take on empty array not handled as desired by numpy
+               if not len(self):
+                   # only valid if result is an all-missing array
+                   if mask.all():
+                       return type(self)([self._na_value] * len(indexer))
+                   else:
+                       raise IndexError(
+                           "cannot do a non-empty take from an empty array.")
+
                result = self.data.take(indexer)
                result[mask] = np.nan  # NA for this type
                return type(self)(result)
