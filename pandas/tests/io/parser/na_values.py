@@ -369,3 +369,23 @@ nan,B
         expected = DataFrame({"a": [1, 4], "c": [3, 6]},
                              index=Index([np.nan, 5.0], name="b"))
         tm.assert_frame_equal(out, expected)
+
+    def test_na_values_with_dtype_str_and_na_filter_true(self):
+        # see gh-20377
+        data = "a,b,c\n1,,3\n4,5,6"
+
+        out = self.read_csv(StringIO(data), na_filter=True, dtype=str)
+
+        # missing data turn to np.nan, which stays as it is after dtype=str
+        expected = DataFrame({"a": ["1", "4"], "b": [np.nan, "5"], "c": ["3", "6"]})
+        tm.assert_frame_equal(out, expected)
+
+    def test_na_values_with_dtype_str_and_na_filter_false(self):
+        # see gh-20377
+        data = "a,b,c\n1,,3\n4,5,6"
+
+        out = self.read_csv(StringIO(data), na_filter=False, dtype=str)
+
+        # missing data turn to empty string
+        expected = DataFrame({"a": ["1", "4"], "b": ["", "5"], "c": ["3", "6"]})
+        tm.assert_frame_equal(out, expected)

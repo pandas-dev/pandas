@@ -144,11 +144,12 @@ class TestSeriesDtypes(TestData):
                                                 tm.rands(1000)]),
                                         Series([string.digits * 10,
                                                 tm.rands(63),
-                                                tm.rands(64), '', 1.0])])
+                                                tm.rands(64), nan, 1.0])])
     def test_astype_str_map(self, dtype, series):
         # see gh-4405
         result = series.astype(dtype)
         expected = series.map(compat.text_type)
+        expected.replace('nan', np.nan, inplace=True)  # see gh-20377
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", [str, compat.text_type])
