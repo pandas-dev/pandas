@@ -1216,13 +1216,8 @@ cdef class TextReader:
                 return result, 0
 
             # treat as a regular string parsing
-            res, na_count = self._string_convert(i, start, end, na_filter,
-                                                 na_hashset)
-
-            for i in range(len(res)):
-                if res[i] is np.nan:
-                    res[i] = ''
-            return res, na_count
+            return self._string_convert(i, start, end, na_filter,
+                                        na_hashset)
 
         elif dtype.kind == 'U':
             width = dtype.itemsize
@@ -1231,12 +1226,8 @@ cdef class TextReader:
                                 "supported for parsing" % dtype)
 
             # unicode variable width
-            res, na_count = self._string_convert(i, start, end, na_filter,
-                                                 na_hashset)
-            for i in range(len(res)):
-                if res[i] is np.nan:
-                    res[i] = ''
-            return res, na_count
+            return self._string_convert(i, start, end, na_filter,
+                                        na_hashset)
 
         elif is_categorical_dtype(dtype):
             # TODO: I suspect that _categorical_convert could be
