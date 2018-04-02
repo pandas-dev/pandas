@@ -254,7 +254,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         if name is not None and not is_hashable(name):
             raise TypeError(__class__.__name__ +
-                '.name must be a hashable type')
+                            '.name must be a hashable type')
 
         if fastpath:
             return cls._simple_new(data, name)
@@ -1366,10 +1366,10 @@ class Index(IndexOpsMixin, PandasObject):
                 else:
                     if self.nlevels == 1:
                         raise TypeError(__class__.__name__ +
-                            '.name must be a hashable type')
+                                        '.name must be a hashable type')
                     else:
                         raise TypeError(self.__class__.__name__ +
-                            '.name must be a hashable type')
+                                        '.name must be a hashable type')
 
         if level is not None and self.nlevels == 1:
             raise ValueError('Level must be None for non-MultiIndex')

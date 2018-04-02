@@ -647,7 +647,7 @@ class MultiIndex(Index):
                 pass
             else:
                 raise TypeError(self.__class__.__name__ +
-                    '.name must be a hashable type')
+                                '.name must be a hashable type')
 
         # GH 15110
         # Don't allow a single string for names in a MultiIndex

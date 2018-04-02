@@ -448,7 +448,7 @@ class TestIndex(Base):
         assert isinstance(idx, Index)
         renamed = ['1']
         tm.assert_raises_regex(TypeError, message,
-            idx.rename, name=renamed)
+                               idx.rename, name=renamed)
 
     def test_view_with_args(self):
 
