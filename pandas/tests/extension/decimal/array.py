@@ -62,7 +62,7 @@ class DecimalArray(ExtensionArray):
         return len(self.values)
 
     def __repr__(self):
-        return repr(self.values)
+        return "DecimalArray: " + repr(self.values)
 
     @property
     def nbytes(self):
@@ -75,8 +75,18 @@ class DecimalArray(ExtensionArray):
         return np.array([x.is_nan() for x in self.values])
 
     def take(self, indexer, allow_fill=True, fill_value=None):
+
         indexer = np.asarray(indexer)
         mask = indexer == -1
+
+        # take on empty array
+        if not len(self):
+            # only valid if result is an all-missing array
+            if mask.all():
+                return type(self)([self._na_value] * len(indexer))
+            else:
+                raise IndexError(
+                    "cannot do a non-empty take from an empty array.")
 
         indexer = _ensure_platform_int(indexer)
         out = self.values.take(indexer)

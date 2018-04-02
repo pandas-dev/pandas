@@ -1,6 +1,7 @@
 import numpy as np
 
 import pandas as pd
+import pandas.util.testing as tm
 
 from .base import BaseExtensionTests
 
@@ -120,3 +121,11 @@ class BaseGetitemTests(BaseExtensionTests):
         assert result.iloc[0] == data[0]
         assert result.iloc[1] == data[1]
         assert result.iloc[2] == data[3]
+
+    def test_take_empty_missing(self, data, na_value, na_cmp):
+        empty = data[:0]
+        result = empty.take([-1])
+        na_cmp(result[0], na_value)
+
+        with tm.assert_raises_regex(IndexError, "cannot do a non-empty take"):
+            empty.take([0, 1])
