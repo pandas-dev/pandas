@@ -1167,8 +1167,8 @@ class DataFrame(NDFrame):
             Arbitrary keyword arguments.
 
             auth_local_webserver (boolean): default False
-                Use the [local webserver flow] instead of the [console flow] when
-                getting user credentials.
+                Use the [local webserver flow] instead of the [console flow]
+                when getting user credentials.
 
                 .. [local webserver flow]
                     http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server
@@ -1176,11 +1176,11 @@ class DataFrame(NDFrame):
                     http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console
                 .. versionadded:: pandas-gbq 0.2.0
             table_schema (list of dicts):
-                List of BigQuery table fields to which according DataFrame columns
-                conform to, e.g. `[{'name': 'col1', 'type': 'STRING'},...]`. If
-                schema is not provided, it will be generated according to dtypes
-                of DataFrame columns. See BigQuery API documentation on available
-                names of a field.
+                List of BigQuery table fields to which according DataFrame
+                columns conform to, e.g. `[{'name': 'col1', 'type':
+                'STRING'},...]`. If schema is not provided, it will be
+                generated according to dtypes of DataFrame columns. See
+                BigQuery API documentation on available names of a field.
                 .. versionadded:: pandas-gbq 0.3.1
 
         See Also
