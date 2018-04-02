@@ -579,7 +579,7 @@ class TestSeriesMap(TestData):
 
     def test_map_missing_mixed(self):
         s = pd.Series(list('abc') + [np.nan])
-        
+
         result = s.map({np.nan: 'not NaN'})
         result2 = s.map({'a': 42, np.nan: 'not NaN'})
 
