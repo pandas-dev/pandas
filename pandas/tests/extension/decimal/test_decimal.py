@@ -49,6 +49,15 @@ def na_value():
     return decimal.Decimal("NaN")
 
 
+@pytest.fixture
+def data_for_grouping():
+    b = decimal.Decimal('1.0')
+    a = decimal.Decimal('0.0')
+    c = decimal.Decimal('2.0')
+    na = decimal.Decimal('NaN')
+    return DecimalArray([b, b, na, na, a, a, b, c])
+
+
 class BaseDecimal(object):
 
     def assert_series_equal(self, left, right, *args, **kwargs):
@@ -118,6 +127,10 @@ class TestCasting(BaseDecimal, base.BaseCastingTests):
     pass
 
 
+class TestGroupby(BaseDecimal, base.BaseGroupbyTests):
+    pass
+
+
 def test_series_constructor_coerce_data_to_extension_dtype_raises():
     xpr = ("Cannot cast data to extension dtype 'decimal'. Pass the "
            "extension array directly.")
@@ -134,7 +147,7 @@ def test_series_constructor_with_same_dtype_ok():
 
 def test_series_constructor_coerce_extension_array_to_dtype_raises():
     arr = DecimalArray([decimal.Decimal('10.0')])
-    xpr = "Cannot specify a dtype 'int64' .* \('decimal'\)."
+    xpr = r"Cannot specify a dtype 'int64' .* \('decimal'\)."
 
     with tm.assert_raises_regex(ValueError, xpr):
         pd.Series(arr, dtype='int64')

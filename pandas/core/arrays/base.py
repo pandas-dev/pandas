@@ -77,6 +77,24 @@ class ExtensionArray(object):
         """
         raise AbstractMethodError(cls)
 
+    @classmethod
+    def _from_factorized(cls, values, original):
+        """Reconstruct an ExtensionArray after factorization.
+
+        Parameters
+        ----------
+        values : ndarray
+            An integer ndarray with the factorized values.
+        original : ExtensionArray
+            The original ExtensionArray that factorize was called on.
+
+        See Also
+        --------
+        pandas.factorize
+        ExtensionArray.factorize
+        """
+        raise AbstractMethodError(cls)
+
     # ------------------------------------------------------------------------
     # Must be a Sequence
     # ------------------------------------------------------------------------
@@ -352,6 +370,73 @@ class ExtensionArray(object):
 
         uniques = unique(self.astype(object))
         return self._constructor_from_sequence(uniques)
+
+    def _values_for_factorize(self):
+        # type: () -> Tuple[ndarray, Any]
+        """Return an array and missing value suitable for factorization.
+
+        Returns
+        -------
+        values : ndarray
+            An array suitable for factoraization. This should maintain order
+            and be a supported dtype (Float64, Int64, UInt64, String, Object).
+            By default, the extension array is cast to object dtype.
+        na_value : object
+            The value in `values` to consider missing. This will be treated
+            as NA in the factorization routines, so it will be coded as
+            `na_sentinal` and not included in `uniques`. By default,
+            ``np.nan`` is used.
+        """
+        return self.astype(object), np.nan
+
+    def factorize(self, na_sentinel=-1):
+        # type: (int) -> Tuple[ndarray, ExtensionArray]
+        """Encode the extension array as an enumerated type.
+
+        Parameters
+        ----------
+        na_sentinel : int, default -1
+            Value to use in the `labels` array to indicate missing values.
+
+        Returns
+        -------
+        labels : ndarray
+            An interger NumPy array that's an indexer into the original
+            ExtensionArray.
+        uniques : ExtensionArray
+            An ExtensionArray containing the unique values of `self`.
+
+            .. note::
+
+               uniques will *not* contain an entry for the NA value of
+               the ExtensionArray if there are any missing values present
+               in `self`.
+
+        See Also
+        --------
+        pandas.factorize : Top-level factorize method that dispatches here.
+
+        Notes
+        -----
+        :meth:`pandas.factorize` offers a `sort` keyword as well.
+        """
+        # Impelmentor note: There are two ways to override the behavior of
+        # pandas.factorize
+        # 1. _values_for_factorize and _from_factorize.
+        #    Specify the values passed to pandas' internal factorization
+        #    routines, and how to convert from those values back to the
+        #    original ExtensionArray.
+        # 2. ExtensionArray.factorize.
+        #    Complete control over factorization.
+        from pandas.core.algorithms import _factorize_array
+
+        arr, na_value = self._values_for_factorize()
+
+        labels, uniques = _factorize_array(arr, na_sentinel=na_sentinel,
+                                           na_value=na_value)
+
+        uniques = self._from_factorized(uniques, self)
+        return labels, uniques
 
     # ------------------------------------------------------------------------
     # Indexing methods
