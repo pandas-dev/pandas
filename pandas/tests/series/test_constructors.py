@@ -828,6 +828,17 @@ class TestSeriesConstructors(TestData):
             expected = Series([0, 1, 2], index=list('abc'))
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize('input_class', [list, tuple, iter])
+    @pytest.mark.parametrize('dtype', ['object', None])
+    def test_constructor_dict_nested_lists(self, input_class, dtype):
+        # GH 18625
+        d = {'a': input_class([input_class([1, 2, 3]),
+                               input_class([4, 5, 6])]),
+             'b': input_class([input_class([7, 8, 9])])}
+        result = Series(d, index=['a', 'b'], dtype=dtype)
+        expected = Series([d['a'], d['b']], index=['a', 'b'])
+        assert_series_equal(result, expected)
+
     @pytest.mark.parametrize("value", [2, np.nan, None, float('nan')])
     def test_constructor_dict_nan_key(self, value):
         # GH 18480

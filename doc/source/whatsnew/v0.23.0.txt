@@ -761,6 +761,7 @@ Datetimelike API Changes
 - ``pandas.tseries.frequencies.get_freq_group()`` and ``pandas.tseries.frequencies.DAYS`` are removed from the public API (:issue:`18034`)
 - :func:`Series.truncate` and :func:`DataFrame.truncate` will raise a ``ValueError`` if the index is not sorted instead of an unhelpful ``KeyError`` (:issue:`17935`)
 - Restricted ``DateOffset`` keyword arguments. Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior. Now, only valid arguments will be accepted. (:issue:`17176`, :issue:`18226`).
+- Construction of :class:`Series` from list of length 1 and index of length > 1, which used to interpret the list as a scalar, now raises a ``ValueError`` (:issue:`18626`).
 - Subtracting ``NaT`` from a :class:`Series` with ``dtype='datetime64[ns]'`` returns a ``Series`` with ``dtype='timedelta64[ns]'`` instead of ``dtype='datetime64[ns]'`` (:issue:`18808`)
 - Operations between a :class:`Series` with dtype ``dtype='datetime64[ns]'`` and a :class:`PeriodIndex` will correctly raises ``TypeError`` (:issue:`18850`)
 - Subtraction of :class:`Series` with timezone-aware ``dtype='datetime64[ns]'`` with mis-matched timezones will raise ``TypeError`` instead of ``ValueError`` (:issue:`18817`)
@@ -1135,6 +1136,7 @@ Reshaping
 ^^^^^^^^^
 
 - Bug in :func:`DataFrame.stack` which fails trying to sort mixed type levels under Python 3 (:issue:`18310`)
+- Fixed construction of a :class:`Series` from a ``dict`` containing nested lists as values (:issue:`18625`)
 - Bug in :func:`DataFrame.unstack` which casts int to float if ``columns`` is a ``MultiIndex`` with unused levels (:issue:`17845`)
 - Bug in :func:`DataFrame.unstack` which raises an error if ``index`` is a ``MultiIndex`` with unused labels on the unstacked level (:issue:`18562`)
 - Fixed construction of a :class:`Series` from a ``dict`` containing ``NaN`` as key (:issue:`18480`)

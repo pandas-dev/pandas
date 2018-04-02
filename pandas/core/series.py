@@ -4048,7 +4048,8 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
     # GH #846
     if isinstance(data, (np.ndarray, Index, Series)):
-
+        if data.ndim > 1:
+            raise ValueError('Data must be 1-dimensional')
         if dtype is not None:
             subarr = np.array(data, copy=False)
 
@@ -4085,7 +4086,9 @@ def _sanitize_array(data, index, dtype=None, copy=False,
         return subarr
 
     elif isinstance(data, (list, tuple)) and len(data) > 0:
-        if dtype is not None:
+        if all(is_list_like(item) for item in data):
+            subarr = construct_1d_object_array_from_listlike(data)
+        elif dtype is not None:
             try:
                 subarr = _try_cast(data, False)
             except Exception:
@@ -4107,11 +4110,15 @@ def _sanitize_array(data, index, dtype=None, copy=False,
     else:
         subarr = _try_cast(data, False)
 
-    # scalar like, GH
-    if getattr(subarr, 'ndim', 0) == 0:
-        if isinstance(data, list):  # pragma: no cover
-            subarr = np.array(data, dtype=object)
-        elif index is not None:
+    if subarr.ndim == 0 or is_scalar(data):
+        if index is None:
+            return subarr.item()
+
+        if subarr.ndim == 1:
+            # a scalar upcasted to 1-dimensional by maybe_cast_to_datetime()
+            value = subarr[0]
+            dtype = subarr.dtype
+        else:
             value = data
 
             # figure out the dtype from the value (upcast if necessary)
@@ -4121,26 +4128,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 # need to possibly convert the value here
                 value = maybe_cast_to_datetime(value, dtype)
 
-            subarr = construct_1d_arraylike_from_scalar(
-                value, len(index), dtype)
-
-        else:
-            return subarr.item()
-
-    # the result that we want
-    elif subarr.ndim == 1:
-        if index is not None:
-
-            # a 1-element ndarray
-            if len(subarr) != len(index) and len(subarr) == 1:
-                subarr = construct_1d_arraylike_from_scalar(
-                    subarr[0], len(index), subarr.dtype)
-
-    elif subarr.ndim > 1:
-        if isinstance(data, np.ndarray):
-            raise Exception('Data must be 1-dimensional')
-        else:
-            subarr = com._asarray_tuplesafe(data, dtype=dtype)
+        subarr = construct_1d_arraylike_from_scalar(value, len(index), dtype)
 
     # This is to prevent mixed-type Series getting all casted to
     # NumPy string type, e.g. NaN --> '-1#IND'.
