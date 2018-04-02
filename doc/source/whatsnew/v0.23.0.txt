@@ -1098,7 +1098,7 @@ I/O
 - Bug in :func:`read_pickle` when unpickling objects with :class:`TimedeltaIndex` or :class:`Float64Index` created with pandas prior to version 0.20 (:issue:`19939`)
 - Bug in :meth:`pandas.io.json.json_normalize` where subrecords are not properly normalized if any subrecords values are NoneType (:issue:`20030`)
 - Bug in ``usecols`` parameter in :func:`pandas.io.read_csv` and :func:`pandas.io.read_table` where error is not raised correctly when passing a string. (:issue:`20529`)
-- Bug in :func:`read_excel` and :func:`read_csv` where ``np.nan`` turns to ``'nan'`` with ``dtype=str`` and ``na_filter=True``. Now, it turns to ``np.nan``. (:issue `20377`)
+- Bug in :func:`read_excel` and :func:`read_csv` where missing values turned to ``'nan'`` with ``dtype=str`` and ``na_filter=True``. Now, they turn to ``np.nan``. (:issue `20377`)
 
 
 Plotting
