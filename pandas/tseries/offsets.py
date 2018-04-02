@@ -2453,7 +2453,7 @@ def generate_range(start=None, end=None, periods=None,
 
 prefix_mapping = dict((offset._prefix, offset) for offset in [
     YearEnd,                   # 'A'
-    YearBegin,                 # 'AS'    
+    YearBegin,                 # 'AS'
     BusinessDay,               # 'B'
     BYearEnd,                  # 'BA'
     BYearBegin,                # 'BAS'
