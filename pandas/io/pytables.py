@@ -1073,10 +1073,11 @@ class HDFStore(StringMixin):
         self._check_if_open()
         return [
             g for g in self._handle.walk_nodes()
-            if (getattr(g._v_attrs, 'pandas_type', None) or
-                getattr(g, 'table', None) or
+            if (not isinstance(g, _table_mod.link.Link) and
+                (getattr(g._v_attrs, 'pandas_type', None) or
+                 getattr(g, 'table', None) or
                 (isinstance(g, _table_mod.table.Table) and
-                 g._v_name != u('table')))
+                 g._v_name != u('table'))))
         ]
 
     def get_node(self, key):
