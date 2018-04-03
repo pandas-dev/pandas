@@ -1119,7 +1119,7 @@ class DataFrame(NDFrame):
     def to_gbq(
             self, destination_table, project_id, chunksize=10000,
             verbose=True, reauth=False, if_exists='fail', private_key=None,
-            **kwargs):
+            auth_local_webserver=False, table_schema=None):
         """
         Write a DataFrame to a Google BigQuery table.
 
@@ -1142,6 +1142,8 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
+        dataframe : DataFrame
+            DataFrame to be written to Google BigQuery.
         destination_table : string
             Name of table to be written, in the form 'dataset.tablename'.
         project_id : str
@@ -1163,35 +1165,35 @@ class DataFrame(NDFrame):
             Service account private key in JSON format. Can be file path
             or string contents. This is useful for remote server
             authentication (eg. Jupyter/IPython notebook on remote host).
-        kwargs : dict
-            Arbitrary keyword arguments.
+        auth_local_webserver : boolean (default False)
+            Use the [local webserver flow] instead of the [console flow]
+            when getting user credentials.
 
-            auth_local_webserver (boolean): default False
-                Use the [local webserver flow] instead of the [console flow]
-                when getting user credentials.
+            .. [local webserver flow]
+                http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server
+            .. [console flow]
+                http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console
 
-                .. [local webserver flow]
-                    http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server
-                .. [console flow]
-                    http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console
-                .. versionadded:: pandas-gbq-0.2.0
-            table_schema (list of dicts):
-                List of BigQuery table fields to which according DataFrame
-                columns conform to, e.g. `[{'name': 'col1', 'type':
-                'STRING'},...]`. If schema is not provided, it will be
-                generated according to dtypes of DataFrame columns. See
-                BigQuery API documentation on available names of a field.
-                .. versionadded:: pandas-gbq-0.3.1
+            *New in version 0.2.0 of pandas-gbq*.
+        table_schema : list of dicts (optional)
+            List of BigQuery table fields to which according DataFrame
+            columns conform to, e.g. `[{'name': 'col1', 'type':
+            'STRING'},...]`. If schema is not provided, it will be
+            generated according to dtypes of DataFrame columns. See
+            BigQuery API documentation on available names of a field.
+
+            *New in version 0.3.1 of pandas-gbq*.
 
         See Also
         --------
-        pandas_gbq.to_gbq
+        pandas_gbq.to_gbq : This function in the pandas-gbq library.
         """
         from pandas.io import gbq
         return gbq.to_gbq(
             self, destination_table, project_id, chunksize=chunksize,
             verbose=verbose, reauth=reauth, if_exists=if_exists,
-            private_key=private_key, **kwargs)
+            private_key=private_key, auth_local_webserver=auth_local_webserver,
+            table_schema=table_schema)
 
 
     @classmethod
