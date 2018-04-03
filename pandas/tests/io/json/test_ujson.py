@@ -772,14 +772,14 @@ class TestUltraJSONTests(object):
         assert "[1,2,3]" == f.getvalue()
 
     def test_dumpToFileLikeObject(self):
-        class filelike(object):
+        class FileLike(object):
 
             def __init__(self):
                 self.bytes = ''
 
             def write(self, bytes):
                 self.bytes += bytes
-        f = filelike()
+        f = FileLike()
         ujson.dump([1, 2, 3], f)
         assert "[1,2,3]" == f.bytes
 
@@ -800,7 +800,7 @@ class TestUltraJSONTests(object):
             np.array([1, 2, 3, 4]), ujson.load(f, numpy=True))
 
     def test_loadFileLikeObject(self):
-        class filelike(object):
+        class FileLike(object):
 
             def read(self):
                 try:
@@ -808,10 +808,10 @@ class TestUltraJSONTests(object):
                 except AttributeError:
                     self.end = True
                     return "[1,2,3,4]"
-        f = filelike()
+        f = FileLike()
         assert [1, 2, 3, 4] == ujson.load(f)
 
-        f = filelike()
+        f = FileLike()
         tm.assert_numpy_array_equal(
             np.array([1, 2, 3, 4]), ujson.load(f, numpy=True))
 
