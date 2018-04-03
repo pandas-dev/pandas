@@ -89,6 +89,7 @@ def read_gbq(
     See Also
     --------
     pandas_gbq.read_gbq : This function in the pandas-gbq library.
+    pandas.DataFrame.to_gbq : Write a DataFrame to Google BigQuery.
     """
     pandas_gbq = _try_import()
     return pandas_gbq.read_gbq(

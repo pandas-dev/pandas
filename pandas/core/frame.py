@@ -1187,6 +1187,7 @@ class DataFrame(NDFrame):
         See Also
         --------
         pandas_gbq.to_gbq : This function in the pandas-gbq library.
+        pandas.read_gbq : Read a DataFrame from Google BigQuery.
         """
         from pandas.io import gbq
         return gbq.to_gbq(
