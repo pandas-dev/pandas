@@ -2695,30 +2695,24 @@ class GenericFixed(Fixed):
                                                 _tables().ObjectAtom())
             vlarr.append(value)
         else:
-            if empty_array:
+            if is_datetime64_dtype(value.dtype):
+                self._handle.create_array(self.group, key, value.view('i8'))
+                getattr(self.group, key)._v_attrs.value_type = 'datetime64'
+            elif is_datetime64tz_dtype(value.dtype):
+                # store as UTC
+                # with a zone
+                self._handle.create_array(self.group, key, value.asi8)
+
+                node = getattr(self.group, key)
+                node._v_attrs.tz = _get_tz(value.tz)
+                node._v_attrs.value_type = 'datetime64'
+            elif is_timedelta64_dtype(value.dtype):
+                self._handle.create_array(self.group, key, value.view('i8'))
+                getattr(self.group, key)._v_attrs.value_type = 'timedelta64'
+            elif empty_array:
                 self.write_array_empty(key, value)
             else:
-                if is_datetime64_dtype(value.dtype):
-                    self._handle.create_array(
-                        self.group, key, value.view('i8'))
-                    getattr(
-                        self.group, key)._v_attrs.value_type = 'datetime64'
-                elif is_datetime64tz_dtype(value.dtype):
-                    # store as UTC
-                    # with a zone
-                    self._handle.create_array(self.group, key,
-                                              value.asi8)
-
-                    node = getattr(self.group, key)
-                    node._v_attrs.tz = _get_tz(value.tz)
-                    node._v_attrs.value_type = 'datetime64'
-                elif is_timedelta64_dtype(value.dtype):
-                    self._handle.create_array(
-                        self.group, key, value.view('i8'))
-                    getattr(
-                        self.group, key)._v_attrs.value_type = 'timedelta64'
-                else:
-                    self._handle.create_array(self.group, key, value)
+                self._handle.create_array(self.group, key, value)
 
         getattr(self.group, key)._v_attrs.transposed = transposed
 
@@ -2771,7 +2765,11 @@ class SeriesFixed(GenericFixed):
     def write(self, obj, **kwargs):
         super(SeriesFixed, self).write(obj, **kwargs)
         self.write_index('index', obj.index)
-        self.write_array('values', obj.values)
+        if is_datetime64tz_dtype(obj.dtype):
+            values = obj._data.blocks[0].values
+        else:
+            values = obj.values
+        self.write_array('values', values)
         self.attrs.name = obj.name
 
 

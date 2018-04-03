@@ -2793,9 +2793,19 @@ class TestHDFStore(Base):
         self._check_roundtrip(df2, tm.assert_frame_equal)
 
     def test_empty_series(self):
-        for dtype in [np.int64, np.float64, np.object, 'm8[ns]', 'M8[ns]']:
+        for dtype in [np.int64, np.float64, np.object, 'm8[ns]', 'M8[ns]',
+                      'datetime64[ns, UTC]']:
             s = Series(dtype=dtype)
             self._check_roundtrip(s, tm.assert_series_equal)
+
+    def test_series_timezone(self):
+        s = Series([0], dtype='datetime64[ns, UTC]')
+        self._check_roundtrip(s, tm.assert_series_equal)
+
+    def test_empty_frame_timezone(self):
+        s = Series(dtype='datetime64[ns, UTC]')
+        df = DataFrame({'A': s})
+        self._check_roundtrip(df, tm.assert_frame_equal)
 
     def test_can_serialize_dates(self):
 
