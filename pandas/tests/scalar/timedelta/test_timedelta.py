@@ -37,7 +37,7 @@ class TestTimedeltaArithmetic(object):
             assert left != right
 
     def test_ops_notimplemented(self):
-        class Other:
+        class Other(object):
             pass
 
         other = Other()

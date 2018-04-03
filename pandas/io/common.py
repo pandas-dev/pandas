@@ -534,7 +534,7 @@ else:
             row = next(self.reader)
             return [compat.text_type(s, "utf-8") for s in row]
 
-    class UnicodeWriter:
+    class UnicodeWriter(object):
 
         """
         A CSV writer which will write rows to CSV file "f",

@@ -1213,7 +1213,7 @@ class TestDataFrameAnalytics(TestData):
         getattr(mixed, name)(axis=0)
         getattr(mixed, name)(axis=1)
 
-        class NonzeroFail:
+        class NonzeroFail(object):
 
             def __nonzero__(self):
                 raise ValueError

@@ -460,11 +460,11 @@ class TestUltraJSONTests(object):
     def test_encodeRecursionMax(self):
         # 8 is the max recursion depth
 
-        class O2:
+        class O2(object):
             member = 0
             pass
 
-        class O1:
+        class O1(object):
             member = 0
             pass
 
@@ -772,14 +772,14 @@ class TestUltraJSONTests(object):
         assert "[1,2,3]" == f.getvalue()
 
     def test_dumpToFileLikeObject(self):
-        class filelike:
+        class FileLike(object):
 
             def __init__(self):
                 self.bytes = ''
 
             def write(self, bytes):
                 self.bytes += bytes
-        f = filelike()
+        f = FileLike()
         ujson.dump([1, 2, 3], f)
         assert "[1,2,3]" == f.bytes
 
@@ -800,7 +800,7 @@ class TestUltraJSONTests(object):
             np.array([1, 2, 3, 4]), ujson.load(f, numpy=True))
 
     def test_loadFileLikeObject(self):
-        class filelike:
+        class FileLike(object):
 
             def read(self):
                 try:
@@ -808,10 +808,10 @@ class TestUltraJSONTests(object):
                 except AttributeError:
                     self.end = True
                     return "[1,2,3,4]"
-        f = filelike()
+        f = FileLike()
         assert [1, 2, 3, 4] == ujson.load(f)
 
-        f = filelike()
+        f = FileLike()
         tm.assert_numpy_array_equal(
             np.array([1, 2, 3, 4]), ujson.load(f, numpy=True))
 
@@ -837,7 +837,7 @@ class TestUltraJSONTests(object):
 
     def test_encodeNumericOverflowNested(self):
         for n in range(0, 100):
-            class Nested:
+            class Nested(object):
                 x = 12839128391289382193812939
 
             nested = Nested()
@@ -886,7 +886,7 @@ class TestUltraJSONTests(object):
     def test_toDict(self):
         d = {u("key"): 31337}
 
-        class DictTest:
+        class DictTest(object):
 
             def toDict(self):
                 return d

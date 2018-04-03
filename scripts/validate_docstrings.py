@@ -94,7 +94,7 @@ def _output_header(title, width=80, char='#'):
         full_line=full_line, title_line=title_line)
 
 
-class Docstring:
+class Docstring(object):
     def __init__(self, method_name, method_obj):
         self.method_name = method_name
         self.method_obj = method_obj
