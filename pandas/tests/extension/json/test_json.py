@@ -127,7 +127,12 @@ class TestMethods(base.BaseMethodsTests):
 
 
 class TestCasting(base.BaseCastingTests):
-    pass
+    @pytest.mark.xfail
+    def test_astype_str(self):
+        """This currently fails in NumPy on np.array(self, dtype=str) with
+
+        *** ValueError: setting an array element with a sequence
+        """
 
 
 class TestGroupby(base.BaseGroupbyTests):
