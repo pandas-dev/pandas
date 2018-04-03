@@ -2792,11 +2792,13 @@ class TestHDFStore(Base):
         self._check_roundtrip(df1, tm.assert_frame_equal)
         self._check_roundtrip(df2, tm.assert_frame_equal)
 
-    def test_empty_series(self):
-        for dtype in [np.int64, np.float64, np.object, 'm8[ns]', 'M8[ns]',
-                      'datetime64[ns, UTC]']:
-            s = Series(dtype=dtype)
-            self._check_roundtrip(s, tm.assert_series_equal)
+    @pytest.mark.parametrize('dtype', [
+        np.int64, np.float64, np.object, 'm8[ns]', 'M8[ns]',
+        'datetime64[ns, UTC]'
+    ])
+    def test_empty_series(self, dtype):
+        s = Series(dtype=dtype)
+        self._check_roundtrip(s, tm.assert_series_equal)
 
     def test_series_timezone(self):
         s = Series([0], dtype='datetime64[ns, UTC]')
