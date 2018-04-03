@@ -1099,7 +1099,7 @@ I/O
 - Bug in :meth:`pandas.io.json.json_normalize` where subrecords are not properly normalized if any subrecords values are NoneType (:issue:`20030`)
 - Bug in ``usecols`` parameter in :func:`pandas.io.read_csv` and :func:`pandas.io.read_table` where error is not raised correctly when passing a string. (:issue:`20529`)
 - Bug in :func:`read_excel` and :func:`read_csv` where missing values turned to ``'nan'`` with ``dtype=str`` and ``na_filter=True``. Now, they turn to ``np.nan``. (:issue `20377`)
-
+- Bug in :func:`HDFStore.keys` when reading a file with a softlink causes exception (:issue:`20523`)
 
 Plotting
 ^^^^^^^^
