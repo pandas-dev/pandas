@@ -1,3 +1,4 @@
 python-dateutil
 pytz
 numpy
+hypothesis>=3.46.0

@@ -12,3 +12,4 @@ pymysql=0.6.0
 sqlalchemy=0.7.8
 xlsxwriter=0.5.2
 jinja2=2.8
+hypothesis>=3.46.0

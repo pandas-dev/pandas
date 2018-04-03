@@ -14,3 +14,4 @@ bottleneck
 xarray
 s3fs
 beautifulsoup4
+hypothesis>=3.46.0

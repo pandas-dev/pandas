@@ -16,3 +16,4 @@ bottleneck
 html5lib
 beautifulsoup4
 jinja2=2.8
+hypothesis>=3.46.0

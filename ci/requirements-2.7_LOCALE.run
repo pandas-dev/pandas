@@ -10,3 +10,4 @@ matplotlib=1.4.3
 sqlalchemy=0.8.1
 lxml
 scipy
+hypothesis>=3.46.0
