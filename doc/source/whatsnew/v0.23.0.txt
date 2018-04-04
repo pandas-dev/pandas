@@ -1165,3 +1165,4 @@ Other
 
 - Improved error message when attempting to use a Python keyword as an identifier in a ``numexpr`` backed query (:issue:`18221`)
 - Bug in accessing a :func:`pandas.get_option`, which raised ``KeyError`` rather than ``OptionError`` when looking up a non-existant option key in some cases (:issue:`19789`)
+- Bug in :func:`raise_assert_detail` for Series and DataFrames with differing unicode data (:issue:`20503`)
