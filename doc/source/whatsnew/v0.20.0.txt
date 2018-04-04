@@ -389,7 +389,7 @@ For example, after running the following, ``styled.xlsx`` renders as below:
    import os
    os.remove('styled.xlsx')
 
-See the :ref:`Style documentation <style.ipynb#Export-to-Excel>` for more detail.
+See the :ref:`Style documentation </style.ipynb#Export-to-Excel>` for more detail.
 
 .. _whatsnew_0200.enhancements.intervalindex:
 
@@ -499,7 +499,7 @@ Other Enhancements
 - ``DataFrame.to_excel()`` has a new ``freeze_panes`` parameter to turn on Freeze Panes when exporting to Excel (:issue:`15160`)
 - ``pd.read_html()`` will parse multiple header rows, creating a MutliIndex header. (:issue:`13434`).
 - HTML table output skips ``colspan`` or ``rowspan`` attribute if equal to 1. (:issue:`15403`)
-- :class:`pandas.io.formats.style.Styler` template now has blocks for easier extension, :ref:`see the example notebook <style.ipynb#Subclassing>` (:issue:`15649`)
+- :class:`pandas.io.formats.style.Styler` template now has blocks for easier extension, see the :ref:`example notebook </style.ipynb#Subclassing>` (:issue:`15649`)
 - :meth:`Styler.render() <pandas.io.formats.style.Styler.render>` now accepts ``**kwargs`` to allow user-defined variables in the template (:issue:`15649`)
 - Compatibility with Jupyter notebook 5.0; MultiIndex column labels are left-aligned and MultiIndex row-labels are top-aligned (:issue:`15379`)
 - ``TimedeltaIndex`` now has a custom date-tick formatter specifically designed for nanosecond level precision (:issue:`8711`)
