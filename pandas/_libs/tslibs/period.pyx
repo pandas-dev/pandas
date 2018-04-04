@@ -1409,28 +1409,24 @@ cdef class _Period(object):
     @property
     def qyear(self):
         """
-        Get the year component of the Period.
+        Get the qyear component of the Period.
 
         Returns
         -------
-        int --> qyear : int
+        qyear : int
 
         See Also
         --------
         Period.year : Return the year of the date
         Period.pqyear : Return the year of the period
-
+        
         Examples
         --------
         >>> p = pd.Period('2014Q1', freq="Q")
         >>> p.qyear
         2014
+        The fiscal-quarter year can differ from the calendar year.
 
-        p = pd.Period('2014Q1', freq="Q-JUN")
-        >>> p.qyear
-        2014
-        >>> p.year
-        2013
         """
         base, mult = get_freq_code(self.freq)
         return pqyear(self.ordinal, base)
