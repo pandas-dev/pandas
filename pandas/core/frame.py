@@ -1196,7 +1196,6 @@ class DataFrame(NDFrame):
             private_key=private_key, auth_local_webserver=auth_local_webserver,
             table_schema=table_schema)
 
-
     @classmethod
     def from_records(cls, data, index=None, exclude=None, columns=None,
                      coerce_float=False, nrows=None):
