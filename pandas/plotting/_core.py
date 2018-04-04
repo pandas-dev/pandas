@@ -3334,7 +3334,7 @@ class FramePlotMethods(BasePlotMethods):
         """
         return self(kind='pie', y=y, **kwds)
 
-    def scatter(self, x, y, s=None, c=None,  size_factor=1, **kwds):
+    def scatter(self, x, y, s=None, c=None, size_factor=1, **kwds):
         """
         Create a scatter plot with varying marker point size and color.
 
@@ -3419,7 +3419,8 @@ class FramePlotMethods(BasePlotMethods):
             ...                       c='species',
             ...                       colormap='viridis')
         """
-        return self(kind='scatter', x=x, y=y, c=c, s=s, size_factor=size_factor, **kwds)
+        return self(kind='scatter', x=x, y=y, c=c, s=s,
+                    size_factor=size_factor, **kwds)
 
     def hexbin(self, x, y, C=None, reduce_C_function=None, gridsize=None,
                **kwds):
