@@ -330,7 +330,6 @@ for storing ip addresses.
 .. code-block:: ipython
 
    In [3]: ser = pd.Series(values)
-      ...:
 
    In [4]: ser
    Out[4]:
@@ -342,8 +341,9 @@ for storing ip addresses.
 Notice that the dtype is ``ip``. The missing value semantics of the underlying
 array are respected:
 
+.. code-block:: ipython
+
    In [5]: ser.isna()
-      ...:
    Out[5]:
    0     True
    1    False
