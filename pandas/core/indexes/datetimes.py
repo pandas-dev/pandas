@@ -678,16 +678,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         else:
             return self.values
 
-    @property
+    @cache_readonly
     def tz(self):
         # GH 18595
         return timezones.tz_standardize(self._tz)
-
-    @tz.setter
-    def tz(self, value):
-        # GH 3746: Prevent localizing or converting the index by setting tz
-        raise AttributeError("Cannot directly set timezone. Use tz_localize() "
-                             "or tz_convert() as appropriate")
 
     @property
     def tzinfo(self):
