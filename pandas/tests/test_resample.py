@@ -21,7 +21,7 @@ from pandas import (Series, DataFrame, Panel, Index, isna,
 from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame
 from pandas.compat import range, lrange, zip, product, OrderedDict
 from pandas.errors import UnsupportedFunctionCall
-from pandas.core.groupby import DataError
+from pandas.core.groupby.groupby import DataError
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import to_offset
@@ -1082,7 +1082,7 @@ class TestDatetimeIndex(Base):
         def fn(x, a=1):
             return str(type(x))
 
-        class fn_class:
+        class FnClass(object):
 
             def __call__(self, x):
                 return str(type(x))
@@ -1091,7 +1091,7 @@ class TestDatetimeIndex(Base):
         df_lambda = df.resample("M").apply(lambda x: str(type(x)))
         df_partial = df.resample("M").apply(partial(fn))
         df_partial2 = df.resample("M").apply(partial(fn, a=2))
-        df_class = df.resample("M").apply(fn_class())
+        df_class = df.resample("M").apply(FnClass())
 
         assert_frame_equal(df_standard, df_lambda)
         assert_frame_equal(df_standard, df_partial)
