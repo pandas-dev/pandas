@@ -21,9 +21,9 @@ def _try_import():
     return pandas_gbq
 
 
-def read_gbq(
-        query, project_id=None, index_col=None, col_order=None, reauth=False,
-        verbose=True, private_key=None, dialect='legacy', **kwargs):
+def read_gbq(query, project_id=None, index_col=None, col_order=None,
+             reauth=False, verbose=True, private_key=None, dialect='legacy',
+             **kwargs):
     """
     Load data from Google BigQuery.
 
@@ -101,10 +101,9 @@ def read_gbq(
         **kwargs)
 
 
-def to_gbq(
-        dataframe, destination_table, project_id, chunksize=10000,
-        verbose=True, reauth=False, if_exists='fail', private_key=None,
-        auth_local_webserver=False, table_schema=None):
+def to_gbq(dataframe, destination_table, project_id, chunksize=None,
+           verbose=True, reauth=False, if_exists='fail', private_key=None,
+           auth_local_webserver=False, table_schema=None):
     pandas_gbq = _try_import()
     return pandas_gbq.to_gbq(
         dataframe, destination_table, project_id, chunksize=chunksize,
