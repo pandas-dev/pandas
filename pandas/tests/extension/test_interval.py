@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from pandas import Interval
+from pandas import Interval, IntervalIndex
 from pandas.core.arrays import IntervalArray
 from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.tests.extension import base
@@ -118,5 +118,8 @@ class TestReshaping(BaseInterval, base.BaseReshapingTests):
     pass
 
 
-def test_repr():
-    idx = pd.interval_range(0, 4)
+def test_repr_matches():
+    idx = IntervalIndex.from_breaks([1, 2, 3])
+    a = repr(idx)
+    b = repr(idx.values)
+    assert a.replace("Index", "Array") == b

@@ -705,10 +705,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self.left.shape
 
     @property
-    def itemsize(self):
-        return self.left.itemsize + self.right.itemsize
-
-    @property
     def is_non_overlapping_monotonic(self):
         """
         Return True if the IntervalIndex is non-overlapping (no Intervals share
