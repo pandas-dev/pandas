@@ -776,14 +776,18 @@ Tests that we have ``parametrized`` are now accessible via the test name, for ex
    test_cool_feature.py::test_series[int8] PASSED
 
 Transitioning to ``hypothesis``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 With the transition to pytest, things have become easier for testing by having reduced boilerplate for test cases and also by utilizing pytest's features like parametizing, skipping and marking test cases.
+
 However, one has to still come up with input data examples which can be tested against the functionality. There is always a possibility to skip testing an example which could have failed the test case.
+
 Imagine if some framework could generate random input examples based on the property/specification of the function being tested. That is exactly what hypothesis does by generating the input data based on some set of specifications provided by the user.
 e.g suppose we have to test python's sum function for a list of int.
 
 Here is a sample test case using pytest:
+
 .. code-block:: python
+
     import pytest
 
     @pytest.mark.parametrize('seq', [
@@ -799,7 +803,9 @@ Here is a sample test case using pytest:
         assert sum(seq) == total
 
 output of test cases:
+
 .. code-block:: shell
+
     collecting ... collected 4 items
     pytest_example.py::test_sum_using_pytest[seq0] PASSED                    [ 25%]
     pytest_example.py::test_sum_using_pytest[seq1] PASSED                    [ 50%]
@@ -810,7 +816,9 @@ output of test cases:
 
 
 Compare it with below example for the same test case using hypothesis.
+
 .. code-block:: python
+
     from hypothesis import strategies as st
     from hypothesis import given
 
@@ -822,8 +830,11 @@ Compare it with below example for the same test case using hypothesis.
             total += item
         assert sum(seq) == total
 
+
 output of test cases:
+
 .. code-block:: shell
+
     collecting ... collected 1 item
     hypothesis_example.py::test_sum PASSED                                   [100%]
 
@@ -831,6 +842,7 @@ output of test cases:
 
 The main difference in above example is use of a decorator "@given(st.lists(st.integers()))" which if applied to test case function, generates some random list of int, which is then assigned to parameter of test case.
 For more information about hypothesis or in general about property based testing, check below links:
+
 - https://hypothesis.readthedocs.io/en/latest/quickstart.html
 - https://hypothesis.works/articles/what-is-property-based-testing/
 - http://blog.jessitron.com/2013/04/property-based-testing-what-is-it.html
