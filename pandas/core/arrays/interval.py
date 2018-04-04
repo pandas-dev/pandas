@@ -5,7 +5,7 @@ from pandas._libs.interval import (Interval, IntervalMixin,
                                    intervals_to_interval_bounds)
 from pandas.compat import add_metaclass, _WritableDoc
 from pandas.compat.numpy import function as nv
-from pandas.core.common import _all_not_none, _asarray_tuplesafe
+import pandas.core.common as com
 from pandas.core.config import get_option
 from pandas.core.dtypes.cast import maybe_convert_platform
 from pandas.core.dtypes.common import (_ensure_platform_int,
@@ -130,7 +130,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             data = maybe_convert_platform_interval(data)
             left, right, infer_closed = intervals_to_interval_bounds(data)
 
-            if _all_not_none(closed, infer_closed) and closed != infer_closed:
+            if (com._all_not_none(closed, infer_closed) and
+                    closed != infer_closed):
                 # GH 18421
                 msg = ("conflicting values for closed: constructor got "
                        "'{closed}', inferred from data '{infer_closed}'"
@@ -790,7 +791,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         examples='',
     ))
     def to_tuples(self, na_tuple=True):
-        tuples = _asarray_tuplesafe(zip(self.left, self.right))
+        tuples = com._asarray_tuplesafe(zip(self.left, self.right))
         if not na_tuple:
             # GH 18756
             tuples = np.where(~self.isna(), tuples, np.nan)
