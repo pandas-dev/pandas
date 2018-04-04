@@ -305,7 +305,7 @@ Storing Interval Data in Series and DataFrame
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Interval data may now be stored in a Series or DataFrame, in addition to an
-:class:`IntervalIndex` like before.
+:class:`IntervalIndex` like before (:issue:`19453`).
 
 .. ipython:: python
 
@@ -520,7 +520,8 @@ If you wish to retain the old behavior while using Python >= 3.6, you can use
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The ``.values`` attribute of an :class:`IntervalIndex` now returns an
-``IntervalArray``, rather than a NumPy array of :class:`Interval` objects.
+``IntervalArray``, rather than a NumPy array of :class:`Interval` objects
+(:issue:`19453`).
 
 Previous Behavior:
 
@@ -1133,6 +1134,7 @@ Indexing
 - Bug in ``Index`` subclasses constructors that ignore unexpected keyword arguments (:issue:`19348`)
 - Bug in :meth:`Index.difference` when taking difference of an ``Index`` with itself (:issue:`20040`)
 - Bug in :meth:`DataFrame.first_valid_index` and :meth:`DataFrame.last_valid_index` in presence of entire rows of NaNs in the middle of values (:issue:`20499`).
+- Bug in the ``IntervalIndex`` repr missing a trailing comma at the end of the "data" section (:issue`20611`)
 
 MultiIndex
 ^^^^^^^^^^
