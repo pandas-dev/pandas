@@ -28,13 +28,55 @@ def get_elements(elem_type):
 
 
 @st.composite
-def get_seq(draw, types, mixed=False, min_size=None, max_size=None, transform_func=None):
-    """helper function to generate strategy for creating lists. parameters define the nature of to be generated list.
-    :param types: what type of elements constitute the list
-    :param mixed: if True, list will contains elements from all types listed in arg, oterwise it will have elements only from types[0].
-    :param min_size: minimum size of the list.
-    :param max_size: maximum size of the list.
-    :param transform_func: a callable which can be applied to whole list after it has been generated.
+def get_seq(draw, types, mixed=False, min_size=None, max_size=None,
+            transform_func=None):
+    """
+    Helper function to generate strategy for creating lists.
+    What constitute in the generated list is driven by the different
+    parameters.
+
+    Parameters
+    ----------
+    types: iterable sequence like tuple or list
+        types which can be in the generated list.
+    mixed: bool
+        if True, list will contains elements from all types listed in arg,
+        otherwise it will have elements only from types[0].
+    min_size: int
+        minimum size of the list.
+    max_size: int
+        maximum size of the list.
+    transform_func: callable
+        a callable which can be applied to whole list after it has been
+         generated. It can think of as providing functionality of filter
+         and map function.
+
+    Returns
+    -------
+    hypothesis lists strategy.
+
+    Examples
+    --------
+    seq_strategy = get_seq((int, str, bool),
+                            mixed=True, min_size=1, max_size=5)
+    seq_strategy.example()
+    Out[12]: ['lkYMSn', -2501, 35, 'J']
+    seq_strategy.example()
+    Out[13]: [True]
+    seq_strategy.example()
+    Out[14]: ['dRWgQYrBrW', True, False, 'gmsujJVDBM', 'Z']
+
+    seq_strategy = get_seq((int, bool),
+                            mixed=False,
+                            min_size=1,
+                            max_size=5,
+                            transform_func=lambda seq: [str(x) for x in seq])
+    seq_strategy.example()
+    Out[19]: ['-1892']
+    seq_strategy.example()
+    Out[20]: ['22', '66', '14785', '-26312', '32']
+    seq_strategy.example()
+    Out[21]: ['22890', '-15537', '96']
     """
     strategy = st.nothing()
     if min_size is None:
@@ -43,7 +85,8 @@ def get_seq(draw, types, mixed=False, min_size=None, max_size=None, transform_fu
     if max_size is None:
         max_size = draw(st.integers(min_value=min_size, max_value=100))
 
-    assert min_size <= max_size, 'max_size must be greater than equal to min_size'
+    assert min_size <= max_size, \
+        'max_size must be greater than equal to min_size'
 
     elem_strategies = []
     for elem_type in types:
@@ -53,10 +96,12 @@ def get_seq(draw, types, mixed=False, min_size=None, max_size=None, transform_fu
 
     if transform_func:
         strategy = draw(st.lists(st.one_of(elem_strategies),
-                                 min_size=min_size, max_size=max_size).map(transform_func))
+                                 min_size=min_size,
+                                 max_size=max_size).map(transform_func))
     else:
         strategy = draw(st.lists(st.one_of(elem_strategies),
-                                 min_size=min_size, max_size=max_size))
+                                 min_size=min_size,
+                                 max_size=max_size))
     return strategy
 
 
@@ -67,7 +112,8 @@ class TestCartesianProduct(object):
            get_seq((int,), False, 1, 2))
     def test_simple(self, x, y):
         x = list(x[0])
-        # non-empty test case is handled in test_empty, therefore ignore it here
+        # non-empty test case is handled in test_empty,
+        # therefore ignore it here.
         assume(len(x) != 0)
         result1, result2 = cartesian_product([x, y])
         expected1 = np.array([item1 for item1 in x for item2 in y])
@@ -77,10 +123,10 @@ class TestCartesianProduct(object):
         tm.assert_numpy_array_equal(result2, expected2)
 
     @settings(max_examples=NO_OF_EXAMPLES_PER_TEST_CASE)
-    def test_datetimeindex(self):
+    @given(st.dates(min_value=date(1900, 1, 1), max_value=date(2100, 1, 1)))
+    def test_datetimeindex(self, d):
         # regression test for GitHub issue #6439
         # make sure that the ordering on datetimeindex is consistent
-        d = st.dates(min_value=date(1900, 1, 1), max_value=date(2100, 1, 1)).example()
         n = d + relativedelta.relativedelta(days=1)
         x = date_range(d, periods=2)
         result1, result2 = [Index(y).day for y in cartesian_product([x, x])]
@@ -112,16 +158,22 @@ class TestCartesianProduct(object):
         assert result == expected
 
     @settings(max_examples=NO_OF_EXAMPLES_PER_TEST_CASE)
-    def test_invalid_input(self):
-        invalid_inputs = [st.integers().example(),
-                          st.tuples(st.integers()).example(),
-                          st.tuples(st.integers(), st.integers()).example(),
-                          st.text(string.ascii_letters, min_size=1, max_size=1).example(),
-                          st.tuples(st.text(string.ascii_letters, min_size=1, max_size=1)).example(),
-                          st.tuples(st.text(string.ascii_letters, min_size=1, max_size=1),
-                                    st.text(string.ascii_letters, min_size=1, max_size=1)).example(),
-                          st.tuples(st.tuples(st.text(string.ascii_letters, min_size=1, max_size=1)),
-                                    st.text(string.ascii_letters, min_size=1, max_size=1)).example()]
+    @given(st.integers(),
+           st.text(string.ascii_letters, min_size=1),
+           get_seq((int, str), True, min_size=1),
+           st.lists(st.one_of(st.integers(),
+                              st.text(string.ascii_letters, min_size=1),
+                              get_seq((int,), min_size=1)
+                              ),
+                    min_size=1).filter(
+               lambda x: len(x) == 1 and type(x[0]) != list)
+           )
+    def test_invalid_input(self, number, text, seq, mixed_seq):
+
+        invalid_inputs = [number,
+                          text,
+                          seq,
+                          mixed_seq]
 
         msg = "Input must be a list-like of list-likes"
         for X in invalid_inputs:
