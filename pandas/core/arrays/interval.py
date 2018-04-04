@@ -456,6 +456,26 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         return self._shallow_copy(left, right)
 
+    def __setitem__(self, key, value):
+        if not (is_interval_dtype(value) or isinstance(value, Interval)):
+            msg = "'value' should be an interval type, got {} instead."
+            raise TypeError(msg.format(type(value)))
+
+        if value.closed != self.closed:
+            msg = "'value.closed' ({}) does not match {}."
+            raise ValueError(value.closed, self.closed)
+
+        # Need to ensure that left and right are updated atomically, so we're
+        # forced to copy, update the copy, and swap in the new values.
+        left = self.left.copy(deep=True)
+        right = self.right.copy(deep=True)
+
+        left.values[key] = value.left
+        right.values[key] = value.right
+
+        self._left = left
+        self._right = right
+
     def fillna(self, value=None, method=None, limit=None):
         if method is not None:
             raise TypeError('Filling by method is not supported for '

@@ -106,3 +106,7 @@ class TestMethods(base.BaseMethodsTests):
 
 class TestCasting(base.BaseCastingTests):
     pass
+
+
+class TestSetitem(base.BaseSetitemTests):
+    pass

@@ -118,6 +118,10 @@ class TestReshaping(BaseInterval, base.BaseReshapingTests):
     pass
 
 
+class TestSetitem(BaseInterval, base.BaseSetitemTests):
+    pass
+
+
 def test_repr_matches():
     idx = IntervalIndex.from_breaks([1, 2, 3])
     a = repr(idx)
