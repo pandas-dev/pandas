@@ -3,6 +3,7 @@ import numpy as np
 
 from pandas._libs.interval import (Interval, IntervalMixin,
                                    intervals_to_interval_bounds)
+from pandas.compat import add_metaclass, _WritableDoc
 from pandas.compat.numpy import function as nv
 from pandas.core.common import _all_not_none, _asarray_tuplesafe
 from pandas.core.config import get_option
@@ -95,6 +96,7 @@ cut, qcut : Convert arrays of continuous data into Categoricals/Series of
     versionadded="0.23.0",
     name='', extra_methods='', examples='',
 ))
+@add_metaclass(_WritableDoc)
 class IntervalArray(IntervalMixin, ExtensionArray):
     dtype = IntervalDtype()
     ndim = 1

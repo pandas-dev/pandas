@@ -4,6 +4,7 @@ import warnings
 
 import numpy as np
 
+from pandas.compat import add_metaclass, _WritableDoc
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
@@ -130,13 +131,12 @@ def _new_IntervalIndex(cls, d):
     """),
 
 ))
+@add_metaclass(_WritableDoc)
 class IntervalIndex(IntervalMixin, Index):
     _typ = 'intervalindex'
     _comparables = ['name']
     _attributes = ['name', 'closed']
     _allow_index_ops = True
-    _exception_rewrite = lambda: rewrite_exception('IntervalArray',
-                                                   'IntervalIndex')
 
     # we would like our indexing holder to defer to us
     _defer_to_indexing = True
@@ -153,7 +153,7 @@ class IntervalIndex(IntervalMixin, Index):
         if name is None and hasattr(data, 'name'):
             name = data.name
 
-        with cls._exception_rewrite():
+        with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray(data, closed=closed, copy=copy, dtype=dtype,
                                   fastpath=fastpath,
                                   verify_integrity=verify_integrity)
@@ -274,7 +274,7 @@ class IntervalIndex(IntervalMixin, Index):
         msg = ('IntervalIndex.from_intervals is deprecated and will be '
                'removed in a future version; Use IntervalIndex(...) instead')
         warnings.warn(msg, FutureWarning, stacklevel=2)
-        with cls._exception_rewrite():
+        with rewrite_exception("IntervalArray", cls.__name__):
             array = IntervalArray(data, closed=closed, copy=copy, dtype=dtype)
 
         if name is None and isinstance(data, cls):
@@ -286,7 +286,7 @@ class IntervalIndex(IntervalMixin, Index):
     @Appender(_interval_shared_docs['from_tuples'] % _index_doc_kwargs)
     def from_tuples(cls, data, closed='right', name=None, copy=False,
                     dtype=None):
-        with cls._exception_rewrite():
+        with rewrite_exception("IntervalArray", cls.__name__):
             arr = IntervalArray.from_tuples(data, closed=closed, copy=copy,
                                             dtype=dtype)
         return cls._simple_new(arr, name=name)
