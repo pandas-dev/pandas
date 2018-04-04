@@ -939,7 +939,7 @@ class ScatterPlot(PlanePlot):
             (0, 1.5): [1, 0.5, 0.25, 0.1]
         }
         for lower_bound, upper_bound in labels_catalog:
-            if (coef >= lower_bound) & (coef < upper_bound):
+            if (coef >= lower_bound) and (coef < upper_bound):
                 labels = 10**expnt * np.array(labels_catalog[lower_bound,
                                                              upper_bound])
                 sizes = list(bubble_points * size_factor * labels / s_data_max)
@@ -3334,7 +3334,7 @@ class FramePlotMethods(BasePlotMethods):
         """
         return self(kind='pie', y=y, **kwds)
 
-    def scatter(self, x, y, s=None, c=None, **kwds):
+    def scatter(self, x, y, s=None, c=None,  size_factor=1, **kwds):
         """
         Create a scatter plot with varying marker point size and color.
 
@@ -3353,8 +3353,11 @@ class FramePlotMethods(BasePlotMethods):
         y : int or str
             The column name or column position to be used as vertical
             coordinates for each point.
-        s : scalar or array_like, optional
+        s : int, str, scalar or array_like, optional
             The size of each point. Possible values are:
+
+            - The column name or column position to be used as bubble size for
+            each point.
 
             - A single scalar so all points have the same size.
 
@@ -3375,6 +3378,9 @@ class FramePlotMethods(BasePlotMethods):
 
             - A column name or position whose values will be used to color the
               marker points according to a colormap.
+
+        size_factor: scalar, optional
+            A multiplication factor to change the size of bubbles
 
         **kwds
             Keyword arguments to pass on to :meth:`pandas.DataFrame.plot`.
@@ -3413,7 +3419,7 @@ class FramePlotMethods(BasePlotMethods):
             ...                       c='species',
             ...                       colormap='viridis')
         """
-        return self(kind='scatter', x=x, y=y, c=c, s=s, **kwds)
+        return self(kind='scatter', x=x, y=y, c=c, s=s, size_factor=size_factor, **kwds)
 
     def hexbin(self, x, y, C=None, reduce_C_function=None, gridsize=None,
                **kwds):
