@@ -1593,9 +1593,10 @@ class NDFrame(PandasObject, SelectionMixin):
     _shared_docs['to_excel'] = """
     Write %(klass)s to an excel sheet.
 
-    To write a %(klass)s to an excel .xlsx file it is necessary to first create
-    an `ExcelWriter` object with a target file name, and specify a sheet in the
-    file to write to. Multiple sheets may be written to by
+    To write a single %(klass)s to an excel .xlsx file it is only necessary to
+    specify a target file name. To write to multiple sheets it is necessary to
+    create an `ExcelWriter` object with a target file name, and specify a sheet
+    in the file to write to. Multiple sheets may be written to by
     specifying unique `sheet_name`. With all data written to the file it is
     necessary to save the changes. Note that creating an ExcelWriter object
     with a file name that already exists will result in the contents of the
@@ -1649,6 +1650,7 @@ class NDFrame(PandasObject, SelectionMixin):
     See Also
     --------
     pandas.read_excel
+    pandas.ExcelWriter
 
     Examples
     --------
@@ -1658,7 +1660,11 @@ class NDFrame(PandasObject, SelectionMixin):
     >>> df1 = pd.DataFrame([['a', 'b'], ['c', 'd']],
     ...                   index=['row 1', 'row 2'],
     ...                   columns=['col 1', 'col 2'])
-    >>> df1.to_excel("output.xlsx", sheet_name='Sheet1')
+    >>> df1.to_excel("output.xlsx")
+
+    To specify the sheet name:
+
+    >>> df1.to_excel("output.xlsx", sheet_name='Sheet_name_1')
 
     If you wish to write to more than one sheet in the workbook, it is
     necessary to specify an ExcelWriter object:
@@ -1673,9 +1679,9 @@ class NDFrame(PandasObject, SelectionMixin):
     data without rewriting the whole workbook.
 
     Limit floats to a fixed precision using float_format. For example
-    float_format="%.2f" will format 0.1234 to 0.12.
+    float_format="%%.2f" will format 0.1234 to 0.12.
 
-    For compatibility with `to_csv <https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.to_csv.html>`__ ,
+    For compatibility with :meth:`~DataFrame.to_csv`,
     to_excel serializes lists and dicts to strings before writing.
     """
 
