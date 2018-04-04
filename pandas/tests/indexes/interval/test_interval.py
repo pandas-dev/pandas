@@ -24,6 +24,7 @@ def name(request):
 
 class TestIntervalIndex(Base):
     _holder = IntervalIndex
+    _compat_props = ['shape', 'ndim', 'size']
 
     def setup_method(self, method):
         self.index = IntervalIndex.from_arrays([0, 1], [1, 2])
@@ -964,3 +965,21 @@ class TestIntervalIndex(Base):
             assert all(isna(x) for x in result_na)
         else:
             assert isna(result_na)
+
+    def test_nbytes(self):
+        # GH 19209
+        left = np.arange(0, 4, dtype='i8')
+        right = np.arange(1, 5, dtype='i8')
+
+        result = IntervalIndex.from_arrays(left, right).nbytes
+        expected = 64  # 4 * 8 * 2
+        assert result == expected
+
+    def test_itemsize(self):
+        # GH 19209
+        left = np.arange(0, 4, dtype='i8')
+        right = np.arange(1, 5, dtype='i8')
+
+        result = IntervalIndex.from_arrays(left, right).itemsize
+        expected = 16  # 8 * 2
+        assert result == expected

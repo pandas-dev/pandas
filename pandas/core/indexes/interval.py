@@ -729,6 +729,14 @@ class IntervalIndex(IntervalMixin, Index):
         return self.left.size
 
     @property
+    def nbytes(self):
+        return self.left.nbytes + self.right.nbytes
+
+    @property
+    def itemsize(self):
+        return self.left.itemsize + self.right.itemsize
+
+    @property
     def shape(self):
         # Avoid materializing self.values
         return self.left.shape
