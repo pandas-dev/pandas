@@ -161,13 +161,9 @@ class TestCartesianProduct(object):
     @given(st.integers(),
            st.text(string.ascii_letters, min_size=1),
            get_seq((int, str), True, min_size=1),
-           st.lists(st.one_of(st.integers(),
-                              st.text(string.ascii_letters, min_size=1),
-                              get_seq((int,), min_size=1)
-                              ),
-                    min_size=1).filter(
-               lambda x: len(x) == 1 and type(x[0]) != list)
-           )
+           st.builds(lambda *x: list(x), st.integers(),
+                     st.text(string.ascii_letters, min_size=1),
+                     st.lists(st.integers(), min_size=1)))
     def test_invalid_input(self, number, text, seq, mixed_seq):
 
         invalid_inputs = [number,
