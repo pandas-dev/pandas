@@ -914,14 +914,12 @@ class ScatterPlot(PlanePlot):
         Returns mantissa and exponent of the number passed in argument.
         Example:
         >>> _sci_notation(89278.8924)
-        (8.9, 5.0)
+        (8.9, 4.0)
         """
         scientific_notation = '{:e}'.format(num)
-        expnt = float(re.search(r'e([+-]\d*)$',
-                                scientific_notation).groups()[0])
-        coef = float(re.search(r'^([+-]?\d\.\d)',
-                               scientific_notation).groups()[0])
-        return coef, expnt
+        regexp = re.compile(r'^([+-]?\d\.\d).*e([+-]\d*)$')
+        mantis, expnt = regexp.search(scientific_notation).groups()
+        return float(mantis), float(expnt)
 
     def _legend_bubbles(self, s_data_max, size_factor, bubble_points):
         """
