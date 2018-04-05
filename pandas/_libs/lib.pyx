@@ -461,6 +461,7 @@ cpdef ndarray[object] astype_unicode(ndarray arr):
     cdef:
         Py_ssize_t i, n = arr.size
         ndarray[object] result = np.empty(n, dtype=object)
+        object arr_i
 
     for i in range(n):
         # we can use the unsafe version because we know `result` is mutable
@@ -469,7 +470,8 @@ cpdef ndarray[object] astype_unicode(ndarray arr):
         util.set_value_at_unsafe(
             result,
             i,
-            unicode(arr_i) if arr_i is not np.nan else np.nan)
+            unicode(arr_i) if not checknull(arr_i) else np.nan
+        )
 
     return result
 
@@ -478,6 +480,7 @@ cpdef ndarray[object] astype_str(ndarray arr):
     cdef:
         Py_ssize_t i, n = arr.size
         ndarray[object] result = np.empty(n, dtype=object)
+        object arr_i
 
     for i in range(n):
         # we can use the unsafe version because we know `result` is mutable
@@ -486,7 +489,8 @@ cpdef ndarray[object] astype_str(ndarray arr):
         util.set_value_at_unsafe(
             result,
             i,
-            str(arr_i) if arr_i is not np.nan else np.nan)
+            str(arr_i) if not checknull(arr_i) else np.nan
+        )
 
     return result
 
