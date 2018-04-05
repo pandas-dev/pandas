@@ -22,7 +22,7 @@ def _try_import():
 
 
 def read_gbq(query, project_id=None, index_col=None, col_order=None,
-             reauth=False, verbose=True, private_key=None, dialect='legacy',
+             reauth=False, verbose=None, private_key=None, dialect='legacy',
              **kwargs):
     """
     Load data from Google BigQuery.
@@ -50,27 +50,34 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         SQL-Like Query to return data values.
     project_id : str
         Google BigQuery Account project ID.
-    index_col : str (optional)
+    index_col : str, optional
         Name of result column to use for index in results DataFrame.
-    col_order : list(str) (optional)
+    col_order : list(str), optional
         List of BigQuery column names in the desired order for results
         DataFrame.
-    reauth : boolean (default False)
+    reauth : boolean, default False
         Force Google BigQuery to reauthenticate the user. This is useful
         if multiple accounts are used.
-    verbose : boolean (default True)
-        Verbose output.
-    private_key : str (optional)
+    private_key : str, optional
         Service account private key in JSON format. Can be file path
         or string contents. This is useful for remote server
         authentication (eg. Jupyter/IPython notebook on remote host).
-    dialect : {'legacy', 'standard'}, default 'legacy'
-        SQL syntax dialect to use.
-        'legacy' : Use BigQuery's legacy SQL dialect.
-        'standard' : Use BigQuery's standard SQL, which is
-        compliant with the SQL 2011 standard. For more information
-        see `BigQuery SQL Reference
-        <https://cloud.google.com/bigquery/sql-reference/>`__.
+    dialect : str, default 'legacy'
+        SQL syntax dialect to use. Value can be one of:
+
+        ``'legacy'``
+            Use BigQuery's legacy SQL dialect. For more information see
+            `BigQuery Legacy SQL Reference
+            <https://cloud.google.com/bigquery/docs/reference/legacy-sql>`__.
+        ``'standard'``
+            Use BigQuery's standard SQL, which is
+            compliant with the SQL 2011 standard. For more information
+            see `BigQuery Standard SQL Reference
+            <https://cloud.google.com/bigquery/docs/reference/standard-sql/>`__.
+    verbose : boolean, deprecated
+        *Deprecated in Pandas-GBQ 0.4.0.* Use the `logging module
+        to adjust verbosity instead
+        <https://pandas-gbq.readthedocs.io/en/latest/intro.html#logging>`__.
     kwargs : dict
         Arbitrary keyword arguments.
         configuration (dict): query config parameters for job processing.
@@ -102,7 +109,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
 
 
 def to_gbq(dataframe, destination_table, project_id, chunksize=None,
-           verbose=True, reauth=False, if_exists='fail', private_key=None,
+           verbose=None, reauth=False, if_exists='fail', private_key=None,
            auth_local_webserver=False, table_schema=None):
     pandas_gbq = _try_import()
     return pandas_gbq.to_gbq(

@@ -1117,7 +1117,7 @@ class DataFrame(NDFrame):
             raise ValueError("orient '%s' not understood" % orient)
 
     def to_gbq(self, destination_table, project_id, chunksize=None,
-               verbose=True, reauth=False, if_exists='fail', private_key=None,
+               verbose=None, reauth=False, if_exists='fail', private_key=None,
                auth_local_webserver=False, table_schema=None):
         """
         Write a DataFrame to a Google BigQuery table.
@@ -1150,8 +1150,6 @@ class DataFrame(NDFrame):
         chunksize : int, optional
             Number of rows to be inserted in each chunk from the dataframe.
             Set to ``None`` to load the whole dataframe at once.
-        verbose : bool, default True
-            Show percentage complete.
         reauth : bool, default False
             Force Google BigQuery to reauthenticate the user. This is useful
             if multiple accounts are used.
@@ -1186,6 +1184,10 @@ class DataFrame(NDFrame):
             BigQuery API documentation on available names of a field.
 
             *New in version 0.3.1 of pandas-gbq*.
+        verbose : boolean, deprecated
+            *Deprecated in Pandas-GBQ 0.4.0.* Use the `logging module
+            to adjust verbosity instead
+            <https://pandas-gbq.readthedocs.io/en/latest/intro.html#logging>`__.
 
         See Also
         --------
