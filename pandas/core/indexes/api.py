@@ -31,17 +31,17 @@ __all__ = ['Index', 'MultiIndex', 'NumericIndex', 'Float64Index', 'Int64Index',
            '_all_indexes_same']
 
 
-def _get_objs_combined_axis(objs, intersect=False, axis=0):
+def _get_objs_combined_axis(objs, intersect=False, axis=0, sort=True):
     # Extract combined index: return intersection or union (depending on the
     # value of "intersect") of indexes on given axis, or None if all objects
     # lack indexes (e.g. they are numpy arrays)
     obs_idxes = [obj._get_axis(axis) for obj in objs
                  if hasattr(obj, '_get_axis')]
     if obs_idxes:
-        return _get_combined_index(obs_idxes, intersect=intersect)
+        return _get_combined_index(obs_idxes, intersect=intersect, sort=sort)
 
 
-def _get_combined_index(indexes, intersect=False):
+def _get_combined_index(indexes, intersect=False, sort=True):
     # TODO: handle index names!
     indexes = com._get_distinct_objs(indexes)
     if len(indexes) == 0:
@@ -53,11 +53,11 @@ def _get_combined_index(indexes, intersect=False):
         for other in indexes[1:]:
             index = index.intersection(other)
         return index
-    union = _union_indexes(indexes)
+    union = _union_indexes(indexes, sort=sort)
     return _ensure_index(union)
 
 
-def _union_indexes(indexes):
+def _union_indexes(indexes, sort=True):
     if len(indexes) == 0:
         raise AssertionError('Must have at least 1 Index to union')
     if len(indexes) == 1:
@@ -74,7 +74,8 @@ def _union_indexes(indexes):
                 i = i.tolist()
             return i
 
-        return Index(lib.fast_unique_multiple_list([conv(i) for i in inds]))
+        return Index(
+            lib.fast_unique_multiple_list([conv(i) for i in inds], sort=sort))
 
     if kind == 'special':
         result = indexes[0]

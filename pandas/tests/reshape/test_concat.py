@@ -5,7 +5,7 @@ import numpy as np
 from numpy.random import randn
 
 from datetime import datetime
-from pandas.compat import StringIO, iteritems, PY2
+from pandas.compat import StringIO, iteritems
 import pandas as pd
 from pandas import (DataFrame, concat,
                     read_csv, isna, Series, date_range,
@@ -852,8 +852,9 @@ class TestAppend(ConcatenateBase):
                                    dt.datetime(2013, 1, 2, 0, 0),
                                    dt.datetime(2013, 1, 3, 0, 0),
                                    dt.datetime(2013, 1, 4, 0, 0)],
-                                  name='start_time')], axis=1)
-        result = df1.append(df2, ignore_index=True)
+                                  name='start_time')],
+                          axis=1, sort=True)
+        result = df1.append(df2, ignore_index=True, sort=True)
         assert_frame_equal(result, expected)
 
     def test_append_missing_column_proper_upcast(self):
@@ -1011,7 +1012,8 @@ class TestConcatenate(ConcatenateBase):
         frame1.index = Index(["x", "y", "z"])
         frame2.index = Index(["x", "y", "q"])
 
-        v1 = concat([frame1, frame2], axis=1, ignore_index=True)
+        v1 = concat([frame1, frame2], axis=1,
+                    ignore_index=True, sort=True)
 
         nan = np.nan
         expected = DataFrame([[nan, nan, nan, 4.3],
@@ -1463,7 +1465,7 @@ class TestConcatenate(ConcatenateBase):
         # must reindex, #2603
         s = Series(randn(3), index=['c', 'a', 'b'], name='A')
         s2 = Series(randn(4), index=['d', 'a', 'b', 'c'], name='B')
-        result = concat([s, s2], axis=1)
+        result = concat([s, s2], axis=1, sort=True)
         expected = DataFrame({'A': s, 'B': s2})
         assert_frame_equal(result, expected)
 
@@ -2070,8 +2072,6 @@ bar2,12,13,14,15
                 for i in range(100)]
         result = pd.concat(dfs).columns
         expected = dfs[0].columns
-        if PY2:
-            expected = expected.sort_values()
         tm.assert_index_equal(result, expected)
 
     def test_concat_datetime_timezone(self):
@@ -2155,3 +2155,24 @@ def test_concat_empty_and_non_empty_series_regression():
     expected = s1
     result = pd.concat([s1, s2])
     tm.assert_series_equal(result, expected)
+
+
+def test_concat_preserve_column_order_differing_columns():
+    # GH 4588 regression test
+    # for new columns in concat
+    dfa = pd.DataFrame(columns=['C', 'A'], data=[[1, 2]])
+    dfb = pd.DataFrame(columns=['C', 'Z'], data=[[5, 6]])
+    result = pd.concat([dfa, dfb])
+    assert result.columns.tolist() == ['C', 'A', 'Z']
+
+
+def test_concat_preserve_column_order_uneven_data():
+    # GH 4588 regression test
+    # add to column, concat with uneven data
+    df = pd.DataFrame()
+    df['b'] = [1, 2, 3]
+    df['c'] = [1, 2, 3]
+    df['a'] = [1, 2, 3]
+    df2 = pd.DataFrame({'a': [4, 5]})
+    df3 = pd.concat([df, df2])
+    assert df3.columns.tolist() == ['b', 'c', 'a']
