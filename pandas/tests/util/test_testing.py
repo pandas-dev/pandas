@@ -276,6 +276,19 @@ numpy array values are different \\(25\\.0 %\\)
             assert_almost_equal(np.array([[1, 2], [3, 4]]),
                                 np.array([[1, 3], [3, 4]]))
 
+        expected = """numpy array are different
+
+numpy array values are different \\(33\\.33333 %\\)
+\\[left\\]:  \\[á, à, ä\\]
+\\[right\\]: \\[á, à, å\\]"""
+
+        with tm.assert_raises_regex(AssertionError, expected):
+            assert_numpy_array_equal(np.array([u"á", u"à", u"ä"]),
+                                     np.array([u"á", u"à", u"å"]))
+        with tm.assert_raises_regex(AssertionError, expected):
+            assert_almost_equal(np.array([u"á", u"à", u"ä"]),
+                                np.array([u"á", u"à", u"å"]))
+
         # allow to overwrite message
         expected = """Index are different
 
@@ -499,10 +512,12 @@ class TestAssertSeriesEqual(object):
     def test_equal(self):
         self._assert_equal(Series(range(3)), Series(range(3)))
         self._assert_equal(Series(list('abc')), Series(list('abc')))
+        self._assert_equal(Series(list(u'áàä')), Series(list(u'áàä')))
 
     def test_not_equal(self):
         self._assert_not_equal(Series(range(3)), Series(range(3)) + 1)
         self._assert_not_equal(Series(list('abc')), Series(list('xyz')))
+        self._assert_not_equal(Series(list(u'áàä')), Series(list(u'éèë')))
         self._assert_not_equal(Series(range(3)), Series(range(4)))
         self._assert_not_equal(
             Series(range(3)), Series(
@@ -676,6 +691,21 @@ DataFrame\\.iloc\\[:, 1\\] values are different \\(33\\.33333 %\\)
         with tm.assert_raises_regex(AssertionError, expected):
             assert_frame_equal(pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]}),
                                pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 7]}),
+                               by_blocks=True)
+
+        expected = """DataFrame\\.iloc\\[:, 1\\] are different
+
+DataFrame\\.iloc\\[:, 1\\] values are different \\(33\\.33333 %\\)
+\\[left\\]:  \\[é, è, ë\\]
+\\[right\\]: \\[é, è, e̊\\]"""
+
+        with tm.assert_raises_regex(AssertionError, expected):
+            assert_frame_equal(pd.DataFrame({'A': [u"á", u"à", u"ä"], 'E': [u"é", u"è", u"ë"]}),
+                               pd.DataFrame({'A': [u"á", u"à", u"ä"], 'E': [u"é", u"è", u"e̊"]}))
+
+        with tm.assert_raises_regex(AssertionError, expected):
+            assert_frame_equal(pd.DataFrame({'A': [u"á", u"à", u"ä"], 'E': [u"é", u"è", u"ë"]}),
+                               pd.DataFrame({'A': [u"á", u"à", u"ä"], 'E': [u"é", u"è", u"e̊"]}),
                                by_blocks=True)
 
 
