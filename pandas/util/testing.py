@@ -989,11 +989,13 @@ def assert_categorical_equal(left, right, check_dtype=True,
 
 def raise_assert_detail(obj, message, left, right, diff=None):
     if isinstance(left, np.ndarray):
-        left = pprint_thing_encoded(left, encoding=pd.options.display.encoding)
+        left = pprint_thing_encoded(left,
+                                    encoding=pd.options.display.encoding)
     elif is_categorical_dtype(left):
         left = repr(left)
     if isinstance(right, np.ndarray):
-        right = pprint_thing_encoded(right, encoding=pd.options.display.encoding)
+        right = pprint_thing_encoded(right,
+                                     encoding=pd.options.display.encoding)
     elif is_categorical_dtype(right):
         right = repr(right)
 

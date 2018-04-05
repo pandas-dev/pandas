@@ -283,11 +283,11 @@ numpy array values are different \\(33\\.33333 %\\)
 \\[right\\]: \\[á, à, å\\]"""
 
         with tm.assert_raises_regex(AssertionError, expected):
-            assert_numpy_array_equal(np.array([u"á", u"à", u"ä"]),
-                                     np.array([u"á", u"à", u"å"]))
+            assert_numpy_array_equal(np.array([u'á', u'à', u'ä']),
+                                     np.array([u'á', u'à', u'å']))
         with tm.assert_raises_regex(AssertionError, expected):
-            assert_almost_equal(np.array([u"á", u"à", u"ä"]),
-                                np.array([u"á", u"à", u"å"]))
+            assert_almost_equal(np.array([u'á', u'à', u'ä']),
+                                np.array([u'á', u'à', u'å']))
 
         # allow to overwrite message
         expected = """Index are different
@@ -700,12 +700,16 @@ DataFrame\\.iloc\\[:, 1\\] values are different \\(33\\.33333 %\\)
 \\[right\\]: \\[é, è, e̊\\]"""
 
         with tm.assert_raises_regex(AssertionError, expected):
-            assert_frame_equal(pd.DataFrame({'A': [u"á", u"à", u"ä"], 'E': [u"é", u"è", u"ë"]}),
-                               pd.DataFrame({'A': [u"á", u"à", u"ä"], 'E': [u"é", u"è", u"e̊"]}))
+            assert_frame_equal(pd.DataFrame({'A': [u'á', u'à', u'ä'],
+                                             'E': [u'é', u'è', u'ë']}),
+                               pd.DataFrame({'A': [u'á', u'à', u'ä'],
+                                             'E': [u'é', u'è', u'e̊']}))
 
         with tm.assert_raises_regex(AssertionError, expected):
-            assert_frame_equal(pd.DataFrame({'A': [u"á", u"à", u"ä"], 'E': [u"é", u"è", u"ë"]}),
-                               pd.DataFrame({'A': [u"á", u"à", u"ä"], 'E': [u"é", u"è", u"e̊"]}),
+            assert_frame_equal(pd.DataFrame({'A': [u'á', u'à', u'ä'],
+                                             'E': [u'é', u'è', u'ë']}),
+                               pd.DataFrame({'A': [u'á', u'à', u'ä'],
+                                             'E': [u'é', u'è', u'e̊']}),
                                by_blocks=True)
 
 
