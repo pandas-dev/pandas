@@ -31,7 +31,7 @@ from pandas.core.dtypes.common import (
     is_interval_dtype,
     is_sequence,
     is_list_like)
-from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.printing import pprint_thing_encoded
 from pandas.core.algorithms import take_1d
 import pandas.core.common as com
 
@@ -989,11 +989,11 @@ def assert_categorical_equal(left, right, check_dtype=True,
 
 def raise_assert_detail(obj, message, left, right, diff=None):
     if isinstance(left, np.ndarray):
-        left = repr(pprint_thing(left))
+        left = pprint_thing_encoded(left, encoding=pd.options.display.encoding)
     elif is_categorical_dtype(left):
         left = repr(left)
     if isinstance(right, np.ndarray):
-        right = repr(pprint_thing(right))
+        right = pprint_thing_encoded(right, encoding=pd.options.display.encoding)
     elif is_categorical_dtype(right):
         right = repr(right)
 
