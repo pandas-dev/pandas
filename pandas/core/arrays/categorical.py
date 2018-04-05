@@ -2221,7 +2221,7 @@ class Categorical(ExtensionArray, PandasObject):
     def isin(self, values):
         from pandas.core.series import _sanitize_array
         values = _sanitize_array(values, None, None)
-        null_mask = isna(values)
+        null_mask = np.asarray(isna(values))
         code_values = self.categories.get_indexer(values)
         code_values = code_values[null_mask | (code_values >= 0)]
         return algorithms.isin(self.codes, code_values)
