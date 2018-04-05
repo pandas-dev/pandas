@@ -3564,10 +3564,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         5    False
         Name: animal, dtype: bool
         """
-        if hasattr(self._values, 'isin'):
-            result = self._values.isin(values)
-        else:
-            result = algorithms.isin(com._values_from_object(self), values)
+        result = algorithms.isin(self, values)
         return self._constructor(result, index=self.index).__finalize__(self)
 
     def between(self, left, right, inclusive=True):

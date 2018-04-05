@@ -407,6 +407,12 @@ def isin(comps, values):
     if not isinstance(values, (ABCIndex, ABCSeries, np.ndarray)):
         values = construct_1d_object_array_from_listlike(list(values))
 
+    if is_categorical_dtype(comps):
+        # handle categoricals
+        return comps._values.isin(values)
+
+    comps = com._values_from_object(comps)
+
     comps, dtype, _ = _ensure_data(comps)
     values, _, _ = _ensure_data(values, dtype=dtype)
 

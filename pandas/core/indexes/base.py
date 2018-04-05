@@ -3487,7 +3487,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if level is not None:
             self._validate_index_level(level)
-        return algos.isin(np.array(self), values)
+        return algos.isin(self, values)
 
     def _can_reindex(self, indexer):
         """
