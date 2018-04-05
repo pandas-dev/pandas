@@ -20,9 +20,9 @@
    plt.close('all')
 
    import pandas.util.testing as tm
-   pd.options.display.max_rows=15
-   clipdf = pd.DataFrame({'A':[1,2,3],'B':[4,5,6],'C':['p','q','r']},
-                         index=['x','y','z'])
+   pd.options.display.max_rows = 15
+   clipdf = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6], 'C': ['p', 'q', 'r']},
+                         index=['x', 'y', 'z'])
 
 ===============================
 IO Tools (Text, CSV, HDF5, ...)
@@ -391,7 +391,7 @@ of :func:`~pandas.read_csv`:
 .. ipython:: python
 
     data = "col_1\n1\n2\n'A'\n4.22"
-    df = pd.read_csv(StringIO(data), converters={'col_1':str})
+    df = pd.read_csv(StringIO(data), converters={'col_1': str})
     df
     df['col_1'].apply(type).value_counts()
 
@@ -863,7 +863,7 @@ data columns:
 
    date_spec = {'nominal': [1, 2], 'actual': [1, 3]}
    df = pd.read_csv('tmp.csv', header=None, parse_dates=date_spec,
-                    index_col=0) #index is the nominal column
+                    index_col=0)  # index is the nominal column
    df
 
 .. note::
@@ -921,7 +921,7 @@ Note that performance-wise, you should try these methods of parsing dates in ord
 1. Try to infer the format using ``infer_datetime_format=True`` (see section below).
 
 2. If you know the format, use ``pd.to_datetime()``:
-   ``date_parser=lambda x: pd.to_datetime(x, format=...)``.
+   ``date_parser = lambda x: pd.to_datetime(x, format=...)``.
 
 3. If you have a really non-standard format, use a custom ``date_parser`` function.
    For optimal performance, this should be vectorized, i.e., it should accept arrays
@@ -1336,7 +1336,7 @@ column specifications to the `read_fwf` function along with the file name:
 
 .. ipython:: python
 
-   #Column specifications are a list of half-intervals
+   # Column specifications are a list of half-intervals
    colspecs = [(0, 6), (8, 20), (21, 33), (34, 43)]
    df = pd.read_fwf('bar.csv', colspecs=colspecs, header=None, index_col=0)
    df
@@ -1347,7 +1347,7 @@ column widths for contiguous columns:
 
 .. ipython:: python
 
-   #Widths are a list of integers
+   # Widths are a list of integers
    widths = [6, 14, 13, 10]
    df = pd.read_fwf('bar.csv', widths=widths, header=None)
    df
@@ -2111,8 +2111,8 @@ For line-delimited json files, pandas can also return an iterator which reads in
 .. ipython:: python
 
   jsonl = '''
-      {"a":1,"b":2}
-      {"a":3,"b":4}
+      {"a": 1, "b": 2}
+      {"a": 3, "b": 4}
   '''
   df = pd.read_json(jsonl, lines=True)
   df
@@ -3247,14 +3247,14 @@ You can pass ``iterator=True`` to iterate over the unpacked results:
 
 .. ipython:: python
 
-   for o in pd.read_msgpack('foo.msg',iterator=True):
+   for o in pd.read_msgpack('foo.msg', iterator=True):
        print(o)
 
 You can pass ``append=True`` to the writer to append to an existing pack:
 
 .. ipython:: python
 
-   df.to_msgpack('foo.msg',append=True)
+   df.to_msgpack('foo.msg', append=True)
    pd.read_msgpack('foo.msg')
 
 Unlike other io methods, ``to_msgpack`` is available on both a per-object basis,
@@ -3416,12 +3416,12 @@ HDFStore will by default not drop rows that are all missing. This behavior can b
    df_with_missing
 
    df_with_missing.to_hdf('file.h5', 'df_with_missing',
-                           format = 'table', mode='w')
+                           format='table', mode='w')
 
    pd.read_hdf('file.h5', 'df_with_missing')
 
    df_with_missing.to_hdf('file.h5', 'df_with_missing',
-                           format = 'table', mode='w', dropna=True)
+                           format='table', mode='w', dropna=True)
    pd.read_hdf('file.h5', 'df_with_missing')
 
 
@@ -3434,19 +3434,19 @@ This is also true for the major axis of a ``Panel``:
 
 .. ipython:: python
 
-   matrix = [[[np.nan, np.nan, np.nan],[1,np.nan,np.nan]],
-          [[np.nan, np.nan, np.nan], [np.nan,5,6]],
-          [[np.nan, np.nan, np.nan],[np.nan,3,np.nan]]]
+   matrix = [[[np.nan, np.nan, np.nan], [1, np.nan, np.nan]],
+            [[np.nan, np.nan, np.nan], [np.nan, 5, 6]],
+            [[np.nan, np.nan, np.nan], [np.nan, 3, np.nan]]]
 
-   panel_with_major_axis_all_missing = pd.Panel(matrix,
-           items=['Item1', 'Item2','Item3'],
-           major_axis=[1,2],
+   panel_with_major_axis_all_missing=pd.Panel(matrix,
+           items=['Item1', 'Item2', 'Item3'],
+           major_axis=[1, 2],
            minor_axis=['A', 'B', 'C'])
 
    panel_with_major_axis_all_missing
 
    panel_with_major_axis_all_missing.to_hdf('file.h5', 'panel',
-                                           dropna = True,
+                                           dropna=True,
                                            format='table',
                                            mode='w')
    reloaded = pd.read_hdf('file.h5', 'panel')
@@ -4596,7 +4596,8 @@ Read only certain columns of a parquet file.
 
 .. ipython:: python
 
-   result = pd.read_parquet('example_fp.parquet', engine='fastparquet', columns=['a', 'b'])
+   result = pd.read_parquet('example_fp.parquet',
+                            engine='fastparquet', columns=['a', 'b'])
 
    result.dtypes
 
@@ -4888,7 +4889,8 @@ Use :func:`sqlalchemy.text` to specify query parameters in a backend-neutral way
 .. ipython:: python
 
    import sqlalchemy as sa
-   pd.read_sql(sa.text('SELECT * FROM data where Col_1=:col1'), engine, params={'col1': 'X'})
+   pd.read_sql(sa.text('SELECT * FROM data where Col_1=:col1'),
+               engine, params={'col1': 'X'})
 
 If you have an SQLAlchemy description of your database you can express where conditions using SQLAlchemy expressions
 
@@ -5306,34 +5308,35 @@ And here's the code:
        sql_db.close()
 
    def test_hdf_fixed_write(df):
-       df.to_hdf('test_fixed.hdf','test',mode='w')
+       df.to_hdf('test_fixed.hdf', 'test', mode='w')
 
    def test_hdf_fixed_read():
-       pd.read_hdf('test_fixed.hdf','test')
+       pd.read_hdf('test_fixed.hdf', 'test')
 
    def test_hdf_fixed_write_compress(df):
-       df.to_hdf('test_fixed_compress.hdf','test',mode='w',complib='blosc')
+       df.to_hdf('test_fixed_compress.hdf', 'test', mode='w', complib='blosc')
 
    def test_hdf_fixed_read_compress():
-       pd.read_hdf('test_fixed_compress.hdf','test')
+       pd.read_hdf('test_fixed_compress.hdf', 'test')
 
    def test_hdf_table_write(df):
-       df.to_hdf('test_table.hdf','test',mode='w',format='table')
+       df.to_hdf('test_table.hdf', 'test', mode='w', format='table')
 
    def test_hdf_table_read():
-       pd.read_hdf('test_table.hdf','test')
+       pd.read_hdf('test_table.hdf', 'test')
 
    def test_hdf_table_write_compress(df):
-       df.to_hdf('test_table_compress.hdf','test',mode='w',complib='blosc',format='table')
+       df.to_hdf('test_table_compress.hdf', 'test',
+                 mode='w', complib='blosc', format='table')
 
    def test_hdf_table_read_compress():
-       pd.read_hdf('test_table_compress.hdf','test')
+       pd.read_hdf('test_table_compress.hdf', 'test')
 
    def test_csv_write(df):
-       df.to_csv('test.csv',mode='w')
+       df.to_csv('test.csv', mode='w')
 
    def test_csv_read():
-       pd.read_csv('test.csv',index_col=0)
+       pd.read_csv('test.csv', index_col=0)
 
    def test_feather_write(df):
        df.to_feather('test.feather')
