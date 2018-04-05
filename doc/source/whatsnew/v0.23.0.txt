@@ -924,6 +924,9 @@ read the `NumFOCUS blogpost`_ recapping the sprint.
   to functions, methods and classes.
   (:issue:`18941`, :issue:`18948`, :issue:`18973`, :issue:`19017`)
 - Added a reference to :func:`DataFrame.assign` in the concatenate section of the merging documentation (:issue:`18665`)
+- Updated ``to_gbq`` and ``read_gbq`` documentation to reflect changes from
+  the Pandas-GBQ library. Adds intersphinx mapping to Pandas-GBQ library.
+  (:issue:`20564`)
 
 .. _whatsnew_0230.bug_fixes:
 
