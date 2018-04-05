@@ -2766,7 +2766,7 @@ class SeriesFixed(GenericFixed):
         super(SeriesFixed, self).write(obj, **kwargs)
         self.write_index('index', obj.index)
         if is_datetime64tz_dtype(obj.dtype):
-            values = obj._data.blocks[0].values
+            values = obj.dt._get_values()
         else:
             values = obj.values
         self.write_array('values', values)
