@@ -276,19 +276,6 @@ numpy array values are different \\(25\\.0 %\\)
             assert_almost_equal(np.array([[1, 2], [3, 4]]),
                                 np.array([[1, 3], [3, 4]]))
 
-        expected = """numpy array are different
-
-numpy array values are different \\(33\\.33333 %\\)
-\\[left\\]:  \\[á, à, ä\\]
-\\[right\\]: \\[á, à, å\\]"""
-
-        with tm.assert_raises_regex(AssertionError, expected):
-            assert_numpy_array_equal(np.array([u'á', u'à', u'ä']),
-                                     np.array([u'á', u'à', u'å']))
-        with tm.assert_raises_regex(AssertionError, expected):
-            assert_almost_equal(np.array([u'á', u'à', u'ä']),
-                                np.array([u'á', u'à', u'å']))
-
         # allow to overwrite message
         expected = """Index are different
 
@@ -302,6 +289,24 @@ Index shapes are different
         with tm.assert_raises_regex(AssertionError, expected):
             assert_almost_equal(np.array([1, 2]), np.array([3, 4, 5]),
                                 obj='Index')
+
+    def test_numpy_array_equal_unicode_message(self):
+        # Test ensures that `assert_numpy_array_equals` raises the right
+        # exception when comparing np.arrays containing differing
+        # unicode objects (#20503)
+
+        expected = """numpy array are different
+
+numpy array values are different \\(33\\.33333 %\\)
+\\[left\\]:  \\[á, à, ä\\]
+\\[right\\]: \\[á, à, å\\]"""
+
+        with tm.assert_raises_regex(AssertionError, expected):
+            assert_numpy_array_equal(np.array([u'á', u'à', u'ä']),
+                                     np.array([u'á', u'à', u'å']))
+        with tm.assert_raises_regex(AssertionError, expected):
+            assert_almost_equal(np.array([u'á', u'à', u'ä']),
+                                np.array([u'á', u'à', u'å']))
 
     @td.skip_if_windows
     def test_numpy_array_equal_object_message(self):
@@ -692,6 +697,11 @@ DataFrame\\.iloc\\[:, 1\\] values are different \\(33\\.33333 %\\)
             assert_frame_equal(pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]}),
                                pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 7]}),
                                by_blocks=True)
+
+    def test_frame_equal_message_unicode(self):
+        # Test ensures that `assert_frame_equals` raises the right
+        # exception when comparing DataFrames containing differing
+        # unicode objects (#20503)
 
         expected = """DataFrame\\.iloc\\[:, 1\\] are different
 
