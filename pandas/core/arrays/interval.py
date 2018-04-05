@@ -438,7 +438,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     # Interface
     # ---------
     def __iter__(self):
-        return iter(self.values)
+        return iter(np.asarray(self))
 
     def __len__(self):
         return len(self.left)
@@ -517,10 +517,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             else:
                 return self
         elif is_categorical_dtype(dtype):
-            return Categorical(self.values)
+            return Categorical(np.asarray(self))
         # TODO: This try/except will be repeated.
         try:
-            return self.values.astype(dtype, copy=copy)
+            return np.asarray(self).astype(dtype, copy=copy)
         except (TypeError, ValueError):
             msg = 'Cannot cast {name} to dtype {dtype}'
             raise TypeError(msg.format(name=type(self).__name__, dtype=dtype))
@@ -571,10 +571,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return type(self).from_arrays(left, right, closed=closed)
 
     def _formatting_values(self):
-        return self.values
-
-    def get_values(self):
-        return self.values
+        return np.asarray(self)
 
     def isna(self):
         return isna(self.left)
@@ -616,8 +613,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             new_right = taker(right.astype(float))
 
         return self._shallow_copy(new_left, new_right)
-
-    take_nd = take
 
     # Formatting
 
@@ -750,8 +745,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                     (self.left[:-1] >= self.right[1:]).all())
 
     # Conversion
-    @property
-    def values(self):
+    def __array__(self, dtype=None):
         """
         Return the IntervalIndex's data as a numpy array of Interval
         objects (with dtype='object')
@@ -796,17 +790,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             # GH 18756
             tuples = np.where(~self.isna(), tuples, np.nan)
         return tuples
-
-    def tolist(self):
-        """
-        Return a list of Interval objects.
-
-        See Also
-        --------
-        numpy.ndarray.tolist
-        """
-        # TODO: think about putting this in a parent
-        return self.values.tolist()
 
     def repeat(self, repeats):
         """Repeat elements of an IntervalArray
