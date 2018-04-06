@@ -2,6 +2,7 @@
 Base and utility classes for pandas objects.
 """
 import warnings
+import textwrap
 from pandas import compat
 from pandas.compat import builtins
 import numpy as np
@@ -855,6 +856,7 @@ class IndexOpsMixin(object):
         'a'
 
         For a MultiIndex, the minimum is determined lexicographically.
+
         >>> idx = pd.MultiIndex.from_product([('a', 'b'), (2, 1)])
         >>> idx.min()
         ('a', 1)
@@ -1019,30 +1021,6 @@ class IndexOpsMixin(object):
                               normalize=normalize, bins=bins, dropna=dropna)
         return result
 
-    _shared_docs['unique'] = (
-        """
-        Return unique values in the object. Uniques are returned in order
-        of appearance, this does NOT sort. Hash table-based unique.
-
-        Parameters
-        ----------
-        values : 1d array-like
-
-        Returns
-        -------
-        unique values.
-          - If the input is an Index, the return is an Index
-          - If the input is a Categorical dtype, the return is a Categorical
-          - If the input is a Series/ndarray, the return will be an ndarray
-
-        See Also
-        --------
-        unique
-        Index.unique
-        Series.unique
-        """)
-
-    @Appender(_shared_docs['unique'] % _indexops_doc_kwargs)
     def unique(self):
         values = self._values
 
@@ -1150,24 +1128,16 @@ class IndexOpsMixin(object):
             v += lib.memory_usage_of_objects(self.values)
         return v
 
+    @Substitution(
+        values='', order='', size_hint='',
+        sort=textwrap.dedent("""\
+            sort : boolean, default False
+                Sort `uniques` and shuffle `labels` to maintain the
+                relationship.
+            """))
+    @Appender(algorithms._shared_docs['factorize'])
     def factorize(self, sort=False, na_sentinel=-1):
-        """
-        Encode the object as an enumerated type or categorical variable
-
-        Parameters
-        ----------
-        sort : boolean, default False
-            Sort by values
-        na_sentinel: int, default -1
-            Value to mark "not found"
-
-        Returns
-        -------
-        labels : the indexer to the original array
-        uniques : the unique Index
-        """
-        from pandas.core.algorithms import factorize
-        return factorize(self, sort=sort, na_sentinel=na_sentinel)
+        return algorithms.factorize(self, sort=sort, na_sentinel=na_sentinel)
 
     _shared_docs['searchsorted'] = (
         """Find indices where elements should be inserted to maintain order.

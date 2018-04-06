@@ -3,7 +3,7 @@
 
 from itertools import product
 from distutils.version import LooseVersion
-
+import operator
 import pytest
 
 from numpy import nan
@@ -18,7 +18,7 @@ from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.indexes.timedeltas import Timedelta
 import pandas.core.nanops as nanops
 
-from pandas.compat import lrange, range
+from pandas.compat import lrange, range, PY35
 from pandas import compat
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal, assert_index_equal)
@@ -917,6 +917,52 @@ class TestSeriesAnalytics(TestData):
         # Check series argument
         assert_almost_equal(a.dot(b['1']), expected['1'])
         assert_almost_equal(a.dot(b2['1']), expected['1'])
+
+        pytest.raises(Exception, a.dot, a.values[:3])
+        pytest.raises(ValueError, a.dot, b.T)
+
+    @pytest.mark.skipif(not PY35,
+                        reason='matmul supported for Python>=3.5')
+    def test_matmul(self):
+        # matmul test is for GH #10259
+        a = Series(np.random.randn(4), index=['p', 'q', 'r', 's'])
+        b = DataFrame(np.random.randn(3, 4), index=['1', '2', '3'],
+                      columns=['p', 'q', 'r', 's']).T
+
+        # Series @ DataFrame
+        result = operator.matmul(a, b)
+        expected = Series(np.dot(a.values, b.values), index=['1', '2', '3'])
+        assert_series_equal(result, expected)
+
+        # DataFrame @ Series
+        result = operator.matmul(b.T, a)
+        expected = Series(np.dot(b.T.values, a.T.values),
+                          index=['1', '2', '3'])
+        assert_series_equal(result, expected)
+
+        # Series @ Series
+        result = operator.matmul(a, a)
+        expected = np.dot(a.values, a.values)
+        assert_almost_equal(result, expected)
+
+        # np.array @ Series (__rmatmul__)
+        result = operator.matmul(a.values, a)
+        expected = np.dot(a.values, a.values)
+        assert_almost_equal(result, expected)
+
+        # mixed dtype DataFrame @ Series
+        a['p'] = int(a.p)
+        result = operator.matmul(b.T, a)
+        expected = Series(np.dot(b.T.values, a.T.values),
+                          index=['1', '2', '3'])
+        assert_series_equal(result, expected)
+
+        # different dtypes DataFrame @ Series
+        a = a.astype(int)
+        result = operator.matmul(b.T, a)
+        expected = Series(np.dot(b.T.values, a.T.values),
+                          index=['1', '2', '3'])
+        assert_series_equal(result, expected)
 
         pytest.raises(Exception, a.dot, a.values[:3])
         pytest.raises(ValueError, a.dot, b.T)

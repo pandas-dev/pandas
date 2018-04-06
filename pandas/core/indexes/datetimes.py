@@ -209,9 +209,6 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
           times)
         - 'NaT' will return NaT where there are ambiguous times
         - 'raise' will raise an AmbiguousTimeError if there are ambiguous times
-    infer_dst : boolean, default False
-        .. deprecated:: 0.15.0
-           Attempt to infer fall dst-transition hours based on order
     name : object
         Name to be stored in the index
     dayfirst : bool, default False
@@ -331,8 +328,6 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
     _infer_as_myclass = True
     _timezone = cache_readonly(DatetimeArray._timezone.fget)
 
-    @deprecate_kwarg(old_arg_name='infer_dst', new_arg_name='ambiguous',
-                     mapping={True: 'infer', False: 'raise'})
     def __new__(cls, data=None,
                 freq=None, start=None, end=None, periods=None, tz=None,
                 normalize=False, closed=None, ambiguous='raise',
@@ -2200,8 +2195,6 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
         # No conversion since timestamps are all UTC to begin with
         return self._shallow_copy(tz=tz)
 
-    @deprecate_kwarg(old_arg_name='infer_dst', new_arg_name='ambiguous',
-                     mapping={True: 'infer', False: 'raise'})
     def tz_localize(self, tz, ambiguous='raise', errors='raise'):
         """
         Localize tz-naive DatetimeIndex to tz-aware DatetimeIndex.
@@ -2235,10 +2228,6 @@ default 'raise'
               to the specified time zone
 
             .. versionadded:: 0.19.0
-
-        infer_dst : boolean, default False
-            .. deprecated:: 0.15.0
-               Attempt to infer fall dst-transition hours based on order
 
         Returns
         -------
