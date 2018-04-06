@@ -502,7 +502,8 @@ class ExcelFormatter(object):
                                                   Index))):
                 index_label = self.index_label[0]
             # if string good to go
-            elif self.index_label is not None and isinstance(self.index_label, str):
+            elif self.index_label is not None and 
+                    isinstance(self.index_label, str):
                 index_label = self.index_label
             else:
                 index_label = self.df.index.names[0]
