@@ -309,7 +309,7 @@ class TestIndex(Base):
         assert isinstance(idx, Int64Index)
 
     @pytest.mark.parametrize("vals", [
-        [1, 2, 3], [1., 2., 3.],  np.array([1., 2., 3.]),
+        [1, 2, 3], [1., 2., 3.], np.array([1., 2., 3.]),
         np.array([1, 2, 3], dtype=int), np.array([1., 2., 3.], dtype=float)
     ])
     def test_constructor_dtypes_to_float64(self, vals):
@@ -418,7 +418,7 @@ class TestIndex(Base):
         (PeriodIndex([], freq='B'), PeriodIndex),
         (RangeIndex(step=1), pd.RangeIndex),
         (MultiIndex(levels=[[1, 2], ['blue', 'red']],
-                           labels=[[], []]), MultiIndex)
+                    labels=[[], []]), MultiIndex)
     ])
     def test_constructor_empty(self, empty, klass):
         assert isinstance(empty, klass)
