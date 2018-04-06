@@ -3978,7 +3978,7 @@ Sometimes you want to get the coordinates (a.k.a the index locations) of your qu
    df_coord = pd.DataFrame(np.random.randn(1000,2),index=pd.date_range('20000101',periods=1000))
    store.append('df_coord',df_coord)
    c = store.select_as_coordinates('df_coord','index>20020101')
-   c.summary()
+   c
    store.select('df_coord',where=c)
 
 .. _io.hdf5-where_mask:
