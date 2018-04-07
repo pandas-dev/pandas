@@ -2094,8 +2094,46 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     _shared_docs['str_strip'] = ("""
-    Strip whitespace (including newlines) from each string in the
-    Series/Index from %(side)s. Equivalent to :meth:`str.%(method)s`.
+    Strip whitespaces from string in Series.
+
+    Strip whitespace (including newlines) or given string from
+    each string in the Series/Index from %(side)s. Equivalent to
+    :meth:`str.%(method)s`.
+
+    Parameters
+    ----------
+    to_strip : str or unicode
+        String or unicode to strip in the given string.
+
+    Examples
+    --------
+    >>> # strip method
+    >>> s = pd.Series(['   This is a Test 1  '])
+    >>> s
+    0    This is a Test 1
+    dtype: object
+    >>> s = s.str.strip()
+    >>> s
+    0    This is a Test 1
+    dtype: object
+    >>> # lstrip method
+    >>> s1 = pd.Series(['This is another Test'])
+    >>> s1
+    0    This is another Test
+    dtype: object
+    >>> s1 = s1.str.lstrip('This')
+    >>> s1
+    0     is another Test
+    dtype: object
+    >>> # rstrip method
+    >>> s2 = pd.Series(['This is the last test'])
+    >>> s2
+    0    This is the last test
+    dtype: object
+    >>> s2 = s2.str.rstrip('test')
+    >>> s2
+    0     This is the last
+    dtype: object
 
     Returns
     -------
