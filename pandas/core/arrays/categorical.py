@@ -2222,8 +2222,9 @@ class Categorical(ExtensionArray, PandasObject):
         """
         Check whether `values` are contained in Categorical.
 
-        Return a boolean NumPy Array showing whether each element in the Categorical
-        matches an element in the passed sequence of `values` exactly.
+        Return a boolean NumPy Array showing whether each element in
+        the Categorical matches an element in the passed sequence of
+        `values` exactly.
 
         Parameters
         ----------
