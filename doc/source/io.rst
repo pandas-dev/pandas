@@ -3887,7 +3887,7 @@ be ``data_columns``.
 
    # on-disk operations
    store.append('df_dc', df_dc, data_columns = ['B', 'C', 'string', 'string2'])
-   store.select('df_dc', where='B>0')
+   store.select('df_dc', where='B > 0')
 
    # getting creative
    store.select('df_dc', 'B > 0 & C > 0 & string == foo')
@@ -3942,9 +3942,9 @@ chunks.
    store.append('dfeq', dfeq, data_columns=['number'])
 
    def chunks(l, n):
-        return [l[i:i+n] for i in range(0, len(l), n)]
+        return [l[i: i+n] for i in range(0, len(l), n)]
 
-   evens = [2,4,6,8,10]
+   evens = [2, 4, 6, 8, 10]
    coordinates = store.select_as_coordinates('dfeq', 'number=evens')
    for c in chunks(coordinates, 2):
         print(store.select('dfeq', where=c))
@@ -3980,7 +3980,7 @@ Sometimes you want to get the coordinates (a.k.a the index locations) of your qu
                            index=pd.date_range('20000101', periods=1000))
    store.append('df_coord', df_coord)
    c = store.select_as_coordinates('df_coord', 'index > 20020101')
-   c.summary()
+   c
    store.select('df_coord', where=c)
 
 .. _io.hdf5-where_mask:
