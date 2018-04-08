@@ -678,17 +678,45 @@ def str_replace(arr, pat, repl, n=-1, case=None, flags=0, regex=True):
 
 def str_repeat(arr, repeats):
     """
-    Duplicate each string in the Series/Index by indicated number
-    of times.
+    Duplicate each string repeated by indicated number of times.
+
+    Duplicate each string in the Series/Index by indicated number of times.
+    A passed value of zero or negative integer will return an empty string.
 
     Parameters
     ----------
-    repeats : int or array
-        Same value for all (int) or different value per (array)
+    repeats : int or array-like
+        Same value for all (int) or different value per (array).
 
     Returns
     -------
-    repeated : Series/Index of objects
+    Series or Index
+        Series or Index of repeated string objects specified by
+        input parameter repeats.
+
+    Examples
+    --------
+    >>> s = pd.Series(['a', 'b', 'c', 'd', 'e'])
+
+    Using same value for all:
+
+    >>> s.str.repeat(repeats=4)
+    0    aaaa
+    1    bbbb
+    2    cccc
+    3    dddd
+    4    eeee
+    dtype: object
+
+    Using different value per element:
+
+    >>> s.str.repeat(repeats=[-2, -1, 0, 1, 2])
+    0
+    1
+    2
+    3     d
+    4    ee
+    dtype: object
     """
     if is_scalar(repeats):
 
