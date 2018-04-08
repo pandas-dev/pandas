@@ -438,17 +438,18 @@ class TestIndex(Base):
 
     def test_constructor_nonhashable_name(self):
         # GH 20527
-        data = [1, 2, 3]
+        idx = self.create_index()
         name = ['0']
         message = "Index.name must be a hashable type"
-        tm.assert_raises_regex(TypeError, message, data=data, name=name)
+        tm.assert_raises_regex(TypeError, message, name=name)
 
         # With .rename()
-        idx = Index([1, 2, 3], name='0')
         assert isinstance(idx, Index)
-        renamed = ['1']
+        renamed = [['1']]
         tm.assert_raises_regex(TypeError, message,
                                idx.rename, name=renamed)
+        tm.assert_raises_regex(TypeError, message,
+                               idx.set_names, names=renamed)
 
     def test_view_with_args(self):
 

@@ -1345,6 +1345,8 @@ class Index(IndexOpsMixin, PandasObject):
         --------
         >>> Index([1, 2, 3, 4]).set_names('foo')
         Int64Index([1, 2, 3, 4], dtype='int64')
+        >>> Index([1, 2, 3, 4]).set_names(['foo'])
+        Int64Index([1, 2, 3, 4], dtype='int64')
         >>> idx = MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
                                           (2, u'one'), (2, u'two')],
                                           names=['foo', 'bar'])
@@ -1361,14 +1363,9 @@ class Index(IndexOpsMixin, PandasObject):
         # All items in 'names' need to be hashable:
         if names is not None:
             for name in names:
-                if is_hashable(name):
-                    pass
-                else:
-                    if self.nlevels == 1:
-                        raise TypeError('Index.name must be a hashable type')
-                    else:
-                        raise TypeError(self.__class__.__name__ +
-                                        '.name must be a hashable type')
+                if not is_hashable(name):
+                    raise TypeError(self.__class__.__name__ +
+                                    '.name must be a hashable type')
 
         if level is not None and self.nlevels == 1:
             raise ValueError('Level must be None for non-MultiIndex')

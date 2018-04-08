@@ -642,10 +642,8 @@ class MultiIndex(Index):
         """
         # GH 20527
         # All items in 'names' need to be hashable:
-        for name in names:
-            if is_hashable(name):
-                pass
-            else:
+        for levels, name in enumerate(names):
+            if not is_hashable(name):
                 raise TypeError(self.__class__.__name__ +
                                 '.name must be a hashable type')
 
