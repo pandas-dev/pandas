@@ -34,6 +34,8 @@ class UndefinedVariableError(NameError):
     """NameError subclass for local variables."""
 
     def __init__(self, name, is_local):
+        self.name = name
+        self.is_local = is_local
         if is_local:
             msg = 'local variable {0!r} is not defined'
         else:
