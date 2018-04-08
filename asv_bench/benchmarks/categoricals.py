@@ -150,7 +150,7 @@ class Rank(object):
         self.s_int_cat_ordered.rank()
 
 
-class IsIn(object):
+class Isin(object):
 
     goal_time = 0.2
 

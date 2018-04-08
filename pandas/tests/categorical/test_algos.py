@@ -50,6 +50,7 @@ def test_factorized_sort_ordered():
 
 
 def test_isin_cats():
+    # GH2003
     cat = pd.Categorical(["a", "b", np.nan])
 
     result = cat.isin(["a", np.nan])
