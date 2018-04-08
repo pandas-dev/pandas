@@ -529,7 +529,7 @@ class TestDataFrameDataTypes(TestData):
         # consistency in astype(str)
         for tt in set([str, compat.text_type]):
             result = DataFrame([np.NaN]).astype(tt)
-            expected = DataFrame(['nan'])
+            expected = DataFrame([np.NaN], dtype=object)
             assert_frame_equal(result, expected)
 
             result = DataFrame([1.12345678901234567890]).astype(tt)
