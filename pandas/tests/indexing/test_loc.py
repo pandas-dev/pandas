@@ -8,7 +8,7 @@ import numpy as np
 
 import pandas as pd
 from pandas.compat import lrange, StringIO
-from pandas import Series, DataFrame, Timestamp, date_range, MultiIndex
+from pandas import Series, DataFrame, Timestamp, date_range, MultiIndex, Index
 from pandas.util import testing as tm
 from pandas.tests.indexing.common import Base
 
@@ -711,3 +711,44 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
 
         original_series[:3] = [7, 8, 9]
         assert all(sliced_series[:3] == [7, 8, 9])
+
+    @pytest.mark.parametrize(
+        'indexer_type_1',
+        (list, tuple, set, slice, np.ndarray, Series, Index))
+    @pytest.mark.parametrize(
+        'indexer_type_2',
+        (list, tuple, set, slice, np.ndarray, Series, Index))
+    def test_loc_getitem_nested_indexer(self, indexer_type_1, indexer_type_2):
+        # GH #19686
+        # .loc should work with nested indexers which can be
+        # any list-like objects (see `pandas.api.types.is_list_like`) or slices
+
+        def convert_nested_indexer(indexer_type, keys):
+            if indexer_type == np.ndarray:
+                return np.array(keys)
+            if indexer_type == slice:
+                return slice(*keys)
+            return indexer_type(keys)
+
+        a = [10, 20, 30]
+        b = [1, 2, 3]
+        index = pd.MultiIndex.from_product([a, b])
+        df = pd.DataFrame(
+            np.arange(len(index), dtype='int64'),
+            index=index, columns=['Data'])
+
+        keys = ([10, 20], [2, 3])
+        types = (indexer_type_1, indexer_type_2)
+
+        # check indexers with all the combinations of nested objects
+        # of all the valid types
+        indexer = tuple(
+            convert_nested_indexer(indexer_type, k)
+            for indexer_type, k in zip(types, keys))
+
+        result = df.loc[indexer, 'Data']
+        expected = pd.Series(
+            [1, 2, 4, 5], name='Data',
+            index=pd.MultiIndex.from_product(keys))
+
+        tm.assert_series_equal(result, expected)

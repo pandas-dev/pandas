@@ -4,13 +4,13 @@ from warnings import catch_warnings
 import os
 import datetime
 import numpy as np
-import sys
 from distutils.version import LooseVersion
 
 from pandas import compat
 from pandas.compat import u, PY3
 from pandas import (Series, DataFrame, Panel, MultiIndex, bdate_range,
-                    date_range, period_range, Index, Categorical)
+                    date_range, period_range, Index, Categorical,
+                    Period, Interval)
 from pandas.errors import PerformanceWarning
 from pandas.io.packers import to_msgpack, read_msgpack
 import pandas.util.testing as tm
@@ -297,11 +297,6 @@ class TestBasic(TestPackers):
 
     def test_datetimes(self):
 
-        # fails under 2.6/win32 (np.datetime64 seems broken)
-
-        if LooseVersion(sys.version) < LooseVersion('2.7'):
-            pytest.skip('2.6 with np.datetime64 is broken')
-
         for i in [datetime.datetime(2013, 1, 1),
                   datetime.datetime(2013, 1, 1, 5, 1),
                   datetime.date(2013, 1, 1),
@@ -314,6 +309,19 @@ class TestBasic(TestPackers):
         for i in [datetime.timedelta(days=1),
                   datetime.timedelta(days=1, seconds=10),
                   np.timedelta64(1000000)]:
+            i_rec = self.encode_decode(i)
+            assert i == i_rec
+
+    def test_periods(self):
+        # 13463
+        for i in [Period('2010-09', 'M'), Period('2014-Q1', 'Q')]:
+            i_rec = self.encode_decode(i)
+            assert i == i_rec
+
+    def test_intervals(self):
+        # 19967
+        for i in [Interval(0, 1), Interval(0, 1, 'left'),
+                  Interval(10, 25., 'right')]:
             i_rec = self.encode_decode(i)
             assert i == i_rec
 
@@ -334,7 +342,9 @@ class TestIndex(TestPackers):
             'period': Index(period_range('2012-1-1', freq='M', periods=3)),
             'date2': Index(date_range('2013-01-1', periods=10)),
             'bdate': Index(bdate_range('2013-01-02', periods=10)),
-            'cat': tm.makeCategoricalIndex(100)
+            'cat': tm.makeCategoricalIndex(100),
+            'interval': tm.makeIntervalIndex(100),
+            'timedelta': tm.makeTimedeltaIndex(100, 'H')
         }
 
         self.mi = {

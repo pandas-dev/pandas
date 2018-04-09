@@ -603,13 +603,7 @@ class TestDataFrameReshape(TestData):
             cols = pd.MultiIndex.from_product([[0, 1], col_level])
             expected = pd.DataFrame(exp_data.reshape(3, 6),
                                     index=idx_level, columns=cols)
-            # Broken (GH 18455):
-            # tm.assert_frame_equal(result, expected)
-            diff = result - expected
-            assert(diff.sum().sum() == 0)
-            assert((diff + 1).sum().sum() == 8)
-
-            assert((result.columns.levels[1] == idx.levels[level]).all())
+            tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("cols", [['A', 'C'], slice(None)])
     def test_unstack_unused_level(self, cols):
@@ -719,9 +713,10 @@ class TestDataFrameReshape(TestData):
         assert_frame_equal(left, right)
 
         # GH7401
-        df = pd.DataFrame({'A': list('aaaaabbbbb'), 'C': np.arange(10),
+        df = pd.DataFrame({'A': list('aaaaabbbbb'),
                            'B': (date_range('2012-01-01', periods=5)
-                                 .tolist() * 2)})
+                                 .tolist() * 2),
+                           'C': np.arange(10)})
 
         df.iloc[3, 1] = np.NaN
         left = df.set_index(['A', 'B']).unstack()

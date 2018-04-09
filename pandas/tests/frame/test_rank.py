@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 import pytest
-from datetime import timedelta, datetime
-from distutils.version import LooseVersion
-from numpy import nan
 import numpy as np
-
-from pandas import Series, DataFrame
-
-from pandas.compat import product
-from pandas.util.testing import assert_frame_equal
 import pandas.util.testing as tm
+
+from distutils.version import LooseVersion
+from datetime import timedelta, datetime
+from numpy import nan
+
+from pandas.util.testing import assert_frame_equal
 from pandas.tests.frame.common import TestData
+from pandas import Series, DataFrame
+from pandas.compat import product
 
 
 class TestRank(TestData):
@@ -266,3 +266,34 @@ class TestRank(TestData):
                 continue
             frame = df if dtype is None else df.astype(dtype)
             _check2d(frame, results[method], method=method, axis=axis)
+
+
+@pytest.mark.parametrize(
+    "method,exp", [("dense",
+                    [[1., 1., 1.],
+                     [1., 0.5, 2. / 3],
+                     [1., 0.5, 1. / 3]]),
+                   ("min",
+                    [[1. / 3, 1., 1.],
+                     [1. / 3, 1. / 3, 2. / 3],
+                     [1. / 3, 1. / 3, 1. / 3]]),
+                   ("max",
+                    [[1., 1., 1.],
+                     [1., 2. / 3, 2. / 3],
+                     [1., 2. / 3, 1. / 3]]),
+                   ("average",
+                    [[2. / 3, 1., 1.],
+                     [2. / 3, 0.5, 2. / 3],
+                     [2. / 3, 0.5, 1. / 3]]),
+                   ("first",
+                    [[1. / 3, 1., 1.],
+                     [2. / 3, 1. / 3, 2. / 3],
+                     [3. / 3, 2. / 3, 1. / 3]])])
+def test_rank_pct_true(method, exp):
+    # see gh-15630.
+
+    df = DataFrame([[2012, 66, 3], [2012, 65, 2], [2012, 65, 1]])
+    result = df.rank(method=method, pct=True)
+
+    expected = DataFrame(exp)
+    tm.assert_frame_equal(result, expected)

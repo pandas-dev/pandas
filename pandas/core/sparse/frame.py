@@ -39,6 +39,10 @@ class SparseDataFrame(DataFrame):
     Parameters
     ----------
     data : same types as can be passed to DataFrame or scipy.sparse.spmatrix
+        .. versionchanged :: 0.23.0
+           If data is a dict, argument order is maintained for Python 3.6
+           and later.
+
     index : array-like, optional
     column : array-like, optional
     default_kind : {'block', 'integer'}, default 'block'
@@ -138,7 +142,8 @@ class SparseDataFrame(DataFrame):
             columns = _ensure_index(columns)
             data = {k: v for k, v in compat.iteritems(data) if k in columns}
         else:
-            columns = Index(com._try_sort(list(data.keys())))
+            keys = com._dict_keys_to_ordered_list(data)
+            columns = Index(keys)
 
         if index is None:
             index = extract_index(list(data.values()))
@@ -551,7 +556,6 @@ class SparseDataFrame(DataFrame):
             return self._constructor(index=new_index).__finalize__(self)
 
         new_data = {}
-        new_fill_value = None
         if fill_value is not None:
             # TODO: be a bit more intelligent here
             for col in new_columns:
@@ -568,6 +572,7 @@ class SparseDataFrame(DataFrame):
                     new_data[col] = func(this[col], other[col])
 
         # if the fill values are the same use them? or use a valid one
+        new_fill_value = None
         other_fill_value = getattr(other, 'default_fill_value', np.nan)
         if self.default_fill_value == other_fill_value:
             new_fill_value = self.default_fill_value
@@ -1014,5 +1019,5 @@ def homogenize(series_dict):
 
 
 # use unaccelerated ops for sparse objects
-ops.add_flex_arithmetic_methods(SparseDataFrame, **ops.frame_flex_funcs)
-ops.add_special_arithmetic_methods(SparseDataFrame, **ops.frame_special_funcs)
+ops.add_flex_arithmetic_methods(SparseDataFrame)
+ops.add_special_arithmetic_methods(SparseDataFrame)

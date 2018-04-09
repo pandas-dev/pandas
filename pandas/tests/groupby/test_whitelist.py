@@ -88,6 +88,8 @@ s_whitelist = frozenset([
     'unique',
     'nlargest',
     'nsmallest',
+    'is_monotonic_increasing',
+    'is_monotonic_decreasing',
 ])
 
 
@@ -184,7 +186,7 @@ def test_regression_whitelist_methods(
         axis, skipna, sort):
     # GH6944
     # GH 17537
-    # explicitly test the whitelest methods
+    # explicitly test the whitelist methods
 
     if axis == 0:
         frame = raw_frame
@@ -249,7 +251,8 @@ def test_tab_completion(mframe):
         'cumsum', 'cumcount', 'ngroup', 'all', 'shift', 'skew',
         'take', 'tshift', 'pct_change', 'any', 'mad', 'corr', 'corrwith',
         'cov', 'dtypes', 'ndim', 'diff', 'idxmax', 'idxmin',
-        'ffill', 'bfill', 'pad', 'backfill', 'rolling', 'expanding', 'pipe'}
+        'ffill', 'bfill', 'pad', 'backfill', 'rolling', 'expanding', 'pipe',
+    }
     assert results == expected
 
 

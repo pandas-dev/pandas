@@ -1073,10 +1073,11 @@ class HDFStore(StringMixin):
         self._check_if_open()
         return [
             g for g in self._handle.walk_nodes()
-            if (getattr(g._v_attrs, 'pandas_type', None) or
-                getattr(g, 'table', None) or
+            if (not isinstance(g, _table_mod.link.Link) and
+                (getattr(g._v_attrs, 'pandas_type', None) or
+                 getattr(g, 'table', None) or
                 (isinstance(g, _table_mod.table.Table) and
-                 g._v_name != u('table')))
+                 g._v_name != u('table'))))
         ]
 
     def get_node(self, key):
@@ -4430,7 +4431,7 @@ def _convert_index(index, encoding=None, format_type=None):
     elif isinstance(index, (Int64Index, PeriodIndex)):
         atom = _tables().Int64Col()
         # avoid to store ndarray of Period objects
-        return IndexCol(index._values, 'integer', atom,
+        return IndexCol(index._ndarray_values, 'integer', atom,
                         freq=getattr(index, 'freq', None),
                         index_name=index_name)
 

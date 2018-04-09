@@ -37,6 +37,13 @@ if [ "$LINT" ]; then
     fi
     echo "Linting scripts/*.py DONE"
 
+    echo "Linting doc scripts"
+    flake8 doc/make.py doc/source/conf.py
+    if [ $? -ne "0" ]; then
+        RET=1
+    fi
+    echo "Linting doc scripts DONE"
+
     echo "Linting *.pyx"
     flake8 pandas --filename=*.pyx --select=E501,E302,E203,E111,E114,E221,E303,E128,E231,E126,E265,E305,E301,E127,E261,E271,E129,W291,E222,E241,E123,F403
     if [ $? -ne "0" ]; then
@@ -104,6 +111,15 @@ if [ "$LINT" ]; then
         RET=1
     fi
 
+    # Check for the following code in the extension array base tests
+    # tm.assert_frame_equal
+    # tm.assert_series_equal
+    grep -r -E --include '*.py' --exclude base.py 'tm.assert_(series|frame)_equal' pandas/tests/extension/base
+
+    if [ $? = "0" ]; then
+        RET=1
+    fi
+
     echo "Check for invalid testing DONE"
 
     # Check for imports from pandas.core.common instead
@@ -149,6 +165,15 @@ if [ "$LINT" ]; then
         RET=1
     fi
     echo "Check for deprecated messages without sphinx directive DONE"
+
+    echo "Check for old-style classes"
+    grep -R --include="*.py" -E "class\s\S*[^)]:" pandas scripts
+
+    if [ $? = "0" ]; then
+        RET=1
+    fi
+    echo "Check for old-style classes DONE"
+    
 else
     echo "NOT Linting"
 fi

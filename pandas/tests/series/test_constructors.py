@@ -22,7 +22,7 @@ from pandas import (Index, Series, isna, date_range, Timestamp,
 from pandas._libs import lib
 from pandas._libs.tslib import iNaT
 
-from pandas.compat import lrange, range, zip, long
+from pandas.compat import lrange, range, zip, long, PY36
 from pandas.util.testing import assert_series_equal
 import pandas.util.testing as tm
 
@@ -108,6 +108,11 @@ class TestSeriesConstructors(TestData):
             # With index and dtype float64:
             empty = Series(np.nan, index=lrange(10))
             empty2 = Series(input_class(), index=lrange(10), dtype='float64')
+            assert_series_equal(empty, empty2)
+
+            # GH 19853 : with empty string, index and dtype str
+            empty = Series('', dtype=str, index=range(3))
+            empty2 = Series('', index=range(3))
             assert_series_equal(empty, empty2)
 
     @pytest.mark.parametrize('input_arg', [np.nan, float('nan')])
@@ -270,6 +275,13 @@ class TestSeriesConstructors(TestData):
         tm.assert_index_equal(result.cat.categories, pd.Index(['b', 'a']))
         assert result.cat.ordered is False
 
+        # GH 19565 - Check broadcasting of scalar with Categorical dtype
+        result = Series('a', index=[0, 1],
+                        dtype=CategoricalDtype(['a', 'b'], ordered=True))
+        expected = Series(['a', 'a'], index=[0, 1],
+                          dtype=CategoricalDtype(['a', 'b'], ordered=True))
+        tm.assert_series_equal(result, expected, check_categorical=True)
+
     def test_categorical_sideeffects_free(self):
         # Passing a categorical to a Series and then changing values in either
         # the series or the categorical should not change the values in the
@@ -392,6 +404,34 @@ class TestSeriesConstructors(TestData):
     def test_constructor_default_index(self):
         s = Series([0, 1, 2])
         tm.assert_index_equal(s.index, pd.Index(np.arange(3)))
+
+    @pytest.mark.parametrize('input', [[1, 2, 3],
+                                       (1, 2, 3),
+                                       list(range(3)),
+                                       pd.Categorical(['a', 'b', 'a']),
+                                       (i for i in range(3)),
+                                       map(lambda x: x, range(3))])
+    def test_constructor_index_mismatch(self, input):
+        # GH 19342
+        # test that construction of a Series with an index of different length
+        # raises an error
+        msg = 'Length of passed values is 3, index implies 4'
+        with pytest.raises(ValueError, message=msg):
+            Series(input, index=np.arange(4))
+
+    def test_constructor_numpy_scalar(self):
+        # GH 19342
+        # construction with a numpy scalar
+        # should not raise
+        result = Series(np.array(100), index=np.arange(4), dtype='int64')
+        expected = Series(100, index=np.arange(4), dtype='int64')
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_broadcast_list(self):
+        # GH 19342
+        # construction with single-element container and index
+        # should raise
+        pytest.raises(ValueError, Series, ['foo'], index=['a', 'b', 'c'])
 
     def test_constructor_corner(self):
         df = tm.makeTimeDataFrame()
@@ -775,6 +815,18 @@ class TestSeriesConstructors(TestData):
         expected.iloc[0] = 0
         expected.iloc[1] = 1
         assert_series_equal(result, expected)
+
+    def test_constructor_dict_order(self):
+        # GH19018
+        # initialization ordering: by insertion order if python>= 3.6, else
+        # order by value
+        d = {'b': 1, 'a': 0, 'c': 2}
+        result = Series(d)
+        if PY36:
+            expected = Series([1, 0, 2], index=list('bac'))
+        else:
+            expected = Series([0, 1, 2], index=list('abc'))
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("value", [2, np.nan, None, float('nan')])
     def test_constructor_dict_nan_key(self, value):

@@ -118,8 +118,8 @@ i.e., from the end of the string to the beginning of the string:
 
    s2.str.rsplit('_', expand=True, n=1)
 
-Methods like ``replace`` and ``findall`` take `regular expressions
-<https://docs.python.org/3/library/re.html>`__, too:
+``replace`` by default replaces `regular expressions
+<https://docs.python.org/3/library/re.html>`__:
 
 .. ipython:: python
 
@@ -146,11 +146,24 @@ following code will cause trouble because of the regular expression meaning of
    # We need to escape the special character (for >1 len patterns)
    dollars.str.replace(r'-\$', '-')
 
+.. versionadded:: 0.23.0
+
+If you do want literal replacement of a string (equivalent to
+:meth:`str.replace`), you can set the optional ``regex`` parameter to
+``False``, rather than escaping each character. In this case both ``pat``
+and ``repl`` must be strings:
+
+.. ipython:: python
+
+    # These lines are equivalent
+    dollars.str.replace(r'-\$', '-')
+    dollars.str.replace('-$', '-', regex=False)
+
+.. versionadded:: 0.20.0
+
 The ``replace`` method can also take a callable as replacement. It is called
 on every ``pat`` using :func:`re.sub`. The callable should expect one
 positional argument (a regex object) and return a string.
-
-.. versionadded:: 0.20.0
 
 .. ipython:: python
 
@@ -164,11 +177,11 @@ positional argument (a regex object) and return a string.
    repl = lambda m: m.group('two').swapcase()
    pd.Series(['Foo Bar Baz', np.nan]).str.replace(pat, repl)
 
+.. versionadded:: 0.20.0
+
 The ``replace`` method also accepts a compiled regular expression object
 from :func:`re.compile` as a pattern. All flags should be included in the
 compiled regular expression object.
-
-.. versionadded:: 0.20.0
 
 .. ipython:: python
 
@@ -185,6 +198,7 @@ regular expression object will raise a ``ValueError``.
     In [1]: s3.str.replace(regex_pat, 'XX-XX ', flags=re.IGNORECASE)
     ---------------------------------------------------------------------------
     ValueError: case and flags cannot be set when pat is a compiled regex
+
 
 Indexing with ``.str``
 ----------------------
@@ -432,7 +446,7 @@ Method Summary
     :meth:`~Series.str.join`;Join strings in each element of the Series with passed separator
     :meth:`~Series.str.get_dummies`;Split strings on the delimiter returning DataFrame of dummy variables
     :meth:`~Series.str.contains`;Return boolean array if each string contains pattern/regex
-    :meth:`~Series.str.replace`;Replace occurrences of pattern/regex with some other string or the return value of a callable given the occurrence
+    :meth:`~Series.str.replace`;Replace occurrences of pattern/regex/string with some other string or the return value of a callable given the occurrence
     :meth:`~Series.str.repeat`;Duplicate values (``s.str.repeat(3)`` equivalent to ``x * 3``)
     :meth:`~Series.str.pad`;"Add whitespace to left, right, or both sides of strings"
     :meth:`~Series.str.center`;Equivalent to ``str.center``

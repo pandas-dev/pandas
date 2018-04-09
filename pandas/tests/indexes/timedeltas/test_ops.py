@@ -73,94 +73,6 @@ class TestTimedeltaIndexOps(Ops):
             tm.assert_raises_regex(
                 ValueError, errmsg, np.argmax, td, out=0)
 
-    def test_representation(self):
-        idx1 = TimedeltaIndex([], freq='D')
-        idx2 = TimedeltaIndex(['1 days'], freq='D')
-        idx3 = TimedeltaIndex(['1 days', '2 days'], freq='D')
-        idx4 = TimedeltaIndex(['1 days', '2 days', '3 days'], freq='D')
-        idx5 = TimedeltaIndex(['1 days 00:00:01', '2 days', '3 days'])
-
-        exp1 = """TimedeltaIndex([], dtype='timedelta64[ns]', freq='D')"""
-
-        exp2 = ("TimedeltaIndex(['1 days'], dtype='timedelta64[ns]', "
-                "freq='D')")
-
-        exp3 = ("TimedeltaIndex(['1 days', '2 days'], "
-                "dtype='timedelta64[ns]', freq='D')")
-
-        exp4 = ("TimedeltaIndex(['1 days', '2 days', '3 days'], "
-                "dtype='timedelta64[ns]', freq='D')")
-
-        exp5 = ("TimedeltaIndex(['1 days 00:00:01', '2 days 00:00:00', "
-                "'3 days 00:00:00'], dtype='timedelta64[ns]', freq=None)")
-
-        with pd.option_context('display.width', 300):
-            for idx, expected in zip([idx1, idx2, idx3, idx4, idx5],
-                                     [exp1, exp2, exp3, exp4, exp5]):
-                for func in ['__repr__', '__unicode__', '__str__']:
-                    result = getattr(idx, func)()
-                    assert result == expected
-
-    def test_representation_to_series(self):
-        idx1 = TimedeltaIndex([], freq='D')
-        idx2 = TimedeltaIndex(['1 days'], freq='D')
-        idx3 = TimedeltaIndex(['1 days', '2 days'], freq='D')
-        idx4 = TimedeltaIndex(['1 days', '2 days', '3 days'], freq='D')
-        idx5 = TimedeltaIndex(['1 days 00:00:01', '2 days', '3 days'])
-
-        exp1 = """Series([], dtype: timedelta64[ns])"""
-
-        exp2 = """0   1 days
-dtype: timedelta64[ns]"""
-
-        exp3 = """0   1 days
-1   2 days
-dtype: timedelta64[ns]"""
-
-        exp4 = """0   1 days
-1   2 days
-2   3 days
-dtype: timedelta64[ns]"""
-
-        exp5 = """0   1 days 00:00:01
-1   2 days 00:00:00
-2   3 days 00:00:00
-dtype: timedelta64[ns]"""
-
-        with pd.option_context('display.width', 300):
-            for idx, expected in zip([idx1, idx2, idx3, idx4, idx5],
-                                     [exp1, exp2, exp3, exp4, exp5]):
-                result = repr(pd.Series(idx))
-                assert result == expected
-
-    def test_summary(self):
-        # GH9116
-        idx1 = TimedeltaIndex([], freq='D')
-        idx2 = TimedeltaIndex(['1 days'], freq='D')
-        idx3 = TimedeltaIndex(['1 days', '2 days'], freq='D')
-        idx4 = TimedeltaIndex(['1 days', '2 days', '3 days'], freq='D')
-        idx5 = TimedeltaIndex(['1 days 00:00:01', '2 days', '3 days'])
-
-        exp1 = ("TimedeltaIndex: 0 entries\n"
-                "Freq: D")
-
-        exp2 = ("TimedeltaIndex: 1 entries, 1 days to 1 days\n"
-                "Freq: D")
-
-        exp3 = ("TimedeltaIndex: 2 entries, 1 days to 2 days\n"
-                "Freq: D")
-
-        exp4 = ("TimedeltaIndex: 3 entries, 1 days to 3 days\n"
-                "Freq: D")
-
-        exp5 = ("TimedeltaIndex: 3 entries, 1 days 00:00:01 to 3 days "
-                "00:00:00")
-
-        for idx, expected in zip([idx1, idx2, idx3, idx4, idx5],
-                                 [exp1, exp2, exp3, exp4, exp5]):
-            result = idx.summary()
-            assert result == expected
-
     def test_value_counts_unique(self):
         # GH 7735
 
@@ -315,14 +227,15 @@ dtype: timedelta64[ns]"""
         res = Series(idx).drop_duplicates(keep=False)
         tm.assert_series_equal(res, Series(base[5:], index=np.arange(5, 31)))
 
-    def test_infer_freq(self):
-        # GH 11018
-        for freq in ['D', '3D', '-3D', 'H', '2H', '-2H', 'T', '2T', 'S', '-3S'
-                     ]:
-            idx = pd.timedelta_range('1', freq=freq, periods=10)
-            result = pd.TimedeltaIndex(idx.asi8, freq='infer')
-            tm.assert_index_equal(idx, result)
-            assert result.freq == freq
+    @pytest.mark.parametrize('freq', ['D', '3D', '-3D',
+                                      'H', '2H', '-2H',
+                                      'T', '2T', 'S', '-3S'])
+    def test_infer_freq(self, freq):
+        # GH#11018
+        idx = pd.timedelta_range('1', freq=freq, periods=10)
+        result = pd.TimedeltaIndex(idx.asi8, freq='infer')
+        tm.assert_index_equal(idx, result)
+        assert result.freq == freq
 
     def test_nat_new(self):
 

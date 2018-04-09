@@ -746,7 +746,7 @@ What if the function you wish to apply takes its data as, say, the second argume
 In this case, provide ``pipe`` with a tuple of ``(callable, data_keyword)``.
 ``.pipe`` will route the ``DataFrame`` to the argument specified in the tuple.
 
-For example, we can fit a regression using statsmodels. Their API expects a formula first and a ``DataFrame`` as the second argument, ``data``. We pass in the function, keyword pair ``(sm.poisson, 'data')`` to ``pipe``:
+For example, we can fit a regression using statsmodels. Their API expects a formula first and a ``DataFrame`` as the second argument, ``data``. We pass in the function, keyword pair ``(sm.ols, 'data')`` to ``pipe``:
 
 .. ipython:: python
 
@@ -756,7 +756,7 @@ For example, we can fit a regression using statsmodels. Their API expects a form
 
    (bb.query('h > 0')
       .assign(ln_h = lambda df: np.log(df.h))
-      .pipe((sm.poisson, 'data'), 'hr ~ ln_h + year + g + C(lg)')
+      .pipe((sm.ols, 'data'), 'hr ~ ln_h + year + g + C(lg)')
       .fit()
       .summary()
    )
@@ -2312,4 +2312,4 @@ All NumPy dtypes are subclasses of ``numpy.generic``:
 .. note::
 
     Pandas also defines the types ``category``, and ``datetime64[ns, tz]``, which are not integrated into the normal
-    NumPy hierarchy and wont show up with the above function.
+    NumPy hierarchy and won't show up with the above function.

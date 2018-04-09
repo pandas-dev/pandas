@@ -42,6 +42,10 @@ class SparseSeries(Series):
     Parameters
     ----------
     data : {array-like, Series, SparseSeries, dict}
+        .. versionchanged :: 0.23.0
+           If data is a dict, argument order is maintained for Python 3.6
+           and later.
+
     kind : {'block', 'integer'}
     fill_value : float
         Code for missing value. Defaults depends on dtype.
@@ -216,12 +220,6 @@ class SparseSeries(Series):
         warnings.warn("'from_array' is deprecated and will be removed in a "
                       "future version. Please use the pd.SparseSeries(..) "
                       "constructor instead.", FutureWarning, stacklevel=2)
-        return cls._from_array(arr, index=index, name=name, copy=copy,
-                               fill_value=fill_value, fastpath=fastpath)
-
-    @classmethod
-    def _from_array(cls, arr, index=None, name=None, copy=False,
-                    fill_value=None, fastpath=False):
         return cls(arr, index=index, name=name, copy=copy,
                    fill_value=fill_value, fastpath=fastpath)
 
@@ -811,12 +809,6 @@ class SparseSeries(Series):
         return _coo_to_sparse_series(A, dense_index=dense_index)
 
 
-# overwrite series methods with unaccelerated versions
-ops.add_special_arithmetic_methods(SparseSeries, **ops.series_special_funcs)
-ops.add_flex_arithmetic_methods(SparseSeries, **ops.series_flex_funcs)
-# overwrite basic arithmetic to use SparseSeries version
-# force methods to overwrite previous definitions.
-ops.add_special_arithmetic_methods(SparseSeries,
-                                   ops._arith_method_SPARSE_SERIES,
-                                   comp_method=ops._arith_method_SPARSE_SERIES,
-                                   bool_method=None)
+# overwrite series methods with unaccelerated Sparse-specific versions
+ops.add_flex_arithmetic_methods(SparseSeries)
+ops.add_special_arithmetic_methods(SparseSeries)

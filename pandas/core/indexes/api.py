@@ -2,7 +2,6 @@ from pandas.core.indexes.base import (Index,
                                       _new_Index,
                                       _ensure_index,
                                       _ensure_index_from_sequences,
-                                      _get_na_value,
                                       InvalidIndexError)  # noqa
 from pandas.core.indexes.category import CategoricalIndex  # noqa
 from pandas.core.indexes.multi import MultiIndex  # noqa
@@ -25,7 +24,7 @@ __all__ = ['Index', 'MultiIndex', 'NumericIndex', 'Float64Index', 'Int64Index',
            'InvalidIndexError', 'TimedeltaIndex',
            'PeriodIndex', 'DatetimeIndex',
            '_new_Index', 'NaT',
-           '_ensure_index', '_ensure_index_from_sequences', '_get_na_value',
+           '_ensure_index', '_ensure_index_from_sequences',
            '_get_combined_index',
            '_get_objs_combined_axis', '_union_indexes',
            '_get_consensus_names',

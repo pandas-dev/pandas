@@ -6,19 +6,18 @@ API Reference
 *************
 
 This page gives an overview of all public pandas objects, functions and
-methods. In general, all classes and functions exposed in the top-level
-``pandas.*`` namespace are regarded as public.
+methods. All classes and functions exposed in ``pandas.*`` namespace are public.
 
-Further some of the subpackages are public, including ``pandas.errors``,
-``pandas.plotting``, and ``pandas.testing``. Certain functions in the
-``pandas.io`` and ``pandas.tseries`` submodules are public as well (those
-mentioned in the documentation). Further, the ``pandas.api.types`` subpackage
-holds some public functions related to data types in pandas.
+Some subpackages are public which include ``pandas.errors``,
+``pandas.plotting``, and ``pandas.testing``. Public functions in
+``pandas.io`` and ``pandas.tseries`` submodules are mentioned in
+the documentation. ``pandas.api.types`` subpackage holds some
+public functions related to data types in pandas.
 
 
 .. warning::
 
-    The ``pandas.core``, ``pandas.compat``, and ``pandas.util`` top-level modules are considered to be PRIVATE. Stability of functionality in those modules in not guaranteed.
+    The ``pandas.core``, ``pandas.compat``, and ``pandas.util`` top-level modules are PRIVATE. Stable functionality in such modules is not guaranteed.
 
 
 .. _api.functions:
@@ -264,7 +263,11 @@ Constructor
 Attributes
 ~~~~~~~~~~
 **Axes**
-  * **index**: axis labels
+
+.. autosummary::
+   :toctree: generated/
+
+   Series.index
 
 .. autosummary::
    :toctree: generated/
@@ -552,7 +555,6 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.weekofyear
    Series.dt.dayofweek
    Series.dt.weekday
-   Series.dt.weekday_name
    Series.dt.dayofyear
    Series.dt.quarter
    Series.dt.is_month_start
@@ -582,6 +584,8 @@ These can be accessed like ``Series.dt.<property>``.
    Series.dt.round
    Series.dt.floor
    Series.dt.ceil
+   Series.dt.month_name
+   Series.dt.day_name
 
 **Timedelta Properties**
 
@@ -845,13 +849,15 @@ Attributes and underlying data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Axes**
 
-  * **index**: row labels
-  * **columns**: column labels
+.. autosummary::
+   :toctree: generated/
+
+   DataFrame.index
+   DataFrame.columns
 
 .. autosummary::
    :toctree: generated/
 
-   DataFrame.as_matrix
    DataFrame.dtypes
    DataFrame.ftypes
    DataFrame.get_dtype_counts
@@ -1682,6 +1688,16 @@ MultiIndex Components
    MultiIndex.reorder_levels
    MultiIndex.remove_unused_levels
 
+MultiIndex Selecting
+~~~~~~~~~~~~~~~~~~~~
+
+.. autosummary::
+   :toctree: generated/
+
+   MultiIndex.get_loc
+   MultiIndex.get_indexer
+   MultiIndex.get_level_values
+
 .. _api.datetimeindex:
 
 DatetimeIndex
@@ -1714,7 +1730,6 @@ Time/Date Components
    DatetimeIndex.week
    DatetimeIndex.dayofweek
    DatetimeIndex.weekday
-   DatetimeIndex.weekday_name
    DatetimeIndex.quarter
    DatetimeIndex.tz
    DatetimeIndex.freq
@@ -1750,6 +1765,8 @@ Time-specific operations
    DatetimeIndex.round
    DatetimeIndex.floor
    DatetimeIndex.ceil
+   DatetimeIndex.month_name
+   DatetimeIndex.day_name
 
 Conversion
 ~~~~~~~~~~
@@ -1931,7 +1948,6 @@ Properties
     Timestamp.tzinfo
     Timestamp.value
     Timestamp.week
-    Timestamp.weekday_name
     Timestamp.weekofyear
     Timestamp.year
 
@@ -1945,6 +1961,7 @@ Methods
     Timestamp.combine
     Timestamp.ctime
     Timestamp.date
+    Timestamp.day_name
     Timestamp.dst
     Timestamp.floor
     Timestamp.freq
@@ -1954,6 +1971,7 @@ Methods
     Timestamp.isocalendar
     Timestamp.isoformat
     Timestamp.isoweekday
+    Timestamp.month_name
     Timestamp.normalize
     Timestamp.now
     Timestamp.replace
@@ -2170,8 +2188,12 @@ Computations / Descriptive Stats
 .. autosummary::
    :toctree: generated/
 
+   GroupBy.all
+   GroupBy.any
+   GroupBy.bfill
    GroupBy.count
    GroupBy.cumcount
+   GroupBy.ffill
    GroupBy.first
    GroupBy.head
    GroupBy.last
@@ -2183,6 +2205,7 @@ Computations / Descriptive Stats
    GroupBy.nth
    GroupBy.ohlc
    GroupBy.prod
+   GroupBy.rank
    GroupBy.size
    GroupBy.sem
    GroupBy.std
@@ -2240,6 +2263,8 @@ The following methods are available only for ``SeriesGroupBy`` objects.
    SeriesGroupBy.nunique
    SeriesGroupBy.unique
    SeriesGroupBy.value_counts
+   SeriesGroupBy.is_monotonic_increasing
+   SeriesGroupBy.is_monotonic_decreasing
 
 The following methods are available only for ``DataFrameGroupBy`` objects.
 
@@ -2376,15 +2401,23 @@ Style Export and Import
    Styler.to_excel
 
 Plotting
-~~~~~~~~
+--------
 
-.. currentmodule:: pandas
+.. currentmodule:: pandas.plotting
+
+The following functions are contained in the `pandas.plotting` module.
 
 .. autosummary::
    :toctree: generated/
 
-   plotting.register_matplotlib_converters
-   plotting.deregister_matplotlib_converters
+   andrews_curves
+   bootstrap_plot
+   deregister_matplotlib_converters
+   lag_plot
+   parallel_coordinates
+   radviz
+   register_matplotlib_converters
+   scatter_matrix
 
 .. currentmodule:: pandas
 
@@ -2519,12 +2552,13 @@ objects.
    :hidden:
 
    generated/pandas.DataFrame.blocks
-   generated/pandas.DataFrame.columns
-   generated/pandas.DataFrame.index
+   generated/pandas.DataFrame.as_matrix
    generated/pandas.DataFrame.ix
    generated/pandas.Index.asi8
    generated/pandas.Index.data
    generated/pandas.Index.flags
+   generated/pandas.Index.holds_integer
+   generated/pandas.Index.is_type_compatible
    generated/pandas.Index.nlevels
    generated/pandas.Index.sort
    generated/pandas.Panel.agg
@@ -2539,6 +2573,6 @@ objects.
    generated/pandas.Series.asobject
    generated/pandas.Series.blocks
    generated/pandas.Series.from_array
-   generated/pandas.Series.index
    generated/pandas.Series.ix
-   generated/pandas.Timestamp.offset
+   generated/pandas.Series.imag
+   generated/pandas.Series.real

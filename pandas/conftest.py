@@ -1,9 +1,7 @@
 import pytest
 
-from distutils.version import LooseVersion
 import numpy
 import pandas
-import dateutil
 import pandas.util._test_decorators as td
 
 
@@ -68,14 +66,6 @@ def ip():
     return InteractiveShell()
 
 
-is_dateutil_le_261 = pytest.mark.skipif(
-    LooseVersion(dateutil.__version__) > LooseVersion('2.6.1'),
-    reason="dateutil api change version")
-is_dateutil_gt_261 = pytest.mark.skipif(
-    LooseVersion(dateutil.__version__) <= LooseVersion('2.6.1'),
-    reason="dateutil stable version")
-
-
 @pytest.fixture(params=[None, 'gzip', 'bz2', 'zip',
                         pytest.param('xz', marks=td.skip_if_no_lzma)])
 def compression(request):
@@ -85,11 +75,15 @@ def compression(request):
     return request.param
 
 
-@pytest.fixture(params=[None, 'gzip', 'bz2',
-                        pytest.param('xz', marks=td.skip_if_no_lzma)])
-def compression_no_zip(request):
+@pytest.fixture(scope='module')
+def datetime_tz_utc():
+    from datetime import timezone
+    return timezone.utc
+
+
+@pytest.fixture(params=['inner', 'outer', 'left', 'right'])
+def join_type(request):
     """
-    Fixture for trying common compression types in compression tests
-    except zip
+    Fixture for trying all types of join operations
     """
     return request.param

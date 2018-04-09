@@ -197,7 +197,7 @@ class TimeFormatter(Formatter):
         ----------
         x : float
             The time of day specified as seconds since 00:00 (midnight),
-            with upto microsecond precision.
+            with up to microsecond precision.
         pos
             Unused
 
@@ -249,11 +249,11 @@ class PeriodConverter(dates.DateConverter):
                 is_float(values)):
             return get_datevalue(values, axis.freq)
         if isinstance(values, PeriodIndex):
-            return values.asfreq(axis.freq)._values
+            return values.asfreq(axis.freq)._ndarray_values
         if isinstance(values, Index):
             return values.map(lambda x: get_datevalue(x, axis.freq))
         if is_period_arraylike(values):
-            return PeriodIndex(values, freq=axis.freq)._values
+            return PeriodIndex(values, freq=axis.freq)._ndarray_values
         if isinstance(values, (list, tuple, np.ndarray, Index)):
             return [get_datevalue(x, axis.freq) for x in values]
         return values
@@ -642,7 +642,7 @@ def _daily_finder(vmin, vmax, freq):
     info = np.zeros(span,
                     dtype=[('val', np.int64), ('maj', bool),
                            ('min', bool), ('fmt', '|S20')])
-    info['val'][:] = dates_._values
+    info['val'][:] = dates_._ndarray_values
     info['fmt'][:] = ''
     info['maj'][[0, -1]] = True
     # .. and set some shortcuts

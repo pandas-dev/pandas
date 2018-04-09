@@ -11,7 +11,9 @@ from pandas.compat import string_types, text_type, PY3
 from .common import (_ensure_object, is_bool, is_integer, is_float,
                      is_complex, is_datetimetz, is_categorical_dtype,
                      is_datetimelike,
-                     is_extension_type, is_object_dtype,
+                     is_extension_type,
+                     is_extension_array_dtype,
+                     is_object_dtype,
                      is_datetime64tz_dtype, is_datetime64_dtype,
                      is_datetime64_ns_dtype,
                      is_timedelta64_dtype, is_timedelta64_ns_dtype,
@@ -26,7 +28,8 @@ from .common import (_ensure_object, is_bool, is_integer, is_float,
                      _ensure_int32, _ensure_int64,
                      _NS_DTYPE, _TD_DTYPE, _INT64_DTYPE,
                      _POSSIBLY_CAST_DTYPES)
-from .dtypes import ExtensionDtype, DatetimeTZDtype, PeriodDtype
+from .dtypes import (ExtensionDtype, PandasExtensionDtype, DatetimeTZDtype,
+                     PeriodDtype)
 from .generic import (ABCDatetimeIndex, ABCPeriodIndex,
                       ABCSeries)
 from .missing import isna, notna
@@ -327,7 +330,7 @@ def maybe_promote(dtype, fill_value=np.nan):
         dtype = np.object_
 
     # in case we have a string that looked like a number
-    if is_categorical_dtype(dtype):
+    if is_extension_array_dtype(dtype):
         pass
     elif is_datetimetz(dtype):
         pass
@@ -904,16 +907,23 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
     def try_datetime(v):
         # safe coerce to datetime64
         try:
-            v = tslib.array_to_datetime(v, errors='raise')
+            # GH19671
+            v = tslib.array_to_datetime(v,
+                                        require_iso8601=True,
+                                        errors='raise')
         except ValueError:
 
             # we might have a sequence of the same-datetimes with tz's
             # if so coerce to a DatetimeIndex; if they are not the same,
-            # then these stay as object dtype
+            # then these stay as object dtype, xref GH19671
             try:
-                from pandas import to_datetime
-                return to_datetime(v)
-            except Exception:
+                from pandas._libs.tslibs import conversion
+                from pandas import DatetimeIndex
+
+                values, tz = conversion.datetime_to_datetime64(v)
+                return DatetimeIndex(values).tz_localize(
+                    'UTC').tz_convert(tz=tz)
+            except (ValueError, TypeError):
                 pass
 
         except Exception:
@@ -927,7 +937,7 @@ def maybe_infer_to_datetimelike(value, convert_dates=False):
         # will try first with a string & object conversion
         from pandas import to_timedelta
         try:
-            return to_timedelta(v)._values.reshape(shape)
+            return to_timedelta(v)._ndarray_values.reshape(shape)
         except Exception:
             return v.reshape(shape)
 
@@ -1107,7 +1117,8 @@ def find_common_type(types):
     if all(is_dtype_equal(first, t) for t in types[1:]):
         return first
 
-    if any(isinstance(t, ExtensionDtype) for t in types):
+    if any(isinstance(t, (PandasExtensionDtype, ExtensionDtype))
+           for t in types):
         return np.object
 
     # take lowest unit
@@ -1178,7 +1189,7 @@ def construct_1d_arraylike_from_scalar(value, length, dtype):
         subarr = DatetimeIndex([value] * length, dtype=dtype)
     elif is_categorical_dtype(dtype):
         from pandas import Categorical
-        subarr = Categorical([value] * length)
+        subarr = Categorical([value] * length, dtype=dtype)
     else:
         if not isinstance(dtype, (np.dtype, type(np.dtype))):
             dtype = dtype.dtype

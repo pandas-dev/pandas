@@ -3,6 +3,7 @@
 
 cimport cython
 from cython cimport Py_ssize_t
+from libcpp.deque cimport deque
 
 from libc.stdlib cimport malloc, free
 
@@ -12,7 +13,7 @@ from numpy cimport ndarray, double_t, int64_t, float64_t
 cnp.import_array()
 
 
-cdef extern from "../src/headers/math.h":
+cdef extern from "../src/headers/cmath" namespace "std":
     int signbit(double) nogil
     double sqrt(double x) nogil
 
@@ -1222,8 +1223,9 @@ cdef _roll_min_max(ndarray[numeric] input, int64_t win, int64_t minp,
     cdef:
         numeric ai
         bint is_variable, should_replace
-        int64_t s, e, N, i, j, removed
+        int64_t N, i, removed, window_i
         Py_ssize_t nobs = 0
+        deque Q[int64_t]
         ndarray[int64_t] starti, endi
         ndarray[numeric, ndim=1] output
     cdef:
@@ -1242,32 +1244,48 @@ cdef _roll_min_max(ndarray[numeric] input, int64_t win, int64_t minp,
 
     output = np.empty(N, dtype=input.dtype)
 
+    Q = deque[int64_t]()
+
     if is_variable:
 
         with nogil:
 
-            for i in range(N):
-                s = starti[i]
-                e = endi[i]
+            # This is using a modified version of the C++ code in this
+            # SO post: http://bit.ly/2nOoHlY
+            # The original impl didn't deal with variable window sizes
+            # So the code was optimized for that
 
-                r = input[s]
-                nobs = 0
-                for j in range(s, e):
+            for i from starti[0] <= i < endi[0]:
+                ai = init_mm(input[i], &nobs, is_max)
 
-                    # adds, death at the i offset
-                    ai = init_mm(input[j], &nobs, is_max)
+                if is_max:
+                    while not Q.empty() and ai >= input[Q.back()]:
+                        Q.pop_back()
+                else:
+                    while not Q.empty() and ai <= input[Q.back()]:
+                        Q.pop_back()
+                Q.push_back(i)
 
-                    if is_max:
-                        if ai > r:
-                            r = ai
-                    else:
-                        if ai < r:
-                            r = ai
+            for i from endi[0] <= i < N:
+                output[i-1] = calc_mm(minp, nobs, input[Q.front()])
 
-                output[i] = calc_mm(minp, nobs, r)
+                ai = init_mm(input[i], &nobs, is_max)
+
+                if is_max:
+                    while not Q.empty() and ai >= input[Q.back()]:
+                        Q.pop_back()
+                else:
+                    while not Q.empty() and ai <= input[Q.back()]:
+                        Q.pop_back()
+
+                while not Q.empty() and Q.front() <= i - (endi[i] - starti[i]):
+                    Q.pop_front()
+
+                Q.push_back(i)
+
+            output[N-1] = calc_mm(minp, nobs, input[Q.front()])
 
     else:
-
         # setup the rings of death!
         ring = <numeric *>malloc(win * sizeof(numeric))
         death = <int64_t *>malloc(win * sizeof(int64_t))

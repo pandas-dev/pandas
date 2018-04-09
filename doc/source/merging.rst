@@ -152,7 +152,7 @@ functionality below.
 Set logic on the other axes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When gluing together multiple ``DataFrame``s, you have a choice of how to handle 
+When gluing together multiple DataFrames, you have a choice of how to handle
 the other axes (other than the one being concatenated). This can be done in 
 the following three ways:
 
@@ -322,6 +322,13 @@ the name of the ``Series``.
    p.plot([df1, s1], result,
           labels=['df1', 's1'], vertical=False);
    plt.close('all');
+
+.. note::
+
+   Since we're concatenating a ``Series`` to a ``DataFrame``, we could have
+   achieved the same result with :meth:`DataFrame.assign`. To concatenate an
+   arbitrary number of pandas objects (``DataFrame`` or ``Series``), use
+   ``concat``.
 
 If unnamed ``Series`` are passed they will be numbered consecutively.
 
@@ -576,7 +583,7 @@ and ``right`` is a subclass of DataFrame, the return type will still be
 
 ``merge`` is a function in the pandas namespace, and it is also available as a
 ``DataFrame`` instance method :meth:`~DataFrame.merge`, with the calling 
-``DataFrame `` being implicitly considered the left object in the join.
+``DataFrame`` being implicitly considered the left object in the join.
 
 The related :meth:`~DataFrame.join` method, uses ``merge`` internally for the
 index-on-index (by default) and column(s)-on-index join. If you are joining on
@@ -629,7 +636,7 @@ key combination:
 
 Here is a more complicated example with multiple join keys. Only the keys 
 appearing in ``left`` and ``right`` are present (the intersection), since 
-``how='inner'```by default.
+``how='inner'`` by default.
 
 .. ipython:: python
 
@@ -714,7 +721,7 @@ either the left or right tables, the values in the joined table will be
           labels=['left', 'right'], vertical=False);
    plt.close('all');
 
-Here is another example with duplicate join keys in ``DataFrame``s:
+Here is another example with duplicate join keys in DataFrames:
 
 .. ipython:: python
 
@@ -1195,7 +1202,7 @@ Overlapping value columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The merge ``suffixes`` argument takes a tuple of list of strings to append to
-overlapping column names in the input ``DataFrame``s to disambiguate the result
+overlapping column names in the input ``DataFrame``\ s to disambiguate the result
 columns:
 
 .. ipython:: python

@@ -4,22 +4,26 @@ intended for public consumption
 """
 from __future__ import division
 from warnings import warn, catch_warnings
+from textwrap import dedent
+
 import numpy as np
 
 from pandas.core.dtypes.cast import (
     maybe_promote, construct_1d_object_array_from_listlike)
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCIndex,
-    ABCIndexClass, ABCCategorical)
+    ABCIndexClass)
 from pandas.core.dtypes.common import (
+    is_array_like,
     is_unsigned_integer_dtype, is_signed_integer_dtype,
     is_integer_dtype, is_complex_dtype,
     is_object_dtype,
+    is_extension_array_dtype,
     is_categorical_dtype, is_sparse,
     is_period_dtype,
     is_numeric_dtype, is_float_dtype,
     is_bool_dtype, needs_i8_conversion,
-    is_categorical, is_datetimetz,
+    is_datetimetz,
     is_datetime64_any_dtype, is_datetime64tz_dtype,
     is_timedelta64_dtype, is_interval_dtype,
     is_scalar, is_list_like,
@@ -27,11 +31,15 @@ from pandas.core.dtypes.common import (
     _ensure_float64, _ensure_uint64,
     _ensure_int64)
 from pandas.compat.numpy import _np_version_under1p10
-from pandas.core.dtypes.missing import isna
+from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
 from pandas.core import common as com
 from pandas._libs import algos, lib, hashtable as htable
 from pandas._libs.tslib import iNaT
+from pandas.util._decorators import (Appender, Substitution,
+                                     deprecate_kwarg)
+
+_shared_docs = {}
 
 
 # --------------- #
@@ -143,10 +151,9 @@ def _reconstruct_data(values, dtype, original):
     Returns
     -------
     Index for extension types, otherwise ndarray casted to dtype
-
     """
     from pandas import Index
-    if is_categorical_dtype(dtype):
+    if is_extension_array_dtype(dtype):
         pass
     elif is_datetime64tz_dtype(dtype) or is_period_dtype(dtype):
         values = Index(original)._shallow_copy(values, name=None)
@@ -166,8 +173,7 @@ def _ensure_arraylike(values):
     """
     ensure that we are arraylike if not already
     """
-    if not isinstance(values, (np.ndarray, ABCCategorical,
-                               ABCIndexClass, ABCSeries)):
+    if not is_array_like(values):
         inferred = lib.infer_dtype(values)
         if inferred in ['mixed', 'string', 'unicode']:
             if isinstance(values, tuple):
@@ -351,11 +357,8 @@ def unique(values):
 
     values = _ensure_arraylike(values)
 
-    # categorical is a fast-path
-    # this will coerce Categorical, CategoricalIndex,
-    # and category dtypes Series to same return of Category
-    if is_categorical_dtype(values):
-        values = getattr(values, '.values', values)
+    if is_extension_array_dtype(values):
+        # Dispatch to extension dtype's unique.
         return values.unique()
 
     original = values
@@ -436,48 +439,201 @@ def isin(comps, values):
     return f(comps, values)
 
 
-def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
-    """
-    Encode input values as an enumerated type or categorical variable
+def _factorize_array(values, na_sentinel=-1, size_hint=None,
+                     na_value=None):
+    """Factorize an array-like to labels and uniques.
+
+    This doesn't do any coercion of types or unboxing before factorization.
 
     Parameters
     ----------
-    values : ndarray (1-d)
-        Sequence
-    sort : boolean, default False
-        Sort by values
+    values : ndarray
     na_sentinel : int, default -1
-        Value to mark "not found"
-    size_hint : hint to the hashtable sizer
+    size_hint : int, optional
+        Passsed through to the hashtable's 'get_labels' method
+    na_value : object, optional
+        A value in `values` to consider missing. Note: only use this
+        parameter when you know that you don't have any values pandas would
+        consider missing in the array (NaN for float data, iNaT for
+        datetimes, etc.).
 
     Returns
     -------
-    labels : the indexer to the original array
-    uniques : ndarray (1-d) or Index
-        the unique values. Index is returned when passed values is Index or
-        Series
-
-    note: an array of Periods will ignore sort as it returns an always sorted
-    PeriodIndex
+    labels, uniques : ndarray
     """
-
-    values = _ensure_arraylike(values)
-    original = values
-    values, dtype, _ = _ensure_data(values)
     (hash_klass, vec_klass), values = _get_data_algo(values, _hashtables)
 
     table = hash_klass(size_hint or len(values))
     uniques = vec_klass()
-    check_nulls = not is_integer_dtype(original)
-    labels = table.get_labels(values, uniques, 0, na_sentinel, check_nulls)
+    labels = table.get_labels(values, uniques, 0, na_sentinel,
+                              na_value=na_value)
 
     labels = _ensure_platform_int(labels)
     uniques = uniques.to_array()
+    return labels, uniques
+
+
+_shared_docs['factorize'] = """
+    Encode the object as an enumerated type or categorical variable.
+
+    This method is useful for obtaining a numeric representation of an
+    array when all that matters is identifying distinct values. `factorize`
+    is available as both a top-level function :func:`pandas.factorize`,
+    and as a method :meth:`Series.factorize` and :meth:`Index.factorize`.
+
+    Parameters
+    ----------
+    %(values)s%(sort)s%(order)s
+    na_sentinel : int, default -1
+        Value to mark "not found".
+    %(size_hint)s\
+
+    Returns
+    -------
+    labels : ndarray
+        An integer ndarray that's an indexer into `uniques`.
+        ``uniques.take(labels)`` will have the same values as `values`.
+    uniques : ndarray, Index, or Categorical
+        The unique valid values. When `values` is Categorical, `uniques`
+        is a Categorical. When `values` is some other pandas object, an
+        `Index` is returned. Otherwise, a 1-D ndarray is returned.
+
+        .. note ::
+
+           Even if there's a missing value in `values`, `uniques` will
+           *not* contain an entry for it.
+
+    See Also
+    --------
+    pandas.cut : Discretize continuous-valued array.
+    pandas.unique : Find the unique valuse in an array.
+
+    Examples
+    --------
+    These examples all show factorize as a top-level method like
+    ``pd.factorize(values)``. The results are identical for methods like
+    :meth:`Series.factorize`.
+
+    >>> labels, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'])
+    >>> labels
+    array([0, 0, 1, 2, 0])
+    >>> uniques
+    array(['b', 'a', 'c'], dtype=object)
+
+    With ``sort=True``, the `uniques` will be sorted, and `labels` will be
+    shuffled so that the relationship is the maintained.
+
+    >>> labels, uniques = pd.factorize(['b', 'b', 'a', 'c', 'b'], sort=True)
+    >>> labels
+    array([1, 1, 0, 2, 1])
+    >>> uniques
+    array(['a', 'b', 'c'], dtype=object)
+
+    Missing values are indicated in `labels` with `na_sentinel`
+    (``-1`` by default). Note that missing values are never
+    included in `uniques`.
+
+    >>> labels, uniques = pd.factorize(['b', None, 'a', 'c', 'b'])
+    >>> labels
+    array([ 0, -1,  1,  2,  0])
+    >>> uniques
+    array(['b', 'a', 'c'], dtype=object)
+
+    Thus far, we've only factorized lists (which are internally coerced to
+    NumPy arrays). When factorizing pandas objects, the type of `uniques`
+    will differ. For Categoricals, a `Categorical` is returned.
+
+    >>> cat = pd.Categorical(['a', 'a', 'c'], categories=['a', 'b', 'c'])
+    >>> labels, uniques = pd.factorize(cat)
+    >>> labels
+    array([0, 0, 1])
+    >>> uniques
+    [a, c]
+    Categories (3, object): [a, b, c]
+
+    Notice that ``'b'`` is in ``uniques.categories``, desipite not being
+    present in ``cat.values``.
+
+    For all other pandas objects, an Index of the appropriate type is
+    returned.
+
+    >>> cat = pd.Series(['a', 'a', 'c'])
+    >>> labels, uniques = pd.factorize(cat)
+    >>> labels
+    array([0, 0, 1])
+    >>> uniques
+    Index(['a', 'c'], dtype='object')
+    """
+
+
+@Substitution(
+    values=dedent("""\
+    values : sequence
+        A 1-D seqeunce. Sequences that aren't pandas objects are
+        coereced to ndarrays before factorization.
+    """),
+    order=dedent("""\
+    order
+        .. deprecated:: 0.23.0
+
+           This parameter has no effect and is deprecated.
+    """),
+    sort=dedent("""\
+    sort : bool, default False
+        Sort `uniques` and shuffle `labels` to maintain the
+        relationship.
+    """),
+    size_hint=dedent("""\
+    size_hint : int, optional
+        Hint to the hashtable sizer.
+    """),
+)
+@Appender(_shared_docs['factorize'])
+@deprecate_kwarg(old_arg_name='order', new_arg_name=None)
+def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
+    # Implementation notes: This method is responsible for 3 things
+    # 1.) coercing data to array-like (ndarray, Index, extension array)
+    # 2.) factorizing labels and uniques
+    # 3.) Maybe boxing the output in an Index
+    #
+    # Step 2 is dispatched to extension types (like Categorical). They are
+    # responsible only for factorization. All data coercion, sorting and boxing
+    # should happen here.
+
+    values = _ensure_arraylike(values)
+    original = values
+
+    if is_extension_array_dtype(values):
+        values = getattr(values, '_values', values)
+        labels, uniques = values.factorize(na_sentinel=na_sentinel)
+        dtype = original.dtype
+    else:
+        values, dtype, _ = _ensure_data(values)
+
+        if (is_datetime64_any_dtype(original) or
+                is_timedelta64_dtype(original) or
+                is_period_dtype(original)):
+            na_value = na_value_for_dtype(original.dtype)
+        else:
+            na_value = None
+
+        labels, uniques = _factorize_array(values,
+                                           na_sentinel=na_sentinel,
+                                           size_hint=size_hint,
+                                           na_value=na_value)
 
     if sort and len(uniques) > 0:
         from pandas.core.sorting import safe_sort
-        uniques, labels = safe_sort(uniques, labels, na_sentinel=na_sentinel,
-                                    assume_unique=True)
+        try:
+            order = uniques.argsort()
+            order2 = order.argsort()
+            labels = take_1d(order2, labels, fill_value=na_sentinel)
+            uniques = uniques.take(order)
+        except TypeError:
+            # Mixed types, where uniques.argsort fails.
+            uniques, labels = safe_sort(uniques, labels,
+                                        na_sentinel=na_sentinel,
+                                        assume_unique=True)
 
     uniques = _reconstruct_data(uniques, dtype, original)
 
@@ -545,7 +701,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
         if is_categorical_dtype(values) or is_sparse(values):
 
             # handle Categorical and sparse,
-            result = Series(values).values.value_counts(dropna=dropna)
+            result = Series(values)._values.value_counts(dropna=dropna)
             result.name = name
             counts = result.values
 
@@ -1290,10 +1446,13 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
     """
     Specialized Cython take which sets NaN values in one pass
 
+    This dispatches to ``take`` defined on ExtensionArrays. It does not
+    currently dispatch to ``SparseArray.take`` for sparse ``arr``.
+
     Parameters
     ----------
-    arr : ndarray
-        Input array
+    arr : array-like
+        Input array.
     indexer : ndarray
         1-D array of indices to take, subarrays corresponding to -1 value
         indicies are filed with fill_value
@@ -1313,16 +1472,24 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
         If False, indexer is assumed to contain no -1 values so no filling
         will be done.  This short-circuits computation of a mask.  Result is
         undefined if allow_fill == False and -1 is present in indexer.
+
+    Returns
+    -------
+    subarray : array-like
+        May be the same type as the input, or cast to an ndarray.
     """
 
+    # TODO(EA): Remove these if / elifs as datetimeTZ, interval, become EAs
     # dispatch to internal type takes
-    if is_categorical(arr):
-        return arr.take_nd(indexer, fill_value=fill_value,
-                           allow_fill=allow_fill)
+    if is_extension_array_dtype(arr):
+        return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
     elif is_datetimetz(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
     elif is_interval_dtype(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
+
+    if is_sparse(arr):
+        arr = arr.get_values()
 
     if indexer is None:
         indexer = np.arange(arr.shape[axis], dtype=np.int64)

@@ -9,52 +9,56 @@ This is a guide to many pandas tutorials, geared mainly for new users.
 Internal Guides
 ---------------
 
-pandas own :ref:`10 Minutes to pandas<10min>`
+pandas' own :ref:`10 Minutes to pandas<10min>`.
 
-More complex recipes are in the :ref:`Cookbook<cookbook>`
+More complex recipes are in the :ref:`Cookbook<cookbook>`.
+
+A handy pandas `cheat sheet <http://pandas.pydata.org/Pandas_Cheat_Sheet.pdf>`_.
 
 pandas Cookbook
 ---------------
 
-The goal of this cookbook (by `Julia Evans <http://jvns.ca>`_) is to
+The goal of this 2015 cookbook (by `Julia Evans <http://jvns.ca>`_) is to
 give you some concrete examples for getting started with pandas. These
 are examples with real-world data, and all the bugs and weirdness that
 entails.
 
-Here are links to the v0.1 release. For an up-to-date table of contents, see the `pandas-cookbook GitHub
+Here are links to the v0.2 release. For an up-to-date table of contents, see the `pandas-cookbook GitHub
 repository <http://github.com/jvns/pandas-cookbook>`_. To run the examples in this tutorial, you'll need to
 clone the GitHub repository and get IPython Notebook running.
 See `How to use this cookbook <https://github.com/jvns/pandas-cookbook#how-to-use-this-cookbook>`_.
 
--  `A quick tour of the IPython Notebook: <http://nbviewer.ipython.org/github/jvns/pandas-cookbook/blob/v0.1/cookbook/A%20quick%20tour%20of%20IPython%20Notebook.ipynb>`_
+-  `A quick tour of the IPython Notebook: <http://nbviewer.jupyter.org/github/jvns/pandas-cookbook/blob/v0.2/cookbook/A%20quick%20tour%20of%20IPython%20Notebook.ipynb>`_
    Shows off IPython's awesome tab completion and magic functions.
--  `Chapter 1: <http://nbviewer.ipython.org/github/jvns/pandas-cookbook/blob/v0.1/cookbook/Chapter%201%20-%20Reading%20from%20a%20CSV.ipynb>`_
+-  `Chapter 1: <http://nbviewer.jupyter.org/github/jvns/pandas-cookbook/blob/v0.2/cookbook/Chapter%201%20-%20Reading%20from%20a%20CSV.ipynb>`_
    Reading your data into pandas is pretty much the easiest thing. Even
    when the encoding is wrong!
--  `Chapter 2: <http://nbviewer.ipython.org/github/jvns/pandas-cookbook/blob/v0.1/cookbook/Chapter%202%20-%20Selecting%20data%20&%20finding%20the%20most%20common%20complaint%20type.ipynb>`_
+-  `Chapter 2: <http://nbviewer.jupyter.org/github/jvns/pandas-cookbook/blob/v0.2/cookbook/Chapter%202%20-%20Selecting%20data%20%26%20finding%20the%20most%20common%20complaint%20type.ipynb>`_
    It's not totally obvious how to select data from a pandas dataframe.
    Here we explain the basics (how to take slices and get columns)
--  `Chapter 3: <http://nbviewer.ipython.org/github/jvns/pandas-cookbook/blob/v0.1/cookbook/Chapter%203%20-%20Which%20borough%20has%20the%20most%20noise%20complaints%3F%20%28or%2C%20more%20selecting%20data%29.ipynb>`_
+-  `Chapter 3: <http://nbviewer.jupyter.org/github/jvns/pandas-cookbook/blob/v0.2/cookbook/Chapter%203%20-%20Which%20borough%20has%20the%20most%20noise%20complaints%20%28or%2C%20more%20selecting%20data%29.ipynb>`_
    Here we get into serious slicing and dicing and learn how to filter
    dataframes in complicated ways, really fast.
--  `Chapter 4: <http://nbviewer.ipython.org/github/jvns/pandas-cookbook/blob/v0.1/cookbook/Chapter%204%20-%20Find%20out%20on%20which%20weekday%20people%20bike%20the%20most%20with%20groupby%20and%20aggregate.ipynb>`_
+-  `Chapter 4: <http://nbviewer.jupyter.org/github/jvns/pandas-cookbook/blob/v0.2/cookbook/Chapter%204%20-%20Find%20out%20on%20which%20weekday%20people%20bike%20the%20most%20with%20groupby%20and%20aggregate.ipynb>`_
    Groupby/aggregate is seriously my favorite thing about pandas
    and I use it all the time. You should probably read this.
--  `Chapter 5:  <http://nbviewer.ipython.org/github/jvns/pandas-cookbook/blob/v0.1/cookbook/Chapter%205%20-%20Combining%20dataframes%20and%20scraping%20Canadian%20weather%20data.ipynb>`_
+-  `Chapter 5:  <http://nbviewer.jupyter.org/github/jvns/pandas-cookbook/blob/v0.2/cookbook/Chapter%205%20-%20Combining%20dataframes%20and%20scraping%20Canadian%20weather%20data.ipynb>`_
    Here you get to find out if it's cold in Montreal in the winter
    (spoiler: yes). Web scraping with pandas is fun! Here we combine dataframes.
--  `Chapter 6:  <http://nbviewer.ipython.org/github/jvns/pandas-cookbook/blob/v0.1/cookbook/Chapter%206%20-%20String%20operations%21%20Which%20month%20was%20the%20snowiest%3F.ipynb>`_
+-  `Chapter 6:  <http://nbviewer.jupyter.org/github/jvns/pandas-cookbook/blob/v0.2/cookbook/Chapter%206%20-%20String%20Operations-%20Which%20month%20was%20the%20snowiest.ipynb>`_
    Strings with pandas are great. It has all these vectorized string
    operations and they're the best. We will turn a bunch of strings
    containing "Snow" into vectors of numbers in a trice.
--  `Chapter 7: <http://nbviewer.ipython.org/github/jvns/pandas-cookbook/blob/v0.1/cookbook/Chapter%207%20-%20Cleaning%20up%20messy%20data.ipynb>`_
+-  `Chapter 7: <http://nbviewer.jupyter.org/github/jvns/pandas-cookbook/blob/v0.2/cookbook/Chapter%207%20-%20Cleaning%20up%20messy%20data.ipynb>`_
    Cleaning up messy data is never a joy, but with pandas it's easier.
--  `Chapter 8:  <http://nbviewer.ipython.org/github/jvns/pandas-cookbook/blob/v0.1/cookbook/Chapter%208%20-%20How%20to%20deal%20with%20timestamps.ipynb>`_
+-  `Chapter 8:  <http://nbviewer.jupyter.org/github/jvns/pandas-cookbook/blob/v0.2/cookbook/Chapter%208%20-%20How%20to%20deal%20with%20timestamps.ipynb>`_
    Parsing Unix timestamps is confusing at first but it turns out
    to be really easy.
+-  `Chapter 9:  <http://nbviewer.jupyter.org/github/jvns/pandas-cookbook/blob/v0.2/cookbook/Chapter%209%20-%20Loading%20data%20from%20SQL%20databases.ipynb>`_
+   Reading data from SQL databases.
 
 
-Lessons for New pandas Users
+Lessons for new pandas users
 ----------------------------
 
 For more resources, please visit the main `repository <https://bitbucket.org/hrojas/learn-pandas>`__.
@@ -125,7 +129,7 @@ There are four sections covering selected topics as follows:
 
 .. _tutorial-exercises-new-users:
 
-Exercises for New Users
+Exercises for new users
 -----------------------
 Practice your skills with real data sets and exercises.
 For more resources, please visit the main `repository <https://github.com/guipsamora/pandas_exercises>`__.
@@ -152,8 +156,13 @@ For more resources, please visit the main `repository <https://github.com/guipsa
 
 .. _tutorial-modern:
 
-Modern Pandas
+Modern pandas
 -------------
+
+Tutorial series written in 2016 by 
+`Tom Augspurger <https://github.com/TomAugspurger>`_.
+The source may be found in the GitHub repository
+`TomAugspurger/effective-pandas <https://github.com/TomAugspurger/effective-pandas>`_.
 
 - `Modern Pandas <http://tomaugspurger.github.io/modern-1-intro.html>`_
 - `Method Chaining <http://tomaugspurger.github.io/method-chaining.html>`_
@@ -167,6 +176,20 @@ Excel charts with pandas, vincent and xlsxwriter
 ------------------------------------------------
 
 -  `Using Pandas and XlsxWriter to create Excel charts <https://pandas-xlsxwriter-charts.readthedocs.io/>`_
+
+Video Tutorials
+---------------
+
+- `Pandas From The Ground Up <https://www.youtube.com/watch?v=5JnMutdy6Fw>`_ 
+  (2015) (2:24)
+  `GitHub repo <https://github.com/brandon-rhodes/pycon-pandas-tutorial>`__
+- `Introduction Into Pandas <https://www.youtube.com/watch?v=-NR-ynQg0YM>`_ 
+  (2016) (1:28)
+  `GitHub repo <https://github.com/chendaniely/2016-pydata-carolinas-pandas>`__
+- `Pandas: .head() to .tail() <https://www.youtube.com/watch?v=7vuO9QXDN50>`_ 
+  (2016) (1:26)
+  `GitHub repo <https://github.com/TomAugspurger/pydata-chi-h2t>`__
+
 
 Various Tutorials
 -----------------

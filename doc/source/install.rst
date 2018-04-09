@@ -6,13 +6,13 @@
 Installation
 ============
 
-The easiest way for the majority of users to install pandas is to install it
+The easiest way to install pandas is to install it
 as part of the `Anaconda <http://docs.continuum.io/anaconda/>`__ distribution, a
 cross platform distribution for data analysis and scientific computing.
 This is the recommended installation method for most users.
 
 Instructions for installing from source,
-`PyPI <http://pypi.python.org/pypi/pandas>`__, various Linux distributions, or a
+`PyPI <http://pypi.python.org/pypi/pandas>`__, `ActivePython <https://www.activestate.com/activepython/downloads>`__, various Linux distributions, or a
 `development version <http://github.com/pandas-dev/pandas>`__ are also provided.
 
 Python version support
@@ -25,8 +25,8 @@ Installing pandas
 
 .. _install.anaconda:
 
-Installing pandas with Anaconda
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Installing with Anaconda
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 Installing pandas and the rest of the `NumPy <http://www.numpy.org/>`__ and
 `SciPy <http://www.scipy.org/>`__ stack can be a little
@@ -40,7 +40,7 @@ packages that make up the `SciPy <http://www.scipy.org/>`__ stack
 (Linux, Mac OS X, Windows) Python distribution for data analytics and
 scientific computing.
 
-After running a simple installer, the user will have access to pandas and the
+After running the installer, the user will have access to pandas and the
 rest of the `SciPy <http://www.scipy.org/>`__ stack without needing to install
 anything else, and without needing to wait for any software to be compiled.
 
@@ -51,15 +51,15 @@ A full list of the packages available as part of the
 `Anaconda <http://docs.continuum.io/anaconda/>`__ distribution
 `can be found here <http://docs.continuum.io/anaconda/pkg-docs.html>`__.
 
-An additional advantage of installing with Anaconda is that you don't require
-admin rights to install it, it will install in the user's home directory, and
-this also makes it trivial to delete Anaconda at a later date (just delete
+Another advantage to installing Anaconda is that you don't need
+admin rights to install it. Anaconda can install in the user's home directory,
+which makes it trivial to delete Anaconda if you decide (just delete
 that folder).
 
 .. _install.miniconda:
 
-Installing pandas with Miniconda
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Installing with Miniconda
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The previous section outlined how to get pandas installed as part of the
 `Anaconda <http://docs.continuum.io/anaconda/>`__ distribution.
@@ -85,9 +85,9 @@ downloading and running the `Miniconda
 will do this for you. The installer
 `can be found here <http://conda.pydata.org/miniconda.html>`__
 
-The next step is to create a new conda environment (these are analogous to a
-virtualenv but they also allow you to specify precisely which Python version
-to install also). Run the following commands from a terminal window::
+The next step is to create a new conda environment. A conda environment is like a
+virtualenv that allows you to specify a specific version of Python and set of libraries.
+Run the following commands from a terminal window::
 
     conda create -n name_of_my_env python
 
@@ -118,8 +118,8 @@ distribution::
 
     conda install anaconda
 
-If you require any packages that are available to pip but not conda, simply
-install pip, and use pip to install these packages::
+If you need packages that are available to pip but not conda, then
+install pip, and then use pip to install those packages::
 
     conda install pip
     pip install django
@@ -134,15 +134,19 @@ pandas can be installed via pip from
 
     pip install pandas
 
-This will likely require the installation of a number of dependencies,
-including NumPy, will require a compiler to compile required bits of code,
-and can take a few minutes to complete.
+Installing with ActivePython
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Installation instructions for 
+`ActivePython <https://www.activestate.com/activepython>`__ can be found 
+`here <https://www.activestate.com/activepython/downloads>`__. Versions
+2.7 and 3.5 include pandas.
 
 Installing using your Linux distribution's package manager.
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The commands in this table will install pandas for Python 3 from your distribution.
-To install pandas for Python 2 you may need to use the package ``python-pandas``.
+To install pandas for Python 2, you may need to use the ``python-pandas`` package.
 
 .. csv-table::
     :header: "Distribution", "Status", "Download / Repository Link", "Install method"
@@ -167,11 +171,11 @@ Installing from source
 See the :ref:`contributing documentation <contributing>` for complete instructions on building from the git source tree. Further, see :ref:`creating a development environment <contributing.dev_env>` if you wish to create a *pandas* development environment.
 
 Running the test suite
-~~~~~~~~~~~~~~~~~~~~~~
+----------------------
 
-pandas is equipped with an exhaustive set of unit tests covering about 97% of
+pandas is equipped with an exhaustive set of unit tests, covering about 97% of
 the codebase as of this writing. To run it on your machine to verify that
-everything is working (and you have all of the dependencies, soft and hard,
+everything is working (and that you have all of the dependencies, soft and hard,
 installed), make sure you have `pytest
 <http://doc.pytest.org/en/latest/>`__ and run:
 
@@ -208,14 +212,14 @@ Recommended Dependencies
   ``numexpr`` uses multiple cores as well as smart chunking and caching to achieve large speedups.
   If installed, must be Version 2.4.6 or higher.
 
-* `bottleneck <http://berkeleyanalytics.com/bottleneck>`__: for accelerating certain types of ``nan``
+* `bottleneck <https://github.com/kwgoodman/bottleneck>`__: for accelerating certain types of ``nan``
   evaluations. ``bottleneck`` uses specialized cython routines to achieve large speedups. If installed,
   must be Version 1.0.0 or higher.
 
 .. note::
 
-   You are highly encouraged to install these libraries, as they provide large speedups, especially
-   if working with large data sets.
+   You are highly encouraged to install these libraries, as they provide speed improvements, especially
+   when working with large data sets.
 
 
 .. _install.optional_dependencies:
@@ -229,7 +233,7 @@ Optional Dependencies
 * `xarray <http://xarray.pydata.org>`__: pandas like handling for > 2 dims, needed for converting Panels to xarray objects. Version 0.7.0 or higher is recommended.
 * `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage. Version 3.0.0 or higher required, Version 3.2.1 or higher highly recommended.
 * `Feather Format <https://github.com/wesm/feather>`__: necessary for feather-based storage, version 0.3.1 or higher.
-* `Apache Parquet <https://parquet.apache.org/>`__, either `pyarrow <http://arrow.apache.org/docs/python/>`__ (>= 0.4.1) or `fastparquet <https://fastparquet.readthedocs.io/en/latest/necessary>`__ (>= 0.0.6) for parquet-based storage. The `snappy <https://pypi.python.org/pypi/python-snappy>`__ and `brotli <https://pypi.python.org/pypi/brotlipy>`__ are available for compression support.
+* `Apache Parquet <https://parquet.apache.org/>`__, either `pyarrow <http://arrow.apache.org/docs/python/>`__ (>= 0.4.1) or `fastparquet <https://fastparquet.readthedocs.io/en/latest>`__ (>= 0.0.6) for parquet-based storage. The `snappy <https://pypi.python.org/pypi/python-snappy>`__ and `brotli <https://pypi.python.org/pypi/brotlipy>`__ are available for compression support.
 * `SQLAlchemy <http://www.sqlalchemy.org>`__: for SQL database support. Version 0.8.1 or higher recommended. Besides SQLAlchemy, you also need a database specific driver. You can find an overview of supported drivers for each SQL dialect in the `SQLAlchemy docs <http://docs.sqlalchemy.org/en/latest/dialects/index.html>`__. Some common drivers are:
 
   * `psycopg2 <http://initd.org/psycopg/>`__: for PostgreSQL
@@ -262,6 +266,12 @@ Optional Dependencies
 * One of the following combinations of libraries is needed to use the
   top-level :func:`~pandas.read_html` function:
 
+  .. versionchanged:: 0.23.0
+
+  .. note::
+
+     If using BeautifulSoup4 a minimum version of 4.2.1 is required
+
   * `BeautifulSoup4`_ and `html5lib`_ (Any recent version of `html5lib`_ is
     okay.)
   * `BeautifulSoup4`_ and `lxml`_
@@ -278,9 +288,6 @@ Optional Dependencies
      * You are highly encouraged to read :ref:`HTML Table Parsing gotchas <io.html.gotchas>`.
        It explains issues surrounding the installation and
        usage of the above three libraries.
-     * You may need to install an older version of `BeautifulSoup4`_:
-       Versions 4.2.1, 4.1.3 and 4.0.2 have been confirmed for 64 and 32-bit
-       Ubuntu/Debian
 
   .. note::
 
@@ -302,5 +309,5 @@ Optional Dependencies
 
    Without the optional dependencies, many useful features will not
    work. Hence, it is highly recommended that you install these. A packaged
-   distribution like `Anaconda <http://docs.continuum.io/anaconda/>`__, or `Enthought Canopy
+   distribution like `Anaconda <http://docs.continuum.io/anaconda/>`__, `ActivePython <https://www.activestate.com/activepython/downloads>`__  (version 2.7 or 3.5), or `Enthought Canopy
    <http://enthought.com/products/canopy>`__ may be worth considering.

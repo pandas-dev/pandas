@@ -32,7 +32,7 @@ PANDAS_INLINE PyObject* get_value_1d(PyArrayObject* ap, Py_ssize_t i) {
 
 // returns ASCII or UTF8 (py3) view on python str
 // python object owns memory, should not be freed
-PANDAS_INLINE char* get_c_string(PyObject* obj) {
+PANDAS_INLINE const char* get_c_string(PyObject* obj) {
 #if PY_VERSION_HEX >= 0x03000000
     return PyUnicode_AsUTF8(obj);
 #else
@@ -40,7 +40,7 @@ PANDAS_INLINE char* get_c_string(PyObject* obj) {
 #endif
 }
 
-PANDAS_INLINE PyObject* char_to_string(char* data) {
+PANDAS_INLINE PyObject* char_to_string(const char* data) {
 #if PY_VERSION_HEX >= 0x03000000
     return PyUnicode_FromString(data);
 #else

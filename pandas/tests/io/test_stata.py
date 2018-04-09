@@ -4,10 +4,8 @@
 import datetime as dt
 import os
 import struct
-import sys
 import warnings
 from datetime import datetime
-from distutils.version import LooseVersion
 from collections import OrderedDict
 
 import numpy as np
@@ -144,8 +142,6 @@ class TestStata(object):
         tm.assert_frame_equal(parsed, expected)
 
     def test_read_dta2(self):
-        if LooseVersion(sys.version) < LooseVersion('2.7'):
-            pytest.skip('datetime interp under 2.6 is faulty')
 
         expected = DataFrame.from_records(
             [
@@ -336,7 +332,7 @@ class TestStata(object):
         with tm.ensure_clean() as path:
             original.to_stata(path, {'datetime': 'tc'})
             written_and_read_again = self.read_dta(path)
-            # original.index is np.int32, readed index is np.int64
+            # original.index is np.int32, read index is np.int64
             tm.assert_frame_equal(written_and_read_again.set_index('index'),
                                   original, check_index_type=False)
 

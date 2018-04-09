@@ -81,6 +81,14 @@ class TestSeriesAlterAxes(TestData):
             exp = np.array(['a', 'b', 'c'], dtype=np.object_)
             tm.assert_numpy_array_equal(s.index.values, exp)
 
+    def test_rename_axis_supported(self):
+        # Supporting axis for compatibility, detailed in GH-18589
+        s = Series(range(5))
+        s.rename({}, axis=0)
+        s.rename({}, axis='index')
+        with tm.assert_raises_regex(ValueError, 'No axis named 5'):
+            s.rename({}, axis=5)
+
     def test_set_name_attribute(self):
         s = Series([1, 2, 3])
         s2 = Series([1, 2, 3], name='bar')

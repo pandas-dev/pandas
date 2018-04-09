@@ -43,6 +43,7 @@ from pandas.util._decorators import Appender
 
 import pandas._libs.lib as lib
 import pandas._libs.parsers as parsers
+import pandas._libs.ops as libops
 from pandas._libs.tslibs import parsing
 
 # BOM character (byte order mark)
@@ -96,13 +97,18 @@ index_col : int or sequence or False, default None
     MultiIndex is used. If you have a malformed file with delimiters at the end
     of each line, you might consider index_col=False to force pandas to _not_
     use the first column as the index (row names)
-usecols : array-like or callable, default None
-    Return a subset of the columns. If array-like, all elements must either
+usecols : list-like or callable, default None
+    Return a subset of the columns. If list-like, all elements must either
     be positional (i.e. integer indices into the document columns) or strings
     that correspond to column names provided either by the user in `names` or
-    inferred from the document header row(s). For example, a valid array-like
+    inferred from the document header row(s). For example, a valid list-like
     `usecols` parameter would be [0, 1, 2] or ['foo', 'bar', 'baz']. Element
-    order is ignored, so usecols=[1,0] is the same as [0,1].
+    order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``.
+    To instantiate a DataFrame from ``data`` with element order preserved use
+    ``pd.read_csv(data, usecols=['foo', 'bar'])[['foo', 'bar']]`` for columns
+    in ``['foo', 'bar']`` order or
+    ``pd.read_csv(data, usecols=['foo', 'bar'])[['bar', 'foo']]``
+    for ``['bar', 'foo']`` order.
 
     If callable, the callable function will be evaluated against the column
     names, returning names where the callable function evaluates to True. An
@@ -413,7 +419,7 @@ def _read(filepath_or_buffer, kwds):
 
     compression = kwds.get('compression')
     compression = _infer_compression(filepath_or_buffer, compression)
-    filepath_or_buffer, _, compression = get_filepath_or_buffer(
+    filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
         filepath_or_buffer, encoding, compression)
     kwds['compression'] = compression
 
@@ -439,6 +445,13 @@ def _read(filepath_or_buffer, kwds):
         data = parser.read(nrows)
     finally:
         parser.close()
+
+    if should_close:
+        try:
+            filepath_or_buffer.close()
+        except:  # noqa: flake8
+            pass
+
     return data
 
 
@@ -1164,7 +1177,7 @@ def _validate_usecols_arg(usecols):
 
     Parameters
     ----------
-    usecols : array-like, callable, or None
+    usecols : list-like, callable, or None
         List of columns to use when parsing or a callable that can be used
         to filter a list of table columns.
 
@@ -1179,17 +1192,19 @@ def _validate_usecols_arg(usecols):
         'usecols_dtype` is the inferred dtype of 'usecols' if an array-like
         is passed in or None if a callable or None is passed in.
     """
-    msg = ("'usecols' must either be all strings, all unicode, "
-           "all integers or a callable")
-
+    msg = ("'usecols' must either be list-like of all strings, all unicode, "
+           "all integers or a callable.")
     if usecols is not None:
         if callable(usecols):
             return usecols, None
-        usecols_dtype = lib.infer_dtype(usecols)
-        if usecols_dtype not in ('empty', 'integer',
-                                 'string', 'unicode'):
+        # GH20529, ensure is iterable container but not string.
+        elif not is_list_like(usecols):
             raise ValueError(msg)
-
+        else:
+            usecols_dtype = lib.infer_dtype(usecols)
+            if usecols_dtype not in ('empty', 'integer',
+                                     'string', 'unicode'):
+                raise ValueError(msg)
         return set(usecols), usecols_dtype
     return usecols, None
 
@@ -1604,9 +1619,9 @@ class ParserBase(object):
                 na_count = parsers.sanitize_objects(values, na_values, False)
 
         if result.dtype == np.object_ and try_num_bool:
-            result = lib.maybe_convert_bool(values,
-                                            true_values=self.true_values,
-                                            false_values=self.false_values)
+            result = libops.maybe_convert_bool(values,
+                                               true_values=self.true_values,
+                                               false_values=self.false_values)
 
         return result, na_count
 
@@ -1684,11 +1699,12 @@ class CParserWrapper(ParserBase):
         # #2442
         kwds['allow_leading_cols'] = self.index_col is not False
 
-        self._reader = parsers.TextReader(src, **kwds)
-
-        # XXX
+        # GH20529, validate usecol arg before TextReader
         self.usecols, self.usecols_dtype = _validate_usecols_arg(
-            self._reader.usecols)
+            kwds['usecols'])
+        kwds['usecols'] = self.usecols
+
+        self._reader = parsers.TextReader(src, **kwds)
 
         passed_names = self.names is None
 

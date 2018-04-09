@@ -172,8 +172,8 @@ class TestDataFrameReprInfoEtc(TestData):
                                       'the CSV file externally. I want to Call'
                                       ' the File through the code..')})
 
-        result = repr(df)
-        assert 'StringCol' in result
+        with option_context('display.max_columns', 20):
+            assert 'StringCol' in repr(df)
 
     def test_latex_repr(self):
         result = r"""\begin{tabular}{llll}
@@ -307,7 +307,7 @@ class TestDataFrameReprInfoEtc(TestData):
         res = buf.getvalue().splitlines()
         assert "memory usage: " in res[-1]
 
-        # do not display memory usage cas
+        # do not display memory usage case
         df.info(buf=buf, memory_usage=False)
         res = buf.getvalue().splitlines()
         assert "memory usage: " not in res[-1]

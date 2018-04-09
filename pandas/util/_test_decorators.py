@@ -57,7 +57,11 @@ def safe_import(mod_name, min_version=None):
         return mod
     else:
         import sys
-        version = getattr(sys.modules[mod_name], '__version__')
+        try:
+            version = getattr(sys.modules[mod_name], '__version__')
+        except AttributeError:
+            # xlrd uses a capitalized attribute name
+            version = getattr(sys.modules[mod_name], '__VERSION__')
         if version:
             from distutils.version import LooseVersion
             if LooseVersion(version) >= LooseVersion(min_version):
@@ -80,6 +84,17 @@ def _skip_if_mpl_1_5():
     if mod:
         v = mod.__version__
         if LooseVersion(v) > LooseVersion('1.4.3') or str(v)[0] == '0':
+            return True
+        else:
+            mod.use("Agg", warn=False)
+
+
+def _skip_if_mpl_2_2():
+    mod = safe_import("matplotlib")
+
+    if mod:
+        v = mod.__version__
+        if LooseVersion(v) > LooseVersion('2.1.2'):
             return True
         else:
             mod.use("Agg", warn=False)
@@ -145,8 +160,12 @@ def skip_if_no(package, min_version=None):
 
 skip_if_no_mpl = pytest.mark.skipif(_skip_if_no_mpl(),
                                     reason="Missing matplotlib dependency")
+skip_if_mpl = pytest.mark.skipif(not _skip_if_no_mpl(),
+                                 reason="matplotlib is present")
 skip_if_mpl_1_5 = pytest.mark.skipif(_skip_if_mpl_1_5(),
                                      reason="matplotlib 1.5")
+xfail_if_mpl_2_2 = pytest.mark.xfail(_skip_if_mpl_2_2(),
+                                     reason="matplotlib 2.2")
 skip_if_32bit = pytest.mark.skipif(is_platform_32bit(),
                                    reason="skipping for 32 bit")
 skip_if_windows = pytest.mark.skipif(is_platform_windows(),

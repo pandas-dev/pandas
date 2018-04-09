@@ -29,7 +29,7 @@ from pandas.core.sorting import (get_group_index, get_compressed_ids,
 import pandas.core.algorithms as algos
 from pandas._libs import algos as _algos, reshape as _reshape
 
-from pandas.core.index import Index, MultiIndex, _get_na_value
+from pandas.core.index import Index, MultiIndex
 
 
 class _Unstacker(object):
@@ -260,7 +260,7 @@ class _Unstacker(object):
                 return self.removed_level
 
             lev = self.removed_level
-            return lev.insert(0, _get_na_value(lev.dtype.type))
+            return lev.insert(0, lev._na_value)
 
         stride = len(self.removed_level) + self.lift
         width = len(self.value_columns)
@@ -299,7 +299,7 @@ class _Unstacker(object):
         if len(self.new_index_levels) == 1:
             lev, lab = self.new_index_levels[0], result_labels[0]
             if (lab == -1).any():
-                lev = lev.insert(len(lev), _get_na_value(lev.dtype.type))
+                lev = lev.insert(len(lev), lev._na_value)
             return lev.take(lab)
 
         return MultiIndex(levels=self.new_index_levels, labels=result_labels,
@@ -392,16 +392,21 @@ def pivot(self, index=None, columns=None, values=None):
         cols = [columns] if index is None else [index, columns]
         append = index is None
         indexed = self.set_index(cols, append=append)
-        return indexed.unstack(columns)
     else:
         if index is None:
             index = self.index
         else:
             index = self[index]
-        indexed = self._constructor_sliced(
-            self[values].values,
-            index=MultiIndex.from_arrays([index, self[columns]]))
-        return indexed.unstack(columns)
+        index = MultiIndex.from_arrays([index, self[columns]])
+
+        if is_list_like(values) and not isinstance(values, tuple):
+            # Exclude tuple because it is seen as a single column name
+            indexed = self._constructor(self[values].values, index=index,
+                                        columns=values)
+        else:
+            indexed = self._constructor_sliced(self[values].values,
+                                               index=index)
+    return indexed.unstack(columns)
 
 
 def pivot_simple(index, columns, values):
