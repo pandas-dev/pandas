@@ -632,6 +632,7 @@ class TestMultiIndex(Base):
         assert isinstance(mi, MultiIndex)
         renamed = [['foor'], ['barr']]
         tm.assert_raises_regex(TypeError, message, mi.rename, names=renamed)
+        # With .set_names()
         tm.assert_raises_regex(TypeError, message, mi.set_names, names=renamed)
 
     @pytest.mark.parametrize('names', [['a', 'b', 'a'], ['1', '1', '2'],

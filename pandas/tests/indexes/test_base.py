@@ -448,6 +448,7 @@ class TestIndex(Base):
         renamed = [['1']]
         tm.assert_raises_regex(TypeError, message,
                                idx.rename, name=renamed)
+        # With .set_names()
         tm.assert_raises_regex(TypeError, message,
                                idx.set_names, names=renamed)
 
