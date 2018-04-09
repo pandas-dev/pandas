@@ -78,14 +78,9 @@ class DecimalArray(ExtensionArray):
         indexer = np.asarray(indexer)
         mask = indexer == -1
 
-        # take on empty array
-        if not len(self):
-            # only valid if result is an all-missing array
-            if mask.all():
-                return type(self)([self._na_value] * len(indexer))
-            else:
-                raise IndexError(
-                    "cannot do a non-empty take from an empty array.")
+        # take on empty array not handled as desired by numpy in case of -1
+        if not len(self) and mask.all():
+            return type(self)([self._na_value] * len(indexer))
 
         indexer = _ensure_platform_int(indexer)
         out = self.values.take(indexer)

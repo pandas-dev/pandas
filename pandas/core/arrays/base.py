@@ -472,6 +472,9 @@ class ExtensionArray(object):
         This should follow pandas' semantics where -1 indicates missing values.
         Positions where indexer is ``-1`` should be filled with the missing
         value for this type.
+        This gives rise to the special case of a take on an empty
+        ExtensionArray that does not raises an IndexError straight away
+        when the `indexer` is all ``-1``.
 
         This is called by ``Series.__getitem__``, ``.loc``, ``iloc``, when the
         indexer is a sequence of values.
@@ -488,13 +491,9 @@ class ExtensionArray(object):
                mask = indexer == -1
 
                # take on empty array not handled as desired by numpy
-               if not len(self):
-                   # only valid if result is an all-missing array
-                   if mask.all():
-                       return type(self)([self._na_value] * len(indexer))
-                   else:
-                       raise IndexError(
-                           "cannot do a non-empty take from an empty array.")
+               # in case of -1
+               if not len(self) and mask.all():
+                   return type(self)([np.nan] * len(indexer))
 
                result = self.data.take(indexer)
                result[mask] = np.nan  # NA for this type
