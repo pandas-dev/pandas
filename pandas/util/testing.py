@@ -994,6 +994,7 @@ def raise_assert_detail(obj, message, left, right, diff=None):
         left = repr(left)
 
     if PY2 and isinstance(left, string_types):
+        # left needs to be printable in native text type in python2
         left = left.encode('utf-8')
 
     if isinstance(right, np.ndarray):
@@ -1002,6 +1003,7 @@ def raise_assert_detail(obj, message, left, right, diff=None):
         right = repr(right)
 
     if PY2 and isinstance(right, string_types):
+        # right needs to be printable in native text type in python2
         right = right.encode('utf-8')
 
     msg = """{obj} are different
