@@ -22,12 +22,10 @@ def _try_import():
 
 
 def read_gbq(query, project_id=None, index_col=None, col_order=None,
-             reauth=False, verbose=True, private_key=None, dialect='legacy',
+             reauth=False, verbose=None, private_key=None, dialect='legacy',
              **kwargs):
-    r"""Load data from Google BigQuery.
-
-    The main method a user calls to execute a Query in Google BigQuery
-    and read results into a pandas DataFrame.
+    """
+    Load data from Google BigQuery.
 
     This function requires the `pandas-gbq package
     <https://pandas-gbq.readthedocs.io>`__.
@@ -49,32 +47,39 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     Parameters
     ----------
     query : str
-        SQL-Like Query to return data values
+        SQL-Like Query to return data values.
     project_id : str
         Google BigQuery Account project ID.
-    index_col : str (optional)
-        Name of result column to use for index in results DataFrame
-    col_order : list(str) (optional)
+    index_col : str, optional
+        Name of result column to use for index in results DataFrame.
+    col_order : list(str), optional
         List of BigQuery column names in the desired order for results
-        DataFrame
-    reauth : boolean (default False)
+        DataFrame.
+    reauth : boolean, default False
         Force Google BigQuery to reauthenticate the user. This is useful
         if multiple accounts are used.
-    verbose : boolean (default True)
-        Verbose output
-    private_key : str (optional)
+    private_key : str, optional
         Service account private key in JSON format. Can be file path
         or string contents. This is useful for remote server
-        authentication (eg. Jupyter/IPython notebook on remote host)
+        authentication (eg. Jupyter/IPython notebook on remote host).
+    dialect : str, default 'legacy'
+        SQL syntax dialect to use. Value can be one of:
 
-    dialect : {'legacy', 'standard'}, default 'legacy'
-        'legacy' : Use BigQuery's legacy SQL dialect.
-        'standard' : Use BigQuery's standard SQL, which is
-        compliant with the SQL 2011 standard. For more information
-        see `BigQuery SQL Reference
-        <https://cloud.google.com/bigquery/sql-reference/>`__
-
-    `**kwargs` : Arbitrary keyword arguments
+        ``'legacy'``
+            Use BigQuery's legacy SQL dialect. For more information see
+            `BigQuery Legacy SQL Reference
+            <https://cloud.google.com/bigquery/docs/reference/legacy-sql>`__.
+        ``'standard'``
+            Use BigQuery's standard SQL, which is
+            compliant with the SQL 2011 standard. For more information
+            see `BigQuery Standard SQL Reference
+            <https://cloud.google.com/bigquery/docs/reference/standard-sql/>`__.
+    verbose : boolean, deprecated
+        *Deprecated in Pandas-GBQ 0.4.0.* Use the `logging module
+        to adjust verbosity instead
+        <https://pandas-gbq.readthedocs.io/en/latest/intro.html#logging>`__.
+    kwargs : dict
+        Arbitrary keyword arguments.
         configuration (dict): query config parameters for job processing.
         For example:
 
@@ -86,8 +91,12 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
     Returns
     -------
     df: DataFrame
-        DataFrame representing results of query
+        DataFrame representing results of query.
 
+    See Also
+    --------
+    pandas_gbq.read_gbq : This function in the pandas-gbq library.
+    pandas.DataFrame.to_gbq : Write a DataFrame to Google BigQuery.
     """
     pandas_gbq = _try_import()
     return pandas_gbq.read_gbq(
@@ -99,10 +108,12 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         **kwargs)
 
 
-def to_gbq(dataframe, destination_table, project_id, chunksize=10000,
-           verbose=True, reauth=False, if_exists='fail', private_key=None):
+def to_gbq(dataframe, destination_table, project_id, chunksize=None,
+           verbose=None, reauth=False, if_exists='fail', private_key=None,
+           auth_local_webserver=False, table_schema=None):
     pandas_gbq = _try_import()
-    pandas_gbq.to_gbq(dataframe, destination_table, project_id,
-                      chunksize=chunksize,
-                      verbose=verbose, reauth=reauth,
-                      if_exists=if_exists, private_key=private_key)
+    return pandas_gbq.to_gbq(
+        dataframe, destination_table, project_id, chunksize=chunksize,
+        verbose=verbose, reauth=reauth, if_exists=if_exists,
+        private_key=private_key, auth_local_webserver=auth_local_webserver,
+        table_schema=table_schema)
