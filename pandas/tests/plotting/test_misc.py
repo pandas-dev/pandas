@@ -17,6 +17,15 @@ import pandas.plotting as plotting
 from pandas.tests.plotting.common import TestPlotBase, _check_plot_works
 
 
+@td.skip_if_mpl
+def test_import_error_message():
+    # GH-19810
+    df = DataFrame({"A": [1, 2]})
+
+    with tm.assert_raises_regex(ImportError, 'matplotlib is required'):
+        df.plot()
+
+
 @td.skip_if_no_mpl
 class TestSeriesPlots(TestPlotBase):
 
