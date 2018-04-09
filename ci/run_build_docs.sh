@@ -7,6 +7,4 @@ echo "inside $0"
 # wait until subprocesses finish (build_docs.sh)
 wait
 
-RET="$?"
-
-exit "$RET"
+exit 0

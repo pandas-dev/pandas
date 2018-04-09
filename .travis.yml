@@ -115,6 +115,7 @@ script:
   - ci/script_single.sh
   - ci/script_multi.sh
   - ci/lint.sh
+  - ci/doctests.sh
   - echo "checking imports"
   - source activate pandas && python ci/check_imports.py
   - echo "script done"
