@@ -31,7 +31,7 @@ from pandas.core.dtypes.common import (
     is_interval_dtype,
     is_sequence,
     is_list_like)
-from pandas.io.formats.printing import pprint_thing_encoded
+from pandas.io.formats.printing import pprint_thing
 from pandas.core.algorithms import take_1d
 import pandas.core.common as com
 
@@ -989,15 +989,20 @@ def assert_categorical_equal(left, right, check_dtype=True,
 
 def raise_assert_detail(obj, message, left, right, diff=None):
     if isinstance(left, np.ndarray):
-        left = pprint_thing_encoded(left,
-                                    encoding=pd.options.display.encoding)
+        left = pprint_thing(left)
     elif is_categorical_dtype(left):
         left = repr(left)
+
+    if compat.PY2 and isinstance(left, compat.string_types):
+        left = left.encode('utf-8')
+
     if isinstance(right, np.ndarray):
-        right = pprint_thing_encoded(right,
-                                     encoding=pd.options.display.encoding)
+        right = pprint_thing(right)
     elif is_categorical_dtype(right):
         right = repr(right)
+
+    if compat.PY2 and isinstance(right, compat.string_types):
+        right = right.encode('utf-8')
 
     msg = """{obj} are different
 
