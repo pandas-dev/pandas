@@ -22,7 +22,7 @@ from pandas import (Index, Series, isna, date_range, Timestamp,
 from pandas._libs import lib
 from pandas._libs.tslib import iNaT
 
-from pandas.compat import lrange, range, zip, long
+from pandas.compat import lrange, range, zip, long, PY36
 from pandas.util.testing import assert_series_equal
 import pandas.util.testing as tm
 
@@ -108,6 +108,11 @@ class TestSeriesConstructors(TestData):
             # With index and dtype float64:
             empty = Series(np.nan, index=lrange(10))
             empty2 = Series(input_class(), index=lrange(10), dtype='float64')
+            assert_series_equal(empty, empty2)
+
+            # GH 19853 : with empty string, index and dtype str
+            empty = Series('', dtype=str, index=range(3))
+            empty2 = Series('', index=range(3))
             assert_series_equal(empty, empty2)
 
     @pytest.mark.parametrize('input_arg', [np.nan, float('nan')])
@@ -810,6 +815,18 @@ class TestSeriesConstructors(TestData):
         expected.iloc[0] = 0
         expected.iloc[1] = 1
         assert_series_equal(result, expected)
+
+    def test_constructor_dict_order(self):
+        # GH19018
+        # initialization ordering: by insertion order if python>= 3.6, else
+        # order by value
+        d = {'b': 1, 'a': 0, 'c': 2}
+        result = Series(d)
+        if PY36:
+            expected = Series([1, 0, 2], index=list('bac'))
+        else:
+            expected = Series([0, 1, 2], index=list('abc'))
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("value", [2, np.nan, None, float('nan')])
     def test_constructor_dict_nan_key(self, value):

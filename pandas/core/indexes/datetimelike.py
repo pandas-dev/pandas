@@ -37,7 +37,7 @@ from pandas.core.dtypes.common import (
     is_period_dtype,
     is_timedelta64_dtype)
 from pandas.core.dtypes.generic import (
-    ABCIndex, ABCSeries, ABCPeriodIndex, ABCIndexClass)
+    ABCIndex, ABCSeries, ABCDataFrame, ABCPeriodIndex, ABCIndexClass)
 from pandas.core.dtypes.missing import isna
 from pandas.core import common as com, algorithms, ops
 from pandas.core.algorithms import checked_add_with_arr
@@ -48,6 +48,7 @@ from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.util._decorators import Appender, cache_readonly
 import pandas.core.dtypes.concat as _concat
 import pandas.tseries.frequencies as frequencies
+from pandas.tseries.offsets import Tick, DateOffset
 
 import pandas.core.indexes.base as ibase
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
@@ -57,21 +58,40 @@ class DatelikeOps(object):
     """ common ops for DatetimeIndex/PeriodIndex, but not TimedeltaIndex """
 
     def strftime(self, date_format):
-        return np.asarray(self.format(date_format=date_format),
-                          dtype=compat.text_type)
+        return Index(self.format(date_format=date_format),
+                     dtype=compat.text_type)
     strftime.__doc__ = """
-    Return an array of formatted strings specified by date_format, which
+    Convert to Index using specified date_format.
+
+    Return an Index of formatted strings specified by date_format, which
     supports the same string format as the python standard library. Details
     of the string format can be found in `python string format doc <{0}>`__
 
     Parameters
     ----------
     date_format : str
-        date format string (e.g. "%Y-%m-%d")
+        Date format string (e.g. "%Y-%m-%d").
 
     Returns
     -------
-    ndarray of formatted strings
+    Index
+        Index of formatted strings
+
+    See Also
+    --------
+    pandas.to_datetime : Convert the given argument to datetime
+    DatetimeIndex.normalize : Return DatetimeIndex with times to midnight.
+    DatetimeIndex.round : Round the DatetimeIndex to the specified freq.
+    DatetimeIndex.floor : Floor the DatetimeIndex to the specified freq.
+
+    Examples
+    --------
+    >>> rng = pd.date_range(pd.Timestamp("2018-03-10 09:00"),
+    ...                     periods=3, freq='s')
+    >>> rng.strftime('%B %d, %Y, %r')
+    Index(['March 10, 2018, 09:00:00 AM', 'March 10, 2018, 09:00:01 AM',
+           'March 10, 2018, 09:00:02 AM'],
+          dtype='object')
     """.format("https://docs.python.org/3/library/datetime.html"
                "#strftime-and-strptime-behavior")
 
@@ -81,20 +101,83 @@ class TimelikeOps(object):
 
     _round_doc = (
         """
-        %s the index to the specified freq
+        {op} the data to the specified `freq`.
 
         Parameters
         ----------
-        freq : freq string/object
+        freq : str or Offset
+            The frequency level to {op} the index to. Must be a fixed
+            frequency like 'S' (second) not 'ME' (month end). See
+            :ref:`frequency aliases <timeseries.offset_aliases>` for
+            a list of possible `freq` values.
 
         Returns
         -------
-        index of same type
+        DatetimeIndex, TimedeltaIndex, or Series
+            Index of the same type for a DatetimeIndex or TimedeltaIndex,
+            or a Series with the same index for a Series.
 
         Raises
         ------
-        ValueError if the freq cannot be converted
+        ValueError if the `freq` cannot be converted.
+
+        Examples
+        --------
+        **DatetimeIndex**
+
+        >>> rng = pd.date_range('1/1/2018 11:59:00', periods=3, freq='min')
+        >>> rng
+        DatetimeIndex(['2018-01-01 11:59:00', '2018-01-01 12:00:00',
+                       '2018-01-01 12:01:00'],
+                      dtype='datetime64[ns]', freq='T')
         """)
+
+    _round_example = (
+        """>>> rng.round('H')
+        DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
+                       '2018-01-01 12:00:00'],
+                      dtype='datetime64[ns]', freq=None)
+
+        **Series**
+
+        >>> pd.Series(rng).dt.round("H")
+        0   2018-01-01 12:00:00
+        1   2018-01-01 12:00:00
+        2   2018-01-01 12:00:00
+        dtype: datetime64[ns]
+        """)
+
+    _floor_example = (
+        """>>> rng.floor('H')
+        DatetimeIndex(['2018-01-01 11:00:00', '2018-01-01 12:00:00',
+                       '2018-01-01 12:00:00'],
+                      dtype='datetime64[ns]', freq=None)
+
+        **Series**
+
+        >>> pd.Series(rng).dt.floor("H")
+        0   2018-01-01 11:00:00
+        1   2018-01-01 12:00:00
+        2   2018-01-01 12:00:00
+        dtype: datetime64[ns]
+        """
+    )
+
+    _ceil_example = (
+        """>>> rng.ceil('H')
+        DatetimeIndex(['2018-01-01 12:00:00', '2018-01-01 12:00:00',
+                       '2018-01-01 13:00:00'],
+                      dtype='datetime64[ns]', freq=None)
+
+        **Series**
+
+        >>> pd.Series(rng).dt.ceil("H")
+        0   2018-01-01 12:00:00
+        1   2018-01-01 12:00:00
+        2   2018-01-01 13:00:00
+        dtype: datetime64[ns]
+        """
+    )
 
     def _round(self, freq, rounder):
         # round the local times
@@ -110,15 +193,15 @@ class TimelikeOps(object):
         return self._ensure_localized(
             self._shallow_copy(result, **attribs))
 
-    @Appender(_round_doc % "round")
+    @Appender((_round_doc + _round_example).format(op="round"))
     def round(self, freq, *args, **kwargs):
         return self._round(freq, np.round)
 
-    @Appender(_round_doc % "floor")
+    @Appender((_round_doc + _floor_example).format(op="floor"))
     def floor(self, freq):
         return self._round(freq, np.floor)
 
-    @Appender(_round_doc % "ceil")
+    @Appender((_round_doc + _ceil_example).format(op="ceil"))
     def ceil(self, freq):
         return self._round(freq, np.ceil)
 
@@ -666,6 +749,9 @@ class DatetimeIndexOpsMixin(object):
     def _sub_period(self, other):
         return NotImplemented
 
+    def _add_offset(self, offset):
+        raise com.AbstractMethodError(self)
+
     def _addsub_offset_array(self, other, op):
         """
         Add or subtract array-like of DateOffset objects
@@ -705,14 +791,17 @@ class DatetimeIndexOpsMixin(object):
             from pandas import DateOffset
 
             other = lib.item_from_zerodim(other)
-            if isinstance(other, ABCSeries):
+            if isinstance(other, (ABCSeries, ABCDataFrame)):
                 return NotImplemented
 
             # scalar others
             elif other is NaT:
                 result = self._add_nat()
-            elif isinstance(other, (DateOffset, timedelta, np.timedelta64)):
+            elif isinstance(other, (Tick, timedelta, np.timedelta64)):
                 result = self._add_delta(other)
+            elif isinstance(other, DateOffset):
+                # specifically _not_ a Tick
+                result = self._add_offset(other)
             elif isinstance(other, (datetime, np.datetime64)):
                 result = self._add_datelike(other)
             elif is_integer(other):
@@ -733,6 +822,12 @@ class DatetimeIndexOpsMixin(object):
             elif is_integer_dtype(other) and self.freq is None:
                 # GH#19123
                 raise NullFrequencyError("Cannot shift with no freq")
+            elif is_float_dtype(other):
+                # Explicitly catch invalid dtypes
+                raise TypeError("cannot add {dtype}-dtype to {cls}"
+                                .format(dtype=other.dtype,
+                                        cls=type(self).__name__))
+
             else:  # pragma: no cover
                 return NotImplemented
 
@@ -753,17 +848,20 @@ class DatetimeIndexOpsMixin(object):
         cls.__radd__ = __radd__
 
         def __sub__(self, other):
-            from pandas import Index, DateOffset
+            from pandas import Index
 
             other = lib.item_from_zerodim(other)
-            if isinstance(other, ABCSeries):
+            if isinstance(other, (ABCSeries, ABCDataFrame)):
                 return NotImplemented
 
             # scalar others
             elif other is NaT:
                 result = self._sub_nat()
-            elif isinstance(other, (DateOffset, timedelta, np.timedelta64)):
+            elif isinstance(other, (Tick, timedelta, np.timedelta64)):
                 result = self._add_delta(-other)
+            elif isinstance(other, DateOffset):
+                # specifically _not_ a Tick
+                result = self._add_offset(-other)
             elif isinstance(other, (datetime, np.datetime64)):
                 result = self._sub_datelike(other)
             elif is_integer(other):
@@ -790,6 +888,12 @@ class DatetimeIndexOpsMixin(object):
             elif is_integer_dtype(other) and self.freq is None:
                 # GH#19123
                 raise NullFrequencyError("Cannot shift with no freq")
+
+            elif is_float_dtype(other):
+                # Explicitly catch invalid dtypes
+                raise TypeError("cannot subtract {dtype}-dtype from {cls}"
+                                .format(dtype=other.dtype,
+                                        cls=type(self).__name__))
             else:  # pragma: no cover
                 return NotImplemented
 
@@ -941,9 +1045,18 @@ class DatetimeIndexOpsMixin(object):
         return self._shallow_copy(result,
                                   **self._get_attributes_dict())
 
-    def summary(self, name=None):
+    def _summary(self, name=None):
         """
-        return a summarized representation
+        Return a summarized representation
+
+        Parameters
+        ----------
+        name : str
+            name to use in the summary representation
+
+        Returns
+        -------
+        String with a summarized representation of the index
         """
         formatter = self._formatter_func
         if len(self) > 0:

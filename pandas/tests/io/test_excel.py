@@ -1,6 +1,5 @@
 # pylint: disable=E1101
 import os
-import sys
 import warnings
 from datetime import datetime, date, time, timedelta
 from distutils.version import LooseVersion
@@ -16,7 +15,7 @@ import pandas as pd
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 from pandas import DataFrame, Index, MultiIndex
-from pandas.compat import u, range, map, BytesIO, iteritems
+from pandas.compat import u, range, map, BytesIO, iteritems, PY36
 from pandas.core.config import set_option, get_option
 from pandas.io.common import URLError
 from pandas.io.excel import (
@@ -462,7 +461,7 @@ class ReadingTestsBase(SharedItems):
             )
         expected_header_none = DataFrame(pd.Series([0], dtype='int64'))
         tm.assert_frame_equal(actual_header_none, expected_header_none)
-        expected_header_zero = DataFrame(columns=[0], dtype='int64')
+        expected_header_zero = DataFrame(columns=[0])
         tm.assert_frame_equal(actual_header_zero, expected_header_zero)
 
     @td.skip_if_no('openpyxl')
@@ -585,9 +584,6 @@ class TestXlrdReader(ReadingTestsBase):
     def test_read_from_file_url(self, ext):
 
         # FILE
-        if sys.version_info[:2] < (2, 6):
-            pytest.skip("file:// not supported with Python < 2.6")
-
         localtable = os.path.join(self.dirpath, 'test1' + ext)
         local_table = read_excel(localtable)
 
@@ -762,17 +758,17 @@ class TestXlrdReader(ReadingTestsBase):
         # GH 12453
         with ensure_clean('.xlsx') as path:
             df = DataFrame({
-                ('Zero', ''): {0: 0},
                 ('One', 'x'): {0: 1},
                 ('Two', 'X'): {0: 3},
-                ('Two', 'Y'): {0: 7}
+                ('Two', 'Y'): {0: 7},
+                ('Zero', ''): {0: 0}
             })
 
             expected = DataFrame({
-                ('Zero', 'Unnamed: 3_level_1'): {0: 0},
                 ('One', u'x'): {0: 1},
                 ('Two', u'X'): {0: 3},
-                ('Two', u'Y'): {0: 7}
+                ('Two', u'Y'): {0: 7},
+                ('Zero', 'Unnamed: 3_level_1'): {0: 0}
             })
 
             df.to_excel(path)
@@ -1014,7 +1010,7 @@ class _WriterBase(SharedItems):
     def set_engine_and_path(self, request, merge_cells, engine, ext):
         """Fixture to set engine and open file for use in each test case
 
-        Rather than requiring `engine=...` to be provided explictly as an
+        Rather than requiring `engine=...` to be provided explicitly as an
         argument in each test, this fixture sets a global option to dictate
         which engine should be used to write Excel files. After executing
         the test it rolls back said change to the global option.
@@ -2314,9 +2310,9 @@ def test_styler_to_excel(engine):
 
 
 @td.skip_if_no('openpyxl')
+@pytest.mark.skipif(not PY36, reason='requires fspath')
 class TestFSPath(object):
 
-    @pytest.mark.skipif(sys.version_info < (3, 6), reason='requires fspath')
     def test_excelfile_fspath(self):
         with tm.ensure_clean('foo.xlsx') as path:
             df = DataFrame({"A": [1, 2]})
@@ -2325,8 +2321,6 @@ class TestFSPath(object):
             result = os.fspath(xl)
             assert result == path
 
-    @pytest.mark.skipif(sys.version_info < (3, 6), reason='requires fspath')
-    # @pytest.mark.xfail
     def test_excelwriter_fspath(self):
         with tm.ensure_clean('foo.xlsx') as path:
             writer = ExcelWriter(path)

@@ -81,26 +81,22 @@ typedef struct asfreq_info {
     // char relation == 'S' (for START) --> is_end = 0
     // char relation == 'E' (for END) --> is_end = 1
 
-    int from_week_end;  // day the week ends on in the "from" frequency
-    int to_week_end;    // day the week ends on in the "to" frequency
-
-    int from_a_year_end;  // month the year ends on in the "from" frequency
-    int to_a_year_end;    // month the year ends on in the "to" frequency
-
-    int from_q_year_end;  // month the year ends on in the "from" frequency
-    int to_q_year_end;    // month the year ends on in the "to" frequency
+    int from_end;
+    int to_end;
+    // weekly:
+    // from_end --> day the week ends on in the "from" frequency
+    // to_end   --> day the week ends on in the "to" frequency
+    //
+    // annual:
+    // from_end --> month the year ends on in the "from" frequency
+    // to_end   --> month the year ends on in the "to" frequency
+    //
+    // quarterly:
+    // from_end --> month the year ends on in the "from" frequency
+    // to_end   --> month the year ends on in the "to" frequency
 
     npy_int64 intraday_conversion_factor;
 } asfreq_info;
-
-typedef struct date_info {
-    double second;
-    int minute;
-    int hour;
-    int day;
-    int month;
-    int year;
-} date_info;
 
 typedef npy_int64 (*freq_conv_func)(npy_int64, asfreq_info *af_info);
 

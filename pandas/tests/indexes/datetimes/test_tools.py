@@ -1,6 +1,5 @@
 """ test to_datetime """
 
-import sys
 import pytz
 import pytest
 import locale
@@ -12,7 +11,6 @@ from datetime import datetime, date, time
 from distutils.version import LooseVersion
 
 import pandas as pd
-from pandas.conftest import is_dateutil_le_261, is_dateutil_gt_261
 from pandas._libs import tslib
 from pandas._libs.tslibs import parsing
 from pandas.core.tools import datetimes as tools
@@ -150,9 +148,6 @@ class TestTimeConversionFormats(object):
         # GH 10834
         # 8904
         # exact kw
-        if sys.version_info < (2, 7):
-            pytest.skip('on python version < 2.7')
-
         s = Series(['19MAY11', 'foobar19MAY11', '19MAY11:00:00:00',
                     '19MAY11 00:00:00Z'])
         result = to_datetime(s, format='%d%b%y', exact=False, cache=cache)
@@ -224,27 +219,34 @@ class TestToDatetime(object):
         # this both of these timezones _and_ UTC will all be in the same day,
         # so this test will not detect the regression introduced in #18666.
         with tm.set_timezone('Pacific/Auckland'):  # 12-13 hours ahead of UTC
-            nptoday = np.datetime64('today').astype('datetime64[ns]')
+            nptoday = np.datetime64('today')\
+                .astype('datetime64[ns]').astype(np.int64)
             pdtoday = pd.to_datetime('today')
             pdtoday2 = pd.to_datetime(['today'])[0]
 
+            tstoday = pd.Timestamp('today')
+            tstoday2 = pd.Timestamp.today()
+
             # These should all be equal with infinite perf; this gives
             # a generous margin of 10 seconds
-            assert abs(pdtoday.value - nptoday.astype(np.int64)) < 1e10
-            assert abs(pdtoday2.value - nptoday.astype(np.int64)) < 1e10
+            assert abs(pdtoday.normalize().value - nptoday) < 1e10
+            assert abs(pdtoday2.normalize().value - nptoday) < 1e10
+            assert abs(pdtoday.value - tstoday.value) < 1e10
+            assert abs(pdtoday.value - tstoday2.value) < 1e10
 
             assert pdtoday.tzinfo is None
             assert pdtoday2.tzinfo is None
 
         with tm.set_timezone('US/Samoa'):  # 11 hours behind UTC
-            nptoday = np.datetime64('today').astype('datetime64[ns]')
+            nptoday = np.datetime64('today')\
+                .astype('datetime64[ns]').astype(np.int64)
             pdtoday = pd.to_datetime('today')
             pdtoday2 = pd.to_datetime(['today'])[0]
 
             # These should all be equal with infinite perf; this gives
             # a generous margin of 10 seconds
-            assert abs(pdtoday.value - nptoday.astype(np.int64)) < 1e10
-            assert abs(pdtoday2.value - nptoday.astype(np.int64)) < 1e10
+            assert abs(pdtoday.normalize().value - nptoday) < 1e10
+            assert abs(pdtoday2.normalize().value - nptoday) < 1e10
 
             assert pdtoday.tzinfo is None
             assert pdtoday2.tzinfo is None
@@ -1051,7 +1053,6 @@ class TestToDatetimeMisc(object):
 class TestGuessDatetimeFormat(object):
 
     @td.skip_if_not_us_locale
-    @is_dateutil_le_261
     def test_guess_datetime_format_for_array(self):
         expected_format = '%Y-%m-%d %H:%M:%S.%f'
         dt_string = datetime(2011, 12, 30, 0, 0, 0).strftime(expected_format)
@@ -1065,27 +1066,6 @@ class TestGuessDatetimeFormat(object):
         for test_array in test_arrays:
             assert tools._guess_datetime_format_for_array(
                 test_array) == expected_format
-
-        format_for_string_of_nans = tools._guess_datetime_format_for_array(
-            np.array(
-                [np.nan, np.nan, np.nan], dtype='O'))
-        assert format_for_string_of_nans is None
-
-    @td.skip_if_not_us_locale
-    @is_dateutil_gt_261
-    def test_guess_datetime_format_for_array_gt_261(self):
-        expected_format = '%Y-%m-%d %H:%M:%S.%f'
-        dt_string = datetime(2011, 12, 30, 0, 0, 0).strftime(expected_format)
-
-        test_arrays = [
-            np.array([dt_string, dt_string, dt_string], dtype='O'),
-            np.array([np.nan, np.nan, dt_string], dtype='O'),
-            np.array([dt_string, 'random_string'], dtype='O'),
-        ]
-
-        for test_array in test_arrays:
-            assert tools._guess_datetime_format_for_array(
-                test_array) is None
 
         format_for_string_of_nans = tools._guess_datetime_format_for_array(
             np.array(

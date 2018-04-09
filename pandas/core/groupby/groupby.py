@@ -44,7 +44,7 @@ from pandas.core.base import (PandasObject, SelectionMixin, GroupByError,
                               DataError, SpecificationError)
 from pandas.core.index import (Index, MultiIndex,
                                CategoricalIndex, _ensure_index)
-from pandas.core.arrays import Categorical
+from pandas.core.arrays import ExtensionArray, Categorical
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.internals import BlockManager, make_block
@@ -944,23 +944,6 @@ b  2""")
         rev[sorter] = np.arange(count, dtype=np.intp)
         return out[rev].astype(np.int64, copy=False)
 
-    def _index_with_as_index(self, b):
-        """
-        Take boolean mask of index to be returned from apply, if as_index=True
-
-        """
-        # TODO perf, it feels like this should already be somewhere...
-        from itertools import chain
-        original = self._selected_obj.index
-        gp = self.grouper
-        levels = chain((gp.levels[i][gp.labels[i][b]]
-                        for i in range(len(gp.groupings))),
-                       (original._get_level_values(i)[b]
-                        for i in range(original.nlevels)))
-        new = MultiIndex.from_arrays(list(levels))
-        new.names = gp.names + original.names
-        return new
-
     def _try_cast(self, result, obj, numeric_only=False):
         """
         try to cast the result to our obj original type,
@@ -1245,7 +1228,8 @@ class GroupBy(_GroupBy):
     @Substitution(name='groupby')
     @Appender(_doc_template)
     def any(self, skipna=True):
-        """Returns True if any value in the group is truthful, else False
+        """
+        Returns True if any value in the group is truthful, else False
 
         Parameters
         ----------
@@ -1888,7 +1872,8 @@ class GroupBy(_GroupBy):
     @Appender(_doc_template)
     def cumprod(self, axis=0, *args, **kwargs):
         """Cumulative product for each group"""
-        nv.validate_groupby_func('cumprod', args, kwargs, ['numeric_only'])
+        nv.validate_groupby_func('cumprod', args, kwargs,
+                                 ['numeric_only', 'skipna'])
         if axis != 0:
             return self.apply(lambda x: x.cumprod(axis=axis, **kwargs))
 
@@ -1898,7 +1883,8 @@ class GroupBy(_GroupBy):
     @Appender(_doc_template)
     def cumsum(self, axis=0, *args, **kwargs):
         """Cumulative sum for each group"""
-        nv.validate_groupby_func('cumsum', args, kwargs, ['numeric_only'])
+        nv.validate_groupby_func('cumsum', args, kwargs,
+                                 ['numeric_only', 'skipna'])
         if axis != 0:
             return self.apply(lambda x: x.cumsum(axis=axis, **kwargs))
 
@@ -2041,6 +2027,23 @@ class GroupBy(_GroupBy):
                                            needs_ngroups=True,
                                            result_is_index=True,
                                            periods=periods)
+
+    @Substitution(name='groupby')
+    @Appender(_doc_template)
+    def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None,
+                   axis=0):
+        """Calcuate pct_change of each value to previous entry in group"""
+        if freq is not None or axis != 0:
+            return self.apply(lambda x: x.pct_change(periods=periods,
+                                                     fill_method=fill_method,
+                                                     limit=limit, freq=freq,
+                                                     axis=axis))
+
+        filled = getattr(self, fill_method)(limit=limit).drop(
+            self.grouper.names, axis=1)
+        shifted = filled.shift(periods=periods, freq=freq)
+
+        return (filled / shifted) - 1
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -2274,18 +2277,6 @@ class BaseGrouper(object):
         return Series(out,
                       index=self.result_index,
                       dtype='int64')
-
-    @cache_readonly
-    def _max_groupsize(self):
-        """
-        Compute size of largest group
-        """
-        # For many items in each group this is much faster than
-        # self.size().max(), in worst case marginally slower
-        if self.indices:
-            return max(len(v) for v in self.indices.values())
-        else:
-            return 0
 
     @cache_readonly
     def groups(self):
@@ -2921,9 +2912,6 @@ class Grouping(object):
         if isinstance(grouper, MultiIndex):
             self.grouper = grouper.values
 
-        # pre-computed
-        self._should_compress = True
-
         # we have a single grouper which may be a myriad of things,
         # some of which are dependent on the passing in level
 
@@ -2980,7 +2968,7 @@ class Grouping(object):
 
             # no level passed
             elif not isinstance(self.grouper,
-                                (Series, Index, Categorical, np.ndarray)):
+                                (Series, Index, ExtensionArray, np.ndarray)):
                 if getattr(self.grouper, 'ndim', 1) != 1:
                     t = self.name or str(type(self.grouper))
                     raise ValueError("Grouper for '%s' not 1-dimensional" % t)
@@ -3412,7 +3400,8 @@ class SeriesGroupBy(GroupBy):
     @Appender(_agg_doc)
     @Appender(_shared_docs['aggregate'] % dict(
         klass='Series',
-        versionadded=''))
+        versionadded='',
+        axis=''))
     def aggregate(self, func_or_funcs, *args, **kwargs):
         _level = kwargs.pop('_level', None)
         if isinstance(func_or_funcs, compat.string_types):
@@ -3871,7 +3860,7 @@ class SeriesGroupBy(GroupBy):
 
         mask = (ids != -1) & ~isna(val)
         ids = _ensure_platform_int(ids)
-        out = np.bincount(ids[mask], minlength=ngroups or None)
+        out = np.bincount(ids[mask], minlength=ngroups or 0)
 
         return Series(out,
                       index=self.grouper.result_index,
@@ -3881,6 +3870,13 @@ class SeriesGroupBy(GroupBy):
     def _apply_to_column_groupbys(self, func):
         """ return a pass thru """
         return func(self)
+
+    def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None):
+        """Calculate percent change of each value to previous entry in group"""
+        filled = getattr(self, fill_method)(limit=limit)
+        shifted = filled.shift(periods=periods, freq=freq)
+
+        return (filled / shifted) - 1
 
 
 class NDFrameGroupBy(GroupBy):
@@ -4584,7 +4580,8 @@ class DataFrameGroupBy(NDFrameGroupBy):
     @Appender(_agg_doc)
     @Appender(_shared_docs['aggregate'] % dict(
         klass='DataFrame',
-        versionadded=''))
+        versionadded='',
+        axis=''))
     def aggregate(self, arg, *args, **kwargs):
         return super(DataFrameGroupBy, self).aggregate(arg, *args, **kwargs)
 
@@ -4755,7 +4752,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
             keys=self._selected_obj.columns, axis=1)
 
     def _fill(self, direction, limit=None):
-        """Overriden method to join grouped columns in output"""
+        """Overridden method to join grouped columns in output"""
         res = super(DataFrameGroupBy, self)._fill(direction, limit=limit)
         output = collections.OrderedDict(
             (grp.name, grp.grouper) for grp in self.grouper.groupings)
@@ -4935,10 +4932,6 @@ class PanelGroupBy(NDFrameGroupBy):
         raise com.AbstractMethodError(self)
 
 
-class NDArrayGroupBy(GroupBy):
-    pass
-
-
 # ----------------------------------------------------------------------
 # Splitting / application
 
@@ -4989,10 +4982,6 @@ class DataSplitter(object):
 
     def apply(self, f):
         raise com.AbstractMethodError(self)
-
-
-class ArraySplitter(DataSplitter):
-    pass
 
 
 class SeriesSplitter(DataSplitter):

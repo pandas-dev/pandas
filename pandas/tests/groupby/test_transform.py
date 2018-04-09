@@ -13,7 +13,7 @@ from pandas._libs import groupby
 from .common import MixIn, assert_fp_equal
 
 from pandas.util.testing import assert_frame_equal, assert_series_equal
-from pandas.core.groupby import DataError
+from pandas.core.groupby.groupby import DataError
 from pandas.core.config import option_context
 
 
@@ -498,6 +498,31 @@ class TestGroupBy(MixIn):
             tm.assert_series_equal(expected, getattr(
                 data.groupby(labels), op)(*args))
 
+    @pytest.mark.parametrize("op", ['cumprod', 'cumsum'])
+    @pytest.mark.parametrize("skipna", [False, True])
+    @pytest.mark.parametrize('input, exp', [
+        # When everything is NaN
+        ({'key': ['b'] * 10, 'value': np.nan},
+         pd.Series([np.nan] * 10, name='value')),
+        # When there is a single NaN
+        ({'key': ['b'] * 10 + ['a'] * 2,
+          'value': [3] * 3 + [np.nan] + [3] * 8},
+         {('cumprod', False): [3.0, 9.0, 27.0] + [np.nan] * 7 + [3.0, 9.0],
+          ('cumprod', True): [3.0, 9.0, 27.0, np.nan, 81., 243., 729.,
+                              2187., 6561., 19683., 3.0, 9.0],
+          ('cumsum', False): [3.0, 6.0, 9.0] + [np.nan] * 7 + [3.0, 6.0],
+          ('cumsum', True): [3.0, 6.0, 9.0, np.nan, 12., 15., 18.,
+                             21., 24., 27., 3.0, 6.0]})])
+    def test_groupby_cum_skipna(self, op, skipna, input, exp):
+        df = pd.DataFrame(input)
+        result = df.groupby('key')['value'].transform(op, skipna=skipna)
+        if isinstance(exp, dict):
+            expected = exp[(op, skipna)]
+        else:
+            expected = exp
+        expected = pd.Series(expected, name='value')
+        tm.assert_series_equal(expected, result)
+
     @pytest.mark.parametrize(
         "op, args, targop",
         [('cumprod', (), lambda x: x.cumprod()),
@@ -611,3 +636,90 @@ class TestGroupBy(MixIn):
             exp = exp.astype('float')
 
         comp_func(result, exp)
+
+    @pytest.mark.parametrize("mix_groupings", [True, False])
+    @pytest.mark.parametrize("as_series", [True, False])
+    @pytest.mark.parametrize("val1,val2", [
+        ('foo', 'bar'), (1, 2), (1., 2.)])
+    @pytest.mark.parametrize("fill_method,limit,exp_vals", [
+        ("ffill", None,
+         [np.nan, np.nan, 'val1', 'val1', 'val1', 'val2', 'val2', 'val2']),
+        ("ffill", 1,
+         [np.nan, np.nan, 'val1', 'val1', np.nan, 'val2', 'val2', np.nan]),
+        ("bfill", None,
+         ['val1', 'val1', 'val1', 'val2', 'val2', 'val2', np.nan, np.nan]),
+        ("bfill", 1,
+         [np.nan, 'val1', 'val1', np.nan, 'val2', 'val2', np.nan, np.nan])
+    ])
+    def test_group_fill_methods(self, mix_groupings, as_series, val1, val2,
+                                fill_method, limit, exp_vals):
+        vals = [np.nan, np.nan, val1, np.nan, np.nan, val2, np.nan, np.nan]
+        _exp_vals = list(exp_vals)
+        # Overwrite placeholder values
+        for index, exp_val in enumerate(_exp_vals):
+            if exp_val == 'val1':
+                _exp_vals[index] = val1
+            elif exp_val == 'val2':
+                _exp_vals[index] = val2
+
+        # Need to modify values and expectations depending on the
+        # Series / DataFrame that we ultimately want to generate
+        if mix_groupings:  # ['a', 'b', 'a, 'b', ...]
+            keys = ['a', 'b'] * len(vals)
+
+            def interweave(list_obj):
+                temp = list()
+                for x in list_obj:
+                    temp.extend([x, x])
+
+                return temp
+
+            _exp_vals = interweave(_exp_vals)
+            vals = interweave(vals)
+        else:  # ['a', 'a', 'a', ... 'b', 'b', 'b']
+            keys = ['a'] * len(vals) + ['b'] * len(vals)
+            _exp_vals = _exp_vals * 2
+            vals = vals * 2
+
+        df = DataFrame({'key': keys, 'val': vals})
+        if as_series:
+            result = getattr(
+                df.groupby('key')['val'], fill_method)(limit=limit)
+            exp = Series(_exp_vals, name='val')
+            assert_series_equal(result, exp)
+        else:
+            result = getattr(df.groupby('key'), fill_method)(limit=limit)
+            exp = DataFrame({'key': keys, 'val': _exp_vals})
+            assert_frame_equal(result, exp)
+
+    @pytest.mark.parametrize("test_series", [True, False])
+    @pytest.mark.parametrize("periods,fill_method,limit", [
+        (1, 'ffill', None), (1, 'ffill', 1),
+        (1, 'bfill', None), (1, 'bfill', 1),
+        (-1, 'ffill', None), (-1, 'ffill', 1),
+        (-1, 'bfill', None), (-1, 'bfill', 1)])
+    def test_pct_change(self, test_series, periods, fill_method, limit):
+        vals = [np.nan, np.nan, 1, 2, 4, 10, np.nan, np.nan]
+        exp_vals = Series(vals).pct_change(periods=periods,
+                                           fill_method=fill_method,
+                                           limit=limit).tolist()
+
+        df = DataFrame({'key': ['a'] * len(vals) + ['b'] * len(vals),
+                        'vals': vals * 2})
+        grp = df.groupby('key')
+
+        def get_result(grp_obj):
+            return grp_obj.pct_change(periods=periods,
+                                      fill_method=fill_method,
+                                      limit=limit)
+
+        if test_series:
+            exp = pd.Series(exp_vals * 2)
+            exp.name = 'vals'
+            grp = grp['vals']
+            result = get_result(grp)
+            tm.assert_series_equal(result, exp)
+        else:
+            exp = DataFrame({'vals': exp_vals * 2})
+            result = get_result(grp)
+            tm.assert_frame_equal(result, exp)

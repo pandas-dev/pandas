@@ -961,7 +961,8 @@ class TestDataFrameFormatting(object):
 
     def test_wide_repr(self):
         with option_context('mode.sim_interactive', True,
-                            'display.show_dimensions', True):
+                            'display.show_dimensions', True,
+                            'display.max_columns', 20):
             max_cols = get_option('display.max_columns')
             df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)))
             set_option('display.expand_frame_repr', False)
@@ -979,7 +980,8 @@ class TestDataFrameFormatting(object):
         reset_option('display.expand_frame_repr')
 
     def test_wide_repr_wide_columns(self):
-        with option_context('mode.sim_interactive', True):
+        with option_context('mode.sim_interactive', True,
+                            'display.max_columns', 20):
             df = DataFrame(np.random.randn(5, 3),
                            columns=['a' * 90, 'b' * 90, 'c' * 90])
             rep_str = repr(df)
@@ -987,7 +989,8 @@ class TestDataFrameFormatting(object):
             assert len(rep_str.splitlines()) == 20
 
     def test_wide_repr_named(self):
-        with option_context('mode.sim_interactive', True):
+        with option_context('mode.sim_interactive', True,
+                            'display.max_columns', 20):
             max_cols = get_option('display.max_columns')
             df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)))
             df.index.name = 'DataFrame Index'
@@ -1008,7 +1011,8 @@ class TestDataFrameFormatting(object):
         reset_option('display.expand_frame_repr')
 
     def test_wide_repr_multiindex(self):
-        with option_context('mode.sim_interactive', True):
+        with option_context('mode.sim_interactive', True,
+                            'display.max_columns', 20):
             midx = MultiIndex.from_arrays(tm.rands_array(5, size=(2, 10)))
             max_cols = get_option('display.max_columns')
             df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)),
@@ -1030,7 +1034,8 @@ class TestDataFrameFormatting(object):
         reset_option('display.expand_frame_repr')
 
     def test_wide_repr_multiindex_cols(self):
-        with option_context('mode.sim_interactive', True):
+        with option_context('mode.sim_interactive', True,
+                            'display.max_columns', 20):
             max_cols = get_option('display.max_columns')
             midx = MultiIndex.from_arrays(tm.rands_array(5, size=(2, 10)))
             mcols = MultiIndex.from_arrays(
@@ -1044,15 +1049,16 @@ class TestDataFrameFormatting(object):
             wide_repr = repr(df)
             assert rep_str != wide_repr
 
-        with option_context('display.width', 150):
+        with option_context('display.width', 150, 'display.max_columns', 20):
             wider_repr = repr(df)
             assert len(wider_repr) < len(wide_repr)
 
         reset_option('display.expand_frame_repr')
 
     def test_wide_repr_unicode(self):
-        with option_context('mode.sim_interactive', True):
-            max_cols = get_option('display.max_columns')
+        with option_context('mode.sim_interactive', True,
+                            'display.max_columns', 20):
+            max_cols = 20
             df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)))
             set_option('display.expand_frame_repr', False)
             rep_str = repr(df)
@@ -1250,8 +1256,6 @@ class TestDataFrameFormatting(object):
 
         df_s = df.to_string()
 
-        # Python 2.5 just wants me to be sad. And debian 32-bit
-        # sys.version_info[0] == 2 and sys.version_info[1] < 6:
         if _three_digit_exp():
             expected = ('              x\n0  0.00000e+000\n1  2.50000e-001\n'
                         '2  3.45600e+003\n3  1.20000e+046\n4  1.64000e+006\n'
@@ -1275,8 +1279,7 @@ class TestDataFrameFormatting(object):
 
         df = DataFrame({'x': [1e9, 0.2512]})
         df_s = df.to_string()
-        # Python 2.5 just wants me to be sad. And debian 32-bit
-        # sys.version_info[0] == 2 and sys.version_info[1] < 6:
+
         if _three_digit_exp():
             expected = ('               x\n'
                         '0  1.000000e+009\n'
@@ -1434,18 +1437,25 @@ c  10  11  12  13  14\
 
         tm.reset_display_options()
 
+    def test_repr_html_mathjax(self):
+        df = DataFrame([[1, 2], [3, 4]])
+        assert 'tex2jax_ignore' not in df._repr_html_()
+
+        with pd.option_context('display.html.use_mathjax', False):
+            assert 'tex2jax_ignore' in df._repr_html_()
+
     def test_repr_html_wide(self):
-        max_cols = get_option('display.max_columns')
+        max_cols = 20
         df = DataFrame(tm.rands_array(25, size=(10, max_cols - 1)))
-        reg_repr = df._repr_html_()
-        assert "..." not in reg_repr
+        with option_context('display.max_rows', 60, 'display.max_columns', 20):
+            assert "..." not in df._repr_html_()
 
         wide_df = DataFrame(tm.rands_array(25, size=(10, max_cols + 1)))
-        wide_repr = wide_df._repr_html_()
-        assert "..." in wide_repr
+        with option_context('display.max_rows', 60, 'display.max_columns', 20):
+            assert "..." in wide_df._repr_html_()
 
     def test_repr_html_wide_multiindex_cols(self):
-        max_cols = get_option('display.max_columns')
+        max_cols = 20
 
         mcols = MultiIndex.from_product([np.arange(max_cols // 2),
                                          ['foo', 'bar']],
@@ -1460,8 +1470,8 @@ c  10  11  12  13  14\
                                         names=['first', 'second'])
         df = DataFrame(tm.rands_array(25, size=(10, len(mcols))),
                        columns=mcols)
-        wide_repr = df._repr_html_()
-        assert '...' in wide_repr
+        with option_context('display.max_rows', 60, 'display.max_columns', 20):
+            assert '...' in df._repr_html_()
 
     def test_repr_html_long(self):
         with option_context('display.max_rows', 60):
@@ -1505,14 +1515,15 @@ c  10  11  12  13  14\
             assert u('2 columns') in long_repr
 
     def test_repr_html_long_multiindex(self):
-        max_rows = get_option('display.max_rows')
+        max_rows = 60
         max_L1 = max_rows // 2
 
         tuples = list(itertools.product(np.arange(max_L1), ['foo', 'bar']))
         idx = MultiIndex.from_tuples(tuples, names=['first', 'second'])
         df = DataFrame(np.random.randn(max_L1 * 2, 2), index=idx,
                        columns=['A', 'B'])
-        reg_repr = df._repr_html_()
+        with option_context('display.max_rows', 60, 'display.max_columns', 20):
+            reg_repr = df._repr_html_()
         assert '...' not in reg_repr
 
         tuples = list(itertools.product(np.arange(max_L1 + 1), ['foo', 'bar']))
@@ -1523,20 +1534,22 @@ c  10  11  12  13  14\
         assert '...' in long_repr
 
     def test_repr_html_long_and_wide(self):
-        max_cols = get_option('display.max_columns')
-        max_rows = get_option('display.max_rows')
+        max_cols = 20
+        max_rows = 60
 
         h, w = max_rows - 1, max_cols - 1
         df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
-        assert '...' not in df._repr_html_()
+        with option_context('display.max_rows', 60, 'display.max_columns', 20):
+            assert '...' not in df._repr_html_()
 
         h, w = max_rows + 1, max_cols + 1
         df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
-        assert '...' in df._repr_html_()
+        with option_context('display.max_rows', 60, 'display.max_columns', 20):
+            assert '...' in df._repr_html_()
 
     def test_info_repr(self):
-        max_rows = get_option('display.max_rows')
-        max_cols = get_option('display.max_columns')
+        max_rows = 60
+        max_cols = 20
         # Long
         h, w = max_rows + 1, max_cols - 1
         df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
@@ -1548,7 +1561,8 @@ c  10  11  12  13  14\
         h, w = max_rows - 1, max_cols + 1
         df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
         assert has_horizontally_truncated_repr(df)
-        with option_context('display.large_repr', 'info'):
+        with option_context('display.large_repr', 'info',
+                            'display.max_columns', max_cols):
             assert has_info_repr(df)
 
     def test_info_repr_max_cols(self):
@@ -1568,8 +1582,8 @@ c  10  11  12  13  14\
         # fmt.set_option('display.max_info_columns', 4)  # exceeded
 
     def test_info_repr_html(self):
-        max_rows = get_option('display.max_rows')
-        max_cols = get_option('display.max_columns')
+        max_rows = 60
+        max_cols = 20
         # Long
         h, w = max_rows + 1, max_cols - 1
         df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
@@ -1581,7 +1595,8 @@ c  10  11  12  13  14\
         h, w = max_rows - 1, max_cols + 1
         df = DataFrame({k: np.arange(1, 1 + h) for k in np.arange(w)})
         assert '<class' not in df._repr_html_()
-        with option_context('display.large_repr', 'info'):
+        with option_context('display.large_repr', 'info',
+                            'display.max_columns', max_cols):
             assert '&lt;class' in df._repr_html_()
 
     def test_fake_qtconsole_repr_html(self):
@@ -1603,7 +1618,7 @@ c  10  11  12  13  14\
         If the test fails, it at least won't hang.
         """
 
-        class A:
+        class A(object):
             def __getitem__(self, key):
                 return 3  # obviously simplified
 

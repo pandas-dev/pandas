@@ -57,6 +57,32 @@ class TestDataFrameTimeSeriesMethods(TestData):
             1), 'z': pd.Series(1)}).astype('float64')
         assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize('tz', [None, 'UTC'])
+    def test_diff_datetime_axis0(self, tz):
+        # GH 18578
+        df = DataFrame({0: date_range('2010', freq='D', periods=2, tz=tz),
+                        1: date_range('2010', freq='D', periods=2, tz=tz)})
+
+        result = df.diff(axis=0)
+        expected = DataFrame({0: pd.TimedeltaIndex(['NaT', '1 days']),
+                              1: pd.TimedeltaIndex(['NaT', '1 days'])})
+        assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('tz', [None, 'UTC'])
+    def test_diff_datetime_axis1(self, tz):
+        # GH 18578
+        df = DataFrame({0: date_range('2010', freq='D', periods=2, tz=tz),
+                        1: date_range('2010', freq='D', periods=2, tz=tz)})
+        if tz is None:
+            result = df.diff(axis=1)
+            expected = DataFrame({0: pd.TimedeltaIndex(['NaT', 'NaT']),
+                                  1: pd.TimedeltaIndex(['0 days',
+                                                        '0 days'])})
+            assert_frame_equal(result, expected)
+        else:
+            with pytest.raises(NotImplementedError):
+                result = df.diff(axis=1)
+
     def test_diff_timedelta(self):
         # GH 4533
         df = DataFrame(dict(time=[Timestamp('20130101 9:01'),
@@ -503,6 +529,15 @@ class TestDataFrameTimeSeriesMethods(TestData):
         frame[:] = nan
         assert frame.last_valid_index() is None
         assert frame.first_valid_index() is None
+
+        # GH20499: its preserves freq with holes
+        frame.index = date_range("20110101", periods=N, freq="B")
+        frame.iloc[1] = 1
+        frame.iloc[-2] = 1
+        assert frame.first_valid_index() == frame.index[1]
+        assert frame.last_valid_index() == frame.index[-2]
+        assert frame.first_valid_index().freq == frame.index.freq
+        assert frame.last_valid_index().freq == frame.index.freq
 
     def test_at_time_frame(self):
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')

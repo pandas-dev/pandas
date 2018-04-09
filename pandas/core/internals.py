@@ -17,6 +17,7 @@ from pandas.core.base import PandasObject
 
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype, DatetimeTZDtype,
+    PandasExtensionDtype,
     CategoricalDtype)
 from pandas.core.dtypes.common import (
     _TD_DTYPE, _NS_DTYPE,
@@ -598,7 +599,8 @@ class Block(PandasObject):
                                list(errors_legal_values), errors))
             raise ValueError(invalid_arg)
 
-        if inspect.isclass(dtype) and issubclass(dtype, ExtensionDtype):
+        if (inspect.isclass(dtype) and
+                issubclass(dtype, (PandasExtensionDtype, ExtensionDtype))):
             msg = ("Expected an instance of {}, but got the class instead. "
                    "Try instantiating 'dtype'.".format(dtype.__name__))
             raise TypeError(msg)
@@ -653,7 +655,7 @@ class Block(PandasObject):
 
                     # astype formatting
                     else:
-                        values = self.values
+                        values = self.get_values()
 
                 else:
                     values = self.get_values(dtype=dtype)
@@ -1963,6 +1965,23 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         return self.make_block_same_class(values, ndim=self.ndim,
                                           placement=placement)
 
+    def fillna(self, value, limit=None, inplace=False, downcast=None,
+               mgr=None):
+        values = self.values if inplace else self.values.copy()
+        values = values.fillna(value=value, limit=limit)
+        return [self.make_block_same_class(values=values,
+                                           placement=self.mgr_locs,
+                                           ndim=self.ndim)]
+
+    def interpolate(self, method='pad', axis=0, inplace=False, limit=None,
+                    fill_value=None, **kwargs):
+
+        values = self.values if inplace else self.values.copy()
+        return self.make_block_same_class(
+            values=values.fillna(value=fill_value, method=method,
+                                 limit=limit),
+            placement=self.mgr_locs)
+
 
 class NumericBlock(Block):
     __slots__ = ()
@@ -2360,7 +2379,10 @@ class ObjectBlock(Block):
         return not (issubclass(value.dtype.type,
                                (np.integer, np.floating, np.complexfloating,
                                 np.datetime64, np.bool_)) or
-                    is_extension_type(value))
+                    # TODO(ExtensionArray): remove is_extension_type
+                    # when all extension arrays have been ported.
+                    is_extension_type(value) or
+                    is_extension_array_dtype(value))
 
     def replace(self, to_replace, value, inplace=False, filter=None,
                 regex=False, convert=True, mgr=None):
@@ -2521,27 +2543,6 @@ class CategoricalBlock(ExtensionBlock):
             result = _block_shape(result, ndim=self.ndim)
 
         return result
-
-    def fillna(self, value, limit=None, inplace=False, downcast=None,
-               mgr=None):
-        # we may need to upcast our fill to match our dtype
-        if limit is not None:
-            raise NotImplementedError("specifying a limit for 'fillna' has "
-                                      "not been implemented yet")
-
-        values = self.values if inplace else self.values.copy()
-        values = self._try_coerce_result(values.fillna(value=value,
-                                                       limit=limit))
-        return [self.make_block(values=values)]
-
-    def interpolate(self, method='pad', axis=0, inplace=False, limit=None,
-                    fill_value=None, **kwargs):
-
-        values = self.values if inplace else self.values.copy()
-        return self.make_block_same_class(
-            values=values.fillna(fill_value=fill_value, method=method,
-                                 limit=limit),
-            placement=self.mgr_locs)
 
     def shift(self, periods, axis=0, mgr=None):
         return self.make_block_same_class(values=self.values.shift(periods),
@@ -2904,6 +2905,35 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         new_values = self.values._shallow_copy(new_values)
         return [self.make_block_same_class(new_values,
                                            placement=self.mgr_locs)]
+
+    def diff(self, n, axis=0, mgr=None):
+        """1st discrete difference
+
+        Parameters
+        ----------
+        n : int, number of periods to diff
+        axis : int, axis to diff upon. default 0
+        mgr : default None
+
+        Return
+        ------
+        A list with a new TimeDeltaBlock.
+
+        Note
+        ----
+        The arguments here are mimicking shift so they are called correctly
+        by apply.
+        """
+        if axis == 0:
+            # Cannot currently calculate diff across multiple blocks since this
+            # function is invoked via apply
+            raise NotImplementedError
+        new_values = (self.values - self.shift(n, axis=axis)[0].values).asi8
+
+        # Reshape the new_values like how algos.diff does for timedelta data
+        new_values = new_values.reshape(1, len(new_values))
+        new_values = new_values.astype('timedelta64[ns]')
+        return [TimeDeltaBlock(new_values, placement=self.mgr_locs.indexer)]
 
     def concat_same_type(self, to_concat, placement=None):
         """
@@ -4811,7 +4841,7 @@ def form_blocks(arrays, names, axes):
     items_dict = defaultdict(list)
     extra_locs = []
 
-    names_idx = Index(names)
+    names_idx = _ensure_index(names)
     if names_idx.equals(axes[0]):
         names_indexer = np.arange(len(names_idx))
     else:
@@ -4976,7 +5006,7 @@ def _interleaved_dtype(blocks):
     dtype = find_common_type([b.dtype for b in blocks])
 
     # only numpy compat
-    if isinstance(dtype, ExtensionDtype):
+    if isinstance(dtype, (PandasExtensionDtype, ExtensionDtype)):
         dtype = np.object
 
     return dtype
@@ -5364,7 +5394,8 @@ def is_uniform_join_units(join_units):
         # all blocks need to have the same type
         all(type(ju.block) is type(join_units[0].block) for ju in join_units) and  # noqa
         # no blocks that would get missing values (can lead to type upcasts)
-        all(not ju.is_na for ju in join_units) and
+        # unless we're an extension dtype.
+        all(not ju.is_na or ju.block.is_extension for ju in join_units) and
         # no blocks with indexers (as then the dimensions do not fit)
         all(not ju.indexers for ju in join_units) and
         # disregard Panels

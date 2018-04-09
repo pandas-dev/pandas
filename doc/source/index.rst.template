@@ -106,8 +106,13 @@ Some other notes
 See the package overview for more detail about what's in the library.
 
 
+{% if single_doc_type == 'docstring' -%}
+.. autosummary::
+    :toctree: generated_single/
+{% else -%}
 .. toctree::
     :maxdepth: 4
+{% endif %}
 
     {% if single_doc -%}
     {{ single_doc }}
@@ -145,6 +150,7 @@ See the package overview for more detail about what's in the library.
     comparison_with_r
     comparison_with_sql
     comparison_with_sas
+    comparison_with_stata
     {% endif -%}
     {% if include_api -%}
     api
@@ -152,5 +158,6 @@ See the package overview for more detail about what's in the library.
     {% if not single_doc -%}
     developer
     internals
+    extending
     release
     {% endif -%}

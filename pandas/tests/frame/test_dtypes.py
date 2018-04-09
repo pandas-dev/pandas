@@ -649,6 +649,15 @@ class TestDataFrameDataTypes(TestData):
         with tm.assert_raises_regex(TypeError, xpr):
             df['A'].astype(cls)
 
+    @pytest.mark.parametrize('dtype', [
+        {100: 'float64', 200: 'uint64'}, 'category', 'float64'])
+    def test_astype_column_metadata(self, dtype):
+        # GH 19920
+        columns = pd.UInt64Index([100, 200, 300], name='foo')
+        df = DataFrame(np.arange(15).reshape(5, 3), columns=columns)
+        df = df.astype(dtype)
+        tm.assert_index_equal(df.columns, columns)
+
     @pytest.mark.parametrize("dtype", ["M8", "m8"])
     @pytest.mark.parametrize("unit", ['ns', 'us', 'ms', 's', 'h', 'm', 'D'])
     def test_astype_from_datetimelike_to_objectt(self, dtype, unit):
@@ -866,10 +875,11 @@ class TestDataFrameDatetimeWithTZ(TestData):
                              columns=self.tzframe.columns)
         tm.assert_frame_equal(result, expected)
 
-        result = str(self.tzframe)
-        assert ('0 2013-01-01 2013-01-01 00:00:00-05:00 '
-                '2013-01-01 00:00:00+01:00') in result
-        assert ('1 2013-01-02                       '
-                'NaT                       NaT') in result
-        assert ('2 2013-01-03 2013-01-03 00:00:00-05:00 '
-                '2013-01-03 00:00:00+01:00') in result
+        with option_context('display.max_columns', 20):
+            result = str(self.tzframe)
+            assert ('0 2013-01-01 2013-01-01 00:00:00-05:00 '
+                    '2013-01-01 00:00:00+01:00') in result
+            assert ('1 2013-01-02                       '
+                    'NaT                       NaT') in result
+            assert ('2 2013-01-03 2013-01-03 00:00:00-05:00 '
+                    '2013-01-03 00:00:00+01:00') in result

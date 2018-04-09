@@ -24,7 +24,7 @@ cimport ccalendar
 from conversion import tz_localize_to_utc, date_normalize
 from conversion cimport (tz_convert_single, _TSObject,
                          convert_to_tsobject, convert_datetime_to_tsobject)
-from fields import get_date_field, get_start_end_field
+from fields import get_start_end_field, get_date_name_field
 from nattype import NaT
 from nattype cimport NPY_NAT
 from np_datetime import OutOfBoundsDatetime
@@ -350,6 +350,16 @@ cdef class _Timestamp(datetime):
         val = self._maybe_convert_value_to_local()
         out = get_start_end_field(np.array([val], dtype=np.int64),
                                   field, freqstr, month_kw)
+        return out[0]
+
+    cpdef _get_date_name_field(self, object field, object locale):
+        cdef:
+            int64_t val
+            ndarray out
+
+        val = self._maybe_convert_value_to_local()
+        out = get_date_name_field(np.array([val], dtype=np.int64),
+                                  field, locale=locale)
         return out[0]
 
     @property
@@ -714,12 +724,50 @@ class Timestamp(_Timestamp):
     def dayofweek(self):
         return self.weekday()
 
+    def day_name(self, locale=None):
+        """
+        Return the day name of the Timestamp with specified locale.
+
+        Parameters
+        ----------
+        locale : string, default None (English locale)
+            locale determining the language in which to return the day name
+
+        Returns
+        -------
+        day_name : string
+
+        .. versionadded:: 0.23.0
+        """
+        return self._get_date_name_field('day_name', locale)
+
+    def month_name(self, locale=None):
+        """
+        Return the month name of the Timestamp with specified locale.
+
+        Parameters
+        ----------
+        locale : string, default None (English locale)
+            locale determining the language in which to return the month name
+
+        Returns
+        -------
+        month_name : string
+
+        .. versionadded:: 0.23.0
+        """
+        return self._get_date_name_field('month_name', locale)
+
     @property
     def weekday_name(self):
-        cdef dict wdays = {0: 'Monday', 1: 'Tuesday', 2: 'Wednesday',
-                           3: 'Thursday', 4: 'Friday', 5: 'Saturday',
-                           6: 'Sunday'}
-        return wdays[self.weekday()]
+        """
+        .. deprecated:: 0.23.0
+            Use ``Timestamp.day_name()`` instead
+        """
+        warnings.warn("`weekday_name` is deprecated and will be removed in a "
+                      "future version. Use `day_name` instead",
+                      FutureWarning)
+        return self.day_name()
 
     @property
     def dayofyear(self):
