@@ -523,6 +523,7 @@ class TestAssertSeriesEqual(object):
         self._assert_not_equal(Series(range(3)), Series(range(3)) + 1)
         self._assert_not_equal(Series(list('abc')), Series(list('xyz')))
         self._assert_not_equal(Series(list(u'áàä')), Series(list(u'éèë')))
+        self._assert_not_equal(Series(list(u'áàä')), Series(list(b'aaa')))
         self._assert_not_equal(Series(range(3)), Series(range(4)))
         self._assert_not_equal(
             Series(range(3)), Series(
@@ -720,6 +721,25 @@ DataFrame\\.iloc\\[:, 1\\] values are different \\(33\\.33333 %\\)
                                              'E': [u'é', u'è', u'ë']}),
                                pd.DataFrame({'A': [u'á', u'à', u'ä'],
                                              'E': [u'é', u'è', u'e̊']}),
+                               by_blocks=True)
+
+        expected = """DataFrame\\.iloc\\[:, 0\\] are different
+
+DataFrame\\.iloc\\[:, 0\\] values are different \\(100\\.0 %\\)
+\\[left\\]:  \\[á, à, ä\\]
+\\[right\\]: \\[a, a, a\\]"""
+
+        with tm.assert_raises_regex(AssertionError, expected):
+            assert_frame_equal(pd.DataFrame({'A': [u'á', u'à', u'ä'],
+                                             'E': [u'é', u'è', u'ë']}),
+                               pd.DataFrame({'A': ['a', 'a', 'a'],
+                                             'E': ['e', 'e', 'e']}))
+
+        with tm.assert_raises_regex(AssertionError, expected):
+            assert_frame_equal(pd.DataFrame({'A': [u'á', u'à', u'ä'],
+                                             'E': [u'é', u'è', u'ë']}),
+                               pd.DataFrame({'A': ['a', 'a', 'a'],
+                                             'E': ['e', 'e', 'e']}),
                                by_blocks=True)
 
 
