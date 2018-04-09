@@ -8,7 +8,7 @@ cd "$TRAVIS_BUILD_DIR"
 
 RET=0
 
-if [ "$LINT" ]; then
+if [ "$DOCTEST" ]; then
 
     echo "Running doctests"
 
