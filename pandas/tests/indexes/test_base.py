@@ -256,27 +256,31 @@ class TestIndex(Base):
         result = Index(np.array(na_list))
         tm.assert_index_equal(result, exp)
 
-    @pytest.mark.parametrize("data", [
-        [pd.NaT, np.nan], [np.nan, pd.NaT], [np.nan, np.datetime64('nat')],
-        [np.datetime64('nat'), np.nan]
-    ])
-    def test_index_ctor_infer_nat_dti(self, data):
+    @pytest.mark.parametrize("pos", [0, 1])
+    def test_index_ctor_infer_nat_dti(self, pos, nulls_fixture):
         exp = pd.DatetimeIndex([pd.NaT, pd.NaT])
         assert exp.dtype == 'datetime64[ns]'
+        data = [np.datetime64('nat')]
+        data.insert(pos, nulls_fixture)
 
-        tm.assert_index_equal(Index(data), exp)
-        tm.assert_index_equal(Index(np.array(data, dtype=object)), exp)
+        result = Index(data)
+        tm.assert_index_equal(result, exp)
 
-    @pytest.mark.parametrize("data", [
-        [np.nan, np.timedelta64('nat')], [np.timedelta64('nat'), np.nan],
-        [pd.NaT, np.timedelta64('nat')], [np.timedelta64('nat'), pd.NaT]
-    ])
-    def test_index_ctor_infer_nat_tdi(self, data):
+        result = Index(np.array(data, dtype=object))
+        tm.assert_index_equal(result, exp)
+
+    @pytest.mark.parametrize("pos", [0, 1])
+    def test_index_ctor_infer_nat_tdi(self, pos, nulls_fixture):
         exp = pd.TimedeltaIndex([pd.NaT, pd.NaT])
         assert exp.dtype == 'timedelta64[ns]'
+        data = [np.timedelta64('nat')]
+        data.insert(pos, nulls_fixture)
 
-        tm.assert_index_equal(Index(data), exp)
-        tm.assert_index_equal(Index(np.array(data, dtype=object)), exp)
+        result = Index(data)
+        tm.assert_index_equal(result, exp)
+
+        result = Index(np.array(data, dtype=object))
+        tm.assert_index_equal(result, exp)
 
     @pytest.mark.parametrize("swap_objs", [True, False])
     def test_index_ctor_nat_result(self, swap_objs):

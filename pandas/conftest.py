@@ -87,3 +87,10 @@ def join_type(request):
     Fixture for trying all types of join operations
     """
     return request.param
+
+@pytest.fixture(params=[numpy.nan, pandas.NaT])
+def nulls_fixture(request):
+    """
+    Fixture for each null type in pandas
+    """
+    return request.param
