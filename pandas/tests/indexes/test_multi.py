@@ -629,7 +629,6 @@ class TestMultiIndex(Base):
         mi = MultiIndex(levels=[[1, 2], [u'one', u'two']],
                         labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
                         names=('foo', 'bar'))
-        assert isinstance(mi, MultiIndex)
         renamed = [['foor'], ['barr']]
         tm.assert_raises_regex(TypeError, message, mi.rename, names=renamed)
         # With .set_names()

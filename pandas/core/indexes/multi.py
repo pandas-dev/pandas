@@ -644,8 +644,8 @@ class MultiIndex(Index):
         # All items in 'names' need to be hashable:
         for levels, name in enumerate(names):
             if not is_hashable(name):
-                raise TypeError(self.__class__.__name__ +
-                                '.name must be a hashable type')
+                raise TypeError('{}.name must be a hashable type'
+                                .format(self.__class__.__name__))
 
         # GH 15110
         # Don't allow a single string for names in a MultiIndex
