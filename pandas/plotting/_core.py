@@ -2809,7 +2809,6 @@ class FramePlotMethods(BasePlotMethods):
                  rot=None, fontsize=None, colormap=None, table=False,
                  yerr=None, xerr=None,
                  secondary_y=False, sort_columns=False, **kwds):
-
         return plot_frame(self._data, kind=kind, x=x, y=y, ax=ax,
                           subplots=subplots, sharex=sharex, sharey=sharey,
                           layout=layout, figsize=figsize, use_index=use_index,
@@ -3338,7 +3337,6 @@ class FramePlotMethods(BasePlotMethods):
             ...                       c='species',
             ...                       colormap='viridis')
         """
-
         return self(kind='scatter', x=x, y=y, c=c, s=s, **kwds)
 
     def hexbin(self, x, y, C=None, reduce_C_function=None, gridsize=None,
@@ -3424,7 +3422,6 @@ class FramePlotMethods(BasePlotMethods):
             ...                     gridsize=10,
             ...                     cmap="viridis")
         """
-
         if reduce_C_function is not None:
             kwds['reduce_C_function'] = reduce_C_function
         if gridsize is not None:
