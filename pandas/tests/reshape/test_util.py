@@ -51,8 +51,8 @@ class TestCartesianProduct(object):
 
     @settings(max_examples=NO_OF_EXAMPLES_PER_TEST_CASE)
     @given(st.lists(st.nothing()),
-           get_seq((int,), False),
-           get_seq((str,), False))
+           get_seq((int,), False, min_size=1, max_size=10),
+           get_seq((str,), False, min_size=1, max_size=10))
     def test_empty(self, empty_list, list_of_int, list_of_str):
         # product of empty factors
         X = [empty_list, list_of_int, empty_list]
