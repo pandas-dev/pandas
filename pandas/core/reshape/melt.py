@@ -24,6 +24,10 @@ from pandas.core.reshape.concat import concat
                other='DataFrame.melt'))
 def melt(frame, id_vars=None, value_vars=None, var_name=None,
          value_name='value', col_level=None):
+    if col_level is not None:  # allow list or other?
+        frame = frame.copy()
+        frame.columns = frame.columns.get_level_values(col_level)
+
     # TODO: what about the existing index?
     if id_vars is not None:
         if not is_list_like(id_vars):
@@ -47,12 +51,8 @@ def melt(frame, id_vars=None, value_vars=None, var_name=None,
         else:
             value_vars = list(value_vars)
         frame = frame.loc[:, id_vars + value_vars]
-    else:
+    elif col_level is None:  # avoid making copy if possible
         frame = frame.copy()
-
-    if col_level is not None:  # allow list or other?
-        # frame is a copy
-        frame.columns = frame.columns.get_level_values(col_level)
 
     if var_name is None:
         if isinstance(frame.columns, ABCMultiIndex):
