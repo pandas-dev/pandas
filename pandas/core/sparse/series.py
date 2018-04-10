@@ -136,7 +136,7 @@ class SparseSeries(Series):
                     if index is None:
                         index = data.index.view()
                     else:
-                        data=data.reindex(index, copy=False)
+                        data = data.reindex(index, copy=False)
 
                 length = len(index)
 
