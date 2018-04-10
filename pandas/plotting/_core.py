@@ -788,9 +788,10 @@ class MPLPlot(object):
         for ax in axes:
             # check axes coordinates to estimate layout
             points = ax.get_position().get_points()
-            # in IPython inline backend, get_points returns
-            # floats. Unless rounded they won't match
-            # in the set
+            # in IPython inline backend, floats returned by
+            #  `get_points()` have too many ad hoc trailing
+            # digits. Unless rounded these values won't
+            # match in the following set operations
             points = np.round(points, 3)
             x_set.add(points[0][0])
             y_set.add(points[0][1])
