@@ -311,8 +311,7 @@ def _handle_shared_axes(axarr, nplots, naxes, nrows, ncols, sharex, sharey):
                     # only the last row of subplots should get x labels -> all
                     # other off layout handles the case that the subplot is
                     # the last in the column, because below is no subplot/gap.
-                    if (not layout[ax.rowNum + 1, ax.colNum] or
-                            getattr(ax, '_pandas_colorbar_axes', False)):
+                    if (not layout[ax.rowNum + 1, ax.colNum]):
                         continue
                     if sharex or len(ax.get_shared_x_axes()
                                      .get_siblings(ax)) > 1:

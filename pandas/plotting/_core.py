@@ -788,6 +788,10 @@ class MPLPlot(object):
         for ax in axes:
             # check axes coordinates to estimate layout
             points = ax.get_position().get_points()
+            # in IPython inline backend, get_points returns
+            # floats. Unless rounded they won't match
+            # in the set
+            points = np.round(points, 3)
             x_set.add(points[0][0])
             y_set.add(points[0][1])
         return (len(y_set), len(x_set))
@@ -870,12 +874,6 @@ class ScatterPlot(PlanePlot):
         scatter = ax.scatter(data[x].values, data[y].values, c=c_values,
                              label=label, cmap=cmap, **self.kwds)
         if cb:
-            # The following attribute determines which axes belong to
-            # colorbars. When sharex = True, this allows `_handle_shared_axes`
-            # to skip them. Otherwise colobars will cause x-axis label and
-            # tick labels to disappear.
-            ax._pandas_colorbar_axes = True
-
             img = ax.collections[0]
             kws = dict(ax=ax)
             if self.mpl_ge_1_3_1():
@@ -922,12 +920,6 @@ class HexBinPlot(PlanePlot):
         ax.hexbin(data[x].values, data[y].values, C=c_values, cmap=cmap,
                   **self.kwds)
         if cb:
-            # The following attribute determines which axes belong to
-            # colorbars. When sharex = True, this allows `_handle_shared_axes`
-            # to skip them. Otherwise colobars will cause x-axis label and
-            # tick labels to disappear.
-            ax._pandas_colorbar_axes = True
-
             img = ax.collections[0]
             self.fig.colorbar(img, ax=ax)
 
