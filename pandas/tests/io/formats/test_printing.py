@@ -202,19 +202,3 @@ class TestTableSchemaRepr(object):
             assert formatters[mimetype].enabled
             # smoke test that it works
             self.display_formatter.format(cf)
-
-
-# TODO: fix this broken test
-
-# def test_console_encode():
-#     """
-#     On Python 2, if sys.stdin.encoding is None (IPython with zmq frontend)
-#     common.console_encode should encode things as utf-8.
-#     """
-#     if compat.PY3:
-#         pytest.skip
-
-#     with tm.stdin_encoding(encoding=None):
-#         result = printing.console_encode(u"\u05d0")
-#         expected = u"\u05d0".encode('utf-8')
-#         assert (result == expected)
