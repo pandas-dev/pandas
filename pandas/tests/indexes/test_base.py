@@ -501,11 +501,11 @@ class TestIndex(Base):
         tm.assert_index_equal(result, exp)
         assert result.name == exp.name
 
-    def test_delete_raise(self):
+    def test_delete_raises(self):
         idx = Index(['a', 'b', 'c', 'd'], name='idx')
         with pytest.raises((IndexError, ValueError)):
             # either depending on numpy version
-            result = idx.delete(5)
+            idx.delete(5)
 
     def test_identical(self):
 

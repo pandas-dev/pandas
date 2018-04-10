@@ -88,6 +88,7 @@ def join_type(request):
     """
     return request.param
 
+
 @pytest.fixture(params=[numpy.nan, pandas.NaT])
 def nulls_fixture(request):
     """
