@@ -1316,6 +1316,13 @@ class Index(IndexOpsMixin, PandasObject):
         return FrozenList((self.name, ))
 
     def _set_names(self, values, level=None):
+        # GH 20527
+        # All items in 'name' need to be hashable:
+        if values is not None:
+            for name in values:
+                if not is_hashable(name):
+                    raise TypeError('{}.name must be a hashable type'
+                                    .format(self.__class__.__name__))
         if len(values) != 1:
             raise ValueError('Length of new names must be 1, got %d' %
                              len(values))
@@ -1359,13 +1366,6 @@ class Index(IndexOpsMixin, PandasObject):
                    labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
                    names=[u'baz', u'bar'])
         """
-        # GH 20527
-        # All items in 'names' need to be hashable:
-        if names is not None:
-            for name in names:
-                if not is_hashable(name):
-                    raise TypeError('{}.name must be a hashable type'
-                                    .format(self.__class__.__name__))
 
         if level is not None and self.nlevels == 1:
             raise ValueError('Level must be None for non-MultiIndex')
