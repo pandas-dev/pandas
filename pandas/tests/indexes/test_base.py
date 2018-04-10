@@ -617,20 +617,25 @@ class TestIndex(Base):
 
     @pytest.mark.parametrize("attr", [
         'strIndex', 'intIndex', 'floatIndex'])
-    def test_empty_fancy(self, attr):
-        # pd.DatetimeIndex is excluded, because it overrides getitem and should
-        # be tested separately.
-        empty_farr = np.array([], dtype=np.float_)
-        empty_iarr = np.array([], dtype=np.int_)
-        empty_barr = np.array([], dtype=np.bool_)
-
+    @pytest.mark.parametrize("dtype", [np.int_, np.bool_])
+    def test_empty_fancy(self, attr, dtype):
+        empty_arr = np.array([], dtype=dtype)
         idx = getattr(self, attr)
         empty_idx = idx.__class__([])
 
         assert idx[[]].identical(empty_idx)
-        assert idx[empty_iarr].identical(empty_idx)
-        assert idx[empty_barr].identical(empty_idx)
+        assert idx[empty_arr].identical(empty_idx)
 
+    @pytest.mark.parametrize("attr", [
+        'strIndex', 'intIndex', 'floatIndex'])
+    def test_empty_fancy_raises(self, attr):
+        # pd.DatetimeIndex is excluded, because it overrides getitem and should
+        # be tested separately.
+        empty_farr = np.array([], dtype=np.float_)
+        idx = getattr(self, attr)
+        empty_idx = idx.__class__([])
+
+        assert idx[[]].identical(empty_idx)
         # np.ndarray only accepts ndarray of int & bool dtypes, so should Index
         pytest.raises(IndexError, idx.__getitem__, empty_farr)
 
