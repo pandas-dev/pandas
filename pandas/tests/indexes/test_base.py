@@ -180,9 +180,11 @@ class TestIndex(Base):
             df['date'] = dts
             result = DatetimeIndex(df['date'], freq='MS')
             assert df['date'].dtype == object
+
             expected.name = 'date'
             exp = pd.Series(dts, name='date')
             tm.assert_series_equal(df['date'], exp)
+
             # GH 6274
             # infer freq of same
             freq = pd.infer_freq(df['date'])
@@ -223,21 +225,20 @@ class TestIndex(Base):
         result = Index([0., 1., 2., 3.], dtype=dtype)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("dtype,klass_or_raises", [
-        ('int64', True), ('uint64', True), ('float', Float64Index)
-    ])
-    def test_constructor_int_dtype_nan(self, dtype, klass_or_raises):
+    def test_constructor_int_dtype_nan(self):
         # see gh-15187
         data = [np.nan]
+        expected = Float64Index(data)
+        result = Index(data, dtype='float')
+        tm.assert_index_equal(result, expected)
 
-        if klass_or_raises is True:
-            msg = "cannot convert"
-            with tm.assert_raises_regex(ValueError, msg):
-                Index(data, dtype=dtype)
-        else:
-            expected = klass_or_raises(data)
-            result = Index(data, dtype=dtype)
-            tm.assert_index_equal(result, expected)
+    @pytest.mark.parametrize("dtype", ['int64', 'uint64'])
+    def test_constructor_int_dtype_nan_raises(self, dtype):
+        # see gh-15187
+        data = [np.nan]
+        msg = "cannot convert"
+        with tm.assert_raises_regex(ValueError, msg):
+            Index(data, dtype=dtype)
 
     @pytest.mark.parametrize("klass,dtype,na_val", [
         (pd.Float64Index, np.float64, np.nan),
@@ -248,8 +249,12 @@ class TestIndex(Base):
         na_list = [na_val, na_val]
         exp = klass(na_list)
         assert exp.dtype == dtype
-        tm.assert_index_equal(Index(na_list), exp)
-        tm.assert_index_equal(Index(np.array(na_list)), exp)
+
+        result = Index(na_list)
+        tm.assert_index_equal(result, exp)
+
+        result = Index(np.array(na_list))
+        tm.assert_index_equal(result, exp)
 
     @pytest.mark.parametrize("data", [
         [pd.NaT, np.nan], [np.nan, pd.NaT], [np.nan, np.datetime64('nat')],
