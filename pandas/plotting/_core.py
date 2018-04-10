@@ -906,7 +906,6 @@ class HexBinPlot(PlanePlot):
     def _make_plot(self):
         x, y, data, C = self.x, self.y, self.data, self.C
         ax = self.axes[0]
-
         # pandas uses colormap, matplotlib uses cmap.
         cmap = self.colormap or 'BuGn'
         cmap = self.plt.cm.get_cmap(cmap)
