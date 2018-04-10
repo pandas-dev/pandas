@@ -404,7 +404,10 @@ Other Enhancements
 - :func:`read_html` now accepts a ``displayed_only`` keyword argument to controls whether or not hidden elements are parsed (``True`` by default) (:issue:`20027`)
 - zip compression is supported via ``compression=zip`` in :func:`DataFrame.to_pickle`, :func:`Series.to_pickle`, :func:`DataFrame.to_csv`, :func:`Series.to_csv`, :func:`DataFrame.to_json`, :func:`Series.to_json`. (:issue:`17778`)
 - :class:`DataFrame` and :class:`Series` now support matrix multiplication (```@```) operator (:issue:`10259`) for Python>=3.5
-
+- Updated ``to_gbq`` and ``read_gbq`` signature and documentation to reflect changes from
+  the Pandas-GBQ library version 0.4.0. Adds intersphinx mapping to Pandas-GBQ
+  library. (:issue:`20564`)
+  
 .. _whatsnew_0230.api_breaking:
 
 Backwards incompatible API changes
@@ -1103,6 +1106,7 @@ I/O
 Plotting
 ^^^^^^^^
 
+- Better error message when attempting to plot but matplotlib is not installed (:issue:`19810`).
 - :func:`DataFrame.plot` now raises a ``ValueError`` when the ``x`` or ``y`` argument is improperly formed (:issue:`18671`)
 - Bug in :func:`DataFrame.plot` when ``x`` and ``y`` arguments given as positions caused incorrect referenced columns for line, bar and area plots (:issue:`20056`)
 - Bug in formatting tick labels with ``datetime.time()`` and fractional seconds (:issue:`18478`).
@@ -1166,3 +1170,4 @@ Other
 
 - Improved error message when attempting to use a Python keyword as an identifier in a ``numexpr`` backed query (:issue:`18221`)
 - Bug in accessing a :func:`pandas.get_option`, which raised ``KeyError`` rather than ``OptionError`` when looking up a non-existant option key in some cases (:issue:`19789`)
+- Bug in :func:`assert_series_equal` and :func:`assert_frame_equal` for Series or DataFrames with differing unicode data (:issue:`20503`)
