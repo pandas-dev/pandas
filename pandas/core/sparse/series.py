@@ -19,6 +19,7 @@ import pandas.core.common as com
 import pandas.core.ops as ops
 import pandas._libs.index as libindex
 from pandas.util._decorators import Appender
+from pandas.api.types import is_categorical_dtype
 
 from pandas.core.sparse.array import (
     make_sparse, SparseArray,
@@ -129,6 +130,14 @@ class SparseSeries(Series):
                                          'be False.')
 
             else:
+                if is_categorical_dtype(data):
+                    if dtype is not None:
+                        data = data.astype(dtype)
+                    if index is None:
+                        index = data.index.view()
+                    else:
+                        data=data.reindex(index, copy=False)
+
                 length = len(index)
 
                 if data == fill_value or (isna(data) and isna(fill_value)):
