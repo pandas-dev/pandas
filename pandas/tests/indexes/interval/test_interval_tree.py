@@ -25,8 +25,6 @@ def tree(dtype):
 
 
 class TestIntervalTree(object):
-    def setup_method(self, method):
-        self.tree = tree('int64')
 
     def test_get_loc(self, tree):
         tm.assert_numpy_array_equal(tree.get_loc(1),
@@ -43,8 +41,8 @@ class TestIntervalTree(object):
         with pytest.raises(KeyError):
             tree.get_indexer(np.array([3.0]))
 
-    def test_get_indexer_non_unique(self):
-        indexer, missing = self.tree.get_indexer_non_unique(
+    def test_get_indexer_non_unique(self, tree):
+        indexer, missing = tree.get_indexer_non_unique(
             np.array([1.0, 2.0, 6.5]))
         tm.assert_numpy_array_equal(indexer[:1],
                                     np.array([0], dtype='int64'))
