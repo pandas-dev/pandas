@@ -5,7 +5,7 @@ WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
 from numpy cimport (
-    int64_t, int32_t, float64_t, float32_t,
+    int64_t, int32_t, float64_t, float32_t, uint64_t,
     ndarray,
     PyArray_ArgSort, NPY_QUICKSORT, PyArray_Take)
 import numpy as np
@@ -24,6 +24,7 @@ ctypedef fused scalar_t:
     float32_t
     int64_t
     int32_t
+    uint64_t
 
 
 #----------------------------------------------------------------------
@@ -205,7 +206,7 @@ cdef sort_values_and_indices(all_values, all_indices, subset):
 {{py:
 
 nodes = []
-for dtype in ['float32', 'float64', 'int32', 'int64']:
+for dtype in ['float32', 'float64', 'int32', 'int64', 'uint64']:
     for closed, cmp_left, cmp_right in [
         ('left', '<=', '<'),
         ('right', '<', '<='),
