@@ -436,9 +436,12 @@ class TestIndex(Base):
         assert isinstance(empty, MultiIndex)
         assert not len(empty)
 
-    def test_constructor_nonhashable_name(self):
+    def test_constructor_nonhashable_name(self, indices):
         # GH 20527
-        idx = self.create_index()
+
+        if isinstance(indices, MultiIndex):
+            pytest.skip("multiindex handled in test_multiindex.py")
+
         name = ['0']
         message = "Index.name must be a hashable type"
         tm.assert_raises_regex(TypeError, message, name=name)
@@ -446,10 +449,10 @@ class TestIndex(Base):
         # With .rename()
         renamed = [['1']]
         tm.assert_raises_regex(TypeError, message,
-                               idx.rename, name=renamed)
+                               indices.rename, name=renamed)
         # With .set_names()
         tm.assert_raises_regex(TypeError, message,
-                               idx.set_names, names=renamed)
+                               indices.set_names, names=renamed)
 
     def test_view_with_args(self):
 
