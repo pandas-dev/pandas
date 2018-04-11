@@ -921,7 +921,7 @@ Note that performance-wise, you should try these methods of parsing dates in ord
 1. Try to infer the format using ``infer_datetime_format=True`` (see section below).
 
 2. If you know the format, use ``pd.to_datetime()``:
-   ``date_parser = lambda x: pd.to_datetime(x, format=...)``.
+   ``date_parser=lambda x: pd.to_datetime(x, format=...)``.
 
 3. If you have a really non-standard format, use a custom ``date_parser`` function.
    For optimal performance, this should be vectorized, i.e., it should accept arrays
@@ -3263,7 +3263,7 @@ pandas objects.
 
 .. ipython:: python
 
-   pd.to_msgpack('foo2.msg', {'dict': [{ 'df': df }, {'string': 'foo'}, 
+   pd.to_msgpack('foo2.msg', {'dict': [{ 'df': df }, {'string': 'foo'},
                                        {'scalar': 1.}, {'s': s}]})
    pd.read_msgpack('foo2.msg')
 
@@ -3509,8 +3509,8 @@ enable ``put/append/to_hdf`` to by default store in the ``table`` format.
 .. ipython:: python
 
    store = pd.HDFStore('store.h5')
-   df1 = df[0: 4]
-   df2 = df[4: ]
+   df1 = df[0:4]
+   df2 = df[4:]
 
    # append data (creates a table automatically)
    store.append('df', df1)
@@ -3737,7 +3737,7 @@ Here are some examples:
 
 .. ipython:: python
 
-    dfq = pd.DataFrame(randn(10, 4), columns=list('ABCD'), 
+    dfq = pd.DataFrame(randn(10, 4), columns=list('ABCD'),
                        index=pd.date_range('20130101', periods=10))
     store.append('dfq', dfq, format='table', data_columns=True)
 
@@ -3976,7 +3976,7 @@ Sometimes you want to get the coordinates (a.k.a the index locations) of your qu
 
 .. ipython:: python
 
-   df_coord = pd.DataFrame(np.random.randn(1000, 2), 
+   df_coord = pd.DataFrame(np.random.randn(1000, 2),
                            index=pd.date_range('20000101', periods=1000))
    store.append('df_coord', df_coord)
    c = store.select_as_coordinates('df_coord', 'index > 20020101')
@@ -4174,7 +4174,7 @@ Enable compression for all objects within the file:
 
 .. code-block:: python
 
-   store_compressed = pd.HDFStore('store_compressed.h5', complevel=9, 
+   store_compressed = pd.HDFStore('store_compressed.h5', complevel=9,
                                   complib='blosc:blosclz')
 
 Or on-the-fly compression (this only applies to tables) in stores where compression is not enabled:
@@ -4851,7 +4851,7 @@ variant appropriate for your database.
 
    from pandas.io import sql
    sql.execute('SELECT * FROM table_name', engine)
-   sql.execute('INSERT INTO table_name VALUES(?, ?, ?)', engine, 
+   sql.execute('INSERT INTO table_name VALUES(?, ?, ?)', engine,
                params=[('id', 1, 12.2, True)])
 
 
