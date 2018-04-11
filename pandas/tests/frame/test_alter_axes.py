@@ -249,8 +249,8 @@ class TestDataFrameAlterAxes(TestData):
         # convert to utc
         df['C'] = i.to_series().reset_index(drop=True)
         result = df['C']
-        comp = pd.DatetimeIndex(expected.values).copy()
-        comp.tz = None
+        comp = pd.DatetimeIndex(expected.values)
+        comp = comp.tz_localize(None)
         tm.assert_numpy_array_equal(result.values, comp.values)
 
         # list of datetimes with a tz
