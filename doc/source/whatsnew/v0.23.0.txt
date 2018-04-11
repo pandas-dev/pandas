@@ -1067,6 +1067,7 @@ Indexing
 - Bug in ``Index`` subclasses constructors that ignore unexpected keyword arguments (:issue:`19348`)
 - Bug in :meth:`Index.difference` when taking difference of an ``Index`` with itself (:issue:`20040`)
 - Bug in :meth:`DataFrame.first_valid_index` and :meth:`DataFrame.last_valid_index` in presence of entire rows of NaNs in the middle of values (:issue:`20499`).
+- Bug in :class:`IntervalIndex` where some indexing operations were not supported for overlapping or non-monotonic ``uint64`` data (:issue:`20636`)
 
 MultiIndex
 ^^^^^^^^^^
