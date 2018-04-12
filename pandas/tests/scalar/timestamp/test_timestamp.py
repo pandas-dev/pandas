@@ -124,8 +124,8 @@ class TestTimestampProperties(object):
         assert np.isnan(nan_ts.day_name(time_locale))
         assert np.isnan(nan_ts.month_name(time_locale))
 
-    @pytest.mark.parametrize('tz', [None, 'UTC', 'US/Eastern', 'Asia/Tokyo'])
-    def test_is_leap_year(self, tz):
+    def test_is_leap_year(self, tz_naive_fixture):
+        tz = tz_naive_fixture
         # GH 13727
         dt = Timestamp('2000-01-01 00:00:00', tz=tz)
         assert dt.is_leap_year

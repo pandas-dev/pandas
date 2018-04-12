@@ -132,7 +132,6 @@ class TestTimestampUnaryOps(object):
 
     # --------------------------------------------------------------
     # Timestamp.replace
-    timezones = ['UTC', 'Asia/Tokyo', 'US/Eastern', 'dateutil/US/Pacific']
 
     def test_replace_naive(self):
         # GH#14621, GH#7825
@@ -141,8 +140,8 @@ class TestTimestampUnaryOps(object):
         expected = Timestamp('2016-01-01 00:00:00')
         assert result == expected
 
-    @pytest.mark.parametrize('tz', timezones)
-    def test_replace_aware(self, tz):
+    def test_replace_aware(self, tz_aware_fixture):
+        tz = tz_aware_fixture
         # GH#14621, GH#7825
         # replacing datetime components with and w/o presence of a timezone
         ts = Timestamp('2016-01-01 09:00:00', tz=tz)
@@ -150,16 +149,16 @@ class TestTimestampUnaryOps(object):
         expected = Timestamp('2016-01-01 00:00:00', tz=tz)
         assert result == expected
 
-    @pytest.mark.parametrize('tz', timezones)
-    def test_replace_preserves_nanos(self, tz):
+    def test_replace_preserves_nanos(self, tz_aware_fixture):
+        tz = tz_aware_fixture
         # GH#14621, GH#7825
         ts = Timestamp('2016-01-01 09:00:00.000000123', tz=tz)
         result = ts.replace(hour=0)
         expected = Timestamp('2016-01-01 00:00:00.000000123', tz=tz)
         assert result == expected
 
-    @pytest.mark.parametrize('tz', timezones)
-    def test_replace_multiple(self, tz):
+    def test_replace_multiple(self, tz_aware_fixture):
+        tz = tz_aware_fixture
         # GH#14621, GH#7825
         # replacing datetime components with and w/o presence of a timezone
         # test all
@@ -169,15 +168,15 @@ class TestTimestampUnaryOps(object):
         expected = Timestamp('2015-02-02 00:05:05.000005005', tz=tz)
         assert result == expected
 
-    @pytest.mark.parametrize('tz', timezones)
-    def test_replace_invalid_kwarg(self, tz):
+    def test_replace_invalid_kwarg(self, tz_aware_fixture):
+        tz = tz_aware_fixture
         # GH#14621, GH#7825
         ts = Timestamp('2016-01-01 09:00:00.000000123', tz=tz)
         with pytest.raises(TypeError):
             ts.replace(foo=5)
 
-    @pytest.mark.parametrize('tz', timezones)
-    def test_replace_integer_args(self, tz):
+    def test_replace_integer_args(self, tz_aware_fixture):
+        tz = tz_aware_fixture
         # GH#14621, GH#7825
         ts = Timestamp('2016-01-01 09:00:00.000000123', tz=tz)
         with pytest.raises(ValueError):
