@@ -491,7 +491,7 @@ class ExtensionArray(object):
                mask = indexer == -1
 
                # take on empty array not handled as desired by numpy
-               # in case of -1
+               # in case of -1 (all missing take)
                if not len(self) and mask.all():
                    return type(self)([np.nan] * len(indexer))
 

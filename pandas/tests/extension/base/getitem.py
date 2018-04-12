@@ -122,7 +122,16 @@ class BaseGetitemTests(BaseExtensionTests):
         assert result.iloc[1] == data[1]
         assert result.iloc[2] == data[3]
 
-    def test_take_empty_missing(self, data, na_value, na_cmp):
+    def test_take(self, data, na_value, na_cmp):
+        result = data.take([0, -1])
+        assert result.dtype == data.dtype
+        assert result[0] == data[0]
+        na_cmp(result[1], na_value)
+
+        with tm.assert_raises_regex(IndexError, "out of bounds"):
+            data.take([len(data) + 1])
+
+    def test_take_empty(self, data, na_value, na_cmp):
         empty = data[:0]
         result = empty.take([-1])
         na_cmp(result[0], na_value)

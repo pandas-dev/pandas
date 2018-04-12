@@ -1740,12 +1740,6 @@ class Categorical(ExtensionArray, PandasObject):
         # but is passed thru internally
         assert isna(fill_value)
 
-        indexer = np.asarray(indexer)
-
-        # take on empty array only valid if result is an all-missing array
-        if not len(self) and not (indexer == -1).all():
-            raise IndexError("cannot do a non-empty take from an empty array.")
-
         codes = take_1d(self._codes, indexer, allow_fill=True, fill_value=-1)
         result = self._constructor(codes, categories=self.categories,
                                    ordered=self.ordered, fastpath=True)

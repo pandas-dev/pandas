@@ -93,7 +93,8 @@ class JSONArray(ExtensionArray):
             output = [self.data[loc] if loc != -1 else self._na_value
                       for loc in indexer]
         except IndexError:
-            raise IndexError("cannot do a non-empty take from an empty array.")
+            raise IndexError("Index is out of bounds or cannot do a "
+                             "non-empty take from an empty array.")
         return self._constructor_from_sequence(output)
 
     def copy(self, deep=False):
