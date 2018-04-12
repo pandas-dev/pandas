@@ -777,45 +777,12 @@ Tests that we have ``parametrized`` are now accessible via the test name, for ex
 
 Using ``hypothesis``
 ~~~~~~~~~~~~~~~~~~~~
-With the transition to pytest, things have become easier for testing by having reduced boilerplate for test cases and also by utilizing pytest's features like parametizing, skipping and marking test cases.
+With the usage of pytest, things have become easier for testing by having reduced boilerplate for test cases and also by utilizing pytest's features like parametizing, skipping and marking test cases.
 
 However, one has to still come up with input data examples which can be tested against the functionality. There is always a possibility to skip testing an example which could have failed the test case.
 
 Hypothesis is a python package which helps in overcoming this issue by generating the input data based on some set of specifications provided by the user.
-e.g suppose we have to test python's sum function for a list of int.
-
-Here is a sample test case using pytest:
-
-.. code-block:: python
-
-    import pytest
-
-    @pytest.mark.parametrize('seq', [
-        [0, 0, 0],
-        [1, 2, 3, 4],
-        [-3, 5, -8, 23],
-        [12345678, 9876543, 567894321]
-    ])
-    def test_sum_using_pytest(seq):
-        total = 0
-        for item in seq:
-            total += item
-        assert sum(seq) == total
-
-output of test cases:
-
-.. code-block:: shell
-
-    collecting ... collected 4 items
-    pytest_example.py::test_sum_using_pytest[seq0] PASSED                    [ 25%]
-    pytest_example.py::test_sum_using_pytest[seq1] PASSED                    [ 50%]
-    pytest_example.py::test_sum_using_pytest[seq2] PASSED                    [ 75%]
-    pytest_example.py::test_sum_using_pytest[seq3] PASSED                    [100%]
-
-    ========================== 4 passed in 0.06 seconds ===========================
-
-
-Compare it with below example for the same test case using hypothesis.
+e.g consider the test case for testing python's sum function for a list of int using hypothesis.
 
 .. code-block:: python
 
@@ -840,8 +807,7 @@ output of test cases:
 
     ========================== 1 passed in 0.33 seconds ===========================
 
-The main difference in above example is use of a decorator "@given(st.lists(st.integers()))" which if applied to test case function, generates some random list of int, which is then assigned to parameter of test case.
-Above example clearly helps in adding more coverage for our test functions.
+In above example by applying a decorator "@given(st.lists(st.integers()))" to the unit test function, we have directed hypothesis to generate some random list of int as input for the test function, which eventually helps in adding more coverage for our test functions by generating random input data.
 
 For more information about hypothesis or in general about property based testing, check below links:
 
