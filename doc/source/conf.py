@@ -350,6 +350,7 @@ latex_documents = [
 intersphinx_mapping = {
     'statsmodels': ('http://www.statsmodels.org/devel/', None),
     'matplotlib': ('http://matplotlib.org/', None),
+    'pandas-gbq': ('https://pandas-gbq.readthedocs.io/en/latest/', None),
     'python': ('https://docs.python.org/3/', None),
     'numpy': ('https://docs.scipy.org/doc/numpy/', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),

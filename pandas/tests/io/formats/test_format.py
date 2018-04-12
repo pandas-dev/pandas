@@ -1618,7 +1618,7 @@ c  10  11  12  13  14\
         If the test fails, it at least won't hang.
         """
 
-        class A:
+        class A(object):
             def __getitem__(self, key):
                 return 3  # obviously simplified
 
