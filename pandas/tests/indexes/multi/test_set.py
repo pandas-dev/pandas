@@ -1,29 +1,15 @@
 # -*- coding: utf-8 -*-
 
-import re
-import warnings
-
-from datetime import timedelta
-from itertools import product
-
 import pytest
 
 import numpy as np
 
 import pandas as pd
 
-from pandas import (CategoricalIndex, DataFrame, Index, MultiIndex,
-                    compat, date_range, period_range)
-from pandas.compat import PY3, long, lrange, lzip, range, u, PYPY
-from pandas.errors import PerformanceWarning, UnsortedIndexError
-from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.indexes.base import InvalidIndexError
-from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
-from pandas._libs.tslib import Timestamp
+from pandas import (CategoricalIndex, MultiIndex)
+from pandas.compat import range
 
 import pandas.util.testing as tm
-
-from pandas.util.testing import assert_almost_equal, assert_copy
 
 from .common import Base
 
@@ -31,7 +17,7 @@ from .common import Base
 class TestSet(Base):
     _holder = MultiIndex
     _compat_props = ['shape', 'ndim', 'size', 'itemsize']
-    
+
     def test_set_name_methods(self):
         # so long as these are synonyms, we don't need to test set_names
         assert self.index.rename == self.index.set_names
@@ -308,7 +294,7 @@ class TestSet(Base):
                                             categories=cidx.categories,
                                             ordered=cidx.ordered)
             tm.assert_index_equal(result_lvl, expected_lvl)
-    
+
     def test_set_value_keeps_names(self):
         # motivating example from #3742
         lev1 = ['hans', 'hans', 'hans', 'grethe', 'grethe', 'grethe']

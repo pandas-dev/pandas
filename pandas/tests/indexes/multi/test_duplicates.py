@@ -1,9 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import re
-import warnings
-
-from datetime import timedelta
 from itertools import product
 
 import pytest
@@ -12,18 +8,10 @@ import numpy as np
 
 import pandas as pd
 
-from pandas import (CategoricalIndex, DataFrame, Index, MultiIndex,
-                    compat, date_range, period_range)
-from pandas.compat import PY3, long, lrange, lzip, range, u, PYPY
-from pandas.errors import PerformanceWarning, UnsortedIndexError
-from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.indexes.base import InvalidIndexError
-from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
-from pandas._libs.tslib import Timestamp
+from pandas import MultiIndex
+from pandas.compat import range, u
 
 import pandas.util.testing as tm
-
-from pandas.util.testing import assert_almost_equal, assert_copy
 
 from .common import Base
 
@@ -31,7 +19,7 @@ from .common import Base
 class TestDuplicates(Base):
     _holder = MultiIndex
     _compat_props = ['shape', 'ndim', 'size', 'itemsize']
-    
+
     @pytest.mark.parametrize('names', [['a', 'b', 'a'], [1, 1, 2],
                                        [1, 'a', 1]])
     def test_duplicate_level_names(self, names):

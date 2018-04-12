@@ -1,29 +1,16 @@
 # -*- coding: utf-8 -*-
 
-import re
-import warnings
-
-from datetime import timedelta
-from itertools import product
-
 import pytest
 
 import numpy as np
 
 import pandas as pd
 
-from pandas import (CategoricalIndex, DataFrame, Index, MultiIndex,
-                    compat, date_range, period_range)
-from pandas.compat import PY3, long, lrange, lzip, range, u, PYPY
-from pandas.errors import PerformanceWarning, UnsortedIndexError
-from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.indexes.base import InvalidIndexError
-from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
-from pandas._libs.tslib import Timestamp
+from pandas import (Index, MultiIndex)
+from pandas.compat import lrange
+from pandas.errors import PerformanceWarning
 
 import pandas.util.testing as tm
-
-from pandas.util.testing import assert_almost_equal, assert_copy
 
 from .common import Base
 
@@ -31,7 +18,6 @@ from .common import Base
 class TestDrop(Base):
     _holder = MultiIndex
     _compat_props = ['shape', 'ndim', 'size', 'itemsize']
-
 
     def test_drop(self):
         dropped = self.index.drop([('foo', 'two'), ('qux', 'one')])

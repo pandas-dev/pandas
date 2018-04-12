@@ -1,29 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import re
-import warnings
-
-from datetime import timedelta
-from itertools import product
-
 import pytest
-
-import numpy as np
 
 import pandas as pd
 
-from pandas import (CategoricalIndex, DataFrame, Index, MultiIndex,
-                    compat, date_range, period_range)
-from pandas.compat import PY3, long, lrange, lzip, range, u, PYPY
-from pandas.errors import PerformanceWarning, UnsortedIndexError
-from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.indexes.base import InvalidIndexError
-from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
-from pandas._libs.tslib import Timestamp
+from pandas import MultiIndex
 
 import pandas.util.testing as tm
-
-from pandas.util.testing import assert_almost_equal, assert_copy
 
 from .common import Base
 
@@ -31,7 +14,8 @@ from .common import Base
 class TestUnique(Base):
     _holder = MultiIndex
     _compat_props = ['shape', 'ndim', 'size', 'itemsize']
-        @pytest.mark.parametrize('names', [None, ['first', 'second']])
+
+    @pytest.mark.parametrize('names', [None, ['first', 'second']])
     def test_unique(self, names):
         mi = pd.MultiIndex.from_arrays([[1, 2, 1, 2], [1, 1, 1, 2]],
                                        names=names)
