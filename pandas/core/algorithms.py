@@ -859,6 +859,17 @@ def rank(values, axis=0, method='average', na_option='keep',
         Whether or not to the display the returned rankings in integer form
         (e.g. 1, 2, 3) or in percentile form (e.g. 0.333..., 0.666..., 1).
     """
+    if is_object_dtype(values):
+        def raise_non_numeric_error():
+            raise ValueError("pandas.core.algorithms.rank "
+                             "not supported for unordered "
+                             "non-numeric data")
+        if is_categorical_dtype(values):
+            if not values.ordered:
+                raise_non_numeric_error()
+        else:
+            raise_non_numeric_error()
+
     if values.ndim == 1:
         f, values = _get_data_algo(values, _rank1d_functions)
         ranks = f(values, ties_method=method, ascending=ascending,

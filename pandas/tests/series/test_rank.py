@@ -134,22 +134,27 @@ class TestSeriesRank(TestData):
         assert_series_equal(ordered.rank(), exp)
         assert_series_equal(ordered.rank(ascending=False), exp_desc)
 
-        # Unordered categoricals should be ranked as objects
+        # See #19560
+        error_msg = ("pandas.core.algorithms.rank "
+                     "not supported for unordered "
+                     "non-numeric data")
+
+        # Ranking unordered categorials depreciated per #19560
         unordered = Series(['first', 'second', 'third', 'fourth',
                             'fifth', 'sixth']).astype(
             CategoricalDtype(categories=['first', 'second', 'third',
                                          'fourth', 'fifth', 'sixth'],
                              ordered=False))
-        exp_unordered = Series([2., 4., 6., 3., 1., 5.])
-        res = unordered.rank()
-        assert_series_equal(res, exp_unordered)
+
+        with tm.assert_raises_regex(ValueError, error_msg):
+            unordered.rank()
 
         unordered1 = Series(
             [1, 2, 3, 4, 5, 6],
         ).astype(CategoricalDtype([1, 2, 3, 4, 5, 6], False))
-        exp_unordered1 = Series([1., 2., 3., 4., 5., 6.])
-        res1 = unordered1.rank()
-        assert_series_equal(res1, exp_unordered1)
+
+        # Won't raise ValueError because entries not objects.
+        unordered1.rank()
 
         # Test na_option for rank data
         na_ser = Series(
@@ -213,16 +218,13 @@ class TestSeriesRank(TestData):
                      'int64',
                      marks=pytest.mark.xfail(
                          reason="iNaT is equivalent to minimum value of dtype"
-                         "int64 pending issue #16674")),
-        ([NegInfinity(), '1', 'A', 'BA', 'Ba', 'C', Infinity()],
-         'object')
+                         "int64 pending issue #16674"))
     ])
     def test_rank_inf(self, contents, dtype):
         dtype_na_map = {
             'float64': np.nan,
             'float32': np.nan,
-            'int64': iNaT,
-            'object': None
+            'int64': iNaT
         }
         # Insert nans at random positions if underlying dtype has missing
         # value. Then adjust the expected order by adding nans accordingly
@@ -249,13 +251,10 @@ class TestSeriesRank(TestData):
             result = s.rank(method=method)
             tm.assert_series_equal(result, Series(expected))
 
-        dtypes = [None, object]
-        disabled = set([(object, 'first')])
+        dtypes = [None]
         results = self.results
 
         for method, dtype in product(results, dtypes):
-            if (dtype, method) in disabled:
-                continue
             series = s if dtype is None else s.astype(dtype)
             _check(series, results[method], method=method)
 
@@ -294,7 +293,7 @@ class TestSeriesRank(TestData):
         for dtype, na_value, pos_inf, neg_inf in dtypes:
             in_arr = [neg_inf] * chunk + [na_value] * chunk + [pos_inf] * chunk
             iseries = Series(in_arr, dtype=dtype)
-            if (dtype, method) in disabled:
+            if dtype == 'object':
                 continue
             _check(iseries, method, na_option, ascending)
 
@@ -330,7 +329,7 @@ class TestSeriesRank(TestData):
                 tm.assert_series_equal(result, expected)
 
     def test_rank_dense_method(self):
-        dtypes = ['O', 'f8', 'i8']
+        dtypes = ['f8', 'i8']
         in_out = [([1], [1]),
                   ([2], [1]),
                   ([0], [1]),
@@ -348,7 +347,7 @@ class TestSeriesRank(TestData):
                 assert_series_equal(result, expected)
 
     def test_rank_descending(self):
-        dtypes = ['O', 'f8', 'i8']
+        dtypes = ['f8', 'i8']
 
         for dtype, method in product(dtypes, self.results):
             if 'i' in dtype:
@@ -359,9 +358,6 @@ class TestSeriesRank(TestData):
             res = s.rank(ascending=False)
             expected = (s.max() - s).rank()
             assert_series_equal(res, expected)
-
-            if method == 'first' and dtype == 'O':
-                continue
 
             expected = (s.max() - s).rank(method=method)
             res2 = s.rank(method=method, ascending=False)
@@ -379,9 +375,15 @@ class TestSeriesRank(TestData):
     def test_rank_object_bug(self):
         # GH 13445
 
-        # smoke tests
-        Series([np.nan] * 32).astype(object).rank(ascending=True)
-        Series([np.nan] * 32).astype(object).rank(ascending=False)
+        # See #19560
+        error_msg = ("pandas.core.algorithms.rank "
+                     "not supported for unordered "
+                     "non-numeric data")
+
+        with tm.assert_raises_regex(ValueError, error_msg):
+            Series([np.nan] * 32).astype(object).rank(ascending=True)
+        with tm.assert_raises_regex(ValueError, error_msg):
+            Series([np.nan] * 32).astype(object).rank(ascending=False)
 
     def test_rank_modify_inplace(self):
         # GH 18521
@@ -396,7 +398,7 @@ class TestSeriesRank(TestData):
 
 # GH15630, pct should be on 100% basis when method='dense'
 
-@pytest.mark.parametrize('dtype', ['O', 'f8', 'i8'])
+@pytest.mark.parametrize('dtype', ['f8', 'i8'])
 @pytest.mark.parametrize('ser, exp', [
     ([1], [1.]),
     ([1, 2], [1. / 2, 2. / 2]),
@@ -414,7 +416,7 @@ def test_rank_dense_pct(dtype, ser, exp):
         assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize('dtype', ['O', 'f8', 'i8'])
+@pytest.mark.parametrize('dtype', ['f8', 'i8'])
 @pytest.mark.parametrize('ser, exp', [
     ([1], [1.]),
     ([1, 2], [1. / 2, 2. / 2]),
@@ -432,7 +434,7 @@ def test_rank_min_pct(dtype, ser, exp):
         assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize('dtype', ['O', 'f8', 'i8'])
+@pytest.mark.parametrize('dtype', ['f8', 'i8'])
 @pytest.mark.parametrize('ser, exp', [
     ([1], [1.]),
     ([1, 2], [1. / 2, 2. / 2]),
@@ -450,7 +452,7 @@ def test_rank_max_pct(dtype, ser, exp):
         assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize('dtype', ['O', 'f8', 'i8'])
+@pytest.mark.parametrize('dtype', ['f8', 'i8'])
 @pytest.mark.parametrize('ser, exp', [
     ([1], [1.]),
     ([1, 2], [1. / 2, 2. / 2]),

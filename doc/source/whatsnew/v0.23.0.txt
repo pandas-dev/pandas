@@ -418,6 +418,8 @@ Other Enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+- Using :func:`DataFrame.rank` on a data frame with non-numeric entries other than ordered categoricals will raise a ValueError.
+
 .. _whatsnew_0230.api_breaking.deps:
 
 Dependencies have increased minimum versions

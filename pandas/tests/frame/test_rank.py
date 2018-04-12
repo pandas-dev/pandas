@@ -71,23 +71,22 @@ class TestRank(TestData):
         result = df.rank(0, pct=True)
         tm.assert_frame_equal(result, expected)
 
-        df = DataFrame([['b', 'c', 'a'], ['a', 'c', 'b']])
-        expected = DataFrame([[2.0, 3.0, 1.0], [1, 3, 2]])
-        result = df.rank(1, numeric_only=False)
-        tm.assert_frame_equal(result, expected)
+        # See #19560
+        error_msg = ("pandas.core.algorithms.rank "
+                     "not supported for unordered "
+                     "non-numeric data")
 
-        expected = DataFrame([[2.0, 1.5, 1.0], [1, 1.5, 2]])
-        result = df.rank(0, numeric_only=False)
-        tm.assert_frame_equal(result, expected)
+        df = DataFrame([['b', 'c', 'a'], ['a', 'c', 'b']])
+        with tm.assert_raises_regex(ValueError, error_msg):
+            df.rank(1, numeric_only=False)
+        with tm.assert_raises_regex(ValueError, error_msg):
+            df.rank(0, numeric_only=False)
 
         df = DataFrame([['b', np.nan, 'a'], ['a', 'c', 'b']])
-        expected = DataFrame([[2.0, nan, 1.0], [1.0, 3.0, 2.0]])
-        result = df.rank(1, numeric_only=False)
-        tm.assert_frame_equal(result, expected)
-
-        expected = DataFrame([[2.0, nan, 1.0], [1.0, 1.0, 2.0]])
-        result = df.rank(0, numeric_only=False)
-        tm.assert_frame_equal(result, expected)
+        with tm.assert_raises_regex(ValueError, error_msg):
+            df.rank(1, numeric_only=False)
+        with tm.assert_raises_regex(ValueError, error_msg):
+            df.rank(0, numeric_only=False)
 
         # f7u12, this does not work without extensive workaround
         data = [[datetime(2001, 1, 5), nan, datetime(2001, 1, 2)],
@@ -110,9 +109,9 @@ class TestRank(TestData):
         self.mixed_frame['datetime'] = datetime.now()
         self.mixed_frame['timedelta'] = timedelta(days=1, seconds=1)
 
-        result = self.mixed_frame.rank(1)
-        expected = self.mixed_frame.rank(1, numeric_only=True)
-        tm.assert_frame_equal(result, expected)
+        # mixed_frame["foo"] is of string-type
+        with tm.assert_raises_regex(ValueError, error_msg):
+            self.mixed_frame.rank(1)
 
         df = DataFrame({"a": [1e-20, -5, 1e-20 + 1e-40, 10,
                               1e60, 1e80, 1e-30]})
@@ -218,7 +217,7 @@ class TestRank(TestData):
                     tm.assert_frame_equal(result, expected)
 
     def test_rank_descending(self):
-        dtypes = ['O', 'f8', 'i8']
+        dtypes = ['f8', 'i8']
 
         for dtype, method in product(dtypes, self.results):
             if 'i' in dtype:
@@ -230,15 +229,11 @@ class TestRank(TestData):
             expected = (df.max() - df).rank()
             assert_frame_equal(res, expected)
 
-            if method == 'first' and dtype == 'O':
-                continue
-
             expected = (df.max() - df).rank(method=method)
 
-            if dtype != 'O':
-                res2 = df.rank(method=method, ascending=False,
-                               numeric_only=True)
-                assert_frame_equal(res2, expected)
+            res2 = df.rank(method=method, ascending=False,
+                           numeric_only=True)
+            assert_frame_equal(res2, expected)
 
             res3 = df.rank(method=method, ascending=False,
                            numeric_only=False)
@@ -258,11 +253,10 @@ class TestRank(TestData):
             assert_frame_equal(result, exp_df)
 
         dtypes = [None, object]
-        disabled = set([(object, 'first')])
         results = self.results
 
         for method, axis, dtype in product(results, [0, 1], dtypes):
-            if (dtype, method) in disabled:
+            if dtype == object:
                 continue
             frame = df if dtype is None else df.astype(dtype)
             _check2d(frame, results[method], method=method, axis=axis)
