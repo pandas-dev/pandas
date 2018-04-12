@@ -8574,6 +8574,8 @@ class NDFrame(PandasObject, SelectionMixin):
     --------
     pandas.DataFrame.aggregate : Perform aggregate type of operations.
     pandas.DataFrame.apply : Apply general functions.
+    pandas.DataFrame.map : Apply general functions on Series.
+    pandas.DataFrame.applymap : Apply general functions elementwise.
 
     Examples
     --------
