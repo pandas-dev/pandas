@@ -10,6 +10,7 @@ import os
 import abc
 import warnings
 import numpy as np
+from io import UnsupportedOperation
 
 from pandas.core.dtypes.common import (
     is_integer, is_float,
@@ -388,8 +389,13 @@ class ExcelFile(object):
         elif not isinstance(io, xlrd.Book) and hasattr(io, "read"):
             # N.B. xlrd.Book has a read attribute too
             if hasattr(io, 'seek'):
-                # GH 19779
-                io.seek(0)
+                try:
+                    # GH 19779
+                    io.seek(0)
+                except UnsupportedOperation:
+                    # HTTPResponse does not support seek()
+                    # GH 20434
+                    pass
 
             data = io.read()
             self.book = xlrd.open_workbook(file_contents=data)

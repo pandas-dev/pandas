@@ -1900,7 +1900,7 @@ class NDFrame(PandasObject, SelectionMixin):
         In order to add another DataFrame or Series to an existing HDF file
         please use append mode and a different a key.
 
-        For more information see the :ref:`user guide <io.html#io-hdf5>`.
+        For more information see the :ref:`user guide <io.hdf5>`.
 
         Parameters
         ----------
@@ -1929,8 +1929,7 @@ class NDFrame(PandasObject, SelectionMixin):
         data_columns :  list of columns or True, optional
             List of columns to create as indexed data columns for on-disk
             queries, or True to use all columns. By default only the axes
-            of the object are indexed. See `here
-            <http://pandas.pydata.org/pandas-docs/stable/io.html#query-via-data-columns>`__.
+            of the object are indexed. See :ref:`io.hdf5-query-data-columns`.
             Applicable only to format='table'.
         complevel : {0-9}, optional
             Specifies a compression level for data.
@@ -2141,7 +2140,7 @@ class NDFrame(PandasObject, SelectionMixin):
             .. versionadded:: 0.20.0
         protocol : int
             Int which indicates which protocol should be used by the pickler,
-            default HIGHEST_PROTOCOL (see [1], paragraph 12.1.2). The possible
+            default HIGHEST_PROTOCOL (see [1]_ paragraph 12.1.2). The possible
             values for this parameter depend on the version of Python. For
             Python 2.x, possible values are 0, 1, 2. For Python>=3.0, 3 is a
             valid value. For Python >= 3.4, 4 is a valid value. A negative
@@ -4293,6 +4292,8 @@ class NDFrame(PandasObject, SelectionMixin):
     Notes
     -----
     `agg` is an alias for `aggregate`. Use the alias.
+
+    A passed user-defined-function will be passed a Series for evaluation.
     """)
 
     _shared_docs['transform'] = ("""
@@ -4726,6 +4727,8 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return counts of unique ftypes in this object.
 
+        .. deprecated:: 0.23.0
+
         This is useful for SparseDataFrame or for DataFrames containing
         sparse arrays.
 
@@ -4756,6 +4759,10 @@ class NDFrame(PandasObject, SelectionMixin):
         object:dense     1
         dtype: int64
         """
+        warnings.warn("get_ftype_counts is deprecated and will "
+                      "be removed in a future version",
+                      FutureWarning, stacklevel=2)
+
         from pandas import Series
         return Series(self._data.get_ftype_counts())
 
@@ -5246,7 +5253,9 @@ class NDFrame(PandasObject, SelectionMixin):
     # ----------------------------------------------------------------------
     # Filling NA's
 
-    _shared_docs['fillna'] = ("""
+    def fillna(self, value=None, method=None, axis=None, inplace=False,
+               limit=None, downcast=None):
+        """
         Fill NA/NaN values using the specified method
 
         Parameters
@@ -5280,6 +5289,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
+        interpolate : Fill NaN values using interpolation.
         reindex, asfreq
 
         Returns
@@ -5337,11 +5347,7 @@ class NDFrame(PandasObject, SelectionMixin):
         1   3.0 4.0 NaN 1
         2   NaN 1.0 NaN 5
         3   NaN 3.0 NaN 4
-        """)
-
-    @Appender(_shared_docs['fillna'] % _shared_doc_kwargs)
-    def fillna(self, value=None, method=None, axis=None, inplace=False,
-               limit=None, downcast=None):
+        """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         value, method = validate_fillna_kwargs(value, method)
 
@@ -5448,28 +5454,33 @@ class NDFrame(PandasObject, SelectionMixin):
                            limit=limit, downcast=downcast)
 
     _shared_docs['replace'] = ("""
-        Replace values given in 'to_replace' with 'value'.
+        Replace values given in `to_replace` with `value`.
+
+        Values of the %(klass)s are replaced with other values dynamically.
+        This differs from updating with ``.loc`` or ``.iloc``, which require
+        you to specify a location to update with some value.
 
         Parameters
         ----------
-        to_replace : str, regex, list, dict, Series, numeric, or None
+        to_replace : str, regex, list, dict, Series, int, float, or None
+            How to find the values that will be replaced.
 
             * numeric, str or regex:
 
-                - numeric: numeric values equal to ``to_replace`` will be
-                  replaced with ``value``
-                - str: string exactly matching ``to_replace`` will be replaced
-                  with ``value``
-                - regex: regexs matching ``to_replace`` will be replaced with
-                  ``value``
+                - numeric: numeric values equal to `to_replace` will be
+                  replaced with `value`
+                - str: string exactly matching `to_replace` will be replaced
+                  with `value`
+                - regex: regexs matching `to_replace` will be replaced with
+                  `value`
 
             * list of str, regex, or numeric:
 
-                - First, if ``to_replace`` and ``value`` are both lists, they
+                - First, if `to_replace` and `value` are both lists, they
                   **must** be the same length.
                 - Second, if ``regex=True`` then all of the strings in **both**
                   lists will be interpreted as regexs otherwise they will match
-                  directly. This doesn't matter much for ``value`` since there
+                  directly. This doesn't matter much for `value` since there
                   are only a few possible substitution regexes you can use.
                 - str, regex and numeric rules apply as above.
 
@@ -5477,20 +5488,20 @@ class NDFrame(PandasObject, SelectionMixin):
 
                 - Dicts can be used to specify different replacement values
                   for different existing values. For example,
-                  {'a': 'b', 'y': 'z'} replaces the value 'a' with 'b' and
-                  'y' with 'z'. To use a dict in this way the ``value``
-                  parameter should be ``None``.
+                  ``{'a': 'b', 'y': 'z'}`` replaces the value 'a' with 'b' and
+                  'y' with 'z'. To use a dict in this way the `value`
+                  parameter should be `None`.
                 - For a DataFrame a dict can specify that different values
                   should be replaced in different columns. For example,
-                  {'a': 1, 'b': 'z'} looks for the value 1 in column 'a' and
-                  the value 'z' in column 'b' and replaces these values with
-                  whatever is specified in ``value``. The ``value`` parameter
+                  ``{'a': 1, 'b': 'z'}`` looks for the value 1 in column 'a'
+                  and the value 'z' in column 'b' and replaces these values
+                  with whatever is specified in `value`. The `value` parameter
                   should not be ``None`` in this case. You can treat this as a
                   special case of passing two lists except that you are
                   specifying the column to search in.
                 - For a DataFrame nested dictionaries, e.g.,
-                  {'a': {'b': np.nan}}, are read as follows: look in column 'a'
-                  for the value 'b' and replace it with NaN. The ``value``
+                  ``{'a': {'b': np.nan}}``, are read as follows: look in column
+                  'a' for the value 'b' and replace it with NaN. The `value`
                   parameter should be ``None`` to use a nested dict in this
                   way. You can nest regular expressions as well. Note that
                   column names (the top-level dictionary keys in a nested
@@ -5498,14 +5509,14 @@ class NDFrame(PandasObject, SelectionMixin):
 
             * None:
 
-                - This means that the ``regex`` argument must be a string,
-                  compiled regular expression, or list, dict, ndarray or Series
-                  of such elements. If ``value`` is also ``None`` then this
-                  **must** be a nested dictionary or ``Series``.
+                - This means that the `regex` argument must be a string,
+                  compiled regular expression, or list, dict, ndarray or
+                  Series of such elements. If `value` is also ``None`` then
+                  this **must** be a nested dictionary or Series.
 
             See the examples section for examples of each of these.
         value : scalar, dict, list, str, regex, default None
-            Value to replace any values matching ``to_replace`` with.
+            Value to replace any values matching `to_replace` with.
             For a DataFrame a dict of values can be used to specify which
             value to use for each column (columns not in the dict will not be
             filled). Regular expressions, strings and lists or dicts of such
@@ -5515,45 +5526,50 @@ class NDFrame(PandasObject, SelectionMixin):
             other views on this object (e.g. a column from a DataFrame).
             Returns the caller if this is True.
         limit : int, default None
-            Maximum size gap to forward or backward fill
-        regex : bool or same types as ``to_replace``, default False
-            Whether to interpret ``to_replace`` and/or ``value`` as regular
-            expressions. If this is ``True`` then ``to_replace`` *must* be a
+            Maximum size gap to forward or backward fill.
+        regex : bool or same types as `to_replace`, default False
+            Whether to interpret `to_replace` and/or `value` as regular
+            expressions. If this is ``True`` then `to_replace` *must* be a
             string. Alternatively, this could be a regular expression or a
             list, dict, or array of regular expressions in which case
-            ``to_replace`` must be ``None``.
-        method : string, optional, {'pad', 'ffill', 'bfill'}
-            The method to use when for replacement, when ``to_replace`` is a
-            scalar, list or tuple and ``value`` is None.
+            `to_replace` must be ``None``.
+        method : {'pad', 'ffill', 'bfill', `None`}
+            The method to use when for replacement, when `to_replace` is a
+            scalar, list or tuple and `value` is ``None``.
 
-        .. versionchanged:: 0.23.0
-           Added to DataFrame
+            .. versionchanged:: 0.23.0
+                Added to DataFrame.
+        axis : None
+            .. deprecated:: 0.13.0
+               Has no effect and will be removed.
 
         See Also
         --------
-        %(klass)s.fillna : Fill NA/NaN values
+        %(klass)s.fillna : Fill NA values
         %(klass)s.where : Replace values based on boolean condition
+        Series.str.replace : Simple string replacement.
 
         Returns
         -------
-        filled : %(klass)s
+        %(klass)s
+            Object after replacement.
 
         Raises
         ------
         AssertionError
-            * If ``regex`` is not a ``bool`` and ``to_replace`` is not
+            * If `regex` is not a ``bool`` and `to_replace` is not
               ``None``.
         TypeError
-            * If ``to_replace`` is a ``dict`` and ``value`` is not a ``list``,
+            * If `to_replace` is a ``dict`` and `value` is not a ``list``,
               ``dict``, ``ndarray``, or ``Series``
-            * If ``to_replace`` is ``None`` and ``regex`` is not compilable
+            * If `to_replace` is ``None`` and `regex` is not compilable
               into a regular expression or is a list, dict, ndarray, or
               Series.
             * When replacing multiple ``bool`` or ``datetime64`` objects and
-              the arguments to ``to_replace`` does not match the type of the
+              the arguments to `to_replace` does not match the type of the
               value being replaced
         ValueError
-            * If a ``list`` or an ``ndarray`` is passed to ``to_replace`` and
+            * If a ``list`` or an ``ndarray`` is passed to `to_replace` and
               `value` but they are not the same length.
 
         Notes
@@ -5567,9 +5583,14 @@ class NDFrame(PandasObject, SelectionMixin):
           numbers *are* strings, then you can do this.
         * This method has *a lot* of options. You are encouraged to experiment
           and play with this method to gain intuition about how it works.
+        * When dict is used as the `to_replace` value, it is like
+          key(s) in the dict are the to_replace part and
+          value(s) in the dict are the value parameter.
 
         Examples
         --------
+
+        **Scalar `to_replace` and `value`**
 
         >>> s = pd.Series([0, 1, 2, 3, 4])
         >>> s.replace(0, 5)
@@ -5579,6 +5600,7 @@ class NDFrame(PandasObject, SelectionMixin):
         3    3
         4    4
         dtype: int64
+
         >>> df = pd.DataFrame({'A': [0, 1, 2, 3, 4],
         ...                    'B': [5, 6, 7, 8, 9],
         ...                    'C': ['a', 'b', 'c', 'd', 'e']})
@@ -5590,6 +5612,8 @@ class NDFrame(PandasObject, SelectionMixin):
         3  3  8  d
         4  4  9  e
 
+        **List-like `to_replace`**
+
         >>> df.replace([0, 1, 2, 3], 4)
            A  B  C
         0  4  5  a
@@ -5597,6 +5621,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2  4  7  c
         3  4  8  d
         4  4  9  e
+
         >>> df.replace([0, 1, 2, 3], [4, 3, 2, 1])
            A  B  C
         0  4  5  a
@@ -5604,6 +5629,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2  2  7  c
         3  1  8  d
         4  4  9  e
+
         >>> s.replace([1, 2], method='bfill')
         0    0
         1    3
@@ -5612,6 +5638,8 @@ class NDFrame(PandasObject, SelectionMixin):
         4    4
         dtype: int64
 
+        **dict-like `to_replace`**
+
         >>> df.replace({0: 10, 1: 100})
              A  B  C
         0   10  5  a
@@ -5619,6 +5647,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2    2  7  c
         3    3  8  d
         4    4  9  e
+
         >>> df.replace({'A': 0, 'B': 5}, 100)
              A    B  C
         0  100  100  a
@@ -5626,6 +5655,7 @@ class NDFrame(PandasObject, SelectionMixin):
         2    2    7  c
         3    3    8  d
         4    4    9  e
+
         >>> df.replace({'A': {0: 100, 4: 400}})
              A  B  C
         0  100  5  a
@@ -5634,6 +5664,8 @@ class NDFrame(PandasObject, SelectionMixin):
         3    3  8  d
         4  400  9  e
 
+        **Regular expression `to_replace`**
+
         >>> df = pd.DataFrame({'A': ['bat', 'foo', 'bait'],
         ...                    'B': ['abc', 'bar', 'xyz']})
         >>> df.replace(to_replace=r'^ba.$', value='new', regex=True)
@@ -5641,21 +5673,25 @@ class NDFrame(PandasObject, SelectionMixin):
         0   new  abc
         1   foo  new
         2  bait  xyz
+
         >>> df.replace({'A': r'^ba.$'}, {'A': 'new'}, regex=True)
               A    B
         0   new  abc
         1   foo  bar
         2  bait  xyz
+
         >>> df.replace(regex=r'^ba.$', value='new')
               A    B
         0   new  abc
         1   foo  new
         2  bait  xyz
+
         >>> df.replace(regex={r'^ba.$':'new', 'foo':'xyz'})
               A    B
         0   new  abc
         1   xyz  new
         2  bait  xyz
+
         >>> df.replace(regex=[r'^ba.$', 'foo'], value='new')
               A    B
         0   new  abc
@@ -5663,16 +5699,52 @@ class NDFrame(PandasObject, SelectionMixin):
         2  bait  xyz
 
         Note that when replacing multiple ``bool`` or ``datetime64`` objects,
-        the data types in the ``to_replace`` parameter must match the data
+        the data types in the `to_replace` parameter must match the data
         type of the value being replaced:
 
         >>> df = pd.DataFrame({'A': [True, False, True],
         ...                    'B': [False, True, False]})
         >>> df.replace({'a string': 'new value', True: False})  # raises
+        Traceback (most recent call last):
+            ...
         TypeError: Cannot compare types 'ndarray(dtype=bool)' and 'str'
 
         This raises a ``TypeError`` because one of the ``dict`` keys is not of
         the correct type for replacement.
+
+        Compare the behavior of ``s.replace({'a': None})`` and
+        ``s.replace('a', None)`` to understand the pecularities
+        of the `to_replace` parameter:
+
+        >>> s = pd.Series([10, 'a', 'a', 'b', 'a'])
+
+        When one uses a dict as the `to_replace` value, it is like the
+        value(s) in the dict are equal to the `value` parameter.
+        ``s.replace({'a': None})`` is equivalent to
+        ``s.replace(to_replace={'a': None}, value=None, method=None)``:
+
+        >>> s.replace({'a': None})
+        0      10
+        1    None
+        2    None
+        3       b
+        4    None
+        dtype: object
+
+        When ``value=None`` and `to_replace` is a scalar, list or
+        tuple, `replace` uses the method parameter (default 'pad') to do the
+        replacement. So this is why the 'a' values are being replaced by 10
+        in rows 1 and 2 and 'b' in row 4 in this case.
+        The command ``s.replace('a', None)`` is actually equivalent to
+        ``s.replace(to_replace='a', value=None, method='pad')``:
+
+        >>> s.replace('a', None)
+        0    10
+        1    10
+        2    10
+        3     b
+        4     b
+        dtype: object
     """)
 
     @Appender(_shared_docs['replace'] % _shared_doc_kwargs)
@@ -6586,7 +6658,7 @@ class NDFrame(PandasObject, SelectionMixin):
         resample : Convenience method for frequency conversion and resampling
             of time series.
         """
-        from pandas.core.groupby import groupby
+        from pandas.core.groupby.groupby import groupby
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
@@ -7338,7 +7410,6 @@ class NDFrame(PandasObject, SelectionMixin):
                 if not is_bool_dtype(dt):
                     raise ValueError(msg.format(dtype=dt))
 
-        cond = cond.astype(bool, copy=False)
         cond = -cond if inplace else cond
 
         # try to align with other
@@ -7937,9 +8008,6 @@ class NDFrame(PandasObject, SelectionMixin):
         result.set_axis(ax, axis=axis, inplace=True)
         return result.__finalize__(self)
 
-    @deprecate_kwarg(old_arg_name='infer_dst', new_arg_name='ambiguous',
-                     mapping={True: 'infer',
-                              False: 'raise'})
     def tz_localize(self, tz, axis=0, level=None, copy=True,
                     ambiguous='raise'):
         """
@@ -7963,9 +8031,6 @@ class NDFrame(PandasObject, SelectionMixin):
             - 'NaT' will return NaT where there are ambiguous times
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
-        infer_dst : boolean, default False
-            .. deprecated:: 0.15.0
-               Attempt to infer fall dst-transition hours based on order
 
         Returns
         -------
@@ -8765,6 +8830,51 @@ class NDFrame(PandasObject, SelectionMixin):
         --------
         scalar : type of index
         """
+
+    def _find_valid_index(self, how):
+        """Retrieves the index of the first valid value.
+
+        Parameters
+        ----------
+        how : {'first', 'last'}
+            Use this parameter to change between the first or last valid index.
+
+        Returns
+        -------
+        idx_first_valid : type of index
+        """
+        assert how in ['first', 'last']
+
+        if len(self) == 0:  # early stop
+            return None
+        is_valid = ~self.isna()
+
+        if self.ndim == 2:
+            is_valid = is_valid.any(1)  # reduce axis 1
+
+        if how == 'first':
+            # First valid value case
+            i = is_valid.idxmax()
+            if not is_valid[i]:
+                return None
+            return i
+
+        elif how == 'last':
+            # Last valid value case
+            i = is_valid.values[::-1].argmax()
+            if not is_valid.iat[len(self) - i - 1]:
+                return None
+            return self.index[len(self) - i - 1]
+
+    @Appender(_shared_docs['valid_index'] % {'position': 'first',
+                                             'klass': 'NDFrame'})
+    def first_valid_index(self):
+        return self._find_valid_index('first')
+
+    @Appender(_shared_docs['valid_index'] % {'position': 'last',
+                                             'klass': 'NDFrame'})
+    def last_valid_index(self):
+        return self._find_valid_index('last')
 
 
 def _doc_parms(cls):

@@ -44,7 +44,7 @@ from pandas.core.base import (PandasObject, SelectionMixin, GroupByError,
                               DataError, SpecificationError)
 from pandas.core.index import (Index, MultiIndex,
                                CategoricalIndex, _ensure_index)
-from pandas.core.arrays import Categorical
+from pandas.core.arrays import ExtensionArray, Categorical
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame, _shared_docs
 from pandas.core.internals import BlockManager, make_block
@@ -1841,24 +1841,27 @@ class GroupBy(_GroupBy):
     @Appender(_doc_template)
     def rank(self, method='average', ascending=True, na_option='keep',
              pct=False, axis=0):
-        """Provides the rank of values within each group
+        """
+        Provides the rank of values within each group.
 
         Parameters
         ----------
-        method : {'average', 'min', 'max', 'first', 'dense'}, efault 'average'
+        method : {'average', 'min', 'max', 'first', 'dense'}, default 'average'
             * average: average rank of group
             * min: lowest rank in group
             * max: highest rank in group
             * first: ranks assigned in order they appear in the array
             * dense: like 'min', but rank always increases by 1 between groups
-        method :  {'keep', 'top', 'bottom'}, default 'keep'
+        ascending : boolean, default True
+            False for ranks by high (1) to low (N)
+        na_option :  {'keep', 'top', 'bottom'}, default 'keep'
             * keep: leave NA values where they are
             * top: smallest rank if ascending
             * bottom: smallest rank if descending
-        ascending : boolean, default True
-            False for ranks by high (1) to low (N)
         pct : boolean, default False
             Compute percentage rank of data within each group
+        axis : int, default 0
+            The axis of the object over which to compute the rank.
 
         Returns
         -----
@@ -2968,7 +2971,7 @@ class Grouping(object):
 
             # no level passed
             elif not isinstance(self.grouper,
-                                (Series, Index, Categorical, np.ndarray)):
+                                (Series, Index, ExtensionArray, np.ndarray)):
                 if getattr(self.grouper, 'ndim', 1) != 1:
                     t = self.name or str(type(self.grouper))
                     raise ValueError("Grouper for '%s' not 1-dimensional" % t)

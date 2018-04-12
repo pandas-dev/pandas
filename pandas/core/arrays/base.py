@@ -1,4 +1,10 @@
-"""An interface for extending pandas with custom arrays."""
+"""An interface for extending pandas with custom arrays.
+
+.. warning::
+
+   This is an experimental API and subject to breaking changes
+   without warning.
+"""
 import numpy as np
 
 from pandas.errors import AbstractMethodError
@@ -14,12 +20,15 @@ class ExtensionArray(object):
     with a custom type and will not attempt to coerce them to objects. They
     may be stored directly inside a :class:`DataFrame` or :class:`Series`.
 
+    .. versionadded:: 0.23.0
+
     Notes
     -----
     The interface includes the following abstract methods that must be
     implemented by subclasses:
 
-    * _constructor_from_sequence
+    * _from_sequence
+    * _from_factorized
     * __getitem__
     * __len__
     * dtype
@@ -29,11 +38,21 @@ class ExtensionArray(object):
     * copy
     * _concat_same_type
 
-    Some additional methods are available to satisfy pandas' internal, private
-    block API.
+    An additional method and attribute is available to satisfy pandas'
+    internal, private block API.
 
-    * _can_hold_na
     * _formatting_values
+    * _can_hold_na
+
+    Some methods require casting the ExtensionArray to an ndarray of Python
+    objects with ``self.astype(object)``, which may be expensive. When
+    performance is a concern, we highly recommend overriding the following
+    methods:
+
+    * fillna
+    * unique
+    * factorize / _values_for_factorize
+    * argsort / _values_for_argsort
 
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
@@ -50,10 +69,6 @@ class ExtensionArray(object):
     by some other storage type, like Python lists. Pandas makes no
     assumptions on how the data are stored, just that it can be converted
     to a NumPy array.
-
-    Extension arrays should be able to be constructed with instances of
-    the class, i.e. ``ExtensionArray(extension_array)`` should return
-    an instance, not error.
     """
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
     # Don't override this.
@@ -63,7 +78,7 @@ class ExtensionArray(object):
     # Constructors
     # ------------------------------------------------------------------------
     @classmethod
-    def _constructor_from_sequence(cls, scalars):
+    def _from_sequence(cls, scalars):
         """Construct a new ExtensionArray from a sequence of scalars.
 
         Parameters
@@ -74,6 +89,24 @@ class ExtensionArray(object):
         Returns
         -------
         ExtensionArray
+        """
+        raise AbstractMethodError(cls)
+
+    @classmethod
+    def _from_factorized(cls, values, original):
+        """Reconstruct an ExtensionArray after factorization.
+
+        Parameters
+        ----------
+        values : ndarray
+            An integer ndarray with the factorized values.
+        original : ExtensionArray
+            The original ExtensionArray that factorize was called on.
+
+        See Also
+        --------
+        pandas.factorize
+        ExtensionArray.factorize
         """
         raise AbstractMethodError(cls)
 
@@ -332,7 +365,7 @@ class ExtensionArray(object):
                 func = pad_1d if method == 'pad' else backfill_1d
                 new_values = func(self.astype(object), limit=limit,
                                   mask=mask)
-                new_values = self._constructor_from_sequence(new_values)
+                new_values = self._from_sequence(new_values)
             else:
                 # fill with value
                 new_values = self.copy()
@@ -351,7 +384,74 @@ class ExtensionArray(object):
         from pandas import unique
 
         uniques = unique(self.astype(object))
-        return self._constructor_from_sequence(uniques)
+        return self._from_sequence(uniques)
+
+    def _values_for_factorize(self):
+        # type: () -> Tuple[ndarray, Any]
+        """Return an array and missing value suitable for factorization.
+
+        Returns
+        -------
+        values : ndarray
+            An array suitable for factorization. This should maintain order
+            and be a supported dtype (Float64, Int64, UInt64, String, Object).
+            By default, the extension array is cast to object dtype.
+        na_value : object
+            The value in `values` to consider missing. This will be treated
+            as NA in the factorization routines, so it will be coded as
+            `na_sentinal` and not included in `uniques`. By default,
+            ``np.nan`` is used.
+        """
+        return self.astype(object), np.nan
+
+    def factorize(self, na_sentinel=-1):
+        # type: (int) -> Tuple[ndarray, ExtensionArray]
+        """Encode the extension array as an enumerated type.
+
+        Parameters
+        ----------
+        na_sentinel : int, default -1
+            Value to use in the `labels` array to indicate missing values.
+
+        Returns
+        -------
+        labels : ndarray
+            An integer NumPy array that's an indexer into the original
+            ExtensionArray.
+        uniques : ExtensionArray
+            An ExtensionArray containing the unique values of `self`.
+
+            .. note::
+
+               uniques will *not* contain an entry for the NA value of
+               the ExtensionArray if there are any missing values present
+               in `self`.
+
+        See Also
+        --------
+        pandas.factorize : Top-level factorize method that dispatches here.
+
+        Notes
+        -----
+        :meth:`pandas.factorize` offers a `sort` keyword as well.
+        """
+        # Impelmentor note: There are two ways to override the behavior of
+        # pandas.factorize
+        # 1. _values_for_factorize and _from_factorize.
+        #    Specify the values passed to pandas' internal factorization
+        #    routines, and how to convert from those values back to the
+        #    original ExtensionArray.
+        # 2. ExtensionArray.factorize.
+        #    Complete control over factorization.
+        from pandas.core.algorithms import _factorize_array
+
+        arr, na_value = self._values_for_factorize()
+
+        labels, uniques = _factorize_array(arr, na_sentinel=na_sentinel,
+                                           na_value=na_value)
+
+        uniques = self._from_factorized(uniques, self)
+        return labels, uniques
 
     # ------------------------------------------------------------------------
     # Indexing methods
@@ -373,11 +473,23 @@ class ExtensionArray(object):
             Fill value to replace -1 values with. If applicable, this should
             use the sentinel missing value for this type.
 
+        Returns
+        -------
+        ExtensionArray
+
+        Raises
+        ------
+        IndexError
+            When the indexer is out of bounds for the array.
+
         Notes
         -----
         This should follow pandas' semantics where -1 indicates missing values.
         Positions where indexer is ``-1`` should be filled with the missing
         value for this type.
+        This gives rise to the special case of a take on an empty
+        ExtensionArray that does not raises an IndexError straight away
+        when the `indexer` is all ``-1``.
 
         This is called by ``Series.__getitem__``, ``.loc``, ``iloc``, when the
         indexer is a sequence of values.
@@ -392,6 +504,12 @@ class ExtensionArray(object):
            def take(self, indexer, allow_fill=True, fill_value=None):
                indexer = np.asarray(indexer)
                mask = indexer == -1
+
+               # take on empty array not handled as desired by numpy
+               # in case of -1 (all missing take)
+               if not len(self) and mask.all():
+                   return type(self)([np.nan] * len(indexer))
+
                result = self.data.take(indexer)
                result[mask] = np.nan  # NA for this type
                return type(self)(result)
@@ -442,16 +560,13 @@ class ExtensionArray(object):
         """
         raise AbstractMethodError(cls)
 
-    @property
-    def _can_hold_na(self):
-        # type: () -> bool
-        """Whether your array can hold missing values. True by default.
+    _can_hold_na = True
+    """Whether your array can hold missing values. True by default.
 
-        Notes
-        -----
-        Setting this to false will optimize some operations like fillna.
-        """
-        return True
+    Notes
+    -----
+    Setting this to False will optimize some operations like fillna.
+    """
 
     @property
     def _ndarray_values(self):

@@ -411,6 +411,8 @@ Levels
 `Flatten Hierarchical columns
 <http://stackoverflow.com/questions/14507794/python-pandas-how-to-flatten-a-hierarchical-index-in-columns>`__
 
+.. _cookbook.missing_data:
+
 Missing Data
 ------------
 
@@ -494,7 +496,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    def Red(x):
       return functools.reduce(CumRet,x,1.0)
 
-   S.expanding().apply(Red)
+   S.expanding().apply(Red, raw=True)
 
 
 `Replacing some values with mean of the rest of a group

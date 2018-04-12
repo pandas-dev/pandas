@@ -48,6 +48,17 @@ def na_cmp():
     return operator.eq
 
 
+@pytest.fixture
+def data_for_grouping():
+    return JSONArray([
+        {'b': 1}, {'b': 1},
+        {}, {},
+        {'a': 0, 'c': 2}, {'a': 0, 'c': 2},
+        {'b': 1},
+        {'c': 2},
+    ])
+
+
 class TestDtype(base.BaseDtypeTests):
     pass
 
@@ -78,11 +89,12 @@ class TestMissing(base.BaseMissingTests):
         """We treat dictionaries as a mapping in fillna, not a scalar."""
 
 
-class TestMethods(base.BaseMethodsTests):
-    unhashable = pytest.mark.skip(reason="Unhashable")
-    unstable = pytest.mark.skipif(not PY36,  # 3.6 or higher
-                                  reason="Dictionary order unstable")
+unhashable = pytest.mark.skip(reason="Unhashable")
+unstable = pytest.mark.skipif(not PY36,  # 3.6 or higher
+                              reason="Dictionary order unstable")
 
+
+class TestMethods(base.BaseMethodsTests):
     @unhashable
     def test_value_counts(self, all_data, dropna):
         pass
@@ -107,6 +119,7 @@ class TestMethods(base.BaseMethodsTests):
         super(TestMethods, self).test_sort_values(
             data_for_sorting, ascending)
 
+    @unstable
     @pytest.mark.parametrize('ascending', [True, False])
     def test_sort_values_missing(self, data_missing_for_sorting, ascending):
         super(TestMethods, self).test_sort_values_missing(
@@ -114,4 +127,44 @@ class TestMethods(base.BaseMethodsTests):
 
 
 class TestCasting(base.BaseCastingTests):
-    pass
+    @pytest.mark.xfail
+    def test_astype_str(self):
+        """This currently fails in NumPy on np.array(self, dtype=str) with
+
+        *** ValueError: setting an array element with a sequence
+        """
+
+
+# We intentionally don't run base.BaseSetitemTests because pandas'
+# internals has trouble setting sequences of values into scalar positions.
+
+
+class TestGroupby(base.BaseGroupbyTests):
+
+    @unhashable
+    def test_groupby_extension_transform(self):
+        """
+        This currently fails in Series.name.setter, since the
+        name must be hashable, but the value is a dictionary.
+        I think this is what we want, i.e. `.name` should be the original
+        values, and not the values for factorization.
+        """
+
+    @unhashable
+    def test_groupby_extension_apply(self):
+        """
+        This fails in Index._do_unique_check with
+
+        >   hash(val)
+        E   TypeError: unhashable type: 'UserDict' with
+
+        I suspect that once we support Index[ExtensionArray],
+        we'll be able to dispatch unique.
+        """
+
+    @unstable
+    @pytest.mark.parametrize('as_index', [True, False])
+    def test_groupby_extension_agg(self, as_index, data_for_grouping):
+        super(TestGroupby, self).test_groupby_extension_agg(
+            as_index, data_for_grouping
+        )

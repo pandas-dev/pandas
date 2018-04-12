@@ -2,6 +2,7 @@ import pytest
 import numpy as np
 
 import pandas as pd
+import pandas.util.testing as tm
 
 from .base import BaseExtensionTests
 
@@ -23,10 +24,11 @@ class BaseMethodsTests(BaseExtensionTests):
         self.assert_series_equal(result, expected)
 
     def test_count(self, data_missing):
-        df = pd.DataFrame({"A": data_missing})
-        result = df.count(axis='columns')
-        expected = pd.Series([0, 1])
-        self.assert_series_equal(result, expected)
+        if data_missing._can_hold_na:
+            df = pd.DataFrame({"A": data_missing})
+            result = df.count(axis='columns')
+            expected = pd.Series([0, 1])
+            self.assert_series_equal(result, expected)
 
     def test_apply_simple_series(self, data):
         result = pd.Series(data).apply(id)
@@ -39,7 +41,10 @@ class BaseMethodsTests(BaseExtensionTests):
 
     def test_argsort_missing(self, data_missing_for_sorting):
         result = pd.Series(data_missing_for_sorting).argsort()
-        expected = pd.Series(np.array([1, -1, 0], dtype=np.int64))
+        if data_missing_for_sorting._can_hold_na:
+            expected = pd.Series(np.array([1, -1, 0], dtype=np.int64))
+        else:
+            expected = pd.Series(np.array([1, 2, 0], dtype=np.int64))
         self.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('ascending', [True, False])
@@ -57,7 +62,10 @@ class BaseMethodsTests(BaseExtensionTests):
         ser = pd.Series(data_missing_for_sorting)
         result = ser.sort_values(ascending=ascending)
         if ascending:
-            expected = ser.iloc[[2, 0, 1]]
+            if data_missing_for_sorting._can_hold_na:
+                expected = ser.iloc[[2, 0, 1]]
+            else:
+                expected = ser.iloc[[1, 2, 0]]
         else:
             expected = ser.iloc[[0, 2, 1]]
         self.assert_series_equal(result, expected)
@@ -75,10 +83,30 @@ class BaseMethodsTests(BaseExtensionTests):
     @pytest.mark.parametrize('box', [pd.Series, lambda x: x])
     @pytest.mark.parametrize('method', [lambda x: x.unique(), pd.unique])
     def test_unique(self, data, box, method):
-        duplicated = box(data._constructor_from_sequence([data[0], data[0]]))
+        duplicated = box(data._from_sequence([data[0], data[0]]))
 
         result = method(duplicated)
 
         assert len(result) == 1
         assert isinstance(result, type(data))
         assert result[0] == duplicated[0]
+
+    @pytest.mark.parametrize('na_sentinel', [-1, -2])
+    def test_factorize(self, data_for_grouping, na_sentinel):
+        labels, uniques = pd.factorize(data_for_grouping,
+                                       na_sentinel=na_sentinel)
+        expected_labels = np.array([0, 0, na_sentinel,
+                                   na_sentinel, 1, 1, 0, 2],
+                                   dtype=np.intp)
+        expected_uniques = data_for_grouping.take([0, 4, 7])
+
+        tm.assert_numpy_array_equal(labels, expected_labels)
+        self.assert_extension_array_equal(uniques, expected_uniques)
+
+    @pytest.mark.parametrize('na_sentinel', [-1, -2])
+    def test_factorize_equivalence(self, data_for_grouping, na_sentinel):
+        l1, u1 = pd.factorize(data_for_grouping, na_sentinel=na_sentinel)
+        l2, u2 = data_for_grouping.factorize(na_sentinel=na_sentinel)
+
+        tm.assert_numpy_array_equal(l1, l2)
+        self.assert_extension_array_equal(u1, u2)

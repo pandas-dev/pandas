@@ -46,6 +46,11 @@ def na_value():
     return np.nan
 
 
+@pytest.fixture
+def data_for_grouping():
+    return Categorical(['a', 'a', None, None, 'b', 'b', 'a', 'c'])
+
+
 class TestDtype(base.BaseDtypeTests):
     pass
 
@@ -70,6 +75,10 @@ class TestReshaping(base.BaseReshapingTests):
     def test_align_frame(self, data, na_value):
         pass
 
+    @pytest.mark.skip(reason="Unobserved categories preseved in concat.")
+    def test_merge(self, data, na_value):
+        pass
+
 
 class TestGetitem(base.BaseGetitemTests):
     @pytest.mark.skip(reason="Backwards compatibility")
@@ -78,6 +87,23 @@ class TestGetitem(base.BaseGetitemTests):
         # be a parent of the elements (object). But don't want
         # to break things by changing.
         pass
+
+    @pytest.mark.xfail(reason="Categorical.take buggy")
+    def test_take(self):
+        # TODO remove this once Categorical.take is fixed
+        pass
+
+    @pytest.mark.xfail(reason="Categorical.take buggy")
+    def test_take_empty(self):
+        pass
+
+    @pytest.mark.xfail(reason="test not written correctly for categorical")
+    def test_reindex(self):
+        pass
+
+
+class TestSetitem(base.BaseSetitemTests):
+    pass
 
 
 class TestMissing(base.BaseMissingTests):

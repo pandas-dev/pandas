@@ -1,6 +1,8 @@
+import pytest
 import numpy as np
 
 import pandas as pd
+import pandas.util.testing as tm
 
 from .base import BaseExtensionTests
 
@@ -80,8 +82,9 @@ class BaseGetitemTests(BaseExtensionTests):
         assert isinstance(result, data.dtype.type)
 
     def test_getitem_scalar_na(self, data_missing, na_cmp, na_value):
-        result = data_missing[0]
-        assert na_cmp(result, na_value)
+        if data_missing._can_hold_na:
+            result = data_missing[0]
+            assert na_cmp(result, na_value)
 
     def test_getitem_mask(self, data):
         # Empty mask, raw array
@@ -120,3 +123,48 @@ class BaseGetitemTests(BaseExtensionTests):
         assert result.iloc[0] == data[0]
         assert result.iloc[1] == data[1]
         assert result.iloc[2] == data[3]
+
+    def test_take(self, data, na_value, na_cmp):
+        result = data.take([0, -1])
+        assert result.dtype == data.dtype
+        assert result[0] == data[0]
+        na_cmp(result[1], na_value)
+
+        with tm.assert_raises_regex(IndexError, "out of bounds"):
+            data.take([len(data) + 1])
+
+    def test_take_empty(self, data, na_value, na_cmp):
+        empty = data[:0]
+        if data._can_hold_na:
+            result = empty.take([-1])
+            na_cmp(result[0], na_value)
+
+        with tm.assert_raises_regex(IndexError, "cannot do a non-empty take"):
+            empty.take([0, 1])
+
+    @pytest.mark.xfail(reason="Series.take with extension array buggy for -1")
+    def test_take_series(self, data):
+        s = pd.Series(data)
+        result = s.take([0, -1])
+        expected = pd.Series(
+            data._from_sequence([data[0], data[len(data) - 1]]),
+            index=[0, len(data) - 1])
+        self.assert_series_equal(result, expected)
+
+    def test_reindex(self, data, na_value):
+        s = pd.Series(data)
+        result = s.reindex([0, 1, 3])
+        expected = pd.Series(data.take([0, 1, 3]), index=[0, 1, 3])
+        self.assert_series_equal(result, expected)
+
+        n = len(data)
+        result = s.reindex([-1, 0, n])
+        expected = pd.Series(
+            data._from_sequence([na_value, data[0], na_value]),
+            index=[-1, 0, n])
+        self.assert_series_equal(result, expected)
+
+        result = s.reindex([n, n + 1])
+        expected = pd.Series(data._from_sequence([na_value, na_value]),
+                             index=[n, n + 1])
+        self.assert_series_equal(result, expected)
