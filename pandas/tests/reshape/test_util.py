@@ -8,26 +8,18 @@ import string
 from datetime import date
 from dateutil import relativedelta
 
-from pandas.util._hypothesis import (st,
-                                     given,
-                                     settings,
-                                     get_seq,
-                                     assume)
-
+from pandas.util import _hypothesis as hp
 
 NO_OF_EXAMPLES_PER_TEST_CASE = 20
 
 
 class TestCartesianProduct(object):
 
-    @settings(max_examples=NO_OF_EXAMPLES_PER_TEST_CASE)
-    @given(get_seq((str,), False, 1, 1),
-           get_seq((int,), False, 1, 2))
+    @hp.settings(max_examples=20)
+    @hp.given(hp.st.lists(hp.st.text(string.ascii_letters, min_size=1, max_size=1),
+                          min_size=1, max_size=3),
+           hp.get_seq((int,), False, 1, 2))
     def test_simple(self, x, y):
-        x = list(x[0])
-        # non-empty test case is handled in test_empty,
-        # therefore ignore it here.
-        assume(len(x) != 0)
         result1, result2 = cartesian_product([x, y])
         expected1 = np.array([item1 for item1 in x for item2 in y])
         expected2 = np.array([item2 for item1 in x for item2 in y])
@@ -35,8 +27,8 @@ class TestCartesianProduct(object):
         tm.assert_numpy_array_equal(result1, expected1)
         tm.assert_numpy_array_equal(result2, expected2)
 
-    @settings(max_examples=NO_OF_EXAMPLES_PER_TEST_CASE)
-    @given(st.dates(min_value=date(1900, 1, 1), max_value=date(2100, 1, 1)))
+    @hp.settings(max_examples=20)
+    @hp.given(hp.st.dates(min_value=date(1900, 1, 1), max_value=date(2100, 1, 1)))
     def test_datetimeindex(self, d):
         # regression test for GitHub issue #6439
         # make sure that the ordering on datetimeindex is consistent
@@ -49,10 +41,10 @@ class TestCartesianProduct(object):
         tm.assert_index_equal(result1, expected1)
         tm.assert_index_equal(result2, expected2)
 
-    @settings(max_examples=NO_OF_EXAMPLES_PER_TEST_CASE)
-    @given(st.lists(st.nothing()),
-           get_seq((int,), False, min_size=1, max_size=10),
-           get_seq((str,), False, min_size=1, max_size=10))
+    @hp.settings(max_examples=20)
+    @hp.given(hp.st.lists(hp.st.nothing()),
+           hp.get_seq((int,), False, min_size=1, max_size=10),
+           hp.get_seq((str,), False, min_size=1, max_size=10))
     def test_empty(self, empty_list, list_of_int, list_of_str):
         # product of empty factors
         X = [empty_list, list_of_int, empty_list]
@@ -70,13 +62,13 @@ class TestCartesianProduct(object):
         expected = []
         assert result == expected
 
-    @settings(max_examples=NO_OF_EXAMPLES_PER_TEST_CASE)
-    @given(st.integers(),
-           st.text(string.ascii_letters, min_size=1),
-           get_seq((int, str), True, min_size=1),
-           st.builds(lambda *x: list(x), st.integers(),
-                     st.text(string.ascii_letters, min_size=1),
-                     st.lists(st.integers(), min_size=1)))
+    @hp.settings(max_examples=20)
+    @hp.given(hp.st.integers(),
+           hp.st.text(string.ascii_letters, min_size=1),
+           hp.get_seq((int, str), True, min_size=1),
+           hp.st.builds(lambda *x: list(x), hp.st.integers(),
+                     hp.st.text(string.ascii_letters, min_size=1),
+                     hp.st.lists(hp.st.integers(), min_size=1)))
     def test_invalid_input(self, number, text, seq, mixed_seq):
 
         invalid_inputs = [number,
