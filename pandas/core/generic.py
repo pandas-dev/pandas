@@ -8556,7 +8556,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     Returns
     -------
-    transformed : Series or DataFrame
+    Series or DataFrame
         The result type is the same as the input. Furthermore, it is
         the same shape.
 
