@@ -770,6 +770,8 @@ Datetimelike API Changes
 - :func:`pandas.merge` provides a more informative error message when trying to merge on timezone-aware and timezone-naive columns (:issue:`15800`)
 - For :class:`DatetimeIndex` and :class:`TimedeltaIndex` with ``freq=None``, addition or subtraction of integer-dtyped array or ``Index`` will raise ``NullFrequencyError`` instead of ``TypeError`` (:issue:`19895`)
 - :class:`Timestamp` constructor now accepts a `nanosecond` keyword or positional argument (:issue:`18898`)
+- :class:`DatetimeIndex` will now raise an ``AttributeError`` when the ``tz`` attribute is set after instantiation (:issue:`3746`)
+- :class:`DatetimeIndex` with a ``pytz`` timezone will now return a consistent ``pytz`` timezone (:issue:`18595`)
 
 .. _whatsnew_0230.api.other:
 
@@ -1066,6 +1068,7 @@ Indexing
 - Bug in ``Index`` subclasses constructors that ignore unexpected keyword arguments (:issue:`19348`)
 - Bug in :meth:`Index.difference` when taking difference of an ``Index`` with itself (:issue:`20040`)
 - Bug in :meth:`DataFrame.first_valid_index` and :meth:`DataFrame.last_valid_index` in presence of entire rows of NaNs in the middle of values (:issue:`20499`).
+- Bug in :class:`IntervalIndex` where some indexing operations were not supported for overlapping or non-monotonic ``uint64`` data (:issue:`20636`)
 
 MultiIndex
 ^^^^^^^^^^
@@ -1128,6 +1131,7 @@ Groupby/Resample/Rolling
 - Bug in :func:`DataFrame.resample().aggregate` not raising a ``KeyError`` when aggregating a non-existent column (:issue:`16766`, :issue:`19566`)
 - Fixed a performance regression for ``GroupBy.nth`` and ``GroupBy.last`` with some object columns (:issue:`19283`)
 - Bug in :func:`DataFrameGroupBy.cumsum` and :func:`DataFrameGroupBy.cumprod` when ``skipna`` was passed (:issue:`19806`)
+- Bug in :func:`Dataframe.resample` that dropped timezone information (:issue:`13238`)
 
 Sparse
 ^^^^^^

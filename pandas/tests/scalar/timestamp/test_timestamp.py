@@ -521,6 +521,13 @@ class TestTimestampConstructors(object):
         assert (abs(ts_from_string_tz.tz_localize(None) -
                     ts_from_method_tz.tz_localize(None)) < delta)
 
+    @pytest.mark.parametrize('tz', [None, pytz.timezone('US/Pacific')])
+    def test_disallow_setting_tz(self, tz):
+        # GH 3746
+        ts = Timestamp('2010')
+        with pytest.raises(AttributeError):
+            ts.tz = tz
+
 
 class TestTimestamp(object):
 
