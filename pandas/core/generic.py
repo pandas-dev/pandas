@@ -8566,7 +8566,6 @@ class NDFrame(PandasObject, SelectionMixin):
     It takes a Series as input and must return a same length Series.
     Note that the function may modify the Series index.
 
-    If applied to a Series the function is applied once.
     If applied to a DataFrame the function is applied on each row or column.
     Note that if the function modifies the index it must do so consistently
     in the case of a DataFrame.
@@ -8578,8 +8577,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
     Examples
     --------
-
-    transform() is applicable to Dataframes.
 
     >>> df = pd.DataFrame(np.arange(15).reshape(5, 3), columns=['A', 'B', 'C'],
     ...                   index=pd.date_range('1/1/2000', periods=5))
