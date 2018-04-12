@@ -8551,10 +8551,8 @@ class NDFrame(PandasObject, SelectionMixin):
         * 1 or 'columns' : apply along the columns, i.e. the function
           gets each row.
 
-    *args
-        Additional positional arguments are passed to `func`.
-    **kwargs
-        Additional keyword arguments are passed to `func`.
+    *args, **kwargs
+        Additional positional and keyword arguments are passed to `func`.
 
     Returns
     -------
