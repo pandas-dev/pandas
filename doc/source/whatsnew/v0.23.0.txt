@@ -299,7 +299,7 @@ Supplying a ``CategoricalDtype`` will make the categories in each column consist
     df['A'].dtype
     df['B'].dtype
 
-.. _whatsnew_023.enhancements.interval:
+.. _whatsnew_0230.enhancements.interval:
 
 Storing Interval Data in Series and DataFrame
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -334,7 +334,7 @@ To recover the NumPy array of Interval objects, use :func:`numpy.asarray`:
 This is the same behavior as ``Series.values`` for categorical data. See
 :ref:`whatsnew_0230.api_breaking.interval_values` for more.
 
-.. _whatsnew_023.enhancements.extension:
+.. _whatsnew_0230.enhancements.extension:
 
 Extending Pandas with Custom Types
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -542,7 +542,7 @@ New Behavior:
    idx = pd.interval_range(0, 4)
    idx.values
 
-This mirrors ``CateogricalIndex.values``, which returns a ``Categorical``.             
+This mirrors ``CateogricalIndex.values``, which returns a ``Categorical``.
 
 For situations where you need an ``ndarray`` of Interval objects, use
 :meth:`numpy.asarray` or ``idx.astype(object)``.

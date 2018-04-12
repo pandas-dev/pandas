@@ -15,7 +15,8 @@ from pandas.core.dtypes.common import (_ensure_platform_int,
                                        pandas_dtype)
 from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.core.dtypes.generic import (ABCDatetimeIndex, ABCPeriodIndex,
-                                        ABCSeries)
+                                        ABCSeries, ABCIntervalIndex,
+                                        ABCInterval)
 from pandas.core.dtypes.missing import isna, notna
 from pandas.core.indexes.base import Index, _ensure_index
 from pandas.util._decorators import Appender
@@ -106,8 +107,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
     def __new__(cls, data, closed=None, dtype=None, copy=False,
                 fastpath=False, verify_integrity=True):
 
-        from pandas.core.indexes.interval import IntervalIndex
-
         if fastpath:
             return cls._simple_new(data.left, data.right, closed,
                                    copy=copy, dtype=dtype,
@@ -115,7 +114,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         if isinstance(data, ABCSeries) and is_interval_dtype(data):
             data = data.values
-        if isinstance(data, (cls, IntervalIndex)):
+        if isinstance(data, (cls, ABCIntervalIndex)):
             left = data.left
             right = data.right
             closed = data.closed
@@ -458,7 +457,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self._shallow_copy(left, right)
 
     def __setitem__(self, key, value):
-        if not (is_interval_dtype(value) or isinstance(value, Interval)):
+        if not (is_interval_dtype(value) or isinstance(value, ABCInterval)):
             msg = "'value' should be an interval type, got {} instead."
             raise TypeError(msg.format(type(value)))
 
@@ -484,13 +483,14 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if limit is not None:
             raise TypeError('limit is not supported for IntervalArray.')
 
-        if not isinstance(value, Interval):
-            msg = ("Interval.fillna only supports filling with scalar "
-                   "'value'. Got a '{}' instead of a 'pandas.Interval'."
+        if not isinstance(value, ABCInterval):
+            msg = ("'Interval.fillna' only supports filling with a scalar "
+                   "'pandas.Interval'. Got a '{}' instead."
                    .format(type(value).__name__))
             raise TypeError(msg)
 
         value = getattr(value, '_values', value)
+        self._check_closed_matches(value, name="value")
 
         left = self.left.fillna(value=value.left)
         right = self.right.fillna(value=value.right)
@@ -538,8 +538,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return cls._simple_new(left, right, closed=closed, copy=False)
 
     def _shallow_copy(self, left=None, right=None):
-        from pandas.core.indexes.interval import IntervalIndex
-
         if left is None:
 
             # no values passed
@@ -550,7 +548,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
             # only single value passed, could be an IntervalIndex
             # or array of Intervals
-            if not isinstance(left, (type(self), IntervalIndex)):
+            if not isinstance(left, (type(self), ABCIntervalIndex)):
                 left = type(self)(left)
 
             left, right = left.left, left.right
@@ -790,30 +788,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             # GH 18756
             tuples = np.where(~self.isna(), tuples, np.nan)
         return tuples
-
-    def repeat(self, repeats):
-        """Repeat elements of an IntervalArray
-
-        Parameters
-        ----------
-        repeats : int
-            Number of repetitions for each element.
-
-        Returns
-        -------
-        IntervalArray
-
-        See Also
-        --------
-        numpy.repeat
-        """
-        return self._simple_new(
-            self.left.repeat(repeats),
-            self.right.repeat(repeats),
-            closed=self.closed
-        )
-
-# TODO: find a home
 
 
 def maybe_convert_platform_interval(values):

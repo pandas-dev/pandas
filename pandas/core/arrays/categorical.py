@@ -1220,6 +1220,9 @@ class Categorical(ExtensionArray, PandasObject):
         if dtype and not is_dtype_equal(dtype, self.categories.dtype):
             return np.asarray(ret, dtype)
         if is_extension_array_dtype(ret):
+            # When we're a Categorical[ExtensionArray], like Interval,
+            # we need to ensure __array__ get's all the way to an
+            # ndarray.
             ret = np.asarray(ret)
         return ret
 

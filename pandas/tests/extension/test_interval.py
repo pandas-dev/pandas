@@ -109,7 +109,7 @@ class TestMissing(BaseInterval, base.BaseMissingTests):
         pass
 
     def test_non_scalar_raises(self, data_missing):
-        msg = "Got a 'list' instead of a 'pandas.Interval'."
+        msg = "Got a 'list' instead."
         with tm.assert_raises_regex(TypeError, msg):
             data_missing.fillna([1, 1])
 

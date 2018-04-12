@@ -136,7 +136,6 @@ class IntervalIndex(IntervalMixin, Index):
     _typ = 'intervalindex'
     _comparables = ['name']
     _attributes = ['name', 'closed']
-    _allow_index_ops = True
 
     # we would like our indexing holder to defer to us
     _defer_to_indexing = True
