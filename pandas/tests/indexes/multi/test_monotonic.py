@@ -8,6 +8,7 @@ from pandas import (Index, MultiIndex)
 
 from pandas.tests.indexes.common import Base
 
+
 class TestMonotonic(Base):
     _holder = MultiIndex
     _compat_props = ['shape', 'ndim', 'size', 'itemsize']

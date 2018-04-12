@@ -9,6 +9,7 @@ import pandas.util.testing as tm
 
 from pandas.tests.indexes.common import Base
 
+
 class TestUnicode(Base):
     _holder = MultiIndex
     _compat_props = ['shape', 'ndim', 'size', 'itemsize']

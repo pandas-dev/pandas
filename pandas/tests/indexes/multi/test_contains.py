@@ -6,6 +6,7 @@ from pandas import (MultiIndex)
 
 from pandas.tests.indexes.common import Base
 
+
 class TestContains(Base):
     _holder = MultiIndex
     _compat_props = ['shape', 'ndim', 'size', 'itemsize']

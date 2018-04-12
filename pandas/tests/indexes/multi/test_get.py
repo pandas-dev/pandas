@@ -16,6 +16,7 @@ from pandas.util.testing import assert_almost_equal
 
 from pandas.tests.indexes.common import Base
 
+
 class TestGet(Base):
     _holder = MultiIndex
     _compat_props = ['shape', 'ndim', 'size', 'itemsize']
