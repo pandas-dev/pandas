@@ -7,8 +7,7 @@ from pandas.compat import PY3, range, u
 
 import pandas.util.testing as tm
 
-from .common import Base
-
+from pandas.tests.indexes.common import Base
 
 class TestUnicode(Base):
     _holder = MultiIndex

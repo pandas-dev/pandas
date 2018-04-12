@@ -11,8 +11,7 @@ from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 import pandas.util.testing as tm
 
-from .common import Base
-
+from pandas.tests.indexes.common import Base
 
 class TestFromProduct(Base):
     _holder = MultiIndex

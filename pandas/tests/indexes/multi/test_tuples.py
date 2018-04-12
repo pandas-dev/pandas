@@ -4,8 +4,7 @@ from pandas import MultiIndex
 
 import pandas.util.testing as tm
 
-from .common import Base
-
+from pandas.tests.indexes.common import Base
 
 class TestTuples(Base):
     _holder = MultiIndex

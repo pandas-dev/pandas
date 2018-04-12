@@ -10,8 +10,7 @@ from pandas import MultiIndex
 from pandas.compat import PYPY
 import pandas.util.testing as tm
 
-from .common import Base
-
+from pandas.tests.indexes.common import Base
 
 class TestIsIn(Base):
     _holder = MultiIndex

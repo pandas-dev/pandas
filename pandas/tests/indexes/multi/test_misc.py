@@ -18,8 +18,7 @@ import pandas.util.testing as tm
 
 from pandas.util.testing import assert_almost_equal, assert_copy
 
-from .common import Base
-
+from pandas.tests.indexes.common import Base
 
 class TestMultiIndex(Base):
     _holder = MultiIndex

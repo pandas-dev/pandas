@@ -2,8 +2,7 @@
 
 from pandas import MultiIndex
 
-from .common import Base
-
+from pandas.tests.indexes.common import Base
 
 class TestSortLevel(Base):
     _holder = MultiIndex

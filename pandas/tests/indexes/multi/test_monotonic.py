@@ -6,8 +6,7 @@ import pandas as pd
 
 from pandas import (Index, MultiIndex)
 
-from .common import Base
-
+from pandas.tests.indexes.common import Base
 
 class TestMonotonic(Base):
     _holder = MultiIndex

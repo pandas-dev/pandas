@@ -4,8 +4,7 @@ import pandas as pd
 
 from pandas import (MultiIndex)
 
-from .common import Base
-
+from pandas.tests.indexes.common import Base
 
 class TestContains(Base):
     _holder = MultiIndex

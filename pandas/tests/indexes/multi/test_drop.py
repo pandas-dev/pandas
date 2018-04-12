@@ -12,8 +12,7 @@ from pandas.errors import PerformanceWarning
 
 import pandas.util.testing as tm
 
-from .common import Base
-
+from pandas.tests.indexes.common import Base
 
 class TestDrop(Base):
     _holder = MultiIndex

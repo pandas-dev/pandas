@@ -11,8 +11,7 @@ from pandas.compat import range
 
 import pandas.util.testing as tm
 
-from .common import Base
-
+from pandas.tests.indexes.common import Base
 
 class TestSet(Base):
     _holder = MultiIndex
