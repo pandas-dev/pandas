@@ -14,7 +14,7 @@ import pandas as pd
 
 from pandas import (bdate_range, DataFrame, Index, Series, Timestamp,
                     Timedelta, NaT)
-from pandas.core.groupby import DataError
+from pandas.core.groupby.groupby import DataError
 import pandas.util.testing as tm
 
 

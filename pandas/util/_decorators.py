@@ -45,13 +45,18 @@ def deprecate(name, alternative, version, alt_name=None,
         return alternative(*args, **kwargs)
 
     # adding deprecated directive to the docstring
-    msg = msg or 'Use `{alt_name}` instead.'
-    docstring = '.. deprecated:: {}\n'.format(version)
-    docstring += dedent('    ' + ('\n'.join(wrap(msg, 70))))
+    msg = msg or 'Use `{alt_name}` instead.'.format(alt_name=alt_name)
+    tpl = dedent("""
+    .. deprecated:: {version}
 
-    if getattr(wrapper, '__doc__') is not None:
-        docstring += dedent(wrapper.__doc__)
+       {msg}
 
+    {rest}
+    """)
+    rest = getattr(wrapper, '__doc__', '')
+    docstring = tpl.format(version=version,
+                           msg='\n    '.join(wrap(msg, 70)),
+                           rest=dedent(rest))
     wrapper.__doc__ = docstring
 
     return wrapper

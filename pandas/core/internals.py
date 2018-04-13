@@ -655,7 +655,7 @@ class Block(PandasObject):
 
                     # astype formatting
                     else:
-                        values = self.values
+                        values = self.get_values()
 
                 else:
                     values = self.get_values(dtype=dtype)
@@ -2379,7 +2379,10 @@ class ObjectBlock(Block):
         return not (issubclass(value.dtype.type,
                                (np.integer, np.floating, np.complexfloating,
                                 np.datetime64, np.bool_)) or
-                    is_extension_type(value))
+                    # TODO(ExtensionArray): remove is_extension_type
+                    # when all extension arrays have been ported.
+                    is_extension_type(value) or
+                    is_extension_array_dtype(value))
 
     def replace(self, to_replace, value, inplace=False, filter=None,
                 regex=False, convert=True, mgr=None):
@@ -4838,7 +4841,7 @@ def form_blocks(arrays, names, axes):
     items_dict = defaultdict(list)
     extra_locs = []
 
-    names_idx = Index(names)
+    names_idx = _ensure_index(names)
     if names_idx.equals(axes[0]):
         names_indexer = np.arange(len(names_idx))
     else:
