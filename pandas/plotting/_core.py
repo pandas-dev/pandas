@@ -879,8 +879,13 @@ class ScatterPlot(PlanePlot):
             kws = dict(ax=ax)
             if self.mpl_ge_1_3_1():
                 kws['label'] = c if c_is_column else ''
-            self.fig.colorbar(img, **kws)
-
+            cbar = self.fig.colorbar(img, **kws)
+            points = ax.get_position().get_points()
+            cbar_points = cbar.ax.get_position().get_points()
+            cbar.ax.set_position([cbar_points[0, 0],
+                                  points[0, 1],
+                                  cbar_points[1, 0] - cbar_points[0, 0],
+                                  points[1, 1] - points[0, 1]])
         if label is not None:
             self._add_legend_handle(scatter, label)
         else:
@@ -921,7 +926,13 @@ class HexBinPlot(PlanePlot):
                   **self.kwds)
         if cb:
             img = ax.collections[0]
-            self.fig.colorbar(img, ax=ax)
+            cbar = self.fig.colorbar(img, ax=ax)
+            points = ax.get_position().get_points()
+            cbar_points = cbar.ax.get_position().get_points()
+            cbar.ax.set_position([cbar_points[0, 0],
+                                  points[0, 1],
+                                  cbar_points[1, 0] - cbar_points[0, 0],
+                                  points[1, 1] - points[0, 1]])
 
     def _make_legend(self):
         pass
