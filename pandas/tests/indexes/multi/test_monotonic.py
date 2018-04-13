@@ -13,6 +13,22 @@ class TestMonotonic(Base):
     _holder = MultiIndex
     _compat_props = ['shape', 'ndim', 'size', 'itemsize']
 
+    def setup_method(self, method):
+        major_axis = Index(['foo', 'bar', 'baz', 'qux'])
+        minor_axis = Index(['one', 'two'])
+
+        major_labels = np.array([0, 0, 1, 2, 3, 3])
+        minor_labels = np.array([0, 1, 0, 1, 0, 1])
+        self.index_names = ['first', 'second']
+        self.indices = dict(index=MultiIndex(levels=[major_axis, minor_axis],
+                                             labels=[major_labels, minor_labels
+                                                     ], names=self.index_names,
+                                             verify_integrity=False))
+        self.setup_indices()
+
+    def create_index(self):
+        return self.index
+
     def test_is_monotonic_increasing(self):
         i = MultiIndex.from_product([np.arange(10),
                                      np.arange(10)], names=['one', 'two'])

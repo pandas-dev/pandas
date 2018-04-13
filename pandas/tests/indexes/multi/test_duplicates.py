@@ -8,7 +8,7 @@ import numpy as np
 
 import pandas as pd
 
-from pandas import MultiIndex
+from pandas import (Index, MultiIndex)
 from pandas.compat import range, u
 
 import pandas.util.testing as tm
@@ -19,6 +19,22 @@ from pandas.tests.indexes.common import Base
 class TestDuplicates(Base):
     _holder = MultiIndex
     _compat_props = ['shape', 'ndim', 'size', 'itemsize']
+
+    def setup_method(self, method):
+        major_axis = Index(['foo', 'bar', 'baz', 'qux'])
+        minor_axis = Index(['one', 'two'])
+
+        major_labels = np.array([0, 0, 1, 2, 3, 3])
+        minor_labels = np.array([0, 1, 0, 1, 0, 1])
+        self.index_names = ['first', 'second']
+        self.indices = dict(index=MultiIndex(levels=[major_axis, minor_axis],
+                                             labels=[major_labels, minor_labels
+                                                     ], names=self.index_names,
+                                             verify_integrity=False))
+        self.setup_indices()
+
+    def create_index(self):
+        return self.index
 
     @pytest.mark.parametrize('names', [['a', 'b', 'a'], [1, 1, 2],
                                        [1, 'a', 1]])

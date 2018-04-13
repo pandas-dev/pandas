@@ -16,6 +16,22 @@ class TestSlice(Base):
     _holder = MultiIndex
     _compat_props = ['shape', 'ndim', 'size', 'itemsize']
 
+    def setup_method(self, method):
+        major_axis = Index(['foo', 'bar', 'baz', 'qux'])
+        minor_axis = Index(['one', 'two'])
+
+        major_labels = np.array([0, 0, 1, 2, 3, 3])
+        minor_labels = np.array([0, 1, 0, 1, 0, 1])
+        self.index_names = ['first', 'second']
+        self.indices = dict(index=MultiIndex(levels=[major_axis, minor_axis],
+                                             labels=[major_labels, minor_labels
+                                                     ], names=self.index_names,
+                                             verify_integrity=False))
+        self.setup_indices()
+
+    def create_index(self):
+        return self.index
+
     def test_slice_keep_name(self):
         x = MultiIndex.from_tuples([('a', 'b'), (1, 2), ('c', 'd')],
                                    names=['x', 'y'])
