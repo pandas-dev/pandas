@@ -1131,6 +1131,7 @@ Groupby/Resample/Rolling
 - Fixed a performance regression for ``GroupBy.nth`` and ``GroupBy.last`` with some object columns (:issue:`19283`)
 - Bug in :func:`DataFrameGroupBy.cumsum` and :func:`DataFrameGroupBy.cumprod` when ``skipna`` was passed (:issue:`19806`)
 - Bug in :func:`Dataframe.resample` that dropped timezone information (:issue:`13238`)
+- Bug in :func:`DataFrameGroupBy.rank` where ranks were incorrect when both infinity and ``NaN`` were present (:issue:`20561`)
 
 Sparse
 ^^^^^^
