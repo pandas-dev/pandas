@@ -193,7 +193,7 @@ in automatically (the `-e` option is for installing it in [development
 mode](https://pip.pypa.io/en/latest/reference/pip_install.html#editable-installs)):
 
 ```sh
-pip install -e .
+pip install -e 
 ```
 
 See the full instructions for [installing from source](https://pandas.pydata.org/pandas-docs/stable/install.html#installing-from-source).
