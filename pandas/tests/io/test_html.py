@@ -99,6 +99,7 @@ class TestReadHtml(object):
 
         assert_framelist_equal(df1, df2)
 
+    @pytest.mark.xfail(reason="no tables found: gh-20685")
     @network
     def test_spam_url(self):
         url = ('http://ndb.nal.usda.gov/ndb/foods/show/1732?fg=&man=&'
