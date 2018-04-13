@@ -1918,7 +1918,7 @@ class Expanding(_Rolling_and_Expanding):
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['quantile'])
-    def quantile(self, quantile, interpolation='linear', **kwargs,):
+    def quantile(self, quantile, interpolation='linear', **kwargs):
         return super(Expanding, self).quantile(quantile=quantile,
                                                interpolation=interpolation,
                                                **kwargs)

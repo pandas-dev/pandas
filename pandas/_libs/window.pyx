@@ -1443,7 +1443,12 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
                 output[i] = skiplist.get(0)
             else:
                 idx_with_fraction = quantile * (nobs - 1)
-                idx = int(idx_with_fraction)
+                idx = <int> idx_with_fraction
+
+                if idx_with_fraction == idx:
+                    # no need to interpolate
+                    output[i] = skiplist.get(idx)
+                    continue
 
                 if interpolation_type == LINEAR:
                     vlow = skiplist.get(idx)
@@ -1455,7 +1460,16 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
                 elif interpolation_type == HIGHER:
                     output[i] = skiplist.get(idx + 1)
                 elif interpolation_type == NEAREST:
-                    output[i] = skiplist.get(round(idx_with_fraction))
+                    # the same behaviour as round()
+                    if idx_with_fraction - idx == 0.5:
+                        if idx % 2 == 0:
+                            output[i] = skiplist.get(idx)
+                        else:
+                            output[i] = skiplist.get(idx + 1)
+                    elif idx_with_fraction - idx < 0.5:
+                        output[i] = skiplist.get(idx)
+                    else:
+                        output[i] = skiplist.get(idx + 1)
                 elif interpolation_type == MIDPOINT:
                     vlow = skiplist.get(idx)
                     vhigh = skiplist.get(idx + 1)
