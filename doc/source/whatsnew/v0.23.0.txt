@@ -11,7 +11,7 @@ version.
 .. warning::
 
    Starting January 1, 2019, pandas feature releases will support Python 3 only.
-   See :ref:`install.dropping_27` for more.
+   See :ref:`here <install.dropping_27>` for more.
 
 .. _whatsnew_0230.enhancements:
 
@@ -412,7 +412,7 @@ Other Enhancements
 - Updated ``to_gbq`` and ``read_gbq`` signature and documentation to reflect changes from
   the Pandas-GBQ library version 0.4.0. Adds intersphinx mapping to Pandas-GBQ
   library. (:issue:`20564`)
-  
+
 .. _whatsnew_0230.api_breaking:
 
 Backwards incompatible API changes
