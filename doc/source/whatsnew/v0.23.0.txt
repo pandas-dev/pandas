@@ -8,6 +8,11 @@ deprecations, new features, enhancements, and performance improvements along
 with a large number of bug fixes. We recommend that all users upgrade to this
 version.
 
+.. warning::
+
+   Starting January 1, 2019, pandas feature releases will support Python 3 only.
+   See :ref:`install.dropping_27` for more.
+
 .. _whatsnew_0230.enhancements:
 
 New features
