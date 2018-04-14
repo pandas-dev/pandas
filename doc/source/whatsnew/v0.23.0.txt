@@ -1068,6 +1068,7 @@ Indexing
 - Bug in :meth:`Index.difference` when taking difference of an ``Index`` with itself (:issue:`20040`)
 - Bug in :meth:`DataFrame.first_valid_index` and :meth:`DataFrame.last_valid_index` in presence of entire rows of NaNs in the middle of values (:issue:`20499`).
 - Bug in :class:`IntervalIndex` where some indexing operations were not supported for overlapping or non-monotonic ``uint64`` data (:issue:`20636`)
+- Bug in ``Series.is_unique`` where extraneous output in stderr is shown if Series contains objects with ``__ne__`` defined (:issue:`20661`)
 
 MultiIndex
 ^^^^^^^^^^
@@ -1175,4 +1176,3 @@ Other
 - Improved error message when attempting to use a Python keyword as an identifier in a ``numexpr`` backed query (:issue:`18221`)
 - Bug in accessing a :func:`pandas.get_option`, which raised ``KeyError`` rather than ``OptionError`` when looking up a non-existant option key in some cases (:issue:`19789`)
 - Bug in :func:`assert_series_equal` and :func:`assert_frame_equal` for Series or DataFrames with differing unicode data (:issue:`20503`)
-- Bug in ``Series.is_unique`` where extraneous output in stderr is shown if Series contains objects with ``__ne__`` defined (:issue:`20661`)
