@@ -3356,8 +3356,7 @@ class FramePlotMethods(BasePlotMethods):
         s : int, str, scalar or array_like, optional
             The size of each point. Possible values are:
 
-            - The column name or column position to be used as bubble size for
-            each point.
+            - The column name to be used as bubble size for each point.
 
             - A single scalar so all points have the same size.
 
@@ -3379,7 +3378,7 @@ class FramePlotMethods(BasePlotMethods):
             - A column name or position whose values will be used to color the
               marker points according to a colormap.
 
-        size_factor: scalar, optional
+        size_factor : scalar, optional
             A multiplication factor to change the size of bubbles
 
         **kwds

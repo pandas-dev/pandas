@@ -581,6 +581,19 @@ each point:
    @savefig scatter_plot_colored.png
    df.plot.scatter(x='a', y='b', c='c', s=50);
 
+The keyword ``s`` may be given as the name of a column to define the size of each point, making the plot a bubble plot:
+
+.. ipython:: python
+
+   @savefig scatter_plot_bubble_without_size_factor.png
+   df.plot.scatter(x='a', y='b', s='c');
+
+By default, the largest bubble (corresponding to the largest value of the column represented by bubble sizes) has size 200. The keyword ``size_factor`` may be given to specify a multiplication factor to bubble sizes displayed on the graph:
+
+.. ipython:: python
+
+   @savefig scatter_plot_bubble_with_size_factor.png
+   df.plot.scatter(x='a', y='b', s='c', size_factor=0.2);
 
 .. ipython:: python
    :suppress:
