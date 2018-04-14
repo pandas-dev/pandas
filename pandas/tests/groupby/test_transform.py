@@ -723,3 +723,15 @@ class TestGroupBy(MixIn):
             exp = DataFrame({'vals': exp_vals * 2})
             result = get_result(grp)
             tm.assert_frame_equal(result, exp)
+
+    @pytest.mark.parametrize("func", [np.any, np.all])
+    def test_any_all_np_func(self, func):
+        # GH 20653
+        df = pd.DataFrame([['foo', True],
+                           [np.nan, True],
+                           ['foo', True]], columns=['key', 'val'])
+
+        exp = pd.Series([True, np.nan, True], name='val')
+
+        res = df.groupby('key')['val'].transform(func)
+        tm.assert_series_equal(res, exp)
