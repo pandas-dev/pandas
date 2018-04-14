@@ -79,10 +79,23 @@ class TestDataFrameConvertTo(TestData):
         df = DataFrame([["one", "two", "three"],
                         ["four", "five", "six"]],
                        index=date_range("2012-01-01", "2012-01-02"))
-        assert df.to_records()['index'][0] == df.index[0]
 
-        rs = df.to_records(convert_datetime64=False)
-        assert rs['index'][0] == df.index.values[0]
+        # convert_datetime64 defaults to None
+        expected = df.index.values[0]
+        result = df.to_records()['index'][0]
+        assert expected == result
+
+        # check for FutureWarning if convert_datetime64=False is passed
+        with tm.assert_produces_warning(FutureWarning):
+            expected = df.index.values[0]
+            result = df.to_records(convert_datetime64=False)['index'][0]
+            assert expected == result
+
+        # check for FutureWarning if convert_datetime64=True is passed
+        with tm.assert_produces_warning(FutureWarning):
+            expected = df.index[0]
+            result = df.to_records(convert_datetime64=True)['index'][0]
+            assert expected == result
 
     def test_to_records_with_multindex(self):
         # GH3189
