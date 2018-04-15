@@ -887,7 +887,10 @@ class HDFStore(StringMixin):
         where = _ensure_term(where, scope_level=1)
         try:
             s = self.get_storer(key)
-        except:
+        except KeyError:
+            # the key is not a valid store, re-raising KeyError
+            raise
+        except Exception:
 
             if where is not None:
                 raise ValueError(
@@ -898,9 +901,6 @@ class HDFStore(StringMixin):
             if s is not None:
                 s._f_remove(recursive=True)
                 return None
-
-        if s is None:
-            raise KeyError('No object named %s in the file' % key)
 
         # remove the node
         if com._all_none(where, start, stop):
