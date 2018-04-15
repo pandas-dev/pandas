@@ -1030,7 +1030,8 @@ class _Rolling_and_Expanding(_Rolling):
     _shared_docs['corr'] = dedent("""
     Calculate %(name)s correlation.
 
-    This function uses Pearson's definition of correlation (https://en.wikipedia.org/wiki/Pearson_correlation_coefficient).
+    This function uses Pearson's definition of correlation 
+    (https://en.wikipedia.org/wiki/Pearson_correlation_coefficient).
 
     Parameters
     ----------
@@ -1038,8 +1039,8 @@ class _Rolling_and_Expanding(_Rolling):
         If not supplied then will default to self.
     pairwise : bool, default None
         Calculate pairwise combinations of columns within a
-        DataFrame. If other is not specified, defaults to True,
-        otherwise defaults to False. Not relevant for Series.
+        DataFrame. If `other` is not specified, defaults to `True`,
+        otherwise defaults to `False`. Not relevant for :class:`~pandas.Series`.
         See notes.
     **kwargs
         Under Review.
@@ -1061,17 +1062,18 @@ class _Rolling_and_Expanding(_Rolling):
 
     Notes
     -----
-    Other should be always be specified, except for DataFrame inputs with
-    pairwise set to `True`. All other input combinations will return all 1's.
+    When `other` is not specified, the output will be self correlation (e.g. 
+    all 1's), except for :class:`~pandas.DataFrame` inputs with `pairwise` 
+    set to `True`.
 
     Function will return `NaN`s for correlations of equal valued sequences;
     this is the result of a 0/0 division error.
 
-    When pairwise is set to `False`, only matching columns between self and
-    other will be used.
+    When `pairwise` is set to `False`, only matching columns between `self` and
+    `other` will be used.
 
-    When pairwise is set to `True`, the output will be a MultiIndex DataFrame
-    with the original index on the first level, and the "other" DataFrame
+    When `pairwise` is set to `True`, the output will be a MultiIndex DataFrame
+    with the original index on the first level, and the `other` DataFrame
     columns on the second level.
 
     In the case of missing elements, only complete pairwise observations
@@ -1085,7 +1087,6 @@ class _Rolling_and_Expanding(_Rolling):
     >>> v1 = [3, 3, 3, 5, 8]
     >>> v2 = [3, 4, 4, 4, 8]
     >>> fmt = "{0:.6f}"  # limit the printed precision to 6 digits
-    >>> import numpy as np
     >>> # numpy returns a 2X2 array, the correlation coefficient
     >>> # is the number at entry [0][1]
     >>> print(fmt.format(np.corrcoef(v1[:-1], v2[:-1])[0][1]))
