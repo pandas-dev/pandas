@@ -57,6 +57,13 @@ If you write a custom accessor, make a pull request adding it to our
 Extension Types
 ---------------
 
+.. versionadded:: 0.23.0
+
+.. warning::
+
+   The ``ExtensionDtype`` and ``ExtensionArray`` APIs are new and
+   experimental. They may change between versions without warning.
+
 Pandas defines an interface for implementing data types and arrays that *extend*
 NumPy's type system. Pandas itself uses the extension system for some types
 that aren't built into NumPy (categorical, period, interval, datetime with
@@ -105,6 +112,24 @@ by some other storage type, like Python lists.
 
 See the `extension array source`_ for the interface definition. The docstrings
 and comments contain guidance for properly implementing the interface.
+
+We provide a test suite for ensuring that your extension arrays satisfy the expected
+behavior. To use the test-suite, you must provide several pytest fixtures and inherit
+from the base test class. The required fixtures are found in
+https://github.com/pandas-dev/pandas/blob/master/pandas/tests/extension/conftest.py.
+
+To use a test, subclass it
+
+.. code-block:: python
+
+   from pandas.tests.extension import base
+
+   class TestConstructors(base.BaseConstructorsTests):
+       pass
+
+
+See https://github.com/pandas-dev/pandas/blob/master/pandas/tests/extension/base/__init__.py
+for a list of all the tests available.
 
 .. _extension dtype source: https://github.com/pandas-dev/pandas/blob/master/pandas/core/dtypes/base.py
 .. _extension array source: https://github.com/pandas-dev/pandas/blob/master/pandas/core/arrays/base.py

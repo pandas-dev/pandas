@@ -11,7 +11,7 @@ version.
 .. warning::
 
    Starting January 1, 2019, pandas feature releases will support Python 3 only.
-   See :ref:`here <install.dropping_27>` for more.
+   See :ref:`install.dropping-27` for more.
 
 .. _whatsnew_0230.enhancements:
 
@@ -306,8 +306,8 @@ Supplying a ``CategoricalDtype`` will make the categories in each column consist
 
 .. _whatsnew_023.enhancements.extension:
 
-Extending Pandas with Custom Types
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Extending Pandas with Custom Types (Experimental)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Pandas now supports storing array-like objects that aren't necessarily 1-D NumPy
 arrays as columns in a DataFrame or values in a Series. This allows third-party
