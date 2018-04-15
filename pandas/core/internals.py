@@ -825,7 +825,7 @@ class Block(PandasObject):
             The subset of self.values to set
         value : object
             The value being set
-        mgr : BlockPlacement
+        mgr : BlockPlacement, optional
 
         Returns
         -------
@@ -833,7 +833,7 @@ class Block(PandasObject):
 
         Notes
         -----
-        'indexer' is a direct slice/positional indexer. 'value' must
+        `indexer` is a direct slice/positional indexer. `value` must
         be a compatible shape.
         """
         # coerce None values, if appropriate
@@ -1910,7 +1910,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
             The subset of self.values to set
         value : object
             The value being set
-        mgr : BlockPlacement
+        mgr : BlockPlacement, optional
 
         Returns
         -------
@@ -1918,7 +1918,7 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
 
         Notes
         -----
-        'indexer' is a direct slice/positional indexer. 'value' must
+        `indexer` is a direct slice/positional indexer. `value` must
         be a compatible shape.
         """
         if isinstance(indexer, tuple):
