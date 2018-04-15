@@ -48,6 +48,17 @@ ML pipeline.
 Visualization
 -------------
 
+`Altair <https://altair-viz.github.io/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Altair is a declarative statistical visualization library for Python.
+With Altair, you can spend more time understanding your data and its
+meaning. Altair's API is simple, friendly and consistent and built on
+top of the powerful Vega-Lite JSON specification. This elegant
+simplicity produces beautiful and effective visualizations with a
+minimal amount of code. Altair works with Pandas DataFrames.
+
+
 `Bokeh <http://bokeh.pydata.org>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
