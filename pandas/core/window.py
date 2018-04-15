@@ -1030,7 +1030,7 @@ class _Rolling_and_Expanding(_Rolling):
     _shared_docs['corr'] = dedent("""
     Calculate %(name)s correlation.
 
-    This function uses Pearson's definition of correlation.
+    This function uses Pearson's definition of correlation (https://en.wikipedia.org/wiki/Pearson_correlation_coefficient).
 
     Parameters
     ----------
