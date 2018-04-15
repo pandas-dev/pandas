@@ -408,6 +408,7 @@ def isin(comps, values):
         values = construct_1d_object_array_from_listlike(list(values))
 
     if is_categorical_dtype(comps):
+        # TODO(extension)
         # handle categoricals
         return comps._values.isin(values)
 
