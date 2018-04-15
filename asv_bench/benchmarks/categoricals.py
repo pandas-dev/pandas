@@ -154,12 +154,20 @@ class Isin(object):
 
     goal_time = 0.2
 
-    def setup(self):
+    params = ['int64', 'object']
+    param_names = ['dtype']
+
+    def setup(self, dtype):
         n = 5 * 10**5
         sample_size = 100
-        arr = ['s%04d' % i for i in np.random.randint(0, n // 10, size=n)]
+        if dtype == "int64":
+            arr = [i for i in np.random.randint(0, n // 10, size=n)]
+        else:
+            arr = ['s%04d' % i for i in np.random.randint(0, n // 10, size=n)]
+        np.random.seed(1234)
         self.sample = np.random.choice(arr, sample_size)
         self.ts = pd.Series(arr).astype('category')
 
-    def time_isin_categorical_strings(self):
+    def time_isin_categorical(self):
         self.ts.isin(self.sample)
+
