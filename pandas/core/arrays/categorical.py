@@ -44,6 +44,7 @@ import pandas.core.algorithms as algorithms
 from pandas.io.formats.terminal import get_terminal_size
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 from pandas.core.config import get_option
+from pandas.core.series import _sanitize_array
 
 from .base import ExtensionArray
 
@@ -2264,7 +2265,6 @@ class Categorical(ExtensionArray, PandasObject):
             raise TypeError("only list-like objects are allowed to be passed"
                             " to isin(), you passed a [{values_type}]"
                             .format(values_type=type(values).__name__))
-        from pandas.core.series import _sanitize_array
         values = _sanitize_array(values, None, None)
         null_mask = np.asarray(isna(values))
         code_values = self.categories.get_indexer(values)
