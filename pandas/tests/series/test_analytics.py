@@ -1594,6 +1594,22 @@ class TestSeriesAnalytics(TestData):
         s = Series(np.arange(1000))
         assert s.is_unique
 
+    def test_is_unique_class_ne(self, capsys):
+        # GH 20661
+        class Foo(object):
+            def __init__(self, val):
+                self._value = val
+
+            def __ne__(self, other):
+                raise Exception("NEQ not supported")
+
+        li = [Foo(i) for i in range(5)]
+        s = pd.Series(li, index=[i for i in range(5)])
+        _, err = capsys.readouterr()
+        s.is_unique
+        _, err = capsys.readouterr()
+        assert len(err) == 0
+
     def test_is_monotonic(self):
 
         s = Series(np.random.randint(0, 10, size=1000))
