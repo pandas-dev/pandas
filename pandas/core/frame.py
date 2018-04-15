@@ -3168,7 +3168,8 @@ class DataFrame(NDFrame):
     def assign(self, **kwargs):
         r"""
         Assign new columns to a DataFrame, returning a new object
-        (a copy) with all the original columns in addition to the new ones.
+        (a copy) with the new columns added to the original ones.
+        Existing columns that are re-assigned will be overwritten.
 
         Parameters
         ----------
