@@ -188,6 +188,8 @@ class SelectionMixin(object):
         builtins.sum: 'sum',
         builtins.max: 'max',
         builtins.min: 'min',
+        np.all: 'all',
+        np.any: 'any',
         np.sum: 'sum',
         np.mean: 'mean',
         np.prod: 'prod',
