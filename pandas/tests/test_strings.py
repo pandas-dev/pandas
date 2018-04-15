@@ -2581,16 +2581,17 @@ class TestStringMethods(object):
         expected = Series([3, 3, np.nan, np.nan])
         tm.assert_series_equal(result, expected)
 
-        for to_type in tuple, list, np.array:
-            values = Series([to_type([to_type([1, 2])])])
+    @pytest.mark.parametrize('to_type', [tuple, list, np.array])
+    def test_get_complex_nested(self, to_type):
+        values = Series([to_type([to_type([1, 2])])])
 
-            result = values.str.get(0)
-            expected = Series([to_type([1, 2])])
-            tm.assert_series_equal(result, expected)
+        result = values.str.get(0)
+        expected = Series([to_type([1, 2])])
+        tm.assert_series_equal(result, expected)
 
-            result = values.str.get(1)
-            expected = Series([np.nan])
-            tm.assert_series_equal(result, expected)
+        result = values.str.get(1)
+        expected = Series([np.nan])
+        tm.assert_series_equal(result, expected)
 
     def test_more_contains(self):
         # PR #1179
