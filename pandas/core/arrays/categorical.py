@@ -44,7 +44,6 @@ import pandas.core.algorithms as algorithms
 from pandas.io.formats.terminal import get_terminal_size
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 from pandas.core.config import get_option
-from pandas.core.series import _sanitize_array
 
 from .base import ExtensionArray
 
@@ -2261,6 +2260,7 @@ class Categorical(ExtensionArray, PandasObject):
         >>> s.isin(['lama'])
         array([ True, False,  True, False,  True, False])
         """
+        from pandas.core.series import _sanitize_array
         if not is_list_like(values):
             raise TypeError("only list-like objects are allowed to be passed"
                             " to isin(), you passed a [{values_type}]"
