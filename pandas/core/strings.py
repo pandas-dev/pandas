@@ -1663,7 +1663,12 @@ def str_get(arr, i):
     -------
     items : Series/Index of objects
     """
-    f = lambda x: x[i] if len(x) > i >= -len(x) else np.nan
+    def f(x):
+        if isinstance(x, dict):
+            return x.get(i)
+        elif len(x) > i >= -len(x):
+            return x[i]
+        return np.nan
     return _na_map(f, arr)
 
 

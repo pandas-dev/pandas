@@ -2568,6 +2568,30 @@ class TestStringMethods(object):
         expected = Series(['3', '8', np.nan])
         tm.assert_series_equal(result, expected)
 
+    def test_get_complex(self):
+        # GH 20671, getting value not in dict raising `KeyError`
+        values = Series([(1, 2, 3), [1, 2, 3], {1, 2, 3},
+                         {1: 'a', 2: 'b', 3: 'c'}])
+
+        result = values.str.get(1)
+        expected = Series([2, 2, np.nan, 'a'])
+        tm.assert_series_equal(result, expected)
+
+        result = values.str.get(-1)
+        expected = Series([3, 3, np.nan, np.nan])
+        tm.assert_series_equal(result, expected)
+
+        for to_type in tuple, list, np.array:
+            values = Series([to_type([to_type([1, 2])])])
+
+            result = values.str.get(0)
+            expected = Series([to_type([1, 2])])
+            tm.assert_series_equal(result, expected)
+
+            result = values.str.get(1)
+            expected = Series([np.nan])
+            tm.assert_series_equal(result, expected)
+
     def test_more_contains(self):
         # PR #1179
         s = Series(['A', 'B', 'C', 'Aaba', 'Baca', '', NA,
