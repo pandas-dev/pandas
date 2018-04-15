@@ -15,7 +15,7 @@ Instructions for installing from source,
 `PyPI <http://pypi.python.org/pypi/pandas>`__, `ActivePython <https://www.activestate.com/activepython/downloads>`__, various Linux distributions, or a
 `development version <http://github.com/pandas-dev/pandas>`__ are also provided.
 
-.. _install.dropping_27
+.. _install.dropping_27:
 
 Plan for dropping Python 2.7
 ----------------------------
@@ -162,8 +162,8 @@ pandas can be installed via pip from
 Installing with ActivePython
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Installation instructions for 
-`ActivePython <https://www.activestate.com/activepython>`__ can be found 
+Installation instructions for
+`ActivePython <https://www.activestate.com/activepython>`__ can be found
 `here <https://www.activestate.com/activepython/downloads>`__. Versions
 2.7 and 3.5 include pandas.
 
