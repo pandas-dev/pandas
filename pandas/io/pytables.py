@@ -1094,7 +1094,8 @@ class HDFStore(StringMixin):
         """ return the storer object for a key, raise if not in the file """
         group = self.get_node(key)
         if group is None:
-            return None
+            raise KeyError('No object named {} in the file'.format(key))
+
         s = self._create_storer(group)
         s.infer_axes()
         return s
