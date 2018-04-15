@@ -266,7 +266,7 @@ class TestFactorize(object):
         # arrays that include the NA default for that type, but isn't used.
         l, u = algos.factorize(data)
         expected_uniques = data[[0, 1]]
-        expected_labels = np.array([0, 1, 0], dtype='i8')
+        expected_labels = np.array([0, 1, 0], dtype=np.intp)
         tm.assert_numpy_array_equal(l, expected_labels)
         tm.assert_numpy_array_equal(u, expected_uniques)
 
@@ -283,7 +283,7 @@ class TestFactorize(object):
     def test_parametrized_factorize_na_value(self, data, na_value):
         l, u = algos._factorize_array(data, na_value=na_value)
         expected_uniques = data[[1, 3]]
-        expected_labels = np.array([-1, 0, -1, 1], dtype='i8')
+        expected_labels = np.array([-1, 0, -1, 1], dtype=np.intp)
         tm.assert_numpy_array_equal(l, expected_labels)
         tm.assert_numpy_array_equal(u, expected_uniques)
 

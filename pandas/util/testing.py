@@ -38,7 +38,7 @@ import pandas.core.common as com
 import pandas.compat as compat
 from pandas.compat import (
     filter, map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter,
-    raise_with_traceback, httplib, StringIO, PY3)
+    raise_with_traceback, httplib, StringIO, string_types, PY3, PY2)
 
 from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
                     DatetimeIndex, TimedeltaIndex, PeriodIndex, RangeIndex,
@@ -992,10 +992,19 @@ def raise_assert_detail(obj, message, left, right, diff=None):
         left = pprint_thing(left)
     elif is_categorical_dtype(left):
         left = repr(left)
+
+    if PY2 and isinstance(left, string_types):
+        # left needs to be printable in native text type in python2
+        left = left.encode('utf-8')
+
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
     elif is_categorical_dtype(right):
         right = repr(right)
+
+    if PY2 and isinstance(right, string_types):
+        # right needs to be printable in native text type in python2
+        right = right.encode('utf-8')
 
     msg = """{obj} are different
 
@@ -2088,7 +2097,7 @@ _network_errno_vals = (
 # and conditionally raise on these exception types
 _network_error_classes = (IOError, httplib.HTTPException)
 
-if sys.version_info >= (3, 3):
+if PY3:
     _network_error_classes += (TimeoutError,)  # noqa
 
 

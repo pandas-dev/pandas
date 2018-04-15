@@ -1256,8 +1256,6 @@ class TestDataFrameFormatting(object):
 
         df_s = df.to_string()
 
-        # Python 2.5 just wants me to be sad. And debian 32-bit
-        # sys.version_info[0] == 2 and sys.version_info[1] < 6:
         if _three_digit_exp():
             expected = ('              x\n0  0.00000e+000\n1  2.50000e-001\n'
                         '2  3.45600e+003\n3  1.20000e+046\n4  1.64000e+006\n'
@@ -1281,8 +1279,7 @@ class TestDataFrameFormatting(object):
 
         df = DataFrame({'x': [1e9, 0.2512]})
         df_s = df.to_string()
-        # Python 2.5 just wants me to be sad. And debian 32-bit
-        # sys.version_info[0] == 2 and sys.version_info[1] < 6:
+
         if _three_digit_exp():
             expected = ('               x\n'
                         '0  1.000000e+009\n'
@@ -1621,7 +1618,7 @@ c  10  11  12  13  14\
         If the test fails, it at least won't hang.
         """
 
-        class A:
+        class A(object):
             def __getitem__(self, key):
                 return 3  # obviously simplified
 
