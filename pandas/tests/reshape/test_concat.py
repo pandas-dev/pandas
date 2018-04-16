@@ -293,88 +293,88 @@ class TestConcatAppendCommon(ConcatenateBase):
         assert isinstance(res.iloc[0], pd.Timestamp)
         assert isinstance(res.iloc[-1], pd.Timedelta)
 
-    def test_concatlike_datetimetz(self):
+    def test_concatlike_datetimetz(self, tz_aware_fixture):
+        tz = tz_aware_fixture
         # GH 7795
-        for tz in ['UTC', 'US/Eastern', 'Asia/Tokyo']:
-            dti1 = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], tz=tz)
-            dti2 = pd.DatetimeIndex(['2012-01-01', '2012-01-02'], tz=tz)
+        dti1 = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], tz=tz)
+        dti2 = pd.DatetimeIndex(['2012-01-01', '2012-01-02'], tz=tz)
 
-            exp = pd.DatetimeIndex(['2011-01-01', '2011-01-02',
-                                    '2012-01-01', '2012-01-02'], tz=tz)
+        exp = pd.DatetimeIndex(['2011-01-01', '2011-01-02',
+                                '2012-01-01', '2012-01-02'], tz=tz)
 
-            res = dti1.append(dti2)
-            tm.assert_index_equal(res, exp)
+        res = dti1.append(dti2)
+        tm.assert_index_equal(res, exp)
 
-            dts1 = pd.Series(dti1)
-            dts2 = pd.Series(dti2)
-            res = dts1.append(dts2)
-            tm.assert_series_equal(res, pd.Series(exp, index=[0, 1, 0, 1]))
+        dts1 = pd.Series(dti1)
+        dts2 = pd.Series(dti2)
+        res = dts1.append(dts2)
+        tm.assert_series_equal(res, pd.Series(exp, index=[0, 1, 0, 1]))
 
-            res = pd.concat([dts1, dts2])
-            tm.assert_series_equal(res, pd.Series(exp, index=[0, 1, 0, 1]))
+        res = pd.concat([dts1, dts2])
+        tm.assert_series_equal(res, pd.Series(exp, index=[0, 1, 0, 1]))
 
-    def test_concatlike_datetimetz_short(self):
+    @pytest.mark.parametrize('tz',
+                             ['UTC', 'US/Eastern', 'Asia/Tokyo', 'EST5EDT'])
+    def test_concatlike_datetimetz_short(self, tz):
         # GH 7795
-        for tz in ['UTC', 'US/Eastern', 'Asia/Tokyo', 'EST5EDT']:
+        ix1 = pd.DatetimeIndex(start='2014-07-15', end='2014-07-17',
+                               freq='D', tz=tz)
+        ix2 = pd.DatetimeIndex(['2014-07-11', '2014-07-21'], tz=tz)
+        df1 = pd.DataFrame(0, index=ix1, columns=['A', 'B'])
+        df2 = pd.DataFrame(0, index=ix2, columns=['A', 'B'])
 
-            ix1 = pd.DatetimeIndex(start='2014-07-15', end='2014-07-17',
-                                   freq='D', tz=tz)
-            ix2 = pd.DatetimeIndex(['2014-07-11', '2014-07-21'], tz=tz)
-            df1 = pd.DataFrame(0, index=ix1, columns=['A', 'B'])
-            df2 = pd.DataFrame(0, index=ix2, columns=['A', 'B'])
+        exp_idx = pd.DatetimeIndex(['2014-07-15', '2014-07-16',
+                                    '2014-07-17', '2014-07-11',
+                                    '2014-07-21'], tz=tz)
+        exp = pd.DataFrame(0, index=exp_idx, columns=['A', 'B'])
 
-            exp_idx = pd.DatetimeIndex(['2014-07-15', '2014-07-16',
-                                        '2014-07-17', '2014-07-11',
-                                        '2014-07-21'], tz=tz)
-            exp = pd.DataFrame(0, index=exp_idx, columns=['A', 'B'])
+        tm.assert_frame_equal(df1.append(df2), exp)
+        tm.assert_frame_equal(pd.concat([df1, df2]), exp)
 
-            tm.assert_frame_equal(df1.append(df2), exp)
-            tm.assert_frame_equal(pd.concat([df1, df2]), exp)
-
-    def test_concatlike_datetimetz_to_object(self):
+    def test_concatlike_datetimetz_to_object(self, tz_aware_fixture):
+        tz = tz_aware_fixture
         # GH 13660
 
         # different tz coerces to object
-        for tz in ['UTC', 'US/Eastern', 'Asia/Tokyo']:
-            dti1 = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], tz=tz)
-            dti2 = pd.DatetimeIndex(['2012-01-01', '2012-01-02'])
+        dti1 = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], tz=tz)
+        dti2 = pd.DatetimeIndex(['2012-01-01', '2012-01-02'])
 
-            exp = pd.Index([pd.Timestamp('2011-01-01', tz=tz),
-                            pd.Timestamp('2011-01-02', tz=tz),
-                            pd.Timestamp('2012-01-01'),
-                            pd.Timestamp('2012-01-02')], dtype=object)
+        exp = pd.Index([pd.Timestamp('2011-01-01', tz=tz),
+                        pd.Timestamp('2011-01-02', tz=tz),
+                        pd.Timestamp('2012-01-01'),
+                        pd.Timestamp('2012-01-02')], dtype=object)
 
-            res = dti1.append(dti2)
-            tm.assert_index_equal(res, exp)
+        res = dti1.append(dti2)
+        tm.assert_index_equal(res, exp)
 
-            dts1 = pd.Series(dti1)
-            dts2 = pd.Series(dti2)
-            res = dts1.append(dts2)
-            tm.assert_series_equal(res, pd.Series(exp, index=[0, 1, 0, 1]))
+        dts1 = pd.Series(dti1)
+        dts2 = pd.Series(dti2)
+        res = dts1.append(dts2)
+        tm.assert_series_equal(res, pd.Series(exp, index=[0, 1, 0, 1]))
 
-            res = pd.concat([dts1, dts2])
-            tm.assert_series_equal(res, pd.Series(exp, index=[0, 1, 0, 1]))
+        res = pd.concat([dts1, dts2])
+        tm.assert_series_equal(res, pd.Series(exp, index=[0, 1, 0, 1]))
 
-            # different tz
-            dti3 = pd.DatetimeIndex(['2012-01-01', '2012-01-02'],
-                                    tz='US/Pacific')
+        # different tz
+        dti3 = pd.DatetimeIndex(['2012-01-01', '2012-01-02'],
+                                tz='US/Pacific')
 
-            exp = pd.Index([pd.Timestamp('2011-01-01', tz=tz),
-                            pd.Timestamp('2011-01-02', tz=tz),
-                            pd.Timestamp('2012-01-01', tz='US/Pacific'),
-                            pd.Timestamp('2012-01-02', tz='US/Pacific')],
-                           dtype=object)
+        exp = pd.Index([pd.Timestamp('2011-01-01', tz=tz),
+                        pd.Timestamp('2011-01-02', tz=tz),
+                        pd.Timestamp('2012-01-01', tz='US/Pacific'),
+                        pd.Timestamp('2012-01-02', tz='US/Pacific')],
+                       dtype=object)
 
-            res = dti1.append(dti3)
-            # tm.assert_index_equal(res, exp)
+        res = dti1.append(dti3)
+        # tm.assert_index_equal(res, exp)
 
-            dts1 = pd.Series(dti1)
-            dts3 = pd.Series(dti3)
-            res = dts1.append(dts3)
-            tm.assert_series_equal(res, pd.Series(exp, index=[0, 1, 0, 1]))
+        dts1 = pd.Series(dti1)
+        dts3 = pd.Series(dti3)
+        res = dts1.append(dts3)
+        tm.assert_series_equal(res, pd.Series(exp, index=[0, 1, 0, 1]))
 
-            res = pd.concat([dts1, dts3])
-            tm.assert_series_equal(res, pd.Series(exp, index=[0, 1, 0, 1]))
+        res = pd.concat([dts1, dts3])
+        tm.assert_series_equal(res, pd.Series(exp, index=[0, 1, 0, 1]))
 
     def test_concatlike_common_period(self):
         # GH 13660
