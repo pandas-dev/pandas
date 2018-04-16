@@ -1279,9 +1279,11 @@ class TestPivotTable(object):
     def test_pivot_number_of_levels_larger_than_int32(self):
         # GH 20601
         data = DataFrame({'ind1': list(range(1337600)) * 2,
-                          'ind2': list(range(3040)) * 2 * 440, 'count': [1] * 2 * 1337600})
+                          'ind2': list(range(3040)) * 2 * 440,
+                          'count': [1] * 2 * 1337600})
         with tm.assert_raises_regex(ValueError, 'int32 overflow'):
-            data.pivot_table(index='ind1', columns='ind2', values='count', aggfunc='count')
+            data.pivot_table(index='ind1', columns='ind2',
+                             values='count', aggfunc='count')
 
 
 class TestCrosstab(object):
