@@ -954,8 +954,8 @@ class _Rolling_and_Expanding(_Rolling):
     Parameters
     ----------
     func : function
-        Must produce a single value from an ndarray input if raw=True
-        or a Series if raw=False
+        Must produce a single value from an ndarray input if ``raw=True``
+        or a Series if ``raw=False``
     raw : bool, default None
         * ``False`` : passes each row or column as a Series to the
           function.
@@ -965,7 +965,7 @@ class _Rolling_and_Expanding(_Rolling):
           achieve much better performance.
 
         The raw parameter is required and will show a FutureWarning if
-        not passed. In the futures raw will default to False.
+        not passed. In the future raw will default to False.
 
         .. versionadded:: 0.23.0
 
@@ -984,10 +984,10 @@ class _Rolling_and_Expanding(_Rolling):
         # change to False in the future
         if raw is None:
             warnings.warn(
-                "raw defaults to False "
-                "meaning a Series will be passed to the "
-                "applied function. In the future raw will default to True "
-                "meaning a ndarray is passed to the "
+                "`raw` defaults to True "
+                "meaning a nndarray will be passed to the "
+                "applied function. In the future `raw` will default to False "
+                "meaning a Series is passed to the "
                 "applied function", FutureWarning, stacklevel=3)
             raw = True
 
