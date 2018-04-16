@@ -1432,30 +1432,35 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
     return output
 
 
-def roll_generic(ndarray[float64_t, cast=True] input,
+def roll_generic(object obj,
                  int64_t win, int64_t minp, object index, object closed,
-                 int offset, object func,
+                 int offset, object func, bint raw,
                  object args, object kwargs):
     cdef:
         ndarray[double_t] output, counts, bufarr
+        ndarray[float64_t, cast=True] arr
         float64_t *buf
         float64_t *oldbuf
         int64_t nobs = 0, i, j, s, e, N
         bint is_variable
         ndarray[int64_t] start, end
 
-    if not input.flags.c_contiguous:
-        input = input.copy('C')
-
-    n = len(input)
+    n = len(obj)
     if n == 0:
-        return input
+        return obj
 
-    counts = roll_sum(np.concatenate([np.isfinite(input).astype(float),
+    arr = np.asarray(obj)
+
+    # ndarray input
+    if raw:
+        if not arr.flags.c_contiguous:
+            arr = arr.copy('C')
+
+    counts = roll_sum(np.concatenate([np.isfinite(arr).astype(float),
                                       np.array([0.] * offset)]),
                       win, minp, index, closed)[offset:]
 
-    start, end, N, win, minp, is_variable = get_window_indexer(input, win,
+    start, end, N, win, minp, is_variable = get_window_indexer(arr, win,
                                                                minp, index,
                                                                closed,
                                                                floor=0)
@@ -1463,8 +1468,8 @@ def roll_generic(ndarray[float64_t, cast=True] input,
     output = np.empty(N, dtype=float)
 
     if is_variable:
+        # variable window arr or series
 
-        # variable window
         if offset != 0:
             raise ValueError("unable to roll_generic with a non-zero offset")
 
@@ -1473,7 +1478,20 @@ def roll_generic(ndarray[float64_t, cast=True] input,
             e = end[i]
 
             if counts[i] >= minp:
-                output[i] = func(input[s:e], *args, **kwargs)
+                if raw:
+                    output[i] = func(arr[s:e], *args, **kwargs)
+                else:
+                    output[i] = func(obj.iloc[s:e], *args, **kwargs)
+            else:
+                output[i] = NaN
+
+    elif not raw:
+        # series
+        for i from 0 <= i < N:
+            if counts[i] >= minp:
+                sl = slice(int_max(i + offset - win + 1, 0),
+                           int_min(i + offset + 1, N))
+                output[i] = func(obj.iloc[sl], *args, **kwargs)
             else:
                 output[i] = NaN
 
@@ -1482,12 +1500,12 @@ def roll_generic(ndarray[float64_t, cast=True] input,
         # truncated windows at the beginning, through first full-length window
         for i from 0 <= i < (int_min(win, N) - offset):
             if counts[i] >= minp:
-                output[i] = func(input[0: (i + offset + 1)], *args, **kwargs)
+                output[i] = func(arr[0: (i + offset + 1)], *args, **kwargs)
             else:
                 output[i] = NaN
 
         # remaining full-length windows
-        buf = <float64_t *> input.data
+        buf = <float64_t *> arr.data
         bufarr = np.empty(win, dtype=float)
         oldbuf = <float64_t *> bufarr.data
         for i from (win - offset) <= i < (N - offset):
@@ -1502,7 +1520,7 @@ def roll_generic(ndarray[float64_t, cast=True] input,
         # truncated windows at the end
         for i from int_max(N - offset, 0) <= i < N:
             if counts[i] >= minp:
-                output[i] = func(input[int_max(i + offset - win + 1, 0): N],
+                output[i] = func(arr[int_max(i + offset - win + 1, 0): N],
                                  *args,
                                  **kwargs)
             else:
