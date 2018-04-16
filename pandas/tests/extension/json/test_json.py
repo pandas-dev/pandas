@@ -135,6 +135,10 @@ class TestCasting(base.BaseCastingTests):
         """
 
 
+# We intentionally don't run base.BaseSetitemTests because pandas'
+# internals has trouble setting sequences of values into scalar positions.
+
+
 class TestGroupby(base.BaseGroupbyTests):
 
     @unhashable
