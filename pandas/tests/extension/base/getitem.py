@@ -1,3 +1,4 @@
+import pytest
 import numpy as np
 
 import pandas as pd
@@ -138,6 +139,15 @@ class BaseGetitemTests(BaseExtensionTests):
 
         with tm.assert_raises_regex(IndexError, "cannot do a non-empty take"):
             empty.take([0, 1])
+
+    @pytest.mark.xfail(reason="Series.take with extension array buggy for -1")
+    def test_take_series(self, data):
+        s = pd.Series(data)
+        result = s.take([0, -1])
+        expected = pd.Series(
+            data._constructor_from_sequence([data[0], data[len(data) - 1]]),
+            index=[0, len(data) - 1])
+        self.assert_series_equal(result, expected)
 
     def test_reindex(self, data, na_value):
         s = pd.Series(data)
