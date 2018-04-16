@@ -3331,7 +3331,11 @@ class DataFrame(NDFrame):
             value = reindexer(value).T
 
         elif isinstance(value, ExtensionArray):
+            from pandas.core.series import _sanitize_index
+            # Explicitly copy here, instead of in _sanitize_index,
+            # as sanitize_index won't copy an EA, even with copy=True
             value = value.copy()
+            value = _sanitize_index(value, self.index, copy=False)
 
         elif isinstance(value, Index) or is_sequence(value):
             from pandas.core.series import _sanitize_index
