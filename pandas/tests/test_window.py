@@ -6,6 +6,7 @@ from warnings import catch_warnings
 from datetime import datetime, timedelta
 from numpy.random import randn
 import numpy as np
+from scipy._lib._version import NumpyVersion
 
 import pandas as pd
 from pandas import (Series, DataFrame, bdate_range,
@@ -1176,6 +1177,8 @@ class TestMoments(Base):
 
         tm.assert_almost_equal(q1, q2)
 
+    @pytest.mark.skipif(NumpyVersion(np.__version__) < '1.12.0',
+                        reason='numpy midpoint interpolation is broken')
     @pytest.mark.parametrize('quantile', [0.0, 0.1, 0.45, 0.5, 1])
     @pytest.mark.parametrize('interpolation', ['linear', 'lower', 'higher',
                                                'nearest', 'midpoint'])
