@@ -4153,4 +4153,8 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 data = np.array(data, dtype=dtype, copy=False)
             subarr = np.array(data, dtype=object, copy=copy)
 
+            # GH 20377
+            # Turn all 'nan' to np.nan
+            subarr[subarr == 'nan'] = np.nan
+
     return subarr

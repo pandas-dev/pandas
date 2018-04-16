@@ -1218,6 +1218,7 @@ cdef class TextReader:
             # treat as a regular string parsing
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
+
         elif dtype.kind == 'U':
             width = dtype.itemsize
             if width > 0:
@@ -1227,6 +1228,7 @@ cdef class TextReader:
             # unicode variable width
             return self._string_convert(i, start, end, na_filter,
                                         na_hashset)
+
         elif is_categorical_dtype(dtype):
             # TODO: I suspect that _categorical_convert could be
             # optimized when dtype is an instance of CategoricalDtype

@@ -149,6 +149,7 @@ class TestSeriesDtypes(TestData):
         # see gh-4405
         result = series.astype(dtype)
         expected = series.map(compat.text_type)
+        expected = expected.replace('nan', np.nan)  # see gh-20377
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("dtype", [str, compat.text_type])
