@@ -816,11 +816,10 @@ class DatetimeIndexOpsMixin(object):
             td = Timedelta(self.freq)
             return op(self, td * other)
 
-        else:
-            # We should only get here with DatetimeIndex; dispatch
-            # to _addsub_offset_array
-            assert not is_timedelta64_dtype(self)
-            return op(self, np.array(other) * self.freq)
+        # We should only get here with DatetimeIndex; dispatch
+        # to _addsub_offset_array
+        assert not is_timedelta64_dtype(self)
+        return op(self, np.array(other) * self.freq)
 
     @classmethod
     def _add_datetimelike_methods(cls):
