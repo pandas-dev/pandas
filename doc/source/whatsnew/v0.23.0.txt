@@ -435,6 +435,8 @@ If installed, we now require:
 +-----------------+-----------------+----------+---------------+
 | beautifulsoup4  | 4.2.1           |          | :issue:`20082`|
 +-----------------+-----------------+----------+---------------+
+| setuptools      | 24.2.0          |          | :issue:`20698`|
++-----------------+-----------------+----------+---------------+
 
 .. _whatsnew_0230.api_breaking.dict_insertion_order:
 
@@ -1115,6 +1117,7 @@ I/O
 - Bug in :meth:`pandas.io.json.json_normalize` where subrecords are not properly normalized if any subrecords values are NoneType (:issue:`20030`)
 - Bug in ``usecols`` parameter in :func:`read_csv` where error is not raised correctly when passing a string. (:issue:`20529`)
 - Bug in :func:`HDFStore.keys` when reading a file with a softlink causes exception (:issue:`20523`)
+- Bug in :func:`HDFStore.select_column` where a key which is not a valid store raised an ``AttributeError`` instead of a ``KeyError`` (:issue:`17912`)
 
 Plotting
 ^^^^^^^^
