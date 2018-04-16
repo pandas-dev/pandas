@@ -93,6 +93,10 @@ class TestGetitem(base.BaseGetitemTests):
     def test_take_empty(self):
         pass
 
+    @pytest.mark.xfail(reason="test not written correctly for categorical")
+    def test_reindex(self):
+        pass
+
 
 class TestMissing(base.BaseMissingTests):
 

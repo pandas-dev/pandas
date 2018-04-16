@@ -138,3 +138,22 @@ class BaseGetitemTests(BaseExtensionTests):
 
         with tm.assert_raises_regex(IndexError, "cannot do a non-empty take"):
             empty.take([0, 1])
+
+    def test_reindex(self, data, na_value):
+        s = pd.Series(data)
+        result = s.reindex([0, 1, 3])
+        expected = pd.Series(data.take([0, 1, 3]), index=[0, 1, 3])
+        self.assert_series_equal(result, expected)
+
+        n = len(data)
+        result = s.reindex([-1, 0, n])
+        expected = pd.Series(
+            data._constructor_from_sequence([na_value, data[0], na_value]),
+            index=[-1, 0, n])
+        self.assert_series_equal(result, expected)
+
+        result = s.reindex([n, n + 1])
+        expected = pd.Series(
+            data._constructor_from_sequence([na_value, na_value]),
+            index=[n, n + 1])
+        self.assert_series_equal(result, expected)
