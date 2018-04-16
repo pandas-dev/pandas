@@ -144,16 +144,6 @@ class TestInferDtype(object):
             dtype, val = infer_dtype_from_scalar(data)
             assert dtype == 'm8[ns]'
 
-        for tz in ['UTC', 'US/Eastern', 'Asia/Tokyo']:
-            dt = Timestamp(1, tz=tz)
-            dtype, val = infer_dtype_from_scalar(dt, pandas_dtype=True)
-            assert dtype == 'datetime64[ns, {0}]'.format(tz)
-            assert val == dt.value
-
-            dtype, val = infer_dtype_from_scalar(dt)
-            assert dtype == np.object_
-            assert val == dt
-
         for freq in ['M', 'D']:
             p = Period('2011-01-01', freq=freq)
             dtype, val = infer_dtype_from_scalar(p, pandas_dtype=True)
@@ -170,6 +160,17 @@ class TestInferDtype(object):
 
             dtype, val = infer_dtype_from_scalar(data)
             assert dtype == np.object_
+
+    @pytest.mark.parametrize('tz', ['UTC', 'US/Eastern', 'Asia/Tokyo'])
+    def testinfer_from_scalar_tz(self, tz):
+        dt = Timestamp(1, tz=tz)
+        dtype, val = infer_dtype_from_scalar(dt, pandas_dtype=True)
+        assert dtype == 'datetime64[ns, {0}]'.format(tz)
+        assert val == dt.value
+
+        dtype, val = infer_dtype_from_scalar(dt)
+        assert dtype == np.object_
+        assert val == dt
 
     def testinfer_dtype_from_scalar_errors(self):
         with pytest.raises(ValueError):

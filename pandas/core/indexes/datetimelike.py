@@ -1049,7 +1049,7 @@ class DatetimeIndexOpsMixin(object):
             result = self + offset
 
             if hasattr(self, 'tz'):
-                result.tz = self.tz
+                result._tz = self.tz
 
             return result
 
