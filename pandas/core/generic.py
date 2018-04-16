@@ -4293,7 +4293,7 @@ class NDFrame(PandasObject, SelectionMixin):
     -----
     `agg` is an alias for `aggregate`. Use the alias.
 
-    A passed user-defined-funtion will be passed a Series for evaluation.
+    A passed user-defined-function will be passed a Series for evaluation.
     """)
 
     _shared_docs['transform'] = ("""

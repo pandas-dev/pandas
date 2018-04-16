@@ -964,8 +964,8 @@ class _Rolling_and_Expanding(_Rolling):
           If you are just applying a NumPy reduction function this will
           achieve much better performance.
 
-        The raw parameter is required and will show a FutureWarning if
-        not passed. In the future raw will default to False.
+        The `raw` parameter is required and will show a FutureWarning if
+        not passed. In the future `raw` will default to False.
 
         .. versionadded:: 0.23.0
 
@@ -984,11 +984,11 @@ class _Rolling_and_Expanding(_Rolling):
         # change to False in the future
         if raw is None:
             warnings.warn(
-                "`raw` defaults to True "
-                "meaning a nndarray will be passed to the "
-                "applied function. In the future `raw` will default to False "
-                "meaning a Series is passed to the "
-                "applied function", FutureWarning, stacklevel=3)
+                "Currently, 'apply' passes the values as ndarrays to the "
+                "applied function. In the future, this will change to passing "
+                "it as Series objects. You need to specify 'raw=True' to keep "
+                "the current behaviour, and you can pass 'raw=False' to "
+                "silence this warning", FutureWarning, stacklevel=3)
             raw = True
 
         def f(arg, window, min_periods, closed):
