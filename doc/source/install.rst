@@ -223,7 +223,7 @@ installed), make sure you have `pytest
 Dependencies
 ------------
 
-* `setuptools <https://setuptools.readthedocs.io/en/latest/>`__: 3.3.0 or higher
+* `setuptools <https://setuptools.readthedocs.io/en/latest/>`__: 24.2.0 or higher
 * `NumPy <http://www.numpy.org>`__: 1.9.0 or higher
 * `python-dateutil <//https://dateutil.readthedocs.io/en/stable/>`__: 2.5.0 or higher
 * `pytz <http://pytz.sourceforge.net/>`__

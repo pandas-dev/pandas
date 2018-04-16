@@ -11,5 +11,5 @@ dependencies:
   - python-dateutil>=2.5.0
   - python=3
   - pytz
-  - setuptools>=3.3
+  - setuptools>=24.2.0
   - sphinx
