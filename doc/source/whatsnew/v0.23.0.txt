@@ -1221,6 +1221,7 @@ Reshaping
 - Bug in :meth:`DataFrame.astype` where column metadata is lost when converting to categorical or a dictionary of dtypes (:issue:`19920`)
 - Bug in :func:`cut` and :func:`qcut` where timezone information was dropped (:issue:`19872`)
 - Bug in :class:`Series` constructor with a ``dtype=str``, previously raised in some cases (:issue:`19853`)
+- Improved error message when the number of levels in a pivot table is too large causing int32 overflow (:issue:`20601`)
 
 Other
 ^^^^^
