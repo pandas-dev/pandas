@@ -161,6 +161,8 @@ class _Unstacker(object):
         self.full_shape = ngroups, stride
 
         selector = self.sorted_labels[-1] + stride * comp_index + self.lift
+        if np.prod(self.full_shape) > (2 ** 31 - 1):
+            raise ValueError('Pivot table is too big, causing int32 overflow')
         mask = np.zeros(np.prod(self.full_shape), dtype=bool)
         mask.put(selector, True)
 
