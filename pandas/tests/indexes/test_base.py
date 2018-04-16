@@ -127,20 +127,22 @@ class TestIndex(Base):
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("cast_as_obj", [True, False])
-    @pytest.mark.parametrize("idx,has_tz", [
-        (pd.date_range('2015-01-01 10:00', freq='D', periods=3,
-                       tz='US/Eastern'), True),  # datetimetz
-        (pd.timedelta_range('1 days', freq='D', periods=3), False),  # td
-        (pd.period_range('2015-01-01', freq='D', periods=3), False)  # period
+    @pytest.mark.parametrize("idx", [
+        pd.date_range('2015-01-01 10:00', freq='D', periods=3,
+                      tz='US/Eastern'),  # DTI with tz
+        pd.date_range('2015-01-01 10:00', freq='D', periods=3),  # DTI no tz
+        pd.timedelta_range('1 days', freq='D', periods=3),  # td
+        pd.period_range('2015-01-01', freq='D', periods=3)  # period
     ])
-    def test_constructor_from_index_dtlike(self, cast_as_obj, idx, has_tz):
+    def test_constructor_from_index_dtlike(self, cast_as_obj, idx):
         if cast_as_obj:
             result = pd.Index(idx.astype(object))
         else:
             result = pd.Index(idx)
 
         tm.assert_index_equal(result, idx)
-        if has_tz:
+
+        if isinstance(idx, pd.DatetimeIndex) and hasattr(idx, 'tz'):
             assert result.tz == idx.tz
 
     @pytest.mark.parametrize("idx,has_tz", [
@@ -165,30 +167,36 @@ class TestIndex(Base):
         result = klass(s)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("klass", [pd.Series, pd.DataFrame])
-    def test_constructor_from_series_freq(self, klass):
+    def test_constructor_from_series_freq(self):
         # GH 6273
         # create from a series, passing a freq
         dts = ['1-1-1990', '2-1-1990', '3-1-1990', '4-1-1990', '5-1-1990']
         expected = DatetimeIndex(dts, freq='MS')
 
-        if klass is pd.Series:
-            s = Series(pd.to_datetime(dts))
-            result = DatetimeIndex(s, freq='MS')
-        else:
-            df = pd.DataFrame(np.random.rand(5, 3))
-            df['date'] = dts
-            result = DatetimeIndex(df['date'], freq='MS')
-            assert df['date'].dtype == object
+        s = Series(pd.to_datetime(dts))
+        result = DatetimeIndex(s, freq='MS')
 
-            expected.name = 'date'
-            exp = pd.Series(dts, name='date')
-            tm.assert_series_equal(df['date'], exp)
+        tm.assert_index_equal(result, expected)
 
-            # GH 6274
-            # infer freq of same
-            freq = pd.infer_freq(df['date'])
-            assert freq == 'MS'
+    def test_constructor_from_frame_series_freq(self):
+        # GH 6273
+        # create from a series, passing a freq
+        dts = ['1-1-1990', '2-1-1990', '3-1-1990', '4-1-1990', '5-1-1990']
+        expected = DatetimeIndex(dts, freq='MS')
+
+        df = pd.DataFrame(np.random.rand(5, 3))
+        df['date'] = dts
+        result = DatetimeIndex(df['date'], freq='MS')
+        assert df['date'].dtype == object
+
+        expected.name = 'date'
+        exp = pd.Series(dts, name='date')
+        tm.assert_series_equal(df['date'], exp)
+
+        # GH 6274
+        # infer freq of same
+        freq = pd.infer_freq(df['date'])
+        assert freq == 'MS'
 
         tm.assert_index_equal(result, expected)
 
@@ -375,17 +383,17 @@ class TestIndex(Base):
         pd.date_range('2011-01-01', periods=5).values,
         pd.date_range('2011-01-01', periods=5).asi8])
     @pytest.mark.parametrize("klass", [pd.Index, pd.DatetimeIndex])
-    def test_constructor_dtypes_datetime(self, tz_naive_fixture, tz, values, klass):
-        idx = pd.date_range('2011-01-01', periods=5, tz=tz)
+    def test_constructor_dtypes_datetime(self, tz_naive_fixture, values, klass):
+        idx = pd.date_range('2011-01-01', periods=5, tz=tz_naive_fixture)
         dtype = idx.dtype
 
-        res = klass(values, tz=tz)
+        res = klass(values, tz=tz_naive_fixture)
         tm.assert_index_equal(res, idx)
 
         res = klass(values, dtype=dtype)
         tm.assert_index_equal(res, idx)
 
-        res = klass(list(values), tz=tz)
+        res = klass(list(values), tz=tz_naive_fixture)
         tm.assert_index_equal(res, idx)
 
         res = klass(list(values), dtype=dtype)
@@ -482,11 +490,10 @@ class TestIndex(Base):
         null_index = Index([])
         tm.assert_index_equal(Index(['a']), null_index.insert(0, 'a'))
 
-    @pytest.mark.parametrize("na_val", [np.nan, pd.NaT, None])
-    def test_insert_missing(self, na_val):
+    def test_insert_missing(self, nulls_fixture):
         # GH 18295 (test missing)
         expected = Index(['a', np.nan, 'b', 'c'])
-        result = Index(list('abc')).insert(1, na_val)
+        result = Index(list('abc')).insert(1, nulls_fixture)
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("pos,exp", [

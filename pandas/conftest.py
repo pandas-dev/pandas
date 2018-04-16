@@ -1,7 +1,7 @@
 import pytest
 
-import numpy
-import pandas
+import numpy as np
+import pandas as pd
 import pandas.util._test_decorators as td
 
 
@@ -36,15 +36,15 @@ def pytest_runtest_setup(item):
 
 @pytest.fixture(autouse=True)
 def configure_tests():
-    pandas.set_option('chained_assignment', 'raise')
+    pd.set_option('chained_assignment', 'raise')
 
 
 # For running doctests: make np and pd names available
 
 @pytest.fixture(autouse=True)
 def add_imports(doctest_namespace):
-    doctest_namespace['np'] = numpy
-    doctest_namespace['pd'] = pandas
+    doctest_namespace['np'] = np
+    doctest_namespace['pd'] = pd
 
 
 @pytest.fixture(params=['bsr', 'coo', 'csc', 'csr', 'dia', 'dok', 'lil'])
@@ -89,12 +89,12 @@ def join_type(request):
     return request.param
 
 
-@pytest.fixture(params=[numpy.nan, pandas.NaT])
+@pytest.fixture(params=[None, np.nan, pd.NaT])
 def nulls_fixture(request):
     """
     Fixture for each null type in pandas
     """
-    return request.param    
+    return request.param
 
 
 TIMEZONES = [None, 'UTC', 'US/Eastern', 'Asia/Tokyo', 'dateutil/US/Pacific']
