@@ -49,3 +49,4 @@ from .interface import BaseInterfaceTests  # noqa
 from .methods import BaseMethodsTests  # noqa
 from .missing import BaseMissingTests  # noqa
 from .reshaping import BaseReshapingTests  # noqa
+from .setitem import BaseSetitemTests  # noqa
