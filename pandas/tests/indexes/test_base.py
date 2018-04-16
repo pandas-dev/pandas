@@ -361,7 +361,7 @@ class TestIndex(Base):
         np.array([np.timedelta64(1, 'D'), np.timedelta64(1, 'D')]),
         [timedelta(1), timedelta(1)]
     ])
-    def test_constructor_dyptes_to_timedelta(self, cast_idx, vals):
+    def test_constructor_dtypes_to_timedelta(self, cast_idx, vals):
         if cast_idx:
             idx = Index(vals, dtype=object)
             assert isinstance(idx, Index)
@@ -370,14 +370,12 @@ class TestIndex(Base):
             idx = Index(vals)
             assert isinstance(idx, TimedeltaIndex)
 
-    @pytest.mark.parametrize("tz", [
-        None, 'UTC', 'US/Eastern', 'Asia/Tokyo'])
     @pytest.mark.parametrize("values", [
         # pass values without timezone, as DatetimeIndex localizes it
         pd.date_range('2011-01-01', periods=5).values,
         pd.date_range('2011-01-01', periods=5).asi8])
     @pytest.mark.parametrize("klass", [pd.Index, pd.DatetimeIndex])
-    def test_constructor_dtypes_datetime(self, tz, values, klass):
+    def test_constructor_dtypes_datetime(self, tz_naive_fixture, tz, values, klass):
         idx = pd.date_range('2011-01-01', periods=5, tz=tz)
         dtype = idx.dtype
 

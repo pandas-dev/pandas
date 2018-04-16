@@ -94,4 +94,25 @@ def nulls_fixture(request):
     """
     Fixture for each null type in pandas
     """
+    return request.param    
+
+
+TIMEZONES = [None, 'UTC', 'US/Eastern', 'Asia/Tokyo', 'dateutil/US/Pacific']
+
+
+@td.parametrize_fixture_doc(str(TIMEZONES))
+@pytest.fixture(params=TIMEZONES)
+def tz_naive_fixture(request):
+    """
+    Fixture for trying timezones including default (None): {0}
+    """
+    return request.param
+
+
+@td.parametrize_fixture_doc(str(TIMEZONES[1:]))
+@pytest.fixture(params=TIMEZONES[1:])
+def tz_aware_fixture(request):
+    """
+    Fixture for trying explicit timezones: {0}
+    """
     return request.param

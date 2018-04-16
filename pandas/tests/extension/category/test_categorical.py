@@ -85,6 +85,10 @@ class TestGetitem(base.BaseGetitemTests):
         pass
 
 
+class TestSetitem(base.BaseSetitemTests):
+    pass
+
+
 class TestMissing(base.BaseMissingTests):
 
     @pytest.mark.skip(reason="Not implemented")

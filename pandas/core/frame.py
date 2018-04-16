@@ -1311,7 +1311,7 @@ class DataFrame(NDFrame):
 
         return cls(mgr)
 
-    def to_records(self, index=True, convert_datetime64=True):
+    def to_records(self, index=True, convert_datetime64=None):
         """
         Convert DataFrame to a NumPy record array.
 
@@ -1322,7 +1322,9 @@ class DataFrame(NDFrame):
         ----------
         index : boolean, default True
             Include index in resulting record array, stored in 'index' field.
-        convert_datetime64 : boolean, default True
+        convert_datetime64 : boolean, default None
+            .. deprecated:: 0.23.0
+
             Whether to convert the index to datetime.datetime if it is a
             DatetimeIndex.
 
@@ -1376,6 +1378,13 @@ class DataFrame(NDFrame):
                    ('2018-01-01T09:01:00.000000000', 2, 0.75)],
                   dtype=[('index', '<M8[ns]'), ('A', '<i8'), ('B', '<f8')])
         """
+
+        if convert_datetime64 is not None:
+            warnings.warn("The 'convert_datetime64' parameter is "
+                          "deprecated and will be removed in a future "
+                          "version",
+                          FutureWarning, stacklevel=2)
+
         if index:
             if is_datetime64_any_dtype(self.index) and convert_datetime64:
                 ix_vals = [self.index.to_pydatetime()]
@@ -3168,7 +3177,8 @@ class DataFrame(NDFrame):
     def assign(self, **kwargs):
         r"""
         Assign new columns to a DataFrame, returning a new object
-        (a copy) with all the original columns in addition to the new ones.
+        (a copy) with the new columns added to the original ones.
+        Existing columns that are re-assigned will be overwritten.
 
         Parameters
         ----------
@@ -3321,7 +3331,11 @@ class DataFrame(NDFrame):
             value = reindexer(value).T
 
         elif isinstance(value, ExtensionArray):
+            from pandas.core.series import _sanitize_index
+            # Explicitly copy here, instead of in _sanitize_index,
+            # as sanitize_index won't copy an EA, even with copy=True
             value = value.copy()
+            value = _sanitize_index(value, self.index, copy=False)
 
         elif isinstance(value, Index) or is_sequence(value):
             from pandas.core.series import _sanitize_index

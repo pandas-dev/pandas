@@ -511,13 +511,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                             'different timezones')
 
         inferred_tz = timezones.maybe_get_tz(inferred_tz)
-
-        # these may need to be localized
         tz = timezones.maybe_get_tz(tz)
-        if tz is not None:
-            date = start or end
-            if date.tzinfo is not None and hasattr(tz, 'localize'):
-                tz = tz.localize(date.replace(tzinfo=None)).tzinfo
 
         if tz is not None and inferred_tz is not None:
             if not timezones.tz_compare(inferred_tz, tz):
@@ -654,7 +648,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         result._data = values
         result.name = name
         result.offset = freq
-        result.tz = timezones.maybe_get_tz(tz)
+        result._tz = timezones.maybe_get_tz(tz)
+        result._tz = timezones.tz_standardize(result._tz)
         result._reset_identity()
         return result
 
@@ -683,6 +678,17 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             return self
         else:
             return self.values
+
+    @property
+    def tz(self):
+        # GH 18595
+        return self._tz
+
+    @tz.setter
+    def tz(self, value):
+        # GH 3746: Prevent localizing or converting the index by setting tz
+        raise AttributeError("Cannot directly set timezone. Use tz_localize() "
+                             "or tz_convert() as appropriate")
 
     @property
     def tzinfo(self):
@@ -754,7 +760,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
             cachedRange = DatetimeIndex._simple_new(arr)
             cachedRange.offset = offset
-            cachedRange.tz = None
+            cachedRange = cachedRange.tz_localize(None)
             cachedRange.name = None
             drc[offset] = cachedRange
         else:
@@ -831,7 +837,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
                 self.name = own_state[0]
                 self.offset = own_state[1]
-                self.tz = own_state[2]
+                self._tz = timezones.tz_standardize(own_state[2])
 
                 # provide numpy < 1.7 compat
                 if nd_state[2] == 'M8[us]':
@@ -1175,7 +1181,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         else:
             result = Index.union(this, other)
             if isinstance(result, DatetimeIndex):
-                result.tz = this.tz
+                result._tz = timezones.tz_standardize(this.tz)
                 if (result.freq is None and
                         (this.freq is not None or other.freq is not None)):
                     result.offset = to_offset(result.inferred_freq)
@@ -1223,7 +1229,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 tz = this.tz
                 this = Index.union(this, other)
                 if isinstance(this, DatetimeIndex):
-                    this.tz = tz
+                    this._tz = timezones.tz_standardize(tz)
 
         if this.freq is None:
             this.offset = to_offset(this.inferred_freq)
