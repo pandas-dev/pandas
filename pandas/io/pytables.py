@@ -887,7 +887,10 @@ class HDFStore(StringMixin):
         where = _ensure_term(where, scope_level=1)
         try:
             s = self.get_storer(key)
-        except:
+        except KeyError:
+            # the key is not a valid store, re-raising KeyError
+            raise
+        except Exception:
 
             if where is not None:
                 raise ValueError(
@@ -898,9 +901,6 @@ class HDFStore(StringMixin):
             if s is not None:
                 s._f_remove(recursive=True)
                 return None
-
-        if s is None:
-            raise KeyError('No object named %s in the file' % key)
 
         # remove the node
         if com._all_none(where, start, stop):
@@ -1073,10 +1073,11 @@ class HDFStore(StringMixin):
         self._check_if_open()
         return [
             g for g in self._handle.walk_nodes()
-            if (getattr(g._v_attrs, 'pandas_type', None) or
-                getattr(g, 'table', None) or
+            if (not isinstance(g, _table_mod.link.Link) and
+                (getattr(g._v_attrs, 'pandas_type', None) or
+                 getattr(g, 'table', None) or
                 (isinstance(g, _table_mod.table.Table) and
-                 g._v_name != u('table')))
+                 g._v_name != u('table'))))
         ]
 
     def get_node(self, key):
@@ -1093,7 +1094,8 @@ class HDFStore(StringMixin):
         """ return the storer object for a key, raise if not in the file """
         group = self.get_node(key)
         if group is None:
-            return None
+            raise KeyError('No object named {} in the file'.format(key))
+
         s = self._create_storer(group)
         s.infer_axes()
         return s

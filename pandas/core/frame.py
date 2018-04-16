@@ -27,6 +27,7 @@ from pandas.core.accessor import CachedAccessor
 from pandas.core.dtypes.cast import (
     maybe_upcast,
     cast_scalar_to_array,
+    construct_1d_arraylike_from_scalar,
     maybe_cast_to_datetime,
     maybe_infer_to_datetimelike,
     maybe_convert_platform,
@@ -429,44 +430,27 @@ class DataFrame(NDFrame):
         Needs to handle a lot of exceptional cases.
         """
         if columns is not None:
-            columns = _ensure_index(columns)
+            arrays = Series(data, index=columns, dtype=object)
+            data_names = arrays.index
 
-            # GH10856
-            # raise ValueError if only scalars in dict
+            missing = arrays.isnull()
             if index is None:
-                extract_index(list(data.values()))
-
-            # prefilter if columns passed
-            data = {k: v for k, v in compat.iteritems(data) if k in columns}
-
-            if index is None:
-                index = extract_index(list(data.values()))
-
+                # GH10856
+                # raise ValueError if only scalars in dict
+                index = extract_index(arrays[~missing])
             else:
                 index = _ensure_index(index)
 
-            arrays = []
-            data_names = []
-            for k in columns:
-                if k not in data:
-                    # no obvious "empty" int column
-                    if dtype is not None and issubclass(dtype.type,
-                                                        np.integer):
-                        continue
-
-                    if dtype is None:
-                        # 1783
-                        v = np.empty(len(index), dtype=object)
-                    elif np.issubdtype(dtype, np.flexible):
-                        v = np.empty(len(index), dtype=object)
-                    else:
-                        v = np.empty(len(index), dtype=dtype)
-
-                    v.fill(np.nan)
+            # no obvious "empty" int column
+            if missing.any() and not is_integer_dtype(dtype):
+                if dtype is None or np.issubdtype(dtype, np.flexible):
+                    # 1783
+                    nan_dtype = object
                 else:
-                    v = data[k]
-                data_names.append(k)
-                arrays.append(v)
+                    nan_dtype = dtype
+                v = construct_1d_arraylike_from_scalar(np.nan, len(index),
+                                                       nan_dtype)
+                arrays.loc[missing] = [v] * missing.sum()
 
         else:
             keys = com._dict_keys_to_ordered_list(data)
@@ -1116,60 +1100,90 @@ class DataFrame(NDFrame):
         else:
             raise ValueError("orient '%s' not understood" % orient)
 
-    def to_gbq(self, destination_table, project_id, chunksize=10000,
-               verbose=True, reauth=False, if_exists='fail', private_key=None):
-        """Write a DataFrame to a Google BigQuery table.
+    def to_gbq(self, destination_table, project_id, chunksize=None,
+               verbose=None, reauth=False, if_exists='fail', private_key=None,
+               auth_local_webserver=False, table_schema=None):
+        """
+        Write a DataFrame to a Google BigQuery table.
 
-        The main method a user calls to export pandas DataFrame contents to
-        Google BigQuery table.
-
-        Google BigQuery API Client Library v2 for Python is used.
-        Documentation is available `here
-        <https://developers.google.com/api-client-library/python/apis/bigquery/v2>`__
+        This function requires the `pandas-gbq package
+        <https://pandas-gbq.readthedocs.io>`__.
 
         Authentication to the Google BigQuery service is via OAuth 2.0.
 
-        - If "private_key" is not provided:
+        - If ``private_key`` is provided, the library loads the JSON service
+          account credentials and uses those to authenticate.
 
-          By default "application default credentials" are used.
+        - If no ``private_key`` is provided, the library tries `application
+          default credentials`_.
 
-          If default application credentials are not found or are restrictive,
-          user account credentials are used. In this case, you will be asked to
-          grant permissions for product name 'pandas GBQ'.
+          .. _application default credentials:
+              https://cloud.google.com/docs/authentication/production#providing_credentials_to_your_application
 
-        - If "private_key" is provided:
-
-          Service account credentials will be used to authenticate.
+        - If application default credentials are not found or cannot be used
+          with BigQuery, the library authenticates with user account
+          credentials. In this case, you will be asked to grant permissions
+          for product name 'pandas GBQ'.
 
         Parameters
         ----------
-        dataframe : DataFrame
-            DataFrame to be written
-        destination_table : string
-            Name of table to be written, in the form 'dataset.tablename'
+        destination_table : str
+            Name of table to be written, in the form 'dataset.tablename'.
         project_id : str
             Google BigQuery Account project ID.
-        chunksize : int (default 10000)
+        chunksize : int, optional
             Number of rows to be inserted in each chunk from the dataframe.
-        verbose : boolean (default True)
-            Show percentage complete
-        reauth : boolean (default False)
+            Set to ``None`` to load the whole dataframe at once.
+        reauth : bool, default False
             Force Google BigQuery to reauthenticate the user. This is useful
             if multiple accounts are used.
-        if_exists : {'fail', 'replace', 'append'}, default 'fail'
-            'fail': If table exists, do nothing.
-            'replace': If table exists, drop it, recreate it, and insert data.
-            'append': If table exists, insert data. Create if does not exist.
-        private_key : str (optional)
+        if_exists : str, default 'fail'
+            Behavior when the destination table exists. Value can be one of:
+
+            ``'fail'``
+                If table exists, do nothing.
+            ``'replace'``
+                If table exists, drop it, recreate it, and insert data.
+            ``'append'``
+                If table exists, insert data. Create if does not exist.
+        private_key : str, optional
             Service account private key in JSON format. Can be file path
             or string contents. This is useful for remote server
-            authentication (eg. Jupyter/IPython notebook on remote host)
-        """
+            authentication (eg. Jupyter/IPython notebook on remote host).
+        auth_local_webserver : bool, default False
+            Use the `local webserver flow`_ instead of the `console flow`_
+            when getting user credentials.
 
+            .. _local webserver flow:
+                http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_local_server
+            .. _console flow:
+                http://google-auth-oauthlib.readthedocs.io/en/latest/reference/google_auth_oauthlib.flow.html#google_auth_oauthlib.flow.InstalledAppFlow.run_console
+
+            *New in version 0.2.0 of pandas-gbq*.
+        table_schema : list of dicts, optional
+            List of BigQuery table fields to which according DataFrame
+            columns conform to, e.g. ``[{'name': 'col1', 'type':
+            'STRING'},...]``. If schema is not provided, it will be
+            generated according to dtypes of DataFrame columns. See
+            BigQuery API documentation on available names of a field.
+
+            *New in version 0.3.1 of pandas-gbq*.
+        verbose : boolean, deprecated
+            *Deprecated in Pandas-GBQ 0.4.0.* Use the `logging module
+            to adjust verbosity instead
+            <https://pandas-gbq.readthedocs.io/en/latest/intro.html#logging>`__.
+
+        See Also
+        --------
+        pandas_gbq.to_gbq : This function in the pandas-gbq library.
+        pandas.read_gbq : Read a DataFrame from Google BigQuery.
+        """
         from pandas.io import gbq
-        return gbq.to_gbq(self, destination_table, project_id=project_id,
-                          chunksize=chunksize, verbose=verbose, reauth=reauth,
-                          if_exists=if_exists, private_key=private_key)
+        return gbq.to_gbq(
+            self, destination_table, project_id, chunksize=chunksize,
+            verbose=verbose, reauth=reauth, if_exists=if_exists,
+            private_key=private_key, auth_local_webserver=auth_local_webserver,
+            table_schema=table_schema)
 
     @classmethod
     def from_records(cls, data, index=None, exclude=None, columns=None,
@@ -1297,7 +1311,7 @@ class DataFrame(NDFrame):
 
         return cls(mgr)
 
-    def to_records(self, index=True, convert_datetime64=True):
+    def to_records(self, index=True, convert_datetime64=None):
         """
         Convert DataFrame to a NumPy record array.
 
@@ -1308,7 +1322,9 @@ class DataFrame(NDFrame):
         ----------
         index : boolean, default True
             Include index in resulting record array, stored in 'index' field.
-        convert_datetime64 : boolean, default True
+        convert_datetime64 : boolean, default None
+            .. deprecated:: 0.23.0
+
             Whether to convert the index to datetime.datetime if it is a
             DatetimeIndex.
 
@@ -1362,6 +1378,13 @@ class DataFrame(NDFrame):
                    ('2018-01-01T09:01:00.000000000', 2, 0.75)],
                   dtype=[('index', '<M8[ns]'), ('A', '<i8'), ('B', '<f8')])
         """
+
+        if convert_datetime64 is not None:
+            warnings.warn("The 'convert_datetime64' parameter is "
+                          "deprecated and will be removed in a future "
+                          "version",
+                          FutureWarning, stacklevel=2)
+
         if index:
             if is_datetime64_any_dtype(self.index) and convert_datetime64:
                 ix_vals = [self.index.to_pydatetime()]
@@ -3154,7 +3177,8 @@ class DataFrame(NDFrame):
     def assign(self, **kwargs):
         r"""
         Assign new columns to a DataFrame, returning a new object
-        (a copy) with all the original columns in addition to the new ones.
+        (a copy) with the new columns added to the original ones.
+        Existing columns that are re-assigned will be overwritten.
 
         Parameters
         ----------
@@ -3307,7 +3331,11 @@ class DataFrame(NDFrame):
             value = reindexer(value).T
 
         elif isinstance(value, ExtensionArray):
+            from pandas.core.series import _sanitize_index
+            # Explicitly copy here, instead of in _sanitize_index,
+            # as sanitize_index won't copy an EA, even with copy=True
             value = value.copy()
+            value = _sanitize_index(value, self.index, copy=False)
 
         elif isinstance(value, Index) or is_sequence(value):
             from pandas.core.series import _sanitize_index
@@ -7229,8 +7257,6 @@ def _arrays_to_mgr(arrays, arr_names, index, columns, dtype=None):
     # figure out the index, if necessary
     if index is None:
         index = extract_index(arrays)
-    else:
-        index = _ensure_index(index)
 
     # don't force copy because getting jammed in an ndarray anyway
     arrays = _homogenize(arrays, index, dtype)

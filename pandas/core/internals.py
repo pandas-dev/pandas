@@ -66,7 +66,7 @@ import pandas.core.common as com
 import pandas.core.algorithms as algos
 
 from pandas.core.index import Index, MultiIndex, _ensure_index
-from pandas.core.indexing import maybe_convert_indices, length_of_indexer
+from pandas.core.indexing import maybe_convert_indices, check_setitem_lengths
 from pandas.core.arrays import Categorical
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
@@ -655,7 +655,7 @@ class Block(PandasObject):
 
                     # astype formatting
                     else:
-                        values = self.values
+                        values = self.get_values()
 
                 else:
                     values = self.get_values(dtype=dtype)
@@ -817,11 +817,24 @@ class Block(PandasObject):
         return self if kwargs['inplace'] else self.copy()
 
     def setitem(self, indexer, value, mgr=None):
-        """ set the value inplace; return a new block (of a possibly different
-        dtype)
+        """Set the value inplace, returning a a maybe different typed block.
 
-        indexer is a direct slice/positional indexer; value must be a
-        compatible shape
+        Parameters
+        ----------
+        indexer : tuple, list-like, array-like, slice
+            The subset of self.values to set
+        value : object
+            The value being set
+        mgr : BlockPlacement, optional
+
+        Returns
+        -------
+        Block
+
+        Notes
+        -----
+        `indexer` is a direct slice/positional indexer. `value` must
+        be a compatible shape.
         """
         # coerce None values, if appropriate
         if value is None:
@@ -876,22 +889,7 @@ class Block(PandasObject):
         values = transf(values)
 
         # length checking
-        # boolean with truth values == len of the value is ok too
-        if isinstance(indexer, (np.ndarray, list)):
-            if is_list_like(value) and len(indexer) != len(value):
-                if not (isinstance(indexer, np.ndarray) and
-                        indexer.dtype == np.bool_ and
-                        len(indexer[indexer]) == len(value)):
-                    raise ValueError("cannot set using a list-like indexer "
-                                     "with a different length than the value")
-
-        # slice
-        elif isinstance(indexer, slice):
-
-            if is_list_like(value) and len(values):
-                if len(value) != length_of_indexer(indexer, values):
-                    raise ValueError("cannot set using a slice indexer with a "
-                                     "different length than the value")
+        check_setitem_lengths(indexer, value, values)
 
         def _is_scalar_indexer(indexer):
             # return True if we are all scalar indexers
@@ -1899,6 +1897,37 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
     def is_view(self):
         """Extension arrays are never treated as views."""
         return False
+
+    def setitem(self, indexer, value, mgr=None):
+        """Set the value inplace, returning a same-typed block.
+
+        This differs from Block.setitem by not allowing setitem to change
+        the dtype of the Block.
+
+        Parameters
+        ----------
+        indexer : tuple, list-like, array-like, slice
+            The subset of self.values to set
+        value : object
+            The value being set
+        mgr : BlockPlacement, optional
+
+        Returns
+        -------
+        Block
+
+        Notes
+        -----
+        `indexer` is a direct slice/positional indexer. `value` must
+        be a compatible shape.
+        """
+        if isinstance(indexer, tuple):
+            # we are always 1-D
+            indexer = indexer[0]
+
+        check_setitem_lengths(indexer, value, self.values)
+        self.values[indexer] = value
+        return self
 
     def get_values(self, dtype=None):
         # ExtensionArrays must be iterable, so this works.
@@ -3519,7 +3548,8 @@ class BlockManager(PandasObject):
         # with a .values attribute.
         aligned_args = dict((k, kwargs[k])
                             for k in align_keys
-                            if hasattr(kwargs[k], 'values'))
+                            if hasattr(kwargs[k], 'values') and
+                            not isinstance(kwargs[k], ABCExtensionArray))
 
         for b in self.blocks:
             if filter is not None:
@@ -4841,7 +4871,7 @@ def form_blocks(arrays, names, axes):
     items_dict = defaultdict(list)
     extra_locs = []
 
-    names_idx = Index(names)
+    names_idx = _ensure_index(names)
     if names_idx.equals(axes[0]):
         names_indexer = np.arange(len(names_idx))
     else:
@@ -5220,7 +5250,7 @@ def _safe_reshape(arr, new_shape):
     If possible, reshape `arr` to have shape `new_shape`,
     with a couple of exceptions (see gh-13012):
 
-    1) If `arr` is a Categorical or Index, `arr` will be
+    1) If `arr` is a ExtensionArray or Index, `arr` will be
        returned as is.
     2) If `arr` is a Series, the `_values` attribute will
        be reshaped and returned.
