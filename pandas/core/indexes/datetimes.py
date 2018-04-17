@@ -208,9 +208,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
           times)
         - 'NaT' will return NaT where there are ambiguous times
         - 'raise' will raise an AmbiguousTimeError if there are ambiguous times
-    infer_dst : boolean, default False
-        .. deprecated:: 0.15.0
-           Attempt to infer fall dst-transition hours based on order
     name : object
         Name to be stored in the index
     dayfirst : bool, default False
@@ -329,8 +326,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     _is_numeric_dtype = False
     _infer_as_myclass = True
 
-    @deprecate_kwarg(old_arg_name='infer_dst', new_arg_name='ambiguous',
-                     mapping={True: 'infer', False: 'raise'})
     def __new__(cls, data=None,
                 freq=None, start=None, end=None, periods=None, tz=None,
                 normalize=False, closed=None, ambiguous='raise',
@@ -516,13 +511,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                             'different timezones')
 
         inferred_tz = timezones.maybe_get_tz(inferred_tz)
-
-        # these may need to be localized
         tz = timezones.maybe_get_tz(tz)
-        if tz is not None:
-            date = start or end
-            if date.tzinfo is not None and hasattr(tz, 'localize'):
-                tz = tz.localize(date.replace(tzinfo=None)).tzinfo
 
         if tz is not None and inferred_tz is not None:
             if not timezones.tz_compare(inferred_tz, tz):
@@ -659,7 +648,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         result._data = values
         result.name = name
         result.offset = freq
-        result.tz = timezones.maybe_get_tz(tz)
+        result._tz = timezones.maybe_get_tz(tz)
+        result._tz = timezones.tz_standardize(result._tz)
         result._reset_identity()
         return result
 
@@ -688,6 +678,17 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             return self
         else:
             return self.values
+
+    @property
+    def tz(self):
+        # GH 18595
+        return self._tz
+
+    @tz.setter
+    def tz(self, value):
+        # GH 3746: Prevent localizing or converting the index by setting tz
+        raise AttributeError("Cannot directly set timezone. Use tz_localize() "
+                             "or tz_convert() as appropriate")
 
     @property
     def tzinfo(self):
@@ -759,7 +760,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
             cachedRange = DatetimeIndex._simple_new(arr)
             cachedRange.offset = offset
-            cachedRange.tz = None
+            cachedRange = cachedRange.tz_localize(None)
             cachedRange.name = None
             drc[offset] = cachedRange
         else:
@@ -836,7 +837,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
                 self.name = own_state[0]
                 self.offset = own_state[1]
-                self.tz = own_state[2]
+                self._tz = timezones.tz_standardize(own_state[2])
 
                 # provide numpy < 1.7 compat
                 if nd_state[2] == 'M8[us]':
@@ -1180,7 +1181,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         else:
             result = Index.union(this, other)
             if isinstance(result, DatetimeIndex):
-                result.tz = this.tz
+                result._tz = timezones.tz_standardize(this.tz)
                 if (result.freq is None and
                         (this.freq is not None or other.freq is not None)):
                     result.offset = to_offset(result.inferred_freq)
@@ -1228,7 +1229,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 tz = this.tz
                 this = Index.union(this, other)
                 if isinstance(this, DatetimeIndex):
-                    this.tz = tz
+                    this._tz = timezones.tz_standardize(tz)
 
         if this.freq is None:
             this.offset = to_offset(this.inferred_freq)
@@ -2270,8 +2271,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         # No conversion since timestamps are all UTC to begin with
         return self._shallow_copy(tz=tz)
 
-    @deprecate_kwarg(old_arg_name='infer_dst', new_arg_name='ambiguous',
-                     mapping={True: 'infer', False: 'raise'})
     def tz_localize(self, tz, ambiguous='raise', errors='raise'):
         """
         Localize tz-naive DatetimeIndex to tz-aware DatetimeIndex.
@@ -2305,10 +2304,6 @@ default 'raise'
               to the specified time zone
 
             .. versionadded:: 0.19.0
-
-        infer_dst : boolean, default False
-            .. deprecated:: 0.15.0
-               Attempt to infer fall dst-transition hours based on order
 
         Returns
         -------

@@ -31,10 +31,17 @@ class DecimalArray(ExtensionArray):
         values = np.asarray(values, dtype=object)
 
         self.values = values
+        # Some aliases for common attribute names to ensure pandas supports
+        # these
+        self._items = self._data = self.data = self.values
 
     @classmethod
     def _constructor_from_sequence(cls, scalars):
         return cls(scalars)
+
+    @classmethod
+    def _from_factorized(cls, values, original):
+        return cls(values)
 
     def __getitem__(self, item):
         if isinstance(item, numbers.Integral):
@@ -58,7 +65,7 @@ class DecimalArray(ExtensionArray):
         return len(self.values)
 
     def __repr__(self):
-        return repr(self.values)
+        return 'DecimalArray({!r})'.format(self.values)
 
     @property
     def nbytes(self):

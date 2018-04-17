@@ -1814,9 +1814,9 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionadded:: 0.19.0
 
-        compression : {None, 'gzip', 'bz2', 'xz'}
+        compression : {None, 'gzip', 'bz2', 'zip', 'xz'}
             A string representing the compression to use in the output file,
-            only used when the first argument is a filename
+            only used when the first argument is a filename.
 
             .. versionadded:: 0.21.0
 
@@ -1900,7 +1900,7 @@ class NDFrame(PandasObject, SelectionMixin):
         In order to add another DataFrame or Series to an existing HDF file
         please use append mode and a different a key.
 
-        For more information see the :ref:`user guide <io.html#io-hdf5>`.
+        For more information see the :ref:`user guide <io.hdf5>`.
 
         Parameters
         ----------
@@ -1929,8 +1929,7 @@ class NDFrame(PandasObject, SelectionMixin):
         data_columns :  list of columns or True, optional
             List of columns to create as indexed data columns for on-disk
             queries, or True to use all columns. By default only the axes
-            of the object are indexed. See `here
-            <http://pandas.pydata.org/pandas-docs/stable/io.html#query-via-data-columns>`__.
+            of the object are indexed. See :ref:`io.hdf5-query-data-columns`.
             Applicable only to format='table'.
         complevel : {0-9}, optional
             Specifies a compression level for data.
@@ -2133,14 +2132,15 @@ class NDFrame(PandasObject, SelectionMixin):
         ----------
         path : str
             File path where the pickled object will be stored.
-        compression : {'infer', 'gzip', 'bz2', 'xz', None}, default 'infer'
+        compression : {'infer', 'gzip', 'bz2', 'zip', 'xz', None}, \
+        default 'infer'
             A string representing the compression to use in the output file. By
             default, infers from the file extension in specified path.
 
             .. versionadded:: 0.20.0
         protocol : int
             Int which indicates which protocol should be used by the pickler,
-            default HIGHEST_PROTOCOL (see [1], paragraph 12.1.2). The possible
+            default HIGHEST_PROTOCOL (see [1]_ paragraph 12.1.2). The possible
             values for this parameter depend on the version of Python. For
             Python 2.x, possible values are 0, 1, 2. For Python>=3.0, 3 is a
             valid value. For Python >= 3.4, 4 is a valid value. A negative
@@ -4292,6 +4292,8 @@ class NDFrame(PandasObject, SelectionMixin):
     Notes
     -----
     `agg` is an alias for `aggregate`. Use the alias.
+
+    A passed user-defined-function will be passed a Series for evaluation.
     """)
 
     _shared_docs['transform'] = ("""
@@ -4725,6 +4727,8 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Return counts of unique ftypes in this object.
 
+        .. deprecated:: 0.23.0
+
         This is useful for SparseDataFrame or for DataFrames containing
         sparse arrays.
 
@@ -4755,6 +4759,10 @@ class NDFrame(PandasObject, SelectionMixin):
         object:dense     1
         dtype: int64
         """
+        warnings.warn("get_ftype_counts is deprecated and will "
+                      "be removed in a future version",
+                      FutureWarning, stacklevel=2)
+
         from pandas import Series
         return Series(self._data.get_ftype_counts())
 
@@ -5004,22 +5012,108 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def copy(self, deep=True):
         """
-        Make a copy of this objects data.
+        Make a copy of this object's indices and data.
+
+        When ``deep=True`` (default), a new object will be created with a
+        copy of the calling object's data and indices. Modifications to
+        the data or indices of the copy will not be reflected in the
+        original object (see notes below).
+
+        When ``deep=False``, a new object will be created without copying
+        the calling object's data or index (only references to the data
+        and index are copied). Any changes to the data of the original
+        will be reflected in the shallow copy (and vice versa).
 
         Parameters
         ----------
-        deep : boolean or string, default True
+        deep : bool, default True
             Make a deep copy, including a copy of the data and the indices.
-            With ``deep=False`` neither the indices or the data are copied.
-
-            Note that when ``deep=True`` data is copied, actual python objects
-            will not be copied recursively, only the reference to the object.
-            This is in contrast to ``copy.deepcopy`` in the Standard Library,
-            which recursively copies object data.
+            With ``deep=False`` neither the indices nor the data are copied.
 
         Returns
         -------
-        copy : type of caller
+        copy : Series, DataFrame or Panel
+            Object type matches caller.
+
+        Notes
+        -----
+        When ``deep=True``, data is copied but actual Python objects
+        will not be copied recursively, only the reference to the object.
+        This is in contrast to `copy.deepcopy` in the Standard Library,
+        which recursively copies object data (see examples below).
+
+        While ``Index`` objects are copied when ``deep=True``, the underlying
+        numpy array is not copied for performance reasons. Since ``Index`` is
+        immutable, the underlying data can be safely shared and a copy
+        is not needed.
+
+        Examples
+        --------
+        >>> s = pd.Series([1, 2], index=["a", "b"])
+        >>> s
+        a    1
+        b    2
+        dtype: int64
+
+        >>> s_copy = s.copy()
+        >>> s_copy
+        a    1
+        b    2
+        dtype: int64
+
+        **Shallow copy versus default (deep) copy:**
+
+        >>> s = pd.Series([1, 2], index=["a", "b"])
+        >>> deep = s.copy()
+        >>> shallow = s.copy(deep=False)
+
+        Shallow copy shares data and index with original.
+
+        >>> s is shallow
+        False
+        >>> s.values is shallow.values and s.index is shallow.index
+        True
+
+        Deep copy has own copy of data and index.
+
+        >>> s is deep
+        False
+        >>> s.values is deep.values or s.index is deep.index
+        False
+
+        Updates to the data shared by shallow copy and original is reflected
+        in both; deep copy remains unchanged.
+
+        >>> s[0] = 3
+        >>> shallow[1] = 4
+        >>> s
+        a    3
+        b    4
+        dtype: int64
+        >>> shallow
+        a    3
+        b    4
+        dtype: int64
+        >>> deep
+        a    1
+        b    2
+        dtype: int64
+
+        Note that when copying an object containing Python objects, a deep copy
+        will copy the data, but will not do so recursively. Updating a nested
+        data object will be reflected in the deep copy.
+
+        >>> s = pd.Series([[1, 2], [3, 4]])
+        >>> deep = s.copy()
+        >>> s[0][0] = 10
+        >>> s
+        0    [10, 2]
+        1     [3, 4]
+        dtype: object
+        >>> deep
+        0    [10, 2]
+        1     [3, 4]
+        dtype: object
         """
         data = self._data.copy(deep=deep)
         return self._constructor(data).__finalize__(self)
@@ -5159,7 +5253,9 @@ class NDFrame(PandasObject, SelectionMixin):
     # ----------------------------------------------------------------------
     # Filling NA's
 
-    _shared_docs['fillna'] = ("""
+    def fillna(self, value=None, method=None, axis=None, inplace=False,
+               limit=None, downcast=None):
+        """
         Fill NA/NaN values using the specified method
 
         Parameters
@@ -5250,11 +5346,7 @@ class NDFrame(PandasObject, SelectionMixin):
         1   3.0 4.0 NaN 1
         2   NaN 1.0 NaN 5
         3   NaN 3.0 NaN 4
-        """)
-
-    @Appender(_shared_docs['fillna'] % _shared_doc_kwargs)
-    def fillna(self, value=None, method=None, axis=None, inplace=False,
-               limit=None, downcast=None):
+        """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         value, method = validate_fillna_kwargs(value, method)
 
@@ -6499,7 +6591,7 @@ class NDFrame(PandasObject, SelectionMixin):
         resample : Convenience method for frequency conversion and resampling
             of time series.
         """
-        from pandas.core.groupby import groupby
+        from pandas.core.groupby.groupby import groupby
 
         if level is None and by is None:
             raise TypeError("You have to supply one of 'by' and 'level'")
@@ -7251,7 +7343,6 @@ class NDFrame(PandasObject, SelectionMixin):
                 if not is_bool_dtype(dt):
                     raise ValueError(msg.format(dtype=dt))
 
-        cond = cond.astype(bool, copy=False)
         cond = -cond if inplace else cond
 
         # try to align with other
@@ -7850,9 +7941,6 @@ class NDFrame(PandasObject, SelectionMixin):
         result.set_axis(ax, axis=axis, inplace=True)
         return result.__finalize__(self)
 
-    @deprecate_kwarg(old_arg_name='infer_dst', new_arg_name='ambiguous',
-                     mapping={True: 'infer',
-                              False: 'raise'})
     def tz_localize(self, tz, axis=0, level=None, copy=True,
                     ambiguous='raise'):
         """
@@ -7876,9 +7964,6 @@ class NDFrame(PandasObject, SelectionMixin):
             - 'NaT' will return NaT where there are ambiguous times
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
-        infer_dst : boolean, default False
-            .. deprecated:: 0.15.0
-               Attempt to infer fall dst-transition hours based on order
 
         Returns
         -------
@@ -8678,6 +8763,51 @@ class NDFrame(PandasObject, SelectionMixin):
         --------
         scalar : type of index
         """
+
+    def _find_valid_index(self, how):
+        """Retrieves the index of the first valid value.
+
+        Parameters
+        ----------
+        how : {'first', 'last'}
+            Use this parameter to change between the first or last valid index.
+
+        Returns
+        -------
+        idx_first_valid : type of index
+        """
+        assert how in ['first', 'last']
+
+        if len(self) == 0:  # early stop
+            return None
+        is_valid = ~self.isna()
+
+        if self.ndim == 2:
+            is_valid = is_valid.any(1)  # reduce axis 1
+
+        if how == 'first':
+            # First valid value case
+            i = is_valid.idxmax()
+            if not is_valid[i]:
+                return None
+            return i
+
+        elif how == 'last':
+            # Last valid value case
+            i = is_valid.values[::-1].argmax()
+            if not is_valid.iat[len(self) - i - 1]:
+                return None
+            return self.index[len(self) - i - 1]
+
+    @Appender(_shared_docs['valid_index'] % {'position': 'first',
+                                             'klass': 'NDFrame'})
+    def first_valid_index(self):
+        return self._find_valid_index('first')
+
+    @Appender(_shared_docs['valid_index'] % {'position': 'last',
+                                             'klass': 'NDFrame'})
+    def last_valid_index(self):
+        return self._find_valid_index('last')
 
 
 def _doc_parms(cls):

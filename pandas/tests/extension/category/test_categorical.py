@@ -30,8 +30,25 @@ def data_missing():
 
 
 @pytest.fixture
+def data_for_sorting():
+    return Categorical(['A', 'B', 'C'], categories=['C', 'A', 'B'],
+                       ordered=True)
+
+
+@pytest.fixture
+def data_missing_for_sorting():
+    return Categorical(['A', None, 'B'], categories=['B', 'A'],
+                       ordered=True)
+
+
+@pytest.fixture
 def na_value():
     return np.nan
+
+
+@pytest.fixture
+def data_for_grouping():
+    return Categorical(['a', 'a', None, None, 'b', 'b', 'a', 'c'])
 
 
 class TestDtype(base.BaseDtypeTests):
@@ -66,6 +83,10 @@ class TestGetitem(base.BaseGetitemTests):
         # be a parent of the elements (object). But don't want
         # to break things by changing.
         pass
+
+
+class TestSetitem(base.BaseSetitemTests):
+    pass
 
 
 class TestMissing(base.BaseMissingTests):

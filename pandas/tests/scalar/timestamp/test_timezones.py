@@ -94,11 +94,10 @@ class TestTimestampTZOperations(object):
         with pytest.raises(AmbiguousTimeError):
             ts.tz_localize('US/Pacific', errors='coerce')
 
-    @pytest.mark.parametrize('tz', ['UTC', 'Asia/Tokyo',
-                                    'US/Eastern', 'dateutil/US/Pacific'])
     @pytest.mark.parametrize('stamp', ['2014-02-01 09:00', '2014-07-08 09:00',
                                        '2014-11-01 17:00', '2014-11-05 00:00'])
-    def test_tz_localize_roundtrip(self, stamp, tz):
+    def test_tz_localize_roundtrip(self, stamp, tz_aware_fixture):
+        tz = tz_aware_fixture
         ts = Timestamp(stamp)
         localized = ts.tz_localize(tz)
         assert localized == Timestamp(stamp, tz=tz)
@@ -162,11 +161,11 @@ class TestTimestampTZOperations(object):
     # ------------------------------------------------------------------
     # Timestamp.tz_convert
 
-    @pytest.mark.parametrize('tz', ['UTC', 'Asia/Tokyo',
-                                    'US/Eastern', 'dateutil/US/Pacific'])
     @pytest.mark.parametrize('stamp', ['2014-02-01 09:00', '2014-07-08 09:00',
                                        '2014-11-01 17:00', '2014-11-05 00:00'])
-    def test_tz_convert_roundtrip(self, stamp, tz):
+    def test_tz_convert_roundtrip(self, stamp, tz_aware_fixture):
+        tz = tz_aware_fixture
+
         ts = Timestamp(stamp, tz='UTC')
         converted = ts.tz_convert(tz)
 
