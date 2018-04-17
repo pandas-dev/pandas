@@ -252,10 +252,6 @@ class Index(IndexOpsMixin, PandasObject):
         if name is None and hasattr(data, 'name'):
             name = data.name
 
-        if name is not None and not is_hashable(name):
-            raise TypeError('{}.name must be a hashable type'
-                            .format(cls.__name__))
-
         if fastpath:
             return cls._simple_new(data, name)
 
@@ -478,7 +474,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         result = object.__new__(cls)
         result._data = values
-        result.name = name
+        result._set_names([name])
         for k, v in compat.iteritems(kwargs):
             setattr(result, k, v)
         return result._reset_identity()
@@ -1316,6 +1312,45 @@ class Index(IndexOpsMixin, PandasObject):
         return FrozenList((self.name, ))
 
     def _set_names(self, values, level=None):
+        """
+        Set new names on index.
+
+        Parameters
+        ----------
+        values : str or sequence
+            name(s) to set
+        level : int, level name, or sequence of int/level names (default None)
+            If the index is a MultiIndex (hierarchical), level(s) to set (None
+            for all levels).  Otherwise level must be None
+
+        Returns
+        -------
+        index : Index
+
+        See Also
+        --------
+        Index.set_names : Set new names on index. Defaults to returning
+        new index.
+        Index.rename : Set new names on index. Defaults to returning new index.
+
+        Notes
+        -----
+        Both `set_names` and `rename` call this function.
+
+        Examples
+        --------
+        on an index with no names:
+        >>> I1 = Index([1, 2, 3, 4])
+        >>> I1._set_names([0])
+        >>> I1
+        Int64Index([1, 2, 3, 4], dtype='int64', name=0)
+        
+        set multiple names:
+        >>> I2 = Index([1, 2, 3, 4], name="foo")
+        >>> I2._set_names([(0, 1)])
+        >>> I2
+        Int64Index([1, 2, 3, 4], dtype='int64', name=(0, 1))
+        """
         # GH 20527
         # All items in 'name' need to be hashable:
         if values is not None:
@@ -1351,9 +1386,9 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
         >>> Index([1, 2, 3, 4]).set_names('foo')
-        Int64Index([1, 2, 3, 4], dtype='int64')
+        Int64Index([1, 2, 3, 4], dtype='int64', name='foo')
         >>> Index([1, 2, 3, 4]).set_names(['foo'])
-        Int64Index([1, 2, 3, 4], dtype='int64')
+        Int64Index([1, 2, 3, 4], dtype='int64', name='foo')
         >>> idx = MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
                                           (2, u'one'), (2, u'two')],
                                           names=['foo', 'bar'])

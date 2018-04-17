@@ -439,7 +439,7 @@ class TestIndex(Base):
         # GH 20527
 
         if isinstance(indices, MultiIndex):
-            pytest.skip("multiindex handled in test_multiindex.py")
+            pytest.skip("multiindex handled in test_multi.py")
 
         name = ['0']
         message = "Index.name must be a hashable type"
