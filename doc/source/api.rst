@@ -99,6 +99,7 @@ HDFStore: PyTables (HDF5)
    HDFStore.get
    HDFStore.select
    HDFStore.info
+   HDFStore.keys
 
 Feather
 ~~~~~~~
@@ -1687,6 +1688,7 @@ MultiIndex Components
    MultiIndex.swaplevel
    MultiIndex.reorder_levels
    MultiIndex.remove_unused_levels
+   MultiIndex.unique
 
 MultiIndex Selecting
 ~~~~~~~~~~~~~~~~~~~~
@@ -2206,6 +2208,7 @@ Computations / Descriptive Stats
    GroupBy.ohlc
    GroupBy.prod
    GroupBy.rank
+   GroupBy.pct_change
    GroupBy.size
    GroupBy.sem
    GroupBy.std
@@ -2576,4 +2579,3 @@ objects.
    generated/pandas.Series.ix
    generated/pandas.Series.imag
    generated/pandas.Series.real
-   generated/pandas.Timestamp.offset

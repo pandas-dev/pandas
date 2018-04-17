@@ -352,7 +352,7 @@ import subprocess
 import sys
 
 
-class VersioneerConfig:
+class VersioneerConfig(object):
     pass
 
 

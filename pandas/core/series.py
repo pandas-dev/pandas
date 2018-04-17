@@ -24,6 +24,7 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_datetime64tz_dtype,
     is_timedelta64_dtype,
+    is_object_dtype,
     is_list_like,
     is_hashable,
     is_iterator,
@@ -38,7 +39,8 @@ from pandas.core.dtypes.cast import (
     maybe_upcast, infer_dtype_from_scalar,
     maybe_convert_platform,
     maybe_cast_to_datetime, maybe_castable,
-    construct_1d_arraylike_from_scalar)
+    construct_1d_arraylike_from_scalar,
+    construct_1d_object_array_from_listlike)
 from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
 
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
@@ -297,6 +299,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # raises KeyError), so we iterate the entire dict, and align
         if data:
             keys, values = zip(*compat.iteritems(data))
+            values = list(values)
         else:
             keys, values = [], []
 
@@ -467,8 +470,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """Return object Series which contains boxed values.
 
         .. deprecated :: 0.23.0
-            Use ``astype(object) instead.
 
+           Use ``astype(object)`` instead.
 
         *this is an internal non-public method*
         """
@@ -1772,18 +1775,20 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self.index[i]
 
     # ndarray compat
-    argmin = deprecate('argmin', idxmin, '0.21.0',
-                       msg="'argmin' is deprecated, use 'idxmin' instead. "
-                           "The behavior of 'argmin' will be corrected to "
-                           "return the positional minimum in the future. "
-                           "Use 'series.values.argmin' to get the position of "
-                           "the minimum now.")
-    argmax = deprecate('argmax', idxmax, '0.21.0',
-                       msg="'argmax' is deprecated, use 'idxmax' instead. "
-                           "The behavior of 'argmax' will be corrected to "
-                           "return the positional maximum in the future. "
-                           "Use 'series.values.argmax' to get the position of "
-                           "the maximum now.")
+    argmin = deprecate(
+        'argmin', idxmin, '0.21.0',
+        msg=dedent("""\
+        'argmin' is deprecated, use 'idxmin' instead. The behavior of 'argmin'
+        will be corrected to return the positional minimum in the future.
+        Use 'series.values.argmin' to get the position of the minimum now.""")
+    )
+    argmax = deprecate(
+        'argmax', idxmax, '0.21.0',
+        msg=dedent("""\
+        'argmax' is deprecated, use 'idxmax' instead. The behavior of 'argmax'
+        will be corrected to return the positional maximum in the future.
+        Use 'series.values.argmax' to get the position of the maximum now.""")
+    )
 
     def round(self, decimals=0, *args, **kwargs):
         """
@@ -1992,7 +1997,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     def dot(self, other):
         """
         Matrix multiplication with DataFrame or inner-product with Series
-        objects
+        objects. Can also be called using `self @ other` in Python >= 3.5.
 
         Parameters
         ----------
@@ -2030,6 +2035,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return np.dot(lvals, rvals)
         else:  # pragma: no cover
             raise TypeError('unsupported type: %s' % type(other))
+
+    def __matmul__(self, other):
+        """ Matrix multiplication using binary `@` operator in Python>=3.5 """
+        return self.dot(other)
+
+    def __rmatmul__(self, other):
+        """ Matrix multiplication using binary `@` operator in Python>=3.5 """
+        return self.dot(other)
 
     @Substitution(klass='Series')
     @Appender(base._shared_docs['searchsorted'])
@@ -3556,19 +3569,68 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def between(self, left, right, inclusive=True):
         """
-        Return boolean Series equivalent to left <= series <= right. NA values
-        will be treated as False
+        Return boolean Series equivalent to left <= series <= right.
+
+        This function returns a boolean vector containing `True` wherever the
+        corresponding Series element is between the boundary values `left` and
+        `right`. NA values are treated as `False`.
 
         Parameters
         ----------
         left : scalar
-            Left boundary
+            Left boundary.
         right : scalar
-            Right boundary
+            Right boundary.
+        inclusive : bool, default True
+            Include boundaries.
 
         Returns
         -------
-        is_between : Series
+        Series
+            Each element will be a boolean.
+
+        Notes
+        -----
+        This function is equivalent to ``(left <= ser) & (ser <= right)``
+
+        See Also
+        --------
+        pandas.Series.gt : Greater than of series and other
+        pandas.Series.lt : Less than of series and other
+
+        Examples
+        --------
+        >>> s = pd.Series([2, 0, 4, 8, np.nan])
+
+        Boundary values are included by default:
+
+        >>> s.between(1, 4)
+        0     True
+        1    False
+        2     True
+        3    False
+        4    False
+        dtype: bool
+
+        With `inclusive` set to ``False`` boundary values are excluded:
+
+        >>> s.between(1, 4, inclusive=False)
+        0     True
+        1    False
+        2    False
+        3    False
+        4    False
+        dtype: bool
+
+        `left` and `right` can be any scalar value:
+
+        >>> s = pd.Series(['Alice', 'Bob', 'Carol', 'Eve'])
+        >>> s.between('Anna', 'Daniel')
+        0    False
+        1     True
+        2     True
+        3    False
+        dtype: bool
         """
         if inclusive:
             lmask = self >= left
@@ -3828,32 +3890,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                       "Use .dropna instead.", FutureWarning, stacklevel=2)
         return self.dropna(inplace=inplace, **kwargs)
 
-    @Appender(generic._shared_docs['valid_index'] % {
-        'position': 'first', 'klass': 'Series'})
-    def first_valid_index(self):
-        if len(self) == 0:
-            return None
-
-        mask = isna(self._values)
-        i = mask.argmin()
-        if mask[i]:
-            return None
-        else:
-            return self.index[i]
-
-    @Appender(generic._shared_docs['valid_index'] % {
-        'position': 'last', 'klass': 'Series'})
-    def last_valid_index(self):
-        if len(self) == 0:
-            return None
-
-        mask = isna(self._values[::-1])
-        i = mask.argmin()
-        if mask[i]:
-            return None
-        else:
-            return self.index[len(self) - i - 1]
-
     # ----------------------------------------------------------------------
     # Time series-oriented methods
 
@@ -3983,7 +4019,13 @@ def _sanitize_array(data, index, dtype=None, copy=False,
 
         try:
             subarr = maybe_cast_to_datetime(arr, dtype)
-            if not is_extension_type(subarr):
+            # Take care in creating object arrays (but iterators are not
+            # supported):
+            if is_object_dtype(dtype) and (is_list_like(subarr) and
+                                           not (is_iterator(subarr) or
+                                           isinstance(subarr, np.ndarray))):
+                subarr = construct_1d_object_array_from_listlike(subarr)
+            elif not is_extension_type(subarr):
                 subarr = np.array(subarr, dtype=dtype, copy=copy)
         except (ValueError, TypeError):
             if is_categorical_dtype(dtype):
@@ -4105,9 +4147,10 @@ def _sanitize_array(data, index, dtype=None, copy=False,
     if issubclass(subarr.dtype.type, compat.string_types):
         # GH 16605
         # If not empty convert the data to dtype
-        if not isna(data).all():
-            data = np.array(data, dtype=dtype, copy=False)
-
-        subarr = np.array(data, dtype=object, copy=copy)
+        # GH 19853: If data is a scalar, subarr has already the result
+        if not is_scalar(data):
+            if not np.all(isna(data)):
+                data = np.array(data, dtype=dtype, copy=False)
+            subarr = np.array(data, dtype=object, copy=copy)
 
     return subarr

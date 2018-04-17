@@ -18,7 +18,7 @@ import pandas as pd
 from pandas import (
     date_range, DataFrame, Index, MultiIndex, PeriodIndex, period_range, Series
 )
-from pandas.core.groupby import SpecificationError
+from pandas.core.groupby.groupby import SpecificationError
 from pandas.io.formats.printing import pprint_thing
 import pandas.util.testing as tm
 
