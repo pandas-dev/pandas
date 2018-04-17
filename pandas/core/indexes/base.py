@@ -1335,7 +1335,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         Notes
         -----
-        Both `set_names` and `rename` call this function.
+        Both `set_names` and `rename` call this function to set name.
 
         Examples
         --------
