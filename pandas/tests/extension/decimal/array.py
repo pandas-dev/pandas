@@ -81,6 +81,10 @@ class DecimalArray(ExtensionArray):
         indexer = np.asarray(indexer)
         mask = indexer == -1
 
+        # take on empty array not handled as desired by numpy in case of -1
+        if not len(self) and mask.all():
+            return type(self)([self._na_value] * len(indexer))
+
         indexer = _ensure_platform_int(indexer)
         out = self.values.take(indexer)
         out[mask] = self._na_value
