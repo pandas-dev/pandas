@@ -1876,18 +1876,23 @@ class MultiIndex(Index):
 
     def sortlevel(self, level=0, ascending=True, sort_remaining=True):
         """
-        Sort MultiIndex at the requested level. The result will respect the
-        original ordering of the associated factor at that level.
+        Sort MultiIndex at the requested level.
+
+        Sort MultiIndex at the requested level and optionally the
+        subsequent ones. The order will respect the internal order of the
+        level elements.
 
         Parameters
         ----------
         level : list-like, int or str, default 0
-            If a string is given, must be a name of the level
+            If a string is given, must be a name of the level.
             If list-like must be names or ints of levels.
         ascending : boolean, default True
-            False to sort in descending order
-            Can also be a list to specify a directed ordering
-        sort_remaining : sort by the remaining levels after level.
+            False to sort in descending order.
+            Can also be a list to specify a directed ordering.
+        sort_remaining : boolean, default True
+            False to sort only the requested level.
+            True to sort also all the levels after the requested one.
 
         Returns
         -------
@@ -1895,6 +1900,27 @@ class MultiIndex(Index):
             Resulting index
         indexer : np.ndarray
             Indices of output values in original index
+
+        See Also
+        --------
+        Index.sort_values : Sort index
+        MultiIndex.lexsort_depth : Number of sorted levels
+        Series.sort_index : Sort object by labels
+        DataFrame.sort_index : Sort object by labels (along an axis)
+
+        Examples
+        --------
+        >>> df = pd.Series(range(16), index=pd.MultiIndex.from_product([list('acbd'),
+         range(2), ['C', 'B']])
+
+
+        >>> df.index.sortlevel(1,sort_remaining=False)
+        (MultiIndex(levels=[['a', 'b', 'c', 'd'], [0, 1], ['B', 'C']],
+            labels=[[0, 0, 2, 2, 1, 1, 3, 3, 0, 0, 2, 2, 1, 1, 3, 3],
+            [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]],
+            sortorder=1),
+        array([ 0,  1,  4,  5,  8,  9, 12, 13,  2,  3,  6,  7, 10, 11, 14, 15]))
 
         """
         from pandas.core.sorting import indexer_from_factorized
