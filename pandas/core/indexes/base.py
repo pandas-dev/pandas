@@ -1344,7 +1344,7 @@ class Index(IndexOpsMixin, PandasObject):
         >>> I1._set_names([0])
         >>> I1
         Int64Index([1, 2, 3, 4], dtype='int64', name=0)
-        
+
         set multiple names:
         >>> I2 = Index([1, 2, 3, 4], name="foo")
         >>> I2._set_names([(0, 1)])
