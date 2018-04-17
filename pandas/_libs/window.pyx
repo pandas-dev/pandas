@@ -1398,7 +1398,7 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
     try:
         interpolation_type = interpolation_types[interpolation]
     except KeyError:
-        raise ValueError("Interpolation {} is not supported"
+        raise ValueError("Interpolation '{}' is not supported"
                          .format(interpolation))
 
     # we use the Fixed/Variable Indexer here as the

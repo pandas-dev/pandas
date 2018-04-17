@@ -1167,16 +1167,6 @@ class TestMoments(Base):
 
         tm.assert_almost_equal(df_quantile.values, np.array(np_percentile))
 
-    def test_rolling_quantile_series(self):
-        # #16211: Tests that rolling window's quantile default behavior
-        # is analogous to Series' quantile
-        arr = np.arange(100)
-        s = Series(arr)
-        q1 = s.quantile(0.1)
-        q2 = s.rolling(100).quantile(0.1).iloc[-1]
-
-        tm.assert_almost_equal(q1, q2)
-
     @pytest.mark.skipif(_np_version_under1p12,
                         reason='numpy midpoint interpolation is broken')
     @pytest.mark.parametrize('quantile', [0.0, 0.1, 0.45, 0.5, 1])
@@ -1187,7 +1177,7 @@ class TestMoments(Base):
                                       [0., np.nan, 0.2, np.nan, 0.4],
                                       [np.nan, np.nan, np.nan, np.nan],
                                       [np.nan, 0.1, np.nan, 0.3, 0.4, 0.5],
-                                      [0.5], [np.nan, 0.7, 0.5]])
+                                      [0.5], [np.nan, 0.7, 0.6]])
     def test_rolling_quantile_interpolation_options(self, quantile,
                                                     interpolation, data):
         # Tests that rolling window's quantile behavior is analogous to
@@ -1201,13 +1191,13 @@ class TestMoments(Base):
         if np.isnan(q1):
             assert np.isnan(q2)
         else:
-            assert round(q1, 15) == round(q2, 15)
+            assert q1 == q2
 
     def test_invalid_quantile_value(self):
         data = np.arange(5)
         s = Series(data)
 
-        with pytest.raises(ValueError, match="Interpolation invalid"
+        with pytest.raises(ValueError, match="Interpolation 'invalid'"
                                              " is not supported"):
             s.rolling(len(data), min_periods=1).quantile(
                 0.5, interpolation='invalid')
