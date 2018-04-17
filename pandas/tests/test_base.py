@@ -22,6 +22,7 @@ from pandas.core.accessor import PandasDelegate
 from pandas.core.base import PandasObject, NoNewAttributesMixin
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas._libs.tslib import iNaT
+import pandas.util.testing as tm
 
 
 class CheckStringMixin(object):
@@ -316,16 +317,25 @@ class TestIndexOps(Ops):
 
         for o in self.objs:
             # Check that we work.
-            for p in ['shape', 'dtype', 'flags', 'T',
-                      'strides', 'itemsize', 'nbytes']:
+            for p in ['shape', 'dtype', 'T', 'nbytes']:
                 assert getattr(o, p, None) is not None
 
-            assert hasattr(o, 'base')
+            # deprecated properties
+            for p in ['flags', 'strides', 'itemsize']:
+                with tm.assert_produces_warning(FutureWarning):
+                    assert getattr(o, p, None) is not None
+
+            # not deprecated for datetime-like indices because they are used
+            # inside blocks
+            if not isinstance(o, (DatetimeIndex, TimedeltaIndex, PeriodIndex)):
+                with tm.assert_produces_warning(FutureWarning):
+                    assert hasattr(o, 'base')
 
             # If we have a datetime-like dtype then needs a view to work
             # but the user is responsible for that
             try:
-                assert o.data is not None
+                with tm.assert_produces_warning(FutureWarning):
+                    assert o.data is not None
             except ValueError:
                 pass
 
