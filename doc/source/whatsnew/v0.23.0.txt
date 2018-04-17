@@ -65,6 +65,35 @@ The :func:`get_dummies` now accepts a ``dtype`` argument, which specifies a dtyp
    pd.get_dummies(df, columns=['c'], dtype=bool).dtypes
 
 
+.. _whatsnew_0230.enhancements.window_raw:
+
+Rolling/Expanding.apply() accepts a ``raw`` keyword to pass a ``Series`` to the function
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`Series.rolling().apply() <pandas.core.window.Rolling.apply>`, :func:`DataFrame.rolling().apply() <pandas.core.window.Rolling.apply>`,
+:func:`Series.expanding().apply() <pandas.core.window.Expanding.apply>`, and :func:`DataFrame.expanding().apply() <pandas.core.window.Expanding.apply>` have gained a ``raw=None`` parameter.
+This is similar to :func:`DataFame.apply`. This parameter, if ``True`` allows one to send a ``np.ndarray`` to the applied function. If ``False`` a ``Series`` will be passed. The
+default is ``None``, which preserves backward compatibility, so this will default to ``True``, sending an ``np.ndarray``.
+In a future version the default will be changed to ``False``, sending a ``Series``. (:issue:`5071`, :issue:`20584`)
+
+.. ipython:: python
+
+   s = pd.Series(np.arange(5), np.arange(5) + 1)
+   s
+
+Pass a ``Series``:
+
+.. ipython:: python
+
+   s.rolling(2, min_periods=1).apply(lambda x: x.iloc[-1], raw=False)
+
+Mimic the original behavior of passing a ndarray:
+
+.. ipython:: python
+
+   s.rolling(2, min_periods=1).apply(lambda x: x[-1], raw=True)
+
+
 .. _whatsnew_0230.enhancements.merge_on_columns_and_levels:
 
 Merging on a combination of columns and index levels
@@ -818,6 +847,7 @@ Other API Changes
 - :func:`DatetimeIndex.strftime` and :func:`PeriodIndex.strftime` now return an ``Index`` instead of a numpy array to be consistent with similar accessors (:issue:`20127`)
 - Constructing a Series from a list of length 1 no longer broadcasts this list when a longer index is specified (:issue:`19714`, :issue:`20391`).
 - :func:`DataFrame.to_dict` with ``orient='index'`` no longer casts int columns to float for a DataFrame with only int and float columns (:issue:`18580`)
+- A user-defined-function that is passed to :func:`Series.rolling().aggregate() <pandas.core.window.Rolling.aggregate>`, :func:`DataFrame.rolling().aggregate() <pandas.core.window.Rolling.aggregate>`, or its expanding cousins, will now *always* be passed a ``Series``, rather than an ``np.array``; ``.apply()`` only has the ``raw`` keyword, see :ref:`here <whatsnew_0230.enhancements.window_raw>`. This is consistent with the signatures of ``.aggregate()`` across pandas (:issue:`20584`)
 
 .. _whatsnew_0230.deprecations:
 
@@ -846,6 +876,8 @@ Deprecations
 - ``Index.summary()`` is deprecated and will be removed in a future version (:issue:`18217`)
 - ``NDFrame.get_ftype_counts()`` is deprecated and will be removed in a future version (:issue:`18243`)
 - The ``convert_datetime64`` parameter in :func:`DataFrame.to_records` has been deprecated and will be removed in a future version. The NumPy bug motivating this parameter has been resolved. The default value for this parameter has also changed from ``True`` to ``None`` (:issue:`18160`).
+- :func:`Series.rolling().apply() <pandas.core.window.Rolling.apply>`, :func:`DataFrame.rolling().apply() <pandas.core.window.Rolling.apply>`,
+  :func:`Series.expanding().apply() <pandas.core.window.Expanding.apply>`, and :func:`DataFrame.expanding().apply() <pandas.core.window.Expanding.apply>` have deprecated passing an ``np.array`` by default. One will need to pass the new ``raw`` parameter to be explicit about what is passed (:issue:`20584`)
 
 .. _whatsnew_0230.prior_deprecations:
 
