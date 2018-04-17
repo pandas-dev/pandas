@@ -383,7 +383,8 @@ class TestIndex(Base):
         pd.date_range('2011-01-01', periods=5).values,
         pd.date_range('2011-01-01', periods=5).asi8])
     @pytest.mark.parametrize("klass", [pd.Index, pd.DatetimeIndex])
-    def test_constructor_dtypes_datetime(self, tz_naive_fixture, values, klass):
+    def test_constructor_dtypes_datetime(self, tz_naive_fixture, values,
+                                         klass):
         idx = pd.date_range('2011-01-01', periods=5, tz=tz_naive_fixture)
         dtype = idx.dtype
 
