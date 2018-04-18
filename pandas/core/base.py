@@ -737,16 +737,16 @@ class IndexOpsMixin(object):
     @property
     def data(self):
         """ return the data pointer of the underlying data """
-        warnings.warn("Series/Index.data is deprecated and will be "
-                      "removed in a future version",
+        warnings.warn("{obj}.data is deprecated and will be removed "
+                      "in a future version".format(obj=type(self).__name__),
                       FutureWarning, stacklevel=2)
         return self.values.data
 
     @property
     def itemsize(self):
         """ return the size of the dtype of the item of the underlying data """
-        warnings.warn("Series/Index.itemsize is deprecated and will be "
-                      "removed in a future version",
+        warnings.warn("{obj}.itemsize is deprecated and will be removed "
+                      "in a future version".format(obj=type(self).__name__),
                       FutureWarning, stacklevel=2)
         return self._ndarray_values.itemsize
 
@@ -758,8 +758,8 @@ class IndexOpsMixin(object):
     @property
     def strides(self):
         """ return the strides of the underlying data """
-        warnings.warn("Series/Index.strides is deprecated and will be "
-                      "removed in a future version",
+        warnings.warn("{obj}.strudes is deprecated and will be removed "
+                      "in a future version".format(obj=type(self).__name__),
                       FutureWarning, stacklevel=2)
         return self._ndarray_values.strides
 
@@ -771,8 +771,8 @@ class IndexOpsMixin(object):
     @property
     def flags(self):
         """ return the ndarray.flags for the underlying data """
-        warnings.warn("Series/Index.flags is deprecated and will be "
-                      "removed in a future version",
+        warnings.warn("{obj}.flags is deprecated and will be removed "
+                      "in a future version".format(obj=type(self).__name__),
                       FutureWarning, stacklevel=2)
         return self.values.flags
 
@@ -781,8 +781,8 @@ class IndexOpsMixin(object):
         """ return the base object if the memory of the underlying data is
         shared
         """
-        warnings.warn("Series/Index.base is deprecated and will be "
-                      "removed in a future version",
+        warnings.warn("{obj}.base is deprecated and will be removed "
+                      "in a future version".format(obj=type(self).__name__),
                       FutureWarning, stacklevel=2)
         return self.values.base
 

@@ -22,7 +22,6 @@ from pandas.core.accessor import PandasDelegate
 from pandas.core.base import PandasObject, NoNewAttributesMixin
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas._libs.tslib import iNaT
-import pandas.util.testing as tm
 
 
 class CheckStringMixin(object):
