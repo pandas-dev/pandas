@@ -89,8 +89,12 @@ class JSONArray(ExtensionArray):
         return np.array([x == self._na_value for x in self.data])
 
     def take(self, indexer, allow_fill=True, fill_value=None):
-        output = [self.data[loc] if loc != -1 else self._na_value
-                  for loc in indexer]
+        try:
+            output = [self.data[loc] if loc != -1 else self._na_value
+                      for loc in indexer]
+        except IndexError:
+            raise IndexError("Index is out of bounds or cannot do a "
+                             "non-empty take from an empty array.")
         return self._constructor_from_sequence(output)
 
     def copy(self, deep=False):

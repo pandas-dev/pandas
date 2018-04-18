@@ -373,6 +373,23 @@ class TestHDFStore(Base):
             assert set(store.keys()) == expected
             assert set(store) == expected
 
+    def test_keys_ignore_hdf_softlink(self):
+
+        # GH 20523
+        # Puts a softlink into HDF file and rereads
+
+        with ensure_clean_store(self.path) as store:
+
+            df = DataFrame(dict(A=lrange(5), B=lrange(5)))
+            store.put("df", df)
+
+            assert store.keys() == ["/df"]
+
+            store._handle.create_soft_link(store._handle.root, "symlink", "df")
+
+            # Should ignore the softlink
+            assert store.keys() == ["/df"]
+
     def test_iter_empty(self):
 
         with ensure_clean_store(self.path) as store:
@@ -3819,8 +3836,15 @@ class TestHDFStore(Base):
 
         with ensure_clean_store(self.path) as store:
             _maybe_remove(store, 'df')
-            store.append('df', df)
 
+            # GH 17912
+            # HDFStore.select_column should raise a KeyError
+            # exception if the key is not a valid store
+            with pytest.raises(KeyError,
+                               message='No object named index in the file'):
+                store.select_column('df', 'index')
+
+            store.append('df', df)
             # error
             pytest.raises(KeyError, store.select_column, 'df', 'foo')
 
