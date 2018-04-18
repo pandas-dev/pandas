@@ -46,7 +46,7 @@ Parameters
 io : string, path object (pathlib.Path or py._path.local.LocalPath),
     file-like object, pandas ExcelFile, or xlrd workbook.
     The string could be a URL. Valid URL schemes include http, ftp, s3,
-    and file. For file URLs, a host is expected. For instance, a local
+    gcs, and file. For file URLs, a host is expected. For instance, a local
     file could be file://localhost/path/to/workbook.xlsx
 sheet_name : string, int, mixed list of strings/ints, or None, default 0
 

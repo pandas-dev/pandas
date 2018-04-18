@@ -96,6 +96,7 @@ def show_versions(as_json=False):
         ("fastparquet", lambda mod: mod.__version__),
         ("pandas_gbq", lambda mod: mod.__version__),
         ("pandas_datareader", lambda mod: mod.__version__),
+        ("gcsfs", lambda mod: mod.__version__),
     ]
 
     deps_blob = list()
