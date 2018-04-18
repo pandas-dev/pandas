@@ -149,7 +149,7 @@ class TestPanel(object):
 
             # with an object-like
             # GH 9140
-            class TestObject:
+            class TestObject(object):
 
                 def __str__(self):
                     return "TestObject"

@@ -553,11 +553,10 @@ class MultiIndex(Index):
     @Appender(_index_shared_docs['_shallow_copy'])
     def _shallow_copy(self, values=None, **kwargs):
         if values is not None:
-            if 'name' in kwargs:
-                kwargs['names'] = kwargs.pop('name', None)
+            names = kwargs.pop('names', kwargs.pop('name', self.names))
             # discards freq
             kwargs.pop('freq', None)
-            return MultiIndex.from_tuples(values, **kwargs)
+            return MultiIndex.from_tuples(values, names=names, **kwargs)
         return self.view()
 
     @cache_readonly
@@ -1477,27 +1476,35 @@ class MultiIndex(Index):
         changed = False
         for lev, lab in zip(self.levels, self.labels):
 
-            uniques = algos.unique(lab)
-            na_idx = np.where(uniques == -1)[0]
+            # Since few levels are typically unused, bincount() is more
+            # efficient than unique() - however it only accepts positive values
+            # (and drops order):
+            uniques = np.where(np.bincount(lab + 1) > 0)[0] - 1
+            has_na = int(len(uniques) and (uniques[0] == -1))
 
-            # nothing unused
-            if len(uniques) != len(lev) + len(na_idx):
+            if len(uniques) != len(lev) + has_na:
+                # We have unused levels
                 changed = True
 
-                if len(na_idx):
+                # Recalculate uniques, now preserving order.
+                # Can easily be cythonized by exploiting the already existing
+                # "uniques" and stop parsing "lab" when all items are found:
+                uniques = algos.unique(lab)
+                if has_na:
+                    na_idx = np.where(uniques == -1)[0]
                     # Just ensure that -1 is in first position:
                     uniques[[0, na_idx[0]]] = uniques[[na_idx[0], 0]]
 
                 # labels get mapped from uniques to 0:len(uniques)
                 # -1 (if present) is mapped to last position
-                label_mapping = np.zeros(len(lev) + len(na_idx))
+                label_mapping = np.zeros(len(lev) + has_na)
                 # ... and reassigned value -1:
-                label_mapping[uniques] = np.arange(len(uniques)) - len(na_idx)
+                label_mapping[uniques] = np.arange(len(uniques)) - has_na
 
                 lab = label_mapping[lab]
 
                 # new levels are simple
-                lev = lev.take(uniques[len(na_idx):])
+                lev = lev.take(uniques[has_na:])
 
             new_levels.append(lev)
             new_labels.append(lab)

@@ -4,9 +4,7 @@ from __future__ import print_function
 
 import warnings
 from datetime import timedelta
-from distutils.version import LooseVersion
 import operator
-import sys
 import pytest
 
 from string import ascii_lowercase
@@ -17,7 +15,7 @@ import numpy as np
 from pandas.compat import lrange, product, PY35
 from pandas import (compat, isna, notna, DataFrame, Series,
                     MultiIndex, date_range, Timestamp, Categorical,
-                    _np_version_under1p15)
+                    _np_version_under1p12, _np_version_under1p15)
 import pandas as pd
 import pandas.core.nanops as nanops
 import pandas.core.algorithms as algorithms
@@ -1215,7 +1213,7 @@ class TestDataFrameAnalytics(TestData):
         getattr(mixed, name)(axis=0)
         getattr(mixed, name)(axis=1)
 
-        class NonzeroFail:
+        class NonzeroFail(object):
 
             def __nonzero__(self):
                 raise ValueError
@@ -1857,13 +1855,8 @@ class TestDataFrameAnalytics(TestData):
             'col1': [1.123, 2.123, 3.123],
             'col2': [1.2, 2.2, 3.2]})
 
-        if LooseVersion(sys.version) < LooseVersion('2.7'):
-            # Rounding with decimal is a ValueError in Python < 2.7
-            with pytest.raises(ValueError):
-                df.round(nan_round_Series)
-        else:
-            with pytest.raises(TypeError):
-                df.round(nan_round_Series)
+        with pytest.raises(TypeError):
+            df.round(nan_round_Series)
 
         # Make sure this doesn't break existing Series.round
         tm.assert_series_equal(df['col1'].round(1), expected_rounded['col1'])
@@ -2146,6 +2139,9 @@ class TestDataFrameAnalytics(TestData):
 
     @pytest.mark.skipif(not PY35,
                         reason='matmul supported for Python>=3.5')
+    @pytest.mark.xfail(
+        _np_version_under1p12,
+        reason="unpredictable return types under numpy < 1.12")
     def test_matmul(self):
         # matmul test is for GH #10259
         a = DataFrame(np.random.randn(3, 4), index=['a', 'b', 'c'],
