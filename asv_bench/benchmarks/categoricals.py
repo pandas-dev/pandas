@@ -165,8 +165,8 @@ class Isin(object):
         if dtype == 'object':
             arr = ['s%04d' % i for i in arr]
         self.sample = np.random.choice(arr, sample_size)
-        self.ts = pd.Series(arr).astype('category')
+        self.series = pd.Series(arr).astype('category')
 
     def time_isin_categorical(self, dtype):
-        self.ts.isin(self.sample)
+        self.series.isin(self.sample)
 
