@@ -27,7 +27,7 @@ class BaseSetitemTests(BaseExtensionTests):
         ser = pd.Series(data)
         value = [data[0]]
         if as_array:
-            value = type(data)(value)
+            value = data._constructor_from_sequence(value)
 
         xpr = 'cannot set using a {} indexer with a different length'
         with tm.assert_raises_regex(ValueError, xpr.format('list-like')):

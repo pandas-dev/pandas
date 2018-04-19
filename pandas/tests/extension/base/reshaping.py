@@ -47,8 +47,8 @@ class BaseReshapingTests(BaseExtensionTests):
         r1, r2 = pd.Series(a).align(pd.Series(b, index=[1, 2, 3]))
 
         # Assumes that the ctor can take a list of scalars of the type
-        e1 = pd.Series(type(data)(list(a) + [na_value]))
-        e2 = pd.Series(type(data)([na_value] + list(b)))
+        e1 = pd.Series(data._constructor_from_sequence(list(a) + [na_value]))
+        e2 = pd.Series(data._constructor_from_sequence([na_value] + list(b)))
         self.assert_series_equal(r1, e1)
         self.assert_series_equal(r2, e2)
 
@@ -60,8 +60,10 @@ class BaseReshapingTests(BaseExtensionTests):
         )
 
         # Assumes that the ctor can take a list of scalars of the type
-        e1 = pd.DataFrame({'A': type(data)(list(a) + [na_value])})
-        e2 = pd.DataFrame({'A': type(data)([na_value] + list(b))})
+        e1 = pd.DataFrame(
+            {'A': data._constructor_from_sequence(list(a) + [na_value])})
+        e2 = pd.DataFrame(
+            {'A': data._constructor_from_sequence([na_value] + list(b))})
         self.assert_frame_equal(r1, e1)
         self.assert_frame_equal(r2, e2)
 
