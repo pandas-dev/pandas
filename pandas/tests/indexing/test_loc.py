@@ -120,7 +120,7 @@ class TestLoc(Base):
                           typs=['ints', 'uints', 'labels', 'mixed', 'ts'],
                           fails=KeyError)
         self.check_result('label range', 'loc', 'f', 'ix', 'f',
-                          typs=['floats'], fails=TypeError)
+                          typs=['floats'], fails=KeyError)
         self.check_result('label range', 'loc', 20, 'ix', 20,
                           typs=['ints', 'uints', 'mixed'], fails=KeyError)
         self.check_result('label range', 'loc', 20, 'ix', 20,
@@ -128,7 +128,7 @@ class TestLoc(Base):
         self.check_result('label range', 'loc', 20, 'ix', 20, typs=['ts'],
                           axes=0, fails=TypeError)
         self.check_result('label range', 'loc', 20, 'ix', 20, typs=['floats'],
-                          axes=0, fails=TypeError)
+                          axes=0, fails=KeyError)
 
     def test_loc_getitem_label_list(self):
 
@@ -156,13 +156,24 @@ class TestLoc(Base):
         self.check_result('list lbl', 'loc', [0, 1, 2], 'indexer', [0, 1, 2],
                           typs=['empty'], fails=KeyError)
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            self.check_result('list lbl', 'loc', [0, 2, 3], 'ix', [0, 2, 3],
-                              typs=['ints', 'uints'], axes=0, fails=KeyError)
+            self.check_result('list lbl', 'loc', [0, 2, 10], 'ix', [0, 2, 10],
+                              typs=['ints', 'uints', 'floats'],
+                              axes=0, fails=KeyError)
+
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             self.check_result('list lbl', 'loc', [3, 6, 7], 'ix', [3, 6, 7],
-                              typs=['ints', 'uints'], axes=1, fails=KeyError)
+                              typs=['ints', 'uints', 'floats'],
+                              axes=1, fails=KeyError)
         self.check_result('list lbl', 'loc', [4, 8, 10], 'ix', [4, 8, 10],
-                          typs=['ints', 'uints'], axes=2, fails=KeyError)
+                          typs=['ints', 'uints', 'floats'],
+                          axes=2, fails=KeyError)
+
+        # GH 17758 - MultiIndex and missing keys
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            self.check_result('list lbl', 'loc', [(1, 3), (1, 4), (2, 5)],
+                              'ix', [(1, 3), (1, 4), (2, 5)],
+                              typs=['multi'],
+                              axes=0)
 
     def test_getitem_label_list_with_missing(self):
         s = Series(range(3), index=['a', 'b', 'c'])

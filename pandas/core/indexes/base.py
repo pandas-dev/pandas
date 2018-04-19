@@ -4881,6 +4881,9 @@ def _ensure_index(index_like, copy=False):
     if hasattr(index_like, 'name'):
         return Index(index_like, name=index_like.name, copy=copy)
 
+    if is_iterator(index_like):
+        index_like = list(index_like)
+
     # must check for exactly list here because of strict type
     # check in clean_index_list
     if isinstance(index_like, list):

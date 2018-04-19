@@ -873,6 +873,7 @@ Deprecations
 - The ``is_copy`` attribute is deprecated and will be removed in a future version (:issue:`18801`).
 - ``IntervalIndex.from_intervals`` is deprecated in favor of the :class:`IntervalIndex` constructor (:issue:`19263`)
 - ``DataFrame.from_items`` is deprecated. Use :func:`DataFrame.from_dict` instead, or ``DataFrame.from_dict(OrderedDict())`` if you wish to preserve the key order (:issue:`17320`, :issue:`17312`)
+- Indexing a ``MultiIndex`` or a ``FloatIndex`` with a list containing some missing keys will now show a ``FutureWarning``, consistently with other types of indexes (:issue:`17758`).
 
 - The ``broadcast`` parameter of ``.apply()`` is deprecated in favor of ``result_type='broadcast'`` (:issue:`18577`)
 - The ``reduce`` parameter of ``.apply()`` is deprecated in favor of ``result_type='reduce'`` (:issue:`18577`)
@@ -1107,6 +1108,8 @@ Indexing
 - :func:`Index.to_series` now accepts ``index`` and ``name`` kwargs (:issue:`18699`)
 - :func:`DatetimeIndex.to_series` now accepts ``index`` and ``name`` kwargs (:issue:`18699`)
 - Bug in indexing non-scalar value from ``Series`` having non-unique ``Index`` will return value flattened (:issue:`17610`)
+- Bug in indexing with iterator containing only missing keys, which raised no error (:issue:`20748`)
+- Fixed inconsistency in ``.ix`` between list and scalar keys when index has integer dtype and does not include desired key(s) (:issue:`20753`)
 - Bug in ``__setitem__`` when indexing a :class:`DataFrame` with a 2-d boolean ndarray (:issue:`18582`)
 - Bug in ``str.extractall`` when there were no matches empty :class:`Index` was returned instead of appropriate :class:`MultiIndex` (:issue:`19034`)
 - Bug in :class:`IntervalIndex` where empty and purely NA data was constructed inconsistently depending on the construction method (:issue:`18421`)
