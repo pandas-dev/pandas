@@ -598,16 +598,16 @@ class TestTimeSeries(object):
         idx2 = DatetimeIndex(start=sdate, end=edate,
                              freq=offsets.Week(weekday=6))
         assert len(idx1) == len(idx2)
-        assert idx1.offset == idx2.offset
+        assert idx1.freq == idx2.freq
 
         idx1 = DatetimeIndex(start=sdate, end=edate, freq='QS')
         idx2 = DatetimeIndex(start=sdate, end=edate,
                              freq=offsets.QuarterBegin(startingMonth=1))
         assert len(idx1) == len(idx2)
-        assert idx1.offset == idx2.offset
+        assert idx1.freq == idx2.freq
 
         idx1 = DatetimeIndex(start=sdate, end=edate, freq='BQ')
         idx2 = DatetimeIndex(start=sdate, end=edate,
                              freq=offsets.BQuarterEnd(startingMonth=12))
         assert len(idx1) == len(idx2)
-        assert idx1.offset == idx2.offset
+        assert idx1.freq == idx2.freq
