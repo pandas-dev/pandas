@@ -478,9 +478,8 @@ class TestTimeSeries(object):
         rng2 = DatetimeIndex(rng)
         assert rng.freq == rng2.freq
 
-    @pytest.mark.parametrize('tz', [None, 'UTC', 'Asia/Tokyo',
-                                    'dateutil/US/Pacific'])
-    def test_dti_constructor_years_only(self, tz):
+    def test_dti_constructor_years_only(self, tz_naive_fixture):
+        tz = tz_naive_fixture
         # GH 6961
         rng1 = date_range('2014', '2015', freq='M', tz=tz)
         expected1 = date_range('2014-01-31', '2014-12-31', freq='M', tz=tz)
