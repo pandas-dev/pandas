@@ -18,4 +18,3 @@ psycopg2
 s3fs
 beautifulsoup4
 ipython
-hypothesis>=3.46.0

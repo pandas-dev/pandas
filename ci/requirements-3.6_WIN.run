@@ -15,4 +15,3 @@ blosc
 thrift=0.10*
 fastparquet
 pyarrow
-hypothesis>=3.46.0

@@ -17,4 +17,3 @@ psycopg2
 pymysql
 html5lib
 beautifulsoup4
-hypothesis>=3.46.0

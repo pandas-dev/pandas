@@ -104,6 +104,7 @@ if [ -e ${REQ} ]; then
 fi
 
 time conda install -n pandas pytest>=3.1.0
+time conda install -n pandas hypothesis>=3.46.0
 time pip install -q pytest-xdist moto
 
 if [ "$LINT" ]; then

@@ -18,4 +18,3 @@ patsy
 pymysql=0.6.3
 jinja2=2.8
 xarray=0.8.0
-hypothesis>=3.46.0

@@ -20,4 +20,3 @@ beautifulsoup4
 s3fs
 xarray
 ipython
-hypothesis>=3.46.0
