@@ -48,7 +48,11 @@
 </tr>
 <tr>
   <td>Coverage</td>
-  <td><img src="https://codecov.io/github/pandas-dev/pandas/coverage.svg?branch=master" alt="coverage" /></td>
+  <td>
+    <a href="https://codecov.io/gh/pandas-dev/pandas">
+    <img src="https://codecov.io/github/pandas-dev/pandas/coverage.svg?branch=master" alt="coverage" />
+    </a>
+  </td>
 </tr>
 <tr>
   <td>Conda</td>
