@@ -161,7 +161,7 @@ class TestDataFrameConvertTo(TestData):
         expected = np.rec.array(
             [(0, 1.0)],
             dtype={"names": ["index", u"accented_name_é"],
-                   "formats": ['<i8', '<f8']}
+                   "formats": ['=i8', '=f8']}
         )
         tm.assert_almost_equal(result, expected)
 
