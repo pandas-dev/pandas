@@ -323,7 +323,7 @@ compute the mean absolute deviation on a rolling basis:
 
    mad = lambda x: np.fabs(x - x.mean()).mean()
    @savefig rolling_apply_ex.png
-   s.rolling(window=60).apply(mad).plot(style='k')
+   s.rolling(window=60).apply(mad, raw=True).plot(style='k')
 
 .. _stats.rolling_window:
 
