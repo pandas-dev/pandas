@@ -1178,14 +1178,14 @@ class TestMoments(Base):
                                       [np.nan, np.nan, np.nan, np.nan],
                                       [np.nan, 0.1, np.nan, 0.3, 0.4, 0.5],
                                       [0.5], [np.nan, 0.7, 0.6]])
-    def test_rolling_quantile_interpolation_options(self, quantile,
-                                                    interpolation, data):
+    def test_moving_quantile_interpolation_options(self, quantile,
+                                                   interpolation, data):
         # Tests that rolling window's quantile behavior is analogous to
         # Series' quantile for each interpolation option
         s = Series(data)
 
         q1 = s.quantile(quantile, interpolation)
-        q2 = s.rolling(len(data), min_periods=1).quantile(
+        q2 = s.expanding(min_periods=1).quantile(
             quantile, interpolation).iloc[-1]
 
         if np.isnan(q1):
@@ -1202,7 +1202,7 @@ class TestMoments(Base):
             s.rolling(len(data), min_periods=1).quantile(
                 0.5, interpolation='invalid')
 
-    def test_rolling_quantile_param(self):
+    def test_moving_quantile_param(self):
         ser = Series([0.0, .1, .5, .9, 1.0])
 
         with pytest.raises(ValueError):

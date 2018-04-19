@@ -1287,15 +1287,14 @@ class _Rolling_and_Expanding(_Rolling):
               fractional part of the index surrounded by `i` and `j`.
             * lower: `i`.
             * higher: `j`.
-            * nearest: `i` or `j` whichever is nearest. Implementation uses
-              round() built-in.
+            * nearest: `i` or `j` whichever is nearest.
             * midpoint: (`i` + `j`) / 2.
 
     Returns
     -------
     Series or DataFrame
         Returned object type is determined by the caller of the %(name)s
-        calculation
+        calculation.
 
     Examples
     --------
@@ -1316,8 +1315,10 @@ class _Rolling_and_Expanding(_Rolling):
 
     See Also
     --------
-    pandas.Series.quantile
-    pandas.DataFrame.quantile
+    pandas.Series.quantile : Computes value at the given quantile over all data
+        in Series.
+    pandas.DataFrame.quantile : Computes values at the given quantile over
+        requested axis in DataFrame.
 
     """)
 
