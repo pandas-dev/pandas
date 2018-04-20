@@ -80,7 +80,7 @@ echo
 echo "[create env]"
 
 # create our environment
-time conda env create -n pandas --file="${ENV_FILE}" || exit 1
+time conda env create -q -n pandas --file="${ENV_FILE}" || exit 1
 
 source activate pandas
 
