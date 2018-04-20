@@ -3,27 +3,27 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - beautifulsoup4  # XXX: pip -> conda
+  - beautifulsoup4
   - bottleneck
   - cython=0.24
   - flake8=3.4.1
-  - html5lib  # XXX: pip -> conda
-  - ipython  # XXX: pip -> conda
+  - html5lib
+  - ipython
   - jinja2=2.8
   - lxml
   - matplotlib
-  - mock  # XXX: pip -> conda
+  - mock
   - nomkl
   - numexpr
   - numpy=1.13*
   - openpyxl=2.4.0
   - patsy
   - psycopg2
-  - py  # XXX: pip -> conda
-  - PyCrypto  # XXX: pip -> conda
+  - py
+  - PyCrypto
   - pymysql=0.6.3
   - pytables
-  - python-blosc  # XXX: pip -> conda
+  - python-blosc
   - python-dateutil=2.5.0
   - python=2.7*
   - pytz=2013b

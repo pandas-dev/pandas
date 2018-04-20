@@ -10,7 +10,7 @@ dependencies:
   - numpy=1.9.2
   - openpyxl=2.4.0
   - python-dateutil
-  - python-blosc  # XXX: moved from pip
+  - python-blosc
   - python=2.7
   - pytz
   - pytz=2013b
