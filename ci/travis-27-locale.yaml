@@ -1,4 +1,7 @@
 name: pandas
+channels:
+  - defaults
+  - conda-forge
 dependencies:
   - bottleneck=1.0.0
   - cython=0.24
