@@ -405,6 +405,18 @@ class TestDatetimeIndexOps(Ops):
         assert not idx.equals(list(idx3))
         assert not idx.equals(pd.Series(idx3))
 
+    def test_offset_deprecated(self):
+        # GH 20716
+        idx = pd.DatetimeIndex(['20180101', '20180102'])
+
+        # getter deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            idx.offset
+
+        # setter deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            idx.offset = BDay()
+
 
 class TestBusinessDatetimeIndex(object):
 
@@ -420,7 +432,7 @@ class TestBusinessDatetimeIndex(object):
 
     def test_pickle_unpickle(self):
         unpickled = tm.round_trip_pickle(self.rng)
-        assert unpickled.offset is not None
+        assert unpickled.freq is not None
 
     def test_copy(self):
         cp = self.rng.copy()
@@ -430,15 +442,15 @@ class TestBusinessDatetimeIndex(object):
     def test_shift(self):
         shifted = self.rng.shift(5)
         assert shifted[0] == self.rng[5]
-        assert shifted.offset == self.rng.offset
+        assert shifted.freq == self.rng.freq
 
         shifted = self.rng.shift(-5)
         assert shifted[5] == self.rng[0]
-        assert shifted.offset == self.rng.offset
+        assert shifted.freq == self.rng.freq
 
         shifted = self.rng.shift(0)
         assert shifted[0] == self.rng[0]
-        assert shifted.offset == self.rng.offset
+        assert shifted.freq == self.rng.freq
 
         rng = date_range(START, END, freq=BMonthEnd())
         shifted = rng.shift(1, freq=BDay())
@@ -485,15 +497,15 @@ class TestCustomDatetimeIndex(object):
 
         shifted = self.rng.shift(5)
         assert shifted[0] == self.rng[5]
-        assert shifted.offset == self.rng.offset
+        assert shifted.freq == self.rng.freq
 
         shifted = self.rng.shift(-5)
         assert shifted[5] == self.rng[0]
-        assert shifted.offset == self.rng.offset
+        assert shifted.freq == self.rng.freq
 
         shifted = self.rng.shift(0)
         assert shifted[0] == self.rng[0]
-        assert shifted.offset == self.rng.offset
+        assert shifted.freq == self.rng.freq
 
         # PerformanceWarning
         with warnings.catch_warnings(record=True):
@@ -503,7 +515,7 @@ class TestCustomDatetimeIndex(object):
 
     def test_pickle_unpickle(self):
         unpickled = tm.round_trip_pickle(self.rng)
-        assert unpickled.offset is not None
+        assert unpickled.freq is not None
 
     def test_equals(self):
         assert not self.rng.equals(list(self.rng))
