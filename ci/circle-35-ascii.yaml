@@ -1,0 +1,15 @@
+name: pandas
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - cython
+  - nomkl
+  - numpy
+  - python-dateutil
+  - python=3.5*
+  - pytz
+  # universal
+  - pytest
+  - pytest-xdist
+  - moto
