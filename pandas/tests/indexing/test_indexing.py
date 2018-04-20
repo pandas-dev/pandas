@@ -192,15 +192,9 @@ class TestFancy(Base):
             result = df.loc[rows]
         tm.assert_frame_equal(result, expected)
 
-        # inconsistent returns for unique/duplicate indices when values are
-        # missing
-        df = DataFrame(np.random.randn(4, 3), index=list('ABCD'))
-        expected = df.reindex(['E'])
-
         dfnu = DataFrame(np.random.randn(5, 3), index=list('AABCD'))
-        with catch_warnings(record=True):
-            result = dfnu.ix[['E']]
-        tm.assert_frame_equal(result, expected)
+        with pytest.raises(KeyError):
+            dfnu.ix[['E']]
 
         # ToDo: check_index_type can be True after GH 11497
 
