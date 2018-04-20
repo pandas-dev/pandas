@@ -1540,12 +1540,14 @@ class TestCrosstab(object):
                                           index=pd.Index([1, 2, 'All'],
                                                          name='a',
                                                          dtype='object'),
-                                          columns=pd.Index([3, 4], name='b'))
+                                          columns=pd.Index([3, 4], name='b',
+                                                           dtype='object'))
         col_normal_margins = pd.DataFrame([[0.5, 0, 0.2], [0.5, 1.0, 0.8]],
                                           index=pd.Index([1, 2], name='a',
                                                          dtype='object'),
                                           columns=pd.Index([3, 4, 'All'],
-                                                           name='b'))
+                                                           name='b',
+                                                           dtype='object'))
 
         all_normal_margins = pd.DataFrame([[0.2, 0, 0.2],
                                            [0.2, 0.6, 0.8],
@@ -1554,7 +1556,8 @@ class TestCrosstab(object):
                                                          name='a',
                                                          dtype='object'),
                                           columns=pd.Index([3, 4, 'All'],
-                                                           name='b'))
+                                                           name='b',
+                                                           dtype='object'))
         tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize='index',
                                           margins=True), row_normal_margins)
         tm.assert_frame_equal(pd.crosstab(df.a, df.b, normalize='columns',
