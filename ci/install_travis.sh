@@ -156,8 +156,8 @@ echo "[running setup.py develop]"
 python setup.py develop  || exit 1
 
 echo
-echo "[show pandas]"
-conda list pandas
+echo "[show environment]"
+conda list
 
 echo
 echo "[done]"
