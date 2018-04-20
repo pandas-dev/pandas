@@ -14,6 +14,7 @@ dependencies:
   - pyarrow
   - pytables
   - python-dateutil
+  - python=3.6.*
   - pytz
   - scipy
   - thrift=0.10*
@@ -21,6 +22,7 @@ dependencies:
   - xlsxwriter
   - xlwt
   # universal
+  - cython
   - pytest
   - pytest-xdist
   - moto

@@ -14,6 +14,7 @@ dependencies:
   - numpy=1.10*
   - openpyxl
   - pytables==3.2.2
+  - python=2.7.*
   - pytz
   - s3fs
   - scipy
@@ -22,6 +23,7 @@ dependencies:
   - xlsxwriter
   - xlwt
   # universal
+  - cython
   - pytest
   - pytest-xdist
   - moto
