@@ -27,7 +27,6 @@ dependencies:
   # universal
   - pytest
   - pytest-xdist
-  - pytest-cov
   - moto
   - pip:
     - python-dateutil==2.5.3

@@ -6,6 +6,7 @@ dependencies:
   - beautifulsoup4  # XXX: pip -> conda
   - bottleneck
   - cython=0.24
+  - flake8=3.4.1
   - html5lib  # XXX: pip -> conda
   - ipython  # XXX: pip -> conda
   - jinja2=2.8
@@ -36,9 +37,9 @@ dependencies:
   # universal
   - pytest
   - pytest-xdist
-  - pytest-cov
   - moto
   - pip:
     - backports.lzma
+    - cpplint
     - pandas-gbq
     - pathlib

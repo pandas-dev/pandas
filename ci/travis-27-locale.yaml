@@ -19,7 +19,6 @@ dependencies:
   # universal
   - pytest
   - pytest-xdist
-  - pytest-cov
   - moto
   - pip:
     - html5lib==1.0b2

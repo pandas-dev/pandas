@@ -27,5 +27,4 @@ dependencies:
   # universal
   - pytest
   - pytest-xdist
-  - pytest-cov
   - moto

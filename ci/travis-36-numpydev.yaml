@@ -9,7 +9,6 @@ dependencies:
   # universal
   - pytest
   - pytest-xdist
-  - pytest-cov
   - moto
   - pip:
     - "git+git://github.com/dateutil/dateutil.git"
