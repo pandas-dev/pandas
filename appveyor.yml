@@ -73,7 +73,7 @@ install:
   - cmd: conda info -a
 
   # create our env
-  - cmd: conda env create -q -n pandas --file=%clone_folder%\ci\appveyor-%PYTHON_VERSION%.yaml
+  - cmd: conda env create -q -n pandas --file=ci\appveyor-%CONDA_PY%.yaml
   - cmd: activate pandas
   - cmd: conda list -n pandas
   # uninstall pandas if nescessary
