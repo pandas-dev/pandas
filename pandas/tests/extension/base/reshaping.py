@@ -98,8 +98,8 @@ class BaseReshapingTests(BaseExtensionTests):
 
     def test_merge(self, data, na_value):
         # GH-20743
-        df1 = pd.DataFrame({'int1': [1, 2, 3], 'key': [0, 1, 2],
-                            'ext': data[:3]})
+        df1 = pd.DataFrame({'ext': data[:3], 'int1': [1, 2, 3],
+                            'key': [0, 1, 2]})
         df2 = pd.DataFrame({'int2': [1, 2, 3, 4], 'key': [0, 0, 1, 3]})
 
         res = pd.merge(df1, df2)
@@ -107,7 +107,7 @@ class BaseReshapingTests(BaseExtensionTests):
             {'int1': [1, 1, 2], 'int2': [1, 2, 3], 'key': [0, 0, 1],
              'ext': data._constructor_from_sequence(
                  [data[0], data[0], data[1]])})
-        self.assert_frame_equal(res, exp[['int1', 'key', 'ext', 'int2']])
+        self.assert_frame_equal(res, exp[['ext', 'int1', 'key', 'int2']])
 
         res = pd.merge(df1, df2, how='outer')
         exp = pd.DataFrame(
@@ -115,4 +115,4 @@ class BaseReshapingTests(BaseExtensionTests):
              'key': [0, 0, 1, 2, 3],
              'ext': data._constructor_from_sequence(
                  [data[0], data[0], data[1], data[2], na_value])})
-        self.assert_frame_equal(res, exp[['int1', 'key', 'ext', 'int2']])
+        self.assert_frame_equal(res, exp[['ext', 'int1', 'key', 'int2']])

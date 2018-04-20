@@ -5547,7 +5547,7 @@ def concatenate_join_units(join_units, concat_axis, copy):
                 # in JoinUnit.get_reindexed_values
                 if concat_values.base is not None:
                     concat_values = concat_values.copy()
-            elif:
+            else:
                 concat_values = concat_values.copy()
     else:
         concat_values = _concat._concat_compat(to_concat, axis=concat_axis)
