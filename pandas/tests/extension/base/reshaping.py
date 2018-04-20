@@ -97,7 +97,7 @@ class BaseReshapingTests(BaseExtensionTests):
         assert df.dtypes['A'] == data.dtype
 
     def test_merge(self, data, na_value):
-
+        # GH-20743
         df1 = pd.DataFrame({'int1': [1, 2, 3], 'key': [0, 1, 2],
                             'ext': data[:3]})
         df2 = pd.DataFrame({'int2': [1, 2, 3, 4], 'key': [0, 0, 1, 3]})
