@@ -25,8 +25,8 @@ from pandas.core.dtypes.common import (
     is_bool_dtype, needs_i8_conversion,
     is_datetimetz,
     is_datetime64_any_dtype, is_datetime64tz_dtype,
-    is_timedelta64_dtype, is_interval_dtype,
-    is_scalar, is_list_like,
+    is_timedelta64_dtype, is_datetimelike,
+    is_interval_dtype, is_scalar, is_list_like,
     _ensure_platform_int, _ensure_object,
     _ensure_float64, _ensure_uint64,
     _ensure_int64)
@@ -798,7 +798,7 @@ def duplicated(values, keep='first'):
     return f(values, keep=keep)
 
 
-def mode(values):
+def mode(values, dropna=True):
     """
     Returns the mode(s) of an array.
 
@@ -806,6 +806,8 @@ def mode(values):
     ----------
     values : array-like
         Array over which to check for duplicate values.
+    dropna : boolean, default True
+        Don't consider counts of NaN/NaT.
 
     Returns
     -------
@@ -818,20 +820,18 @@ def mode(values):
 
     # categorical is a fast-path
     if is_categorical_dtype(values):
-
         if isinstance(values, Series):
-            return Series(values.values.mode(), name=values.name)
-        return values.mode()
+            return Series(values.values.mode(dropna=dropna), name=values.name)
+        return values.mode(dropna=dropna)
+
+    if dropna and is_datetimelike(values):
+        mask = values.isnull()
+        values = values[~mask]
 
     values, dtype, ndtype = _ensure_data(values)
 
-    # TODO: this should support float64
-    if ndtype not in ['int64', 'uint64', 'object']:
-        ndtype = 'object'
-        values = _ensure_object(values)
-
     f = getattr(htable, "mode_{dtype}".format(dtype=ndtype))
-    result = f(values)
+    result = f(values, dropna=dropna)
     try:
         result = np.sort(result)
     except TypeError as e:

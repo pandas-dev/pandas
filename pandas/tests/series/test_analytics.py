@@ -12,7 +12,7 @@ import pandas as pd
 
 from pandas import (Series, Categorical, DataFrame, isna, notna,
                     bdate_range, date_range, _np_version_under1p10,
-                    CategoricalIndex)
+                    CategoricalIndex, to_datetime, to_timedelta)
 from pandas.core.index import MultiIndex
 from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.indexes.timedeltas import Timedelta
@@ -320,6 +320,30 @@ class TestSeriesAnalytics(TestData):
         exp = Categorical([1, 3], categories=[1, 2, 3])
         exp = Series(exp, dtype='category')
         tm.assert_series_equal(Series(c).mode(), exp)
+
+    @pytest.mark.parametrize('values, expected', [
+        ([np.nan, np.nan, 1], [np.nan]),
+        ([np.nan, 1], [1, np.nan]),
+        ([np.nan, np.nan, 'a'], np.array([np.nan], dtype=object)),
+        ([np.nan, 'a'], [np.nan, 'a']),
+        (Categorical([np.nan, np.nan, 'a']),
+         Categorical([np.nan], categories=['a'])),
+        (Categorical([np.nan, 'a']),
+         Categorical([np.nan, 'a'], categories=['a'])),
+        (Categorical([np.nan, np.nan, 1]),
+         Categorical([np.nan], categories=[1])),
+        (to_datetime(['NaT', '2000-1-2', 'NaT']), [pd.NaT]),
+        (to_datetime(['NaT', '2000-1-2']), to_datetime(['NaT', '2000-1-2'])),
+        (to_timedelta(['1 days', 'nan', 'nan']), to_timedelta(['NaT'])),
+        (to_timedelta(['1 days', 'nan']), to_timedelta(['nan', '1 days']))
+    ])
+    def test_mode_dropna(self, values, expected):
+        # GH 17534
+        # Test the dropna=False parameter for mode
+
+        result = Series(values).mode(dropna=False)
+        expected = Series(expected)
+        tm.assert_series_equal(result, expected)
 
     def test_prod(self):
         self._check_stat_op('prod', np.prod)

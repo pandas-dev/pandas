@@ -15,7 +15,8 @@ import numpy as np
 from pandas.compat import lrange, product, PY35
 from pandas import (compat, isna, notna, DataFrame, Series,
                     MultiIndex, date_range, Timestamp, Categorical,
-                    _np_version_under1p12, _np_version_under1p15)
+                    _np_version_under1p12, _np_version_under1p15,
+                    to_datetime, to_timedelta)
 import pandas as pd
 import pandas.core.nanops as nanops
 import pandas.core.algorithms as algorithms
@@ -888,6 +889,40 @@ class TestDataFrameAnalytics(TestData):
                             "C": pd.Series(list('abcdef'),
                                            dtype=df["C"].dtype)})
         tm.assert_frame_equal(df.mode(), exp)
+
+    def test_mode_dropna(self):
+        # GH 17534
+        # Test the dropna=False parameter for mode
+
+        df = pd.DataFrame({"A": [1, np.nan, np.nan, np.nan],
+                           "B": [np.nan, np.nan, 'a', np.nan],
+                           "C": Categorical([np.nan, np.nan, 'a', np.nan]),
+                           "D": to_datetime(['NaT', '2000-1-2', 'NaT', 'NaT']),
+                           "E": to_timedelta(['1 days', 'nan', 'nan', 'nan']),
+                           "F": [1, 1, np.nan, np.nan],
+                           "G": [np.nan, np.nan, 'a', 'a'],
+                           "H": Categorical(['a', np.nan, 'a', np.nan]),
+                           "I": to_datetime(['2000-1-2', '2000-1-2',
+                                             'NaT', 'NaT']),
+                           "J": to_timedelta(['1 days', 'nan',
+                                              '1 days', 'nan'])})
+
+        result = df.loc[:, 'A':'E'].mode(dropna=False)
+        expected = pd.DataFrame({'A': [np.nan],
+                                 'B': np.array([np.nan], dtype=object),
+                                 'C': Categorical([np.nan], categories=['a']),
+                                 'D': [pd.NaT],
+                                 'E': to_timedelta([pd.NaT])})
+        tm.assert_frame_equal(result, expected)
+
+        result = df.loc[:, 'F':'J'].mode(dropna=False)
+        expected = pd.DataFrame({'F': [1, np.nan],
+                                 'G': [np.nan, 'a'],
+                                 'H': Categorical([np.nan, 'a'],
+                                                  categories=['a']),
+                                 'I': to_datetime(['NaT', '2000-1-2']),
+                                 'J': to_timedelta(['nan', '1 days'])})
+        tm.assert_frame_equal(result, expected)
 
     def test_operators_timedelta64(self):
         from datetime import timedelta

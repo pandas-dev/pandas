@@ -2118,11 +2118,16 @@ class Categorical(ExtensionArray, PandasObject):
         else:
             return self.categories[pointer]
 
-    def mode(self):
+    def mode(self, dropna=True):
         """
         Returns the mode(s) of the Categorical.
 
         Always returns `Categorical` even if only one value.
+
+        Parameters
+        ----------
+        dropna : boolean, default True
+            Don't consider counts of NaN/NaT.
 
         Returns
         -------
@@ -2130,8 +2135,11 @@ class Categorical(ExtensionArray, PandasObject):
         """
 
         import pandas._libs.hashtable as htable
-        good = self._codes != -1
-        values = sorted(htable.mode_int64(_ensure_int64(self._codes[good])))
+        values = self._codes
+        if dropna:
+            good = self._codes != -1
+            values = self._codes[good]
+        values = sorted(htable.mode_int64(_ensure_int64(values), dropna))
         result = self._constructor(values=values, categories=self.categories,
                                    ordered=self.ordered, fastpath=True)
         return result
