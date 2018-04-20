@@ -84,10 +84,6 @@ time conda env create -q -n pandas --file="${ENV_FILE}" || exit 1
 
 source activate pandas
 
-if [ "$COVERAGE" ]; then
-    pip install coverage pytest-cov
-fi
-
 # remove any installed pandas package
 # w/o removing anything else
 echo
