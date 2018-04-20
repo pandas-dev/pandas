@@ -1,0 +1,26 @@
+name: pandas
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - blosc
+  - bottleneck
+  - fastparquet
+  - feather-format
+  - matplotlib
+  - numexpr
+  - numpy=1.13*
+  - openpyxl
+  - pyarrow
+  - pytables
+  - python-dateutil
+  - pytz
+  - scipy
+  - thrift=0.10*
+  - xlrd
+  - xlsxwriter
+  - xlwt
+  # universal
+  - pytest
+  - pytest-xdist
+  - moto
