@@ -6,9 +6,12 @@ dependencies:
   - beautifulsoup4
   - bottleneck
   - cython=0.24
+  - fastparquet
+  - feather-format
   - flake8=3.4.1
   - html5lib
   - ipython
+  - jemalloc=4.5.0.post
   - jinja2=2.8
   - lxml
   - matplotlib
@@ -20,6 +23,7 @@ dependencies:
   - patsy
   - psycopg2
   - py
+  - pyarrow=0.4.1
   - PyCrypto
   - pymysql=0.6.3
   - pytables
