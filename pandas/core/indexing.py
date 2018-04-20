@@ -1112,9 +1112,10 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             ax = self.obj._get_axis(axis)
             # existing labels are unique and indexer are unique
             if labels.is_unique and Index(keyarr).is_unique:
-                self._validate_read_indexer(key, ax.get_indexer_for(key), axis)
+                indexer = ax.get_indexer_for(key)
+                self._validate_read_indexer(key, indexer, axis)
 
-                d = {axis: [ax.reindex(keyarr)[0], ax.get_indexer_for(key)]}
+                d = {axis: [ax.reindex(keyarr)[0], indexer]}
                 return self.obj._reindex_with_indexers(d, copy=True,
                                                        allow_dups=True)
 
