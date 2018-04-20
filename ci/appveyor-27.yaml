@@ -1,0 +1,27 @@
+name: pandas
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - beautifulsoup4
+  - bottleneck
+  - dateutil
+  - html5lib
+  - jinja2=2.8
+  - lxml
+  - matplotlib
+  - numexpr
+  - numpy=1.10*
+  - openpyxl
+  - pytables==3.2.2
+  - pytz
+  - s3fs
+  - scipy
+  - sqlalchemy
+  - xlrd
+  - xlsxwriter
+  - xlwt
+  # universal
+  - pytest
+  - pytest-xdist
+  - moto
