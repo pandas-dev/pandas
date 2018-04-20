@@ -1,0 +1,33 @@
+name: pandas
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - beautifulsoup4
+  - bottleneck
+  - cython
+  - fastparquet
+  - feather-format=0.3.1
+  - html5lib
+  - jinja2
+  - lxml
+  - matplotlib
+  - nomkl
+  - numexpr
+  - numpy=1.10.4
+  - openpyxl
+  - pytables
+  - python=3.5*
+  - pytz
+  - s3fs
+  - xarray
+  - xlrd
+  - xlsxwriter
+  - xlwt
+  # universal
+  - pytest
+  - pytest-xdist
+  - pytest-cov
+  - moto
+  - pip:
+    - python-dateutil==2.5.3
