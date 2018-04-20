@@ -813,8 +813,7 @@ class TestIndex(Base):
         expected = Index(list('ab'), name='A')
         tm.assert_index_equal(union, expected)
 
-        with tm.assert_produces_warning(RuntimeWarning):
-            firstCat = self.strIndex.union(self.dateIndex)
+        firstCat = self.strIndex.union(self.dateIndex)
         secondCat = self.strIndex.union(self.strIndex)
 
         if self.dateIndex.dtype == np.object_:
@@ -1510,28 +1509,25 @@ class TestIndex(Base):
             pytest.raises(KeyError, removed.drop, drop_me)
 
     def test_tuple_union_bug(self):
-        import pandas
-        import numpy as np
-
         aidx1 = np.array([(1, 'A'), (2, 'A'), (1, 'B'), (2, 'B')],
                          dtype=[('num', int), ('let', 'a1')])
         aidx2 = np.array([(1, 'A'), (2, 'A'), (1, 'B'),
                           (2, 'B'), (1, 'C'), (2, 'C')],
                          dtype=[('num', int), ('let', 'a1')])
 
-        idx1 = pandas.Index(aidx1)
-        idx2 = pandas.Index(aidx2)
+        idx1 = Index(aidx1)
+        idx2 = Index(aidx2)
 
-        # intersection broken?
+        # intersection
         int_idx = idx1.intersection(idx2)
+        expected = idx1  # pandas.Index(sorted(set(idx1) & set(idx2)))
         # needs to be 1d like idx1 and idx2
-        expected = idx1[:4]  # pandas.Index(sorted(set(idx1) & set(idx2)))
         assert int_idx.ndim == 1
         tm.assert_index_equal(int_idx, expected)
 
-        # union broken
+        # GH 17376 (union)
         union_idx = idx1.union(idx2)
-        expected = idx2
+        expected = idx2.sort_values()
         assert union_idx.ndim == 1
         tm.assert_index_equal(union_idx, expected)
 
@@ -1720,13 +1716,19 @@ class TestIndex(Base):
         left_idx = Index(np.random.permutation(15))
         right_idx = tm.makeDateIndex(10)
 
-        with tm.assert_produces_warning(RuntimeWarning):
+        if PY3:
+            with tm.assert_produces_warning(RuntimeWarning):
+                joined = left_idx.join(right_idx, how='outer')
+        else:
             joined = left_idx.join(right_idx, how='outer')
 
         # right_idx in this case because DatetimeIndex has join precedence over
         # Int64Index
-        with tm.assert_produces_warning(RuntimeWarning):
-            expected = right_idx.astype(object).union(left_idx.astype(object))
+        if PY3:
+            with tm.assert_produces_warning(RuntimeWarning):
+                expected = right_idx.astype(object).union(left_idx)
+        else:
+            expected = right_idx.astype(object).union(left_idx)
         tm.assert_index_equal(joined, expected)
 
     def test_nan_first_take_datetime(self):
@@ -2120,10 +2122,7 @@ class TestMixedIntIndex(Base):
         s1 = Series(2, index=first)
         s2 = Series(3, index=second[:-1])
 
-        warning_type = RuntimeWarning if PY3 else None
-        with tm.assert_produces_warning(warning_type):
-            # Python 3: Unorderable types
-            s3 = s1 * s2
+        s3 = s1 * s2
 
         assert s3.index.name == 'mario'
 
@@ -2156,27 +2155,14 @@ class TestMixedIntIndex(Base):
         first = idx[3:]
         second = idx[:5]
 
-        if PY3:
-            with tm.assert_produces_warning(RuntimeWarning):
-                # unorderable types
-                result = first.union(second)
-                expected = Index(['b', 2, 'c', 0, 'a', 1])
-                tm.assert_index_equal(result, expected)
-        else:
-            result = first.union(second)
-            expected = Index(['b', 2, 'c', 0, 'a', 1])
-            tm.assert_index_equal(result, expected)
+        expected = Index([0, 1, 2, 'a', 'b', 'c'])
+        result = first.union(second)
+        tm.assert_index_equal(result, expected)
 
         # GH 10149
         cases = [klass(second.values)
                  for klass in [np.array, Series, list]]
         for case in cases:
-            if PY3:
-                with tm.assert_produces_warning(RuntimeWarning):
-                    # unorderable types
-                    result = first.union(case)
-                    assert tm.equalContents(result, idx)
-            else:
                 result = first.union(case)
                 assert tm.equalContents(result, idx)
 

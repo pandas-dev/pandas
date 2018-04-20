@@ -1095,6 +1095,7 @@ Numeric
 Indexing
 ^^^^^^^^
 
+- Bug in the order of the result of ``Index.union()`` when indexes contain tuples (:issue:`17376`)
 - Bug in :class:`Index` construction from list of mixed type tuples (:issue:`18505`)
 - Bug in :func:`Index.drop` when passing a list of both tuples and non-tuples (:issue:`18304`)
 - Bug in :func:`DataFrame.drop`, :meth:`Panel.drop`, :meth:`Series.drop`, :meth:`Index.drop` where no ``KeyError`` is raised when dropping a non-existent element from an axis that contains duplicates (:issue:`19186`)
