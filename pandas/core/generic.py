@@ -4953,7 +4953,8 @@ class NDFrame(PandasObject, SelectionMixin):
             .. versionchanged:: 0.23.0
                 Added to DataFrame.
         axis : None
-            Deprecated.
+            .. deprecated:: 0.13.0
+               Has no effect and will be removed.
 
         See Also
         --------
