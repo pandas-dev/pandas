@@ -1968,6 +1968,55 @@ class TestGroupBy(MixIn):
     @pytest.mark.parametrize("grps", [
         ['qux'], ['qux', 'quux']])
     @pytest.mark.parametrize("vals", [
+        [-np.inf, -np.inf, np.nan, 1., np.nan, np.inf, np.inf],
+    ])
+    @pytest.mark.parametrize("ties_method,ascending,na_option,exp", [
+        ('average', True, 'keep', [1.5, 1.5, np.nan, 3, np.nan, 4.5, 4.5]),
+        ('average', True, 'top', [3.5, 3.5, 1.5, 5., 1.5, 6.5, 6.5]),
+        ('average', True, 'bottom', [1.5, 1.5, 6.5, 3., 6.5, 4.5, 4.5]),
+        ('average', False, 'keep', [4.5, 4.5, np.nan, 3, np.nan, 1.5, 1.5]),
+        ('average', False, 'top', [6.5, 6.5, 1.5, 5., 1.5, 3.5, 3.5]),
+        ('average', False, 'bottom', [4.5, 4.5, 6.5, 3., 6.5, 1.5, 1.5]),
+        ('min', True, 'keep', [1., 1., np.nan, 3., np.nan, 4., 4.]),
+        ('min', True, 'top', [3., 3., 1., 5., 1., 6., 6.]),
+        ('min', True, 'bottom', [1., 1., 6., 3., 6., 4., 4.]),
+        ('min', False, 'keep', [4., 4., np.nan, 3., np.nan, 1., 1.]),
+        ('min', False, 'top', [6., 6., 1., 5., 1., 3., 3.]),
+        ('min', False, 'bottom', [4., 4., 6., 3., 6., 1., 1.]),
+        ('max', True, 'keep', [2., 2., np.nan, 3., np.nan, 5., 5.]),
+        ('max', True, 'top', [4., 4., 2., 5., 2., 7., 7.]),
+        ('max', True, 'bottom', [2., 2., 7., 3., 7., 5., 5.]),
+        ('max', False, 'keep', [5., 5., np.nan, 3., np.nan, 2., 2.]),
+        ('max', False, 'top', [7., 7., 2., 5., 2., 4., 4.]),
+        ('max', False, 'bottom', [5., 5., 7., 3., 7., 2., 2.]),
+        ('first', True, 'keep', [1., 2., np.nan, 3., np.nan, 4., 5.]),
+        ('first', True, 'top', [3., 4., 1., 5., 2., 6., 7.]),
+        ('first', True, 'bottom', [1., 2., 6., 3., 7., 4., 5.]),
+        ('first', False, 'keep', [4., 5., np.nan, 3., np.nan, 1., 2.]),
+        ('first', False, 'top', [6., 7., 1., 5., 2., 3., 4.]),
+        ('first', False, 'bottom', [4., 5., 6., 3., 7., 1., 2.]),
+        ('dense', True, 'keep', [1., 1., np.nan, 2., np.nan, 3., 3.]),
+        ('dense', True, 'top', [2., 2., 1., 3., 1., 4., 4.]),
+        ('dense', True, 'bottom', [1., 1., 4., 2., 4., 3., 3.]),
+        ('dense', False, 'keep', [3., 3., np.nan, 2., np.nan, 1., 1.]),
+        ('dense', False, 'top', [4., 4., 1., 3., 1., 2., 2.]),
+        ('dense', False, 'bottom', [3., 3., 4., 2., 4., 1., 1.])
+    ])
+    def test_infs_n_nans(self, grps, vals, ties_method, ascending, na_option,
+                         exp):
+        # GH 20561
+        key = np.repeat(grps, len(vals))
+        vals = vals * len(grps)
+        df = DataFrame({'key': key, 'val': vals})
+        result = df.groupby('key').rank(method=ties_method,
+                                        ascending=ascending,
+                                        na_option=na_option)
+        exp_df = DataFrame(exp * len(grps), columns=['val'])
+        assert_frame_equal(result, exp_df)
+
+    @pytest.mark.parametrize("grps", [
+        ['qux'], ['qux', 'quux']])
+    @pytest.mark.parametrize("vals", [
         [2, 2, np.nan, 8, 2, 6, np.nan, np.nan],  # floats
         [pd.Timestamp('2018-01-02'), pd.Timestamp('2018-01-02'), np.nan,
          pd.Timestamp('2018-01-08'), pd.Timestamp('2018-01-02'),

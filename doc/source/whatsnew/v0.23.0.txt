@@ -221,6 +221,12 @@ Current Behavior:
 
     s.rank(na_option='top')
 
+These bugs were squashed:
+
+- Bug in :meth:`DataFrame.rank` and :meth:`Series.rank` when ``method='dense'`` and ``pct=True`` in which percentile ranks were not being used with the number of distinct observations (:issue:`15630`)
+- Bug in :meth:`Series.rank` and :meth:`DataFrame.rank` when ``ascending='False'`` failed to return correct ranks for infinity if ``NaN`` were present (:issue:`19538`)
+- Bug in :func:`DataFrameGroupBy.rank` where ranks were incorrect when both infinity and ``NaN`` were present (:issue:`20561`)
+
 .. _whatsnew_0230.enhancements.round-trippable_json:
 
 JSON read/write round-trippable with ``orient='table'``
@@ -1082,14 +1088,12 @@ Offsets
 
 Numeric
 ^^^^^^^
-- Bug in :meth:`DataFrame.rank` and :meth:`Series.rank` when ``method='dense'`` and ``pct=True`` in which percentile ranks were not being used with the number of distinct observations (:issue:`15630`)
 - Bug in :class:`Series` constructor with an int or float list where specifying ``dtype=str``, ``dtype='str'`` or ``dtype='U'`` failed to convert the data elements to strings (:issue:`16605`)
 - Bug in :class:`Index` multiplication and division methods where operating with a ``Series`` would return an ``Index`` object instead of a ``Series`` object (:issue:`19042`)
 - Bug in the :class:`DataFrame` constructor in which data containing very large positive or very large negative numbers was causing ``OverflowError`` (:issue:`18584`)
 - Bug in :class:`Index` constructor with ``dtype='uint64'`` where int-like floats were not coerced to :class:`UInt64Index` (:issue:`18400`)
 - Bug in :class:`DataFrame` flex arithmetic (e.g. ``df.add(other, fill_value=foo)``) with a ``fill_value`` other than ``None`` failed to raise ``NotImplementedError`` in corner cases where either the frame or ``other`` has length zero (:issue:`19522`)
 - Multiplication and division of numeric-dtyped :class:`Index` objects with timedelta-like scalars returns ``TimedeltaIndex`` instead of raising ``TypeError`` (:issue:`19333`)
-- Bug in :meth:`Series.rank` and :meth:`DataFrame.rank` when ``ascending='False'`` failed to return correct ranks for infinity if ``NaN`` were present (:issue:`19538`)
 - Bug where ``NaN`` was returned instead of 0 by :func:`Series.pct_change` and :func:`DataFrame.pct_change` when ``fill_method`` is not ``None`` (:issue:`19873`)
 
 
