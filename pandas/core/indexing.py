@@ -532,7 +532,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
             def can_do_equal_len():
                 """ return True if we have an equal len settable """
-                if not len(labels) == 1 or not np.iterable(value):
+                if (not len(labels) == 1 or not np.iterable(value) or
+                        is_scalar(plane_indexer[0])):
                     return False
 
                 l = len(value)

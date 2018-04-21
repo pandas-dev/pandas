@@ -11,6 +11,7 @@ from pandas.compat import lrange, StringIO
 from pandas import Series, DataFrame, Timestamp, date_range, MultiIndex, Index
 from pandas.util import testing as tm
 from pandas.tests.indexing.common import Base
+from pandas.api.types import is_scalar
 
 
 class TestLoc(Base):
@@ -554,6 +555,21 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
         rhs.index = df.index[2:5]
         df.loc[2:4] = rhs
         tm.assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        'indexer', [['A'], slice(None, 'A', None), np.array(['A'])])
+    @pytest.mark.parametrize(
+        'value', [['Z'], np.array(['Z'])])
+    def test_loc_setitem_with_scalar_index(self, indexer, value):
+        # GH #19474
+        # assigning like "df.loc[0, ['A']] = ['Z']" should be evaluated
+        # elementwisely, not using "setter('A', ['Z'])".
+
+        df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
+        df.loc[0, indexer] = value
+        result = df.loc[0, 'A']
+
+        assert is_scalar(result) and result == 'Z'
 
     def test_loc_coerceion(self):
 
