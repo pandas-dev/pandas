@@ -4957,7 +4957,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        %(klass)s.fillna : Fill `NaN` values
+        %(klass)s.fillna : Fill NA values
         %(klass)s.where : Replace values based on boolean condition
         Series.str.replace : Simple string replacement.
 
