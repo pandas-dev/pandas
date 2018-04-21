@@ -897,8 +897,11 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             d = {}
             for key, axis in zip(tup, o._AXIS_ORDERS):
                 ax = o._get_axis(axis)
+                # Have the index compute an indexer or return None
+                # if it cannot handle:
                 indexer, keyarr = ax._convert_listlike_indexer(key,
                                                                kind=self.name)
+                # We only act on all found values:
                 if indexer is not None and (indexer != -1).all():
                     self._validate_read_indexer(key, indexer, axis)
                     d[axis] = (ax[indexer], indexer)
@@ -1147,39 +1150,58 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
     def _validate_read_indexer(self, key, indexer, axis):
         """
-        Check that indexer is OK (e.g. at least one element was found, unless
-        the list of keys was actually empty).
+        Check that indexer can be used to return a result (e.g. at least one
+        element was found, unless the list of keys was actually empty).
+
+        Parameters
+        ----------
+        key : list-like
+            Target labels (only used to show correct error message)
+        indexer: array-like of booleans
+            Indices corresponding to the key (with -1 indicating not found)
+        axis: int
+            Dimension on which the indexing is being made
+
+        Returns
+        -------
+        None
+
+        Raises
+        ------
+        KeyError
+            If at least one key was requested none was found.
         """
+
         ax = self.obj._get_axis(axis)
-        # True indicates missing values
+
         if len(key) == 0:
             return
 
-        missing = indexer < 0
+        # Count missing values:
+        missing = (indexer < 0).sum()
 
-        if np.any(missing):
-            if np.all(missing):
+        if missing:
+            if missing == len(indexer):
                 raise KeyError(
                     u"None of [{key}] are in the [{axis}]".format(
                         key=key, axis=self.obj._get_axis_name(axis)))
-            else:
 
-                # we skip the warning on Categorical/Interval
-                # as this check is actually done (check for
-                # non-missing values), but a bit later in the
-                # code, so we want to avoid warning & then
-                # just raising
+            # we skip the warning on Categorical/Interval
+            # as this check is actually done (check for
+            # non-missing values), but a bit later in the
+            # code, so we want to avoid warning & then
+            # just raising
 
-                _missing_key_warning = textwrap.dedent("""
-                Passing list-likes to .loc or [] with any missing label will raise
-                KeyError in the future, you can use .reindex() as an alternative.
+            _missing_key_warning = textwrap.dedent("""
+            Passing list-likes to .loc or [] with any missing label will raise
+            KeyError in the future, you can use .reindex() as an alternative.
 
-                See the documentation here:
-                https://pandas.pydata.org/pandas-docs/stable/indexing.html#deprecate-loc-reindex-listlike""")  # noqa
+            See the documentation here:
+            https://pandas.pydata.org/pandas-docs/stable/indexing.html#deprecate-loc-reindex-listlike""")  # noqa
 
-                if not (ax.is_categorical() or ax.is_interval()):
-                    warnings.warn(_missing_key_warning,
-                                  FutureWarning, stacklevel=5)
+            if not (ax.is_categorical() or ax.is_interval()):
+                warnings.warn(_missing_key_warning,
+                              FutureWarning, stacklevel=5)
 
     def _convert_to_indexer(self, obj, axis=None, is_setter=False):
         """
@@ -1372,6 +1394,22 @@ class _IXIndexer(_NDFrameIndexer):
         return True
 
     def _convert_for_reindex(self, key, axis=None):
+        """
+        Transform a list of keys into a new array ready to be used as axis of
+        the object we return (e.g. including NaNs).
+
+        Parameters
+        ----------
+        key : list-like
+            Target labels
+        axis: int
+            Where the indexing is being made
+
+        Returns
+        -------
+        list-like of labels
+        """
+
         if axis is None:
             axis = self.axis or 0
         labels = self.obj._get_axis(axis)
@@ -1379,24 +1417,24 @@ class _IXIndexer(_NDFrameIndexer):
         if com.is_bool_indexer(key):
             key = check_bool_indexer(labels, key)
             return labels[key]
+
+        if isinstance(key, Index):
+            keyarr = labels._convert_index_indexer(key)
         else:
-            if isinstance(key, Index):
-                keyarr = labels._convert_index_indexer(key)
-            else:
-                # asarray can be unsafe, NumPy strings are weird
-                keyarr = com._asarray_tuplesafe(key)
+            # asarray can be unsafe, NumPy strings are weird
+            keyarr = com._asarray_tuplesafe(key)
 
-            if is_integer_dtype(keyarr):
-                # Cast the indexer to uint64 if possible so
-                # that the values returned from indexing are
-                # also uint64.
-                keyarr = labels._convert_arr_indexer(keyarr)
+        if is_integer_dtype(keyarr):
+            # Cast the indexer to uint64 if possible so
+            # that the values returned from indexing are
+            # also uint64.
+            keyarr = labels._convert_arr_indexer(keyarr)
 
-                if not labels.is_integer():
-                    keyarr = _ensure_platform_int(keyarr)
-                    return labels.take(keyarr)
+            if not labels.is_integer():
+                keyarr = _ensure_platform_int(keyarr)
+                return labels.take(keyarr)
 
-            return keyarr
+        return keyarr
 
 
 class _LocationIndexer(_NDFrameIndexer):
