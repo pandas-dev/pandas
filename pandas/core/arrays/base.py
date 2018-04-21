@@ -1,4 +1,10 @@
-"""An interface for extending pandas with custom arrays."""
+"""An interface for extending pandas with custom arrays.
+
+.. warning::
+
+   This is an experimental API and subject to breaking changes
+   without warning.
+"""
 import numpy as np
 
 from pandas.errors import AbstractMethodError
@@ -33,14 +39,15 @@ class ExtensionArray(object):
     * _concat_same_type
 
     Some additional methods are available to satisfy pandas' internal, private
-    block API.
+    block API:
 
     * _can_hold_na
     * _formatting_values
 
     Some methods require casting the ExtensionArray to an ndarray of Python
-    objects, which may be expensive. When performance is a concern, we highly
-    recommend overriding the following methods.
+    objects with ``self.astype(object)``, which may be expensive. When
+    performance is a concern, we highly recommend overriding the following
+    methods:
 
     * fillna
     * unique

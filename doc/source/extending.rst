@@ -114,11 +114,11 @@ See the `extension array source`_ for the interface definition. The docstrings
 and comments contain guidance for properly implementing the interface.
 
 We provide a test suite for ensuring that your extension arrays satisfy the expected
-behavior. To use the test-suite, you must provide several pytest fixtures and inherit
+behavior. To use the test suite, you must provide several pytest fixtures and inherit
 from the base test class. The required fixtures are found in
 https://github.com/pandas-dev/pandas/blob/master/pandas/tests/extension/conftest.py.
 
-To use a test, subclass it
+To use a test, subclass it:
 
 .. code-block:: python
 
