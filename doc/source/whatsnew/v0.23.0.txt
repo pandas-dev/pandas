@@ -555,7 +555,6 @@ Convert to an xarray DataArray
    p.to_xarray()
 
 
-
 .. _whatsnew_0230.api_breaking.core_common:
 
 pandas.core.common removals
@@ -923,7 +922,8 @@ Removal of prior version deprecations/changes
 - The ``infer_dst`` keyword in :meth:`Series.tz_localize`, :meth:`DatetimeIndex.tz_localize`
   and :class:`DatetimeIndex` have been removed. ``infer_dst=True`` is equivalent to
   ``ambiguous='infer'``, and ``infer_dst=False`` to ``ambiguous='raise'`` (:issue:`7963`).
-
+- When ``.resample()`` was changed from an eager to a lazy operation, like ``.groupby()`` in v0.18.0, we put in place compatibility (with a ``FutureWarning``),
+  so operations would continue to work. This is now fully removed, so a ``Resampler`` will no longer forward compat operations (:issue:`20554`)
 
 .. _whatsnew_0230.performance:
 
