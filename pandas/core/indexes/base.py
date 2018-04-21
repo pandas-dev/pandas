@@ -474,7 +474,7 @@ class Index(IndexOpsMixin, PandasObject):
 
         result = object.__new__(cls)
         result._data = values
-        result._set_names([name])
+        result.name = name
         for k, v in compat.iteritems(kwargs):
             setattr(result, k, v)
         return result._reset_identity()
@@ -1326,30 +1326,6 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         index : Index
-
-        See Also
-        --------
-        Index.set_names : Set new names on index. Defaults to returning
-        new index.
-        Index.rename : Set new names on index. Defaults to returning new index.
-
-        Notes
-        -----
-        Both `set_names` and `rename` call this function to set name.
-
-        Examples
-        --------
-        on an index with no names:
-        >>> I1 = Index([1, 2, 3, 4])
-        >>> I1._set_names([0])
-        >>> I1
-        Int64Index([1, 2, 3, 4], dtype='int64', name=0)
-
-        set multiple names:
-        >>> I2 = Index([1, 2, 3, 4], name="foo")
-        >>> I2._set_names([(0, 1)])
-        >>> I2
-        Int64Index([1, 2, 3, 4], dtype='int64', name=(0, 1))
         """
         # GH 20527
         # All items in 'name' need to be hashable:
