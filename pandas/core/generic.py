@@ -5289,6 +5289,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
+        interpolate : Fill NaN values using interpolation.
         reindex, asfreq
 
         Returns

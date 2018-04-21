@@ -659,6 +659,7 @@ one pass, you can do
         pad : Forward fill NaN values in the resampled data.
         nearest : Fill NaN values in the resampled data
             with nearest neighbor starting from center.
+        interpolate : Fill NaN values using interpolation.
         pandas.Series.fillna : Fill NaN values in the Series using the
             specified method, which can be 'bfill' and 'ffill'.
         pandas.DataFrame.fillna : Fill NaN values in the DataFrame using the
