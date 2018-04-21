@@ -25,4 +25,3 @@ dependencies:
   - cython
   - pytest
   - pytest-xdist
-  - moto

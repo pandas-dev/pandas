@@ -43,4 +43,3 @@ dependencies:
   # universal
   - pytest
   - pytest-xdist
-  - moto
