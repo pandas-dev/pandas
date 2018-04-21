@@ -6761,9 +6761,10 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Select values at particular time of day (e.g. 9:30AM).
 
-        Notes
-        -----
-        For this method to work, the index must to be a :class:`DatetimeIndex`
+        Raises
+        ------
+        TypeError
+            If the index is not  a :class:`DatetimeIndex`
 
         Parameters
         ----------
@@ -6775,25 +6776,27 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> i = pd.date_range('2018-04-09', periods=4, freq='4D2min')
+        >>> i = pd.date_range('2018-04-09', periods=4, freq='12H')
         >>> ts = pd.DataFrame({'A': [1,2,3,4]}, index=i)
         >>> ts
                              A
-        date
         2018-04-09 00:00:00  1
-        2018-04-13 00:02:00  2
-        2018-04-17 00:04:00  3
-        2018-04-21 00:06:00  4
-        >>> ts.at_time('0:02')
+        2018-04-09 12:00:00  2
+        2018-04-10 00:00:00  3
+        2018-04-10 12:00:00  4
+
+        >>> ts.at_time('12:00')
                              A
-        date
-        2018-04-13 00:02:00  2
+        2018-04-09 12:00:00  2
+        2018-04-10 12:00:00  4
 
         See Also
         --------
         between_time : Select values between particular times of the day
         first : Select initial periods of time series based on a date offset
         last : Select final periods of time series based on a date offset
+        DatetimeIndex.indexer_at_time : Get just the index locations for
+            values at particular time of the day
         """
         try:
             indexer = self.index.indexer_at_time(time, asof=asof)
@@ -6806,9 +6809,13 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Select values between particular times of the day (e.g., 9:00-9:30 AM).
 
-        Notes
-        -----
-        For this method to work, the index must to be a :class:`DatetimeIndex`
+        By setting ``start_time`` to be later than ``end_time``,
+        you can get the times that are *not* between the two times.
+
+        Raises
+        ------
+        TypeError
+            If the index is not  a :class:`DatetimeIndex`
 
         Parameters
         ----------
@@ -6823,24 +6830,35 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> i = pd.date_range('2018-04-09', periods=4, freq='2min')
+        >>> i = pd.date_range('2018-04-09', periods=4, freq='1D20min')
         >>> ts = pd.DataFrame({'A': [1,2,3,4]}, index=i)
         >>> ts
                              A
         2018-04-09 00:00:00  1
-        2018-04-09 00:02:00  2
-        2018-04-09 00:04:00  3
-        2018-04-09 00:06:00  4
-        >>> ts.between_time('0:02', '0:04')
+        2018-04-10 00:20:00  2
+        2018-04-11 00:40:00  3
+        2018-04-12 01:00:00  4
+
+        >>> ts.between_time('0:15', '0:45')
                              A
-        2018-04-09 00:02:00  2
-        2018-04-09 00:04:00  3
+        2018-04-10 00:20:00  2
+        2018-04-11 00:40:00  3
+
+        You get the times that are *not* between two times by setting
+        ``start_time`` later than ``end_time``:
+
+        >>> ts.between_time('0:45', '0:15')
+                             A
+        2018-04-09 00:00:00  1
+        2018-04-12 01:00:00  4
 
         See Also
         --------
         at_time : Select values at a particular time of the day
         first : Select initial periods of time series based on a date offset
         last : Select final periods of time series based on a date offset
+        DatetimeIndex.indexer_between_time : Get just the index locations for
+            values between particular times of the day
         """
         try:
             indexer = self.index.indexer_between_time(
@@ -7094,9 +7112,10 @@ class NDFrame(PandasObject, SelectionMixin):
         Convenience method for subsetting initial periods of time series data
         based on a date offset.
 
-        Notes
-        -----
-        For this method to work, the index must to be a :class:`DatetimeIndex`
+        Raises
+        ------
+        TypeError
+            If the index is not  a :class:`DatetimeIndex`
 
         Parameters
         ----------
@@ -7104,19 +7123,25 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> i = pd.date_range('2018-04-09', periods=4, freq='D')
+        >>> i = pd.date_range('2018-04-09', periods=4, freq='2D')
         >>> ts = pd.DataFrame({'A': [1,2,3,4]}, index=i)
         >>> ts
                     A
         2018-04-09  1
-        2018-04-10  2
-        2018-04-11  3
-        2018-04-12  4
+        2018-04-11  2
+        2018-04-13  3
+        2018-04-15  4
+
+        Get the rows for the first 3 days:
+
         >>> ts.first('3D')
                     A
         2018-04-09  1
-        2018-04-10  2
-        2018-04-11  3
+        2018-04-11  2
+
+        Notice the data for 3 first calender days were returned, not the first
+        3 days observed in the dataset, and therefore data for 2018-04-13 was
+        not returned.
 
         Returns
         -------
@@ -7130,8 +7155,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         from pandas.tseries.frequencies import to_offset
         if not isinstance(self.index, DatetimeIndex):
-            raise NotImplementedError("'first' only supports a DatetimeIndex "
-                                      "index")
+            raise TypeError("'first' only supports a DatetimeIndex index")
 
         if len(self.index) == 0:
             return self
@@ -7152,9 +7176,10 @@ class NDFrame(PandasObject, SelectionMixin):
         Convenience method for subsetting final periods of time series data
         based on a date offset.
 
-        Notes
-        -----
-        For this method to work, the index must to be a :class:`DatetimeIndex`
+        Raises
+        ------
+        TypeError
+            If the index is not  a :class:`DatetimeIndex`
 
         Parameters
         ----------
@@ -7162,19 +7187,25 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> i = pd.date_range('2018-04-09', periods=4, freq='D')
+        >>> i = pd.date_range('2018-04-09', periods=4, freq='2D')
         >>> ts = pd.DataFrame({'A': [1,2,3,4]}, index=i)
         >>> ts
                     A
         2018-04-09  1
-        2018-04-10  2
-        2018-04-11  3
-        2018-04-12  4
+        2018-04-11  2
+        2018-04-13  3
+        2018-04-15  4
+
+        Get the rows for the last 3 days:
+
         >>> ts.last('3D')
                     A
-        2018-04-10  2
-        2018-04-11  3
-        2018-04-12  4
+        2018-04-13  3
+        2018-04-15  4
+
+        Notice the data for 3 last calender days were returned, not the last
+        3 observed days in the dataset, and therefore data for 2018-04-11 was
+        not returned.
 
         Returns
         -------
@@ -7188,8 +7219,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         from pandas.tseries.frequencies import to_offset
         if not isinstance(self.index, DatetimeIndex):
-            raise NotImplementedError("'last' only supports a DatetimeIndex "
-                                      "index")
+            raise TypeError("'last' only supports a DatetimeIndex index")
 
         if len(self.index) == 0:
             return self
