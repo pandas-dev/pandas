@@ -2228,8 +2228,6 @@ class TestWeekOfMonth(Base):
     _offset = WeekOfMonth
 
     def test_constructor(self):
-        tm.assert_raises_regex(ValueError, "^N cannot be 0",
-                               WeekOfMonth, n=0, week=1, weekday=1)
         tm.assert_raises_regex(ValueError, "^Week", WeekOfMonth,
                                n=1, week=4, weekday=0)
         tm.assert_raises_regex(ValueError, "^Week", WeekOfMonth,
@@ -2260,6 +2258,19 @@ class TestWeekOfMonth(Base):
             (-1, 2, 1, date2, datetime(2010, 12, 21)),
             (-1, 2, 1, date3, datetime(2010, 12, 21)),
             (-1, 2, 1, date4, datetime(2011, 1, 18)),
+
+            (0, 0, 1, date1, datetime(2011, 1, 4)),
+            (0, 0, 1, date2, datetime(2011, 2, 1)),
+            (0, 0, 1, date3, datetime(2011, 2, 1)),
+            (0, 0, 1, date4, datetime(2011, 2, 1)),
+            (0, 1, 1, date1, datetime(2011, 1, 11)),
+            (0, 1, 1, date2, datetime(2011, 1, 11)),
+            (0, 1, 1, date3, datetime(2011, 2, 8)),
+            (0, 1, 1, date4, datetime(2011, 2, 8)),
+            (0, 0, 1, date1, datetime(2011, 1, 4)),
+            (0, 1, 1, date2, datetime(2011, 1, 11)),
+            (0, 2, 1, date3, datetime(2011, 1, 18)),
+            (0, 3, 1, date4, datetime(2011, 1, 25)),
 
             (1, 0, 0, date1, datetime(2011, 2, 7)),
             (1, 0, 0, date2, datetime(2011, 2, 7)),

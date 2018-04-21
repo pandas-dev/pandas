@@ -1461,9 +1461,6 @@ class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
         self.weekday = weekday
         self.week = week
 
-        if self.n == 0:
-            raise ValueError('N cannot be 0')
-
         if self.weekday < 0 or self.weekday > 6:
             raise ValueError('Day must be 0<=day<=6, got {day}'
                              .format(day=self.weekday))
