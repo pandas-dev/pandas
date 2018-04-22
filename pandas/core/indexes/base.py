@@ -1326,15 +1326,6 @@ class Index(IndexOpsMixin, PandasObject):
         Raises
         ------
         TypeError if each name is not hashable.
-
-        Examples
-        --------
-        >>> Index([1, 2, 3, 4])._set_names(['foo'])
-        Int64Index([1, 2, 3, 4], dtype='int64', name='foo')
-        >>> Index([1, 2, 3, 4])._set_names([(0, 1)])
-        Int64Index([1, 2, 3, 4], dtype='int64', name=(0, 1))
-        >>> Index([1, 2, 3, 4])._set_names(([0], [1]))
-        TypeError: Int64Index.name must be a hashable type
         """
         # GH 20527
         # All items in 'name' need to be hashable:
