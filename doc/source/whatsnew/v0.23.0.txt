@@ -548,19 +548,46 @@ change to ``observed=True`` in the future. (:issue:`14942`, :issue:`8138`, :issu
    df['C'] = ['foo', 'bar'] * 2
    df
 
-Previous Behavior (show all values):
+``observed`` must now be passed when grouping by categoricals, or a
+``FutureWarning`` will show:
+
+.. ipython:: python
+   :okwarning:
+
+   df.groupby(['A', 'B', 'C']).count()
+
+
+To suppress the warning, with previous Behavior (show all values):
 
 .. ipython:: python
 
-.. code-block:: python
    df.groupby(['A', 'B', 'C'], observed=False).count()
 
 
-New Behavior (show only observed values):
+Future Behavior (show only observed values):
 
 .. ipython:: python
 
    df.groupby(['A', 'B', 'C'], observed=True).count()
+
+For pivotting operations, this behavior is *already* controlled by the ``dropna`` keyword:
+
+.. ipython:: python
+
+   cat1 = pd.Categorical(["a", "a", "b", "b"],
+                         categories=["a", "b", "z"], ordered=True)
+   cat2 = pd.Categorical(["c", "d", "c", "d"],
+                         categories=["c", "d", "y"], ordered=True)
+   df = DataFrame({"A": cat1, "B": cat2, "values": [1, 2, 3, 4]})
+   df
+
+.. ipython:: python
+
+   pd.pivot_table(df, values='values', index=['A', 'B'],
+                  dropna=True)
+   pd.pivot_table(df, values='values', index=['A', 'B'],
+                  dropna=False)
+
 
 .. _whatsnew_0230.api_breaking.deprecate_panel:
 

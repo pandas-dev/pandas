@@ -12,11 +12,6 @@ from pandas.util.testing import assert_frame_equal, assert_series_equal
 import pandas.util.testing as tm
 
 
-@pytest.fixture(params=[True, False])
-def observed(request):
-    return request.param
-
-
 def cartesian_product_for_groupers(result, args, names):
     """ Reindex to a cartesian production for the groupers,
     preserving the nature (Categorical) of each grouper """
@@ -378,8 +373,7 @@ def test_observed(observed):
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.xfail(reason="failing with observed")
-def test_observed_failing(observed):
+def test_observed_codes_remap(observed):
     d = {'C1': [3, 3, 4, 5], 'C2': [1, 2, 3, 4], 'C3': [10, 100, 200, 34]}
     df = pd.DataFrame(d)
     values = pd.cut(df['C1'], [1, 2, 3, 6])
@@ -680,7 +674,7 @@ def test_categorical_no_compress():
 
 def test_sort():
 
-    # http://stackoverflow.com/questions/23814368/sorting-pandas-categorical-labels-after-groupby
+    # http://stackoverflow.com/questions/23814368/sorting-pandas-categorical-labels-after-groupby  # noqa: flake8
     # This should result in a properly sorted Series so that the plot
     # has a sorted x axis
     # self.cat.groupby(['value_group'])['value_group'].count().plot(kind='bar')

@@ -647,7 +647,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         self._dtype = new_dtype
 
-    def _codes_for_groupby(self, sort):
+    def _codes_for_groupby(self, sort, observed):
         """
         If sort=False, return a copy of self, coded with categories as
         returned by .unique(), followed by any categories not appearing in
@@ -661,6 +661,8 @@ class Categorical(ExtensionArray, PandasObject):
         ----------
         sort : boolean
             The value of the sort parameter groupby was called with.
+        observed : boolean
+            Account only for the observed values
 
         Returns
         -------
@@ -670,6 +672,22 @@ class Categorical(ExtensionArray, PandasObject):
             original order is preserved), followed by any unrepresented
             categories in the original order.
         """
+
+        # we only care about observed values
+        if observed:
+            unique_codes = unique1d(self.codes)
+            cat = self.copy()
+
+            take_codes = unique_codes[unique_codes != -1]
+            if self.ordered:
+                take_codes = np.sort(take_codes)
+
+            # we recode according to the uniques
+            cat._categories = self.categories.take(take_codes)
+            cat._codes = _recode_for_categories(self.codes,
+                                                self.categories,
+                                                cat._categories)
+            return cat
 
         # Already sorted according to self.categories; all is fine
         if sort:
@@ -2161,7 +2179,7 @@ class Categorical(ExtensionArray, PandasObject):
         # exclude nan from indexer for categories
         take_codes = unique_codes[unique_codes != -1]
         if self.ordered:
-            take_codes = sorted(take_codes)
+            take_codes = np.sort(take_codes)
         return cat.set_categories(cat.categories.take(take_codes))
 
     def _values_for_factorize(self):

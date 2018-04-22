@@ -1664,10 +1664,11 @@ class GroupBy(_GroupBy):
 
         if dropna not in ['any', 'all']:
             if isinstance(self._selected_obj, Series) and dropna is True:
-                warnings.warn("the dropna='%s' keyword is deprecated,"
+                warnings.warn("the dropna={dropna} keyword is deprecated,"
                               "use dropna='all' instead. "
                               "For a Series groupby, dropna must be "
-                              "either None, 'any' or 'all'." % (dropna),
+                              "either None, 'any' or 'all'.".format(
+                                  dropna=dropna),
                               FutureWarning,
                               stacklevel=2)
                 dropna = 'all'
@@ -2961,27 +2962,27 @@ class Grouping(object):
             # a passed Categorical
             elif is_categorical_dtype(self.grouper):
 
-                self.grouper = self.grouper._codes_for_groupby(self.sort)
-                codes = self.grouper.codes
-                categories = self.grouper.categories
-
-                # we make a CategoricalIndex out of the cat grouper
-                # preserving the categories / ordered attributes
-                self._labels = codes
-
                 # Use the observed values of the grouper if inidcated
                 observed = self.observed
                 if observed is None:
                     msg = ("pass observed=True to ensure that a "
                            "categorical grouper only returns the "
                            "observed groupers, or\n"
-                           "observed=False to return NA for non-observed"
-                           "values\n")
+                           "observed=False to include"
+                           "unobserved categories.\n")
                     warnings.warn(msg, FutureWarning, stacklevel=5)
                     observed = False
 
+                grouper = self.grouper
+                self.grouper = self.grouper._codes_for_groupby(
+                    self.sort, observed)
+                categories = self.grouper.categories
+
+                # we make a CategoricalIndex out of the cat grouper
+                # preserving the categories / ordered attributes
+                self._labels = self.grouper.codes
                 if observed:
-                    codes = algorithms.unique1d(codes)
+                    codes = algorithms.unique1d(grouper.codes)
                 else:
                     codes = np.arange(len(categories))
 

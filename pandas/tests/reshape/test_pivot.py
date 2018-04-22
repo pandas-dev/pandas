@@ -98,7 +98,8 @@ class TestPivotTable(object):
         cat2 = Categorical(["c", "d", "c", "d"],
                            categories=["c", "d", "y"], ordered=True)
         df = DataFrame({"A": cat1, "B": cat2, "values": [1, 2, 3, 4]})
-        result = pd.pivot_table(df, values='values', index=['A', 'B'])
+        result = pd.pivot_table(df, values='values', index=['A', 'B'],
+                                dropna=True)
 
         exp_index = pd.MultiIndex.from_arrays(
             [cat1, cat2],
@@ -1061,7 +1062,7 @@ class TestPivotTable(object):
 
     @pytest.mark.xfail(reason='GH 17035 (np.mean of ints is casted back to '
                               'ints)')
-    def test_categorical_margins(self):
+    def test_categorical_margins(self, observed):
         # GH 10989
         df = pd.DataFrame({'x': np.arange(8),
                            'y': np.arange(8) // 4,
@@ -1071,12 +1072,12 @@ class TestPivotTable(object):
         expected.index = Index([0, 1, 'All'], name='y')
         expected.columns = Index([0, 1, 'All'], name='z')
 
-        table = df.pivot_table('x', 'y', 'z', margins=True)
+        table = df.pivot_table('x', 'y', 'z', dropna=observed, margins=True)
         tm.assert_frame_equal(table, expected)
 
     @pytest.mark.xfail(reason='GH 17035 (np.mean of ints is casted back to '
                               'ints)')
-    def test_categorical_margins_category(self):
+    def test_categorical_margins_category(self, observed):
         df = pd.DataFrame({'x': np.arange(8),
                            'y': np.arange(8) // 4,
                            'z': np.arange(8) % 2})
@@ -1087,16 +1088,17 @@ class TestPivotTable(object):
 
         df.y = df.y.astype('category')
         df.z = df.z.astype('category')
-        table = df.pivot_table('x', 'y', 'z', margins=True)
+        table = df.pivot_table('x', 'y', 'z', dropna=observed, margins=True)
         tm.assert_frame_equal(table, expected)
 
-    def test_categorical_aggfunc(self):
+    def test_categorical_aggfunc(self, observed):
         # GH 9534
         df = pd.DataFrame({"C1": ["A", "B", "C", "C"],
                            "C2": ["a", "a", "b", "b"],
                            "V": [1, 2, 3, 4]})
         df["C1"] = df["C1"].astype("category")
-        result = df.pivot_table("V", index="C1", columns="C2", aggfunc="count")
+        result = df.pivot_table("V", index="C1", columns="C2",
+                                dropna=observed, aggfunc="count")
 
         expected_index = pd.CategoricalIndex(['A', 'B', 'C'],
                                              categories=['A', 'B', 'C'],
@@ -1111,7 +1113,7 @@ class TestPivotTable(object):
                                 columns=expected_columns)
         tm.assert_frame_equal(result, expected)
 
-    def test_categorical_pivot_index_ordering(self):
+    def test_categorical_pivot_index_ordering(self, observed):
         # GH 8731
         df = pd.DataFrame({'Sales': [100, 120, 220],
                            'Month': ['January', 'January', 'January'],
@@ -1123,6 +1125,7 @@ class TestPivotTable(object):
         result = df.pivot_table(values='Sales',
                                 index='Month',
                                 columns='Year',
+                                dropna=observed,
                                 aggfunc='sum')
         expected_columns = pd.Int64Index([2013, 2014], name='Year')
         expected_index = pd.CategoricalIndex(['January'],
@@ -1132,6 +1135,9 @@ class TestPivotTable(object):
         expected = pd.DataFrame([[320, 120]],
                                 index=expected_index,
                                 columns=expected_columns)
+        if not observed:
+            result = result.dropna().astype(int)
+
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_table_not_series(self):
