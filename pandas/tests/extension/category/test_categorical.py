@@ -75,6 +75,10 @@ class TestReshaping(base.BaseReshapingTests):
     def test_align_frame(self, data, na_value):
         pass
 
+    @pytest.mark.skip(reason="Unobserved categories preseved in concat.")
+    def test_merge(self, data, na_value):
+        pass
+
 
 class TestGetitem(base.BaseGetitemTests):
     @pytest.mark.skip(reason="Backwards compatibility")
