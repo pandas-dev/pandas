@@ -1313,7 +1313,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _set_names(self, values, level=None):
         """
-        Set new names on index.
+        Set new names on index. Each name has to be a hashable type.
 
         Parameters
         ----------
@@ -1323,9 +1323,18 @@ class Index(IndexOpsMixin, PandasObject):
             If the index is a MultiIndex (hierarchical), level(s) to set (None
             for all levels).  Otherwise level must be None
 
-        Returns
-        -------
-        index : Index
+        Raises
+        ------
+        TypeError if each name is not hashable.
+
+        Examples
+        --------
+        >>> Index([1, 2, 3, 4])._set_names(['foo'])
+        Int64Index([1, 2, 3, 4], dtype='int64', name='foo')
+        >>> Index([1, 2, 3, 4])._set_names([(0, 1)])
+        Int64Index([1, 2, 3, 4], dtype='int64', name=(0, 1))
+        >>> Index([1, 2, 3, 4])._set_names(([0], [1]))
+        TypeError: Int64Index.name must be a hashable type
         """
         # GH 20527
         # All items in 'name' need to be hashable:
