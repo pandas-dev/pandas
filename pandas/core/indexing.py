@@ -1933,9 +1933,18 @@ class _iLocIndexer(_LocationIndexer):
         if isinstance(key, slice):
             return
         elif is_integer(key):
-            assert(self._is_valid_integer(key, axis))
+            self._validate_integer(key, axis)
+        elif isinstance(key, tuple):
+            # a tuple should already have been caught by this point
+            # so don't treat a tuple as a valid indexer
+            raise IndexingError('Too many indexers')
         elif is_list_like_indexer(key):
-            assert(self._is_valid_list_like(key, axis))
+            # check that the key does not exceed the maximum size of the index
+            arr = np.array(key)
+            l = len(self.obj._get_axis(axis))
+
+            if len(arr) and (arr.max() >= l or arr.min() < -l):
+                raise IndexError("positional indexers are out-of-bounds")
         else:
             raise ValueError("Can only index by location with "
                              "a [{types}]".format(types=self._valid_types))
@@ -1970,33 +1979,13 @@ class _iLocIndexer(_LocationIndexer):
         values = self.obj._get_value(*key, takeable=True)
         return values
 
-    def _is_valid_integer(self, key, axis):
+    def _validate_integer(self, key, axis):
         # return a boolean if we have a valid integer indexer
 
         ax = self.obj._get_axis(axis)
         l = len(ax)
         if key >= l or key < -l:
             raise IndexError("single positional indexer is out-of-bounds")
-        return True
-
-    def _is_valid_list_like(self, key, axis):
-        # return a boolean if we are a valid list-like (e.g. that we don't
-        # have out-of-bounds values)
-
-        # a tuple should already have been caught by this point
-        # so don't treat a tuple as a valid indexer
-        if isinstance(key, tuple):
-            raise IndexingError('Too many indexers')
-
-        # coerce the key to not exceed the maximum size of the index
-        arr = np.array(key)
-        ax = self.obj._get_axis(axis)
-        l = len(ax)
-        if (hasattr(arr, '__len__') and len(arr) and
-                (arr.max() >= l or arr.min() < -l)):
-            raise IndexError("positional indexers are out-of-bounds")
-
-        return True
 
     def _getitem_tuple(self, tup):
 
@@ -2067,14 +2056,10 @@ class _iLocIndexer(_LocationIndexer):
             axis = self.axis or 0
 
         if isinstance(key, slice):
-            self._validate_key(key, axis)
             return self._get_slice_axis(key, axis=axis)
 
         if isinstance(key, list):
-            try:
-                key = np.asarray(key)
-            except TypeError:  # pragma: no cover
-                pass
+            key = np.asarray(key)
 
         if com.is_bool_indexer(key):
             self._validate_key(key, axis)
@@ -2093,7 +2078,7 @@ class _iLocIndexer(_LocationIndexer):
                                 "non-integer key")
 
             # validate the location
-            self._is_valid_integer(key, axis)
+            self._validate_integer(key, axis)
 
             return self._get_loc(key, axis=axis)
 
