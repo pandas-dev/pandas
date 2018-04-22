@@ -1198,7 +1198,8 @@ Thur,Lunch,Yes,51.51,17"""
     @pytest.mark.slow
     def test_unstack_number_of_levels_larger_than_int32(self):
         # GH 20601
-        df = DataFrame(np.random.randn(2 ** 16, 2), index=[np.arange(2 ** 16), np.arange(2 ** 16)])
+        df = DataFrame(np.random.randn(2 ** 16, 2),
+                       index=[np.arange(2 ** 16), np.arange(2 ** 16)])
         with tm.assert_raises_regex(ValueError, 'int32 overflow'):
             df.unstack()
 
