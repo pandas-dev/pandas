@@ -19,6 +19,7 @@ import pandas as pd
 from pandas.core.indexing import _non_reducing_slice, _maybe_numeric_slice
 from pandas import NaT, DataFrame, Index, Series, MultiIndex
 import pandas.util.testing as tm
+from pandas.compat import PY2
 
 from pandas.tests.indexing.common import Base, _mklbl
 
@@ -131,6 +132,8 @@ class TestFancy(Base):
         assert is_float_dtype(left['foo'])
         assert is_float_dtype(left['baz'])
 
+    @pytest.mark.skipif(PY2, reason=("Catching warnings unreliable with "
+                                     "Python 2 (GH #20770)"))
     def test_dups_fancy_indexing(self):
 
         # GH 3455
@@ -192,6 +195,7 @@ class TestFancy(Base):
             result = df.loc[rows]
         tm.assert_frame_equal(result, expected)
 
+        # List containing only missing label
         dfnu = DataFrame(np.random.randn(5, 3), index=list('AABCD'))
         with pytest.raises(KeyError):
             dfnu.ix[['E']]

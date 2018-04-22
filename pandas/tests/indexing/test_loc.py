@@ -12,6 +12,7 @@ from pandas import Series, DataFrame, Timestamp, date_range, MultiIndex, Index
 from pandas.util import testing as tm
 from pandas.tests.indexing.common import Base
 from pandas.api.types import is_scalar
+from pandas.compat import PY2
 
 
 class TestLoc(Base):
@@ -152,6 +153,8 @@ class TestLoc(Base):
                           [Timestamp('20130102'), Timestamp('20130103')],
                           typs=['ts'], axes=0)
 
+    @pytest.mark.skipif(PY2, reason=("Catching warnings unreliable with "
+                                     "Python 2 (GH #20770)"))
     def test_loc_getitem_label_list_with_missing(self):
         self.check_result('list lbl', 'loc', [0, 1, 2], 'indexer', [0, 1, 2],
                           typs=['empty'], fails=KeyError)
