@@ -31,6 +31,11 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
     index = _convert_by(index)
     columns = _convert_by(columns)
 
+    num_rows = data.reindex(index, axis='columns').shape[0]
+    num_columns = data.reindex(columns, axis='columns').shape[0]
+    if num_rows * num_columns > (2 ** 31 - 1):
+        raise ValueError('Pivot table is too big, causing int32 overflow')
+
     if isinstance(aggfunc, list):
         pieces = []
         keys = []
