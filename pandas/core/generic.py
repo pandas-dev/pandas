@@ -5539,9 +5539,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionchanged:: 0.23.0
                 Added to DataFrame.
-        axis : None
-            .. deprecated:: 0.13.0
-               Has no effect and will be removed.
 
         See Also
         --------
@@ -5749,15 +5746,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @Appender(_shared_docs['replace'] % _shared_doc_kwargs)
     def replace(self, to_replace=None, value=None, inplace=False, limit=None,
-                regex=False, method='pad', axis=None):
+                regex=False, method='pad'):
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if not is_bool(regex) and to_replace is not None:
             raise AssertionError("'to_replace' must be 'None' if 'regex' is "
                                  "not a bool")
-        if axis is not None:
-            warnings.warn('the "axis" argument is deprecated '
-                          'and will be removed in'
-                          'v0.13; this argument has no effect')
 
         self._consolidate_inplace()
 
