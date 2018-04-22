@@ -313,3 +313,14 @@ class TestDataFramePlots(TestPlotBase):
         color1 = _get_standard_colors(1, color_type='random')
         color2 = _get_standard_colors(1, color_type='random')
         assert color1 == color2
+
+    def test_get_standard_colors_no_appending(self):
+        # GH20726
+
+        # Make sure not to add more colors so that matplotlib can cycle
+        # correctly.
+        from pandas.plotting._style import _get_standard_colors
+        from matplotlib import cm
+        color_before = cm.gnuplot(range(5))
+        color_after = _get_standard_colors(1, color=color_before)
+        assert len(color_after) == len(color_before)
