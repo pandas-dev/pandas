@@ -1327,16 +1327,18 @@ class Index(IndexOpsMixin, PandasObject):
         ------
         TypeError if each name is not hashable.
         """
-        # GH 20527
-        # All items in 'name' need to be hashable:
-        if values is not None:
-            for name in values:
-                if not is_hashable(name):
-                    raise TypeError('{}.name must be a hashable type'
-                                    .format(self.__class__.__name__))
+        if not is_list_like(values):
+            raise ValueError('Names must be a list-like')
         if len(values) != 1:
             raise ValueError('Length of new names must be 1, got %d' %
                              len(values))
+
+        # GH 20527
+        # All items in 'name' need to be hashable:
+        for name in values:
+            if not is_hashable(name):
+                raise TypeError('{}.name must be a hashable type'
+                                .format(self.__class__.__name__))
         self.name = values[0]
 
     names = property(fset=_set_names, fget=_get_names)
