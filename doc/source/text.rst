@@ -255,8 +255,8 @@ Series are *not* aligned on their index before concatenation:
     # without alignment
     s.str.cat(u)
     # manual alignment
-    t, v = s.align(u)
-    t.str.cat(v)
+    v, w = s.align(u)
+    v.str.cat(w)
 
 Concatenating a Series and many objects into a Series
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -266,8 +266,8 @@ All elements of the list must match in length to the calling ``Series``:
 
 .. ipython:: python
 
-    t = pd.Series([1, 2, 3, 4], index=['A', 'B', 'C', 'D'])
-    s.str.cat([['A', 'B', 'C', 'D'], s, s.values, t.index])
+    x = pd.Series([1, 2, 3, 4], index=['A', 'B', 'C', 'D'])
+    s.str.cat([['A', 'B', 'C', 'D'], s, s.values, x.index])
 
 Indexing with ``.str``
 ----------------------
