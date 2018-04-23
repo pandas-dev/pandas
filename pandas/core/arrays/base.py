@@ -5,6 +5,19 @@
    This is an experimental API and subject to breaking changes
    without warning.
 """
+# Some notes, just for implementors.
+#
+# * Avoid a `.values` attribute
+#   There are corners in pandas that assume assume array.values is an ndarray,
+#   and does ndarray things like ge the dtype. If you have a non-ndarray
+#   `.values` attribute, things may break. We're working to fix these.
+# * Reference the default implementations, but avoid using private methods.
+#   Some default implementations (e.g. `factorize`) use pandas' internal
+#   methods. If possible, avoid using those methods when overriding the default
+#   implementation. If that isn't possible, raise an issue to discuss adding
+#   those to the public API.
+
+
 import numpy as np
 
 from pandas.errors import AbstractMethodError
