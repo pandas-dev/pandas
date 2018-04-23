@@ -4,8 +4,7 @@ from __future__ import print_function
 
 import warnings
 from datetime import timedelta
-from distutils.version import LooseVersion
-import sys
+import operator
 import pytest
 
 from string import ascii_lowercase
@@ -13,10 +12,10 @@ from numpy import nan
 from numpy.random import randn
 import numpy as np
 
-from pandas.compat import lrange, product
+from pandas.compat import lrange, product, PY35
 from pandas import (compat, isna, notna, DataFrame, Series,
                     MultiIndex, date_range, Timestamp, Categorical,
-                    _np_version_under1p15)
+                    _np_version_under1p12, _np_version_under1p15)
 import pandas as pd
 import pandas.core.nanops as nanops
 import pandas.core.algorithms as algorithms
@@ -1214,7 +1213,7 @@ class TestDataFrameAnalytics(TestData):
         getattr(mixed, name)(axis=0)
         getattr(mixed, name)(axis=1)
 
-        class NonzeroFail:
+        class NonzeroFail(object):
 
             def __nonzero__(self):
                 raise ValueError
@@ -1856,13 +1855,8 @@ class TestDataFrameAnalytics(TestData):
             'col1': [1.123, 2.123, 3.123],
             'col2': [1.2, 2.2, 3.2]})
 
-        if LooseVersion(sys.version) < LooseVersion('2.7'):
-            # Rounding with decimal is a ValueError in Python < 2.7
-            with pytest.raises(ValueError):
-                df.round(nan_round_Series)
-        else:
-            with pytest.raises(TypeError):
-                df.round(nan_round_Series)
+        with pytest.raises(TypeError):
+            df.round(nan_round_Series)
 
         # Make sure this doesn't break existing Series.round
         tm.assert_series_equal(df['col1'].round(1), expected_rounded['col1'])
@@ -2091,7 +2085,6 @@ class TestDataFrameAnalytics(TestData):
                               self.frame)
 
     # Matrix-like
-
     def test_dot(self):
         a = DataFrame(np.random.randn(3, 4), index=['a', 'b', 'c'],
                       columns=['p', 'q', 'r', 's'])
@@ -2143,6 +2136,66 @@ class TestDataFrameAnalytics(TestData):
 
         with tm.assert_raises_regex(ValueError, 'aligned'):
             df.dot(df2)
+
+    @pytest.mark.skipif(not PY35,
+                        reason='matmul supported for Python>=3.5')
+    @pytest.mark.xfail(
+        _np_version_under1p12,
+        reason="unpredictable return types under numpy < 1.12")
+    def test_matmul(self):
+        # matmul test is for GH #10259
+        a = DataFrame(np.random.randn(3, 4), index=['a', 'b', 'c'],
+                      columns=['p', 'q', 'r', 's'])
+        b = DataFrame(np.random.randn(4, 2), index=['p', 'q', 'r', 's'],
+                      columns=['one', 'two'])
+
+        # DataFrame @ DataFrame
+        result = operator.matmul(a, b)
+        expected = DataFrame(np.dot(a.values, b.values),
+                             index=['a', 'b', 'c'],
+                             columns=['one', 'two'])
+        tm.assert_frame_equal(result, expected)
+
+        # DataFrame @ Series
+        result = operator.matmul(a, b.one)
+        expected = Series(np.dot(a.values, b.one.values),
+                          index=['a', 'b', 'c'])
+        tm.assert_series_equal(result, expected)
+
+        # np.array @ DataFrame
+        result = operator.matmul(a.values, b)
+        expected = np.dot(a.values, b.values)
+        tm.assert_almost_equal(result, expected)
+
+        # nested list @ DataFrame (__rmatmul__)
+        result = operator.matmul(a.values.tolist(), b)
+        expected = DataFrame(np.dot(a.values, b.values),
+                             index=['a', 'b', 'c'],
+                             columns=['one', 'two'])
+        tm.assert_almost_equal(result.values, expected.values)
+
+        # mixed dtype DataFrame @ DataFrame
+        a['q'] = a.q.round().astype(int)
+        result = operator.matmul(a, b)
+        expected = DataFrame(np.dot(a.values, b.values),
+                             index=['a', 'b', 'c'],
+                             columns=['one', 'two'])
+        tm.assert_frame_equal(result, expected)
+
+        # different dtypes DataFrame @ DataFrame
+        a = a.astype(int)
+        result = operator.matmul(a, b)
+        expected = DataFrame(np.dot(a.values, b.values),
+                             index=['a', 'b', 'c'],
+                             columns=['one', 'two'])
+        tm.assert_frame_equal(result, expected)
+
+        # unaligned
+        df = DataFrame(randn(3, 4), index=[1, 2, 3], columns=lrange(4))
+        df2 = DataFrame(randn(5, 3), index=lrange(5), columns=[1, 2, 3])
+
+        with tm.assert_raises_regex(ValueError, 'aligned'):
+            operator.matmul(df, df2)
 
 
 @pytest.fixture

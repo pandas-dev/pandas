@@ -16,6 +16,7 @@ from pandas.core.dtypes.common import (
     _ensure_platform_int,
     is_categorical_dtype,
     is_object_dtype,
+    is_hashable,
     is_iterator,
     is_list_like,
     pandas_dtype,
@@ -553,11 +554,10 @@ class MultiIndex(Index):
     @Appender(_index_shared_docs['_shallow_copy'])
     def _shallow_copy(self, values=None, **kwargs):
         if values is not None:
-            if 'name' in kwargs:
-                kwargs['names'] = kwargs.pop('name', None)
+            names = kwargs.pop('names', kwargs.pop('name', self.names))
             # discards freq
             kwargs.pop('freq', None)
-            return MultiIndex.from_tuples(values, **kwargs)
+            return MultiIndex.from_tuples(values, names=names, **kwargs)
         return self.view()
 
     @cache_readonly
@@ -635,12 +635,29 @@ class MultiIndex(Index):
 
     def _set_names(self, names, level=None, validate=True):
         """
+        Set new names on index. Each name has to be a hashable type.
+
+        Parameters
+        ----------
+        values : str or sequence
+            name(s) to set
+        level : int, level name, or sequence of int/level names (default None)
+            If the index is a MultiIndex (hierarchical), level(s) to set (None
+            for all levels).  Otherwise level must be None
+        validate : boolean, default True
+            validate that the names match level lengths
+
+        Raises
+        ------
+        TypeError if each name is not hashable.
+
+        Notes
+        -----
         sets names on levels. WARNING: mutates!
 
         Note that you generally want to set this *after* changing levels, so
         that it only acts on copies
         """
-
         # GH 15110
         # Don't allow a single string for names in a MultiIndex
         if names is not None and not is_list_like(names):
@@ -663,10 +680,20 @@ class MultiIndex(Index):
 
         # set the name
         for l, name in zip(level, names):
-            if name is not None and name in used:
-                raise ValueError('Duplicated level name: "{}", assigned to '
-                                 'level {}, is already used for level '
-                                 '{}.'.format(name, l, used[name]))
+            if name is not None:
+
+                # GH 20527
+                # All items in 'names' need to be hashable:
+                if not is_hashable(name):
+                    raise TypeError('{}.name must be a hashable type'
+                                    .format(self.__class__.__name__))
+
+                if name in used:
+                    raise ValueError(
+                        'Duplicated level name: "{}", assigned to '
+                        'level {}, is already used for level '
+                        '{}.'.format(name, l, used[name]))
+
             self.levels[l].rename(name, inplace=True)
             used[name] = l
 
@@ -1477,27 +1504,35 @@ class MultiIndex(Index):
         changed = False
         for lev, lab in zip(self.levels, self.labels):
 
-            uniques = algos.unique(lab)
-            na_idx = np.where(uniques == -1)[0]
+            # Since few levels are typically unused, bincount() is more
+            # efficient than unique() - however it only accepts positive values
+            # (and drops order):
+            uniques = np.where(np.bincount(lab + 1) > 0)[0] - 1
+            has_na = int(len(uniques) and (uniques[0] == -1))
 
-            # nothing unused
-            if len(uniques) != len(lev) + len(na_idx):
+            if len(uniques) != len(lev) + has_na:
+                # We have unused levels
                 changed = True
 
-                if len(na_idx):
+                # Recalculate uniques, now preserving order.
+                # Can easily be cythonized by exploiting the already existing
+                # "uniques" and stop parsing "lab" when all items are found:
+                uniques = algos.unique(lab)
+                if has_na:
+                    na_idx = np.where(uniques == -1)[0]
                     # Just ensure that -1 is in first position:
                     uniques[[0, na_idx[0]]] = uniques[[na_idx[0], 0]]
 
                 # labels get mapped from uniques to 0:len(uniques)
                 # -1 (if present) is mapped to last position
-                label_mapping = np.zeros(len(lev) + len(na_idx))
+                label_mapping = np.zeros(len(lev) + has_na)
                 # ... and reassigned value -1:
-                label_mapping[uniques] = np.arange(len(uniques)) - len(na_idx)
+                label_mapping[uniques] = np.arange(len(uniques)) - has_na
 
                 lab = label_mapping[lab]
 
                 # new levels are simple
-                lev = lev.take(uniques[len(na_idx):])
+                lev = lev.take(uniques[has_na:])
 
             new_levels.append(lev)
             new_labels.append(lab)

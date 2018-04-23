@@ -615,8 +615,27 @@ class TestMultiIndex(Base):
         with tm.assert_raises_regex(ValueError, label_error):
             self.index.copy().set_labels([[0, 0, 0, 0], [0, 0]])
 
-    @pytest.mark.parametrize('names', [['a', 'b', 'a'], [1, 1, 2],
-                                       [1, 'a', 1]])
+    def test_constructor_nonhashable_names(self):
+        # GH 20527
+        levels = [[1, 2], [u'one', u'two']]
+        labels = [[0, 0, 1, 1], [0, 1, 0, 1]]
+        names = ((['foo'], ['bar']))
+        message = "MultiIndex.name must be a hashable type"
+        tm.assert_raises_regex(TypeError, message,
+                               MultiIndex, levels=levels,
+                               labels=labels, names=names)
+
+        # With .rename()
+        mi = MultiIndex(levels=[[1, 2], [u'one', u'two']],
+                        labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
+                        names=('foo', 'bar'))
+        renamed = [['foor'], ['barr']]
+        tm.assert_raises_regex(TypeError, message, mi.rename, names=renamed)
+        # With .set_names()
+        tm.assert_raises_regex(TypeError, message, mi.set_names, names=renamed)
+
+    @pytest.mark.parametrize('names', [['a', 'b', 'a'], ['1', '1', '2'],
+                                       ['1', 'a', '1']])
     def test_duplicate_level_names(self, names):
         # GH18872
         pytest.raises(ValueError, pd.MultiIndex.from_product,
@@ -2452,22 +2471,32 @@ class TestMultiIndex(Base):
             assert result.unique
             tm.assert_index_equal(result, expected)
 
-    def test_unique(self):
-        mi = pd.MultiIndex.from_arrays([[1, 2, 1, 2], [1, 1, 1, 2]])
+    @pytest.mark.parametrize('names', [None, ['first', 'second']])
+    def test_unique(self, names):
+        mi = pd.MultiIndex.from_arrays([[1, 2, 1, 2], [1, 1, 1, 2]],
+                                       names=names)
 
         res = mi.unique()
-        exp = pd.MultiIndex.from_arrays([[1, 2, 2], [1, 1, 2]])
+        exp = pd.MultiIndex.from_arrays([[1, 2, 2], [1, 1, 2]], names=mi.names)
         tm.assert_index_equal(res, exp)
 
-        mi = pd.MultiIndex.from_arrays([list('aaaa'), list('abab')])
+        mi = pd.MultiIndex.from_arrays([list('aaaa'), list('abab')],
+                                       names=names)
         res = mi.unique()
-        exp = pd.MultiIndex.from_arrays([list('aa'), list('ab')])
+        exp = pd.MultiIndex.from_arrays([list('aa'), list('ab')],
+                                        names=mi.names)
         tm.assert_index_equal(res, exp)
 
-        mi = pd.MultiIndex.from_arrays([list('aaaa'), list('aaaa')])
+        mi = pd.MultiIndex.from_arrays([list('aaaa'), list('aaaa')],
+                                       names=names)
         res = mi.unique()
-        exp = pd.MultiIndex.from_arrays([['a'], ['a']])
+        exp = pd.MultiIndex.from_arrays([['a'], ['a']], names=mi.names)
         tm.assert_index_equal(res, exp)
+
+        # GH #20568 - empty MI
+        mi = pd.MultiIndex.from_arrays([[], []], names=names)
+        res = mi.unique()
+        tm.assert_index_equal(mi, res)
 
     @pytest.mark.parametrize('level', [0, 'first', 1, 'second'])
     def test_unique_level(self, level):
@@ -2482,6 +2511,11 @@ class TestMultiIndex(Base):
         result = mi.unique(level=level)
         expected = mi.get_level_values(level)
         tm.assert_index_equal(result, expected)
+
+        # With empty MI
+        mi = pd.MultiIndex.from_arrays([[], []], names=['first', 'second'])
+        result = mi.unique(level=level)
+        expected = mi.get_level_values(level)
 
     def test_unique_datetimelike(self):
         idx1 = pd.DatetimeIndex(['2015-01-01', '2015-01-01', '2015-01-01',

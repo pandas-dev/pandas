@@ -342,7 +342,8 @@ class DatetimeIndexOpsMixin(object):
     def __contains__(self, key):
         try:
             res = self.get_loc(key)
-            return is_scalar(res) or type(res) == slice or np.any(res)
+            return (is_scalar(res) or isinstance(res, slice) or
+                    (is_list_like(res) and len(res)))
         except (KeyError, TypeError, ValueError):
             return False
 
@@ -1005,7 +1006,7 @@ class DatetimeIndexOpsMixin(object):
             result = self + offset
 
             if hasattr(self, 'tz'):
-                result.tz = self.tz
+                result._tz = self.tz
 
             return result
 

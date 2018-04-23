@@ -376,28 +376,27 @@ class TestIndex(Base):
             assert isinstance(idx, Index)
             assert idx.dtype == object
 
-    def test_constructor_dtypes_datetime(self):
+    def test_constructor_dtypes_datetime(self, tz_naive_fixture):
+        tz = tz_naive_fixture
+        idx = pd.date_range('2011-01-01', periods=5, tz=tz)
+        dtype = idx.dtype
 
-        for tz in [None, 'UTC', 'US/Eastern', 'Asia/Tokyo']:
-            idx = pd.date_range('2011-01-01', periods=5, tz=tz)
-            dtype = idx.dtype
+        # pass values without timezone, as DatetimeIndex localizes it
+        for values in [pd.date_range('2011-01-01', periods=5).values,
+                       pd.date_range('2011-01-01', periods=5).asi8]:
 
-            # pass values without timezone, as DatetimeIndex localizes it
-            for values in [pd.date_range('2011-01-01', periods=5).values,
-                           pd.date_range('2011-01-01', periods=5).asi8]:
+            for res in [pd.Index(values, tz=tz),
+                        pd.Index(values, dtype=dtype),
+                        pd.Index(list(values), tz=tz),
+                        pd.Index(list(values), dtype=dtype)]:
+                tm.assert_index_equal(res, idx)
 
-                for res in [pd.Index(values, tz=tz),
-                            pd.Index(values, dtype=dtype),
-                            pd.Index(list(values), tz=tz),
-                            pd.Index(list(values), dtype=dtype)]:
-                    tm.assert_index_equal(res, idx)
-
-                # check compat with DatetimeIndex
-                for res in [pd.DatetimeIndex(values, tz=tz),
-                            pd.DatetimeIndex(values, dtype=dtype),
-                            pd.DatetimeIndex(list(values), tz=tz),
-                            pd.DatetimeIndex(list(values), dtype=dtype)]:
-                    tm.assert_index_equal(res, idx)
+            # check compat with DatetimeIndex
+            for res in [pd.DatetimeIndex(values, tz=tz),
+                        pd.DatetimeIndex(values, dtype=dtype),
+                        pd.DatetimeIndex(list(values), tz=tz),
+                        pd.DatetimeIndex(list(values), dtype=dtype)]:
+                tm.assert_index_equal(res, idx)
 
     def test_constructor_dtypes_timedelta(self):
 
@@ -435,6 +434,24 @@ class TestIndex(Base):
                            labels=[[], []])
         assert isinstance(empty, MultiIndex)
         assert not len(empty)
+
+    def test_constructor_nonhashable_name(self, indices):
+        # GH 20527
+
+        if isinstance(indices, MultiIndex):
+            pytest.skip("multiindex handled in test_multi.py")
+
+        name = ['0']
+        message = "Index.name must be a hashable type"
+        tm.assert_raises_regex(TypeError, message, name=name)
+
+        # With .rename()
+        renamed = [['1']]
+        tm.assert_raises_regex(TypeError, message,
+                               indices.rename, name=renamed)
+        # With .set_names()
+        tm.assert_raises_regex(TypeError, message,
+                               indices.set_names, names=renamed)
 
     def test_view_with_args(self):
 

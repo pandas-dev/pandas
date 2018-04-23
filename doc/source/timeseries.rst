@@ -198,8 +198,9 @@ This could also potentially speed up the conversion considerably.
     pd.to_datetime('12-11-2010 00:00', format='%d-%m-%Y %H:%M')
 
 For more information on the choices available when specifying the ``format`` 
-option, see the Python `datetime documentation 
-<https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior`__.
+option, see the Python `datetime documentation`_.
+
+.. _datetime documentation: https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior
 
 Assembling Datetime from Multiple DataFrame Columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

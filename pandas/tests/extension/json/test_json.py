@@ -127,7 +127,16 @@ class TestMethods(base.BaseMethodsTests):
 
 
 class TestCasting(base.BaseCastingTests):
-    pass
+    @pytest.mark.xfail
+    def test_astype_str(self):
+        """This currently fails in NumPy on np.array(self, dtype=str) with
+
+        *** ValueError: setting an array element with a sequence
+        """
+
+
+# We intentionally don't run base.BaseSetitemTests because pandas'
+# internals has trouble setting sequences of values into scalar positions.
 
 
 class TestGroupby(base.BaseGroupbyTests):

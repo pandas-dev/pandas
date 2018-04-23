@@ -81,12 +81,7 @@ def _join_unicode(lines, sep=''):
 #    It will always return unicode text which can handled by other
 #    parts of the package without breakage.
 #
-# 2) If you need to send something to the console, use console_encode().
-#
-#    console_encode() should (hopefully) choose the right encoding for you
-#    based on the encoding set in option "display.encoding"
-#
-# 3) if you need to write something out to file, use
+# 2) if you need to write something out to file, use
 #    pprint_thing_encoded(encoding).
 #
 #    If no encoding is specified, it defaults to utf-8. Since encoding pure

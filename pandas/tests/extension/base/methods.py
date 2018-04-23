@@ -76,7 +76,7 @@ class BaseMethodsTests(BaseExtensionTests):
     @pytest.mark.parametrize('box', [pd.Series, lambda x: x])
     @pytest.mark.parametrize('method', [lambda x: x.unique(), pd.unique])
     def test_unique(self, data, box, method):
-        duplicated = box(data._constructor_from_sequence([data[0], data[0]]))
+        duplicated = box(data._from_sequence([data[0], data[0]]))
 
         result = method(duplicated)
 
@@ -90,7 +90,7 @@ class BaseMethodsTests(BaseExtensionTests):
                                        na_sentinel=na_sentinel)
         expected_labels = np.array([0, 0, na_sentinel,
                                    na_sentinel, 1, 1, 0, 2],
-                                   dtype='int64')
+                                   dtype=np.intp)
         expected_uniques = data_for_grouping.take([0, 4, 7])
 
         tm.assert_numpy_array_equal(labels, expected_labels)
