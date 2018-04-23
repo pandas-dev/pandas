@@ -52,6 +52,11 @@ class BaseInterfaceTests(BaseExtensionTests):
         assert isinstance(data.dtype, ExtensionDtype)
 
     def test_no_values_attribute(self, data):
+        # GH-20735
+        # Currently, pandas has places where we accepts Union[ndarray, EA]
+        # but in practice expect an ndarray, since we get `data.values.dtype`.
+        # This warns users to avoid using a `.values` attribute that is not
+        # an ndarray-like
         if hasattr(data, 'values') and not hasattr(data.values, 'dtype'):
             msg = ("ExtensionArray contains a 'values' attribute that does "
                    "not have a dtype attribute. This may cause issues in "
