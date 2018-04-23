@@ -36,7 +36,7 @@ class DecimalArray(ExtensionArray):
         self._items = self._data = self.data = self.values
 
     @classmethod
-    def _constructor_from_sequence(cls, scalars):
+    def _from_sequence(cls, scalars):
         return cls(scalars)
 
     @classmethod
