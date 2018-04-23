@@ -115,6 +115,10 @@ class TestSeriesConstructors(TestData):
             empty2 = Series('', index=range(3))
             assert_series_equal(empty, empty2)
 
+    def test_constructor_empty_warns(self):
+        # https://github.com/pandas-dev/pandas/issues/17261
+        with tm.assert_produces_warning(FutureWarning):
+            pd.Series([])
     @pytest.mark.parametrize('input_arg', [np.nan, float('nan')])
     def test_constructor_nan(self, input_arg):
         empty = Series(dtype='float64', index=lrange(10))

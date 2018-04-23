@@ -4084,20 +4084,30 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             subarr = data.copy()
         return subarr
 
-    elif isinstance(data, (list, tuple)) and len(data) > 0:
-        if dtype is not None:
-            try:
-                subarr = _try_cast(data, False)
-            except Exception:
-                if raise_cast_failure:  # pragma: no cover
-                    raise
-                subarr = np.array(data, dtype=object, copy=copy)
-                subarr = lib.maybe_convert_objects(subarr)
+    elif isinstance(data, (list, tuple)):
+        if len(data) > 0:
+            if dtype is not None:
+                try:
+                    subarr = _try_cast(data, False)
+                except Exception:
+                    if raise_cast_failure:  # pragma: no cover
+                        raise
+                    subarr = np.array(data, dtype=object, copy=copy)
+                    subarr = lib.maybe_convert_objects(subarr)
 
+            else:
+                subarr = maybe_convert_platform(data)
+            subarr = maybe_cast_to_datetime(subarr, dtype)
         else:
-            subarr = maybe_convert_platform(data)
-
-        subarr = maybe_cast_to_datetime(subarr, dtype)
+            # subarr = np.array([], dtype=dtype or 'object')
+            if dtype is None:
+                msg = ("Inferring 'float' dtype for a length-zero array.\n"
+                       "In a future version of pandas this will change to "
+                       "'object' dtype.\n\tTo maintain the previous behavior, "
+                       "use 'dtype=float'.\n\tTo adopt the new behavior, use "
+                       "'dtype=object'.")
+                warnings.warn(msg, FutureWarning, stacklevel=3)
+            subarr = _try_cast(data, False)
 
     elif isinstance(data, range):
         # GH 16804

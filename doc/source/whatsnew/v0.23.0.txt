@@ -862,6 +862,7 @@ Other API Changes
 Deprecations
 ~~~~~~~~~~~~
 
+- The inferred dtype for an empty Series will change from ``float`` to ``object`` (:issue:`17261`).
 - ``Series.from_array`` and ``SparseSeries.from_array`` are deprecated. Use the normal constructor ``Series(..)`` and ``SparseSeries(..)`` instead (:issue:`18213`).
 - ``DataFrame.as_matrix`` is deprecated. Use ``DataFrame.values`` instead (:issue:`18458`).
 - ``Series.asobject``, ``DatetimeIndex.asobject``, ``PeriodIndex.asobject`` and ``TimeDeltaIndex.asobject`` have been deprecated. Use ``.astype(object)`` instead (:issue:`18572`)
