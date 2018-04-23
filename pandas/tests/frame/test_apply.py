@@ -880,6 +880,13 @@ class TestDataFrameAggregate(TestData):
             with np.errstate(all='ignore'):
                 df.agg({'A': ['abs', 'sum'], 'B': ['mean', 'max']})
 
+    def test_transform_abs_name(self):
+        # https://github.com/pandas-dev/pandas/issues/19760
+        df = pd.DataFrame({"A": [-1, 2]})
+        result = df.transform('abs')
+        expected = pd.DataFrame({"A": [1, 2]})
+        tm.assert_frame_equal(result, expected)
+
     def test_demo(self):
         # demonstration tests
         df = pd.DataFrame({'A': range(5), 'B': 5})
