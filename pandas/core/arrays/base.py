@@ -1,4 +1,10 @@
-"""An interface for extending pandas with custom arrays."""
+"""An interface for extending pandas with custom arrays.
+
+.. warning::
+
+   This is an experimental API and subject to breaking changes
+   without warning.
+"""
 import numpy as np
 
 from pandas.errors import AbstractMethodError
@@ -14,12 +20,15 @@ class ExtensionArray(object):
     with a custom type and will not attempt to coerce them to objects. They
     may be stored directly inside a :class:`DataFrame` or :class:`Series`.
 
+    .. versionadded:: 0.23.0
+
     Notes
     -----
     The interface includes the following abstract methods that must be
     implemented by subclasses:
 
     * _constructor_from_sequence
+    * _from_factorized
     * __getitem__
     * __len__
     * dtype
@@ -30,10 +39,20 @@ class ExtensionArray(object):
     * _concat_same_type
 
     Some additional methods are available to satisfy pandas' internal, private
-    block API.
+    block API:
 
     * _can_hold_na
     * _formatting_values
+
+    Some methods require casting the ExtensionArray to an ndarray of Python
+    objects with ``self.astype(object)``, which may be expensive. When
+    performance is a concern, we highly recommend overriding the following
+    methods:
+
+    * fillna
+    * unique
+    * factorize / _values_for_factorize
+    * argsort / _values_for_argsort
 
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
@@ -50,10 +69,6 @@ class ExtensionArray(object):
     by some other storage type, like Python lists. Pandas makes no
     assumptions on how the data are stored, just that it can be converted
     to a NumPy array.
-
-    Extension arrays should be able to be constructed with instances of
-    the class, i.e. ``ExtensionArray(extension_array)`` should return
-    an instance, not error.
     """
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
     # Don't override this.
