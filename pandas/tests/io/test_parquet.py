@@ -432,6 +432,7 @@ class TestParquetPyArrow(Base):
         df = pd.DataFrame({'a': pd.Categorical(list('abc'))})
         self.check_error_on_write(df, pa, NotImplementedError)
 
+    @pytest.mark.xfail(reason="buggy s3 / moto interaction on CI: gh-20720")
     def test_s3_roundtrip(self, df_compat, s3_resource, pa):
         # GH #19134
         check_round_trip(df_compat, pa,
@@ -498,6 +499,7 @@ class TestParquetFastParquet(Base):
             result = read_parquet(path, fp, filters=[('a', '==', 0)])
         assert len(result) == 1
 
+    @pytest.mark.xfail(reason="buggy s3 / moto interaction on CI: gh-20720")
     def test_s3_roundtrip(self, df_compat, s3_resource, fp):
         # GH #19134
         check_round_trip(df_compat, fp,
