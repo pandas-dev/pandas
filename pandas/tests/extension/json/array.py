@@ -35,7 +35,10 @@ class JSONArray(ExtensionArray):
 
         # Some aliases for common attribute names to ensure pandas supports
         # these
-        self._items = self._data = self.values = self.data
+        self._items = self._data = self.data
+        # those aliases are currently not working due to assumptions
+        # in internal code (GH-20735)
+        # self._values = self.values = self.data
 
     @classmethod
     def _constructor_from_sequence(cls, scalars):
