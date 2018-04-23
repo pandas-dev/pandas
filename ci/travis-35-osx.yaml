@@ -1,12 +1,10 @@
 name: pandas
 channels:
   - defaults
-  - conda-forge
 dependencies:
   - beautifulsoup4
   - bottleneck
   - cython
-  - feather-format=0.3.1
   - html5lib
   - jinja2
   - lxml
@@ -18,7 +16,6 @@ dependencies:
   - pytables
   - python=3.5*
   - pytz
-  - s3fs
   - xarray
   - xlrd
   - xlsxwriter
@@ -26,6 +23,5 @@ dependencies:
   # universal
   - pytest
   - pytest-xdist
-  - moto
   - pip:
     - python-dateutil==2.5.3
