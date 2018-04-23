@@ -193,7 +193,7 @@ class RelObjectArray(ExtensionArray):
     def take(self, indexer, allow_fill=True, fill_value=None):
         indexer = np.asarray(indexer)
         mask = indexer == -1
-        
+
         indexer = _ensure_platform_int(indexer)
         out = self.values.take(indexer)
         out[mask] = np.nan
