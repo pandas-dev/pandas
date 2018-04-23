@@ -71,7 +71,7 @@ class BaseMissingTests(BaseExtensionTests):
 
         result = ser.fillna(fill_value)
         expected = pd.Series(
-            data_missing._constructor_from_sequence([fill_value, fill_value]))
+            data_missing._from_sequence([fill_value, fill_value]))
         self.assert_series_equal(result, expected)
 
         # Fill with a series
@@ -91,7 +91,7 @@ class BaseMissingTests(BaseExtensionTests):
 
         result = pd.Series(data_missing).fillna(method=method)
         expected = pd.Series(
-            data_missing._constructor_from_sequence([fill_value, fill_value]))
+            data_missing._from_sequence([fill_value, fill_value]))
 
         self.assert_series_equal(result, expected)
 
@@ -104,8 +104,7 @@ class BaseMissingTests(BaseExtensionTests):
         }).fillna(fill_value)
 
         expected = pd.DataFrame({
-            "A": data_missing._constructor_from_sequence(
-                [fill_value, fill_value]),
+            "A": data_missing._from_sequence([fill_value, fill_value]),
             "B": [1, 2],
         })
 
