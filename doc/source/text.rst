@@ -210,7 +210,7 @@ resp. ``Index.str.cat``.
 Concatenating a single Series into a string
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The content of a ``Series`` can be concatenated:
+The content of a ``Series`` (or ``Index``) can be concatenated:
 
 .. ipython:: python
 
@@ -234,7 +234,7 @@ By default, missing values are ignored. Using ``na_rep``, they can be given a re
 Concatenating a Series and something list-like into a Series
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The first argument to :meth:`~Series.str.cat` can be a list-like object, provided that it matches the length of the calling ``Series``.
+The first argument to :meth:`~Series.str.cat` can be a list-like object, provided that it matches the length of the calling ``Series`` (or ``Index``).
 
 .. ipython:: python
 
@@ -254,7 +254,7 @@ Series are *not* aligned on their index before concatenation:
     u = pd.Series(['b', 'd', 'a', 'c'], index=[1, 3, 0, 2])
     # without alignment
     s.str.cat(u)
-    # manual alignment
+    # with separate alignment
     v, w = s.align(u)
     v.str.cat(w, na_rep='-')
 
@@ -262,7 +262,7 @@ Concatenating a Series and many objects into a Series
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 List-likes (excluding iterators, ``dict``-views, etc.) can be arbitrarily combined in a list.
-All elements of the list must match in length to the calling ``Series``:
+All elements of the list must match in length to the calling ``Series`` (resp. ``Index``):
 
 .. ipython:: python
 
