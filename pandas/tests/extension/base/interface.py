@@ -50,3 +50,10 @@ class BaseInterfaceTests(BaseExtensionTests):
         assert is_extension_array_dtype(data.dtype)
         assert is_extension_array_dtype(pd.Series(data))
         assert isinstance(data.dtype, ExtensionDtype)
+
+    def test_no_values_attribute(self, data):
+        if hasattr(data, 'values') and not hasattr(data.values, 'dtype'):
+            msg = ("ExtensionArray contains a 'values' attribute that does "
+                   "not have a dtype attribute. This may cause issues in "
+                   "pandas' internals.")
+            raise ValueError(msg)
