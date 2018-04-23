@@ -177,7 +177,6 @@ def _concat_compat(to_concat, axis=0):
     extensions = [is_extension_array_dtype(x) for x in to_concat]
     if any(extensions) and not all(extensions):
         to_concat = [np.atleast_2d(x.astype('object')) for x in to_concat]
-        # convert non extensions to objects
 
     if not nonempty:
         # we have all empties, but may need to coerce the result dtype to
@@ -216,7 +215,7 @@ def _concat_categorical(to_concat, axis=0):
 
     def _concat_asobject(to_concat):
         to_concat = [x.get_values() if is_categorical_dtype(x.dtype)
-                     else x.ravel() for x in to_concat]
+                     else np.asarray(x).ravel() for x in to_concat]
         res = _concat_compat(to_concat)
         if axis == 1:
             return res.reshape(1, len(res))
@@ -554,6 +553,8 @@ def _concat_sparse(to_concat, axis=0, typs=None):
         # coerce to native type
         if isinstance(x, SparseArray):
             x = x.get_values()
+        else:
+            x = np.asarray(x)
         x = x.ravel()
         if axis > 0:
             x = np.atleast_2d(x)
