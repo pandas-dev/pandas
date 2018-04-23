@@ -256,7 +256,7 @@ Series are *not* aligned on their index before concatenation:
     s.str.cat(u)
     # manual alignment
     v, w = s.align(u)
-    v.str.cat(w)
+    v.str.cat(w, na_rep='-')
 
 Concatenating a Series and many objects into a Series
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
