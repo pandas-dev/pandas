@@ -153,7 +153,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Copy input data
     """
     _metadata = ['name']
-    _accessors = frozenset(['dt', 'cat', 'str'])
+    _accessors = set(['dt', 'cat', 'str'])
     _deprecations = generic.NDFrame._deprecations | frozenset(
         ['asobject', 'sortlevel', 'reshape', 'get_value', 'set_value',
          'from_csv', 'valid'])
@@ -3130,7 +3130,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         >>> def add_custom_values(x, **kwargs):
         ...     for month in kwargs:
         ...         x+=kwargs[month]
-        ...         return x
+        ...     return x
 
         >>> series.apply(add_custom_values, june=30, july=20, august=25)
         London      95

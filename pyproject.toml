@@ -1,9 +1,0 @@
-[build-system]
-requires = [
-    "wheel",
-    "setuptools",
-    "Cython",  # required for VCS build, optional for released source
-    "numpy==1.9.3; python_version=='3.5'",
-    "numpy==1.12.1; python_version=='3.6'",
-    "numpy==1.13.1; python_version>='3.7'",
-]

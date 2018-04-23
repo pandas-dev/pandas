@@ -1,4 +1,10 @@
-"""An interface for extending pandas with custom arrays."""
+"""An interface for extending pandas with custom arrays.
+
+.. warning::
+
+   This is an experimental API and subject to breaking changes
+   without warning.
+"""
 import numpy as np
 
 from pandas.errors import AbstractMethodError
@@ -14,12 +20,15 @@ class ExtensionArray(object):
     with a custom type and will not attempt to coerce them to objects. They
     may be stored directly inside a :class:`DataFrame` or :class:`Series`.
 
+    .. versionadded:: 0.23.0
+
     Notes
     -----
     The interface includes the following abstract methods that must be
     implemented by subclasses:
 
-    * _constructor_from_sequence
+    * _from_sequence
+    * _from_factorized
     * __getitem__
     * __len__
     * dtype
@@ -30,10 +39,20 @@ class ExtensionArray(object):
     * _concat_same_type
 
     Some additional methods are available to satisfy pandas' internal, private
-    block API.
+    block API:
 
     * _can_hold_na
     * _formatting_values
+
+    Some methods require casting the ExtensionArray to an ndarray of Python
+    objects with ``self.astype(object)``, which may be expensive. When
+    performance is a concern, we highly recommend overriding the following
+    methods:
+
+    * fillna
+    * unique
+    * factorize / _values_for_factorize
+    * argsort / _values_for_argsort
 
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
@@ -50,10 +69,6 @@ class ExtensionArray(object):
     by some other storage type, like Python lists. Pandas makes no
     assumptions on how the data are stored, just that it can be converted
     to a NumPy array.
-
-    Extension arrays should be able to be constructed with instances of
-    the class, i.e. ``ExtensionArray(extension_array)`` should return
-    an instance, not error.
     """
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
     # Don't override this.
@@ -63,7 +78,7 @@ class ExtensionArray(object):
     # Constructors
     # ------------------------------------------------------------------------
     @classmethod
-    def _constructor_from_sequence(cls, scalars):
+    def _from_sequence(cls, scalars):
         """Construct a new ExtensionArray from a sequence of scalars.
 
         Parameters
@@ -350,7 +365,7 @@ class ExtensionArray(object):
                 func = pad_1d if method == 'pad' else backfill_1d
                 new_values = func(self.astype(object), limit=limit,
                                   mask=mask)
-                new_values = self._constructor_from_sequence(new_values)
+                new_values = self._from_sequence(new_values)
             else:
                 # fill with value
                 new_values = self.copy()
@@ -369,7 +384,7 @@ class ExtensionArray(object):
         from pandas import unique
 
         uniques = unique(self.astype(object))
-        return self._constructor_from_sequence(uniques)
+        return self._from_sequence(uniques)
 
     def _values_for_factorize(self):
         # type: () -> Tuple[ndarray, Any]
@@ -458,11 +473,23 @@ class ExtensionArray(object):
             Fill value to replace -1 values with. If applicable, this should
             use the sentinel missing value for this type.
 
+        Returns
+        -------
+        ExtensionArray
+
+        Raises
+        ------
+        IndexError
+            When the indexer is out of bounds for the array.
+
         Notes
         -----
         This should follow pandas' semantics where -1 indicates missing values.
         Positions where indexer is ``-1`` should be filled with the missing
         value for this type.
+        This gives rise to the special case of a take on an empty
+        ExtensionArray that does not raises an IndexError straight away
+        when the `indexer` is all ``-1``.
 
         This is called by ``Series.__getitem__``, ``.loc``, ``iloc``, when the
         indexer is a sequence of values.
@@ -477,6 +504,12 @@ class ExtensionArray(object):
            def take(self, indexer, allow_fill=True, fill_value=None):
                indexer = np.asarray(indexer)
                mask = indexer == -1
+
+               # take on empty array not handled as desired by numpy
+               # in case of -1 (all missing take)
+               if not len(self) and mask.all():
+                   return type(self)([np.nan] * len(indexer))
+
                result = self.data.take(indexer)
                result[mask] = np.nan  # NA for this type
                return type(self)(result)

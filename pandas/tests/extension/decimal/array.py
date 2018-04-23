@@ -36,7 +36,7 @@ class DecimalArray(ExtensionArray):
         self._items = self._data = self.data = self.values
 
     @classmethod
-    def _constructor_from_sequence(cls, scalars):
+    def _from_sequence(cls, scalars):
         return cls(scalars)
 
     @classmethod
@@ -80,6 +80,10 @@ class DecimalArray(ExtensionArray):
     def take(self, indexer, allow_fill=True, fill_value=None):
         indexer = np.asarray(indexer)
         mask = indexer == -1
+
+        # take on empty array not handled as desired by numpy in case of -1
+        if not len(self) and mask.all():
+            return type(self)([self._na_value] * len(indexer))
 
         indexer = _ensure_platform_int(indexer)
         out = self.values.take(indexer)
