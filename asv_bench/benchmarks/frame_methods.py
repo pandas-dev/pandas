@@ -123,6 +123,16 @@ class Iteration(object):
         for row in self.df2.itertuples():
             pass
 
+    def time_itertuples_to_list(self):
+        list(self.df2.itertuples())
+
+    def time_itertuples_raw_tuples(self):
+        for row in self.df2.itertuples(index=False, name=None):
+            pass
+
+    def time_itertuples_raw_tuples_to_list(self):
+        list(self.df2.itertuples(index=False, name=None))
+
     def time_iterrows(self):
         for row in self.df.iterrows():
             pass
