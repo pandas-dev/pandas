@@ -6389,48 +6389,61 @@ class NDFrame(PandasObject, SelectionMixin):
         -------
         Series or DataFrame
             Same type as calling object with the values outside the
-            clip boundaries replaced
+            clip boundaries replaced.
+
+        Notes
+        -----
+        .. [1] Tukey, John W. "The future of data analysis." The annals of
+            mathematical statistics 33.1 (1962): 1-67.
 
         Examples
         --------
-        >>> data = {'col_0': [9, -3, 0, -1, 5], 'col_1': [-2, -7, 6, 8, -5]}
-        >>> df = pd.DataFrame(data)
+        >>> df = pd.DataFrame({'a': [-1, -2, -100],
+        ...                    'b': [1, 2, 100]},
+        ...                    index=['foo', 'bar', 'foobar'])
         >>> df
-           col_0  col_1
-        0      9     -2
-        1     -3     -7
-        2      0      6
-        3     -1      8
-        4      5     -5
+             a  b
+        foo -1  1
+        bar -2  2
+        foobar  -100    100
 
-        Clips per column using lower and upper thresholds:
+        >>> df.clip(lower=-10, upper=10)
+             a  b
+        foo -1  1
+        bar -2  2
+        foobar  -10 10
 
-        >>> df.clip(-4, 6)
-           col_0  col_1
-        0      6     -2
-        1     -3     -4
-        2      0      6
-        3     -1      6
-        4      5     -4
+        You can clip each column or row with different thresholds by passing
+        a ``Series`` to the lower/upper argument. Use the axis argument to clip
+        by column or rows.
 
-        Clips using specific lower and upper thresholds per column element:
+        >>> col_thresh = pd.Series({'a': -5, 'b': 5})
+        >>> df.clip(lower=col_thresh, axis='columns')
+             a  b
+        foo -1  5
+        bar -2  5
+        foobar  -5  100
 
-        >>> t = pd.Series([2, -4, -1, 6, 3])
-        >>> t
-        0    2
-        1   -4
-        2   -1
-        3    6
-        4    3
-        dtype: int64
+        Clip the foo, bar, and foobar rows with lower thresholds 5, 7, and 10.
 
-        >>> df.clip(t, t + 4, axis=0)
-           col_0  col_1
-        0      6      2
-        1     -3     -4
-        2      0      3
-        3      6      8
-        4      5      3
+        >>> row_thresh = pd.Series({'foo': 0, 'bar': 1, 'foobar': 10})
+        >>> df.clip(lower=row_thresh, axis='index')
+            a   b
+        foo 0   1
+        bar 1   2
+        foobar  10  100
+
+        Winsorizing [1]_ is a related method, whereby the data are clipped at
+        the 5th and 95th percentiles. The ``DataFrame.quantile`` method returns
+        a ``Series`` with column names as index and the quantiles as values.
+        Use ``axis='columns'`` to apply clipping to columns.
+
+        >>> lower, upper = df.quantile(0.05), df.quantile(0.95)
+        >>> df.clip(lower=lower, upper=upper, axis='columns')
+             a  b
+        foo -1.1    1.1
+        bar -2.0    2.0
+        foobar  -90.2   90.2
         """
         if isinstance(self, ABCPanel):
             raise NotImplementedError("clip is not supported yet for panels")
