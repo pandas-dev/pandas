@@ -251,7 +251,7 @@ Series are *not* aligned on their index before concatenation:
 
 .. ipython:: python
 
-    u = pd.Series(['b', 'd', 'a', 'c'], index=[1, 3, 0, 2])
+    u = pd.Series(['b', 'd', 'e', 'c'], index=[1, 3, 4, 2])
     # without alignment
     s.str.cat(u)
     # with separate alignment
