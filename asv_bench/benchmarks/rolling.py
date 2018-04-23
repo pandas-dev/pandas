@@ -65,25 +65,15 @@ class Quantile(object):
     params = (['DataFrame', 'Series'],
               [10, 1000],
               ['int', 'float'],
-              [0, 0.5, 1])
+              [0, 0.5, 1],
+              ['linear', 'nearest', 'lower', 'higher', 'midpoint'])
     param_names = ['constructor', 'window', 'dtype', 'percentile']
 
-    def setup(self, constructor, window, dtype, percentile):
+    def setup(self, constructor, window, dtype, percentile, interpolation):
         N = 10 ** 5
         arr = np.random.random(N).astype(dtype)
         self.roll = getattr(pd, constructor)(arr).rolling(window)
 
-    def time_quantile(self, constructor, window, dtype, percentile):
-        self.roll.quantile(percentile)
-
-    def time_quantile_nearest(self, constructor, window, dtype, percentile):
-        self.roll.quantile(percentile, interpolation='nearest')
-
-    def time_quantile_lower(self, constructor, window, dtype, percentile):
-        self.roll.quantile(percentile, interpolation='lower')
-
-    def time_quantile_higher(self, constructor, window, dtype, percentile):
-        self.roll.quantile(percentile, interpolation='higher')
-
-    def time_quantile_midpoint(self, constructor, window, dtype, percentile):
-        self.roll.quantile(percentile, interpolation='midpoint')
+    def time_quantile(self, constructor, window, dtype, percentile,
+                      interpolation):
+        self.roll.quantile(percentile, interpolation=interpolation)
