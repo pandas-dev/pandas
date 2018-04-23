@@ -111,7 +111,9 @@ class FrameApply(object):
 
         # string dispatch
         if isinstance(self.f, compat.string_types):
-            self.kwds['axis'] = self.axis
+            if self.f not in {'abs'}:
+                # Not all transform functions take an axis keyword.
+                self.kwds['axis'] = self.axis
             return getattr(self.obj, self.f)(*self.args, **self.kwds)
 
         # ufunc
