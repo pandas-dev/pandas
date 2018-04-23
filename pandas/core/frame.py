@@ -326,6 +326,7 @@ class DataFrame(NDFrame):
     _constructor_sliced = Series
     _deprecations = NDFrame._deprecations | frozenset(
         ['sortlevel', 'get_value', 'set_value', 'from_csv', 'from_items'])
+    _accessors = set()
 
     @property
     def _constructor_expanddim(self):
