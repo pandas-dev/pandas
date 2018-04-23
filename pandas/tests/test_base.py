@@ -324,11 +324,8 @@ class TestIndexOps(Ops):
                 with tm.assert_produces_warning(FutureWarning):
                     assert getattr(o, p, None) is not None
 
-            # not deprecated for datetime-like indices because they are used
-            # inside blocks
-            if not isinstance(o, (DatetimeIndex, TimedeltaIndex, PeriodIndex)):
-                with tm.assert_produces_warning(FutureWarning):
-                    assert hasattr(o, 'base')
+            with tm.assert_produces_warning(FutureWarning):
+                assert hasattr(o, 'base')
 
             # If we have a datetime-like dtype then needs a view to work
             # but the user is responsible for that

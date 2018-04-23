@@ -209,16 +209,6 @@ class TimelikeOps(object):
 class DatetimeIndexOpsMixin(object):
     """ common ops mixin to support a unified interface datetimelike Index """
 
-    @property
-    def base(self):
-        """ return the base object if the memory of the underlying data is
-        shared
-        """
-        # override deprecated property in IndexOpsMixin, as we still need
-        # this for internals (DatetimeIndex/TimedeltaIndex is stored as
-        # values in Blocks)
-        return self.values.base
-
     def equals(self, other):
         """
         Determines if two Index objects contain the same elements.
