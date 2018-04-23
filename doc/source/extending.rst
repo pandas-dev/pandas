@@ -61,7 +61,7 @@ Extension Types
 
 .. warning::
 
-   The ``ExtensionDtype`` and ``ExtensionArray`` APIs are new and
+   The :ref:`pandas.api.extension.ExtensionDtype` and :ref:`pandas.api.extension.ExtensionArray` APIs are new and
    experimental. They may change between versions without warning.
 
 Pandas defines an interface for implementing data types and arrays that *extend*
@@ -79,10 +79,10 @@ on :ref:`ecosystem.extensions`.
 
 The interface consists of two classes.
 
-``ExtensionDtype``
-^^^^^^^^^^^^^^^^^^
+:ref:`pandas.api.extension.ExtensionDtype`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-An ``ExtensionDtype`` is similar to a ``numpy.dtype`` object. It describes the
+An :ref:`pandas.api.extension.ExtensionDtype` is similar to a ``numpy.dtype`` object. It describes the
 data type. Implementors are responsible for a few unique items like the name.
 
 One particularly important item is the ``type`` property. This should be the
@@ -91,8 +91,8 @@ extension array for IP Address data, this might be ``ipaddress.IPv4Address``.
 
 See the `extension dtype source`_ for interface definition.
 
-``ExtensionArray``
-^^^^^^^^^^^^^^^^^^
+:ref:`pandas.api.extension.ExtensionArray`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This class provides all the array-like functionality. ExtensionArrays are
 limited to 1 dimension. An ExtensionArray is linked to an ExtensionDtype via the

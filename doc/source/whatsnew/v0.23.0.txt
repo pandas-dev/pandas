@@ -365,7 +365,7 @@ for storing ip addresses.
       ...:
 
 ``IPArray`` isn't a normal 1-D NumPy array, but because it's a pandas
-``ExtensionArray``, it can be stored properly inside pandas' containers.
+:ref:`~pandas.api.extension.ExtensionArray, it can be stored properly inside pandas' containers.
 
 .. code-block:: ipython
 
