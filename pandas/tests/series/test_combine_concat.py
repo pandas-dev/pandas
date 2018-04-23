@@ -92,7 +92,7 @@ class TestSeriesCombine(TestData):
 
         # corner case
         s = Series([1., 2, 3], index=[0, 1, 2])
-        result = s.combine_first(Series([], index=[]))
+        result = s.combine_first(Series([], index=[], dtype='float'))
         assert_series_equal(s, result)
 
     def test_update(self):

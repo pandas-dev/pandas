@@ -38,7 +38,7 @@ class TestSeriesAnalytics(TestData):
         with pd.option_context("use_bottleneck", use_bottleneck):
             # GH 9422 / 18921
             # Entirely empty
-            s = Series([])
+            s = Series([], dtype='float')
             # NA by default
             result = getattr(s, method)()
             assert result == unit
@@ -228,7 +228,7 @@ class TestSeriesAnalytics(TestData):
     def test_mode(self):
         # No mode should be found.
         exp = Series([], dtype=np.float64)
-        tm.assert_series_equal(Series([]).mode(), exp)
+        tm.assert_series_equal(Series([], dtype='float').mode(), exp)
 
         exp = Series([1], dtype=np.int64)
         tm.assert_series_equal(Series([1]).mode(), exp)
@@ -1292,7 +1292,8 @@ class TestSeriesAnalytics(TestData):
         result = s.isin(s[0:2])
         assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
+    @pytest.mark.parametrize("empty", [[], Series(dtype='float'),
+                             np.array([])])
     def test_isin_empty(self, empty):
         # see gh-16991
         s = Series(["a", "b"])

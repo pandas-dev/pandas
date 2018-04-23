@@ -1656,7 +1656,7 @@ class BoxPlot(LinePlot):
     def _make_plot(self):
         if self.subplots:
             from pandas.core.series import Series
-            self._return_obj = Series()
+            self._return_obj = Series(dtype='float')
 
             for i, (label, y) in enumerate(self._iter_data()):
                 ax = self._get_ax(i)
@@ -2603,7 +2603,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
         axes = _flatten(axes)
 
         from pandas.core.series import Series
-        ret = Series()
+        ret = Series(dtype='float')
         for (key, group), ax in zip(grouped, axes):
             d = group.boxplot(ax=ax, column=column, fontsize=fontsize,
                               rot=rot, grid=grid, **kwds)

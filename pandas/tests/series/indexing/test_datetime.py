@@ -97,7 +97,7 @@ def test_series_set_value():
 
     with tm.assert_produces_warning(FutureWarning,
                                     check_stacklevel=False):
-        s = Series().set_value(dates[0], 1.)
+        s = Series(dtype='float').set_value(dates[0], 1.)
     with tm.assert_produces_warning(FutureWarning,
                                     check_stacklevel=False):
         s2 = s.set_value(dates[1], np.nan)

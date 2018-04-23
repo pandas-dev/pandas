@@ -705,7 +705,7 @@ A ``Series`` will now correctly promote its dtype for assignment with incompat v
 
 .. ipython:: python
 
-   s = pd.Series()
+   s = pd.Series(dtype='float')
 
 **Previous behavior**:
 

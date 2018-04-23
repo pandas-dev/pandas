@@ -67,7 +67,7 @@ class TestSeriesConstructors(TestData):
         assert mixed[1] is np.NaN
 
         assert not self.empty.index.is_all_dates
-        assert not Series({}).index.is_all_dates
+        assert not Series({}, dtype='float').index.is_all_dates
         pytest.raises(Exception, Series, np.random.randn(3, 3),
                       index=np.arange(3))
 
@@ -82,8 +82,8 @@ class TestSeriesConstructors(TestData):
 
     @pytest.mark.parametrize('input_class', [list, dict, OrderedDict])
     def test_constructor_empty(self, input_class):
-        empty = Series()
-        empty2 = Series(input_class())
+        empty = Series(dtype='float')
+        empty2 = Series(input_class(), dtype='float')
 
         # these are Index() and RangeIndex() which don't compare type equal
         # but are just .equals
@@ -101,8 +101,11 @@ class TestSeriesConstructors(TestData):
 
         if input_class is not list:
             # With index:
-            empty = Series(index=lrange(10))
-            empty2 = Series(input_class(), index=lrange(10))
+            with warnings.catch_warnings(record=True):
+                # We want to test the inference behavior here, but
+                # the warning, which is tested below.
+                empty = Series(index=lrange(10))
+                empty2 = Series(input_class(), index=lrange(10))
             assert_series_equal(empty, empty2)
 
             # With index and dtype float64:
@@ -119,6 +122,7 @@ class TestSeriesConstructors(TestData):
         # https://github.com/pandas-dev/pandas/issues/17261
         with tm.assert_produces_warning(FutureWarning):
             pd.Series([])
+
     @pytest.mark.parametrize('input_arg', [np.nan, float('nan')])
     def test_constructor_nan(self, input_arg):
         empty = Series(dtype='float64', index=lrange(10))
@@ -486,7 +490,7 @@ class TestSeriesConstructors(TestData):
         assert s._data.blocks[0].values is not index
 
     def test_constructor_pass_none(self):
-        s = Series(None, index=lrange(5))
+        s = Series(None, index=lrange(5), dtype='float')
         assert s.dtype == np.float64
 
         s = Series(None, index=lrange(5), dtype=object)
@@ -494,8 +498,8 @@ class TestSeriesConstructors(TestData):
 
         # GH 7431
         # inference on the index
-        s = Series(index=np.array([None]))
-        expected = Series(index=Index([None]))
+        s = Series(index=np.array([None]), dtype='float')
+        expected = Series(index=Index([None]), dtype='float')
         assert_series_equal(s, expected)
 
     def test_constructor_pass_nan_nat(self):

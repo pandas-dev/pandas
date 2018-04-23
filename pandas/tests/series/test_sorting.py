@@ -158,8 +158,8 @@ class TestSeriesSorting(TestData):
 
     def test_sort_index_kind(self):
         # GH #14444 & #13589:  Add support for sort algo choosing
-        series = Series(index=[3, 2, 1, 4, 3])
-        expected_series = Series(index=[1, 2, 3, 3, 4])
+        series = Series(index=[3, 2, 1, 4, 3], dtype='float')
+        expected_series = Series(index=[1, 2, 3, 3, 4], dtype='float')
 
         index_sorted_series = series.sort_index(kind='mergesort')
         assert_series_equal(expected_series, index_sorted_series)
@@ -171,13 +171,15 @@ class TestSeriesSorting(TestData):
         assert_series_equal(expected_series, index_sorted_series)
 
     def test_sort_index_na_position(self):
-        series = Series(index=[3, 2, 1, 4, 3, np.nan])
+        series = Series(index=[3, 2, 1, 4, 3, np.nan], dtype='float')
 
-        expected_series_first = Series(index=[np.nan, 1, 2, 3, 3, 4])
+        expected_series_first = Series(index=[np.nan, 1, 2, 3, 3, 4],
+                                       dtype='float')
         index_sorted_series = series.sort_index(na_position='first')
         assert_series_equal(expected_series_first, index_sorted_series)
 
-        expected_series_last = Series(index=[1, 2, 3, 3, 4, np.nan])
+        expected_series_last = Series(index=[1, 2, 3, 3, 4, np.nan],
+                                      dtype='float')
         index_sorted_series = series.sort_index(na_position='last')
         assert_series_equal(expected_series_last, index_sorted_series)
 

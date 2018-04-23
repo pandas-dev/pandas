@@ -933,7 +933,7 @@ class TestMoments(Base):
         assert np.isnan(result).all()
 
         # empty
-        vals = pd.Series([])
+        vals = pd.Series([], dtype='float')
         result = vals.rolling(5, center=True, win_type='boxcar').mean()
         assert len(result) == 0
 
@@ -1663,9 +1663,10 @@ class TestMoments(Base):
                 assert not result[11:].isna().any()
 
             # check series of length 0
-            result = getattr(Series().ewm(com=50, min_periods=min_periods),
-                             name)()
-            tm.assert_series_equal(result, Series())
+            result = getattr(
+                Series(dtype='float').ewm(com=50, min_periods=min_periods),
+                name)()
+            tm.assert_series_equal(result, Series(dtype='float'))
 
             # check series of length 1
             result = getattr(Series([1.]).ewm(50, min_periods=min_periods),
@@ -1842,7 +1843,7 @@ class TestPairwise(object):
 # create the data only once as we are not setting it
 def _create_consistency_data():
     def create_series():
-        return [Series(),
+        return [Series(dtype='float'),
                 Series([np.nan]),
                 Series([np.nan, np.nan]),
                 Series([3.]),
@@ -2667,7 +2668,7 @@ class TestMomentsConsistency(Base):
 
     def test_moment_functions_zero_length(self):
         # GH 8056
-        s = Series()
+        s = Series(dtype='float')
         s_expected = s
         df1 = DataFrame()
         df1_expected = df1

@@ -1979,7 +1979,7 @@ Thur,Lunch,Yes,51.51,17"""
         s2 = Series([
             1, 2, 3, 4
         ], index=MultiIndex.from_tuples([(1, 2), (1, 3), (3, 2), (3, 4)]))
-        s3 = Series()
+        s3 = Series(dtype='float')
 
         # it works!
         DataFrame({'foo': s1, 'bar': s2, 'baz': s3})

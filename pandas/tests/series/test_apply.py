@@ -39,7 +39,7 @@ class TestSeriesApply(TestData):
         assert s.name == rs.name
 
         # index but no data
-        s = Series(index=[1, 2, 3])
+        s = Series(index=[1, 2, 3], dtype='float')
         rs = s.apply(lambda x: x)
         tm.assert_series_equal(s, rs)
 
@@ -388,10 +388,14 @@ class TestSeriesMap(TestData):
 
     @pytest.mark.parametrize("index", tm.all_index_generator(10))
     def test_map_empty(self, index):
-        s = Series(index)
+        if len(index) == 0:
+            dtype = 'float'
+        else:
+            dtype = None
+        s = Series(index, dtype=dtype)
         result = s.map({})
 
-        expected = pd.Series(np.nan, index=s.index)
+        expected = pd.Series(np.nan, index=s.index, dtype='float')
         tm.assert_series_equal(result, expected)
 
     def test_map_compat(self):

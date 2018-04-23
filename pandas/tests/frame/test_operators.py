@@ -421,7 +421,7 @@ class TestDataFrameOperators(TestData):
     def test_arith_flex_zero_len_raises(self):
         # GH#19522 passing fill_value to frame flex arith methods should
         # raise even in the zero-length special cases
-        ser_len0 = pd.Series([])
+        ser_len0 = pd.Series([], dtype='float')
         df_len0 = pd.DataFrame([], columns=['A', 'B'])
         df = pd.DataFrame([[1, 2], [3, 4]], columns=['A', 'B'])
 

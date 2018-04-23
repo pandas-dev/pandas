@@ -1173,7 +1173,7 @@ class TestIsScalar(object):
         assert is_scalar(DateOffset(days=1))
 
     def test_is_scalar_pandas_containers(self):
-        assert not is_scalar(Series())
+        assert not is_scalar(Series(dtype='float'))
         assert not is_scalar(Series([1]))
         assert not is_scalar(DataFrame())
         assert not is_scalar(DataFrame([[1]]))

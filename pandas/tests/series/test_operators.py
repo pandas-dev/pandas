@@ -406,11 +406,11 @@ class TestSeriesComparisons(object):
         # filling
 
         # vs empty
-        result = a & Series([])
+        result = a & Series([], dtype='float')
         expected = Series([False, False, False], list('bca'))
         assert_series_equal(result, expected)
 
-        result = a | Series([])
+        result = a | Series([], dtype='float')
         expected = Series([True, False, True], list('bca'))
         assert_series_equal(result, expected)
 
@@ -425,7 +425,7 @@ class TestSeriesComparisons(object):
 
         # identity
         # we would like s[s|e] == s to hold for any e, whether empty or not
-        for e in [Series([]), Series([1], ['z']),
+        for e in [Series([], dtype='float'), Series([1], ['z']),
                   Series(np.nan, b.index), Series(np.nan, a.index)]:
             result = a[a | e]
             assert_series_equal(result, a[a])
@@ -1403,7 +1403,7 @@ class TestSeriesOperators(TestData):
         s_tft = Series([True, False, True], index=index)
         s_fff = Series([False, False, False], index=index)
         s_tff = Series([True, False, False], index=index)
-        s_empty = Series([])
+        s_empty = Series([], dtype='float')
 
         # TODO: unused
         # s_0101 = Series([0, 1, 0, 1])
@@ -1538,12 +1538,12 @@ class TestSeriesOperators(TestData):
     def test_operators_corner(self):
         series = self.ts
 
-        empty = Series([], index=Index([]))
+        empty = Series([], index=Index([]), dtype='float')
 
         result = series + empty
         assert np.isnan(result).all()
 
-        result = empty + Series([], index=Index([]))
+        result = empty + Series([], index=Index([]), dtype='float')
         assert len(result) == 0
 
         # TODO: this returned NotImplemented earlier, what to do?
@@ -1685,7 +1685,7 @@ class TestSeriesOperators(TestData):
     @pytest.mark.parametrize(
         "test_input,error_type",
         [
-            (pd.Series([]), ValueError),
+            (pd.Series([], dtype='float'), ValueError),
 
             # For strings, or any Series with dtype 'O'
             (pd.Series(['foo', 'bar', 'baz']), TypeError),

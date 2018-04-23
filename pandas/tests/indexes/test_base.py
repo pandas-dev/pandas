@@ -435,24 +435,6 @@ class TestIndex(Base):
         assert isinstance(empty, MultiIndex)
         assert not len(empty)
 
-    def test_constructor_nonhashable_name(self, indices):
-        # GH 20527
-
-        if isinstance(indices, MultiIndex):
-            pytest.skip("multiindex handled in test_multi.py")
-
-        name = ['0']
-        message = "Index.name must be a hashable type"
-        tm.assert_raises_regex(TypeError, message, name=name)
-
-        # With .rename()
-        renamed = [['1']]
-        tm.assert_raises_regex(TypeError, message,
-                               indices.rename, name=renamed)
-        # With .set_names()
-        tm.assert_raises_regex(TypeError, message,
-                               indices.set_names, names=renamed)
-
     def test_view_with_args(self):
 
         restricted = ['unicodeIndex', 'strIndex', 'catIndex', 'boolIndex',
@@ -1642,7 +1624,8 @@ class TestIndex(Base):
         # Float64Index overrides isin, so must be checked separately
         check_idx(Float64Index([1.0, 2.0, 3.0, 4.0]))
 
-    @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
+    @pytest.mark.parametrize("empty", [[], Series(dtype='float'),
+                             np.array([])])
     def test_isin_empty(self, empty):
         # see gh-16991
         idx = Index(["a", "b"])

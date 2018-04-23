@@ -324,6 +324,11 @@ class Categorical(ExtensionArray, PandasObject):
                 null_mask = isna(values)
                 if null_mask.any():
                     values = [values[idx] for idx in np.where(~null_mask)[0]]
+                    if len(values) == 0:
+                        # This avoids the FutureWarning in sanitize_array about
+                        # inferring float -> object. I suppose that float is
+                        # the correct dtype to infer for an all NaN array.
+                        sanitize_dtype = 'float'
                 values = _sanitize_array(values, None, dtype=sanitize_dtype)
 
         if dtype.categories is None:

@@ -86,4 +86,4 @@ def test_raises_attribute_error():
                 raise AttributeError("whoops")
 
         with tm.assert_raises_regex(AttributeError, "whoops"):
-            pd.Series([]).bad
+            pd.Series([], dtype='float').bad

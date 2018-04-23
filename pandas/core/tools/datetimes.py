@@ -58,7 +58,7 @@ def _maybe_cache(arg, format, cache, tz, convert_listlike):
         Cache of converted, unique dates. Can be empty
     """
     from pandas import Series
-    cache_array = Series()
+    cache_array = Series(dtype='float')
     if cache:
         # Perform a quicker unique check
         from pandas import Index

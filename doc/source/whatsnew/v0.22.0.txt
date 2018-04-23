@@ -38,7 +38,7 @@ The default sum for empty or all-*NA* ``Series`` is now ``0``.
 
 .. code-block:: ipython
 
-   In [1]: pd.Series([]).sum()
+   In [1]: pd.Series([], dtype='float').sum()
    Out[1]: nan
 
    In [2]: pd.Series([np.nan]).sum()
@@ -48,7 +48,7 @@ The default sum for empty or all-*NA* ``Series`` is now ``0``.
 
 .. ipython:: python
 
-   pd.Series([]).sum()
+   pd.Series([], dtype='float').sum()
    pd.Series([np.nan]).sum()
 
 The default behavior is the same as pandas 0.20.3 with bottleneck installed. It
@@ -60,7 +60,7 @@ keyword.
 
 .. ipython:: python
 
-   pd.Series([]).sum(min_count=1)
+   pd.Series([], dtype='float').sum(min_count=1)
 
 Thanks to the ``skipna`` parameter, the ``.sum`` on an all-*NA*
 series is conceptually the same as the ``.sum`` of an empty one with
@@ -78,9 +78,9 @@ returning ``1`` instead.
 
 .. ipython:: python
 
-   pd.Series([]).prod()
+   pd.Series([], dtype='float').prod()
    pd.Series([np.nan]).prod()
-   pd.Series([]).prod(min_count=1)
+   pd.Series([], dtype='float').prod(min_count=1)
 
 These changes affect :meth:`DataFrame.sum` and :meth:`DataFrame.prod` as well.
 Finally, a few less obvious places in pandas are affected by this change.

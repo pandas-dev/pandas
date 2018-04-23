@@ -2780,7 +2780,7 @@ class TestHDFStore(Base):
         self._check_roundtrip(df[:0], tm.assert_frame_equal)
 
     def test_empty_series_frame(self):
-        s0 = Series()
+        s0 = Series(dtype='float')
         s1 = Series(name='myseries')
         df0 = DataFrame()
         df1 = DataFrame(index=['a', 'b', 'c'])

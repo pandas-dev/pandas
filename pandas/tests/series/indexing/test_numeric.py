@@ -81,7 +81,7 @@ def test_delitem():
     assert_series_equal(s, expected)
 
     # empty
-    s = Series()
+    s = Series(dtype='float')
 
     def f():
         del s[0]

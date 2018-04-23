@@ -64,7 +64,7 @@ class TestSeriesTimezones(object):
     @pytest.mark.parametrize('tzstr', ['US/Eastern', 'dateutil/US/Eastern'])
     def test_series_tz_localize_empty(self, tzstr):
         # GH#2248
-        ser = Series()
+        ser = Series(dtype='float')
 
         ser2 = ser.tz_localize('utc')
         assert ser2.index.tz == pytz.utc

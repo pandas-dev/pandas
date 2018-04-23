@@ -27,4 +27,4 @@ class TestData(object):
 
     @cache_readonly
     def empty(self):
-        return pd.Series([], index=[])
+        return pd.Series([], index=[], dtype='float')

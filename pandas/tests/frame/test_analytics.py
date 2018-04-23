@@ -1252,7 +1252,8 @@ class TestDataFrameAnalytics(TestData):
         expected = DataFrame([df.loc[s].isin(other) for s in df.index])
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize("empty", [[], Series(), np.array([])])
+    @pytest.mark.parametrize("empty", [[], Series(dtype='float'),
+                             np.array([])])
     def test_isin_empty(self, empty):
         # see gh-16991
         df = DataFrame({'A': ['a', 'b', 'c'], 'B': ['a', 'e', 'f']})

@@ -269,7 +269,7 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         pd.MultiIndex.from_tuples(lzip([0, 1, 2, 3], 'EFGH')), ])
     def test_index_tab_completion(self, index):
         # dir contains string-like values of the Index.
-        s = pd.Series(index=index)
+        s = pd.Series(index=index, dtype='float')
         dir_s = dir(s)
         for i, x in enumerate(s.index.unique(level=0)):
             if i < 100:
@@ -279,7 +279,7 @@ class TestSeriesMisc(TestData, SharedWithSparse):
                 assert x not in dir_s
 
     def test_not_hashable(self):
-        s_empty = Series()
+        s_empty = Series(dtype='float')
         s = Series([1])
         pytest.raises(TypeError, hash, s_empty)
         pytest.raises(TypeError, hash, s)
@@ -456,10 +456,11 @@ class TestSeriesMisc(TestData, SharedWithSparse):
             s.str.repeat(2)
 
     def test_empty_method(self):
-        s_empty = pd.Series()
+        s_empty = pd.Series(dtype='float')
         assert s_empty.empty
 
-        for full_series in [pd.Series([1]), pd.Series(index=[1])]:
+        for full_series in [pd.Series([1]),
+                            pd.Series(index=[1], dtype='float')]:
             assert not full_series.empty
 
     def test_tab_complete_warning(self, ip):
@@ -467,7 +468,7 @@ class TestSeriesMisc(TestData, SharedWithSparse):
         pytest.importorskip('IPython', minversion="6.0.0")
         from IPython.core.completer import provisionalcompleter
 
-        code = "import pandas as pd; s = pd.Series()"
+        code = "import pandas as pd; s = pd.Series(dtype='float')"
         ip.run_code(code)
         with tm.assert_produces_warning(None):
             with provisionalcompleter('ignore'):

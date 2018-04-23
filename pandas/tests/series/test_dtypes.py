@@ -230,7 +230,9 @@ class TestSeriesDtypes(TestData):
 
         # GH16717
         # if dtypes provided is empty, it should error
-        dt5 = dtype_class({})
+        with warnings.catch_warnings(record=True):
+            # ignore empty series dtype warning
+            dt5 = dtype_class({})
         with pytest.raises(KeyError):
             s.astype(dt5)
 

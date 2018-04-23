@@ -24,7 +24,7 @@ class TestCounting(object):
 
     def test_cumcount_empty(self):
         ge = DataFrame().groupby(level=0)
-        se = Series().groupby(level=0)
+        se = Series(dtype='float').groupby(level=0)
 
         # edge case, as this is usually considered float
         e = Series(dtype='int64')
@@ -98,7 +98,7 @@ class TestCounting(object):
 
     def test_ngroup_empty(self):
         ge = DataFrame().groupby(level=0)
-        se = Series().groupby(level=0)
+        se = Series(dtype='float').groupby(level=0)
 
         # edge case, as this is usually considered float
         e = Series(dtype='int64')

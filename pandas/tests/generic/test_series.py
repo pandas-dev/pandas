@@ -226,4 +226,4 @@ class TestSeries(Generic):
     def test_valid_deprecated(self):
         # GH18800
         with tm.assert_produces_warning(FutureWarning):
-            pd.Series([]).valid()
+            pd.Series([], dtype='float').valid()

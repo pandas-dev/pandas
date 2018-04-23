@@ -64,7 +64,7 @@ class TestSeriesQuantile(TestData):
 
         result = self.ts.quantile([])
         expected = pd.Series([], name=self.ts.name, index=Index(
-            [], dtype=float))
+            [], dtype=float), dtype=float)
         tm.assert_series_equal(result, expected)
 
     def test_quantile_interpolation(self):
@@ -100,7 +100,7 @@ class TestSeriesQuantile(TestData):
         assert result == expected
 
         # all nan/empty
-        cases = [Series([]), Series([np.nan, np.nan])]
+        cases = [Series([], dtype='float'), Series([np.nan, np.nan])]
 
         for s in cases:
             res = s.quantile(0.5)

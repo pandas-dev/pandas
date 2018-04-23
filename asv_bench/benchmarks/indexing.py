@@ -249,7 +249,7 @@ class MethodLookup(object):
     goal_time = 0.2
 
     def setup_cache(self):
-        s = Series()
+        s = Series(dtype='float64')
         return s
 
     def time_lookup_iloc(self, s):

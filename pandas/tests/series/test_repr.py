@@ -56,7 +56,8 @@ class TestSeriesRepr(TestData):
         s.name = None
         assert "Name:" not in repr(s)
 
-        s = Series(index=date_range('20010101', '20020101'), name='test')
+        s = Series(index=date_range('20010101', '20020101'), name='test',
+                   dtype='float')
         assert "Name: test" in repr(s)
 
     def test_repr(self):

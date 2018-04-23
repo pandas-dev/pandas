@@ -450,19 +450,19 @@ class TestPartialSetting(object):
         # GH5226
 
         # partially set with an empty object series
-        s = Series()
+        s = Series(dtype='float')
         s.loc[1] = 1
         tm.assert_series_equal(s, Series([1], index=[1]))
         s.loc[3] = 3
         tm.assert_series_equal(s, Series([1, 3], index=[1, 3]))
 
-        s = Series()
+        s = Series(dtype='float')
         s.loc[1] = 1.
         tm.assert_series_equal(s, Series([1.], index=[1]))
         s.loc[3] = 3.
         tm.assert_series_equal(s, Series([1., 3.], index=[1, 3]))
 
-        s = Series()
+        s = Series(dtype='float')
         s.loc['foo'] = 1
         tm.assert_series_equal(s, Series([1], index=['foo']))
         s.loc['bar'] = 3
@@ -604,11 +604,11 @@ class TestPartialSetting(object):
     def test_partial_set_empty_frame_set_series(self):
         # GH 5756
         # setting with empty Series
-        df = DataFrame(Series())
-        tm.assert_frame_equal(df, DataFrame({0: Series()}))
+        df = DataFrame(Series(dtype='float'))
+        tm.assert_frame_equal(df, DataFrame({0: Series(dtype='float')}))
 
         df = DataFrame(Series(name='foo'))
-        tm.assert_frame_equal(df, DataFrame({'foo': Series()}))
+        tm.assert_frame_equal(df, DataFrame({'foo': Series(dtype='float')}))
 
     def test_partial_set_empty_frame_empty_copy_assignment(self):
         # GH 5932

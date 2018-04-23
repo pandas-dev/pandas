@@ -57,7 +57,7 @@ class TestSeriesMissingData(TestData):
     def test_remove_na_deprecation(self):
         # see gh-16971
         with tm.assert_produces_warning(FutureWarning):
-            remove_na(Series([]))
+            remove_na(Series([], dtype='float'))
 
     def test_timedelta_fillna(self):
         # GH 3371
@@ -516,7 +516,7 @@ class TestSeriesMissingData(TestData):
         assert_series_equal(result, expected)
         result = s1.fillna({})
         assert_series_equal(result, s1)
-        result = s1.fillna(Series(()))
+        result = s1.fillna(Series((), dtype='float'))
         assert_series_equal(result, s1)
         result = s2.fillna(s1)
         assert_series_equal(result, s2)
@@ -637,7 +637,7 @@ class TestSeriesMissingData(TestData):
         #     assert_series_equal(selector, expected)
 
     def test_dropna_empty(self):
-        s = Series([])
+        s = Series([], dtype='float')
         assert len(s.dropna()) == 0
         s.dropna(inplace=True)
         assert len(s) == 0
@@ -916,7 +916,7 @@ class TestSeriesInterpolateData(TestData):
         s = Series([np.nan, np.nan])
         assert_series_equal(s.interpolate(**kwargs), s)
 
-        s = Series([]).interpolate()
+        s = Series([], dtype='float').interpolate()
         assert_series_equal(s.interpolate(**kwargs), s)
 
     def test_interpolate_index_values(self):

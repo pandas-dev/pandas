@@ -746,7 +746,7 @@ class TestDataFrameFormatting(object):
     def test_to_string_buffer_all_unicode(self):
         buf = StringIO()
 
-        empty = DataFrame({u('c/\u03c3'): Series()})
+        empty = DataFrame({u('c/\u03c3'): Series(dtype='float')})
         nonempty = DataFrame({u('c/\u03c3'): Series([1, 2, 3])})
 
         print(empty, file=buf)

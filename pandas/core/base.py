@@ -954,7 +954,11 @@ class IndexOpsMixin(object):
                 # we specify the keys here to handle the
                 # possibility that they are tuples
                 from pandas import Series
-                mapper = Series(mapper)
+                if len(mapper) == 0:
+                    mapper_dtype = 'float'
+                else:
+                    mapper_dtype = None
+                mapper = Series(mapper, dtype=mapper_dtype)
 
         if isinstance(mapper, ABCSeries):
             # Since values were input this means we came from either

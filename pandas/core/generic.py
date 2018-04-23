@@ -5399,7 +5399,11 @@ class NDFrame(PandasObject, SelectionMixin):
             if self.ndim == 1:
                 if isinstance(value, (dict, ABCSeries)):
                     from pandas import Series
-                    value = Series(value)
+                    if len(value) == 0:
+                        series_dtype = 'float'
+                    else:
+                        series_dtype = None
+                    value = Series(value, dtype=series_dtype)
                 elif not is_list_like(value):
                     pass
                 else:
@@ -9376,13 +9380,13 @@ Examples
 --------
 By default, the sum of an empty or all-NA Series is ``0``.
 
->>> pd.Series([]).sum()  # min_count=0 is the default
+>>> pd.Series([], dtype='float').sum()  # min_count=0 is the default
 0.0
 
 This can be controlled with the ``min_count`` parameter. For example, if
 you'd like the sum of an empty series to be NaN, pass ``min_count=1``.
 
->>> pd.Series([]).sum(min_count=1)
+>>> pd.Series([], dtype='float').sum(min_count=1)
 nan
 
 Thanks to the ``skipna`` parameter, ``min_count`` handles all-NA and
@@ -9400,12 +9404,12 @@ Examples
 --------
 By default, the product of an empty or all-NA Series is ``1``
 
->>> pd.Series([]).prod()
+>>> pd.Series([], dtype='float').prod()
 1.0
 
 This can be controlled with the ``min_count`` parameter
 
->>> pd.Series([]).prod(min_count=1)
+>>> pd.Series([], dtype='float').prod(min_count=1)
 nan
 
 Thanks to the ``skipna`` parameter, ``min_count`` handles all-NA and

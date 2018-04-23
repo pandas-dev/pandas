@@ -284,7 +284,7 @@ class TestTimeSeries(TestData):
     def test_asfreq_datetimeindex_empty_series(self):
         # GH 14320
         expected = Series(index=pd.DatetimeIndex(
-            ["2016-09-29 11:00"])).asfreq('H')
+            ["2016-09-29 11:00"]), dtype='float').asfreq('H')
         result = Series(index=pd.DatetimeIndex(["2016-09-29 11:00"]),
                         data=[3]).asfreq('H')
         tm.assert_index_equal(expected.index, result.index)
@@ -372,7 +372,7 @@ class TestTimeSeries(TestData):
                                         limit=limit)
         assert_series_equal(rs_freq, rs_periods)
 
-        empty_ts = Series(index=self.ts.index)
+        empty_ts = Series(index=self.ts.index, dtype='float')
         rs_freq = empty_ts.pct_change(freq=freq,
                                       fill_method=fill_method,
                                       limit=limit)
@@ -423,12 +423,12 @@ class TestTimeSeries(TestData):
         assert ts.last_valid_index() is None
         assert ts.first_valid_index() is None
 
-        ser = Series([], index=[])
+        ser = Series([], index=[], dtype='float')
         assert ser.last_valid_index() is None
         assert ser.first_valid_index() is None
 
         # GH12800
-        empty = Series()
+        empty = Series(dtype='float')
         assert empty.last_valid_index() is None
         assert empty.first_valid_index() is None
 

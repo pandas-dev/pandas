@@ -253,7 +253,7 @@ class TestLoc(Base):
         # GH  7496
         # loc should not fallback
 
-        s = Series()
+        s = Series(dtype='float')
         s.loc[1] = 1
         s.loc['a'] = 2
 

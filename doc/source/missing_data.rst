@@ -196,17 +196,17 @@ The sum of an empty or all-NA Series or column of a DataFrame is 0.
 
 .. ipython:: python
 
-   pd.Series([np.nan]).sum()
-   
-   pd.Series([]).sum()
+   pd.Series([np.nan], dtype='float').sum()
+
+   pd.Series([], dtype='float').sum()
 
 The product of an empty or all-NA Series or column of a DataFrame is 1.
 
 .. ipython:: python
 
-   pd.Series([np.nan]).prod()
-   
-   pd.Series([]).prod()
+   pd.Series([np.nan], dtype='float').prod()
+
+   pd.Series([], dtype='float').prod()
 
 
 NA values in GroupBy
