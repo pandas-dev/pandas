@@ -72,7 +72,8 @@ class LatexFormatter(TableFormatter):
             previous_lev3 = None
             for i, lev in enumerate(self.frame.index.levels):
                 lev2 = lev.format()
-                blank = ' ' * len(lev2[0])
+                blank = (' ' * len(lev2[0]) if lev2 else
+                         ' ' * len(self.fmt.na_rep))
                 # display column names in last index-column
                 if cname and i == lastcol:
                     lev3 = [x if x else '{}' for x in self.frame.columns.names]
@@ -82,15 +83,16 @@ class LatexFormatter(TableFormatter):
                     lev3.append(lev.name)
                 current_idx_val = None
                 for level_idx in self.frame.index.labels[i]:
+                    idx_val = (lev2[level_idx] if level_idx >= 0 else
+                               self.fmt.na_rep)
                     if ((previous_lev3 is None or
-                        previous_lev3[len(lev3)].isspace()) and
-                            lev2[level_idx] == current_idx_val):
+                         previous_lev3[len(lev3)].isspace()) and
+                            idx_val == current_idx_val):
                         # same index as above row and left index was the same
                         lev3.append(blank)
                     else:
-                        # different value than above or left index different
-                        lev3.append(lev2[level_idx])
-                        current_idx_val = lev2[level_idx]
+                        lev3.append(idx_val)
+                        current_idx_val = idx_val
                 strcols.insert(i, lev3)
                 previous_lev3 = lev3
 
