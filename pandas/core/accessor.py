@@ -148,6 +148,7 @@ def _register_accessor(name, cls):
                 UserWarning,
                 stacklevel=2)
         setattr(cls, name, CachedAccessor(name, accessor))
+        cls._accessors.add(name)
         return accessor
     return decorator
 
