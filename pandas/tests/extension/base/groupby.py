@@ -48,6 +48,7 @@ class BaseGroupbyTests(BaseExtensionTests):
             expected = pd.Series([1, 3, 4], index=index, name="A")
         else:
             expected = pd.Series([1, 2, 3, 4], index=index, name="A")
+
         self.assert_series_equal(result, expected)
 
     def test_groupby_extension_transform(self, data_for_grouping):
