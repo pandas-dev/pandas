@@ -47,8 +47,8 @@ class BaseReshapingTests(BaseExtensionTests):
         r1, r2 = pd.Series(a).align(pd.Series(b, index=[1, 2, 3]))
 
         # Assumes that the ctor can take a list of scalars of the type
-        e1 = pd.Series(type(data)(list(a) + [na_value]))
-        e2 = pd.Series(type(data)([na_value] + list(b)))
+        e1 = pd.Series(data._from_sequence(list(a) + [na_value]))
+        e2 = pd.Series(data._from_sequence([na_value] + list(b)))
         self.assert_series_equal(r1, e1)
         self.assert_series_equal(r2, e2)
 
@@ -60,8 +60,8 @@ class BaseReshapingTests(BaseExtensionTests):
         )
 
         # Assumes that the ctor can take a list of scalars of the type
-        e1 = pd.DataFrame({'A': type(data)(list(a) + [na_value])})
-        e2 = pd.DataFrame({'A': type(data)([na_value] + list(b))})
+        e1 = pd.DataFrame({'A': data._from_sequence(list(a) + [na_value])})
+        e2 = pd.DataFrame({'A': data._from_sequence([na_value] + list(b))})
         self.assert_frame_equal(r1, e1)
         self.assert_frame_equal(r2, e2)
 
@@ -71,9 +71,8 @@ class BaseReshapingTests(BaseExtensionTests):
         df = pd.DataFrame({"col": np.arange(len(ser) + 1)})
         r1, r2 = ser.align(df)
 
-        e1 = pd.Series(
-            data._constructor_from_sequence(list(data) + [na_value]),
-            name=ser.name)
+        e1 = pd.Series(data._from_sequence(list(data) + [na_value]),
+                       name=ser.name)
 
         self.assert_series_equal(r1, e1)
         self.assert_frame_equal(r2, df)
@@ -95,3 +94,23 @@ class BaseReshapingTests(BaseExtensionTests):
         df = pd.DataFrame({"A": [1] * len(data)}, dtype=object)
         df['A'] = data
         assert df.dtypes['A'] == data.dtype
+
+    def test_merge(self, data, na_value):
+        # GH-20743
+        df1 = pd.DataFrame({'ext': data[:3], 'int1': [1, 2, 3],
+                            'key': [0, 1, 2]})
+        df2 = pd.DataFrame({'int2': [1, 2, 3, 4], 'key': [0, 0, 1, 3]})
+
+        res = pd.merge(df1, df2)
+        exp = pd.DataFrame(
+            {'int1': [1, 1, 2], 'int2': [1, 2, 3], 'key': [0, 0, 1],
+             'ext': data._from_sequence([data[0], data[0], data[1]])})
+        self.assert_frame_equal(res, exp[['ext', 'int1', 'key', 'int2']])
+
+        res = pd.merge(df1, df2, how='outer')
+        exp = pd.DataFrame(
+            {'int1': [1, 1, 2, 3, np.nan], 'int2': [1, 2, 3, np.nan, 4],
+             'key': [0, 0, 1, 2, 3],
+             'ext': data._from_sequence(
+                 [data[0], data[0], data[1], data[2], na_value])})
+        self.assert_frame_equal(res, exp[['ext', 'int1', 'key', 'int2']])

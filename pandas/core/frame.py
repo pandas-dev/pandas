@@ -326,6 +326,7 @@ class DataFrame(NDFrame):
     _constructor_sliced = Series
     _deprecations = NDFrame._deprecations | frozenset(
         ['sortlevel', 'get_value', 'set_value', 'from_csv', 'from_items'])
+    _accessors = set()
 
     @property
     def _constructor_expanddim(self):
@@ -6138,8 +6139,11 @@ class DataFrame(NDFrame):
                 # index name will be reset
                 index = Index([other.name], name=self.index.name)
 
-            combined_columns = self.columns.tolist() + self.columns.union(
-                other.index).difference(self.columns).tolist()
+            idx_diff = other.index.difference(self.columns)
+            try:
+                combined_columns = self.columns.append(idx_diff)
+            except TypeError:
+                combined_columns = self.columns.astype(object).append(idx_diff)
             other = other.reindex(combined_columns, copy=False)
             other = DataFrame(other.values.reshape((1, len(other))),
                               index=index,
