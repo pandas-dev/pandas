@@ -41,6 +41,15 @@ class BaseReshapingTests(BaseExtensionTests):
             expected = pd.Series(data_missing.take([1, 1, 0, 0]))
             self.assert_series_equal(result, expected)
 
+    def test_concat_with_other_dtype_coerces(self, data):
+        # https://github.com/pandas-dev/pandas/issues/20762
+        df1 = pd.DataFrame({'A': data[:3]})
+        df2 = pd.DataFrame({"A": [1, 2, 3]})
+
+        result = pd.concat([df1, df2])
+        expected = pd.concat([df1.astype(object), df2.astype(object)])
+        self.assert_frame_equal(result, expected)
+
     def test_align(self, data, na_value):
         a = data[:3]
         b = data[2:5]

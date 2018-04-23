@@ -8,6 +8,7 @@ from pandas import compat
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_sparse,
+    is_extension_array_dtype,
     is_datetimetz,
     is_datetime64_dtype,
     is_timedelta64_dtype,
@@ -172,6 +173,11 @@ def _concat_compat(to_concat, axis=0):
     # these are mandated to handle empties as well
     elif 'sparse' in typs:
         return _concat_sparse(to_concat, axis=axis, typs=typs)
+
+    extensions = [is_extension_array_dtype(x) for x in to_concat]
+    if any(extensions) and not all(extensions):
+        to_concat = [np.atleast_2d(x.astype('object')) for x in to_concat]
+        # convert non extensions to objects
 
     if not nonempty:
         # we have all empties, but may need to coerce the result dtype to
