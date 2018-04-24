@@ -27,7 +27,7 @@ class ExtensionArray(object):
     The interface includes the following abstract methods that must be
     implemented by subclasses:
 
-    * _constructor_from_sequence
+    * _from_sequence
     * _from_factorized
     * __getitem__
     * __len__
@@ -78,7 +78,7 @@ class ExtensionArray(object):
     # Constructors
     # ------------------------------------------------------------------------
     @classmethod
-    def _constructor_from_sequence(cls, scalars):
+    def _from_sequence(cls, scalars):
         """Construct a new ExtensionArray from a sequence of scalars.
 
         Parameters
@@ -365,7 +365,7 @@ class ExtensionArray(object):
                 func = pad_1d if method == 'pad' else backfill_1d
                 new_values = func(self.astype(object), limit=limit,
                                   mask=mask)
-                new_values = self._constructor_from_sequence(new_values)
+                new_values = self._from_sequence(new_values)
             else:
                 # fill with value
                 new_values = self.copy()
@@ -384,7 +384,7 @@ class ExtensionArray(object):
         from pandas import unique
 
         uniques = unique(self.astype(object))
-        return self._constructor_from_sequence(uniques)
+        return self._from_sequence(uniques)
 
     def _values_for_factorize(self):
         # type: () -> Tuple[ndarray, Any]
