@@ -1469,7 +1469,8 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
                             if idx % 2 == 0:
                                 output[i] = skiplist_get(skiplist, idx, &ret)
                             else:
-                                output[i] = skiplist_get(skiplist, idx + 1, &ret)
+                                output[i] = skiplist_get(
+                                    skiplist, idx + 1, &ret)
                         elif idx_with_fraction - idx < 0.5:
                             output[i] = skiplist_get(skiplist, idx, &ret)
                         else:
