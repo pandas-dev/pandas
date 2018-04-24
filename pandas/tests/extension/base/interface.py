@@ -50,3 +50,9 @@ class BaseInterfaceTests(BaseExtensionTests):
         assert is_extension_array_dtype(data.dtype)
         assert is_extension_array_dtype(pd.Series(data))
         assert isinstance(data.dtype, ExtensionDtype)
+
+    def test_no_values_attribute(self, data):
+        # GH-20735: EA's with .values attribute give problems with internal
+        # code, disallowing this for now until solved
+        assert not hasattr(data, 'values')
+        assert not hasattr(data, '_values')

@@ -33,6 +33,13 @@ class JSONArray(ExtensionArray):
                 raise TypeError
         self.data = values
 
+        # Some aliases for common attribute names to ensure pandas supports
+        # these
+        self._items = self._data = self.data
+        # those aliases are currently not working due to assumptions
+        # in internal code (GH-20735)
+        # self._values = self.values = self.data
+
     @classmethod
     def _from_sequence(cls, scalars):
         return cls(scalars)
