@@ -1667,10 +1667,10 @@ def str_get(arr, i):
 
     Examples
     --------
-    >>> s = pd.Series(["String", 
-               (1, 2, 3), 
-               ["a", "b", "c"], 
-               123, -456, 
+    >>> s = pd.Series(["String",
+               (1, 2, 3),
+               ["a", "b", "c"],
+               123, -456,
                {1:"Hello", "2":"World"}])
     >>> s
     0                        String
@@ -1680,7 +1680,7 @@ def str_get(arr, i):
     4                          -456
     5    {1: 'Hello', '2': 'World'}
     dtype: object
-    
+
     >>> s.str.get(1)
     0        t
     1        2
@@ -1689,7 +1689,7 @@ def str_get(arr, i):
     4      NaN
     5    Hello
     dtype: object
-    
+
     >>> s.str.get(-1)
     0      g
     1      3
