@@ -1357,24 +1357,49 @@ cdef _roll_min_max(ndarray[numeric] input, int64_t win, int64_t minp,
     return output
 
 
+cdef enum InterpolationType:
+    LINEAR,
+    LOWER,
+    HIGHER,
+    NEAREST,
+    MIDPOINT
+
+
+interpolation_types = {
+    'linear': LINEAR,
+    'lower': LOWER,
+    'higher': HIGHER,
+    'nearest': NEAREST,
+    'midpoint': MIDPOINT,
+}
+
+
 def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
                   int64_t minp, object index, object closed,
-                  double quantile):
+                  double quantile, str interpolation):
     """
     O(N log(window)) implementation using skip list
     """
     cdef:
-        double val, prev, midpoint
-        IndexableSkiplist skiplist
+        double val, prev, midpoint, idx_with_fraction
+        skiplist_t *skiplist
         int64_t nobs = 0, i, j, s, e, N
         Py_ssize_t idx
         bint is_variable
         ndarray[int64_t] start, end
         ndarray[double_t] output
         double vlow, vhigh
+        InterpolationType interpolation_type
+        int ret = 0
 
     if quantile <= 0.0 or quantile >= 1.0:
         raise ValueError("quantile value {0} not in [0, 1]".format(quantile))
+
+    try:
+        interpolation_type = interpolation_types[interpolation]
+    except KeyError:
+        raise ValueError("Interpolation '{}' is not supported"
+                         .format(interpolation))
 
     # we use the Fixed/Variable Indexer here as the
     # actual skiplist ops outweigh any window computation costs
@@ -1383,51 +1408,78 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
         minp, index, closed,
         use_mock=False)
     output = np.empty(N, dtype=float)
-    skiplist = IndexableSkiplist(win)
+    skiplist = skiplist_init(<int>win)
+    if skiplist == NULL:
+        raise MemoryError("skiplist_init failed")
 
-    for i in range(0, N):
-        s = start[i]
-        e = end[i]
+    with nogil:
+        for i in range(0, N):
+            s = start[i]
+            e = end[i]
 
-        if i == 0:
+            if i == 0:
 
-            # setup
-            val = input[i]
-            if val == val:
-                nobs += 1
-                skiplist.insert(val)
-
-        else:
-
-            # calculate deletes
-            for j in range(start[i - 1], s):
-                val = input[j]
-                if val == val:
-                    skiplist.remove(val)
-                    nobs -= 1
-
-            # calculate adds
-            for j in range(end[i - 1], e):
-                val = input[j]
+                # setup
+                val = input[i]
                 if val == val:
                     nobs += 1
-                    skiplist.insert(val)
+                    skiplist_insert(skiplist, val)
 
-        if nobs >= minp:
-            idx = int(quantile * <double>(nobs - 1))
-
-            # Single value in skip list
-            if nobs == 1:
-                output[i] = skiplist.get(0)
-
-            # Interpolated quantile
             else:
-                vlow = skiplist.get(idx)
-                vhigh = skiplist.get(idx + 1)
-                output[i] = ((vlow + (vhigh - vlow) *
-                             (quantile * (nobs - 1) - idx)))
-        else:
-            output[i] = NaN
+
+                # calculate deletes
+                for j in range(start[i - 1], s):
+                    val = input[j]
+                    if val == val:
+                        skiplist_remove(skiplist, val)
+                        nobs -= 1
+
+                # calculate adds
+                for j in range(end[i - 1], e):
+                    val = input[j]
+                    if val == val:
+                        nobs += 1
+                        skiplist_insert(skiplist, val)
+
+            if nobs >= minp:
+                if nobs == 1:
+                    # Single value in skip list
+                    output[i] = skiplist_get(skiplist, 0, &ret)
+                else:
+                    idx_with_fraction = quantile * (nobs - 1)
+                    idx = <int> idx_with_fraction
+
+                    if idx_with_fraction == idx:
+                        # no need to interpolate
+                        output[i] = skiplist_get(skiplist, idx, &ret)
+                        continue
+
+                    if interpolation_type == LINEAR:
+                        vlow = skiplist_get(skiplist, idx, &ret)
+                        vhigh = skiplist_get(skiplist, idx + 1, &ret)
+                        output[i] = ((vlow + (vhigh - vlow) *
+                                      (idx_with_fraction - idx)))
+                    elif interpolation_type == LOWER:
+                        output[i] = skiplist_get(skiplist, idx, &ret)
+                    elif interpolation_type == HIGHER:
+                        output[i] = skiplist_get(skiplist, idx + 1, &ret)
+                    elif interpolation_type == NEAREST:
+                        # the same behaviour as round()
+                        if idx_with_fraction - idx == 0.5:
+                            if idx % 2 == 0:
+                                output[i] = skiplist_get(skiplist, idx, &ret)
+                            else:
+                                output[i] = skiplist_get(skiplist, idx + 1, &ret)
+                        elif idx_with_fraction - idx < 0.5:
+                            output[i] = skiplist_get(skiplist, idx, &ret)
+                        else:
+                            output[i] = skiplist_get(skiplist, idx + 1, &ret)
+                    elif interpolation_type == MIDPOINT:
+                        vlow = skiplist_get(skiplist, idx, &ret)
+                        vhigh = skiplist_get(skiplist, idx + 1, &ret)
+                        output[i] = <double> (vlow + vhigh) / 2
+            else:
+                output[i] = NaN
 
     return output
 
