@@ -1773,7 +1773,7 @@ These both yield the same results, so which should you use? It is instructive to
 of operations on these and why method 2 (``.loc``) is much preferred over method 1 (chained ``[]``).
 
 ``dfmi['one']`` selects the first level of the columns and returns a DataFrame that is singly-indexed.
-Then another Python operation ``dfmi_with_one['second']`` selects the series indexed by ``'second'`` happens.
+Then another Python operation ``dfmi_with_one['second']`` selects the series indexed by ``'second'``.
 This is indicated by the variable ``dfmi_with_one`` because pandas sees these operations as separate events.
 e.g. separate calls to ``__getitem__``, so it has to treat them as linear operations, they happen one after another.
 
