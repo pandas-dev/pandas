@@ -643,3 +643,35 @@ NaN & 2 &  4 \\
 \end{tabular}
 """
         assert observed == expected
+
+    def test_to_latex_non_string_index(self):
+        # GH 19981
+        observed = pd.DataFrame([[1, 2, 3]] * 2).set_index([0, 1]).to_latex()
+        expected = r"""\begin{tabular}{llr}
+\toprule
+  &   &  2 \\
+0 & 1 &    \\
+\midrule
+1 & 2 &  3 \\
+  & 2 &  3 \\
+\bottomrule
+\end{tabular}
+"""
+        assert observed == expected
+
+    def test_to_latex_midrule_location(self):
+        # GH 18326
+        df = pd.DataFrame({'a': [1, 2]})
+        df.index.name = 'foo'
+        observed = df.to_latex(index_names=False)
+        expected = r"""\begin{tabular}{lr}
+\toprule
+{} &  a \\
+\midrule
+0 &  1 \\
+1 &  2 \\
+\bottomrule
+\end{tabular}
+"""
+
+        assert observed == expected
