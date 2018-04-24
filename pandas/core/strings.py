@@ -1667,19 +1667,36 @@ def str_get(arr, i):
 
     Examples
     --------
-    >>> s = pd.Series(["String", (1, 2, 3), ["a", "b", "c"], 123])
+    >>> s = pd.Series(["String", 
+               (1, 2, 3), 
+               ["a", "b", "c"], 
+               123, -456, 
+               {1:"Hello", "2":"World"}])
     >>> s
-    0       String
-    1    (1, 2, 3)
-    2    [a, b, c]
-    3          123
+    0                        String
+    1                     (1, 2, 3)
+    2                     [a, b, c]
+    3                           123
+    4                          -456
+    5    {1: 'Hello', '2': 'World'}
     dtype: object
-
+    
     >>> s.str.get(1)
-    0      t
-    1      2
-    2      b
+    0        t
+    1        2
+    2        b
+    3      NaN
+    4      NaN
+    5    Hello
+    dtype: object
+    
+    >>> s.str.get(-1)
+    0      g
+    1      3
+    2      c
     3    NaN
+    4    NaN
+    5    NaN
     dtype: object
     """
     f = lambda x: x[i] if len(x) > i >= -len(x) else np.nan
