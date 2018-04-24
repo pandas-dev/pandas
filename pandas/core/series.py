@@ -1855,6 +1855,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         0.75    3.25
         dtype: float64
 
+        See Also
+        --------
+        pandas.core.window.Rolling.quantile
         """
 
         self._check_percentile(q)

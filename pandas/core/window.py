@@ -1276,9 +1276,53 @@ class _Rolling_and_Expanding(_Rolling):
     Parameters
     ----------
     quantile : float
-        0 <= quantile <= 1""")
+        0 <= quantile <= 1
+    interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
+        .. versionadded:: 0.23.0
 
-    def quantile(self, quantile, **kwargs):
+        This optional parameter specifies the interpolation method to use,
+        when the desired quantile lies between two data points `i` and `j`:
+
+            * linear: `i + (j - i) * fraction`, where `fraction` is the
+              fractional part of the index surrounded by `i` and `j`.
+            * lower: `i`.
+            * higher: `j`.
+            * nearest: `i` or `j` whichever is nearest.
+            * midpoint: (`i` + `j`) / 2.
+
+    Returns
+    -------
+    Series or DataFrame
+        Returned object type is determined by the caller of the %(name)s
+        calculation.
+
+    Examples
+    --------
+    >>> s = Series([1, 2, 3, 4])
+    >>> s.rolling(2).quantile(.4, interpolation='lower')
+    0    NaN
+    1    1.0
+    2    2.0
+    3    3.0
+    dtype: float64
+
+    >>> s.rolling(2).quantile(.4, interpolation='midpoint')
+    0    NaN
+    1    1.5
+    2    2.5
+    3    3.5
+    dtype: float64
+
+    See Also
+    --------
+    pandas.Series.quantile : Computes value at the given quantile over all data
+        in Series.
+    pandas.DataFrame.quantile : Computes values at the given quantile over
+        requested axis in DataFrame.
+
+    """)
+
+    def quantile(self, quantile, interpolation='linear', **kwargs):
         window = self._get_window()
         index, indexi = self._get_index()
 
@@ -1292,7 +1336,8 @@ class _Rolling_and_Expanding(_Rolling):
                                         self.closed)
             else:
                 return _window.roll_quantile(arg, window, minp, indexi,
-                                             self.closed, quantile)
+                                             self.closed, quantile,
+                                             interpolation)
 
         return self._apply(f, 'quantile', quantile=quantile,
                            **kwargs)
@@ -1613,8 +1658,10 @@ class Rolling(_Rolling_and_Expanding):
     @Substitution(name='rolling')
     @Appender(_doc_template)
     @Appender(_shared_docs['quantile'])
-    def quantile(self, quantile, **kwargs):
-        return super(Rolling, self).quantile(quantile=quantile, **kwargs)
+    def quantile(self, quantile, interpolation='linear', **kwargs):
+        return super(Rolling, self).quantile(quantile=quantile,
+                                             interpolation=interpolation,
+                                             **kwargs)
 
     @Substitution(name='rolling')
     @Appender(_doc_template)
@@ -1872,8 +1919,10 @@ class Expanding(_Rolling_and_Expanding):
     @Substitution(name='expanding')
     @Appender(_doc_template)
     @Appender(_shared_docs['quantile'])
-    def quantile(self, quantile, **kwargs):
-        return super(Expanding, self).quantile(quantile=quantile, **kwargs)
+    def quantile(self, quantile, interpolation='linear', **kwargs):
+        return super(Expanding, self).quantile(quantile=quantile,
+                                               interpolation=interpolation,
+                                               **kwargs)
 
     @Substitution(name='expanding')
     @Appender(_doc_template)
