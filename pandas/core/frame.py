@@ -7387,8 +7387,8 @@ def _to_arrays(data, columns, coerce_float=False, dtype=None):
         if isinstance(data, np.ndarray):
             columns = data.dtype.names
             if columns is not None:
-                arrays = [np.array([], dtype=dtype)
-                          for _, dtype in data.dtype.descr]
+                arrays = [np.array([], dtype=field_type)
+                          for field_type, _ in data.dtype.fields.values()]
                 return arrays, columns
 
         return [], []  # columns if columns is not None else []
