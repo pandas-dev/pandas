@@ -182,6 +182,11 @@ def test_date_time():
     fname = os.path.join(dirpath, "datetime.csv")
     df0 = pd.read_csv(fname, parse_dates=['Date1', 'Date2', 'DateTime',
                                           'DateTimeHi', 'Taiw'])
+    # GH 19732: Timestamps imported from sas will incur floating point errors
+    df0.iloc[:, 3] = pd.to_datetime(np.array([-9223372036854774475,
+                                              -315619200000000000,
+                                              1456790399123456001,
+                                              9223372036854774475]))
     tm.assert_frame_equal(df, df0)
 
 

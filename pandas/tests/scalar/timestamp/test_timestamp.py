@@ -623,7 +623,7 @@ class TestTimestamp(object):
 
     def test_unit(self):
 
-        def check(val, unit=None, h=1, s=1, us=0):
+        def check(val, unit=None, h=1, s=1, us=0, ns=0):
             stamp = Timestamp(val, unit=unit)
             assert stamp.year == 2000
             assert stamp.month == 1
@@ -637,7 +637,7 @@ class TestTimestamp(object):
                 assert stamp.minute == 0
                 assert stamp.second == 0
                 assert stamp.microsecond == 0
-            assert stamp.nanosecond == 0
+            assert stamp.nanosecond == ns
 
         ts = Timestamp('20000101 01:01:01')
         val = ts.value
@@ -651,7 +651,8 @@ class TestTimestamp(object):
 
         # using truediv, so these are like floats
         if PY3:
-            check((val + 500000) / long(1000000000), unit='s', us=500)
+            # GH 19732: This timestamp will incur floating point errors
+            check((val + 500000) / long(1000000000), unit='s', us=499, ns=964)
             check((val + 500000000) / long(1000000000), unit='s', us=500000)
             check((val + 500000) / long(1000000), unit='ms', us=500)
 
@@ -669,7 +670,7 @@ class TestTimestamp(object):
         check(val / 1000.0 + 5, unit='us', us=5)
         check(val / 1000.0 + 5000, unit='us', us=5000)
         check(val / 1000000.0 + 0.5, unit='ms', us=500)
-        check(val / 1000000.0 + 0.005, unit='ms', us=5)
+        check(val / 1000000.0 + 0.005, unit='ms', us=5, ns=5)
         check(val / 1000000000.0 + 0.5, unit='s', us=500000)
         check(days + 0.5, unit='D', h=12)
 
