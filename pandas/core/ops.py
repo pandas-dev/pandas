@@ -6,6 +6,7 @@ This is not a public API.
 # necessary to enforce truediv in Python 2.X
 from __future__ import division
 import operator
+import inspect
 
 import numpy as np
 import pandas as pd
@@ -30,6 +31,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_list_like,
     is_scalar,
+    is_extension_array_dtype,
     _ensure_object)
 from pandas.core.dtypes.cast import (
     maybe_upcast_putmask, find_common_type,
@@ -1205,6 +1207,78 @@ def _comp_method_SERIES(cls, op, special):
         elif is_timedelta64_dtype(self):
             res_values = dispatch_to_index_op(op, self, other,
                                               pd.TimedeltaIndex)
+            return self._constructor(res_values, index=self.index,
+                                     name=res_name)
+
+        elif is_extension_array_dtype(self):
+            values = self.values
+
+            # GH 20659
+            # The idea here is as follows.  First we see if the op is
+            # defined in the ExtensionArray subclass, and returns a
+            # result that is not NotImplemented.  If so, we use that
+            # result. If that fails, then we try to see if the underlying
+            # dtype has implemented the op, and if not, then we try to
+            # put the values into a numpy array to see if the optimized
+            # comparisons will work. Either way, then we try an
+            # element by element comparison
+
+            method = getattr(values, op_name, None)
+            # First see if the extension array object supports the op
+            res = NotImplemented
+            if inspect.ismethod(method):
+                try:
+                    res = method(other)
+                except TypeError:
+                    pass
+                except Exception as e:
+                    raise e
+
+            isfunc = inspect.isfunction(getattr(self.dtype.type,
+                                                op_name, None))
+
+            if res is NotImplemented and not isfunc:
+                # Try the fast implementation, i.e., see if passing a
+                # numpy array will allow the optimized comparison to
+                # work
+                nvalues = self.get_values()
+                if isinstance(other, list):
+                    other = np.asarray(other)
+
+                try:
+                    with np.errstate(all='ignore'):
+                        res = na_op(nvalues, other)
+                except TypeError:
+                    pass
+                except Exception as e:
+                    raise e
+
+            if res is NotImplemented:
+                # Try it on each element.  Support comparing to another
+                # ExtensionArray, or something that is list like, or
+                # a single object.  This allows a result of a comparison
+                # to be an object as opposed to a boolean
+                if is_extension_array_dtype(other):
+                    ovalues = other.values
+                elif is_list_like(other):
+                    ovalues = other
+                else:  # Assume its an object
+                    ovalues = [other] * len(self)
+
+                # Get the method for each object.
+                res = [getattr(a, op_name, None)(b)
+                       for (a, b) in zip(values, ovalues)]
+
+                # We can't use (NotImplemented in res) because the
+                # results might be objects that have overridden __eq__
+                if any([isinstance(r, type(NotImplemented)) for r in res]):
+                    msg = "invalid type comparison between {one} and {two}"
+                    raise TypeError(msg.format(one=type(values),
+                                               two=type(other)))
+
+            # At this point we have the result
+            # always return a full value series here
+            res_values = com._values_from_object(res)
             return self._constructor(res_values, index=self.index,
                                      name=res_name)
 

@@ -82,8 +82,9 @@ class BaseGetitemTests(BaseExtensionTests):
         assert isinstance(result, data.dtype.type)
 
     def test_getitem_scalar_na(self, data_missing, na_cmp, na_value):
-        result = data_missing[0]
-        assert na_cmp(result, na_value)
+        if data_missing._can_hold_na:
+            result = data_missing[0]
+            assert na_cmp(result, na_value)
 
     def test_getitem_mask(self, data):
         # Empty mask, raw array
@@ -134,8 +135,9 @@ class BaseGetitemTests(BaseExtensionTests):
 
     def test_take_empty(self, data, na_value, na_cmp):
         empty = data[:0]
-        result = empty.take([-1])
-        na_cmp(result[0], na_value)
+        if data._can_hold_na:
+            result = empty.take([-1])
+            na_cmp(result[0], na_value)
 
         with tm.assert_raises_regex(IndexError, "cannot do a non-empty take"):
             empty.take([0, 1])

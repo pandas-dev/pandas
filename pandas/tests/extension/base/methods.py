@@ -24,10 +24,11 @@ class BaseMethodsTests(BaseExtensionTests):
         self.assert_series_equal(result, expected)
 
     def test_count(self, data_missing):
-        df = pd.DataFrame({"A": data_missing})
-        result = df.count(axis='columns')
-        expected = pd.Series([0, 1])
-        self.assert_series_equal(result, expected)
+        if data_missing._can_hold_na:
+            df = pd.DataFrame({"A": data_missing})
+            result = df.count(axis='columns')
+            expected = pd.Series([0, 1])
+            self.assert_series_equal(result, expected)
 
     def test_apply_simple_series(self, data):
         result = pd.Series(data).apply(id)
@@ -40,7 +41,10 @@ class BaseMethodsTests(BaseExtensionTests):
 
     def test_argsort_missing(self, data_missing_for_sorting):
         result = pd.Series(data_missing_for_sorting).argsort()
-        expected = pd.Series(np.array([1, -1, 0], dtype=np.int64))
+        if data_missing_for_sorting._can_hold_na:
+            expected = pd.Series(np.array([1, -1, 0], dtype=np.int64))
+        else:
+            expected = pd.Series(np.array([1, 2, 0], dtype=np.int64))
         self.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('ascending', [True, False])
@@ -58,7 +62,10 @@ class BaseMethodsTests(BaseExtensionTests):
         ser = pd.Series(data_missing_for_sorting)
         result = ser.sort_values(ascending=ascending)
         if ascending:
-            expected = ser.iloc[[2, 0, 1]]
+            if data_missing_for_sorting._can_hold_na:
+                expected = ser.iloc[[2, 0, 1]]
+            else:
+                expected = ser.iloc[[1, 2, 0]]
         else:
             expected = ser.iloc[[0, 2, 1]]
         self.assert_series_equal(result, expected)
