@@ -1800,6 +1800,7 @@ class StringMethods(NoNewAttributesMixin):
     def __init__(self, data):
         self._validate(data)
         self._is_categorical = is_categorical_dtype(data)
+
         # .values.categories works for both Series/Index
         self._data = data.values.categories if self._is_categorical else data
         # save orig to blow up categoricals to the right type
@@ -1934,7 +1935,7 @@ class StringMethods(NoNewAttributesMixin):
                 cons = self._orig._constructor
                 return cons(result, name=name, index=index)
 
-    def _str_cat_los(self, input, ignore_index=False):
+    def _get_series_list(self, others, ignore_index=False):
         """
         Auxiliary function for :meth:`str.cat`. Turn potentially mixed input
         into list of Series (elements without an index must match the length of
@@ -1943,7 +1944,7 @@ class StringMethods(NoNewAttributesMixin):
         Parameters
         ----------
         input : Series, DataFrame, np.ndarrary, list-like or list-like of those
-        ignore_index : Boolean
+        ignore_index : boolean, default False
             Determines whether to forcefully align with index of the caller
 
         Returns
@@ -1955,46 +1956,44 @@ class StringMethods(NoNewAttributesMixin):
         # once str.cat defaults to alignment, this function can be simplified;
         # will not need `ignore_index` and the second boolean output anymore
 
-        from pandas.core.index import Index
-        from pandas.core.series import Series
-        from pandas.core.frame import DataFrame
+        from pandas import Index, Series, DataFrame
 
         # self._orig is either Series or Index
         idx = self._orig if isinstance(self._orig, Index) else self._orig.index
 
-        if isinstance(input, Series):
-            los = [Series(input.values, index=idx) if ignore_index else input]
+        if isinstance(others, Series):
+            los = [Series(others.values, index=idx)
+                   if ignore_index else others]
             return (los, True)
-        elif isinstance(input, Index):
-            los = [Series(input.values,
-                          index=(idx if ignore_index else input))]
+        elif isinstance(others, Index):
+            los = [Series(others.values,
+                          index=(idx if ignore_index else others))]
             return (los, True)
-        elif isinstance(input, DataFrame):
+        elif isinstance(others, DataFrame):
             if ignore_index:
                 # without copy, this could change (the corresponding list
                 # element of) "others" that was passed to str.cat
-                input = input.copy()
-                input.index = idx
-            return ([input[x] for x in input], True)
-        elif isinstance(input, np.ndarray) and input.ndim == 2:
-            input = DataFrame(input, index=idx)
-            return ([input[x] for x in input], False)
-        elif is_list_like(input):
-            input = list(input)  # ensure iterators do not get read twice, etc.
-            if all(is_list_like(x) for x in input):
+                others = others.copy()
+                others.index = idx
+            return ([others[x] for x in others], True)
+        elif isinstance(others, np.ndarray) and others.ndim == 2:
+            others = DataFrame(others, index=idx)
+            return ([others[x] for x in others], False)
+        elif is_list_like(others):
+            others = list(others)  # ensure iterators do not get read twice etc
+            if all(is_list_like(x) for x in others):
                 los = []
                 fuwa = False
-                while input:
-                    tmp = self._str_cat_los(input.pop(0),
-                                            ignore_index=ignore_index)
+                while others:
+                    tmp = self._get_series_list(others.pop(0),
+                                                ignore_index=ignore_index)
                     los = los + tmp[0]
                     fuwa = fuwa or tmp[1]
                 return (los, fuwa)
             else:
-                return ([Series(input, index=idx)], False)
-        else:
-            raise ValueError('input must be Series, Index, DataFrame, '
-                             'np.ndarrary or list-like')
+                return ([Series(others, index=idx)], False)
+        raise ValueError('others must be Series, Index, DataFrame, '
+                         'np.ndarrary or list-like')
 
     def cat(self, others=None, sep=None, na_rep=None, join=None):
         """
@@ -2136,11 +2135,9 @@ class StringMethods(NoNewAttributesMixin):
 
         For more examples, see :ref:`here <text.concatenate>`.
         """
-        from pandas.core.index import Index
-        from pandas.core.series import Series
-        from pandas.core.reshape.concat import concat
+        from pandas import Index, Series, concat
 
-        if isinstance(others, str):
+        if isinstance(others, compat.string_types):
             raise ValueError("Did you mean to supply a `sep` keyword?")
 
         if isinstance(self._orig, Index):
@@ -2156,8 +2153,8 @@ class StringMethods(NoNewAttributesMixin):
 
         try:
             # turn anything in "others" into lists of Series
-            others, fuwa = self._str_cat_los(others,
-                                             ignore_index=(join is None))
+            tmp = self._get_series_list(others, ignore_index=(join is None))
+            others, fut_warn = tmp
         except ValueError:
             if join is None:
                 # legacy warning
@@ -2168,7 +2165,7 @@ class StringMethods(NoNewAttributesMixin):
                                  'must all be of the same length as the '
                                  'calling Series/Index.')
 
-        if join is None and fuwa:
+        if join is None and fut_warn:
             warnings.warn("A future version of pandas will perform index "
                           "alignment when `others` is a Series/Index/"
                           "DataFrame (or a list-like containing one). To "

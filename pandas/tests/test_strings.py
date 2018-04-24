@@ -132,12 +132,12 @@ class TestStringMethods(object):
         exp = np.array(['aa', NA, 'bb', 'bd', 'cfoo', NA], dtype=np.object_)
         tm.assert_almost_equal(result, exp)
 
-    @pytest.mark.parametrize('ser_or_ind', ['series', 'index'])
-    def test_str_cat(self, ser_or_ind):
+    @pytest.mark.parametrize('series_or_index', ['series', 'index'])
+    def test_str_cat(self, series_or_index):
         # test_cat above tests "str_cat" from ndarray to ndarray;
         # here testing "str.cat" from Series/Index to Series/Index/ndarray/list
         s = Index(['a', 'a', 'b', 'b', 'c', np.nan])
-        if ser_or_ind == 'series':
+        if series_or_index == 'series':
             s = Series(s)
         t = Index(['a', np.nan, 'b', 'd', 'foo', np.nan])
 
@@ -156,7 +156,7 @@ class TestStringMethods(object):
 
         # Series/Index with Index
         exp = Index(['aa', 'a-', 'bb', 'bd', 'cfoo', '--'])
-        if ser_or_ind == 'series':
+        if series_or_index == 'series':
             exp = Series(exp)
         with tm.assert_produces_warning(expected_warning=FutureWarning):
             # FutureWarning to switch to alignment by default
@@ -187,11 +187,11 @@ class TestStringMethods(object):
         with tm.assert_raises_regex(ValueError, rgx):
             s.str.cat(list(z))
 
-    @pytest.mark.parametrize('ser_or_ind', ['series', 'index'])
-    def test_str_cat_raises_intuitive_error(self, ser_or_ind):
+    @pytest.mark.parametrize('series_or_index', ['series', 'index'])
+    def test_str_cat_raises_intuitive_error(self, series_or_index):
         # https://github.com/pandas-dev/pandas/issues/11334
         s = Index(['a', 'b', 'c', 'd'])
-        if ser_or_ind == 'series':
+        if series_or_index == 'series':
             s = Series(s)
         message = "Did you mean to supply a `sep` keyword?"
         with tm.assert_raises_regex(ValueError, message):
@@ -199,7 +199,7 @@ class TestStringMethods(object):
         with tm.assert_raises_regex(ValueError, message):
             s.str.cat('    ')
 
-    @pytest.mark.parametrize('ser_or_ind, dtype_caller, dtype_target', [
+    @pytest.mark.parametrize('series_or_index, dtype_caller, dtype_target', [
         ('series', 'object', 'object'),
         ('series', 'object', 'category'),
         ('series', 'category', 'object'),
@@ -209,14 +209,15 @@ class TestStringMethods(object):
         ('index', 'category', 'object'),
         ('index', 'category', 'category')
     ])
-    def test_str_cat_categorical(self, ser_or_ind, dtype_caller, dtype_target):
+    def test_str_cat_categorical(self, series_or_index,
+                                 dtype_caller, dtype_target):
         s = Index(['a', 'a', 'b', 'a'], dtype=dtype_caller)
-        if ser_or_ind == 'series':
+        if series_or_index == 'series':
             s = Series(s)
         t = Index(['b', 'a', 'b', 'c'], dtype=dtype_target)
 
         exp = Index(['ab', 'aa', 'bb', 'ac'], dtype=dtype_caller)
-        if ser_or_ind == 'series':
+        if series_or_index == 'series':
             exp = Series(exp)
         # Series/Index with Index
         with tm.assert_produces_warning(expected_warning=FutureWarning):
@@ -228,16 +229,16 @@ class TestStringMethods(object):
             # FutureWarning to switch to alignment by default
             assert_series_or_index_equal(s.str.cat(Series(t)), exp)
 
-    @pytest.mark.parametrize('ser_or_ind', ['series', 'index'])
-    def test_str_cat_mixed_inputs(self, ser_or_ind):
+    @pytest.mark.parametrize('series_or_index', ['series', 'index'])
+    def test_str_cat_mixed_inputs(self, series_or_index):
         s = Index(['a', 'b', 'c', 'd'])
-        if ser_or_ind == 'series':
+        if series_or_index == 'series':
             s = Series(s)
         t = Series(['A', 'B', 'C', 'D'])
         d = concat([t, Series(s)], axis=1)
 
         exp = Index(['aAa', 'bBb', 'cCc', 'dDd'])
-        if ser_or_ind == 'series':
+        if series_or_index == 'series':
             exp = Series(exp)
         # Series/Index with DataFrame
         with tm.assert_produces_warning(expected_warning=FutureWarning):
@@ -288,18 +289,18 @@ class TestStringMethods(object):
         with tm.assert_raises_regex(ValueError, rgx):
             s.str.cat([z, list(s)])
 
-    @pytest.mark.parametrize('ser_or_ind, join', [
+    @pytest.mark.parametrize('series_or_index, join', [
         ('series', 'left'), ('series', 'outer'),
         ('series', 'inner'), ('series', 'right'),
         ('index', 'left'), ('index', 'outer'),
         ('index', 'inner'), ('index', 'right')
     ])
-    def test_str_cat_align_indexed(self, ser_or_ind, join):
+    def test_str_cat_align_indexed(self, series_or_index, join):
         # https://github.com/pandas-dev/pandas/issues/18657
         s = Series(['a', 'b', 'c', 'd'], index=['a', 'b', 'c', 'd'])
         t = Series(['D', 'A', 'E', 'B'], index=['d', 'a', 'e', 'b'])
         sa, ta = s.align(t, join=join)
-        if ser_or_ind == 'index':
+        if series_or_index == 'index':
             s = Index(s)
             sa = Index(sa)
 

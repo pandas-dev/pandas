@@ -326,17 +326,6 @@ to ``'left'`` in a future version of pandas.
 
 In particular, ``others`` does not need to be of the same length as the calling ``Series`` (if both have an index and ``join is not None``).
 For more examples, see :ref:`here <text.concatenate>`.
-
-Additionally, ``str.cat`` now allows ``others`` to be a ``DataFrame`` or two-dimensional ``np.ndarray``.
-
-.. ipython:: python
-    
-    u = pd.Series(['b', 'd', 'a', 'c'], index=[1, 3, 0, 2])
-    d = pd.concat([s, u], axis=1)
-    t.str.cat(d.values)
-    s.str.cat(d, join='left', na_rep='-')
-
-Furthermore, any combination of "concatenateable" arguments can be passed in a list-like container (e.g. an iterator).
     
 For categorical data, it is now possible to call :meth:`Series.str.cat` for ``CategoricalIndex`` as well (previously raised a ``ValueError``).
 Finally, if ``others is not None``, the resulting ``Series``/``Index`` will now remain categorical if the calling

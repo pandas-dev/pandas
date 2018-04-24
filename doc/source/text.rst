@@ -257,6 +257,7 @@ The parameter ``others`` can also be two-dimensional. In this case, the number o
 .. ipython:: python
 
     d = pd.concat([t, s], axis=1)
+    s
     d
     s.str.cat(d, na_rep='-')
     
@@ -271,6 +272,8 @@ the ``join``-keyword, which controls the manner of alignment.
 .. ipython:: python
 
     u = pd.Series(['b', 'd', 'a', 'c'], index=[1, 3, 0, 2])
+    s
+    u
     s.str.cat(u)
     s.str.cat(u, join='left')
 
@@ -285,6 +288,8 @@ In particular, alignment also means that the different lengths do not need to co
 .. ipython:: python
 
     v = pd.Series(['z', 'a', 'b', 'd', 'e'], index=[-1, 0, 1, 3, 4])
+    s
+    v
     s.str.cat(v, join='left', na_rep='-')
     s.str.cat(v, join='outer', na_rep='-')
 
@@ -293,13 +298,14 @@ The same alignment can be used when ``others`` is a ``DataFrame``:
 .. ipython:: python
     
     f = d.loc[[3, 2, 1, 0], :]
+    s
     f
     s.str.cat(f, join='left', na_rep='-')
 
 Concatenating a Series and many objects into a Series
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-All list-likes (as well as ``DataFrame`` and two-dimensional ``ndarray``) can be arbitrarily combined in a list-like container:
+All list-likes (including iterators,  ``dict``-views, etc.) can be arbitrarily combined in a list-like container:
 
 .. ipython:: python
 
@@ -317,14 +323,9 @@ the union of these indexes will be used as the basis for the final concatenation
 
 .. ipython:: python
 
+    u.loc[[3]]
+    v.loc[[-1, 0]]
     s.str.cat([u.loc[[3]], v.loc[[-1, 0]]], join='right', na_rep='-')
-
-Finally, the surrounding container can also be an :obj:`Iterable` other than a ``list`` (e.g. an iterator, or a ``dict``-view, etc.):
-
-.. ipython:: python
-    
-    from collections import OrderedDict
-    s.str.cat(d.to_dict('series', into=OrderedDict).values(), na_rep='-')
 
 Indexing with ``.str``
 ----------------------
