@@ -8,12 +8,12 @@ import numpy as np
 import pandas as pd
 from pandas.core.arrays import ExtensionArray
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.common import _ensure_platform_int
 
 
 class DecimalDtype(ExtensionDtype):
     type = decimal.Decimal
     name = 'decimal'
+    na_value = decimal.Decimal('NaN')
 
     @classmethod
     def construct_from_string(cls, string):
@@ -80,19 +80,8 @@ class DecimalArray(ExtensionArray):
     def isna(self):
         return np.array([x.is_nan() for x in self._data])
 
-    def take(self, indexer, allow_fill=True, fill_value=None):
-        indexer = np.asarray(indexer)
-        mask = indexer == -1
-
-        # take on empty array not handled as desired by numpy in case of -1
-        if not len(self) and mask.all():
-            return type(self)([self._na_value] * len(indexer))
-
-        indexer = _ensure_platform_int(indexer)
-        out = self._data.take(indexer)
-        out[mask] = self._na_value
-
-        return type(self)(out)
+    def _values_for_take(self):
+        return self.data
 
     @property
     def _na_value(self):

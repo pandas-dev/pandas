@@ -8,6 +8,7 @@
 import numpy as np
 
 from pandas.errors import AbstractMethodError
+from pandas.compat import _default_fill_value
 from pandas.compat.numpy import function as nv
 
 _not_implemented_message = "{} does not implement {}."
@@ -53,6 +54,7 @@ class ExtensionArray(object):
     * unique
     * factorize / _values_for_factorize
     * argsort / _values_for_argsort
+    * take / _values_for_take
 
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
@@ -462,22 +464,38 @@ class ExtensionArray(object):
     # ------------------------------------------------------------------------
     # Indexing methods
     # ------------------------------------------------------------------------
-    def take(self, indexer, allow_fill=True, fill_value=None):
-        # type: (Sequence[int], bool, Optional[Any]) -> ExtensionArray
+    def _values_for_take(self):
+        """Values to use for `take`.
+
+        Coerces to object dtype by default.
+
+        Returns
+        -------
+        array-like
+            Must satisify NumPy's `take` semantics.
+        """
+        return self.astype(object)
+
+    def take(self, indexer, fill_value=_default_fill_value):
+        # type: (Sequence[int], Optional[Any]) -> ExtensionArray
         """Take elements from an array.
 
         Parameters
         ----------
         indexer : sequence of integers
-            indices to be taken. -1 is used to indicate values
-            that are missing.
-        allow_fill : bool, default True
-            If False, indexer is assumed to contain no -1 values so no filling
-            will be done. This short-circuits computation of a mask. Result is
-            undefined if allow_fill == False and -1 is present in indexer.
-        fill_value : any, default None
-            Fill value to replace -1 values with. If applicable, this should
-            use the sentinel missing value for this type.
+            Indices to be taken. See Notes for how negative indicies
+            are handled.
+        fill_value : any, optional
+            Fill value to use for NA-indicies. This has a few behaviors.
+
+            * fill_value is not specified : triggers NumPy's semantics
+              where negative values in `indexer` mean slices from the end.
+            * fill_value is NA : Fill positions where `indexer` is ``-1``
+              with ``self.dtype.na_value``. Anything considered NA by
+              :func:`pandas.isna` will result in ``self.dtype.na_value``
+              being used to fill.
+            * fill_value is not NA : Fill positions where `indexer` is ``-1``
+              with `fill_value`.
 
         Returns
         -------
@@ -487,44 +505,39 @@ class ExtensionArray(object):
         ------
         IndexError
             When the indexer is out of bounds for the array.
+        ValueError
+            When the indexer contains negative values other than ``-1``
+            and `fill_value` is specified.
 
         Notes
         -----
-        This should follow pandas' semantics where -1 indicates missing values.
-        Positions where indexer is ``-1`` should be filled with the missing
-        value for this type.
-        This gives rise to the special case of a take on an empty
-        ExtensionArray that does not raises an IndexError straight away
-        when the `indexer` is all ``-1``.
+        The meaning of negative values in `indexer` depends on the
+        `fill_value` argument. By default, we follow the behavior
+        :meth:`numpy.take` of where negative indices indicate slices
+        from the end.
 
-        This is called by ``Series.__getitem__``, ``.loc``, ``iloc``, when the
-        indexer is a sequence of values.
+        When `fill_value` is specified, we follow pandas semantics of ``-1``
+        indicating a missing value. In this case, positions where `indexer`
+        is ``-1`` will be filled with `fill_value` or the default NA value
+        for this type.
 
-        Examples
-        --------
-        Suppose the extension array is backed by a NumPy array stored as
-        ``self.data``. Then ``take`` may be written as
-
-        .. code-block:: python
-
-           def take(self, indexer, allow_fill=True, fill_value=None):
-               indexer = np.asarray(indexer)
-               mask = indexer == -1
-
-               # take on empty array not handled as desired by numpy
-               # in case of -1 (all missing take)
-               if not len(self) and mask.all():
-                   return type(self)([np.nan] * len(indexer))
-
-               result = self.data.take(indexer)
-               result[mask] = np.nan  # NA for this type
-               return type(self)(result)
+        ExtensionArray.take is called by ``Series.__getitem__``, ``.loc``,
+        ``iloc``, when the indexer is a sequence of values. Additionally,
+        it's called by :meth:`Series.reindex` with a `fill_value`.
 
         See Also
         --------
         numpy.take
         """
-        raise AbstractMethodError(self)
+        from pandas.core.algorithms import take_ea
+        from pandas.core.missing import isna
+
+        if isna(fill_value):
+            fill_value = self.dtype.na_value
+
+        data = self._values_for_take()
+        result = take_ea(data, indexer, fill_value=fill_value)
+        return self._from_sequence(result)
 
     def copy(self, deep=False):
         # type: (bool) -> ExtensionArray

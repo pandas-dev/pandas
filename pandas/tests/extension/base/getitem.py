@@ -134,11 +134,28 @@ class BaseGetitemTests(BaseExtensionTests):
 
     def test_take_empty(self, data, na_value, na_cmp):
         empty = data[:0]
-        result = empty.take([-1])
-        na_cmp(result[0], na_value)
+        # result = empty.take([-1])
+        # na_cmp(result[0], na_value)
 
         with tm.assert_raises_regex(IndexError, "cannot do a non-empty take"):
             empty.take([0, 1])
+
+    def test_take_negative(self, data):
+        # https://github.com/pandas-dev/pandas/issues/20640
+        n = len(data)
+        result = data.take([0, -n, n - 1, -1])
+        expected = data.take([0, 0, n - 1, n - 1])
+        self.assert_extension_array_equal(result, expected)
+
+    def test_take_non_na_fill_value(self, data_missing):
+        fill_value = data_missing[1]  # valid
+        result = data_missing.take([-1, 1], fill_value=fill_value)
+        expected = data_missing.take([1, 1])
+        self.assert_extension_array_equal(result, expected)
+
+    def test_take_pandas_style_negative_raises(self, data, na_value):
+        with pytest.raises(ValueError):
+            data.take([0, -2], fill_value=na_value)
 
     @pytest.mark.xfail(reason="Series.take with extension array buggy for -1")
     def test_take_series(self, data):

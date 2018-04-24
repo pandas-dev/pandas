@@ -16,6 +16,10 @@ class _DtypeOpsMixin(object):
     # classes will inherit from this Mixin. Once everything is compatible, this
     # class's methods can be moved to ExtensionDtype and removed.
 
+    # na_value is the default NA value to use for this type. This is used in
+    # e.g. ExtensionArray.take.
+    na_value = np.nan
+
     def __eq__(self, other):
         """Check whether 'other' is equal to self.
 

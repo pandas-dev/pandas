@@ -30,6 +30,7 @@ from pandas.core.dtypes.common import (
     _ensure_platform_int, _ensure_object,
     _ensure_float64, _ensure_uint64,
     _ensure_int64)
+from pandas.compat import _default_fill_value
 from pandas.compat.numpy import _np_version_under1p10
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
@@ -1482,7 +1483,7 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
     # TODO(EA): Remove these if / elifs as datetimeTZ, interval, become EAs
     # dispatch to internal type takes
     if is_extension_array_dtype(arr):
-        return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
+        return arr.take(indexer, fill_value=fill_value)
     elif is_datetimetz(arr):
         return arr.take(indexer, fill_value=fill_value, allow_fill=allow_fill)
     elif is_interval_dtype(arr):
@@ -1556,6 +1557,81 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
 
 
 take_1d = take_nd
+
+
+def take_ea(arr, indexer, fill_value=_default_fill_value):
+    """Extension-array compatible take.
+
+    Parameters
+    ----------
+    arr : array-like
+        Must satisify NumPy's take semantics.
+    indexer : sequence of integers
+        Indices to be taken. See Notes for how negative indicies
+        are handled.
+    fill_value : any, optional
+        Fill value to use for NA-indicies. This has a few behaviors.
+
+        * fill_value is not specified : triggers NumPy's semantics
+            where negative values in `indexer` mean slices from the end.
+        * fill_value is NA : Fill positions where `indexer` is ``-1``
+            with ``self.dtype.na_value``. Anything considered NA by
+            :func:`pandas.isna` will result in ``self.dtype.na_value``
+            being used to fill.
+        * fill_value is not NA : Fill positions where `indexer` is ``-1``
+            with `fill_value`.
+
+    Returns
+    -------
+    ExtensionArray
+
+    Raises
+    ------
+    IndexError
+        When the indexer is out of bounds for the array.
+    ValueError
+        When the indexer contains negative values other than ``-1``
+        and `fill_value` is specified.
+
+    Notes
+    -----
+    The meaning of negative values in `indexer` depends on the
+    `fill_value` argument. By default, we follow the behavior
+    :meth:`numpy.take` of where negative indices indicate slices
+    from the end.
+
+    When `fill_value` is specified, we follow pandas semantics of ``-1``
+    indicating a missing value. In this case, positions where `indexer`
+    is ``-1`` will be filled with `fill_value` or the default NA value
+    for this type.
+
+    ExtensionArray.take is called by ``Series.__getitem__``, ``.loc``,
+    ``iloc``, when the indexer is a sequence of values. Additionally,
+    it's called by :meth:`Series.reindex` with a `fill_value`.
+
+    See Also
+    --------
+    numpy.take
+    """
+    indexer = np.asarray(indexer)
+    if fill_value is _default_fill_value:
+        # NumPy style
+        result = arr.take(indexer)
+    else:
+        mask = indexer == -1
+        if (indexer < -1).any():
+            raise ValueError("Invalid value in 'indexer'. All values "
+                             "must be non-negative or -1. When "
+                             "'fill_value' is specified.")
+
+        # take on empty array not handled as desired by numpy
+        # in case of -1 (all missing take)
+        if not len(arr) and mask.all():
+            return arr._from_sequence([fill_value] * len(indexer))
+
+        result = arr.take(indexer)
+        result[mask] = fill_value
+    return result
 
 
 def take_2d_multi(arr, indexer, out=None, fill_value=np.nan, mask_info=None,
