@@ -675,3 +675,20 @@ NaN & 2 &  4 \\
 """
 
         assert observed == expected
+
+    def test_to_latex_multiindex_empty_name(self):
+        # GH 18669
+        mi = pd.MultiIndex.from_product([[1, 2]], names=[''])
+        df = pd.DataFrame(-1, index=mi, columns=range(4))
+        observed = df.to_latex()
+        expected = r"""\begin{tabular}{lrrrr}
+\toprule
+  &  0 &  1 &  2 &  3 \\
+{} &    &    &    &    \\
+\midrule
+1 & -1 & -1 & -1 & -1 \\
+2 & -1 & -1 & -1 & -1 \\
+\bottomrule
+\end{tabular}
+"""
+        assert observed == expected
