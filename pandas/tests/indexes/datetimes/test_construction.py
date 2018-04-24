@@ -478,9 +478,8 @@ class TestTimeSeries(object):
         rng2 = DatetimeIndex(rng)
         assert rng.freq == rng2.freq
 
-    @pytest.mark.parametrize('tz', [None, 'UTC', 'Asia/Tokyo',
-                                    'dateutil/US/Pacific'])
-    def test_dti_constructor_years_only(self, tz):
+    def test_dti_constructor_years_only(self, tz_naive_fixture):
+        tz = tz_naive_fixture
         # GH 6961
         rng1 = date_range('2014', '2015', freq='M', tz=tz)
         expected1 = date_range('2014-01-31', '2014-12-31', freq='M', tz=tz)
@@ -599,16 +598,16 @@ class TestTimeSeries(object):
         idx2 = DatetimeIndex(start=sdate, end=edate,
                              freq=offsets.Week(weekday=6))
         assert len(idx1) == len(idx2)
-        assert idx1.offset == idx2.offset
+        assert idx1.freq == idx2.freq
 
         idx1 = DatetimeIndex(start=sdate, end=edate, freq='QS')
         idx2 = DatetimeIndex(start=sdate, end=edate,
                              freq=offsets.QuarterBegin(startingMonth=1))
         assert len(idx1) == len(idx2)
-        assert idx1.offset == idx2.offset
+        assert idx1.freq == idx2.freq
 
         idx1 = DatetimeIndex(start=sdate, end=edate, freq='BQ')
         idx2 = DatetimeIndex(start=sdate, end=edate,
                              freq=offsets.BQuarterEnd(startingMonth=12))
         assert len(idx1) == len(idx2)
-        assert idx1.offset == idx2.offset
+        assert idx1.freq == idx2.freq

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import warnings
 
 import numpy as np
 
@@ -17,7 +18,7 @@ class DatetimeArray(DatetimeLikeArrayMixin):
     """
     Assumes that subclass __new__/__init__ defines:
         tz
-        offset
+        _freq
         _data
     """
 
@@ -26,23 +27,13 @@ class DatetimeArray(DatetimeLikeArrayMixin):
 
     @property
     def _box_func(self):
-        return lambda x: Timestamp(x, freq=self.offset, tz=self.tz)
+        return lambda x: Timestamp(x, freq=self.freq, tz=self.tz)
 
     @cache_readonly
     def dtype(self):
         if self.tz is None:
             return _NS_DTYPE
         return DatetimeTZDtype('ns', self.tz)
-
-    @property
-    def freq(self):
-        """get/set the frequency of the Index"""
-        return self.offset
-
-    @freq.setter
-    def freq(self, value):
-        """get/set the frequency of the Index"""
-        self.offset = value
 
     @property
     def tzinfo(self):
@@ -55,6 +46,32 @@ class DatetimeArray(DatetimeLikeArrayMixin):
     def _timezone(self):
         """ Comparable timezone both for pytz / dateutil"""
         return timezones.get_timezone(self.tzinfo)
+
+    @property
+    def freq(self):
+        """get/set the frequency of the instance"""
+        return self._freq
+
+    @freq.setter
+    def freq(self, value):
+        """get/set the frequency of the instance"""
+        self._freq = value
+
+    @property
+    def offset(self):
+        """get/set the frequency of the instance"""
+        msg = ('DatetimeIndex.offset has been deprecated and will be removed '
+               'in a future version; use DatetimeIndex.freq instead.')
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+        return self.freq
+
+    @offset.setter
+    def offset(self, value):
+        """get/set the frequency of the instance"""
+        msg = ('DatetimeIndex.offset has been deprecated and will be removed '
+               'in a future version; use DatetimeIndex.freq instead.')
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+        self.freq = value
 
     # -----------------------------------------------------------------
     # Comparison Methods

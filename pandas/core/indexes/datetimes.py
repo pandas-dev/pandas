@@ -303,7 +303,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
     _engine_type = libindex.DatetimeEngine
 
     tz = None
-    offset = None
+    _freq = None
     _comparables = ['name', 'freqstr', 'tz']
     _attributes = ['name', 'freq', 'tz']
 
@@ -417,7 +417,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
                 subarr = data.values
 
                 if freq is None:
-                    freq = data.offset
+                    freq = data.freq
                     verify_integrity = False
             else:
                 if data.dtype != _NS_DTYPE:
@@ -469,12 +469,12 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
         if freq_infer:
             inferred = subarr.inferred_freq
             if inferred:
-                subarr.offset = to_offset(inferred)
+                subarr.freq = to_offset(inferred)
 
         return subarr._deepcopy_if_needed(ref_to_data, copy)
 
     @classmethod
-    def _generate(cls, start, end, periods, name, offset,
+    def _generate(cls, start, end, periods, name, freq,
                   tz=None, normalize=False, ambiguous='raise', closed=None):
         if com._count_not_none(start, end, periods) != 2:
             raise ValueError('Of the three parameters: start, end, and '
@@ -537,7 +537,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
             else:
                 _normalized = _normalized and end.time() == _midnight
 
-        if hasattr(offset, 'delta') and offset != offsets.Day():
+        if hasattr(freq, 'delta') and freq != offsets.Day():
             if inferred_tz is None and tz is not None:
                 # naive dates
                 if start is not None and start.tz is None:
@@ -553,11 +553,11 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
                 if end.tz is None and start.tz is not None:
                     end = end.tz_localize(start.tz, ambiguous=False)
 
-            if _use_cached_range(offset, _normalized, start, end):
+            if _use_cached_range(freq, _normalized, start, end):
                 index = cls._cached_range(start, end, periods=periods,
-                                          offset=offset, name=name)
+                                          freq=freq, name=name)
             else:
-                index = _generate_regular_range(start, end, periods, offset)
+                index = _generate_regular_range(start, end, periods, freq)
 
         else:
 
@@ -576,11 +576,11 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
                 if end.tz is None and start.tz is not None:
                     start = start.replace(tzinfo=None)
 
-            if _use_cached_range(offset, _normalized, start, end):
+            if _use_cached_range(freq, _normalized, start, end):
                 index = cls._cached_range(start, end, periods=periods,
-                                          offset=offset, name=name)
+                                          freq=freq, name=name)
             else:
-                index = _generate_regular_range(start, end, periods, offset)
+                index = _generate_regular_range(start, end, periods, freq)
 
             if tz is not None and getattr(index, 'tz', None) is None:
                 index = conversion.tz_localize_to_utc(_ensure_int64(index), tz,
@@ -598,7 +598,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
             index = index[1:]
         if not right_closed and len(index) and index[-1] == end:
             index = index[:-1]
-        index = cls._simple_new(index, name=name, freq=offset, tz=tz)
+        index = cls._simple_new(index, name=name, freq=freq, tz=tz)
         return index
 
     def _convert_for_op(self, value):
@@ -645,7 +645,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
         result = object.__new__(cls)
         result._data = values
         result.name = name
-        result.offset = freq
+        result._freq = freq
         result._tz = timezones.maybe_get_tz(tz)
         result._tz = timezones.tz_standardize(result._tz)
         result._reset_identity()
@@ -693,7 +693,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
         return self._ndarray_values.nbytes
 
     @classmethod
-    def _cached_range(cls, start=None, end=None, periods=None, offset=None,
+    def _cached_range(cls, start=None, end=None, periods=None, freq=None,
                       name=None):
         if start is None and end is None:
             # I somewhat believe this should never be raised externally
@@ -706,30 +706,30 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
             raise TypeError(
                 'Must either specify period or provide both start and end.')
 
-        if offset is None:
+        if freq is None:
             # This can't happen with external-facing code
-            raise TypeError('Must provide offset.')
+            raise TypeError('Must provide freq.')
 
         drc = _daterange_cache
-        if offset not in _daterange_cache:
-            xdr = generate_range(offset=offset, start=_CACHE_START,
+        if freq not in _daterange_cache:
+            xdr = generate_range(offset=freq, start=_CACHE_START,
                                  end=_CACHE_END)
 
             arr = tools.to_datetime(list(xdr), box=False)
 
             cachedRange = DatetimeIndex._simple_new(arr)
-            cachedRange.offset = offset
+            cachedRange.freq = freq
             cachedRange = cachedRange.tz_localize(None)
             cachedRange.name = None
-            drc[offset] = cachedRange
+            drc[freq] = cachedRange
         else:
-            cachedRange = drc[offset]
+            cachedRange = drc[freq]
 
         if start is None:
             if not isinstance(end, Timestamp):
                 raise AssertionError('end must be an instance of Timestamp')
 
-            end = offset.rollback(end)
+            end = freq.rollback(end)
 
             endLoc = cachedRange.get_loc(end) + 1
             startLoc = endLoc - periods
@@ -737,23 +737,23 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
             if not isinstance(start, Timestamp):
                 raise AssertionError('start must be an instance of Timestamp')
 
-            start = offset.rollforward(start)
+            start = freq.rollforward(start)
 
             startLoc = cachedRange.get_loc(start)
             endLoc = startLoc + periods
         else:
-            if not offset.onOffset(start):
-                start = offset.rollforward(start)
+            if not freq.onOffset(start):
+                start = freq.rollforward(start)
 
-            if not offset.onOffset(end):
-                end = offset.rollback(end)
+            if not freq.onOffset(end):
+                end = freq.rollback(end)
 
             startLoc = cachedRange.get_loc(start)
             endLoc = cachedRange.get_loc(end) + 1
 
         indexSlice = cachedRange[startLoc:endLoc]
         indexSlice.name = name
-        indexSlice.offset = offset
+        indexSlice.freq = freq
 
         return indexSlice
 
@@ -795,7 +795,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
                 np.ndarray.__setstate__(data, nd_state)
 
                 self.name = own_state[0]
-                self.offset = own_state[1]
+                self.freq = own_state[1]
                 self._tz = timezones.tz_standardize(own_state[2])
 
                 # provide numpy < 1.7 compat
@@ -1130,7 +1130,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
                 result._tz = timezones.tz_standardize(this.tz)
                 if (result.freq is None and
                         (this.freq is not None or other.freq is not None)):
-                    result.offset = to_offset(result.inferred_freq)
+                    result.freq = to_offset(result.inferred_freq)
             return result
 
     def to_perioddelta(self, freq):
@@ -1178,7 +1178,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
                     this._tz = timezones.tz_standardize(tz)
 
         if this.freq is None:
-            this.offset = to_offset(this.inferred_freq)
+            this.freq = to_offset(this.inferred_freq)
         return this
 
     def join(self, other, how='left', level=None, return_indexers=False,
@@ -1217,7 +1217,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
     def _wrap_joined_index(self, joined, other):
         name = self.name if self.name == other.name else None
         if (isinstance(other, DatetimeIndex) and
-                self.offset == other.offset and
+                self.freq == other.freq and
                 self._can_fast_union(other)):
             joined = self._shallow_copy(joined)
             joined.name = name
@@ -1230,9 +1230,9 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
         if not isinstance(other, DatetimeIndex):
             return False
 
-        offset = self.offset
+        freq = self.freq
 
-        if offset is None or offset != other.offset:
+        if freq is None or freq != other.freq:
             return False
 
         if not self.is_monotonic or not other.is_monotonic:
@@ -1252,10 +1252,10 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
 
         # Only need to "adjoin", not overlap
         try:
-            return (right_start == left_end + offset) or right_start in left
+            return (right_start == left_end + freq) or right_start in left
         except (ValueError):
 
-            # if we are comparing an offset that does not propagate timezones
+            # if we are comparing a freq that does not propagate timezones
             # this will raise
             return False
 
@@ -1275,7 +1275,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
         left_start, left_end = left[0], left[-1]
         right_end = right[-1]
 
-        if not self.offset._should_cache():
+        if not self.freq._should_cache():
             # concatenate dates
             if left_end < right_end:
                 loc = right.searchsorted(left_end, side='right')
@@ -1287,7 +1287,7 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
         else:
             return type(self)(start=left_start,
                               end=max(left_end, right_end),
-                              freq=left.offset)
+                              freq=left.freq)
 
     def __iter__(self):
         """
@@ -1339,18 +1339,18 @@ class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
             result = Index.intersection(self, other)
             if isinstance(result, DatetimeIndex):
                 if result.freq is None:
-                    result.offset = to_offset(result.inferred_freq)
+                    result.freq = to_offset(result.inferred_freq)
             return result
 
-        elif (other.offset is None or self.offset is None or
-              other.offset != self.offset or
-              not other.offset.isAnchored() or
+        elif (other.freq is None or self.freq is None or
+              other.freq != self.freq or
+              not other.freq.isAnchored() or
               (not self.is_monotonic or not other.is_monotonic)):
             result = Index.intersection(self, other)
             result = self._shallow_copy(result._values, name=result.name,
                                         tz=result.tz, freq=None)
             if result.freq is None:
-                result.offset = to_offset(result.inferred_freq)
+                result.freq = to_offset(result.inferred_freq)
             return result
 
         if len(self) == 0:
@@ -2455,9 +2455,9 @@ DatetimeIndex._add_logical_methods_disabled()
 DatetimeIndex._add_datetimelike_methods()
 
 
-def _generate_regular_range(start, end, periods, offset):
-    if isinstance(offset, Tick):
-        stride = offset.nanos
+def _generate_regular_range(start, end, periods, freq):
+    if isinstance(freq, Tick):
+        stride = freq.nanos
         if periods is None:
             b = Timestamp(start).value
             # cannot just use e = Timestamp(end) + 1 because arange breaks when
@@ -2488,7 +2488,7 @@ def _generate_regular_range(start, end, periods, offset):
             end = end.to_pydatetime()
 
         xdr = generate_range(start=start, end=end,
-                             periods=periods, offset=offset)
+                             periods=periods, offset=freq)
 
         dates = list(xdr)
         # utc = len(dates) > 0 and dates[0].tzinfo is not None
@@ -2785,9 +2785,9 @@ def _in_range(start, end, rng_start, rng_end):
     return start > rng_start and end < rng_end
 
 
-def _use_cached_range(offset, _normalized, start, end):
-    return (offset._should_cache() and
-            not (offset._normalize_cache and not _normalized) and
+def _use_cached_range(freq, _normalized, start, end):
+    return (freq._should_cache() and
+            not (freq._normalize_cache and not _normalized) and
             _naive_in_cache_range(start, end))
 
 
