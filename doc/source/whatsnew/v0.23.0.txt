@@ -1098,6 +1098,10 @@ Numeric
 - Multiplication and division of numeric-dtyped :class:`Index` objects with timedelta-like scalars returns ``TimedeltaIndex`` instead of raising ``TypeError`` (:issue:`19333`)
 - Bug where ``NaN`` was returned instead of 0 by :func:`Series.pct_change` and :func:`DataFrame.pct_change` when ``fill_method`` is not ``None`` (:issue:`19873`)
 
+Strings
+^^^^^^^
+- Bug in :func:`Series.str.get` with a dictionary in the values and the index not in the keys, raising `KeyError` (:issue:`20671`)
+
 
 Indexing
 ^^^^^^^^
