@@ -111,10 +111,11 @@ class FrameApply(object):
 
         # string dispatch
         if isinstance(self.f, compat.string_types):
-            if self.f not in {'abs'}:
-                # Not all transform functions take an axis keyword.
+            func = getattr(self.obj, self.f)
+            sig = compat.signature(func)
+            if 'axis' in sig.args:
                 self.kwds['axis'] = self.axis
-            return getattr(self.obj, self.f)(*self.args, **self.kwds)
+            return func(*self.args, **self.kwds)
 
         # ufunc
         elif isinstance(self.f, np.ufunc):
