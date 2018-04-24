@@ -365,7 +365,7 @@ for storing ip addresses.
       ...:
 
 ``IPArray`` isn't a normal 1-D NumPy array, but because it's a pandas
-``ExtensionArray``, it can be stored properly inside pandas' containers.
+:ref:`~pandas.api.extension.ExtensionArray, it can be stored properly inside pandas' containers.
 
 .. code-block:: ipython
 
@@ -443,6 +443,7 @@ Other Enhancements
 - :meth:`DataFrame.to_sql` now performs a multivalue insert if the underlying connection supports itk rather than inserting row by row.
   ``SQLAlchemy`` dialects supporting multivalue inserts include: ``mysql``, ``postgresql``, ``sqlite`` and any dialect with ``supports_multivalues_insert``. (:issue:`14315`, :issue:`8953`)
 - :func:`read_html` now accepts a ``displayed_only`` keyword argument to controls whether or not hidden elements are parsed (``True`` by default) (:issue:`20027`)
+- :meth:`Rolling.quantile` and :meth:`Expanding.quantile` now accept the ``interpolation`` keyword, ``linear`` by default (:issue:`20497`)
 - zip compression is supported via ``compression=zip`` in :func:`DataFrame.to_pickle`, :func:`Series.to_pickle`, :func:`DataFrame.to_csv`, :func:`Series.to_csv`, :func:`DataFrame.to_json`, :func:`Series.to_json`. (:issue:`17778`)
 - :class:`WeekOfMonth` constructor now supports ``n=0`` (:issue:`20517`).
 - :class:`DataFrame` and :class:`Series` now support matrix multiplication (```@```) operator (:issue:`10259`) for Python>=3.5
@@ -553,7 +554,6 @@ Convert to an xarray DataArray
    :okwarning:
 
    p.to_xarray()
-
 
 
 .. _whatsnew_0230.api_breaking.core_common:
@@ -887,6 +887,7 @@ Deprecations
 - :func:`Series.rolling().apply() <pandas.core.window.Rolling.apply>`, :func:`DataFrame.rolling().apply() <pandas.core.window.Rolling.apply>`,
   :func:`Series.expanding().apply() <pandas.core.window.Expanding.apply>`, and :func:`DataFrame.expanding().apply() <pandas.core.window.Expanding.apply>` have deprecated passing an ``np.array`` by default. One will need to pass the new ``raw`` parameter to be explicit about what is passed (:issue:`20584`)
 - ``DatetimeIndex.offset`` is deprecated. Use ``DatetimeIndex.freq`` instead (:issue:`20716`)
+- ``Index.get_duplicates()`` is deprecated and will be removed in a future version (:issue:`20239`)
 
 .. _whatsnew_0230.prior_deprecations:
 
@@ -924,7 +925,8 @@ Removal of prior version deprecations/changes
 - The ``infer_dst`` keyword in :meth:`Series.tz_localize`, :meth:`DatetimeIndex.tz_localize`
   and :class:`DatetimeIndex` have been removed. ``infer_dst=True`` is equivalent to
   ``ambiguous='infer'``, and ``infer_dst=False`` to ``ambiguous='raise'`` (:issue:`7963`).
-
+- When ``.resample()`` was changed from an eager to a lazy operation, like ``.groupby()`` in v0.18.0, we put in place compatibility (with a ``FutureWarning``),
+  so operations would continue to work. This is now fully removed, so a ``Resampler`` will no longer forward compat operations (:issue:`20554`)
 
 .. _whatsnew_0230.performance:
 
@@ -1097,6 +1099,10 @@ Numeric
 - Multiplication and division of numeric-dtyped :class:`Index` objects with timedelta-like scalars returns ``TimedeltaIndex`` instead of raising ``TypeError`` (:issue:`19333`)
 - Bug where ``NaN`` was returned instead of 0 by :func:`Series.pct_change` and :func:`DataFrame.pct_change` when ``fill_method`` is not ``None`` (:issue:`19873`)
 
+Strings
+^^^^^^^
+- Bug in :func:`Series.str.get` with a dictionary in the values and the index not in the keys, raising `KeyError` (:issue:`20671`)
+
 
 Indexing
 ^^^^^^^^
@@ -1147,6 +1153,7 @@ I/O
 - Bug in :func:`read_msgpack` with a non existent file is passed in Python 2 (:issue:`15296`)
 - Bug in :func:`read_csv` where a ``MultiIndex`` with duplicate columns was not being mangled appropriately (:issue:`18062`)
 - Bug in :func:`read_csv` where missing values were not being handled properly when ``keep_default_na=False`` with dictionary ``na_values`` (:issue:`19227`)
+- Bug in :func:`read_csv` causing heap corruption on 32-bit, big-endian architectures (:issue:`20785`)
 - Bug in :func:`read_sas` where a file with 0 variables gave an ``AttributeError`` incorrectly. Now it gives an ``EmptyDataError`` (:issue:`18184`)
 - Bug in :func:`DataFrame.to_latex()` where pairs of braces meant to serve as invisible placeholders were escaped (:issue:`18667`)
 - Bug in :func:`read_json` where large numeric values were causing an ``OverflowError`` (:issue:`18842`)
