@@ -41,6 +41,29 @@ class BaseReshapingTests(BaseExtensionTests):
             expected = pd.Series(data_missing.take([1, 1, 0, 0]))
             self.assert_series_equal(result, expected)
 
+    def test_concat_mixed_dtypes(self, data):
+        # https://github.com/pandas-dev/pandas/issues/20762
+        df1 = pd.DataFrame({'A': data[:3]})
+        df2 = pd.DataFrame({"A": [1, 2, 3]})
+        df3 = pd.DataFrame({"A": ['a', 'b', 'c']}).astype('category')
+        df4 = pd.DataFrame({"A": pd.SparseArray([1, 2, 3])})
+        dfs = [df1, df2, df3, df4]
+
+        # dataframes
+        result = pd.concat(dfs)
+        expected = pd.concat([x.astype(object) for x in dfs])
+        self.assert_frame_equal(result, expected)
+
+        # series
+        result = pd.concat([x['A'] for x in dfs])
+        expected = pd.concat([x['A'].astype(object) for x in dfs])
+        self.assert_series_equal(result, expected)
+
+        # simple test for just EA and one other
+        result = pd.concat([df1, df2])
+        expected = pd.concat([df1.astype('object'), df2.astype('object')])
+        self.assert_frame_equal(result, expected)
+
     def test_align(self, data, na_value):
         a = data[:3]
         b = data[2:5]
