@@ -6,6 +6,7 @@ from warnings import catch_warnings
 from datetime import datetime, timedelta
 from numpy.random import randn
 import numpy as np
+from pandas import _np_version_under1p12
 
 import pandas as pd
 from pandas import (Series, DataFrame, bdate_range,
@@ -1166,15 +1167,40 @@ class TestMoments(Base):
 
         tm.assert_almost_equal(df_quantile.values, np.array(np_percentile))
 
-    def test_rolling_quantile_series(self):
-        # #16211: Tests that rolling window's quantile default behavior
-        # is analogus to Series' quantile
-        arr = np.arange(100)
-        s = Series(arr)
-        q1 = s.quantile(0.1)
-        q2 = s.rolling(100).quantile(0.1).iloc[-1]
+    @pytest.mark.skipif(_np_version_under1p12,
+                        reason='numpy midpoint interpolation is broken')
+    @pytest.mark.parametrize('quantile', [0.0, 0.1, 0.45, 0.5, 1])
+    @pytest.mark.parametrize('interpolation', ['linear', 'lower', 'higher',
+                                               'nearest', 'midpoint'])
+    @pytest.mark.parametrize('data', [[1., 2., 3., 4., 5., 6., 7.],
+                                      [8., 1., 3., 4., 5., 2., 6., 7.],
+                                      [0., np.nan, 0.2, np.nan, 0.4],
+                                      [np.nan, np.nan, np.nan, np.nan],
+                                      [np.nan, 0.1, np.nan, 0.3, 0.4, 0.5],
+                                      [0.5], [np.nan, 0.7, 0.6]])
+    def test_rolling_quantile_interpolation_options(self, quantile,
+                                                    interpolation, data):
+        # Tests that rolling window's quantile behavior is analogous to
+        # Series' quantile for each interpolation option
+        s = Series(data)
 
-        tm.assert_almost_equal(q1, q2)
+        q1 = s.quantile(quantile, interpolation)
+        q2 = s.expanding(min_periods=1).quantile(
+            quantile, interpolation).iloc[-1]
+
+        if np.isnan(q1):
+            assert np.isnan(q2)
+        else:
+            assert q1 == q2
+
+    def test_invalid_quantile_value(self):
+        data = np.arange(5)
+        s = Series(data)
+
+        with pytest.raises(ValueError, match="Interpolation 'invalid'"
+                                             " is not supported"):
+            s.rolling(len(data), min_periods=1).quantile(
+                0.5, interpolation='invalid')
 
     def test_rolling_quantile_param(self):
         ser = Series([0.0, .1, .5, .9, 1.0])

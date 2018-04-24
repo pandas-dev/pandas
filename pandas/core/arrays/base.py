@@ -61,7 +61,7 @@ class ExtensionArray(object):
 
     ExtensionArrays are limited to 1 dimension.
 
-    They may be backed by none, one, or many NumPy ararys. For example,
+    They may be backed by none, one, or many NumPy arrays. For example,
     ``pandas.Categorical`` is an extension array backed by two arrays,
     one for codes and one for categories. An array of IPv6 address may
     be backed by a NumPy structured array with two fields, one for the
@@ -69,6 +69,11 @@ class ExtensionArray(object):
     by some other storage type, like Python lists. Pandas makes no
     assumptions on how the data are stored, just that it can be converted
     to a NumPy array.
+    The ExtensionArray interface does not impose any rules on how this data
+    is stored. However, currently, the backing data cannot be stored in
+    attributes called ``.values`` or ``._values`` to ensure full compatibility
+    with pandas internals. But other names as ``.data``, ``._data``,
+    ``._items``, ... can be freely used.
     """
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
     # Don't override this.
@@ -222,6 +227,7 @@ class ExtensionArray(object):
     @property
     def shape(self):
         # type: () -> Tuple[int, ...]
+        """Return a tuple of the array dimensions."""
         return (len(self),)
 
     @property
