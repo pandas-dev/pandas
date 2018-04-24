@@ -1,3 +1,4 @@
+import warnings
 
 import pytest
 
@@ -178,7 +179,10 @@ class TestDatetimeIndex(object):
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-02',
                              '2000-01-03', '2000-01-03', '2000-01-04'])
 
-        result = idx.get_duplicates()
+        with warnings.catch_warnings(record=True):
+            # Deprecated - see GH20239
+            result = idx.get_duplicates()
+
         ex = DatetimeIndex(['2000-01-02', '2000-01-03'])
         tm.assert_index_equal(result, ex)
 

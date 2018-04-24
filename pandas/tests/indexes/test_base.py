@@ -77,17 +77,20 @@ class TestIndex(Base):
         new_copy2 = self.intIndex.copy(dtype=int)
         assert new_copy2.dtype.kind == 'i'
 
-    def test_constructor(self):
+    @pytest.mark.parametrize("attr", ['strIndex', 'dateIndex'])
+    def test_constructor_regular(self, attr):
         # regular instance creation
-        tm.assert_contains_all(self.strIndex, self.strIndex)
-        tm.assert_contains_all(self.dateIndex, self.dateIndex)
+        idx = getattr(self, attr)
+        tm.assert_contains_all(idx, idx)
 
+    def test_constructor_casting(self):
         # casting
         arr = np.array(self.strIndex)
         index = Index(arr)
         tm.assert_contains_all(arr, index)
         tm.assert_index_equal(self.strIndex, index)
 
+    def test_constructor_copy(self):
         # copy
         arr = np.array(self.strIndex)
         index = Index(arr, copy=True, name='name')
@@ -105,16 +108,14 @@ class TestIndex(Base):
         # corner case
         pytest.raises(TypeError, Index, 0)
 
-    def test_construction_list_mixed_tuples(self):
+    @pytest.mark.parametrize("idx_vals", [
+        [('A', 1), 'B'], ['B', ('A', 1)]])
+    def test_construction_list_mixed_tuples(self, idx_vals):
         # see gh-10697: if we are constructing from a mixed list of tuples,
         # make sure that we are independent of the sorting order.
-        idx1 = Index([('A', 1), 'B'])
-        assert isinstance(idx1, Index)
-        assert not isinstance(idx1, MultiIndex)
-
-        idx2 = Index(['B', ('A', 1)])
-        assert isinstance(idx2, Index)
-        assert not isinstance(idx2, MultiIndex)
+        idx = Index(idx_vals)
+        assert isinstance(idx, Index)
+        assert not isinstance(idx, MultiIndex)
 
     @pytest.mark.parametrize('na_value', [None, np.nan])
     @pytest.mark.parametrize('vtype', [list, tuple, iter])
@@ -125,88 +126,85 @@ class TestIndex(Base):
         expected = MultiIndex.from_tuples(values)
         tm.assert_index_equal(result, expected)
 
-    def test_constructor_from_index_datetimetz(self):
-        idx = pd.date_range('2015-01-01 10:00', freq='D', periods=3,
-                            tz='US/Eastern')
-        result = pd.Index(idx)
-        tm.assert_index_equal(result, idx)
-        assert result.tz == idx.tz
+    @pytest.mark.parametrize("cast_as_obj", [True, False])
+    @pytest.mark.parametrize("idx", [
+        pd.date_range('2015-01-01 10:00', freq='D', periods=3,
+                      tz='US/Eastern'),  # DTI with tz
+        pd.date_range('2015-01-01 10:00', freq='D', periods=3),  # DTI no tz
+        pd.timedelta_range('1 days', freq='D', periods=3),  # td
+        pd.period_range('2015-01-01', freq='D', periods=3)  # period
+    ])
+    def test_constructor_from_index_dtlike(self, cast_as_obj, idx):
+        if cast_as_obj:
+            result = pd.Index(idx.astype(object))
+        else:
+            result = pd.Index(idx)
 
-        result = pd.Index(idx.astype(object))
-        tm.assert_index_equal(result, idx)
-        assert result.tz == idx.tz
-
-    def test_constructor_from_index_timedelta(self):
-        idx = pd.timedelta_range('1 days', freq='D', periods=3)
-        result = pd.Index(idx)
-        tm.assert_index_equal(result, idx)
-
-        result = pd.Index(idx.astype(object))
         tm.assert_index_equal(result, idx)
 
-    def test_constructor_from_index_period(self):
-        idx = pd.period_range('2015-01-01', freq='D', periods=3)
-        result = pd.Index(idx)
-        tm.assert_index_equal(result, idx)
+        if isinstance(idx, pd.DatetimeIndex) and hasattr(idx, 'tz'):
+            assert result.tz == idx.tz
 
-        result = pd.Index(idx.astype(object))
-        tm.assert_index_equal(result, idx)
-
-    def test_constructor_from_series_datetimetz(self):
-        idx = pd.date_range('2015-01-01 10:00', freq='D', periods=3,
-                            tz='US/Eastern')
-        result = pd.Index(pd.Series(idx))
-        tm.assert_index_equal(result, idx)
-        assert result.tz == idx.tz
-
-    def test_constructor_from_series_timedelta(self):
-        idx = pd.timedelta_range('1 days', freq='D', periods=3)
+    @pytest.mark.parametrize("idx,has_tz", [
+        (pd.date_range('2015-01-01 10:00', freq='D', periods=3,
+                       tz='US/Eastern'), True),  # datetimetz
+        (pd.timedelta_range('1 days', freq='D', periods=3), False),  # td
+        (pd.period_range('2015-01-01', freq='D', periods=3), False)  # period
+    ])
+    def test_constructor_from_series_dtlike(self, idx, has_tz):
         result = pd.Index(pd.Series(idx))
         tm.assert_index_equal(result, idx)
 
-    def test_constructor_from_series_period(self):
-        idx = pd.period_range('2015-01-01', freq='D', periods=3)
-        result = pd.Index(pd.Series(idx))
-        tm.assert_index_equal(result, idx)
+        if has_tz:
+            assert result.tz == idx.tz
 
-    def test_constructor_from_series(self):
-
+    @pytest.mark.parametrize("klass", [Index, DatetimeIndex])
+    def test_constructor_from_series(self, klass):
         expected = DatetimeIndex([Timestamp('20110101'), Timestamp('20120101'),
                                   Timestamp('20130101')])
         s = Series([Timestamp('20110101'), Timestamp('20120101'),
                     Timestamp('20130101')])
-        result = Index(s)
-        tm.assert_index_equal(result, expected)
-        result = DatetimeIndex(s)
+        result = klass(s)
         tm.assert_index_equal(result, expected)
 
+    def test_constructor_from_series_freq(self):
         # GH 6273
         # create from a series, passing a freq
-        s = Series(pd.to_datetime(['1-1-1990', '2-1-1990', '3-1-1990',
-                                   '4-1-1990', '5-1-1990']))
+        dts = ['1-1-1990', '2-1-1990', '3-1-1990', '4-1-1990', '5-1-1990']
+        expected = DatetimeIndex(dts, freq='MS')
+
+        s = Series(pd.to_datetime(dts))
         result = DatetimeIndex(s, freq='MS')
-        expected = DatetimeIndex(['1-1-1990', '2-1-1990', '3-1-1990',
-                                  '4-1-1990', '5-1-1990'], freq='MS')
+
         tm.assert_index_equal(result, expected)
+
+    def test_constructor_from_frame_series_freq(self):
+        # GH 6273
+        # create from a series, passing a freq
+        dts = ['1-1-1990', '2-1-1990', '3-1-1990', '4-1-1990', '5-1-1990']
+        expected = DatetimeIndex(dts, freq='MS')
 
         df = pd.DataFrame(np.random.rand(5, 3))
-        df['date'] = ['1-1-1990', '2-1-1990', '3-1-1990', '4-1-1990',
-                      '5-1-1990']
+        df['date'] = dts
         result = DatetimeIndex(df['date'], freq='MS')
-        expected.name = 'date'
-        tm.assert_index_equal(result, expected)
         assert df['date'].dtype == object
 
-        exp = pd.Series(['1-1-1990', '2-1-1990', '3-1-1990', '4-1-1990',
-                         '5-1-1990'], name='date')
+        expected.name = 'date'
+        exp = pd.Series(dts, name='date')
         tm.assert_series_equal(df['date'], exp)
 
         # GH 6274
         # infer freq of same
-        result = pd.infer_freq(df['date'])
-        assert result == 'MS'
+        freq = pd.infer_freq(df['date'])
+        assert freq == 'MS'
 
-    def test_constructor_ndarray_like(self):
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize("array", [
+        np.arange(5), np.array(['a', 'b', 'c']), date_range(
+            '2000-01-01', periods=3).values
+    ])
+    def test_constructor_ndarray_like(self, array):
         # GH 5460#issuecomment-44474502
         # it should be possible to convert any object that satisfies the numpy
         # ndarray interface directly into an Index
@@ -217,11 +215,9 @@ class TestIndex(Base):
             def __array__(self, dtype=None):
                 return self.array
 
-        for array in [np.arange(5), np.array(['a', 'b', 'c']),
-                      date_range('2000-01-01', periods=3).values]:
-            expected = pd.Index(array)
-            result = pd.Index(ArrayLike(array))
-            tm.assert_index_equal(result, expected)
+        expected = pd.Index(array)
+        result = pd.Index(ArrayLike(array))
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('dtype', [
         int, 'int64', 'int32', 'int16', 'int8', 'uint64', 'uint32',
@@ -240,58 +236,59 @@ class TestIndex(Base):
     def test_constructor_int_dtype_nan(self):
         # see gh-15187
         data = [np.nan]
-        msg = "cannot convert"
-
-        with tm.assert_raises_regex(ValueError, msg):
-            Index(data, dtype='int64')
-
-        with tm.assert_raises_regex(ValueError, msg):
-            Index(data, dtype='uint64')
-
-        # This, however, should not break
-        # because NaN is float.
         expected = Float64Index(data)
         result = Index(data, dtype='float')
         tm.assert_index_equal(result, expected)
 
-    def test_index_ctor_infer_nan_nat(self):
+    @pytest.mark.parametrize("dtype", ['int64', 'uint64'])
+    def test_constructor_int_dtype_nan_raises(self, dtype):
+        # see gh-15187
+        data = [np.nan]
+        msg = "cannot convert"
+        with tm.assert_raises_regex(ValueError, msg):
+            Index(data, dtype=dtype)
+
+    @pytest.mark.parametrize("klass,dtype,na_val", [
+        (pd.Float64Index, np.float64, np.nan),
+        (pd.DatetimeIndex, 'datetime64[ns]', pd.NaT)
+    ])
+    def test_index_ctor_infer_nan_nat(self, klass, dtype, na_val):
         # GH 13467
-        exp = pd.Float64Index([np.nan, np.nan])
-        assert exp.dtype == np.float64
-        tm.assert_index_equal(Index([np.nan, np.nan]), exp)
-        tm.assert_index_equal(Index(np.array([np.nan, np.nan])), exp)
+        na_list = [na_val, na_val]
+        exp = klass(na_list)
+        assert exp.dtype == dtype
 
-        exp = pd.DatetimeIndex([pd.NaT, pd.NaT])
-        assert exp.dtype == 'datetime64[ns]'
-        tm.assert_index_equal(Index([pd.NaT, pd.NaT]), exp)
-        tm.assert_index_equal(Index(np.array([pd.NaT, pd.NaT])), exp)
+        result = Index(na_list)
+        tm.assert_index_equal(result, exp)
 
-        exp = pd.DatetimeIndex([pd.NaT, pd.NaT])
-        assert exp.dtype == 'datetime64[ns]'
+        result = Index(np.array(na_list))
+        tm.assert_index_equal(result, exp)
 
-        for data in [[pd.NaT, np.nan], [np.nan, pd.NaT],
-                     [np.nan, np.datetime64('nat')],
-                     [np.datetime64('nat'), np.nan]]:
-            tm.assert_index_equal(Index(data), exp)
-            tm.assert_index_equal(Index(np.array(data, dtype=object)), exp)
+    @pytest.mark.parametrize("pos", [0, 1])
+    @pytest.mark.parametrize("klass,dtype,ctor", [
+        (pd.DatetimeIndex, 'datetime64[ns]', np.datetime64('nat')),
+        (pd.TimedeltaIndex, 'timedelta64[ns]', np.timedelta64('nat'))
+    ])
+    def test_index_ctor_infer_nat_dt_like(self, pos, klass, dtype, ctor,
+                                          nulls_fixture):
+        exp = klass([pd.NaT, pd.NaT])
+        assert exp.dtype == dtype
+        data = [ctor]
+        data.insert(pos, nulls_fixture)
 
-        exp = pd.TimedeltaIndex([pd.NaT, pd.NaT])
-        assert exp.dtype == 'timedelta64[ns]'
+        result = Index(data)
+        tm.assert_index_equal(result, exp)
 
-        for data in [[np.nan, np.timedelta64('nat')],
-                     [np.timedelta64('nat'), np.nan],
-                     [pd.NaT, np.timedelta64('nat')],
-                     [np.timedelta64('nat'), pd.NaT]]:
-            tm.assert_index_equal(Index(data), exp)
-            tm.assert_index_equal(Index(np.array(data, dtype=object)), exp)
+        result = Index(np.array(data, dtype=object))
+        tm.assert_index_equal(result, exp)
 
+    @pytest.mark.parametrize("swap_objs", [True, False])
+    def test_index_ctor_nat_result(self, swap_objs):
         # mixed np.datetime64/timedelta64 nat results in object
         data = [np.datetime64('nat'), np.timedelta64('nat')]
-        exp = pd.Index(data, dtype=object)
-        tm.assert_index_equal(Index(data), exp)
-        tm.assert_index_equal(Index(np.array(data, dtype=object)), exp)
+        if swap_objs:
+            data = data[::-1]
 
-        data = [np.timedelta64('nat'), np.datetime64('nat')]
         exp = pd.Index(data, dtype=object)
         tm.assert_index_equal(Index(data), exp)
         tm.assert_index_equal(Index(np.array(data, dtype=object)), exp)
@@ -302,119 +299,122 @@ class TestIndex(Base):
         tm.assert_index_equal(rs, xp)
         assert isinstance(rs, PeriodIndex)
 
-    def test_constructor_simple_new(self):
-        idx = Index([1, 2, 3, 4, 5], name='int')
-        result = idx._simple_new(idx, 'int')
+    @pytest.mark.parametrize("vals,dtype", [
+        ([1, 2, 3, 4, 5], 'int'), ([1.1, np.nan, 2.2, 3.0], 'float'),
+        (['A', 'B', 'C', np.nan], 'obj')
+    ])
+    def test_constructor_simple_new(self, vals, dtype):
+        idx = Index(vals, name=dtype)
+        result = idx._simple_new(idx, dtype)
         tm.assert_index_equal(result, idx)
 
-        idx = Index([1.1, np.nan, 2.2, 3.0], name='float')
-        result = idx._simple_new(idx, 'float')
-        tm.assert_index_equal(result, idx)
+    @pytest.mark.parametrize("vals", [
+        [1, 2, 3], np.array([1, 2, 3]), np.array([1, 2, 3], dtype=int),
+        # below should coerce
+        [1., 2., 3.], np.array([1., 2., 3.], dtype=float)
+    ])
+    def test_constructor_dtypes_to_int64(self, vals):
+        idx = Index(vals, dtype=int)
+        assert isinstance(idx, Int64Index)
 
-        idx = Index(['A', 'B', 'C', np.nan], name='obj')
-        result = idx._simple_new(idx, 'obj')
-        tm.assert_index_equal(result, idx)
+    @pytest.mark.parametrize("vals", [
+        [1, 2, 3], [1., 2., 3.], np.array([1., 2., 3.]),
+        np.array([1, 2, 3], dtype=int), np.array([1., 2., 3.], dtype=float)
+    ])
+    def test_constructor_dtypes_to_float64(self, vals):
+        idx = Index(vals, dtype=float)
+        assert isinstance(idx, Float64Index)
 
-    def test_constructor_dtypes(self):
+    @pytest.mark.parametrize("cast_idx", [True, False])
+    @pytest.mark.parametrize("vals", [
+        [True, False, True], np.array([True, False, True], dtype=bool)
+    ])
+    def test_constructor_dtypes_to_object(self, cast_idx, vals):
+        if cast_idx:
+            idx = Index(vals, dtype=bool)
+        else:
+            idx = Index(vals)
 
-        for idx in [Index(np.array([1, 2, 3], dtype=int)),
-                    Index(np.array([1, 2, 3], dtype=int), dtype=int),
-                    Index([1, 2, 3], dtype=int)]:
-            assert isinstance(idx, Int64Index)
+        assert isinstance(idx, Index)
+        assert idx.dtype == object
 
-        # These should coerce
-        for idx in [Index(np.array([1., 2., 3.], dtype=float), dtype=int),
-                    Index([1., 2., 3.], dtype=int)]:
-            assert isinstance(idx, Int64Index)
+    @pytest.mark.parametrize("vals", [
+        [1, 2, 3], np.array([1, 2, 3], dtype=int),
+        np.array([np_datetime64_compat('2011-01-01'),
+                  np_datetime64_compat('2011-01-02')]),
+        [datetime(2011, 1, 1), datetime(2011, 1, 2)]
+    ])
+    def test_constructor_dtypes_to_categorical(self, vals):
+        idx = Index(vals, dtype='category')
+        assert isinstance(idx, CategoricalIndex)
 
-        for idx in [Index(np.array([1., 2., 3.], dtype=float)),
-                    Index(np.array([1, 2, 3], dtype=int), dtype=float),
-                    Index(np.array([1., 2., 3.], dtype=float), dtype=float),
-                    Index([1, 2, 3], dtype=float),
-                    Index([1., 2., 3.], dtype=float)]:
-            assert isinstance(idx, Float64Index)
+    @pytest.mark.parametrize("cast_idx", [True, False])
+    @pytest.mark.parametrize("vals", [
+        Index(np.array([np_datetime64_compat('2011-01-01'),
+                        np_datetime64_compat('2011-01-02')])),
+        Index([datetime(2011, 1, 1), datetime(2011, 1, 2)])
 
-        for idx in [Index(np.array([True, False, True], dtype=bool)),
-                    Index([True, False, True]),
-                    Index(np.array([True, False, True], dtype=bool),
-                          dtype=bool),
-                    Index([True, False, True], dtype=bool)]:
+    ])
+    def test_constructor_dtypes_to_datetime(self, cast_idx, vals):
+        if cast_idx:
+            idx = Index(vals, dtype=object)
             assert isinstance(idx, Index)
             assert idx.dtype == object
-
-        for idx in [Index(np.array([1, 2, 3], dtype=int), dtype='category'),
-                    Index([1, 2, 3], dtype='category'),
-                    Index(np.array([np_datetime64_compat('2011-01-01'),
-                                    np_datetime64_compat('2011-01-02')]),
-                          dtype='category'),
-                    Index([datetime(2011, 1, 1), datetime(2011, 1, 2)],
-                          dtype='category')]:
-            assert isinstance(idx, CategoricalIndex)
-
-        for idx in [Index(np.array([np_datetime64_compat('2011-01-01'),
-                                    np_datetime64_compat('2011-01-02')])),
-                    Index([datetime(2011, 1, 1), datetime(2011, 1, 2)])]:
+        else:
+            idx = Index(vals)
             assert isinstance(idx, DatetimeIndex)
 
-        for idx in [Index(np.array([np_datetime64_compat('2011-01-01'),
-                                    np_datetime64_compat('2011-01-02')]),
-                          dtype=object),
-                    Index([datetime(2011, 1, 1),
-                           datetime(2011, 1, 2)], dtype=object)]:
-            assert not isinstance(idx, DatetimeIndex)
+    @pytest.mark.parametrize("cast_idx", [True, False])
+    @pytest.mark.parametrize("vals", [
+        np.array([np.timedelta64(1, 'D'), np.timedelta64(1, 'D')]),
+        [timedelta(1), timedelta(1)]
+    ])
+    def test_constructor_dtypes_to_timedelta(self, cast_idx, vals):
+        if cast_idx:
+            idx = Index(vals, dtype=object)
             assert isinstance(idx, Index)
             assert idx.dtype == object
-
-        for idx in [Index(np.array([np.timedelta64(1, 'D'), np.timedelta64(
-                1, 'D')])), Index([timedelta(1), timedelta(1)])]:
+        else:
+            idx = Index(vals)
             assert isinstance(idx, TimedeltaIndex)
 
-        for idx in [Index(np.array([np.timedelta64(1, 'D'),
-                                    np.timedelta64(1, 'D')]), dtype=object),
-                    Index([timedelta(1), timedelta(1)], dtype=object)]:
-            assert not isinstance(idx, TimedeltaIndex)
-            assert isinstance(idx, Index)
-            assert idx.dtype == object
-
-    def test_constructor_dtypes_datetime(self, tz_naive_fixture):
-        tz = tz_naive_fixture
-        idx = pd.date_range('2011-01-01', periods=5, tz=tz)
+    @pytest.mark.parametrize("values", [
+        # pass values without timezone, as DatetimeIndex localizes it
+        pd.date_range('2011-01-01', periods=5).values,
+        pd.date_range('2011-01-01', periods=5).asi8])
+    @pytest.mark.parametrize("klass", [pd.Index, pd.DatetimeIndex])
+    def test_constructor_dtypes_datetime(self, tz_naive_fixture, values,
+                                         klass):
+        idx = pd.date_range('2011-01-01', periods=5, tz=tz_naive_fixture)
         dtype = idx.dtype
 
-        # pass values without timezone, as DatetimeIndex localizes it
-        for values in [pd.date_range('2011-01-01', periods=5).values,
-                       pd.date_range('2011-01-01', periods=5).asi8]:
+        res = klass(values, tz=tz_naive_fixture)
+        tm.assert_index_equal(res, idx)
 
-            for res in [pd.Index(values, tz=tz),
-                        pd.Index(values, dtype=dtype),
-                        pd.Index(list(values), tz=tz),
-                        pd.Index(list(values), dtype=dtype)]:
-                tm.assert_index_equal(res, idx)
+        res = klass(values, dtype=dtype)
+        tm.assert_index_equal(res, idx)
 
-            # check compat with DatetimeIndex
-            for res in [pd.DatetimeIndex(values, tz=tz),
-                        pd.DatetimeIndex(values, dtype=dtype),
-                        pd.DatetimeIndex(list(values), tz=tz),
-                        pd.DatetimeIndex(list(values), dtype=dtype)]:
-                tm.assert_index_equal(res, idx)
+        res = klass(list(values), tz=tz_naive_fixture)
+        tm.assert_index_equal(res, idx)
 
-    def test_constructor_dtypes_timedelta(self):
+        res = klass(list(values), dtype=dtype)
+        tm.assert_index_equal(res, idx)
 
+    @pytest.mark.parametrize("attr", ['values', 'asi8'])
+    @pytest.mark.parametrize("klass", [pd.Index, pd.TimedeltaIndex])
+    def test_constructor_dtypes_timedelta(self, attr, klass):
         idx = pd.timedelta_range('1 days', periods=5)
         dtype = idx.dtype
 
-        for values in [idx.values, idx.asi8]:
+        values = getattr(idx, attr)
 
-            for res in [pd.Index(values, dtype=dtype),
-                        pd.Index(list(values), dtype=dtype)]:
-                tm.assert_index_equal(res, idx)
+        res = klass(values, dtype=dtype)
+        tm.assert_index_equal(res, idx)
 
-            # check compat with TimedeltaIndex
-            for res in [pd.TimedeltaIndex(values, dtype=dtype),
-                        pd.TimedeltaIndex(list(values), dtype=dtype)]:
-                tm.assert_index_equal(res, idx)
+        res = klass(list(values), dtype=dtype)
+        tm.assert_index_equal(res, idx)
 
-    def test_constructor_empty(self):
+    def test_constructor_empty_gen(self):
         skip_index_keys = ["repeats", "periodIndex", "rangeIndex",
                            "tuples"]
         for key, idx in self.generate_index_types(skip_index_keys):
@@ -422,17 +422,14 @@ class TestIndex(Base):
             assert isinstance(empty, idx.__class__)
             assert not len(empty)
 
-        empty = PeriodIndex([], freq='B')
-        assert isinstance(empty, PeriodIndex)
-        assert not len(empty)
-
-        empty = RangeIndex(step=1)
-        assert isinstance(empty, pd.RangeIndex)
-        assert not len(empty)
-
-        empty = MultiIndex(levels=[[1, 2], ['blue', 'red']],
-                           labels=[[], []])
-        assert isinstance(empty, MultiIndex)
+    @pytest.mark.parametrize("empty,klass", [
+        (PeriodIndex([], freq='B'), PeriodIndex),
+        (RangeIndex(step=1), pd.RangeIndex),
+        (MultiIndex(levels=[[1, 2], ['blue', 'red']],
+                    labels=[[], []]), MultiIndex)
+    ])
+    def test_constructor_empty(self, empty, klass):
+        assert isinstance(empty, klass)
         assert not len(empty)
 
     def test_constructor_nonhashable_name(self, indices):
@@ -486,14 +483,10 @@ class TestIndex(Base):
         # same
         assert Index(['a', 'b', 'c']).equals(Index(['a', 'b', 'c']))
 
-        # different length
-        assert not Index(['a', 'b', 'c']).equals(Index(['a', 'b']))
-
-        # same length, different values
-        assert not Index(['a', 'b', 'c']).equals(Index(['a', 'b', 'd']))
-
-        # Must also be an Index
-        assert not Index(['a', 'b', 'c']).equals(['a', 'b', 'c'])
+    @pytest.mark.parametrize("comp", [
+        Index(['a', 'b']), Index(['a', 'b', 'd']), ['a', 'b', 'c']])
+    def test_not_equals_object(self, comp):
+        assert not Index(['a', 'b', 'c']).equals(comp)
 
     def test_insert(self):
 
@@ -516,28 +509,27 @@ class TestIndex(Base):
         null_index = Index([])
         tm.assert_index_equal(Index(['a']), null_index.insert(0, 'a'))
 
+    def test_insert_missing(self, nulls_fixture):
         # GH 18295 (test missing)
         expected = Index(['a', np.nan, 'b', 'c'])
-        for na in (np.nan, pd.NaT, None):
-            result = Index(list('abc')).insert(1, na)
-            tm.assert_index_equal(result, expected)
+        result = Index(list('abc')).insert(1, nulls_fixture)
+        tm.assert_index_equal(result, expected)
 
-    def test_delete(self):
+    @pytest.mark.parametrize("pos,exp", [
+        (0, Index(['b', 'c', 'd'], name='idx')),
+        (-1, Index(['a', 'b', 'c'], name='idx'))
+    ])
+    def test_delete(self, pos, exp):
         idx = Index(['a', 'b', 'c', 'd'], name='idx')
+        result = idx.delete(pos)
+        tm.assert_index_equal(result, exp)
+        assert result.name == exp.name
 
-        expected = Index(['b', 'c', 'd'], name='idx')
-        result = idx.delete(0)
-        tm.assert_index_equal(result, expected)
-        assert result.name == expected.name
-
-        expected = Index(['a', 'b', 'c'], name='idx')
-        result = idx.delete(-1)
-        tm.assert_index_equal(result, expected)
-        assert result.name == expected.name
-
+    def test_delete_raises(self):
+        idx = Index(['a', 'b', 'c', 'd'], name='idx')
         with pytest.raises((IndexError, ValueError)):
             # either depending on numpy version
-            result = idx.delete(5)
+            idx.delete(5)
 
     def test_identical(self):
 
@@ -613,26 +605,21 @@ class TestIndex(Base):
                                       'ns')
         assert first_value == x[Timestamp(exp_ts)]
 
-    def test_comparators(self):
+    @pytest.mark.parametrize("op", [
+        operator.eq, operator.ne, operator.gt, operator.lt,
+        operator.ge, operator.le
+    ])
+    def test_comparators(self, op):
         index = self.dateIndex
         element = index[len(index) // 2]
         element = _to_m8(element)
 
         arr = np.array(index)
+        arr_result = op(arr, element)
+        index_result = op(index, element)
 
-        def _check(op):
-            arr_result = op(arr, element)
-            index_result = op(index, element)
-
-            assert isinstance(index_result, np.ndarray)
-            tm.assert_numpy_array_equal(arr_result, index_result)
-
-        _check(operator.eq)
-        _check(operator.ne)
-        _check(operator.gt)
-        _check(operator.lt)
-        _check(operator.ge)
-        _check(operator.le)
+        assert isinstance(index_result, np.ndarray)
+        tm.assert_numpy_array_equal(arr_result, index_result)
 
     def test_booleanindex(self):
         boolIdx = np.repeat(True, len(self.strIndex)).astype(bool)
@@ -652,31 +639,34 @@ class TestIndex(Base):
         for i in sl:
             assert i == sl[sl.get_loc(i)]
 
-    def test_empty_fancy(self):
-        empty_farr = np.array([], dtype=np.float_)
-        empty_iarr = np.array([], dtype=np.int_)
-        empty_barr = np.array([], dtype=np.bool_)
+    @pytest.mark.parametrize("attr", [
+        'strIndex', 'intIndex', 'floatIndex'])
+    @pytest.mark.parametrize("dtype", [np.int_, np.bool_])
+    def test_empty_fancy(self, attr, dtype):
+        empty_arr = np.array([], dtype=dtype)
+        idx = getattr(self, attr)
+        empty_idx = idx.__class__([])
 
+        assert idx[[]].identical(empty_idx)
+        assert idx[empty_arr].identical(empty_idx)
+
+    @pytest.mark.parametrize("attr", [
+        'strIndex', 'intIndex', 'floatIndex'])
+    def test_empty_fancy_raises(self, attr):
         # pd.DatetimeIndex is excluded, because it overrides getitem and should
         # be tested separately.
-        for idx in [self.strIndex, self.intIndex, self.floatIndex]:
-            empty_idx = idx.__class__([])
+        empty_farr = np.array([], dtype=np.float_)
+        idx = getattr(self, attr)
+        empty_idx = idx.__class__([])
 
-            assert idx[[]].identical(empty_idx)
-            assert idx[empty_iarr].identical(empty_idx)
-            assert idx[empty_barr].identical(empty_idx)
+        assert idx[[]].identical(empty_idx)
+        # np.ndarray only accepts ndarray of int & bool dtypes, so should Index
+        pytest.raises(IndexError, idx.__getitem__, empty_farr)
 
-            # np.ndarray only accepts ndarray of int & bool dtypes, so should
-            # Index.
-            pytest.raises(IndexError, idx.__getitem__, empty_farr)
-
-    def test_getitem_error(self, indices):
-
+    @pytest.mark.parametrize("itm", [101, 'no_int'])
+    def test_getitem_error(self, indices, itm):
         with pytest.raises(IndexError):
-            indices[101]
-
-        with pytest.raises(IndexError):
-            indices['no_int']
+            indices[itm]
 
     def test_intersection(self):
         first = self.strIndex[:20]
@@ -2077,6 +2067,11 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
         idx = pd.Index([1, 2, 3])
         with tm.assert_raises_regex(AttributeError, "Can't set attribute"):
             idx.is_unique = False
+
+    def test_get_duplicates_deprecated(self):
+        idx = pd.Index([1, 2, 3])
+        with tm.assert_produces_warning(FutureWarning):
+            idx.get_duplicates()
 
 
 class TestMixedIntIndex(Base):
