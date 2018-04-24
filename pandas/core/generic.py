@@ -50,7 +50,8 @@ from pandas.tseries.frequencies import to_offset
 from pandas import compat
 from pandas.compat.numpy import function as nv
 from pandas.compat import (map, zip, lzip, lrange, string_types, to_str,
-                           isidentifier, set_function_name, cPickle as pkl)
+                           isidentifier, set_function_name, cPickle as pkl,
+                           _default_fill_value)
 from pandas.core.ops import _align_method_FRAME
 import pandas.core.nanops as nanops
 from pandas.util._decorators import (Appender, Substitution,
@@ -3660,7 +3661,7 @@ class NDFrame(PandasObject, SelectionMixin):
         copy = kwargs.pop('copy', True)
         limit = kwargs.pop('limit', None)
         tolerance = kwargs.pop('tolerance', None)
-        fill_value = kwargs.pop('fill_value', np.nan)
+        fill_value = kwargs.pop('fill_value', _default_fill_value)
 
         # Series.reindex doesn't use / need the axis kwarg
         # We pop and ignore it here, to make writing Series/Frame generic code
@@ -3790,7 +3791,9 @@ class NDFrame(PandasObject, SelectionMixin):
         return self._reindex_with_indexers({axis: [new_index, indexer]},
                                            fill_value=fill_value, copy=copy)
 
-    def _reindex_with_indexers(self, reindexers, fill_value=np.nan, copy=False,
+    def _reindex_with_indexers(self, reindexers,
+                               fill_value=_default_fill_value,
+                               copy=False,
                                allow_dups=False):
         """allow_dups indicates an internal call here """
 
@@ -7209,7 +7212,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @Appender(_shared_docs['align'] % _shared_doc_kwargs)
     def align(self, other, join='outer', axis=None, level=None, copy=True,
-              fill_value=None, method=None, limit=None, fill_axis=0,
+              fill_value=_default_fill_value, method=None, limit=None, fill_axis=0,
               broadcast_axis=None):
         from pandas import DataFrame, Series
         method = missing.clean_fill_method(method)
@@ -7359,6 +7362,9 @@ class NDFrame(PandasObject, SelectionMixin):
                 right = other.reindex(join_index, level=level)
 
         # fill
+        if fill_value is _default_fill_value:
+            fill_value = None
+
         fill_na = notna(fill_value) or (method is not None)
         if fill_na:
             left = left.fillna(fill_value, method=method, limit=limit,

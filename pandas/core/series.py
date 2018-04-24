@@ -56,7 +56,7 @@ from pandas.core.indexes.period import PeriodIndex
 from pandas import compat
 from pandas.io.formats.terminal import get_terminal_size
 from pandas.compat import (
-    zip, u, OrderedDict, StringIO, range, get_range_parameters, PY36)
+    zip, u, OrderedDict, StringIO, range, get_range_parameters, PY36, _default_fill_value)
 from pandas.compat.numpy import function as nv
 
 import pandas.core.ops as ops
@@ -3216,7 +3216,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 return self.copy()
             return self
 
-        new_values = algorithms.take_1d(self._values, indexer)
+        from pandas.core.dtypes.missing import na_value_for_dtype
+        fill_value = na_value_for_dtype(self.dtype)
+        new_values = algorithms.take(self._values, indexer,
+                                     fill_value=fill_value)
         return self._constructor(new_values, index=new_index)
 
     def _needs_reindex_multi(self, axes, method, level):
@@ -3227,7 +3230,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @Appender(generic._shared_docs['align'] % _shared_doc_kwargs)
     def align(self, other, join='outer', axis=None, level=None, copy=True,
-              fill_value=None, method=None, limit=None, fill_axis=0,
+              fill_value=_default_fill_value, method=None, limit=None, fill_axis=0,
               broadcast_axis=None):
         return super(Series, self).align(other, join=join, axis=axis,
                                          level=level, copy=copy,

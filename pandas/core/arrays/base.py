@@ -10,11 +10,11 @@ import textwrap
 import numpy as np
 
 from pandas.errors import AbstractMethodError
+from pandas.compat import _default_fill_value
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 
 _not_implemented_message = "{} does not implement {}."
-_default_fill_value = object()
 
 
 _take_docstring = textwrap.dedent("""\
@@ -537,13 +537,12 @@ class ExtensionArray(object):
     @Appender(_take_docstring)
     def take(self, indexer, fill_value=_default_fill_value):
         # type: (Sequence[int], Optional[Any]) -> ExtensionArray
-        from pandas.core.missing import isna
-
-        if isna(fill_value):
-            fill_value = self.dtype.na_value
+        if fill_value is np.nan:
+            import pdb; pdb.set_trace()
+        from pandas.core.algorithms import take
 
         data = self._values_for_take()
-        result = take_ea(data, indexer, fill_value=fill_value)
+        result = take(data, indexer, fill_value=fill_value)
         return self._from_sequence(result)
 
     def copy(self, deep=False):
@@ -609,30 +608,3 @@ class ExtensionArray(object):
         """
         return np.array(self)
 
-
-@Substitution(arr=textwrap.dedent("""\
-arr : array-like
-    Must satisfy NumPy's indexing sematnics, including `take`
-    and boolean masking.
-"""))
-@Appender(_take_docstring)
-def take_ea(arr, indexer, fill_value=_default_fill_value):
-    indexer = np.asarray(indexer)
-    if fill_value is _default_fill_value:
-        # NumPy style
-        result = arr.take(indexer)
-    else:
-        mask = indexer == -1
-        if (indexer < -1).any():
-            raise ValueError("Invalid value in 'indexer'. All values "
-                             "must be non-negative or -1. When "
-                             "'fill_value' is specified.")
-
-        # take on empty array not handled as desired by numpy
-        # in case of -1 (all missing take)
-        if not len(arr) and mask.all():
-            return arr._from_sequence([fill_value] * len(indexer))
-
-        result = arr.take(indexer)
-        result[mask] = fill_value
-    return result

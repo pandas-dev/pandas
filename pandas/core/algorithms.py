@@ -30,6 +30,7 @@ from pandas.core.dtypes.common import (
     _ensure_platform_int, _ensure_object,
     _ensure_float64, _ensure_uint64,
     _ensure_int64)
+from pandas.compat import _default_fill_value
 from pandas.compat.numpy import _np_version_under1p10
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
@@ -1439,6 +1440,27 @@ def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis=0, mask_info=None):
                         mask_info=mask_info)
 
     return func
+
+
+def take(arr, indexer, fill_value=_default_fill_value):
+    indexer = np.asarray(indexer)
+
+    if fill_value is _default_fill_value:
+        # NumPy style
+        result = arr.take(indexer)
+    else:
+        # bounds checking
+        if (indexer < -1).any():
+            raise ValueError("Invalid value in 'indexer'. All values "
+                             "must be non-negative or -1. When "
+                             "'fill_value' is specified.")
+
+        # # take on empty array not handled as desired by numpy
+        # # in case of -1 (all missing take)
+        # if not len(arr) and mask.all():
+        #     return arr._from_sequence([fill_value] * len(indexer))
+        result = take_1d(arr, indexer, fill_value=fill_value)
+    return result
 
 
 def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
