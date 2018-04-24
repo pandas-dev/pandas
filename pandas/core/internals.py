@@ -5541,8 +5541,14 @@ def concatenate_join_units(join_units, concat_axis, copy):
     if len(to_concat) == 1:
         # Only one block, nothing to concatenate.
         concat_values = to_concat[0]
-        if copy and concat_values.base is not None:
-            concat_values = concat_values.copy()
+        if copy:
+            if isinstance(concat_values, np.ndarray):
+                # non-reindexed (=not yet copied) arrays are made into a view
+                # in JoinUnit.get_reindexed_values
+                if concat_values.base is not None:
+                    concat_values = concat_values.copy()
+            else:
+                concat_values = concat_values.copy()
     else:
         concat_values = _concat._concat_compat(to_concat, axis=concat_axis)
 
@@ -5823,7 +5829,7 @@ class JoinUnit(object):
                 # External code requested filling/upcasting, bool values must
                 # be upcasted to object to avoid being upcasted to numeric.
                 values = self.block.astype(np.object_).values
-            elif self.block.is_categorical:
+            elif self.block.is_extension:
                 values = self.block.values
             else:
                 # No dtype upcasting is done here, it will be performed during

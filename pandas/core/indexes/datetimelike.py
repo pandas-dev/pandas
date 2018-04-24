@@ -343,7 +343,8 @@ class DatetimeIndexOpsMixin(object):
     def __contains__(self, key):
         try:
             res = self.get_loc(key)
-            return is_scalar(res) or type(res) == slice or np.any(res)
+            return (is_scalar(res) or isinstance(res, slice) or
+                    (is_list_like(res) and len(res)))
         except (KeyError, TypeError, ValueError):
             return False
 
@@ -501,10 +502,6 @@ class DatetimeIndexOpsMixin(object):
         # keep freq in PeriodIndex, reset otherwise
         freq = self.freq if isinstance(self, ABCPeriodIndex) else None
         return self._shallow_copy(taken, freq=freq)
-
-    def get_duplicates(self):
-        values = Index.get_duplicates(self)
-        return self._simple_new(values)
 
     _can_hold_na = True
 
