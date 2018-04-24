@@ -23,7 +23,7 @@ def data():
 @pytest.fixture
 def data_missing():
     # Since _can_hold_na is False, we don't have missing values
-    return RelObjectArray([RelObj(10), RelObj(5)])
+    pytest.skip('No missing data tests for _can_hold_na=False')
 
 
 @pytest.fixture
@@ -34,8 +34,7 @@ def data_for_sorting():
 @pytest.fixture
 def data_missing_for_sorting():
     # Since _can_hold_na is False, we don't have missing values
-    # Tests assume middle value is smallest
-    return RelObjectArray([RelObj(1), RelObj(-1), RelObj(0)])
+    pytest.skip('No missing data tests for _can_hold_na=False')
 
 
 @pytest.fixture

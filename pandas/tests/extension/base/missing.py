@@ -9,10 +9,7 @@ from .base import BaseExtensionTests
 
 class BaseMissingTests(BaseExtensionTests):
     def test_isna(self, data_missing):
-        if data_missing._can_hold_na:
-            expected = np.array([True, False])
-        else:
-            expected = np.array([False, False])
+        expected = np.array([True, False])
 
         result = pd.isna(data_missing)
         tm.assert_numpy_array_equal(result, expected)
@@ -24,10 +21,7 @@ class BaseMissingTests(BaseExtensionTests):
     def test_dropna_series(self, data_missing):
         ser = pd.Series(data_missing)
         result = ser.dropna()
-        if data_missing._can_hold_na:
-            expected = ser.iloc[[1]]
-        else:
-            expected = ser
+        expected = ser.iloc[[1]]
         self.assert_series_equal(result, expected)
 
     def test_dropna_frame(self, data_missing):
@@ -35,28 +29,19 @@ class BaseMissingTests(BaseExtensionTests):
 
         # defaults
         result = df.dropna()
-        if data_missing._can_hold_na:
-            expected = df.iloc[[1]]
-        else:
-            expected = df
+        expected = df.iloc[[1]]
         self.assert_frame_equal(result, expected)
 
         # axis = 1
         result = df.dropna(axis='columns')
-        if data_missing._can_hold_na:
-            expected = pd.DataFrame(index=[0, 1])
-        else:
-            expected = df
+        expected = pd.DataFrame(index=[0, 1])
         self.assert_frame_equal(result, expected)
 
         # multiple
         df = pd.DataFrame({"A": data_missing,
                            "B": [1, np.nan]})
         result = df.dropna()
-        if data_missing._can_hold_na:
-            expected = df.iloc[:0]
-        else:
-            expected = df.iloc[:1]
+        expected = df.iloc[:0]
         self.assert_frame_equal(result, expected)
 
     def test_fillna_scalar(self, data_missing):
@@ -68,19 +53,13 @@ class BaseMissingTests(BaseExtensionTests):
     def test_fillna_limit_pad(self, data_missing):
         arr = data_missing.take([1, 0, 0, 0, 1])
         result = pd.Series(arr).fillna(method='ffill', limit=2)
-        if data_missing._can_hold_na:
-            expected = pd.Series(data_missing.take([1, 1, 1, 0, 1]))
-        else:
-            expected = pd.Series(arr)
+        expected = pd.Series(data_missing.take([1, 1, 1, 0, 1]))
         self.assert_series_equal(result, expected)
 
     def test_fillna_limit_backfill(self, data_missing):
         arr = data_missing.take([1, 0, 0, 0, 1])
         result = pd.Series(arr).fillna(method='backfill', limit=2)
-        if data_missing._can_hold_na:
-            expected = pd.Series(data_missing.take([1, 0, 1, 1, 1]))
-        else:
-            expected = pd.Series(arr)
+        expected = pd.Series(data_missing.take([1, 0, 1, 1, 1]))
         self.assert_series_equal(result, expected)
 
     def test_fillna_series(self, data_missing):
@@ -89,11 +68,8 @@ class BaseMissingTests(BaseExtensionTests):
         ser = pd.Series(data_missing)
 
         result = ser.fillna(fill_value)
-        if data_missing._can_hold_na:
-            expected = pd.Series(
-                data_missing._from_sequence([fill_value, fill_value]))
-        else:
-            expected = ser
+        expected = pd.Series(
+            data_missing._from_sequence([fill_value, fill_value]))
         self.assert_series_equal(result, expected)
 
         # Fill with a series
@@ -112,12 +88,8 @@ class BaseMissingTests(BaseExtensionTests):
             data_missing = type(data_missing)(data_missing[::-1])
 
         result = pd.Series(data_missing).fillna(method=method)
-        if data_missing._can_hold_na:
-            expected = pd.Series(
-                data_missing._from_sequence([fill_value, fill_value]))
-        else:
-            expected = pd.Series(data_missing)
-
+        expected = pd.Series(
+            data_missing._from_sequence([fill_value, fill_value]))
         self.assert_series_equal(result, expected)
 
     def test_fillna_frame(self, data_missing):
@@ -128,13 +100,8 @@ class BaseMissingTests(BaseExtensionTests):
             "B": [1, 2]
         }).fillna(fill_value)
 
-        if data_missing._can_hold_na:
-            a = data_missing._from_sequence([fill_value, fill_value])
-        else:
-            a = data_missing
-
         expected = pd.DataFrame({
-            "A": a,
+            "A": data_missing._from_sequence([fill_value, fill_value]),
             "B": [1, 2],
         })
 

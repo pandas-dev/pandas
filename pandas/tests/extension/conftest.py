@@ -17,7 +17,9 @@ def data():
 
 @pytest.fixture
 def data_missing():
-    """Length-2 array with [NA, Valid]"""
+    """Length-2 array with [NA, Valid]
+    Use pytest.skip() if _can_hold_na==False
+    """
     raise NotImplementedError
 
 
@@ -46,6 +48,7 @@ def data_missing_for_sorting():
 
     This should be three items [B, NA, A] with
     A < B and NA missing.
+    Use pytest.skip() if _can_hold_na==False
     """
     raise NotImplementedError
 
@@ -57,7 +60,7 @@ def na_cmp():
     Should return a function of two arguments that returns
     True if both arguments are (scalar) NA for your type.
 
-    By default, uses ``operator.or``
+    By default, uses ``operator.is_``
     """
     return operator.is_
 

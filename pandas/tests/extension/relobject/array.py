@@ -128,7 +128,7 @@ class RelObjectArray(ExtensionArray):
         return 0
 
     def isna(self):
-        return np.full(len(self.values), False)
+        return np.array([False]*len(self.values))
 
     def _values_for_argsort(self):
         # type: () -> ndarray

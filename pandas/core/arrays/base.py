@@ -54,16 +54,6 @@ class ExtensionArray(object):
     * factorize / _values_for_factorize
     * argsort / _values_for_argsort
 
-    Some methods require casting the ExtensionArray to an ndarray of Python
-    objects with ``self.astype(object)``, which may be expensive. When
-    performance is a concern, we highly recommend overriding the following
-    methods:
-
-    * fillna
-    * unique
-    * factorize / _values_for_factorize
-    * argsort / _values_for_argsort
-
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
     ``pandas.errors.AbstractMethodError`` and no ``register`` method is
@@ -571,13 +561,10 @@ class ExtensionArray(object):
         """
         raise AbstractMethodError(cls)
 
+    # The _can_hold_na attribute tells pandas whether your array can
+    # hold missing values.  True by default.  Setting this to False will
+    # optimize some operations like fillna.
     _can_hold_na = True
-    """Whether your array can hold missing values. True by default.
-
-    Notes
-    -----
-    Setting this to False will optimize some operations like fillna.
-    """
 
     @property
     def _ndarray_values(self):

@@ -82,9 +82,8 @@ class BaseGetitemTests(BaseExtensionTests):
         assert isinstance(result, data.dtype.type)
 
     def test_getitem_scalar_na(self, data_missing, na_cmp, na_value):
-        if data_missing._can_hold_na:
-            result = data_missing[0]
-            assert na_cmp(result, na_value)
+        result = data_missing[0]
+        assert na_cmp(result, na_value)
 
     def test_getitem_mask(self, data):
         # Empty mask, raw array
