@@ -1933,8 +1933,17 @@ class TestDataFrameConstructors(TestData):
 
         b = np.array([], dtype=[('id', np.int64), ('value', np.int64)])
         df = DataFrame.from_records(b, index='id')
-        tm.assert_index_equal(df.index, Index([], name='id'))
+        tm.assert_index_equal(df.index, Index([], name='id', dtype='int'))
         assert df.index.name == 'id'
+
+    def test_from_records_empty_dtypes(self):
+        # https://github.com/pandas-dev/pandas/issues/20805
+        a = np.array([(1, 2)], dtype=[('id', 'u8'), ('value', 'i8')])
+        result = DataFrame.from_records(a[:0])
+        expected = pd.DataFrame({"id": np.array([], dtype='u8'),
+                                 "value": np.array([], dtype='i8')},
+                                columns=['id', 'value'])
+        tm.assert_frame_equal(result, expected)
 
     def test_from_records_with_datetimes(self):
 

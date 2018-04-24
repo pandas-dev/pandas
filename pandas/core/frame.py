@@ -7387,7 +7387,10 @@ def _to_arrays(data, columns, coerce_float=False, dtype=None):
         if isinstance(data, np.ndarray):
             columns = data.dtype.names
             if columns is not None:
-                return [[]] * len(columns), columns
+                arrays = [np.array([], dtype=dtype)
+                          for _, dtype in data.dtype.descr]
+                return arrays, columns
+
         return [], []  # columns if columns is not None else []
     if isinstance(data[0], (list, tuple)):
         return _list_to_arrays(data, columns, coerce_float=coerce_float,
