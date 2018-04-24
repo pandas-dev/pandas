@@ -36,6 +36,22 @@ _shared_docs = dict()
 
 
 def _get_array_list(arr, others):
+    """
+    Auxiliary function for :func:`str_cat`
+
+    Parameters
+    ----------
+    arr : ndarray
+        The left-most ndarray of the concatenation
+    others : list, ndarray, Series
+        The rest of the content to concatenate. If list of list-likes,
+        all elements must be passable to ``np.asarray``.
+
+    Returns
+    -------
+    list
+        List of all necessary arrays
+    """
     from pandas.core.series import Series
 
     if len(others) and isinstance(com._values_from_object(others)[0],
