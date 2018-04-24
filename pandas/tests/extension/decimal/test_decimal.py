@@ -1,5 +1,4 @@
 import decimal
-import operator
 
 import numpy as np
 import pandas as pd
@@ -176,49 +175,3 @@ def test_dataframe_constructor_with_different_dtype_raises():
     xpr = "Cannot coerce extension array to dtype 'int64'. "
     with tm.assert_raises_regex(ValueError, xpr):
         pd.DataFrame({"A": arr}, dtype='int64')
-
-
-@pytest.mark.parametrize('op', ['lt', 'le', 'gt', 'ge', 'eq', 'ne'])
-def test_comparisons(op):
-    arr1 = DecimalArray(make_data())
-    arr2 = DecimalArray(make_data())
-    ser1 = pd.Series(arr1)
-    ser2 = pd.Series(arr2)
-    func = getattr(operator, op)
-
-    result = func(ser1, ser2)
-    expected = pd.Series([func(a, b) for (a, b) in zip(arr1, arr2)])
-    tm.assert_series_equal(result, expected)
-
-    oneval = decimal.Decimal('0.5')
-    result = func(ser1, oneval)
-    expected = pd.Series([func(a, oneval) for a in arr1])
-    tm.assert_series_equal(result, expected)
-
-    oneval = 0.5
-    result = func(ser1, oneval)
-    expected = pd.Series([func(a, oneval) for a in arr1])
-    tm.assert_series_equal(result, expected)
-
-    alist = [i for i in arr2]
-    result = func(ser1, alist)
-    expected = pd.Series([func(a, b) for (a, b) in zip(arr1, alist)])
-    tm.assert_series_equal(result, expected)
-
-    alist = [float(i) for i in arr2]
-    result = func(ser1, alist)
-    expected = pd.Series([func(a, b) for (a, b) in zip(arr1, alist)])
-    tm.assert_series_equal(result, expected)
-
-    if op not in ['eq', 'ne']:
-        l2 = list(arr2)
-        l2[5] = 'abc'
-        with pytest.raises(TypeError) as excinfo:
-            func(ser1, "abc")
-        assert (str(excinfo.value)
-                .startswith("invalid type comparison between"))
-
-        with pytest.raises(TypeError) as excinfo:
-            func(ser1, l2)
-        assert (str(excinfo.value)
-                .startswith("invalid type comparison between"))

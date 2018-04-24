@@ -78,5 +78,10 @@ def data_for_grouping():
     Expected to be like [B, B, NA, NA, A, A, B, C]
 
     Where A < B < C and NA is missing
+
+    If _can_hold_na==False, use a 4th value D for NA,
+
+    where D < A < B < C
+
     """
     raise NotImplementedError

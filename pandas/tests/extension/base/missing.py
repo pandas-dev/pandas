@@ -63,7 +63,6 @@ class BaseMissingTests(BaseExtensionTests):
         self.assert_series_equal(result, expected)
 
     def test_fillna_series(self, data_missing):
-
         fill_value = data_missing[1]
         ser = pd.Series(data_missing)
 
@@ -90,6 +89,7 @@ class BaseMissingTests(BaseExtensionTests):
         result = pd.Series(data_missing).fillna(method=method)
         expected = pd.Series(
             data_missing._from_sequence([fill_value, fill_value]))
+
         self.assert_series_equal(result, expected)
 
     def test_fillna_frame(self, data_missing):
