@@ -2755,6 +2755,11 @@ class Index(IndexOpsMixin, PandasObject):
                                            allow_fill=False)
                 result = _concat._concat_compat((lvals, other_diff))
 
+                # Workaround failure of #17378 on Windows
+                try:
+                    lvals[0] < other_diff[0]
+                except TypeError as e:
+                    pass
             else:
                 result = lvals
 
