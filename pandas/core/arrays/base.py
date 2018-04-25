@@ -537,8 +537,7 @@ class ExtensionArray(object):
     @Appender(_take_docstring)
     def take(self, indexer, fill_value=_default_fill_value):
         # type: (Sequence[int], Optional[Any]) -> ExtensionArray
-        if fill_value is np.nan:
-            import pdb; pdb.set_trace()
+        # assert fill_value is not np.nan
         from pandas.core.algorithms import take
 
         data = self._values_for_take()

@@ -18,7 +18,7 @@ class _DtypeOpsMixin(object):
 
     # na_value is the default NA value to use for this type. This is used in
     # e.g. ExtensionArray.take.
-    na_value = np.nan
+    na_value = np.nan  # TODO: change to _na_value
 
     def __eq__(self, other):
         """Check whether 'other' is equal to self.

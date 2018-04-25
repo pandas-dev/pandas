@@ -1,4 +1,5 @@
 import warnings
+
 import copy
 from warnings import catch_warnings
 import inspect
@@ -82,7 +83,7 @@ from pandas._libs.tslibs import conversion
 from pandas.util._decorators import cache_readonly
 from pandas.util._validators import validate_bool_kwarg
 from pandas import compat
-from pandas.compat import range, map, zip, u
+from pandas.compat import range, map, zip, u, _default_fill_value
 
 
 class Block(PandasObject):
@@ -1887,6 +1888,10 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
     def _holder(self):
         # For extension blocks, the holder is values-dependent.
         return type(self.values)
+
+    @property
+    def fill_value(self):
+        return self.values.dtype.na_value  # TODO: change to _na_value
 
     @property
     def _can_hold_na(self):
@@ -4386,6 +4391,8 @@ class BlockManager(PandasObject):
 
         pandas-indexer with -1's only.
         """
+        # TODO: see if we can make fill_value be {col -> fill_value}
+        # maybe earlier...
         if indexer is None:
             if new_axis is self.axes[axis] and not copy:
                 return self
@@ -4408,8 +4415,10 @@ class BlockManager(PandasObject):
             new_blocks = self._slice_take_blocks_ax0(indexer,
                                                      fill_tuple=(fill_value,))
         else:
+            if fill_value is None:
+                fill_value = _default_fill_value
             new_blocks = [blk.take_nd(indexer, axis=axis, fill_tuple=(
-                fill_value if fill_value is not None else blk.fill_value,))
+                fill_value if fill_value is not _default_fill_value else blk.fill_value,))
                 for blk in self.blocks]
 
         new_axes = list(self.axes)
@@ -4435,6 +4444,9 @@ class BlockManager(PandasObject):
 
         if self._is_single_block:
             blk = self.blocks[0]
+
+            if allow_fill and fill_tuple[0] is _default_fill_value:
+                fill_tuple = (blk.fill_value,)
 
             if sl_type in ('slice', 'mask'):
                 return [blk.getitem_block(slobj, new_mgr_locs=slice(0, sllen))]
@@ -5404,6 +5416,25 @@ def concatenate_block_managers(mgrs_indexers, axes, concat_axis, copy):
         elif is_uniform_join_units(join_units):
             b = join_units[0].block.concat_same_type(
                 [ju.block for ju in join_units], placement=placement)
+        elif is_uniform_reindexer(join_units):
+            old_block = join_units[0].block
+
+            new_values = concatenate_join_units(join_units, concat_axis,
+                                                copy=copy)
+            if new_values.ndim == 2:
+                # XXX: categorical returns a categorical here
+                # EA returns a 2d ndarray
+                # need to harmoinze these to always be EAs?
+                assert new_values.shape[0] == 1
+                new_values = new_values[0]
+
+            assert isinstance(old_block._holder, ABCExtensionArray)
+
+            b = old_block.make_block_same_class(
+                old_block._holder._from_sequence(new_values),
+                placement=placement
+            )
+
         else:
             b = make_block(
                 concatenate_join_units(join_units, concat_axis, copy=copy),
@@ -5434,6 +5465,13 @@ def is_uniform_join_units(join_units):
         len(join_units) > 1)
 
 
+def is_uniform_reindexer(join_units):
+    # For when we know we can reindex without changing type
+    return (
+        all(ju.block and ju.block.is_extension for ju in join_units)
+    )
+
+
 def get_empty_dtype_and_na(join_units):
     """
     Return dtype and N/A values to use when concatenating specified units.
@@ -5461,12 +5499,15 @@ def get_empty_dtype_and_na(join_units):
 
     upcast_classes = defaultdict(list)
     null_upcast_classes = defaultdict(list)
+
     for dtype, unit in zip(dtypes, join_units):
         if dtype is None:
             continue
 
         if is_categorical_dtype(dtype):
             upcast_cls = 'category'
+        elif is_extension_array_dtype(dtype):
+            upcast_cls = 'extension'
         elif is_datetimetz(dtype):
             upcast_cls = 'datetimetz'
         elif issubclass(dtype.type, np.bool_):
@@ -5496,6 +5537,8 @@ def get_empty_dtype_and_na(join_units):
     # create the result
     if 'object' in upcast_classes:
         return np.dtype(np.object_), np.nan
+    elif 'extension' in upcast_classes:
+        return np.dtype(np.object_), None
     elif 'bool' in upcast_classes:
         if has_none_blocks:
             return np.dtype(np.object_), np.nan
@@ -5755,7 +5798,9 @@ class JoinUnit(object):
         if self.block is None:
             raise AssertionError("Block is None, no dtype")
 
-        if not self.needs_filling:
+        if not self.needs_filling or self.block.is_extension:
+            # ExtensionDtypes by definition can hold their
+            # NA value.
             return self.block.dtype
         else:
             return _get_dtype(maybe_promote(self.block.dtype,
