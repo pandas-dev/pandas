@@ -1227,7 +1227,7 @@ class TestIndex(Base):
         index = Index(np.arange(10))
 
         actual = index.get_indexer([0.2, 1.8, 8.5], method='nearest',
-                                 tolerance=listtype(tolerance))
+                                   tolerance=listtype(tolerance))
         tm.assert_numpy_array_equal(actual, np.array(expected,
                                                      dtype=np.intp))
 
@@ -1238,7 +1238,7 @@ class TestIndex(Base):
 
         with pytest.raises(ValueError, match='tolerance size must match'):
             index.get_indexer([1, 0], method='nearest',
-                            tolerance=[1, 2, 3])
+                              tolerance=[1, 2, 3])
 
     @pytest.mark.parametrize("method,expected", [
         ('pad', [8, 7, 0]), ('backfill', [9, 8, 1]), ('nearest', [9, 7, 0])])
@@ -1271,7 +1271,7 @@ class TestIndex(Base):
 
         with pytest.raises(TypeError):
             index.get_indexer(['a', 'b', 'c', 'd'], method='pad',
-                            tolerance=[2, 2, 2, 2])
+                              tolerance=[2, 2, 2, 2])
 
     def test_get_indexer_numeric_index_boolean_target(self):
         # GH 16877
