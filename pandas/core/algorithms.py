@@ -1488,24 +1488,16 @@ def take(arr, indexer, allow_fill=False, fill_value=None):
     --------
     numpy.take
     """
-    indexer = np.asarray(indexer)
+    from pandas.core.indexing import validate_indices
+
+    # Do we require int64 here?
+    indexer = np.asarray(indexer, dtype='int')
 
     if allow_fill:
         # Pandas style, -1 means NA
-        # bounds checking
-        if (indexer < -1).any():
-            raise ValueError("Invalid value in 'indexer'. All values "
-                             "must be non-negative or -1. When "
-                             "'fill_value' is specified.")
-        if (indexer > len(arr)).any():
-            # TODO: reuse with logic elsewhere.
-            raise IndexError
-
-        # # take on empty array not handled as desired by numpy
-        # # in case of -1 (all missing take)
-        # if not len(arr) and mask.all():
-        #     return arr._from_sequence([fill_value] * len(indexer))
-        result = take_1d(arr, indexer, fill_value=fill_value)
+        # Use for bounds checking, we don't actually want to convert.
+        validate_indices(indexer, len(arr))
+        result = take_1d(arr, indexer, allow_fill=True, fill_value=fill_value)
     else:
         # NumPy style
         result = arr.take(indexer)

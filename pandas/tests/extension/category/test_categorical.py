@@ -107,6 +107,10 @@ class TestGetitem(base.BaseGetitemTests):
     def test_take_non_na_fill_value(self):
         pass
 
+    @skip_take
+    def test_take_out_of_bounds_raises(self):
+        pass
+
     @pytest.mark.xfail(reason="Categorical.take buggy")
     def test_take_empty(self):
         pass

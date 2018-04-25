@@ -134,8 +134,12 @@ class BaseGetitemTests(BaseExtensionTests):
 
     def test_take_empty(self, data, na_value, na_cmp):
         empty = data[:0]
-        # result = empty.take([-1])
-        # na_cmp(result[0], na_value)
+
+        result = empty.take([-1], allow_fill=True)
+        na_cmp(result[0], na_value)
+
+        with pytest.raises(IndexError):
+            empty.take([-1])
 
         with tm.assert_raises_regex(IndexError, "cannot do a non-empty take"):
             empty.take([0, 1])
@@ -159,6 +163,12 @@ class BaseGetitemTests(BaseExtensionTests):
     def test_take_pandas_style_negative_raises(self, data, na_value):
         with pytest.raises(ValueError):
             data.take([0, -2], fill_value=na_value, allow_fill=True)
+
+    @pytest.mark.parametrize('allow_fill', [True, False])
+    def test_take_out_of_bounds_raises(self, data, allow_fill):
+        arr = data[:3]
+        with pytest.raises(IndexError):
+            arr.take(np.asarray([0, 3]), allow_fill=allow_fill)
 
     @pytest.mark.xfail(reason="Series.take with extension array buggy for -1")
     def test_take_series(self, data):

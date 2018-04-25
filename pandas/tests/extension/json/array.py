@@ -14,7 +14,11 @@ from pandas.core.arrays import ExtensionArray
 class JSONDtype(ExtensionDtype):
     type = collections.Mapping
     name = 'json'
-    na_value = collections.UserDict()
+    try:
+        na_value = collections.UserDict()
+    except AttributeError:
+        # source compatibility with Py2.
+        na_value = {}
 
     @classmethod
     def construct_from_string(cls, string):
@@ -112,7 +116,7 @@ class JSONArray(ExtensionArray):
                 output = [self.data[loc] if loc != -1 else fill_value
                           for loc in indexer]
             except IndexError:
-                raise msg
+                raise IndexError(msg)
         else:
             try:
                 output = [self.data[loc] for loc in indexer]
