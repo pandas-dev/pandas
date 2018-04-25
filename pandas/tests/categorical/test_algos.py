@@ -47,3 +47,25 @@ def test_factorized_sort_ordered():
 
     tm.assert_numpy_array_equal(labels, expected_labels)
     tm.assert_categorical_equal(uniques, expected_uniques)
+
+
+def test_isin_cats():
+    # GH2003
+    cat = pd.Categorical(["a", "b", np.nan])
+
+    result = cat.isin(["a", np.nan])
+    expected = np.array([True, False, True], dtype=bool)
+    tm.assert_numpy_array_equal(expected, result)
+
+    result = cat.isin(["a", "c"])
+    expected = np.array([True, False, False], dtype=bool)
+    tm.assert_numpy_array_equal(expected, result)
+
+
+@pytest.mark.parametrize("empty", [[], pd.Series(), np.array([])])
+def test_isin_empty(empty):
+    s = pd.Categorical(["a", "b"])
+    expected = np.array([False, False], dtype=bool)
+
+    result = s.isin(empty)
+    tm.assert_numpy_array_equal(expected, result)
