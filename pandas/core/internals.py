@@ -5450,6 +5450,7 @@ def is_uniform_reindex(join_units):
         len(set(ju.block.dtype.name for ju in join_units)) == 1
     )
 
+
 def get_empty_dtype_and_na(join_units):
     """
     Return dtype and N/A values to use when concatenating specified units.
