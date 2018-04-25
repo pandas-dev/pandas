@@ -2391,9 +2391,10 @@ class Index(IndexOpsMixin, PandasObject):
 
         Returns
         -------
-        object : The passed label if it is in the index. The previous label
-            if the passed label is not in the sorted index, or NaN if there
-            is no such label.
+        object
+            The passed label if it is in the index. The previous label if the
+            passed label is not in the sorted index or `NaN` if there is no
+            such label.
 
         See Also
         --------
