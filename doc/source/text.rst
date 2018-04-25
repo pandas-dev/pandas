@@ -199,6 +199,75 @@ regular expression object will raise a ``ValueError``.
     ---------------------------------------------------------------------------
     ValueError: case and flags cannot be set when pat is a compiled regex
 
+.. _text.concatenate:
+
+Concatenation
+-------------
+
+There are several ways to concatenate a ``Series`` or ``Index``, either with itself or others, all based on :meth:`~Series.str.cat`,
+resp. ``Index.str.cat``.
+
+Concatenating a single Series into a string
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The content of a ``Series`` (or ``Index``) can be concatenated:
+
+.. ipython:: python
+
+    s = pd.Series(['a', 'b', 'c', 'd'])
+    s.str.cat(sep=',')
+    
+If not specified, the keyword ``sep`` for the separator defaults to the empty string, ``sep=''``:
+
+.. ipython:: python
+
+    s.str.cat()
+
+By default, missing values are ignored. Using ``na_rep``, they can be given a representation:
+
+.. ipython:: python
+
+    t = pd.Series(['a', 'b', np.nan, 'd'])
+    t.str.cat(sep=',')
+    t.str.cat(sep=',', na_rep='-')
+
+Concatenating a Series and something list-like into a Series
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The first argument to :meth:`~Series.str.cat` can be a list-like object, provided that it matches the length of the calling ``Series`` (or ``Index``).
+
+.. ipython:: python
+
+    s.str.cat(['A', 'B', 'C', 'D'])
+    
+Missing values on either side will result in missing values in the result as well, *unless* ``na_rep`` is specified:
+
+.. ipython:: python
+
+    s.str.cat(t)
+    s.str.cat(t, na_rep='-')
+
+Series are *not* aligned on their index before concatenation:
+
+.. ipython:: python
+
+    u = pd.Series(['b', 'd', 'e', 'c'], index=[1, 3, 4, 2])
+    # without alignment
+    s.str.cat(u)
+    # with separate alignment
+    v, w = s.align(u)
+    v.str.cat(w, na_rep='-')
+
+Concatenating a Series and many objects into a Series
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+List-likes (excluding iterators, ``dict``-views, etc.) can be arbitrarily combined in a list.
+All elements of the list must match in length to the calling ``Series`` (resp. ``Index``):
+
+.. ipython:: python
+
+    x = pd.Series([1, 2, 3, 4], index=['A', 'B', 'C', 'D'])
+    s.str.cat([['A', 'B', 'C', 'D'], s, s.values, x.index])
 
 Indexing with ``.str``
 ----------------------

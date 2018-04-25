@@ -15,7 +15,7 @@ Instructions for installing from source,
 `PyPI <http://pypi.python.org/pypi/pandas>`__, `ActivePython <https://www.activestate.com/activepython/downloads>`__, various Linux distributions, or a
 `development version <http://github.com/pandas-dev/pandas>`__ are also provided.
 
-.. _install.dropping_27:
+.. _install.dropping-27:
 
 Plan for dropping Python 2.7
 ----------------------------
@@ -223,7 +223,7 @@ installed), make sure you have `pytest
 Dependencies
 ------------
 
-* `setuptools <https://setuptools.readthedocs.io/en/latest/>`__: 3.3.0 or higher
+* `setuptools <https://setuptools.readthedocs.io/en/latest/>`__: 24.2.0 or higher
 * `NumPy <http://www.numpy.org>`__: 1.9.0 or higher
 * `python-dateutil <//https://dateutil.readthedocs.io/en/stable/>`__: 2.5.0 or higher
 * `pytz <http://pytz.sourceforge.net/>`__
