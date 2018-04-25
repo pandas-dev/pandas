@@ -2185,7 +2185,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             result.name = None
         return result
 
-    def combine(self, other, func, fill_value=np.nan):
+    def combine(self, other, func, fill_value=None):
         """
         Perform elementwise binary operation on two Series using given function
         with optional fill value when an index is missing from one Series or
@@ -3216,7 +3216,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 return self.copy()
             return self
 
-        new_values = algorithms.take_1d(self._values, indexer)
+        # TODO: determine if we want EA to handle fill_value=None
+        # if not, then we have to determine this here.
+        new_values = algorithms.take_1d(self._values, indexer,
+                                        fill_value=None, allow_fill=True)
         return self._constructor(new_values, index=new_index)
 
     def _needs_reindex_multi(self, axes, method, level):

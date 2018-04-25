@@ -119,7 +119,8 @@ class TestGetitem(BaseDecimal, base.BaseGetitemTests):
                                  decimal.Decimal('3')])
         self.assert_extension_array_equal(result, expected)
 
-        result = ea.take([1, 2, -1], fill_value=ea.dtype.na_value)
+        result = ea.take([1, 2, -1], fill_value=ea.dtype.na_value,
+                         allow_fill=True)
         expected = DecimalArray([decimal.Decimal('2'),
                                  decimal.Decimal('3'),
                                  decimal.Decimal('NaN')])

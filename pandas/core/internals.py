@@ -1889,6 +1889,11 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         return type(self.values)
 
     @property
+    def fill_value(self):
+        # Used in reindex_indexer
+        return self.values.dtype.na_value
+
+    @property
     def _can_hold_na(self):
         # The default ExtensionArray._can_hold_na is True
         return self._holder._can_hold_na
@@ -1951,7 +1956,8 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         # axis doesn't matter; we are really a single-dim object
         # but are passed the axis depending on the calling routing
         # if its REALLY axis 0, then this will be a reindex and not a take
-        new_values = self.values.take(indexer, fill_value=fill_value)
+        new_values = self.values.take(indexer, fill_value=fill_value,
+                                      allow_fill=True)
 
         # if we are a 1-dim object, then always place at 0
         if self.ndim == 1:

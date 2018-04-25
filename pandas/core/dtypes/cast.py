@@ -256,7 +256,11 @@ def maybe_upcast_putmask(result, mask, other):
 
 def maybe_promote(dtype, fill_value=np.nan):
     # if we passed an array here, determine the fill value by dtype
-    if isinstance(fill_value, np.ndarray):
+    if is_extension_array_dtype(dtype):
+        # XXX: verify this change
+        fill_value = dtype.na_value
+
+    elif isinstance(fill_value, np.ndarray):
         if issubclass(fill_value.dtype.type, (np.datetime64, np.timedelta64)):
             fill_value = iNaT
         else:

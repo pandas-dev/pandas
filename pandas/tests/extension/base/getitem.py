@@ -155,7 +155,7 @@ class BaseGetitemTests(BaseExtensionTests):
 
     def test_take_pandas_style_negative_raises(self, data, na_value):
         with pytest.raises(ValueError):
-            data.take([0, -2], fill_value=na_value)
+            data.take([0, -2], fill_value=na_value, allow_fill=True)
 
     @pytest.mark.xfail(reason="Series.take with extension array buggy for -1")
     def test_take_series(self, data):

@@ -94,7 +94,7 @@ class JSONArray(ExtensionArray):
     def isna(self):
         return np.array([x == self.dtype.na_value for x in self.data])
 
-    def take(self, indexer, fill_value=None):
+    def take(self, indexer, fill_value=None, allow_fill=None):
         # re-implement here, since NumPy has trouble setting
         # sized objects like UserDicts into scalar slots of
         # an ndarary.
@@ -102,12 +102,14 @@ class JSONArray(ExtensionArray):
         msg = ("Index is out of bounds or cannot do a "
                "non-empty take from an empty array.")
 
-        if fill_value is None:
+        if allow_fill is None:
             try:
                 output = [self.data[loc] for loc in indexer]
             except IndexError:
                 raise IndexError(msg)
         else:
+            if fill_value is None:
+                fill_value = self.dtype.na_value
             # bounds check
             if (indexer < -1).any():
                 raise ValueError

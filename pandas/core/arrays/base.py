@@ -5,69 +5,12 @@
    This is an experimental API and subject to breaking changes
    without warning.
 """
-import textwrap
-
 import numpy as np
 
 from pandas.errors import AbstractMethodError
 from pandas.compat.numpy import function as nv
-from pandas.util._decorators import Appender, Substitution
 
 _not_implemented_message = "{} does not implement {}."
-
-
-_take_docstring = textwrap.dedent("""\
-Take elements from an array.
-
-Parameters
-----------
-%(arr)s\
-indexer : sequence of integers
-    Indices to be taken. See Notes for how negative indicies
-    are handled.
-fill_value : any, optional
-    Fill value to use for NA-indicies. This has a few behaviors.
-
-    * fill_value is not specified : triggers NumPy's semantics
-      where negative values in `indexer` mean slices from the end.
-    * fill_value is NA : Fill positions where `indexer` is ``-1``
-      with ``self.dtype.na_value``. Anything considered NA by
-      :func:`pandas.isna` will result in ``self.dtype.na_value``
-      being used to fill.
-    * fill_value is not NA : Fill positions where `indexer` is ``-1``
-      with `fill_value`.
-
-Returns
--------
-ExtensionArray
-
-Raises
-------
-IndexError
-    When the indexer is out of bounds for the array.
-ValueError
-    When the indexer contains negative values other than ``-1``
-    and `fill_value` is specified.
-
-Notes
------
-The meaning of negative values in `indexer` depends on the
-`fill_value` argument. By default, we follow the behavior
-:meth:`numpy.take` of where negative indices indicate slices
-from the end.
-
-When `fill_value` is specified, we follow pandas semantics of ``-1``
-indicating a missing value. In this case, positions where `indexer`
-is ``-1`` will be filled with `fill_value` or the default NA value
-for this type.
-
-ExtensionArray.take is called by ``Series.__getitem__``, ``.loc``,
-``iloc``, when the indexer is a sequence of values. Additionally,
-it's called by :meth:`Series.reindex` with a `fill_value`.
-
-See Also
---------
-numpy.take""")
 
 
 class ExtensionArray(object):
@@ -532,15 +475,66 @@ class ExtensionArray(object):
         """
         return self.astype(object)
 
-    @Substitution(arr='')
-    @Appender(_take_docstring)
     def take(self, indexer, fill_value=None, allow_fill=None):
-        # type: (Sequence[int], Optional[Any]) -> ExtensionArray
-        # assert fill_value is not np.nan
+        # type: (Sequence[int], Optional[Any], Optional[bool]) -> ExtensionArray
+        """Take elements from an array.
+
+        Parameters
+        ----------
+        indexer : sequence of integers
+            Indices to be taken. See Notes for how negative indicies
+            are handled.
+        fill_value : any, optional
+            Fill value to use for NA-indicies. This has a few behaviors.
+
+            * fill_value is not specified : triggers NumPy's semantics
+              where negative values in `indexer` mean slices from the end.
+            * fill_value is NA : Fill positions where `indexer` is ``-1``
+              with ``self.dtype.na_value``. Anything considered NA by
+              :func:`pandas.isna` will result in ``self.dtype.na_value``
+              being used to fill.
+            * fill_value is not NA : Fill positions where `indexer` is ``-1``
+              with `fill_value`.
+
+        Returns
+        -------
+        ExtensionArray
+
+        Raises
+        ------
+        IndexError
+            When the indexer is out of bounds for the array.
+        ValueError
+            When the indexer contains negative values other than ``-1``
+            and `fill_value` is specified.
+
+        Notes
+        -----
+        The meaning of negative values in `indexer` depends on the
+        `fill_value` argument. By default, we follow the behavior
+        :meth:`numpy.take` of where negative indices indicate slices
+        from the end.
+
+        When `fill_value` is specified, we follow pandas semantics of ``-1``
+        indicating a missing value. In this case, positions where `indexer`
+        is ``-1`` will be filled with `fill_value` or the default NA value
+        for this type.
+
+        ExtensionArray.take is called by ``Series.__getitem__``, ``.loc``,
+        ``iloc``, when the indexer is a sequence of values. Additionally,
+        it's called by :meth:`Series.reindex` with a `fill_value`.
+
+        See Also
+        --------
+        numpy.take
+        """
         from pandas.core.algorithms import take
 
         data = self._values_for_take()
-        result = take(data, indexer, fill_value=fill_value)
+        if allow_fill and fill_value is None:
+            fill_value = self.dtype.na_value
+
+        result = take(data, indexer, fill_value=fill_value, allow_fill=allow_fill)
         return self._from_sequence(result)
 
     def copy(self, deep=False):
@@ -605,4 +599,3 @@ class ExtensionArray(object):
         used for interacting with our indexers.
         """
         return np.array(self)
-
