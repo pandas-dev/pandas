@@ -33,18 +33,31 @@ class JSONArray(ExtensionArray):
                 raise TypeError
         self.data = values
 
+        # Some aliases for common attribute names to ensure pandas supports
+        # these
+        self._items = self._data = self.data
+        # those aliases are currently not working due to assumptions
+        # in internal code (GH-20735)
+        # self._values = self.values = self.data
+
     @classmethod
-    def _constructor_from_sequence(cls, scalars):
+    def _from_sequence(cls, scalars):
         return cls(scalars)
+
+    @classmethod
+    def _from_factorized(cls, values, original):
+        return cls([collections.UserDict(x) for x in values if x != ()])
 
     def __getitem__(self, item):
         if isinstance(item, numbers.Integral):
             return self.data[item]
         elif isinstance(item, np.ndarray) and item.dtype == 'bool':
-            return self._constructor_from_sequence([
-                x for x, m in zip(self, item) if m
-            ])
+            return self._from_sequence([x for x, m in zip(self, item) if m])
+        elif isinstance(item, collections.Iterable):
+            # fancy indexing
+            return type(self)([self.data[i] for i in item])
         else:
+            # slice
             return type(self)(self.data[item])
 
     def __setitem__(self, key, value):
@@ -81,9 +94,13 @@ class JSONArray(ExtensionArray):
         return np.array([x == self._na_value for x in self.data])
 
     def take(self, indexer, allow_fill=True, fill_value=None):
-        output = [self.data[loc] if loc != -1 else self._na_value
-                  for loc in indexer]
-        return self._constructor_from_sequence(output)
+        try:
+            output = [self.data[loc] if loc != -1 else self._na_value
+                      for loc in indexer]
+        except IndexError:
+            raise IndexError("Index is out of bounds or cannot do a "
+                             "non-empty take from an empty array.")
+        return self._from_sequence(output)
 
     def copy(self, deep=False):
         return type(self)(self.data[:])
@@ -103,6 +120,17 @@ class JSONArray(ExtensionArray):
     def _concat_same_type(cls, to_concat):
         data = list(itertools.chain.from_iterable([x.data for x in to_concat]))
         return cls(data)
+
+    def _values_for_factorize(self):
+        frozen = self._values_for_argsort()
+        return frozen, ()
+
+    def _values_for_argsort(self):
+        # Disable NumPy's shape inference by including an empty tuple...
+        # If all the elemnts of self are the same size P, NumPy will
+        # cast them to an (N, P) array, instead of an (N,) array of tuples.
+        frozen = [()] + list(tuple(x.items()) for x in self)
+        return np.array(frozen, dtype=object)[1:]
 
 
 def make_data():

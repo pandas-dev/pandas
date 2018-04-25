@@ -227,7 +227,7 @@ class TestSparseDataFrame(SharedWithSparse):
 
     def test_constructor_from_unknown_type(self):
         # GH 19393
-        class Unknown:
+        class Unknown(object):
             pass
         with pytest.raises(TypeError,
                            message='SparseDataFrame called with unknown type '

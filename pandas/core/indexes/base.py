@@ -42,6 +42,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
     is_datetime64tz_dtype,
     is_timedelta64_dtype,
+    is_hashable,
     needs_i8_conversion,
     is_iterator, is_list_like,
     is_scalar)
@@ -99,9 +100,14 @@ def _make_comparison_op(op, cls):
             # don't pass MultiIndex
             with np.errstate(all='ignore'):
                 result = ops._comp_method_OBJECT_ARRAY(op, self.values, other)
+
         else:
-            with np.errstate(all='ignore'):
-                result = op(self.values, np.asarray(other))
+
+            # numpy will show a DeprecationWarning on invalid elementwise
+            # comparisons, this will raise in the future
+            with warnings.catch_warnings(record=True):
+                with np.errstate(all='ignore'):
+                    result = op(self.values, np.asarray(other))
 
         # technically we could support bool dtyped Index
         # for now just return the indexing array directly
@@ -237,7 +243,8 @@ class Index(IndexOpsMixin, PandasObject):
 
     _engine_type = libindex.ObjectEngine
 
-    _accessors = frozenset(['str'])
+    _accessors = set(['str'])
+
     str = CachedAccessor("str", StringMethods)
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None,
@@ -1306,9 +1313,33 @@ class Index(IndexOpsMixin, PandasObject):
         return FrozenList((self.name, ))
 
     def _set_names(self, values, level=None):
+        """
+        Set new names on index. Each name has to be a hashable type.
+
+        Parameters
+        ----------
+        values : str or sequence
+            name(s) to set
+        level : int, level name, or sequence of int/level names (default None)
+            If the index is a MultiIndex (hierarchical), level(s) to set (None
+            for all levels).  Otherwise level must be None
+
+        Raises
+        ------
+        TypeError if each name is not hashable.
+        """
+        if not is_list_like(values):
+            raise ValueError('Names must be a list-like')
         if len(values) != 1:
             raise ValueError('Length of new names must be 1, got %d' %
                              len(values))
+
+        # GH 20527
+        # All items in 'name' need to be hashable:
+        for name in values:
+            if not is_hashable(name):
+                raise TypeError('{}.name must be a hashable type'
+                                .format(self.__class__.__name__))
         self.name = values[0]
 
     names = property(fset=_set_names, fget=_get_names)
@@ -1334,9 +1365,9 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
         >>> Index([1, 2, 3, 4]).set_names('foo')
-        Int64Index([1, 2, 3, 4], dtype='int64')
+        Int64Index([1, 2, 3, 4], dtype='int64', name='foo')
         >>> Index([1, 2, 3, 4]).set_names(['foo'])
-        Int64Index([1, 2, 3, 4], dtype='int64')
+        Int64Index([1, 2, 3, 4], dtype='int64', name='foo')
         >>> idx = MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
                                           (2, u'one'), (2, u'two')],
                                           names=['foo', 'bar'])
@@ -1349,6 +1380,7 @@ class Index(IndexOpsMixin, PandasObject):
                    labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
                    names=[u'baz', u'bar'])
         """
+
         if level is not None and self.nlevels == 1:
             raise ValueError('Level must be None for non-MultiIndex')
 
@@ -1819,6 +1851,9 @@ class Index(IndexOpsMixin, PandasObject):
         Returns a sorted list of index elements which appear more than once in
         the index.
 
+        .. deprecated:: 0.23.0
+            Use idx[idx.duplicated()].unique() instead
+
         Returns
         -------
         array-like
@@ -1865,13 +1900,12 @@ class Index(IndexOpsMixin, PandasObject):
         >>> pd.Index(dates).get_duplicates()
         DatetimeIndex([], dtype='datetime64[ns]', freq=None)
         """
-        from collections import defaultdict
-        counter = defaultdict(lambda: 0)
-        for k in self.values:
-            counter[k] += 1
-        return sorted(k for k, v in compat.iteritems(counter) if v > 1)
+        warnings.warn("'get_duplicates' is deprecated and will be removed in "
+                      "a future release. You can use "
+                      "idx[idx.duplicated()].unique() instead",
+                      FutureWarning, stacklevel=2)
 
-    _get_duplicates = get_duplicates
+        return self[self.duplicated()].unique()
 
     def _cleanup(self):
         self._engine.clear_mapping()

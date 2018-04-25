@@ -36,6 +36,22 @@ _shared_docs = dict()
 
 
 def _get_array_list(arr, others):
+    """
+    Auxiliary function for :func:`str_cat`
+
+    Parameters
+    ----------
+    arr : ndarray
+        The left-most ndarray of the concatenation
+    others : list, ndarray, Series
+        The rest of the content to concatenate. If list of list-likes,
+        all elements must be passable to ``np.asarray``.
+
+    Returns
+    -------
+    list
+        List of all necessary arrays
+    """
     from pandas.core.series import Series
 
     if len(others) and isinstance(com._values_from_object(others)[0],
@@ -328,19 +344,54 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
 
 def str_startswith(arr, pat, na=np.nan):
     """
-    Return boolean Series/``array`` indicating whether each string in the
-    Series/Index starts with passed pattern. Equivalent to
-    :meth:`str.startswith`.
+    Test if the start of each string element matches a pattern.
+
+    Equivalent to :meth:`str.startswith`.
 
     Parameters
     ----------
-    pat : string
-        Character sequence
-    na : bool, default NaN
+    pat : str
+        Character sequence. Regular expressions are not accepted.
+    na : object, default NaN
+        Object shown if element tested is not a string.
 
     Returns
     -------
-    startswith : Series/array of boolean values
+    Series or Index of bool
+        A Series of booleans indicating whether the given pattern matches
+        the start of each string element.
+
+    See Also
+    --------
+    str.startswith : Python standard library string method.
+    Series.str.endswith : Same as startswith, but tests the end of string.
+    Series.str.contains : Tests if string element contains a pattern.
+
+    Examples
+    --------
+    >>> s = pd.Series(['bat', 'Bear', 'cat', np.nan])
+    >>> s
+    0     bat
+    1    Bear
+    2     cat
+    3     NaN
+    dtype: object
+
+    >>> s.str.startswith('b')
+    0     True
+    1    False
+    2    False
+    3      NaN
+    dtype: object
+
+    Specifying `na` to be `False` instead of `NaN`.
+
+    >>> s.str.startswith('b', na=False)
+    0     True
+    1    False
+    2    False
+    3    False
+    dtype: bool
     """
     f = lambda x: x.startswith(pat)
     return _na_map(f, arr, na, dtype=bool)
@@ -348,19 +399,54 @@ def str_startswith(arr, pat, na=np.nan):
 
 def str_endswith(arr, pat, na=np.nan):
     """
-    Return boolean Series indicating whether each string in the
-    Series/Index ends with passed pattern. Equivalent to
-    :meth:`str.endswith`.
+    Test if the end of each string element matches a pattern.
+
+    Equivalent to :meth:`str.endswith`.
 
     Parameters
     ----------
-    pat : string
-        Character sequence
-    na : bool, default NaN
+    pat : str
+        Character sequence. Regular expressions are not accepted.
+    na : object, default NaN
+        Object shown if element tested is not a string.
 
     Returns
     -------
-    endswith : Series/array of boolean values
+    Series or Index of bool
+        A Series of booleans indicating whether the given pattern matches
+        the end of each string element.
+
+    See Also
+    --------
+    str.endswith : Python standard library string method.
+    Series.str.startswith : Same as endswith, but tests the start of string.
+    Series.str.contains : Tests if string element contains a pattern.
+
+    Examples
+    --------
+    >>> s = pd.Series(['bat', 'bear', 'caT', np.nan])
+    >>> s
+    0     bat
+    1    bear
+    2     caT
+    3     NaN
+    dtype: object
+
+    >>> s.str.endswith('t')
+    0     True
+    1    False
+    2    False
+    3      NaN
+    dtype: object
+
+    Specifying `na` to be `False` instead of `NaN`.
+
+    >>> s.str.endswith('t', na=False)
+    0     True
+    1    False
+    2    False
+    3    False
+    dtype: bool
     """
     f = lambda x: x.endswith(pat)
     return _na_map(f, arr, na, dtype=bool)
@@ -941,17 +1027,59 @@ def str_get_dummies(arr, sep='|'):
 
 def str_join(arr, sep):
     """
-    Join lists contained as elements in the Series/Index with
-    passed delimiter. Equivalent to :meth:`str.join`.
+    Join lists contained as elements in the Series/Index with passed delimiter.
+
+    If the elements of a Series are lists themselves, join the content of these
+    lists using the delimiter passed to the function.
+    This function is an equivalent to :meth:`str.join`.
 
     Parameters
     ----------
-    sep : string
-        Delimiter
+    sep : str
+        Delimiter to use between list entries.
 
     Returns
     -------
-    joined : Series/Index of objects
+    Series/Index: object
+
+    Notes
+    -----
+    If any of the lists does not contain string objects the result of the join
+    will be `NaN`.
+
+    See Also
+    --------
+    str.join : Standard library version of this method.
+    Series.str.split : Split strings around given separator/delimiter.
+
+    Examples
+    --------
+
+    Example with a list that contains non-string elements.
+
+    >>> s = pd.Series([['lion', 'elephant', 'zebra'],
+    ...                [1.1, 2.2, 3.3],
+    ...                ['cat', np.nan, 'dog'],
+    ...                ['cow', 4.5, 'goat']
+    ...                ['duck', ['swan', 'fish'], 'guppy']])
+    >>> s
+    0        [lion, elephant, zebra]
+    1                [1.1, 2.2, 3.3]
+    2                [cat, nan, dog]
+    3               [cow, 4.5, goat]
+    4    [duck, [swan, fish], guppy]
+    dtype: object
+
+    Join all lists using an '-', the lists containing object(s) of types other
+    than str will become a NaN.
+
+    >>> s.str.join('-')
+    0    lion-elephant-zebra
+    1                    NaN
+    2                    NaN
+    3                    NaN
+    4                    NaN
+    dtype: object
     """
     return _na_map(sep.join, arr)
 
@@ -1539,19 +1667,60 @@ def str_translate(arr, table, deletechars=None):
 
 def str_get(arr, i):
     """
+    Extract element from each component at specified position.
+
     Extract element from lists, tuples, or strings in each element in the
     Series/Index.
 
     Parameters
     ----------
     i : int
-        Integer index (location)
+        Position of element to extract.
 
     Returns
     -------
     items : Series/Index of objects
+
+    Examples
+    --------
+    >>> s = pd.Series(["String",
+               (1, 2, 3),
+               ["a", "b", "c"],
+               123, -456,
+               {1:"Hello", "2":"World"}])
+    >>> s
+    0                        String
+    1                     (1, 2, 3)
+    2                     [a, b, c]
+    3                           123
+    4                          -456
+    5    {1: 'Hello', '2': 'World'}
+    dtype: object
+
+    >>> s.str.get(1)
+    0        t
+    1        2
+    2        b
+    3      NaN
+    4      NaN
+    5    Hello
+    dtype: object
+
+    >>> s.str.get(-1)
+    0      g
+    1      3
+    2      c
+    3    NaN
+    4    NaN
+    5    NaN
+    dtype: object
     """
-    f = lambda x: x[i] if len(x) > i >= -len(x) else np.nan
+    def f(x):
+        if isinstance(x, dict):
+            return x.get(i)
+        elif len(x) > i >= -len(x):
+            return x[i]
+        return np.nan
     return _na_map(f, arr)
 
 
@@ -2145,11 +2314,68 @@ class StringMethods(NoNewAttributesMixin):
 
     _shared_docs['casemethods'] = ("""
     Convert strings in the Series/Index to %(type)s.
+
     Equivalent to :meth:`str.%(method)s`.
 
     Returns
     -------
-    converted : Series/Index of objects
+    Series/Index of objects
+
+    See Also
+    --------
+    Series.str.lower : Converts all characters to lowercase.
+    Series.str.upper : Converts all characters to uppercase.
+    Series.str.title : Converts first character of each word to uppercase and
+        remaining to lowercase.
+    Series.str.capitalize : Converts first character to uppercase and
+        remaining to lowercase.
+    Series.str.swapcase : Converts uppercase to lowercase and lowercase to
+        uppercase.
+
+    Examples
+    --------
+    >>> s = pd.Series(['lower', 'CAPITALS', 'this is a sentence', 'SwApCaSe'])
+    >>> s
+    0                 lower
+    1              CAPITALS
+    2    this is a sentence
+    3              SwApCaSe
+    dtype: object
+
+    >>> s.str.lower()
+    0                 lower
+    1              capitals
+    2    this is a sentence
+    3              swapcase
+    dtype: object
+
+    >>> s.str.upper()
+    0                 LOWER
+    1              CAPITALS
+    2    THIS IS A SENTENCE
+    3              SWAPCASE
+    dtype: object
+
+    >>> s.str.title()
+    0                 Lower
+    1              Capitals
+    2    This Is A Sentence
+    3              Swapcase
+    dtype: object
+
+    >>> s.str.capitalize()
+    0                 Lower
+    1              Capitals
+    2    This is a sentence
+    3              Swapcase
+    dtype: object
+
+    >>> s.str.swapcase()
+    0                 LOWER
+    1              capitals
+    2    THIS IS A SENTENCE
+    3              sWaPcAsE
+    dtype: object
     """)
     _shared_docs['lower'] = dict(type='lowercase', method='lower')
     _shared_docs['upper'] = dict(type='uppercase', method='upper')

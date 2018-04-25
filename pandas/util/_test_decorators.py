@@ -160,6 +160,8 @@ def skip_if_no(package, min_version=None):
 
 skip_if_no_mpl = pytest.mark.skipif(_skip_if_no_mpl(),
                                     reason="Missing matplotlib dependency")
+skip_if_mpl = pytest.mark.skipif(not _skip_if_no_mpl(),
+                                 reason="matplotlib is present")
 skip_if_mpl_1_5 = pytest.mark.skipif(_skip_if_mpl_1_5(),
                                      reason="matplotlib 1.5")
 xfail_if_mpl_2_2 = pytest.mark.xfail(_skip_if_mpl_2_2(),
@@ -187,3 +189,28 @@ skip_if_no_ne = pytest.mark.skipif(not _USE_NUMEXPR,
                                    "installed->{installed}".format(
                                        enabled=_USE_NUMEXPR,
                                        installed=_NUMEXPR_INSTALLED))
+
+
+def parametrize_fixture_doc(*args):
+    """
+    Intended for use as a decorator for parametrized fixture,
+    this function will wrap the decorated function with a pytest
+    ``parametrize_fixture_doc`` mark. That mark will format
+    initial fixture docstring by replacing placeholders {0}, {1} etc
+    with parameters passed as arguments.
+
+    Parameters:
+    ----------
+        args: iterable
+            Positional arguments for docstring.
+
+    Returns:
+    -------
+    documented_fixture: function
+        The decorated function wrapped within a pytest
+        ``parametrize_fixture_doc`` mark
+    """
+    def documented_fixture(fixture):
+        fixture.__doc__ = fixture.__doc__.format(*args)
+        return fixture
+    return documented_fixture
