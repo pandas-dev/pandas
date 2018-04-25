@@ -62,9 +62,9 @@ class TestIndex(Base):
         Return a generator of the various index types, leaving
         out the ones with a key in skip_index_keys
         """
-        for key, idx in self.indices.items():
+        for key, index in self.indices.items():
             if key not in skip_index_keys:
-                yield key, idx
+                yield key, index
 
     def test_new_axis(self):
         new_index = self.dateIndex[None, :]
@@ -80,8 +80,8 @@ class TestIndex(Base):
     @pytest.mark.parametrize("attr", ['strIndex', 'dateIndex'])
     def test_constructor_regular(self, attr):
         # regular instance creation
-        idx = getattr(self, attr)
-        tm.assert_contains_all(idx, idx)
+        index = getattr(self, attr)
+        tm.assert_contains_all(index, index)
 
     def test_constructor_casting(self):
         # casting
@@ -108,14 +108,14 @@ class TestIndex(Base):
         # corner case
         pytest.raises(TypeError, Index, 0)
 
-    @pytest.mark.parametrize("idx_vals", [
+    @pytest.mark.parametrize("index_vals", [
         [('A', 1), 'B'], ['B', ('A', 1)]])
-    def test_construction_list_mixed_tuples(self, idx_vals):
+    def test_construction_list_mixed_tuples(self, index_vals):
         # see gh-10697: if we are constructing from a mixed list of tuples,
         # make sure that we are independent of the sorting order.
-        idx = Index(idx_vals)
-        assert isinstance(idx, Index)
-        assert not isinstance(idx, MultiIndex)
+        index = Index(index_vals)
+        assert isinstance(index, Index)
+        assert not isinstance(index, MultiIndex)
 
     @pytest.mark.parametrize('na_value', [None, np.nan])
     @pytest.mark.parametrize('vtype', [list, tuple, iter])
@@ -127,36 +127,36 @@ class TestIndex(Base):
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("cast_as_obj", [True, False])
-    @pytest.mark.parametrize("idx", [
+    @pytest.mark.parametrize("index", [
         pd.date_range('2015-01-01 10:00', freq='D', periods=3,
                       tz='US/Eastern'),  # DTI with tz
         pd.date_range('2015-01-01 10:00', freq='D', periods=3),  # DTI no tz
         pd.timedelta_range('1 days', freq='D', periods=3),  # td
         pd.period_range('2015-01-01', freq='D', periods=3)  # period
     ])
-    def test_constructor_from_index_dtlike(self, cast_as_obj, idx):
+    def test_constructor_from_index_dtlike(self, cast_as_obj, index):
         if cast_as_obj:
-            result = pd.Index(idx.astype(object))
+            result = pd.Index(index.astype(object))
         else:
-            result = pd.Index(idx)
+            result = pd.Index(index)
 
-        tm.assert_index_equal(result, idx)
+        tm.assert_index_equal(result, index)
 
-        if isinstance(idx, pd.DatetimeIndex) and hasattr(idx, 'tz'):
-            assert result.tz == idx.tz
+        if isinstance(index, pd.DatetimeIndex) and hasattr(index, 'tz'):
+            assert result.tz == index.tz
 
-    @pytest.mark.parametrize("idx,has_tz", [
+    @pytest.mark.parametrize("index,has_tz", [
         (pd.date_range('2015-01-01 10:00', freq='D', periods=3,
                        tz='US/Eastern'), True),  # datetimetz
         (pd.timedelta_range('1 days', freq='D', periods=3), False),  # td
         (pd.period_range('2015-01-01', freq='D', periods=3), False)  # period
     ])
-    def test_constructor_from_series_dtlike(self, idx, has_tz):
-        result = pd.Index(pd.Series(idx))
-        tm.assert_index_equal(result, idx)
+    def test_constructor_from_series_dtlike(self, index, has_tz):
+        result = pd.Index(pd.Series(index))
+        tm.assert_index_equal(result, index)
 
         if has_tz:
-            assert result.tz == idx.tz
+            assert result.tz == index.tz
 
     @pytest.mark.parametrize("klass", [Index, DatetimeIndex])
     def test_constructor_from_series(self, klass):
@@ -304,9 +304,9 @@ class TestIndex(Base):
         (['A', 'B', 'C', np.nan], 'obj')
     ])
     def test_constructor_simple_new(self, vals, dtype):
-        idx = Index(vals, name=dtype)
-        result = idx._simple_new(idx, dtype)
-        tm.assert_index_equal(result, idx)
+        index = Index(vals, name=dtype)
+        result = index._simple_new(index, dtype)
+        tm.assert_index_equal(result, index)
 
     @pytest.mark.parametrize("vals", [
         [1, 2, 3], np.array([1, 2, 3]), np.array([1, 2, 3], dtype=int),
@@ -314,29 +314,29 @@ class TestIndex(Base):
         [1., 2., 3.], np.array([1., 2., 3.], dtype=float)
     ])
     def test_constructor_dtypes_to_int64(self, vals):
-        idx = Index(vals, dtype=int)
-        assert isinstance(idx, Int64Index)
+        index = Index(vals, dtype=int)
+        assert isinstance(index, Int64Index)
 
     @pytest.mark.parametrize("vals", [
         [1, 2, 3], [1., 2., 3.], np.array([1., 2., 3.]),
         np.array([1, 2, 3], dtype=int), np.array([1., 2., 3.], dtype=float)
     ])
     def test_constructor_dtypes_to_float64(self, vals):
-        idx = Index(vals, dtype=float)
-        assert isinstance(idx, Float64Index)
+        index = Index(vals, dtype=float)
+        assert isinstance(index, Float64Index)
 
-    @pytest.mark.parametrize("cast_idx", [True, False])
+    @pytest.mark.parametrize("cast_index", [True, False])
     @pytest.mark.parametrize("vals", [
         [True, False, True], np.array([True, False, True], dtype=bool)
     ])
-    def test_constructor_dtypes_to_object(self, cast_idx, vals):
-        if cast_idx:
-            idx = Index(vals, dtype=bool)
+    def test_constructor_dtypes_to_object(self, cast_index, vals):
+        if cast_index:
+            index = Index(vals, dtype=bool)
         else:
-            idx = Index(vals)
+            index = Index(vals)
 
-        assert isinstance(idx, Index)
-        assert idx.dtype == object
+        assert isinstance(index, Index)
+        assert index.dtype == object
 
     @pytest.mark.parametrize("vals", [
         [1, 2, 3], np.array([1, 2, 3], dtype=int),
@@ -345,38 +345,38 @@ class TestIndex(Base):
         [datetime(2011, 1, 1), datetime(2011, 1, 2)]
     ])
     def test_constructor_dtypes_to_categorical(self, vals):
-        idx = Index(vals, dtype='category')
-        assert isinstance(idx, CategoricalIndex)
+        index = Index(vals, dtype='category')
+        assert isinstance(index, CategoricalIndex)
 
-    @pytest.mark.parametrize("cast_idx", [True, False])
+    @pytest.mark.parametrize("cast_index", [True, False])
     @pytest.mark.parametrize("vals", [
         Index(np.array([np_datetime64_compat('2011-01-01'),
                         np_datetime64_compat('2011-01-02')])),
         Index([datetime(2011, 1, 1), datetime(2011, 1, 2)])
 
     ])
-    def test_constructor_dtypes_to_datetime(self, cast_idx, vals):
-        if cast_idx:
-            idx = Index(vals, dtype=object)
-            assert isinstance(idx, Index)
-            assert idx.dtype == object
+    def test_constructor_dtypes_to_datetime(self, cast_index, vals):
+        if cast_index:
+            index = Index(vals, dtype=object)
+            assert isinstance(index, Index)
+            assert index.dtype == object
         else:
-            idx = Index(vals)
-            assert isinstance(idx, DatetimeIndex)
+            index = Index(vals)
+            assert isinstance(index, DatetimeIndex)
 
-    @pytest.mark.parametrize("cast_idx", [True, False])
+    @pytest.mark.parametrize("cast_index", [True, False])
     @pytest.mark.parametrize("vals", [
         np.array([np.timedelta64(1, 'D'), np.timedelta64(1, 'D')]),
         [timedelta(1), timedelta(1)]
     ])
-    def test_constructor_dtypes_to_timedelta(self, cast_idx, vals):
-        if cast_idx:
-            idx = Index(vals, dtype=object)
-            assert isinstance(idx, Index)
-            assert idx.dtype == object
+    def test_constructor_dtypes_to_timedelta(self, cast_index, vals):
+        if cast_index:
+            index = Index(vals, dtype=object)
+            assert isinstance(index, Index)
+            assert index.dtype == object
         else:
-            idx = Index(vals)
-            assert isinstance(idx, TimedeltaIndex)
+            index = Index(vals)
+            assert isinstance(index, TimedeltaIndex)
 
     @pytest.mark.parametrize("values", [
         # pass values without timezone, as DatetimeIndex localizes it
@@ -385,41 +385,41 @@ class TestIndex(Base):
     @pytest.mark.parametrize("klass", [pd.Index, pd.DatetimeIndex])
     def test_constructor_dtypes_datetime(self, tz_naive_fixture, values,
                                          klass):
-        idx = pd.date_range('2011-01-01', periods=5, tz=tz_naive_fixture)
-        dtype = idx.dtype
+        index = pd.date_range('2011-01-01', periods=5, tz=tz_naive_fixture)
+        dtype = index.dtype
 
         result = klass(values, tz=tz_naive_fixture)
-        tm.assert_index_equal(result, idx)
+        tm.assert_index_equal(result, index)
 
         result = klass(values, dtype=dtype)
-        tm.assert_index_equal(result, idx)
+        tm.assert_index_equal(result, index)
 
         result = klass(list(values), tz=tz_naive_fixture)
-        tm.assert_index_equal(result, idx)
+        tm.assert_index_equal(result, index)
 
         result = klass(list(values), dtype=dtype)
-        tm.assert_index_equal(result, idx)
+        tm.assert_index_equal(result, index)
 
     @pytest.mark.parametrize("attr", ['values', 'asi8'])
     @pytest.mark.parametrize("klass", [pd.Index, pd.TimedeltaIndex])
     def test_constructor_dtypes_timedelta(self, attr, klass):
-        idx = pd.timedelta_range('1 days', periods=5)
-        dtype = idx.dtype
+        index = pd.timedelta_range('1 days', periods=5)
+        dtype = index.dtype
 
-        values = getattr(idx, attr)
+        values = getattr(index, attr)
 
         result = klass(values, dtype=dtype)
-        tm.assert_index_equal(result, idx)
+        tm.assert_index_equal(result, index)
 
         result = klass(list(values), dtype=dtype)
-        tm.assert_index_equal(result, idx)
+        tm.assert_index_equal(result, index)
 
     def test_constructor_empty_gen(self):
         skip_index_keys = ["repeats", "periodIndex", "rangeIndex",
                            "tuples"]
-        for key, idx in self.generate_index_types(skip_index_keys):
-            empty = idx.__class__([])
-            assert isinstance(empty, idx.__class__)
+        for key, index in self.generate_index_types(skip_index_keys):
+            empty = index.__class__([])
+            assert isinstance(empty, index.__class__)
             assert not len(empty)
 
     @pytest.mark.parametrize("empty,klass", [
@@ -516,20 +516,20 @@ class TestIndex(Base):
         tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize("pos,expected", [
-        (0, Index(['b', 'c', 'd'], name='idx')),
-        (-1, Index(['a', 'b', 'c'], name='idx'))
+        (0, Index(['b', 'c', 'd'], name='index')),
+        (-1, Index(['a', 'b', 'c'], name='index'))
     ])
     def test_delete(self, pos, expected):
-        idx = Index(['a', 'b', 'c', 'd'], name='idx')
-        result = idx.delete(pos)
+        index = Index(['a', 'b', 'c', 'd'], name='index')
+        result = index.delete(pos)
         tm.assert_index_equal(result, expected)
         assert result.name == expected.name
 
     def test_delete_raises(self):
-        idx = Index(['a', 'b', 'c', 'd'], name='idx')
+        index = Index(['a', 'b', 'c', 'd'], name='index')
         with pytest.raises((IndexError, ValueError)):
             # either depending on numpy version
-            idx.delete(5)
+            index.delete(5)
 
     def test_identical(self):
 
@@ -585,9 +585,9 @@ class TestIndex(Base):
         assert isinstance(self.dateIndex.asof(d), Timestamp)
 
     def test_asof_datetime_partial(self):
-        idx = pd.date_range('2010-01-01', periods=2, freq='m')
+        index = pd.date_range('2010-01-01', periods=2, freq='m')
         expected = Timestamp('2010-02-28')
-        result = idx.asof('2010-02')
+        result = index.asof('2010-02')
         assert result == expected
         assert not isinstance(result, Index)
 
@@ -622,15 +622,15 @@ class TestIndex(Base):
         tm.assert_numpy_array_equal(arr_result, index_result)
 
     def test_booleanindex(self):
-        boolIdx = np.repeat(True, len(self.strIndex)).astype(bool)
-        boolIdx[5:30:2] = False
+        boolIndex = np.repeat(True, len(self.strIndex)).astype(bool)
+        boolIndex[5:30:2] = False
 
-        subIndex = self.strIndex[boolIdx]
+        subIndex = self.strIndex[boolIndex]
 
         for i, val in enumerate(subIndex):
             assert subIndex.get_loc(val) == i
 
-        subIndex = self.strIndex[list(boolIdx)]
+        subIndex = self.strIndex[list(boolIndex)]
         for i, val in enumerate(subIndex):
             assert subIndex.get_loc(val) == i
 
@@ -644,11 +644,11 @@ class TestIndex(Base):
     @pytest.mark.parametrize("dtype", [np.int_, np.bool_])
     def test_empty_fancy(self, attr, dtype):
         empty_arr = np.array([], dtype=dtype)
-        idx = getattr(self, attr)
-        empty_idx = idx.__class__([])
+        index = getattr(self, attr)
+        empty_index = index.__class__([])
 
-        assert idx[[]].identical(empty_idx)
-        assert idx[empty_arr].identical(empty_idx)
+        assert index[[]].identical(empty_index)
+        assert index[empty_arr].identical(empty_index)
 
     @pytest.mark.parametrize("attr", [
         'strIndex', 'intIndex', 'floatIndex'])
@@ -656,12 +656,12 @@ class TestIndex(Base):
         # pd.DatetimeIndex is excluded, because it overrides getitem and should
         # be tested separately.
         empty_farr = np.array([], dtype=np.float_)
-        idx = getattr(self, attr)
-        empty_idx = idx.__class__([])
+        index = getattr(self, attr)
+        empty_index = index.__class__([])
 
-        assert idx[[]].identical(empty_idx)
+        assert index[[]].identical(empty_index)
         # np.ndarray only accepts ndarray of int & bool dtypes, so should Index
-        pytest.raises(IndexError, idx.__getitem__, empty_farr)
+        pytest.raises(IndexError, index.__getitem__, empty_farr)
 
     @pytest.mark.parametrize("itm", [101, 'no_int'])
     def test_getitem_error(self, indices, itm):
@@ -678,17 +678,17 @@ class TestIndex(Base):
         inter = first.intersection(first)
         assert inter is first
 
-    @pytest.mark.parametrize("idx2,keeps_nm", [
-        (Index([3, 4, 5, 6, 7], name="idx"), True),  # preserve same name
+    @pytest.mark.parametrize("index2,keeps_nm", [
+        (Index([3, 4, 5, 6, 7], name="index"), True),  # preserve same name
         (Index([3, 4, 5, 6, 7], name="other"), False),  # drop diff names
         (Index([3, 4, 5, 6, 7]), False)])
-    def test_intersection_name_preservation(self, idx2, keeps_nm):
-        idx1 = Index([1, 2, 3, 4, 5], name='idx')
+    def test_intersection_name_preservation(self, index2, keeps_nm):
+        index1 = Index([1, 2, 3, 4, 5], name='index')
         expected = Index([3, 4, 5])
-        result = idx1.intersection(idx2)
+        result = index1.intersection(index2)
 
         if keeps_nm:
-            expected.name = 'idx'
+            expected.name = 'index'
 
         assert result.name == expected.name
         tm.assert_index_equal(result, expected)
@@ -703,27 +703,27 @@ class TestIndex(Base):
         intersect = first.intersection(second)
         assert intersect.name == exp_nm
 
-    @pytest.mark.parametrize("idx2,keeps_nm", [
-        (Index([4, 7, 6, 5, 3], name='idx'), True),
+    @pytest.mark.parametrize("index2,keeps_nm", [
+        (Index([4, 7, 6, 5, 3], name='index'), True),
         (Index([4, 7, 6, 5, 3], name='other'), False)])
-    def test_intersection_monotonic(self, idx2, keeps_nm):
-        idx1 = Index([5, 3, 2, 4, 1], name='idx')
+    def test_intersection_monotonic(self, index2, keeps_nm):
+        index1 = Index([5, 3, 2, 4, 1], name='index')
         expected = Index([5, 3, 4])
 
         if keeps_nm:
-            expected.name = "idx"
+            expected.name = "index"
 
-        result = idx1.intersection(idx2)
+        result = index1.intersection(index2)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("idx2,exp_arr", [
+    @pytest.mark.parametrize("index2,exp_arr", [
         (Index(['B', 'D']), ['B']),
         (Index(['B', 'D', 'A']), ['A', 'B', 'A'])])
-    def test_intersection_non_monotonic_non_unique(self, idx2, exp_arr):
+    def test_intersection_non_monotonic_non_unique(self, index2, exp_arr):
         # non-monotonic non-unique
-        idx1 = Index(['A', 'B', 'A', 'C'])
+        index1 = Index(['A', 'B', 'A', 'C'])
         expected = Index(exp_arr, dtype='object')
-        result = idx1.intersection(idx2)
+        result = index1.intersection(index2)
         tm.assert_index_equal(result, expected)
 
     def test_intersect_str_dates(self):
@@ -803,25 +803,25 @@ class TestIndex(Base):
         tm.assert_contains_all(self.dateIndex, firstCat)
 
     def test_add(self):
-        idx = self.strIndex
+        index = self.strIndex
         expected = Index(self.strIndex.values * 2)
-        tm.assert_index_equal(idx + idx, expected)
-        tm.assert_index_equal(idx + idx.tolist(), expected)
-        tm.assert_index_equal(idx.tolist() + idx, expected)
+        tm.assert_index_equal(index + index, expected)
+        tm.assert_index_equal(index + index.tolist(), expected)
+        tm.assert_index_equal(index.tolist() + index, expected)
 
         # test add and radd
-        idx = Index(list('abc'))
+        index = Index(list('abc'))
         expected = Index(['a1', 'b1', 'c1'])
-        tm.assert_index_equal(idx + '1', expected)
+        tm.assert_index_equal(index + '1', expected)
         expected = Index(['1a', '1b', '1c'])
-        tm.assert_index_equal('1' + idx, expected)
+        tm.assert_index_equal('1' + index, expected)
 
     def test_sub(self):
-        idx = self.strIndex
-        pytest.raises(TypeError, lambda: idx - 'a')
-        pytest.raises(TypeError, lambda: idx - idx)
-        pytest.raises(TypeError, lambda: idx - idx.tolist())
-        pytest.raises(TypeError, lambda: idx.tolist() - idx)
+        index = self.strIndex
+        pytest.raises(TypeError, lambda: index - 'a')
+        pytest.raises(TypeError, lambda: index - index)
+        pytest.raises(TypeError, lambda: index - index.tolist())
+        pytest.raises(TypeError, lambda: index.tolist() - index)
 
     def test_map_identity_mapping(self):
         # GH 12766
@@ -834,15 +834,15 @@ class TestIndex(Base):
 
         # Test that returning a single tuple from an Index
         #   returns an Index.
-        idx = tm.makeIntIndex(3)
+        index = tm.makeIntIndex(3)
         result = tm.makeIntIndex(3).map(lambda x: (x,))
-        expected = Index([(i,) for i in idx])
+        expected = Index([(i,) for i in index])
         tm.assert_index_equal(result, expected)
 
         # Test that returning a tuple from a map of a single index
         #   returns a MultiIndex object.
-        result = idx.map(lambda x: (x, x == 1))
-        expected = MultiIndex.from_tuples([(i, i == 1) for i in idx])
+        result = index.map(lambda x: (x, x == 1))
+        expected = MultiIndex.from_tuples([(i, i == 1) for i in index])
         tm.assert_index_equal(result, expected)
 
     def test_map_with_tuples_mi(self):
@@ -856,9 +856,9 @@ class TestIndex(Base):
     @pytest.mark.parametrize("attr", [
         'makeDateIndex', 'makePeriodIndex', 'makeTimedeltaIndex'])
     def test_map_tseries_indices_return_index(self, attr):
-        idx = getattr(tm, attr)(10)
+        index = getattr(tm, attr)(10)
         expected = Index([1] * 10)
-        result = idx.map(lambda x: 1)
+        result = index.map(lambda x: 1)
         tm.assert_index_equal(expected, result)
 
     def test_map_tseries_indices_accsr_return_index(self):
@@ -874,8 +874,8 @@ class TestIndex(Base):
     def test_map_dictlike(self, mapper):
         # GH 12756
         expected = Index(['foo', 'bar', 'baz'])
-        idx = tm.makeIntIndex(3)
-        result = idx.map(mapper(expected.values, idx))
+        index = tm.makeIntIndex(3)
+        result = index.map(mapper(expected.values, index))
         tm.assert_index_equal(result, expected)
 
         # TODO: replace with fixture
@@ -908,17 +908,17 @@ class TestIndex(Base):
         tm.assert_index_equal(expected, result)
 
     def test_map_na_exclusion(self):
-        idx = Index([1.5, np.nan, 3, np.nan, 5])
+        index = Index([1.5, np.nan, 3, np.nan, 5])
 
-        result = idx.map(lambda x: x * 2, na_action='ignore')
-        expected = idx * 2
+        result = index.map(lambda x: x * 2, na_action='ignore')
+        expected = index * 2
         tm.assert_index_equal(result, expected)
 
     def test_map_defaultdict(self):
-        idx = Index([1, 2, 3])
+        index = Index([1, 2, 3])
         default_dict = defaultdict(lambda: 'blank')
         default_dict[1] = 'stuff'
-        result = idx.map(default_dict)
+        result = index.map(default_dict)
         expected = Index(['stuff', 'blank', 'blank'])
         tm.assert_index_equal(result, expected)
 
@@ -995,45 +995,45 @@ class TestIndex(Base):
 
     def test_symmetric_difference(self):
         # smoke
-        idx1 = Index([1, 2, 3, 4], name='idx1')
-        idx2 = Index([2, 3, 4, 5])
-        result = idx1.symmetric_difference(idx2)
+        index1 = Index([1, 2, 3, 4], name='index1')
+        index2 = Index([2, 3, 4, 5])
+        result = index1.symmetric_difference(index2)
         expected = Index([1, 5])
         assert tm.equalContents(result, expected)
         assert result.name is None
 
         # __xor__ syntax
-        expected = idx1 ^ idx2
+        expected = index1 ^ index2
         assert tm.equalContents(result, expected)
         assert result.name is None
 
     def test_symmetric_difference_mi(self):
-        idx1 = MultiIndex.from_tuples(self.tuples)
-        idx2 = MultiIndex.from_tuples([('foo', 1), ('bar', 3)])
-        result = idx1.symmetric_difference(idx2)
+        index1 = MultiIndex.from_tuples(self.tuples)
+        index2 = MultiIndex.from_tuples([('foo', 1), ('bar', 3)])
+        result = index1.symmetric_difference(index2)
         expected = MultiIndex.from_tuples([('bar', 2), ('baz', 3), ('bar', 3)])
         assert tm.equalContents(result, expected)
 
-    @pytest.mark.parametrize("idx2,expected", [
+    @pytest.mark.parametrize("index2,expected", [
         (Index([0, 1, np.nan]), Index([0.0, 2.0, 3.0])),
         (Index([0, 1]), Index([0.0, 2.0, 3.0, np.nan]))])
-    def test_symmetric_difference_missing(self, idx2, expected):
+    def test_symmetric_difference_missing(self, index2, expected):
         # GH 13514 change: {nan} - {nan} == {}
         # (GH 6444, sorting of nans, is no longer an issue)
-        idx1 = Index([1, np.nan, 2, 3])
+        index1 = Index([1, np.nan, 2, 3])
 
-        result = idx1.symmetric_difference(idx2)
+        result = index1.symmetric_difference(index2)
         tm.assert_index_equal(result, expected)
 
     def test_symmetric_difference_non_index(self):
-        idx1 = Index([1, 2, 3, 4], name='idx1')
-        idx2 = np.array([2, 3, 4, 5])
+        index1 = Index([1, 2, 3, 4], name='index1')
+        index2 = np.array([2, 3, 4, 5])
         expected = Index([1, 5])
-        result = idx1.symmetric_difference(idx2)
+        result = index1.symmetric_difference(index2)
         assert tm.equalContents(result, expected)
-        assert result.name == 'idx1'
+        assert result.name == 'index1'
 
-        result = idx1.symmetric_difference(idx2, result_name='new_name')
+        result = index1.symmetric_difference(index2, result_name='new_name')
         assert tm.equalContents(result, expected)
         assert result.name == 'new_name'
 
@@ -1042,9 +1042,9 @@ class TestIndex(Base):
         # If taking difference of a set and itself, it
         # needs to preserve the type of the index
         skip_index_keys = ['repeats']
-        for key, idx in self.generate_index_types(skip_index_keys):
-            result = idx.difference(idx)
-            expected = idx.drop(idx)
+        for key, index in self.generate_index_types(skip_index_keys):
+            result = index.difference(index)
+            expected = index.drop(index)
             tm.assert_index_equal(result, expected)
 
     def test_intersection_difference(self):
@@ -1053,9 +1053,9 @@ class TestIndex(Base):
         # empty index produces the same index as the difference
         # of an index with itself.  Test for all types
         skip_index_keys = ['repeats']
-        for key, idx in self.generate_index_types(skip_index_keys):
-            inter = idx.intersection(idx.drop(idx))
-            diff = idx.difference(idx)
+        for key, index in self.generate_index_types(skip_index_keys):
+            inter = index.intersection(index.drop(index))
+            diff = index.difference(index)
             tm.assert_index_equal(inter, diff)
 
     @pytest.mark.parametrize("attr,expected", [
@@ -1118,9 +1118,9 @@ class TestIndex(Base):
     def test_format_missing_obj(self, nulls_fixture):
         values = ['a', 'b', 'c', nulls_fixture]
 
-        idx = Index(values)
-        idx.format()
-        assert idx[3] is nulls_fixture
+        index = Index(values)
+        index.format()
+        assert index[3] is nulls_fixture
 
     def test_format_with_name_time_info(self):
         # bug I fixed 12/20/2011
@@ -1140,8 +1140,8 @@ class TestIndex(Base):
 
     @pytest.mark.parametrize("op", ['any', 'all'])
     def test_logical_compat(self, op):
-        idx = self.create_index()
-        assert getattr(idx, op)() == getattr(idx.values, op)()
+        index = self.create_index()
+        assert getattr(index, op)() == getattr(index.values, op)()
 
     def _check_method_works(self, method):
         # TODO: make this a dedicated test with parametrized methods
@@ -1154,10 +1154,10 @@ class TestIndex(Base):
         method(self.catIndex)
 
     def test_get_indexer(self):
-        idx1 = Index([1, 2, 3, 4, 5])
-        idx2 = Index([2, 4, 6])
+        index1 = Index([1, 2, 3, 4, 5])
+        index2 = Index([2, 4, 6])
 
-        r1 = idx1.get_indexer(idx2)
+        r1 = index1.get_indexer(index2)
         e1 = np.array([1, 3, -1], dtype=np.intp)
         assert_almost_equal(r1, e1)
 
@@ -1168,25 +1168,25 @@ class TestIndex(Base):
         (np.array([0, 0, 1, 1, 2], dtype=np.intp), 'backfill'),
         (np.array([0, 0, 1, 1, 2], dtype=np.intp), 'bfill')])
     def test_get_indexer_methods(self, reverse, expected, method):
-        idx1 = Index([1, 2, 3, 4, 5])
-        idx2 = Index([2, 4, 6])
+        index1 = Index([1, 2, 3, 4, 5])
+        index2 = Index([2, 4, 6])
 
         if reverse:
-            idx1 = idx1[::-1]
+            index1 = index1[::-1]
             expected = expected[::-1]
 
-        result = idx2.get_indexer(idx1, method=method)
+        result = index2.get_indexer(index1, method=method)
         assert_almost_equal(result, expected)
 
     def test_get_indexer_invalid(self):
         # GH10411
-        idx = Index(np.arange(10))
+        index = Index(np.arange(10))
 
         with tm.assert_raises_regex(ValueError, 'tolerance argument'):
-            idx.get_indexer([1, 0], tolerance=1)
+            index.get_indexer([1, 0], tolerance=1)
 
         with tm.assert_raises_regex(ValueError, 'limit argument'):
-            idx.get_indexer([1, 0], limit=1)
+            index.get_indexer([1, 0], limit=1)
 
     @pytest.mark.parametrize(
         'method, tolerance, indexer, expected',
@@ -1209,9 +1209,9 @@ class TestIndex(Base):
             ('backfill', 0.2, [0.2, 1.8, 8.5], [-1, 2, -1]),
             ('nearest', 0.2, [0.2, 1.8, 8.5], [0, 2, -1])])
     def test_get_indexer_nearest(self, method, tolerance, indexer, expected):
-        idx = Index(np.arange(10))
+        index = Index(np.arange(10))
 
-        actual = idx.get_indexer(indexer, method=method, tolerance=tolerance)
+        actual = index.get_indexer(indexer, method=method, tolerance=tolerance)
         tm.assert_numpy_array_equal(actual, np.array(expected,
                                                      dtype=np.intp))
 
@@ -1224,53 +1224,53 @@ class TestIndex(Base):
                   [-1, 2, 9]])))
     def test_get_indexer_nearest_listlike_tolerance(self, tolerance,
                                                     expected, listtype):
-        idx = Index(np.arange(10))
+        index = Index(np.arange(10))
 
-        actual = idx.get_indexer([0.2, 1.8, 8.5], method='nearest',
+        actual = index.get_indexer([0.2, 1.8, 8.5], method='nearest',
                                  tolerance=listtype(tolerance))
         tm.assert_numpy_array_equal(actual, np.array(expected,
                                                      dtype=np.intp))
 
     def test_get_indexer_nearest_error(self):
-        idx = Index(np.arange(10))
+        index = Index(np.arange(10))
         with tm.assert_raises_regex(ValueError, 'limit argument'):
-            idx.get_indexer([1, 0], method='nearest', limit=1)
+            index.get_indexer([1, 0], method='nearest', limit=1)
 
         with pytest.raises(ValueError, match='tolerance size must match'):
-            idx.get_indexer([1, 0], method='nearest',
+            index.get_indexer([1, 0], method='nearest',
                             tolerance=[1, 2, 3])
 
     @pytest.mark.parametrize("method,expected", [
         ('pad', [8, 7, 0]), ('backfill', [9, 8, 1]), ('nearest', [9, 7, 0])])
     def test_get_indexer_nearest_decreasing(self, method, expected):
-        idx = Index(np.arange(10))[::-1]
+        index = Index(np.arange(10))[::-1]
 
-        actual = idx.get_indexer([0, 5, 9], method=method)
+        actual = index.get_indexer([0, 5, 9], method=method)
         tm.assert_numpy_array_equal(actual, np.array([9, 4, 0], dtype=np.intp))
 
-        actual = idx.get_indexer([0.2, 1.8, 8.5], method=method)
+        actual = index.get_indexer([0.2, 1.8, 8.5], method=method)
         tm.assert_numpy_array_equal(actual, np.array(expected, dtype=np.intp))
 
     @pytest.mark.parametrize("method,expected", [
         ('pad', np.array([-1, 0, 1, 1], dtype=np.intp)),
         ('backfill', np.array([0, 0, 1, -1], dtype=np.intp))])
     def test_get_indexer_strings(self, method, expected):
-        idx = pd.Index(['b', 'c'])
-        actual = idx.get_indexer(['a', 'b', 'c', 'd'], method=method)
+        index = pd.Index(['b', 'c'])
+        actual = index.get_indexer(['a', 'b', 'c', 'd'], method=method)
 
         tm.assert_numpy_array_equal(actual, expected)
 
     def test_get_indexer_strings_raises(self):
-        idx = pd.Index(['b', 'c'])
+        index = pd.Index(['b', 'c'])
 
         with pytest.raises(TypeError):
-            idx.get_indexer(['a', 'b', 'c', 'd'], method='nearest')
+            index.get_indexer(['a', 'b', 'c', 'd'], method='nearest')
 
         with pytest.raises(TypeError):
-            idx.get_indexer(['a', 'b', 'c', 'd'], method='pad', tolerance=2)
+            index.get_indexer(['a', 'b', 'c', 'd'], method='pad', tolerance=2)
 
         with pytest.raises(TypeError):
-            idx.get_indexer(['a', 'b', 'c', 'd'], method='pad',
+            index.get_indexer(['a', 'b', 'c', 'd'], method='pad',
                             tolerance=[2, 2, 2, 2])
 
     def test_get_indexer_numeric_index_boolean_target(self):
