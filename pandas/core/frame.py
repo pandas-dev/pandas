@@ -7060,6 +7060,8 @@ class DataFrame(NDFrame):
         dropna : boolean, default True
             Don't consider counts of NaN/NaT.
 
+            .. versionadded:: 0.23.0
+
         Returns
         -------
         modes : DataFrame (sorted)

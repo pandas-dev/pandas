@@ -12,7 +12,7 @@ import pandas as pd
 
 from pandas import (Series, Categorical, DataFrame, isna, notna,
                     bdate_range, date_range, _np_version_under1p10,
-                    CategoricalIndex, to_datetime, to_timedelta)
+                    CategoricalIndex)
 from pandas.core.index import MultiIndex
 from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.indexes.timedeltas import Timedelta
@@ -225,125 +225,143 @@ class TestSeriesAnalytics(TestData):
         int_ts = Series(np.ones(10, dtype=int), index=lrange(10))
         tm.assert_almost_equal(np.median(int_ts), int_ts.median())
 
-    def test_mode(self):
-        # No mode should be found.
-        exp = Series([], dtype=np.float64)
-        tm.assert_series_equal(Series([]).mode(), exp)
+    @pytest.mark.parametrize('dropna, expected', [
+        (True, Series([], dtype=np.float64)),
+        (False, Series([], dtype=np.float64))
+    ])
+    def test_mode_empty(self, dropna, expected):
+        s = Series([], dtype=np.float64)
+        tm.assert_series_equal(s.mode(dropna), expected)
 
-        exp = Series([1], dtype=np.int64)
-        tm.assert_series_equal(Series([1]).mode(), exp)
-
-        exp = Series(['a', 'b', 'c'], dtype=np.object)
-        tm.assert_series_equal(Series(['a', 'b', 'c']).mode(), exp)
-
-        # Test numerical data types.
-        exp_single = [1]
+    @pytest.mark.parametrize('dropna, expected1, expected2, expected3', [
+        (True, [1], [1, 3], [1.0]),
+        (False, [1], [1, 3], [1, np.nan]),
+    ])
+    def test_mode_numerical(self, dropna, expected1, expected2, expected3):
         data_single = [1] * 5 + [2] * 3
-
-        exp_multi = [1, 3]
         data_multi = [1] * 5 + [2] * 3 + [3] * 5
 
         for dt in np.typecodes['AllInteger'] + np.typecodes['Float']:
             s = Series(data_single, dtype=dt)
-            exp = Series(exp_single, dtype=dt)
-            tm.assert_series_equal(s.mode(), exp)
+            expected1 = Series(expected1, dtype=dt)
+            tm.assert_series_equal(s.mode(dropna), expected1)
 
             s = Series(data_multi, dtype=dt)
-            exp = Series(exp_multi, dtype=dt)
-            tm.assert_series_equal(s.mode(), exp)
+            expected2 = Series(expected2, dtype=dt)
+            tm.assert_series_equal(s.mode(dropna), expected2)
 
+        s = Series([1, np.nan])
+        expected = Series(expected3)
+        tm.assert_series_equal(s.mode(dropna), expected)
+
+    @pytest.mark.parametrize('dropna, expected1, expected2, expected3', [
+        (True, ['b'], ['bar'], ['nan']),
+        (False, ['b'], ['bar', np.nan], ['nan'])
+    ])
+    def test_mode_str_obj(self, dropna, expected1, expected2, expected3):
         # Test string and object types.
-        exp = ['b']
         data = ['a'] * 2 + ['b'] * 3
 
         s = Series(data, dtype='c')
-        exp = Series(exp, dtype='c')
-        tm.assert_series_equal(s.mode(), exp)
+        expected1 = Series(expected1, dtype='c')
+        tm.assert_series_equal(s.mode(dropna), expected1)
 
-        exp = ['bar']
-        data = ['foo'] * 2 + ['bar'] * 3
+        data = ['foo', 'bar', 'bar', np.nan, np.nan]
 
-        for dt in [str, object]:
-            s = Series(data, dtype=dt)
-            exp = Series(exp, dtype=dt)
-            tm.assert_series_equal(s.mode(), exp)
+        s = Series(data, dtype=object)
+        expected2 = Series(expected2, dtype=object)
+        result = s.mode(dropna).sort_values().reset_index(drop=True)
+        tm.assert_series_equal(result, expected2)
 
-        # Test datetime types.
-        exp = Series(['1900-05-03', '2011-01-03',
-                      '2013-01-02'], dtype='M8[ns]')
-        s = Series(['2011-01-03', '2013-01-02',
-                    '1900-05-03'], dtype='M8[ns]')
-        tm.assert_series_equal(s.mode(), exp)
+        data = ['foo', 'bar', 'bar', np.nan, np.nan, np.nan]
 
-        exp = Series(['2011-01-03', '2013-01-02'], dtype='M8[ns]')
-        s = Series(['2011-01-03', '2013-01-02', '1900-05-03',
-                    '2011-01-03', '2013-01-02'], dtype='M8[ns]')
-        tm.assert_series_equal(s.mode(), exp)
+        s = Series(data, dtype=str)
+        expected3 = Series(expected3, dtype=str)
+        tm.assert_series_equal(s.mode(dropna), expected3)
 
-        # gh-5986: Test timedelta types.
-        exp = Series(['-1 days', '0 days', '1 days'], dtype='timedelta64[ns]')
-        s = Series(['1 days', '-1 days', '0 days'],
-                   dtype='timedelta64[ns]')
-        tm.assert_series_equal(s.mode(), exp)
-
-        exp = Series(['2 min', '1 day'], dtype='timedelta64[ns]')
-        s = Series(['1 day', '1 day', '-1 day', '-1 day 2 min',
-                    '2 min', '2 min'], dtype='timedelta64[ns]')
-        tm.assert_series_equal(s.mode(), exp)
-
-        # Test mixed dtype.
-        exp = Series(['foo'])
-        s = Series([1, 'foo', 'foo'])
-        tm.assert_series_equal(s.mode(), exp)
-
-        # Test for uint64 overflow.
-        exp = Series([2**63], dtype=np.uint64)
-        s = Series([1, 2**63, 2**63], dtype=np.uint64)
-        tm.assert_series_equal(s.mode(), exp)
-
-        exp = Series([1, 2**63], dtype=np.uint64)
-        s = Series([1, 2**63], dtype=np.uint64)
-        tm.assert_series_equal(s.mode(), exp)
-
-        # Test category dtype.
-        c = Categorical([1, 2])
-        exp = Categorical([1, 2], categories=[1, 2])
-        exp = Series(exp, dtype='category')
-        tm.assert_series_equal(Series(c).mode(), exp)
-
-        c = Categorical([1, 'a', 'a'])
-        exp = Categorical(['a'], categories=[1, 'a'])
-        exp = Series(exp, dtype='category')
-        tm.assert_series_equal(Series(c).mode(), exp)
-
-        c = Categorical([1, 1, 2, 3, 3])
-        exp = Categorical([1, 3], categories=[1, 2, 3])
-        exp = Series(exp, dtype='category')
-        tm.assert_series_equal(Series(c).mode(), exp)
-
-    @pytest.mark.parametrize('values, expected', [
-        ([np.nan, np.nan, 1], [np.nan]),
-        ([np.nan, 1], [1, np.nan]),
-        ([np.nan, np.nan, 'a'], np.array([np.nan], dtype=object)),
-        ([np.nan, 'a'], [np.nan, 'a']),
-        (Categorical([np.nan, np.nan, 'a']),
-         Categorical([np.nan], categories=['a'])),
-        (Categorical([np.nan, 'a']),
-         Categorical([np.nan, 'a'], categories=['a'])),
-        (Categorical([np.nan, np.nan, 1]),
-         Categorical([np.nan], categories=[1])),
-        (to_datetime(['NaT', '2000-1-2', 'NaT']), [pd.NaT]),
-        (to_datetime(['NaT', '2000-1-2']), to_datetime(['NaT', '2000-1-2'])),
-        (to_timedelta(['1 days', 'nan', 'nan']), to_timedelta(['NaT'])),
-        (to_timedelta(['1 days', 'nan']), to_timedelta(['nan', '1 days']))
+    @pytest.mark.parametrize('dropna, expected1, expected2', [
+        (True, ['foo'], ['foo']),
+        (False, ['foo'], ['foo', np.nan])
     ])
-    def test_mode_dropna(self, values, expected):
-        # GH 17534
-        # Test the dropna=False parameter for mode
+    def test_mode_mixeddtype(self, dropna, expected1, expected2):
+        expected = Series(expected1)
+        s = Series([1, 'foo', 'foo'])
+        tm.assert_series_equal(s.mode(dropna), expected)
 
-        result = Series(values).mode(dropna=False)
-        expected = Series(expected)
+        expected = Series(expected2)
+        s = Series([1, 'foo', 'foo', np.nan, np.nan])
+        result = s.mode(dropna).sort_values().reset_index(drop=True)
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('dropna, expected1, expected2', [
+        (True, ['1900-05-03', '2011-01-03', '2013-01-02'],
+               ['2011-01-03', '2013-01-02']),
+        (False, [np.nan], ['nan', '2011-01-03', '2013-01-02']),
+    ])
+    def test_mode_datetime(self, dropna, expected1, expected2):
+        expected1 = Series(expected1, dtype='M8[ns]')
+        s = Series(['2011-01-03', '2013-01-02',
+                    '1900-05-03', 'nan', 'nan'], dtype='M8[ns]')
+        tm.assert_series_equal(s.mode(dropna), expected1)
+
+        expected2 = Series(expected2, dtype='M8[ns]')
+        s = Series(['2011-01-03', '2013-01-02', '1900-05-03',
+                    '2011-01-03', '2013-01-02', 'nan', 'nan'],
+                   dtype='M8[ns]')
+        tm.assert_series_equal(s.mode(dropna), expected2)
+
+    @pytest.mark.parametrize('dropna, expected1, expected2', [
+        (True, ['-1 days', '0 days', '1 days'], ['2 min', '1 day']),
+        (False, ['nan'], ['nan', '2 min', '1 day']),
+    ])
+    def test_mode_timedelta(self, dropna, expected1, expected2):
+        # gh-5986: Test timedelta types.
+
+        s = Series(['1 days', '-1 days', '0 days', 'nan', 'nan'],
+                   dtype='timedelta64[ns]')
+        expected1 = Series(expected1, dtype='timedelta64[ns]')
+        tm.assert_series_equal(s.mode(dropna), expected1)
+
+        s = Series(['1 day', '1 day', '-1 day', '-1 day 2 min',
+                    '2 min', '2 min', 'nan', 'nan'],
+                   dtype='timedelta64[ns]')
+        expected2 = Series(expected2, dtype='timedelta64[ns]')
+        tm.assert_series_equal(s.mode(dropna), expected2)
+
+    @pytest.mark.parametrize('dropna, expected1, expected2, expected3', [
+        (True, Categorical([1, 2], categories=[1, 2]),
+         Categorical(['a'], categories=[1, 'a']),
+         Categorical([1, 3], categories=[1, 2, 3])),
+        (False, Categorical([np.nan], categories=[1, 2]),
+         Categorical([np.nan, 'a'], categories=[1, 'a']),
+         Categorical([np.nan, 1, 3], categories=[1, 2, 3])),
+    ])
+    def test_mode_category(self, dropna, expected1, expected2, expected3):
+        s = Series(Categorical([1, 2, np.nan, np.nan]))
+        expected1 = Series(expected1, dtype='category')
+        tm.assert_series_equal(s.mode(dropna), expected1)
+
+        s = Series(Categorical([1, 'a', 'a', np.nan, np.nan]))
+        expected2 = Series(expected2, dtype='category')
+        tm.assert_series_equal(s.mode(dropna), expected2)
+
+        s = Series(Categorical([1, 1, 2, 3, 3, np.nan, np.nan]))
+        expected3 = Series(expected3, dtype='category')
+        tm.assert_series_equal(s.mode(dropna), expected3)
+
+    @pytest.mark.parametrize('dropna, expected1, expected2', [
+        (True, [2**63], [1, 2**63]),
+        (False, [2**63], [1, 2**63])
+    ])
+    def test_mode_intoverflow(self, dropna, expected1, expected2):
+        # Test for uint64 overflow.
+        expected1 = Series(expected1, dtype=np.uint64)
+        s = Series([1, 2**63, 2**63], dtype=np.uint64)
+        tm.assert_series_equal(s.mode(dropna), expected1)
+
+        expected2 = Series(expected2, dtype=np.uint64)
+        s = Series([1, 2**63], dtype=np.uint64)
+        tm.assert_series_equal(s.mode(dropna), expected2)
 
     def test_prod(self):
         self._check_stat_op('prod', np.prod)
