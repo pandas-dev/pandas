@@ -102,12 +102,7 @@ class JSONArray(ExtensionArray):
         msg = ("Index is out of bounds or cannot do a "
                "non-empty take from an empty array.")
 
-        if allow_fill is None:
-            try:
-                output = [self.data[loc] for loc in indexer]
-            except IndexError:
-                raise IndexError(msg)
-        else:
+        if allow_fill:
             if fill_value is None:
                 fill_value = self.dtype.na_value
             # bounds check
@@ -118,6 +113,12 @@ class JSONArray(ExtensionArray):
                           for loc in indexer]
             except IndexError:
                 raise msg
+        else:
+            try:
+                output = [self.data[loc] for loc in indexer]
+            except IndexError:
+                raise IndexError(msg)
+
         return self._from_sequence(output)
 
     def copy(self, deep=False):

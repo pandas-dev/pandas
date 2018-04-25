@@ -485,16 +485,18 @@ class ExtensionArray(object):
             Indices to be taken. See Notes for how negative indicies
             are handled.
         fill_value : any, optional
-            Fill value to use for NA-indicies. This has a few behaviors.
+            Fill value to use for NA-indicies when `allow_fill` is True.
+            This may be ``None``, in which case the default NA value for
+            the type, ``self.dtype.na_value``, is used.
+        allow_fill : bool, optional
+            How to handle negative values in `indexer`.
 
-            * fill_value is not specified : triggers NumPy's semantics
-              where negative values in `indexer` mean slices from the end.
-            * fill_value is NA : Fill positions where `indexer` is ``-1``
-              with ``self.dtype.na_value``. Anything considered NA by
-              :func:`pandas.isna` will result in ``self.dtype.na_value``
-              being used to fill.
-            * fill_value is not NA : Fill positions where `indexer` is ``-1``
-              with `fill_value`.
+            For False values (the default), NumPy's behavior is used. Negative
+            values in `indexer` mean slices from the right.
+
+            For True values, Pandas behavior is used. Indicies where `indexer`
+            is ``-1`` are set to `fill_value`. Any other negative value should
+            raise a ``ValueError``.
 
         Returns
         -------
@@ -506,20 +508,10 @@ class ExtensionArray(object):
             When the indexer is out of bounds for the array.
         ValueError
             When the indexer contains negative values other than ``-1``
-            and `fill_value` is specified.
+            and `allow_fill` is True.
 
         Notes
         -----
-        The meaning of negative values in `indexer` depends on the
-        `fill_value` argument. By default, we follow the behavior
-        :meth:`numpy.take` of where negative indices indicate slices
-        from the end.
-
-        When `fill_value` is specified, we follow pandas semantics of ``-1``
-        indicating a missing value. In this case, positions where `indexer`
-        is ``-1`` will be filled with `fill_value` or the default NA value
-        for this type.
-
         ExtensionArray.take is called by ``Series.__getitem__``, ``.loc``,
         ``iloc``, when the indexer is a sequence of values. Additionally,
         it's called by :meth:`Series.reindex` with a `fill_value`.
