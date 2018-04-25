@@ -3217,7 +3217,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return self
 
         from pandas.core.dtypes.missing import na_value_for_dtype
-        fill_value = na_value_for_dtype(self.dtype)
+        fill_value = na_value_for_dtype(self.dtype, compat=False)
         new_values = algorithms.take(self._values, indexer,
                                      fill_value=fill_value)
         return self._constructor(new_values, index=new_index)

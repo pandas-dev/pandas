@@ -7263,6 +7263,9 @@ class NDFrame(PandasObject, SelectionMixin):
         clidx, cridx = None, None
 
         is_series = isinstance(self, ABCSeries)
+        if fill_value is _default_fill_value:
+            # XXX: per-column?
+            fill_value = np.nan
 
         if axis is None or axis == 0:
             if not self.index.equals(other.index):

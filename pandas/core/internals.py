@@ -4417,9 +4417,15 @@ class BlockManager(PandasObject):
         else:
             if fill_value is None:
                 fill_value = _default_fill_value
-            new_blocks = [blk.take_nd(indexer, axis=axis, fill_tuple=(
-                fill_value if fill_value is not _default_fill_value else blk.fill_value,))
-                for blk in self.blocks]
+
+            new_blocks = []
+            for blk in self.blocks:
+                if fill_value is not _default_fill_value:
+                    fill_tuple = (fill_value,)
+                else:
+                    fill_tuple = (blk.fill_value,)
+            new_blocks = [blk.take_nd(indexer, axis=axis, fill_tuple=fill_tuple)
+                          for blk in self.blocks]
 
         new_axes = list(self.axes)
         new_axes[axis] = new_axis
