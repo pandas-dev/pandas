@@ -476,7 +476,7 @@ class ExtensionArray(object):
         return self.astype(object)
 
     def take(self, indexer, fill_value=None, allow_fill=None):
-        # type: (Sequence[int], Optional[Any], Optional[bool]) -> ExtensionArray
+        # type: (Sequence[int], Optional[Any], bool) -> ExtensionArray
         """Take elements from an array.
 
         Parameters
@@ -534,7 +534,8 @@ class ExtensionArray(object):
         if allow_fill and fill_value is None:
             fill_value = self.dtype.na_value
 
-        result = take(data, indexer, fill_value=fill_value, allow_fill=allow_fill)
+        result = take(data, indexer, fill_value=fill_value,
+                      allow_fill=allow_fill)
         return self._from_sequence(result)
 
     def copy(self, deep=False):
