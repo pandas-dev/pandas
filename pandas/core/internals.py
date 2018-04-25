@@ -5399,6 +5399,9 @@ def concatenate_block_managers(mgrs_indexers, axes, concat_axis, copy):
 
     for placement, join_units in concat_plan:
 
+        # The issue: we have a join unit (or maybe several) that needs to be
+        # reindexed.
+
         if len(join_units) == 1 and not join_units[0].indexers:
             b = join_units[0].block
             values = b.values
@@ -5440,6 +5443,13 @@ def is_uniform_join_units(join_units):
         len(join_units) > 1)
 
 
+def is_uniform_reindex(join_units):
+    return (
+        # TODO: should this be ju.block.can_hold_na?
+        all(ju.block and ju.block.is_extension for ju in join_units) and
+        len(set(ju.block.dtype.name for ju in join_units)) == 1
+    )
+
 def get_empty_dtype_and_na(join_units):
     """
     Return dtype and N/A values to use when concatenating specified units.
@@ -5456,6 +5466,12 @@ def get_empty_dtype_and_na(join_units):
         blk = join_units[0].block
         if blk is None:
             return np.float64, np.nan
+
+    if is_uniform_reindex(join_units):
+        # XXX: integrate property
+        empty_dtype = join_units[0].block.dtype
+        upcasted_na = join_units[0].block.fill_value
+        return empty_dtype, upcasted_na
 
     has_none_blocks = False
     dtypes = [None] * len(join_units)
