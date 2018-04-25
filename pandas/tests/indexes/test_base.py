@@ -770,19 +770,18 @@ class TestIndex(Base):
         union = Index([]).union(first)
         assert union is first
 
-    @pytest.mark.parametrize("first,second,name", [
-        (Index(list('ab'), name='A'), Index(list('ab'), name='B'), None),
-        (Index(list('ab'), name='A'), Index([], name='B'), None),
-        (Index([], name='A'), Index(list('ab'), name='B'), None),
-        (Index(list('ab')), Index(list('ab'), name='B'), 'B'),
-        (Index([]), Index(list('ab'), name='B'), 'B'),
-        (Index(list('ab')), Index([], name='B'), 'B'),
-        (Index(list('ab'), name='A'), Index(list('ab')), 'A'),
-        (Index(list('ab'), name='A'), Index([]), 'A'),
-        (Index([], name='A'), Index(list('ab')), 'A')])
-    def test_union_name_preservation(self, first, second, name):
+    @pytest.mark.parametrize("first_list", [list('ab'), list()])
+    @pytest.mark.parametrize("second_list", [list('ab'), list()])
+    @pytest.mark.parametrize("first_name, second_name, expected_name", [
+        ('A', 'B', None), (None, 'B', 'B'), ('A', None, 'A')])
+    def test_union_name_preservation(self, first_list, second_list, first_name,
+                                     second_name, expected_name):
+        first = Index(first_list, name=first_name)
+        second = Index(second_list, name=second_name)
         union = first.union(second)
-        expected = Index(list('ab'), name=name)
+
+        vals = sorted(set(first_list).union(second_list))
+        expected = Index(vals, name=expected_name)
         tm.assert_index_equal(union, expected)
 
     def test_union_dt_as_obj(self):
