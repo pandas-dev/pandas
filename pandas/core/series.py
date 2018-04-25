@@ -3217,7 +3217,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             return self
 
         new_values = algorithms.take_1d(self._values, indexer,
-                                        allow_fillTrue, fill_value=None)
+                                        allow_fill=True, fill_value=None)
         return self._constructor(new_values, index=new_index)
 
     def _needs_reindex_multi(self, axes, method, level):
