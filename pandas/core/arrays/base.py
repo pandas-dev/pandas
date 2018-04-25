@@ -53,7 +53,6 @@ class ExtensionArray(object):
     * unique
     * factorize / _values_for_factorize
     * argsort / _values_for_argsort
-    * take / _values_for_take
 
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
@@ -277,22 +276,23 @@ class ExtensionArray(object):
         """
         raise AbstractMethodError(self)
 
-    def _values_for_argsort(self):
-        # type: () -> ndarray
-        """Return values for sorting.
+    def _values_for_factorize(self):
+        # type: () -> Tuple[ndarray, Any]
+        """Return an array and missing value suitable for factorization.
 
         Returns
         -------
-        ndarray
-            The transformed values should maintain the ordering between values
-            within the array.
-
-        See Also
-        --------
-        ExtensionArray.argsort
+        values : ndarray
+            An array suitable for factoraization. This should maintain order
+            and be a supported dtype (Float64, Int64, UInt64, String, Object).
+            By default, the extension array is cast to object dtype.
+        na_value : object
+            The value in `values` to consider missing. This will be treated
+            as NA in the factorization routines, so it will be coded as
+            `na_sentinal` and not included in `uniques`. By default,
+            ``np.nan`` is used.
         """
-        # Note: this is used in `ExtensionArray.argsort`.
-        return np.array(self)
+        return self.astype(object), np.nan
 
     def argsort(self, ascending=True, kind='quicksort', *args, **kwargs):
         """
@@ -393,24 +393,6 @@ class ExtensionArray(object):
         uniques = unique(self.astype(object))
         return self._from_sequence(uniques)
 
-    def _values_for_factorize(self):
-        # type: () -> Tuple[ndarray, Any]
-        """Return an array and missing value suitable for factorization.
-
-        Returns
-        -------
-        values : ndarray
-            An array suitable for factoraization. This should maintain order
-            and be a supported dtype (Float64, Int64, UInt64, String, Object).
-            By default, the extension array is cast to object dtype.
-        na_value : object
-            The value in `values` to consider missing. This will be treated
-            as NA in the factorization routines, so it will be coded as
-            `na_sentinal` and not included in `uniques`. By default,
-            ``np.nan`` is used.
-        """
-        return self.astype(object), np.nan
-
     def factorize(self, na_sentinel=-1):
         # type: (int) -> Tuple[ndarray, ExtensionArray]
         """Encode the extension array as an enumerated type.
@@ -463,20 +445,25 @@ class ExtensionArray(object):
     # ------------------------------------------------------------------------
     # Indexing methods
     # ------------------------------------------------------------------------
-    def _values_for_take(self):
-        """Values to use for `take`.
-
-        Coerces to object dtype by default.
+    def _values_for_argsort(self):
+        # type: () -> ndarray
+        """Return values for sorting.
 
         Returns
         -------
-        array-like
-            Must satisify NumPy's `take` semantics.
-        """
-        return self.astype(object)
+        ndarray
+            The transformed values should maintain the ordering between values
+            within the array.
 
-    def take(self, indexer, fill_value=None, allow_fill=None):
-        # type: (Sequence[int], Optional[Any], bool) -> ExtensionArray
+        See Also
+        --------
+        ExtensionArray.argsort
+        """
+        # Note: this is used in `ExtensionArray.argsort`.
+        return np.array(self)
+
+    def take(self, indexer, allow_fill=False, fill_value=None):
+        # type: (Sequence[int], bool, Optional[Any]) -> ExtensionArray
         """Take elements from an array.
 
         Parameters
@@ -484,19 +471,19 @@ class ExtensionArray(object):
         indexer : sequence of integers
             Indices to be taken. See Notes for how negative indicies
             are handled.
+        allow_fill : bool, default False
+            How to handle negative values in `indexer`.
+
+            For False values (the default), negative values in `indexer`
+            indiciate slices from the right.
+
+            For True values, indicies where `indexer` is ``-1`` indicate
+            missing values. These values are set to `fill_value`. Any other
+            other negative value should raise a ``ValueError``.
         fill_value : any, optional
             Fill value to use for NA-indicies when `allow_fill` is True.
             This may be ``None``, in which case the default NA value for
             the type, ``self.dtype.na_value``, is used.
-        allow_fill : bool, optional
-            How to handle negative values in `indexer`.
-
-            For False values (the default), NumPy's behavior is used. Negative
-            values in `indexer` mean slices from the right.
-
-            For True values, Pandas behavior is used. Indicies where `indexer`
-            is ``-1`` are set to `fill_value`. Any other negative value should
-            raise a ``ValueError``.
 
         Returns
         -------
@@ -514,21 +501,34 @@ class ExtensionArray(object):
         -----
         ExtensionArray.take is called by ``Series.__getitem__``, ``.loc``,
         ``iloc``, when the indexer is a sequence of values. Additionally,
-        it's called by :meth:`Series.reindex` with a `fill_value`.
+        it's called by :meth:`Series.reindex`, or any other method
+        that causes realignemnt, with a `fill_value`.
 
         See Also
         --------
         numpy.take
+        pandas.api.extensions.take
+
+        Examples
+        --------
+        Here's an example implementation, which relies on casting the
+        extension array to object dtype. This uses the helper method
+        :func:`pandas.api.extensions.take`.
+
+        .. code-block:: python
+
+           def take(self, indexer, allow_fill=False, fill_value=None):
+               from pandas.core.algorithms import take
+
+               data = self.astype(object)
+               if allow_fill and fill_value is None:
+                   fill_value = self.dtype.na_value
+
+               result = take(data, indexer, fill_value=fill_value,
+                             allow_fill=allow_fill)
+               return self._from_sequence(result)
         """
-        from pandas.core.algorithms import take
-
-        data = self._values_for_take()
-        if allow_fill and fill_value is None:
-            fill_value = self.dtype.na_value
-
-        result = take(data, indexer, fill_value=fill_value,
-                      allow_fill=allow_fill)
-        return self._from_sequence(result)
+        raise AbstractMethodError(self)
 
     def copy(self, deep=False):
         # type: (bool) -> ExtensionArray

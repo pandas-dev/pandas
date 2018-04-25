@@ -14,7 +14,7 @@ from pandas.core.arrays import ExtensionArray
 class JSONDtype(ExtensionDtype):
     type = collections.Mapping
     name = 'json'
-    na_value = {}
+    na_value = collections.UserDict()
 
     @classmethod
     def construct_from_string(cls, string):
@@ -94,7 +94,7 @@ class JSONArray(ExtensionArray):
     def isna(self):
         return np.array([x == self.dtype.na_value for x in self.data])
 
-    def take(self, indexer, fill_value=None, allow_fill=None):
+    def take(self, indexer, allow_fill=False, fill_value=None):
         # re-implement here, since NumPy has trouble setting
         # sized objects like UserDicts into scalar slots of
         # an ndarary.
@@ -120,6 +120,12 @@ class JSONArray(ExtensionArray):
                 raise IndexError(msg)
 
         return self._from_sequence(output)
+
+    # def astype(self, dtype, copy=True):
+    #     # NumPy has issues when all the dicts are the same length.
+    #     # np.array([UserDict(...), UserDict(...)]) fails,
+    #     # but np.array([{...}, {...}]) works, so cast.
+    #     return np.array([dict(x) for x in self], dtype=dtype, copy=copy)
 
     def copy(self, deep=False):
         return type(self)(self.data[:])

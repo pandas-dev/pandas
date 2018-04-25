@@ -5445,7 +5445,7 @@ def is_uniform_join_units(join_units):
 
 def is_uniform_reindex(join_units):
     return (
-        # TODO: should this be ju.block.can_hold_na?
+        # TODO: should this be ju.block._can_hold_na?
         all(ju.block and ju.block.is_extension for ju in join_units) and
         len(set(ju.block.dtype.name for ju in join_units)) == 1
     )

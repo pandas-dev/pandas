@@ -18,7 +18,7 @@ class _DtypeOpsMixin(object):
 
     # na_value is the default NA value to use for this type. This is used in
     # e.g. ExtensionArray.take.
-    na_value = np.nan  # TODO: change to _na_value
+    na_value = np.nan
 
     def __eq__(self, other):
         """Check whether 'other' is equal to self.
@@ -104,6 +104,9 @@ class ExtensionDtype(_DtypeOpsMixin):
     * type
     * name
     * construct_from_string
+
+    The `na_value` class attribute can be used to set the default NA value
+    for this type. :attr:`numpy.nan` is used by default.
 
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise

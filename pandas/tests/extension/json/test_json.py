@@ -39,8 +39,8 @@ def data_missing_for_sorting():
 
 
 @pytest.fixture
-def na_value():
-    return {}
+def na_value(dtype):
+    return dtype.na_value
 
 
 @pytest.fixture

@@ -108,26 +108,7 @@ class TestReshaping(BaseDecimal, base.BaseReshapingTests):
 
 
 class TestGetitem(BaseDecimal, base.BaseGetitemTests):
-
-    def test_take_basic(self):
-        ea = DecimalArray([decimal.Decimal('1'),
-                           decimal.Decimal('2'),
-                           decimal.Decimal('3')])
-        result = ea.take([1, 2, -1])
-        expected = DecimalArray([decimal.Decimal('2'),
-                                 decimal.Decimal('3'),
-                                 decimal.Decimal('3')])
-        self.assert_extension_array_equal(result, expected)
-
-        result = ea.take([1, 2, -1], fill_value=ea.dtype.na_value,
-                         allow_fill=True)
-        expected = DecimalArray([decimal.Decimal('2'),
-                                 decimal.Decimal('3'),
-                                 decimal.Decimal('NaN')])
-        self.assert_extension_array_equal(result, expected)
-
-        result = pd.Series(ea).reindex([1, 2, -1]).values
-        self.assert_extension_array_equal(result, expected)
+    pass
 
 
 class TestMissing(BaseDecimal, base.BaseMissingTests):

@@ -1448,24 +1448,67 @@ def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis=0, mask_info=None):
     return func
 
 
-def take(arr, indexer, fill_value=None, allow_fill=None):
+def take(arr, indexer, allow_fill=False, fill_value=None):
+    """Take elements from an array.
+
+    Parameters
+    ----------
+    arr : ndarray or ExtensionArray
+    indexer : sequence of integers
+        Indices to be taken. See Notes for how negative indicies
+        are handled.
+    allow_fill : bool, default False
+        How to handle negative values in `indexer`.
+
+        For False values (the default), negative values in `indexer`
+        indiciate slices from the right.
+
+        For True values, indicies where `indexer` is ``-1`` indicate
+        missing values. These values are set to `fill_value`. Any other
+        other negative value should raise a ``ValueError``.
+    fill_value : any, optional
+        Fill value to use for NA-indicies when `allow_fill` is True.
+        This may be ``None``, in which case the default NA value for
+        the type, ``self.dtype.na_value``, is used.
+
+    Returns
+    -------
+    ndarray or ExtensionArray
+        Same type as the input.
+
+    Raises
+    ------
+    IndexError
+        When the indexer is out of bounds for the array.
+    ValueError
+        When the indexer contains negative values other than ``-1``
+        and `allow_fill` is True.
+
+    See Also
+    --------
+    numpy.take
+    """
     indexer = np.asarray(indexer)
 
-    if allow_fill is None:
-        # NumPy style
-        result = arr.take(indexer)
-    else:
+    if allow_fill:
+        # Pandas style, -1 means NA
         # bounds checking
         if (indexer < -1).any():
             raise ValueError("Invalid value in 'indexer'. All values "
                              "must be non-negative or -1. When "
                              "'fill_value' is specified.")
+        if (indexer > len(arr)).any():
+            # TODO: reuse with logic elsewhere.
+            raise IndexError
 
         # # take on empty array not handled as desired by numpy
         # # in case of -1 (all missing take)
         # if not len(arr) and mask.all():
         #     return arr._from_sequence([fill_value] * len(indexer))
         result = take_1d(arr, indexer, fill_value=fill_value)
+    else:
+        # NumPy style
+        result = arr.take(indexer)
     return result
 
 
