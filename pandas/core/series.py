@@ -2185,7 +2185,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             result.name = None
         return result
 
-    def combine(self, other, func, fill_value=None):
+    def combine(self, other, func, fill_value=np.nan):
         """
         Perform elementwise binary operation on two Series using given function
         with optional fill value when an index is missing from one Series or
