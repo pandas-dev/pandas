@@ -2240,7 +2240,7 @@ class Categorical(ExtensionArray, PandasObject):
         Raises
         ------
         TypeError
-          * If `values` is a string
+          * If `values` is not a set or list-like
 
         See Also
         --------

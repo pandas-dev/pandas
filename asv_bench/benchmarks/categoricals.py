@@ -169,4 +169,3 @@ class Isin(object):
 
     def time_isin_categorical(self, dtype):
         self.series.isin(self.sample)
-
