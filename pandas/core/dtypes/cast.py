@@ -7,7 +7,7 @@ import warnings
 
 from pandas._libs import tslib, lib
 from pandas._libs.tslib import iNaT
-from pandas.compat import string_types, text_type, PY3, _default_fill_value
+from pandas.compat import string_types, text_type, PY3
 from .common import (_ensure_object, is_bool, is_integer, is_float,
                      is_complex, is_datetimetz, is_categorical_dtype,
                      is_datetimelike,
@@ -255,9 +255,6 @@ def maybe_upcast_putmask(result, mask, other):
 
 
 def maybe_promote(dtype, fill_value=np.nan):
-    if fill_value is _default_fill_value:
-        fill_value = np.nan
-
     # if we passed an array here, determine the fill value by dtype
     if isinstance(fill_value, np.ndarray):
         if issubclass(fill_value.dtype.type, (np.datetime64, np.timedelta64)):

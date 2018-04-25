@@ -77,7 +77,7 @@ from pandas.core.series import Series
 from pandas.core.arrays import Categorical, ExtensionArray
 import pandas.core.algorithms as algorithms
 from pandas.compat import (range, map, zip, lrange, lmap, lzip, StringIO, u,
-                           OrderedDict, raise_with_traceback, _default_fill_value)
+                           OrderedDict, raise_with_traceback)
 from pandas import compat
 from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
@@ -3504,7 +3504,7 @@ class DataFrame(NDFrame):
 
     @Appender(_shared_docs['align'] % _shared_doc_kwargs)
     def align(self, other, join='outer', axis=None, level=None, copy=True,
-              fill_value=_default_fill_value, method=None, limit=None, fill_axis=0,
+              fill_value=None, method=None, limit=None, fill_axis=0,
               broadcast_axis=None):
         return super(DataFrame, self).align(other, join=join, axis=axis,
                                             level=level, copy=copy,

@@ -451,6 +451,3 @@ def is_platform_mac():
 
 def is_platform_32bit():
     return struct.calcsize("P") * 8 < 64
-
-
-_default_fill_value = object()

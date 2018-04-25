@@ -10,7 +10,6 @@ import textwrap
 import numpy as np
 
 from pandas.errors import AbstractMethodError
-from pandas.compat import _default_fill_value
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import Appender, Substitution
 
@@ -535,7 +534,7 @@ class ExtensionArray(object):
 
     @Substitution(arr='')
     @Appender(_take_docstring)
-    def take(self, indexer, fill_value=_default_fill_value):
+    def take(self, indexer, fill_value=None, allow_fill=None):
         # type: (Sequence[int], Optional[Any]) -> ExtensionArray
         # assert fill_value is not np.nan
         from pandas.core.algorithms import take

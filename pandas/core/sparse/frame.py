@@ -6,7 +6,7 @@ from __future__ import division
 # pylint: disable=E1101,E1103,W0231,E0202
 
 import warnings
-from pandas.compat import lmap, _default_fill_value
+from pandas.compat import lmap
 from pandas import compat
 import numpy as np
 
@@ -690,7 +690,7 @@ class SparseDataFrame(DataFrame):
         if level is not None:
             raise TypeError('Reindex by level not supported for sparse')
 
-        if not (isna(fill_value) or fill_value is _default_fill_value):
+        if notna(fill_value):
             raise NotImplementedError("'fill_value' argument is not supported")
 
         if limit:

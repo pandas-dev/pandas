@@ -30,7 +30,6 @@ from pandas.core.dtypes.common import (
     _ensure_platform_int, _ensure_object,
     _ensure_float64, _ensure_uint64,
     _ensure_int64)
-from pandas.compat import _default_fill_value
 from pandas.compat.numpy import _np_version_under1p10
 from pandas.core.dtypes.missing import isna, na_value_for_dtype
 
@@ -1449,10 +1448,10 @@ def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis=0, mask_info=None):
     return func
 
 
-def take(arr, indexer, fill_value=_default_fill_value):
+def take(arr, indexer, fill_value=None, allow_fill=None):
     indexer = np.asarray(indexer)
 
-    if fill_value is _default_fill_value:
+    if allow_fill is None:
         # NumPy style
         result = arr.take(indexer)
     else:
