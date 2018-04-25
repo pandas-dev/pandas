@@ -276,23 +276,22 @@ class ExtensionArray(object):
         """
         raise AbstractMethodError(self)
 
-    def _values_for_factorize(self):
-        # type: () -> Tuple[ndarray, Any]
-        """Return an array and missing value suitable for factorization.
+    def _values_for_argsort(self):
+        # type: () -> ndarray
+        """Return values for sorting.
 
         Returns
         -------
-        values : ndarray
-            An array suitable for factoraization. This should maintain order
-            and be a supported dtype (Float64, Int64, UInt64, String, Object).
-            By default, the extension array is cast to object dtype.
-        na_value : object
-            The value in `values` to consider missing. This will be treated
-            as NA in the factorization routines, so it will be coded as
-            `na_sentinal` and not included in `uniques`. By default,
-            ``np.nan`` is used.
+        ndarray
+            The transformed values should maintain the ordering between values
+            within the array.
+
+        See Also
+        --------
+        ExtensionArray.argsort
         """
-        return self.astype(object), np.nan
+        # Note: this is used in `ExtensionArray.argsort`.
+        return np.array(self)
 
     def argsort(self, ascending=True, kind='quicksort', *args, **kwargs):
         """
@@ -393,6 +392,24 @@ class ExtensionArray(object):
         uniques = unique(self.astype(object))
         return self._from_sequence(uniques)
 
+    def _values_for_factorize(self):
+        # type: () -> Tuple[ndarray, Any]
+        """Return an array and missing value suitable for factorization.
+
+        Returns
+        -------
+        values : ndarray
+            An array suitable for factoraization. This should maintain order
+            and be a supported dtype (Float64, Int64, UInt64, String, Object).
+            By default, the extension array is cast to object dtype.
+        na_value : object
+            The value in `values` to consider missing. This will be treated
+            as NA in the factorization routines, so it will be coded as
+            `na_sentinal` and not included in `uniques`. By default,
+            ``np.nan`` is used.
+        """
+        return self.astype(object), np.nan
+
     def factorize(self, na_sentinel=-1):
         # type: (int) -> Tuple[ndarray, ExtensionArray]
         """Encode the extension array as an enumerated type.
@@ -445,22 +462,6 @@ class ExtensionArray(object):
     # ------------------------------------------------------------------------
     # Indexing methods
     # ------------------------------------------------------------------------
-    def _values_for_argsort(self):
-        # type: () -> ndarray
-        """Return values for sorting.
-
-        Returns
-        -------
-        ndarray
-            The transformed values should maintain the ordering between values
-            within the array.
-
-        See Also
-        --------
-        ExtensionArray.argsort
-        """
-        # Note: this is used in `ExtensionArray.argsort`.
-        return np.array(self)
 
     def take(self, indexer, allow_fill=False, fill_value=None):
         # type: (Sequence[int], bool, Optional[Any]) -> ExtensionArray
