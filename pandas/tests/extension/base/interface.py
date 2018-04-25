@@ -21,7 +21,7 @@ class BaseInterfaceTests(BaseExtensionTests):
         assert data.ndim == 1
 
     def test_can_hold_na_valid(self, data):
-        assert data._can_hold_na in {True, False}
+        assert data._can_hold_na  # Must be True
 
     def test_memory_usage(self, data):
         s = pd.Series(data)

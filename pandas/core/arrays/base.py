@@ -38,11 +38,10 @@ class ExtensionArray(object):
     * copy
     * _concat_same_type
 
-    An additional method and attribute is available to satisfy pandas'
-    internal, private block API.
+    An additional method is available to satisfy pandas' internal,
+    private block API.
 
     * _formatting_values
-    * _can_hold_na
 
     Some methods require casting the ExtensionArray to an ndarray of Python
     objects with ``self.astype(object)``, which may be expensive. When
@@ -567,9 +566,11 @@ class ExtensionArray(object):
         """
         raise AbstractMethodError(cls)
 
-    # The _can_hold_na attribute tells pandas whether your array can
-    # hold missing values.  True by default.  Setting this to False will
-    # optimize some operations like fillna.
+    # The _can_hold_na attribute is set to True so that pandas internals
+    # will use the ExtensionDtype.na_value as the NA value in operations
+    # such as take(), reindex(), shift(), etc.  In addition, those results
+    # will then be of the ExtensionArray subclass rather than an array
+    # of objects
     _can_hold_na = True
 
     @property

@@ -103,25 +103,5 @@ class DecimalArray(ExtensionArray):
         return cls(np.concatenate([x._data for x in to_concat]))
 
 
-class DecimalNoNaArray(DecimalArray):
-
-    _can_hold_na = False
-
-    def isna(self):
-        return np.array([False] * len(self._data))
-
-    @property
-    def _na_value(self):
-        raise ValueError("No NA value for DecimalNoNaArray")
-
-    def take(self, indexer, allow_fill=False, fill_value=None):
-        indexer = np.asarray(indexer)
-
-        indexer = _ensure_platform_int(indexer)
-        out = self._data.take(indexer)
-
-        return type(self)(out)
-
-
 def make_data():
     return [decimal.Decimal(random.random()) for _ in range(100)]

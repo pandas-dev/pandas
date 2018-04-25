@@ -17,9 +17,7 @@ def data():
 
 @pytest.fixture
 def data_missing():
-    """Length-2 array with [NA, Valid]
-    Use pytest.skip() if _can_hold_na==False
-    """
+    """Length-2 array with [NA, Valid]"""
     raise NotImplementedError
 
 
@@ -48,7 +46,6 @@ def data_missing_for_sorting():
 
     This should be three items [B, NA, A] with
     A < B and NA missing.
-    Use pytest.skip() if _can_hold_na==False
     """
     raise NotImplementedError
 
@@ -78,10 +75,5 @@ def data_for_grouping():
     Expected to be like [B, B, NA, NA, A, A, B, C]
 
     Where A < B < C and NA is missing
-
-    If _can_hold_na==False, use a 4th value D for NA,
-
-    where D < A < B < C
-
     """
     raise NotImplementedError
