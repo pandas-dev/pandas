@@ -7420,7 +7420,6 @@ class NDFrame(PandasObject, SelectionMixin):
             if other.ndim <= self.ndim:
 
                 _, other = self.align(other, join='left', axis=axis,
-                                      # XXX
                                       level=level, fill_value=np.nan)
 
                 # if we are NOT aligned, raise as we cannot where index
