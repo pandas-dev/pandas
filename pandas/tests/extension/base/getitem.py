@@ -134,8 +134,9 @@ class BaseGetitemTests(BaseExtensionTests):
 
     def test_take_empty(self, data, na_value, na_cmp):
         empty = data[:0]
-        result = empty.take([-1])
-        na_cmp(result[0], na_value)
+        if data._can_hold_na:
+            result = empty.take([-1])
+            na_cmp(result[0], na_value)
 
         with tm.assert_raises_regex(IndexError, "cannot do a non-empty take"):
             empty.take([0, 1])

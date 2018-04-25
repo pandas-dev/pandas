@@ -27,7 +27,10 @@ class BaseGroupbyTests(BaseExtensionTests):
         _, index = pd.factorize(data_for_grouping, sort=True)
         # TODO(ExtensionIndex): remove astype
         index = pd.Index(index.astype(object), name="B")
-        expected = pd.Series([3, 1, 4], index=index, name="A")
+        if data_for_grouping._can_hold_na:
+            expected = pd.Series([3, 1, 4], index=index, name="A")
+        else:
+            expected = pd.Series([2, 3, 1, 4], index=index, name="A")
         if as_index:
             self.assert_series_equal(result, expected)
         else:
@@ -41,16 +44,26 @@ class BaseGroupbyTests(BaseExtensionTests):
         _, index = pd.factorize(data_for_grouping, sort=False)
         # TODO(ExtensionIndex): remove astype
         index = pd.Index(index.astype(object), name="B")
-        expected = pd.Series([1, 3, 4], index=index, name="A")
+        if data_for_grouping._can_hold_na:
+            expected = pd.Series([1, 3, 4], index=index, name="A")
+        else:
+            expected = pd.Series([1, 2, 3, 4], index=index, name="A")
+
         self.assert_series_equal(result, expected)
 
     def test_groupby_extension_transform(self, data_for_grouping):
         valid = data_for_grouping[~data_for_grouping.isna()]
-        df = pd.DataFrame({"A": [1, 1, 3, 3, 1, 4],
+        if data_for_grouping._can_hold_na:
+            dfval = [1, 1, 3, 3, 1, 4]
+            exres = [3, 3, 2, 2, 3, 1]
+        else:
+            dfval = [1, 1, 2, 2, 3, 3, 1, 4]
+            exres = [3, 3, 2, 2, 2, 2, 3, 1]
+        df = pd.DataFrame({"A": dfval,
                            "B": valid})
 
         result = df.groupby("B").A.transform(len)
-        expected = pd.Series([3, 3, 2, 2, 3, 1], name="A")
+        expected = pd.Series(exres, name="A")
 
         self.assert_series_equal(result, expected)
 
