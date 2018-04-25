@@ -1108,18 +1108,18 @@ class TestIndex(Base):
 
         self.strIndex[:0].format()
 
-    def test_format_missing(self, nulls_fixture):
+    @pytest.mark.parametrize("vals", [
+        [1, 2.0 + 3.0j, 4.], ['a', 'b', 'c']])
+    def test_format_missing(self, vals, nulls_fixture):
         # 2845
-        index = Index([1, 2.0 + 3.0j, nulls_fixture])
+        vals = list(vals)  # Copy for each iteration
+        vals.append(nulls_fixture)
+        index = Index(vals)
+
         formatted = index.format()
-        expected = [str(index[0]), str(index[1]), u('NaN')]
+        expected = [str(index[0]), str(index[1]), str(index[2]), u('NaN')]
+
         assert formatted == expected
-
-    def test_format_missing_obj(self, nulls_fixture):
-        values = ['a', 'b', 'c', nulls_fixture]
-
-        index = Index(values)
-        index.format()
         assert index[3] is nulls_fixture
 
     def test_format_with_name_time_info(self):
