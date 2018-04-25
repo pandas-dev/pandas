@@ -316,16 +316,22 @@ class TestIndexOps(Ops):
 
         for o in self.objs:
             # Check that we work.
-            for p in ['shape', 'dtype', 'flags', 'T',
-                      'strides', 'itemsize', 'nbytes']:
+            for p in ['shape', 'dtype', 'T', 'nbytes']:
                 assert getattr(o, p, None) is not None
 
-            assert hasattr(o, 'base')
+            # deprecated properties
+            for p in ['flags', 'strides', 'itemsize']:
+                with tm.assert_produces_warning(FutureWarning):
+                    assert getattr(o, p, None) is not None
+
+            with tm.assert_produces_warning(FutureWarning):
+                assert hasattr(o, 'base')
 
             # If we have a datetime-like dtype then needs a view to work
             # but the user is responsible for that
             try:
-                assert o.data is not None
+                with tm.assert_produces_warning(FutureWarning):
+                    assert o.data is not None
             except ValueError:
                 pass
 

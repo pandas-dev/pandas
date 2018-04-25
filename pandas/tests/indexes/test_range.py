@@ -22,7 +22,7 @@ from .test_numeric import Numeric
 
 class TestRangeIndex(Numeric):
     _holder = RangeIndex
-    _compat_props = ['shape', 'ndim', 'size', 'itemsize']
+    _compat_props = ['shape', 'ndim', 'size']
 
     def setup_method(self, method):
         self.indices = dict(index=RangeIndex(0, 20, 2, name='foo'),

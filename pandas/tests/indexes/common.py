@@ -24,7 +24,7 @@ import pandas as pd
 class Base(object):
     """ base class for index sub-class tests """
     _holder = None
-    _compat_props = ['shape', 'ndim', 'size', 'itemsize', 'nbytes']
+    _compat_props = ['shape', 'ndim', 'size', 'nbytes']
 
     def setup_indices(self):
         for name, idx in self.indices.items():

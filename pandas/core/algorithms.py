@@ -1498,6 +1498,8 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
     if is_sparse(arr):
         arr = arr.get_values()
 
+    arr = np.asarray(arr)
+
     if indexer is None:
         indexer = np.arange(arr.shape[axis], dtype=np.int64)
         dtype, fill_value = arr.dtype, arr.dtype.type()

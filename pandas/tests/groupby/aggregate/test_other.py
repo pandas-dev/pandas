@@ -328,7 +328,7 @@ def test_series_agg_multi_pure_python():
          'F': np.random.randn(11)})
 
     def bad(x):
-        assert (len(x.base) > 0)
+        assert (len(x.values.base) > 0)
         return 'foo'
 
     result = data.groupby(['A', 'B']).agg(bad)

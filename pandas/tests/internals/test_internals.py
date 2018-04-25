@@ -466,7 +466,11 @@ class TestBlockManager(object):
 
             # view assertion
             assert cp_blk.equals(blk)
-            assert cp_blk.values.base is blk.values.base
+            if isinstance(blk.values, np.ndarray):
+                assert cp_blk.values.base is blk.values.base
+            else:
+                # DatetimeTZBlock has DatetimeIndex values
+                assert cp_blk.values.values.base is blk.values.values.base
 
         cp = mgr.copy(deep=True)
         for blk, cp_blk in zip(mgr.blocks, cp.blocks):
@@ -474,8 +478,8 @@ class TestBlockManager(object):
             # copy assertion we either have a None for a base or in case of
             # some blocks it is an array (e.g. datetimetz), but was copied
             assert cp_blk.equals(blk)
-            if cp_blk.values.base is not None and blk.values.base is not None:
-                assert cp_blk.values.base is not blk.values.base
+            if not isinstance(cp_blk.values, np.ndarray):
+                assert cp_blk.values.values.base is not blk.values.values.base
             else:
                 assert cp_blk.values.base is None and blk.values.base is None
 

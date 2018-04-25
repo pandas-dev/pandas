@@ -2816,6 +2816,12 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
 
         return values
 
+    @property
+    def is_view(self):
+        """ return a boolean if I am possibly a view """
+        # check the ndarray values of the DatetimeIndex values
+        return self.values.values.base is not None
+
     def copy(self, deep=True, mgr=None):
         """ copy constructor """
         values = self.values
