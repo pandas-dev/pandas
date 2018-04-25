@@ -3570,7 +3570,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         5    False
         Name: animal, dtype: bool
         """
-        result = algorithms.isin(com._values_from_object(self), values)
+        result = algorithms.isin(self, values)
         return self._constructor(result, index=self.index).__finalize__(self)
 
     def between(self, left, right, inclusive=True):
