@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import pytest
 
+import operator
 from datetime import datetime
 
 import warnings
@@ -879,6 +880,16 @@ class TestDataFrameAggregate(TestData):
         def f():
             with np.errstate(all='ignore'):
                 df.agg({'A': ['abs', 'sum'], 'B': ['mean', 'max']})
+
+    @pytest.mark.parametrize('method', [
+        'abs', 'shift', 'pct_change', 'cumsum', 'rank',
+    ])
+    def test_transform_method_name(self, method):
+        # https://github.com/pandas-dev/pandas/issues/19760
+        df = pd.DataFrame({"A": [-1, 2]})
+        result = df.transform(method)
+        expected = operator.methodcaller(method)(df)
+        tm.assert_frame_equal(result, expected)
 
     def test_demo(self):
         # demonstration tests
