@@ -678,39 +678,39 @@ class TestIndex(Base):
         inter = first.intersection(first)
         assert inter is first
 
-    @pytest.mark.parametrize("index2,keeps_nm", [
+    @pytest.mark.parametrize("index2,keeps_name", [
         (Index([3, 4, 5, 6, 7], name="index"), True),  # preserve same name
         (Index([3, 4, 5, 6, 7], name="other"), False),  # drop diff names
         (Index([3, 4, 5, 6, 7]), False)])
-    def test_intersection_name_preservation(self, index2, keeps_nm):
+    def test_intersection_name_preservation(self, index2, keeps_name):
         index1 = Index([1, 2, 3, 4, 5], name='index')
         expected = Index([3, 4, 5])
         result = index1.intersection(index2)
 
-        if keeps_nm:
+        if keeps_name:
             expected.name = 'index'
 
         assert result.name == expected.name
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("first_nm,sec_nm,exp_nm", [
+    @pytest.mark.parametrize("first_name,sec_name,exp_name", [
         ('A', 'A', 'A'), ('A', 'B', None), (None, 'B', None)])
-    def test_intersection_name_preservation2(self, first_nm, sec_nm, exp_nm):
+    def test_intersection_name_preservation2(self, first_name, sec_name, exp_name):
         first = self.strIndex[5:20]
         second = self.strIndex[:10]
-        first.name = first_nm
-        second.name = sec_nm
+        first.name = first_name
+        second.name = sec_name
         intersect = first.intersection(second)
-        assert intersect.name == exp_nm
+        assert intersect.name == exp_name
 
-    @pytest.mark.parametrize("index2,keeps_nm", [
+    @pytest.mark.parametrize("index2,keeps_name", [
         (Index([4, 7, 6, 5, 3], name='index'), True),
         (Index([4, 7, 6, 5, 3], name='other'), False)])
-    def test_intersection_monotonic(self, index2, keeps_nm):
+    def test_intersection_monotonic(self, index2, keeps_name):
         index1 = Index([5, 3, 2, 4, 1], name='index')
         expected = Index([5, 3, 4])
 
-        if keeps_nm:
+        if keeps_name:
             expected.name = "index"
 
         result = index1.intersection(index2)
@@ -770,7 +770,7 @@ class TestIndex(Base):
         union = Index([]).union(first)
         assert union is first
 
-    @pytest.mark.parametrize("first,second,nm", [
+    @pytest.mark.parametrize("first,second,name", [
         (Index(list('ab'), name='A'), Index(list('ab'), name='B'), None),
         (Index(list('ab'), name='A'), Index([], name='B'), None),
         (Index([], name='A'), Index(list('ab'), name='B'), None),
@@ -780,9 +780,9 @@ class TestIndex(Base):
         (Index(list('ab'), name='A'), Index(list('ab')), 'A'),
         (Index(list('ab'), name='A'), Index([]), 'A'),
         (Index([], name='A'), Index(list('ab')), 'A')])
-    def test_union_name_preservation(self, first, second, nm):
+    def test_union_name_preservation(self, first, second, name):
         union = first.union(second)
-        expected = Index(list('ab'), name=nm)
+        expected = Index(list('ab'), name=name)
         tm.assert_index_equal(union, expected)
 
     def test_union_dt_as_obj(self):
@@ -933,11 +933,11 @@ class TestIndex(Base):
         result = index.append([])
         tm.assert_index_equal(result, index)
 
-    @pytest.mark.parametrize("nm,expected", [
+    @pytest.mark.parametrize("name,expected", [
         ('foo', 'foo'), ('bar', None)])
-    def test_append_empty_preserve_name(self, nm, expected):
+    def test_append_empty_preserve_name(self, name, expected):
         left = Index([], name='foo')
-        right = Index([1, 2, 3], name=nm)
+        right = Index([1, 2, 3], name=name)
 
         result = left.append(right)
         assert result.name == expected
@@ -958,16 +958,16 @@ class TestIndex(Base):
         index += '_x'
         assert 'a_x' in index
 
-    @pytest.mark.parametrize("second_nm,expected", [
+    @pytest.mark.parametrize("second_name,expected", [
         (None, None), ('name', 'name')])
-    def test_difference_name_preservation(self, second_nm, expected):
+    def test_difference_name_preservation(self, second_name, expected):
         # TODO: replace with fixturesult
         first = self.strIndex[5:20]
         second = self.strIndex[:10]
         answer = self.strIndex[10:20]
 
         first.name = 'name'
-        second.name = second_nm
+        second.name = second_name
         result = first.difference(second)
 
         assert tm.equalContents(result, answer)
