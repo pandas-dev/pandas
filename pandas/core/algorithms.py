@@ -1495,7 +1495,6 @@ def take(arr, indexer, allow_fill=False, fill_value=None):
 
     if allow_fill:
         # Pandas style, -1 means NA
-        # Use for bounds checking, we don't actually want to convert.
         validate_indices(indexer, len(arr))
         result = take_1d(arr, indexer, allow_fill=True, fill_value=fill_value)
     else:
