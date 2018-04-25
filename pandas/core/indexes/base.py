@@ -2397,32 +2397,37 @@ class Index(IndexOpsMixin, PandasObject):
 
         See Also
         --------
+        Series.asof : Return the latest value in a Series up to the
+            passed index.
+        merge_asof : Perform an asof merge (similar to left join but it
+            matches on nearest key rather than equal key).
         Index.get_loc : `asof` is a thin wrapper around `get_loc`
             with method='pad'.
 
         Examples
         --------
-        The method returns the latest index label up to the passed label.
+        `Index.asof` returns the latest index label up to the passed label.
 
-        >>> idx = pd.Index([13, 18, 20])
-        >>> idx.asof(14)
-        13
+        >>> idx = pd.Index(['2013-12-31', '2014-01-02', '2014-01-03'])
+        >>> idx.asof('2014-01-01')
+        '2013-12-31'
 
         If the label is in the index, the method returns the passed label.
 
-        >>> idx.asof(18)
-        18
+        >>> idx.asof('2014-01-02')
+        '2014-01-02'
 
         If all of the labels in the index are later than the passed label,
         NaN is returned.
 
-        >>> idx.asof(1)
+        >>> idx.asof('1999-01-02')
         nan
 
         If the index is not sorted, an error is raised.
 
-        >>> idx_not_sorted = pd.Index([13, 20, 18])
-        >>> idx_not_sorted.asof(18)
+        >>> idx_not_sorted = pd.Index(['2013-12-31', '2015-01-02',
+        ...                            '2014-01-03'])
+        >>> idx_not_sorted.asof('2013-12-31')
         Traceback (most recent call last):
         ValueError: index must be monotonic increasing or decreasing
         """
