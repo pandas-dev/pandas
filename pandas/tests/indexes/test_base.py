@@ -601,9 +601,9 @@ class TestIndex(Base):
         # this does not yet work, as parsing strings is done via dateutil
         # assert first_value == x['2013-01-01 00:00:00.000000050+0000']
 
-        exp_ts = np_datetime64_compat('2013-01-01 00:00:00.000000050+0000',
-                                      'ns')
-        assert first_value == x[Timestamp(exp_ts)]
+        expected_ts = np_datetime64_compat('2013-01-01 00:00:00.000000050+'
+                                           '0000', 'ns')
+        assert first_value == x[Timestamp(expected_ts)]
 
     @pytest.mark.parametrize("op", [
         operator.eq, operator.ne, operator.gt, operator.lt,
@@ -693,15 +693,16 @@ class TestIndex(Base):
         assert result.name == expected.name
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("first_name,sec_name,exp_name", [
+    @pytest.mark.parametrize("first_name,second_name,expected_name", [
         ('A', 'A', 'A'), ('A', 'B', None), (None, 'B', None)])
-    def test_intersection_name_preservation2(self, first_name, sec_name, exp_name):
+    def test_intersection_name_preservation2(self, first_name, second_name,
+                                             expected_name):
         first = self.strIndex[5:20]
         second = self.strIndex[:10]
         first.name = first_name
-        second.name = sec_name
+        second.name = second_name
         intersect = first.intersection(second)
-        assert intersect.name == exp_name
+        assert intersect.name == expected_name
 
     @pytest.mark.parametrize("index2,keeps_name", [
         (Index([4, 7, 6, 5, 3], name='index'), True),
@@ -716,13 +717,13 @@ class TestIndex(Base):
         result = index1.intersection(index2)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("index2,exp_arr", [
+    @pytest.mark.parametrize("index2,expected_arr", [
         (Index(['B', 'D']), ['B']),
         (Index(['B', 'D', 'A']), ['A', 'B', 'A'])])
-    def test_intersection_non_monotonic_non_unique(self, index2, exp_arr):
+    def test_intersection_non_monotonic_non_unique(self, index2, expected_arr):
         # non-monotonic non-unique
         index1 = Index(['A', 'B', 'A', 'C'])
-        expected = Index(exp_arr, dtype='object')
+        expected = Index(expected_arr, dtype='object')
         result = index1.intersection(index2)
         tm.assert_index_equal(result, expected)
 
