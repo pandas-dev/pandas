@@ -1464,8 +1464,8 @@ def take(arr, indices, allow_fill=False, fill_value=None):
     allow_fill : bool, default False
         How to handle negative values in `indices`.
 
-        * False: negative values in `indices` indicate indexing from
-          the right (the default). This is similar to :func:`numpy.take`.
+        * False: negative values in `indices` indicate positional indicies
+          from the right (the default). This is similar to :func:`numpy.take`.
 
         * True: negative values in `indices` indicate
           missing values. These values are set to `fill_value`. Any other
@@ -1506,7 +1506,7 @@ def take(arr, indices, allow_fill=False, fill_value=None):
     >>> from pandas.api.extensions import take
 
     With the default ``allow_fill=False``, negative numbers indicate
-    slices from the right.
+    positional indicies from the right.
 
     >>> take(np.array([10, 20, 30]), [0, 0, -1])
     array([10, 10, 30])

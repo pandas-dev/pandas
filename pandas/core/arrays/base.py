@@ -470,17 +470,17 @@ class ExtensionArray(object):
         Parameters
         ----------
         indices : sequence of integers
-            Indices to be taken. See Notes for how negative indicies
-            are handled.
+            Indices to be taken.
         allow_fill : bool, default False
             How to handle negative values in `indices`.
 
             For False values (the default), negative values in `indices`
-            indiciate slices from the right.
+            indiciate positional indicies from the right.
 
             For True values, indicies where `indices` is ``-1`` indicate
             missing values. These values are set to `fill_value`. Any other
             other negative value should raise a ``ValueError``.
+
         fill_value : any, optional
             Fill value to use for NA-indicies when `allow_fill` is True.
             This may be ``None``, in which case the default NA value for
