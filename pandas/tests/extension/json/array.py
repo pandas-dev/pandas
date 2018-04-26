@@ -105,6 +105,12 @@ class JSONArray(ExtensionArray):
     def copy(self, deep=False):
         return type(self)(self.data[:])
 
+    def astype(self, dtype, copy=True):
+        # NumPy has issues when all the dicts are the same length.
+        # np.array([UserDict(...), UserDict(...)]) fails,
+        # but np.array([{...}, {...}]) works, so cast.
+        return np.array([dict(x) for x in self], dtype=dtype, copy=copy)
+
     def unique(self):
         # Parent method doesn't work since np.array will try to infer
         # a 2-dim object.
