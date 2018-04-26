@@ -1455,19 +1455,21 @@ def take(arr, indexer, allow_fill=False, fill_value=None):
 
     Parameters
     ----------
-    arr : ndarray or ExtensionArray
+    arr : sequence
+        Non array-likes (sequences without a dtype) are coereced
+        to an ndarray.
     indexer : sequence of integers
-        Indices to be taken. See Notes for how negative indicies
-        are handled.
+        Indices to be taken.
     allow_fill : bool, default False
         How to handle negative values in `indexer`.
 
-        For False values (the default), negative values in `indexer`
-        indiciate slices from the right.
+        * False: negative values in `indexer` indicate
+          slices from the right (the default)
 
-        For True values, indicies where `indexer` is ``-1`` indicate
-        missing values. These values are set to `fill_value`. Any other
-        other negative value should raise a ``ValueError``.
+        * True: negative values in `indexer` indicate
+          missing values. These values are set to `fill_value`. Any other
+          other negative values raise a ``ValueError``.
+
     fill_value : any, optional
         Fill value to use for NA-indicies when `allow_fill` is True.
         This may be ``None``, in which case the default NA value for
@@ -1486,13 +1488,42 @@ def take(arr, indexer, allow_fill=False, fill_value=None):
         When the indexer contains negative values other than ``-1``
         and `allow_fill` is True.
 
+    Notes
+    -----
+    When `allow_fill` is False, `indexer` may be whatever dimensionality
+    is accepted by NumPy for `arr`.
+
+    When `allow_fill` is True, `indexer` should be 1-D.
+
     See Also
     --------
     numpy.take
+
+    Examples
+    --------
+    >>> from pandas.api.extensions import take
+
+    With the default ``allow_fill=False``, negative numbers indicate
+    slices from the right.
+
+    >>> take(np.array([10, 20, 30]), [0, 0, -1])
+    array([10, 10, 30])
+
+    Setting ``allow_fill=True`` will place `fill_value` in those positions.
+
+    >>> take(np.array([10, 20, 30]), [0, 0, -1], allow_fill=True)
+    array([10., 10., nan])
+
+    >>> take(np.array([10, 20, 30]), [0, 0, -1], allow_fill=True,
+    ...      fill_value=-10)
+    array([ 10,  10, -10])
     """
     from pandas.core.indexing import validate_indices
 
-    # Do we require int64 here?
+    if not is_array_like(arr):
+        arr = np.asarray(arr)
+
+    # Do we require int64 or intp here?
     indexer = np.asarray(indexer, dtype='int')
 
     if allow_fill:
