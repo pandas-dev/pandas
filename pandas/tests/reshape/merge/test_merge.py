@@ -1286,7 +1286,7 @@ class TestMergeMulti(object):
                 index=MultiIndex.from_tuples(
                     [(4, np.nan)],
                     names=['household_id', 'asset_id'])))
-        ], axis=0).reindex(columns=expected.columns))
+        ], axis=0, sort=True).reindex(columns=expected.columns))
         assert_frame_equal(result, expected)
 
         # invalid cases
