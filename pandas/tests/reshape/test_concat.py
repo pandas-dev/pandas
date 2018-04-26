@@ -2251,13 +2251,43 @@ def test_concat_empty_and_non_empty_series_regression():
     tm.assert_series_equal(result, expected)
 
 
+def test_concat_sort_columns():
+    # GH-4588
+    df1 = pd.DataFrame({"a": [1, 2], "b": [1, 2]}, columns=['b', 'a'])
+    df2 = pd.DataFrame({"a": [3, 4]})
+
+    expected = pd.DataFrame({"a": [1, 2, 3, 4],
+                             "b": [1, 2, None, None]},
+                            columns=['a', 'b'])
+    with tm.assert_produces_warning(FutureWarning):
+        result = pd.concat([df1, df2], ignore_index=True)
+
+    tm.assert_frame_equal(result, expected)
+
+
+def test_concat_sorts_index():
+    df1 = pd.DataFrame({"a": [1, 2, 3]}, index=['c', 'a', 'b'])
+    df2 = pd.DataFrame({"b": [1, 2]}, index=['a', 'b'])
+
+    with tm.assert_produces_warning(FutureWarning):
+        result = pd.concat([df1, df2], axis=1)
+
+    expected = pd.DataFrame({"a": [2, 3, 1], "b": [1, 2, None]},
+                            index=['a', 'b', 'c'],
+                            columns=['a', 'b'])
+    tm.assert_frame_equal(result, expected)
+
+
 def test_concat_preserve_column_order_differing_columns():
     # GH 4588 regression test
     # for new columns in concat
     dfa = pd.DataFrame(columns=['C', 'A'], data=[[1, 2]])
     dfb = pd.DataFrame(columns=['C', 'Z'], data=[[5, 6]])
-    result = pd.concat([dfa, dfb])
-    assert result.columns.tolist() == ['C', 'A', 'Z']
+    result = pd.concat([dfa, dfb], ignore_index=True)
+
+    expected = pd.DataFrame({"A": [2, None], "C": [1, 5],
+                             "Z": [None, 6]}, columns=["A", "C", "Z"])
+    tm.assert_frame_equal(result, expected)
 
 
 def test_concat_preserve_column_order_uneven_data():
@@ -2268,5 +2298,10 @@ def test_concat_preserve_column_order_uneven_data():
     df['c'] = [1, 2, 3]
     df['a'] = [1, 2, 3]
     df2 = pd.DataFrame({'a': [4, 5]})
-    df3 = pd.concat([df, df2])
-    assert df3.columns.tolist() == ['b', 'c', 'a']
+    result = pd.concat([df, df2])
+    expected = pd.DataFrame({
+        'a': [1, 2, 3, 4, 5],
+        'b': [1, 2, 3, None, None],
+        'c': [1, 2, 3, None, None]
+    }, index=[0, 1, 2, 0, 1])
+    tm.assert_frame_equal(result, expected)

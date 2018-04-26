@@ -1,3 +1,6 @@
+import textwrap
+import warnings
+
 from pandas.core.indexes.base import (Index,
                                       _new_Index,
                                       _ensure_index,
@@ -16,6 +19,16 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 import pandas.core.common as com
 from pandas._libs import lib
 from pandas._libs.tslib import NaT
+
+_sort_msg = textwrap.dedent("""\
+Sorting because non-concatenation axis is not aligned. A future version
+of pandas will change to not sort by default.
+
+To accept the future behavior, pass 'sort=True'.
+
+To retain the current behavior and silence the warning, pass sort=False
+""")
+
 
 # TODO: there are many places that rely on these private methods existing in
 # pandas.core.index
@@ -90,6 +103,12 @@ def _union_indexes(indexes, sort=True):
         index = indexes[0]
         for other in indexes[1:]:
             if not index.equals(other):
+
+                if sort is None:
+                    # TODO: remove once pd.concat sort default changes
+                    warnings.warn(_sort_msg, FutureWarning, stacklevel=8)
+                    sort = True
+
                 return _unique_indices(indexes)
 
         name = _get_consensus_names(indexes)[0]
@@ -97,6 +116,7 @@ def _union_indexes(indexes, sort=True):
             index = index._shallow_copy(name=name)
         return index
     else:
+        # XXX: here too?
         return _unique_indices(indexes)
 
 
