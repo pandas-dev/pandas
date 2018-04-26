@@ -1448,8 +1448,9 @@ def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis=0, mask_info=None):
     return func
 
 
-def take(arr, indexer, allow_fill=False, fill_value=None):
-    """Take elements from an array.
+def take(arr, indices, allow_fill=False, fill_value=None):
+    """
+    Take elements from an array.
 
     .. versionadded:: 0.23.0
 
@@ -1458,22 +1459,23 @@ def take(arr, indexer, allow_fill=False, fill_value=None):
     arr : sequence
         Non array-likes (sequences without a dtype) are coereced
         to an ndarray.
-    indexer : sequence of integers
+    indices : sequence of integers
         Indices to be taken.
     allow_fill : bool, default False
-        How to handle negative values in `indexer`.
+        How to handle negative values in `indices`.
 
-        * False: negative values in `indexer` indicate
-          slices from the right (the default)
+        * False: negative values in `indices` indicate indexing from
+          the right (the default). This is similar to :func:`numpy.take`.
 
-        * True: negative values in `indexer` indicate
+        * True: negative values in `indices` indicate
           missing values. These values are set to `fill_value`. Any other
           other negative values raise a ``ValueError``.
 
     fill_value : any, optional
         Fill value to use for NA-indicies when `allow_fill` is True.
         This may be ``None``, in which case the default NA value for
-        the type, ``self.dtype.na_value``, is used.
+        the type is used. For ndarrays, :attr:`numpy.nan` is used. For
+        ExtensionArrays, a different value may be used.
 
     Returns
     -------
@@ -1483,17 +1485,17 @@ def take(arr, indexer, allow_fill=False, fill_value=None):
     Raises
     ------
     IndexError
-        When the indexer is out of bounds for the array.
+        When `indices` is out of bounds for the array.
     ValueError
         When the indexer contains negative values other than ``-1``
         and `allow_fill` is True.
 
     Notes
     -----
-    When `allow_fill` is False, `indexer` may be whatever dimensionality
+    When `allow_fill` is False, `indices` may be whatever dimensionality
     is accepted by NumPy for `arr`.
 
-    When `allow_fill` is True, `indexer` should be 1-D.
+    When `allow_fill` is True, `indices` should be 1-D.
 
     See Also
     --------
@@ -1524,15 +1526,15 @@ def take(arr, indexer, allow_fill=False, fill_value=None):
         arr = np.asarray(arr)
 
     # Do we require int64 or intp here?
-    indexer = np.asarray(indexer, dtype='int')
+    indices = np.asarray(indices, dtype='int')
 
     if allow_fill:
         # Pandas style, -1 means NA
-        validate_indices(indexer, len(arr))
-        result = take_1d(arr, indexer, allow_fill=True, fill_value=fill_value)
+        validate_indices(indices, len(arr))
+        result = take_1d(arr, indices, allow_fill=True, fill_value=fill_value)
     else:
         # NumPy style
-        result = arr.take(indexer)
+        result = arr.take(indices)
     return result
 
 

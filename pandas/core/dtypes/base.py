@@ -17,7 +17,8 @@ class _DtypeOpsMixin(object):
     # class's methods can be moved to ExtensionDtype and removed.
 
     # na_value is the default NA value to use for this type. This is used in
-    # e.g. ExtensionArray.take.
+    # e.g. ExtensionArray.take. This should be the user-facing "boxed" version
+    # of the NA value, not the physical NA vaalue for storage.
     na_value = np.nan
 
     def __eq__(self, other):

@@ -127,7 +127,11 @@ class BaseGetitemTests(BaseExtensionTests):
         result = data.take([0, -1])
         assert result.dtype == data.dtype
         assert result[0] == data[0]
-        na_cmp(result[1], na_value)
+        assert result[1] == data[-1]
+
+        result = data.take([0, -1], allow_fill=True, fill_value=na_value)
+        assert result[0] == data[0]
+        assert na_cmp(result[1], na_value)
 
         with tm.assert_raises_regex(IndexError, "out of bounds"):
             data.take([len(data) + 1])
@@ -136,7 +140,7 @@ class BaseGetitemTests(BaseExtensionTests):
         empty = data[:0]
 
         result = empty.take([-1], allow_fill=True)
-        na_cmp(result[0], na_value)
+        assert na_cmp(result[0], na_value)
 
         with pytest.raises(IndexError):
             empty.take([-1])
@@ -170,7 +174,6 @@ class BaseGetitemTests(BaseExtensionTests):
         with pytest.raises(IndexError):
             arr.take(np.asarray([0, 3]), allow_fill=allow_fill)
 
-    @pytest.mark.xfail(reason="Series.take with extension array buggy for -1")
     def test_take_series(self, data):
         s = pd.Series(data)
         result = s.take([0, -1])
@@ -195,4 +198,15 @@ class BaseGetitemTests(BaseExtensionTests):
         result = s.reindex([n, n + 1])
         expected = pd.Series(data._from_sequence([na_value, na_value]),
                              index=[n, n + 1])
+        self.assert_series_equal(result, expected)
+
+    def test_reindex_non_na_fill_value(self, data_missing):
+        valid = data_missing[1]
+        na = data_missing[0]
+
+        array = data_missing._from_sequence([na, valid])
+        ser = pd.Series(array)
+        result = ser.reindex([0, 1, 2], fill_value=valid)
+        expected = pd.Series(data_missing._from_sequence([na, valid, valid]))
+
         self.assert_series_equal(result, expected)

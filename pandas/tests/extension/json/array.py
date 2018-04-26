@@ -1,3 +1,15 @@
+"""Test extension array for storing nested data in a pandas container.
+
+The JSONArray stores lists of dictionaries. The storage mechanism is a list,
+not an ndarray.
+
+Note:
+
+We currently store lists of UserDicts (Py3 only). Pandas has a few places
+internally that specifically check for dicts, and does non-scalar things
+in that case. We *want* the dictionaries to be treated as scalars, so we
+hack around pandas by using UserDicts.
+"""
 import collections
 import itertools
 import numbers
@@ -124,12 +136,6 @@ class JSONArray(ExtensionArray):
                 raise IndexError(msg)
 
         return self._from_sequence(output)
-
-    # def astype(self, dtype, copy=True):
-    #     # NumPy has issues when all the dicts are the same length.
-    #     # np.array([UserDict(...), UserDict(...)]) fails,
-    #     # but np.array([{...}, {...}]) works, so cast.
-    #     return np.array([dict(x) for x in self], dtype=dtype, copy=copy)
 
     def copy(self, deep=False):
         return type(self)(self.data[:])

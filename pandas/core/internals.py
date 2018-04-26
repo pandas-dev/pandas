@@ -5405,9 +5405,6 @@ def concatenate_block_managers(mgrs_indexers, axes, concat_axis, copy):
 
     for placement, join_units in concat_plan:
 
-        # The issue: we have a join unit (or maybe several) that needs to be
-        # reindexed.
-
         if len(join_units) == 1 and not join_units[0].indexers:
             b = join_units[0].block
             values = b.values

@@ -463,28 +463,34 @@ class ExtensionArray(object):
     # Indexing methods
     # ------------------------------------------------------------------------
 
-    def take(self, indexer, allow_fill=False, fill_value=None):
+    def take(self, indices, allow_fill=False, fill_value=None):
         # type: (Sequence[int], bool, Optional[Any]) -> ExtensionArray
         """Take elements from an array.
 
         Parameters
         ----------
-        indexer : sequence of integers
+        indices : sequence of integers
             Indices to be taken. See Notes for how negative indicies
             are handled.
         allow_fill : bool, default False
-            How to handle negative values in `indexer`.
+            How to handle negative values in `indices`.
 
-            For False values (the default), negative values in `indexer`
+            For False values (the default), negative values in `indices`
             indiciate slices from the right.
 
-            For True values, indicies where `indexer` is ``-1`` indicate
+            For True values, indicies where `indices` is ``-1`` indicate
             missing values. These values are set to `fill_value`. Any other
             other negative value should raise a ``ValueError``.
         fill_value : any, optional
             Fill value to use for NA-indicies when `allow_fill` is True.
             This may be ``None``, in which case the default NA value for
             the type, ``self.dtype.na_value``, is used.
+
+            For many ExtensionArrays, there will be two representations of
+            `fill_value`: a user-facing "boxed" scalar, and a low-level
+            physical NA value. `fill_value` should be the user-facing version,
+            and the implementation should handle translating that to the
+            physical version for processing the take if nescessary.
 
         Returns
         -------
@@ -493,15 +499,15 @@ class ExtensionArray(object):
         Raises
         ------
         IndexError
-            When the indexer is out of bounds for the array.
+            When the indices are out of bounds for the array.
         ValueError
-            When the indexer contains negative values other than ``-1``
+            When `indices` contains negative values other than ``-1``
             and `allow_fill` is True.
 
         Notes
         -----
         ExtensionArray.take is called by ``Series.__getitem__``, ``.loc``,
-        ``iloc``, when the indexer is a sequence of values. Additionally,
+        ``iloc``, when `indices` is a sequence of values. Additionally,
         it's called by :meth:`Series.reindex`, or any other method
         that causes realignemnt, with a `fill_value`.
 
@@ -518,14 +524,17 @@ class ExtensionArray(object):
 
         .. code-block:: python
 
-           def take(self, indexer, allow_fill=False, fill_value=None):
+           def take(self, indices, allow_fill=False, fill_value=None):
                from pandas.core.algorithms import take
 
+               # If the ExtensionArray is backed by an ndarray, then
+               # just pass that here instead of coercing to object.
                data = self.astype(object)
+
                if allow_fill and fill_value is None:
                    fill_value = self.dtype.na_value
 
-               result = take(data, indexer, fill_value=fill_value,
+               result = take(data, indices, fill_value=fill_value,
                              allow_fill=allow_fill)
                return self._from_sequence(result)
         """
