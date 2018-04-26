@@ -148,3 +148,24 @@ class Rank(object):
 
     def time_rank_int_cat_ordered(self):
         self.s_int_cat_ordered.rank()
+
+
+class Isin(object):
+
+    goal_time = 0.2
+
+    params = ['object', 'int64']
+    param_names = ['dtype']
+
+    def setup(self, dtype):
+        np.random.seed(1234)
+        n = 5 * 10**5
+        sample_size = 100
+        arr = [i for i in np.random.randint(0, n // 10, size=n)]
+        if dtype == 'object':
+            arr = ['s%04d' % i for i in arr]
+        self.sample = np.random.choice(arr, sample_size)
+        self.series = pd.Series(arr).astype('category')
+
+    def time_isin_categorical(self, dtype):
+        self.series.isin(self.sample)

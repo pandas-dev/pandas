@@ -30,7 +30,7 @@ from .common import Base
 
 class TestMultiIndex(Base):
     _holder = MultiIndex
-    _compat_props = ['shape', 'ndim', 'size', 'itemsize']
+    _compat_props = ['shape', 'ndim', 'size']
 
     def setup_method(self, method):
         major_axis = Index(['foo', 'bar', 'baz', 'qux'])
