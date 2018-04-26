@@ -246,10 +246,10 @@ class Index(IndexOpsMixin, PandasObject):
     _accessors = set(['str'])
     # Whether items can be selected from NDFrame.<item>
     # Some indexes (DatetimeIndex, Int64Index) cannot contain
-    # valid Python identifiers. Setting _is_dotable = False is an
+    # valid Python identifiers. Setting __can_hold_identifiers = False is an
     # optimization.
     # https://github.com/pandas-dev/pandas/issues/19764
-    _is_dotable = True
+    __can_hold_identifiers = True
 
     str = CachedAccessor("str", StringMethods)
 

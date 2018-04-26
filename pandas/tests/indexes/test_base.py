@@ -66,9 +66,9 @@ class TestIndex(Base):
             if key not in skip_index_keys:
                 yield key, idx
 
-    def test_is_dotable(self):
+    def test__can_hold_identifiers(self):
         idx = self.create_index()
-        assert idx._is_dotable is True
+        assert idx.__can_hold_identifiers is True
 
     def test_new_axis(self):
         new_index = self.dateIndex[None, :]

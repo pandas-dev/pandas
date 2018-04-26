@@ -207,7 +207,7 @@ class IntervalIndex(IntervalMixin, Index):
     _typ = 'intervalindex'
     _comparables = ['name']
     _attributes = ['name', 'closed']
-    _is_dotable = False  # can't contain Python identifiers
+    __can_hold_identifiers = False  # can't contain Python identifiers
 
     # we would like our indexing holder to defer to us
     _defer_to_indexing = True

@@ -48,9 +48,9 @@ class TestMultiIndex(Base):
     def create_index(self):
         return self.index
 
-    def test_is_dotable(self):
+    def test__can_hold_identifiers(self):
         idx = self.create_index()
-        assert idx._is_dotable is True
+        assert idx.__can_hold_identifiers is True
 
     def test_boolean_context_compat2(self):
 

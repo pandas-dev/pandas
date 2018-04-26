@@ -33,9 +33,9 @@ class TestCategoricalIndex(Base):
         return CategoricalIndex(
             list('aabbca'), categories=categories, ordered=ordered)
 
-    def test_is_dotable(self):
+    def test__can_hold_identifiers(self):
         ci = self.create_index(categories=list('abcd'))
-        assert ci._is_dotable is True
+        assert ci.__can_hold_identifiers is True
 
     def test_construction(self):
 
