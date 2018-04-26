@@ -31,7 +31,7 @@ class NumericIndex(Index):
 
     """
     _is_numeric_dtype = True
-    __can_hold_identifiers = False  # Can't contain Python identifiers
+    _can_hold_identifiers = False  # Can't contain Python identifiers
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None,
                 fastpath=False):

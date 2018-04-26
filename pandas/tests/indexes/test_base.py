@@ -66,9 +66,9 @@ class TestIndex(Base):
             if key not in skip_index_keys:
                 yield key, idx
 
-    def test__can_hold_identifiers(self):
+    def test_can_hold_identifiers(self):
         idx = self.create_index()
-        assert idx.__can_hold_identifiers is True
+        assert idx._can_hold_identifiers is True
 
     def test_new_axis(self):
         new_index = self.dateIndex[None, :]
