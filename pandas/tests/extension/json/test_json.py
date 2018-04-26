@@ -1,5 +1,5 @@
 import operator
-from collections import UserDict
+import collections
 
 import pytest
 
@@ -103,8 +103,9 @@ class TestInterface(BaseJSON, base.BaseInterfaceTests):
     def test_custom_asserts(self):
         # This would always trigger the KeyError from trying to put
         # an array of equal-length UserDicts inside an ndarray.
-        data = JSONArray([UserDict({'a': 1}), UserDict({'b': 2}),
-                          UserDict({'c': 3})])
+        data = JSONArray([collections.UserDict({'a': 1}),
+                          collections.UserDict({'b': 2}),
+                          collections.UserDict({'c': 3})])
         a = pd.Series(data)
         self.assert_series_equal(a, a)
         self.assert_frame_equal(a.to_frame(), a.to_frame())
