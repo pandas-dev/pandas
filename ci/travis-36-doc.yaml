@@ -1,14 +1,14 @@
 name: pandas
 channels:
   - defaults
-  - conda-forge
+  # - conda-forge
   - r
 dependencies:
   - beautifulsoup4
   - bottleneck
   - cython
   - fastparquet
-  - feather-format
+  # - feather-format
   - html5lib
   - ipykernel
   - ipython
@@ -17,7 +17,7 @@ dependencies:
   - matplotlib
   - nbconvert
   - nbformat
-  - nbsphinx
+  # - nbsphinx
   - notebook
   - numexpr
   - numpy=1.13*
