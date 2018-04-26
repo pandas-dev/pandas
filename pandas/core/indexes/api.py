@@ -115,8 +115,7 @@ def _union_indexes(indexes, sort=True):
         if name != index.name:
             index = index._shallow_copy(name=name)
         return index
-    else:
-        # XXX: here too?
+    else:  # kind='list
         return _unique_indices(indexes)
 
 

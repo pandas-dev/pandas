@@ -1318,7 +1318,7 @@ class TestConcatenate(ConcatenateBase):
         df2 = DataFrame({u'B': 'foo', (u'B', 1): 'bar'}, index=range(2))
 
         # it works
-        concat([df1, df2])
+        concat([df1, df2], sort=True)
 
     def test_handle_empty_objects(self):
         df = DataFrame(np.random.randn(10, 4), columns=list('abcd'))
@@ -1328,7 +1328,7 @@ class TestConcatenate(ConcatenateBase):
         empty = df[5:5]
 
         frames = [baz, empty, empty, df[5:]]
-        concatted = concat(frames, axis=0)
+        concatted = concat(frames, axis=0, sort=True)
 
         expected = df.reindex(columns=['a', 'b', 'c', 'd', 'foo'])
         expected['foo'] = expected['foo'].astype('O')
@@ -2056,7 +2056,7 @@ bar2,12,13,14,15
         cat_values = ["one", "one", "two", "one", "two", "two", "one"]
         df2['h'] = Series(Categorical(cat_values))
 
-        res = pd.concat((df1, df2), axis=0, ignore_index=True)
+        res = pd.concat((df1, df2), axis=0, ignore_index=True, sort=True)
         exp = DataFrame({'a': [0, 3, 6, 9, 12, 15, 0, 2, 4, 6, 8, 10, 12],
                          'b': [1, 4, 7, 10, 13, 16, np.nan, np.nan, np.nan,
                                np.nan, np.nan, np.nan, np.nan],
@@ -2165,6 +2165,7 @@ bar2,12,13,14,15
         dfs += [pd.DataFrame(index=range(3), columns=[None, 1, 'a'])
                 for i in range(100)]
         result = pd.concat(dfs).columns
+
         expected = dfs[0].columns
         tm.assert_index_equal(result, expected)
 
@@ -2283,7 +2284,7 @@ def test_concat_preserve_column_order_differing_columns():
     # for new columns in concat
     dfa = pd.DataFrame(columns=['C', 'A'], data=[[1, 2]])
     dfb = pd.DataFrame(columns=['C', 'Z'], data=[[5, 6]])
-    result = pd.concat([dfa, dfb], ignore_index=True)
+    result = pd.concat([dfa, dfb], ignore_index=True, sort=True)
 
     expected = pd.DataFrame({"A": [2, None], "C": [1, 5],
                              "Z": [None, 6]}, columns=["A", "C", "Z"])
@@ -2298,7 +2299,7 @@ def test_concat_preserve_column_order_uneven_data():
     df['c'] = [1, 2, 3]
     df['a'] = [1, 2, 3]
     df2 = pd.DataFrame({'a': [4, 5]})
-    result = pd.concat([df, df2])
+    result = pd.concat([df, df2], sort=True)
     expected = pd.DataFrame({
         'a': [1, 2, 3, 4, 5],
         'b': [1, 2, 3, None, None],
