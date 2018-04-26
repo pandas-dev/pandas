@@ -96,6 +96,8 @@ class _DtypeOpsMixin(object):
 class ExtensionDtype(_DtypeOpsMixin):
     """A custom data type, to be paired with an ExtensionArray.
 
+    .. versionadded:: 0.23.0
+
     Notes
     -----
     The interface includes the following abstract methods that must

@@ -1451,6 +1451,8 @@ def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis=0, mask_info=None):
 def take(arr, indexer, allow_fill=False, fill_value=None):
     """Take elements from an array.
 
+    .. versionadded:: 0.23.0
+
     Parameters
     ----------
     arr : ndarray or ExtensionArray
