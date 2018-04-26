@@ -58,7 +58,6 @@ from pandas.io.api import *
 from pandas.util._tester import test
 import pandas.testing
 
-from scipy import *
 import rpy2.rinterface as rinterface
 
 # extension module deprecations
