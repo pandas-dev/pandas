@@ -124,8 +124,8 @@ class TestTimestampProperties(object):
         assert np.isnan(nan_ts.day_name(time_locale))
         assert np.isnan(nan_ts.month_name(time_locale))
 
-    @pytest.mark.parametrize('tz', [None, 'UTC', 'US/Eastern', 'Asia/Tokyo'])
-    def test_is_leap_year(self, tz):
+    def test_is_leap_year(self, tz_naive_fixture):
+        tz = tz_naive_fixture
         # GH 13727
         dt = Timestamp('2000-01-01 00:00:00', tz=tz)
         assert dt.is_leap_year
@@ -520,6 +520,13 @@ class TestTimestampConstructors(object):
         assert abs(ts_from_method_tz - ts_from_string_tz) < delta
         assert (abs(ts_from_string_tz.tz_localize(None) -
                     ts_from_method_tz.tz_localize(None)) < delta)
+
+    @pytest.mark.parametrize('tz', [None, pytz.timezone('US/Pacific')])
+    def test_disallow_setting_tz(self, tz):
+        # GH 3746
+        ts = Timestamp('2010')
+        with pytest.raises(AttributeError):
+            ts.tz = tz
 
 
 class TestTimestamp(object):

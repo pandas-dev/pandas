@@ -532,7 +532,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
             def can_do_equal_len():
                 """ return True if we have an equal len settable """
-                if not len(labels) == 1 or not np.iterable(value):
+                if (not len(labels) == 1 or not np.iterable(value) or
+                        is_scalar(plane_indexer[0])):
                     return False
 
                 l = len(value)
@@ -2308,6 +2309,49 @@ def check_bool_indexer(ax, key):
         result = np.asarray(result, dtype=bool)
 
     return result
+
+
+def check_setitem_lengths(indexer, value, values):
+    """Validate that value and indexer are the same length.
+
+    An special-case is allowed for when the indexer is a boolean array
+    and the number of true values equals the length of ``value``. In
+    this case, no exception is raised.
+
+    Parameters
+    ----------
+    indexer : sequence
+        The key for the setitem
+    value : array-like
+        The value for the setitem
+    values : array-like
+        The values being set into
+
+    Returns
+    -------
+    None
+
+    Raises
+    ------
+    ValueError
+        When the indexer is an ndarray or list and the lengths don't
+        match.
+    """
+    # boolean with truth values == len of the value is ok too
+    if isinstance(indexer, (np.ndarray, list)):
+        if is_list_like(value) and len(indexer) != len(value):
+            if not (isinstance(indexer, np.ndarray) and
+                    indexer.dtype == np.bool_ and
+                    len(indexer[indexer]) == len(value)):
+                raise ValueError("cannot set using a list-like indexer "
+                                 "with a different length than the value")
+    # slice
+    elif isinstance(indexer, slice):
+
+        if is_list_like(value) and len(values):
+            if len(value) != length_of_indexer(indexer, values):
+                raise ValueError("cannot set using a slice indexer with a "
+                                 "different length than the value")
 
 
 def convert_missing_indexer(indexer):

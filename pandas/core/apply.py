@@ -111,8 +111,14 @@ class FrameApply(object):
 
         # string dispatch
         if isinstance(self.f, compat.string_types):
-            self.kwds['axis'] = self.axis
-            return getattr(self.obj, self.f)(*self.args, **self.kwds)
+            # Support for `frame.transform('method')`
+            # Some methods (shift, etc.) require the axis argument, others
+            # don't, so inspect and insert if nescessary.
+            func = getattr(self.obj, self.f)
+            sig = compat.signature(func)
+            if 'axis' in sig.args:
+                self.kwds['axis'] = self.axis
+            return func(*self.args, **self.kwds)
 
         # ufunc
         elif isinstance(self.f, np.ufunc):

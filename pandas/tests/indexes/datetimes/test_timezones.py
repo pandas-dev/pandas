@@ -241,9 +241,8 @@ class TestDatetimeIndexTimezones(object):
         idx = idx.tz_convert('UTC')
         tm.assert_index_equal(idx.hour, Index([4, 4]))
 
-    @pytest.mark.parametrize('tz', ['UTC', 'Asia/Tokyo', 'US/Eastern',
-                                    'dateutil/US/Pacific'])
-    def test_tz_convert_roundtrip(self, tz):
+    def test_tz_convert_roundtrip(self, tz_aware_fixture):
+        tz = tz_aware_fixture
         idx1 = date_range(start='2014-01-01', end='2014-12-31', freq='M',
                           tz='UTC')
         exp1 = date_range(start='2014-01-01', end='2014-12-31', freq='M')
@@ -431,9 +430,9 @@ class TestDatetimeIndexTimezones(object):
         with pytest.raises(pytz.NonExistentTimeError):
             rng.tz_localize(tz)
 
-    @pytest.mark.parametrize('tz', ['UTC', 'Asia/Tokyo', 'US/Eastern',
-                                    'dateutil/US/Pacific'])
-    def test_dti_tz_localize_roundtrip(self, tz):
+    def test_dti_tz_localize_roundtrip(self, tz_aware_fixture):
+        tz = tz_aware_fixture
+
         idx1 = date_range(start='2014-01-01', end='2014-12-31', freq='M')
         idx2 = date_range(start='2014-01-01', end='2014-12-31', freq='D')
         idx3 = date_range(start='2014-01-01', end='2014-03-01', freq='H')
@@ -443,7 +442,6 @@ class TestDatetimeIndexTimezones(object):
             expected = date_range(start=idx[0], end=idx[-1], freq=idx.freq,
                                   tz=tz)
             tm.assert_index_equal(localized, expected)
-
             with pytest.raises(TypeError):
                 localized.tz_localize(tz)
 

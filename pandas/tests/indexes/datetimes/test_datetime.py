@@ -1,3 +1,4 @@
+import warnings
 
 import pytest
 
@@ -178,7 +179,10 @@ class TestDatetimeIndex(object):
         idx = DatetimeIndex(['2000-01-01', '2000-01-02', '2000-01-02',
                              '2000-01-03', '2000-01-03', '2000-01-04'])
 
-        result = idx.get_duplicates()
+        with warnings.catch_warnings(record=True):
+            # Deprecated - see GH20239
+            result = idx.get_duplicates()
+
         ex = DatetimeIndex(['2000-01-02', '2000-01-03'])
         tm.assert_index_equal(result, ex)
 
@@ -329,8 +333,8 @@ class TestDatetimeIndex(object):
         tm.assert_numpy_array_equal(arr, exp_arr)
         tm.assert_index_equal(idx, idx3)
 
-    @pytest.mark.parametrize('tz', [None, 'UTC', 'US/Eastern', 'Asia/Tokyo'])
-    def test_factorize_tz(self, tz):
+    def test_factorize_tz(self, tz_naive_fixture):
+        tz = tz_naive_fixture
         # GH#13750
         base = pd.date_range('2016-11-05', freq='H', periods=100, tz=tz)
         idx = base.repeat(5)
