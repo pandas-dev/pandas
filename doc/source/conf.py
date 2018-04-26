@@ -72,7 +72,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.mathjax',
               'sphinx.ext.ifconfig',
               'sphinx.ext.linkcode',
-              'nbsphinx',
+            #   'nbsphinx',
               ]
 
 exclude_patterns = ['**.ipynb_checkpoints']
