@@ -20,7 +20,7 @@ import pandas.core.dtypes.concat as _concat
 
 def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
            keys=None, levels=None, names=None, verify_integrity=False,
-           sort=False, copy=True):
+           sort=None, copy=True):
     """
     Concatenate pandas objects along a particular axis with optional set logic
     along the other axes.
@@ -60,8 +60,15 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
     verify_integrity : boolean, default False
         Check whether the new concatenated axis contains duplicates. This can
         be very expensive relative to the actual data concatenation
-    sort : boolean, default False
-        Sort columns if all passed object columns are not the same
+    sort : boolean, default None
+        Sort non-concatenation axis if it is not already aligned. The current
+        default of sorting is deprecated and will change to not-sorting in a
+        future version of pandas. Explicitly pass ``sort=True`` to silence
+        the warning and sort. Explicitly pass ``sort=False`` to silence the
+        warning and not sort.
+
+        .. versionadded:: 0.23.0
+
     copy : boolean, default True
         If False, do not copy data unnecessarily
 
