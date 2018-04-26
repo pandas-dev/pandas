@@ -1962,20 +1962,23 @@ class StringMethods(NoNewAttributesMixin):
         idx = self._orig if isinstance(self._orig, Index) else self._orig.index
 
         if isinstance(others, Series):
+            fut_warn = not others.index.equals(idx)
             los = [Series(others.values, index=idx)
-                   if ignore_index else others]
-            return (los, True)
+                   if ignore_index and fut_warn else others]
+            return (los, fut_warn)
         elif isinstance(others, Index):
+            fut_warn = not others.equals(idx)
             los = [Series(others.values,
                           index=(idx if ignore_index else others))]
-            return (los, True)
+            return (los, fut_warn)
         elif isinstance(others, DataFrame):
-            if ignore_index:
+            fut_warn = not others.index.equals(idx)
+            if ignore_index and fut_warn:
                 # without copy, this could change (the corresponding list
                 # element of) "others" that was passed to str.cat
                 others = others.copy()
                 others.index = idx
-            return ([others[x] for x in others], True)
+            return ([others[x] for x in others], fut_warn)
         elif isinstance(others, np.ndarray) and others.ndim == 2:
             others = DataFrame(others, index=idx)
             return ([others[x] for x in others], False)
@@ -1983,13 +1986,13 @@ class StringMethods(NoNewAttributesMixin):
             others = list(others)  # ensure iterators do not get read twice etc
             if all(is_list_like(x) for x in others):
                 los = []
-                fuwa = False
+                fut_warn = False
                 while others:
                     tmp = self._get_series_list(others.pop(0),
                                                 ignore_index=ignore_index)
                     los = los + tmp[0]
-                    fuwa = fuwa or tmp[1]
-                return (los, fuwa)
+                    fut_warn = fut_warn or tmp[1]
+                return (los, fut_warn)
             else:
                 return ([Series(others, index=idx)], False)
         raise ValueError('others must be Series, Index, DataFrame, '
@@ -2145,7 +2148,7 @@ class StringMethods(NoNewAttributesMixin):
         else:  # Series
             data = self._orig
 
-        # concatenate Series into itself if no "others"
+        # concatenate Series/Index with itself if no "others"
         if others is None:
             result = str_cat(data, others=others, sep=sep, na_rep=na_rep)
             return self._wrap_result(result,

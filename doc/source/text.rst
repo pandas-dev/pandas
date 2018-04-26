@@ -280,7 +280,7 @@ the ``join``-keyword, which controls the manner of alignment.
 .. warning::
 
     If the ``join`` keyword is not passed, the method :meth:`~Series.str.cat` will currently fall back to the behavior before version 0.23.0 (i.e. no alignment),
-    but a ``FutureWarning`` will be raised, since this default will change to ``join='left'`` in a future version.
+    but a ``FutureWarning`` will be raised if any of the involved indexes differ, since this default will change to ``join='left'`` in a future version.
 
 To usual options are available for ``join`` (one of ``'left', 'outer', 'inner', 'right'``).
 In particular, alignment also means that the different lengths do not need to coincide anymore.
@@ -305,7 +305,7 @@ The same alignment can be used when ``others`` is a ``DataFrame``:
 Concatenating a Series and many objects into a Series
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-All list-likes (including iterators,  ``dict``-views, etc.) can be arbitrarily combined in a list-like container:
+All list-likes (including iterators, ``dict``-views, etc.) can be arbitrarily combined in a list-like container:
 
 .. ipython:: python
 
