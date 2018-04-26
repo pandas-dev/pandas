@@ -886,6 +886,9 @@ Deprecations
 - The ``convert_datetime64`` parameter in :func:`DataFrame.to_records` has been deprecated and will be removed in a future version. The NumPy bug motivating this parameter has been resolved. The default value for this parameter has also changed from ``True`` to ``None`` (:issue:`18160`).
 - :func:`Series.rolling().apply() <pandas.core.window.Rolling.apply>`, :func:`DataFrame.rolling().apply() <pandas.core.window.Rolling.apply>`,
   :func:`Series.expanding().apply() <pandas.core.window.Expanding.apply>`, and :func:`DataFrame.expanding().apply() <pandas.core.window.Expanding.apply>` have deprecated passing an ``np.array`` by default. One will need to pass the new ``raw`` parameter to be explicit about what is passed (:issue:`20584`)
+- The ``data``, ``base``, ``strides``, ``flags`` and ``itemsize`` properties
+  of the ``Series`` and ``Index`` classes have been deprecated and will be
+  removed in a future version (:issue:`20419`).
 - ``DatetimeIndex.offset`` is deprecated. Use ``DatetimeIndex.freq`` instead (:issue:`20716`)
 - ``Index.get_duplicates()`` is deprecated and will be removed in a future version (:issue:`20239`)
 
@@ -954,6 +957,7 @@ Performance Improvements
 - Improved performance of :func:`pandas.core.groupby.GroupBy.ffill` and :func:`pandas.core.groupby.GroupBy.bfill` (:issue:`11296`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.any` and :func:`pandas.core.groupby.GroupBy.all` (:issue:`15435`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.pct_change` (:issue:`19165`)
+- Improved performance of :func:`Series.isin` in the case of categorical dtypes (:issue:`20003`)
 - Fixed a performance regression for :func:`GroupBy.nth` and :func:`GroupBy.last` with some object columns (:issue:`19283`)
 
 .. _whatsnew_0230.docs:
@@ -1156,6 +1160,10 @@ I/O
 - Bug in :func:`read_csv` causing heap corruption on 32-bit, big-endian architectures (:issue:`20785`)
 - Bug in :func:`read_sas` where a file with 0 variables gave an ``AttributeError`` incorrectly. Now it gives an ``EmptyDataError`` (:issue:`18184`)
 - Bug in :func:`DataFrame.to_latex()` where pairs of braces meant to serve as invisible placeholders were escaped (:issue:`18667`)
+- Bug in :func:`DataFrame.to_latex()` where a ``NaN`` in a ``MultiIndex`` would cause an ``IndexError`` or incorrect output (:issue:`14249`)
+- Bug in :func:`DataFrame.to_latex()` where a non-string index-level name would result in an ``AttributeError`` (:issue:`19981`)
+- Bug in :func:`DataFrame.to_latex()` where the combination of an index name and the `index_names=False` option would result in incorrect output (:issue:`18326`)
+- Bug in :func:`DataFrame.to_latex()` where a ``MultiIndex`` with an empty string as its name would result in incorrect output (:issue:`18669`)
 - Bug in :func:`read_json` where large numeric values were causing an ``OverflowError`` (:issue:`18842`)
 - Bug in :func:`DataFrame.to_parquet` where an exception was raised if the write destination is S3 (:issue:`19134`)
 - :class:`Interval` now supported in :func:`DataFrame.to_excel` for all Excel file types (:issue:`19242`)

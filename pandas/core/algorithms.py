@@ -407,6 +407,13 @@ def isin(comps, values):
     if not isinstance(values, (ABCIndex, ABCSeries, np.ndarray)):
         values = construct_1d_object_array_from_listlike(list(values))
 
+    if is_categorical_dtype(comps):
+        # TODO(extension)
+        # handle categoricals
+        return comps._values.isin(values)
+
+    comps = com._values_from_object(comps)
+
     comps, dtype, _ = _ensure_data(comps)
     values, _, _ = _ensure_data(values, dtype=dtype)
 
@@ -1490,6 +1497,8 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
 
     if is_sparse(arr):
         arr = arr.get_values()
+
+    arr = np.asarray(arr)
 
     if indexer is None:
         indexer = np.arange(arr.shape[axis], dtype=np.int64)

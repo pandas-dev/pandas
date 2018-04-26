@@ -550,6 +550,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if copy:
             # Retrieve the "base objects", i.e. the original memory allocations
+            if not isinstance(orig, np.ndarray):
+                # orig is a DatetimeIndex
+                orig = orig.values
             orig = orig if orig.base is None else orig.base
             new = self._data if self._data.base is None else self._data.base
             if orig is new:
@@ -3516,7 +3519,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if level is not None:
             self._validate_index_level(level)
-        return algos.isin(np.array(self), values)
+        return algos.isin(self, values)
 
     def _can_reindex(self, indexer):
         """
