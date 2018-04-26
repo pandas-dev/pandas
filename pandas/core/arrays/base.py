@@ -38,10 +38,9 @@ class ExtensionArray(object):
     * copy
     * _concat_same_type
 
-    Some additional methods are available to satisfy pandas' internal, private
-    block API:
+    An additional method is available to satisfy pandas' internal,
+    private block API.
 
-    * _can_hold_na
     * _formatting_values
 
     Some methods require casting the ExtensionArray to an ndarray of Python
@@ -399,7 +398,8 @@ class ExtensionArray(object):
         Returns
         -------
         values : ndarray
-            An array suitable for factoraization. This should maintain order
+
+            An array suitable for factorization. This should maintain order
             and be a supported dtype (Float64, Int64, UInt64, String, Object).
             By default, the extension array is cast to object dtype.
         na_value : object
@@ -422,7 +422,7 @@ class ExtensionArray(object):
         Returns
         -------
         labels : ndarray
-            An interger NumPy array that's an indexer into the original
+            An integer NumPy array that's an indexer into the original
             ExtensionArray.
         uniques : ExtensionArray
             An ExtensionArray containing the unique values of `self`.
@@ -566,16 +566,12 @@ class ExtensionArray(object):
         """
         raise AbstractMethodError(cls)
 
-    @property
-    def _can_hold_na(self):
-        # type: () -> bool
-        """Whether your array can hold missing values. True by default.
-
-        Notes
-        -----
-        Setting this to false will optimize some operations like fillna.
-        """
-        return True
+    # The _can_hold_na attribute is set to True so that pandas internals
+    # will use the ExtensionDtype.na_value as the NA value in operations
+    # such as take(), reindex(), shift(), etc.  In addition, those results
+    # will then be of the ExtensionArray subclass rather than an array
+    # of objects
+    _can_hold_na = True
 
     @property
     def _ndarray_values(self):

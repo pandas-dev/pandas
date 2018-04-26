@@ -9,10 +9,7 @@ from .base import BaseExtensionTests
 
 class BaseMissingTests(BaseExtensionTests):
     def test_isna(self, data_missing):
-        if data_missing._can_hold_na:
-            expected = np.array([True, False])
-        else:
-            expected = np.array([False, False])
+        expected = np.array([True, False])
 
         result = pd.isna(data_missing)
         tm.assert_numpy_array_equal(result, expected)
