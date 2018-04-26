@@ -6059,6 +6059,8 @@ class DataFrame(NDFrame):
             silence the warning and sort. Explicitly pass ``sort=False`` to
             silence the warning and not sort.
 
+            .. versionadded:: 0.23.0
+
         Returns
         -------
         appended : DataFrame
