@@ -33,6 +33,10 @@ class TestCategoricalIndex(Base):
         return CategoricalIndex(
             list('aabbca'), categories=categories, ordered=ordered)
 
+    def test_is_dotable(self):
+        ci = self.create_index(categories=list('abcd'))
+        assert ci._is_dotable is True
+
     def test_construction(self):
 
         ci = self.create_index(categories=list('abcd'))

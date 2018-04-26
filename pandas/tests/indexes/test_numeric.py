@@ -64,6 +64,10 @@ class TestIndexArithmeticWithTimedeltaScalar(object):
 
 class Numeric(Base):
 
+    def test_is_dotable(self):
+        idx = self.create_index()
+        assert idx._is_dotable is False
+
     def test_numeric_compat(self):
         pass  # override Base method
 

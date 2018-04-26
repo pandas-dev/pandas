@@ -244,6 +244,12 @@ class Index(IndexOpsMixin, PandasObject):
     _engine_type = libindex.ObjectEngine
 
     _accessors = set(['str'])
+    # Whether items can be selected from NDFrame.<item>
+    # Some indexes (DatetimeIndex, Int64Index) cannot contain
+    # valid Python identifiers. Setting _is_dotable = False is an
+    # optimization.
+    # https://github.com/pandas-dev/pandas/issues/19764
+    _is_dotable = True
 
     str = CachedAccessor("str", StringMethods)
 

@@ -44,6 +44,10 @@ class TestRangeIndex(Numeric):
                     expected = op(Int64Index(idx), scalar)
                     tm.assert_index_equal(result, expected)
 
+    def test_is_dotable(self):
+        idx = self.create_index()
+        assert idx._is_dotable is False
+
     def test_binops(self):
         ops = [operator.add, operator.sub, operator.mul, operator.floordiv,
                operator.truediv]

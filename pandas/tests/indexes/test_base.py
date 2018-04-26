@@ -66,6 +66,10 @@ class TestIndex(Base):
             if key not in skip_index_keys:
                 yield key, idx
 
+    def test_is_dotable(self):
+        idx = self.create_index()
+        assert idx._is_dotable is True
+
     def test_new_axis(self):
         new_index = self.dateIndex[None, :]
         assert new_index.ndim == 2
