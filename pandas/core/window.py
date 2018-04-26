@@ -1271,12 +1271,12 @@ class _Rolling_and_Expanding(_Rolling):
                            check_minp=_require_min_periods(4), **kwargs)
 
     _shared_docs['quantile'] = dedent("""
-    %(name)s quantile
+    %(name)s quantile.
 
     Parameters
     ----------
     quantile : float
-        0 <= quantile <= 1
+        Quantile to compute. 0 <= quantile <= 1.
     interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
         .. versionadded:: 0.23.0
 
@@ -1289,6 +1289,9 @@ class _Rolling_and_Expanding(_Rolling):
             * higher: `j`.
             * nearest: `i` or `j` whichever is nearest.
             * midpoint: (`i` + `j`) / 2.
+    **kwargs:
+        For compatibility with other %(name)s methods. Has no effect on
+        the result.
 
     Returns
     -------
@@ -1298,7 +1301,7 @@ class _Rolling_and_Expanding(_Rolling):
 
     Examples
     --------
-    >>> s = Series([1, 2, 3, 4])
+    >>> s = pd.Series([1, 2, 3, 4])
     >>> s.rolling(2).quantile(.4, interpolation='lower')
     0    NaN
     1    1.0
@@ -1319,7 +1322,6 @@ class _Rolling_and_Expanding(_Rolling):
         in Series.
     pandas.DataFrame.quantile : Computes values at the given quantile over
         requested axis in DataFrame.
-
     """)
 
     def quantile(self, quantile, interpolation='linear', **kwargs):
@@ -1656,7 +1658,6 @@ class Rolling(_Rolling_and_Expanding):
         return super(Rolling, self).kurt(**kwargs)
 
     @Substitution(name='rolling')
-    @Appender(_doc_template)
     @Appender(_shared_docs['quantile'])
     def quantile(self, quantile, interpolation='linear', **kwargs):
         return super(Rolling, self).quantile(quantile=quantile,
@@ -1917,7 +1918,6 @@ class Expanding(_Rolling_and_Expanding):
         return super(Expanding, self).kurt(**kwargs)
 
     @Substitution(name='expanding')
-    @Appender(_doc_template)
     @Appender(_shared_docs['quantile'])
     def quantile(self, quantile, interpolation='linear', **kwargs):
         return super(Expanding, self).quantile(quantile=quantile,
