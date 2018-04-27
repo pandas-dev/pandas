@@ -64,6 +64,11 @@ class BaseReshapingTests(BaseExtensionTests):
         expected = pd.concat([df1.astype('object'), df2.astype('object')])
         self.assert_frame_equal(result, expected)
 
+        result = pd.concat([df1['A'], df2['A']])
+        expected = pd.concat([df1['A'].astype('object'),
+                              df2['A'].astype('object')])
+        self.assert_series_equal(result, expected)
+
     def test_align(self, data, na_value):
         a = data[:3]
         b = data[2:5]
