@@ -153,10 +153,10 @@ Set logic on the other axes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When gluing together multiple DataFrames, you have a choice of how to handle
-the other axes (other than the one being concatenated). This can be done in 
+the other axes (other than the one being concatenated). This can be done in
 the following three ways:
 
-- Take the (sorted) union of them all, ``join='outer'``. This is the default
+- Take the union of them all, ``join='outer'``. This is the default
   option as it results in zero information loss.
 - Take the intersection, ``join='inner'``.
 - Use a specific index, as passed to the ``join_axes`` argument.
@@ -167,10 +167,10 @@ behavior:
 .. ipython:: python
 
    df4 = pd.DataFrame({'B': ['B2', 'B3', 'B6', 'B7'],
-                    'D': ['D2', 'D3', 'D6', 'D7'],
-                    'F': ['F2', 'F3', 'F6', 'F7']},
-                   index=[2, 3, 6, 7])
-   result = pd.concat([df1, df4], axis=1)
+                       'D': ['D2', 'D3', 'D6', 'D7'],
+                       'F': ['F2', 'F3', 'F6', 'F7']},
+                      index=[2, 3, 6, 7])
+   result = pd.concat([df1, df4], axis=1, sort=False)
 
 
 .. ipython:: python
@@ -181,8 +181,14 @@ behavior:
           labels=['df1', 'df4'], vertical=False);
    plt.close('all');
 
-Note that the row indexes have been unioned and sorted. Here is the same thing
-with ``join='inner'``:
+.. versionchanged:: 0.23.0
+
+   The default behavior with ``join='outer'`` is to sort the other axis
+   (columns in this case). In a future version of pandas, the default will
+   be to not sort. We specified ``sort=False`` to opt in to the new
+   behavior now.
+
+Here is the same thing with ``join='inner'``:
 
 .. ipython:: python
 
