@@ -61,11 +61,15 @@ def concat(objs, axis=0, join='outer', join_axes=None, ignore_index=False,
         Check whether the new concatenated axis contains duplicates. This can
         be very expensive relative to the actual data concatenation
     sort : boolean, default None
-        Sort non-concatenation axis if it is not already aligned. The current
-        default of sorting is deprecated and will change to not-sorting in a
-        future version of pandas. Explicitly pass ``sort=True`` to silence
-        the warning and sort. Explicitly pass ``sort=False`` to silence the
-        warning and not sort.
+        Sort non-concatenation axis if it is not already aligned when `join`
+        is 'outer'. The current default of sorting is deprecated and will
+        change to not-sorting in a future version of pandas.
+
+        Explicitly pass ``sort=True`` to silence the warning and sort.
+        Explicitly pass ``sort=False`` to silence the warning and not sort.
+
+        This has no effect when ``join='inner'``, which already preserves
+        the order of the non-concatenation axis.
 
         .. versionadded:: 0.23.0
 
