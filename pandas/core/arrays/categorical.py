@@ -2,6 +2,7 @@
 
 import numpy as np
 from warnings import warn
+import textwrap
 import types
 
 from pandas import compat
@@ -29,7 +30,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_dict_like)
 
-from pandas.core.algorithms import factorize, take_1d, unique1d
+from pandas.core.algorithms import factorize, take_1d, unique1d, take
 from pandas.core.accessor import PandasDelegate
 from pandas.core.base import (PandasObject,
                               NoNewAttributesMixin, _shared_docs)
@@ -46,6 +47,17 @@ from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 from pandas.core.config import get_option
 
 from .base import ExtensionArray
+
+
+_take_msg = textwrap.dedent("""\
+    Interpreting negative values in 'indexer' as missing values.
+    In the future, this will change to meaning positional indicies
+    from the right.
+
+    Use 'allow_fill=True' to retain the previous behavior and silence this
+    warning.
+
+    Use 'allow_fill=False' to accept the new behavior.""")
 
 
 def _cat_compare_op(op):
@@ -1732,17 +1744,25 @@ class Categorical(ExtensionArray, PandasObject):
         return self._constructor(values, categories=self.categories,
                                  ordered=self.ordered, fastpath=True)
 
-    def take_nd(self, indexer, allow_fill=True, fill_value=None):
-        """ Take the codes by the indexer, fill with the fill_value.
+    def take_nd(self, indexer, allow_fill=None, fill_value=None):
+        """
+        Return the indices
 
         For internal compatibility with numpy arrays.
         """
+        indexer = np.asarray(indexer, dtype=np.intp)
+        if allow_fill is None:
+            if (indexer < 0).any():
+                warn(_take_msg, FutureWarning, stacklevel=2)
+                allow_fill = True
 
-        # filling must always be None/nan here
-        # but is passed thru internally
-        assert isna(fill_value)
+        if fill_value is None or isna(fill_value):
+            # For backwards compatability, we have to override
+            # any na values for `fill_value`
+            fill_value = -1
 
-        codes = take_1d(self._codes, indexer, allow_fill=True, fill_value=-1)
+        codes = take(self._codes, indexer, allow_fill=allow_fill,
+                     fill_value=fill_value)
         result = self._constructor(codes, categories=self.categories,
                                    ordered=self.ordered, fastpath=True)
         return result
