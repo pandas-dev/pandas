@@ -474,15 +474,16 @@ class ExtensionArray(object):
         allow_fill : bool, default False
             How to handle negative values in `indices`.
 
-            For False values (the default), negative values in `indices`
-            indiciate positional indicies from the right.
+            * False: negative values in `indices` indicate positional indices
+              from the right (the default). This is similar to
+              :func:`numpy.take`.
 
-            For True values, indicies where `indices` is ``-1`` indicate
-            missing values. These values are set to `fill_value`. Any other
-            other negative value should raise a ``ValueError``.
+            * True: negative values in `indices` indicate
+              missing values. These values are set to `fill_value`. Any other
+              other negative values raise a ``ValueError``.
 
         fill_value : any, optional
-            Fill value to use for NA-indicies when `allow_fill` is True.
+            Fill value to use for NA-indices when `allow_fill` is True.
             This may be ``None``, in which case the default NA value for
             the type, ``self.dtype.na_value``, is used.
 
@@ -538,6 +539,13 @@ class ExtensionArray(object):
                              allow_fill=allow_fill)
                return self._from_sequence(result)
         """
+        # Implementer note: The `fill_value` parameter should be a user-facing
+        # value, an instance of self.dtype.type. When passed `fill_value=None`,
+        # the default of `self.dtype.na_value` should be used.
+        # This may differ from the physical storage type your ExtensionArray
+        # uses. In this case, your implementation is responsible for casting
+        # the user-facing type to the storage type, before using
+        # pandas.api.extensions.take
         raise AbstractMethodError(self)
 
     def copy(self, deep=False):

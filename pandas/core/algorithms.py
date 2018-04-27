@@ -1464,7 +1464,7 @@ def take(arr, indices, allow_fill=False, fill_value=None):
     allow_fill : bool, default False
         How to handle negative values in `indices`.
 
-        * False: negative values in `indices` indicate positional indicies
+        * False: negative values in `indices` indicate positional indices
           from the right (the default). This is similar to :func:`numpy.take`.
 
         * True: negative values in `indices` indicate
@@ -1472,10 +1472,9 @@ def take(arr, indices, allow_fill=False, fill_value=None):
           other negative values raise a ``ValueError``.
 
     fill_value : any, optional
-        Fill value to use for NA-indicies when `allow_fill` is True.
+        Fill value to use for NA-indices when `allow_fill` is True.
         This may be ``None``, in which case the default NA value for
-        the type is used. For ndarrays, :attr:`numpy.nan` is used. For
-        ExtensionArrays, a different value may be used.
+        the type (``self.dtype.na_value``) is used.
 
     Returns
     -------
@@ -1506,7 +1505,7 @@ def take(arr, indices, allow_fill=False, fill_value=None):
     >>> from pandas.api.extensions import take
 
     With the default ``allow_fill=False``, negative numbers indicate
-    positional indicies from the right.
+    positional indices from the right.
 
     >>> take(np.array([10, 20, 30]), [0, 0, -1])
     array([10, 10, 30])
@@ -1525,8 +1524,7 @@ def take(arr, indices, allow_fill=False, fill_value=None):
     if not is_array_like(arr):
         arr = np.asarray(arr)
 
-    # Do we require int64 or intp here?
-    indices = np.asarray(indices, dtype='int')
+    indices = np.asarray(indices, dtype=np.intp)
 
     if allow_fill:
         # Pandas style, -1 means NA
@@ -1552,7 +1550,7 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
         Input array.
     indexer : ndarray
         1-D array of indices to take, subarrays corresponding to -1 value
-        indicies are filed with fill_value
+        indices are filed with fill_value
     axis : int, default 0
         Axis to take from
     out : ndarray or None, default None
