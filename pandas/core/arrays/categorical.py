@@ -1746,9 +1746,33 @@ class Categorical(ExtensionArray, PandasObject):
 
     def take_nd(self, indexer, allow_fill=None, fill_value=None):
         """
-        Return the indices
+        Take elements from the Categorical.
 
-        For internal compatibility with numpy arrays.
+        Parameters
+        ----------
+        indexer : sequence of integers
+        allow_fill : bool, default None.
+            How to handle negative values in `indexer`.
+
+            * False: negative values in `indices` indicate positional indices
+              from the right. This is similar to
+              :func:`numpy.take`.
+
+            * True: negative values in `indices` indicate missing values
+              (the default). These values are set to `fill_value`. Any other
+              other negative values raise a ``ValueError``.
+
+            .. versionchanged:: 0.23.0
+
+               Deprecated the default value of `allow_fill`. The deprecated
+               default is ``True``. In the future, this will change to
+               ``False``.
+
+        Returns
+        -------
+        Categorical
+            This Categorical will have the same categories and ordered as
+            `self`.
         """
         indexer = np.asarray(indexer, dtype=np.intp)
         if allow_fill is None:
@@ -1757,8 +1781,8 @@ class Categorical(ExtensionArray, PandasObject):
                 allow_fill = True
 
         if fill_value is None or isna(fill_value):
-            # For backwards compatability, we have to override
-            # any na values for `fill_value`
+            # The isna(fill_value) is included for backwards compatability.
+            # Categorical overrides any NA value with -1.
             fill_value = -1
 
         codes = take(self._codes, indexer, allow_fill=allow_fill,

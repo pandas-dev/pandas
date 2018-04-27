@@ -111,7 +111,7 @@ class TestGetitem(base.BaseGetitemTests):
     def test_take_out_of_bounds_raises(self):
         pass
 
-    @skip_take
+    @pytest.mark.skip(reason="GH-20747. Unobserved categories.")
     def test_take_series(self):
         pass
 
