@@ -1,7 +1,7 @@
 """ common utilities """
 
 import itertools
-from warnings import catch_warnings
+from warnings import catch_warnings, filterwarnings
 import numpy as np
 
 from pandas.compat import lrange
@@ -300,7 +300,8 @@ class Base(object):
 
                     # Panel deprecations
                     if isinstance(obj, Panel):
-                        with catch_warnings(record=True):
+                        with catch_warnings():
+                            filterwarnings("ignore", "\nPanel*", FutureWarning)
                             _call()
                     else:
                         _call()
