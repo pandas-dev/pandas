@@ -1938,19 +1938,20 @@ class StringMethods(NoNewAttributesMixin):
     def _get_series_list(self, others, ignore_index=False):
         """
         Auxiliary function for :meth:`str.cat`. Turn potentially mixed input
-        into list of Series (elements without an index must match the length of
-        the calling Series/Index).
+        into a list of Series (elements without an index must match the length
+        of the calling Series/Index).
 
         Parameters
         ----------
-        input : Series, DataFrame, np.ndarrary, list-like or list-like of those
+        input : Series, DataFrame, np.ndarray, list-like or list-like of
+            objects that are either Series, np.ndarray (1-dim) or list-like
         ignore_index : boolean, default False
             Determines whether to forcefully align with index of the caller
 
         Returns
         -------
-        tuple : first element: input transformed into list of Series
-            second element: Boolean whether FutureWarning should be raised
+        tuple : (input transformed into list of Series,
+                 Boolean whether FutureWarning should be raised)
         """
 
         # once str.cat defaults to alignment, this function can be simplified;
@@ -1960,6 +1961,10 @@ class StringMethods(NoNewAttributesMixin):
 
         # self._orig is either Series or Index
         idx = self._orig if isinstance(self._orig, Index) else self._orig.index
+
+        err_msg = ('others must be Series, Index, DataFrame, np.ndarrary or '
+                   'list-like (either containing only strings or containing '
+                   'only objects of type Series/Index/list-like/np.ndarray')
 
         if isinstance(others, Series):
             fut_warn = not others.index.equals(idx)
@@ -1988,15 +1993,32 @@ class StringMethods(NoNewAttributesMixin):
                 los = []
                 fut_warn = False
                 while others:
-                    tmp = self._get_series_list(others.pop(0),
-                                                ignore_index=ignore_index)
+                    nxt = others.pop(0)
+                    # safety for iterators etc.; exclude indexed objects
+                    if (is_list_like(nxt) and
+                            not isinstance(nxt, (DataFrame, Series, Index))):
+                        nxt = list(nxt)
+
+                    # nested list-likes are forbidden - content must be strings
+                    is_legal = (is_list_like(nxt) and
+                                all(isinstance(x, compat.string_types)
+                                    for x in nxt))
+                    # DataFrame is false positive of is_legal
+                    # because "x in df" returns column names
+                    if isinstance(nxt, DataFrame) or not is_legal:
+                        raise TypeError(err_msg)
+
+                    tmp = self._get_series_list(nxt, ignore_index=ignore_index)
                     los = los + tmp[0]
                     fut_warn = fut_warn or tmp[1]
                 return (los, fut_warn)
+            # test if there is a mix of list-like and string/NaN/None
+            elif (any(is_list_like(x) for x in others)
+                  and any(not is_list_like(x) for x in others)):
+                raise TypeError(err_msg)
             else:
                 return ([Series(others, index=idx)], False)
-        raise ValueError('others must be Series, Index, DataFrame, '
-                         'np.ndarrary or list-like')
+        raise TypeError(err_msg)
 
     def cat(self, others=None, sep=None, na_rep=None, join=None):
         """
@@ -2015,9 +2037,9 @@ class StringMethods(NoNewAttributesMixin):
             calling Series/Index, with the exception of indexed objects (i.e.
             Series/Index/DataFrame) if `join` is not None.
 
-            If others is a list-like that contains an arbitrary combination of
-            the above, then all elements will be unpacked and must satisfy the
-            above criteria individually.
+            If others is a list-like that contains a combination of Series,
+            np.ndarray (1-dim) or list-like, then all elements will be unpacked
+            and must satisfy the above criteria individually.
 
             If others is None, the method returns the concatenation of all
             strings in the calling Series/Index.
@@ -2158,7 +2180,7 @@ class StringMethods(NoNewAttributesMixin):
             # turn anything in "others" into lists of Series
             tmp = self._get_series_list(others, ignore_index=(join is None))
             others, fut_warn = tmp
-        except ValueError:
+        except ValueError:  # let TypeError raised by _get_series_list pass
             if join is None:
                 # legacy warning
                 raise ValueError('All arrays must be same length')

@@ -349,6 +349,29 @@ class TestStringMethods(object):
         with tm.assert_raises_regex(ValueError, rgx):
             s.str.cat([z, list(s)])
 
+        # errors for incorrect arguments in list-like
+        rgx = 'others must be Series, Index, DataFrame,.*'
+
+        # mix of string and Series
+        with tm.assert_raises_regex(TypeError, rgx):
+            s.str.cat([s, 's'])
+
+        # DataFrame in list
+        with tm.assert_raises_regex(TypeError, rgx):
+            s.str.cat([s, d])
+
+        # 2-dim ndarray in list
+        with tm.assert_raises_regex(TypeError, rgx):
+            s.str.cat([s, d.values])
+
+        # nested lists
+        with tm.assert_raises_regex(TypeError, rgx):
+            s.str.cat([s, [s, d]])
+
+        # forbidden input type, e.g. int
+        with tm.assert_raises_regex(TypeError, rgx):
+            s.str.cat(1)
+
     @pytest.mark.parametrize('series_or_index, join', [
         ('series', 'left'), ('series', 'outer'),
         ('series', 'inner'), ('series', 'right'),
@@ -410,28 +433,15 @@ class TestStringMethods(object):
     def test_str_cat_special_cases(self):
         s = Series(['a', 'b', 'c', 'd'])
         t = Series(['d', 'a', 'e', 'b'], index=[3, 0, 4, 1])
-        d = concat([t, t], axis=1)
-
-        # lists of elements with different types - unaligned
-        mix = [t, t.values, ['A', 'B', 'C', 'D'], d, d.values]
-        exp = Series(['addAdddd', 'baaBaaaa', 'ceeCeeee', 'dbbDbbbb'])
-        with tm.assert_produces_warning(expected_warning=FutureWarning):
-            # FutureWarning to switch to alignment by default
-            tm.assert_series_equal(s.str.cat(mix, join=None), exp)
-
-        # lists of elements with different types - aligned with na_rep
-        exp = Series(['aadAaadd', 'bbaBbbaa', 'c-eC--ee', 'ddbDddbb'])
-        tm.assert_series_equal(s.str.cat(mix, join='left', na_rep='-'), exp)
 
         # iterator of elements with different types
-        exp = Series(['aadAaadd', 'bbaBbbaa', 'c-eC--ee',
-                      'ddbDddbb', '-e--ee--'])
-        tm.assert_series_equal(s.str.cat(iter(mix), join='outer', na_rep='-'),
-                               exp)
+        exp = Series(['aaA', 'bbB', 'c-C', 'ddD', '-e-'])
+        tm.assert_series_equal(s.str.cat(iter([t, ['A', 'B', 'C', 'D']]),
+                                         join='outer', na_rep='-'), exp)
 
         # right-align with different indexes in others
-        exp = Series(['aa--', 'd-dd'], index=[0, 3])
-        tm.assert_series_equal(s.str.cat([t.loc[[0]], d.loc[[3]]],
+        exp = Series(['aa-', 'd-d'], index=[0, 3])
+        tm.assert_series_equal(s.str.cat([t.loc[[0]], t.loc[[3]]],
                                          join='right', na_rep='-'), exp)
 
     def test_cat_on_filtered_index(self):

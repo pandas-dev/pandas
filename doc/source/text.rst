@@ -305,18 +305,20 @@ The same alignment can be used when ``others`` is a ``DataFrame``:
 Concatenating a Series and many objects into a Series
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-All list-likes (including iterators, ``dict``-views, etc.) can be arbitrarily combined in a list-like container:
+All one-dimensional list-likes can be arbitrarily combined in a list-like container (including iterators, ``dict``-views, etc.):
 
 .. ipython:: python
 
-    s.str.cat([u, t.values, ['A', 'B', 'C', 'D'], d.values, f], na_rep='-')
+    s
+    u
+    s.str.cat([u, pd.Index(u.values), ['A', 'B', 'C', 'D']], na_rep='-')
 
-All elements must match in length to the calling ``Series``, except those having an index if ``join`` is not None:
+All elements must match in length to the calling ``Series`` (or ``Index``), except those having an index if ``join`` is not None:
 
 .. ipython:: python
 
-    s.str.cat([u, v, ['A', 'B', 'C', 'D'], d.values, f.loc[[1]]],
-               join='outer', na_rep='-')
+    v
+    s.str.cat([u, v, ['A', 'B', 'C', 'D']], join='outer', na_rep='-')
 
 If using ``join='right'`` on a list of ``others`` that contains different indexes,
 the union of these indexes will be used as the basis for the final concatenation:

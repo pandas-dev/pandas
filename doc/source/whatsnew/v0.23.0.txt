@@ -314,8 +314,9 @@ The :func:`DataFrame.assign` now accepts dependent keyword arguments for python 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Previously, :meth:`Series.str.cat` did not -- in contrast to most of ``pandas`` -- align :class:`Series` on their index before concatenation (see :issue:`18657`).
-The method has now gained a keyword ``join`` to control the manner of alignment. In v.0.23 it will default to None (meaning no alignment), but this default will change
-to ``'left'`` in a future version of pandas.
+The method has now gained a keyword ``join`` to control the manner of alignment, see examples below and in :ref:`here <text.concatenate>`.
+
+In v.0.23 `join` will default to None (meaning no alignment), but this default will change to ``'left'`` in a future version of pandas.
 
 .. ipython:: python
 
@@ -324,12 +325,9 @@ to ``'left'`` in a future version of pandas.
     s.str.cat(t)
     s.str.cat(t, join='left', na_rep='-')
 
-In particular, ``others`` does not need to be of the same length as the calling ``Series`` (if both have an index and ``join is not None``).
-For more examples, see :ref:`here <text.concatenate>`.
-    
-For categorical data, it is now possible to call :meth:`Series.str.cat` for ``CategoricalIndex`` as well (previously raised a ``ValueError``).
-Finally, if ``others is not None``, the resulting ``Series``/``Index`` will now remain categorical if the calling
-``Series``/``Index`` is categorical.
+Furthermore:
+- meth:`Series.str.cat` now works as well for ``CategoricalIndex`` as well (previously raised a ``ValueError``; see :issue:`20842`)
+- If concatenating with something (i.e. `others is not None`) the resulting ``Series``/``Index`` will now remain categorical if the calling ``Series``/``Index`` is categorical (see :issue:`20843`)
 
 .. _whatsnew_0230.enhancements.astype_category:
 
