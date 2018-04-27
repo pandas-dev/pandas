@@ -450,6 +450,7 @@ Other Enhancements
 - Updated ``to_gbq`` and ``read_gbq`` signature and documentation to reflect changes from
   the Pandas-GBQ library version 0.4.0. Adds intersphinx mapping to Pandas-GBQ
   library. (:issue:`20564`)
+- :func:`pandas.core.indexes.datetimes.date_range` now returns a linearly spaced DatetimeIndex if ``start``, ``stop``, and ``periods`` are specified, but ``freq`` is not. (:issue:`20808`)
 
 .. _whatsnew_0230.api_breaking:
 

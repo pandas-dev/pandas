@@ -2583,13 +2583,15 @@ def _generate_regular_range(start, end, periods, freq):
     return data
 
 
-def date_range(start=None, end=None, periods=None, freq='D', tz=None,
+def date_range(start=None, end=None, periods=None, freq=None, tz=None,
                normalize=False, name=None, closed=None, **kwargs):
     """
     Return a fixed frequency DatetimeIndex.
 
-    Exactly two of the three parameters `start`, `end` and `periods`
-    must be specified.
+    Two or three of the three parameters `start`, `end` and `periods`
+    must be specified. If all three parameters are specified, and `freq` is
+    omitted, the resulting DatetimeIndex will have `periods` linearly spaced
+    elements between `start` and `end` (closed on both sides).
 
     Parameters
     ----------
@@ -2616,6 +2618,8 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
         the 'left', 'right', or both sides (None, the default).
     **kwargs
         For compatibility. Has no effect on the result.
+        Can be used to pass arguments to `pd.to_datetime` when specifying
+        `start`, `end`, and `periods`, but not `freq`.
 
     Returns
     -------
@@ -2631,7 +2635,7 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
     --------
     **Specifying the values**
 
-    The next three examples generate the same `DatetimeIndex`, but vary
+    The next four examples generate the same `DatetimeIndex`, but vary
     the combination of `start`, `end` and `periods`.
 
     Specify `start` and `end`, with the default daily frequency.
@@ -2654,6 +2658,13 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
     DatetimeIndex(['2017-12-25', '2017-12-26', '2017-12-27', '2017-12-28',
                    '2017-12-29', '2017-12-30', '2017-12-31', '2018-01-01'],
                   dtype='datetime64[ns]', freq='D')
+
+    Specify `start`, `end`, and `periods`; the frequency is generated
+    automatically (linearly spaced).
+
+    >>> pd.date_range(start='2018-04-24', end='2018-04-27', periods=3)
+    DatetimeIndex(['2018-04-24 00:00:00', '2018-04-25 12:00:00',
+                   '2018-04-27 00:00:00'], freq=None)
 
     **Other Parameters**
 
@@ -2704,7 +2715,36 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
     >>> pd.date_range(start='2017-01-01', end='2017-01-04', closed='right')
     DatetimeIndex(['2017-01-02', '2017-01-03', '2017-01-04'],
                   dtype='datetime64[ns]', freq='D')
+
+    Declare extra parameters (kwargs) to be used with the pd.to_datetime
+    function that is used when all three parameters `start`, `end`, and
+    `periods` are declared.
+
+    >>> date_range('2018-04-24', '2018-04-27', periods=3, box=False)
+    array(['2018-04-24T00:00:00.000000000', '2018-04-25T12:00:00.000000000',
+           '2018-04-27T00:00:00.000000000'], dtype='datetime64[ns]')
     """
+
+    # See https://github.com/pandas-dev/pandas/issues/20808
+    if freq is None and periods is not None and start is not None \
+            and end is not None:
+        if is_float(periods):
+            periods = int(periods)
+        elif not is_integer(periods):
+            msg = 'periods must be a number, got {periods}'
+            raise TypeError(msg.format(periods=periods))
+
+        start = Timestamp(start)
+        end = Timestamp(end)
+        di = tools.to_datetime(np.linspace(start.value, end.value, periods),
+                               **kwargs)
+        if name:
+            di.name = name
+        return di
+
+    if freq is None:
+        freq = 'D'
+
     return DatetimeIndex(start=start, end=end, periods=periods,
                          freq=freq, tz=tz, normalize=normalize, name=name,
                          closed=closed, **kwargs)

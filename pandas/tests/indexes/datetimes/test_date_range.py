@@ -162,6 +162,21 @@ class TestDateRanges(TestData):
         with tm.assert_raises_regex(ValueError, msg):
             date_range(start, end, periods=10, freq='s')
 
+    def test_date_range_convenience_periods(self):
+        # GH 20808
+        rng = date_range('2018-04-24', '2018-04-27', periods=3)
+        exp = pd.DatetimeIndex(['2018-04-24 00:00:00', '2018-04-25 12:00:00',
+                                '2018-04-27 00:00:00'], freq=None)
+
+        tm.assert_index_equal(rng, exp)
+
+        # Test if kwargs work for the to_datetime function used
+        rng = date_range('2018-04-24', '2018-04-27', periods=3, box=False)
+        exp = np.array(['2018-04-24T00:00:00', '2018-04-25T12:00:00',
+                        '2018-04-27T00:00:00'], dtype='datetime64[ns]')
+
+        assert (rng == exp).all()
+
     def test_date_range_businesshour(self):
         idx = DatetimeIndex(['2014-07-04 09:00', '2014-07-04 10:00',
                              '2014-07-04 11:00',
