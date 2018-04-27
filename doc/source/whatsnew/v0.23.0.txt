@@ -365,7 +365,7 @@ for storing ip addresses.
       ...:
 
 ``IPArray`` isn't a normal 1-D NumPy array, but because it's a pandas
-:ref:`~pandas.api.extension.ExtensionArray, it can be stored properly inside pandas' containers.
+:ref:`~pandas.api.extension.ExtensionArray`, it can be stored properly inside pandas' containers.
 
 .. code-block:: ipython
 
@@ -979,7 +979,7 @@ read the `NumFOCUS blogpost`_ recapping the sprint.
 
 .. _GitHub search: https://github.com/pandas-dev/pandas/pulls?utf8=%E2%9C%93&q=is%3Apr+label%3ADocs+created%3A2018-03-10..2018-03-15+
 .. _NumFOCUS blogpost: https://www.numfocus.org/blog/worldwide-pandas-sprint/
-.. _Marc Garica: https://github.com/datapythonista
+.. _Marc Garcia: https://github.com/datapythonista
 
 - Changed spelling of "numpy" to "NumPy", and "python" to "Python". (:issue:`19017`)
 - Consistency when introducing code samples, using either colon or period.
