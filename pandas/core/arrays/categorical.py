@@ -1780,9 +1780,9 @@ class Categorical(ExtensionArray, PandasObject):
                 warn(_take_msg, FutureWarning, stacklevel=2)
                 allow_fill = True
 
-        if fill_value is None or isna(fill_value):
-            # The isna(fill_value) is included for backwards compatability.
-            # Categorical overrides any NA value with -1.
+        if isna(fill_value):
+            # For categorical, any NA value is considered a user-facing
+            # NA value. Our storage NA value is -1.
             fill_value = -1
 
         codes = take(self._codes, indexer, allow_fill=allow_fill,
