@@ -7,7 +7,7 @@ import numpy as np
 from numpy.random import randn
 
 from datetime import datetime
-from pandas.compat import StringIO, iteritems
+from pandas.compat import StringIO, iteritems, PY2
 import pandas as pd
 from pandas import (DataFrame, concat,
                     read_csv, isna, Series, date_range,
@@ -2190,9 +2190,15 @@ bar2,12,13,14,15
         dfs = [pd.DataFrame(index=range(3), columns=['a', 1, None])]
         dfs += [pd.DataFrame(index=range(3), columns=[None, 1, 'a'])
                 for i in range(100)]
+
         result = pd.concat(dfs, sort=True).columns
 
-        expected = dfs[0].columns
+        if PY2:
+            # Different sort order between incomparable objects between
+            # python 2 and python3 via Index.union.
+            expected = dfs[1].columns
+        else:
+            expected = dfs[0].columns
         tm.assert_index_equal(result, expected)
 
     def test_concat_datetime_timezone(self):
