@@ -466,6 +466,7 @@ class TestGetDummies(object):
         tm.assert_frame_equal(df[['GDP']], df2)
 
     def test_get_dummies_duplicate_columns(self, df):
+        # GH20839
         df.columns = ["A", "A", "A"]
         result = get_dummies(df).sort_index(axis=1)
 
