@@ -402,7 +402,7 @@ Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - Unary ``+`` now permitted for ``Series`` and ``DataFrame`` as  numeric operator (:issue:`16073`)
-- Better support for :func:`Dataframe.style.to_excel` output with the ``xlsxwriter`` engine. (:issue:`16149`)
+- Better support for :meth:`~pandas.io.formats.style.Styler.to_excel` output with the ``xlsxwriter`` engine. (:issue:`16149`)
 - :func:`pandas.tseries.frequencies.to_offset` now accepts leading '+' signs e.g. '+1h'. (:issue:`18171`)
 - :func:`MultiIndex.unique` now supports the ``level=`` argument, to get unique values from a specific index level (:issue:`17896`)
 - :class:`pandas.io.formats.style.Styler` now has method ``hide_index()`` to determine whether the index will be rendered in output (:issue:`14194`)
@@ -416,7 +416,7 @@ Other Enhancements
 - :func:`Series` / :func:`DataFrame` tab completion also returns identifiers in the first level of a :func:`MultiIndex`. (:issue:`16326`)
 - :func:`read_excel()` has gained the ``nrows`` parameter (:issue:`16645`)
 - :meth:`DataFrame.append` can now in more cases preserve the type of the calling dataframe's columns (e.g. if both are ``CategoricalIndex``) (:issue:`18359`)
-- :func:``DataFrame.to_json`` and ``Series.to_json`` now accept an ``index`` argument which allows the user to exclude the index from the JSON output (:issue:`17394`)
+- :meth:`DataFrame.to_json` and :meth:`Series.to_json` now accept an ``index`` argument which allows the user to exclude the index from the JSON output (:issue:`17394`)
 - ``IntervalIndex.to_tuples()`` has gained the ``na_tuple`` parameter to control whether NA is returned as a tuple of NA, or NA itself (:issue:`18756`)
 - ``Categorical.rename_categories``, ``CategoricalIndex.rename_categories`` and :attr:`Series.cat.rename_categories`
   can now take a callable as their argument (:issue:`18862`)
@@ -433,7 +433,7 @@ Other Enhancements
 
 - ``IntervalIndex.astype`` now supports conversions between subtypes when passed an ``IntervalDtype`` (:issue:`19197`)
 - :class:`IntervalIndex` and its associated constructor methods (``from_arrays``, ``from_breaks``, ``from_tuples``) have gained a ``dtype`` parameter (:issue:`19262`)
-- Added :func:`SeriesGroupBy.is_monotonic_increasing` and :func:`SeriesGroupBy.is_monotonic_decreasing` (:issue:`17015`)
+- Added :func:`pandas.core.groupby.SeriesGroupBy.is_monotonic_increasing` and :func:`pandas.core.groupby.SeriesGroupBy.is_monotonic_decreasing` (:issue:`17015`)
 - For subclassed ``DataFrames``, :func:`DataFrame.apply` will now preserve the ``Series`` subclass (if defined) when passing the data to the applied function (:issue:`19822`)
 - :func:`DataFrame.from_dict` now accepts a ``columns`` argument that can be used to specify the column names when ``orient='index'`` is used (:issue:`18529`)
 - Added option ``display.html.use_mathjax`` so `MathJax <https://www.mathjax.org/>`_ can be disabled when rendering tables in ``Jupyter`` notebooks (:issue:`19856`, :issue:`19824`)
@@ -443,11 +443,11 @@ Other Enhancements
 - :meth:`DataFrame.to_sql` now performs a multivalue insert if the underlying connection supports itk rather than inserting row by row.
   ``SQLAlchemy`` dialects supporting multivalue inserts include: ``mysql``, ``postgresql``, ``sqlite`` and any dialect with ``supports_multivalues_insert``. (:issue:`14315`, :issue:`8953`)
 - :func:`read_html` now accepts a ``displayed_only`` keyword argument to controls whether or not hidden elements are parsed (``True`` by default) (:issue:`20027`)
-- :meth:`Rolling.quantile` and :meth:`Expanding.quantile` now accept the ``interpolation`` keyword, ``linear`` by default (:issue:`20497`)
+- :meth:`~pandas.core.window.Rolling.quantile` and :meth:`~pandas.core.window.Expanding.quantile` now accept the ``interpolation`` keyword, ``linear`` by default (:issue:`20497`)
 - zip compression is supported via ``compression=zip`` in :func:`DataFrame.to_pickle`, :func:`Series.to_pickle`, :func:`DataFrame.to_csv`, :func:`Series.to_csv`, :func:`DataFrame.to_json`, :func:`Series.to_json`. (:issue:`17778`)
-- :class:`WeekOfMonth` constructor now supports ``n=0`` (:issue:`20517`).
+- :class:`pandas.tseries.api.offsets.WeekOfMonth` constructor now supports ``n=0`` (:issue:`20517`).
 - :class:`DataFrame` and :class:`Series` now support matrix multiplication (```@```) operator (:issue:`10259`) for Python>=3.5
-- Updated ``to_gbq`` and ``read_gbq`` signature and documentation to reflect changes from
+- Updated :meth:`DataFrame.to_gbq` and :meth:`pandas.read_gbq` signature and documentation to reflect changes from
   the Pandas-GBQ library version 0.4.0. Adds intersphinx mapping to Pandas-GBQ
   library. (:issue:`20564`)
 
@@ -1019,8 +1019,8 @@ Categorical
 - Bug in :meth:`Index.astype` with a categorical dtype where the resultant index is not converted to a :class:`CategoricalIndex` for all types of index (:issue:`18630`)
 - Bug in :meth:`Series.astype` and ``Categorical.astype()`` where an existing categorical data does not get updated (:issue:`10696`, :issue:`18593`)
 - Bug in :meth:`Series.str.split` with ``expand=True`` incorrectly raising an IndexError on empty strings (:issue:`20002`).
-- Bug in :class:`Index` constructor with ``dtype=CategoricalDtype(...)`` where ``categories`` and ``ordered`` are not maintained (issue:`19032`)
-- Bug in :class:`Series` constructor with scalar and ``dtype=CategoricalDtype(...)`` where ``categories`` and ``ordered`` are not maintained (issue:`19565`)
+- Bug in :class:`Index` constructor with ``dtype=CategoricalDtype(...)`` where ``categories`` and ``ordered`` are not maintained (:issue:`19032`)
+- Bug in :class:`Series` constructor with scalar and ``dtype=CategoricalDtype(...)`` where ``categories`` and ``ordered`` are not maintained (:issue:`19565`)
 - Bug in ``Categorical.__iter__`` not converting to Python types (:issue:`19909`)
 - Bug in :func:`pandas.factorize` returning the unique codes for the ``uniques``. This now returns a ``Categorical`` with the same dtype as the input (:issue:`19721`)
 - Bug in :func:`pandas.factorize` including an item for missing values in the ``uniques`` return value (:issue:`19721`)
