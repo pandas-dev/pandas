@@ -705,37 +705,40 @@ def test_sort2():
     df['range'] = Categorical(df['range'], ordered=True)
     index = CategoricalIndex(['(0, 2.5]', '(2.5, 5]', '(5, 7.5]',
                               '(7.5, 10]'], name='range', ordered=True)
-    result_sort = DataFrame([[1, 60], [5, 30], [6, 40], [10, 10]],
-                            columns=['foo', 'bar'], index=index)
+    expected_sort = DataFrame([[1, 60], [5, 30], [6, 40], [10, 10]],
+                              columns=['foo', 'bar'], index=index)
 
     col = 'range'
-    assert_frame_equal(
-        result_sort, df.groupby(col, sort=True, observed=False).first())
+    result_sort = df.groupby(col, sort=True, observed=False).first()
+    assert_frame_equal(result_sort, expected_sort)
 
     # when categories is ordered, group is ordered by category's order
-    assert_frame_equal(
-        result_sort, df.groupby(col, sort=False, observed=False).first())
+    expected_sort = result_sort
+    result_sort = df.groupby(col, sort=False, observed=False).first()
+    assert_frame_equal(result_sort, expected_sort)
 
     df['range'] = Categorical(df['range'], ordered=False)
     index = CategoricalIndex(['(0, 2.5]', '(2.5, 5]', '(5, 7.5]',
                               '(7.5, 10]'], name='range')
-    result_sort = DataFrame([[1, 60], [5, 30], [6, 40], [10, 10]],
-                            columns=['foo', 'bar'], index=index)
+    expected_sort = DataFrame([[1, 60], [5, 30], [6, 40], [10, 10]],
+                              columns=['foo', 'bar'], index=index)
 
     index = CategoricalIndex(['(7.5, 10]', '(2.5, 5]', '(5, 7.5]',
                               '(0, 2.5]'],
                              categories=['(7.5, 10]', '(2.5, 5]',
                                          '(5, 7.5]', '(0, 2.5]'],
                              name='range')
-    result_nosort = DataFrame([[10, 10], [5, 30], [6, 40], [1, 60]],
-                              index=index, columns=['foo', 'bar'])
+    expected_nosort = DataFrame([[10, 10], [5, 30], [6, 40], [1, 60]],
+                                index=index, columns=['foo', 'bar'])
 
     col = 'range'
+
     # this is an unordered categorical, but we allow this ####
-    assert_frame_equal(
-        result_sort, df.groupby(col, sort=True, observed=False).first())
-    assert_frame_equal(
-        result_nosort, df.groupby(col, sort=False, observed=False).first())
+    result_sort = df.groupby(col, sort=True, observed=False).first()
+    assert_frame_equal(result_sort, expected_sort)
+
+    result_nosort = df.groupby(col, sort=False, observed=False).first()
+    assert_frame_equal(result_nosort, expected_nosort)
 
 
 def test_sort_datetimelike():

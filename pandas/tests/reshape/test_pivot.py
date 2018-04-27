@@ -1136,7 +1136,7 @@ class TestPivotTable(object):
                                 index=expected_index,
                                 columns=expected_columns)
         if not observed:
-            result = result.dropna().astype(int)
+            result = result.dropna().astype(np.int64)
 
         tm.assert_frame_equal(result, expected)
 

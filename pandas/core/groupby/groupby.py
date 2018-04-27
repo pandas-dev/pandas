@@ -2341,10 +2341,10 @@ class BaseGrouper(object):
     @cache_readonly
     def result_index(self):
         if not self.compressed and len(self.groupings) == 1:
-            return self.groupings[0].group_index.rename(self.names[0])
+            return self.groupings[0].result_index.rename(self.names[0])
 
         labels = self.recons_labels
-        levels = [ping.group_index for ping in self.groupings]
+        levels = [ping.result_index for ping in self.groupings]
         result = MultiIndex(levels=levels,
                             labels=labels,
                             verify_integrity=False,
@@ -2353,12 +2353,12 @@ class BaseGrouper(object):
 
     def get_group_levels(self):
         if not self.compressed and len(self.groupings) == 1:
-            return [self.groupings[0].group_index]
+            return [self.groupings[0].result_index]
 
         name_list = []
         for ping, labels in zip(self.groupings, self.recons_labels):
             labels = _ensure_platform_int(labels)
-            levels = ping.group_index.take(labels)
+            levels = ping.result_index.take(labels)
 
             name_list.append(levels)
 
@@ -2911,6 +2911,7 @@ class Grouping(object):
         self.name = name
         self.level = level
         self.grouper = _convert_grouper(index, grouper)
+        self.all_grouper = None
         self.index = index
         self.sort = sort
         self.obj = obj
@@ -2973,7 +2974,7 @@ class Grouping(object):
                     warnings.warn(msg, FutureWarning, stacklevel=5)
                     observed = False
 
-                grouper = self.grouper
+                self.all_grouper = self.grouper
                 self.grouper = self.grouper._codes_for_groupby(
                     self.sort, observed)
                 categories = self.grouper.categories
@@ -2982,7 +2983,7 @@ class Grouping(object):
                 # preserving the categories / ordered attributes
                 self._labels = self.grouper.codes
                 if observed:
-                    codes = algorithms.unique1d(grouper.codes)
+                    codes = algorithms.unique1d(self.grouper.codes)
                 else:
                     codes = np.arange(len(categories))
 
@@ -3048,6 +3049,22 @@ class Grouping(object):
         if self._labels is None:
             self._make_labels()
         return self._labels
+
+    @cache_readonly
+    def result_index(self):
+        if self.all_grouper is not None:
+            all_categories = self.all_grouper.categories
+
+            # we re-order to the original category orderings
+            if self.sort:
+                return self.group_index.set_categories(all_categories)
+
+            # we are not sorting, so add unobserved to the end
+            categories = self.group_index.categories
+            return self.group_index.add_categories(
+                all_categories[~all_categories.isin(categories)])
+
+        return self.group_index
 
     @property
     def group_index(self):

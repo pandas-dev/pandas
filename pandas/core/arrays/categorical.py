@@ -683,11 +683,15 @@ class Categorical(ExtensionArray, PandasObject):
                 take_codes = np.sort(take_codes)
 
             # we recode according to the uniques
-            cat._categories = self.categories.take(take_codes)
-            cat._codes = _recode_for_categories(self.codes,
-                                                self.categories,
-                                                cat._categories)
-            return cat
+            categories = self.categories.take(take_codes)
+            codes = _recode_for_categories(self.codes,
+                                           self.categories,
+                                           categories)
+
+            # return a new categorical that maps our new codes
+            # and categories
+            dtype = CategoricalDtype(categories, ordered=self.ordered)
+            return type(self)(codes, dtype=dtype, fastpath=True)
 
         # Already sorted according to self.categories; all is fine
         if sort:
