@@ -1,3 +1,15 @@
+"""Test extension array for storing nested data in a pandas container.
+
+The JSONArray stores lists of dictionaries. The storage mechanism is a list,
+not an ndarray.
+
+Note:
+
+We currently store lists of UserDicts (Py3 only). Pandas has a few places
+internally that specifically check for dicts, and does non-scalar things
+in that case. We *want* the dictionaries to be treated as scalars, so we
+hack around pandas by using UserDicts.
+"""
 import collections
 import itertools
 import numbers
@@ -14,6 +26,11 @@ from pandas.core.arrays import ExtensionArray
 class JSONDtype(ExtensionDtype):
     type = collections.Mapping
     name = 'json'
+    try:
+        na_value = collections.UserDict()
+    except AttributeError:
+        # source compatibility with Py2.
+        na_value = {}
 
     @classmethod
     def construct_from_string(cls, string):
@@ -91,15 +108,33 @@ class JSONArray(ExtensionArray):
         return sys.getsizeof(self.data)
 
     def isna(self):
-        return np.array([x == self._na_value for x in self.data])
+        return np.array([x == self.dtype.na_value for x in self.data])
 
-    def take(self, indexer, allow_fill=True, fill_value=None):
-        try:
-            output = [self.data[loc] if loc != -1 else self._na_value
-                      for loc in indexer]
-        except IndexError:
-            raise IndexError("Index is out of bounds or cannot do a "
-                             "non-empty take from an empty array.")
+    def take(self, indexer, allow_fill=False, fill_value=None):
+        # re-implement here, since NumPy has trouble setting
+        # sized objects like UserDicts into scalar slots of
+        # an ndarary.
+        indexer = np.asarray(indexer)
+        msg = ("Index is out of bounds or cannot do a "
+               "non-empty take from an empty array.")
+
+        if allow_fill:
+            if fill_value is None:
+                fill_value = self.dtype.na_value
+            # bounds check
+            if (indexer < -1).any():
+                raise ValueError
+            try:
+                output = [self.data[loc] if loc != -1 else fill_value
+                          for loc in indexer]
+            except IndexError:
+                raise IndexError(msg)
+        else:
+            try:
+                output = [self.data[loc] for loc in indexer]
+            except IndexError:
+                raise IndexError(msg)
+
         return self._from_sequence(output)
 
     def copy(self, deep=False):
@@ -117,10 +152,6 @@ class JSONArray(ExtensionArray):
         return type(self)([
             dict(x) for x in list(set(tuple(d.items()) for d in self.data))
         ])
-
-    @property
-    def _na_value(self):
-        return {}
 
     @classmethod
     def _concat_same_type(cls, to_concat):
