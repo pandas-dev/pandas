@@ -132,8 +132,6 @@ class TestFancy(Base):
         assert is_float_dtype(left['foo'])
         assert is_float_dtype(left['baz'])
 
-    @pytest.mark.skipif(PY2, reason=("Catching warnings unreliable with "
-                                     "Python 2 (GH #20770)"))
     def test_dups_fancy_indexing(self):
 
         # GH 3455
@@ -222,6 +220,10 @@ class TestFancy(Base):
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result = df.loc[['A', 'A', 'E']]
         tm.assert_frame_equal(result, expected)
+
+        if PY2:
+            # Catching warnings unreliable with Python 2 (GH #20770)
+            pytest.skip()
 
         # GH 5835
         # dups on index and missing values
