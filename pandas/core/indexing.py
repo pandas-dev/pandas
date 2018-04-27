@@ -16,6 +16,8 @@ from pandas.core.dtypes.common import (
     _is_unorderable_exception,
     _ensure_platform_int)
 from pandas.core.dtypes.missing import isna, _infer_fill_value
+from pandas.errors import AbstractMethodError
+from pandas.util._decorators import Appender
 
 from pandas.core.index import Index, MultiIndex
 
@@ -186,8 +188,34 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         indexer = self._get_setitem_indexer(key)
         self._setitem_with_indexer(indexer, value)
 
-    def _validate_key(self, k, axis):
-        raise NotImplementedError()
+    def _validate_key(self, key, axis):
+        """
+        Ensure that key is valid for current indexer.
+
+        Parameters
+        ----------
+        key : scalar, slice or list-like
+            The key requested
+
+        axis : int
+            Dimension on which the indexing is being made
+
+        Returns:
+        --------
+        None
+
+        Raises
+        ------
+        TypeError
+            If the key (or some element of it) has wrong type
+
+        IndexError
+            If the key (or some element of it) is out of bounds
+
+        KeyError
+            If the key was not found
+        """
+        raise AbstractMethodError()
 
     def _has_valid_tuple(self, key):
         """ check the key for valid keys across my indexer """
@@ -1377,6 +1405,7 @@ class _IXIndexer(_NDFrameIndexer):
                       DeprecationWarning, stacklevel=2)
         super(_IXIndexer, self).__init__(name, obj)
 
+    @Appender(_NDFrameIndexer._validate_key.__doc__)
     def _validate_key(self, key, axis):
         if isinstance(key, slice):
             return True
@@ -1739,6 +1768,7 @@ class _LocIndexer(_LocationIndexer):
                     "index is integers), listlike of labels, boolean")
     _exception = KeyError
 
+    @Appender(_NDFrameIndexer._validate_key.__doc__)
     def _validate_key(self, key, axis):
         ax = self.obj._get_axis(axis)
 
