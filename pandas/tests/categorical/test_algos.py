@@ -16,6 +16,7 @@ def ordered(request):
     """Boolean 'ordered' parameter for Categorical."""
     return request.param
 
+
 @pytest.mark.parametrize('ordered', [True, False])
 @pytest.mark.parametrize('categories', [
     ['b', 'a', 'c'],
