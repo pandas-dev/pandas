@@ -186,12 +186,12 @@ class TestDateRanges(TestData):
                              '2018-04-01 03:00:00+10:00',
                              '2018-04-01 04:00:00+10:00'], freq=None)
 
-         # Test AttributeError is raised if result is not a DatetimeIndex
+        # Test AttributeError is raised if result is not a DatetimeIndex
         msg = ("To specify the timezone or a name, the "
                "result has to be a DatetimeIndex!")
         with tm.assert_raises_regex(AttributeError, msg):
-             rng = date_range('2018-04-24', '2018-04-27', periods=3.3,
-                              name="abc", box=False)
+            rng = date_range('2018-04-24', '2018-04-27', periods=3.3,
+                             name="abc", box=False)
 
     def test_date_range_businesshour(self):
         idx = DatetimeIndex(['2014-07-04 09:00', '2014-07-04 10:00',
