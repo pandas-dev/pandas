@@ -3660,7 +3660,7 @@ class NDFrame(PandasObject, SelectionMixin):
         copy = kwargs.pop('copy', True)
         limit = kwargs.pop('limit', None)
         tolerance = kwargs.pop('tolerance', None)
-        fill_value = kwargs.pop('fill_value', np.nan)
+        fill_value = kwargs.pop('fill_value', None)
 
         # Series.reindex doesn't use / need the axis kwarg
         # We pop and ignore it here, to make writing Series/Frame generic code
@@ -3776,7 +3776,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @Appender(_shared_docs['reindex_axis'] % _shared_doc_kwargs)
     def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True,
-                     limit=None, fill_value=np.nan):
+                     limit=None, fill_value=None):
         msg = ("'.reindex_axis' is deprecated and will be removed in a future "
                "version. Use '.reindex' instead.")
         self._consolidate_inplace()
@@ -3790,7 +3790,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return self._reindex_with_indexers({axis: [new_index, indexer]},
                                            fill_value=fill_value, copy=copy)
 
-    def _reindex_with_indexers(self, reindexers, fill_value=np.nan, copy=False,
+    def _reindex_with_indexers(self, reindexers, fill_value=None, copy=False,
                                allow_dups=False):
         """allow_dups indicates an internal call here """
 
@@ -7252,7 +7252,7 @@ class NDFrame(PandasObject, SelectionMixin):
             raise TypeError('unsupported type: %s' % type(other))
 
     def _align_frame(self, other, join='outer', axis=None, level=None,
-                     copy=True, fill_value=np.nan, method=None, limit=None,
+                     copy=True, fill_value=None, method=None, limit=None,
                      fill_axis=0):
         # defaults
         join_index, join_columns = None, None
