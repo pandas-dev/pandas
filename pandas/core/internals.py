@@ -5451,8 +5451,6 @@ def get_empty_dtype_and_na(join_units):
     dtype
     na
     """
-    global _NO_UPCASTING
-    _NO_UPCASTING = object()
 
     if len(join_units) == 1:
         blk = join_units[0].block
@@ -5508,7 +5506,7 @@ def get_empty_dtype_and_na(join_units):
         if has_none_blocks:
             return np.dtype(np.object_), np.nan
         else:
-            return np.dtype(np.bool_), _NO_UPCASTING
+            return np.dtype(np.bool_), None
     elif 'category' in upcast_classes:
         return np.dtype(np.object_), np.nan
     elif 'datetimetz' in upcast_classes:
@@ -5526,7 +5524,7 @@ def get_empty_dtype_and_na(join_units):
             if has_none_blocks:
                 return np.float64, np.nan
             else:
-                return g, _NO_UPCASTING
+                return g, None
 
     msg = "invalid dtype determination in get_concat_dtype"
     raise AssertionError(msg)
@@ -5800,10 +5798,10 @@ class JoinUnit(object):
         return True
 
     def get_reindexed_values(self, empty_dtype, upcasted_na):
-        if upcasted_na is _NO_UPCASTING:
+        if upcasted_na is None:
             # No upcasting is necessary
             fill_value = self.block.fill_value
-            values = self.block.get_values()
+            values = self.block.values
         else:
             fill_value = upcasted_na
 
