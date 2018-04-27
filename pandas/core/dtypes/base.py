@@ -19,6 +19,7 @@ class _DtypeOpsMixin(object):
     # na_value is the default NA value to use for this type. This is used in
     # e.g. ExtensionArray.take. This should be the user-facing "boxed" version
     # of the NA value, not the physical NA vaalue for storage.
+    # e.g. for JSONArray, this is an empty dictionary.
     na_value = np.nan
 
     def __eq__(self, other):
