@@ -535,6 +535,10 @@ class ExtensionArray(object):
                if allow_fill and fill_value is None:
                    fill_value = self.dtype.na_value
 
+               # fill value should always be translated from the scalar
+               # type for the array, to the physical storage type for
+               # the data, before passing to take.
+
                result = take(data, indices, fill_value=fill_value,
                              allow_fill=allow_fill)
                return self._from_sequence(result)
