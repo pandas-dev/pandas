@@ -167,9 +167,11 @@ class TestLoc(Base):
             self.check_result('list lbl', 'loc', [3, 6, 7], 'ix', [3, 6, 7],
                               typs=['ints', 'uints', 'floats'],
                               axes=1, fails=KeyError)
-        self.check_result('list lbl', 'loc', [4, 8, 10], 'ix', [4, 8, 10],
-                          typs=['ints', 'uints', 'floats'],
-                          axes=2, fails=KeyError)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            self.check_result('list lbl', 'loc', [4, 8, 10], 'ix', [4, 8, 10],
+                              typs=['ints', 'uints', 'floats'],
+                              axes=2, fails=KeyError)
 
         # GH 17758 - MultiIndex and missing keys
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
