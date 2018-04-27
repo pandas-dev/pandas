@@ -165,8 +165,8 @@ class TestDateRanges(TestData):
     def test_date_range_convenience_periods(self):
         # GH 20808
         rng = date_range('2018-04-24', '2018-04-27', periods=3)
-        exp = pd.DatetimeIndex(['2018-04-24 00:00:00', '2018-04-25 12:00:00',
-                                '2018-04-27 00:00:00'], freq=None)
+        exp = DatetimeIndex(['2018-04-24 00:00:00', '2018-04-25 12:00:00',
+                             '2018-04-27 00:00:00'], freq=None)
 
         tm.assert_index_equal(rng, exp)
 
@@ -175,7 +175,23 @@ class TestDateRanges(TestData):
         exp = np.array(['2018-04-24T00:00:00', '2018-04-25T12:00:00',
                         '2018-04-27T00:00:00'], dtype='datetime64[ns]')
 
-        assert (rng == exp).all()
+        tm.assert_numpy_array_equal(rng, exp)
+
+        # Test if spacing remains linear if tz changes to dst in range
+        rng = date_range('2018-04-01 01:00:00', '2018-04-01 04:00:00',
+                         tz='Australia/Sydney', periods=3)
+        exp = DatetimeIndex(['2018-04-01 01:00:00+11:00',
+                             '2018-04-01 02:00:00+11:00',
+                             '2018-04-01 02:00:00+10:00',
+                             '2018-04-01 03:00:00+10:00',
+                             '2018-04-01 04:00:00+10:00'], freq=None)
+
+         # Test AttributeError is raised if result is not a DatetimeIndex
+        msg = ("To specify the timezone or a name, the "
+               "result has to be a DatetimeIndex!")
+        with tm.assert_raises_regex(AttributeError, msg):
+             rng = date_range('2018-04-24', '2018-04-27', periods=3.3,
+                              name="abc", box=False)
 
     def test_date_range_businesshour(self):
         idx = DatetimeIndex(['2014-07-04 09:00', '2014-07-04 10:00',

@@ -2718,7 +2718,8 @@ def date_range(start=None, end=None, periods=None, freq=None, tz=None,
 
     Declare extra parameters (kwargs) to be used with the pd.to_datetime
     function that is used when all three parameters `start`, `end`, and
-    `periods` are declared.
+    `periods` are declared. If this results in anything else than a
+    DatetimeIndex (like in this example), you cannot specify `tz` or `name`.
 
     >>> date_range('2018-04-24', '2018-04-27', periods=3, box=False)
     array(['2018-04-24T00:00:00.000000000', '2018-04-25T12:00:00.000000000',
@@ -2726,20 +2727,32 @@ def date_range(start=None, end=None, periods=None, freq=None, tz=None,
     """
 
     # See https://github.com/pandas-dev/pandas/issues/20808
-    if freq is None and periods is not None and start is not None \
-            and end is not None:
+    if freq is None and com._all_not_none(periods, start, end):
         if is_float(periods):
             periods = int(periods)
         elif not is_integer(periods):
             msg = 'periods must be a number, got {periods}'
             raise TypeError(msg.format(periods=periods))
 
-        start = Timestamp(start)
-        end = Timestamp(end)
+        start = Timestamp(start, tz=tz)
+        end = Timestamp(end, tz=tz)
+
+        if normalize:
+            start = libts.normalize_date(start)
+            end = libts.normalize_date(end)
+
         di = tools.to_datetime(np.linspace(start.value, end.value, periods),
                                **kwargs)
-        if name:
-            di.name = name
+
+        try:
+            if tz is not None:
+                di = di.tz_localize('UTC').tz_convert(tz)
+            if name is not None:
+                di.name = name
+        except AttributeError:
+            raise AttributeError("To specify the timezone or a name, the "
+                                 "result has to be a DatetimeIndex!")
+
         return di
 
     if freq is None:
