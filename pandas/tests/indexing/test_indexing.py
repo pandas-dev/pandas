@@ -16,7 +16,8 @@ from pandas.compat import range, lrange, lzip, StringIO
 import numpy as np
 
 import pandas as pd
-from pandas.core.indexing import _non_reducing_slice, _maybe_numeric_slice
+from pandas.core.indexing import (_non_reducing_slice, _maybe_numeric_slice,
+                                  validate_indices)
 from pandas import NaT, DataFrame, Index, Series, MultiIndex
 import pandas.util.testing as tm
 
@@ -994,3 +995,27 @@ class TestDataframeNoneCoercion(object):
                                datetime(2000, 1, 3)],
                          'd': [None, 'b', 'c']})
         tm.assert_frame_equal(start_dataframe, exp)
+
+
+def test_validate_indices_ok():
+    indices = np.asarray([0, 1])
+    validate_indices(indices, 2)
+    validate_indices(indices[:0], 0)
+    validate_indices(np.array([-1, -1]), 0)
+
+
+def test_validate_indices_low():
+    indices = np.asarray([0, -2])
+    with tm.assert_raises_regex(ValueError, "'indices' contains"):
+        validate_indices(indices, 2)
+
+
+def test_validate_indices_high():
+    indices = np.asarray([0, 1, 2])
+    with tm.assert_raises_regex(IndexError, "indices are out"):
+        validate_indices(indices, 2)
+
+
+def test_validate_indices_empty():
+    with tm.assert_raises_regex(IndexError, "indices are out"):
+        validate_indices(np.array([0, 1]), 0)

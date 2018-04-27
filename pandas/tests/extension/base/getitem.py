@@ -127,20 +127,53 @@ class BaseGetitemTests(BaseExtensionTests):
         result = data.take([0, -1])
         assert result.dtype == data.dtype
         assert result[0] == data[0]
-        na_cmp(result[1], na_value)
+        assert result[1] == data[-1]
+
+        result = data.take([0, -1], allow_fill=True, fill_value=na_value)
+        assert result[0] == data[0]
+        assert na_cmp(result[1], na_value)
 
         with tm.assert_raises_regex(IndexError, "out of bounds"):
             data.take([len(data) + 1])
 
     def test_take_empty(self, data, na_value, na_cmp):
         empty = data[:0]
-        result = empty.take([-1])
-        na_cmp(result[0], na_value)
+
+        result = empty.take([-1], allow_fill=True)
+        assert na_cmp(result[0], na_value)
+
+        with pytest.raises(IndexError):
+            empty.take([-1])
 
         with tm.assert_raises_regex(IndexError, "cannot do a non-empty take"):
             empty.take([0, 1])
 
-    @pytest.mark.xfail(reason="Series.take with extension array buggy for -1")
+    def test_take_negative(self, data):
+        # https://github.com/pandas-dev/pandas/issues/20640
+        n = len(data)
+        result = data.take([0, -n, n - 1, -1])
+        expected = data.take([0, 0, n - 1, n - 1])
+        self.assert_extension_array_equal(result, expected)
+
+    def test_take_non_na_fill_value(self, data_missing):
+        fill_value = data_missing[1]  # valid
+        na = data_missing[0]
+
+        array = data_missing._from_sequence([na, fill_value, na])
+        result = array.take([-1, 1], fill_value=fill_value, allow_fill=True)
+        expected = array.take([1, 1])
+        self.assert_extension_array_equal(result, expected)
+
+    def test_take_pandas_style_negative_raises(self, data, na_value):
+        with pytest.raises(ValueError):
+            data.take([0, -2], fill_value=na_value, allow_fill=True)
+
+    @pytest.mark.parametrize('allow_fill', [True, False])
+    def test_take_out_of_bounds_raises(self, data, allow_fill):
+        arr = data[:3]
+        with pytest.raises(IndexError):
+            arr.take(np.asarray([0, 3]), allow_fill=allow_fill)
+
     def test_take_series(self, data):
         s = pd.Series(data)
         result = s.take([0, -1])
@@ -165,4 +198,15 @@ class BaseGetitemTests(BaseExtensionTests):
         result = s.reindex([n, n + 1])
         expected = pd.Series(data._from_sequence([na_value, na_value]),
                              index=[n, n + 1])
+        self.assert_series_equal(result, expected)
+
+    def test_reindex_non_na_fill_value(self, data_missing):
+        valid = data_missing[1]
+        na = data_missing[0]
+
+        array = data_missing._from_sequence([na, valid])
+        ser = pd.Series(array)
+        result = ser.reindex([0, 1, 2], fill_value=valid)
+        expected = pd.Series(data_missing._from_sequence([na, valid, valid]))
+
         self.assert_series_equal(result, expected)
