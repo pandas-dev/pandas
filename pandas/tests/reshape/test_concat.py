@@ -2355,3 +2355,27 @@ def test_concat_preserve_column_order_uneven_data():
         'c': [1, 2, 3, None, None]
     }, index=[0, 1, 2, 0, 1])
     tm.assert_frame_equal(result, expected)
+
+
+def test_concat_aligned_sort():
+    # GH-4588
+    df = pd.DataFrame({"b": [1, 2], "a": [3, 4]}, columns=['b', 'a'])
+    result = pd.concat([df, df], sort=True, ignore_index=True)
+    expected = pd.DataFrame({'b': [1, 2, 1, 2], 'a': [3, 4, 3, 4]},
+                            columns=['a', 'b'])
+    tm.assert_frame_equal(result, expected)
+
+
+def test_concat_aligned_sort_raises():
+    # GH-4588
+    df = pd.DataFrame({1: [1, 2], "a": [3, 4]}, columns=[1, 'a'])
+
+    if PY2:
+        expected = pd.DataFrame({1: [1, 2, 1, 2], 'a': [3, 4, 3, 4]},
+                                columns=[1, 'a'])
+        result = pd.concat([df, df], ignore_index=True)
+        tm.assert_frame_equal(result, expected)
+    else:
+        msg = "'<' not supported between instances"
+        with tm.assert_raises_regex(TypeError, msg):
+            pd.concat([df, df], sort=True)

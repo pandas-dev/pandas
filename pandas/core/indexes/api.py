@@ -60,7 +60,10 @@ def _get_combined_index(indexes, intersect=False, sort=True):
     if len(indexes) == 0:
         return Index([])
     if len(indexes) == 1:
-        return indexes[0]
+        index = indexes[0]
+        if sort:
+            index = index.sort_values()
+        return index
     if intersect:
         index = indexes[0]
         for other in indexes[1:]:
@@ -115,7 +118,7 @@ def _union_indexes(indexes, sort=True):
         if name != index.name:
             index = index._shallow_copy(name=name)
         return index
-    else:  # kind='list
+    else:  # kind='list'
         return _unique_indices(indexes)
 
 

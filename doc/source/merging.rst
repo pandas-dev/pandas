@@ -181,7 +181,9 @@ behavior:
           labels=['df1', 'df4'], vertical=False);
    plt.close('all');
 
-.. versionchanged:: 0.23.0
+.. warning::
+
+   .. versionchanged:: 0.23.0
 
    The default behavior with ``join='outer'`` is to sort the other axis
    (columns in this case). In a future version of pandas, the default will

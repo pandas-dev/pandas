@@ -639,6 +639,8 @@ Returning a ``Series`` allows one to control the exact return structure and colu
 
     df.apply(lambda x: Series([1, 2, 3], index=['D', 'E', 'F']), axis=1)
 
+.. _whatsnew_0230.api_breaking.concat:
+
 Concatenation will no longer sort
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
