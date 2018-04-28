@@ -2170,21 +2170,11 @@ class Index(IndexOpsMixin, PandasObject):
                               fill_value=None, na_value=np.nan):
         """ Internal method to handle NA filling of take """
         indices = _ensure_platform_int(indices)
-        # only fill if we are passing a non-None fill_value
-        if allow_fill and fill_value is not None:
-            if (indices < -1).any():
-                msg = ('When allow_fill=True and fill_value is not None, '
-                       'all indices must be >= -1')
-                raise ValueError(msg)
-            mask = indices == -1
-            if mask.all():
-                taken = np.full(indices.shape, fill_value=na_value)
-            else:
-                taken = values.take(indices)
-                if mask.any():
-                    taken[mask] = na_value
-        else:
-            taken = values.take(indices)
+        # TODO: figure out what is going on with fill_value. It seems
+        # to be unused, other than that assertion that it's not None
+        # when allow_fill & any -1.
+        taken = algos.take(values, indices, allow_fill=allow_fill,
+                           fill_value=na_value)
         return taken
 
     @cache_readonly
