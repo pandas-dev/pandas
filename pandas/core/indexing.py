@@ -2413,7 +2413,10 @@ def maybe_convert_indices(indices, n):
             # If list is empty, np.array will return float and cause indexing
             # errors.
             return np.empty(0, dtype=np.int_)
-
+    else:
+        # create a copy of indices
+        indices = np.array(indices, copy=True)
+        
     mask = indices < 0
     if mask.any():
         indices[mask] += n
