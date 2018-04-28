@@ -176,7 +176,7 @@ def _concat_compat(to_concat, axis=0):
 
     extensions = [is_extension_array_dtype(x) for x in to_concat]
     if any(extensions) and axis == 1:
-            to_concat = [np.atleast_2d(x.astype('object')) for x in to_concat]
+        to_concat = [np.atleast_2d(x.astype('object')) for x in to_concat]
 
     if not nonempty:
         # we have all empties, but may need to coerce the result dtype to
