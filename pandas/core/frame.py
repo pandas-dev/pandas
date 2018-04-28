@@ -326,6 +326,7 @@ class DataFrame(NDFrame):
     _constructor_sliced = Series
     _deprecations = NDFrame._deprecations | frozenset(
         ['sortlevel', 'get_value', 'set_value', 'from_csv', 'from_items'])
+    _accessors = set()
 
     @property
     def _constructor_expanddim(self):
@@ -3475,7 +3476,7 @@ class DataFrame(NDFrame):
                                            allow_dups=False)
 
     def _reindex_columns(self, new_columns, method, copy, level,
-                         fill_value=np.nan, limit=None, tolerance=None):
+                         fill_value=None, limit=None, tolerance=None):
         new_columns, indexer = self.columns.reindex(new_columns, method=method,
                                                     level=level, limit=limit,
                                                     tolerance=tolerance)
@@ -3878,7 +3879,7 @@ class DataFrame(NDFrame):
         index = _ensure_index_from_sequences(arrays, names)
 
         if verify_integrity and not index.is_unique:
-            duplicates = index.get_duplicates()
+            duplicates = index[index.duplicated()].unique()
             raise ValueError('Index has duplicate keys: {dup}'.format(
                 dup=duplicates))
 
@@ -7078,6 +7079,10 @@ class DataFrame(NDFrame):
                a     b
         0.1  1.3   3.7
         0.5  2.5  55.0
+
+        See Also
+        --------
+        pandas.core.window.Rolling.quantile
         """
         self._check_percentile(q)
 

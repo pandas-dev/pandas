@@ -1889,6 +1889,11 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         return type(self.values)
 
     @property
+    def fill_value(self):
+        # Used in reindex_indexer
+        return self.values.dtype.na_value
+
+    @property
     def _can_hold_na(self):
         # The default ExtensionArray._can_hold_na is True
         return self._holder._can_hold_na
@@ -1951,7 +1956,8 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         # axis doesn't matter; we are really a single-dim object
         # but are passed the axis depending on the calling routing
         # if its REALLY axis 0, then this will be a reindex and not a take
-        new_values = self.values.take(indexer, fill_value=fill_value)
+        new_values = self.values.take(indexer, fill_value=fill_value,
+                                      allow_fill=True)
 
         # if we are a 1-dim object, then always place at 0
         if self.ndim == 1:
@@ -2815,6 +2821,12 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
             raise ValueError("cannot create a DatetimeTZBlock without a tz")
 
         return values
+
+    @property
+    def is_view(self):
+        """ return a boolean if I am possibly a view """
+        # check the ndarray values of the DatetimeIndex values
+        return self.values.values.base is not None
 
     def copy(self, deep=True, mgr=None):
         """ copy constructor """
@@ -5434,6 +5446,14 @@ def is_uniform_join_units(join_units):
         len(join_units) > 1)
 
 
+def is_uniform_reindex(join_units):
+    return (
+        # TODO: should this be ju.block._can_hold_na?
+        all(ju.block and ju.block.is_extension for ju in join_units) and
+        len(set(ju.block.dtype.name for ju in join_units)) == 1
+    )
+
+
 def get_empty_dtype_and_na(join_units):
     """
     Return dtype and N/A values to use when concatenating specified units.
@@ -5450,6 +5470,12 @@ def get_empty_dtype_and_na(join_units):
         blk = join_units[0].block
         if blk is None:
             return np.float64, np.nan
+
+    if is_uniform_reindex(join_units):
+        # XXX: integrate property
+        empty_dtype = join_units[0].block.dtype
+        upcasted_na = join_units[0].block.fill_value
+        return empty_dtype, upcasted_na
 
     has_none_blocks = False
     dtypes = [None] * len(join_units)
@@ -5541,8 +5567,14 @@ def concatenate_join_units(join_units, concat_axis, copy):
     if len(to_concat) == 1:
         # Only one block, nothing to concatenate.
         concat_values = to_concat[0]
-        if copy and concat_values.base is not None:
-            concat_values = concat_values.copy()
+        if copy:
+            if isinstance(concat_values, np.ndarray):
+                # non-reindexed (=not yet copied) arrays are made into a view
+                # in JoinUnit.get_reindexed_values
+                if concat_values.base is not None:
+                    concat_values = concat_values.copy()
+            else:
+                concat_values = concat_values.copy()
     else:
         concat_values = _concat._concat_compat(to_concat, axis=concat_axis)
 
@@ -5823,7 +5855,7 @@ class JoinUnit(object):
                 # External code requested filling/upcasting, bool values must
                 # be upcasted to object to avoid being upcasted to numeric.
                 values = self.block.astype(np.object_).values
-            elif self.block.is_categorical:
+            elif self.block.is_extension:
                 values = self.block.values
             else:
                 # No dtype upcasting is done here, it will be performed during

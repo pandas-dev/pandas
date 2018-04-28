@@ -153,7 +153,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Copy input data
     """
     _metadata = ['name']
-    _accessors = frozenset(['dt', 'cat', 'str'])
+    _accessors = set(['dt', 'cat', 'str'])
     _deprecations = generic.NDFrame._deprecations | frozenset(
         ['asobject', 'sortlevel', 'reshape', 'get_value', 'set_value',
          'from_csv', 'valid'])
@@ -1855,6 +1855,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         0.75    3.25
         dtype: float64
 
+        See Also
+        --------
+        pandas.core.window.Rolling.quantile
         """
 
         self._check_percentile(q)
@@ -3213,7 +3216,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 return self.copy()
             return self
 
-        new_values = algorithms.take_1d(self._values, indexer)
+        new_values = algorithms.take_1d(self._values, indexer,
+                                        allow_fill=True, fill_value=None)
         return self._constructor(new_values, index=new_index)
 
     def _needs_reindex_multi(self, axes, method, level):
@@ -3564,7 +3568,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         5    False
         Name: animal, dtype: bool
         """
-        result = algorithms.isin(com._values_from_object(self), values)
+        result = algorithms.isin(self, values)
         return self._constructor(result, index=self.index).__finalize__(self)
 
     def between(self, left, right, inclusive=True):

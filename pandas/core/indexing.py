@@ -532,7 +532,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
             def can_do_equal_len():
                 """ return True if we have an equal len settable """
-                if not len(labels) == 1 or not np.iterable(value):
+                if (not len(labels) == 1 or not np.iterable(value) or
+                        is_scalar(plane_indexer[0])):
                     return False
 
                 l = len(value)
@@ -2416,10 +2417,51 @@ def maybe_convert_indices(indices, n):
     mask = indices < 0
     if mask.any():
         indices[mask] += n
+
     mask = (indices >= n) | (indices < 0)
     if mask.any():
         raise IndexError("indices are out-of-bounds")
     return indices
+
+
+def validate_indices(indices, n):
+    """Perform bounds-checking for an indexer.
+
+    -1 is allowed for indicating missing values.
+
+    Parameters
+    ----------
+    indices : ndarray
+    n : int
+        length of the array being indexed
+
+    Raises
+    ------
+    ValueError
+
+    Examples
+    --------
+    >>> validate_indices([1, 2], 3)
+    # OK
+    >>> validate_indices([1, -2], 3)
+    ValueError
+    >>> validate_indices([1, 2, 3], 3)
+    IndexError
+    >>> validate_indices([-1, -1], 0)
+    # OK
+    >>> validate_indices([0, 1], 0)
+    IndexError
+    """
+    if len(indices):
+        min_idx = indices.min()
+        if min_idx < -1:
+            msg = ("'indices' contains values less than allowed ({} < {})"
+                   .format(min_idx, -1))
+            raise ValueError(msg)
+
+        max_idx = indices.max()
+        if max_idx >= n:
+            raise IndexError("indices are out-of-bounds")
 
 
 def maybe_convert_ix(*args):
