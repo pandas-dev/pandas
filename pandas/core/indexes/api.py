@@ -58,19 +58,23 @@ def _get_combined_index(indexes, intersect=False, sort=True):
     # TODO: handle index names!
     indexes = com._get_distinct_objs(indexes)
     if len(indexes) == 0:
-        return Index([])
-    if len(indexes) == 1:
+        index = Index([])
+    elif len(indexes) == 1:
         index = indexes[0]
-        if sort:
-            index = index.sort_values()
-        return index
-    if intersect:
+    elif intersect:
         index = indexes[0]
         for other in indexes[1:]:
             index = index.intersection(other)
-        return index
-    union = _union_indexes(indexes, sort=sort)
-    return _ensure_index(union)
+    else:
+        index = _union_indexes(indexes, sort=sort)
+        index = _ensure_index(index)
+
+    if sort and not index.is_monotonic_increasing:
+        try:
+            index = index.sort_values()
+        except TypeError:
+            pass
+    return index
 
 
 def _union_indexes(indexes, sort=True):

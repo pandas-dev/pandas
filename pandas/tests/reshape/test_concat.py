@@ -21,6 +21,12 @@ from pandas.util.testing import (assert_frame_equal,
 import pytest
 
 
+@pytest.fixture(params=[True, False])
+def sort(request):
+    """Boolean sort keyword for concat and DataFrame.append."""
+    return request.param
+
+
 class ConcatenateBase(object):
 
     def setup_method(self, method):
@@ -716,7 +722,7 @@ class TestConcatAppendCommon(ConcatenateBase):
 
 class TestAppend(ConcatenateBase):
 
-    def test_append(self):
+    def test_append(self, sort):
         begin_index = self.frame.index[:5]
         end_index = self.frame.index[5:]
 
@@ -727,10 +733,10 @@ class TestAppend(ConcatenateBase):
         tm.assert_almost_equal(appended['A'], self.frame['A'])
 
         del end_frame['A']
-        partial_appended = begin_frame.append(end_frame, sort=True)
+        partial_appended = begin_frame.append(end_frame, sort=sort)
         assert 'A' in partial_appended
 
-        partial_appended = end_frame.append(begin_frame, sort=True)
+        partial_appended = end_frame.append(begin_frame, sort=sort)
         assert 'A' in partial_appended
 
         # mixed type handling
@@ -738,9 +744,9 @@ class TestAppend(ConcatenateBase):
         tm.assert_frame_equal(appended, self.mixed_frame)
 
         # what to test here
-        mixed_appended = self.mixed_frame[:5].append(self.frame[5:], sort=True)
+        mixed_appended = self.mixed_frame[:5].append(self.frame[5:], sort=sort)
         mixed_appended2 = self.frame[:5].append(self.mixed_frame[5:],
-                                                sort=True)
+                                                sort=sort)
 
         # all equal except 'foo' column
         tm.assert_frame_equal(
@@ -770,10 +776,10 @@ class TestAppend(ConcatenateBase):
         result = df.append(row)
         tm.assert_frame_equal(result, expected)
 
-    def test_append_length0_frame(self):
+    def test_append_length0_frame(self, sort):
         df = DataFrame(columns=['A', 'B', 'C'])
         df3 = DataFrame(index=[0, 1], columns=['A', 'B'])
-        df5 = df.append(df3, sort=True)
+        df5 = df.append(df3, sort=sort)
 
         expected = DataFrame(index=[0, 1], columns=['A', 'B', 'C'])
         assert_frame_equal(df5, expected)
@@ -819,7 +825,7 @@ class TestAppend(ConcatenateBase):
         expected = expected[['b', 'a', 'c']]
         tm.assert_frame_equal(result, expected)
 
-    def test_append_different_columns(self):
+    def test_append_different_columns(self, sort):
         df = DataFrame({'bools': np.random.randn(10) > 0,
                         'ints': np.random.randint(0, 10, 10),
                         'floats': np.random.randn(10),
@@ -828,11 +834,11 @@ class TestAppend(ConcatenateBase):
         a = df[:5].loc[:, ['bools', 'ints', 'floats']]
         b = df[5:].loc[:, ['strings', 'ints', 'floats']]
 
-        appended = a.append(b, sort=True)
+        appended = a.append(b, sort=sort)
         assert isna(appended['strings'][0:4]).all()
         assert isna(appended['bools'][5:]).all()
 
-    def test_append_many(self):
+    def test_append_many(self, sort):
         chunks = [self.frame[:5], self.frame[5:10],
                   self.frame[10:15], self.frame[15:]]
 
@@ -841,7 +847,7 @@ class TestAppend(ConcatenateBase):
 
         chunks[-1] = chunks[-1].copy()
         chunks[-1]['foo'] = 'bar'
-        result = chunks[0].append(chunks[1:], sort=True)
+        result = chunks[0].append(chunks[1:], sort=sort)
         tm.assert_frame_equal(result.loc[:, self.frame.columns], self.frame)
         assert (result['foo'][15:] == 'bar').all()
         assert result['foo'][:15].isna().all()
@@ -949,7 +955,7 @@ class TestAppend(ConcatenateBase):
         with pytest.raises(TypeError):
             df.append(ser)
 
-    def test_append_dtype_coerce(self):
+    def test_append_dtype_coerce(self, sort):
 
         # GH 4993
         # appending with datetime will incorrectly convert datetime64
@@ -973,16 +979,21 @@ class TestAppend(ConcatenateBase):
                                    dt.datetime(2013, 1, 3, 0, 0),
                                    dt.datetime(2013, 1, 4, 0, 0)],
                                   name='start_time')],
-                          axis=1, sort=True)
-        result = df1.append(df2, ignore_index=True, sort=True)
+                          axis=1, sort=sort)
+        result = df1.append(df2, ignore_index=True, sort=sort)
+        if sort:
+            expected = expected[['end_time', 'start_time']]
+        else:
+            expected = expected[['start_time', 'end_time']]
+
         assert_frame_equal(result, expected)
 
-    def test_append_missing_column_proper_upcast(self):
+    def test_append_missing_column_proper_upcast(self, sort):
         df1 = DataFrame({'A': np.array([1, 2, 3, 4], dtype='i8')})
         df2 = DataFrame({'B': np.array([True, False, True, False],
                                        dtype=bool)})
 
-        appended = df1.append(df2, ignore_index=True, sort=True)
+        appended = df1.append(df2, ignore_index=True, sort=sort)
         assert appended['A'].dtype == 'f8'
         assert appended['B'].dtype == 'O'
 
@@ -1070,7 +1081,7 @@ class TestConcatenate(ConcatenateBase):
                               Index(level, name='group_key'))
         assert result.columns.names[0] == 'group_key'
 
-    def test_concat_dataframe_keys_bug(self):
+    def test_concat_dataframe_keys_bug(self, sort):
         t1 = DataFrame({
             'value': Series([1, 2, 3], index=Index(['a', 'b', 'c'],
                                                    name='id'))})
@@ -1078,7 +1089,7 @@ class TestConcatenate(ConcatenateBase):
             'value': Series([7, 8], index=Index(['a', 'b'], name='id'))})
 
         # it works
-        result = concat([t1, t2], axis=1, keys=['t1', 't2'], sort=True)
+        result = concat([t1, t2], axis=1, keys=['t1', 't2'], sort=sort)
         assert list(result.columns) == [('t1', 'value'), ('t2', 'value')]
 
     def test_concat_series_partial_columns_names(self):
@@ -1124,7 +1135,7 @@ class TestConcatenate(ConcatenateBase):
         expected = concat([frames[k] for k in keys], keys=keys)
         tm.assert_frame_equal(result, expected)
 
-    def test_concat_ignore_index(self):
+    def test_concat_ignore_index(self, sort):
         frame1 = DataFrame({"test1": ["a", "b", "c"],
                             "test2": [1, 2, 3],
                             "test3": [4.5, 3.2, 1.2]})
@@ -1133,7 +1144,7 @@ class TestConcatenate(ConcatenateBase):
         frame2.index = Index(["x", "y", "q"])
 
         v1 = concat([frame1, frame2], axis=1,
-                    ignore_index=True, sort=True)
+                    ignore_index=True, sort=sort)
 
         nan = np.nan
         expected = DataFrame([[nan, nan, nan, 4.3],
@@ -1141,6 +1152,8 @@ class TestConcatenate(ConcatenateBase):
                               ['b', 2, 3.2, 2.2],
                               ['c', 3, 1.2, nan]],
                              index=Index(["q", "x", "y", "z"]))
+        if not sort:
+            expected = expected.loc[['x', 'y', 'z', 'q']]
 
         tm.assert_frame_equal(v1, expected)
 
@@ -1337,16 +1350,16 @@ class TestConcatenate(ConcatenateBase):
         result = df.append(df)
         assert_frame_equal(result, expected)
 
-    def test_with_mixed_tuples(self):
+    def test_with_mixed_tuples(self, sort):
         # 10697
         # columns have mixed tuples, so handle properly
         df1 = DataFrame({u'A': 'foo', (u'B', 1): 'bar'}, index=range(2))
         df2 = DataFrame({u'B': 'foo', (u'B', 1): 'bar'}, index=range(2))
 
         # it works
-        concat([df1, df2], sort=True)
+        concat([df1, df2], sort=sort)
 
-    def test_handle_empty_objects(self):
+    def test_handle_empty_objects(self, sort):
         df = DataFrame(np.random.randn(10, 4), columns=list('abcd'))
 
         baz = df[:5].copy()
@@ -1354,7 +1367,7 @@ class TestConcatenate(ConcatenateBase):
         empty = df[5:5]
 
         frames = [baz, empty, empty, df[5:]]
-        concatted = concat(frames, axis=0, sort=True)
+        concatted = concat(frames, axis=0, sort=sort)
 
         expected = df.reindex(columns=['a', 'b', 'c', 'd', 'foo'])
         expected['foo'] = expected['foo'].astype('O')
@@ -1506,7 +1519,7 @@ class TestConcatenate(ConcatenateBase):
             expected.loc['ItemC', :, :2] = 'baz'
             tm.assert_panel_equal(result, expected)
 
-    def test_panel_concat_buglet(self):
+    def test_panel_concat_buglet(self, sort):
         with catch_warnings(record=True):
             # #2257
             def make_panel():
@@ -1531,7 +1544,7 @@ class TestConcatenate(ConcatenateBase):
             panel3 = panel3.rename_axis(lambda x: '%s_1' % x, axis=2)
 
             # it works!
-            concat([panel1, panel3], axis=1, verify_integrity=True, sort=True)
+            concat([panel1, panel3], axis=1, verify_integrity=True, sort=sort)
 
     def test_concat_series(self):
 
@@ -1556,7 +1569,7 @@ class TestConcatenate(ConcatenateBase):
         expected.index = exp_index
         tm.assert_series_equal(result, expected)
 
-    def test_concat_series_axis1(self):
+    def test_concat_series_axis1(self, sort=sort):
         ts = tm.makeTimeSeries()
 
         pieces = [ts[:-2], ts[2:], ts[2:-2]]
@@ -1585,7 +1598,7 @@ class TestConcatenate(ConcatenateBase):
         # must reindex, #2603
         s = Series(randn(3), index=['c', 'a', 'b'], name='A')
         s2 = Series(randn(4), index=['d', 'a', 'b', 'c'], name='B')
-        result = concat([s, s2], axis=1, sort=True)
+        result = concat([s, s2], axis=1, sort=sort)
         expected = DataFrame({'A': s, 'B': s2})
         assert_frame_equal(result, expected)
 
@@ -2071,7 +2084,7 @@ bar2,12,13,14,15
         expected = Series([True, False, False], index=index)
         tm.assert_series_equal(result, expected)
 
-    def test_categorical_concat(self):
+    def test_categorical_concat(self, sort):
         # See GH 10177
         df1 = DataFrame(np.arange(18, dtype='int64').reshape(6, 3),
                         columns=["a", "b", "c"])
@@ -2082,7 +2095,7 @@ bar2,12,13,14,15
         cat_values = ["one", "one", "two", "one", "two", "two", "one"]
         df2['h'] = Series(Categorical(cat_values))
 
-        res = pd.concat((df1, df2), axis=0, ignore_index=True, sort=True)
+        res = pd.concat((df1, df2), axis=0, ignore_index=True, sort=sort)
         exp = DataFrame({'a': [0, 3, 6, 9, 12, 15, 0, 2, 4, 6, 8, 10, 12],
                          'b': [1, 4, 7, 10, 13, 16, np.nan, np.nan, np.nan,
                                np.nan, np.nan, np.nan, np.nan],
@@ -2311,21 +2324,28 @@ def test_concat_sorts_index():
     tm.assert_frame_equal(result, expected)
 
 
-def test_concat_inner_sort_unaffected():
+@pytest.mark.parametrize('sort', [None, False, True])
+def test_concat_inner_sort(sort):
     # https://github.com/pandas-dev/pandas/pull/20613
     df1 = pd.DataFrame({"a": [1, 2], "b": [1, 2], "c": [1, 2]},
                        columns=['b', 'a', 'c'])
     df2 = pd.DataFrame({"a": [1, 2], 'b': [3, 4]}, index=[3, 4])
-    with tm.assert_produces_warning(None):
-        r0 = pd.concat([df1, df2], join='inner', ignore_index=True)
-    r1 = pd.concat([df1, df2], join='inner', sort=True, ignore_index=True)
-    r2 = pd.concat([df1, df2], join='inner', sort=True, ignore_index=True)
+
+    if sort is None:
+        with tm.assert_produces_warning(None):
+            # unset sort should *not* warn for inner join
+            # since that never sorted
+            result = pd.concat([df1, df2], sort=sort, join='inner',
+                               ignore_index=True)
+    else:
+        result = pd.concat([df1, df2], sort=sort, join='inner',
+                           ignore_index=True)
 
     expected = pd.DataFrame({"b": [1, 2, 3, 4], "a": [1, 2, 1, 2]},
                             columns=['b', 'a'])
-    tm.assert_frame_equal(r0, expected)
-    tm.assert_frame_equal(r1, expected)
-    tm.assert_frame_equal(r2, expected)
+    if sort:
+        expected = expected[['a', 'b']]
+    tm.assert_frame_equal(result, expected)
 
 
 def test_concat_preserve_column_order_differing_columns():
@@ -2359,23 +2379,25 @@ def test_concat_preserve_column_order_uneven_data():
 
 def test_concat_aligned_sort():
     # GH-4588
-    df = pd.DataFrame({"b": [1, 2], "a": [3, 4]}, columns=['b', 'a'])
+    df = pd.DataFrame({"c": [1, 2], "b": [3, 4], 'a': [5, 6]},
+                      columns=['c', 'b', 'a'])
     result = pd.concat([df, df], sort=True, ignore_index=True)
-    expected = pd.DataFrame({'b': [1, 2, 1, 2], 'a': [3, 4, 3, 4]},
-                            columns=['a', 'b'])
+    expected = pd.DataFrame({'a': [5, 6, 5, 6], 'b': [3, 4, 3, 4],
+                             'c': [1, 2, 1, 2]},
+                            columns=['a', 'b', 'c'])
+    tm.assert_frame_equal(result, expected)
+
+    result = pd.concat([df, df[['c', 'b']]], join='inner', sort=True,
+                       ignore_index=True)
+    expected = expected[['b', 'c']]
     tm.assert_frame_equal(result, expected)
 
 
-def test_concat_aligned_sort_raises():
+def test_concat_aligned_sort_does_not_raise():
     # GH-4588
+    # We catch TypeErrors from sorting internally and do not re-raise.
     df = pd.DataFrame({1: [1, 2], "a": [3, 4]}, columns=[1, 'a'])
-
-    if PY2:
-        expected = pd.DataFrame({1: [1, 2, 1, 2], 'a': [3, 4, 3, 4]},
-                                columns=[1, 'a'])
-        result = pd.concat([df, df], ignore_index=True)
-        tm.assert_frame_equal(result, expected)
-    else:
-        msg = "'<' not supported between instances"
-        with tm.assert_raises_regex(TypeError, msg):
-            pd.concat([df, df], sort=True)
+    expected = pd.DataFrame({1: [1, 2, 1, 2], 'a': [3, 4, 3, 4]},
+                            columns=[1, 'a'])
+    result = pd.concat([df, df], ignore_index=True, sort=True)
+    tm.assert_frame_equal(result, expected)

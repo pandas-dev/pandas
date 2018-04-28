@@ -826,7 +826,7 @@ class TestMerge(object):
 
         # Dups on left
         left_w_dups = left.append(pd.DataFrame({'a': ['a'], 'c': ['cow']},
-                                               index=[3]))
+                                               index=[3]), sort=True)
         merge(left_w_dups, right, left_index=True, right_index=True,
               validate='many_to_one')
 
