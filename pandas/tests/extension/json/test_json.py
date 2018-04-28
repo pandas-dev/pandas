@@ -32,7 +32,7 @@ def data():
     while len(data[0]) == len(data[1]):
         data = make_data()
 
-    return JSONArray(make_data())
+    return JSONArray(data)
 
 
 @pytest.fixture
