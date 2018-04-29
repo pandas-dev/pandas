@@ -44,7 +44,7 @@ __all__ = ['Index', 'MultiIndex', 'NumericIndex', 'Float64Index', 'Int64Index',
            '_all_indexes_same']
 
 
-def _get_objs_combined_axis(objs, intersect=False, axis=0, sort=True):
+def _get_objs_combined_axis(objs, intersect=False, axis=0, sort=False):
     # Extract combined index: return intersection or union (depending on the
     # value of "intersect") of indexes on given axis, or None if all objects
     # lack indexes (e.g. they are numpy arrays)
@@ -54,7 +54,7 @@ def _get_objs_combined_axis(objs, intersect=False, axis=0, sort=True):
         return _get_combined_index(obs_idxes, intersect=intersect, sort=sort)
 
 
-def _get_combined_index(indexes, intersect=False, sort=True):
+def _get_combined_index(indexes, intersect=False, sort=False):
     # TODO: handle index names!
     indexes = com._get_distinct_objs(indexes)
     if len(indexes) == 0:
