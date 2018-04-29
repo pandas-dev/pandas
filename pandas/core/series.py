@@ -207,10 +207,20 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 else:
                     data = data.reindex(index, copy=copy)
                 data = data._data
-            elif isinstance(data, dict):
+            elif isinstance(data, dict) and (len(data) or index is None):
+                # Include the len(data) check here, since _init_dict contains
+                # a relatively expensive reindex. When called with
+                # Series(data=None, index=idx`, that is unnescessary. We know
+                # we're all NaN anyway, so we handle this in the next block.
+                # https://github.com/pandas-dev/pandas/pull/18496/
                 data, index = self._init_dict(data, index, dtype)
                 dtype = None
                 copy = False
+            elif isinstance(data, dict):
+                # Same as previous block, but special cased for data=None,
+                # for performance when creating empty arrays.
+                data = np.nan
+
             elif isinstance(data, SingleBlockManager):
                 if index is None:
                     index = data.index
