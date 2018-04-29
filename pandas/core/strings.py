@@ -2114,19 +2114,54 @@ class StringMethods(NoNewAttributesMixin):
 
     def zfill(self, width):
         """
-        Filling left side of strings in the Series/Index with 0.
-        Equivalent to :meth:`str.zfill`.
+        Pad strings in the Series/Index by prepending '0' characters.
 
+        Strings in the Series/Index are padded with prepending '0' characeters
+        (i.e. on the left of the string) to reach a total string length of `width`.
+        Strings in the Series/Index with length greater than `width` are unchanged.
+
+        Note: Differs from :meth:`str.zfill` which has special handling for '+'/'-'
+        characters in the string.
+        
         Parameters
         ----------
         width : int
-            Minimum width of resulting string; additional characters will be
-            filled with 0
+            Minimum length of resulting string; strings with length less than `width`
+            will be prepended with '0' characters.
 
         Returns
         -------
         filled : Series/Index of objects
+
+        See Also
+        --------
+        Series.str.rjust: Fills the left side of strings with an arbitrary
+            character.
+        Series.str.ljust: Fills the right side of strings with an arbitrary
+            character.
+        Series.str.pad: Fills the specified sides of strings with an arbitrary
+            character.
+        Series.str.center: Fills boths sides of strings with an arbitrary
+            character.
+
+        Examples
+        --------
+        >>> s = pd.Series(['-2', '+5', '10', '127', '423523'])
+        >>> s.str.zfill(5)
+        0     000-2
+        1     000+5
+        2     00010
+        3     00127
+        4    423523
+        dtype: object
+
+        >>> s = pd.Series([-2, 5], dtype=str)
+        >>> s.str.zfill(5)
+        0    000-2
+        1    00005
+        dtype: object
         """
+
         result = str_pad(self._data, width, side='left', fillchar='0')
         return self._wrap_result(result)
 
