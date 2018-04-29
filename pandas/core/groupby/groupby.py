@@ -1099,7 +1099,7 @@ b  2""")
 
                 result = concat(values, axis=self.axis, keys=group_keys,
                                 levels=group_levels, names=group_names,
-                                sort=True)
+                                sort=False)
             else:
 
                 # GH5610, returns a MI, with the first level being a
