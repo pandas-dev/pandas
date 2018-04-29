@@ -295,7 +295,7 @@ def str_count(arr, pat, flags=0):
 
 def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
     """
-    Test if a given pattern or regex is contained within each string of a Series.
+    Test if pattern or regex is contained within each string of a Series.
 
     Return boolean Series based on whether a given pattern or regex is
     contained in each string of a Series.
