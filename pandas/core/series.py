@@ -41,7 +41,11 @@ from pandas.core.dtypes.cast import (
     maybe_cast_to_datetime, maybe_castable,
     construct_1d_arraylike_from_scalar,
     construct_1d_object_array_from_listlike)
-from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
+from pandas.core.dtypes.missing import (
+    isna,
+    notna,
+    remove_na_arraylike,
+    na_value_for_dtype)
 
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                Float64Index, _ensure_index)
@@ -219,7 +223,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             elif isinstance(data, dict):
                 # Same as previous block, but special cased for data=None,
                 # for performance when creating empty arrays.
-                data = np.nan
+                data = na_value_for_dtype(dtype)
 
             elif isinstance(data, SingleBlockManager):
                 if index is None:
