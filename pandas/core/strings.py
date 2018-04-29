@@ -2160,7 +2160,7 @@ class StringMethods(NoNewAttributesMixin):
     Parameters
     ----------
     to_strip : str
-        specifying the set of characters to be removed. 
+        Specifying the set of characters to be removed. 
         All combinations of this set of characters will be stripped.
         Default value is None, which means whaitspaces will be removed.
 
@@ -2168,27 +2168,36 @@ class StringMethods(NoNewAttributesMixin):
     -------
     stripped : Series/Index of objects
 
+    See Also
+    --------
+    str.slice : Slice substrings from each element in the Series/Index
+
     Examples
     --------
     Striping whitespaces for Series
 
-    >>>s = pd.Series([' ant', 'bee ', ' cat  '])
-    >>>s
+    >>> s = pd.Series([' ant', 'bee ', ' cat  '])
+
+    >>> s
     0       ant
     1      bee 
     2     cat  
     dtype: object
-    >>>s.str.strip()
+
+    >>> s.str.strip()
     0    ant
     1    bee
     2    cat
     dtype: object
 
     Striping a set of characters for Index
-    >>>df = pd.DataFrame(index=['1.ant ','2._bee__','3. cat_'])
-    >>>pd.index
+
+    >>> df = pd.DataFrame(index=['1.ant ','2._bee__','3. cat_'])
+
+    >>> df.index
     Index(['1.ant ', '2._bee__', '3. cat_'], dtype='object')
-    >>>df.index.str.strip('123._ ')
+
+    >>> df.index.str.strip('123._ ')
     Index(['ant', 'bee', 'cat'], dtype='object')
     """)
 
