@@ -363,6 +363,7 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
     2    False
     3     True
     4      NaN
+    dtype: object
     """
     if regex:
         if not case:
