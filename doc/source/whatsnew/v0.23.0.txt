@@ -1164,6 +1164,7 @@ I/O
 - Bug in :func:`DataFrame.to_latex()` where a non-string index-level name would result in an ``AttributeError`` (:issue:`19981`)
 - Bug in :func:`DataFrame.to_latex()` where the combination of an index name and the `index_names=False` option would result in incorrect output (:issue:`18326`)
 - Bug in :func:`DataFrame.to_latex()` where a ``MultiIndex`` with an empty string as its name would result in incorrect output (:issue:`18669`)
+- Bug in :func:`DataFrame.to_latex()` where missing space characters caused wrong escaping and produced non-valid latex in some cases (:issue:`20859`)
 - Bug in :func:`read_json` where large numeric values were causing an ``OverflowError`` (:issue:`18842`)
 - Bug in :func:`DataFrame.to_parquet` where an exception was raised if the write destination is S3 (:issue:`19134`)
 - :class:`Interval` now supported in :func:`DataFrame.to_excel` for all Excel file types (:issue:`19242`)
