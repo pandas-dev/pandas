@@ -380,6 +380,22 @@ b &       b &     b \\
         assert unescaped_result == unescaped_expected
         assert escaped_result == escaped_expected
 
+    def test_to_latex_special_escape(self):
+        df = DataFrame([r"a\b\c", r"^a^b^c", r"~a~b~c"])
+
+        escaped_result = df.to_latex()
+        escaped_expected = r"""\begin{tabular}{ll}
+\toprule
+{} &       0 \\
+\midrule
+0 &   a\textbackslash b\textbackslash c \\
+1 &  \textasciicircum a\textasciicircum b\textasciicircum c \\
+2 &  \textasciitilde a\textasciitilde b\textasciitilde c \\
+\bottomrule
+\end{tabular}
+"""
+        assert escaped_result == escaped_expected
+
     def test_to_latex_longtable(self, frame):
         frame.to_latex(longtable=True)
 
