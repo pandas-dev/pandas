@@ -34,7 +34,7 @@ analysis / manipulation tool available in any language.
 **Where to get it**
 
 * Source code: http://github.com/pandas-dev/pandas
-* Binary installers on PyPI: http://pypi.python.org/pypi/pandas
+* Binary installers on PyPI: https://pypi.org/project/pandas
 * Documentation: http://pandas.pydata.org
 
 pandas 0.22.0

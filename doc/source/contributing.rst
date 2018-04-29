@@ -473,7 +473,7 @@ Here are *some* of the more common ``cpplint`` issues:
   - every header file must include a header guard to avoid name collisions if re-included
 
 :ref:`Continuous Integration <contributing.ci>` will run the
-`cpplint <https://pypi.python.org/pypi/cpplint>`_ tool
+`cpplint <https://pypi.org/project/cpplint>`_ tool
 and report any stylistic errors in your code. Therefore, it is helpful before
 submitting code to run the check yourself::
 
@@ -521,7 +521,7 @@ the more common ``PEP8`` issues:
   - passing arguments should have spaces after commas, e.g. ``foo(arg1, arg2, kw1='bar')``
 
 :ref:`Continuous Integration <contributing.ci>` will run
-the `flake8 <http://pypi.python.org/pypi/flake8>`_ tool
+the `flake8 <https://pypi.org/project/flake8>`_ tool
 and report any stylistic errors in your code. Therefore, it is helpful before
 submitting code to run the check yourself on the diff::
 
@@ -798,7 +798,7 @@ Or with one of the following constructs::
     pytest pandas/tests/[test-module].py::[TestClass]
     pytest pandas/tests/[test-module].py::[TestClass]::[test_method]
 
-Using `pytest-xdist <https://pypi.python.org/pypi/pytest-xdist>`_, one can
+Using `pytest-xdist <https://pypi.org/project/pytest-xdist>`_, one can
 speed up local testing on multicore machines. To use this feature, you will
 need to install `pytest-xdist` via::
 
