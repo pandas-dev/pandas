@@ -2114,14 +2114,20 @@ class StringMethods(NoNewAttributesMixin):
 
     def zfill(self, width):
         """
-        Filling left side of strings in the Series/Index with 0.
-        Equivalent to :meth:`str.zfill`.
+        Pad strings in the Series/Index by prepending '0' characters.
+
+        Strings in the Series/Index are padded with prepending '0' characeters
+        (i.e. on the left of the string) to reach a total string length of `width`.
+        Strings in the Series/Index with length greater than `width` are unchanged.
+
+        Note: Differs from :meth:`str.zfill` which has special handling for '+'/'-'
+              characters in the string.
 
         Parameters
         ----------
         width : int
-            Minimum width of resulting string; additional characters will be
-            filled with 0
+            Minimum length of resulting string; strings with length less than `width`
+            will be prepended with '0' characters.
 
         Returns
         -------
