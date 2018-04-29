@@ -295,20 +295,24 @@ def str_count(arr, pat, flags=0):
 
 def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
     """
-    Return boolean Series/``array`` whether given pattern/regex is
-    contained in each string in the Series/Index.
+    Test if a given pattern or regex is contained within each string of a Series.
+
+    Return boolean Series based on whether a given pattern or regex is
+    contained in each string of a Series.
 
     Parameters
     ----------
-    pat : string
-        Character sequence or regular expression
-    case : boolean, default True
-        If True, case sensitive
+    pat : str
+        Character sequence or regular expression.
+    case : bool, default True
+        If True, case sensitive.
     flags : int, default 0 (no flags)
-        re module flags, e.g. re.IGNORECASE
-    na : default NaN, fill value for missing values.
+        re module flags, e.g. re.IGNORECASE.
+    na : default NaN
+        Fill value for missing values.
     regex : bool, default True
-        If True use re.search, otherwise use Python in operator
+        If True, assumes the passed-in pattern is a regular expression.\n
+        If False, treats the pattern as a literal string.
 
     Returns
     -------
@@ -318,6 +322,47 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
     --------
     match : analogous, but stricter, relying on re.match instead of re.search
 
+    Examples
+    --------
+    >>> s = pd.Series(['Mouse', 'dog', 'house and parrot', '23', np.NaN])
+    >>> s
+    0               Mouse
+    1                 dog
+    2    house and parrot
+    3                  23
+    4                 NaN
+    dtype: object
+
+    >>> s.str.contains('og', regex=False)
+    0    False
+    1     True
+    2    False
+    3    False
+    4      NaN
+    dtype: object
+
+    >>> s.str.contains('og', na=False, regex=True)
+    0    False
+    1     True
+    2    False
+    3    False
+    4    False
+    dtype: bool
+
+    >>> s.str.contains('house|parrot', regex=True)
+    0    False
+    1    False
+    2     True
+    3    False
+    4      NaN
+    dtype: object
+
+    >>> s.str.contains('\d', regex=True)
+    0    False
+    1    False
+    2    False
+    3     True
+    4      NaN
     """
     if regex:
         if not case:
