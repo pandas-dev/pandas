@@ -2151,12 +2151,45 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     _shared_docs['str_strip'] = ("""
-    Strip whitespace (including newlines) from each string in the
-    Series/Index from %(side)s. Equivalent to :meth:`str.%(method)s`.
+    Remove leading and trailing characters.
+
+    Strip whitespaces (including newlines) or a set of specified characters
+    from each string in the Series/Index from %(side)s.
+    Equivalent to :meth:`str.%(method)s`.
+
+    Parameters
+    ----------
+    to_strip : str
+        specifying the set of characters to be removed. 
+        All combinations of this set of characters will be stripped.
+        Default value is None, which means whaitspaces will be removed.
 
     Returns
     -------
     stripped : Series/Index of objects
+
+    Examples
+    --------
+    Striping whitespaces for Series
+
+    >>>s = pd.Series([' ant', 'bee ', ' cat  '])
+    >>>s
+    0       ant
+    1      bee 
+    2     cat  
+    dtype: object
+    >>>s.str.strip()
+    0    ant
+    1    bee
+    2    cat
+    dtype: object
+
+    Striping a set of characters for Index
+    >>>df = pd.DataFrame(index=['1.ant ','2._bee__','3. cat_'])
+    >>>pd.index
+    Index(['1.ant ', '2._bee__', '3. cat_'], dtype='object')
+    >>>df.index.str.strip('123._ ')
+    Index(['ant', 'bee', 'cat'], dtype='object')
     """)
 
     @Appender(_shared_docs['str_strip'] % dict(side='left and right sides',
