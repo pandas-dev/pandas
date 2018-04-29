@@ -68,6 +68,10 @@ class TestConstructors(base.BaseConstructorsTests):
 
 class TestReshaping(base.BaseReshapingTests):
     @pytest.mark.skip(reason="Unobserved categories preseved in concat.")
+    def test_concat_columns(self, data, na_value):
+        pass
+
+    @pytest.mark.skip(reason="Unobserved categories preseved in concat.")
     def test_align(self, data, na_value):
         pass
 
