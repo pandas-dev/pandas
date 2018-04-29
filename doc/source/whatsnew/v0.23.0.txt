@@ -1200,6 +1200,7 @@ Groupby/Resample/Rolling
 - Bug in :func:`DataFrameGroupBy.cumsum` and :func:`DataFrameGroupBy.cumprod` when ``skipna`` was passed (:issue:`19806`)
 - Bug in :func:`DataFrame.resample` that dropped timezone information (:issue:`13238`)
 - Bug in :func:`DataFrame.groupby` where transformations using ``np.all`` and ``np.any`` were raising a ``ValueError`` (:issue:`20653`)
+- Bug in :func:`DatetimeIndexResampler._upsample` where ``loffset`` was being ignored (:issue:`20744`)
 
 Sparse
 ^^^^^^
