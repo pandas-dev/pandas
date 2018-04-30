@@ -2160,7 +2160,7 @@ class StringMethods(NoNewAttributesMixin):
     Parameters
     ----------
     to_strip : str
-        Specifying the set of characters to be removed. 
+        Specifying the set of characters to be removed.
         All combinations of this set of characters will be stripped.
         Default value is None, which means whaitspaces will be removed.
 
@@ -2180,8 +2180,8 @@ class StringMethods(NoNewAttributesMixin):
 
     >>> s
     0       ant
-    1      bee 
-    2     cat  
+    1      bee
+    2     cat
     dtype: object
 
     >>> s.str.strip()
