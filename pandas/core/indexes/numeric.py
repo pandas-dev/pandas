@@ -31,7 +31,6 @@ class NumericIndex(Index):
 
     """
     _is_numeric_dtype = True
-    _can_hold_identifiers = False  # Can't contain Python identifiers
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None,
                 fastpath=False):
@@ -113,6 +112,12 @@ class NumericIndex(Index):
         """
         Checks that all the labels are datetime objects
         """
+        return False
+
+    @property
+    def _can_hold_identifiers(self):
+        # perf: Numeric elements are not valid identifiers.
+        # https://github.com/pandas-dev/pandas/issues/19764
         return False
 
 

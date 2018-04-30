@@ -204,7 +204,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     """
     _typ = 'periodindex'
     _attributes = ['name', 'freq']
-    _can_hold_identifiers = False  # Can't contain Python identifiers
 
     # define my properties & methods for delegation
     _other_ops = []

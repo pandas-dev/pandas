@@ -207,7 +207,6 @@ class IntervalIndex(IntervalMixin, Index):
     _typ = 'intervalindex'
     _comparables = ['name']
     _attributes = ['name', 'closed']
-    _can_hold_identifiers = False  # can't contain Python identifiers
 
     # we would like our indexing holder to defer to us
     _defer_to_indexing = True
@@ -1303,6 +1302,12 @@ class IntervalIndex(IntervalMixin, Index):
             return Interval(left, right, self.closed)
 
         return self._shallow_copy(left, right)
+
+    @property
+    def _can_hold_identifiers(self):
+        # perf: Intervals aren't valid Python identifiers.
+        # https://github.com/pandas-dev/pandas/issues/19764
+        return False
 
     # __repr__ associated methods are based on MultiIndex
 

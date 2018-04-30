@@ -244,12 +244,6 @@ class Index(IndexOpsMixin, PandasObject):
     _engine_type = libindex.ObjectEngine
 
     _accessors = set(['str'])
-    # Whether items can be selected from NDFrame.<item>
-    # Some indexes (DatetimeIndex, Int64Index) cannot contain
-    # valid Python identifiers. Setting _can_hold_identifiers = False is an
-    # optimization.
-    # https://github.com/pandas-dev/pandas/issues/19764
-    _can_hold_identifiers = True
 
     str = CachedAccessor("str", StringMethods)
 
@@ -2088,6 +2082,23 @@ class Index(IndexOpsMixin, PandasObject):
             return promote(result)
         else:
             return result
+
+    @property
+    def _can_hold_identifiers(self):
+        """
+        Whether the Index class *can* hold Python identifiers.
+
+        This is useful for short-circuting lookups in NDFrame.__getattr__.
+        Some index-classes can't hold identifiers (NumericIndex,
+        DatetimeIndex), so there's no reason to search the index when a user
+        does `Series.foo<TAB>`.
+
+        Note that we don't care about `foo` here. This just a property
+        of the index class itself, nothing to do with an instance.
+
+        https://github.com/pandas-dev/pandas/issues/19764
+        """
+        return True
 
     def append(self, other):
         """
