@@ -2118,7 +2118,8 @@ class StringMethods(NoNewAttributesMixin):
 
         Strings in the Series/Index are padded with '0' characters on the
         left of the string to reach a total string length  `width`. Strings
-        in the Series/Index with length greater or equal to `width` are unchanged.
+        in the Series/Index with length greater or equal to `width` are
+        unchanged.
 
         Parameters
         ----------
@@ -2144,7 +2145,7 @@ class StringMethods(NoNewAttributesMixin):
         Notes
         -----
         Differs from :meth:`str.zfill` which has special handling
-        for '+'/'-' in the string.        
+        for '+'/'-' in the string.
 
         Examples
         --------
