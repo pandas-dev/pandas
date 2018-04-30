@@ -2217,11 +2217,10 @@ class StringMethods(NoNewAttributesMixin):
         # str_cat discards index
         res = str_cat(data, others=others, sep=sep, na_rep=na_rep)
 
-        dtype = 'category' if self._is_categorical else None
         if isinstance(self._orig, Index):
-            res = Index(res, dtype=dtype)
+            res = Index(res)
         else:  # Series
-            res = Series(res, index=data.index, dtype=dtype)
+            res = Series(res, index=data.index)
         return res
 
     @copy(str_split)

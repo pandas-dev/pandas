@@ -228,7 +228,7 @@ class TestStringMethods(object):
             s = Series(s)
         t = Index(['b', 'a', 'b', 'c'], dtype=dtype_target)
 
-        exp = Index(['ab', 'aa', 'bb', 'ac'], dtype=dtype_caller)
+        exp = Index(['ab', 'aa', 'bb', 'ac'])
         if series_or_index == 'series':
             exp = Series(exp)
 

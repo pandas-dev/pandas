@@ -325,9 +325,7 @@ In v.0.23 `join` will default to None (meaning no alignment), but this default w
     s.str.cat(t)
     s.str.cat(t, join='left', na_rep='-')
 
-Furthermore:
-- meth:`Series.str.cat` now works as well for ``CategoricalIndex`` as well (previously raised a ``ValueError``; see :issue:`20842`)
-- If concatenating with something (i.e. `others is not None`) the resulting ``Series``/``Index`` will now remain categorical if the calling ``Series``/``Index`` is categorical (see :issue:`20843`)
+Furthermore, meth:`Series.str.cat` now works for ``CategoricalIndex`` as well (previously raised a ``ValueError``; see :issue:`20842`).
 
 .. _whatsnew_0230.enhancements.astype_category:
 

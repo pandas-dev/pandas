@@ -608,6 +608,7 @@ class TestCategoricalSeries(object):
 
         # str functions, which need special arguments
         special_func_defs = [
+            ('cat', (list("zyxw"),), {"sep": ","}),
             ('center', (10,), {}),
             ('contains', ("a",), {}),
             ('count', ("a",), {}),
@@ -643,12 +644,11 @@ class TestCategoricalSeries(object):
         ]
         _special_func_names = [f[0] for f in special_func_defs]
 
-        # * cat tested extensively with categorical data in test_strings.py
         # * get, join: they need a individual elements of type lists, but
         #   we can't make a categorical with lists as individual categories.
         #   -> `s.str.split(" ").astype("category")` will error!
         # * `translate` has different interfaces for py2 vs. py3
-        _ignore_names = ["cat", "get", "join", "translate"]
+        _ignore_names = ["get", "join", "translate"]
 
         str_func_names = [f for f in dir(s.str) if not (
             f.startswith("_") or
