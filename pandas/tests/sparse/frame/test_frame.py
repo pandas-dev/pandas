@@ -643,7 +643,7 @@ class TestSparseDataFrame(SharedWithSparse):
             "C": [0., 1, 5, 6],
             "A": [None, None, 2, 3],
             "D": [None, None, 5, None],
-        }, index=a.index | b.index)
+        }, index=a.index | b.index, columns=['B', 'C', 'A', 'D'])
         with tm.assert_produces_warning(None):
             appended = a.append(b, sort=False)
 
