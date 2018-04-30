@@ -211,20 +211,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 else:
                     data = data.reindex(index, copy=copy)
                 data = data._data
-            elif isinstance(data, dict) and (len(data) or index is None):
-                # Include the len(data) check here, since _init_dict contains
-                # a relatively expensive reindex. When called with
-                # Series(data=None, index=idx`, that is unnescessary. We know
-                # we're all NaN anyway, so we handle this in the next block.
-                # https://github.com/pandas-dev/pandas/pull/18496/
+            elif isinstance(data, dict):
                 data, index = self._init_dict(data, index, dtype)
                 dtype = None
                 copy = False
-            elif isinstance(data, dict):
-                # Same as previous block, but special cased for data=None,
-                # for performance when creating empty arrays.
-                data = na_value_for_dtype(dtype)
-
             elif isinstance(data, SingleBlockManager):
                 if index is None:
                     index = data.index
@@ -314,6 +304,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if data:
             keys, values = zip(*compat.iteritems(data))
             values = list(values)
+        elif index is not None:
+            # fastpath for Series(data=None). Just use broadcasting a scalar
+            # instead of reindexing.
+            values = na_value_for_dtype(dtype)
+            keys = index
         else:
             keys, values = [], []
 
@@ -321,7 +316,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         s = Series(values, index=keys, dtype=dtype)
 
         # Now we just make sure the order is respected, if any
-        if index is not None:
+        if data and index is not None:
             s = s.reindex(index, copy=False)
         elif not PY36 and not isinstance(data, OrderedDict):
             try:
