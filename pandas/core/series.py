@@ -318,7 +318,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # Now we just make sure the order is respected, if any
         if data and index is not None:
             s = s.reindex(index, copy=False)
-        elif not PY36 and not isinstance(data, OrderedDict):
+        elif not PY36 and not isinstance(data, OrderedDict) and data:
+            # Need the `and data` to avoid sorting Series(None, index=[...])
+            # since that isn't really dict-like
             try:
                 s = s.sort_index()
             except TypeError:

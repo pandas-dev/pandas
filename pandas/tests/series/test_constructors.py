@@ -133,6 +133,10 @@ class TestSeriesConstructors(TestData):
         assert result.dtype == dtype
         assert len(result) == 0
 
+    def test_constructor_no_data_index_order(self):
+        result = pd.Series(index=['b', 'a', 'c'])
+        assert result.index.tolist() == ['b', 'a', 'c']
+
     def test_constructor_series(self):
         index1 = ['d', 'b', 'a', 'c']
         index2 = sorted(index1)
