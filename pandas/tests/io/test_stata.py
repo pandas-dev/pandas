@@ -499,6 +499,15 @@ class TestStata(object):
                 assert reader.time_stamp == '29 Feb 2000 14:21'
                 assert reader.data_label == data_label
 
+    @pytest.mark.parametrize('version', [114, 117])
+    def test_invalid_timestamp(self, version):
+        original = DataFrame([(1,)], columns=['variable'])
+        time_stamp = '01 Jan 2000, 00:00:00'
+        with tm.ensure_clean() as path:
+            with pytest.raises(ValueError):
+                original.to_stata(path, time_stamp=time_stamp,
+                                  version=version)
+
     def test_numeric_column_names(self):
         original = DataFrame(np.reshape(np.arange(25.0), (5, 5)))
         original.index.name = 'index'
@@ -639,7 +648,8 @@ class TestStata(object):
                                   expected)
 
     @pytest.mark.parametrize('version', [114, 117])
-    def test_bool_uint(self, version):
+    @pytest.mark.parametrize('byteorder', ['>', '<'])
+    def test_bool_uint(self, byteorder, version):
         s0 = Series([0, 1, True], dtype=np.bool)
         s1 = Series([0, 1, 100], dtype=np.uint8)
         s2 = Series([0, 1, 255], dtype=np.uint8)
@@ -658,7 +668,7 @@ class TestStata(object):
             expected[c] = expected[c].astype(t)
 
         with tm.ensure_clean() as path:
-            original.to_stata(path, version=version)
+            original.to_stata(path, byteorder=byteorder, version=version)
             written_and_read_again = self.read_dta(path)
             written_and_read_again = written_and_read_again.set_index('index')
             tm.assert_frame_equal(written_and_read_again, expected)
@@ -1173,6 +1183,29 @@ class TestStata(object):
                 read_labels = sr.variable_labels()
             assert read_labels == variable_labels
 
+    @pytest.mark.parametrize('version', [114, 117])
+    def test_invalid_variable_labels(self, version):
+        original = pd.DataFrame({'a': [1, 2, 3, 4],
+                                 'b': [1.0, 3.0, 27.0, 81.0],
+                                 'c': ['Atlanta', 'Birmingham',
+                                       'Cincinnati', 'Detroit']})
+        original.index.name = 'index'
+        variable_labels = {'a': 'very long' * 10,
+                           'b': 'City Exponent',
+                           'c': 'City'}
+        with tm.ensure_clean() as path:
+            with pytest.raises(ValueError):
+                original.to_stata(path,
+                                  variable_labels=variable_labels,
+                                  version=version)
+
+        variable_labels['a'] = u'invalid character Œ'
+        with tm.ensure_clean() as path:
+            with pytest.raises(ValueError):
+                original.to_stata(path,
+                                  variable_labels=variable_labels,
+                                  version=version)
+
     def test_write_variable_label_errors(self):
         original = pd.DataFrame({'a': [1, 2, 3, 4],
                                  'b': [1.0, 3.0, 27.0, 81.0],
@@ -1217,6 +1250,13 @@ class TestStata(object):
             original.to_stata(path,
                               write_index=False,
                               convert_dates={'dates': 'tc'})
+            direct = read_stata(path, convert_dates=True)
+            tm.assert_frame_equal(reread, direct)
+
+            dates_idx = original.columns.tolist().index('dates')
+            original.to_stata(path,
+                              write_index=False,
+                              convert_dates={dates_idx: 'tc'})
             direct = read_stata(path, convert_dates=True)
             tm.assert_frame_equal(reread, direct)
 
@@ -1394,7 +1434,7 @@ class TestStata(object):
         original['float32'] = Series(original['float32'], dtype=np.float32)
         original.index.name = 'index'
         original.index = original.index.astype(np.int32)
-
+        copy = original.copy()
         with tm.ensure_clean() as path:
             original.to_stata(path,
                               convert_dates={'datetime': 'tc'},
@@ -1404,6 +1444,7 @@ class TestStata(object):
             # original.index is np.int32, read index is np.int64
             tm.assert_frame_equal(written_and_read_again.set_index('index'),
                                   original, check_index_type=False)
+            tm.assert_frame_equal(original, copy)
 
     def test_convert_strl_name_swap(self):
         original = DataFrame([['a' * 3000, 'A', 'apple'],
@@ -1419,3 +1460,17 @@ class TestStata(object):
                 reread.columns = original.columns
                 tm.assert_frame_equal(reread, original,
                                       check_index_type=False)
+
+    def test_invalid_date_conversion(self):
+        # GH 12259
+        dates = [dt.datetime(1999, 12, 31, 12, 12, 12, 12000),
+                 dt.datetime(2012, 12, 21, 12, 21, 12, 21000),
+                 dt.datetime(1776, 7, 4, 7, 4, 7, 4000)]
+        original = pd.DataFrame({'nums': [1.0, 2.0, 3.0],
+                                 'strs': ['apple', 'banana', 'cherry'],
+                                 'dates': dates})
+
+        with tm.ensure_clean() as path:
+            with pytest.raises(ValueError):
+                original.to_stata(path,
+                                  convert_dates={'wrong_name': 'tc'})

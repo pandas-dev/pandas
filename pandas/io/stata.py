@@ -1050,7 +1050,7 @@ class StataReader(StataParser, BaseIterator):
         if self.format_version not in [117, 118]:
             raise ValueError(_version_error)
         self.path_or_buf.read(21)  # </release><byteorder>
-        self.byteorder = self.path_or_buf.read(3) == "MSF" and '>' or '<'
+        self.byteorder = self.path_or_buf.read(3) == b'MSF' and '>' or '<'
         self.path_or_buf.read(15)  # </byteorder><K>
         self.nvar = struct.unpack(self.byteorder + 'H',
                                   self.path_or_buf.read(2))[0]
@@ -1824,9 +1824,7 @@ def _dtype_to_stata_type(dtype, column):
     type inserted.
     """
     # TODO: expand to handle datetime to integer conversion
-    if dtype.type == np.string_:
-        return dtype.itemsize
-    elif dtype.type == np.object_:  # try to coerce it to the biggest string
+    if dtype.type == np.object_:  # try to coerce it to the biggest string
         # not memory efficient, what else could we
         # do?
         itemsize = max_len_string_array(_ensure_object(column.values))
@@ -2347,25 +2345,30 @@ class StataWriter(StataParser):
         data = self._convert_strls(data)
 
         # 3. Convert bad string data to '' and pad to correct length
-        dtype = []
+        dtypes = []
         data_cols = []
         has_strings = False
+        native_byteorder = self._byteorder == _set_endianness(sys.byteorder)
         for i, col in enumerate(data):
             typ = typlist[i]
             if typ <= self._max_string_length:
                 has_strings = True
                 data[col] = data[col].fillna('').apply(_pad_bytes, args=(typ,))
                 stype = 'S%d' % typ
-                dtype.append(('c' + str(i), stype))
+                dtypes.append(('c' + str(i), stype))
                 string = data[col].str.encode(self._encoding)
                 data_cols.append(string.values.astype(stype))
             else:
-                dtype.append(('c' + str(i), data[col].dtype))
-                data_cols.append(data[col].values)
-        dtype = np.dtype(dtype)
+                values = data[col].values
+                dtype = data[col].dtype
+                if not native_byteorder:
+                    dtype = dtype.newbyteorder(self._byteorder)
+                dtypes.append(('c' + str(i), dtype))
+                data_cols.append(values)
+        dtypes = np.dtype(dtypes)
 
-        if has_strings:
-            self.data = np.fromiter(zip(*data_cols), dtype=dtype)
+        if has_strings or not native_byteorder:
+            self.data = np.fromiter(zip(*data_cols), dtype=dtypes)
         else:
             self.data = data.to_records(index=False)
 
@@ -2403,9 +2406,7 @@ def _dtype_to_stata_type_117(dtype, column, force_strl):
     # TODO: expand to handle datetime to integer conversion
     if force_strl:
         return 32768
-    if dtype.type == np.string_:
-        return chr(dtype.itemsize)
-    elif dtype.type == np.object_:  # try to coerce it to the biggest string
+    if dtype.type == np.object_:  # try to coerce it to the biggest string
         # not memory efficient, what else could we
         # do?
         itemsize = max_len_string_array(_ensure_object(column.values))
@@ -2513,11 +2514,13 @@ class StataStrLWriter(object):
             Ordered dictionary using the string found as keys
             and their lookup position (v,o) as values
         gso_df : DataFrame
-            Copy of DataFrame where strl columns have been converted
-            to encoded (v,o) values
+            DataFrame where strl columns have been converted to
+            (v,o) values
 
         Notes
         -----
+        Modifies the DataFrame in-place.
+
         The DataFrame returned encodes the (v,o) values as uint64s. The
         encoding depends on teh dta version, and can be expressed as
 
@@ -2532,10 +2535,9 @@ class StataStrLWriter(object):
         """
 
         gso_table = self._gso_table
-        df_out = self.df.copy()
-        df = self.df
-        columns = list(df.columns)
-        selected = df[self.columns]
+        gso_df = self.df
+        columns = list(gso_df.columns)
+        selected = gso_df[self.columns]
         col_index = [(col, columns.index(col)) for col in self.columns]
         keys = np.empty(selected.shape, dtype=np.uint64)
         for o, (idx, row) in enumerate(selected.iterrows()):
@@ -2548,9 +2550,9 @@ class StataStrLWriter(object):
                     gso_table[val] = key
                 keys[o, j] = self._convert_key(key)
         for i, col in enumerate(self.columns):
-            df_out[col] = keys[:, i]
+            gso_df[col] = keys[:, i]
 
-        return gso_table, df_out
+        return gso_table, gso_df
 
     def _encode(self, s):
         """
@@ -2599,7 +2601,7 @@ class StataStrLWriter(object):
         o_type = self._byteorder + self._gso_o_type
         len_type = self._byteorder + 'I'
         for strl, vo in table.items():
-            if vo == 0:
+            if vo == (0, 0):
                 continue
             v, o = vo
             # GSO
