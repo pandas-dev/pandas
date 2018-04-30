@@ -2159,46 +2159,52 @@ class StringMethods(NoNewAttributesMixin):
 
     Parameters
     ----------
-    to_strip : str, optional
+    to_strip : str or None, default None (whitespaces are removed)
         Specifying the set of characters to be removed.
         All combinations of this set of characters will be stripped.
-        Default value is None, which means whaitspaces will be removed.
 
     Returns
     -------
-    stripped : Series/Index of objects
+    Series/Index of objects
 
     See Also
     --------
-    str.slice : Slice substrings from each element in the Series/Index
+    Series.str.strip : Remove leading and trailing characters in Series/Index
+    Series.str.lstrip : Remove leading characters in Series/Index
+    Series.str.rstrip : Remove trailing characters in Series/Index
 
     Examples
     --------
-    Stripping whitespaces for Series
-
-    >>> s = pd.Series([' ant', 'bee ', ' cat  '])
-
+    >>> s = pd.Series(['1. Ant.  ', '2. Bee!\n', '3. Cat?\t'])
     >>> s
-    0       ant
-    1      bee
-    2     cat
+    0    1. Ant.
+    1    2. Bee!\n
+    2    3. Cat?\t
     dtype: object
 
     >>> s.str.strip()
-    0    ant
-    1    bee
-    2    cat
+    0    1. Ant.
+    1    2. Bee!
+    2    3. Cat?
     dtype: object
 
-    Stripping a set of characters for Index
+    >>> s.str.strip('123.!? \n\t')
+    0    Ant
+    1    Bee
+    2    Cat
+    dtype: object
 
-    >>> idx = pd.Index(['1.ant ','2._bee__','3. cat_'])
+    >>> s.str.lstrip('123.!? \n\t')
+    0    Ant.
+    1    Bee!\n
+    2    Cat?\t
+    dtype: object
 
-    >>> idx
-    Index(['1.ant ', '2._bee__', '3. cat_'], dtype='object')
-
-    >>> idx.str.strip('123._ ')
-    Index(['ant', 'bee', 'cat'], dtype='object')
+    >>> s.str.rstrip('123.!? \n\t')
+    0    1. Ant
+    1    2. Bee
+    2    3. Cat
+    dtype: object
     """)
 
     @Appender(_shared_docs['str_strip'] % dict(side='left and right sides',
