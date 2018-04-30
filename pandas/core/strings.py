@@ -2159,7 +2159,7 @@ class StringMethods(NoNewAttributesMixin):
 
     Parameters
     ----------
-    to_strip : str
+    to_strip : str, optional
         Specifying the set of characters to be removed.
         All combinations of this set of characters will be stripped.
         Default value is None, which means whaitspaces will be removed.
