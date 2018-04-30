@@ -126,8 +126,19 @@ class BaseGetitemTests(BaseExtensionTests):
         expected = s.iloc[[2, 3]]
         self.assert_series_equal(result, expected)
 
+        result = s.get(slice(2))
+        expected = s.iloc[[0, 1]]
+        self.assert_series_equal(result, expected)
+
         s = pd.Series(data[:6], index=list('abcdef'))
         assert s.get('c') == s.iloc[2]
+
+        result = s.get(slice('b', 'd'))
+        expected = s.iloc[[1, 2, 3]]
+        self.assert_series_equal(result, expected)
+
+        result = s.get('Z')
+        assert result is None
 
     def test_take_sequence(self, data):
         result = pd.Series(data)[[0, 1, 3]]
