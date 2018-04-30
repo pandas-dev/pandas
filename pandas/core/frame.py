@@ -7491,7 +7491,7 @@ def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
     from pandas.core.index import _get_objs_combined_axis
 
     if columns is None:
-        columns = _get_objs_combined_axis(data)
+        columns = _get_objs_combined_axis(data, sort=False)
 
     indexer_cache = {}
 
