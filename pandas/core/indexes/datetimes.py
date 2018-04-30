@@ -454,15 +454,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         if verify_integrity and len(subarr) > 0:
             if freq is not None and not freq_infer:
-                inferred = subarr.inferred_freq
-                if inferred != freq.freqstr:
-                    on_freq = cls._generate(subarr[0], None, len(subarr), None,
-                                            freq, tz=tz, ambiguous=ambiguous)
-                    if not np.array_equal(subarr.asi8, on_freq.asi8):
-                        raise ValueError('Inferred frequency {0} from passed '
-                                         'dates does not conform to passed '
-                                         'frequency {1}'
-                                         .format(inferred, freq.freqstr))
+                cls._validate_frequency(subarr, freq, ambiguous=ambiguous)
 
         if freq_infer:
             inferred = subarr.inferred_freq
@@ -836,7 +828,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 np.ndarray.__setstate__(data, nd_state)
 
                 self.name = own_state[0]
-                self.freq = own_state[1]
+                self._freq = own_state[1]
                 self._tz = timezones.tz_standardize(own_state[2])
 
                 # provide numpy < 1.7 compat
@@ -1725,16 +1717,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                     return indexer
             else:
                 raise
-
-    @property
-    def freq(self):
-        """get/set the frequency of the Index"""
-        return self._freq
-
-    @freq.setter
-    def freq(self, value):
-        """get/set the frequency of the Index"""
-        self._freq = value
 
     @property
     def offset(self):
