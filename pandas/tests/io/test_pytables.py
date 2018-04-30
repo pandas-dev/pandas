@@ -1465,7 +1465,8 @@ class TestHDFStore(Base):
     @pytest.mark.parametrize("format", ['fixed', 'table'])
     def test_to_hdf_errors(self, format):
 
-        ser = pd.Series(['\ud800foo'])
+        data = ['\ud800foo']
+        ser = pd.Series(data, index=pd.Index(data))
         with ensure_clean_path(self.path) as path:
             # GH 20835
             ser.to_hdf(path, 'table', format=format, errors='surrogatepass')
