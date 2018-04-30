@@ -2230,7 +2230,8 @@ class Fixed(StringMixin):
     ndim = None
     is_table = False
 
-    def __init__(self, parent, group, encoding=None, errors='strict', **kwargs):
+    def __init__(self, parent, group, encoding=None, errors='strict',
+                 **kwargs):
         self.parent = parent
         self.group = group
         self.encoding = _ensure_encoding(encoding)
@@ -4587,7 +4588,8 @@ def _convert_string_array(data, encoding, errors, itemsize=None):
     return data
 
 
-def _unconvert_string_array(data, nan_rep=None, encoding=None, errors='strict'):
+def _unconvert_string_array(data, nan_rep=None, encoding=None,
+                            errors='strict'):
     """
     inverse of _convert_string_array
 
