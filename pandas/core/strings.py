@@ -2116,13 +2116,9 @@ class StringMethods(NoNewAttributesMixin):
         """
         Pad strings in the Series/Index by prepending '0' characters.
 
-        Strings in the Series/Index are padded with prepending '0' characeters
-        (i.e. on the left of the string) to reach a total string length
-        of `width`.  in the Series/Index with length greater than `width`
-        are unchanged.
-
-        Note: Differs from :meth:`str.zfill` which has special handling
-        for '+'/'-' in the string.
+        Strings in the Series/Index are padded with '0' characters on the
+        left of the string to reach a total string length  `width`. Strings
+        in the Series/Index with length greater or equal to `width` are unchanged.
 
         Parameters
         ----------
@@ -2132,7 +2128,7 @@ class StringMethods(NoNewAttributesMixin):
 
         Returns
         -------
-        filled : Series/Index of objects
+        Series/Index of objects
 
         See Also
         --------
@@ -2145,21 +2141,29 @@ class StringMethods(NoNewAttributesMixin):
         Series.str.center: Fills boths sides of strings with an arbitrary
             character.
 
+        Notes
+        -----
+        Differs from :meth:`str.zfill` which has special handling
+        for '+'/'-' in the string.        
+
         Examples
         --------
-        >>> s = pd.Series(['-2', '+5', '10', '127', '423523'])
+        >>> s = pd.Series(['-2', '+5', '10', '423523', 127, np.nan])
+        >>> s
+        0        -2
+        1        +5
+        2        10
+        3    423523
+        4       127
+        5       NaN
+        dtype: object
         >>> s.str.zfill(5)
         0     000-2
         1     000+5
         2     00010
-        3     00127
-        4    423523
-        dtype: object
-
-        >>> s = pd.Series([-2, 5], dtype=str)
-        >>> s.str.zfill(5)
-        0    000-2
-        1    00005
+        3    423523
+        4       NaN
+        5       NaN
         dtype: object
         """
 
