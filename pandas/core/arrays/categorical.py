@@ -2,6 +2,7 @@
 
 import numpy as np
 from warnings import warn
+import textwrap
 import types
 
 from pandas import compat
@@ -29,7 +30,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_dict_like)
 
-from pandas.core.algorithms import factorize, take_1d, unique1d
+from pandas.core.algorithms import factorize, take_1d, unique1d, take
 from pandas.core.accessor import PandasDelegate
 from pandas.core.base import (PandasObject,
                               NoNewAttributesMixin, _shared_docs)
@@ -46,6 +47,17 @@ from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 from pandas.core.config import get_option
 
 from .base import ExtensionArray
+
+
+_take_msg = textwrap.dedent("""\
+    Interpreting negative values in 'indexer' as missing values.
+    In the future, this will change to meaning positional indicies
+    from the right.
+
+    Use 'allow_fill=True' to retain the previous behavior and silence this
+    warning.
+
+    Use 'allow_fill=False' to accept the new behavior.""")
 
 
 def _cat_compare_op(op):
@@ -1732,17 +1744,49 @@ class Categorical(ExtensionArray, PandasObject):
         return self._constructor(values, categories=self.categories,
                                  ordered=self.ordered, fastpath=True)
 
-    def take_nd(self, indexer, allow_fill=True, fill_value=None):
-        """ Take the codes by the indexer, fill with the fill_value.
-
-        For internal compatibility with numpy arrays.
+    def take_nd(self, indexer, allow_fill=None, fill_value=None):
         """
+        Take elements from the Categorical.
 
-        # filling must always be None/nan here
-        # but is passed thru internally
-        assert isna(fill_value)
+        Parameters
+        ----------
+        indexer : sequence of integers
+        allow_fill : bool, default None.
+            How to handle negative values in `indexer`.
 
-        codes = take_1d(self._codes, indexer, allow_fill=True, fill_value=-1)
+            * False: negative values in `indices` indicate positional indices
+              from the right. This is similar to
+              :func:`numpy.take`.
+
+            * True: negative values in `indices` indicate missing values
+              (the default). These values are set to `fill_value`. Any other
+              other negative values raise a ``ValueError``.
+
+            .. versionchanged:: 0.23.0
+
+               Deprecated the default value of `allow_fill`. The deprecated
+               default is ``True``. In the future, this will change to
+               ``False``.
+
+        Returns
+        -------
+        Categorical
+            This Categorical will have the same categories and ordered as
+            `self`.
+        """
+        indexer = np.asarray(indexer, dtype=np.intp)
+        if allow_fill is None:
+            if (indexer < 0).any():
+                warn(_take_msg, FutureWarning, stacklevel=2)
+                allow_fill = True
+
+        if isna(fill_value):
+            # For categorical, any NA value is considered a user-facing
+            # NA value. Our storage NA value is -1.
+            fill_value = -1
+
+        codes = take(self._codes, indexer, allow_fill=allow_fill,
+                     fill_value=fill_value)
         result = self._constructor(codes, categories=self.categories,
                                    ordered=self.ordered, fastpath=True)
         return result
