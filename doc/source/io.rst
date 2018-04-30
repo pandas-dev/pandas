@@ -2852,23 +2852,46 @@ Parsing Specific Columns
 
 It is often the case that users will insert columns to do temporary computations
 in Excel and you may not want to read in those columns. ``read_excel`` takes
-a ``usecols`` keyword to allow you to specify a subset of columns to parse.
+either a ``usecols`` or ``usecols_excel`` keyword to allow you to specify a
+subset of columns to parse. Note that you can not use both ``usecols`` and
+``usecols_excel`` named arguments at the same time.
 
-If ``usecols`` is an integer, then it is assumed to indicate the last column
-to be parsed.
-
-.. code-block:: python
-
-   read_excel('path_to_file.xls', 'Sheet1', usecols=2)
-
-If `usecols` is a list of integers, then it is assumed to be the file column
-indices to be parsed.
+If ``usecols_excel`` is supplied, then it is assumed that indicates a comma
+separated list of Excel column letters and column ranges to be parsed.
 
 .. code-block:: python
 
-   read_excel('path_to_file.xls', 'Sheet1', usecols=[0, 2, 3])
+   read_excel('path_to_file.xls', 'Sheet1', usecols_excel='A:E')
+   read_excel('path_to_file.xls', 'Sheet1', usecols_excel='A,C,E:F')
 
-Element order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``.
+If ``usecols`` is a list of integers, then it is assumed to be the file
+column indices to be parsed.
+
+.. code-block:: python
+
+   read_excel('path_to_file.xls', 'Sheet1', usecols=[1, 3, 5])
+
+Element order is ignored, so ``usecols_excel=[0, 1]`` is the same as ``[1, 0]``.
+
+If ``usecols`` is a list of strings, then it is assumed that each string
+correspond to column names provided either by the user in `names` or
+inferred from the document header row(s) and those strings define which columns
+will be parsed.
+
+.. code-block:: python
+
+   read_excel('path_to_file.xls', 'Sheet1', usecols=['foo', 'bar'])
+
+Element order is ignored, so ``usecols=['baz', 'joe']`` is the same as
+``['joe', 'baz']``.
+
+If ``usecols`` is callable, the callable function will be evaluated against the
+column names, returning names where the callable function evaluates to True.
+
+.. code-block:: python
+
+   read_excel('path_to_file.xls', 'Sheet1', usecols=lambda x: x.isalpha())
+
 
 Parsing Dates
 +++++++++++++

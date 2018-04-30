@@ -10,6 +10,8 @@ import os
 import abc
 import warnings
 import numpy as np
+import string
+import re
 from io import UnsupportedOperation
 
 from pandas.core.dtypes.common import (
@@ -85,20 +87,42 @@ index_col : int, list of ints, default None
     Column (0-indexed) to use as the row labels of the DataFrame.
     Pass None if there is no such column.  If a list is passed,
     those columns will be combined into a ``MultiIndex``.  If a
-    subset of data is selected with ``usecols``, index_col
-    is based on the subset.
+    subset of data is selected with ``usecols_excel`` or ``usecols``,
+    index_col is based on the subset.
 parse_cols : int or list, default None
 
     .. deprecated:: 0.21.0
        Pass in `usecols` instead.
 
-usecols : int or list, default None
+usecols : list-like or callable, default None
+    Return a subset of the columns. If list-like, all elements must either
+    be positional (i.e. integer indices into the document columns) or string
+    that correspond to column names provided either by the user in `names` or
+    inferred from the document header row(s). For example, a valid list-like
+    `usecols` parameter would be [0, 1, 2] or ['foo', 'bar', 'baz']. Note that
+    you can not give both ``usecols`` and ``usecols_excel`` keyword arguments
+    at the same time.
+
+    If callable, the callable function will be evaluated against the column
+    names, returning names where the callable function evaluates to True. An
+    example of a valid callable argument would be ``lambda x: x.upper() in
+    ['AAA', 'BBB', 'DDD']``.
+
+    .. versionadded:: 0.24.0
+    Added support to column labels and now `usecols_excel` is the keyword that
+    receives separated comma list of excel columns and ranges.
+usecols_excel : string, default None
+    Return a subset of the columns from a spreadsheet specified as Excel column
+    ranges and columns. Note that you can not use both ``usecols`` and
+    ``usecols_excel`` keyword arguments at the same time.
+
     * If None then parse all columns,
-    * If int then indicates last column to be parsed
-    * If list of ints then indicates list of column numbers to be parsed
     * If string then indicates comma separated list of Excel column letters and
-      column ranges (e.g. "A:E" or "A,C,E:F").  Ranges are inclusive of
-      both sides.
+      column ranges (e.g. "A:E" or "A,C,E:F") to be parsed. Ranges are
+      inclusive of both sides.
+
+    .. versionadded:: 0.24.0
+
 squeeze : boolean, default False
     If the parsed data only contains one column then return a Series
 dtype : Type name or dict of column -> type, default None
@@ -269,6 +293,19 @@ def _get_default_writer(ext):
     return _default_writers[ext]
 
 
+def _is_excel_columns_notation(columns):
+    """
+    Receives a string and check if the string is a comma separated list of
+    Excel index columns and index ranges. An Excel range is a string with two
+    column indexes separated by ':').
+    """
+    if isinstance(columns, compat.string_types) and all(
+       (x in string.ascii_letters) for x in re.split(r',|:', columns)):
+        return True
+
+    return False
+
+
 def get_writer(engine_name):
     try:
         return _writers[engine_name]
@@ -286,6 +323,7 @@ def read_excel(io,
                names=None,
                index_col=None,
                usecols=None,
+               usecols_excel=None,
                squeeze=False,
                dtype=None,
                engine=None,
@@ -311,6 +349,7 @@ def read_excel(io,
         header=header,
         names=names,
         index_col=index_col,
+        usecols_excel=usecols_excel,
         usecols=usecols,
         squeeze=squeeze,
         dtype=dtype,
@@ -405,6 +444,7 @@ class ExcelFile(object):
               names=None,
               index_col=None,
               usecols=None,
+              usecols_excel=None,
               squeeze=False,
               converters=None,
               true_values=None,
@@ -439,6 +479,7 @@ class ExcelFile(object):
                                  header=header,
                                  names=names,
                                  index_col=index_col,
+                                 usecols_excel=usecols_excel,
                                  usecols=usecols,
                                  squeeze=squeeze,
                                  converters=converters,
@@ -455,7 +496,7 @@ class ExcelFile(object):
                                  convert_float=convert_float,
                                  **kwds)
 
-    def _should_parse(self, i, usecols):
+    def _should_parse(self, i, usecols_excel, usecols):
 
         def _range2cols(areas):
             """
@@ -481,12 +522,12 @@ class ExcelFile(object):
                     cols.append(_excel2num(rng))
             return cols
 
-        if isinstance(usecols, int):
-            return i <= usecols
-        elif isinstance(usecols, compat.string_types):
-            return i in _range2cols(usecols)
-        else:
-            return i in usecols
+        # check if usecols_excel is a string that indicates a comma separated
+        # list of Excel column letters and column ranges
+        if isinstance(usecols_excel, compat.string_types):
+            return i in _range2cols(usecols_excel)
+
+        return True
 
     def _parse_excel(self,
                      sheet_name=0,
@@ -494,6 +535,7 @@ class ExcelFile(object):
                      names=None,
                      index_col=None,
                      usecols=None,
+                     usecols_excel=None,
                      squeeze=False,
                      dtype=None,
                      true_values=None,
@@ -511,6 +553,25 @@ class ExcelFile(object):
                      **kwds):
 
         _validate_header_arg(header)
+
+        if (usecols is not None) and (usecols_excel is not None):
+            raise ValueError("Cannot specify both `usecols` and "
+                             "`usecols_excel`. Choose one of them.")
+
+        # Check if some string in usecols may be interpreted as a Excel
+        # range or positional column
+        elif _is_excel_columns_notation(usecols):
+            warnings.warn("The `usecols` keyword argument used to refer to "
+                          "Excel ranges and columns as strings was "
+                          "renamed to `usecols_excel`.", UserWarning,
+                          stacklevel=3)
+            usecols_excel = usecols
+            usecols = None
+
+        elif (usecols_excel is not None) and not _is_excel_columns_notation(
+                usecols_excel):
+            raise TypeError("`usecols_excel` must be None or a string as a "
+                            "comma separeted Excel ranges and columns.")
 
         if 'chunksize' in kwds:
             raise NotImplementedError("chunksize keyword of read_excel "
@@ -615,10 +676,13 @@ class ExcelFile(object):
                 row = []
                 for j, (value, typ) in enumerate(zip(sheet.row_values(i),
                                                      sheet.row_types(i))):
-                    if usecols is not None and j not in should_parse:
-                        should_parse[j] = self._should_parse(j, usecols)
+                    if ((usecols is not None) or (usecols_excel is not None) or
+                            (j not in should_parse)):
+                        should_parse[j] = self._should_parse(j, usecols_excel,
+                                                             usecols)
 
-                    if usecols is None or should_parse[j]:
+                    if (((usecols_excel is None) and (usecols is None)) or
+                            should_parse[j]):
                         row.append(_parse_cell(value, typ))
                 data.append(row)
 
@@ -674,6 +738,7 @@ class ExcelFile(object):
                                     dtype=dtype,
                                     true_values=true_values,
                                     false_values=false_values,
+                                    usecols=usecols,
                                     skiprows=skiprows,
                                     nrows=nrows,
                                     na_values=na_values,

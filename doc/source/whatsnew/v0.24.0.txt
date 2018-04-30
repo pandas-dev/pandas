@@ -36,7 +36,7 @@ Datetimelike API Changes
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
--
+- :func:`read_excel` has gained the keyword argument ``usecols_excel`` that receives a string containing comma separated Excel ranges and columns. The ``usecols`` keyword argument at :func:`read_excel` had removed support for a string containing comma separated Excel ranges and columns and for an int indicating the first j columns to be read in a ``DataFrame``. Also, the ``usecols`` keyword argument at :func:`read_excel` had added support for receiving a list of strings containing column labels and a callable. (:issue:`18273`)
 -
 -
 
@@ -148,7 +148,7 @@ I/O
 ^^^
 
 -
--
+- Bug in :func:`read_excel` where ``usecols`` keyword argument as a list of strings were returning a empty ``DataFrame`` (:issue:`18273`)
 -
 
 Plotting

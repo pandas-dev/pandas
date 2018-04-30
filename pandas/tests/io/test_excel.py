@@ -107,54 +107,43 @@ class SharedItems(object):
 class ReadingTestsBase(SharedItems):
     # This is based on ExcelWriterBase
 
-    def test_usecols_int(self, ext):
-
-        dfref = self.get_csv_refdf('test1')
-        dfref = dfref.reindex(columns=['A', 'B', 'C'])
-        df1 = self.get_exceldf('test1', ext, 'Sheet1', index_col=0, usecols=3)
-        df2 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
-                               index_col=0, usecols=3)
-
-        with tm.assert_produces_warning(FutureWarning):
-            df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
-                                   index_col=0, parse_cols=3)
-
-        # TODO add index to xls file)
-        tm.assert_frame_equal(df1, dfref, check_names=False)
-        tm.assert_frame_equal(df2, dfref, check_names=False)
-        tm.assert_frame_equal(df3, dfref, check_names=False)
-
     def test_usecols_list(self, ext):
 
         dfref = self.get_csv_refdf('test1')
         dfref = dfref.reindex(columns=['B', 'C'])
         df1 = self.get_exceldf('test1', ext, 'Sheet1', index_col=0,
-                               usecols=[0, 2, 3])
+                               usecols=[1, 2])
         df2 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
-                               index_col=0, usecols=[0, 2, 3])
+                               index_col=0, usecols=[1, 2])
 
         with tm.assert_produces_warning(FutureWarning):
             df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
-                                   index_col=0, parse_cols=[0, 2, 3])
+                                   index_col=0, parse_cols=[1, 2])
 
         # TODO add index to xls file)
         tm.assert_frame_equal(df1, dfref, check_names=False)
         tm.assert_frame_equal(df2, dfref, check_names=False)
         tm.assert_frame_equal(df3, dfref, check_names=False)
 
-    def test_usecols_str(self, ext):
+    def test_usecols_excel_str(self, ext):
 
         dfref = self.get_csv_refdf('test1')
 
         df1 = dfref.reindex(columns=['A', 'B', 'C'])
         df2 = self.get_exceldf('test1', ext, 'Sheet1', index_col=0,
-                               usecols='A:D')
+                               usecols_excel='A:D')
         df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
-                               index_col=0, usecols='A:D')
+                               index_col=0, usecols_excel='A:D')
 
-        with tm.assert_produces_warning(FutureWarning):
+        # The following code receives two warnings because FutureWarning is
+        # thrown when parse_cols is passed in read_excel and UserWarning is
+        # thrown when parse_cols (usecols) receives an comma separated list of
+        # Excel indexes and ranges
+        with tm.assert_produces_warning() as w:
             df4 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
                                    index_col=0, parse_cols='A:D')
+            assert issubclass(w[0].category, FutureWarning)
+            assert issubclass(w[1].category, UserWarning)
 
         # TODO add index to xls, read xls ignores index name ?
         tm.assert_frame_equal(df2, df1, check_names=False)
@@ -163,20 +152,106 @@ class ReadingTestsBase(SharedItems):
 
         df1 = dfref.reindex(columns=['B', 'C'])
         df2 = self.get_exceldf('test1', ext, 'Sheet1', index_col=0,
-                               usecols='A,C,D')
+                               usecols_excel='A,C,D')
         df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
-                               index_col=0, usecols='A,C,D')
+                               index_col=0, usecols_excel='A,C,D')
         # TODO add index to xls file
         tm.assert_frame_equal(df2, df1, check_names=False)
         tm.assert_frame_equal(df3, df1, check_names=False)
 
         df1 = dfref.reindex(columns=['B', 'C'])
         df2 = self.get_exceldf('test1', ext, 'Sheet1', index_col=0,
-                               usecols='A,C:D')
+                               usecols_excel='A,C:D')
         df3 = self.get_exceldf('test1', ext, 'Sheet2', skiprows=[1],
-                               index_col=0, usecols='A,C:D')
+                               index_col=0, usecols_excel='A,C:D')
         tm.assert_frame_equal(df2, df1, check_names=False)
         tm.assert_frame_equal(df3, df1, check_names=False)
+
+    def test_usecols_diff_positional_int_columns_order(self, ext):
+
+        df1 = self.get_csv_refdf('test1')[['A', 'C']]
+
+        df2 = self.get_exceldf('test1', ext, 'Sheet1', index_col=0,
+                               usecols=[0, 2])
+        df3 = self.get_exceldf('test1', ext, 'Sheet1', index_col=0,
+                               usecols=[2, 0])
+
+        tm.assert_frame_equal(df2, df1, check_names=False)
+        tm.assert_frame_equal(df3, df2, check_names=False)
+
+    def test_usecols_diff_positional_str_columns_order(self, ext):
+
+        df1 = self.get_csv_refdf('test1')[['B', 'D']]
+
+        df2 = self.get_exceldf('test1', ext, 'Sheet1', usecols=['B', 'D'])
+        df3 = self.get_exceldf('test1', ext, 'Sheet1', usecols=['D', 'B'])
+
+        tm.assert_frame_equal(df2, df1, check_names=False)
+        tm.assert_frame_equal(df3, df1, check_names=False)
+
+    def test_read_excel_without_slicing(self, ext):
+
+        df1 = self.get_csv_refdf('test1')
+        df2 = self.get_exceldf('test1', ext, 'Sheet1')
+
+        tm.assert_frame_equal(df2, df1, check_names=False)
+
+    def test_pass_callable_argument(self, ext):
+
+        dfref = self.get_csv_refdf('test1')[['C', 'D']]
+
+        df1 = dfref.reindex(columns=['C', 'D'])
+        df2 = self.get_exceldf('test1', ext, 'Sheet1', index_col=0,
+                               usecols=lambda x: x > 'B')
+        df3 = self.get_exceldf('test1', ext, 'Sheet1', index_col=0,
+                               usecols_excel='A,D:E')
+
+        tm.assert_frame_equal(df2, df1, check_names=False)
+        tm.assert_frame_equal(df3, df1, check_names=False)
+
+    def test_usecols_deprecated_excel_range_str(self, ext):
+
+        dfref = self.get_csv_refdf('test1')[['B', 'C', 'D']]
+
+        df1 = dfref.reindex(columns=['C', 'D'])
+        df2 = self.get_exceldf('test1', ext, 'Sheet1', index_col=0,
+                               usecols=['C', 'D'])
+        with tm.assert_produces_warning(UserWarning):
+            df3 = self.get_exceldf('test1', ext, 'Sheet1', index_col=0,
+                                   usecols='A,D:E')
+
+        tm.assert_frame_equal(df2, df1, check_names=False)
+        tm.assert_frame_equal(df3, df1, check_names=False)
+
+    def test_index_col_label_error(self, ext):
+        msg = "list indices must be integers.*, not str"
+        with tm.assert_raises_regex(TypeError, msg):
+            self.get_exceldf('test1', ext, 'Sheet1', index_col=["A"],
+                             usecols=["", "A", "C"])
+
+    def test_pass_non_existent_column(self, ext):
+        msg = "Usecols do not match columns, columns expected but not found: "
+        "['E']"
+        with tm.assert_raises_regex(ValueError, msg):
+            self.get_exceldf('test1', ext, usecols=['E'])
+
+    def test_usecols_excel_wrong_type(self, ext):
+        msg = "`usecols_excel` must be None or a string as a comma separeted "
+        " Excel ranges and columns."
+        with tm.assert_raises_regex(TypeError, msg):
+            self.get_exceldf('test1', ext, usecols_excel=1)
+
+    def test_usecols_wrong_type(self, ext):
+        msg = "'usecols' must either be list-like of all strings, all unicode,"
+        " all integers or a callable."
+        with tm.assert_raises_regex(ValueError, msg):
+            self.get_exceldf('test1', ext, usecols='E1')
+
+    def test_usecols_and_usecols_excel_error(self, ext):
+        msg = "Cannot specify both `usecols` and `usecols_excel`. Choose one"
+        " of them."
+        with tm.assert_raises_regex(ValueError, msg):
+            self.get_exceldf('test1', ext, usecols=[0, 2], usecols_excel="A:C")
 
     def test_excel_stop_iterator(self, ext):
 
@@ -422,7 +497,8 @@ class ReadingTestsBase(SharedItems):
                 path,
                 'no_header',
                 usecols=[0],
-                header=None
+                header=None,
+                nrows=0
             )
 
             actual_header_zero = read_excel(
@@ -431,9 +507,10 @@ class ReadingTestsBase(SharedItems):
                 usecols=[0],
                 header=0
             )
-        expected = DataFrame()
-        tm.assert_frame_equal(actual_header_none, expected)
-        tm.assert_frame_equal(actual_header_zero, expected)
+        expected_header_none = DataFrame(columns=[0])
+        tm.assert_frame_equal(actual_header_none, expected_header_none)
+        expected_header_zero = DataFrame({1: [2, 3, 4]}, index=3 * [np.nan])
+        tm.assert_frame_equal(actual_header_zero, expected_header_zero)
 
     @td.skip_if_no('openpyxl')
     @td.skip_if_no('xlwt')
@@ -450,7 +527,8 @@ class ReadingTestsBase(SharedItems):
                 path,
                 'with_header',
                 usecols=[0],
-                header=None
+                header=None,
+                nrows=1
             )
 
             actual_header_zero = read_excel(
@@ -461,7 +539,7 @@ class ReadingTestsBase(SharedItems):
             )
         expected_header_none = DataFrame(pd.Series([0], dtype='int64'))
         tm.assert_frame_equal(actual_header_none, expected_header_none)
-        expected_header_zero = DataFrame(columns=[0])
+        expected_header_zero = DataFrame(pd.Series(4 * [np.nan]))
         tm.assert_frame_equal(actual_header_zero, expected_header_zero)
 
     @td.skip_if_no('openpyxl')
@@ -503,34 +581,19 @@ class ReadingTestsBase(SharedItems):
         # GH10559: Minor improvement: Change "sheet_name" to "sheetname"
         # GH10969: DOC: Consistent var names (sheetname vs sheet_name)
         # GH12604: CLN GH10559 Rename sheetname variable to sheet_name
-        # GH20920: ExcelFile.parse() and pd.read_xlsx() have different
-        #          behavior for "sheetname" argument
         dfref = self.get_csv_refdf('test1')
-        df1 = self.get_exceldf('test1', ext,
-                               sheet_name='Sheet1')  # doc
+        df1 = self.get_exceldf('test1', ext, sheet_name='Sheet1')    # doc
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             df2 = self.get_exceldf('test1', ext,
                                    sheetname='Sheet1')  # bkwrd compat
 
-        excel = self.get_excelfile('test1', ext)
-        df1_parse = excel.parse(sheet_name='Sheet1')    # doc
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            df2_parse = excel.parse(sheetname='Sheet1')  # bkwrd compat
-
         tm.assert_frame_equal(df1, dfref, check_names=False)
         tm.assert_frame_equal(df2, dfref, check_names=False)
-        tm.assert_frame_equal(df1_parse, dfref, check_names=False)
-        tm.assert_frame_equal(df2_parse, dfref, check_names=False)
 
     def test_sheet_name_both_raises(self, ext):
         with tm.assert_raises_regex(TypeError, "Cannot specify both"):
             self.get_exceldf('test1', ext, sheetname='Sheet1',
                              sheet_name='Sheet1')
-
-        excel = self.get_excelfile('test1', ext)
-        with tm.assert_raises_regex(TypeError, "Cannot specify both"):
-            excel.parse(sheetname='Sheet1',
-                        sheet_name='Sheet1')
 
 
 @pytest.mark.parametrize("ext", ['.xls', '.xlsx', '.xlsm'])
