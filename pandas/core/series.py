@@ -2174,10 +2174,26 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         this_vals, other_vals = ops.fill_binop(this.values, other.values,
                                                fill_value)
-
-        with np.errstate(all='ignore'):
-            result = func(this_vals, other_vals)
         name = ops.get_op_result_name(self, other)
+
+        if is_extension_array_dtype(this) or is_extension_array_dtype(other):
+            try:
+                result = func(this_vals, other_vals)
+            except TypeError:
+                result = NotImplemented
+            except Exception as e:
+                raise e
+
+            if result is NotImplemented:
+                result = [func(a, b) for a, b in zip(this_vals, other_vals)]
+                if is_extension_array_dtype(this):
+                    excons = type(this_vals)._from_sequence
+                else:
+                    excons = type(other_vals)._from_sequence
+                result = excons(result)
+        else:
+            with np.errstate(all='ignore'):
+                result = func(this_vals, other_vals)
         result = self._constructor(result, index=new_index, name=name)
         result = result.__finalize__(self)
         if name is None:
@@ -2185,7 +2201,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             result.name = None
         return result
 
-    def combine(self, other, func, fill_value=np.nan):
+    def combine(self, other, func, fill_value=None):
         """
         Perform elementwise binary operation on two Series using given function
         with optional fill value when an index is missing from one Series or
@@ -2197,6 +2213,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         func : function
             Function that takes two scalars as inputs and return a scalar
         fill_value : scalar value
+            The default specifies to use np.nan unless self is
+            backed by ExtensionArray, in which case the ExtensionArray
+            na_value is used.
 
         Returns
         -------
@@ -2216,20 +2235,33 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Series.combine_first : Combine Series values, choosing the calling
             Series's values first
         """
+        self_is_ext = is_extension_array_dtype(self)
+        if fill_value is None:
+            if self_is_ext:
+                fill_value = self.dtype.na_value
+            else:
+                fill_value = np.nan
         if isinstance(other, Series):
             new_index = self.index.union(other.index)
             new_name = ops.get_op_result_name(self, other)
-            new_values = np.empty(len(new_index), dtype=self.dtype)
+            new_values = []
             for i, idx in enumerate(new_index):
                 lv = self.get(idx, fill_value)
                 rv = other.get(idx, fill_value)
                 with np.errstate(all='ignore'):
-                    new_values[i] = func(lv, rv)
+                    new_values.append(func(lv, rv))
         else:
             new_index = self.index
-            with np.errstate(all='ignore'):
-                new_values = func(self._values, other)
+            if not self_is_ext:
+                with np.errstate(all='ignore'):
+                    new_values = func(self._values, other)
+            else:
+                new_values = [func(lv, other) for lv in self._values]
             new_name = self.name
+
+        if (self_is_ext and self.values.is_sequence_of_dtype(new_values)):
+            new_values = self._values._from_sequence(new_values)
+
         return self._constructor(new_values, index=new_index, name=new_name)
 
     def combine_first(self, other):

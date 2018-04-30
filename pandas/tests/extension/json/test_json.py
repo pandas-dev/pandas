@@ -230,3 +230,45 @@ class TestGroupby(BaseJSON, base.BaseGroupbyTests):
         super(TestGroupby, self).test_groupby_extension_agg(
             as_index, data_for_grouping
         )
+
+
+class TestSomeOps(BaseJSON):
+    def test_some_ops(self):
+        # Just testing that addition through the JSONArray works
+        # and then subtraction raises a TypeError
+        d1 = make_data()
+        d2 = make_data()
+        s1 = pd.Series(JSONArray(d1))
+        s2 = pd.Series(JSONArray(d2))
+        result = s1 + s2
+
+        def merge_two_dicts(x, y):
+            z = x.copy()
+            z.update(y)
+            return z
+
+        expected = pd.Series(JSONArray([merge_two_dicts(a, b)
+                                        for (a, b) in zip(d1, d2)]))
+        self.assert_series_equal(result, expected)
+
+        toadd = s2.iloc[5]
+        result = s1 + toadd
+        expected = pd.Series(JSONArray([merge_two_dicts(a, toadd)
+                                        for a in d1]))
+        self.assert_series_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            # __add__ is implemented, but __radd__ is not
+            result = toadd + s1
+
+        with pytest.raises(TypeError):
+            # Cannot add a constant
+            result = s1 + 29
+
+        with pytest.raises(TypeError):
+            # __sub__ is not implemented
+            result = s1 - toadd
+
+        with pytest.raises(TypeError):
+            # __sub__ is not implemented
+            result = s1 - s2
