@@ -69,7 +69,7 @@ def _get_combined_index(indexes, intersect=False, sort=False):
         index = _union_indexes(indexes, sort=sort)
         index = _ensure_index(index)
 
-    if sort and not index.is_monotonic_increasing:
+    if sort:
         try:
             index = index.sort_values()
         except TypeError:
