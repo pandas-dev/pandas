@@ -1500,7 +1500,7 @@ class Panel(NDFrame):
 
         if have_frames:
             index = _get_objs_combined_axis(data.values(), axis=axis,
-                                            intersect=intersect)
+                                            intersect=intersect, sort=True)
 
         if have_raw_arrays:
             lengths = list(set(raw_lengths))

@@ -44,7 +44,7 @@ __all__ = ['Index', 'MultiIndex', 'NumericIndex', 'Float64Index', 'Int64Index',
            '_all_indexes_same']
 
 
-def _get_objs_combined_axis(objs, intersect=False, axis=0, sort=False):
+def _get_objs_combined_axis(objs, intersect=False, axis=0, sort=True):
     # Extract combined index: return intersection or union (depending on the
     # value of "intersect") of indexes on given axis, or None if all objects
     # lack indexes (e.g. they are numpy arrays)
