@@ -27,6 +27,16 @@ def sort(request):
     return request.param
 
 
+@pytest.fixture(params=[True, False, None])
+def sort_with_none(request):
+    """Boolean sort keyword for concat and DataFrame.append.
+
+    Includes the default of None
+    """
+    # TODO: Replace with sort once keyword changes.
+    return request.param
+
+
 class ConcatenateBase(object):
 
     def setup_method(self, method):
@@ -800,29 +810,30 @@ class TestAppend(ConcatenateBase):
         expected = DataFrame(np.concatenate((arr1, arr2)))
         assert_frame_equal(result, expected)
 
-    def test_append_sorts(self):
+    # rewrite sort fixture, since we also want to test default of None
+    def test_append_sorts(self, sort_with_none):
         df1 = pd.DataFrame({"a": [1, 2], "b": [1, 2]}, columns=['b', 'a'])
         df2 = pd.DataFrame({"a": [1, 2], 'c': [3, 4]}, index=[2, 3])
-        # default, changing in the future
 
-        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-            # from append we have an extra function call. Not worth hacking
-            # around to get the right stackleve.
-            result = df1.append(df2)
+        if sort_with_none is None:
+            # only warn if not explicitly specified
+            # don't check stacklevel since its set for concat, and append
+            # has an extra stack.
+            ctx = tm.assert_produces_warning(FutureWarning,
+                                             check_stacklevel=False)
+        else:
+            ctx = tm.assert_produces_warning(None)
 
+        with ctx:
+            result = df1.append(df2, sort=sort_with_none)
+
+        # for None / True
         expected = pd.DataFrame({"b": [1, 2, None, None],
                                  "a": [1, 2, 1, 2],
                                  "c": [None, None, 3, 4]},
                                 columns=['a', 'b', 'c'])
-        tm.assert_frame_equal(result, expected)
-
-        # sort=True, the previous behavior
-        result = df1.append(df2, sort=True)
-        tm.assert_frame_equal(result, expected)
-
-        # sort=False, the future behvior.
-        result = df1.append(df2, sort=False)
-        expected = expected[['b', 'a', 'c']]
+        if sort_with_none is False:
+            expected = expected[['b', 'a', 'c']]
         tm.assert_frame_equal(result, expected)
 
     def test_append_different_columns(self, sort):
@@ -2297,83 +2308,72 @@ def test_concat_empty_and_non_empty_series_regression():
     tm.assert_series_equal(result, expected)
 
 
-def test_concat_sort_columns():
+def test_concat_sorts_columns(sort_with_none):
     # GH-4588
     df1 = pd.DataFrame({"a": [1, 2], "b": [1, 2]}, columns=['b', 'a'])
-    df2 = pd.DataFrame({"a": [3, 4]})
+    df2 = pd.DataFrame({"a": [3, 4], "c": [5, 6]})
 
+    # for sort=True/None
     expected = pd.DataFrame({"a": [1, 2, 3, 4],
-                             "b": [1, 2, None, None]},
-                            columns=['a', 'b'])
-    with tm.assert_produces_warning(FutureWarning):
-        result = pd.concat([df1, df2], ignore_index=True)
+                             "b": [1, 2, None, None],
+                             "c": [None, None, 5, 6]},
+                            columns=['a', 'b', 'c'])
 
+    if sort_with_none is False:
+        expected = expected[['b', 'a', 'c']]
+
+    if sort_with_none is None:
+        # only warn if not explicitly specified
+        ctx = tm.assert_produces_warning(FutureWarning)
+    else:
+        ctx = tm.assert_produces_warning(None)
+
+    # default
+    with ctx:
+        result = pd.concat([df1, df2], ignore_index=True, sort=sort_with_none)
     tm.assert_frame_equal(result, expected)
 
 
-def test_concat_sorts_index():
+def test_concat_sorts_index(sort_with_none):
     df1 = pd.DataFrame({"a": [1, 2, 3]}, index=['c', 'a', 'b'])
     df2 = pd.DataFrame({"b": [1, 2]}, index=['a', 'b'])
 
-    with tm.assert_produces_warning(FutureWarning):
-        result = pd.concat([df1, df2], axis=1)
-
+    # For True/None
     expected = pd.DataFrame({"a": [2, 3, 1], "b": [1, 2, None]},
                             index=['a', 'b', 'c'],
                             columns=['a', 'b'])
+    if sort_with_none is False:
+        expected = expected.loc[['c', 'a', 'b']]
+
+    if sort_with_none is None:
+        # only warn if not explicitly specified
+        ctx = tm.assert_produces_warning(FutureWarning)
+    else:
+        ctx = tm.assert_produces_warning(None)
+
+    # Warn and sort by default
+    with ctx:
+        result = pd.concat([df1, df2], axis=1, sort=sort_with_none)
     tm.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize('sort', [None, False, True])
-def test_concat_inner_sort(sort):
+def test_concat_inner_sort(sort_with_none):
     # https://github.com/pandas-dev/pandas/pull/20613
     df1 = pd.DataFrame({"a": [1, 2], "b": [1, 2], "c": [1, 2]},
                        columns=['b', 'a', 'c'])
     df2 = pd.DataFrame({"a": [1, 2], 'b': [3, 4]}, index=[3, 4])
 
-    if sort is None:
-        with tm.assert_produces_warning(None):
-            # unset sort should *not* warn for inner join
-            # since that never sorted
-            result = pd.concat([df1, df2], sort=sort, join='inner',
-                               ignore_index=True)
-    else:
-        result = pd.concat([df1, df2], sort=sort, join='inner',
+    with tm.assert_produces_warning(None):
+        # unset sort should *not* warn for inner join
+        # since that never sorted
+        result = pd.concat([df1, df2], sort=sort_with_none,
+                           join='inner',
                            ignore_index=True)
 
     expected = pd.DataFrame({"b": [1, 2, 3, 4], "a": [1, 2, 1, 2]},
                             columns=['b', 'a'])
-    if sort:
+    if sort_with_none is True:
         expected = expected[['a', 'b']]
-    tm.assert_frame_equal(result, expected)
-
-
-def test_concat_preserve_column_order_differing_columns():
-    # GH 4588 regression test
-    # for new columns in concat
-    dfa = pd.DataFrame(columns=['C', 'A'], data=[[1, 2]])
-    dfb = pd.DataFrame(columns=['C', 'Z'], data=[[5, 6]])
-    result = pd.concat([dfa, dfb], ignore_index=True, sort=True)
-
-    expected = pd.DataFrame({"A": [2, None], "C": [1, 5],
-                             "Z": [None, 6]}, columns=["A", "C", "Z"])
-    tm.assert_frame_equal(result, expected)
-
-
-def test_concat_preserve_column_order_uneven_data():
-    # GH 4588 regression test
-    # add to column, concat with uneven data
-    df = pd.DataFrame()
-    df['b'] = [1, 2, 3]
-    df['c'] = [1, 2, 3]
-    df['a'] = [1, 2, 3]
-    df2 = pd.DataFrame({'a': [4, 5]})
-    result = pd.concat([df, df2], sort=True)
-    expected = pd.DataFrame({
-        'a': [1, 2, 3, 4, 5],
-        'b': [1, 2, 3, None, None],
-        'c': [1, 2, 3, None, None]
-    }, index=[0, 1, 2, 0, 1])
     tm.assert_frame_equal(result, expected)
 
 
