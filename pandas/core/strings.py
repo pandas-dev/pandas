@@ -2174,7 +2174,7 @@ class StringMethods(NoNewAttributesMixin):
 
     Examples
     --------
-    Striping whitespaces for Series
+    Stripping whitespaces for Series
 
     >>> s = pd.Series([' ant', 'bee ', ' cat  '])
 
@@ -2190,14 +2190,14 @@ class StringMethods(NoNewAttributesMixin):
     2    cat
     dtype: object
 
-    Striping a set of characters for Index
+    Stripping a set of characters for Index
 
-    >>> df = pd.DataFrame(index=['1.ant ','2._bee__','3. cat_'])
+    >>> idx = pd.Index(['1.ant ','2._bee__','3. cat_'])
 
-    >>> df.index
+    >>> idx
     Index(['1.ant ', '2._bee__', '3. cat_'], dtype='object')
 
-    >>> df.index.str.strip('123._ ')
+    >>> idx.str.strip('123._ ')
     Index(['ant', 'bee', 'cat'], dtype='object')
     """)
 
