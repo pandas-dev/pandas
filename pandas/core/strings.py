@@ -1957,7 +1957,7 @@ class StringMethods(NoNewAttributesMixin):
         # once str.cat defaults to alignment, this function can be simplified;
         # will not need `ignore_index` and the second boolean output anymore
 
-        from pandas import Index, Series, DataFrame
+        from pandas import Index, Series, DataFrame, isnull
 
         # self._orig is either Series or Index
         idx = self._orig if isinstance(self._orig, Index) else self._orig.index
@@ -1994,15 +1994,19 @@ class StringMethods(NoNewAttributesMixin):
                 fut_warn = False
                 while others:
                     nxt = others.pop(0)
-                    # safety for iterators etc.; exclude indexed objects
-                    if (is_list_like(nxt) and
-                            not isinstance(nxt, (DataFrame, Series, Index))):
+                    # safety for iterators etc.; nxt is list-like as per above
+                    # do not map indexed objects, which would lose their index
+                    if not isinstance(nxt, (DataFrame, Series, Index)):
                         nxt = list(nxt)
 
-                    # nested list-likes are forbidden - content must be strings
-                    is_legal = (is_list_like(nxt) and
-                                all(isinstance(x, compat.string_types)
-                                    for x in nxt))
+                    # Nested list-likes are forbidden - content of nxt must be
+                    # strings/NaN/None. Need to robustify check against
+                    # x in nxt being list-like (otherwise ambiguous boolean).
+                    is_legal = all((isinstance(x, compat.string_types)
+                                    or (is_list_like(x) and any(isnull(x)))
+                                    or (not is_list_like(x) and isnull(x))
+                                    or x is None)
+                                   for x in nxt)
                     # DataFrame is false positive of is_legal
                     # because "x in df" returns column names
                     if isinstance(nxt, DataFrame) or not is_legal:
@@ -2012,11 +2016,11 @@ class StringMethods(NoNewAttributesMixin):
                     los = los + tmp[0]
                     fut_warn = fut_warn or tmp[1]
                 return (los, fut_warn)
-            # test if there is a mix of list-like and string/NaN/None
+            # test if there is a mix of list-like and non-list-like (e.g. str)
             elif (any(is_list_like(x) for x in others)
                   and any(not is_list_like(x) for x in others)):
                 raise TypeError(err_msg)
-            else:
+            else:  # all elements in others are _not_ list-like
                 return ([Series(others, index=idx)], False)
         raise TypeError(err_msg)
 

@@ -351,22 +351,24 @@ class TestStringMethods(object):
 
         # errors for incorrect arguments in list-like
         rgx = 'others must be Series, Index, DataFrame,.*'
+        # make sure None/Nan also work as string-replacements
+        u = Series(['a', np.nan, 'c', None])
 
         # mix of string and Series
         with tm.assert_raises_regex(TypeError, rgx):
-            s.str.cat([s, 's'])
+            s.str.cat([u, 'u'])
 
         # DataFrame in list
         with tm.assert_raises_regex(TypeError, rgx):
-            s.str.cat([s, d])
+            s.str.cat([u, d])
 
         # 2-dim ndarray in list
         with tm.assert_raises_regex(TypeError, rgx):
-            s.str.cat([s, d.values])
+            s.str.cat([u, d.values])
 
         # nested lists
         with tm.assert_raises_regex(TypeError, rgx):
-            s.str.cat([s, [s, d]])
+            s.str.cat([u, [u, d]])
 
         # forbidden input type, e.g. int
         with tm.assert_raises_regex(TypeError, rgx):
