@@ -645,7 +645,7 @@ Concatenation will no longer sort
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In a future version of pandas :func:`pandas.concat` will no longer sort the non-concatenation axis when it is not already aligned.
-The current behavior is the same as the previous (sorting), but now a warning is issued (:issue:`4588`).
+The current behavior is the same as the previous (sorting), but now a warning is issued when ``sort`` is not specified and the non-concatenation axis is not aligned (:issue:`4588`).
 
 .. ipython:: python
    :okwarning:
