@@ -1378,7 +1378,11 @@ class TestStata(object):
     def test_writer_117(self):
         original = DataFrame(data=[['string', 'object', 1, 1, 1, 1.1, 1.1,
                                     np.datetime64('2003-12-25'),
-                                    'a', 'a' * 2045, 'a' * 5000, 'a']],
+                                    'a', 'a' * 2045, 'a' * 5000, 'a'],
+                                   ['string-1', 'object-1', 1, 1, 1, 1.1, 1.1,
+                                    np.datetime64('2003-12-26'),
+                                    'b', 'b' * 2045, '', '']
+                                   ],
                              columns=['string', 'object', 'int8', 'int16',
                                       'int32', 'float32', 'float64',
                                       'datetime',

@@ -45,9 +45,9 @@ _version_error = ("Version of given Stata file is not 104, 105, 108, "
 
 _statafile_processing_params1 = """\
 convert_dates : boolean, defaults to True
-    Convert date variables to DataFrame time values
+    Convert date variables to DataFrame time values.
 convert_categoricals : boolean, defaults to True
-    Read value labels and convert columns to Categorical/Factor variables"""
+    Read value labels and convert columns to Categorical/Factor variables."""
 
 _encoding_params = """\
 encoding : string, None or encoding
@@ -55,7 +55,7 @@ encoding : string, None or encoding
 
 _statafile_processing_params2 = """\
 index_col : string, optional, default: None
-    Column to set as index
+    Column to set as index.
 convert_missing : boolean, defaults to False
     Flag indicating whether to convert missing values to their Stata
     representations.  If False, missing values are replaced with nan.
@@ -64,28 +64,29 @@ convert_missing : boolean, defaults to False
     StataMissingValue objects.
 preserve_dtypes : boolean, defaults to True
     Preserve Stata datatypes. If False, numeric data are upcast to pandas
-    default types for foreign data (float64 or int64)
+    default types for foreign data (float64 or int64).
 columns : list or None
     Columns to retain.  Columns will be returned in the given order.  None
-    returns all columns
+    returns all columns.
 order_categoricals : boolean, defaults to True
     Flag indicating whether converted categorical data are ordered."""
 
 _chunksize_params = """\
 chunksize : int, default None
     Return StataReader object for iterations, returns chunks with
-    given number of lines"""
+    given number of lines."""
 
 _iterator_params = """\
 iterator : boolean, default False
-    Return StataReader object"""
+    Return StataReader object."""
 
-_read_stata_doc = """Read Stata file into DataFrame
+_read_stata_doc = """
+Read Stata file into DataFrame.
 
 Parameters
 ----------
 filepath_or_buffer : string or file-like object
-    Path to .dta file or object implementing a binary read() functions
+    Path to .dta file or object implementing a binary read() functions.
 %s
 %s
 %s
@@ -96,17 +97,23 @@ Returns
 -------
 DataFrame or StataReader
 
+See Also
+--------
+pandas.io.stata.StataReader : low-level reader for Stata data files
+pandas.DataFrame.to_stata: export Stata data files
+
 Examples
 --------
 Read a Stata dta file:
 
->>> df = pandas.read_stata('filename.dta')
+>>> import pandas as pd
+>>> df = pd.read_stata('filename.dta')
 
 Read a Stata dta file in 10,000 line chunks:
 
->>> itr = pandas.read_stata('filename.dta', chunksize=10000)
+>>> itr = pd.read_stata('filename.dta', chunksize=10000)
 >>> for chunk in itr:
->>>     do_something(chunk)
+...     do_something(chunk)
 """ % (_statafile_processing_params1, _encoding_params,
        _statafile_processing_params2, _chunksize_params,
        _iterator_params)
@@ -2472,7 +2479,7 @@ class StataStrLWriter(object):
 
         self.df = df
         self.columns = columns
-        self._gso_table = OrderedDict((('', 0),))
+        self._gso_table = OrderedDict((('', (0, 0)),))
         if byteorder is None:
             byteorder = sys.byteorder
         self._byteorder = _set_endianness(byteorder)
@@ -2674,15 +2681,16 @@ class StataWriter117(StataWriter):
     Examples
     --------
     >>> import pandas as pd
-    >>> data = pd.DataFrame([[1.0, 1, 'a']], columns=['a', 'b'])
+    >>> from pandas.io.stata import StataWriter117
+    >>> data = pd.DataFrame([[1.0, 1, 'a']], columns=['a', 'b', 'c'])
     >>> writer = StataWriter117('./data_file.dta', data)
     >>> writer.write_file()
 
-    Or with dates
-    >>> from datetime import datetime
+    Or with long strings stored in strl format
+
     >>> data = pd.DataFrame([['A relatively long string'], [''], ['']],
     ...                     columns=['strls'])
-    >>> writer = StataWriter117('./date_data_file.dta', data,
+    >>> writer = StataWriter117('./data_file_with_long_strings.dta', data,
     ...                         convert_strl=['strls'])
     >>> writer.write_file()
     """
