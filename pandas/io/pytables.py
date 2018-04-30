@@ -291,17 +291,20 @@ def read_hdf(path_or_buf, key=None, mode='r', **kwargs):
     Parameters
     ----------
     path_or_buf : string, buffer or path object
-        Path to the file to open, or an open pd.HDFStore object.
-        Supports pathlib.Path and py._path.local.LocalPath.
+        Path to the file to open, or an open :class:`pandas.HDFStore` object.
+        Supports any object implementing the ``__fspath__`` protocol.
+        This includes :class:`pathlib.Path` and py._path.local.LocalPath
+        objects.
 
         .. versionadded:: 0.19.0 support for pathlib, py.path.
+        .. versionadded:: 0.21.0 support for __fspath__ proptocol.
 
     key : object, optional
         The group identifier in the store. Can be omitted if the HDF file
         contains a single pandas object.
     mode : {'r', 'r+', 'a'}, optional
         Mode to use when opening the file. Ignored if path_or_buf is a
-        pd.HDFStore. Default is 'r'.
+        :class:`pandas.HDFStore`. Default is 'r'.
     where : list, optional
         A list of Term (or convertible) objects.
     start : int, optional
