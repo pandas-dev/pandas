@@ -166,13 +166,9 @@ class TestStringMethods(object):
         # Series/Index with Series
         t = Series(t)
         # s as Series has same index as t -> no warning
-        # s as Index is different from t.index -> warning
+        # s as Index is different from t.index -> warning (tested below)
         if series_or_index == 'series':
             assert_series_equal(s.str.cat(t, na_rep='-'), exp)
-        else:
-            with tm.assert_produces_warning(expected_warning=FutureWarning):
-                # FutureWarning to switch to alignment by default
-                assert_series_or_index_equal(s.str.cat(t, na_rep='-'), exp)
 
         # Series/Index with Series: warning if different indexes
         t.index = t.index + 1
@@ -241,13 +237,9 @@ class TestStringMethods(object):
         # Series/Index with Series
         t = Series(t)
         # s as Series has same index as t -> no warning
-        # s as Index is different from t.index -> warning
+        # s as Index is different from t.index -> warning (tested below)
         if series_or_index == 'series':
             assert_series_equal(s.str.cat(t), exp)
-        else:
-            with tm.assert_produces_warning(expected_warning=FutureWarning):
-                # FutureWarning to switch to alignment by default
-                assert_series_or_index_equal(s.str.cat(t), exp)
 
         # Series/Index with Series: warning if different indexes
         t.index = t.index + 1
@@ -269,13 +261,9 @@ class TestStringMethods(object):
 
         # Series/Index with DataFrame
         # s as Series has same index as d -> no warning
-        # s as Index is different from d.index -> warning
+        # s as Index is different from d.index -> warning (tested below)
         if series_or_index == 'series':
             assert_series_equal(s.str.cat(d), exp)
-        else:
-            with tm.assert_produces_warning(expected_warning=FutureWarning):
-                # FutureWarning to switch to alignment by default
-                assert_series_or_index_equal(s.str.cat(d), exp)
 
         # Series/Index with DataFrame: warning if different indexes
         d.index = d.index + 1
@@ -288,13 +276,9 @@ class TestStringMethods(object):
 
         # Series/Index with list of Series
         # s as Series has same index as t, s -> no warning
-        # s as Index is different from t.index -> warning
+        # s as Index is different from t.index -> warning (tested below)
         if series_or_index == 'series':
             assert_series_equal(s.str.cat([t, s]), exp)
-        else:
-            with tm.assert_produces_warning(expected_warning=FutureWarning):
-                # FutureWarning to switch to alignment by default
-                assert_series_or_index_equal(s.str.cat([t, s]), exp)
 
         # Series/Index with list of Series: warning if different indexes
         tt = t.copy()
@@ -308,13 +292,9 @@ class TestStringMethods(object):
 
         # Series/Index with mixed list of Series/list-like
         # s as Series has same index as t -> no warning
-        # s as Index is different from t.index -> warning
+        # s as Index is different from t.index -> warning (tested below)
         if series_or_index == 'series':
             assert_series_equal(s.str.cat([t, s.values]), exp)
-        else:
-            with tm.assert_produces_warning(expected_warning=FutureWarning):
-                # FutureWarning to switch to alignment by default
-                assert_series_or_index_equal(s.str.cat([t, s.values]), exp)
 
         # Series/Index with mixed list: warning if different indexes
         with tm.assert_produces_warning(expected_warning=FutureWarning):
