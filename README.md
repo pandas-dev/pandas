@@ -10,7 +10,7 @@
 <tr>
   <td>Latest Release</td>
   <td>
-    <a href="https://pypi.python.org/pypi/pandas/">
+    <a href="https://pypi.org/project/pandas/">
     <img src="https://img.shields.io/pypi/v/pandas.svg" alt="latest release" />
     </a>
   </td>
@@ -25,7 +25,7 @@
 <tr>
   <td>Package Status</td>
   <td>
-		<a href="https://pypi.python.org/pypi/pandas/">
+		<a href="https://pypi.org/project/pandas/">
 		<img src="https://img.shields.io/pypi/status/pandas.svg" alt="status" /></td>
 		</a>
 </tr>
@@ -158,7 +158,7 @@ The source code is currently hosted on GitHub at:
 https://github.com/pandas-dev/pandas
 
 Binary installers for the latest released version are available at the [Python
-package index](https://pypi.python.org/pypi/pandas) and on conda.
+package index](https://pypi.org/project/pandas) and on conda.
 
 ```sh
 # conda
