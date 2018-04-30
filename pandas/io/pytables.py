@@ -1566,14 +1566,14 @@ class IndexCol(StringMixin):
         new_self.read_metadata(handler)
         return new_self
 
-    def convert(self, values, nan_rep, encoding):
+    def convert(self, values, nan_rep, encoding, errors='strict'):
         """ set the values from this selection: take = take ownership """
 
         # values is a recarray
         if values.dtype.fields is not None:
             values = values[self.cname]
 
-        values = _maybe_convert(values, self.kind, encoding)
+        values = _maybe_convert(values, self.kind, encoding, errors=errors)
 
         kwargs = dict()
         if self.freq is not None:
@@ -1922,7 +1922,8 @@ class DataCol(IndexCol):
                 existing_col,
                 min_itemsize,
                 nan_rep,
-                encoding)
+                encoding,
+                **kwargs)
 
         # set as a data block
         else:
@@ -1932,7 +1933,7 @@ class DataCol(IndexCol):
         return _tables().StringCol(itemsize=itemsize, shape=block.shape[0])
 
     def set_atom_string(self, block, block_items, existing_col, min_itemsize,
-                        nan_rep, encoding):
+                        nan_rep, encoding, errors='strict'):
         # fill nan items with myself, don't disturb the blocks by
         # trying to downcast
         block = block.fillna(nan_rep, downcast=False)
@@ -1958,7 +1959,7 @@ class DataCol(IndexCol):
                     )
 
         # itemsize is the maximum length of a string (along any dimension)
-        data_converted = _convert_string_array(data, encoding)
+        data_converted = _convert_string_array(data, encoding, errors=errors)
         itemsize = data_converted.itemsize
 
         # specified min_itemsize?
@@ -2089,7 +2090,7 @@ class DataCol(IndexCol):
                 raise ValueError("appended items dtype do not match existing "
                                  "items dtype in table!")
 
-    def convert(self, values, nan_rep, encoding):
+    def convert(self, values, nan_rep, encoding, errors='strict'):
         """set the data from this selection (and convert to the correct dtype
         if we can)
         """
@@ -2163,7 +2164,7 @@ class DataCol(IndexCol):
         # convert nans / decode
         if _ensure_decoded(self.kind) == u('string'):
             self.data = _unconvert_string_array(
-                self.data, nan_rep=nan_rep, encoding=encoding)
+                self.data, nan_rep=nan_rep, encoding=encoding, errors=errors)
 
         return self
 
@@ -3340,9 +3341,11 @@ class Table(Fixed):
         values = self.selection.select()
 
         # convert the data
+        errors = kwargs.get('errors', 'strict')
         for a in self.axes:
             a.set_info(self.info)
-            a.convert(values, nan_rep=self.nan_rep, encoding=self.encoding)
+            a.convert(values, nan_rep=self.nan_rep, encoding=self.encoding,
+                      errors=errors)
 
         return True
 
@@ -4540,7 +4543,7 @@ def _unconvert_index_legacy(data, kind, legacy=False, encoding=None):
     return index
 
 
-def _convert_string_array(data, encoding, itemsize=None):
+def _convert_string_array(data, encoding, itemsize=None, errors='strict'):
     """
     we take a string-like that is object dtype and coerce to a fixed size
     string type
@@ -4550,6 +4553,7 @@ def _convert_string_array(data, encoding, itemsize=None):
     data : a numpy array of object dtype
     encoding : None or string-encoding
     itemsize : integer, optional, defaults to the max length of the strings
+    errors : handler for encoding errors, default 'strict'
 
     Returns
     -------
@@ -4559,7 +4563,7 @@ def _convert_string_array(data, encoding, itemsize=None):
     # encode if needed
     if encoding is not None and len(data):
         data = Series(data.ravel()).str.encode(
-            encoding).values.reshape(data.shape)
+            encoding, errors).values.reshape(data.shape)
 
     # create the sized dtype
     if itemsize is None:
@@ -4570,7 +4574,7 @@ def _convert_string_array(data, encoding, itemsize=None):
     return data
 
 
-def _unconvert_string_array(data, nan_rep=None, encoding=None):
+def _unconvert_string_array(data, nan_rep=None, encoding=None, errors='strict'):
     """
     inverse of _convert_string_array
 
@@ -4579,6 +4583,7 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None):
     data : fixed length string dtyped array
     nan_rep : the storage repr of NaN, optional
     encoding : the encoding of the data, optional
+    errors : handler for encoding errors, default 'strict'
 
     Returns
     -------
@@ -4600,7 +4605,7 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None):
             dtype = "S{0}".format(itemsize)
 
         if isinstance(data[0], compat.binary_type):
-            data = Series(data).str.decode(encoding).values
+            data = Series(data).str.decode(encoding, errors=errors).values
         else:
             data = data.astype(dtype, copy=False).astype(object, copy=False)
 
@@ -4611,22 +4616,23 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None):
     return data.reshape(shape)
 
 
-def _maybe_convert(values, val_kind, encoding):
+def _maybe_convert(values, val_kind, encoding, errors='strict'):
     if _need_convert(val_kind):
-        conv = _get_converter(val_kind, encoding)
+        conv = _get_converter(val_kind, encoding, errors=errors)
         # conv = np.frompyfunc(conv, 1, 1)
         values = conv(values)
     return values
 
 
-def _get_converter(kind, encoding):
+def _get_converter(kind, encoding, errors='strict'):
     kind = _ensure_decoded(kind)
     if kind == 'datetime64':
         return lambda x: np.asarray(x, dtype='M8[ns]')
     elif kind == 'datetime':
         return lambda x: to_datetime(x, cache=True).to_pydatetime()
     elif kind == 'string':
-        return lambda x: _unconvert_string_array(x, encoding=encoding)
+        return lambda x: _unconvert_string_array(x, encoding=encoding,
+                                                 errors=errors)
     else:  # pragma: no cover
         raise ValueError('invalid kind %s' % kind)
 

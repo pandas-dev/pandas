@@ -1470,7 +1470,7 @@ class TestHDFStore(Base):
             # GH 20835
             ser.to_hdf(path, 'table', format=format, errors='surrogatepass')
 
-            result = pd.read_hdf(path, 'table')
+            result = pd.read_hdf(path, 'table', errors='surrogatepass')
             tm.assert_series_equal(result, ser)
 
     def test_append_with_data_columns(self):
