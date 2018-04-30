@@ -991,8 +991,8 @@ is only interesting over one column (here ``colname``), it may be filtered
 
 .. _groupby.observed:
 
-observed hanlding
-~~~~~~~~~~~~~~~~~
+Handling of (un)observed Categorical values
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When using a ``Categorical`` grouper (as a single or as part of multipler groupers), the ``observed`` keyword
 controls whether to return a cartesian product of all possible groupers values (``observed=False``) or only those

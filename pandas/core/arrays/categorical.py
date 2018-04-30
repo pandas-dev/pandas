@@ -649,6 +649,11 @@ class Categorical(ExtensionArray, PandasObject):
 
     def _codes_for_groupby(self, sort, observed):
         """
+        Code the categories to ensure we can groupby for categoricals.
+
+        If observed=True, we return a new Categorical with the observed
+        categories only.
+
         If sort=False, return a copy of self, coded with categories as
         returned by .unique(), followed by any categories not appearing in
         the data. If sort=True, return self.

@@ -2968,8 +2968,8 @@ class Grouping(object):
                 if observed is None:
                     msg = ("pass observed=True to ensure that a "
                            "categorical grouper only returns the "
-                           "observed groupers, or\n"
-                           "observed=False to include"
+                           "observed categories, or\n"
+                           "observed=False to also include"
                            "unobserved categories.\n")
                     warnings.warn(msg, FutureWarning, stacklevel=5)
                     observed = False
