@@ -141,7 +141,7 @@ def _length_check(others):
             elif len(x) != n:
                 raise ValueError('All arrays must be same length')
         except TypeError:
-            raise ValueError("Did you mean to supply a `sep` keyword?")
+            raise ValueError('Must pass arrays containing strings to str_cat')
     return n
 
 
@@ -2003,7 +2003,6 @@ class StringMethods(NoNewAttributesMixin):
                     # strings/NaN/None. Need to robustify check against
                     # x in nxt being list-like (otherwise ambiguous boolean).
                     is_legal = all((isinstance(x, compat.string_types)
-                                    or (is_list_like(x) and any(isnull(x)))
                                     or (not is_list_like(x) and isnull(x))
                                     or x is None)
                                    for x in nxt)
@@ -2184,10 +2183,10 @@ class StringMethods(NoNewAttributesMixin):
             # turn anything in "others" into lists of Series
             tmp = self._get_series_list(others, ignore_index=(join is None))
             others, fut_warn = tmp
-        except ValueError:  # let TypeError raised by _get_series_list pass
+        except ValueError:  # do not catch TypeError raised by _get_series_list
             if join is None:
-                # legacy warning
-                raise ValueError('All arrays must be same length')
+                raise ValueError('All arrays must be same length, except '
+                                 'those having an index if `join` is not None')
             else:
                 raise ValueError('If `others` contains arrays or lists (or '
                                  'other list-likes without an index), these '

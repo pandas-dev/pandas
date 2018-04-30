@@ -132,6 +132,18 @@ class TestStringMethods(object):
         exp = np.array(['aa', NA, 'bb', 'bd', 'cfoo', NA], dtype=np.object_)
         tm.assert_almost_equal(result, exp)
 
+        # error for incorrect lengths
+        rgx = 'All arrays must be same length'
+        three = Series(['1', '2', '3'])
+
+        with tm.assert_raises_regex(ValueError, rgx):
+            strings.str_cat(one, three)
+
+        # error for incorrect type
+        rgx = "Must pass arrays containing strings to str_cat"
+        with tm.assert_raises_regex(ValueError, rgx):
+            strings.str_cat(one, 'three')
+
     @pytest.mark.parametrize('series_or_index', ['series', 'index'])
     def test_str_cat(self, series_or_index):
         # test_cat above tests "str_cat" from ndarray to ndarray;
@@ -183,7 +195,7 @@ class TestStringMethods(object):
         assert_series_or_index_equal(s.str.cat(list(t), na_rep='-'), exp)
 
         # errors for incorrect lengths
-        rgx = 'All arrays must be same length'
+        rgx = 'All arrays must be same length, except.*'
         z = Series(['1', '2', '3'])
 
         with tm.assert_raises_regex(ValueError, rgx):
@@ -305,7 +317,7 @@ class TestStringMethods(object):
         assert_series_or_index_equal(s.str.cat(iter([t.values, list(s)])), exp)
 
         # errors for incorrect lengths
-        rgx = 'All arrays must be same length'
+        rgx = 'All arrays must be same length, except.*'
         z = Series(['1', '2', '3'])
         e = concat([z, z], axis=1)
 
@@ -331,7 +343,7 @@ class TestStringMethods(object):
 
         # errors for incorrect arguments in list-like
         rgx = 'others must be Series, Index, DataFrame,.*'
-        # make sure None/Nan also work as string-replacements
+        # make sure None/NaN do not crash checks in _get_series_list
         u = Series(['a', np.nan, 'c', None])
 
         # mix of string and Series
