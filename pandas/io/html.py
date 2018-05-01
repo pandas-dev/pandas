@@ -392,7 +392,7 @@ class _HtmlFrameParser(object):
 
         raw_data = []
 
-        if len(tbodies) > 0:
+        if tbodies:
             for tbody in tbodies:
                 raw_data.extend(self._parse_tr(tbody))
         else:

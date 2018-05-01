@@ -397,9 +397,8 @@ class TestReadHtml(object):
         assert_framelist_equal(res1, res2)
 
     def test_multiple_tbody(self):
-        """
-        Read all tbody tags within a single table.
-        """
+        # GH-20690
+        # Read all tbody tags within a single table.
         data = '''<table>
             <thead>
                 <tr>
@@ -421,8 +420,8 @@ class TestReadHtml(object):
             </tbody>
         </table>'''
         expected = DataFrame({'A': [1, 3], 'B': [2, 4]})
-        result = self.read_html(StringIO(data))
-        tm.assert_frame_equal(result[0], expected)
+        result = self.read_html(StringIO(data))[0]
+        tm.assert_frame_equal(result, expected)
 
     def test_header_and_one_column(self):
         """
