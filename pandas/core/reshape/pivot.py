@@ -449,7 +449,8 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     rownames = _get_names(index, rownames, prefix='row')
     colnames = _get_names(columns, colnames, prefix='col')
 
-    common_idx = _get_objs_combined_axis(index + columns, intersect=True)
+    common_idx = _get_objs_combined_axis(index + columns, intersect=True,
+                                         sort=False)
 
     data = {}
     data.update(zip(rownames, index))

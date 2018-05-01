@@ -629,7 +629,8 @@ class TestiLoc(Base):
             new_list.append(s * 3)
 
         expected = DataFrame(new_list)
-        expected = concat([expected, DataFrame(index=idx[idx > sidx.max()])])
+        expected = concat([expected, DataFrame(index=idx[idx > sidx.max()])],
+                          sort=True)
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result = df2.loc[idx]
         tm.assert_frame_equal(result, expected, check_index_type=False)

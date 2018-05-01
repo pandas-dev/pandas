@@ -157,7 +157,7 @@ def fast_unique_multiple(list arrays):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple_list(list lists):
+def fast_unique_multiple_list(list lists, bint sort=True):
     cdef:
         list buf
         Py_ssize_t k = len(lists)
@@ -174,10 +174,11 @@ def fast_unique_multiple_list(list lists):
             if val not in table:
                 table[val] = stub
                 uniques.append(val)
-    try:
-        uniques.sort()
-    except Exception:
-        pass
+    if sort:
+        try:
+            uniques.sort()
+        except Exception:
+            pass
 
     return uniques
 

@@ -96,7 +96,7 @@ class TestDataFrameConcatCommon(TestData):
 
         result = df.append(series[::-1][:3], ignore_index=True)
         expected = df.append(DataFrame({0: series[::-1][:3]}).T,
-                             ignore_index=True)
+                             ignore_index=True, sort=True)
         assert_frame_equal(result, expected.loc[:, result.columns])
 
         # can append when name set
@@ -119,8 +119,8 @@ class TestDataFrameConcatCommon(TestData):
         # different columns
         dicts = [{'foo': 1, 'bar': 2, 'baz': 3, 'peekaboo': 4},
                  {'foo': 5, 'bar': 6, 'baz': 7, 'peekaboo': 8}]
-        result = df.append(dicts, ignore_index=True)
-        expected = df.append(DataFrame(dicts), ignore_index=True)
+        result = df.append(dicts, ignore_index=True, sort=True)
+        expected = df.append(DataFrame(dicts), ignore_index=True, sort=True)
         assert_frame_equal(result, expected)
 
     def test_append_empty_dataframe(self):

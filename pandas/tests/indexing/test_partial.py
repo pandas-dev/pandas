@@ -156,8 +156,9 @@ class TestPartialSetting(object):
         df_orig = DataFrame(np.random.randn(8, 4), index=dates,
                             columns=['A', 'B', 'C', 'D'])
 
-        expected = pd.concat([df_orig, DataFrame(
-            {'A': 7}, index=[dates[-1] + 1])])
+        expected = pd.concat([df_orig,
+                              DataFrame({'A': 7}, index=[dates[-1] + 1])],
+                             sort=True)
         df = df_orig.copy()
         df.loc[dates[-1] + 1, 'A'] = 7
         tm.assert_frame_equal(df, expected)

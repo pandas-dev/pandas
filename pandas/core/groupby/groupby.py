@@ -1101,7 +1101,8 @@ b  2""")
                 group_names = self.grouper.names
 
                 result = concat(values, axis=self.axis, keys=group_keys,
-                                levels=group_levels, names=group_names)
+                                levels=group_levels, names=group_names,
+                                sort=False)
             else:
 
                 # GH5610, returns a MI, with the first level being a

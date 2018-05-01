@@ -694,6 +694,36 @@ Returning a ``Series`` allows one to control the exact return structure and colu
 
     df.apply(lambda x: Series([1, 2, 3], index=['D', 'E', 'F']), axis=1)
 
+.. _whatsnew_0230.api_breaking.concat:
+
+Concatenation will no longer sort
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In a future version of pandas :func:`pandas.concat` will no longer sort the non-concatenation axis when it is not already aligned.
+The current behavior is the same as the previous (sorting), but now a warning is issued when ``sort`` is not specified and the non-concatenation axis is not aligned (:issue:`4588`).
+
+.. ipython:: python
+   :okwarning:
+
+   df1 = pd.DataFrame({"a": [1, 2], "b": [1, 2]}, columns=['b', 'a'])
+   df2 = pd.DataFrame({"a": [4, 5]})
+
+   pd.concat([df1, df2])
+
+To keep the previous behavior (sorting) and silence the warning, pass ``sort=True``
+
+.. ipython:: python
+
+   pd.concat([df1, df2], sort=True)
+
+To accept the future behavior (no sorting), pass ``sort=False``
+
+.. ipython
+
+   pd.concat([df1, df2], sort=False)
+
+Note that this change also applies to :meth:`DataFrame.append`, which has also received a ``sort`` keyword for controlling this behavior.
+
 
 .. _whatsnew_0230.api_breaking.build_changes:
 
