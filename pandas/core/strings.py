@@ -2151,12 +2151,49 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     _shared_docs['str_strip'] = ("""
-    Strip whitespace (including newlines) from each string in the
-    Series/Index from %(side)s. Equivalent to :meth:`str.%(method)s`.
+    Strip combinations of characters from the %(side)s of strings.
+
+    Operates on each element in the given String/Index, and is equivalent to
+    :meth:`str.%(method)s`.
+
+    Parameters
+    ----------
+    to_strip : str or unicode, optional
+        String or unicode specifying the set of characters to be removed from
+        the %(side)s. If omitted or None, the strip method defaults to removing
+        whitespace and newlines.
 
     Returns
     -------
     stripped : Series/Index of objects
+
+    See Also
+    --------
+    Series.str.strip : Removes defined characters from both sides
+    Series.str.lstrip : Removes defined characters from the left side
+    Series.str.rstrip : Removes defined characters from the right side
+
+    Examples
+    --------
+    >>> s = pd.Series(data=['   spacious   ', '__-left_foo',
+    ...                     '-__center_foo__-', 'right_foo-__'])
+    >>> s.str.strip()[0]
+    'spacious'
+
+    Rather than string matching, all combinations of the `to_strip` parameter's
+    characters are removed.
+
+    >>> s.str.lstrip("-_")[1:]
+    1         left_foo
+    2    center_foo__-
+    3     right_foo-__
+    dtype: object
+
+    >>> s.str.rstrip("-_")[1:]
+    1      __-left_foo
+    2    -__center_foo
+    3        right_foo
+    dtype: object
     """)
 
     @Appender(_shared_docs['str_strip'] % dict(side='left and right sides',
