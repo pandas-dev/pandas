@@ -236,11 +236,43 @@ class TimelikeOps(object):
 
     @freq.setter
     def freq(self, value):
+        msg = ('Setting {obj}.freq has been deprecated and will be removed '
+               'in a future version; use {obj}.set_freq instead.'
+               ).format(obj=type(self).__name__)
+        warnings.warn(msg, FutureWarning, stacklevel=2)
         if value is not None:
             value = frequencies.to_offset(value)
             self._validate_frequency(self, value)
 
         self._freq = value
+
+    def set_freq(self, freq):
+        """
+        Set the frequency of the DatetimeIndex or TimedeltaIndex to the
+        specified frequency `freq`.
+
+        Parameters
+        ----------
+        freq: str or Offset
+            The frequency to set on the DatetimeIndex or TimedeltaIndex
+
+        Returns
+        -------
+        new: DatetimeIndex or TimedeltaIndex with the new frequency
+
+        Raises
+        ------
+        ValueError
+            If the values of the DatetimeIndex or TimedeltaIndex are not
+            compatible with the new frequency
+        """
+        if freq is not None:
+            freq = frequencies.to_offset(freq)
+            self._validate_frequency(self, freq)
+
+        new = self.copy()
+        new._freq = freq
+        return new
 
 
 class DatetimeIndexOpsMixin(object):

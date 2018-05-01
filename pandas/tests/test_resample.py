@@ -22,7 +22,6 @@ from pandas.errors import UnsupportedFunctionCall
 from pandas.core.groupby.groupby import DataError
 import pandas.core.common as com
 
-from pandas.tseries.frequencies import to_offset
 from pandas.core.indexes.datetimes import date_range
 from pandas.tseries.offsets import Minute, BDay
 from pandas.core.indexes.period import period_range, PeriodIndex, Period
@@ -624,7 +623,7 @@ class Base(object):
         result = obj.resample(freq).asfreq()
         if freq == '2D':
             new_index = obj.index.take(np.arange(0, len(obj.index), 2))
-            new_index.freq = to_offset('2D')
+            new_index = new_index.set_freq('2D')
         else:
             new_index = self.create_index(obj.index[0], obj.index[-1],
                                           freq=freq)

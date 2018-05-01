@@ -91,9 +91,7 @@ class TestDatetimeIndexSetOps(object):
 
     def test_union_freq_both_none(self):
         # GH11086
-        expected = bdate_range('20150101', periods=10)
-        expected.freq = None
-
+        expected = bdate_range('20150101', periods=10).set_freq(None)
         result = expected.union(expected)
         tm.assert_index_equal(result, expected)
         assert result.freq is None
