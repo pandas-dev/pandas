@@ -4883,9 +4883,9 @@ class TestHDFStore(Base):
             df = DataFrame(np.random.randn(10, 2), columns=index(2))
             with ensure_clean_path(self.path) as path:
                 with catch_warnings(record=True):
-                    with pytest.raises(
-                        ValueError, msg=("cannot have non-object label "
-                                         "DataIndexableCol")):
+                    with tm.assert_raises_regex(
+                        ValueError, ("cannot have non-object label "
+                                     "DataIndexableCol")):
                         df.to_hdf(path, 'df', format='table',
                                   data_columns=True)
 
