@@ -2565,7 +2565,7 @@ class StataStrLWriter(object):
                 return s.encode(self._encoding)
             return s
 
-    def generate_blob(self, table):
+    def generate_blob(self, gso_table):
         """
         Generates the binary blob of GSOs that is written to the dta file.
 
@@ -2584,7 +2584,7 @@ class StataStrLWriter(object):
         Output format depends on dta version.  117 uses two uint32s to
         express v and o while 118+ uses a uint32 for v and a uint64 for o.
         """
-        # type: (dict) -> bytes
+        # Format information
         # Length includes null term
         # 117
         # GSOvvvvooootllllxxxxxxxxxxxxxxx...x
@@ -2593,6 +2593,7 @@ class StataStrLWriter(object):
         # 118, 119
         # GSOvvvvooooooootllllxxxxxxxxxxxxxxx...x
         #  3  u4   u8   u1 u4    string + null term
+
         bio = BytesIO()
         gso = _bytes('GSO', 'ascii')
         gso_type = struct.pack(self._byteorder + 'B', 130)
@@ -2600,25 +2601,32 @@ class StataStrLWriter(object):
         v_type = self._byteorder + self._gso_v_type
         o_type = self._byteorder + self._gso_o_type
         len_type = self._byteorder + 'I'
-        for strl, vo in table.items():
+        for strl, vo in gso_table.items():
             if vo == (0, 0):
                 continue
             v, o = vo
+
             # GSO
             bio.write(gso)
+
             # vvvv
             bio.write(struct.pack(v_type, v))
+
             # oooo / oooooooo
             bio.write(struct.pack(o_type, o))
+
             # t
             bio.write(gso_type)
+
             # llll
             encoded = self._encode(strl)
             bio.write(struct.pack(len_type, len(encoded) + 1))
+
             # xxx...xxx
             s = _bytes(strl, 'utf-8')
             bio.write(s)
             bio.write(null)
+
         bio.seek(0)
         return bio.read()
 

@@ -10,7 +10,6 @@ from datetime import datetime
 
 import numpy as np
 import pytest
-from pandas._libs.tslib import NaT
 
 import pandas as pd
 import pandas.util.testing as tm
@@ -779,7 +778,7 @@ class TestStata(object):
                 else:
                     row.append(datetime(yr[i], mo[i], dd[i]))
             expected.append(row)
-        expected.append([NaT] * 7)
+        expected.append([pd.NaT] * 7)
         columns = ['date_tc', 'date_td', 'date_tw', 'date_tm', 'date_tq',
                    'date_th', 'date_ty']
 
