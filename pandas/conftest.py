@@ -66,6 +66,17 @@ def ip():
     return InteractiveShell()
 
 
+@pytest.fixture(params=[True, False, None])
+def observed(request):
+    """ pass in the observed keyword to groupby for [True, False]
+    This indicates whether categoricals should return values for
+    values which are not in the grouper [False / None], or only values which
+    appear in the grouper [True]. [None] is supported for future compatiblity
+    if we decide to change the default (and would need to warn if this
+    parameter is not passed)"""
+    return request.param
+
+
 @pytest.fixture(params=[None, 'gzip', 'bz2', 'zip',
                         pytest.param('xz', marks=td.skip_if_no_lzma)])
 def compression(request):
