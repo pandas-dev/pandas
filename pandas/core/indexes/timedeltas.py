@@ -28,7 +28,8 @@ from pandas.core.indexes.base import _index_shared_docs
 import pandas.core.common as com
 import pandas.core.dtypes.concat as _concat
 from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
-from pandas.core.indexes.datetimelike import TimelikeOps, DatetimeIndexOpsMixin
+from pandas.core.indexes.datetimelike import (
+    TimelikeOps, DatetimeIndexOpsMixin)
 from pandas.core.tools.timedeltas import (
     to_timedelta, _coerce_scalar_to_timedelta_type)
 from pandas.tseries.offsets import Tick, DateOffset
@@ -195,7 +196,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     _is_numeric_dtype = True
     _infer_as_myclass = True
 
-    freq = None
+    _freq = None
 
     def __new__(cls, data=None, unit=None, freq=None, start=None, end=None,
                 periods=None, closed=None, dtype=None, copy=False,
@@ -251,15 +252,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         if verify_integrity and len(data) > 0:
             if freq is not None and not freq_infer:
                 index = cls._simple_new(data, name=name)
-                inferred = index.inferred_freq
-                if inferred != freq.freqstr:
-                    on_freq = cls._generate(
-                        index[0], None, len(index), name, freq)
-                    if not np.array_equal(index.asi8, on_freq.asi8):
-                        raise ValueError('Inferred frequency {0} from passed '
-                                         'timedeltas does not conform to '
-                                         'passed frequency {1}'
-                                         .format(inferred, freq.freqstr))
+                cls._validate_frequency(index, freq)
                 index.freq = freq
                 return index
 
@@ -327,7 +320,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         result = object.__new__(cls)
         result._data = values
         result.name = name
-        result.freq = freq
+        result._freq = freq
         result._reset_identity()
         return result
 
