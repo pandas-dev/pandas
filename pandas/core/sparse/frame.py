@@ -715,6 +715,9 @@ class SparseDataFrame(DataFrame):
         if fill_value is None:
             fill_value = np.nan
 
+        reindexers = {self._get_axis_number(a): val
+                      for (a, val) in compat.iteritems(reindexers)}
+
         index, row_indexer = reindexers.get(0, (None, None))
         columns, col_indexer = reindexers.get(1, (None, None))
 

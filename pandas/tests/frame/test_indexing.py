@@ -396,8 +396,12 @@ class TestDataFrameIndexing(TestData):
         assert (self.frame['D'] == 0).all()
 
         df = DataFrame(np.random.randn(8, 4))
-        with catch_warnings(record=True):
-            assert isna(df.ix[:, [-1]].values).all()
+        # ix does label-based indexing when having an integer index
+        with pytest.raises(KeyError):
+            df.ix[[-1]]
+
+        with pytest.raises(KeyError):
+            df.ix[:, [-1]]
 
         # #1942
         a = DataFrame(randn(20, 2), index=[chr(x + 65) for x in range(20)])
