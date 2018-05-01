@@ -1057,7 +1057,7 @@ def dispatch_to_extension_op(left, right, op_name=None, is_logical=False):
 
         # We can't use (NotImplemented in res) because the
         # results might be objects that have overridden __eq__
-        if any([isinstance(r, type(NotImplemented)) for r in res]):
+        if any(isinstance(r, type(NotImplemented)) for r in res):
             msg = "invalid operation {opn} between {one} and {two}"
             raise TypeError(msg.format(opn=op_name,
                                        one=type(lvalues),

@@ -630,4 +630,4 @@ class ExtensionArray(object):
         type for this instance of an ExtensionArray
         """
         thistype = self.dtype.type
-        return all([isinstance(i, thistype) for i in seq])
+        return all(isinstance(i, thistype) for i in seq)

@@ -211,6 +211,7 @@ def test_addition(data):
     expected = pd.Series([i <= 10 for i in data])
     tm.assert_series_equal(result, expected)
 
+
 _ts = pd.Series(DecimalArray(make_data()))
 
 
