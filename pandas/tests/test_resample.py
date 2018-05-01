@@ -1182,6 +1182,19 @@ class TestDatetimeIndex(Base):
         expected = ser.resample('w-sun', loffset=-bday).last()
         assert result.index[0] - bday == expected.index[0]
 
+    def test_resample_loffset_upsample(self):
+        # GH 20744
+        rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min')
+        s = Series(np.random.randn(14), index=rng)
+
+        result = s.resample('5min', closed='right', label='right',
+                            loffset=timedelta(minutes=1)).ffill()
+        idx = date_range('1/1/2000', periods=4, freq='5min')
+        expected = Series([s[0], s[5], s[10], s[-1]],
+                          index=idx + timedelta(minutes=1))
+
+        assert_series_equal(result, expected)
+
     def test_resample_loffset_count(self):
         # GH 12725
         start_time = '1/1/2000 00:00:00'

@@ -891,7 +891,10 @@ Deprecations
   of the ``Series`` and ``Index`` classes have been deprecated and will be
   removed in a future version (:issue:`20419`).
 - ``DatetimeIndex.offset`` is deprecated. Use ``DatetimeIndex.freq`` instead (:issue:`20716`)
+- Setting ``PeriodIndex.freq`` (which was not guaranteed to work correctly) is deprecated. Use :meth:`PeriodIndex.asfreq` instead (:issue:`20678`)
 - ``Index.get_duplicates()`` is deprecated and will be removed in a future version (:issue:`20239`)
+- The previous default behavior of negative indices in ``Categorical.take`` is deprecated. In a future version it will change from meaning missing values to meaning positional indices from the right. The future behavior is consistent with :meth:`Series.take` (:issue:`20664`).
+
 
 .. _whatsnew_0230.prior_deprecations:
 
@@ -959,6 +962,7 @@ Performance Improvements
 - Improved performance of :func:`pandas.core.groupby.GroupBy.any` and :func:`pandas.core.groupby.GroupBy.all` (:issue:`15435`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.pct_change` (:issue:`19165`)
 - Improved performance of :func:`Series.isin` in the case of categorical dtypes (:issue:`20003`)
+- Improved performance of ``getattr(Series, attr)`` when the Series has certain index types. This manifiested in slow printing of large Series with a ``DatetimeIndex`` (:issue:`19764`)
 - Fixed a performance regression for :func:`GroupBy.nth` and :func:`GroupBy.last` with some object columns (:issue:`19283`)
 
 .. _whatsnew_0230.docs:
@@ -1025,6 +1029,7 @@ Categorical
 - Bug in ``Categorical.__iter__`` not converting to Python types (:issue:`19909`)
 - Bug in :func:`pandas.factorize` returning the unique codes for the ``uniques``. This now returns a ``Categorical`` with the same dtype as the input (:issue:`19721`)
 - Bug in :func:`pandas.factorize` including an item for missing values in the ``uniques`` return value (:issue:`19721`)
+- Bug in :meth:`Series.take` with categorical data interpreting ``-1`` in `indices` as missing value markers, rather than the last element of the Series (:issue:`20664`)
 
 Datetimelike
 ^^^^^^^^^^^^
@@ -1047,6 +1052,7 @@ Datetimelike
 - Bug in :func:`to_datetime` where passing an out-of-bounds datetime with ``errors='coerce'`` and ``utc=True`` would raise ``OutOfBoundsDatetime`` instead of parsing to ``NaT`` (:issue:`19612`)
 - Bug in :class:`DatetimeIndex` and :class:`TimedeltaIndex` addition and subtraction where name of the returned object was not always set consistently. (:issue:`19744`)
 - Bug in :class:`DatetimeIndex` and :class:`TimedeltaIndex` addition and subtraction where operations with numpy arrays raised ``TypeError`` (:issue:`19847`)
+- Bug in :class:`DatetimeIndex` and :class:`TimedeltaIndex` where setting the ``freq`` attribute was not fully supported (:issue:`20678`)
 
 Timedelta
 ^^^^^^^^^
@@ -1165,6 +1171,7 @@ I/O
 - Bug in :func:`DataFrame.to_latex()` where a non-string index-level name would result in an ``AttributeError`` (:issue:`19981`)
 - Bug in :func:`DataFrame.to_latex()` where the combination of an index name and the `index_names=False` option would result in incorrect output (:issue:`18326`)
 - Bug in :func:`DataFrame.to_latex()` where a ``MultiIndex`` with an empty string as its name would result in incorrect output (:issue:`18669`)
+- Bug in :func:`DataFrame.to_latex()` where missing space characters caused wrong escaping and produced non-valid latex in some cases (:issue:`20859`)
 - Bug in :func:`read_json` where large numeric values were causing an ``OverflowError`` (:issue:`18842`)
 - Bug in :func:`DataFrame.to_parquet` where an exception was raised if the write destination is S3 (:issue:`19134`)
 - :class:`Interval` now supported in :func:`DataFrame.to_excel` for all Excel file types (:issue:`19242`)
@@ -1201,6 +1208,7 @@ Groupby/Resample/Rolling
 - Bug in :func:`DataFrameGroupBy.cumsum` and :func:`DataFrameGroupBy.cumprod` when ``skipna`` was passed (:issue:`19806`)
 - Bug in :func:`DataFrame.resample` that dropped timezone information (:issue:`13238`)
 - Bug in :func:`DataFrame.groupby` where transformations using ``np.all`` and ``np.any`` were raising a ``ValueError`` (:issue:`20653`)
+- Bug in :func:`DataFrame.resample` where ``ffill``, ``bfill``, ``pad``, ``backfill``, ``fillna``, ``interpolate``, and ``asfreq`` were ignoring ``loffset``. (:issue:`20744`)
 
 Sparse
 ^^^^^^

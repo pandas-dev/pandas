@@ -282,42 +282,64 @@ def to_hdf(path_or_buf, key, value, mode=None, complevel=None, complib=None,
 
 
 def read_hdf(path_or_buf, key=None, mode='r', **kwargs):
-    """ read from the store, close it if we opened it
+    """
+    Read from the store, close it if we opened it.
 
-        Retrieve pandas object stored in file, optionally based on where
-        criteria
+    Retrieve pandas object stored in file, optionally based on where
+    criteria
 
-        Parameters
-        ----------
-        path_or_buf : path (string), buffer or path object (pathlib.Path or
-            py._path.local.LocalPath) designating the file to open, or an
-            already opened pd.HDFStore object
+    Parameters
+    ----------
+    path_or_buf : string, buffer or path object
+        Path to the file to open, or an open :class:`pandas.HDFStore` object.
+        Supports any object implementing the ``__fspath__`` protocol.
+        This includes :class:`pathlib.Path` and py._path.local.LocalPath
+        objects.
 
-            .. versionadded:: 0.19.0 support for pathlib, py.path.
+        .. versionadded:: 0.19.0 support for pathlib, py.path.
+        .. versionadded:: 0.21.0 support for __fspath__ proptocol.
 
-        key : group identifier in the store. Can be omitted if the HDF file
-            contains a single pandas object.
-        mode : string, {'r', 'r+', 'a'}, default 'r'. Mode to use when opening
-            the file. Ignored if path_or_buf is a pd.HDFStore.
-        where : list of Term (or convertible) objects, optional
-        start : optional, integer (defaults to None), row number to start
-            selection
-        stop  : optional, integer (defaults to None), row number to stop
-            selection
-        columns : optional, a list of columns that if not None, will limit the
-            return columns
-        iterator : optional, boolean, return an iterator, default False
-        chunksize : optional, nrows to include in iteration, return an iterator
-        errors : str, default 'strict'
-            Specifies how encoding and decoding errors are to be handled.
-            See the errors argument for :func:`open` for a full list
-            of options.
+    key : object, optional
+        The group identifier in the store. Can be omitted if the HDF file
+        contains a single pandas object.
+    mode : {'r', 'r+', 'a'}, optional
+        Mode to use when opening the file. Ignored if path_or_buf is a
+        :class:`pandas.HDFStore`. Default is 'r'.
+    where : list, optional
+        A list of Term (or convertible) objects.
+    start : int, optional
+        Row number to start selection.
+    stop  : int, optional
+        Row number to stop selection.
+    columns : list, optional
+        A list of columns names to return.
+    iterator : bool, optional
+        Return an iterator object.
+    chunksize : int, optional
+        Number of rows to include in an iteration when using an iterator.
+    errors : str, default 'strict'
+        Specifies how encoding and decoding errors are to be handled.
+        See the errors argument for :func:`open` for a full list
+        of options.
+    **kwargs
+        Additional keyword arguments passed to HDFStore.
 
-        Returns
-        -------
-        The selected object
+    Returns
+    -------
+    item : object
+        The selected object. Return type depends on the object stored.
 
-        """
+    See Also
+    --------
+    pandas.DataFrame.to_hdf : write a HDF file from a DataFrame
+    pandas.HDFStore : low-level access to HDF files
+
+    Examples
+    --------
+    >>> df = pd.DataFrame([[1, 1.0, 'a']], columns=['x', 'y', 'z'])
+    >>> df.to_hdf('./store.h5', 'data')
+    >>> reread = pd.read_hdf('./store.h5')
+    """
 
     if mode not in ['r', 'r+', 'a']:
         raise ValueError('mode {0} is not allowed while performing a read. '
