@@ -68,6 +68,10 @@ class TestConstructors(base.BaseConstructorsTests):
 
 class TestReshaping(base.BaseReshapingTests):
     @pytest.mark.skip(reason="Unobserved categories preseved in concat.")
+    def test_concat_columns(self, data, na_value):
+        pass
+
+    @pytest.mark.skip(reason="Unobserved categories preseved in concat.")
     def test_align(self, data, na_value):
         pass
 
@@ -111,7 +115,7 @@ class TestGetitem(base.BaseGetitemTests):
     def test_take_out_of_bounds_raises(self):
         pass
 
-    @skip_take
+    @pytest.mark.skip(reason="GH-20747. Unobserved categories.")
     def test_take_series(self):
         pass
 

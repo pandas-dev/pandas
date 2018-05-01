@@ -134,11 +134,13 @@ class LatexFormatter(TableFormatter):
                     buf.write('\\endlastfoot\n')
             if self.fmt.kwds.get('escape', True):
                 # escape backslashes first
-                crow = [(x.replace('\\', '\\textbackslash').replace('_', '\\_')
+                crow = [(x.replace('\\', '\\textbackslash ')
+                         .replace('_', '\\_')
                          .replace('%', '\\%').replace('$', '\\$')
                          .replace('#', '\\#').replace('{', '\\{')
-                         .replace('}', '\\}').replace('~', '\\textasciitilde')
-                         .replace('^', '\\textasciicircum').replace('&', '\\&')
+                         .replace('}', '\\}').replace('~', '\\textasciitilde ')
+                         .replace('^', '\\textasciicircum ')
+                         .replace('&', '\\&')
                          if (x and x != '{}') else '{}') for x in row]
             else:
                 crow = [x if x else '{}' for x in row]
