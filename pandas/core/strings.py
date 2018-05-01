@@ -1979,8 +1979,8 @@ class StringMethods(NoNewAttributesMixin):
         elif isinstance(others, DataFrame):
             fut_warn = not others.index.equals(idx)
             if ignore_index and fut_warn:
-                # without copy, this could change (the corresponding list
-                # element of) "others" that was passed to str.cat
+                # without copy, this could change "others"
+                # that was passed to str.cat
                 others = others.copy()
                 others.index = idx
             return ([others[x] for x in others], fut_warn)
@@ -1993,22 +1993,27 @@ class StringMethods(NoNewAttributesMixin):
                 los = []
                 fut_warn = False
                 while others:
-                    nxt = others.pop(0)
-                    # safety for iterators etc.; nxt is list-like as per above
-                    # do not map indexed objects, which would lose their index
-                    if not isinstance(nxt, (DataFrame, Series, Index)):
+                    nxt = others.pop(0)  # list-like as per check above
+                    # safety for iterators and other non-persistent list-likes
+                    # do not map indexed/typed objects; would lose information
+                    if not isinstance(nxt, (DataFrame, Series,
+                                            Index, np.ndarray)):
                         nxt = list(nxt)
 
-                    # Nested list-likes are forbidden - content of nxt must be
-                    # strings/NaN/None. Need to robustify check against
-                    # x in nxt being list-like (otherwise ambiguous boolean).
-                    is_legal = all((isinstance(x, compat.string_types)
-                                    or (not is_list_like(x) and isnull(x))
-                                    or x is None)
-                                   for x in nxt)
+                    # known types without deep inspection
+                    no_deep = ((isinstance(nxt, np.ndarray) and nxt.ndim == 1)
+                               or isinstance(nxt, (Series, Index)))
+                    # Nested list-likes are forbidden - elements of nxt must be
+                    # strings/NaN/None. Need to robustify NaN-check against
+                    # x in nxt being list-like (otherwise ambiguous boolean)
+                    is_legal = ((no_deep and nxt.dtype == object)
+                                or all((isinstance(x, compat.string_types)
+                                        or (not is_list_like(x) and isnull(x))
+                                        or x is None)
+                                       for x in nxt))
                     # DataFrame is false positive of is_legal
                     # because "x in df" returns column names
-                    if isinstance(nxt, DataFrame) or not is_legal:
+                    if not is_legal or isinstance(nxt, DataFrame):
                         raise TypeError(err_msg)
 
                     tmp = self._get_series_list(nxt, ignore_index=ignore_index)

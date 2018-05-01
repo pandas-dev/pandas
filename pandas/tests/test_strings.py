@@ -19,7 +19,7 @@ import pandas.util.testing as tm
 import pandas.core.strings as strings
 
 
-def assert_series_or_index_equal(left, right, expect_warn=False):
+def assert_series_or_index_equal(left, right):
     if isinstance(left, Series):
         assert_series_equal(left, right)
     else:  # Index
