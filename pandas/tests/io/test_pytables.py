@@ -4877,15 +4877,17 @@ class TestHDFStore(Base):
         if compat.PY3:
             types_should_run.append(tm.makeUnicodeIndex)
         else:
-            types_should_fail.append(tm.makeUnicodeIndex)
+            # TODO: Add back to types_should_fail
+            # https://github.com/pandas-dev/pandas/issues/20907
+            pass
 
         for index in types_should_fail:
             df = DataFrame(np.random.randn(10, 2), columns=index(2))
             with ensure_clean_path(self.path) as path:
                 with catch_warnings(record=True):
-                    with pytest.raises(
-                        ValueError, msg=("cannot have non-object label "
-                                         "DataIndexableCol")):
+                    with tm.assert_raises_regex(
+                        ValueError, ("cannot have non-object label "
+                                     "DataIndexableCol")):
                         df.to_hdf(path, 'df', format='table',
                                   data_columns=True)
 
