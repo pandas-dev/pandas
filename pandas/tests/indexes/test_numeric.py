@@ -64,6 +64,11 @@ class TestIndexArithmeticWithTimedeltaScalar(object):
 
 class Numeric(Base):
 
+    def test_can_hold_identifiers(self):
+        idx = self.create_index()
+        key = idx[0]
+        assert idx._can_hold_identifiers_and_holds_name(key) is False
+
     def test_numeric_compat(self):
         pass  # override Base method
 
