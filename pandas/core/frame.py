@@ -6073,7 +6073,8 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Merging / joining methods
 
-    def append(self, other, ignore_index=False, verify_integrity=False):
+    def append(self, other, ignore_index=False,
+               verify_integrity=False, sort=None):
         """
         Append rows of `other` to the end of this frame, returning a new
         object. Columns not in this frame are added as new columns.
@@ -6086,6 +6087,14 @@ class DataFrame(NDFrame):
             If True, do not use the index labels.
         verify_integrity : boolean, default False
             If True, raise ValueError on creating index with duplicates.
+        sort : boolean, default None
+            Sort columns if the columns of `self` and `other` are not aligned.
+            The default sorting is deprecated and will change to not-sorting
+            in a future version of pandas. Explicitly pass ``sort=True`` to
+            silence the warning and sort. Explicitly pass ``sort=False`` to
+            silence the warning and not sort.
+
+            .. versionadded:: 0.23.0
 
         Returns
         -------
@@ -6197,7 +6206,8 @@ class DataFrame(NDFrame):
         else:
             to_concat = [self, other]
         return concat(to_concat, ignore_index=ignore_index,
-                      verify_integrity=verify_integrity)
+                      verify_integrity=verify_integrity,
+                      sort=sort)
 
     def join(self, other, on=None, how='left', lsuffix='', rsuffix='',
              sort=False):
@@ -7516,7 +7526,7 @@ def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
     from pandas.core.index import _get_objs_combined_axis
 
     if columns is None:
-        columns = _get_objs_combined_axis(data)
+        columns = _get_objs_combined_axis(data, sort=False)
 
     indexer_cache = {}
 
