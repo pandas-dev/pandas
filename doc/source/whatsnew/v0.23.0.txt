@@ -1225,6 +1225,7 @@ Reshaping
 - Bug in :func:`DataFrame.unstack` which raises an error if ``index`` is a ``MultiIndex`` with unused labels on the unstacked level (:issue:`18562`)
 - Fixed construction of a :class:`Series` from a ``dict`` containing ``NaN`` as key (:issue:`18480`)
 - Fixed construction of a :class:`DataFrame` from a ``dict`` containing ``NaN`` as key (:issue:`18455`)
+- Disabled construction of a :class:`Series` where len(index) > len(data) = 1, which previously would broadcast the data item, and now raises a ``ValueError`` (:issue:`18819`)
 - Suppressed error in the construction of a :class:`DataFrame` from a ``dict`` containing scalar values when the corresponding keys are not included in the passed index (:issue:`18600`)
 
 - Fixed (changed from ``object`` to ``float64``) dtype of :class:`DataFrame` initialized with axes, no data, and ``dtype=int`` (:issue:`19646`)
