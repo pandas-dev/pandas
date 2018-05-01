@@ -1015,6 +1015,11 @@ class TestSeriesAnalytics(TestData):
         tm.assert_categorical_equal(s.unique(), pd.Categorical([np.nan]),
                                     check_dtype=False)
 
+    def test_unique_obj_na_preservation(self, nulls_fixture):
+        # GH 20866
+        s = pd.Series(['foo', nulls_fixture])
+        assert s.iloc[1] is nulls_fixture
+
     @pytest.mark.parametrize(
         "tc1, tc2",
         [
