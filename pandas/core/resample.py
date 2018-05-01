@@ -967,6 +967,7 @@ class DatetimeIndexResampler(Resampler):
             result = obj.reindex(res_index, method=method,
                                  limit=limit, fill_value=fill_value)
 
+        result = self._apply_loffset(result)
         return self._wrap_result(result)
 
     def _wrap_result(self, result):
