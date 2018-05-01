@@ -1946,6 +1946,10 @@ class NDFrame(PandasObject, SelectionMixin):
             If applying compression use the fletcher32 checksum.
         dropna : bool, default False
             If true, ALL nan rows will not be written to store.
+        errors : str, default 'strict'
+            Specifies how encoding and decoding errors are to be handled.
+            See the errors argument for :func:`open` for a full list
+            of options.
 
         See Also
         --------
