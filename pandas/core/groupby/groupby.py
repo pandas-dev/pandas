@@ -1268,7 +1268,7 @@ class GroupBy(_GroupBy):
         Compute mean of groups, excluding missing values
         
         Example of groupby one column:
-        --------
+        ------------------------------
         >>> df = pd.DataFrame({'A': [1, 1, 2, 1, 2],
                                'B': [np.nan, 2, 3, 4, 5]}, columns=['A', 'B'])
         >>> g = df.groupby('A')['B'].mean()
@@ -1281,7 +1281,7 @@ class GroupBy(_GroupBy):
         For multiple groupings, the result index will be a MultiIndex
 
         Example of groupby multiple columns:
-        --------
+        ------------------------------------
         >>> df = pd.DataFrame({'A': [1, 1, 2, 1, 2],
                                'B': [np.nan, 2, 3, 4, 5],
                                'C': [1, 2, 1, 1, 2]}, columns=['A', 'B', 'C'])
@@ -1293,6 +1293,12 @@ class GroupBy(_GroupBy):
         2  1    3.0
            2    5.0
 
+        
+        Returns
+        -------
+        pandas.core.series.Series
+            The average of the target column ('B' in the examples above) grouped by the groupby columns ('A' and ['A', 'C'] 
+            in the examples above)
 
         """
         nv.validate_groupby_func('mean', args, kwargs, ['numeric_only'])
