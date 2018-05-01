@@ -598,6 +598,9 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         if we are passed a non-dtype compat, then coerce using the constructor
         """
 
+        if isinstance(values, DatetimeIndex):
+            values = values.values
+
         if getattr(values, 'dtype', None) is None:
             # empty, but with dtype compat
             if values is None:
