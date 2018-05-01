@@ -358,7 +358,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 msg = 'periods must be a number, got {periods}'
                 raise TypeError(msg.format(periods=periods))
 
-        if data is None and freq is None:
+        if data is None and freq is None and com._any_none(periods, start, end):
             raise ValueError("Must provide freq argument if no data is "
                              "supplied")
 
@@ -474,9 +474,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     @classmethod
     def _generate(cls, start, end, periods, name, freq,
                   tz=None, normalize=False, ambiguous='raise', closed=None):
-        if com._count_not_none(start, end, periods) != 2:
-            raise ValueError('Of the three parameters: start, end, and '
-                             'periods, exactly two must be specified')
+        if com._count_not_none(start, end, periods, freq) != 3:
+            raise ValueError('Of the four parameters: start, end, periods, and '
+                             'freq, exactly three must be specified')
 
         _normalized = True
 
@@ -574,23 +574,28 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 if end.tz is None and start.tz is not None:
                     start = start.replace(tzinfo=None)
 
-            if _use_cached_range(freq, _normalized, start, end):
-                index = cls._cached_range(start, end, periods=periods,
-                                          freq=freq, name=name)
+            if freq is not None:
+                if _use_cached_range(freq, _normalized, start, end):
+                    index = cls._cached_range(start, end, periods=periods,
+                                            freq=freq, name=name)
+                else:
+                    index = _generate_regular_range(start, end, periods, freq)
+                
+                if tz is not None and getattr(index, 'tz', None) is None:
+                    index = conversion.tz_localize_to_utc(_ensure_int64(index), tz,
+                                                        ambiguous=ambiguous)
+                    index = index.view(_NS_DTYPE)
+
+                    # index is localized datetime64 array -> have to convert
+                    # start/end as well to compare
+                    if start is not None:
+                        start = start.tz_localize(tz).asm8
+                    if end is not None:
+                        end = end.tz_localize(tz).asm8
             else:
-                index = _generate_regular_range(start, end, periods, freq)
-
-            if tz is not None and getattr(index, 'tz', None) is None:
-                index = conversion.tz_localize_to_utc(_ensure_int64(index), tz,
-                                                      ambiguous=ambiguous)
-                index = index.view(_NS_DTYPE)
-
-                # index is localized datetime64 array -> have to convert
-                # start/end as well to compare
-                if start is not None:
-                    start = start.tz_localize(tz).asm8
-                if end is not None:
-                    end = end.tz_localize(tz).asm8
+                index = tools.to_datetime(np.linspace(start.value, end.value, periods))
+                if tz is not None:
+                    index = index.tz_localize('UTC').tz_convert(tz)
 
         if not left_closed and len(index) and index[0] == start:
             index = index[1:]
@@ -2588,10 +2593,10 @@ def date_range(start=None, end=None, periods=None, freq=None, tz=None,
     """
     Return a fixed frequency DatetimeIndex.
 
-    Two or three of the three parameters `start`, `end` and `periods`
-    must be specified. If all three parameters are specified, and `freq` is
-    omitted, the resulting DatetimeIndex will have `periods` linearly spaced
-    elements between `start` and `end` (closed on both sides).
+    Of the three parameters `start`, `end`, `periods`, and `freq` exactly 
+    three must be specified. If `freq` is omitted, the resulting DatetimeIndex 
+    will have `periods` linearly spaced elements between `start` and `end` 
+    (closed on both sides).
 
     Parameters
     ----------
@@ -2618,8 +2623,6 @@ def date_range(start=None, end=None, periods=None, freq=None, tz=None,
         the 'left', 'right', or both sides (None, the default).
     **kwargs
         For compatibility. Has no effect on the result.
-        Can be used to pass arguments to `pd.to_datetime` when specifying
-        `start`, `end`, and `periods`, but not `freq`.
 
     Returns
     -------
@@ -2715,47 +2718,9 @@ def date_range(start=None, end=None, periods=None, freq=None, tz=None,
     >>> pd.date_range(start='2017-01-01', end='2017-01-04', closed='right')
     DatetimeIndex(['2017-01-02', '2017-01-03', '2017-01-04'],
                   dtype='datetime64[ns]', freq='D')
-
-    Declare extra parameters (kwargs) to be used with the pd.to_datetime
-    function that is used when all three parameters `start`, `end`, and
-    `periods` are declared. If this results in anything else than a
-    DatetimeIndex (like in this example), you cannot specify `tz` or `name`.
-
-    >>> date_range('2018-04-24', '2018-04-27', periods=3, box=False)
-    array(['2018-04-24T00:00:00.000000000', '2018-04-25T12:00:00.000000000',
-           '2018-04-27T00:00:00.000000000'], dtype='datetime64[ns]')
     """
 
-    # See https://github.com/pandas-dev/pandas/issues/20808
-    if freq is None and com._all_not_none(periods, start, end):
-        if is_float(periods):
-            periods = int(periods)
-        elif not is_integer(periods):
-            msg = 'periods must be a number, got {periods}'
-            raise TypeError(msg.format(periods=periods))
-
-        start = Timestamp(start, tz=tz)
-        end = Timestamp(end, tz=tz)
-
-        if normalize:
-            start = libts.normalize_date(start)
-            end = libts.normalize_date(end)
-
-        di = tools.to_datetime(np.linspace(start.value, end.value, periods),
-                               **kwargs)
-
-        try:
-            if tz is not None:
-                di = di.tz_localize('UTC').tz_convert(tz)
-            if name is not None:
-                di.name = name
-        except AttributeError:
-            raise AttributeError("To specify the timezone or a name, the "
-                                 "result has to be a DatetimeIndex!")
-
-        return di
-
-    if freq is None:
+    if freq is None and com._any_none(periods, start, end):
         freq = 'D'
 
     return DatetimeIndex(start=start, end=end, periods=periods,

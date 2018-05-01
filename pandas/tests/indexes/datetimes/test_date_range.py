@@ -157,8 +157,8 @@ class TestDateRanges(TestData):
         start = datetime(2011, 1, 1, 5, 3, 40)
         end = datetime(2011, 1, 1, 8, 9, 40)
 
-        msg = ('Of the three parameters: start, end, and periods, '
-               'exactly two must be specified')
+        msg = ('Of the four parameters: start, end, periods, and '
+               'freq, exactly three must be specified')
         with tm.assert_raises_regex(ValueError, msg):
             date_range(start, end, periods=10, freq='s')
 
@@ -170,13 +170,6 @@ class TestDateRanges(TestData):
 
         tm.assert_index_equal(rng, exp)
 
-        # Test if kwargs work for the to_datetime function used
-        rng = date_range('2018-04-24', '2018-04-27', periods=3, box=False)
-        exp = np.array(['2018-04-24T00:00:00', '2018-04-25T12:00:00',
-                        '2018-04-27T00:00:00'], dtype='datetime64[ns]')
-
-        tm.assert_numpy_array_equal(rng, exp)
-
         # Test if spacing remains linear if tz changes to dst in range
         rng = date_range('2018-04-01 01:00:00', '2018-04-01 04:00:00',
                          tz='Australia/Sydney', periods=3)
@@ -185,13 +178,6 @@ class TestDateRanges(TestData):
                              '2018-04-01 02:00:00+10:00',
                              '2018-04-01 03:00:00+10:00',
                              '2018-04-01 04:00:00+10:00'], freq=None)
-
-        # Test AttributeError is raised if result is not a DatetimeIndex
-        msg = ("To specify the timezone or a name, the "
-               "result has to be a DatetimeIndex!")
-        with tm.assert_raises_regex(AttributeError, msg):
-            rng = date_range('2018-04-24', '2018-04-27', periods=3.3,
-                             name="abc", box=False)
 
     def test_date_range_businesshour(self):
         idx = DatetimeIndex(['2014-07-04 09:00', '2014-07-04 10:00',
@@ -229,8 +215,8 @@ class TestDateRanges(TestData):
 
     def test_range_misspecified(self):
         # GH #1095
-        msg = ('Of the three parameters: start, end, and periods, '
-               'exactly two must be specified')
+        msg = ('Of the four parameters: start, end, periods, and '
+               'freq, exactly three must be specified')
 
         with tm.assert_raises_regex(ValueError, msg):
             date_range(start='1/1/2000')
