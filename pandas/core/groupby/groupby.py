@@ -557,7 +557,7 @@ class _GroupBy(PandasObject, SelectionMixin):
     def __init__(self, obj, keys=None, axis=0, level=None,
                  grouper=None, exclusions=None, selection=None, as_index=True,
                  sort=True, group_keys=True, squeeze=False,
-                 observed=False, **kwargs):
+                 observed=None, **kwargs):
 
         self._selection = selection
 
@@ -2907,7 +2907,7 @@ class Grouping(object):
     """
 
     def __init__(self, index, grouper=None, obj=None, name=None, level=None,
-                 sort=True, observed=False, in_axis=False):
+                 sort=True, observed=None, in_axis=False):
 
         self.name = name
         self.level = level
@@ -2963,6 +2963,12 @@ class Grouping(object):
 
             # a passed Categorical
             elif is_categorical_dtype(self.grouper):
+
+                # observed can be True/False/None
+                # we treat None as False. If in the future
+                # we need to warn if observed is not passed
+                # then we have this option
+                # gh-20583
 
                 self.all_grouper = self.grouper
                 self.grouper = self.grouper._codes_for_groupby(
@@ -3082,7 +3088,7 @@ class Grouping(object):
 
 
 def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
-                 observed=False, mutated=False, validate=True):
+                 observed=None, mutated=False, validate=True):
     """
     create and return a BaseGrouper, which is an internal
     mapping of how to create the grouper indexers.
