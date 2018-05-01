@@ -277,9 +277,10 @@ Optional Dependencies
 * `s3fs <http://s3fs.readthedocs.io/>`__: necessary for Amazon S3 access (s3fs >= 0.0.7).
 * `blosc <https://pypi.org/project/blosc>`__: for msgpack compression using ``blosc``
 * One of
-  `qtpy  <https://github.com/spyder-ide/qtpy>`__ (requires PyQt or PySide),
+  `qtpy  <https://github.com/spyder-ide/qtpy>`__ (requires PyQt or PySide or PySide2),
   `PyQt5 <https://www.riverbankcomputing.com/software/pyqt/download5>`__,
   `PyQt4 <http://www.riverbankcomputing.com/software/pyqt/download>`__,
+  _PySide2 <http://download.qt.io/snapshots/ci/pyside/>`__,
   `pygtk <http://www.pygtk.org/>`__,
   `xsel <http://www.vergenet.net/~conrad/software/xsel/>`__, or
   `xclip <https://github.com/astrand/xclip/>`__: necessary to use
