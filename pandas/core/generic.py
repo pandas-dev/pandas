@@ -4375,8 +4375,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 name in self._accessors):
             return object.__getattribute__(self, name)
         else:
-            if (self._info_axis._can_hold_identifiers and
-                    name in self._info_axis):
+            if self._info_axis._can_hold_identifiers_and_holds_name(name):
                 return self[name]
             return object.__getattribute__(self, name)
 

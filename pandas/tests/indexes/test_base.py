@@ -68,7 +68,8 @@ class TestIndex(Base):
 
     def test_can_hold_identifiers(self):
         idx = self.create_index()
-        assert idx._can_hold_identifiers is True
+        key = idx[0]
+        assert idx._can_hold_identifiers_and_holds_name(key) is True
 
     def test_new_axis(self):
         new_index = self.dateIndex[None, :]

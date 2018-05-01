@@ -2083,22 +2083,18 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return result
 
-    @property
-    def _can_hold_identifiers(self):
+    def _can_hold_identifiers_and_holds_name(self, name):
         """
-        Whether the Index class *can* hold Python identifiers.
-
-        This is useful for short-circuting lookups in NDFrame.__getattr__.
-        Some index-classes can't hold identifiers (NumericIndex,
-        DatetimeIndex), so there's no reason to search the index when a user
-        does `Series.foo<TAB>`.
-
-        Note that we don't care about `foo` here. This just a property
-        of the index class itself, nothing to do with an instance.
+        Faster check for ``name in self`` when we know `name` is a Python
+        identifier (e.g. in NDFrame.__getattr__, which hits this to support
+        . key lookup). For indexes that can't hold identifiers (everything
+        but object & categorical) we just return False.
 
         https://github.com/pandas-dev/pandas/issues/19764
         """
-        return True
+        if self.is_object() or self.is_categorical():
+            return name in self
+        return False
 
     def append(self, other):
         """

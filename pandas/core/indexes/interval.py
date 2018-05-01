@@ -1303,12 +1303,6 @@ class IntervalIndex(IntervalMixin, Index):
 
         return self._shallow_copy(left, right)
 
-    @property
-    def _can_hold_identifiers(self):
-        # perf: Intervals aren't valid Python identifiers.
-        # https://github.com/pandas-dev/pandas/issues/19764
-        return False
-
     # __repr__ associated methods are based on MultiIndex
 
     def _format_with_header(self, header, **kwargs):

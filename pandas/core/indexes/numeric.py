@@ -114,12 +114,6 @@ class NumericIndex(Index):
         """
         return False
 
-    @property
-    def _can_hold_identifiers(self):
-        # perf: Numeric elements are not valid identifiers.
-        # https://github.com/pandas-dev/pandas/issues/19764
-        return False
-
 
 _num_index_shared_docs['class_descr'] = """
     Immutable ndarray implementing an ordered, sliceable set. The basic object

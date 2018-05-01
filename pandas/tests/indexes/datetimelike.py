@@ -10,7 +10,8 @@ class DatetimeLike(Base):
 
     def test_can_hold_identifiers(self):
         idx = self.create_index()
-        assert idx._can_hold_identifiers is False
+        key = idx[0]
+        assert idx._can_hold_identifiers_and_holds_name(key) is False
 
     def test_shift_identity(self):
 
