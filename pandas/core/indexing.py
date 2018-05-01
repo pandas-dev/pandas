@@ -200,10 +200,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         axis : int
             Dimension on which the indexing is being made
 
-        Returns:
-        --------
-        None
-
         Raises
         ------
         TypeError
@@ -945,7 +941,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                                             o._get_axis_number(axis))
                 d[axis] = (keyarr, indexer)
             return o._reindex_with_indexers(d, copy=True, allow_dups=True)
-        except(KeyError, IndexingError) as detail:
+        except (KeyError, IndexingError) as detail:
             raise self._exception(detail)
 
     def _convert_for_reindex(self, key, axis=None):
@@ -1189,10 +1185,6 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             Indices corresponding to the key (with -1 indicating not found)
         axis: int
             Dimension on which the indexing is being made
-
-        Returns
-        -------
-        None
 
         Raises
         ------

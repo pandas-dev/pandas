@@ -221,10 +221,9 @@ class TestFancy(Base):
             result = df.loc[['A', 'A', 'E']]
         tm.assert_frame_equal(result, expected)
 
-        if PY2:
-            # Catching warnings unreliable with Python 2 (GH #20770)
-            pytest.skip()
-
+    @pytest.mark.skipif(PY2,
+                        reason="GH-20770. Py2 unreliable warnings catching.")
+    def test_dups_fancy_indexing2(self):
         # GH 5835
         # dups on index and missing values
         df = DataFrame(
