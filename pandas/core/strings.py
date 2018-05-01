@@ -2188,22 +2188,22 @@ class StringMethods(NoNewAttributesMixin):
     2    3. Cat?
     dtype: object
 
-    >>> s.str.strip('123.!? \n\t')
-    0    Ant
-    1    Bee
-    2    Cat
-    dtype: object
-
-    >>> s.str.lstrip('123.!? \n\t')
+    >>> s.str.lstrip('123.')
     0    Ant.
     1    Bee!\n
     2    Cat?\t
     dtype: object
 
-    >>> s.str.rstrip('123.!? \n\t')
+    >>> s.str.rstrip('.!? \n\t')
     0    1. Ant
     1    2. Bee
     2    3. Cat
+    dtype: object
+
+    >>> s.str.strip('123.!? \n\t')
+    0    Ant
+    1    Bee
+    2    Cat
     dtype: object
     """)
 
