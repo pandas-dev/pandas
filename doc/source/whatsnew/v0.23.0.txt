@@ -503,6 +503,7 @@ Other Enhancements
 - Updated :meth:`DataFrame.to_gbq` and :meth:`pandas.read_gbq` signature and documentation to reflect changes from
   the Pandas-GBQ library version 0.4.0. Adds intersphinx mapping to Pandas-GBQ
   library. (:issue:`20564`)
+- :func:`to_hdf` and :func:`read_hdf` now accept an ``errors`` keyword argument to control encoding error handling (:issue:`20835`)
 
 .. _whatsnew_0230.api_breaking:
 

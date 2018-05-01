@@ -1462,6 +1462,18 @@ class TestHDFStore(Base):
             tm.assert_series_equal(pd.read_hdf(path, 'ss4'),
                                    pd.concat([df['B'], df2['B']]))
 
+    @pytest.mark.parametrize("format", ['fixed', 'table'])
+    def test_to_hdf_errors(self, format):
+
+        data = ['\ud800foo']
+        ser = pd.Series(data, index=pd.Index(data))
+        with ensure_clean_path(self.path) as path:
+            # GH 20835
+            ser.to_hdf(path, 'table', format=format, errors='surrogatepass')
+
+            result = pd.read_hdf(path, 'table', errors='surrogatepass')
+            tm.assert_series_equal(result, ser)
+
     def test_append_with_data_columns(self):
 
         with ensure_clean_store(self.path) as store:
