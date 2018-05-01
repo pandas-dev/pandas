@@ -308,6 +308,10 @@ def read_hdf(path_or_buf, key=None, mode='r', **kwargs):
             return columns
         iterator : optional, boolean, return an iterator, default False
         chunksize : optional, nrows to include in iteration, return an iterator
+        errors : str, default 'strict'
+            Specifies how encoding and decoding errors are to be handled.
+            See the errors argument for :func:`open` for a full list
+            of options.
 
         Returns
         -------
