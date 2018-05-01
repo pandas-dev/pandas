@@ -557,7 +557,7 @@ class _GroupBy(PandasObject, SelectionMixin):
     def __init__(self, obj, keys=None, axis=0, level=None,
                  grouper=None, exclusions=None, selection=None, as_index=True,
                  sort=True, group_keys=True, squeeze=False,
-                 observed=None, **kwargs):
+                 observed=False, **kwargs):
 
         self._selection = selection
 
@@ -2890,7 +2890,8 @@ class Grouping(object):
     obj :
     name :
     level :
-    observed : If we are a Categorical, use the observed values
+    observed : boolean, default False
+        If we are a Categorical, use the observed values
     in_axis : if the Grouping is a column in self.obj and hence among
         Groupby.exclusions list
 
@@ -2906,7 +2907,7 @@ class Grouping(object):
     """
 
     def __init__(self, index, grouper=None, obj=None, name=None, level=None,
-                 sort=True, observed=None, in_axis=False):
+                 sort=True, observed=False, in_axis=False):
 
         self.name = name
         self.level = level
@@ -2962,17 +2963,6 @@ class Grouping(object):
 
             # a passed Categorical
             elif is_categorical_dtype(self.grouper):
-
-                # Use the observed values of the grouper if inidcated
-                observed = self.observed
-                if observed is None:
-                    msg = ("pass observed=True to ensure that a "
-                           "categorical grouper only returns the "
-                           "observed categories, or\n"
-                           "observed=False to also include"
-                           "unobserved categories.\n")
-                    warnings.warn(msg, FutureWarning, stacklevel=5)
-                    observed = False
 
                 self.all_grouper = self.grouper
                 self.grouper = self.grouper._codes_for_groupby(
@@ -3092,7 +3082,7 @@ class Grouping(object):
 
 
 def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
-                 observed=None, mutated=False, validate=True):
+                 observed=False, mutated=False, validate=True):
     """
     create and return a BaseGrouper, which is an internal
     mapping of how to create the grouper indexers.

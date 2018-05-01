@@ -996,19 +996,19 @@ Handling of (un)observed Categorical values
 
 When using a ``Categorical`` grouper (as a single or as part of multipler groupers), the ``observed`` keyword
 controls whether to return a cartesian product of all possible groupers values (``observed=False``) or only those
-that are observed groupers (``observed=True``). The ``observed`` keyword will default to ``True`` in the future.
-
-Show only the observed values:
-
-.. ipython:: python
-
-   pd.Series([1, 1, 1]).groupby(pd.Categorical(['a', 'a', 'a'], categories=['a', 'b']), observed=True).count()
+that are observed groupers (``observed=True``).
 
 Show all values:
 
 .. ipython:: python
 
    pd.Series([1, 1, 1]).groupby(pd.Categorical(['a', 'a', 'a'], categories=['a', 'b']), observed=False).count()
+
+Show only the observed values:
+
+.. ipython:: python
+
+   pd.Series([1, 1, 1]).groupby(pd.Categorical(['a', 'a', 'a'], categories=['a', 'b']), observed=True).count()
 
 The returned dtype of the grouped will *always* include *all* of the catergories that were grouped.
 

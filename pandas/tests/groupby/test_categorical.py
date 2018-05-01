@@ -246,23 +246,6 @@ def test_apply(ordered):
     assert_series_equal(result, expected)
 
 
-def test_observed_warning():
-    # 20583 - future warning on observe
-
-    cat1 = Categorical(["a", "a", "b", "b"],
-                       categories=["a", "b", "z"], ordered=True)
-    cat2 = Categorical(["c", "d", "c", "d"],
-                       categories=["c", "d", "y"], ordered=True)
-    df = DataFrame({"A": cat1, "B": cat2, "values": [1, 2, 3, 4]})
-    df['C'] = ['foo', 'bar'] * 2
-
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        df.groupby(['A', 'B', 'C'])
-
-    with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
-        df.groupby('A')
-
-
 def test_observed(observed):
     # multiple groupers, don't re-expand the output space
     # of the grouper
