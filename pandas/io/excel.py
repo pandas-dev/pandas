@@ -316,7 +316,7 @@ def read_excel(io,
         io = ExcelFile(io, engine=engine)
 
     return io._parse_excel(
-        sheetname=sheet_name,
+        sheet_name=sheet_name,
         header=header,
         names=names,
         index_col=index_col,
@@ -435,7 +435,16 @@ class ExcelFile(object):
         docstring for more info on accepted parameters
         """
 
-        return self._parse_excel(sheetname=sheet_name,
+        # Can't use _deprecate_kwarg since sheetname=None has a special meaning
+        if is_integer(sheet_name) and sheet_name == 0 and 'sheetname' in kwds:
+            warnings.warn("The `sheetname` keyword is deprecated, use "
+                          "`sheet_name` instead", FutureWarning, stacklevel=2)
+            sheet_name = kwds.pop("sheetname")
+        elif 'sheetname' in kwds:
+            raise TypeError("Cannot specify both `sheet_name` "
+                            "and `sheetname`. Use just `sheet_name`")
+
+        return self._parse_excel(sheet_name=sheet_name,
                                  header=header,
                                  names=names,
                                  index_col=index_col,
@@ -489,7 +498,7 @@ class ExcelFile(object):
             return i in usecols
 
     def _parse_excel(self,
-                     sheetname=0,
+                     sheet_name=0,
                      header=0,
                      names=None,
                      index_col=None,
@@ -585,14 +594,14 @@ class ExcelFile(object):
         ret_dict = False
 
         # Keep sheetname to maintain backwards compatibility.
-        if isinstance(sheetname, list):
-            sheets = sheetname
+        if isinstance(sheet_name, list):
+            sheets = sheet_name
             ret_dict = True
-        elif sheetname is None:
+        elif sheet_name is None:
             sheets = self.sheet_names
             ret_dict = True
         else:
-            sheets = [sheetname]
+            sheets = [sheet_name]
 
         # handle same-type duplicates.
         sheets = list(OrderedDict.fromkeys(sheets).keys())
