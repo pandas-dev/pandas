@@ -235,7 +235,7 @@ as an attribute:
    - The attribute will not be available if it conflicts with an existing method name, e.g. ``s.min`` is not allowed.
 
    - Similarly, the attribute will not be available if it conflicts with any of the following list: ``index``,
-     ``major_axis``, ``minor_axis``, ``items``, ``labels``. However, from 0.23.0 and later, ``labels``  will be available.
+     ``major_axis``, ``minor_axis``, ``items``, ``labels``. However, in 0.23.0 and later, ``labels``  will be available.
 
    - In any of these cases, standard indexing will still work, e.g. ``s['1']``, ``s['min']``, and ``s['index']`` will
      access the corresponding element or column.
