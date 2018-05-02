@@ -1989,21 +1989,26 @@ class StringMethods(NoNewAttributesMixin):
             return ([others[x] for x in others], False)
         elif is_list_like(others):
             others = list(others)  # ensure iterators do not get read twice etc
+
+            # in case of list-like `others`, all elements must be
+            # either one-dimensional list-likes or scalars
             if all(is_list_like(x) for x in others):
                 los = []
                 warn = False
+                # iterate through list and append list of series for each
+                # element (which we check to be one-dimensional and non-nested)
                 while others:
-                    nxt = others.pop(0)  # nxt is list-like as per check above
+                    nxt = others.pop(0)  # nxt is guaranteed list-like by above
                     if not isinstance(nxt, (DataFrame, Series,
                                             Index, np.ndarray)):
-                        # safety for iterators and non-persistent list-likes
+                        # safety for non-persistent list-likes (e.g. iterators)
                         # do not map indexed/typed objects; info needed below
                         nxt = list(nxt)
 
-                    # known types without deep inspection
+                    # known types for which we can avoid deep inspection
                     no_deep = ((isinstance(nxt, np.ndarray) and nxt.ndim == 1)
                                or isinstance(nxt, (Series, Index)))
-                    # Nested list-likes are forbidden:
+                    # nested list-likes are forbidden:
                     # -> elements of nxt must not be list-like
                     is_legal = ((no_deep and nxt.dtype == object)
                                 or all(not is_list_like(x) for x in nxt))
