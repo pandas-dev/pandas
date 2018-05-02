@@ -266,8 +266,8 @@ Concatenating a Series and an indexed object into a Series, with alignment
 
 .. versionadded:: 0.23.0
 
-For concatenation with a ``Series`` or ``DataFrame``, it is possible to align the respective indexes before concatenation by setting
-the ``join``-keyword, which controls the manner of alignment.
+For concatenation with a ``Series`` or ``DataFrame``, it is possible to align the indexes before concatenation by setting
+the ``join``-keyword.
 
 .. ipython:: python
 
@@ -282,7 +282,7 @@ the ``join``-keyword, which controls the manner of alignment.
     If the ``join`` keyword is not passed, the method :meth:`~Series.str.cat` will currently fall back to the behavior before version 0.23.0 (i.e. no alignment),
     but a ``FutureWarning`` will be raised if any of the involved indexes differ, since this default will change to ``join='left'`` in a future version.
 
-To usual options are available for ``join`` (one of ``'left', 'outer', 'inner', 'right'``).
+The usual options are available for ``join`` (one of ``'left', 'outer', 'inner', 'right'``).
 In particular, alignment also means that the different lengths do not need to coincide anymore.
 
 .. ipython:: python

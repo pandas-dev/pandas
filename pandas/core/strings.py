@@ -1964,26 +1964,26 @@ class StringMethods(NoNewAttributesMixin):
 
         err_msg = ('others must be Series, Index, DataFrame, np.ndarrary or '
                    'list-like (either containing only strings or containing '
-                   'only objects of type Series/Index/list-like/np.ndarray')
+                   'only objects of type Series/Index/list-like/np.ndarray)')
 
         if isinstance(others, Series):
-            fut_warn = not others.index.equals(idx)
+            fu_wrn = not others.index.equals(idx)
             los = [Series(others.values, index=idx)
-                   if ignore_index and fut_warn else others]
-            return (los, fut_warn)
+                   if ignore_index and fu_wrn else others]
+            return (los, fu_wrn)
         elif isinstance(others, Index):
-            fut_warn = not others.equals(idx)
+            fu_wrn = not others.equals(idx)
             los = [Series(others.values,
                           index=(idx if ignore_index else others))]
-            return (los, fut_warn)
+            return (los, fu_wrn)
         elif isinstance(others, DataFrame):
-            fut_warn = not others.index.equals(idx)
-            if ignore_index and fut_warn:
+            fu_wrn = not others.index.equals(idx)
+            if ignore_index and fu_wrn:
                 # without copy, this could change "others"
                 # that was passed to str.cat
                 others = others.copy()
                 others.index = idx
-            return ([others[x] for x in others], fut_warn)
+            return ([others[x] for x in others], fu_wrn)
         elif isinstance(others, np.ndarray) and others.ndim == 2:
             others = DataFrame(others, index=idx)
             return ([others[x] for x in others], False)
@@ -1991,7 +1991,7 @@ class StringMethods(NoNewAttributesMixin):
             others = list(others)  # ensure iterators do not get read twice etc
             if all(is_list_like(x) for x in others):
                 los = []
-                fut_warn = False
+                fu_wrn = False
                 while others:
                     nxt = others.pop(0)  # list-like as per check above
                     # safety for iterators and other non-persistent list-likes
@@ -2016,10 +2016,11 @@ class StringMethods(NoNewAttributesMixin):
                     if not is_legal or isinstance(nxt, DataFrame):
                         raise TypeError(err_msg)
 
-                    tmp = self._get_series_list(nxt, ignore_index=ignore_index)
-                    los = los + tmp[0]
-                    fut_warn = fut_warn or tmp[1]
-                return (los, fut_warn)
+                    nxt, fwn = self._get_series_list(nxt,
+                                                     ignore_index=ignore_index)
+                    los = los + nxt
+                    fu_wrn = fu_wrn or fwn
+                return (los, fu_wrn)
             # test if there is a mix of list-like and non-list-like (e.g. str)
             elif (any(is_list_like(x) for x in others)
                   and any(not is_list_like(x) for x in others)):
@@ -2186,8 +2187,8 @@ class StringMethods(NoNewAttributesMixin):
 
         try:
             # turn anything in "others" into lists of Series
-            tmp = self._get_series_list(others, ignore_index=(join is None))
-            others, fut_warn = tmp
+            others, fu_wrn = self._get_series_list(others,
+                                                   ignore_index=(join is None))
         except ValueError:  # do not catch TypeError raised by _get_series_list
             if join is None:
                 raise ValueError('All arrays must be same length, except '
@@ -2198,7 +2199,7 @@ class StringMethods(NoNewAttributesMixin):
                                  'must all be of the same length as the '
                                  'calling Series/Index.')
 
-        if join is None and fut_warn:
+        if join is None and fu_wrn:
             warnings.warn("A future version of pandas will perform index "
                           "alignment when `others` is a Series/Index/"
                           "DataFrame (or a list-like containing one). To "
