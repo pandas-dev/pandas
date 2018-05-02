@@ -308,6 +308,24 @@ The :func:`DataFrame.assign` now accepts dependent keyword arguments for python 
 
       df.assign(A=df.A+1, C= lambda df: df.A* -1)
 
+.. _whatsnew_0230.enhancements.str_cat_align:
+
+``Series.str.cat`` has gained the ``join`` kwarg
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously, :meth:`Series.str.cat` did not -- in contrast to most of ``pandas`` -- align :class:`Series` on their index before concatenation (see :issue:`18657`).
+The method has now gained a keyword ``join`` to control the manner of alignment, see examples below and in :ref:`here <text.concatenate>`.
+
+In v.0.23 `join` will default to None (meaning no alignment), but this default will change to ``'left'`` in a future version of pandas.
+
+.. ipython:: python
+
+    s = pd.Series(['a', 'b', 'c', 'd'])
+    t = pd.Series(['b', 'd', 'e', 'c'], index=[1, 3, 4, 2])
+    s.str.cat(t)
+    s.str.cat(t, join='left', na_rep='-')
+
+Furthermore, meth:`Series.str.cat` now works for ``CategoricalIndex`` as well (previously raised a ``ValueError``; see :issue:`20842`).
 
 .. _whatsnew_0230.enhancements.astype_category:
 
@@ -396,6 +414,58 @@ documentation. If you build an extension array, publicize it on our
 
 .. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest/
 
+.. _whatsnew_0230.enhancements.categorical_grouping:
+
+Categorical Groupers has gained an observed keyword
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In previous versions, grouping by 1 or more categorical columns would result in an index that was the cartesian product of all of the categories for
+each grouper, not just the observed values.``.groupby()`` has gained the ``observed`` keyword to toggle this behavior. The default remains backward
+compatible (generate a cartesian product). (:issue:`14942`, :issue:`8138`, :issue:`15217`, :issue:`17594`, :issue:`8669`, :issue:`20583`)
+
+
+.. ipython:: python
+
+   cat1 = pd.Categorical(["a", "a", "b", "b"],
+                         categories=["a", "b", "z"], ordered=True)
+   cat2 = pd.Categorical(["c", "d", "c", "d"],
+                         categories=["c", "d", "y"], ordered=True)
+   df = pd.DataFrame({"A": cat1, "B": cat2, "values": [1, 2, 3, 4]})
+   df['C'] = ['foo', 'bar'] * 2
+   df
+
+To show all values, the previous behavior:
+
+.. ipython:: python
+
+   df.groupby(['A', 'B', 'C'], observed=False).count()
+
+
+To show only observed values:
+
+.. ipython:: python
+
+   df.groupby(['A', 'B', 'C'], observed=True).count()
+
+For pivotting operations, this behavior is *already* controlled by the ``dropna`` keyword:
+
+.. ipython:: python
+
+   cat1 = pd.Categorical(["a", "a", "b", "b"],
+                         categories=["a", "b", "z"], ordered=True)
+   cat2 = pd.Categorical(["c", "d", "c", "d"],
+                         categories=["c", "d", "y"], ordered=True)
+   df = DataFrame({"A": cat1, "B": cat2, "values": [1, 2, 3, 4]})
+   df
+
+.. ipython:: python
+
+   pd.pivot_table(df, values='values', index=['A', 'B'],
+                  dropna=True)
+   pd.pivot_table(df, values='values', index=['A', 'B'],
+                  dropna=False)
+
+
 .. _whatsnew_0230.enhancements.other:
 
 Other Enhancements
@@ -443,6 +513,7 @@ Other Enhancements
 - :meth:`DataFrame.to_sql` now performs a multivalue insert if the underlying connection supports itk rather than inserting row by row.
   ``SQLAlchemy`` dialects supporting multivalue inserts include: ``mysql``, ``postgresql``, ``sqlite`` and any dialect with ``supports_multivalues_insert``. (:issue:`14315`, :issue:`8953`)
 - :func:`read_html` now accepts a ``displayed_only`` keyword argument to controls whether or not hidden elements are parsed (``True`` by default) (:issue:`20027`)
+- :func:`read_html` now reads all ``<tbody>`` elements in a ``<table>``, not just the first. (:issue:`20690`)
 - :meth:`~pandas.core.window.Rolling.quantile` and :meth:`~pandas.core.window.Expanding.quantile` now accept the ``interpolation`` keyword, ``linear`` by default (:issue:`20497`)
 - zip compression is supported via ``compression=zip`` in :func:`DataFrame.to_pickle`, :func:`Series.to_pickle`, :func:`DataFrame.to_csv`, :func:`Series.to_csv`, :func:`DataFrame.to_json`, :func:`Series.to_json`. (:issue:`17778`)
 - :class:`pandas.tseries.api.offsets.WeekOfMonth` constructor now supports ``n=0`` (:issue:`20517`).
@@ -450,6 +521,8 @@ Other Enhancements
 - Updated :meth:`DataFrame.to_gbq` and :meth:`pandas.read_gbq` signature and documentation to reflect changes from
   the Pandas-GBQ library version 0.4.0. Adds intersphinx mapping to Pandas-GBQ
   library. (:issue:`20564`)
+- Added new writer for exporting Stata dta files in version 117, ``StataWriter117``.  This format supports exporting strings with lengths up to 2,000,000 characters (:issue:`16450`)
+- :func:`to_hdf` and :func:`read_hdf` now accept an ``errors`` keyword argument to control encoding error handling (:issue:`20835`)
 
 .. _whatsnew_0230.api_breaking:
 
@@ -638,6 +711,36 @@ Returning a ``Series`` allows one to control the exact return structure and colu
 .. ipython:: python
 
     df.apply(lambda x: Series([1, 2, 3], index=['D', 'E', 'F']), axis=1)
+
+.. _whatsnew_0230.api_breaking.concat:
+
+Concatenation will no longer sort
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In a future version of pandas :func:`pandas.concat` will no longer sort the non-concatenation axis when it is not already aligned.
+The current behavior is the same as the previous (sorting), but now a warning is issued when ``sort`` is not specified and the non-concatenation axis is not aligned (:issue:`4588`).
+
+.. ipython:: python
+   :okwarning:
+
+   df1 = pd.DataFrame({"a": [1, 2], "b": [1, 2]}, columns=['b', 'a'])
+   df2 = pd.DataFrame({"a": [4, 5]})
+
+   pd.concat([df1, df2])
+
+To keep the previous behavior (sorting) and silence the warning, pass ``sort=True``
+
+.. ipython:: python
+
+   pd.concat([df1, df2], sort=True)
+
+To accept the future behavior (no sorting), pass ``sort=False``
+
+.. ipython
+
+   pd.concat([df1, df2], sort=False)
+
+Note that this change also applies to :meth:`DataFrame.append`, which has also received a ``sort`` keyword for controlling this behavior.
 
 
 .. _whatsnew_0230.api_breaking.build_changes:
@@ -874,6 +977,7 @@ Deprecations
 - The ``is_copy`` attribute is deprecated and will be removed in a future version (:issue:`18801`).
 - ``IntervalIndex.from_intervals`` is deprecated in favor of the :class:`IntervalIndex` constructor (:issue:`19263`)
 - ``DataFrame.from_items`` is deprecated. Use :func:`DataFrame.from_dict` instead, or ``DataFrame.from_dict(OrderedDict())`` if you wish to preserve the key order (:issue:`17320`, :issue:`17312`)
+- Indexing a :class:`MultiIndex` or a :class:`FloatIndex` with a list containing some missing keys will now show a :class:`FutureWarning`, which is consistent with other types of indexes (:issue:`17758`).
 
 - The ``broadcast`` parameter of ``.apply()`` is deprecated in favor of ``result_type='broadcast'`` (:issue:`18577`)
 - The ``reduce`` parameter of ``.apply()`` is deprecated in favor of ``result_type='reduce'`` (:issue:`18577`)
@@ -961,6 +1065,7 @@ Performance Improvements
 - Improved performance of :func:`pandas.core.groupby.GroupBy.any` and :func:`pandas.core.groupby.GroupBy.all` (:issue:`15435`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.pct_change` (:issue:`19165`)
 - Improved performance of :func:`Series.isin` in the case of categorical dtypes (:issue:`20003`)
+- Improved performance of ``getattr(Series, attr)`` when the Series has certain index types. This manifiested in slow printing of large Series with a ``DatetimeIndex`` (:issue:`19764`)
 - Fixed a performance regression for :func:`GroupBy.nth` and :func:`GroupBy.last` with some object columns (:issue:`19283`)
 
 .. _whatsnew_0230.docs:
@@ -1123,6 +1228,8 @@ Indexing
 - :func:`Index.to_series` now accepts ``index`` and ``name`` kwargs (:issue:`18699`)
 - :func:`DatetimeIndex.to_series` now accepts ``index`` and ``name`` kwargs (:issue:`18699`)
 - Bug in indexing non-scalar value from ``Series`` having non-unique ``Index`` will return value flattened (:issue:`17610`)
+- Bug in indexing with iterator containing only missing keys, which raised no error (:issue:`20748`)
+- Fixed inconsistency in ``.ix`` between list and scalar keys when the index has integer dtype and does not include the desired keys (:issue:`20753`)
 - Bug in ``__setitem__`` when indexing a :class:`DataFrame` with a 2-d boolean ndarray (:issue:`18582`)
 - Bug in ``str.extractall`` when there were no matches empty :class:`Index` was returned instead of appropriate :class:`MultiIndex` (:issue:`19034`)
 - Bug in :class:`IntervalIndex` where empty and purely NA data was constructed inconsistently depending on the construction method (:issue:`18421`)
@@ -1206,6 +1313,7 @@ Groupby/Resample/Rolling
 - Bug in :func:`DataFrameGroupBy.cumsum` and :func:`DataFrameGroupBy.cumprod` when ``skipna`` was passed (:issue:`19806`)
 - Bug in :func:`DataFrame.resample` that dropped timezone information (:issue:`13238`)
 - Bug in :func:`DataFrame.groupby` where transformations using ``np.all`` and ``np.any`` were raising a ``ValueError`` (:issue:`20653`)
+- Bug in :func:`DataFrame.resample` where ``ffill``, ``bfill``, ``pad``, ``backfill``, ``fillna``, ``interpolate``, and ``asfreq`` were ignoring ``loffset``. (:issue:`20744`)
 
 Sparse
 ^^^^^^
@@ -1223,6 +1331,7 @@ Reshaping
 - Bug in :func:`DataFrame.unstack` which raises an error if ``index`` is a ``MultiIndex`` with unused labels on the unstacked level (:issue:`18562`)
 - Fixed construction of a :class:`Series` from a ``dict`` containing ``NaN`` as key (:issue:`18480`)
 - Fixed construction of a :class:`DataFrame` from a ``dict`` containing ``NaN`` as key (:issue:`18455`)
+- Disabled construction of a :class:`Series` where len(index) > len(data) = 1, which previously would broadcast the data item, and now raises a ``ValueError`` (:issue:`18819`)
 - Suppressed error in the construction of a :class:`DataFrame` from a ``dict`` containing scalar values when the corresponding keys are not included in the passed index (:issue:`18600`)
 
 - Fixed (changed from ``object`` to ``float64``) dtype of :class:`DataFrame` initialized with axes, no data, and ``dtype=int`` (:issue:`19646`)

@@ -317,7 +317,11 @@ def read_hdf(path_or_buf, key=None, mode='r', **kwargs):
         Return an iterator object.
     chunksize : int, optional
         Number of rows to include in an iteration when using an iterator.
-    kwargs : dict
+    errors : str, default 'strict'
+        Specifies how encoding and decoding errors are to be handled.
+        See the errors argument for :func:`open` for a full list
+        of options.
+    **kwargs
         Additional keyword arguments passed to HDFStore.
 
     Returns
@@ -727,7 +731,7 @@ class HDFStore(StringMixin):
         def func(_start, _stop, _where):
             return s.read(start=_start, stop=_stop,
                           where=_where,
-                          columns=columns, **kwargs)
+                          columns=columns)
 
         # create the iterator
         it = TableIterator(self, s, func, where=where, nrows=s.nrows,
@@ -1588,14 +1592,14 @@ class IndexCol(StringMixin):
         new_self.read_metadata(handler)
         return new_self
 
-    def convert(self, values, nan_rep, encoding):
+    def convert(self, values, nan_rep, encoding, errors):
         """ set the values from this selection: take = take ownership """
 
         # values is a recarray
         if values.dtype.fields is not None:
             values = values[self.cname]
 
-        values = _maybe_convert(values, self.kind, encoding)
+        values = _maybe_convert(values, self.kind, encoding, errors)
 
         kwargs = dict()
         if self.freq is not None:
@@ -1770,7 +1774,7 @@ class GenericIndexCol(IndexCol):
     def is_indexed(self):
         return False
 
-    def convert(self, values, nan_rep, encoding):
+    def convert(self, values, nan_rep, encoding, errors):
         """ set the values from this selection: take = take ownership """
 
         self.values = Int64Index(np.arange(self.table.nrows))
@@ -1899,7 +1903,7 @@ class DataCol(IndexCol):
                 self.typ = getattr(self.description, self.cname, None)
 
     def set_atom(self, block, block_items, existing_col, min_itemsize,
-                 nan_rep, info, encoding=None, **kwargs):
+                 nan_rep, info, encoding=None, errors='strict'):
         """ create and setup my atom from the block b """
 
         self.values = list(block_items)
@@ -1944,7 +1948,8 @@ class DataCol(IndexCol):
                 existing_col,
                 min_itemsize,
                 nan_rep,
-                encoding)
+                encoding,
+                errors)
 
         # set as a data block
         else:
@@ -1954,7 +1959,7 @@ class DataCol(IndexCol):
         return _tables().StringCol(itemsize=itemsize, shape=block.shape[0])
 
     def set_atom_string(self, block, block_items, existing_col, min_itemsize,
-                        nan_rep, encoding):
+                        nan_rep, encoding, errors):
         # fill nan items with myself, don't disturb the blocks by
         # trying to downcast
         block = block.fillna(nan_rep, downcast=False)
@@ -1980,7 +1985,7 @@ class DataCol(IndexCol):
                     )
 
         # itemsize is the maximum length of a string (along any dimension)
-        data_converted = _convert_string_array(data, encoding)
+        data_converted = _convert_string_array(data, encoding, errors)
         itemsize = data_converted.itemsize
 
         # specified min_itemsize?
@@ -2111,7 +2116,7 @@ class DataCol(IndexCol):
                 raise ValueError("appended items dtype do not match existing "
                                  "items dtype in table!")
 
-    def convert(self, values, nan_rep, encoding):
+    def convert(self, values, nan_rep, encoding, errors):
         """set the data from this selection (and convert to the correct dtype
         if we can)
         """
@@ -2185,7 +2190,7 @@ class DataCol(IndexCol):
         # convert nans / decode
         if _ensure_decoded(self.kind) == u('string'):
             self.data = _unconvert_string_array(
-                self.data, nan_rep=nan_rep, encoding=encoding)
+                self.data, nan_rep=nan_rep, encoding=encoding, errors=errors)
 
         return self
 
@@ -2251,10 +2256,12 @@ class Fixed(StringMixin):
     ndim = None
     is_table = False
 
-    def __init__(self, parent, group, encoding=None, **kwargs):
+    def __init__(self, parent, group, encoding=None, errors='strict',
+                 **kwargs):
         self.parent = parent
         self.group = group
         self.encoding = _ensure_encoding(encoding)
+        self.errors = errors
         self.set_version()
 
     @property
@@ -2458,10 +2465,12 @@ class GenericFixed(Fixed):
     def set_attrs(self):
         """ set our object attributes """
         self.attrs.encoding = self.encoding
+        self.attrs.errors = self.errors
 
     def get_attrs(self):
         """ retrieve our attributes """
         self.encoding = _ensure_encoding(getattr(self.attrs, 'encoding', None))
+        self.errors = getattr(self.attrs, 'errors', 'strict')
         for n in self.attributes:
             setattr(self, n, _ensure_decoded(getattr(self.attrs, n, None)))
 
@@ -2528,7 +2537,7 @@ class GenericFixed(Fixed):
             self.write_sparse_intindex(key, index)
         else:
             setattr(self.attrs, '%s_variety' % key, 'regular')
-            converted = _convert_index(index, self.encoding,
+            converted = _convert_index(index, self.encoding, self.errors,
                                        self.format_type).set_name('index')
 
             self.write_array(key, converted.values)
@@ -2574,7 +2583,7 @@ class GenericFixed(Fixed):
                                                  index.names)):
             # write the level
             level_key = '%s_level%d' % (key, i)
-            conv_level = _convert_index(lev, self.encoding,
+            conv_level = _convert_index(lev, self.encoding, self.errors,
                                         self.format_type).set_name(level_key)
             self.write_array(level_key, conv_level.values)
             node = getattr(self.group, level_key)
@@ -2635,11 +2644,13 @@ class GenericFixed(Fixed):
 
         if kind in (u('date'), u('datetime')):
             index = factory(_unconvert_index(data, kind,
-                                             encoding=self.encoding),
+                                             encoding=self.encoding,
+                                             errors=self.errors),
                             dtype=object, **kwargs)
         else:
             index = factory(_unconvert_index(data, kind,
-                                             encoding=self.encoding), **kwargs)
+                                             encoding=self.encoding,
+                                             errors=self.errors), **kwargs)
 
         index.name = name
 
@@ -2752,7 +2763,8 @@ class LegacyFixed(GenericFixed):
         node = getattr(self.group, key)
         data = node[start:stop]
         kind = node._v_attrs.kind
-        return _unconvert_index_legacy(data, kind, encoding=self.encoding)
+        return _unconvert_index_legacy(data, kind, encoding=self.encoding,
+                                       errors=self.errors)
 
 
 class LegacySeriesFixed(LegacyFixed):
@@ -3171,7 +3183,8 @@ class Table(Fixed):
         """
         values = Series(values)
         self.parent.put(self._get_metadata_path(key), values, format='table',
-                        encoding=self.encoding, nan_rep=self.nan_rep)
+                        encoding=self.encoding, errors=self.errors,
+                        nan_rep=self.nan_rep)
 
     def read_metadata(self, key):
         """ return the meta data array for this key """
@@ -3192,6 +3205,7 @@ class Table(Fixed):
         self.attrs.data_columns = self.data_columns
         self.attrs.nan_rep = self.nan_rep
         self.attrs.encoding = self.encoding
+        self.attrs.errors = self.errors
         self.attrs.levels = self.levels
         self.attrs.metadata = self.metadata
         self.set_info()
@@ -3207,6 +3221,7 @@ class Table(Fixed):
         self.nan_rep = getattr(self.attrs, 'nan_rep', None)
         self.encoding = _ensure_encoding(
             getattr(self.attrs, 'encoding', None))
+        self.errors = getattr(self.attrs, 'errors', 'strict')
         self.levels = getattr(
             self.attrs, 'levels', None) or []
         self.index_axes = [
@@ -3364,7 +3379,8 @@ class Table(Fixed):
         # convert the data
         for a in self.axes:
             a.set_info(self.info)
-            a.convert(values, nan_rep=self.nan_rep, encoding=self.encoding)
+            a.convert(values, nan_rep=self.nan_rep, encoding=self.encoding,
+                      errors=self.errors)
 
         return True
 
@@ -3446,6 +3462,7 @@ class Table(Fixed):
             data_columns = existing_table.data_columns
             nan_rep = existing_table.nan_rep
             self.encoding = existing_table.encoding
+            self.errors = existing_table.errors
             self.info = copy.copy(existing_table.info)
         else:
             existing_table = None
@@ -3472,7 +3489,7 @@ class Table(Fixed):
             if i in axes:
                 name = obj._AXIS_NAMES[i]
                 index_axes_map[i] = _convert_index(
-                    a, self.encoding, self.format_type
+                    a, self.encoding, self.errors, self.format_type
                 ).set_name(name).set_axis(i)
             else:
 
@@ -3591,8 +3608,8 @@ class Table(Fixed):
                              min_itemsize=min_itemsize,
                              nan_rep=nan_rep,
                              encoding=self.encoding,
-                             info=self.info,
-                             **kwargs)
+                             errors=self.errors,
+                             info=self.info)
                 col.set_pos(j)
 
                 self.values_axes.append(col)
@@ -3756,7 +3773,8 @@ class Table(Fixed):
                 a.set_info(self.info)
                 return Series(_set_tz(a.convert(c[start:stop],
                                                 nan_rep=self.nan_rep,
-                                                encoding=self.encoding
+                                                encoding=self.encoding,
+                                                errors=self.errors
                                                 ).take_data(),
                                       a.tz, True), name=column)
 
@@ -4437,7 +4455,7 @@ def _set_tz(values, tz, preserve_UTC=False, coerce=False):
     return values
 
 
-def _convert_index(index, encoding=None, format_type=None):
+def _convert_index(index, encoding=None, errors='strict', format_type=None):
     index_name = getattr(index, 'name', None)
 
     if isinstance(index, DatetimeIndex):
@@ -4491,7 +4509,7 @@ def _convert_index(index, encoding=None, format_type=None):
         # atom = _tables().ObjectAtom()
         # return np.asarray(values, dtype='O'), 'object', atom
 
-        converted = _convert_string_array(values, encoding)
+        converted = _convert_string_array(values, encoding, errors)
         itemsize = converted.dtype.itemsize
         return IndexCol(
             converted, 'string', _tables().StringCol(itemsize),
@@ -4522,7 +4540,7 @@ def _convert_index(index, encoding=None, format_type=None):
                         index_name=index_name)
 
 
-def _unconvert_index(data, kind, encoding=None):
+def _unconvert_index(data, kind, encoding=None, errors='strict'):
     kind = _ensure_decoded(kind)
     if kind == u('datetime64'):
         index = DatetimeIndex(data)
@@ -4541,7 +4559,8 @@ def _unconvert_index(data, kind, encoding=None):
     elif kind in (u('integer'), u('float')):
         index = np.asarray(data)
     elif kind in (u('string')):
-        index = _unconvert_string_array(data, nan_rep=None, encoding=encoding)
+        index = _unconvert_string_array(data, nan_rep=None, encoding=encoding,
+                                        errors=errors)
     elif kind == u('object'):
         index = np.asarray(data[0])
     else:  # pragma: no cover
@@ -4549,20 +4568,22 @@ def _unconvert_index(data, kind, encoding=None):
     return index
 
 
-def _unconvert_index_legacy(data, kind, legacy=False, encoding=None):
+def _unconvert_index_legacy(data, kind, legacy=False, encoding=None,
+                            errors='strict'):
     kind = _ensure_decoded(kind)
     if kind == u('datetime'):
         index = to_datetime(data)
     elif kind in (u('integer')):
         index = np.asarray(data, dtype=object)
     elif kind in (u('string')):
-        index = _unconvert_string_array(data, nan_rep=None, encoding=encoding)
+        index = _unconvert_string_array(data, nan_rep=None, encoding=encoding,
+                                        errors=errors)
     else:  # pragma: no cover
         raise ValueError('unrecognized index type %s' % kind)
     return index
 
 
-def _convert_string_array(data, encoding, itemsize=None):
+def _convert_string_array(data, encoding, errors, itemsize=None):
     """
     we take a string-like that is object dtype and coerce to a fixed size
     string type
@@ -4571,6 +4592,7 @@ def _convert_string_array(data, encoding, itemsize=None):
     ----------
     data : a numpy array of object dtype
     encoding : None or string-encoding
+    errors : handler for encoding errors
     itemsize : integer, optional, defaults to the max length of the strings
 
     Returns
@@ -4581,7 +4603,7 @@ def _convert_string_array(data, encoding, itemsize=None):
     # encode if needed
     if encoding is not None and len(data):
         data = Series(data.ravel()).str.encode(
-            encoding).values.reshape(data.shape)
+            encoding, errors).values.reshape(data.shape)
 
     # create the sized dtype
     if itemsize is None:
@@ -4592,7 +4614,8 @@ def _convert_string_array(data, encoding, itemsize=None):
     return data
 
 
-def _unconvert_string_array(data, nan_rep=None, encoding=None):
+def _unconvert_string_array(data, nan_rep=None, encoding=None,
+                            errors='strict'):
     """
     inverse of _convert_string_array
 
@@ -4601,6 +4624,7 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None):
     data : fixed length string dtyped array
     nan_rep : the storage repr of NaN, optional
     encoding : the encoding of the data, optional
+    errors : handler for encoding errors, default 'strict'
 
     Returns
     -------
@@ -4622,7 +4646,7 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None):
             dtype = "S{0}".format(itemsize)
 
         if isinstance(data[0], compat.binary_type):
-            data = Series(data).str.decode(encoding).values
+            data = Series(data).str.decode(encoding, errors=errors).values
         else:
             data = data.astype(dtype, copy=False).astype(object, copy=False)
 
@@ -4633,22 +4657,23 @@ def _unconvert_string_array(data, nan_rep=None, encoding=None):
     return data.reshape(shape)
 
 
-def _maybe_convert(values, val_kind, encoding):
+def _maybe_convert(values, val_kind, encoding, errors):
     if _need_convert(val_kind):
-        conv = _get_converter(val_kind, encoding)
+        conv = _get_converter(val_kind, encoding, errors)
         # conv = np.frompyfunc(conv, 1, 1)
         values = conv(values)
     return values
 
 
-def _get_converter(kind, encoding):
+def _get_converter(kind, encoding, errors):
     kind = _ensure_decoded(kind)
     if kind == 'datetime64':
         return lambda x: np.asarray(x, dtype='M8[ns]')
     elif kind == 'datetime':
         return lambda x: to_datetime(x, cache=True).to_pydatetime()
     elif kind == 'string':
-        return lambda x: _unconvert_string_array(x, encoding=encoding)
+        return lambda x: _unconvert_string_array(x, encoding=encoding,
+                                                 errors=errors)
     else:  # pragma: no cover
         raise ValueError('invalid kind %s' % kind)
 

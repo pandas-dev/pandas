@@ -251,7 +251,7 @@ class TestGrouping():
         by_columns.columns = pd.Index(by_columns.columns, dtype=np.int64)
         tm.assert_frame_equal(by_levels, by_columns)
 
-    def test_groupby_categorical_index_and_columns(self):
+    def test_groupby_categorical_index_and_columns(self, observed):
         # GH18432
         columns = ['A', 'B', 'A', 'B']
         categories = ['B', 'A']
@@ -260,17 +260,26 @@ class TestGrouping():
                                        categories=categories,
                                        ordered=True)
         df = DataFrame(data=data, columns=cat_columns)
-        result = df.groupby(axis=1, level=0).sum()
+        result = df.groupby(axis=1, level=0, observed=observed).sum()
         expected_data = 2 * np.ones((5, 2), int)
-        expected_columns = CategoricalIndex(categories,
-                                            categories=categories,
-                                            ordered=True)
+
+        if observed:
+            # if we are not-observed we undergo a reindex
+            # so need to adjust the output as our expected sets us up
+            # to be non-observed
+            expected_columns = CategoricalIndex(['A', 'B'],
+                                                categories=categories,
+                                                ordered=True)
+        else:
+            expected_columns = CategoricalIndex(categories,
+                                                categories=categories,
+                                                ordered=True)
         expected = DataFrame(data=expected_data, columns=expected_columns)
         assert_frame_equal(result, expected)
 
         # test transposed version
         df = DataFrame(data.T, index=cat_columns)
-        result = df.groupby(axis=0, level=0).sum()
+        result = df.groupby(axis=0, level=0, observed=observed).sum()
         expected = DataFrame(data=expected_data.T, index=expected_columns)
         assert_frame_equal(result, expected)
 
@@ -572,11 +581,11 @@ class TestGetGroup():
         pytest.raises(ValueError,
                       lambda: g.get_group(('foo', 'bar', 'baz')))
 
-    def test_get_group_empty_bins(self):
+    def test_get_group_empty_bins(self, observed):
 
         d = pd.DataFrame([3, 1, 7, 6])
         bins = [0, 5, 10, 15]
-        g = d.groupby(pd.cut(d[0], bins))
+        g = d.groupby(pd.cut(d[0], bins), observed=observed)
 
         # TODO: should prob allow a str of Interval work as well
         # IOW '(0, 5]'
