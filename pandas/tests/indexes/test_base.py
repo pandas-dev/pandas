@@ -13,7 +13,7 @@ from pandas.core.indexes.api import Index, MultiIndex
 from pandas.tests.indexes.common import Base
 
 from pandas.compat import (range, lrange, lzip, u,
-                           text_type, zip, PY3, PY36, PYPY)
+                           text_type, zip, PY3, PY35, PY36, PYPY)
 import operator
 import numpy as np
 
@@ -1297,7 +1297,16 @@ class TestIndex(Base):
     def test_get_loc_raises_bad_label(self, method):
         index = pd.Index([0, 1, 2])
         if method:
-            msg = 'not supported between'
+            # Messages vary across versions
+            if PY36:
+                msg = 'not supported between'
+            elif PY35:
+                msg = 'unorderable types'
+            else:
+                if method == 'nearest':
+                    msg = 'unsupported operand'
+                else:
+                    msg = 'requires scalar valued input'
         else:
             msg = 'invalid key'
 
