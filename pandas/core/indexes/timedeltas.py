@@ -178,7 +178,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     _field_ops = ['days', 'seconds', 'microseconds', 'nanoseconds']
     _datetimelike_ops = _field_ops + _object_ops + _bool_ops
     _datetimelike_methods = ["to_pytimedelta", "total_seconds",
-                             "round", "floor", "ceil"]
+                             "round", "floor", "ceil", "set_freq"]
 
     @classmethod
     def _add_comparison_methods(cls):

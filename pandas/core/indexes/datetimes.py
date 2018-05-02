@@ -320,7 +320,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     _other_ops = ['date', 'time']
     _datetimelike_ops = _field_ops + _object_ops + _bool_ops + _other_ops
     _datetimelike_methods = ['to_period', 'tz_localize',
-                             'tz_convert',
+                             'tz_convert', 'set_freq',
                              'normalize', 'strftime', 'round', 'floor',
                              'ceil', 'month_name', 'day_name']
 
