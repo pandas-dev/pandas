@@ -1293,7 +1293,7 @@ class TestIndex(Base):
         if method:
             assert index.get_loc(1, method=method, tolerance=0) == 1
 
-    @pytest.mark.parametrize("method", [None, 'pad', 'backfill', 'nearest'])        
+    @pytest.mark.parametrize("method", [None, 'pad', 'backfill', 'nearest'])
     def test_get_loc_raises_bad_label(self, method):
         index = pd.Index([0, 1, 2])
         if method:
@@ -1307,28 +1307,28 @@ class TestIndex(Base):
     @pytest.mark.parametrize("method,loc", [
         ('pad', 1), ('backfill', 2), ('nearest', 1)])
     def test_get_loc_tolerance(self, method, loc):
-        index = pd.Index([0, 1, 2])        
+        index = pd.Index([0, 1, 2])
         assert index.get_loc(1.1, method) == loc
         assert index.get_loc(1.1, method, tolerance=1) == loc
 
     @pytest.mark.parametrize("method", ['pad', 'backfill', 'nearest'])
     def test_get_loc_outside_tolerance_raises(self, method):
-        index = pd.Index([0, 1, 2])        
+        index = pd.Index([0, 1, 2])
         with tm.assert_raises_regex(KeyError, '1.1'):
             index.get_loc(1.1, method, tolerance=0.05)
 
     def test_get_loc_bad_tolerance_raises(self):
-        index = pd.Index([0, 1, 2])        
+        index = pd.Index([0, 1, 2])
         with tm.assert_raises_regex(ValueError, 'must be numeric'):
             index.get_loc(1.1, 'nearest', tolerance='invalid')
 
     def test_get_loc_tolerance_no_method_raises(self):
-        index = pd.Index([0, 1, 2])        
+        index = pd.Index([0, 1, 2])
         with tm.assert_raises_regex(ValueError, 'tolerance .* valid if'):
             index.get_loc(1.1, tolerance=1)
 
     def test_get_loc_raises_missized_tolerance(self):
-        index = pd.Index([0, 1, 2])        
+        index = pd.Index([0, 1, 2])
         with tm.assert_raises_regex(ValueError, 'tolerance size must match'):
             index.get_loc(1.1, 'nearest', tolerance=[1, 1])
 
@@ -1375,7 +1375,7 @@ class TestIndex(Base):
         # GH 4892, these are all TypeErrors
         index = Index(np.array([0, 1, 2, 5, 6, 7, 9, 10], dtype=int))
         n = len(index)
-        
+
         pytest.raises(TypeError,
                       lambda: index.slice_locs(5.0, 10.0))
         pytest.raises(TypeError,
@@ -1423,7 +1423,7 @@ class TestIndex(Base):
         with tm.assert_raises_regex(KeyError, ''):
             index.slice_locs(start=1.5)
 
-        with tm.assert_raises_regex(KeyError, ''):            
+        with tm.assert_raises_regex(KeyError, ''):
             index.slice_locs(end=1.5)
 
     @pytest.mark.parametrize("in_slice,expected", [
@@ -1442,13 +1442,13 @@ class TestIndex(Base):
         index = Index(list('bcdxy'))
 
         s_start, s_stop = index.slice_locs(in_slice.start, in_slice.stop,
-                                         in_slice.step)
+                                           in_slice.step)
         result = index[s_start:s_stop:in_slice.step]
         expected = pd.Index(list(expected))
         tm.assert_index_equal(result, expected)
 
     def test_drop_by_str_label(self):
-        # TODO: Parametrize these after replacing self.strIndex with fixture        
+        # TODO: Parametrize these after replacing self.strIndex with fixture
         n = len(self.strIndex)
         drop = self.strIndex[lrange(5, 10)]
         dropped = self.strIndex.drop(drop)
@@ -1466,8 +1466,8 @@ class TestIndex(Base):
             self.strIndex.drop(keys)
 
     def test_drop_by_str_label_errors_ignore(self):
-        # TODO: Parametrize these after replacing self.strIndex with fixture        
-        
+        # TODO: Parametrize these after replacing self.strIndex with fixture
+
         # errors='ignore'
         n = len(self.strIndex)
         drop = self.strIndex[lrange(5, 10)]
@@ -1490,14 +1490,14 @@ class TestIndex(Base):
         tm.assert_index_equal(dropped, expected)
 
     def test_drop_by_numeric_label_raises_missing_keys(self):
-        index = Index([1, 2, 3])        
+        index = Index([1, 2, 3])
         with tm.assert_raises_regex(KeyError, ''):
             index.drop([3, 4])
 
     @pytest.mark.parametrize("key,expected", [
         (4, Index([1, 2, 3])), ([3, 4, 5], Index([1, 2]))])
     def test_drop_by_numeric_label_errors_ignore(self, key, expected):
-        index = Index([1, 2, 3])        
+        index = Index([1, 2, 3])
         dropped = index.drop(key, errors='ignore')
 
         tm.assert_index_equal(dropped, expected)
@@ -1531,14 +1531,14 @@ class TestIndex(Base):
     ])
     def test_tuple_union_bug(self, method, expected):
         index1 = Index(np.array([(1, 'A'), (2, 'A'), (1, 'B'), (2, 'B')],
-                                 dtype=[('num', int), ('let', 'a1')]))
+                                dtype=[('num', int), ('let', 'a1')]))
         index2 = Index(np.array([(1, 'A'), (2, 'A'), (1, 'B'),
-                                  (2, 'B'), (1, 'C'), (2, 'C')],
-                                 dtype=[('num', int), ('let', 'a1')]))
+                                 (2, 'B'), (1, 'C'), (2, 'C')],
+                                dtype=[('num', int), ('let', 'a1')]))
 
         result = getattr(index1, method)(index2)
         assert result.ndim == 1
-        
+
         expected = Index(expected)
         tm.assert_index_equal(result, expected)
 
@@ -1577,7 +1577,7 @@ class TestIndex(Base):
 
         if PYPY and nulls_fixture is np.nan:  # np.nan is float('nan') on PyPy
             tm.assert_numpy_array_equal(Index(['a', nulls_fixture]).isin(
-                [float('nan')]),np.array([False, True]))
+                [float('nan')]), np.array([False, True]))
 
         elif nulls_fixture is nulls_fixture2:  # should preserve NA type
             tm.assert_numpy_array_equal(Index(['a', nulls_fixture]).isin(
@@ -1585,7 +1585,7 @@ class TestIndex(Base):
 
         else:
             tm.assert_numpy_array_equal(Index(['a', nulls_fixture]).isin(
-                [nulls_fixture2]), np.array([False, False]))            
+                [nulls_fixture2]), np.array([False, False]))
 
     def test_isin_nan_common_float64(self, nulls_fixture):
         if nulls_fixture is pd.NaT:
@@ -1613,7 +1613,7 @@ class TestIndex(Base):
         index.name = 'foobar'
         tm.assert_numpy_array_equal(expected,
                                     index.isin(values, level='foobar'))
-        
+
     @pytest.mark.parametrize("level", [1, 10, -2])
     @pytest.mark.parametrize("index", [
         Index(['qux', 'baz', 'foo', 'bar']),
@@ -1771,7 +1771,7 @@ class TestIndex(Base):
 
         # allow_fill=False
         result = index.take(np.array([1, 0, -1]), allow_fill=False,
-                          fill_value=True)
+                            fill_value=True)
         expected = pd.Index(['B', 'A', 'C'], name='xxx')
         tm.assert_index_equal(result, expected)
 
@@ -1786,7 +1786,7 @@ class TestIndex(Base):
             index.take(np.array([1, 0, -5]), fill_value=True)
 
     def test_take_bad_bounds_raises(self):
-        index = pd.Index(list('ABC'), name='xxx')            
+        index = pd.Index(list('ABC'), name='xxx')
         with tm.assert_raises_regex(IndexError, 'out of bounds'):
             index.take(np.array([1, -5]))
 
@@ -1821,11 +1821,11 @@ class TestIndex(Base):
         assert index.reindex(labels)[0].dtype.type == np.int64
 
     def test_reindex_no_type_preserve_target_empty_mi(self):
-        index = pd.Index(list('abc'))    
+        index = pd.Index(list('abc'))
         result = index.reindex(pd.MultiIndex(
             [pd.Int64Index([]), pd.Float64Index([])], [[], []]))[0]
-        assert reindexed.levels[0].dtype.type == np.int64
-        assert reindexed.levels[1].dtype.type == np.float64
+        assert result.levels[0].dtype.type == np.int64
+        assert result.levels[1].dtype.type == np.float64
 
     def test_groupby(self):
         idx = Index(range(5))
