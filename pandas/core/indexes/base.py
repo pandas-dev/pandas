@@ -42,6 +42,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_any_dtype,
     is_datetime64tz_dtype,
     is_timedelta64_dtype,
+    is_hashable,
     needs_i8_conversion,
     is_iterator, is_list_like,
     is_scalar)
@@ -242,7 +243,8 @@ class Index(IndexOpsMixin, PandasObject):
 
     _engine_type = libindex.ObjectEngine
 
-    _accessors = frozenset(['str'])
+    _accessors = set(['str'])
+
     str = CachedAccessor("str", StringMethods)
 
     def __new__(cls, data=None, dtype=None, copy=False, name=None,
@@ -548,6 +550,9 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if copy:
             # Retrieve the "base objects", i.e. the original memory allocations
+            if not isinstance(orig, np.ndarray):
+                # orig is a DatetimeIndex
+                orig = orig.values
             orig = orig if orig.base is None else orig.base
             new = self._data if self._data.base is None else self._data.base
             if orig is new:
@@ -1311,9 +1316,33 @@ class Index(IndexOpsMixin, PandasObject):
         return FrozenList((self.name, ))
 
     def _set_names(self, values, level=None):
+        """
+        Set new names on index. Each name has to be a hashable type.
+
+        Parameters
+        ----------
+        values : str or sequence
+            name(s) to set
+        level : int, level name, or sequence of int/level names (default None)
+            If the index is a MultiIndex (hierarchical), level(s) to set (None
+            for all levels).  Otherwise level must be None
+
+        Raises
+        ------
+        TypeError if each name is not hashable.
+        """
+        if not is_list_like(values):
+            raise ValueError('Names must be a list-like')
         if len(values) != 1:
             raise ValueError('Length of new names must be 1, got %d' %
                              len(values))
+
+        # GH 20527
+        # All items in 'name' need to be hashable:
+        for name in values:
+            if not is_hashable(name):
+                raise TypeError('{}.name must be a hashable type'
+                                .format(self.__class__.__name__))
         self.name = values[0]
 
     names = property(fset=_set_names, fget=_get_names)
@@ -1339,9 +1368,9 @@ class Index(IndexOpsMixin, PandasObject):
         Examples
         --------
         >>> Index([1, 2, 3, 4]).set_names('foo')
-        Int64Index([1, 2, 3, 4], dtype='int64')
+        Int64Index([1, 2, 3, 4], dtype='int64', name='foo')
         >>> Index([1, 2, 3, 4]).set_names(['foo'])
-        Int64Index([1, 2, 3, 4], dtype='int64')
+        Int64Index([1, 2, 3, 4], dtype='int64', name='foo')
         >>> idx = MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
                                           (2, u'one'), (2, u'two')],
                                           names=['foo', 'bar'])
@@ -1354,6 +1383,7 @@ class Index(IndexOpsMixin, PandasObject):
                    labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
                    names=[u'baz', u'bar'])
         """
+
         if level is not None and self.nlevels == 1:
             raise ValueError('Level must be None for non-MultiIndex')
 
@@ -1824,6 +1854,9 @@ class Index(IndexOpsMixin, PandasObject):
         Returns a sorted list of index elements which appear more than once in
         the index.
 
+        .. deprecated:: 0.23.0
+            Use idx[idx.duplicated()].unique() instead
+
         Returns
         -------
         array-like
@@ -1870,13 +1903,12 @@ class Index(IndexOpsMixin, PandasObject):
         >>> pd.Index(dates).get_duplicates()
         DatetimeIndex([], dtype='datetime64[ns]', freq=None)
         """
-        from collections import defaultdict
-        counter = defaultdict(lambda: 0)
-        for k in self.values:
-            counter[k] += 1
-        return sorted(k for k, v in compat.iteritems(counter) if v > 1)
+        warnings.warn("'get_duplicates' is deprecated and will be removed in "
+                      "a future release. You can use "
+                      "idx[idx.duplicated()].unique() instead",
+                      FutureWarning, stacklevel=2)
 
-    _get_duplicates = get_duplicates
+        return self[self.duplicated()].unique()
 
     def _cleanup(self):
         self._engine.clear_mapping()
@@ -2050,6 +2082,19 @@ class Index(IndexOpsMixin, PandasObject):
             return promote(result)
         else:
             return result
+
+    def _can_hold_identifiers_and_holds_name(self, name):
+        """
+        Faster check for ``name in self`` when we know `name` is a Python
+        identifier (e.g. in NDFrame.__getattr__, which hits this to support
+        . key lookup). For indexes that can't hold identifiers (everything
+        but object & categorical) we just return False.
+
+        https://github.com/pandas-dev/pandas/issues/19764
+        """
+        if self.is_object() or self.is_categorical():
+            return name in self
+        return False
 
     def append(self, other):
         """
@@ -3487,7 +3532,7 @@ class Index(IndexOpsMixin, PandasObject):
         """
         if level is not None:
             self._validate_index_level(level)
-        return algos.isin(np.array(self), values)
+        return algos.isin(self, values)
 
     def _can_reindex(self, indexer):
         """
@@ -4880,6 +4925,9 @@ def _ensure_index(index_like, copy=False):
         return index_like
     if hasattr(index_like, 'name'):
         return Index(index_like, name=index_like.name, copy=copy)
+
+    if is_iterator(index_like):
+        index_like = list(index_like)
 
     # must check for exactly list here because of strict type
     # check in clean_index_list

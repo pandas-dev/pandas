@@ -36,6 +36,22 @@ _shared_docs = dict()
 
 
 def _get_array_list(arr, others):
+    """
+    Auxiliary function for :func:`str_cat`
+
+    Parameters
+    ----------
+    arr : ndarray
+        The left-most ndarray of the concatenation
+    others : list, ndarray, Series
+        The rest of the content to concatenate. If list of list-likes,
+        all elements must be passable to ``np.asarray``.
+
+    Returns
+    -------
+    list
+        List of all necessary arrays
+    """
     from pandas.core.series import Series
 
     if len(others) and isinstance(com._values_from_object(others)[0],
@@ -1651,19 +1667,60 @@ def str_translate(arr, table, deletechars=None):
 
 def str_get(arr, i):
     """
+    Extract element from each component at specified position.
+
     Extract element from lists, tuples, or strings in each element in the
     Series/Index.
 
     Parameters
     ----------
     i : int
-        Integer index (location)
+        Position of element to extract.
 
     Returns
     -------
     items : Series/Index of objects
+
+    Examples
+    --------
+    >>> s = pd.Series(["String",
+               (1, 2, 3),
+               ["a", "b", "c"],
+               123, -456,
+               {1:"Hello", "2":"World"}])
+    >>> s
+    0                        String
+    1                     (1, 2, 3)
+    2                     [a, b, c]
+    3                           123
+    4                          -456
+    5    {1: 'Hello', '2': 'World'}
+    dtype: object
+
+    >>> s.str.get(1)
+    0        t
+    1        2
+    2        b
+    3      NaN
+    4      NaN
+    5    Hello
+    dtype: object
+
+    >>> s.str.get(-1)
+    0      g
+    1      3
+    2      c
+    3    NaN
+    4    NaN
+    5    NaN
+    dtype: object
     """
-    f = lambda x: x[i] if len(x) > i >= -len(x) else np.nan
+    def f(x):
+        if isinstance(x, dict):
+            return x.get(i)
+        elif len(x) > i >= -len(x):
+            return x[i]
+        return np.nan
     return _na_map(f, arr)
 
 
