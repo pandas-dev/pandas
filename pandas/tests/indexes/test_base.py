@@ -1812,18 +1812,17 @@ class TestIndex(Base):
         index = pd.Index(list('abc'))
         assert index.reindex(labels)[0].dtype.type == np.object_
 
-    def test_reindex_doesnt_preserve_type_if_target_is_empty_index(self):
+    @pytest.mark.parametrize("labels", [
+        pd.Int64Index([]), pd.Float64Index([]), pd.DatetimeIndex([])])
+    def test_reindex_doesnt_preserve_type_if_target_is_empty_index(self,
+                                                                   labels):
         # GH7774
-        idx = pd.Index(list('abc'))
+        index = pd.Index(list('abc'))
+        assert index.reindex(labels)[0].dtype.type == np.int64
 
-        def get_reindex_type(target):
-            return idx.reindex(target)[0].dtype.type
-
-        assert get_reindex_type(pd.Int64Index([])) == np.int64
-        assert get_reindex_type(pd.Float64Index([])) == np.float64
-        assert get_reindex_type(pd.DatetimeIndex([])) == np.datetime64
-
-        reindexed = idx.reindex(pd.MultiIndex(
+    def test_reindex_no_type_preserve_target_empty_mi(self):
+        index = pd.Index(list('abc'))    
+        result = index.reindex(pd.MultiIndex(
             [pd.Int64Index([]), pd.Float64Index([])], [[], []]))[0]
         assert reindexed.levels[0].dtype.type == np.int64
         assert reindexed.levels[1].dtype.type == np.float64
