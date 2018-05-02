@@ -2510,8 +2510,7 @@ class NDFrame(PandasObject, SelectionMixin):
         if ax.is_unique:
             lower = self._get_item_cache(ax[item])
         else:
-            lower = self._take(item, axis=self._info_axis_number,
-                               convert=True)
+            lower = self._take(item, axis=self._info_axis_number)
         return lower
 
     def _box_item_values(self, key, values):
@@ -2765,11 +2764,6 @@ class NDFrame(PandasObject, SelectionMixin):
         axis : int, default 0
             The axis on which to select elements. "0" means that we are
             selecting rows, "1" means that we are selecting columns, etc.
-        convert : bool, default True
-            Whether to convert negative indices into positive ones.
-            For example, ``-1`` would map to the ``len(axis) - 1``.
-            The conversions are similar to the behavior of indexing a
-            regular Python list.
         is_copy : bool, default True
             Whether to return a copy of the original object or not.
 
@@ -2785,11 +2779,8 @@ class NDFrame(PandasObject, SelectionMixin):
         """
 
     @Appender(_shared_docs['_take'])
-    def _take(self, indices, axis=0, convert=True, is_copy=True):
+    def _take(self, indices, axis=0, is_copy=True):
         self._consolidate_inplace()
-
-        if convert:
-            indices = maybe_convert_indices(indices, len(self._get_axis(axis)))
 
         new_data = self._data.take(indices,
                                    axis=self._get_block_manager_axis(axis),
@@ -2893,11 +2884,9 @@ class NDFrame(PandasObject, SelectionMixin):
             msg = ("The 'convert' parameter is deprecated "
                    "and will be removed in a future version.")
             warnings.warn(msg, FutureWarning, stacklevel=2)
-        else:
-            convert = True
 
-        convert = nv.validate_take(tuple(), kwargs)
-        return self._take(indices, axis=axis, convert=convert, is_copy=is_copy)
+        nv.validate_take(tuple(), kwargs)
+        return self._take(indices, axis=axis, is_copy=is_copy)
 
     def xs(self, key, axis=0, level=None, drop_level=True):
         """
@@ -2998,9 +2987,9 @@ class NDFrame(PandasObject, SelectionMixin):
             if isinstance(loc, np.ndarray):
                 if loc.dtype == np.bool_:
                     inds, = loc.nonzero()
-                    return self._take(inds, axis=axis, convert=False)
+                    return self._take(inds, axis=axis)
                 else:
-                    return self._take(loc, axis=axis, convert=True)
+                    return self._take(loc, axis=axis)
 
             if not is_scalar(loc):
                 new_index = self.index[loc]
@@ -6791,7 +6780,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         try:
             indexer = self.index.indexer_at_time(time, asof=asof)
-            return self._take(indexer, convert=False)
+            return self._take(indexer)
         except AttributeError:
             raise TypeError('Index must be DatetimeIndex')
 
@@ -6815,7 +6804,7 @@ class NDFrame(PandasObject, SelectionMixin):
             indexer = self.index.indexer_between_time(
                 start_time, end_time, include_start=include_start,
                 include_end=include_end)
-            return self._take(indexer, convert=False)
+            return self._take(indexer)
         except AttributeError:
             raise TypeError('Index must be DatetimeIndex')
 

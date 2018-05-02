@@ -3504,9 +3504,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return v
 
     @Appender(generic._shared_docs['_take'])
-    def _take(self, indices, axis=0, convert=True, is_copy=False):
-        if convert:
-            indices = maybe_convert_indices(indices, len(self._get_axis(axis)))
+    def _take(self, indices, axis=0, is_copy=False):
 
         indices = _ensure_platform_int(indices)
         new_index = self.index.take(indices)
@@ -3514,6 +3512,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if is_categorical_dtype(self):
             # https://github.com/pandas-dev/pandas/issues/20664
             # TODO: remove when the default Categorical.take behavior changes
+            indices = maybe_convert_indices(indices, len(self._get_axis(axis)))
             kwargs = {'allow_fill': False}
         else:
             kwargs = {}
