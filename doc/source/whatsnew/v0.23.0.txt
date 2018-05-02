@@ -308,6 +308,24 @@ The :func:`DataFrame.assign` now accepts dependent keyword arguments for python 
 
       df.assign(A=df.A+1, C= lambda df: df.A* -1)
 
+.. _whatsnew_0230.enhancements.str_cat_align:
+
+``Series.str.cat`` has gained the ``join`` kwarg
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Previously, :meth:`Series.str.cat` did not -- in contrast to most of ``pandas`` -- align :class:`Series` on their index before concatenation (see :issue:`18657`).
+The method has now gained a keyword ``join`` to control the manner of alignment, see examples below and in :ref:`here <text.concatenate>`.
+
+In v.0.23 `join` will default to None (meaning no alignment), but this default will change to ``'left'`` in a future version of pandas.
+
+.. ipython:: python
+
+    s = pd.Series(['a', 'b', 'c', 'd'])
+    t = pd.Series(['b', 'd', 'e', 'c'], index=[1, 3, 4, 2])
+    s.str.cat(t)
+    s.str.cat(t, join='left', na_rep='-')
+
+Furthermore, meth:`Series.str.cat` now works for ``CategoricalIndex`` as well (previously raised a ``ValueError``; see :issue:`20842`).
 
 .. _whatsnew_0230.enhancements.astype_category:
 
@@ -503,6 +521,7 @@ Other Enhancements
 - Updated :meth:`DataFrame.to_gbq` and :meth:`pandas.read_gbq` signature and documentation to reflect changes from
   the Pandas-GBQ library version 0.4.0. Adds intersphinx mapping to Pandas-GBQ
   library. (:issue:`20564`)
+- Added new writer for exporting Stata dta files in version 117, ``StataWriter117``.  This format supports exporting strings with lengths up to 2,000,000 characters (:issue:`16450`)
 - :func:`to_hdf` and :func:`read_hdf` now accept an ``errors`` keyword argument to control encoding error handling (:issue:`20835`)
 - :func:`date_range` now returns a linearly spaced ``DatetimeIndex`` if ``start``, ``stop``, and ``periods`` are specified, but ``freq`` is not. (:issue:`20808`)
 
@@ -693,6 +712,36 @@ Returning a ``Series`` allows one to control the exact return structure and colu
 .. ipython:: python
 
     df.apply(lambda x: Series([1, 2, 3], index=['D', 'E', 'F']), axis=1)
+
+.. _whatsnew_0230.api_breaking.concat:
+
+Concatenation will no longer sort
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In a future version of pandas :func:`pandas.concat` will no longer sort the non-concatenation axis when it is not already aligned.
+The current behavior is the same as the previous (sorting), but now a warning is issued when ``sort`` is not specified and the non-concatenation axis is not aligned (:issue:`4588`).
+
+.. ipython:: python
+   :okwarning:
+
+   df1 = pd.DataFrame({"a": [1, 2], "b": [1, 2]}, columns=['b', 'a'])
+   df2 = pd.DataFrame({"a": [4, 5]})
+
+   pd.concat([df1, df2])
+
+To keep the previous behavior (sorting) and silence the warning, pass ``sort=True``
+
+.. ipython:: python
+
+   pd.concat([df1, df2], sort=True)
+
+To accept the future behavior (no sorting), pass ``sort=False``
+
+.. ipython
+
+   pd.concat([df1, df2], sort=False)
+
+Note that this change also applies to :meth:`DataFrame.append`, which has also received a ``sort`` keyword for controlling this behavior.
 
 
 .. _whatsnew_0230.api_breaking.build_changes:

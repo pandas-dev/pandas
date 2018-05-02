@@ -507,7 +507,7 @@ class SelectionMixin(object):
                            for r in compat.itervalues(result))
 
             if isinstance(result, list):
-                return concat(result, keys=keys, axis=1), True
+                return concat(result, keys=keys, axis=1, sort=True), True
 
             elif is_any_frame():
                 # we have a dict of DataFrames
