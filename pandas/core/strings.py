@@ -2149,25 +2149,29 @@ class StringMethods(NoNewAttributesMixin):
 
         Examples
         --------
-        >>> s = pd.Series(['-2', '+5', '10', '423523', 127, np.nan])
+        >>> s = pd.Series(['-1', '1', '1000', 10, np.nan])
         >>> s
-        0        -2
-        1        +5
-        2        10
-        3    423523
-        4       127
-        5       NaN
+        0      -1
+        1       1
+        2    1000
+        3      10
+        4     NaN
         dtype: object
-        >>> s.str.zfill(5)
-        0     000-2
-        1     000+5
-        2     00010
-        3    423523
-        4       NaN
-        5       NaN
+
+        Note that ``10`` and ``NaN`` are not strings, therefore they are
+        converted to ``NaN``. The minus sign in ``'-1'`` is treated as a
+        regular character and the zero is added to the left of it
+        (:meth:`str.zfill` would have moved it to the left). ``1000``
+        remains unchanged as it is longer than `width`.
+
+        >>> s.str.zfill(3)
+        0     0-1
+        1     001
+        2    1000
+        3     NaN
+        4     NaN
         dtype: object
         """
-
         result = str_pad(self._data, width, side='left', fillchar='0')
         return self._wrap_result(result)
 
