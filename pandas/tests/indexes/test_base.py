@@ -1812,13 +1812,16 @@ class TestIndex(Base):
         index = pd.Index(list('abc'))
         assert index.reindex(labels)[0].dtype.type == np.object_
 
-    @pytest.mark.parametrize("labels", [
-        pd.Int64Index([]), pd.Float64Index([]), pd.DatetimeIndex([])])
+    @pytest.mark.parametrize("labels,dtype", [
+        (pd.Int64Index([]), np.int64),
+        (pd.Float64Index([]), np.float64),
+        (pd.DatetimeIndex([]), np.datetime64)])
     def test_reindex_doesnt_preserve_type_if_target_is_empty_index(self,
-                                                                   labels):
+                                                                   labels,
+                                                                   dtype):
         # GH7774
         index = pd.Index(list('abc'))
-        assert index.reindex(labels)[0].dtype.type == np.int64
+        assert index.reindex(labels)[0].dtype.type == dtype
 
     def test_reindex_no_type_preserve_target_empty_mi(self):
         index = pd.Index(list('abc'))
