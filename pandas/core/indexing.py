@@ -2416,7 +2416,7 @@ def maybe_convert_indices(indices, n):
     else:
         # create a copy of indices
         indices = np.array(indices, copy=True)
-        
+
     mask = indices < 0
     if mask.any():
         indices[mask] += n
