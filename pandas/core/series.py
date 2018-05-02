@@ -3423,11 +3423,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @Appender(generic._shared_docs['replace'] % _shared_doc_kwargs)
     def replace(self, to_replace=None, value=None, inplace=False, limit=None,
-                regex=False, method='pad', axis=None):
+                regex=False, method='pad'):
         return super(Series, self).replace(to_replace=to_replace, value=value,
                                            inplace=inplace, limit=limit,
-                                           regex=regex, method=method,
-                                           axis=axis)
+                                           regex=regex, method=method)
 
     @Appender(generic._shared_docs['shift'] % _shared_doc_kwargs)
     def shift(self, periods=1, freq=None, axis=0):

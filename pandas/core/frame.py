@@ -3790,11 +3790,11 @@ class DataFrame(NDFrame):
 
     @Appender(_shared_docs['replace'] % _shared_doc_kwargs)
     def replace(self, to_replace=None, value=None, inplace=False, limit=None,
-                regex=False, method='pad', axis=None):
+                regex=False, method='pad'):
         return super(DataFrame, self).replace(to_replace=to_replace,
                                               value=value, inplace=inplace,
                                               limit=limit, regex=regex,
-                                              method=method, axis=axis)
+                                              method=method)
 
     @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
     def shift(self, periods=1, freq=None, axis=0):
