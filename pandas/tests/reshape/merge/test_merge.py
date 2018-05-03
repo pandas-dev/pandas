@@ -1844,8 +1844,10 @@ class TestMergeOnIndexes(object):
         UInt64Index([1, 2], name='index_col'),
         RangeIndex(start=0, stop=2, name='index_col'),
         DatetimeIndex(["2018-01-01", "2018-01-02"], name='index_col'),
-    ])
+    ], ids=lambda x: type(x).__name__)
 def test_merge_index_types(index):
+    # gh-20777
+    # assert key access is consistent across index types
     left = DataFrame({"left_data": [1, 2]}, index=index)
     right = DataFrame({"right_data": [1.0, 2.0]}, index=index)
 
