@@ -37,7 +37,6 @@ from pandas.core.base import PandasObject, SelectionMixin
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                InvalidIndexError, RangeIndex)
 import pandas.core.indexing as indexing
-from pandas.core.indexing import maybe_convert_indices
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex, Period
 from pandas.core.internals import BlockManager
@@ -1946,6 +1945,10 @@ class NDFrame(PandasObject, SelectionMixin):
             If applying compression use the fletcher32 checksum.
         dropna : bool, default False
             If true, ALL nan rows will not be written to store.
+        errors : str, default 'strict'
+            Specifies how encoding and decoding errors are to be handled.
+            See the errors argument for :func:`open` for a full list
+            of options.
 
         See Also
         --------
@@ -2506,8 +2509,7 @@ class NDFrame(PandasObject, SelectionMixin):
         if ax.is_unique:
             lower = self._get_item_cache(ax[item])
         else:
-            lower = self._take(item, axis=self._info_axis_number,
-                               convert=True)
+            lower = self._take(item, axis=self._info_axis_number)
         return lower
 
     def _box_item_values(self, key, values):
@@ -2761,11 +2763,6 @@ class NDFrame(PandasObject, SelectionMixin):
         axis : int, default 0
             The axis on which to select elements. "0" means that we are
             selecting rows, "1" means that we are selecting columns, etc.
-        convert : bool, default True
-            Whether to convert negative indices into positive ones.
-            For example, ``-1`` would map to the ``len(axis) - 1``.
-            The conversions are similar to the behavior of indexing a
-            regular Python list.
         is_copy : bool, default True
             Whether to return a copy of the original object or not.
 
@@ -2781,11 +2778,8 @@ class NDFrame(PandasObject, SelectionMixin):
         """
 
     @Appender(_shared_docs['_take'])
-    def _take(self, indices, axis=0, convert=True, is_copy=True):
+    def _take(self, indices, axis=0, is_copy=True):
         self._consolidate_inplace()
-
-        if convert:
-            indices = maybe_convert_indices(indices, len(self._get_axis(axis)))
 
         new_data = self._data.take(indices,
                                    axis=self._get_block_manager_axis(axis),
@@ -2889,11 +2883,9 @@ class NDFrame(PandasObject, SelectionMixin):
             msg = ("The 'convert' parameter is deprecated "
                    "and will be removed in a future version.")
             warnings.warn(msg, FutureWarning, stacklevel=2)
-        else:
-            convert = True
 
-        convert = nv.validate_take(tuple(), kwargs)
-        return self._take(indices, axis=axis, convert=convert, is_copy=is_copy)
+        nv.validate_take(tuple(), kwargs)
+        return self._take(indices, axis=axis, is_copy=is_copy)
 
     def xs(self, key, axis=0, level=None, drop_level=True):
         """
@@ -2994,9 +2986,9 @@ class NDFrame(PandasObject, SelectionMixin):
             if isinstance(loc, np.ndarray):
                 if loc.dtype == np.bool_:
                     inds, = loc.nonzero()
-                    return self._take(inds, axis=axis, convert=False)
+                    return self._take(inds, axis=axis)
                 else:
-                    return self._take(loc, axis=axis, convert=True)
+                    return self._take(loc, axis=axis)
 
             if not is_scalar(loc):
                 new_index = self.index[loc]
@@ -3660,7 +3652,7 @@ class NDFrame(PandasObject, SelectionMixin):
         copy = kwargs.pop('copy', True)
         limit = kwargs.pop('limit', None)
         tolerance = kwargs.pop('tolerance', None)
-        fill_value = kwargs.pop('fill_value', np.nan)
+        fill_value = kwargs.pop('fill_value', None)
 
         # Series.reindex doesn't use / need the axis kwarg
         # We pop and ignore it here, to make writing Series/Frame generic code
@@ -3776,7 +3768,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @Appender(_shared_docs['reindex_axis'] % _shared_doc_kwargs)
     def reindex_axis(self, labels, axis=0, method=None, level=None, copy=True,
-                     limit=None, fill_value=np.nan):
+                     limit=None, fill_value=None):
         msg = ("'.reindex_axis' is deprecated and will be removed in a future "
                "version. Use '.reindex' instead.")
         self._consolidate_inplace()
@@ -3790,7 +3782,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return self._reindex_with_indexers({axis: [new_index, indexer]},
                                            fill_value=fill_value, copy=copy)
 
-    def _reindex_with_indexers(self, reindexers, fill_value=np.nan, copy=False,
+    def _reindex_with_indexers(self, reindexers, fill_value=None, copy=False,
                                allow_dups=False):
         """allow_dups indicates an internal call here """
 
@@ -4375,7 +4367,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 name in self._accessors):
             return object.__getattribute__(self, name)
         else:
-            if name in self._info_axis:
+            if self._info_axis._can_hold_identifiers_and_holds_name(name):
                 return self[name]
             return object.__getattribute__(self, name)
 
@@ -5539,9 +5531,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionchanged:: 0.23.0
                 Added to DataFrame.
-        axis : None
-            .. deprecated:: 0.13.0
-               Has no effect and will be removed.
 
         See Also
         --------
@@ -5749,15 +5738,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @Appender(_shared_docs['replace'] % _shared_doc_kwargs)
     def replace(self, to_replace=None, value=None, inplace=False, limit=None,
-                regex=False, method='pad', axis=None):
+                regex=False, method='pad'):
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if not is_bool(regex) and to_replace is not None:
             raise AssertionError("'to_replace' must be 'None' if 'regex' is "
                                  "not a bool")
-        if axis is not None:
-            warnings.warn('the "axis" argument is deprecated '
-                          'and will be removed in'
-                          'v0.13; this argument has no effect')
 
         self._consolidate_inplace()
 
@@ -6599,7 +6584,7 @@ class NDFrame(PandasObject, SelectionMixin):
                                          axis=axis, inplace=inplace)
 
     def groupby(self, by=None, axis=0, level=None, as_index=True, sort=True,
-                group_keys=True, squeeze=False, **kwargs):
+                group_keys=True, squeeze=False, observed=None, **kwargs):
         """
         Group series using mapper (dict or key function, apply given function
         to group, return result as series) or by a series of columns.
@@ -6632,6 +6617,13 @@ class NDFrame(PandasObject, SelectionMixin):
         squeeze : boolean, default False
             reduce the dimensionality of the return type if possible,
             otherwise return a consistent type
+        observed : boolean, default None
+            if True: only show observed values for categorical groupers.
+            if False: show all values for categorical groupers.
+            if None: if any categorical groupers, show a FutureWarning,
+                default to False.
+
+            .. versionadded:: 0.23.0
 
         Returns
         -------
@@ -6665,7 +6657,7 @@ class NDFrame(PandasObject, SelectionMixin):
         axis = self._get_axis_number(axis)
         return groupby(self, by=by, axis=axis, level=level, as_index=as_index,
                        sort=sort, group_keys=group_keys, squeeze=squeeze,
-                       **kwargs)
+                       observed=observed, **kwargs)
 
     def asfreq(self, freq, method=None, how=None, normalize=False,
                fill_value=None):
@@ -6780,7 +6772,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         try:
             indexer = self.index.indexer_at_time(time, asof=asof)
-            return self._take(indexer, convert=False)
+            return self._take(indexer)
         except AttributeError:
             raise TypeError('Index must be DatetimeIndex')
 
@@ -6804,7 +6796,7 @@ class NDFrame(PandasObject, SelectionMixin):
             indexer = self.index.indexer_between_time(
                 start_time, end_time, include_start=include_start,
                 include_end=include_end)
-            return self._take(indexer, convert=False)
+            return self._take(indexer)
         except AttributeError:
             raise TypeError('Index must be DatetimeIndex')
 
@@ -7252,7 +7244,7 @@ class NDFrame(PandasObject, SelectionMixin):
             raise TypeError('unsupported type: %s' % type(other))
 
     def _align_frame(self, other, join='outer', axis=None, level=None,
-                     copy=True, fill_value=np.nan, method=None, limit=None,
+                     copy=True, fill_value=None, method=None, limit=None,
                      fill_axis=0):
         # defaults
         join_index, join_columns = None, None

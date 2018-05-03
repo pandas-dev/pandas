@@ -30,7 +30,7 @@ from .common import Base
 
 class TestMultiIndex(Base):
     _holder = MultiIndex
-    _compat_props = ['shape', 'ndim', 'size', 'itemsize']
+    _compat_props = ['shape', 'ndim', 'size']
 
     def setup_method(self, method):
         major_axis = Index(['foo', 'bar', 'baz', 'qux'])
@@ -47,6 +47,11 @@ class TestMultiIndex(Base):
 
     def create_index(self):
         return self.index
+
+    def test_can_hold_identifiers(self):
+        idx = self.create_index()
+        key = idx[0]
+        assert idx._can_hold_identifiers_and_holds_name(key) is True
 
     def test_boolean_context_compat2(self):
 
@@ -615,8 +620,27 @@ class TestMultiIndex(Base):
         with tm.assert_raises_regex(ValueError, label_error):
             self.index.copy().set_labels([[0, 0, 0, 0], [0, 0]])
 
-    @pytest.mark.parametrize('names', [['a', 'b', 'a'], [1, 1, 2],
-                                       [1, 'a', 1]])
+    def test_constructor_nonhashable_names(self):
+        # GH 20527
+        levels = [[1, 2], [u'one', u'two']]
+        labels = [[0, 0, 1, 1], [0, 1, 0, 1]]
+        names = ((['foo'], ['bar']))
+        message = "MultiIndex.name must be a hashable type"
+        tm.assert_raises_regex(TypeError, message,
+                               MultiIndex, levels=levels,
+                               labels=labels, names=names)
+
+        # With .rename()
+        mi = MultiIndex(levels=[[1, 2], [u'one', u'two']],
+                        labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
+                        names=('foo', 'bar'))
+        renamed = [['foor'], ['barr']]
+        tm.assert_raises_regex(TypeError, message, mi.rename, names=renamed)
+        # With .set_names()
+        tm.assert_raises_regex(TypeError, message, mi.set_names, names=renamed)
+
+    @pytest.mark.parametrize('names', [['a', 'b', 'a'], ['1', '1', '2'],
+                                       ['1', 'a', '1']])
     def test_duplicate_level_names(self, names):
         # GH18872
         pytest.raises(ValueError, pd.MultiIndex.from_product,
@@ -2413,7 +2437,12 @@ class TestMultiIndex(Base):
         for a in [101, 102]:
             mi = MultiIndex.from_arrays([[101, a], [3.5, np.nan]])
             assert not mi.has_duplicates
-            assert mi.get_duplicates() == []
+
+            with warnings.catch_warnings(record=True):
+                # Deprecated - see GH20239
+                assert mi.get_duplicates().equals(MultiIndex.from_arrays(
+                    [[], []]))
+
             tm.assert_numpy_array_equal(mi.duplicated(), np.zeros(
                 2, dtype='bool'))
 
@@ -2425,7 +2454,12 @@ class TestMultiIndex(Base):
                                 labels=np.random.permutation(list(lab)).T)
                 assert len(mi) == (n + 1) * (m + 1)
                 assert not mi.has_duplicates
-                assert mi.get_duplicates() == []
+
+                with warnings.catch_warnings(record=True):
+                    # Deprecated - see GH20239
+                    assert mi.get_duplicates().equals(MultiIndex.from_arrays(
+                        [[], []]))
+
                 tm.assert_numpy_array_equal(mi.duplicated(), np.zeros(
                     len(mi), dtype='bool'))
 

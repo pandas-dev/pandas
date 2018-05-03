@@ -68,6 +68,10 @@ class TestConstructors(base.BaseConstructorsTests):
 
 class TestReshaping(base.BaseReshapingTests):
     @pytest.mark.skip(reason="Unobserved categories preseved in concat.")
+    def test_concat_columns(self, data, na_value):
+        pass
+
+    @pytest.mark.skip(reason="Unobserved categories preseved in concat.")
     def test_align(self, data, na_value):
         pass
 
@@ -81,6 +85,8 @@ class TestReshaping(base.BaseReshapingTests):
 
 
 class TestGetitem(base.BaseGetitemTests):
+    skip_take = pytest.mark.skip(reason="GH-20664.")
+
     @pytest.mark.skip(reason="Backwards compatibility")
     def test_getitem_scalar(self):
         # CategoricalDtype.type isn't "correct" since it should
@@ -88,9 +94,33 @@ class TestGetitem(base.BaseGetitemTests):
         # to break things by changing.
         pass
 
-    @pytest.mark.xfail(reason="Categorical.take buggy")
+    @skip_take
     def test_take(self):
         # TODO remove this once Categorical.take is fixed
+        pass
+
+    @skip_take
+    def test_take_negative(self):
+        pass
+
+    @skip_take
+    def test_take_pandas_style_negative_raises(self):
+        pass
+
+    @skip_take
+    def test_take_non_na_fill_value(self):
+        pass
+
+    @skip_take
+    def test_take_out_of_bounds_raises(self):
+        pass
+
+    @pytest.mark.skip(reason="GH-20747. Unobserved categories.")
+    def test_take_series(self):
+        pass
+
+    @skip_take
+    def test_reindex_non_na_fill_value(self):
         pass
 
     @pytest.mark.xfail(reason="Categorical.take buggy")

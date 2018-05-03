@@ -450,7 +450,7 @@ common_include = ['pandas/_libs/src/klib', 'pandas/_libs/src']
 
 
 def pxd(name):
-    return os.path.abspath(pjoin('pandas', name + '.pxd'))
+    return pjoin('pandas', name + '.pxd')
 
 
 # args to ignore warnings

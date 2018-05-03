@@ -827,7 +827,7 @@ class TestMerge(object):
 
         # Dups on left
         left_w_dups = left.append(pd.DataFrame({'a': ['a'], 'c': ['cow']},
-                                               index=[3]))
+                                               index=[3]), sort=True)
         merge(left_w_dups, right, left_index=True, right_index=True,
               validate='many_to_one')
 
@@ -1287,7 +1287,7 @@ class TestMergeMulti(object):
                 index=MultiIndex.from_tuples(
                     [(4, np.nan)],
                     names=['household_id', 'asset_id'])))
-        ], axis=0).reindex(columns=expected.columns))
+        ], axis=0, sort=True).reindex(columns=expected.columns))
         assert_frame_equal(result, expected)
 
         # invalid cases
