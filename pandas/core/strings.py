@@ -1966,8 +1966,13 @@ class StringMethods(NoNewAttributesMixin):
                    'list-like (either containing only strings or containing '
                    'only objects of type Series/Index/list-like/np.ndarray)')
 
+        # Generally speaking, all objects without an index inherit the index
+        # `idx` of the calling Series/Index - i.e. must have matching length.
+        # Objects with an index (i.e. Series/Index/DataFrame) keep their own
+        # index, *unless* ignore_index is set to True.
         if isinstance(others, Series):
             warn = not others.index.equals(idx)
+            # only reconstruct Series when absolutely necessary
             los = [Series(others.values, index=idx)
                    if ignore_index and warn else others]
             return (los, warn)
