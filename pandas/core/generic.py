@@ -6584,7 +6584,7 @@ class NDFrame(PandasObject, SelectionMixin):
                                          axis=axis, inplace=inplace)
 
     def groupby(self, by=None, axis=0, level=None, as_index=True, sort=True,
-                group_keys=True, squeeze=False, observed=None, **kwargs):
+                group_keys=True, squeeze=False, observed=False, **kwargs):
         """
         Group series using mapper (dict or key function, apply given function
         to group, return result as series) or by a series of columns.
@@ -6617,11 +6617,10 @@ class NDFrame(PandasObject, SelectionMixin):
         squeeze : boolean, default False
             reduce the dimensionality of the return type if possible,
             otherwise return a consistent type
-        observed : boolean, default None
-            if True: only show observed values for categorical groupers.
-            if False: show all values for categorical groupers.
-            if None: if any categorical groupers, show a FutureWarning,
-                default to False.
+        observed : boolean, default False
+            This only applies if any if the groupers are Categoricals
+            If True: only show observed values for categorical groupers.
+            If False: show all values for categorical groupers.
 
             .. versionadded:: 0.23.0
 
