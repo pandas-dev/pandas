@@ -1196,7 +1196,7 @@ Sparse
 Reshaping
 ^^^^^^^^^
 
-- Bug in :func:`DataFrame.merge` where referencing a `CategoricalIndex` by name in the `by` param raises a `KeyError`
+- Bug in :func:`DataFrame.merge` where referencing a ``CategoricalIndex`` by name in the ``by`` param raises a ``KeyError`` (:issue:`20777`)
 - Bug in :func:`DataFrame.stack` which fails trying to sort mixed type levels under Python 3 (:issue:`18310`)
 - Bug in :func:`DataFrame.unstack` which casts int to float if ``columns`` is a ``MultiIndex`` with unused levels (:issue:`17845`)
 - Bug in :func:`DataFrame.unstack` which raises an error if ``index`` is a ``MultiIndex`` with unused labels on the unstacked level (:issue:`18562`)
