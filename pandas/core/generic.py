@@ -37,7 +37,6 @@ from pandas.core.base import PandasObject, SelectionMixin
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                InvalidIndexError, RangeIndex)
 import pandas.core.indexing as indexing
-from pandas.core.indexing import maybe_convert_indices
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex, Period
 from pandas.core.internals import BlockManager
