@@ -358,7 +358,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 msg = 'periods must be a number, got {periods}'
                 raise TypeError(msg.format(periods=periods))
 
-        if data is None and freq is None:
+        if data is None and freq is None \
+                and com._any_none(periods, start, end):
             raise ValueError("Must provide freq argument if no data is "
                              "supplied")
 
@@ -454,15 +455,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         if verify_integrity and len(subarr) > 0:
             if freq is not None and not freq_infer:
-                inferred = subarr.inferred_freq
-                if inferred != freq.freqstr:
-                    on_freq = cls._generate(subarr[0], None, len(subarr), None,
-                                            freq, tz=tz, ambiguous=ambiguous)
-                    if not np.array_equal(subarr.asi8, on_freq.asi8):
-                        raise ValueError('Inferred frequency {0} from passed '
-                                         'dates does not conform to passed '
-                                         'frequency {1}'
-                                         .format(inferred, freq.freqstr))
+                cls._validate_frequency(subarr, freq, ambiguous=ambiguous)
 
         if freq_infer:
             inferred = subarr.inferred_freq
@@ -474,9 +467,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     @classmethod
     def _generate(cls, start, end, periods, name, freq,
                   tz=None, normalize=False, ambiguous='raise', closed=None):
-        if com._count_not_none(start, end, periods) != 2:
-            raise ValueError('Of the three parameters: start, end, and '
-                             'periods, exactly two must be specified')
+        if com._count_not_none(start, end, periods, freq) != 3:
+            raise ValueError('Of the four parameters: start, end, periods, '
+                             'and freq, exactly three must be specified')
 
         _normalized = True
 
@@ -574,23 +567,30 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 if end.tz is None and start.tz is not None:
                     start = start.replace(tzinfo=None)
 
-            if _use_cached_range(freq, _normalized, start, end):
-                index = cls._cached_range(start, end, periods=periods,
-                                          freq=freq, name=name)
+            if freq is not None:
+                if _use_cached_range(freq, _normalized, start, end):
+                    index = cls._cached_range(start, end, periods=periods,
+                                              freq=freq, name=name)
+                else:
+                    index = _generate_regular_range(start, end, periods, freq)
+
+                if tz is not None and getattr(index, 'tz', None) is None:
+                    index = conversion.tz_localize_to_utc(_ensure_int64(index),
+                                                          tz,
+                                                          ambiguous=ambiguous)
+                    index = index.view(_NS_DTYPE)
+
+                    # index is localized datetime64 array -> have to convert
+                    # start/end as well to compare
+                    if start is not None:
+                        start = start.tz_localize(tz).asm8
+                    if end is not None:
+                        end = end.tz_localize(tz).asm8
             else:
-                index = _generate_regular_range(start, end, periods, freq)
-
-            if tz is not None and getattr(index, 'tz', None) is None:
-                index = conversion.tz_localize_to_utc(_ensure_int64(index), tz,
-                                                      ambiguous=ambiguous)
-                index = index.view(_NS_DTYPE)
-
-                # index is localized datetime64 array -> have to convert
-                # start/end as well to compare
-                if start is not None:
-                    start = start.tz_localize(tz).asm8
-                if end is not None:
-                    end = end.tz_localize(tz).asm8
+                index = tools.to_datetime(np.linspace(start.value,
+                                                      end.value, periods))
+                if tz is not None:
+                    index = index.tz_localize('UTC').tz_convert(tz)
 
         if not left_closed and len(index) and index[0] == start:
             index = index[1:]
@@ -836,7 +836,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 np.ndarray.__setstate__(data, nd_state)
 
                 self.name = own_state[0]
-                self.freq = own_state[1]
+                self._freq = own_state[1]
                 self._tz = timezones.tz_standardize(own_state[2])
 
                 # provide numpy < 1.7 compat
@@ -1727,16 +1727,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 raise
 
     @property
-    def freq(self):
-        """get/set the frequency of the Index"""
-        return self._freq
-
-    @freq.setter
-    def freq(self, value):
-        """get/set the frequency of the Index"""
-        self._freq = value
-
-    @property
     def offset(self):
         """get/set the frequency of the Index"""
         msg = ('DatetimeIndex.offset has been deprecated and will be removed '
@@ -2583,13 +2573,15 @@ def _generate_regular_range(start, end, periods, freq):
     return data
 
 
-def date_range(start=None, end=None, periods=None, freq='D', tz=None,
+def date_range(start=None, end=None, periods=None, freq=None, tz=None,
                normalize=False, name=None, closed=None, **kwargs):
     """
     Return a fixed frequency DatetimeIndex.
 
-    Exactly two of the three parameters `start`, `end` and `periods`
-    must be specified.
+    Of the three parameters `start`, `end`, `periods`, and `freq` exactly
+    three must be specified. If `freq` is omitted, the resulting DatetimeIndex
+    will have `periods` linearly spaced elements between `start` and `end`
+    (closed on both sides).
 
     Parameters
     ----------
@@ -2631,7 +2623,7 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
     --------
     **Specifying the values**
 
-    The next three examples generate the same `DatetimeIndex`, but vary
+    The next four examples generate the same `DatetimeIndex`, but vary
     the combination of `start`, `end` and `periods`.
 
     Specify `start` and `end`, with the default daily frequency.
@@ -2654,6 +2646,13 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
     DatetimeIndex(['2017-12-25', '2017-12-26', '2017-12-27', '2017-12-28',
                    '2017-12-29', '2017-12-30', '2017-12-31', '2018-01-01'],
                   dtype='datetime64[ns]', freq='D')
+
+    Specify `start`, `end`, and `periods`; the frequency is generated
+    automatically (linearly spaced).
+
+    >>> pd.date_range(start='2018-04-24', end='2018-04-27', periods=3)
+    DatetimeIndex(['2018-04-24 00:00:00', '2018-04-25 12:00:00',
+                   '2018-04-27 00:00:00'], freq=None)
 
     **Other Parameters**
 
@@ -2705,6 +2704,10 @@ def date_range(start=None, end=None, periods=None, freq='D', tz=None,
     DatetimeIndex(['2017-01-02', '2017-01-03', '2017-01-04'],
                   dtype='datetime64[ns]', freq='D')
     """
+
+    if freq is None and com._any_none(periods, start, end):
+        freq = 'D'
+
     return DatetimeIndex(start=start, end=end, periods=periods,
                          freq=freq, tz=tz, normalize=normalize, name=name,
                          closed=closed, **kwargs)
