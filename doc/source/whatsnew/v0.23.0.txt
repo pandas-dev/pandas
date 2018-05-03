@@ -1243,6 +1243,7 @@ Indexing
 - Bug in ``Series.is_unique`` where extraneous output in stderr is shown if Series contains objects with ``__ne__`` defined (:issue:`20661`)
 - Bug in ``.loc`` assignment with a single-element list-like incorrectly assigns as a list (:issue:`19474`)
 - Bug in partial string indexing on a ``Series/DataFrame`` with a monotonic decreasing ``DatetimeIndex`` (:issue:`19362`)
+- Bug in performing in-place operations on a DataFrame with a duplicate Index (:issue:`17105`)
 
 MultiIndex
 ^^^^^^^^^^

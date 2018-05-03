@@ -1319,7 +1319,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     (indexer,
                      missing) = labels.get_indexer_non_unique(objarr)
                     # 'indexer' has dupes, create 'check' using 'missing'
-                    check = np.zeros_like(objarr)
+                    check = np.zeros(len(objarr))
                     check[missing] = -1
 
                 mask = check == -1
