@@ -4736,8 +4736,8 @@ class DataFrameGroupBy(NDFrameGroupBy):
         This can re-expand the output space
         """
 
-        # we need to re-expand the output space to accomadate all values
-        # whethere observed or not in the cartesian product of our groupes
+        # we need to re-expand the output space to accomodate all values
+        # whether observed or not in the cartesian product of our groupes
         groupings = self.grouper.groupings
         if groupings is None:
             return result
@@ -4749,7 +4749,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
         elif self.observed:
             return result
 
-        # reindexing only appiles to a Categorical grouper
+        # reindexing only applies to a Categorical grouper
         elif not any(isinstance(ping.grouper, (Categorical, CategoricalIndex))
                      for ping in groupings):
             return result

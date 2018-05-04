@@ -6618,7 +6618,7 @@ class NDFrame(PandasObject, SelectionMixin):
             reduce the dimensionality of the return type if possible,
             otherwise return a consistent type
         observed : boolean, default False
-            This only applies if any if the groupers are Categoricals
+            This only applies if any of the groupers are Categoricals
             If True: only show observed values for categorical groupers.
             If False: show all values for categorical groupers.
 
