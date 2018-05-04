@@ -821,12 +821,13 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     from pandas.core.reshape.concat import concat
     from itertools import cycle
 
+    dtypes_to_encode = ['object', 'category']
+
     if isinstance(data, DataFrame):
         # determine columns being encoded
-
         if columns is None:
             data_to_encode = data.select_dtypes(
-                include=['object', 'category'])
+                include=dtypes_to_encode)
         else:
             data_to_encode = data[columns]
 
@@ -844,6 +845,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
         check_len(prefix, 'prefix')
         check_len(prefix_sep, 'prefix_sep')
+
         if isinstance(prefix, compat.string_types):
             prefix = cycle([prefix])
         if isinstance(prefix, dict):
@@ -859,15 +861,20 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
             prefix_sep = [prefix_sep[col] for col in data_to_encode.columns]
 
         if data_to_encode.shape == data.shape:
+            # Encoding the entire df, do not prepend any dropped columns
             with_dummies = []
         elif columns is not None:
+            # Encoding only cols specified in columns. Get all cols not in
+            # columns to prepend to result.
             with_dummies = [data.drop(columns, axis=1)]
         else:
-            with_dummies = [data.select_dtypes(exclude=['object', 'category'])]
+            # Encoding only object and category dtype columns. Get remaining
+            # columns to prepend to result.
+            with_dummies = [data.select_dtypes(exclude=dtypes_to_encode)]
 
         for (col, pre, sep) in zip(data_to_encode.iteritems(), prefix,
                                    prefix_sep):
-
+            # col is (column_name, column), use just column data here
             dummy = _get_dummies_1d(col[1], prefix=pre, prefix_sep=sep,
                                     dummy_na=dummy_na, sparse=sparse,
                                     drop_first=drop_first, dtype=dtype)
