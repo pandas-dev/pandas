@@ -24,7 +24,7 @@ import numpy as np
 
 
 def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
-        include_lowest=False):
+        include_lowest=False, duplicates='raise'):
     """
     Bin values into discrete intervals.
 
@@ -199,7 +199,8 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     fac, bins = _bins_to_cuts(x, bins, right=right, labels=labels,
                               precision=precision,
                               include_lowest=include_lowest,
-                              dtype=dtype)
+                              dtype=dtype,
+                              duplicates=duplicates)
 
     return _postprocess_for_cut(fac, bins, retbins, x_is_series,
                                 series_index, name)
