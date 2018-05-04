@@ -311,7 +311,7 @@ All one-dimensional list-likes can be arbitrarily combined in a list-like contai
 
     s
     u
-    s.str.cat([u, pd.Index(u.values), ['A', 'B', 'C', 'D'], map(int, u.index)], na_rep='-')
+    s.str.cat([u, pd.Index(u.values), ['A', 'B', 'C', 'D'], map(str, u.index)], na_rep='-')
 
 All elements must match in length to the calling ``Series`` (or ``Index``), except those having an index if ``join`` is not None:
 
