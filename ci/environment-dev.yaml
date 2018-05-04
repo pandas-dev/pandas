@@ -12,3 +12,4 @@ dependencies:
   - pytz
   - setuptools
   - sphinx
+  - pip==9.0.3
