@@ -938,8 +938,11 @@ class IntervalIndex(IntervalMixin, Index):
         if isinstance(label, IntervalMixin):
             raise NotImplementedError
 
+        # GH 20921: "not is_monotonic_increasing" for the second condition
+        # instead of "is_monotonic_decreasing" to account for single element
+        # indexes being both increasing and decreasing
         if ((side == 'left' and self.left.is_monotonic_increasing) or
-                (side == 'right' and self.left.is_monotonic_decreasing)):
+                (side == 'right' and not self.left.is_monotonic_increasing)):
             sub_idx = self.right
             if self.open_right or exclude_label:
                 label = _get_next_label(label)
