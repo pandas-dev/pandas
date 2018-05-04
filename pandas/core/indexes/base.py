@@ -3091,13 +3091,13 @@ class Index(IndexOpsMixin, PandasObject):
                     pass
             elif isinstance(s, ExtensionArray):
                 try:
-                    # This should call the ExtensionArray __getitem__
                     iloc = self.get_loc(key)
+                    # This should call the ExtensionArray __getitem__
                     return s[iloc]
-                except (IndexError, ValueError):
-
-                    # invalid type as an indexer
-                    pass
+                except KeyError:
+                    if isinstance(key, (int, np.integer)):
+                        # This should call the ExtensionArray __getitem__
+                        return s[key]
 
         s = com._values_from_object(series)
         k = com._values_from_object(key)

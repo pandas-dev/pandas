@@ -140,6 +140,8 @@ class BaseGetitemTests(BaseExtensionTests):
         result = s.get('Z')
         assert result is None
 
+        assert s.get(4) == s.iloc[4]
+
     def test_take_sequence(self, data):
         result = pd.Series(data)[[0, 1, 3]]
         assert result.iloc[0] == data[0]
