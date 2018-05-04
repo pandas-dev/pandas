@@ -159,20 +159,22 @@ class IntervalIndex(IntervalMixin, Index):
 
     Attributes
     ----------
-    left
-    right
     closed
-    mid
-    length
-    values
     is_non_overlapping_monotonic
+    left
+    length
+    mid
+    right
+    values
 
     Methods
     -------
-    from_arrays
-    from_tuples
-    from_breaks
     contains
+    from_arrays
+    from_breaks
+    from_tuples
+    get_indexer
+    get_loc
 
     Examples
     ---------

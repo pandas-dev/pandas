@@ -1632,6 +1632,8 @@ IntervalIndex Components
    IntervalIndex.length
    IntervalIndex.values
    IntervalIndex.is_non_overlapping_monotonic
+   IntervalIndex.get_loc
+   IntervalIndex.get_indexer
 
 
 .. _api.multiindex:
