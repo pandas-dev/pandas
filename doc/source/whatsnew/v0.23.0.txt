@@ -523,6 +523,7 @@ Other Enhancements
   library. (:issue:`20564`)
 - Added new writer for exporting Stata dta files in version 117, ``StataWriter117``.  This format supports exporting strings with lengths up to 2,000,000 characters (:issue:`16450`)
 - :func:`to_hdf` and :func:`read_hdf` now accept an ``errors`` keyword argument to control encoding error handling (:issue:`20835`)
+- :func:`date_range` now returns a linearly spaced ``DatetimeIndex`` if ``start``, ``stop``, and ``periods`` are specified, but ``freq`` is not. (:issue:`20808`)
 
 .. _whatsnew_0230.api_breaking:
 
@@ -1037,6 +1038,7 @@ Removal of prior version deprecations/changes
   ``ambiguous='infer'``, and ``infer_dst=False`` to ``ambiguous='raise'`` (:issue:`7963`).
 - When ``.resample()`` was changed from an eager to a lazy operation, like ``.groupby()`` in v0.18.0, we put in place compatibility (with a ``FutureWarning``),
   so operations would continue to work. This is now fully removed, so a ``Resampler`` will no longer forward compat operations (:issue:`20554`)
+- Remove long deprecated ``axis=None`` parameter from ``.replace()`` (:issue:`20271`)
 
 .. _whatsnew_0230.performance:
 
@@ -1327,6 +1329,7 @@ Sparse
 Reshaping
 ^^^^^^^^^
 
+- Bug in :func:`DataFrame.merge` where referencing a ``CategoricalIndex`` by name, where the ``by`` kwarg would ``KeyError`` (:issue:`20777`)
 - Bug in :func:`DataFrame.stack` which fails trying to sort mixed type levels under Python 3 (:issue:`18310`)
 - Bug in :func:`DataFrame.unstack` which casts int to float if ``columns`` is a ``MultiIndex`` with unused levels (:issue:`17845`)
 - Bug in :func:`DataFrame.unstack` which raises an error if ``index`` is a ``MultiIndex`` with unused labels on the unstacked level (:issue:`18562`)
