@@ -784,29 +784,3 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             index=pd.MultiIndex.from_product(keys))
 
         tm.assert_series_equal(result, expected)
-
-    def test_modify_with_duplicate_index_assigning(self):
-        # gh-17105
-
-        # insert a duplicate element to the index
-        trange = pd.date_range(start=pd.Timestamp(year=2017, month=1, day=1),
-                               end=pd.Timestamp(year=2017, month=1, day=5))
-
-        trange = trange.insert(loc=5,
-                               item=pd.Timestamp(year=2017, month=1, day=5))
-
-        df = pd.DataFrame(0, index=trange, columns=["A", "B"])
-        bool_idx = np.array([False, False, False, False, False, True])
-
-        # assignment
-        df.loc[trange[bool_idx], "A"] = 6
-
-        expected = pd.DataFrame({'A': [0, 0, 0, 0, 6, 6],
-                                 'B': [0, 0, 0, 0, 0, 0]},
-                                index=trange)
-        tm.assert_frame_equal(df, expected)
-
-        # in-place
-        df = pd.DataFrame(0, index=trange, columns=["A", "B"])
-        df.loc[trange[bool_idx], "A"] += 6
-        tm.assert_frame_equal(df, expected)
