@@ -108,6 +108,9 @@ def nulls_fixture(request):
     return request.param
 
 
+nulls_fixture2 = nulls_fixture  # Generate cartesian product of nulls_fixture
+
+
 TIMEZONES = [None, 'UTC', 'US/Eastern', 'Asia/Tokyo', 'dateutil/US/Pacific']
 
 

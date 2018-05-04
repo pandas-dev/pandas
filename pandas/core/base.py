@@ -507,7 +507,7 @@ class SelectionMixin(object):
                            for r in compat.itervalues(result))
 
             if isinstance(result, list):
-                return concat(result, keys=keys, axis=1), True
+                return concat(result, keys=keys, axis=1, sort=True), True
 
             elif is_any_frame():
                 # we have a dict of DataFrames
@@ -758,7 +758,7 @@ class IndexOpsMixin(object):
     @property
     def strides(self):
         """ return the strides of the underlying data """
-        warnings.warn("{obj}.strudes is deprecated and will be removed "
+        warnings.warn("{obj}.strides is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
                       FutureWarning, stacklevel=2)
         return self._ndarray_values.strides

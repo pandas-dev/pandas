@@ -508,8 +508,7 @@ class Grouper(object):
             # use stable sort to support first, last, nth
             indexer = self.indexer = ax.argsort(kind='mergesort')
             ax = ax.take(indexer)
-            obj = obj._take(indexer, axis=self.axis,
-                            convert=False, is_copy=False)
+            obj = obj._take(indexer, axis=self.axis, is_copy=False)
 
         self.obj = obj
         self.grouper = ax
@@ -860,7 +859,7 @@ b  2""")
         if not len(inds):
             raise KeyError(name)
 
-        return obj._take(inds, axis=self.axis, convert=False)
+        return obj._take(inds, axis=self.axis)
 
     def __iter__(self):
         """
@@ -1101,7 +1100,8 @@ b  2""")
                 group_names = self.grouper.names
 
                 result = concat(values, axis=self.axis, keys=group_keys,
-                                levels=group_levels, names=group_names)
+                                levels=group_levels, names=group_names,
+                                sort=False)
             else:
 
                 # GH5610, returns a MI, with the first level being a
@@ -1436,9 +1436,9 @@ class GroupBy(_GroupBy):
         cls.min = groupby_function('min', 'min', np.min, numeric_only=False)
         cls.max = groupby_function('max', 'max', np.max, numeric_only=False)
         cls.first = groupby_function('first', 'first', first_compat,
-                                     numeric_only=False, _convert=True)
+                                     numeric_only=False)
         cls.last = groupby_function('last', 'last', last_compat,
-                                    numeric_only=False, _convert=True)
+                                    numeric_only=False)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -2652,7 +2652,7 @@ class BaseGrouper(object):
         # avoids object / Series creation overhead
         dummy = obj._get_values(slice(None, 0)).to_dense()
         indexer = get_group_index_sorter(group_index, ngroups)
-        obj = obj._take(indexer, convert=False).to_dense()
+        obj = obj._take(indexer).to_dense()
         group_index = algorithms.take_nd(
             group_index, indexer, allow_fill=False)
         grouper = reduction.SeriesGrouper(obj, func, group_index, ngroups,
@@ -5031,7 +5031,7 @@ class DataSplitter(object):
             yield i, self._chop(sdata, slice(start, end))
 
     def _get_sorted_data(self):
-        return self.data._take(self.sort_idx, axis=self.axis, convert=False)
+        return self.data._take(self.sort_idx, axis=self.axis)
 
     def _chop(self, sdata, slice_obj):
         return sdata.iloc[slice_obj]
