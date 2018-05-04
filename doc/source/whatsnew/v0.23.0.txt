@@ -314,7 +314,7 @@ The :func:`DataFrame.assign` now accepts dependent keyword arguments for python 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Previously, :meth:`Series.str.cat` did not -- in contrast to most of ``pandas`` -- align :class:`Series` on their index before concatenation (see :issue:`18657`).
-The method has now gained a keyword ``join`` to control the manner of alignment, see examples below and in :ref:`here <text.concatenate>`.
+The method has now gained a keyword ``join`` to control the manner of alignment, see examples below and :ref:`here <text.concatenate>`.
 
 In v.0.23 `join` will default to None (meaning no alignment), but this default will change to ``'left'`` in a future version of pandas.
 
@@ -325,7 +325,7 @@ In v.0.23 `join` will default to None (meaning no alignment), but this default w
     s.str.cat(t)
     s.str.cat(t, join='left', na_rep='-')
 
-Furthermore, meth:`Series.str.cat` now works for ``CategoricalIndex`` as well (previously raised a ``ValueError``; see :issue:`20842`).
+Furthermore, :meth:`Series.str.cat` now works for ``CategoricalIndex`` as well (previously raised a ``ValueError``; see :issue:`20842`).
 
 .. _whatsnew_0230.enhancements.astype_category:
 
