@@ -3082,21 +3082,12 @@ class Index(IndexOpsMixin, PandasObject):
         # use this, e.g. DatetimeIndex
         s = getattr(series, '_values', None)
         if is_scalar(key):
-            if isinstance(s, Index):
-                try:
-                    return s[key]
-                except (IndexError, ValueError):
-
-                    # invalid type as an indexer
-                    pass
-            elif isinstance(s, ExtensionArray):
+            if isinstance(s, (Index, ExtensionArray)):
                 try:
                     iloc = self.get_loc(key)
-                    # This should call the ExtensionArray __getitem__
                     return s[iloc]
                 except KeyError:
                     if isinstance(key, (int, np.integer)):
-                        # This should call the ExtensionArray __getitem__
                         return s[key]
 
         s = com._values_from_object(series)
