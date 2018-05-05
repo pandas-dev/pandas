@@ -578,7 +578,7 @@ class Categorical(ExtensionArray, PandasObject):
             unordered.
         """
         try:
-            codes = np.asarray(codes, np.int64)
+            codes = np.asarray(codes)
         except (ValueError, TypeError):
             raise ValueError(
                 "codes need to be convertible to an arrays of integers")
