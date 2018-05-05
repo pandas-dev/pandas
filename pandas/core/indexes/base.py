@@ -3083,11 +3083,16 @@ class Index(IndexOpsMixin, PandasObject):
         s = getattr(series, '_values', None)
         if is_scalar(key):
             if isinstance(s, (Index, ExtensionArray)):
+                # GH 20825
+                # Unify Index and ExtensionArray treatment
+                # First try to convert the key to a location
+                # If that fails, see if key is an integer, and
+                # try that
                 try:
                     iloc = self.get_loc(key)
                     return s[iloc]
                 except KeyError:
-                    if isinstance(key, (int, np.integer)):
+                    if is_integer(key):
                         return s[key]
 
         s = com._values_from_object(series)
