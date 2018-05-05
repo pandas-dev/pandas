@@ -2548,7 +2548,7 @@ def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
 
 def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
                           rot=0, grid=True, ax=None, figsize=None,
-                          layout=None, **kwds):
+                          layout=None, sharex=False, sharey=True, **kwds):
     """
     Make box plots from DataFrameGroupBy data.
 
@@ -2598,7 +2598,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     if subplots is True:
         naxes = len(grouped)
         fig, axes = _subplots(naxes=naxes, squeeze=False,
-                              ax=ax, sharex=False, sharey=True,
+                              ax=ax, sharex=sharex, sharey=sharey,
                               figsize=figsize, layout=layout)
         axes = _flatten(axes)
 
