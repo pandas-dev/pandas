@@ -2083,6 +2083,19 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return result
 
+    def _can_hold_identifiers_and_holds_name(self, name):
+        """
+        Faster check for ``name in self`` when we know `name` is a Python
+        identifier (e.g. in NDFrame.__getattr__, which hits this to support
+        . key lookup). For indexes that can't hold identifiers (everything
+        but object & categorical) we just return False.
+
+        https://github.com/pandas-dev/pandas/issues/19764
+        """
+        if self.is_object() or self.is_categorical():
+            return name in self
+        return False
+
     def append(self, other):
         """
         Append a collection of Index options together
@@ -4912,6 +4925,9 @@ def _ensure_index(index_like, copy=False):
         return index_like
     if hasattr(index_like, 'name'):
         return Index(index_like, name=index_like.name, copy=copy)
+
+    if is_iterator(index_like):
+        index_like = list(index_like)
 
     # must check for exactly list here because of strict type
     # check in clean_index_list

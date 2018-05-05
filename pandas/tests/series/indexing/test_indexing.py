@@ -753,6 +753,16 @@ def test_take():
         s.take([-1, 3, 4], convert=False)
 
 
+def test_take_categorical():
+    # https://github.com/pandas-dev/pandas/issues/20664
+    s = Series(pd.Categorical(['a', 'b', 'c']))
+    result = s.take([-2, -2, 0])
+    expected = Series(pd.Categorical(['b', 'b', 'a'],
+                      categories=['a', 'b', 'c']),
+                      index=[1, 1, 0])
+    assert_series_equal(result, expected)
+
+
 def test_head_tail(test_data):
     assert_series_equal(test_data.series.head(), test_data.series[:5])
     assert_series_equal(test_data.series.head(0), test_data.series[0:0])
