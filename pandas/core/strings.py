@@ -2159,9 +2159,10 @@ class StringMethods(NoNewAttributesMixin):
 
     Parameters
     ----------
-    to_strip : str or None, default None (whitespaces are removed)
+    to_strip : str or None, default None.
         Specifying the set of characters to be removed.
         All combinations of this set of characters will be stripped.
+        If None then whitespaces are removed.
 
     Returns
     -------
@@ -2175,35 +2176,40 @@ class StringMethods(NoNewAttributesMixin):
 
     Examples
     --------
-    >>> s = pd.Series(['1. Ant.  ', '2. Bee!\n', '3. Cat?\t'])
+    >>> s = pd.Series(['1. Ant.  ', '2. Bee!\n', '3. Cat?\t', np.nan])
     >>> s
     0    1. Ant.
     1    2. Bee!\n
     2    3. Cat?\t
+    3          NaN
     dtype: object
 
     >>> s.str.strip()
     0    1. Ant.
     1    2. Bee!
     2    3. Cat?
+    3        NaN
     dtype: object
 
     >>> s.str.lstrip('123.')
     0    Ant.
     1    Bee!\n
     2    Cat?\t
+    3       NaN
     dtype: object
 
     >>> s.str.rstrip('.!? \n\t')
     0    1. Ant
     1    2. Bee
     2    3. Cat
+    3       NaN
     dtype: object
 
     >>> s.str.strip('123.!? \n\t')
     0    Ant
     1    Bee
     2    Cat
+    3    NaN
     dtype: object
     """)
 
