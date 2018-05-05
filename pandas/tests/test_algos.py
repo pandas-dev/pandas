@@ -491,6 +491,14 @@ class TestUnique(object):
         result = pd.unique(arg)
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_obj_none_preservation(self):
+        # GH 20866
+        arr = np.array(['foo', None], dtype=object)
+        result = pd.unique(arr)
+        expected = np.array(['foo', None], dtype=object)
+
+        tm.assert_numpy_array_equal(result, expected, strict_nan=True)
+
 
 class TestIsin(object):
 
