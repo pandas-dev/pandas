@@ -65,6 +65,8 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         The precision at which to store and display the bins labels.
     include_lowest : bool, default False
         Whether the first interval should be left-inclusive or not.
+    duplicates : {default 'raise', 'drop'}, optional
+        If bin edges are not unique, raise ValueError or drop non-uniques.
 
     Returns
     -------
