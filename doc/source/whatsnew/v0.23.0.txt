@@ -419,9 +419,11 @@ documentation. If you build an extension array, publicize it on our
 Categorical Groupers has gained an observed keyword
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In previous versions, grouping by 1 or more categorical columns would result in an index that was the cartesian product of all of the categories for
-each grouper, not just the observed values.``.groupby()`` has gained the ``observed`` keyword to toggle this behavior. The default remains backward
-compatible (generate a cartesian product). (:issue:`14942`, :issue:`8138`, :issue:`15217`, :issue:`17594`, :issue:`8669`, :issue:`20583`)
+Grouping by a categorical includes the unobserved categories in the output.
+When grouping with multiple groupers, this means you get the cartesian product of all the
+categories, including combinations where there are no observations, which can result in a large
+number of groupers. We have added a keyword ``observed`` to control this behavior, it defaults to
+``observed=False`` for backward-compatiblity. (:issue:`14942`, :issue:`8138`, :issue:`15217`, :issue:`17594`, :issue:`8669`, :issue:`20583`, :issue:`20902`)
 
 
 .. ipython:: python
@@ -1246,6 +1248,7 @@ Indexing
 - Bug in ``Series.is_unique`` where extraneous output in stderr is shown if Series contains objects with ``__ne__`` defined (:issue:`20661`)
 - Bug in ``.loc`` assignment with a single-element list-like incorrectly assigns as a list (:issue:`19474`)
 - Bug in partial string indexing on a ``Series/DataFrame`` with a monotonic decreasing ``DatetimeIndex`` (:issue:`19362`)
+- Bug in :meth:`IntervalIndex.get_loc` and :meth:`IntervalIndex.get_indexer` when used with an :class:`IntervalIndex` containing a single interval (:issue:`17284`, :issue:`20921`)
 
 MultiIndex
 ^^^^^^^^^^
@@ -1356,6 +1359,7 @@ Reshaping
 - Bug in :meth:`DataFrame.astype` where column metadata is lost when converting to categorical or a dictionary of dtypes (:issue:`19920`)
 - Bug in :func:`cut` and :func:`qcut` where timezone information was dropped (:issue:`19872`)
 - Bug in :class:`Series` constructor with a ``dtype=str``, previously raised in some cases (:issue:`19853`)
+- Bug in :func:`get_dummies`, and :func:`select_dtypes`, where duplicate column names caused incorrect behavior (:issue:`20848`)
 
 Other
 ^^^^^
