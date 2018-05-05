@@ -400,7 +400,8 @@ def _convert_bin_to_numeric_type(bins, dtype):
 
 def _convert_bin_to_datelike_type(bins, dtype):
     """
-    Box bins in Timestamp/Timedelta if the orginal dtype is datelike
+    Convert bins to a DatetimeIndex or TimedeltaIndex if the orginal dtype is
+    datelike
 
     Parameters
     ----------
