@@ -145,7 +145,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     e     (7.333, 10.0]
     dtype: category
     Categories (3, interval[float64]): [(1.992, 4.667] < (4.667, ...
-    
+
     Passing a Series as an input returns a Series with mapping value.
     It is used to map numerically to intervals based on bins.
 
@@ -162,8 +162,8 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
 
     ``duplicates=drop`` drop non-uniques
 
-    >>> pd.cut(s, [0, 2, 4, 6, 10, 10], labels=False, retbins=True, right=False, 
-    ...        duplicates='drop')
+    >>> pd.cut(s, [0, 2, 4, 6, 10, 10], labels=False, retbins=True, 
+    ...    right=False, duplicates='drop')
     ... # doctest: +ELLIPSIS
     (a    0.0
      b    1.0
