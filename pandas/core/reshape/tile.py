@@ -332,6 +332,8 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
             result = result.astype(np.float64)
             np.putmask(result, na_mask, np.nan)
 
+    bins = _convert_bin_to_datelike_type(bins, dtype)
+
     return result, bins
 
 
@@ -393,6 +395,29 @@ def _convert_bin_to_numeric_type(bins, dtype):
         else:
             raise ValueError("bins must be of datetime64 dtype")
 
+    return bins
+
+
+def _convert_bin_to_datelike_type(bins, dtype):
+    """
+    Box bins in Timestamp/Timedelta if the orginal dtype is datelike
+
+    Parameters
+    ----------
+    bins : list-like of bins
+    dtype : dtype of data
+
+    Returns
+    -------
+    bins : Array-like of bins, DatetimeIndex or TimedeltaIndex if dtype is
+           datelike
+    """
+    if is_datetime64tz_dtype(dtype):
+        bins = to_datetime(bins, utc=True).tz_convert(dtype.tz)
+    elif is_datetime64_dtype(dtype):
+        bins = to_datetime(bins)
+    elif is_timedelta64_dtype(dtype):
+        bins = to_timedelta(bins)
     return bins
 
 
