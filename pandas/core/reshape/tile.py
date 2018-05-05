@@ -162,7 +162,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
 
     ``duplicates=drop`` drop non-uniques
 
-    >>> pd.cut(s, [0, 2, 4, 6, 10, 10], labels=False, retbins=True, 
+    >>> pd.cut(s, [0, 2, 4, 6, 10, 10], labels=False, retbins=True,
     ...    right=False, duplicates='drop')
     ... # doctest: +ELLIPSIS
     (a    0.0
