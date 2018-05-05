@@ -696,8 +696,8 @@ class _GroupBy(PandasObject, SelectionMixin):
         each group regardless of whether a group selection was previously set.
         """
         if self._group_selection is not None:
-            self._group_selection = None
             # GH12839 clear cached selection too when changing group selection
+            self._group_selection = None
             self._reset_cache('_selected_obj')
 
     def _set_group_selection(self):
@@ -706,16 +706,20 @@ class _GroupBy(PandasObject, SelectionMixin):
         directly but instead via a grouper.
         """
         grp = self.grouper
-        if self.as_index and getattr(grp, 'groupings', None) is not None and \
-           self.obj.ndim > 1:
-            ax = self.obj._info_axis
-            groupers = [g.name for g in grp.groupings
-                        if g.level is None and g.in_axis]
+        if not (self.as_index and
+                getattr(grp, 'groupings', None) is not None and
+                self.obj.ndim > 1 and
+                self._group_selection is None):
+            return
 
-            if len(groupers):
-                self._group_selection = ax.difference(Index(groupers)).tolist()
-                # GH12839 clear selected obj cache when group selection changes
-                self._reset_cache('_selected_obj')
+        ax = self.obj._info_axis
+        groupers = [g.name for g in grp.groupings
+                    if g.level is None and g.in_axis]
+
+        if len(groupers):
+            # GH12839 clear selected obj cache when group selection changes
+            self._group_selection = ax.difference(Index(groupers)).tolist()
+            self._reset_cache('_selected_obj')
 
     def _set_result_index_ordered(self, result):
         # set the result index on the passed values object and
@@ -897,7 +901,23 @@ b  2""")
 
         # ignore SettingWithCopy here in case the user mutates
         with option_context('mode.chained_assignment', None):
-            return self._python_apply_general(f)
+            try:
+                result = self._python_apply_general(f)
+            except Exception:
+
+                # gh-20949
+                # try again, with .apply acting as a filtering
+                # operation, by excluding the grouping column
+                # This would normally not be triggered
+                # except if the udf is trying an operation that
+                # fails on *some* columns, e.g. a numeric operation
+                # on a string grouper column
+
+                self._set_group_selection()
+                result = self._python_apply_general(f)
+                self._reset_group_selection()
+
+        return result
 
     def _python_apply_general(self, f):
         keys, values, mutated = self.grouper.apply(f, self._selected_obj,
@@ -1453,7 +1473,6 @@ class GroupBy(_GroupBy):
 
     @Appender(DataFrame.describe.__doc__)
     def describe(self, **kwargs):
-        self._set_group_selection()
         result = self.apply(lambda x: x.describe(**kwargs))
         if self.axis == 1:
             return result.T
@@ -3768,7 +3787,6 @@ class SeriesGroupBy(GroupBy):
 
     @Appender(Series.describe.__doc__)
     def describe(self, **kwargs):
-        self._set_group_selection()
         result = self.apply(lambda x: x.describe(**kwargs))
         if self.axis == 1:
             return result.T
@@ -4411,6 +4429,7 @@ class NDFrameGroupBy(GroupBy):
             return self._transform_general(func, *args, **kwargs)
 
         obj = self._obj_with_exclusions
+
         # nuiscance columns
         if not result.columns.equals(obj.columns):
             return self._transform_general(func, *args, **kwargs)
