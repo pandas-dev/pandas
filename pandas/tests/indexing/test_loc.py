@@ -444,13 +444,6 @@ class TestLoc(Base):
         expected = DataFrame({'date': Series(['string'])})
         tm.assert_frame_equal(df, expected)
 
-        # GH 9336
-        expected = DataFrame({'date': [1, 'a', 'b']})
-        df = DataFrame({'date': Series(pd.NaT, range(3))})
-        df.loc[0, 'date'] = 1
-        df.loc[1:2, 'date'] = 'a', 'b'
-        tm.assert_frame_equal(df, expected)
-
     def test_loc_setitem_consistency_empty(self):
         # empty (essentially noops)
         expected = DataFrame(columns=['x', 'y'])

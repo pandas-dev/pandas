@@ -1548,6 +1548,14 @@ class TestDataFrameIndexing(TestData):
         # pytest.raises(
         #    Exception, df.loc.__setitem__, ('d', 'timestamp'), [nan])
 
+    def test_setitem_mixed_datetime(self):
+        # GH 9336
+        expected = DataFrame({'date': [1, 'a', 'b']})
+        df = DataFrame({'date': Series(pd.NaT, range(3))})
+        df.loc[0, 'date'] = 1
+        df.loc[1:2, 'date'] = 'a', 'b'
+        tm.assert_frame_equal(df, expected)
+
     def test_setitem_frame(self):
         piece = self.frame.loc[self.frame.index[:2], ['A', 'B']]
         self.frame.loc[self.frame.index[-2]:, ['A', 'B']] = piece.values
