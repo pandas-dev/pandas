@@ -3081,7 +3081,7 @@ class Index(IndexOpsMixin, PandasObject):
         # if we have something that is Index-like, then
         # use this, e.g. DatetimeIndex
         s = getattr(series, '_values', None)
-        if isinstance(s, (Index, ExtensionArray)) and is_scalar(key):
+        if isinstance(s, (ExtensionArray, Index)) and is_scalar(key):
             # GH 20825
             # Unify Index and ExtensionArray treatment
             # First try to convert the key to a location
