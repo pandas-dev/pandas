@@ -507,7 +507,7 @@ class SelectionMixin(object):
                            for r in compat.itervalues(result))
 
             if isinstance(result, list):
-                return concat(result, keys=keys, axis=1), True
+                return concat(result, keys=keys, axis=1, sort=True), True
 
             elif is_any_frame():
                 # we have a dict of DataFrames
@@ -737,11 +737,17 @@ class IndexOpsMixin(object):
     @property
     def data(self):
         """ return the data pointer of the underlying data """
+        warnings.warn("{obj}.data is deprecated and will be removed "
+                      "in a future version".format(obj=type(self).__name__),
+                      FutureWarning, stacklevel=2)
         return self.values.data
 
     @property
     def itemsize(self):
         """ return the size of the dtype of the item of the underlying data """
+        warnings.warn("{obj}.itemsize is deprecated and will be removed "
+                      "in a future version".format(obj=type(self).__name__),
+                      FutureWarning, stacklevel=2)
         return self._ndarray_values.itemsize
 
     @property
@@ -752,6 +758,9 @@ class IndexOpsMixin(object):
     @property
     def strides(self):
         """ return the strides of the underlying data """
+        warnings.warn("{obj}.strides is deprecated and will be removed "
+                      "in a future version".format(obj=type(self).__name__),
+                      FutureWarning, stacklevel=2)
         return self._ndarray_values.strides
 
     @property
@@ -762,6 +771,9 @@ class IndexOpsMixin(object):
     @property
     def flags(self):
         """ return the ndarray.flags for the underlying data """
+        warnings.warn("{obj}.flags is deprecated and will be removed "
+                      "in a future version".format(obj=type(self).__name__),
+                      FutureWarning, stacklevel=2)
         return self.values.flags
 
     @property
@@ -769,6 +781,9 @@ class IndexOpsMixin(object):
         """ return the base object if the memory of the underlying data is
         shared
         """
+        warnings.warn("{obj}.base is deprecated and will be removed "
+                      "in a future version".format(obj=type(self).__name__),
+                      FutureWarning, stacklevel=2)
         return self.values.base
 
     @property

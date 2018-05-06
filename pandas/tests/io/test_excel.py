@@ -503,19 +503,34 @@ class ReadingTestsBase(SharedItems):
         # GH10559: Minor improvement: Change "sheet_name" to "sheetname"
         # GH10969: DOC: Consistent var names (sheetname vs sheet_name)
         # GH12604: CLN GH10559 Rename sheetname variable to sheet_name
+        # GH20920: ExcelFile.parse() and pd.read_xlsx() have different
+        #          behavior for "sheetname" argument
         dfref = self.get_csv_refdf('test1')
-        df1 = self.get_exceldf('test1', ext, sheet_name='Sheet1')    # doc
+        df1 = self.get_exceldf('test1', ext,
+                               sheet_name='Sheet1')  # doc
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             df2 = self.get_exceldf('test1', ext,
                                    sheetname='Sheet1')  # bkwrd compat
 
+        excel = self.get_excelfile('test1', ext)
+        df1_parse = excel.parse(sheet_name='Sheet1')    # doc
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            df2_parse = excel.parse(sheetname='Sheet1')  # bkwrd compat
+
         tm.assert_frame_equal(df1, dfref, check_names=False)
         tm.assert_frame_equal(df2, dfref, check_names=False)
+        tm.assert_frame_equal(df1_parse, dfref, check_names=False)
+        tm.assert_frame_equal(df2_parse, dfref, check_names=False)
 
     def test_sheet_name_both_raises(self, ext):
         with tm.assert_raises_regex(TypeError, "Cannot specify both"):
             self.get_exceldf('test1', ext, sheetname='Sheet1',
                              sheet_name='Sheet1')
+
+        excel = self.get_excelfile('test1', ext)
+        with tm.assert_raises_regex(TypeError, "Cannot specify both"):
+            excel.parse(sheetname='Sheet1',
+                        sheet_name='Sheet1')
 
 
 @pytest.mark.parametrize("ext", ['.xls', '.xlsx', '.xlsm'])

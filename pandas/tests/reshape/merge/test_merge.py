@@ -1,26 +1,27 @@
 # pylint: disable=E1103
 
-import pytest
-from datetime import datetime, date
-from numpy.random import randn
-from numpy import nan
-import numpy as np
 import random
 import re
+from collections import OrderedDict
+from datetime import date, datetime
+
+import numpy as np
+import pytest
+from numpy import nan
+from numpy.random import randn
 
 import pandas as pd
-from pandas.compat import lrange, lzip
-from pandas.core.reshape.concat import concat
-from pandas.core.reshape.merge import merge, MergeError
-from pandas.util.testing import assert_frame_equal, assert_series_equal
-from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.dtypes.common import (
-    is_categorical_dtype,
-    is_object_dtype,
-)
-from pandas import DataFrame, Index, MultiIndex, Series, Categorical
 import pandas.util.testing as tm
+from pandas import (Categorical, CategoricalIndex, DataFrame, DatetimeIndex,
+                    Float64Index, Index, Int64Index, MultiIndex, RangeIndex,
+                    Series, UInt64Index)
 from pandas.api.types import CategoricalDtype as CDT
+from pandas.compat import lrange, lzip
+from pandas.core.dtypes.common import is_categorical_dtype, is_object_dtype
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.reshape.concat import concat
+from pandas.core.reshape.merge import MergeError, merge
+from pandas.util.testing import assert_frame_equal, assert_series_equal
 
 N = 50
 NGROUPS = 8
@@ -813,7 +814,7 @@ class TestMerge(object):
 
         # Dups on right
         right_w_dups = right.append(pd.DataFrame({'a': ['e'], 'c': ['moo']},
-                                    index=[4]))
+                                                 index=[4]))
         merge(left, right_w_dups, left_index=True, right_index=True,
               validate='one_to_many')
 
@@ -826,7 +827,7 @@ class TestMerge(object):
 
         # Dups on left
         left_w_dups = left.append(pd.DataFrame({'a': ['a'], 'c': ['cow']},
-                                               index=[3]))
+                                               index=[3]), sort=True)
         merge(left_w_dups, right, left_index=True, right_index=True,
               validate='many_to_one')
 
@@ -1286,7 +1287,7 @@ class TestMergeMulti(object):
                 index=MultiIndex.from_tuples(
                     [(4, np.nan)],
                     names=['household_id', 'asset_id'])))
-        ], axis=0).reindex(columns=expected.columns))
+        ], axis=0, sort=True).reindex(columns=expected.columns))
         assert_frame_equal(result, expected)
 
         # invalid cases
@@ -1388,17 +1389,24 @@ class TestMergeMulti(object):
         if klass is not None:
             on_vector = klass(on_vector)
 
-        expected = DataFrame({"a": [1, 2, 3]})
-
-        if klass == np.asarray:
-            # The join key is added for ndarray.
-            expected["key_1"] = [2016, 2017, 2018]
+        expected = DataFrame(
+            OrderedDict([
+                ("a", [1, 2, 3]),
+                ("key_1", [2016, 2017, 2018]),
+            ])
+        )
 
         result = df.merge(df, on=["a", on_vector], how="inner")
         tm.assert_frame_equal(result, expected)
 
-        expected = DataFrame({"a_x": [1, 2, 3],
-                              "a_y": [1, 2, 3]})
+        expected = DataFrame(
+            OrderedDict([
+                ("key_0", [2016, 2017, 2018]),
+                ("a_x", [1, 2, 3]),
+                ("a_y", [1, 2, 3]),
+            ])
+        )
+
         result = df.merge(df, on=[df.index.year], how="inner")
         tm.assert_frame_equal(result, expected)
 
@@ -1427,7 +1435,7 @@ class TestMergeDtypes(object):
         # We allow merging on object and categorical cols and cast
         # categorical cols to object
         if (is_categorical_dtype(right['A'].dtype) or
-           is_object_dtype(right['A'].dtype)):
+                is_object_dtype(right['A'].dtype)):
             result = pd.merge(left, right, on='A')
             assert is_object_dtype(result.A.dtype)
 
@@ -1826,3 +1834,26 @@ class TestMergeOnIndexes(object):
                           how=how,
                           sort=sort)
         tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    'index', [
+        CategoricalIndex(['A', 'B'], categories=['A', 'B'], name='index_col'),
+        Float64Index([1.0, 2.0], name='index_col'),
+        Int64Index([1, 2], name='index_col'),
+        UInt64Index([1, 2], name='index_col'),
+        RangeIndex(start=0, stop=2, name='index_col'),
+        DatetimeIndex(["2018-01-01", "2018-01-02"], name='index_col'),
+    ], ids=lambda x: type(x).__name__)
+def test_merge_index_types(index):
+    # gh-20777
+    # assert key access is consistent across index types
+    left = DataFrame({"left_data": [1, 2]}, index=index)
+    right = DataFrame({"right_data": [1.0, 2.0]}, index=index)
+
+    result = left.merge(right, on=['index_col'])
+
+    expected = DataFrame(
+        OrderedDict([('left_data', [1, 2]), ('right_data', [1.0, 2.0])]),
+        index=index)
+    assert_frame_equal(result, expected)

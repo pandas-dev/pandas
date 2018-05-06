@@ -407,6 +407,13 @@ def isin(comps, values):
     if not isinstance(values, (ABCIndex, ABCSeries, np.ndarray)):
         values = construct_1d_object_array_from_listlike(list(values))
 
+    if is_categorical_dtype(comps):
+        # TODO(extension)
+        # handle categoricals
+        return comps._values.isin(values)
+
+    comps = com._values_from_object(comps)
+
     comps, dtype, _ = _ensure_data(comps)
     values, _, _ = _ensure_data(values, dtype=dtype)
 
@@ -1441,6 +1448,94 @@ def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis=0, mask_info=None):
     return func
 
 
+def take(arr, indices, allow_fill=False, fill_value=None):
+    """
+    Take elements from an array.
+
+    .. versionadded:: 0.23.0
+
+    Parameters
+    ----------
+    arr : sequence
+        Non array-likes (sequences without a dtype) are coereced
+        to an ndarray.
+    indices : sequence of integers
+        Indices to be taken.
+    allow_fill : bool, default False
+        How to handle negative values in `indices`.
+
+        * False: negative values in `indices` indicate positional indices
+          from the right (the default). This is similar to :func:`numpy.take`.
+
+        * True: negative values in `indices` indicate
+          missing values. These values are set to `fill_value`. Any other
+          other negative values raise a ``ValueError``.
+
+    fill_value : any, optional
+        Fill value to use for NA-indices when `allow_fill` is True.
+        This may be ``None``, in which case the default NA value for
+        the type (``self.dtype.na_value``) is used.
+
+    Returns
+    -------
+    ndarray or ExtensionArray
+        Same type as the input.
+
+    Raises
+    ------
+    IndexError
+        When `indices` is out of bounds for the array.
+    ValueError
+        When the indexer contains negative values other than ``-1``
+        and `allow_fill` is True.
+
+    Notes
+    -----
+    When `allow_fill` is False, `indices` may be whatever dimensionality
+    is accepted by NumPy for `arr`.
+
+    When `allow_fill` is True, `indices` should be 1-D.
+
+    See Also
+    --------
+    numpy.take
+
+    Examples
+    --------
+    >>> from pandas.api.extensions import take
+
+    With the default ``allow_fill=False``, negative numbers indicate
+    positional indices from the right.
+
+    >>> take(np.array([10, 20, 30]), [0, 0, -1])
+    array([10, 10, 30])
+
+    Setting ``allow_fill=True`` will place `fill_value` in those positions.
+
+    >>> take(np.array([10, 20, 30]), [0, 0, -1], allow_fill=True)
+    array([10., 10., nan])
+
+    >>> take(np.array([10, 20, 30]), [0, 0, -1], allow_fill=True,
+    ...      fill_value=-10)
+    array([ 10,  10, -10])
+    """
+    from pandas.core.indexing import validate_indices
+
+    if not is_array_like(arr):
+        arr = np.asarray(arr)
+
+    indices = np.asarray(indices, dtype=np.intp)
+
+    if allow_fill:
+        # Pandas style, -1 means NA
+        validate_indices(indices, len(arr))
+        result = take_1d(arr, indices, allow_fill=True, fill_value=fill_value)
+    else:
+        # NumPy style
+        result = arr.take(indices)
+    return result
+
+
 def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
             allow_fill=True):
     """
@@ -1455,7 +1550,7 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
         Input array.
     indexer : ndarray
         1-D array of indices to take, subarrays corresponding to -1 value
-        indicies are filed with fill_value
+        indices are filed with fill_value
     axis : int, default 0
         Axis to take from
     out : ndarray or None, default None
@@ -1490,6 +1585,10 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
 
     if is_sparse(arr):
         arr = arr.get_values()
+    elif isinstance(arr, (ABCIndexClass, ABCSeries)):
+        arr = arr.values
+
+    arr = np.asarray(arr)
 
     if indexer is None:
         indexer = np.arange(arr.shape[axis], dtype=np.int64)

@@ -1066,7 +1066,7 @@ def test_convert_objects_leave_decimal_alone():
 
     def convert_force_pure(x):
         # base will be length 0
-        assert (len(x.base) > 0)
+        assert (len(x.values.base) > 0)
         return Decimal(str(x.mean()))
 
     grouped = s.groupby(labels)

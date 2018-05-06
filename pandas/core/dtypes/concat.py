@@ -8,6 +8,7 @@ from pandas import compat
 from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_sparse,
+    is_extension_array_dtype,
     is_datetimetz,
     is_datetime64_dtype,
     is_timedelta64_dtype,
@@ -173,6 +174,10 @@ def _concat_compat(to_concat, axis=0):
     elif 'sparse' in typs:
         return _concat_sparse(to_concat, axis=axis, typs=typs)
 
+    extensions = [is_extension_array_dtype(x) for x in to_concat]
+    if any(extensions) and axis == 1:
+        to_concat = [np.atleast_2d(x.astype('object')) for x in to_concat]
+
     if not nonempty:
         # we have all empties, but may need to coerce the result dtype to
         # object if we have non-numeric type operands (numpy would otherwise
@@ -210,7 +215,7 @@ def _concat_categorical(to_concat, axis=0):
 
     def _concat_asobject(to_concat):
         to_concat = [x.get_values() if is_categorical_dtype(x.dtype)
-                     else x.ravel() for x in to_concat]
+                     else np.asarray(x).ravel() for x in to_concat]
         res = _concat_compat(to_concat)
         if axis == 1:
             return res.reshape(1, len(res))
@@ -548,6 +553,8 @@ def _concat_sparse(to_concat, axis=0, typs=None):
         # coerce to native type
         if isinstance(x, SparseArray):
             x = x.get_values()
+        else:
+            x = np.asarray(x)
         x = x.ravel()
         if axis > 0:
             x = np.atleast_2d(x)

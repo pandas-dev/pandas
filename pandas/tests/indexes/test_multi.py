@@ -30,7 +30,7 @@ from .common import Base
 
 class TestMultiIndex(Base):
     _holder = MultiIndex
-    _compat_props = ['shape', 'ndim', 'size', 'itemsize']
+    _compat_props = ['shape', 'ndim', 'size']
 
     def setup_method(self, method):
         major_axis = Index(['foo', 'bar', 'baz', 'qux'])
@@ -47,6 +47,11 @@ class TestMultiIndex(Base):
 
     def create_index(self):
         return self.index
+
+    def test_can_hold_identifiers(self):
+        idx = self.create_index()
+        key = idx[0]
+        assert idx._can_hold_identifiers_and_holds_name(key) is True
 
     def test_boolean_context_compat2(self):
 
@@ -2432,7 +2437,12 @@ class TestMultiIndex(Base):
         for a in [101, 102]:
             mi = MultiIndex.from_arrays([[101, a], [3.5, np.nan]])
             assert not mi.has_duplicates
-            assert mi.get_duplicates() == []
+
+            with warnings.catch_warnings(record=True):
+                # Deprecated - see GH20239
+                assert mi.get_duplicates().equals(MultiIndex.from_arrays(
+                    [[], []]))
+
             tm.assert_numpy_array_equal(mi.duplicated(), np.zeros(
                 2, dtype='bool'))
 
@@ -2444,7 +2454,12 @@ class TestMultiIndex(Base):
                                 labels=np.random.permutation(list(lab)).T)
                 assert len(mi) == (n + 1) * (m + 1)
                 assert not mi.has_duplicates
-                assert mi.get_duplicates() == []
+
+                with warnings.catch_warnings(record=True):
+                    # Deprecated - see GH20239
+                    assert mi.get_duplicates().equals(MultiIndex.from_arrays(
+                        [[], []]))
+
                 tm.assert_numpy_array_equal(mi.duplicated(), np.zeros(
                     len(mi), dtype='bool'))
 
