@@ -18,7 +18,7 @@ import pandas.core.nanops as nanops
 from pandas._libs.lib import infer_dtype
 from pandas import (to_timedelta, to_datetime,
                     Categorical, Timestamp, Timedelta,
-                    Series, Interval, IntervalIndex)
+                    Series, Index, Interval, IntervalIndex)
 
 import numpy as np
 
@@ -413,12 +413,11 @@ def _convert_bin_to_datelike_type(bins, dtype):
     bins : Array-like of bins, DatetimeIndex or TimedeltaIndex if dtype is
            datelike
     """
+    # Can be simplified once GH 20964 is fixed.
     if is_datetime64tz_dtype(dtype):
         bins = to_datetime(bins, utc=True).tz_convert(dtype.tz)
-    elif is_datetime64_dtype(dtype):
-        bins = to_datetime(bins)
-    elif is_timedelta64_dtype(dtype):
-        bins = to_timedelta(bins)
+    elif is_datetime64_dtype(dtype) or is_timedelta64_dtype(dtype):
+        bins = Index(bins, dtype=dtype)
     return bins
 
 
