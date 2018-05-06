@@ -784,3 +784,32 @@ Region_1,Site_2,3977723089,A,5/20/2015 8:33,5/20/2015 9:09,Yes,No"""
             index=pd.MultiIndex.from_product(keys))
 
         tm.assert_series_equal(result, expected)
+
+    def test_loc_uint64(self):
+        # GH20722
+        # Test whether loc accept uint64 max value as index.
+        s = pd.Series(
+            [1, 2],
+            index=[
+                np.iinfo('uint64').max - 1,
+                np.iinfo('uint64').max
+            ]
+        )
+        exp1 = pd.Series(
+            [1],
+            index=[
+                18446744073709551614
+            ]
+        )
+        exp2 = pd.Series(
+            [2],
+            index=[
+                18446744073709551615
+            ]
+        )
+
+        tm.assert_series_equal(s.loc[[np.iinfo('uint64').max - 1]], exp1)
+        assert 1 == s.loc[np.iinfo('uint64').max - 1]
+
+        tm.assert_series_equal(s.loc[[np.iinfo('uint64').max]], exp2)
+        assert 2 == s.loc[np.iinfo('uint64').max]
