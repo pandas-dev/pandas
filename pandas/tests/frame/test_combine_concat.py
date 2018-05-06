@@ -750,6 +750,16 @@ class TestDataFrameCombineFirst(TestData):
         tm.assert_frame_equal(res, df1)
         assert res['a'].dtype == 'int64'
 
+    def test_combine_first_with_asymmetric_other(self):
+        # GH20699
+        df1 = pd.DataFrame({'isInt': [1]})
+        df2 = pd.DataFrame({'isBool': [True]})
+
+        res = df1.combine_first(df2)
+        exp = pd.DataFrame({'isBool': [True], 'isInt': [1]})
+
+        tm.assert_frame_equal(res, exp)
+
     def test_concat_datetime_datetime64_frame(self):
         # #2624
         rows = []
