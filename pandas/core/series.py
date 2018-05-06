@@ -41,7 +41,11 @@ from pandas.core.dtypes.cast import (
     maybe_cast_to_datetime, maybe_castable,
     construct_1d_arraylike_from_scalar,
     construct_1d_object_array_from_listlike)
-from pandas.core.dtypes.missing import isna, notna, remove_na_arraylike
+from pandas.core.dtypes.missing import (
+    isna,
+    notna,
+    remove_na_arraylike,
+    na_value_for_dtype)
 
 from pandas.core.index import (Index, MultiIndex, InvalidIndexError,
                                Float64Index, _ensure_index)
@@ -153,7 +157,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Copy input data
     """
     _metadata = ['name']
-    _accessors = frozenset(['dt', 'cat', 'str'])
+    _accessors = set(['dt', 'cat', 'str'])
     _deprecations = generic.NDFrame._deprecations | frozenset(
         ['asobject', 'sortlevel', 'reshape', 'get_value', 'set_value',
          'from_csv', 'valid'])
@@ -300,6 +304,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if data:
             keys, values = zip(*compat.iteritems(data))
             values = list(values)
+        elif index is not None:
+            # fastpath for Series(data=None). Just use broadcasting a scalar
+            # instead of reindexing.
+            values = na_value_for_dtype(dtype)
+            keys = index
         else:
             keys, values = [], []
 
@@ -307,9 +316,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         s = Series(values, index=keys, dtype=dtype)
 
         # Now we just make sure the order is respected, if any
-        if index is not None:
+        if data and index is not None:
             s = s.reindex(index, copy=False)
-        elif not PY36 and not isinstance(data, OrderedDict):
+        elif not PY36 and not isinstance(data, OrderedDict) and data:
+            # Need the `and data` to avoid sorting Series(None, index=[...])
+            # since that isn't really dict-like
             try:
                 s = s.sort_index()
             except TypeError:
@@ -1855,6 +1866,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         0.75    3.25
         dtype: float64
 
+        See Also
+        --------
+        pandas.core.window.Rolling.quantile
         """
 
         self._check_percentile(q)
@@ -3213,7 +3227,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 return self.copy()
             return self
 
-        new_values = algorithms.take_1d(self._values, indexer)
+        new_values = algorithms.take_1d(self._values, indexer,
+                                        allow_fill=True, fill_value=None)
         return self._constructor(new_values, index=new_index)
 
     def _needs_reindex_multi(self, axes, method, level):
@@ -3408,11 +3423,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     @Appender(generic._shared_docs['replace'] % _shared_doc_kwargs)
     def replace(self, to_replace=None, value=None, inplace=False, limit=None,
-                regex=False, method='pad', axis=None):
+                regex=False, method='pad'):
         return super(Series, self).replace(to_replace=to_replace, value=value,
                                            inplace=inplace, limit=limit,
-                                           regex=regex, method=method,
-                                           axis=axis)
+                                           regex=regex, method=method)
 
     @Appender(generic._shared_docs['shift'] % _shared_doc_kwargs)
     def shift(self, periods=1, freq=None, axis=0):
@@ -3489,13 +3503,19 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return v
 
     @Appender(generic._shared_docs['_take'])
-    def _take(self, indices, axis=0, convert=True, is_copy=False):
-        if convert:
-            indices = maybe_convert_indices(indices, len(self._get_axis(axis)))
+    def _take(self, indices, axis=0, is_copy=False):
 
         indices = _ensure_platform_int(indices)
         new_index = self.index.take(indices)
-        new_values = self._values.take(indices)
+
+        if is_categorical_dtype(self):
+            # https://github.com/pandas-dev/pandas/issues/20664
+            # TODO: remove when the default Categorical.take behavior changes
+            indices = maybe_convert_indices(indices, len(self._get_axis(axis)))
+            kwargs = {'allow_fill': False}
+        else:
+            kwargs = {}
+        new_values = self._values.take(indices, **kwargs)
 
         result = (self._constructor(new_values, index=new_index,
                                     fastpath=True).__finalize__(self))
@@ -3564,7 +3584,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         5    False
         Name: animal, dtype: bool
         """
-        result = algorithms.isin(com._values_from_object(self), values)
+        result = algorithms.isin(self, values)
         return self._constructor(result, index=self.index).__finalize__(self)
 
     def between(self, left, right, inclusive=True):

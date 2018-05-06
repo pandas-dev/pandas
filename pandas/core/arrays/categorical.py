@@ -2,6 +2,7 @@
 
 import numpy as np
 from warnings import warn
+import textwrap
 import types
 
 from pandas import compat
@@ -29,7 +30,7 @@ from pandas.core.dtypes.common import (
     is_scalar,
     is_dict_like)
 
-from pandas.core.algorithms import factorize, take_1d, unique1d
+from pandas.core.algorithms import factorize, take_1d, unique1d, take
 from pandas.core.accessor import PandasDelegate
 from pandas.core.base import (PandasObject,
                               NoNewAttributesMixin, _shared_docs)
@@ -39,11 +40,24 @@ from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (
     Appender, cache_readonly, deprecate_kwarg, Substitution)
 
+import pandas.core.algorithms as algorithms
+
 from pandas.io.formats.terminal import get_terminal_size
 from pandas.util._validators import validate_bool_kwarg, validate_fillna_kwargs
 from pandas.core.config import get_option
 
 from .base import ExtensionArray
+
+
+_take_msg = textwrap.dedent("""\
+    Interpreting negative values in 'indexer' as missing values.
+    In the future, this will change to meaning positional indicies
+    from the right.
+
+    Use 'allow_fill=True' to retain the previous behavior and silence this
+    warning.
+
+    Use 'allow_fill=False' to accept the new behavior.""")
 
 
 def _cat_compare_op(op):
@@ -422,7 +436,7 @@ class Categorical(ExtensionArray, PandasObject):
         return Categorical
 
     @classmethod
-    def _constructor_from_sequence(cls, scalars):
+    def _from_sequence(cls, scalars):
         return Categorical(scalars)
 
     def copy(self):
@@ -633,8 +647,13 @@ class Categorical(ExtensionArray, PandasObject):
 
         self._dtype = new_dtype
 
-    def _codes_for_groupby(self, sort):
+    def _codes_for_groupby(self, sort, observed):
         """
+        Code the categories to ensure we can groupby for categoricals.
+
+        If observed=True, we return a new Categorical with the observed
+        categories only.
+
         If sort=False, return a copy of self, coded with categories as
         returned by .unique(), followed by any categories not appearing in
         the data. If sort=True, return self.
@@ -647,6 +666,8 @@ class Categorical(ExtensionArray, PandasObject):
         ----------
         sort : boolean
             The value of the sort parameter groupby was called with.
+        observed : boolean
+            Account only for the observed values
 
         Returns
         -------
@@ -656,6 +677,26 @@ class Categorical(ExtensionArray, PandasObject):
             original order is preserved), followed by any unrepresented
             categories in the original order.
         """
+
+        # we only care about observed values
+        if observed:
+            unique_codes = unique1d(self.codes)
+            cat = self.copy()
+
+            take_codes = unique_codes[unique_codes != -1]
+            if self.ordered:
+                take_codes = np.sort(take_codes)
+
+            # we recode according to the uniques
+            categories = self.categories.take(take_codes)
+            codes = _recode_for_categories(self.codes,
+                                           self.categories,
+                                           categories)
+
+            # return a new categorical that maps our new codes
+            # and categories
+            dtype = CategoricalDtype(categories, ordered=self.ordered)
+            return type(self)(codes, dtype=dtype, fastpath=True)
 
         # Already sorted according to self.categories; all is fine
         if sort:
@@ -1730,17 +1771,49 @@ class Categorical(ExtensionArray, PandasObject):
         return self._constructor(values, categories=self.categories,
                                  ordered=self.ordered, fastpath=True)
 
-    def take_nd(self, indexer, allow_fill=True, fill_value=None):
-        """ Take the codes by the indexer, fill with the fill_value.
-
-        For internal compatibility with numpy arrays.
+    def take_nd(self, indexer, allow_fill=None, fill_value=None):
         """
+        Take elements from the Categorical.
 
-        # filling must always be None/nan here
-        # but is passed thru internally
-        assert isna(fill_value)
+        Parameters
+        ----------
+        indexer : sequence of integers
+        allow_fill : bool, default None.
+            How to handle negative values in `indexer`.
 
-        codes = take_1d(self._codes, indexer, allow_fill=True, fill_value=-1)
+            * False: negative values in `indices` indicate positional indices
+              from the right. This is similar to
+              :func:`numpy.take`.
+
+            * True: negative values in `indices` indicate missing values
+              (the default). These values are set to `fill_value`. Any other
+              other negative values raise a ``ValueError``.
+
+            .. versionchanged:: 0.23.0
+
+               Deprecated the default value of `allow_fill`. The deprecated
+               default is ``True``. In the future, this will change to
+               ``False``.
+
+        Returns
+        -------
+        Categorical
+            This Categorical will have the same categories and ordered as
+            `self`.
+        """
+        indexer = np.asarray(indexer, dtype=np.intp)
+        if allow_fill is None:
+            if (indexer < 0).any():
+                warn(_take_msg, FutureWarning, stacklevel=2)
+                allow_fill = True
+
+        if isna(fill_value):
+            # For categorical, any NA value is considered a user-facing
+            # NA value. Our storage NA value is -1.
+            fill_value = -1
+
+        codes = take(self._codes, indexer, allow_fill=allow_fill,
+                     fill_value=fill_value)
         result = self._constructor(codes, categories=self.categories,
                                    ordered=self.ordered, fastpath=True)
         return result
@@ -2115,7 +2188,7 @@ class Categorical(ExtensionArray, PandasObject):
         # exclude nan from indexer for categories
         take_codes = unique_codes[unique_codes != -1]
         if self.ordered:
-            take_codes = sorted(take_codes)
+            take_codes = np.sort(take_codes)
         return cat.set_categories(cat.categories.take(take_codes))
 
     def _values_for_factorize(self):
@@ -2215,6 +2288,60 @@ class Categorical(ExtensionArray, PandasObject):
 
     def _formatting_values(self):
         return self
+
+    def isin(self, values):
+        """
+        Check whether `values` are contained in Categorical.
+
+        Return a boolean NumPy Array showing whether each element in
+        the Categorical matches an element in the passed sequence of
+        `values` exactly.
+
+        Parameters
+        ----------
+        values : set or list-like
+            The sequence of values to test. Passing in a single string will
+            raise a ``TypeError``. Instead, turn a single string into a
+            list of one element.
+
+        Returns
+        -------
+        isin : numpy.ndarray (bool dtype)
+
+        Raises
+        ------
+        TypeError
+          * If `values` is not a set or list-like
+
+        See Also
+        --------
+        pandas.Series.isin : equivalent method on Series
+
+        Examples
+        --------
+
+        >>> s = pd.Categorical(['lama', 'cow', 'lama', 'beetle', 'lama',
+        ...                'hippo'])
+        >>> s.isin(['cow', 'lama'])
+        array([ True,  True,  True, False,  True, False])
+
+        Passing a single string as ``s.isin('lama')`` will raise an error. Use
+        a list of one element instead:
+
+        >>> s.isin(['lama'])
+        array([ True, False,  True, False,  True, False])
+        """
+        from pandas.core.series import _sanitize_array
+        if not is_list_like(values):
+            raise TypeError("only list-like objects are allowed to be passed"
+                            " to isin(), you passed a [{values_type}]"
+                            .format(values_type=type(values).__name__))
+        values = _sanitize_array(values, None, None)
+        null_mask = np.asarray(isna(values))
+        code_values = self.categories.get_indexer(values)
+        code_values = code_values[null_mask | (code_values >= 0)]
+        return algorithms.isin(self.codes, code_values)
+
 
 # The Series.cat accessor
 

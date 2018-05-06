@@ -1632,6 +1632,8 @@ IntervalIndex Components
    IntervalIndex.length
    IntervalIndex.values
    IntervalIndex.is_non_overlapping_monotonic
+   IntervalIndex.get_loc
+   IntervalIndex.get_indexer
 
 
 .. _api.multiindex:
@@ -2549,6 +2551,8 @@ objects.
    api.extensions.register_dataframe_accessor
    api.extensions.register_series_accessor
    api.extensions.register_index_accessor
+   api.extensions.ExtensionDtype
+   api.extensions.ExtensionArray
 
 .. This is to prevent warnings in the doc build. We don't want to encourage
 .. these methods.

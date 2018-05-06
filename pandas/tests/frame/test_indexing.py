@@ -125,12 +125,12 @@ class TestDataFrameIndexing(TestData):
         # tuples
         df = DataFrame(randn(8, 3),
                        columns=Index([('foo', 'bar'), ('baz', 'qux'),
-                                      ('peek', 'aboo')], name=['sth', 'sth2']))
+                                      ('peek', 'aboo')], name=('sth', 'sth2')))
 
         result = df[[('foo', 'bar'), ('baz', 'qux')]]
         expected = df.iloc[:, :2]
         assert_frame_equal(result, expected)
-        assert result.columns.names == ['sth', 'sth2']
+        assert result.columns.names == ('sth', 'sth2')
 
     def test_getitem_callable(self):
         # GH 12533
@@ -396,8 +396,12 @@ class TestDataFrameIndexing(TestData):
         assert (self.frame['D'] == 0).all()
 
         df = DataFrame(np.random.randn(8, 4))
-        with catch_warnings(record=True):
-            assert isna(df.ix[:, [-1]].values).all()
+        # ix does label-based indexing when having an integer index
+        with pytest.raises(KeyError):
+            df.ix[[-1]]
+
+        with pytest.raises(KeyError):
+            df.ix[:, [-1]]
 
         # #1942
         a = DataFrame(randn(20, 2), index=[chr(x + 65) for x in range(20)])
