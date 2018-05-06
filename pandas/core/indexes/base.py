@@ -3081,19 +3081,18 @@ class Index(IndexOpsMixin, PandasObject):
         # if we have something that is Index-like, then
         # use this, e.g. DatetimeIndex
         s = getattr(series, '_values', None)
-        if is_scalar(key):
-            if isinstance(s, (Index, ExtensionArray)):
-                # GH 20825
-                # Unify Index and ExtensionArray treatment
-                # First try to convert the key to a location
-                # If that fails, see if key is an integer, and
-                # try that
-                try:
-                    iloc = self.get_loc(key)
-                    return s[iloc]
-                except KeyError:
-                    if is_integer(key):
-                        return s[key]
+        if isinstance(s, (Index, ExtensionArray)) and is_scalar(key):
+            # GH 20825
+            # Unify Index and ExtensionArray treatment
+            # First try to convert the key to a location
+            # If that fails, see if key is an integer, and
+            # try that
+            try:
+                iloc = self.get_loc(key)
+                return s[iloc]
+            except KeyError:
+                if is_integer(key):
+                    return s[key]
 
         s = com._values_from_object(series)
         k = com._values_from_object(key)
