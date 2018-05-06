@@ -1943,21 +1943,21 @@ class StringMethods(NoNewAttributesMixin):
 
         Parameters
         ----------
-        input : Series, DataFrame, np.ndarray, list-like or list-like of
+        others : Series, DataFrame, np.ndarray, list-like or list-like of
             objects that are either Series, np.ndarray (1-dim) or list-like
         ignore_index : boolean, default False
-            Determines whether to forcefully align with index of the caller
+            Determines whether to forcefully align others with index of caller
 
         Returns
         -------
-        tuple : (input transformed into list of Series,
-                 Boolean whether FutureWarning should be raised)
+        tuple : (others transformed into list of Series,
+                 boolean whether FutureWarning should be raised)
         """
 
         # once str.cat defaults to alignment, this function can be simplified;
         # will not need `ignore_index` and the second boolean output anymore
 
-        from pandas import Index, Series, DataFrame, isnull
+        from pandas import Index, Series, DataFrame
 
         # self._orig is either Series or Index
         idx = self._orig if isinstance(self._orig, Index) else self._orig.index
@@ -1966,66 +1966,69 @@ class StringMethods(NoNewAttributesMixin):
                    'list-like (either containing only strings or containing '
                    'only objects of type Series/Index/list-like/np.ndarray)')
 
+        # Generally speaking, all objects without an index inherit the index
+        # `idx` of the calling Series/Index - i.e. must have matching length.
+        # Objects with an index (i.e. Series/Index/DataFrame) keep their own
+        # index, *unless* ignore_index is set to True.
         if isinstance(others, Series):
-            fu_wrn = not others.index.equals(idx)
+            warn = not others.index.equals(idx)
+            # only reconstruct Series when absolutely necessary
             los = [Series(others.values, index=idx)
-                   if ignore_index and fu_wrn else others]
-            return (los, fu_wrn)
+                   if ignore_index and warn else others]
+            return (los, warn)
         elif isinstance(others, Index):
-            fu_wrn = not others.equals(idx)
+            warn = not others.equals(idx)
             los = [Series(others.values,
                           index=(idx if ignore_index else others))]
-            return (los, fu_wrn)
+            return (los, warn)
         elif isinstance(others, DataFrame):
-            fu_wrn = not others.index.equals(idx)
-            if ignore_index and fu_wrn:
+            warn = not others.index.equals(idx)
+            if ignore_index and warn:
                 # without copy, this could change "others"
                 # that was passed to str.cat
                 others = others.copy()
                 others.index = idx
-            return ([others[x] for x in others], fu_wrn)
+            return ([others[x] for x in others], warn)
         elif isinstance(others, np.ndarray) and others.ndim == 2:
             others = DataFrame(others, index=idx)
             return ([others[x] for x in others], False)
         elif is_list_like(others):
             others = list(others)  # ensure iterators do not get read twice etc
+
+            # in case of list-like `others`, all elements must be
+            # either one-dimensional list-likes or scalars
             if all(is_list_like(x) for x in others):
                 los = []
-                fu_wrn = False
+                warn = False
+                # iterate through list and append list of series for each
+                # element (which we check to be one-dimensional and non-nested)
                 while others:
-                    nxt = others.pop(0)  # list-like as per check above
-                    # safety for iterators and other non-persistent list-likes
-                    # do not map indexed/typed objects; would lose information
+                    nxt = others.pop(0)  # nxt is guaranteed list-like by above
                     if not isinstance(nxt, (DataFrame, Series,
                                             Index, np.ndarray)):
+                        # safety for non-persistent list-likes (e.g. iterators)
+                        # do not map indexed/typed objects; info needed below
                         nxt = list(nxt)
 
-                    # known types without deep inspection
+                    # known types for which we can avoid deep inspection
                     no_deep = ((isinstance(nxt, np.ndarray) and nxt.ndim == 1)
                                or isinstance(nxt, (Series, Index)))
-                    # Nested list-likes are forbidden - elements of nxt must be
-                    # strings/NaN/None. Need to robustify NaN-check against
-                    # x in nxt being list-like (otherwise ambiguous boolean)
+                    # nested list-likes are forbidden:
+                    # -> elements of nxt must not be list-like
                     is_legal = ((no_deep and nxt.dtype == object)
-                                or all((isinstance(x, compat.string_types)
-                                        or (not is_list_like(x) and isnull(x))
-                                        or x is None)
-                                       for x in nxt))
+                                or all(not is_list_like(x) for x in nxt))
+
                     # DataFrame is false positive of is_legal
                     # because "x in df" returns column names
                     if not is_legal or isinstance(nxt, DataFrame):
                         raise TypeError(err_msg)
 
-                    nxt, fwn = self._get_series_list(nxt,
+                    nxt, wnx = self._get_series_list(nxt,
                                                      ignore_index=ignore_index)
                     los = los + nxt
-                    fu_wrn = fu_wrn or fwn
-                return (los, fu_wrn)
-            # test if there is a mix of list-like and non-list-like (e.g. str)
-            elif (any(is_list_like(x) for x in others)
-                  and any(not is_list_like(x) for x in others)):
-                raise TypeError(err_msg)
-            else:  # all elements in others are _not_ list-like
+                    warn = warn or wnx
+                return (los, warn)
+            elif all(not is_list_like(x) for x in others):
                 return ([Series(others, index=idx)], False)
         raise TypeError(err_msg)
 
@@ -2187,8 +2190,8 @@ class StringMethods(NoNewAttributesMixin):
 
         try:
             # turn anything in "others" into lists of Series
-            others, fu_wrn = self._get_series_list(others,
-                                                   ignore_index=(join is None))
+            others, warn = self._get_series_list(others,
+                                                 ignore_index=(join is None))
         except ValueError:  # do not catch TypeError raised by _get_series_list
             if join is None:
                 raise ValueError('All arrays must be same length, except '
@@ -2199,7 +2202,7 @@ class StringMethods(NoNewAttributesMixin):
                                  'must all be of the same length as the '
                                  'calling Series/Index.')
 
-        if join is None and fu_wrn:
+        if join is None and warn:
             warnings.warn("A future version of pandas will perform index "
                           "alignment when `others` is a Series/Index/"
                           "DataFrame (or a list-like containing one). To "
