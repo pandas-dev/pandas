@@ -916,6 +916,10 @@ Datetimelike API Changes
 - :class:`CacheableOffset` and :class:`WeekDay` are no longer available in the ``pandas.tseries.offsets`` module (:issue:`17830`)
 - ``pandas.tseries.frequencies.get_freq_group()`` and ``pandas.tseries.frequencies.DAYS`` are removed from the public API (:issue:`18034`)
 - :func:`Series.truncate` and :func:`DataFrame.truncate` will raise a ``ValueError`` if the index is not sorted instead of an unhelpful ``KeyError`` (:issue:`17935`)
+- :attr:`Series.first` and :attr:`DataFrame.first` will now raise a ``TypeError``
+  rather than ``NotImplementedError`` when index is not a :class:`DatetimeIndex`` (:issue:`20725`).
+- :attr:`Series.last` and :attr:`DateFrame.last` will now raise a ``TypeError``
+  rather than ``NotImplementedError`` when index is not a :class:`DatetimeIndex`` (:issue:`20725`).
 - Restricted ``DateOffset`` keyword arguments. Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior. Now, only valid arguments will be accepted. (:issue:`17176`, :issue:`18226`).
 - :func:`pandas.merge` provides a more informative error message when trying to merge on timezone-aware and timezone-naive columns (:issue:`15800`)
 - For :class:`DatetimeIndex` and :class:`TimedeltaIndex` with ``freq=None``, addition or subtraction of integer-dtyped array or ``Index`` will raise ``NullFrequencyError`` instead of ``TypeError`` (:issue:`19895`)

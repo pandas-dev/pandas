@@ -628,6 +628,12 @@ class TestTimeSeries(TestData):
         result = ts[:0].first('3M')
         assert_series_equal(result, ts[:0])
 
+    def test_first_raises(self):
+        # GH20725
+        ser = pd.Series('a b c'.split())
+        with pytest.raises(TypeError):  # index is not a DatetimeIndex
+            ser.first('1D')
+
     def test_last_subset(self):
         ts = _simple_ts('1/1/2000', '1/1/2010', freq='12h')
         result = ts.last('10d')
@@ -647,6 +653,12 @@ class TestTimeSeries(TestData):
 
         result = ts[:0].last('3M')
         assert_series_equal(result, ts[:0])
+
+    def test_last_raises(self):
+        # GH20725
+        ser = pd.Series('a b c'.split())
+        with pytest.raises(TypeError):  # index is not a DatetimeIndex
+            ser.last('1D')
 
     def test_format_pre_1900_dates(self):
         rng = date_range('1/1/1850', '1/1/1950', freq='A-DEC')
@@ -695,6 +707,12 @@ class TestTimeSeries(TestData):
         ts = Series(np.random.randn(len(rng)), rng)
         rs = ts.at_time('16:00')
         assert len(rs) == 0
+
+    def test_at_time_raises(self):
+        # GH20725
+        ser = pd.Series('a b c'.split())
+        with pytest.raises(TypeError):  # index is not a DatetimeIndex
+            ser.at_time('00:00')
 
     def test_between(self):
         series = Series(date_range('1/1/2000', periods=10))
@@ -763,6 +781,12 @@ class TestTimeSeries(TestData):
                     assert (t <= etime) or (t >= stime)
                 else:
                     assert (t < etime) or (t >= stime)
+
+    def test_between_time_raises(self):
+        # GH20725
+        ser = pd.Series('a b c'.split())
+        with pytest.raises(TypeError):  # index is not a DatetimeIndex
+            ser.between_time(start_time='00:00', end_time='12:00')
 
     def test_between_time_types(self):
         # GH11818
