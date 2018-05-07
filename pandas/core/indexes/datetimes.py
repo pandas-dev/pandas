@@ -2368,15 +2368,23 @@ default 'raise'
 
     def indexer_at_time(self, time, asof=False):
         """
-        Select values at particular time of day (e.g. 9:30AM)
+        Returns index locations of index values at particular time of day
+        (e.g. 9:30AM).
 
         Parameters
         ----------
         time : datetime.time or string
+            datetime.time or string in appropriate format ("%H:%M", "%H%M",
+            "%I:%M%p", "%I%M%p", "%H:%M:%S", "%H%M%S", "%I:%M:%S%p",
+            "%I%M%S%p").
 
         Returns
         -------
-        values_at_time : TimeSeries
+        values_at_time : array of integers
+
+        See Also
+        --------
+        indexer_between_time, DataFrame.at_time
         """
         from dateutil.parser import parse
 
@@ -2398,24 +2406,25 @@ default 'raise'
     def indexer_between_time(self, start_time, end_time, include_start=True,
                              include_end=True):
         """
-        Select values between particular times of day (e.g., 9:00-9:30AM).
-
-        Return values of the index between two times.  If start_time or
-        end_time are strings then tseries.tools.to_time is used to convert to
-        a time object.
+        Return index locations of values between particular times of day
+        (e.g., 9:00-9:30AM).
 
         Parameters
         ----------
         start_time, end_time : datetime.time, str
             datetime.time or string in appropriate format ("%H:%M", "%H%M",
             "%I:%M%p", "%I%M%p", "%H:%M:%S", "%H%M%S", "%I:%M:%S%p",
-            "%I%M%S%p")
+            "%I%M%S%p").
         include_start : boolean, default True
         include_end : boolean, default True
 
         Returns
         -------
-        values_between_time : TimeSeries
+        values_between_time : array of integers
+
+        See Also
+        --------
+        indexer_at_time, DataFrame.between_time
         """
         start_time = tools.to_time(start_time)
         end_time = tools.to_time(end_time)
