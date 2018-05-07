@@ -66,7 +66,11 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     include_lowest : bool, default False
         Whether the first interval should be left-inclusive or not.
     duplicates : {default 'raise', 'drop'}, optional
-        If bin edges are not unique, raise ValueError or drop non-uniques.
+        If bin edges are not unique, raise ValueError("Bin edges must be 
+        unique: {}.\nYou can drop duplicate edges by setting the "
+        "'duplicates' kwarg".format(repr(bins)))or drop non-uniques.
+
+        .. versionadded:: 0.23.0
 
     Returns
     -------
