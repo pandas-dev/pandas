@@ -994,6 +994,49 @@ class TestNankurtFixedValues(object):
         return np.random.RandomState(1234)
 
 
+@pytest.fixture(params=[
+    pd.Series([1, 2, 3, 4, 5, 6]),
+    pd.DataFrame([[1, 2, 3], [4, 5, 6]])
+])
+def nan_test_object(request):
+    return request.param
+
+
+@pytest.mark.parametrize("standard, nan_method", [
+    (np.sum, np.nansum),
+    (np.mean, np.nanmean),
+    (np.std, np.nanstd),
+    (np.var, np.nanvar),
+    (np.median, np.nanmedian),
+    (np.max, np.nanmax),
+    (np.min, np.nanmin)
+])
+def test_np_nan_functions(standard, nan_method, nan_test_object):
+    tm.assert_almost_equal(nan_test_object.agg(standard),
+                           nan_test_object.agg(nan_method),
+                           check_exact=True)
+
+
+@td.skip_if_no("numpy", min_version="1.10.0")
+def test_np_nanprod(nan_test_object):
+    tm.assert_almost_equal(nan_test_object.agg(np.prod),
+                           nan_test_object.agg(np.nanprod),
+                           check_exact=True)
+
+
+@td.skip_if_no("numpy", min_version="1.12.0")
+def test_np_nancumprod(nan_test_object):
+    # Not using pytest params for methods as will fail at build time
+    methods = [
+        (np.cumprod, np.nancumprod),
+        (np.cumsum, np.nancumsum)
+    ]
+    for standard, nan_method in methods:
+        tm.assert_almost_equal(nan_test_object.agg(standard),
+                               nan_test_object.agg(nan_method),
+                               check_exact=True)
+
+
 def test_use_bottleneck():
 
     if nanops._BOTTLENECK_INSTALLED:

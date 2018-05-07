@@ -1221,6 +1221,7 @@ Numeric
 - Bug in :class:`DataFrame` flex arithmetic (e.g. ``df.add(other, fill_value=foo)``) with a ``fill_value`` other than ``None`` failed to raise ``NotImplementedError`` in corner cases where either the frame or ``other`` has length zero (:issue:`19522`)
 - Multiplication and division of numeric-dtyped :class:`Index` objects with timedelta-like scalars returns ``TimedeltaIndex`` instead of raising ``TypeError`` (:issue:`19333`)
 - Bug where ``NaN`` was returned instead of 0 by :func:`Series.pct_change` and :func:`DataFrame.pct_change` when ``fill_method`` is not ``None`` (:issue:`19873`)
+- :meth:`~DataFrame.agg` now correctly handles numpy NaN-aware methods like :meth:`numpy.nansum` (:issue:`19629`)
 
 Strings
 ^^^^^^^
