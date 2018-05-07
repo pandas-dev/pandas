@@ -194,7 +194,7 @@ cdef class IndexEngine:
         if count > 1:
             return indexer
         if count == 1:
-            return found[0]
+            return int(found[0])
 
         raise KeyError(val)
 
