@@ -3076,15 +3076,15 @@ class DataFrame(NDFrame):
         include_these = Series(not bool(include), index=self.columns)
         exclude_these = Series(not bool(exclude), index=self.columns)
 
-        def is_dtype_instance_mapper(column, dtype):
-            return column, functools.partial(issubclass, dtype.type)
+        def is_dtype_instance_mapper(idx, dtype):
+            return idx, functools.partial(issubclass, dtype.type)
 
-        for column, f in itertools.starmap(is_dtype_instance_mapper,
-                                           self.dtypes.iteritems()):
+        for idx, f in itertools.starmap(is_dtype_instance_mapper,
+                                        enumerate(self.dtypes)):
             if include:  # checks for the case of empty include or exclude
-                include_these[column] = any(map(f, include))
+                include_these.iloc[idx] = any(map(f, include))
             if exclude:
-                exclude_these[column] = not any(map(f, exclude))
+                exclude_these.iloc[idx] = not any(map(f, exclude))
 
         dtype_indexer = include_these & exclude_these
         return self.loc[com._get_info_slice(self, dtype_indexer)]
