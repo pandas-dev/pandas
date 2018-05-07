@@ -419,9 +419,11 @@ documentation. If you build an extension array, publicize it on our
 Categorical Groupers has gained an observed keyword
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In previous versions, grouping by 1 or more categorical columns would result in an index that was the cartesian product of all of the categories for
-each grouper, not just the observed values.``.groupby()`` has gained the ``observed`` keyword to toggle this behavior. The default remains backward
-compatible (generate a cartesian product). (:issue:`14942`, :issue:`8138`, :issue:`15217`, :issue:`17594`, :issue:`8669`, :issue:`20583`)
+Grouping by a categorical includes the unobserved categories in the output.
+When grouping with multiple groupers, this means you get the cartesian product of all the
+categories, including combinations where there are no observations, which can result in a large
+number of groupers. We have added a keyword ``observed`` to control this behavior, it defaults to
+``observed=False`` for backward-compatiblity. (:issue:`14942`, :issue:`8138`, :issue:`15217`, :issue:`17594`, :issue:`8669`, :issue:`20583`, :issue:`20902`)
 
 
 .. ipython:: python
@@ -914,6 +916,10 @@ Datetimelike API Changes
 - :class:`CacheableOffset` and :class:`WeekDay` are no longer available in the ``pandas.tseries.offsets`` module (:issue:`17830`)
 - ``pandas.tseries.frequencies.get_freq_group()`` and ``pandas.tseries.frequencies.DAYS`` are removed from the public API (:issue:`18034`)
 - :func:`Series.truncate` and :func:`DataFrame.truncate` will raise a ``ValueError`` if the index is not sorted instead of an unhelpful ``KeyError`` (:issue:`17935`)
+- :attr:`Series.first` and :attr:`DataFrame.first` will now raise a ``TypeError``
+  rather than ``NotImplementedError`` when index is not a :class:`DatetimeIndex`` (:issue:`20725`).
+- :attr:`Series.last` and :attr:`DateFrame.last` will now raise a ``TypeError``
+  rather than ``NotImplementedError`` when index is not a :class:`DatetimeIndex`` (:issue:`20725`).
 - Restricted ``DateOffset`` keyword arguments. Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior. Now, only valid arguments will be accepted. (:issue:`17176`, :issue:`18226`).
 - :func:`pandas.merge` provides a more informative error message when trying to merge on timezone-aware and timezone-naive columns (:issue:`15800`)
 - For :class:`DatetimeIndex` and :class:`TimedeltaIndex` with ``freq=None``, addition or subtraction of integer-dtyped array or ``Index`` will raise ``NullFrequencyError`` instead of ``TypeError`` (:issue:`19895`)
@@ -1246,6 +1252,7 @@ Indexing
 - Bug in ``Series.is_unique`` where extraneous output in stderr is shown if Series contains objects with ``__ne__`` defined (:issue:`20661`)
 - Bug in ``.loc`` assignment with a single-element list-like incorrectly assigns as a list (:issue:`19474`)
 - Bug in partial string indexing on a ``Series/DataFrame`` with a monotonic decreasing ``DatetimeIndex`` (:issue:`19362`)
+- Bug in :meth:`IntervalIndex.get_loc` and :meth:`IntervalIndex.get_indexer` when used with an :class:`IntervalIndex` containing a single interval (:issue:`17284`, :issue:`20921`)
 
 MultiIndex
 ^^^^^^^^^^
@@ -1356,6 +1363,7 @@ Reshaping
 - Bug in :meth:`DataFrame.astype` where column metadata is lost when converting to categorical or a dictionary of dtypes (:issue:`19920`)
 - Bug in :func:`cut` and :func:`qcut` where timezone information was dropped (:issue:`19872`)
 - Bug in :class:`Series` constructor with a ``dtype=str``, previously raised in some cases (:issue:`19853`)
+- Bug in :func:`get_dummies`, and :func:`select_dtypes`, where duplicate column names caused incorrect behavior (:issue:`20848`)
 - Bug in :func:`isna`, which cannot handle ambiguous typed lists (:issue:`20675`)
 
 Other
