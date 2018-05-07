@@ -5083,13 +5083,11 @@ class DataFrame(NDFrame):
                     pass
             else:
                 # if we have different dtypes, possibly promote
-                new_dtype = this_dtype
-                if not is_dtype_equal(this_dtype, other_dtype):
-                    new_dtype = find_common_type([this_dtype, other_dtype])
-                    if not is_dtype_equal(this_dtype, new_dtype):
-                        series = series.astype(new_dtype)
-                    if not is_dtype_equal(other_dtype, new_dtype):
-                        otherSeries = otherSeries.astype(new_dtype)
+                new_dtype = find_common_type([this_dtype, other_dtype])
+                if not is_dtype_equal(this_dtype, new_dtype):
+                    series = series.astype(new_dtype)
+                if not is_dtype_equal(other_dtype, new_dtype):
+                    otherSeries = otherSeries.astype(new_dtype)
 
             # see if we need to be represented as i8 (datetimelike)
             # try to keep us at this dtype
