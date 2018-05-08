@@ -525,7 +525,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                                           freq=freq, name=name)
             else:
                 index = _generate_regular_range(start, end, periods, freq)
-
         else:
 
             if tz is not None:
@@ -549,12 +548,13 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                                               freq=freq, name=name)
                 else:
                     index = _generate_regular_range(start, end, periods, freq)
-
                 if tz is not None and getattr(index, 'tz', None) is None:
-                    index = conversion.tz_localize_to_utc(_ensure_int64(index),
-                                                          tz,
-                                                          ambiguous=ambiguous)
-                    index = index.view(_NS_DTYPE)
+                    arr = conversion.tz_localize_to_utc(_ensure_int64(index),
+                                                        tz,
+                                                        ambiguous=ambiguous)
+
+                    arr = arr.view(_NS_DTYPE)
+                    index = DatetimeIndex(arr)
 
                     # index is localized datetime64 array -> have to convert
                     # start/end as well to compare
@@ -575,7 +575,9 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
             index = index[1:]
         if not right_closed and len(index) and index[-1] == end:
             index = index[:-1]
-        index = cls._simple_new(index, name=name, freq=freq, tz=tz)
+
+        index = cls._simple_new(index.values, name=name, freq=freq, tz=tz)
+
         return index
 
     def _convert_for_op(self, value):
@@ -597,9 +599,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         we require the we have a dtype compat for the values
         if we are passed a non-dtype compat, then coerce using the constructor
         """
-
-        if isinstance(values, DatetimeIndex):
-            values = values.values
 
         if getattr(values, 'dtype', None) is None:
             # empty, but with dtype compat
