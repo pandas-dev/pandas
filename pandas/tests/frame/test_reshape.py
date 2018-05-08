@@ -414,6 +414,22 @@ class TestDataFrameReshape(TestData):
         assert_frame_equal(df3.stack(level=['animal', 0]),
                            animal_hair_stacked, check_names=False)
 
+    def test_stack_retains_index_order(self):
+        # GH 20945
+        col_index = pd.MultiIndex.from_product([
+            ['c', 'b', 'a', 'd'],
+            ['A', 'B']
+        ])
+
+        df = pd.DataFrame([[1, 11, 2, 22, 3, 33, 4, 44]], columns=col_index)
+
+        expected_mi = pd.MultiIndex.from_product([[0], ['c', 'b', 'a', 'd']])
+        expected = pd.DataFrame([[1, 11], [2, 22], [3, 33], [4, 44]],
+                                index=expected_mi, columns=['A', 'B'])
+
+        result = df.stack(level=0)
+        tm.assert_frame_equal(result, expected)
+
     def test_stack_int_level_names(self):
         columns = MultiIndex.from_tuples(
             [('A', 'cat', 'long'), ('B', 'cat', 'long'),
