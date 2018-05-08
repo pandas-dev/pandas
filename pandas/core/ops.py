@@ -6,6 +6,7 @@ This is not a public API.
 # necessary to enforce truediv in Python 2.X
 from __future__ import division
 import operator
+import inspect
 
 import numpy as np
 import pandas as pd
@@ -30,7 +31,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_list_like,
     is_scalar,
-    _ensure_object)
+    _ensure_object, is_extension_array_dtype)
 from pandas.core.dtypes.cast import (
     maybe_upcast_putmask, find_common_type,
     construct_1d_object_array_from_listlike)
@@ -990,6 +991,93 @@ def _construct_divmod_result(left, result, index, name, dtype):
     )
 
 
+def dispatch_to_extension_op(left, right, op_name=None, is_logical=False):
+    """
+    Assume that left is a Series backed by an ExtensionArray,
+    apply the operator defined by op_name.
+    """
+
+    method = getattr(left.values, op_name, None)
+    deflen = len(left)
+    excons = type(left.values)._from_sequence
+    exclass = type(left.values)
+    testseq = left.values
+
+    if is_logical:
+        if exclass._logical_result is not None:
+            excons = exclass._logical_result
+        else:
+            excons = None  # Indicates boolean
+
+    # The idea here is as follows.  First we see if the op is
+    # defined in the ExtensionArray subclass, and returns a
+    # result that is not NotImplemented.  If so, we use that
+    # result. If that fails, then we try an
+    # element by element operator, invoking the operator
+    # on each element
+
+    # First see if the extension array object supports the op
+    res = NotImplemented
+    if method is not None and inspect.ismethod(method):
+        rvalues = right
+        if is_extension_array_dtype(right) and isinstance(right, ABCSeries):
+            rvalues = right.values
+        try:
+            res = method(rvalues)
+        except TypeError:
+            pass
+        except Exception as e:
+            raise e
+
+    def convert_values(parm):
+        if is_extension_array_dtype(parm):
+            ovalues = parm.values
+        elif is_list_like(parm):
+            ovalues = parm
+        else:  # Assume its an object
+            ovalues = [parm] * deflen
+        return ovalues
+
+    if res is NotImplemented:
+        # Try it on each element.  Support operation to another
+        # ExtensionArray, or something that is list like, or
+        # a single object.  This allows a result of an operator
+        # to be an object or any type
+        lvalues = convert_values(left)
+        rvalues = convert_values(right)
+
+        # Get the method for each object.
+        def callfunc(a, b):
+            f = getattr(a, op_name, None)
+            if f is not None:
+                return f(b)
+            else:
+                return NotImplemented
+        res = [callfunc(a, b) for (a, b) in zip(lvalues, rvalues)]
+
+        # We can't use (NotImplemented in res) because the
+        # results might be objects that have overridden __eq__
+        if any(isinstance(r, type(NotImplemented)) for r in res):
+            msg = "invalid operation {opn} between {one} and {two}"
+            raise TypeError(msg.format(opn=op_name,
+                                       one=type(lvalues),
+                                       two=type(rvalues)))
+
+    # At this point we have the result
+    # always return a full value series here
+    res_values = com._values_from_object(res)
+    if excons is not None:
+        if testseq.is_sequence_of_dtype(res_values):
+            # Convert to the ExtensionArray type if each result is of that
+            # type.  If _logical_result was not None, this will then use
+            # the function set there to return an appropriate result
+            res_values = excons(res_values)
+
+    res_name = get_op_result_name(left, right)
+    return left._constructor(res_values, index=left.index,
+                             name=res_name)
+
+
 def _arith_method_SERIES(cls, op, special):
     """
     Wrapper function for Series arithmetic operations, to avoid
@@ -1057,6 +1145,9 @@ def _arith_method_SERIES(cls, op, special):
         elif is_categorical_dtype(left):
             raise TypeError("{typ} cannot perform the operation "
                             "{op}".format(typ=type(left).__name__, op=str_rep))
+
+        elif is_extension_array_dtype(left):
+            return dispatch_to_extension_op(left, right, op_name)
 
         lvalues = left.values
         rvalues = right
@@ -1207,6 +1298,9 @@ def _comp_method_SERIES(cls, op, special):
                                               pd.TimedeltaIndex)
             return self._constructor(res_values, index=self.index,
                                      name=res_name)
+
+        elif is_extension_array_dtype(self):
+            return dispatch_to_extension_op(self, other, op_name, True)
 
         elif isinstance(other, ABCSeries):
             # By this point we have checked that self._indexed_same(other)

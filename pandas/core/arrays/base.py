@@ -53,6 +53,13 @@ class ExtensionArray(object):
     * factorize / _values_for_factorize
     * argsort / _values_for_argsort
 
+    For logical operators, the default is to return a Series of boolean.
+    However, if the underlying ExtensionDtype overrides the logical
+    operators, then the implementer may want to have an ExtensionArray
+    subclass contain the result.  This can be done by changing the property
+    _logical_result from its default value of None to the _from_sequence
+    method of the ExtensionArray subclass.
+
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
     ``pandas.errors.AbstractMethodError`` and no ``register`` method is
@@ -567,6 +574,9 @@ class ExtensionArray(object):
         """
         raise AbstractMethodError(self)
 
+    # See documentation above
+    _logical_result = None
+
     # ------------------------------------------------------------------------
     # Block-related methods
     # ------------------------------------------------------------------------
@@ -610,3 +620,14 @@ class ExtensionArray(object):
         used for interacting with our indexers.
         """
         return np.array(self)
+
+    # ------------------------------------------------------------------------
+    # Utilities for use by subclasses
+    # ------------------------------------------------------------------------
+    def is_sequence_of_dtype(self, seq):
+        """
+        Given a sequence, determine whether all members have the appropriate
+        type for this instance of an ExtensionArray
+        """
+        thistype = self.dtype.type
+        return all(isinstance(i, thistype) for i in seq)

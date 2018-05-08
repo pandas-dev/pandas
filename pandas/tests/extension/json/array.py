@@ -169,6 +169,23 @@ class JSONArray(ExtensionArray):
         frozen = [()] + list(tuple(x.items()) for x in self)
         return np.array(frozen, dtype=object)[1:]
 
+    def __add__(self, other):
+        def merge_two_dicts(x, y):
+            z = x.copy()
+            z.update(y)
+            return z
+
+        if isinstance(other, type(self)):
+            seq = [merge_two_dicts(a, b)
+                   for (a, b) in zip(self.data, other.data)]
+        elif isinstance(other, self.dtype.type):
+            seq = [merge_two_dicts(a, other)
+                   for a in self.data]
+        else:
+            raise TypeError("Cannot add JSONArray and type ", type(other))
+
+        return self._from_sequence(seq)
+
 
 def make_data():
     # TODO: Use a regular dict. See _NDFrameIndexer._setitem_with_indexer

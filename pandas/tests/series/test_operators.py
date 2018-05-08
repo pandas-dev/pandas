@@ -1198,11 +1198,11 @@ class TestSeriesOperators(TestData):
     def test_invert(self):
         assert_series_equal(-(self.series < 0), ~(self.series < 0))
 
-    def test_operators(self):
+    def test_operators(self, absfunc=np.abs):
         def _check_op(series, other, op, pos_only=False,
                       check_dtype=True):
-            left = np.abs(series) if pos_only else series
-            right = np.abs(other) if pos_only else other
+            left = absfunc(series) if pos_only else series
+            right = absfunc(other) if pos_only else other
 
             cython_or_numpy = op(left, right)
             python = left.combine(right, op)
