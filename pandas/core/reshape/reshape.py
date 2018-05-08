@@ -653,7 +653,13 @@ def _stack_multi_columns(frame, level_num=-1, dropna=True):
     # time to ravel the values
     new_data = {}
     level_vals = this.columns.levels[-1]
-    level_labels = sorted(set(this.columns.labels[-1]))
+    level_labels = list()
+    for label in this.columns.labels[-1]:
+        # GH 20945 if labels are not monotonic we were mangling
+        # alignment when moving to index; ensure we preserve order
+        if label not in level_labels:
+            level_labels.append(label)
+
     level_vals_used = level_vals[level_labels]
     levsize = len(level_labels)
     drop_cols = []

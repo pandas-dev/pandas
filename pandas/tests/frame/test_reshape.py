@@ -414,20 +414,23 @@ class TestDataFrameReshape(TestData):
         assert_frame_equal(df3.stack(level=['animal', 0]),
                            animal_hair_stacked, check_names=False)
 
-    def test_stack_retains_index_order(self):
+    def test_stack_retains_index_order_non_monotonic(self):
         # GH 20945
-        col_index = pd.MultiIndex.from_product([
-            ['c', 'b', 'a', 'd'],
-            ['A', 'B']
+        df = pd.DataFrame([
+            ['DIM', 'A', 1, 2, 3, 4],
+            ['DIM', 'B', 11, 22, 33, 44],
         ])
+        df.columns = ["dim1", "dim2", 'c', 'b', 'a', 'd']
+        df.columns.name = 'foo'
+        df = df.set_index(["dim1", "dim2"])
 
-        df = pd.DataFrame([[1, 11, 2, 22, 3, 33, 4, 44]], columns=col_index)
-
-        expected_mi = pd.MultiIndex.from_product([[0], ['c', 'b', 'a', 'd']])
+        expected_mi = pd.MultiIndex.from_product([['DIM'], ['c', 'b', 'a', 'd']])
+        expected_mi.names = ['dim1', 'foo']
         expected = pd.DataFrame([[1, 11], [2, 22], [3, 33], [4, 44]],
                                 index=expected_mi, columns=['A', 'B'])
+        expected.columns.name = 'dim2'
 
-        result = df.stack(level=0)
+        result = df.unstack('dim2').stack(level=0)
         tm.assert_frame_equal(result, expected)
 
     def test_stack_int_level_names(self):
