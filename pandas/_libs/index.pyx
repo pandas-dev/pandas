@@ -183,32 +183,20 @@ cdef class IndexEngine:
 
     cdef _maybe_get_bool_indexer(self, object val):
         cdef:
-            ndarray[uint8_t] indexer
-            ndarray[object] values
-            int count = 0
-            Py_ssize_t i, n
-            int last_true
+            ndarray[cnp.uint8_t, ndim=1, cast=True] indexer
+            ndarray[int64_t, ndim=1] found
+            int count
 
-        values = np.array(self._get_index_values(), copy=False)
-        n = len(values)
+        indexer = self._get_index_values() == val
+        found = np.where(indexer)[0]
+        count = len(found)
 
-        result = np.empty(n, dtype=bool)
-        indexer = result.view(np.uint8)
-
-        for i in range(n):
-            if values[i] == val:
-                count += 1
-                indexer[i] = 1
-                last_true = i
-            else:
-                indexer[i] = 0
-
-        if count == 0:
-            raise KeyError(val)
+        if count > 1:
+            return indexer
         if count == 1:
-            return last_true
+            return int(found[0])
 
-        return result
+        raise KeyError(val)
 
     def sizeof(self, deep=False):
         """ return the sizeof our mapping """
@@ -541,9 +529,6 @@ cdef class PeriodEngine(Int64Engine):
         ordinal_array = np.asarray(ordinal)
 
         return super(PeriodEngine, self).get_indexer_non_unique(ordinal_array)
-
-    cdef _get_index_values_for_bool_indexer(self):
-        return self._get_index_values().view('i8')
 
 
 cpdef convert_scalar(ndarray arr, object value):
