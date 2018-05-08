@@ -256,7 +256,7 @@ class TestSeriesAnalytics(TestData):
 
     @pytest.mark.parametrize('dropna, expected1, expected2, expected3', [
         (True, ['b'], ['bar'], ['nan']),
-        (False, ['b'], ['bar', np.nan], ['nan'])
+        (False, ['b'], [np.nan], ['nan'])
     ])
     def test_mode_str_obj(self, dropna, expected1, expected2, expected3):
         # Test string and object types.
@@ -266,7 +266,7 @@ class TestSeriesAnalytics(TestData):
         expected1 = Series(expected1, dtype='c')
         tm.assert_series_equal(s.mode(dropna), expected1)
 
-        data = ['foo', 'bar', 'bar', np.nan, np.nan]
+        data = ['foo', 'bar', 'bar', np.nan, np.nan, np.nan]
 
         s = Series(data, dtype=object)
         expected2 = Series(expected2, dtype=object)
@@ -281,22 +281,22 @@ class TestSeriesAnalytics(TestData):
 
     @pytest.mark.parametrize('dropna, expected1, expected2', [
         (True, ['foo'], ['foo']),
-        (False, ['foo'], ['foo', np.nan])
+        (False, ['foo'], [np.nan])
     ])
     def test_mode_mixeddtype(self, dropna, expected1, expected2):
         expected = Series(expected1)
         s = Series([1, 'foo', 'foo'])
         tm.assert_series_equal(s.mode(dropna), expected)
 
-        expected = Series(expected2)
-        s = Series([1, 'foo', 'foo', np.nan, np.nan])
+        expected = Series(expected2, dtype=object)
+        s = Series([1, 'foo', 'foo', np.nan, np.nan, np.nan])
         result = s.mode(dropna).sort_values().reset_index(drop=True)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('dropna, expected1, expected2', [
         (True, ['1900-05-03', '2011-01-03', '2013-01-02'],
                ['2011-01-03', '2013-01-02']),
-        (False, [np.nan], ['nan', '2011-01-03', '2013-01-02']),
+        (False, [np.nan], [np.nan, '2011-01-03', '2013-01-02']),
     ])
     def test_mode_datetime(self, dropna, expected1, expected2):
         expected1 = Series(expected1, dtype='M8[ns]')
@@ -312,7 +312,7 @@ class TestSeriesAnalytics(TestData):
 
     @pytest.mark.parametrize('dropna, expected1, expected2', [
         (True, ['-1 days', '0 days', '1 days'], ['2 min', '1 day']),
-        (False, ['nan'], ['nan', '2 min', '1 day']),
+        (False, [np.nan], [np.nan, '2 min', '1 day']),
     ])
     def test_mode_timedelta(self, dropna, expected1, expected2):
         # gh-5986: Test timedelta types.
@@ -362,6 +362,21 @@ class TestSeriesAnalytics(TestData):
         expected2 = Series(expected2, dtype=np.uint64)
         s = Series([1, 2**63], dtype=np.uint64)
         tm.assert_series_equal(s.mode(dropna), expected2)
+
+    @pytest.mark.parametrize('dropna, expected', [
+        (False, ['foo', np.nan]),
+    ])
+    def test_mode_sortwarning(self, dropna, expected):
+        # Check for the warning that is raised when the mode
+        # results cannot be sorted
+
+        expected = Series(expected)
+        s = Series([1, 'foo', 'foo', np.nan, np.nan])
+
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+            result = s.mode(dropna).sort_values().reset_index(drop=True)
+
+        tm.assert_series_equal(result, expected)
 
     def test_prod(self):
         self._check_stat_op('prod', np.prod)
