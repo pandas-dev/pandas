@@ -363,6 +363,7 @@ class TestSeriesAnalytics(TestData):
         s = Series([1, 2**63], dtype=np.uint64)
         tm.assert_series_equal(s.mode(dropna), expected2)
 
+    @pytest.mark.skipif(not compat.PY3, reason="only PY3")
     @pytest.mark.parametrize('dropna, expected', [
         (False, ['foo', np.nan]),
     ])
