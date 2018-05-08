@@ -1275,24 +1275,22 @@ class GroupBy(_GroupBy):
         pandas.core.series.Series
             The average of the target column ('B' in the examples below)
             grouped by the groupby columns ('A' and ['A', 'C'] in the examples below)
-            The groups are stored as index in the result.
-            If there are multiple groupby columns, the result index will be a MultiIndex.
 
-        Example of groupby one column:
-        ------------------------------
+        Example of groupby one column:the groups are stored as index in the result.
+        ---------------------------------------------------------------------------
         >>> df = pd.DataFrame({'A': [1, 1, 2, 1, 2],
-                               'B': [np.nan, 2, 3, 4, 5]}, columns=['A', 'B'])
+        ...                    'B': [np.nan, 2, 3, 4, 5]}, columns=['A', 'B'])
         >>> g = df.groupby('A')['B'].mean()
         >>> g
         A
         1    3.0
         2    4.0
 
-        Example of groupby multiple columns: 
-        ------------------------------------
+        Example of groupby multiple columns: the result index will be a MultiIndex.
+        ---------------------------------------------------------------------------
         >>> df = pd.DataFrame({'A': [1, 1, 2, 1, 2],
-                               'B': [np.nan, 2, 3, 4, 5],
-                               'C': [1, 2, 1, 1, 2]}, columns=['A', 'B', 'C'])
+        ...                    'B': [np.nan, 2, 3, 4, 5],
+        ...                    'C': [1, 2, 1, 1, 2]}, columns=['A', 'B', 'C'])
         >>> g = df.groupby(['A', 'C'])['B'].mean()
         >>> g
         A  C
