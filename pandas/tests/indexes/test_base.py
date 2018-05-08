@@ -1892,6 +1892,7 @@ class TestIndex(Base):
         index = pd.Index(['01:02:03', '01:02:04'], name='label')
         assert index.name == dt_conv(index).name
 
+    @pytest.mark.skipif(not PY3, reason="compat test")
     @pytest.mark.parametrize("index,expected", [
         # ASCII
         # short
@@ -1934,23 +1935,56 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
           u"'ううう', 'あ', 'いい', 'ううう'],\n"
           u"      dtype='object', length=300)"))])
     def test_string_index_repr(self, index, expected):
-        # py3/py2 repr can differ because of "u" prefix
-        # which also affects to displayed element size
-
-        if PY3:
-            coerce = repr  # noqa
-        else:
-            coerce = unicode  # noqa
-
-            # PY2 reprs should have a 'u' preceding every value
-            # The below regex will match all quoted values save keyword args
-            # which are preceded by "=" (via negative lookbehind assertion)
-            pater = re.compile(r"(?<!=)'.*?'", flags=re.DOTALL)
-            expected = pater.sub(r'u\g<0>', expected)  # Prepend "u" to matches
-
-        result = coerce(index)
+        result = repr(index)
         assert result == expected
 
+    @pytest.mark.skipif(PY3, reason="compat test")
+    @pytest.mark.parametrize("index,expected", [
+        # ASCII
+        # short
+        (pd.Index(['a', 'bb', 'ccc']),
+         u"""Index([u'a', u'bb', u'ccc'], dtype='object')"""),
+        # multiple lines
+        (pd.Index(['a', 'bb', 'ccc'] * 10),
+         u"""\
+Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
+       u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb',
+       u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc'],
+      dtype='object')"""),
+        # truncated
+        (pd.Index(['a', 'bb', 'ccc'] * 100),
+         u"""\
+Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
+       ...
+       u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc'],
+      dtype='object', length=300)"""),
+
+        # Non-ASCII
+        # short
+        (pd.Index([u'あ', u'いい', u'ううう']),
+         u"""Index([u'あ', u'いい', u'ううう'], dtype='object')"""),
+        # multiple lines
+        (pd.Index([u'あ', u'いい', u'ううう'] * 10),
+         (u"Index([u'あ', u'いい', u'ううう', u'あ', u'いい', "
+          u"u'ううう', u'あ', u'いい', u'ううう', u'あ',\n"
+          u"       u'いい', u'ううう', u'あ', u'いい', u'ううう', "
+          u"u'あ', u'いい', u'ううう', u'あ', u'いい',\n"
+          u"       u'ううう', u'あ', u'いい', u'ううう', u'あ', "
+          u"u'いい', u'ううう', u'あ', u'いい', u'ううう'],\n"
+          u"      dtype='object')")),
+         # truncated
+        (pd.Index([u'あ', u'いい', u'ううう'] * 100),
+         (u"Index([u'あ', u'いい', u'ううう', u'あ', u'いい', "
+          u"u'ううう', u'あ', u'いい', u'ううう', u'あ',\n"
+          u"       ...\n"
+          u"       u'ううう', u'あ', u'いい', u'ううう', u'あ', "
+          u"u'いい', u'ううう', u'あ', u'いい', u'ううう'],\n"
+          u"      dtype='object', length=300)"))])
+    def test_string_index_repr_compat(self, index, expected):
+        result = unicode(index)
+        assert result == expected
+
+    @pytest.mark.skipif(not PY3, reason="compat test")
     @pytest.mark.parametrize("index,expected", [
         # short
         (pd.Index([u'あ', u'いい', u'ううう']),
@@ -1977,21 +2011,43 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
           u"       'ううう'],\n"
           u"      dtype='object', length=300)"))])
     def test_string_index_repr_with_unicode_option(self, index, expected):
-
-        if PY3:
-            coerce = repr  # noqa
-        else:
-            coerce = unicode  # noqa
-
-            # PY2 reprs should have a 'u' preceding every value
-            # The below regex will match all quoted values save keyword args
-            # which are preceded by "=" (via negative lookbehind assertion)
-            pater = re.compile(r"(?<!=)'.*?'", flags=re.DOTALL)
-            expected = pater.sub(r'u\g<0>', expected)  # Prepend "u" to matches
-
-        # Emable Unicode option -----------------------------------------
+        # Enable Unicode option -----------------------------------------
         with cf.option_context('display.unicode.east_asian_width', True):
-            result = coerce(index)
+            result = repr(index)
+            assert result == expected
+
+    @pytest.mark.skipif(PY3, reason="compat test")
+    @pytest.mark.parametrize("index,expected", [
+        # short
+        (pd.Index([u'あ', u'いい', u'ううう']),
+         (u"Index([u'あ', u'いい', u'ううう'], "
+          u"dtype='object')")),
+        # multiple lines
+        (pd.Index([u'あ', u'いい', u'ううう'] * 10),
+         (u"Index([u'あ', u'いい', u'ううう', u'あ', u'いい', "
+          u"u'ううう', u'あ', u'いい',\n"
+          u"       u'ううう', u'あ', u'いい', u'ううう', "
+          u"u'あ', u'いい', u'ううう', u'あ',\n"
+          u"       u'いい', u'ううう', u'あ', u'いい', "
+          u"u'ううう', u'あ', u'いい',\n"
+          u"       u'ううう', u'あ', u'いい', u'ううう', "
+          u"u'あ', u'いい', u'ううう'],\n"
+          u"      dtype='object')")),
+         # truncated
+        (pd.Index([u'あ', u'いい', u'ううう'] * 100),
+         (u"Index([u'あ', u'いい', u'ううう', u'あ', u'いい', "
+          u"u'ううう', u'あ', u'いい',\n"
+          u"       u'ううう', u'あ',\n"
+          u"       ...\n"
+          u"       u'ううう', u'あ', u'いい', u'ううう', "
+          u"u'あ', u'いい', u'ううう', u'あ',\n"
+          u"       u'いい', u'ううう'],\n"
+          u"      dtype='object', length=300)"))])
+    def test_string_index_repr_with_unicode_option_compat(self, index,
+                                                          expected):
+        # Enable Unicode option -----------------------------------------
+        with cf.option_context('display.unicode.east_asian_width', True):
+            result = unicode(index)
             assert result == expected
 
     @pytest.mark.parametrize('dtype', [np.int64, np.float64])
