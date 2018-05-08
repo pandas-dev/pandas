@@ -2401,17 +2401,16 @@ class StringMethods(NoNewAttributesMixin):
                               _shared_docs['swapcase'])
 
     _shared_docs['ismethods'] = ("""
-    Check whether all characters in each string in the Series/Index
-    are %(type)s.
+    Check whether all characters in each string are %(type)s.
 
     This is equivalent to running the Python string method
     :meth:`str.%(method)s` for each element of the Series/Index. If a string
-    has zero characters, `False` is returned for that check.
+    has zero characters, ``False`` is returned for that check.
 
     Returns
     -------
-    Series
-        Series of boolean values with the same length as the original
+    Series or Index of bool
+        Series or Index of boolean values with the same length as the original
         Series/Index.
 
     See Also
@@ -2430,9 +2429,8 @@ class StringMethods(NoNewAttributesMixin):
     --------
     **Checks for Alphabetic and Numeric Characters**
 
-    >>> s1 = pd.Series(['AB', 'C12', '42', ''])
+    >>> s1 = pd.Series(['one', 'one1', '1', ''])
 
-    >>> # All are alphabetic characters
     >>> s1.str.isalpha()
     0     True
     1    False
@@ -2440,7 +2438,6 @@ class StringMethods(NoNewAttributesMixin):
     3    False
     dtype: bool
 
-    >>> # All are numeric characters
     >>> s1.str.isnumeric()
     0    False
     1    False
@@ -2448,7 +2445,6 @@ class StringMethods(NoNewAttributesMixin):
     3    False
     dtype: bool
 
-    >>> # All are either alphabetic characters or numeric characters
     >>> s1.str.isalnum()
     0     True
     1     True
@@ -2468,9 +2464,14 @@ class StringMethods(NoNewAttributesMixin):
 
     **More Detailed Checks for Numeric Characters**
 
+    There are several different but overlapping sets of numeric characters that
+    can be checked for.
+
     >>> s3 = pd.Series(['23', '³', '⅕', ''])
 
-    >>> # All are characters used to form numbers in base 10
+    The ``s3.str.isdecimal`` method checks for characters used to form numbers
+    in base 10.
+
     >>> s3.str.isdecimal()
     0     True
     1    False
@@ -2478,8 +2479,10 @@ class StringMethods(NoNewAttributesMixin):
     3    False
     dtype: bool
 
-    >>> # Same as s.str.isdecimal, but also includes special
-    >>> # digits, like superscripted/subscripted digits
+    The ``s.str.isdigit`` method is the same as ``s3.str.isdecimal`` but also
+    includes special digits, like superscripted and subscripted digits in
+    unicode.
+
     >>> s3.str.isdigit()
     0     True
     1     True
@@ -2487,8 +2490,10 @@ class StringMethods(NoNewAttributesMixin):
     3    False
     dtype: bool
 
-    >>> # Same as s.str.isdigit, but also includes other characters
-    >>> # that can represent quantities such as unicode fractions
+    The ``s.str.isnumeric`` method is the same as ``s3.str.isdigit`` but also
+    includes other characters that can represent quantities such as unicode
+    fractions.
+
     >>> s3.str.isnumeric()
     0     True
     1     True
@@ -2498,8 +2503,7 @@ class StringMethods(NoNewAttributesMixin):
 
     **Checks for Whitespace**
 
-    >>> # All characters represent whitespace
-    >>> s4 = pd.Series([' ','\\t\\r\\n ', ''])
+    >>> s4 = pd.Series([' ', '\\t\\r\\n ', ''])
     >>> s4.str.isspace()
     0     True
     1     True
@@ -2508,9 +2512,8 @@ class StringMethods(NoNewAttributesMixin):
 
     **Checks for Character Case**
 
-    >>> s5 = pd.Series(['leopard', 'Golden Eagal', 'SNAKE', ''])
+    >>> s5 = pd.Series(['leopard', 'Golden Eagle', 'SNAKE', ''])
 
-    >>> # All characters are lowercase
     >>> s5.str.islower()
     0     True
     1    False
@@ -2518,7 +2521,6 @@ class StringMethods(NoNewAttributesMixin):
     3    False
     dtype: bool
 
-    >>> # All characters are uppercase
     >>> s5.str.isupper()
     0    False
     1    False
@@ -2526,7 +2528,11 @@ class StringMethods(NoNewAttributesMixin):
     3    False
     dtype: bool
 
-    >>> # All words are in title case (first letter of each word capitalized)
+    The ``s5.str.istitle`` method checks for whether all words are in title
+    case (whether only the first letter of each word is capitalized). Words are
+    assumed to be as any sequence of non-numeric characters seperated by
+    whitespace characters.
+
     >>> s5.str.istitle()
     0    False
     1     True
