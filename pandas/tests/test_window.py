@@ -3174,6 +3174,28 @@ class TestGrouperGrouping(object):
             lambda x: x.rolling(4).apply(lambda y: y.sum(), raw=raw))
         tm.assert_frame_equal(result, expected)
 
+    def test_rolling_apply_mutability(self):
+        # GH 14013
+        df = pd.DataFrame({'A': ['foo'] * 3 + ['bar'] * 3, 'B': [1] * 6})
+        g = df.groupby('A')
+
+        # First ensure that the grouped column is not part of the output
+        mi = pd.MultiIndex.from_tuples([('bar', 3), ('bar', 4), ('bar', 5),
+                                        ('foo', 0), ('foo', 1), ('foo', 2)])
+
+        mi.names = ['A', None]
+        expected = pd.DataFrame([np.nan, 2., 2.] * 2, columns=['B'], index=mi)
+
+        result = g.rolling(window=2).sum()
+        tm.assert_frame_equal(result, expected)
+
+        # Call an arbitrary function on the groupby
+        g.sum()
+
+        # Make sure nothing has been mutated
+        result = g.rolling(window=2).sum()
+        tm.assert_frame_equal(result, expected)
+
     def test_expanding(self):
         g = self.frame.groupby('A')
         r = g.expanding()
