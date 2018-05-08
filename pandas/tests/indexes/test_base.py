@@ -69,9 +69,9 @@ class TestIndex(Base):
                 yield key, index
 
     def test_can_hold_identifiers(self):
-        idx = self.create_index()
-        key = idx[0]
-        assert idx._can_hold_identifiers_and_holds_name(key) is True
+        index = self.create_index()
+        key = index[0]
+        assert index._can_hold_identifiers_and_holds_name(key) is True
 
     def test_new_axis(self):
         new_index = self.dateIndex[None, :]
@@ -1282,8 +1282,8 @@ class TestIndex(Base):
 
     def test_get_indexer_numeric_index_boolean_target(self):
         # GH 16877
-        numeric_idx = pd.Index(range(4))
-        result = numeric_idx.get_indexer([True, False, True])
+        numeric_index = pd.Index(range(4))
+        result = numeric_index.get_indexer([True, False, True])
         expected = np.array([-1, -1, -1], dtype=np.intp)
         tm.assert_numpy_array_equal(result, expected)
 
@@ -1750,16 +1750,18 @@ class TestIndex(Base):
         assert index[[0, 1]].identical(pd.Index([1, 2], dtype=np.object_))
 
     def test_outer_join_sort(self):
-        left_idx = Index(np.random.permutation(15))
-        right_idx = tm.makeDateIndex(10)
+        left_index = Index(np.random.permutation(15))
+        right_index = tm.makeDateIndex(10)
 
         with tm.assert_produces_warning(RuntimeWarning):
-            result = left_idx.join(right_idx, how='outer')
+            result = left_index.join(right_index, how='outer')
 
-        # right_idx in this case because DatetimeIndex has join precedence over
-        # Int64Index
+        # right_index in this case because DatetimeIndex has join precedence
+        # over Int64Index
         with tm.assert_produces_warning(RuntimeWarning):
-            expected = right_idx.astype(object).union(left_idx.astype(object))
+            expected = right_index.astype(object).union(
+                left_index.astype(object))
+
         tm.assert_index_equal(result, expected)
 
     def test_nan_first_take_datetime(self):
@@ -1895,7 +1897,7 @@ class TestIndex(Base):
         # short
         (pd.Index(['a', 'bb', 'ccc']),
          u"""Index(['a', 'bb', 'ccc'], dtype='object')"""),
-        # multiple lines        
+        # multiple lines
         (pd.Index(['a', 'bb', 'ccc'] * 10),
          u"""\
 Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc',
@@ -1941,14 +1943,13 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
             coerce = unicode  # noqa
 
             # PY2 reprs should have a 'u' preceding every value
-            # The below regex will match all quoted values save keyword arguments
+            # The below regex will match all quoted values save keyword args
             # which are preceded by "=" (via negative lookbehind assertion)
-            pater = re.compile(r"(?<!=)'.*?'", flags=re.DOTALL)        
+            pater = re.compile(r"(?<!=)'.*?'", flags=re.DOTALL)
             expected = pater.sub(r'u\g<0>', expected)  # Prepend "u" to matches
 
         result = coerce(index)
         assert result == expected
-
 
     @pytest.mark.parametrize("index,expected", [
         # short
@@ -1983,9 +1984,9 @@ Index(['a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a', 'bb', 'ccc', 'a',
             coerce = unicode  # noqa
 
             # PY2 reprs should have a 'u' preceding every value
-            # The below regex will match all quoted values save keyword arguments
+            # The below regex will match all quoted values save keyword args
             # which are preceded by "=" (via negative lookbehind assertion)
-            pater = re.compile(r"(?<!=)'.*?'", flags=re.DOTALL)        
+            pater = re.compile(r"(?<!=)'.*?'", flags=re.DOTALL)
             expected = pater.sub(r'u\g<0>', expected)  # Prepend "u" to matches
 
         # Emable Unicode option -----------------------------------------
@@ -2205,7 +2206,7 @@ class TestMixedIntIndex(Base):
     @pytest.mark.parametrize("dtype", [
         None, object, 'category'])
     @pytest.mark.parametrize("vals,expected", [
-        ([1, 2, 3], [1, 2, 3]), ([1., 2., 3.,], [1., 2., 3.,]),
+        ([1, 2, 3], [1, 2, 3]), ([1., 2., 3.], [1., 2., 3.]),
         ([1., 2., np.nan, 3.], [1., 2., 3.]),
         (['A', 'B', 'C'], ['A', 'B', 'C']),
         (['A', np.nan, 'B', 'C'], ['A', 'B', 'C'])])
@@ -2216,7 +2217,7 @@ class TestMixedIntIndex(Base):
         expected = pd.Index(expected, dtype=dtype)
         tm.assert_index_equal(result, expected)
 
-    @pytest.mark.parametrize("how", ['any', 'all'])        
+    @pytest.mark.parametrize("how", ['any', 'all'])
     @pytest.mark.parametrize("index,expected", [
         (pd.DatetimeIndex(['2011-01-01', '2011-01-02', '2011-01-03']),
          pd.DatetimeIndex(['2011-01-01', '2011-01-02', '2011-01-03'])),
@@ -2296,12 +2297,12 @@ class TestMixedIntIndex(Base):
         (bytes, str)  # byte string
     ])
     def test_with_unicode(self, func, compat_func):
-        idx = Index(lrange(1000))
+        index = Index(lrange(1000))
 
         if PY3:
-            func(idx)
+            func(index)
         else:
-            compat_func(idx)
+            compat_func(index)
 
     def test_intersect_str_dates(self):
         dt_dates = [datetime(2012, 2, 9), datetime(2012, 2, 22)]
