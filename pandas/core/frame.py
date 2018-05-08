@@ -43,7 +43,6 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_datetimetz,
     is_datetime64_any_dtype,
-    is_datetime64tz_dtype,
     is_bool_dtype,
     is_integer_dtype,
     is_float_dtype,
@@ -52,7 +51,6 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     needs_i8_conversion,
     _get_dtype_from_object,
-    _ensure_float,
     _ensure_float64,
     _ensure_int64,
     _ensure_platform_int,
@@ -4887,20 +4885,7 @@ class DataFrame(NDFrame):
             else:
                 arr = func(series, otherSeries)
 
-            if do_fill:
-                arr = _ensure_float(arr)
-                arr[this_mask & other_mask] = np.nan
-
-            # try to downcast back to the original dtype
-            if needs_i8_conversion_i:
-                # ToDo: This conversion should be handled in
-                # _maybe_cast_to_datetime but the change affects lot...
-                if is_datetime64tz_dtype(new_dtype):
-                    arr = DatetimeIndex._simple_new(arr, tz=new_dtype.tz)
-                else:
-                    arr = maybe_cast_to_datetime(arr, new_dtype)
-            else:
-                arr = maybe_downcast_to_dtype(arr, this_dtype)
+            arr = maybe_downcast_to_dtype(arr, this_dtype)
 
             result[col] = arr
 
