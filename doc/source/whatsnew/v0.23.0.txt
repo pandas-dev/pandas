@@ -1325,6 +1325,7 @@ Groupby/Resample/Rolling
 - Bug in :func:`DataFrame.resample` that dropped timezone information (:issue:`13238`)
 - Bug in :func:`DataFrame.groupby` where transformations using ``np.all`` and ``np.any`` were raising a ``ValueError`` (:issue:`20653`)
 - Bug in :func:`DataFrame.resample` where ``ffill``, ``bfill``, ``pad``, ``backfill``, ``fillna``, ``interpolate``, and ``asfreq`` were ignoring ``loffset``. (:issue:`20744`)
+- Bug in :func:`DataFrame.groupby` when applying a function that has mixed data types and the user supplied function can fail on the grouping column (:issue:`20949`)
 
 Sparse
 ^^^^^^
