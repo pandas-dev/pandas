@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import re
-
 import pytest
 
 from datetime import datetime, timedelta
@@ -1972,7 +1970,7 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
           u"       u'ううう', u'あ', u'いい', u'ううう', u'あ', "
           u"u'いい', u'ううう', u'あ', u'いい', u'ううう'],\n"
           u"      dtype='object')")),
-         # truncated
+        # truncated
         (pd.Index([u'あ', u'いい', u'ううう'] * 100),
          (u"Index([u'あ', u'いい', u'ううう', u'あ', u'いい', "
           u"u'ううう', u'あ', u'いい', u'ううう', u'あ',\n"
@@ -1981,7 +1979,7 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
           u"u'いい', u'ううう', u'あ', u'いい', u'ううう'],\n"
           u"      dtype='object', length=300)"))])
     def test_string_index_repr_compat(self, index, expected):
-        result = unicode(index)
+        result = unicode(index)  # noqa
         assert result == expected
 
     @pytest.mark.skipif(not PY3, reason="compat test")
@@ -2033,7 +2031,7 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
           u"       u'ううう', u'あ', u'いい', u'ううう', "
           u"u'あ', u'いい', u'ううう'],\n"
           u"      dtype='object')")),
-         # truncated
+        # truncated
         (pd.Index([u'あ', u'いい', u'ううう'] * 100),
          (u"Index([u'あ', u'いい', u'ううう', u'あ', u'いい', "
           u"u'ううう', u'あ', u'いい',\n"
@@ -2047,7 +2045,7 @@ Index([u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a', u'bb', u'ccc', u'a',
                                                           expected):
         # Enable Unicode option -----------------------------------------
         with cf.option_context('display.unicode.east_asian_width', True):
-            result = unicode(index)
+            result = unicode(index)  # noqa
             assert result == expected
 
     @pytest.mark.parametrize('dtype', [np.int64, np.float64])
