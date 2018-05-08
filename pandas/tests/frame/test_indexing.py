@@ -1929,6 +1929,32 @@ class TestDataFrameIndexing(TestData):
         expected = df.take([0], axis=1)
         assert_frame_equal(result, expected)
 
+    def test_loc_duplicates(self):
+        # gh-17105
+
+        # insert a duplicate element to the index
+        trange = pd.date_range(start=pd.Timestamp(year=2017, month=1, day=1),
+                               end=pd.Timestamp(year=2017, month=1, day=5))
+
+        trange = trange.insert(loc=5,
+                               item=pd.Timestamp(year=2017, month=1, day=5))
+
+        df = pd.DataFrame(0, index=trange, columns=["A", "B"])
+        bool_idx = np.array([False, False, False, False, False, True])
+
+        # assignment
+        df.loc[trange[bool_idx], "A"] = 6
+
+        expected = pd.DataFrame({'A': [0, 0, 0, 0, 6, 6],
+                                 'B': [0, 0, 0, 0, 0, 0]},
+                                index=trange)
+        tm.assert_frame_equal(df, expected)
+
+        # in-place
+        df = pd.DataFrame(0, index=trange, columns=["A", "B"])
+        df.loc[trange[bool_idx], "A"] += 6
+        tm.assert_frame_equal(df, expected)
+
     def test_iloc_sparse_propegate_fill_value(self):
         from pandas.core.sparse.api import SparseDataFrame
         df = SparseDataFrame({'A': [999, 1]}, default_fill_value=999)

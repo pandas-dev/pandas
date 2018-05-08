@@ -120,7 +120,9 @@ def _isna_new(obj):
         return _isna_ndarraylike(obj)
     elif isinstance(obj, ABCGeneric):
         return obj._constructor(obj._data.isna(func=isna))
-    elif isinstance(obj, list) or hasattr(obj, '__array__'):
+    elif isinstance(obj, list):
+        return _isna_ndarraylike(np.asarray(obj, dtype=object))
+    elif hasattr(obj, '__array__'):
         return _isna_ndarraylike(np.asarray(obj))
     else:
         return obj is None
@@ -146,7 +148,9 @@ def _isna_old(obj):
         return _isna_ndarraylike_old(obj)
     elif isinstance(obj, ABCGeneric):
         return obj._constructor(obj._data.isna(func=_isna_old))
-    elif isinstance(obj, list) or hasattr(obj, '__array__'):
+    elif isinstance(obj, list):
+        return _isna_ndarraylike_old(np.asarray(obj, dtype=object))
+    elif hasattr(obj, '__array__'):
         return _isna_ndarraylike_old(np.asarray(obj))
     else:
         return obj is None

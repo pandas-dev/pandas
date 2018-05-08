@@ -314,7 +314,7 @@ The :func:`DataFrame.assign` now accepts dependent keyword arguments for python 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Previously, :meth:`Series.str.cat` did not -- in contrast to most of ``pandas`` -- align :class:`Series` on their index before concatenation (see :issue:`18657`).
-The method has now gained a keyword ``join`` to control the manner of alignment, see examples below and in :ref:`here <text.concatenate>`.
+The method has now gained a keyword ``join`` to control the manner of alignment, see examples below and :ref:`here <text.concatenate>`.
 
 In v.0.23 `join` will default to None (meaning no alignment), but this default will change to ``'left'`` in a future version of pandas.
 
@@ -325,7 +325,7 @@ In v.0.23 `join` will default to None (meaning no alignment), but this default w
     s.str.cat(t)
     s.str.cat(t, join='left', na_rep='-')
 
-Furthermore, meth:`Series.str.cat` now works for ``CategoricalIndex`` as well (previously raised a ``ValueError``; see :issue:`20842`).
+Furthermore, :meth:`Series.str.cat` now works for ``CategoricalIndex`` as well (previously raised a ``ValueError``; see :issue:`20842`).
 
 .. _whatsnew_0230.enhancements.astype_category:
 
@@ -419,9 +419,11 @@ documentation. If you build an extension array, publicize it on our
 Categorical Groupers has gained an observed keyword
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In previous versions, grouping by 1 or more categorical columns would result in an index that was the cartesian product of all of the categories for
-each grouper, not just the observed values.``.groupby()`` has gained the ``observed`` keyword to toggle this behavior. The default remains backward
-compatible (generate a cartesian product). (:issue:`14942`, :issue:`8138`, :issue:`15217`, :issue:`17594`, :issue:`8669`, :issue:`20583`)
+Grouping by a categorical includes the unobserved categories in the output.
+When grouping with multiple groupers, this means you get the cartesian product of all the
+categories, including combinations where there are no observations, which can result in a large
+number of groupers. We have added a keyword ``observed`` to control this behavior, it defaults to
+``observed=False`` for backward-compatiblity. (:issue:`14942`, :issue:`8138`, :issue:`15217`, :issue:`17594`, :issue:`8669`, :issue:`20583`, :issue:`20902`)
 
 
 .. ipython:: python
@@ -523,6 +525,7 @@ Other Enhancements
   library. (:issue:`20564`)
 - Added new writer for exporting Stata dta files in version 117, ``StataWriter117``.  This format supports exporting strings with lengths up to 2,000,000 characters (:issue:`16450`)
 - :func:`to_hdf` and :func:`read_hdf` now accept an ``errors`` keyword argument to control encoding error handling (:issue:`20835`)
+- :func:`date_range` now returns a linearly spaced ``DatetimeIndex`` if ``start``, ``stop``, and ``periods`` are specified, but ``freq`` is not. (:issue:`20808`)
 
 .. _whatsnew_0230.api_breaking:
 
@@ -913,6 +916,10 @@ Datetimelike API Changes
 - :class:`CacheableOffset` and :class:`WeekDay` are no longer available in the ``pandas.tseries.offsets`` module (:issue:`17830`)
 - ``pandas.tseries.frequencies.get_freq_group()`` and ``pandas.tseries.frequencies.DAYS`` are removed from the public API (:issue:`18034`)
 - :func:`Series.truncate` and :func:`DataFrame.truncate` will raise a ``ValueError`` if the index is not sorted instead of an unhelpful ``KeyError`` (:issue:`17935`)
+- :attr:`Series.first` and :attr:`DataFrame.first` will now raise a ``TypeError``
+  rather than ``NotImplementedError`` when index is not a :class:`DatetimeIndex`` (:issue:`20725`).
+- :attr:`Series.last` and :attr:`DateFrame.last` will now raise a ``TypeError``
+  rather than ``NotImplementedError`` when index is not a :class:`DatetimeIndex`` (:issue:`20725`).
 - Restricted ``DateOffset`` keyword arguments. Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior. Now, only valid arguments will be accepted. (:issue:`17176`, :issue:`18226`).
 - :func:`pandas.merge` provides a more informative error message when trying to merge on timezone-aware and timezone-naive columns (:issue:`15800`)
 - For :class:`DatetimeIndex` and :class:`TimedeltaIndex` with ``freq=None``, addition or subtraction of integer-dtyped array or ``Index`` will raise ``NullFrequencyError`` instead of ``TypeError`` (:issue:`19895`)
@@ -974,6 +981,7 @@ Deprecations
   retain the previous behavior, use a list instead of a tuple (:issue:`18314`)
 - ``Series.valid`` is deprecated. Use :meth:`Series.dropna` instead (:issue:`18800`).
 - :func:`read_excel` has deprecated the ``skip_footer`` parameter. Use ``skipfooter`` instead (:issue:`18836`)
+- :meth:`ExcelFile.parse` has deprecated ``sheetname`` in favor of ``sheet_name`` for consistency with :func:`read_excel` (:issue:`20920`).
 - The ``is_copy`` attribute is deprecated and will be removed in a future version (:issue:`18801`).
 - ``IntervalIndex.from_intervals`` is deprecated in favor of the :class:`IntervalIndex` constructor (:issue:`19263`)
 - ``DataFrame.from_items`` is deprecated. Use :func:`DataFrame.from_dict` instead, or ``DataFrame.from_dict(OrderedDict())`` if you wish to preserve the key order (:issue:`17320`, :issue:`17312`)
@@ -1037,6 +1045,7 @@ Removal of prior version deprecations/changes
   ``ambiguous='infer'``, and ``infer_dst=False`` to ``ambiguous='raise'`` (:issue:`7963`).
 - When ``.resample()`` was changed from an eager to a lazy operation, like ``.groupby()`` in v0.18.0, we put in place compatibility (with a ``FutureWarning``),
   so operations would continue to work. This is now fully removed, so a ``Resampler`` will no longer forward compat operations (:issue:`20554`)
+- Remove long deprecated ``axis=None`` parameter from ``.replace()`` (:issue:`20271`)
 
 .. _whatsnew_0230.performance:
 
@@ -1058,6 +1067,7 @@ Performance Improvements
 - Improved performance of :func:`DataFrame.median` with ``axis=1`` when bottleneck is not installed (:issue:`16468`)
 - Improved performance of :func:`MultiIndex.get_loc` for large indexes, at the cost of a reduction in performance for small ones (:issue:`18519`)
 - Improved performance of :func:`MultiIndex.remove_unused_levels` when there are no unused levels, at the cost of a reduction in performance when there are (:issue:`19289`)
+- Improved performance of :func:`Index.get_loc` for non-unique indexes (:issue:`19478`)
 - Improved performance of pairwise ``.rolling()`` and ``.expanding()`` with ``.cov()`` and ``.corr()`` operations (:issue:`17917`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.rank` (:issue:`15779`)
 - Improved performance of variable ``.rolling()`` on ``.min()`` and ``.max()`` (:issue:`19521`)
@@ -1243,6 +1253,8 @@ Indexing
 - Bug in ``Series.is_unique`` where extraneous output in stderr is shown if Series contains objects with ``__ne__`` defined (:issue:`20661`)
 - Bug in ``.loc`` assignment with a single-element list-like incorrectly assigns as a list (:issue:`19474`)
 - Bug in partial string indexing on a ``Series/DataFrame`` with a monotonic decreasing ``DatetimeIndex`` (:issue:`19362`)
+- Bug in performing in-place operations on a ``DataFrame`` with a duplicate ``Index`` (:issue:`17105`)
+- Bug in :meth:`IntervalIndex.get_loc` and :meth:`IntervalIndex.get_indexer` when used with an :class:`IntervalIndex` containing a single interval (:issue:`17284`, :issue:`20921`)
 
 MultiIndex
 ^^^^^^^^^^
@@ -1314,6 +1326,7 @@ Groupby/Resample/Rolling
 - Bug in :func:`DataFrame.resample` that dropped timezone information (:issue:`13238`)
 - Bug in :func:`DataFrame.groupby` where transformations using ``np.all`` and ``np.any`` were raising a ``ValueError`` (:issue:`20653`)
 - Bug in :func:`DataFrame.resample` where ``ffill``, ``bfill``, ``pad``, ``backfill``, ``fillna``, ``interpolate``, and ``asfreq`` were ignoring ``loffset``. (:issue:`20744`)
+- Bug in :func:`DataFrame.groupby` when applying a function that has mixed data types and the user supplied function can fail on the grouping column (:issue:`20949`)
 
 Sparse
 ^^^^^^
@@ -1326,6 +1339,7 @@ Sparse
 Reshaping
 ^^^^^^^^^
 
+- Bug in :func:`DataFrame.merge` where referencing a ``CategoricalIndex`` by name, where the ``by`` kwarg would ``KeyError`` (:issue:`20777`)
 - Bug in :func:`DataFrame.stack` which fails trying to sort mixed type levels under Python 3 (:issue:`18310`)
 - Bug in :func:`DataFrame.unstack` which casts int to float if ``columns`` is a ``MultiIndex`` with unused levels (:issue:`17845`)
 - Bug in :func:`DataFrame.unstack` which raises an error if ``index`` is a ``MultiIndex`` with unused labels on the unstacked level (:issue:`18562`)
@@ -1352,6 +1366,8 @@ Reshaping
 - Bug in :meth:`DataFrame.astype` where column metadata is lost when converting to categorical or a dictionary of dtypes (:issue:`19920`)
 - Bug in :func:`cut` and :func:`qcut` where timezone information was dropped (:issue:`19872`)
 - Bug in :class:`Series` constructor with a ``dtype=str``, previously raised in some cases (:issue:`19853`)
+- Bug in :func:`get_dummies`, and :func:`select_dtypes`, where duplicate column names caused incorrect behavior (:issue:`20848`)
+- Bug in :func:`isna`, which cannot handle ambiguous typed lists (:issue:`20675`)
 
 Other
 ^^^^^

@@ -43,7 +43,6 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_datetimetz,
     is_datetime64_any_dtype,
-    is_datetime64tz_dtype,
     is_bool_dtype,
     is_integer_dtype,
     is_float_dtype,
@@ -52,7 +51,6 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     needs_i8_conversion,
     _get_dtype_from_object,
-    _ensure_float,
     _ensure_float64,
     _ensure_int64,
     _ensure_platform_int,
@@ -2641,7 +2639,7 @@ class DataFrame(NDFrame):
                 return self.loc[:, lab_slice]
             else:
                 if isinstance(label, Index):
-                    return self._take(i, axis=1, convert=True)
+                    return self._take(i, axis=1)
 
                 index_len = len(self.index)
 
@@ -2720,10 +2718,10 @@ class DataFrame(NDFrame):
             # be reindexed to match DataFrame rows
             key = check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
-            return self._take(indexer, axis=0, convert=False)
+            return self._take(indexer, axis=0)
         else:
             indexer = self.loc._convert_to_indexer(key, axis=1)
-            return self._take(indexer, axis=1, convert=True)
+            return self._take(indexer, axis=1)
 
     def _getitem_multilevel(self, key):
         loc = self.columns.get_loc(key)
@@ -3076,15 +3074,15 @@ class DataFrame(NDFrame):
         include_these = Series(not bool(include), index=self.columns)
         exclude_these = Series(not bool(exclude), index=self.columns)
 
-        def is_dtype_instance_mapper(column, dtype):
-            return column, functools.partial(issubclass, dtype.type)
+        def is_dtype_instance_mapper(idx, dtype):
+            return idx, functools.partial(issubclass, dtype.type)
 
-        for column, f in itertools.starmap(is_dtype_instance_mapper,
-                                           self.dtypes.iteritems()):
+        for idx, f in itertools.starmap(is_dtype_instance_mapper,
+                                        enumerate(self.dtypes)):
             if include:  # checks for the case of empty include or exclude
-                include_these[column] = any(map(f, include))
+                include_these.iloc[idx] = any(map(f, include))
             if exclude:
-                exclude_these[column] = not any(map(f, exclude))
+                exclude_these.iloc[idx] = not any(map(f, exclude))
 
         dtype_indexer = include_these & exclude_these
         return self.loc[com._get_info_slice(self, dtype_indexer)]
@@ -3790,11 +3788,11 @@ class DataFrame(NDFrame):
 
     @Appender(_shared_docs['replace'] % _shared_doc_kwargs)
     def replace(self, to_replace=None, value=None, inplace=False, limit=None,
-                regex=False, method='pad', axis=None):
+                regex=False, method='pad'):
         return super(DataFrame, self).replace(to_replace=to_replace,
                                               value=value, inplace=inplace,
                                               limit=limit, regex=regex,
-                                              method=method, axis=axis)
+                                              method=method)
 
     @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
     def shift(self, periods=1, freq=None, axis=0):
@@ -4292,7 +4290,7 @@ class DataFrame(NDFrame):
                 else:
                     raise TypeError('must specify how or thresh')
 
-            result = self._take(mask.nonzero()[0], axis=axis, convert=False)
+            result = self._take(mask.nonzero()[0], axis=axis)
 
         if inplace:
             self._update_inplace(result)
@@ -4887,20 +4885,7 @@ class DataFrame(NDFrame):
             else:
                 arr = func(series, otherSeries)
 
-            if do_fill:
-                arr = _ensure_float(arr)
-                arr[this_mask & other_mask] = np.nan
-
-            # try to downcast back to the original dtype
-            if needs_i8_conversion_i:
-                # ToDo: This conversion should be handled in
-                # _maybe_cast_to_datetime but the change affects lot...
-                if is_datetime64tz_dtype(new_dtype):
-                    arr = DatetimeIndex._simple_new(arr, tz=new_dtype.tz)
-                else:
-                    arr = maybe_cast_to_datetime(arr, new_dtype)
-            else:
-                arr = maybe_downcast_to_dtype(arr, this_dtype)
+            arr = maybe_downcast_to_dtype(arr, this_dtype)
 
             result[col] = arr
 
