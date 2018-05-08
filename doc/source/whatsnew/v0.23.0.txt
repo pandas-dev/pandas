@@ -1254,7 +1254,7 @@ Indexing
 - Bug in ``.loc`` assignment with a single-element list-like incorrectly assigns as a list (:issue:`19474`)
 - Bug in partial string indexing on a ``Series/DataFrame`` with a monotonic decreasing ``DatetimeIndex`` (:issue:`19362`)
 - Bug in :meth:`IntervalIndex.get_loc` and :meth:`IntervalIndex.get_indexer` when used with an :class:`IntervalIndex` containing a single interval (:issue:`17284`, :issue:`20921`)
-- Bug in ``.loc``, which cannot handle ``uint64`` input (:issue:`20722`)
+- Bug in ``.loc`` with a ``uint64`` indexer (:issue:`20722`)
 
 MultiIndex
 ^^^^^^^^^^
