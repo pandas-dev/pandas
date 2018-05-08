@@ -1365,6 +1365,7 @@ Reshaping
 - Bug in :func:`cut` and :func:`qcut` where timezone information was dropped (:issue:`19872`)
 - Bug in :class:`Series` constructor with a ``dtype=str``, previously raised in some cases (:issue:`19853`)
 - Bug in :func:`get_dummies`, and :func:`select_dtypes`, where duplicate column names caused incorrect behavior (:issue:`20848`)
+- Bug in :func:`isna`, which cannot handle ambiguous typed lists (:issue:`20675`)
 
 Other
 ^^^^^
