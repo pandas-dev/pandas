@@ -1318,7 +1318,7 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     (indexer,
                      missing) = labels.get_indexer_non_unique(objarr)
                     # 'indexer' has dupes, create 'check' using 'missing'
-                    check = np.zeros(len(objarr))
+                    check = np.zeros(len(objarr), dtype=np.intp)
                     check[missing] = -1
 
                 mask = check == -1
@@ -2469,7 +2469,7 @@ def maybe_convert_indices(indices, n):
         if len(indices) == 0:
             # If list is empty, np.array will return float and cause indexing
             # errors.
-            return np.empty(0, dtype=np.int_)
+            return np.empty(0, dtype=np.intp)
 
     mask = indices < 0
     if mask.any():
