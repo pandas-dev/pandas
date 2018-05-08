@@ -84,9 +84,9 @@ cdef extern from "khash_python.h":
     kh_uint64_t* kh_init_uint64() nogil
     void kh_destroy_uint64(kh_uint64_t*) nogil
     void kh_clear_uint64(kh_uint64_t*) nogil
-    khint_t kh_get_uint64(kh_uint64_t*, int64_t) nogil
+    khint_t kh_get_uint64(kh_uint64_t*, uint64_t) nogil
     void kh_resize_uint64(kh_uint64_t*, khint_t) nogil
-    khint_t kh_put_uint64(kh_uint64_t*, int64_t, int*) nogil
+    khint_t kh_put_uint64(kh_uint64_t*, uint64_t, int*) nogil
     void kh_del_uint64(kh_uint64_t*, khint_t) nogil
 
     bint kh_exist_uint64(kh_uint64_t*, khiter_t) nogil
