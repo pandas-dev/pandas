@@ -791,11 +791,11 @@ class _GroupByMixin(GroupByMixin):
 
         def f(x, name=name, *args):
             x = self._shallow_copy(x)
-
             if isinstance(name, compat.string_types):
                 return getattr(x, name)(*args, **kwargs)
 
             return x.apply(name, *args, **kwargs)
+
 
         return self._groupby.apply(f)
 
@@ -837,11 +837,7 @@ class _Rolling(_Window):
         index, indexi = self._get_index(index=index)
         results = []
         for b in blocks:
-            try:
-                values = self._prep_values(b.values)
-            except TypeError:
-                results.append(b.values.copy())
-                continue
+            values = self._prep_values(b.values)
 
             if values.size == 0:
                 results.append(values.copy())

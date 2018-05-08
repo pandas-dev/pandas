@@ -105,7 +105,6 @@ class TestApi(Base):
     def tests_skip_nuisance(self):
 
         df = DataFrame({'A': range(5), 'B': range(5, 10), 'C': 'foo'})
-
         r = df.rolling(window=3)
         result = r[['A', 'B']].sum()
         expected = DataFrame({'A': [np.nan, np.nan, 3, 6, 9],
@@ -113,9 +112,13 @@ class TestApi(Base):
                              columns=list('AB'))
         tm.assert_frame_equal(result, expected)
 
+    def test_skip_sum_object_raises(self):
+        df = DataFrame({'A': range(5), 'B': range(5, 10), 'C': 'foo'})
+        r = df.rolling(window=3)
         expected = concat([r[['A', 'B']].sum(), df[['C']]], axis=1)
-        result = r.sum()
-        tm.assert_frame_equal(result, expected, check_like=True)
+
+        with tm.assert_raises_regex(TypeError, 'cannot handle this type'):
+            result = r.sum()
 
     def test_agg(self):
         df = DataFrame({'A': range(5), 'B': range(0, 10, 2)})
