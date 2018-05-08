@@ -1067,6 +1067,7 @@ Performance Improvements
 - Improved performance of :func:`DataFrame.median` with ``axis=1`` when bottleneck is not installed (:issue:`16468`)
 - Improved performance of :func:`MultiIndex.get_loc` for large indexes, at the cost of a reduction in performance for small ones (:issue:`18519`)
 - Improved performance of :func:`MultiIndex.remove_unused_levels` when there are no unused levels, at the cost of a reduction in performance when there are (:issue:`19289`)
+- Improved performance of :func:`Index.get_loc` for non-unique indexes (:issue:`19478`)
 - Improved performance of pairwise ``.rolling()`` and ``.expanding()`` with ``.cov()`` and ``.corr()`` operations (:issue:`17917`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.rank` (:issue:`15779`)
 - Improved performance of variable ``.rolling()`` on ``.min()`` and ``.max()`` (:issue:`19521`)
@@ -1365,6 +1366,7 @@ Reshaping
 - Bug in :func:`cut` and :func:`qcut` where timezone information was dropped (:issue:`19872`)
 - Bug in :class:`Series` constructor with a ``dtype=str``, previously raised in some cases (:issue:`19853`)
 - Bug in :func:`get_dummies`, and :func:`select_dtypes`, where duplicate column names caused incorrect behavior (:issue:`20848`)
+- Bug in :func:`isna`, which cannot handle ambiguous typed lists (:issue:`20675`)
 
 Other
 ^^^^^
