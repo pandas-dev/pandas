@@ -515,3 +515,16 @@ def test_groupby_apply_none_first():
                           index=index2)
     tm.assert_frame_equal(result1, expected1)
     tm.assert_frame_equal(result2, expected2)
+
+
+def test_apply_with_mixed_types():
+    # gh-20949
+    df = pd.DataFrame({'A': 'a a b'.split(), 'B': [1, 2, 3], 'C': [4, 6, 5]})
+    g = df.groupby('A')
+
+    result = g.transform(lambda x: x / x.sum())
+    expected = pd.DataFrame({'B': [1 / 3., 2 / 3., 1], 'C': [0.4, 0.6, 1.0]})
+    tm.assert_frame_equal(result, expected)
+
+    result = g.apply(lambda x: x / x.sum())
+    tm.assert_frame_equal(result, expected)
