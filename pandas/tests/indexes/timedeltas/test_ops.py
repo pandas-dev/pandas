@@ -310,37 +310,78 @@ class TestTimedeltaIndexOps(Ops):
 
     @pytest.mark.parametrize('values', [['0 days', '2 days', '4 days'], []])
     @pytest.mark.parametrize('freq', ['2D', Day(2), '48H', Hour(48)])
-    def test_freq_setter(self, values, freq):
-        # GH 20678
+    def test_set_freq(self, values, freq):
+        # GH 20886
         idx = TimedeltaIndex(values)
 
         # can set to an offset, converting from string if necessary
-        idx.freq = freq
+        idx = idx.set_freq(freq)
         assert idx.freq == freq
         assert isinstance(idx.freq, ABCDateOffset)
 
         # can reset to None
-        idx.freq = None
+        idx = idx.set_freq(None)
         assert idx.freq is None
 
-    def test_freq_setter_errors(self):
-        # GH 20678
+    def test_set_freq_errors(self):
+        # GH 20886
         idx = TimedeltaIndex(['0 days', '2 days', '4 days'])
 
         # setting with an incompatible freq
         msg = ('Inferred frequency 2D from passed values does not conform to '
                'passed frequency 5D')
         with tm.assert_raises_regex(ValueError, msg):
-            idx.freq = '5D'
+            idx.set_freq('5D')
 
         # setting with a non-fixed frequency
         msg = '<2 \* BusinessDays> is a non-fixed frequency'
         with tm.assert_raises_regex(ValueError, msg):
-            idx.freq = '2B'
+            idx.set_freq('2B')
 
         # setting with non-freq string
         with tm.assert_raises_regex(ValueError, 'Invalid frequency'):
-            idx.freq = 'foo'
+            idx.set_freq('foo')
+
+    @pytest.mark.parametrize('values', [['0 days', '2 days', '4 days'], []])
+    @pytest.mark.parametrize('freq', ['2D', Day(2), '48H', Hour(48)])
+    def test_freq_setter(self, values, freq):
+        # GH 20678/20886
+        idx = TimedeltaIndex(values)
+
+        # can set to an offset, converting from string if necessary
+        with tm.assert_produces_warning(FutureWarning):
+            idx.freq = freq
+
+        assert idx.freq == freq
+        assert isinstance(idx.freq, ABCDateOffset)
+
+        # can reset to None
+        with tm.assert_produces_warning(FutureWarning):
+            idx.freq = None
+
+        assert idx.freq is None
+
+    def test_freq_setter_errors(self):
+        # GH 20678/20886
+        idx = TimedeltaIndex(['0 days', '2 days', '4 days'])
+
+        # setting with an incompatible freq
+        msg = ('Inferred frequency 2D from passed values does not conform to '
+               'passed frequency 5D')
+        with tm.assert_raises_regex(ValueError, msg):
+            with tm.assert_produces_warning(FutureWarning):
+                idx.freq = '5D'
+
+        # setting with a non-fixed frequency
+        msg = '<2 \* BusinessDays> is a non-fixed frequency'
+        with tm.assert_raises_regex(ValueError, msg):
+            with tm.assert_produces_warning(FutureWarning):
+                idx.freq = '2B'
+
+        # setting with non-freq string
+        with tm.assert_raises_regex(ValueError, 'Invalid frequency'):
+            with tm.assert_produces_warning(FutureWarning):
+                idx.freq = 'foo'
 
 
 class TestTimedeltas(object):

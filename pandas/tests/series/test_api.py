@@ -705,6 +705,7 @@ class TestCategoricalSeries(object):
             ('floor', ("D",), {}),
             ('ceil', ("D",), {}),
             ('asfreq', ("D",), {}),
+            ('set_freq', ("24H",), {}),
             # ('tz_localize', ("UTC",), {}),
         ]
         _special_func_names = [f[0] for f in special_func_defs]

@@ -250,6 +250,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     normalize
     strftime
     snap
+    set_freq
     tz_convert
     tz_localize
     round
@@ -319,7 +320,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     _other_ops = ['date', 'time']
     _datetimelike_ops = _field_ops + _object_ops + _bool_ops + _other_ops
     _datetimelike_methods = ['to_period', 'tz_localize',
-                             'tz_convert',
+                             'tz_convert', 'set_freq',
                              'normalize', 'strftime', 'round', 'floor',
                              'ceil', 'month_name', 'day_name']
 
@@ -460,7 +461,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         if freq_infer:
             inferred = subarr.inferred_freq
             if inferred:
-                subarr.freq = to_offset(inferred)
+                subarr._freq = to_offset(inferred)
 
         return subarr._deepcopy_if_needed(ref_to_data, copy)
 
@@ -759,7 +760,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             arr = tools.to_datetime(list(xdr), box=False)
 
             cachedRange = DatetimeIndex._simple_new(arr)
-            cachedRange.freq = freq
+            cachedRange._freq = freq
             cachedRange = cachedRange.tz_localize(None)
             cachedRange.name = None
             drc[freq] = cachedRange
@@ -794,7 +795,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         indexSlice = cachedRange[startLoc:endLoc]
         indexSlice.name = name
-        indexSlice.freq = freq
+        indexSlice._freq = freq
 
         return indexSlice
 
@@ -1184,7 +1185,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 result._tz = timezones.tz_standardize(this.tz)
                 if (result.freq is None and
                         (this.freq is not None or other.freq is not None)):
-                    result.freq = to_offset(result.inferred_freq)
+                    result._freq = to_offset(result.inferred_freq)
             return result
 
     def to_perioddelta(self, freq):
@@ -1232,7 +1233,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                     this._tz = timezones.tz_standardize(tz)
 
         if this.freq is None:
-            this.freq = to_offset(this.inferred_freq)
+            this._freq = to_offset(this.inferred_freq)
         return this
 
     def join(self, other, how='left', level=None, return_indexers=False,
@@ -1393,7 +1394,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             result = Index.intersection(self, other)
             if isinstance(result, DatetimeIndex):
                 if result.freq is None:
-                    result.freq = to_offset(result.inferred_freq)
+                    result._freq = to_offset(result.inferred_freq)
             return result
 
         elif (other.freq is None or self.freq is None or
@@ -1404,7 +1405,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             result = self._shallow_copy(result._values, name=result.name,
                                         tz=result.tz, freq=None)
             if result.freq is None:
-                result.freq = to_offset(result.inferred_freq)
+                result._freq = to_offset(result.inferred_freq)
             return result
 
         if len(self) == 0:
@@ -1738,9 +1739,13 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     def offset(self, value):
         """get/set the frequency of the Index"""
         msg = ('DatetimeIndex.offset has been deprecated and will be removed '
-               'in a future version; use DatetimeIndex.freq instead.')
+               'in a future version; use DatetimeIndex.set_freq instead.')
         warnings.warn(msg, FutureWarning, stacklevel=2)
-        self.freq = value
+        if value is not None:
+            value = to_offset(value)
+            self._validate_frequency(self, value)
+
+        self._freq = value
 
     year = _field_accessor('year', 'Y', "The year of the datetime")
     month = _field_accessor('month', 'M',

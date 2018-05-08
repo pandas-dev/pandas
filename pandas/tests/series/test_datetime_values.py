@@ -34,10 +34,11 @@ class TestSeriesDatetimeValues(TestData):
         ok_for_dt = DatetimeIndex._datetimelike_ops
         ok_for_dt_methods = ['to_period', 'to_pydatetime', 'tz_localize',
                              'tz_convert', 'normalize', 'strftime', 'round',
-                             'floor', 'ceil', 'day_name', 'month_name']
+                             'floor', 'ceil', 'day_name', 'month_name',
+                             'set_freq']
         ok_for_td = TimedeltaIndex._datetimelike_ops
         ok_for_td_methods = ['components', 'to_pytimedelta', 'total_seconds',
-                             'round', 'floor', 'ceil']
+                             'round', 'floor', 'ceil', 'set_freq']
 
         def get_expected(s, name):
             result = getattr(Index(s._values), prop)
@@ -460,3 +461,38 @@ class TestSeriesDatetimeValues(TestData):
         expected = pd.Series(pd.to_datetime([
             '2011-12-26', '2011-12-27', '2011-12-28']))
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.xfail(reason='GH 20937')
+    @pytest.mark.parametrize('data, new_freq', [
+        (date_range('20180101', periods=3), 'B'),
+        (date_range('20180101', periods=3, tz='US/Eastern'), 'B'),
+        (timedelta_range('1 day', periods=3), '86400S')])
+    def test_set_freq(self, data, new_freq):
+        # GH 20886
+        s = Series(data)
+
+        # can set to alternate freq
+        result = s.dt.set_freq(new_freq)
+        assert result.dt.freq == new_freq
+
+        # can reset to None
+        result = s.dt.set_freq(None)
+        assert result.dt.freq is None
+
+    @pytest.mark.parametrize('data', [
+        date_range('20180101', periods=3),
+        date_range('20180101', periods=3, tz='US/Eastern'),
+        timedelta_range('1 day', periods=3)])
+    def test_set_freq_errors(self, data):
+        # GH 20886
+        s = Series(data)
+
+        # setting with an incompatible freq
+        msg = ('Inferred frequency D from passed values does not conform to '
+               'passed frequency 5D')
+        with tm.assert_raises_regex(ValueError, msg):
+            s.dt.set_freq('5D')
+
+        # setting with non-freq string
+        with tm.assert_raises_regex(ValueError, 'Invalid frequency'):
+            s.dt.set_freq('foo')

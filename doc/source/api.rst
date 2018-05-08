@@ -1777,6 +1777,7 @@ Conversion
 .. autosummary::
    :toctree: generated/
 
+   DatetimeIndex.set_freq
    DatetimeIndex.to_period
    DatetimeIndex.to_perioddelta
    DatetimeIndex.to_pydatetime
@@ -1810,6 +1811,7 @@ Conversion
 .. autosummary::
    :toctree: generated/
 
+   TimedeltaIndex.set_freq
    TimedeltaIndex.to_pytimedelta
    TimedeltaIndex.to_series
    TimedeltaIndex.round

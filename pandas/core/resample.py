@@ -904,7 +904,7 @@ class DatetimeIndexResampler(Resampler):
         if not len(ax):
             # reset to the new freq
             obj = obj.copy()
-            obj.index.freq = self.freq
+            obj.index = obj.index.set_freq(self.freq)
             return obj
 
         # do we have a regular frequency

@@ -396,6 +396,7 @@ class TestBusinessDateRange(object):
         assert len(dr) == 20
         assert dr[0] == firstDate
         assert dr[-1] == end
+        assert dr.freq == BDay()
 
     def test_date_parse_failure(self):
         badly_formed_date = '2007/100/1'
@@ -416,7 +417,6 @@ class TestBusinessDateRange(object):
         # GH #456
         rng1 = bdate_range('12/5/2011', '12/5/2011')
         rng2 = bdate_range('12/2/2011', '12/5/2011')
-        rng2.freq = BDay()
 
         result = rng1.union(rng2)
         assert isinstance(result, DatetimeIndex)
@@ -658,12 +658,12 @@ class TestCustomDateRange(object):
         assert len(dr) == 20
         assert dr[0] == firstDate
         assert dr[-1] == end
+        assert dr.freq == CDay()
 
     def test_daterange_bug_456(self):
         # GH #456
         rng1 = bdate_range('12/5/2011', '12/5/2011', freq='C')
         rng2 = bdate_range('12/2/2011', '12/5/2011', freq='C')
-        rng2.freq = CDay()
 
         result = rng1.union(rng2)
         assert isinstance(result, DatetimeIndex)

@@ -67,7 +67,7 @@ class DatetimeLike(Base):
 
         # don't compare the freqs
         if isinstance(expected, pd.DatetimeIndex):
-            expected.freq = None
+            expected = expected.set_freq(None)
 
         result = self.index.map(mapper(expected, self.index))
         tm.assert_index_equal(result, expected)
@@ -88,3 +88,15 @@ class DatetimeLike(Base):
         with tm.assert_produces_warning(FutureWarning):
             i = d.asobject
         assert isinstance(i, pd.Index)
+
+    def test_freq_setter_deprecated(self):
+        # GH 20678/20886
+        idx = self.create_index()
+
+        # no warning for getter
+        with tm.assert_produces_warning(None):
+            idx.freq
+
+        # warning for setter
+        with tm.assert_produces_warning(FutureWarning):
+            idx.freq = pd.offsets.Day()

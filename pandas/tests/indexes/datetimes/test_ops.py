@@ -411,32 +411,70 @@ class TestDatetimeIndexOps(Ops):
     @pytest.mark.parametrize('freq', [
         '2D', Day(2), '2B', BDay(2), '48H', Hour(48)])
     @pytest.mark.parametrize('tz', [None, 'US/Eastern'])
-    def test_freq_setter(self, values, freq, tz):
-        # GH 20678
+    def test_set_freq(self, values, freq, tz):
+        # GH 20886
         idx = DatetimeIndex(values, tz=tz)
 
         # can set to an offset, converting from string if necessary
-        idx.freq = freq
+        idx = idx.set_freq(freq)
         assert idx.freq == freq
         assert isinstance(idx.freq, ABCDateOffset)
 
         # can reset to None
-        idx.freq = None
+        idx = idx.set_freq(None)
         assert idx.freq is None
 
-    def test_freq_setter_errors(self):
-        # GH 20678
+    def test_set_freq_errors(self):
+        # GH 20886
         idx = DatetimeIndex(['20180101', '20180103', '20180105'])
 
         # setting with an incompatible freq
         msg = ('Inferred frequency 2D from passed values does not conform to '
                'passed frequency 5D')
         with tm.assert_raises_regex(ValueError, msg):
-            idx.freq = '5D'
+            idx.set_freq('5D')
 
         # setting with non-freq string
         with tm.assert_raises_regex(ValueError, 'Invalid frequency'):
-            idx.freq = 'foo'
+            idx.set_freq('foo')
+
+    @pytest.mark.parametrize('values', [
+        ['20180101', '20180103', '20180105'], []])
+    @pytest.mark.parametrize('freq', [
+        '2D', Day(2), '2B', BDay(2), '48H', Hour(48)])
+    @pytest.mark.parametrize('tz', [None, 'US/Eastern'])
+    def test_freq_setter(self, values, freq, tz):
+        # GH 20678/20886
+        idx = DatetimeIndex(values, tz=tz)
+
+        # can set to an offset, converting from string if necessary
+        with tm.assert_produces_warning(FutureWarning):
+            idx.freq = freq
+
+        assert idx.freq == freq
+        assert isinstance(idx.freq, ABCDateOffset)
+
+        # can reset to None
+        with tm.assert_produces_warning(FutureWarning):
+            idx.freq = None
+
+        assert idx.freq is None
+
+    def test_freq_setter_errors(self):
+        # GH 20678/20886
+        idx = DatetimeIndex(['20180101', '20180103', '20180105'])
+
+        # setting with an incompatible freq
+        msg = ('Inferred frequency 2D from passed values does not conform to '
+               'passed frequency 5D')
+        with tm.assert_raises_regex(ValueError, msg):
+            with tm.assert_produces_warning(FutureWarning):
+                idx.freq = '5D'
+
+        # setting with non-freq string
+        with tm.assert_raises_regex(ValueError, 'Invalid frequency'):
+            with tm.assert_produces_warning(FutureWarning):
+                idx.freq = 'foo'
 
     def test_offset_deprecated(self):
         # GH 20716

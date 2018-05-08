@@ -149,6 +149,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
     Methods
     -------
+    set_freq
     to_pytimedelta
     to_series
     round
@@ -177,7 +178,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     _field_ops = ['days', 'seconds', 'microseconds', 'nanoseconds']
     _datetimelike_ops = _field_ops + _object_ops + _bool_ops
     _datetimelike_methods = ["to_pytimedelta", "total_seconds",
-                             "round", "floor", "ceil"]
+                             "round", "floor", "ceil", "set_freq"]
 
     @classmethod
     def _add_comparison_methods(cls):
@@ -253,14 +254,14 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             if freq is not None and not freq_infer:
                 index = cls._simple_new(data, name=name)
                 cls._validate_frequency(index, freq)
-                index.freq = freq
+                index._freq = freq
                 return index
 
         if freq_infer:
             index = cls._simple_new(data, name=name)
             inferred = index.inferred_freq
             if inferred:
-                index.freq = to_offset(inferred)
+                index._freq = to_offset(inferred)
             return index
 
         return cls._simple_new(data, name=name, freq=freq)
@@ -598,7 +599,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             result = Index.union(this, other)
             if isinstance(result, TimedeltaIndex):
                 if result.freq is None:
-                    result.freq = to_offset(result.inferred_freq)
+                    result._freq = to_offset(result.inferred_freq)
             return result
 
     def join(self, other, how='left', level=None, return_indexers=False,
