@@ -8,7 +8,7 @@ from cpython.slice cimport PySlice_Check
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport ndarray, float64_t, int32_t, int64_t, uint8_t, uint64_t
+from numpy cimport ndarray, float64_t, int32_t, int64_t, uint8_t, uint64_t, intp_t
 cnp.import_array()
 
 cdef extern from "numpy/arrayobject.h":
@@ -183,8 +183,8 @@ cdef class IndexEngine:
 
     cdef _maybe_get_bool_indexer(self, object val):
         cdef:
-            ndarray[cnp.uint8_t, ndim=1, cast=True] indexer
-            ndarray[int64_t, ndim=1] found
+            ndarray[uint8_t, ndim=1, cast=True] indexer
+            ndarray[intp_t, ndim=1] found
             int count
 
         indexer = self._get_index_values() == val
