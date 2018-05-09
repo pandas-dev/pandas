@@ -371,10 +371,9 @@ class TestDataFramePlots(TestPlotBase):
         # https://github.com/pandas-dev/pandas/issues/9737 using gridspec,
         # the axis in fig.get_axis() are sorted differently than pandas
         # expected them, so make sure that only the right ones are removed
-        import matplotlib.pyplot as plt
 
         df = DataFrame({'a': [-1.43, -0.15, -3.70, -1.43, -0.14],
-                        'b': [0.56, 0.84, 0.29, 0.56, 0.85,],
+                        'b': [0.56, 0.84, 0.29, 0.56, 0.85],
                         'c': [0, 1, 2, 3, 1]},
                        index=[0, 1, 2, 3, 4])
 
@@ -390,22 +389,20 @@ class TestDataFramePlots(TestPlotBase):
         self._check_visible(axes[1].get_yticklabels(), visible=False)
         self._check_visible(axes[2].get_yticklabels(), visible=True)
         self._check_visible(axes[3].get_yticklabels(), visible=False)
-        # sharey=False, all yticklabels should be visible              
+        # sharey=False, all yticklabels should be visible
         axes = df.groupby('c').boxplot(sharey=False)
         self._check_visible(axes[0].get_yticklabels(), visible=True)
         self._check_visible(axes[1].get_yticklabels(), visible=True)
         self._check_visible(axes[2].get_yticklabels(), visible=True)
-        self._check_visible(axes[3].get_yticklabels(), visible=True)        
-
+        self._check_visible(axes[3].get_yticklabels(), visible=True)
 
     def test_groupby_boxplot_sharex(self):
         # https://github.com/pandas-dev/pandas/issues/9737 using gridspec,
         # the axis in fig.get_axis() are sorted differently than pandas
         # expected them, so make sure that only the right ones are removed
-        import matplotlib.pyplot as plt
 
         df = DataFrame({'a': [-1.43, -0.15, -3.70, -1.43, -0.14],
-                        'b': [0.56, 0.84, 0.29, 0.56, 0.85,],
+                        'b': [0.56, 0.84, 0.29, 0.56, 0.85],
                         'c': [0, 1, 2, 3, 1]},
                        index=[0, 1, 2, 3, 4])
 
@@ -421,13 +418,12 @@ class TestDataFramePlots(TestPlotBase):
         self._check_visible(axes[1].get_xticklabels(), visible=True)
         self._check_visible(axes[2].get_xticklabels(), visible=True)
         self._check_visible(axes[3].get_xticklabels(), visible=True)
-        # sharex=True, yticklabels should be visible for bottom plots              
+        # sharex=True, yticklabels should be visible for bottom plots
         axes = df.groupby('c').boxplot(sharex=True)
         self._check_visible(axes[0].get_xticklabels(), visible=False)
         self._check_visible(axes[1].get_xticklabels(), visible=False)
         self._check_visible(axes[2].get_xticklabels(), visible=True)
         self._check_visible(axes[3].get_xticklabels(), visible=True)
-
 
     @pytest.mark.slow
     def test_subplots_timeseries(self):
