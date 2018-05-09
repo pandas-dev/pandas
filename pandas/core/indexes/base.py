@@ -3082,12 +3082,17 @@ class Index(IndexOpsMixin, PandasObject):
         # use this, e.g. DatetimeIndex
         s = getattr(series, '_values', None)
         if isinstance(s, (ExtensionArray, Index)) and is_scalar(key):
+            # GH 20825
+            # Unify Index and ExtensionArray treatment
+            # First try to convert the key to a location
+            # If that fails, see if key is an integer, and
+            # try that
             try:
-                return s[key]
-            except (IndexError, ValueError):
-
-                # invalid type as an indexer
-                pass
+                iloc = self.get_loc(key)
+                return s[iloc]
+            except KeyError:
+                if is_integer(key):
+                    return s[key]
 
         s = com._values_from_object(series)
         k = com._values_from_object(key)
