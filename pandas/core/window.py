@@ -791,6 +791,7 @@ class _GroupByMixin(GroupByMixin):
 
         def f(x, name=name, *args):
             x = self._shallow_copy(x)
+
             if isinstance(name, compat.string_types):
                 return getattr(x, name)(*args, **kwargs)
 
