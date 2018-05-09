@@ -796,7 +796,6 @@ class _GroupByMixin(GroupByMixin):
 
             return x.apply(name, *args, **kwargs)
 
-
         return self._groupby.apply(f)
 
 

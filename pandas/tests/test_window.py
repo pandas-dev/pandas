@@ -115,10 +115,9 @@ class TestApi(Base):
     def test_skip_sum_object_raises(self):
         df = DataFrame({'A': range(5), 'B': range(5, 10), 'C': 'foo'})
         r = df.rolling(window=3)
-        expected = concat([r[['A', 'B']].sum(), df[['C']]], axis=1)
 
         with tm.assert_raises_regex(TypeError, 'cannot handle this type'):
-            result = r.sum()
+            r.sum()
 
     def test_agg(self):
         df = DataFrame({'A': range(5), 'B': range(0, 10, 2)})
