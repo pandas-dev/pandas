@@ -1328,6 +1328,7 @@ Groupby/Resample/Rolling
 - Bug in :func:`DataFrame.groupby` where transformations using ``np.all`` and ``np.any`` were raising a ``ValueError`` (:issue:`20653`)
 - Bug in :func:`DataFrame.resample` where ``ffill``, ``bfill``, ``pad``, ``backfill``, ``fillna``, ``interpolate``, and ``asfreq`` were ignoring ``loffset``. (:issue:`20744`)
 - Bug in :func:`DataFrame.groupby` when applying a function that has mixed data types and the user supplied function can fail on the grouping column (:issue:`20949`)
+- Bug in :func:`DataFrameGroupBy.rolling().apply() <pandas.core.window.Rolling.apply>` where operations performed against the associated :class:`DataFrameGroupBy` object could impact the inclusion of the grouped item(s) in the result (:issue:`14013`)
 
 Sparse
 ^^^^^^
