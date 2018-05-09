@@ -179,6 +179,18 @@ class TestDateRanges(TestData):
                              '2018-04-01 03:00:00+10:00',
                              '2018-04-01 04:00:00+10:00'], freq=None)
 
+    @pytest.mark.parametrize('start,end', [
+        ['20180101', '20180103'],
+        [datetime(2018, 1, 1), datetime(2018, 1, 3)],
+        [Timestamp('20180101'), Timestamp('20180103')],
+        [Timestamp('20180101', tz='US/Eastern'),
+         Timestamp('20180103', tz='US/Eastern')]])
+    def test_date_range_linspacing_tz(self, start, end):
+        # GH 20983
+        result = date_range(start, end, periods=3, tz='US/Eastern')
+        expected = date_range('20180101', periods=3, freq='D', tz='US/Eastern')
+        tm.assert_index_equal(result, expected)
+
     def test_date_range_businesshour(self):
         idx = DatetimeIndex(['2014-07-04 09:00', '2014-07-04 10:00',
                              '2014-07-04 11:00',
