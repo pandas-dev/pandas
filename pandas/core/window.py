@@ -837,11 +837,7 @@ class _Rolling(_Window):
         index, indexi = self._get_index(index=index)
         results = []
         for b in blocks:
-            try:
-                values = self._prep_values(b.values)
-            except TypeError:
-                results.append(b.values.copy())
-                continue
+            values = self._prep_values(b.values)
 
             if values.size == 0:
                 results.append(values.copy())
