@@ -447,6 +447,29 @@ class TestTake(object):
         expected[:, [2, 4]] = datetime(2007, 1, 1)
         tm.assert_almost_equal(result, expected)
 
+    def test_take_axis_0(self):
+        arr = np.arange(12).reshape(4, 3)
+        result = algos.take(arr, [0, -1])
+        expected = np.array([[0, 1, 2], [9, 10, 11]])
+        tm.assert_numpy_array_equal(result, expected)
+
+        # allow_fill=True
+        result = algos.take(arr, [0, -1], allow_fill=True, fill_value=0)
+        expected = np.array([[0, 1, 2], [0, 0, 0]])
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_take_axis_1(self):
+        arr = np.arange(12).reshape(4, 3)
+        result = algos.take(arr, [0, -1], axis=1)
+        expected = np.array([[0, 2], [3, 5], [6, 8], [9, 11]])
+        tm.assert_numpy_array_equal(result, expected)
+
+        # allow_fill=True
+        result = algos.take(arr, [0, -1], axis=1, allow_fill=True,
+                            fill_value=0)
+        expected = np.array([[0, 0], [3, 0], [6, 0], [9, 0]])
+        tm.assert_numpy_array_equal(result, expected)
+
 
 class TestExtensionTake(object):
     # The take method found in pd.api.extensions
