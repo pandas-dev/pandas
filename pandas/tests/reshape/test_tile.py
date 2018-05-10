@@ -4,6 +4,7 @@ import pytest
 import numpy as np
 from pandas.compat import zip
 
+import pandas as pd
 from pandas import (DataFrame, Series, isna, to_datetime, DatetimeIndex, Index,
                     Timestamp, Interval, IntervalIndex, Categorical,
                     cut, qcut, date_range, NaT, TimedeltaIndex)
@@ -342,6 +343,10 @@ class TestCut(object):
         values = Series(np.array([1, 3, 5, 7, 9]),
                         index=["a", "b", "c", "d", "e"])
         bins = [0, 2, 4, 6, 10, 10]
+        result = cut(values, bins, duplicates='drop')
+        expected = cut(values, pd.unique(bins))
+        tm.assert_series_equal(result, expected)
+
         pytest.raises(ValueError, cut, values, bins)
         pytest.raises(ValueError, cut, values, bins, duplicates='raise')
 
