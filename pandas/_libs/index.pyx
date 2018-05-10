@@ -8,7 +8,8 @@ from cpython.slice cimport PySlice_Check
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport ndarray, float64_t, int32_t, int64_t, uint8_t, uint64_t, intp_t
+from numpy cimport (ndarray, float64_t, int32_t,
+                    int64_t, uint8_t, uint64_t, intp_t)
 cnp.import_array()
 
 cdef extern from "numpy/arrayobject.h":
