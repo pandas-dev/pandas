@@ -5837,8 +5837,7 @@ class JoinUnit(object):
 
                 if getattr(self.block, 'is_datetimetz', False) or \
                         is_datetimetz(empty_dtype):
-                    missing_arr = np.full(np.prod(self.shape), fill_value)
-                    return DatetimeIndex(missing_arr, dtype=empty_dtype)
+                    pass
                 elif getattr(self.block, 'is_categorical', False):
                     pass
                 elif getattr(self.block, 'is_sparse', False):
