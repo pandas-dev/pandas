@@ -465,8 +465,12 @@ def _concat_datetime(to_concat, axis=0, typs=None):
         if _contains_datetime:
 
             if 'datetime' in typs:
-                new_values = np.concatenate([x.view(np.int64) for x in
-                                             to_concat], axis=axis)
+                to_concat = [np.array(x, copy=False).view(np.int64)
+                             for x in to_concat]
+                if axis == 1:
+                    to_concat = [np.atleast_2d(x) for x in to_concat]
+
+                new_values = np.concatenate(to_concat, axis=axis)
                 return new_values.view(_NS_DTYPE)
             else:
                 # when to_concat has different tz, len(typs) > 1.
