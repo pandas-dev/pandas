@@ -17,8 +17,8 @@ If you are brand new to pandas or open-source development, we recommend going
 through the `GitHub "issues" tab <https://github.com/pandas-dev/pandas/issues>`_
 to find issues that interest you. There are a number of issues listed under `Docs
 <https://github.com/pandas-dev/pandas/issues?labels=Docs&sort=updated&state=open>`_
-and `Difficulty Novice
-<https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+is%3Aissue+label%3A%22Difficulty+Novice%22>`_
+and `good first issue
+<https://github.com/pandas-dev/pandas/issues?labels=good+first+issue&sort=updated&state=open>`_
 where you could start out. Once you've found an interesting issue, you can
 return here to get your development environment setup.
 
