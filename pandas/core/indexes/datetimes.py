@@ -587,10 +587,13 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                     if end is not None:
                         end = end.tz_localize(tz).asm8
             else:
+                # Create a linearly spaced date_range in local time
+                start = start.tz_localize(tz)
+                end = end.tz_localize(tz)
                 index = tools.to_datetime(np.linspace(start.value,
-                                                      end.value, periods))
-                if tz is not None:
-                    index = index.tz_localize('UTC').tz_convert(tz)
+                                                      end.value, periods),
+                                          utc=True)
+                index = index.tz_convert(tz)
 
         if not left_closed and len(index) and index[0] == start:
             index = index[1:]
