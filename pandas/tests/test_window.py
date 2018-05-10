@@ -46,6 +46,27 @@ def win_types_special(request):
     return request.param
 
 
+# Issue 11704: Iteration over a Window
+
+@pytest.fixture
+def series():
+    return pd.Series([1, 2, 3, 4])
+
+@pytest.fixture
+def frame():
+    return pd.DataFrame({'a': [1, 2, 3, 4], 'b': [10, 20, 30, 40]})
+
+@pytest.mark.parametrize('which', [series(), frame()])
+def test_rolling_iterator(which):
+    with pytest.raises(NotImplementedError):
+        iter(which.rolling(2))
+
+@pytest.mark.parametrize('which', [series(), frame()])
+def test_expanding_iterator(which):
+    with pytest.raises(NotImplementedError):
+        iter(which.expanding())
+
+
 class Base(object):
 
     _nan_locs = np.arange(20, 40)
