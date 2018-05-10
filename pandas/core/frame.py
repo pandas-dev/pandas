@@ -4168,7 +4168,7 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        axis : {0 or 'index', 1 or 'columns'}
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             Determine if rows or columns which contain missing values are
             removed.
 
