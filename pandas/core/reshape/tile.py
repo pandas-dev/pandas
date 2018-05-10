@@ -89,7 +89,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     bins : numpy.ndarray or IntervalIndex.
         The computed or specified bins. Only returned when `retbins=True`.
         For scalar or sequence `bins`, this is an ndarray with the computed
-        bins. If set `duplicates=drop`, `bins` will drop non-unique bin.For 
+        bins. If set `duplicates=drop`, `bins` will drop non-unique bin. For
         an IntervalIndex `bins`, this is equal to `bins`.
 
     See Also
