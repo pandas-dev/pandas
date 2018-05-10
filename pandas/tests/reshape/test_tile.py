@@ -341,13 +341,12 @@ class TestCut(object):
         # issue 20947
         values = Series(np.array([1, 3, 5, 7, 9]),
                 index=["a", "b", "c", "d", "e"])
-        pytest.raises(ValueError, cut, values, [0, 2, 4, 6, 10, 10])
-        pytest.raises(ValueError, cut, values, [0, 2, 4, 6, 10, 10],
-                duplicates='raise')
+        bins = [0, 2, 4, 6, 10, 10]
+        pytest.raises(ValueError, cut, values, bins)
+        pytest.raises(ValueError, cut, values, bins, duplicates='raise')
 
         # invalid
-        pytest.raises(ValueError, cut, values, [0, 2, 4, 6, 10, 10],
-                duplicates='foo')
+        pytest.raises(ValueError, cut, values, bins, duplicates='foo')
 
     def test_qcut_duplicates_bin(self):
         # GH 7751
