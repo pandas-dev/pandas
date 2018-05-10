@@ -525,8 +525,8 @@ Other Enhancements
   library. (:issue:`20564`)
 - Added new writer for exporting Stata dta files in version 117, ``StataWriter117``.  This format supports exporting strings with lengths up to 2,000,000 characters (:issue:`16450`)
 - :func:`to_hdf` and :func:`read_hdf` now accept an ``errors`` keyword argument to control encoding error handling (:issue:`20835`)
-- :func:`date_range` now returns a linearly spaced ``DatetimeIndex`` if ``start``, ``stop``, and ``periods`` are specified, but ``freq`` is not. (:issue:`20808`)
 - :func:`cut` has gained the ``duplicates='raise'|'drop'`` option to control whether to raise on duplicated edges (:issue:`20947`)
+- :func:`date_range` now returns a linearly spaced ``DatetimeIndex`` if ``start``, ``stop``, and ``periods`` are specified, but ``freq`` is not. (:issue:`20808`, :issue:`20983`)
 
 .. _whatsnew_0230.api_breaking:
 
@@ -1006,6 +1006,7 @@ Deprecations
 - Setting ``PeriodIndex.freq`` (which was not guaranteed to work correctly) is deprecated. Use :meth:`PeriodIndex.asfreq` instead (:issue:`20678`)
 - ``Index.get_duplicates()`` is deprecated and will be removed in a future version (:issue:`20239`)
 - The previous default behavior of negative indices in ``Categorical.take`` is deprecated. In a future version it will change from meaning missing values to meaning positional indices from the right. The future behavior is consistent with :meth:`Series.take` (:issue:`20664`).
+- Passing multiple axes to the ``axis`` parameter in :func:`DataFrame.dropna` has been deprecated and will be removed in a future version (:issue:`20987`)
 
 
 .. _whatsnew_0230.prior_deprecations:
