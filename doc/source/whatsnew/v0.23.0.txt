@@ -555,8 +555,8 @@ If installed, we now require:
 
 .. _whatsnew_0230.api_breaking.dict_insertion_order:
 
-Instantation from dicts preserves dict insertion order for python 3.6+
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Instantiation from dicts preserves dict insertion order for python 3.6+
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Until Python 3.6, dicts in Python had no formally defined ordering. For Python
 version 3.6 and later, dicts are ordered by insertion order, see
