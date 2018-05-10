@@ -1005,7 +1005,7 @@ Deprecations
 - Setting ``PeriodIndex.freq`` (which was not guaranteed to work correctly) is deprecated. Use :meth:`PeriodIndex.asfreq` instead (:issue:`20678`)
 - ``Index.get_duplicates()`` is deprecated and will be removed in a future version (:issue:`20239`)
 - The previous default behavior of negative indices in ``Categorical.take`` is deprecated. In a future version it will change from meaning missing values to meaning positional indices from the right. The future behavior is consistent with :meth:`Series.take` (:issue:`20664`).
-- Passing multiple axes to the ``axis`` parameter in :func: `DataFrame.dropna` has been deprecated and will not be supported in a future version (:issue:`20987`)
+- Passing multiple axes to the ``axis`` parameter in :func:`DataFrame.dropna` has been deprecated and will be removed in a future version (:issue:`20987`)
 
 
 .. _whatsnew_0230.prior_deprecations:
