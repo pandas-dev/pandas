@@ -587,7 +587,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                     if end is not None:
                         end = end.tz_localize(tz).asm8
             else:
-                # Create a linearly spaced date_range.
+                # Create a linearly spaced date_range in local time
                 start = start.tz_localize(tz)
                 end = end.tz_localize(tz)
                 index = tools.to_datetime(np.linspace(start.value,
