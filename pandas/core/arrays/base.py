@@ -195,13 +195,13 @@ class ExtensionArray(object):
         )
 
     def __len__(self):
+        # type: () -> int
         """Length of this array
 
         Returns
         -------
         length : int
         """
-        # type: () -> int
         raise AbstractMethodError(self)
 
     def __iter__(self):

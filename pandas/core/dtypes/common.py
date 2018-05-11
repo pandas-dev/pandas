@@ -5,17 +5,19 @@ from pandas.compat import (string_types, text_type, binary_type,
                            PY3, PY36)
 from pandas._libs import algos, lib
 from pandas._libs.tslibs import conversion
-from .dtypes import (CategoricalDtype, CategoricalDtypeType,
-                     DatetimeTZDtype, DatetimeTZDtypeType,
-                     PeriodDtype, PeriodDtypeType,
-                     IntervalDtype, IntervalDtypeType,
-                     ExtensionDtype, PandasExtensionDtype)
-from .generic import (ABCCategorical, ABCPeriodIndex,
-                      ABCDatetimeIndex, ABCSeries,
-                      ABCSparseArray, ABCSparseSeries, ABCCategoricalIndex,
-                      ABCIndexClass, ABCDateOffset)
-from .inference import is_string_like, is_list_like
-from .inference import *  # noqa
+from pandas.core.dtypes.dtypes import (
+    CategoricalDtype, CategoricalDtypeType, DatetimeTZDtype,
+    DatetimeTZDtypeType, PeriodDtype, PeriodDtypeType, IntervalDtype,
+    IntervalDtypeType, ExtensionDtype, PandasExtensionDtype)
+from pandas.core.dtypes.generic import (
+    ABCCategorical, ABCPeriodIndex, ABCDatetimeIndex, ABCSeries,
+    ABCSparseArray, ABCSparseSeries, ABCCategoricalIndex, ABCIndexClass,
+    ABCDateOffset)
+from pandas.core.dtypes.inference import (
+    is_bool, is_integer, is_number, is_hashable, is_iterator, is_float,
+    is_dict_like, is_scalar, is_string_like, is_list_like, is_number,
+    is_file_like, is_re, is_re_compilable, is_sequence, is_nested_list_like,
+    is_named_tuple, is_array_like, is_decimal, is_complex, is_interval)
 
 
 _POSSIBLY_CAST_DTYPES = set([np.dtype(t).name
