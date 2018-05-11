@@ -1333,9 +1333,20 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
             seen.object_ = 1
             break
 
-    # we try to coerce datetime w/tz but must all have the same tz
+    # we try to coerce datetime w/tz but must all have the same tz, ie if we have UTC and PST tzinfo then this will not
+    # work
     if seen.datetimetz_:
-        if len({getattr(val, 'tzinfo', None) for val in objects}) == 1:
+        unique_types = set()
+        from dateutil import tz
+        for val in objects:
+            item = getattr(val, 'tzinfo', type(val).__name__)
+            # as tzoffset is not hashable, we use __repr__ in our set
+            if isinstance(item, tz.tzoffset):
+                unique_types.add(item.__repr__())
+            else:
+                unique_types.add(item)
+
+        if len(unique_types) == 1:
             from pandas import DatetimeIndex
             return DatetimeIndex(objects)
         seen.object_ = 1

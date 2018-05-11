@@ -19,6 +19,7 @@ from pandas.util.testing import (assert_series_equal,
                                  assert_frame_equal)
 import pandas.util.testing as tm
 from pandas.tests.frame.common import TestData
+from dateutil.parser import parse
 
 
 class TestDataFrameApply(TestData):
@@ -371,6 +372,7 @@ class TestDataFrameApply(TestData):
 
         def f(r):
             return r['market']
+
         expected = positions.apply(f, axis=1)
 
         positions = DataFrame([[datetime(2013, 1, 1), 'ABC0', 50],
@@ -553,6 +555,26 @@ class TestDataFrameApply(TestData):
         df = DataFrame({'dt': ['a', 'b', 'c', 'a']}, dtype='category')
         result = df.apply(lambda x: x)
         assert_frame_equal(result, df)
+
+    @pytest.mark.parametrize('time_in', ['22:05 UTC+1', '22:05'])
+    @pytest.mark.parametrize("test_input", [
+        'string text',
+        parse('22:05'),
+        parse('12:13 UTC+1'),
+        parse('15:56 UTC+2'),
+        42,
+        3.14159, ])
+    def test_gh_19359(self, time_in, test_input):
+        def transform(x):
+            return Series({'time': parse(time_in),
+                           'title': test_input})
+
+        applied = DataFrame(['stub']).apply(transform)
+        assert applied is not None
+        answer = Series(data=[parse(time_in), test_input],
+                        index=['time', 'title'])
+        answer.name = 0
+        tm.assert_series_equal(answer, applied[0])
 
 
 class TestInferOutputShape(object):
@@ -818,11 +840,10 @@ def zip_frames(*frames):
 
 
 class TestDataFrameAggregate(TestData):
+    _multiprocess_can_split_ = True
 
     def test_agg_transform(self):
-
         with np.errstate(all='ignore'):
-
             f_sqrt = np.sqrt(self.frame)
             f_abs = np.abs(self.frame)
 
@@ -863,16 +884,19 @@ class TestDataFrameAggregate(TestData):
         # cannot both transform and agg
         def f():
             self.frame.transform(['max', 'min'])
+
         pytest.raises(ValueError, f)
 
         def f():
             with np.errstate(all='ignore'):
                 self.frame.agg(['max', 'sqrt'])
+
         pytest.raises(ValueError, f)
 
         def f():
             with np.errstate(all='ignore'):
                 self.frame.transform(['max', 'sqrt'])
+
         pytest.raises(ValueError, f)
 
         df = pd.DataFrame({'A': range(5), 'B': 5})
@@ -909,7 +933,6 @@ class TestDataFrameAggregate(TestData):
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
     def test_agg_dict_nested_renaming_depr(self):
-
         df = pd.DataFrame({'A': range(5), 'B': 5})
 
         # nested renaming
@@ -952,7 +975,6 @@ class TestDataFrameAggregate(TestData):
         assert_frame_equal(result.reindex_like(expected), expected)
 
     def test_nuiscance_columns(self):
-
         # GH 15015
         df = DataFrame({'A': [1, 2, 3],
                         'B': [1., 2., 3.],
@@ -980,7 +1002,6 @@ class TestDataFrameAggregate(TestData):
         assert_frame_equal(result, expected)
 
     def test_non_callable_aggregates(self):
-
         # GH 16405
         # 'size' is a property of frame/series
         # validate that this is working
