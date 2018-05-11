@@ -24,7 +24,7 @@ import numpy as np
 
 
 def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
-        include_lowest=False):
+        include_lowest=False, duplicates='raise'):
     """
     Bin values into discrete intervals.
 
@@ -65,6 +65,10 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
         The precision at which to store and display the bins labels.
     include_lowest : bool, default False
         Whether the first interval should be left-inclusive or not.
+    duplicates : {default 'raise', 'drop'}, optional
+        If bin edges are not unique, raise ValueError or drop non-uniques.
+
+        .. versionadded:: 0.23.0
 
     Returns
     -------
@@ -85,7 +89,8 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     bins : numpy.ndarray or IntervalIndex.
         The computed or specified bins. Only returned when `retbins=True`.
         For scalar or sequence `bins`, this is an ndarray with the computed
-        bins. For an IntervalIndex `bins`, this is equal to `bins`.
+        bins. If set `duplicates=drop`, `bins` will drop non-unique bin. For
+        an IntervalIndex `bins`, this is equal to `bins`.
 
     See Also
     --------
@@ -144,6 +149,32 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     dtype: category
     Categories (3, interval[float64]): [(1.992, 4.667] < (4.667, ...
 
+    Passing a Series as an input returns a Series with mapping value.
+    It is used to map numerically to intervals based on bins.
+
+    >>> s = pd.Series(np.array([2, 4, 6, 8, 10]),
+    ...               index=['a', 'b', 'c', 'd', 'e'])
+    >>> pd.cut(s, [0, 2, 4, 6, 8, 10], labels=False, retbins=True, right=False)
+    ... # doctest: +ELLIPSIS
+    (a    0.0
+     b    1.0
+     c    2.0
+     d    3.0
+     e    4.0
+     dtype: float64, array([0, 2, 4, 6, 8]))
+
+    Use `drop` optional when bins is not unique
+
+    >>> pd.cut(s, [0, 2, 4, 6, 10, 10], labels=False, retbins=True,
+    ...    right=False, duplicates='drop')
+    ... # doctest: +ELLIPSIS
+    (a    0.0
+     b    1.0
+     c    2.0
+     d    3.0
+     e    3.0
+     dtype: float64, array([0, 2, 4, 6, 8]))
+
     Passing an IntervalIndex for `bins` results in those categories exactly.
     Notice that values not covered by the IntervalIndex are set to NaN. 0
     is to the left of the first bin (which is closed on the right), and 1.5
@@ -199,7 +230,8 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
     fac, bins = _bins_to_cuts(x, bins, right=right, labels=labels,
                               precision=precision,
                               include_lowest=include_lowest,
-                              dtype=dtype)
+                              dtype=dtype,
+                              duplicates=duplicates)
 
     return _postprocess_for_cut(fac, bins, retbins, x_is_series,
                                 series_index, name)

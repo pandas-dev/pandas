@@ -1448,7 +1448,7 @@ def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis=0, mask_info=None):
     return func
 
 
-def take(arr, indices, allow_fill=False, fill_value=None):
+def take(arr, indices, axis=0, allow_fill=False, fill_value=None):
     """
     Take elements from an array.
 
@@ -1461,6 +1461,8 @@ def take(arr, indices, allow_fill=False, fill_value=None):
         to an ndarray.
     indices : sequence of integers
         Indices to be taken.
+    axis : int, default 0
+        The axis over which to select values.
     allow_fill : bool, default False
         How to handle negative values in `indices`.
 
@@ -1475,6 +1477,9 @@ def take(arr, indices, allow_fill=False, fill_value=None):
         Fill value to use for NA-indices when `allow_fill` is True.
         This may be ``None``, in which case the default NA value for
         the type (``self.dtype.na_value``) is used.
+
+        For multi-dimensional `arr`, each *element* is filled with
+        `fill_value`.
 
     Returns
     -------
@@ -1529,10 +1534,11 @@ def take(arr, indices, allow_fill=False, fill_value=None):
     if allow_fill:
         # Pandas style, -1 means NA
         validate_indices(indices, len(arr))
-        result = take_1d(arr, indices, allow_fill=True, fill_value=fill_value)
+        result = take_1d(arr, indices, axis=axis, allow_fill=True,
+                         fill_value=fill_value)
     else:
         # NumPy style
-        result = arr.take(indices)
+        result = arr.take(indices, axis=axis)
     return result
 
 
@@ -1585,6 +1591,8 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
 
     if is_sparse(arr):
         arr = arr.get_values()
+    elif isinstance(arr, (ABCIndexClass, ABCSeries)):
+        arr = arr.values
 
     arr = np.asarray(arr)
 

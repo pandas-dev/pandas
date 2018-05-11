@@ -313,14 +313,14 @@ def test_cython_median():
     tm.assert_frame_equal(rs, xp)
 
 
-def test_median_empty_bins():
+def test_median_empty_bins(observed):
     df = pd.DataFrame(np.random.randint(0, 44, 500))
 
     grps = range(0, 55, 5)
     bins = pd.cut(df[0], grps)
 
-    result = df.groupby(bins).median()
-    expected = df.groupby(bins).agg(lambda x: x.median())
+    result = df.groupby(bins, observed=observed).median()
+    expected = df.groupby(bins, observed=observed).agg(lambda x: x.median())
     tm.assert_frame_equal(result, expected)
 
 

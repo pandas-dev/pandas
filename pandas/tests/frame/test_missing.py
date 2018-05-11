@@ -174,8 +174,12 @@ class TestDataFrameMissingData(TestData):
                         [np.nan, np.nan, np.nan, np.nan],
                         [7, np.nan, 8, 9]])
         cp = df.copy()
-        result = df.dropna(how='all', axis=[0, 1])
-        result2 = df.dropna(how='all', axis=(0, 1))
+
+        # GH20987
+        with tm.assert_produces_warning(FutureWarning):
+            result = df.dropna(how='all', axis=[0, 1])
+        with tm.assert_produces_warning(FutureWarning):
+            result2 = df.dropna(how='all', axis=(0, 1))
         expected = df.dropna(how='all').dropna(how='all', axis=1)
 
         assert_frame_equal(result, expected)
@@ -183,7 +187,8 @@ class TestDataFrameMissingData(TestData):
         assert_frame_equal(df, cp)
 
         inp = df.copy()
-        inp.dropna(how='all', axis=(0, 1), inplace=True)
+        with tm.assert_produces_warning(FutureWarning):
+            inp.dropna(how='all', axis=(0, 1), inplace=True)
         assert_frame_equal(inp, expected)
 
     def test_dropna_tz_aware_datetime(self):

@@ -43,7 +43,6 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_datetimetz,
     is_datetime64_any_dtype,
-    is_datetime64tz_dtype,
     is_bool_dtype,
     is_integer_dtype,
     is_float_dtype,
@@ -52,7 +51,6 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     needs_i8_conversion,
     _get_dtype_from_object,
-    _ensure_float,
     _ensure_float64,
     _ensure_int64,
     _ensure_platform_int,
@@ -1769,27 +1767,28 @@ class DataFrame(NDFrame):
 
     def to_stata(self, fname, convert_dates=None, write_index=True,
                  encoding="latin-1", byteorder=None, time_stamp=None,
-                 data_label=None, variable_labels=None):
+                 data_label=None, variable_labels=None, version=114,
+                 convert_strl=None):
         """
-        A class for writing Stata binary dta files from array-like objects
+        Export Stata binary dta files.
 
         Parameters
         ----------
         fname : str or buffer
-            String path of file-like object
+            String path of file-like object.
         convert_dates : dict
             Dictionary mapping columns containing datetime types to stata
             internal format to use when writing the dates. Options are 'tc',
             'td', 'tm', 'tw', 'th', 'tq', 'ty'. Column can be either an integer
             or a name. Datetime columns that do not have a conversion type
             specified will be converted to 'tc'. Raises NotImplementedError if
-            a datetime column has timezone information
+            a datetime column has timezone information.
         write_index : bool
             Write the index to Stata dataset.
         encoding : str
-            Default is latin-1. Unicode is not supported
+            Default is latin-1. Unicode is not supported.
         byteorder : str
-            Can be ">", "<", "little", or "big". default is `sys.byteorder`
+            Can be ">", "<", "little", or "big". default is `sys.byteorder`.
         time_stamp : datetime
             A datetime to use as file creation date.  Default is the current
             time.
@@ -1800,6 +1799,23 @@ class DataFrame(NDFrame):
             values. Each label must be 80 characters or smaller.
 
             .. versionadded:: 0.19.0
+
+        version : {114, 117}
+            Version to use in the output dta file.  Version 114 can be used
+            read by Stata 10 and later.  Version 117 can be read by Stata 13
+            or later. Version 114 limits string variables to 244 characters or
+            fewer while 117 allows strings with lengths up to 2,000,000
+            characters.
+
+            .. versionadded:: 0.23.0
+
+        convert_strl : list, optional
+            List of column names to convert to string columns to Stata StrL
+            format. Only available if version is 117.  Storing strings in the
+            StrL format can produce smaller dta files if strings have more than
+            8 characters and values are repeated.
+
+            .. versionadded:: 0.23.0
 
         Raises
         ------
@@ -1813,6 +1829,12 @@ class DataFrame(NDFrame):
             * Categorical label contains more than 32,000 characters
 
             .. versionadded:: 0.19.0
+
+        See Also
+        --------
+        pandas.read_stata : Import Stata data files
+        pandas.io.stata.StataWriter : low-level writer for Stata data files
+        pandas.io.stata.StataWriter117 : low-level writer for version 117 files
 
         Examples
         --------
@@ -1832,12 +1854,23 @@ class DataFrame(NDFrame):
         >>> writer = StataWriter('./date_data_file.dta', data, {2 : 'tw'})
         >>> writer.write_file()
         """
-        from pandas.io.stata import StataWriter
-        writer = StataWriter(fname, self, convert_dates=convert_dates,
+        kwargs = {}
+        if version not in (114, 117):
+            raise ValueError('Only formats 114 and 117 supported.')
+        if version == 114:
+            if convert_strl is not None:
+                raise ValueError('strl support is only available when using '
+                                 'format 117')
+            from pandas.io.stata import StataWriter as statawriter
+        else:
+            from pandas.io.stata import StataWriter117 as statawriter
+            kwargs['convert_strl'] = convert_strl
+
+        writer = statawriter(fname, self, convert_dates=convert_dates,
                              encoding=encoding, byteorder=byteorder,
                              time_stamp=time_stamp, data_label=data_label,
                              write_index=write_index,
-                             variable_labels=variable_labels)
+                             variable_labels=variable_labels, **kwargs)
         writer.write_file()
 
     def to_feather(self, fname):
@@ -1892,7 +1925,7 @@ class DataFrame(NDFrame):
         Notes
         -----
         This function requires either the `fastparquet
-        <https://pypi.python.org/pypi/fastparquet>`_ or `pyarrow
+        <https://pypi.org/project/fastparquet>`_ or `pyarrow
         <https://arrow.apache.org/docs/python/>`_ library.
 
         Examples
@@ -2606,7 +2639,7 @@ class DataFrame(NDFrame):
                 return self.loc[:, lab_slice]
             else:
                 if isinstance(label, Index):
-                    return self._take(i, axis=1, convert=True)
+                    return self._take(i, axis=1)
 
                 index_len = len(self.index)
 
@@ -2685,10 +2718,10 @@ class DataFrame(NDFrame):
             # be reindexed to match DataFrame rows
             key = check_bool_indexer(self.index, key)
             indexer = key.nonzero()[0]
-            return self._take(indexer, axis=0, convert=False)
+            return self._take(indexer, axis=0)
         else:
             indexer = self.loc._convert_to_indexer(key, axis=1)
-            return self._take(indexer, axis=1, convert=True)
+            return self._take(indexer, axis=1)
 
     def _getitem_multilevel(self, key):
         loc = self.columns.get_loc(key)
@@ -3041,15 +3074,15 @@ class DataFrame(NDFrame):
         include_these = Series(not bool(include), index=self.columns)
         exclude_these = Series(not bool(exclude), index=self.columns)
 
-        def is_dtype_instance_mapper(column, dtype):
-            return column, functools.partial(issubclass, dtype.type)
+        def is_dtype_instance_mapper(idx, dtype):
+            return idx, functools.partial(issubclass, dtype.type)
 
-        for column, f in itertools.starmap(is_dtype_instance_mapper,
-                                           self.dtypes.iteritems()):
+        for idx, f in itertools.starmap(is_dtype_instance_mapper,
+                                        enumerate(self.dtypes)):
             if include:  # checks for the case of empty include or exclude
-                include_these[column] = any(map(f, include))
+                include_these.iloc[idx] = any(map(f, include))
             if exclude:
-                exclude_these[column] = not any(map(f, exclude))
+                exclude_these.iloc[idx] = not any(map(f, exclude))
 
         dtype_indexer = include_these & exclude_these
         return self.loc[com._get_info_slice(self, dtype_indexer)]
@@ -3755,11 +3788,11 @@ class DataFrame(NDFrame):
 
     @Appender(_shared_docs['replace'] % _shared_doc_kwargs)
     def replace(self, to_replace=None, value=None, inplace=False, limit=None,
-                regex=False, method='pad', axis=None):
+                regex=False, method='pad'):
         return super(DataFrame, self).replace(to_replace=to_replace,
                                               value=value, inplace=inplace,
                                               limit=limit, regex=regex,
-                                              method=method, axis=axis)
+                                              method=method)
 
     @Appender(_shared_docs['shift'] % _shared_doc_kwargs)
     def shift(self, periods=1, freq=None, axis=0):
@@ -4135,14 +4168,15 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        axis : {0 or 'index', 1 or 'columns'}, or tuple/list thereof
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             Determine if rows or columns which contain missing values are
             removed.
 
             * 0, or 'index' : Drop rows which contain missing values.
             * 1, or 'columns' : Drop columns which contain missing value.
 
-            Pass tuple or list to drop on multiple axes.
+            .. deprecated:: 0.23.0: Pass tuple or list to drop on multiple
+            axes.
         how : {'any', 'all'}, default 'any'
             Determine if row or column is removed from DataFrame, when we have
             at least one NA or all NA.
@@ -4226,6 +4260,11 @@ class DataFrame(NDFrame):
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if isinstance(axis, (tuple, list)):
+            # GH20987
+            msg = ("supplying multiple axes to axis is deprecated and "
+                   "will be removed in a future version.")
+            warnings.warn(msg, FutureWarning, stacklevel=2)
+
             result = self
             for ax in axis:
                 result = result.dropna(how=how, thresh=thresh, subset=subset,
@@ -4257,7 +4296,7 @@ class DataFrame(NDFrame):
                 else:
                     raise TypeError('must specify how or thresh')
 
-            result = self._take(mask.nonzero()[0], axis=axis, convert=False)
+            result = self._take(mask.nonzero()[0], axis=axis)
 
         if inplace:
             self._update_inplace(result)
@@ -4852,20 +4891,7 @@ class DataFrame(NDFrame):
             else:
                 arr = func(series, otherSeries)
 
-            if do_fill:
-                arr = _ensure_float(arr)
-                arr[this_mask & other_mask] = np.nan
-
-            # try to downcast back to the original dtype
-            if needs_i8_conversion_i:
-                # ToDo: This conversion should be handled in
-                # _maybe_cast_to_datetime but the change affects lot...
-                if is_datetime64tz_dtype(new_dtype):
-                    arr = DatetimeIndex._simple_new(arr, tz=new_dtype.tz)
-                else:
-                    arr = maybe_cast_to_datetime(arr, new_dtype)
-            else:
-                arr = maybe_downcast_to_dtype(arr, this_dtype)
+            arr = maybe_downcast_to_dtype(arr, this_dtype)
 
             result[col] = arr
 
@@ -6038,7 +6064,8 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Merging / joining methods
 
-    def append(self, other, ignore_index=False, verify_integrity=False):
+    def append(self, other, ignore_index=False,
+               verify_integrity=False, sort=None):
         """
         Append rows of `other` to the end of this frame, returning a new
         object. Columns not in this frame are added as new columns.
@@ -6051,6 +6078,14 @@ class DataFrame(NDFrame):
             If True, do not use the index labels.
         verify_integrity : boolean, default False
             If True, raise ValueError on creating index with duplicates.
+        sort : boolean, default None
+            Sort columns if the columns of `self` and `other` are not aligned.
+            The default sorting is deprecated and will change to not-sorting
+            in a future version of pandas. Explicitly pass ``sort=True`` to
+            silence the warning and sort. Explicitly pass ``sort=False`` to
+            silence the warning and not sort.
+
+            .. versionadded:: 0.23.0
 
         Returns
         -------
@@ -6162,7 +6197,8 @@ class DataFrame(NDFrame):
         else:
             to_concat = [self, other]
         return concat(to_concat, ignore_index=ignore_index,
-                      verify_integrity=verify_integrity)
+                      verify_integrity=verify_integrity,
+                      sort=sort)
 
     def join(self, other, on=None, how='left', lsuffix='', rsuffix='',
              sort=False):
@@ -7481,7 +7517,7 @@ def _list_of_series_to_arrays(data, columns, coerce_float=False, dtype=None):
     from pandas.core.index import _get_objs_combined_axis
 
     if columns is None:
-        columns = _get_objs_combined_axis(data)
+        columns = _get_objs_combined_axis(data, sort=False)
 
     indexer_cache = {}
 

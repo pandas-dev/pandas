@@ -37,7 +37,6 @@ from pandas.core.base import PandasObject, SelectionMixin
 from pandas.core.index import (Index, MultiIndex, _ensure_index,
                                InvalidIndexError, RangeIndex)
 import pandas.core.indexing as indexing
-from pandas.core.indexing import maybe_convert_indices
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.period import PeriodIndex, Period
 from pandas.core.internals import BlockManager
@@ -1946,6 +1945,10 @@ class NDFrame(PandasObject, SelectionMixin):
             If applying compression use the fletcher32 checksum.
         dropna : bool, default False
             If true, ALL nan rows will not be written to store.
+        errors : str, default 'strict'
+            Specifies how encoding and decoding errors are to be handled.
+            See the errors argument for :func:`open` for a full list
+            of options.
 
         See Also
         --------
@@ -2506,8 +2509,7 @@ class NDFrame(PandasObject, SelectionMixin):
         if ax.is_unique:
             lower = self._get_item_cache(ax[item])
         else:
-            lower = self._take(item, axis=self._info_axis_number,
-                               convert=True)
+            lower = self._take(item, axis=self._info_axis_number)
         return lower
 
     def _box_item_values(self, key, values):
@@ -2761,11 +2763,6 @@ class NDFrame(PandasObject, SelectionMixin):
         axis : int, default 0
             The axis on which to select elements. "0" means that we are
             selecting rows, "1" means that we are selecting columns, etc.
-        convert : bool, default True
-            Whether to convert negative indices into positive ones.
-            For example, ``-1`` would map to the ``len(axis) - 1``.
-            The conversions are similar to the behavior of indexing a
-            regular Python list.
         is_copy : bool, default True
             Whether to return a copy of the original object or not.
 
@@ -2781,11 +2778,8 @@ class NDFrame(PandasObject, SelectionMixin):
         """
 
     @Appender(_shared_docs['_take'])
-    def _take(self, indices, axis=0, convert=True, is_copy=True):
+    def _take(self, indices, axis=0, is_copy=True):
         self._consolidate_inplace()
-
-        if convert:
-            indices = maybe_convert_indices(indices, len(self._get_axis(axis)))
 
         new_data = self._data.take(indices,
                                    axis=self._get_block_manager_axis(axis),
@@ -2889,11 +2883,9 @@ class NDFrame(PandasObject, SelectionMixin):
             msg = ("The 'convert' parameter is deprecated "
                    "and will be removed in a future version.")
             warnings.warn(msg, FutureWarning, stacklevel=2)
-        else:
-            convert = True
 
-        convert = nv.validate_take(tuple(), kwargs)
-        return self._take(indices, axis=axis, convert=convert, is_copy=is_copy)
+        nv.validate_take(tuple(), kwargs)
+        return self._take(indices, axis=axis, is_copy=is_copy)
 
     def xs(self, key, axis=0, level=None, drop_level=True):
         """
@@ -2994,9 +2986,9 @@ class NDFrame(PandasObject, SelectionMixin):
             if isinstance(loc, np.ndarray):
                 if loc.dtype == np.bool_:
                     inds, = loc.nonzero()
-                    return self._take(inds, axis=axis, convert=False)
+                    return self._take(inds, axis=axis)
                 else:
-                    return self._take(loc, axis=axis, convert=True)
+                    return self._take(loc, axis=axis)
 
             if not is_scalar(loc):
                 new_index = self.index[loc]
@@ -4375,7 +4367,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 name in self._accessors):
             return object.__getattribute__(self, name)
         else:
-            if name in self._info_axis:
+            if self._info_axis._can_hold_identifiers_and_holds_name(name):
                 return self[name]
             return object.__getattribute__(self, name)
 
@@ -5539,9 +5531,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
             .. versionchanged:: 0.23.0
                 Added to DataFrame.
-        axis : None
-            .. deprecated:: 0.13.0
-               Has no effect and will be removed.
 
         See Also
         --------
@@ -5749,15 +5738,11 @@ class NDFrame(PandasObject, SelectionMixin):
 
     @Appender(_shared_docs['replace'] % _shared_doc_kwargs)
     def replace(self, to_replace=None, value=None, inplace=False, limit=None,
-                regex=False, method='pad', axis=None):
+                regex=False, method='pad'):
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if not is_bool(regex) and to_replace is not None:
             raise AssertionError("'to_replace' must be 'None' if 'regex' is "
                                  "not a bool")
-        if axis is not None:
-            warnings.warn('the "axis" argument is deprecated '
-                          'and will be removed in'
-                          'v0.13; this argument has no effect')
 
         self._consolidate_inplace()
 
@@ -6599,7 +6584,7 @@ class NDFrame(PandasObject, SelectionMixin):
                                          axis=axis, inplace=inplace)
 
     def groupby(self, by=None, axis=0, level=None, as_index=True, sort=True,
-                group_keys=True, squeeze=False, **kwargs):
+                group_keys=True, squeeze=False, observed=False, **kwargs):
         """
         Group series using mapper (dict or key function, apply given function
         to group, return result as series) or by a series of columns.
@@ -6632,6 +6617,12 @@ class NDFrame(PandasObject, SelectionMixin):
         squeeze : boolean, default False
             reduce the dimensionality of the return type if possible,
             otherwise return a consistent type
+        observed : boolean, default False
+            This only applies if any of the groupers are Categoricals
+            If True: only show observed values for categorical groupers.
+            If False: show all values for categorical groupers.
+
+            .. versionadded:: 0.23.0
 
         Returns
         -------
@@ -6665,7 +6656,7 @@ class NDFrame(PandasObject, SelectionMixin):
         axis = self._get_axis_number(axis)
         return groupby(self, by=by, axis=axis, level=level, as_index=as_index,
                        sort=sort, group_keys=group_keys, squeeze=squeeze,
-                       **kwargs)
+                       observed=observed, **kwargs)
 
     def asfreq(self, freq, method=None, how=None, normalize=False,
                fill_value=None):
@@ -6770,6 +6761,11 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         Select values at particular time of day (e.g. 9:30AM).
 
+        Raises
+        ------
+        TypeError
+            If the index is not  a :class:`DatetimeIndex`
+
         Parameters
         ----------
         time : datetime.time or string
@@ -6777,10 +6773,34 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         values_at_time : type of caller
+
+        Examples
+        --------
+        >>> i = pd.date_range('2018-04-09', periods=4, freq='12H')
+        >>> ts = pd.DataFrame({'A': [1,2,3,4]}, index=i)
+        >>> ts
+                             A
+        2018-04-09 00:00:00  1
+        2018-04-09 12:00:00  2
+        2018-04-10 00:00:00  3
+        2018-04-10 12:00:00  4
+
+        >>> ts.at_time('12:00')
+                             A
+        2018-04-09 12:00:00  2
+        2018-04-10 12:00:00  4
+
+        See Also
+        --------
+        between_time : Select values between particular times of the day
+        first : Select initial periods of time series based on a date offset
+        last : Select final periods of time series based on a date offset
+        DatetimeIndex.indexer_at_time : Get just the index locations for
+            values at particular time of the day
         """
         try:
             indexer = self.index.indexer_at_time(time, asof=asof)
-            return self._take(indexer, convert=False)
+            return self._take(indexer)
         except AttributeError:
             raise TypeError('Index must be DatetimeIndex')
 
@@ -6788,6 +6808,14 @@ class NDFrame(PandasObject, SelectionMixin):
                      include_end=True):
         """
         Select values between particular times of the day (e.g., 9:00-9:30 AM).
+
+        By setting ``start_time`` to be later than ``end_time``,
+        you can get the times that are *not* between the two times.
+
+        Raises
+        ------
+        TypeError
+            If the index is not  a :class:`DatetimeIndex`
 
         Parameters
         ----------
@@ -6799,12 +6827,44 @@ class NDFrame(PandasObject, SelectionMixin):
         Returns
         -------
         values_between_time : type of caller
+
+        Examples
+        --------
+        >>> i = pd.date_range('2018-04-09', periods=4, freq='1D20min')
+        >>> ts = pd.DataFrame({'A': [1,2,3,4]}, index=i)
+        >>> ts
+                             A
+        2018-04-09 00:00:00  1
+        2018-04-10 00:20:00  2
+        2018-04-11 00:40:00  3
+        2018-04-12 01:00:00  4
+
+        >>> ts.between_time('0:15', '0:45')
+                             A
+        2018-04-10 00:20:00  2
+        2018-04-11 00:40:00  3
+
+        You get the times that are *not* between two times by setting
+        ``start_time`` later than ``end_time``:
+
+        >>> ts.between_time('0:45', '0:15')
+                             A
+        2018-04-09 00:00:00  1
+        2018-04-12 01:00:00  4
+
+        See Also
+        --------
+        at_time : Select values at a particular time of the day
+        first : Select initial periods of time series based on a date offset
+        last : Select final periods of time series based on a date offset
+        DatetimeIndex.indexer_between_time : Get just the index locations for
+            values between particular times of the day
         """
         try:
             indexer = self.index.indexer_between_time(
                 start_time, end_time, include_start=include_start,
                 include_end=include_end)
-            return self._take(indexer, convert=False)
+            return self._take(indexer)
         except AttributeError:
             raise TypeError('Index must be DatetimeIndex')
 
@@ -7052,22 +7112,50 @@ class NDFrame(PandasObject, SelectionMixin):
         Convenience method for subsetting initial periods of time series data
         based on a date offset.
 
+        Raises
+        ------
+        TypeError
+            If the index is not  a :class:`DatetimeIndex`
+
         Parameters
         ----------
         offset : string, DateOffset, dateutil.relativedelta
 
         Examples
         --------
-        ts.first('10D') -> First 10 days
+        >>> i = pd.date_range('2018-04-09', periods=4, freq='2D')
+        >>> ts = pd.DataFrame({'A': [1,2,3,4]}, index=i)
+        >>> ts
+                    A
+        2018-04-09  1
+        2018-04-11  2
+        2018-04-13  3
+        2018-04-15  4
+
+        Get the rows for the first 3 days:
+
+        >>> ts.first('3D')
+                    A
+        2018-04-09  1
+        2018-04-11  2
+
+        Notice the data for 3 first calender days were returned, not the first
+        3 days observed in the dataset, and therefore data for 2018-04-13 was
+        not returned.
 
         Returns
         -------
         subset : type of caller
+
+        See Also
+        --------
+        last : Select final periods of time series based on a date offset
+        at_time : Select values at a particular time of the day
+        between_time : Select values between particular times of the day
         """
         from pandas.tseries.frequencies import to_offset
         if not isinstance(self.index, DatetimeIndex):
-            raise NotImplementedError("'first' only supports a DatetimeIndex "
-                                      "index")
+            raise TypeError("'first' only supports a DatetimeIndex index")
 
         if len(self.index) == 0:
             return self
@@ -7088,22 +7176,50 @@ class NDFrame(PandasObject, SelectionMixin):
         Convenience method for subsetting final periods of time series data
         based on a date offset.
 
+        Raises
+        ------
+        TypeError
+            If the index is not  a :class:`DatetimeIndex`
+
         Parameters
         ----------
         offset : string, DateOffset, dateutil.relativedelta
 
         Examples
         --------
-        ts.last('5M') -> Last 5 months
+        >>> i = pd.date_range('2018-04-09', periods=4, freq='2D')
+        >>> ts = pd.DataFrame({'A': [1,2,3,4]}, index=i)
+        >>> ts
+                    A
+        2018-04-09  1
+        2018-04-11  2
+        2018-04-13  3
+        2018-04-15  4
+
+        Get the rows for the last 3 days:
+
+        >>> ts.last('3D')
+                    A
+        2018-04-13  3
+        2018-04-15  4
+
+        Notice the data for 3 last calender days were returned, not the last
+        3 observed days in the dataset, and therefore data for 2018-04-11 was
+        not returned.
 
         Returns
         -------
         subset : type of caller
+
+        See Also
+        --------
+        first : Select initial periods of time series based on a date offset
+        at_time : Select values at a particular time of the day
+        between_time : Select values between particular times of the day
         """
         from pandas.tseries.frequencies import to_offset
         if not isinstance(self.index, DatetimeIndex):
-            raise NotImplementedError("'last' only supports a DatetimeIndex "
-                                      "index")
+            raise TypeError("'last' only supports a DatetimeIndex index")
 
         if len(self.index) == 0:
             return self
