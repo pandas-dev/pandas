@@ -1079,6 +1079,7 @@ Performance Improvements
 - Improved performance of :func:`Series.isin` in the case of categorical dtypes (:issue:`20003`)
 - Improved performance of ``getattr(Series, attr)`` when the Series has certain index types. This manifiested in slow printing of large Series with a ``DatetimeIndex`` (:issue:`19764`)
 - Fixed a performance regression for :func:`GroupBy.nth` and :func:`GroupBy.last` with some object columns (:issue:`19283`)
+- Improved performance of :func:`pandas.core.arrays.Categorical.from_codes` (:issue:`18501`)
 
 .. _whatsnew_0230.docs:
 

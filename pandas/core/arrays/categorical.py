@@ -578,11 +578,7 @@ class Categorical(ExtensionArray, PandasObject):
             unordered.
         """
         try:
-            if (type(codes) == np.ndarray
-                    and np.issubdtype(codes.dtype, np.integer)):
-                codes = np.asarray(codes)
-            else:
-                codes = np.asarray(codes, np.int64)
+            codes = coerce_indexer_dtype(np.asarray(codes), categories)
         except (ValueError, TypeError):
             raise ValueError(
                 "codes need to be convertible to an arrays of integers")
