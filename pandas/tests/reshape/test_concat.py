@@ -1917,6 +1917,92 @@ bar2,12,13,14,15
         tm.assert_series_equal(result, pd.Series(x + y))
         assert result.dtype == 'datetime64[ns, tzlocal()]'
 
+    @pytest.mark.parametrize('tz1', [None, 'UTC'])
+    @pytest.mark.parametrize('tz2', [None, 'UTC'])
+    @pytest.mark.parametrize('s', [pd.NaT, pd.Timestamp('20150101')])
+    def test_concat_NaT_dataframes_all_NaT_axis_0(self, tz1, tz2, s):
+        # GH 12396
+
+        # tz-naive
+        first = pd.DataFrame([[pd.NaT], [pd.NaT]]).apply(
+            lambda x: x.dt.tz_localize(tz1))
+        second = pd.DataFrame([s]).apply(lambda x: x.dt.tz_localize(tz2))
+
+        # we are all NaT so this is ok
+        if tz1 is None:
+            tz = tz2
+        elif tz2 is None:
+            tz = tz1
+        elif tz1 == tz2:
+            tz = tz1
+        else:
+            tz = None
+
+        result = pd.concat([first, second], axis=0)
+        expected = pd.DataFrame(pd.Series(
+            [pd.NaT, pd.NaT, s], index=[0, 1, 0]))
+        expected = expected.apply(lambda x: x.dt.tz_localize(tz))
+        assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('tz1', [None, 'UTC'])
+    @pytest.mark.parametrize('tz2', [None, 'UTC'])
+    def test_concat_NaT_dataframes_all_NaT_axis_1(self, tz1, tz2):
+        # GH 12396
+
+        first = pd.DataFrame(pd.Series([pd.NaT, pd.NaT]).dt.tz_localize(tz1))
+        second = pd.DataFrame(pd.Series(
+            [pd.NaT]).dt.tz_localize(tz2), columns=[1])
+        expected = pd.DataFrame(
+            {0: pd.Series([pd.NaT, pd.NaT]).dt.tz_localize(tz1),
+             1: pd.Series([pd.NaT, pd.NaT]).dt.tz_localize(tz2)}
+        )
+        result = pd.concat([first, second], axis=1)
+        assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('tz1', [None, 'UTC'])
+    @pytest.mark.parametrize('tz2', [None, 'UTC'])
+    def test_concat_NaT_series_dataframe_all_NaT(self, tz1, tz2):
+        # GH 12396
+
+        # tz-naive
+        first = pd.Series([pd.NaT, pd.NaT]).dt.tz_localize(tz1)
+        second = pd.DataFrame([[pd.Timestamp('2015/01/01', tz=tz2)],
+                               [pd.Timestamp('2016/01/01', tz=tz2)]],
+                              index=[2, 3])
+
+        if tz1 is None and tz2 is None:
+            tz = None
+
+        # we are all NaT so this is ok
+        elif tz1 is None:
+            tz = tz2
+        elif tz1 == tz2:
+            tz = tz1
+        else:
+            tz = None
+        expected = pd.DataFrame([pd.NaT, pd.NaT,
+                                 pd.Timestamp('2015/01/01', tz=tz),
+                                 pd.Timestamp('2016/01/01', tz=tz)])
+
+        result = pd.concat([first, second])
+        assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('tz', [None, 'UTC'])
+    def test_concat_NaT_dataframes(self, tz):
+        # GH 12396
+
+        first = pd.DataFrame([[pd.NaT], [pd.NaT]])
+        first = first.apply(lambda x: x.dt.tz_localize(tz))
+        second = pd.DataFrame([[pd.Timestamp('2015/01/01', tz=tz)],
+                               [pd.Timestamp('2016/01/01', tz=tz)]],
+                              index=[2, 3])
+        expected = pd.DataFrame([pd.NaT, pd.NaT,
+                                 pd.Timestamp('2015/01/01', tz=tz),
+                                 pd.Timestamp('2016/01/01', tz=tz)])
+
+        result = pd.concat([first, second], axis=0)
+        assert_frame_equal(result, expected)
+
     def test_concat_period_series(self):
         x = Series(pd.PeriodIndex(['2015-11-01', '2015-12-01'], freq='D'))
         y = Series(pd.PeriodIndex(['2015-10-01', '2016-01-01'], freq='D'))
@@ -1977,6 +2063,21 @@ bar2,12,13,14,15
         exp = pd.DataFrame({'x': [1, 2, 3], 0: [np.nan, np.nan, np.nan]},
                            columns=['x', 0])
         tm.assert_frame_equal(res, exp)
+
+    @pytest.mark.parametrize('tz', [None, 'UTC'])
+    @pytest.mark.parametrize('values', [[], [1, 2, 3]])
+    def test_concat_empty_series_timelike(self, tz, values):
+        # GH 18447
+
+        first = Series([], dtype='M8[ns]').dt.tz_localize(tz)
+        second = Series(values)
+        expected = DataFrame(
+            {0: pd.Series([pd.NaT] * len(values),
+                          dtype='M8[ns]'
+                          ).dt.tz_localize(tz),
+             1: values})
+        result = concat([first, second], axis=1)
+        assert_frame_equal(result, expected)
 
     def test_default_index(self):
         # is_series and ignore_index
