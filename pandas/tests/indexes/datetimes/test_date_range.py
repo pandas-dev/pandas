@@ -361,6 +361,10 @@ class TestBusinessDateRange(object):
         with tm.assert_raises_regex(TypeError, msg):
             bdate_range('2011-1-1', '2012-1-1', 'B')
 
+        msg = 'freq must be specified for bdate_range; use date_range instead'
+        with tm.assert_raises_regex(TypeError, msg):
+            bdate_range(START, END, periods=10, freq=None)
+
     def test_naive_aware_conflicts(self):
         naive = bdate_range(START, END, freq=BDay(), tz=None)
         aware = bdate_range(START, END, freq=BDay(), tz="Asia/Hong_Kong")
