@@ -1519,6 +1519,13 @@ class TestMergeDtypes(object):
             result = B.merge(A, left_on='Y', right_on='X')
             assert_frame_equal(result, expected[['Y', 'X']])
 
+        # test no warning if float has NaNs
+        B = DataFrame({'Y': [np.nan, np.nan, 3.0]})
+
+        with tm.assert_produces_warning(None):
+            result = B.merge(A, left_on='Y', right_on='X')
+            assert_frame_equal(result, expected[['Y', 'X']])
+
     @pytest.mark.parametrize('df1_vals, df2_vals', [
         ([0, 1, 2], ["0", "1", "2"]),
         ([0.0, 1.0, 2.0], ["0", "1", "2"]),
