@@ -955,14 +955,14 @@ class _MergeOperation(object):
 
                 # check whether ints and floats
                 elif is_integer_dtype(rk) and is_float_dtype(lk):
-                    if not (lk == lk.astype(rk.dtype)).all():
+                    if not (lk == lk.astype(rk.dtype))[~np.isnan(lk)].all():
                         warnings.warn('You are merging on int and float '
                                       'columns where the float values '
                                       'are not equal to their int '
                                       'representation', UserWarning)
 
                 elif is_float_dtype(rk) and is_integer_dtype(lk):
-                    if not (rk == rk.astype(lk.dtype)).all():
+                    if not (rk == rk.astype(lk.dtype))[~np.isnan(rk)].all():
                         warnings.warn('You are merging on int and float '
                                       'columns where the float values '
                                       'are not equal to their int '
