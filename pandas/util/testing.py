@@ -2078,7 +2078,7 @@ _network_errno_vals = (
 # and conditionally raise on these exception types
 _network_error_classes = (IOError, httplib.HTTPException)
 
-if sys.version_info >= (3, 3):
+if PY3:
     _network_error_classes += (TimeoutError,)  # noqa
 
 

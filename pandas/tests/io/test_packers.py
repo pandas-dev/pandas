@@ -5,7 +5,6 @@ import os
 import datetime
 import glob
 import numpy as np
-import sys
 from distutils.version import LooseVersion
 
 from pandas import compat
@@ -298,11 +297,6 @@ class TestBasic(TestPackers):
         assert NaT is nat_rec
 
     def test_datetimes(self):
-
-        # fails under 2.6/win32 (np.datetime64 seems broken)
-
-        if LooseVersion(sys.version) < LooseVersion('2.7'):
-            pytest.skip('2.6 with np.datetime64 is broken')
 
         for i in [datetime.datetime(2013, 1, 1),
                   datetime.datetime(2013, 1, 1, 5, 1),

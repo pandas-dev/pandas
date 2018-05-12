@@ -130,11 +130,11 @@ index_col :  int or sequence or ``False``, default ``None``
   MultiIndex is used. If you have a malformed file with delimiters at the end of
   each line, you might consider ``index_col=False`` to force pandas to *not* use
   the first column as the index (row names).
-usecols : array-like or callable, default ``None``
-  Return a subset of the columns. If array-like, all elements must either
+usecols : list-like or callable, default ``None``
+  Return a subset of the columns. If list-like, all elements must either
   be positional (i.e. integer indices into the document columns) or strings
   that correspond to column names provided either by the user in `names` or
-  inferred from the document header row(s). For example, a valid array-like
+  inferred from the document header row(s). For example, a valid list-like
   `usecols` parameter would be ``[0, 1, 2]`` or ``['foo', 'bar', 'baz']``.
 
   Element order is ignored, so ``usecols=[0, 1]`` is the same as ``[1, 0]``. To
@@ -2263,7 +2263,7 @@ round-trippable manner.
    new_df.dtypes
 
 Please note that the literal string 'index' as the name of an :class:`Index`
-is not round-trippable, nor are any names beginning with 'level_' within a
+is not round-trippable, nor are any names beginning with ``'level_'`` within a
 :class:`MultiIndex`. These are used by default in :func:`DataFrame.to_json` to
 indicate missing values and the subsequent read cannot distinguish the intent.
 
@@ -3861,6 +3861,8 @@ Then create the index when finished appending.
    os.remove('appends.h5')
 
 See `here <http://stackoverflow.com/questions/17893370/ptrepack-sortby-needs-full-index>`__ for how to create a completely-sorted-index (CSI) on an existing store.
+
+.. _io.hdf5-query-data-columns:
 
 Query via Data Columns
 ++++++++++++++++++++++
