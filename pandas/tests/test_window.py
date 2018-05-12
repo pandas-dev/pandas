@@ -512,11 +512,11 @@ class TestRolling(Base):
         tm.assert_index_equal(result.columns, df.columns)
         assert result.index.names == [None, '1', '2']
 
-    @pytest.mark.parametrize('cls', [pd.Series, pd.DataFrame])
-    def test_iter_raises(self, cls):
+    @pytest.mark.parametrize('klass', [pd.Series, pd.DataFrame])
+    def test_iter_raises(self, klass):
         # https://github.com/pandas-dev/pandas/issues/11704
         # Iteration over a Window
-        obj = cls([1, 2, 3, 4])
+        obj = klass([1, 2, 3, 4])
         with pytest.raises(NotImplementedError):
             iter(obj.rolling(2))
 
@@ -598,11 +598,11 @@ class TestExpanding(Base):
         expected = pd.Series([np.nan])
         tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize('cls', [pd.Series, pd.DataFrame])
-    def test_iter_raises(self, cls):
+    @pytest.mark.parametrize('klass', [pd.Series, pd.DataFrame])
+    def test_iter_raises(self, klass):
         # https://github.com/pandas-dev/pandas/issues/11704
         # Iteration over a Window
-        obj = cls([1, 2, 3, 4])
+        obj = klass([1, 2, 3, 4])
         with pytest.raises(NotImplementedError):
             iter(obj.expanding(2))
 
