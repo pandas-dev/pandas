@@ -46,27 +46,6 @@ def win_types_special(request):
     return request.param
 
 
-# Issue 11704: Iteration over a Window
-
-@pytest.fixture
-def series():
-    return pd.Series([1, 2, 3, 4])
-
-@pytest.fixture
-def frame():
-    return pd.DataFrame({'a': [1, 2, 3, 4], 'b': [10, 20, 30, 40]})
-
-@pytest.mark.parametrize('which', [series(), frame()])
-def test_rolling_iterator(which):
-    with pytest.raises(NotImplementedError):
-        iter(which.rolling(2))
-
-@pytest.mark.parametrize('which', [series(), frame()])
-def test_expanding_iterator(which):
-    with pytest.raises(NotImplementedError):
-        iter(which.expanding())
-
-
 class Base(object):
 
     _nan_locs = np.arange(20, 40)
@@ -533,6 +512,14 @@ class TestRolling(Base):
         tm.assert_index_equal(result.columns, df.columns)
         assert result.index.names == [None, '1', '2']
 
+    @pytest.mark.parametrize('cls', [pd.Series, pd.DataFrame])
+    def test_iter_raises(cls):
+        # https://github.com/pandas-dev/pandas/issues/11704
+        # Iteration over a Window
+        obj = cls([1, 2, 3, 4])
+        with pytest.raises(NotImplementedError):
+            iter(obj.rolling(2))
+
 
 class TestExpanding(Base):
 
@@ -610,6 +597,14 @@ class TestExpanding(Base):
         result = x.expanding(min_periods=1).sum()
         expected = pd.Series([np.nan])
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('cls', [pd.Series, pd.DataFrame])
+    def test_iter_raises(cls):
+        # https://github.com/pandas-dev/pandas/issues/11704
+        # Iteration over a Window
+        obj = cls([1, 2, 3, 4])
+        with pytest.raises(NotImplementedError):
+            iter(obj.expanding(2))
 
 
 class TestEWM(Base):
