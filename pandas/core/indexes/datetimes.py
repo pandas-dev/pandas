@@ -394,10 +394,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         # data must be Index or np.ndarray here
         if not (is_datetime64_dtype(data) or is_datetimetz(data) or
-                is_integer_dtype(data)):
+                is_integer_dtype(data) or lib.infer_dtype(data) == 'integer'):
             data = tools.to_datetime(data, dayfirst=dayfirst,
                                      yearfirst=yearfirst)
-
+        passed_integer_data = False
         if issubclass(data.dtype.type, np.datetime64) or is_datetimetz(data):
 
             if isinstance(data, DatetimeIndex):
@@ -424,10 +424,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                     subarr = data
         else:
             # must be integer dtype otherwise
-            if isinstance(data, Int64Index):
-                raise TypeError('cannot convert Int64Index->DatetimeIndex')
             if data.dtype != _INT64_DTYPE:
                 data = data.astype(np.int64)
+            passed_integer_data = True
             subarr = data.view(_NS_DTYPE)
 
         if isinstance(subarr, DatetimeIndex):
@@ -438,7 +437,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 tz = timezones.maybe_get_tz(tz)
 
                 if (not isinstance(data, DatetimeIndex) or
-                        getattr(data, 'tz', None) is None):
+                        getattr(data, 'tz', None) is None) and
+                    not passed_integer_data:
                     # Convert tz-naive to UTC
                     ints = subarr.view('i8')
                     subarr = conversion.tz_localize_to_utc(ints, tz,

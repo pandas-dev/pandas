@@ -469,6 +469,14 @@ class TestDatetimeIndex(object):
         result = DatetimeIndex(['2010'], tz=non_norm_tz)
         assert pytz.timezone(tz) is result.tz
 
+    @pytest.mark.parametrize('klass', [Index, DatetimeIndex])
+    @pytest.mark.parametrize('box', [np.array, list])
+    def test_constructor_with_int_tz(self, klass):
+        ts = Timestamp('2018-01-01', tz='US/Pacific')
+        result = klass(box(ts.value), dtype='datetime64[ns, US/Pacific]')
+        expected = klass([ts])
+        tm.assert_index_equal(result, expected)
+
 
 class TestTimeSeries(object):
 
