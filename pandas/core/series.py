@@ -1200,8 +1200,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     level = [level]
                 level = set(level)
                 level = [self.index._get_level_number(lev) for lev in level]
-                if isinstance(self.index, MultiIndex) and (len(level) < len(self.index.levels)):
-                    new_index = self.index.droplevel(level)
+                if isinstance(self.index, MultiIndex):
+                    if (len(level) < len(self.index.levels)):
+                        new_index = self.index.droplevel(level)
 
             if inplace:
                 self.index = new_index
