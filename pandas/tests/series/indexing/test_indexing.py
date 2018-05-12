@@ -769,23 +769,24 @@ def test_head_tail(test_data):
     assert_series_equal(test_data.series.tail(), test_data.series[-5:])
     assert_series_equal(test_data.series.tail(0), test_data.series[0:0])
 
+
 def test_reset_index_drop_errmsg():
     # https://github.com/pandas-dev/pandas/issues/20925
-    #Data for Test Case 1 and 2
+    # Data for Test Case 1 and 2
     s = pd.Series(range(4))
-    #Test Case 1
+    # Test Case 1
     with tm.assert_raises_regex(KeyError, 'must be same as name'):
         s.reset_index('wrong', drop=True)
-    #Test Case 2
+    # Test Case 2
     with tm.assert_raises_regex(KeyError, 'must be same as name'):
         s.reset_index('wrong')
-    #Data for Test Case 3
-    s = pd.Series(range(4), index=pd.MultiIndex.from_product([[1, 2]]*2))
-    #Test Case 3
+    # Data for Test Case 3
+    s = pd.Series(range(4), index=pd.MultiIndex.from_product([[1, 2]] * 2))
+    # Test Case 3
     with tm.assert_raises_regex(KeyError, 'not found'):
         s.reset_index('wrong', drop=True)
-    #Data for Test Case 4
+    # Data for Test Case 4
     s = pd.Series(range(4), name='valid')
-    #Test Case 4
+    # Test Case 4
     with tm.assert_raises_regex(KeyError, 'must be same as name'):
         s.reset_index(['valid', 'valid'], drop=True)
