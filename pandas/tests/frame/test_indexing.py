@@ -125,12 +125,12 @@ class TestDataFrameIndexing(TestData):
         # tuples
         df = DataFrame(randn(8, 3),
                        columns=Index([('foo', 'bar'), ('baz', 'qux'),
-                                      ('peek', 'aboo')], name=['sth', 'sth2']))
+                                      ('peek', 'aboo')], name=('sth', 'sth2')))
 
         result = df[[('foo', 'bar'), ('baz', 'qux')]]
         expected = df.iloc[:, :2]
         assert_frame_equal(result, expected)
-        assert result.columns.names == ['sth', 'sth2']
+        assert result.columns.names == ('sth', 'sth2')
 
     def test_getitem_callable(self):
         # GH 12533
@@ -396,8 +396,12 @@ class TestDataFrameIndexing(TestData):
         assert (self.frame['D'] == 0).all()
 
         df = DataFrame(np.random.randn(8, 4))
-        with catch_warnings(record=True):
-            assert isna(df.ix[:, [-1]].values).all()
+        # ix does label-based indexing when having an integer index
+        with pytest.raises(KeyError):
+            df.ix[[-1]]
+
+        with pytest.raises(KeyError):
+            df.ix[:, [-1]]
 
         # #1942
         a = DataFrame(randn(20, 2), index=[chr(x + 65) for x in range(20)])
@@ -1924,6 +1928,32 @@ class TestDataFrameIndexing(TestData):
         result = df.iloc[:, [0]]
         expected = df.take([0], axis=1)
         assert_frame_equal(result, expected)
+
+    def test_loc_duplicates(self):
+        # gh-17105
+
+        # insert a duplicate element to the index
+        trange = pd.date_range(start=pd.Timestamp(year=2017, month=1, day=1),
+                               end=pd.Timestamp(year=2017, month=1, day=5))
+
+        trange = trange.insert(loc=5,
+                               item=pd.Timestamp(year=2017, month=1, day=5))
+
+        df = pd.DataFrame(0, index=trange, columns=["A", "B"])
+        bool_idx = np.array([False, False, False, False, False, True])
+
+        # assignment
+        df.loc[trange[bool_idx], "A"] = 6
+
+        expected = pd.DataFrame({'A': [0, 0, 0, 0, 6, 6],
+                                 'B': [0, 0, 0, 0, 0, 0]},
+                                index=trange)
+        tm.assert_frame_equal(df, expected)
+
+        # in-place
+        df = pd.DataFrame(0, index=trange, columns=["A", "B"])
+        df.loc[trange[bool_idx], "A"] += 6
+        tm.assert_frame_equal(df, expected)
 
     def test_iloc_sparse_propegate_fill_value(self):
         from pandas.core.sparse.api import SparseDataFrame

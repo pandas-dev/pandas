@@ -496,7 +496,7 @@ Unlike agg, apply's callable is passed a sub-DataFrame which gives you access to
    def Red(x):
       return functools.reduce(CumRet,x,1.0)
 
-   S.expanding().apply(Red)
+   S.expanding().apply(Red, raw=True)
 
 
 `Replacing some values with mean of the rest of a group

@@ -72,6 +72,14 @@ class BaseDecimal(object):
 
     def assert_frame_equal(self, left, right, *args, **kwargs):
         # TODO(EA): select_dtypes
+        tm.assert_index_equal(
+            left.columns, right.columns,
+            exact=kwargs.get('check_column_type', 'equiv'),
+            check_names=kwargs.get('check_names', True),
+            check_exact=kwargs.get('check_exact', False),
+            check_categorical=kwargs.get('check_categorical', True),
+            obj='{obj}.columns'.format(obj=kwargs.get('obj', 'DataFrame')))
+
         decimals = (left.dtypes == 'decimal').index
 
         for col in decimals:
@@ -100,7 +108,15 @@ class TestReshaping(BaseDecimal, base.BaseReshapingTests):
 
 
 class TestGetitem(BaseDecimal, base.BaseGetitemTests):
-    pass
+
+    def test_take_na_value_other_decimal(self):
+        arr = DecimalArray([decimal.Decimal('1.0'),
+                            decimal.Decimal('2.0')])
+        result = arr.take([0, -1], allow_fill=True,
+                          fill_value=decimal.Decimal('-1.0'))
+        expected = DecimalArray([decimal.Decimal('1.0'),
+                                 decimal.Decimal('-1.0')])
+        self.assert_extension_array_equal(result, expected)
 
 
 class TestMissing(BaseDecimal, base.BaseMissingTests):

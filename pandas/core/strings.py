@@ -36,6 +36,22 @@ _shared_docs = dict()
 
 
 def _get_array_list(arr, others):
+    """
+    Auxiliary function for :func:`str_cat`
+
+    Parameters
+    ----------
+    arr : ndarray
+        The left-most ndarray of the concatenation
+    others : list, ndarray, Series
+        The rest of the content to concatenate. If list of list-likes,
+        all elements must be passable to ``np.asarray``.
+
+    Returns
+    -------
+    list
+        List of all necessary arrays
+    """
     from pandas.core.series import Series
 
     if len(others) and isinstance(com._values_from_object(others)[0],
@@ -49,7 +65,7 @@ def _get_array_list(arr, others):
 
 def str_cat(arr, others=None, sep=None, na_rep=None):
     """
-    Concatenate strings in the Series/Index with given separator.
+    Auxiliary function for :meth:`str.cat`
 
     If `others` is specified, this function concatenates the Series/Index
     and elements of `others` element-wise.
@@ -68,42 +84,9 @@ def str_cat(arr, others=None, sep=None, na_rep=None):
 
     Returns
     -------
-    concat : Series/Index of objects or str
-
-    See Also
-    --------
-    split : Split each string in the Series/Index
-
-    Examples
-    --------
-    When not passing `other`, all values are concatenated into a single
-    string:
-
-    >>> s = pd.Series(['a', 'b', np.nan, 'c'])
-    >>> s.str.cat(sep=' ')
-    'a b c'
-
-    By default, NA values in the Series are ignored. Using `na_rep`, they
-    can be given a representation:
-
-    >>> pd.Series(['a', 'b', np.nan, 'c']).str.cat(sep=' ', na_rep='?')
-    'a b ? c'
-
-    If `others` is specified, corresponding values are
-    concatenated with the separator. Result will be a Series of strings.
-
-    >>> pd.Series(['a', 'b', 'c']).str.cat(['A', 'B', 'C'], sep=',')
-    0    a,A
-    1    b,B
-    2    c,C
-    dtype: object
-
-    Also, you can pass a list of list-likes.
-
-    >>> pd.Series(['a', 'b']).str.cat([['x', 'y'], ['1', '2']], sep=',')
-    0    a,x,1
-    1    b,y,2
-    dtype: object
+    concat
+        ndarray containing concatenated results (if `others is not None`)
+        or str (if `others is None`)
     """
     if sep is None:
         sep = ''
@@ -158,7 +141,7 @@ def _length_check(others):
             elif len(x) != n:
                 raise ValueError('All arrays must be same length')
         except TypeError:
-            raise ValueError("Did you mean to supply a `sep` keyword?")
+            raise ValueError('Must pass arrays containing strings to str_cat')
     return n
 
 
@@ -279,29 +262,123 @@ def str_count(arr, pat, flags=0):
 
 def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
     """
-    Return boolean Series/``array`` whether given pattern/regex is
-    contained in each string in the Series/Index.
+    Test if pattern or regex is contained within a string of a Series or Index.
+
+    Return boolean Series or Index based on whether a given pattern or regex is
+    contained within a string of a Series or Index.
 
     Parameters
     ----------
-    pat : string
-        Character sequence or regular expression
-    case : boolean, default True
-        If True, case sensitive
+    pat : str
+        Character sequence or regular expression.
+    case : bool, default True
+        If True, case sensitive.
     flags : int, default 0 (no flags)
-        re module flags, e.g. re.IGNORECASE
-    na : default NaN, fill value for missing values.
+        Flags to pass through to the re module, e.g. re.IGNORECASE.
+    na : default NaN
+        Fill value for missing values.
     regex : bool, default True
-        If True use re.search, otherwise use Python in operator
+        If True, assumes the pat is a regular expression.
+
+        If False, treats the pat as a literal string.
 
     Returns
     -------
-    contained : Series/array of boolean values
+    Series or Index of boolean values
+        A Series or Index of boolean values indicating whether the
+        given pattern is contained within the string of each element
+        of the Series or Index.
 
     See Also
     --------
     match : analogous, but stricter, relying on re.match instead of re.search
 
+    Examples
+    --------
+
+    Returning a Series of booleans using only a literal pattern.
+
+    >>> s1 = pd.Series(['Mouse', 'dog', 'house and parrot', '23', np.NaN])
+    >>> s1.str.contains('og', regex=False)
+    0    False
+    1     True
+    2    False
+    3    False
+    4      NaN
+    dtype: object
+
+    Returning an Index of booleans using only a literal pattern.
+
+    >>> ind = pd.Index(['Mouse', 'dog', 'house and parrot', '23.0', np.NaN])
+    >>> ind.str.contains('23', regex=False)
+    Index([False, False, False, True, nan], dtype='object')
+
+    Specifying case sensitivity using `case`.
+
+    >>> s1.str.contains('oG', case=True, regex=True)
+    0    False
+    1    False
+    2    False
+    3    False
+    4      NaN
+    dtype: object
+
+    Specifying `na` to be `False` instead of `NaN` replaces NaN values
+    with `False`. If Series or Index does not contain NaN values
+    the resultant dtype will be `bool`, otherwise, an `object` dtype.
+
+    >>> s1.str.contains('og', na=False, regex=True)
+    0    False
+    1     True
+    2    False
+    3    False
+    4    False
+    dtype: bool
+
+    Returning 'house' and 'parrot' within same string.
+
+    >>> s1.str.contains('house|parrot', regex=True)
+    0    False
+    1    False
+    2     True
+    3    False
+    4      NaN
+    dtype: object
+
+    Ignoring case sensitivity using `flags` with regex.
+
+    >>> import re
+    >>> s1.str.contains('PARROT', flags=re.IGNORECASE, regex=True)
+    0    False
+    1    False
+    2     True
+    3    False
+    4      NaN
+    dtype: object
+
+    Returning any digit using regular expression.
+
+    >>> s1.str.contains('\d', regex=True)
+    0    False
+    1    False
+    2    False
+    3     True
+    4      NaN
+    dtype: object
+
+    Ensure `pat` is a not a literal pattern when `regex` is set to True.
+    Note in the following example one might expect only `s2[1]` and `s2[3]` to
+    return `True`. However, '.0' as a regex matches any character
+    followed by a 0.
+
+    >>> s2 = pd.Series(['40','40.0','41','41.0','35'])
+    >>> s2.str.contains('.0', regex=True)
+    0     True
+    1     True
+    2    False
+    3     True
+    4    False
+    dtype: bool
     """
     if regex:
         if not case:
@@ -1651,19 +1728,60 @@ def str_translate(arr, table, deletechars=None):
 
 def str_get(arr, i):
     """
+    Extract element from each component at specified position.
+
     Extract element from lists, tuples, or strings in each element in the
     Series/Index.
 
     Parameters
     ----------
     i : int
-        Integer index (location)
+        Position of element to extract.
 
     Returns
     -------
     items : Series/Index of objects
+
+    Examples
+    --------
+    >>> s = pd.Series(["String",
+               (1, 2, 3),
+               ["a", "b", "c"],
+               123, -456,
+               {1:"Hello", "2":"World"}])
+    >>> s
+    0                        String
+    1                     (1, 2, 3)
+    2                     [a, b, c]
+    3                           123
+    4                          -456
+    5    {1: 'Hello', '2': 'World'}
+    dtype: object
+
+    >>> s.str.get(1)
+    0        t
+    1        2
+    2        b
+    3      NaN
+    4      NaN
+    5    Hello
+    dtype: object
+
+    >>> s.str.get(-1)
+    0      g
+    1      3
+    2      c
+    3    NaN
+    4    NaN
+    5    NaN
+    dtype: object
     """
-    f = lambda x: x[i] if len(x) > i >= -len(x) else np.nan
+    def f(x):
+        if isinstance(x, dict):
+            return x.get(i)
+        elif len(x) > i >= -len(x):
+            return x[i]
+        return np.nan
     return _na_map(f, arr)
 
 
@@ -1776,7 +1894,9 @@ class StringMethods(NoNewAttributesMixin):
     def __init__(self, data):
         self._validate(data)
         self._is_categorical = is_categorical_dtype(data)
-        self._data = data.cat.categories if self._is_categorical else data
+
+        # .values.categories works for both Series/Index
+        self._data = data.values.categories if self._is_categorical else data
         # save orig to blow up categoricals to the right type
         self._orig = data
         self._freeze()
@@ -1802,7 +1922,11 @@ class StringMethods(NoNewAttributesMixin):
 
             # see src/inference.pyx which can contain string values
             allowed_types = ('string', 'unicode', 'mixed', 'mixed-integer')
-            if data.inferred_type not in allowed_types:
+            if is_categorical_dtype(data.dtype):
+                inf_type = data.categories.inferred_type
+            else:
+                inf_type = data.inferred_type
+            if inf_type not in allowed_types:
                 message = ("Can only use .str accessor with string values "
                            "(i.e. inferred_type is 'string', 'unicode' or "
                            "'mixed')")
@@ -1905,11 +2029,301 @@ class StringMethods(NoNewAttributesMixin):
                 cons = self._orig._constructor
                 return cons(result, name=name, index=index)
 
-    @copy(str_cat)
-    def cat(self, others=None, sep=None, na_rep=None):
-        data = self._orig if self._is_categorical else self._data
-        result = str_cat(data, others=others, sep=sep, na_rep=na_rep)
-        return self._wrap_result(result, use_codes=(not self._is_categorical))
+    def _get_series_list(self, others, ignore_index=False):
+        """
+        Auxiliary function for :meth:`str.cat`. Turn potentially mixed input
+        into a list of Series (elements without an index must match the length
+        of the calling Series/Index).
+
+        Parameters
+        ----------
+        others : Series, DataFrame, np.ndarray, list-like or list-like of
+            objects that are either Series, np.ndarray (1-dim) or list-like
+        ignore_index : boolean, default False
+            Determines whether to forcefully align others with index of caller
+
+        Returns
+        -------
+        tuple : (others transformed into list of Series,
+                 boolean whether FutureWarning should be raised)
+        """
+
+        # once str.cat defaults to alignment, this function can be simplified;
+        # will not need `ignore_index` and the second boolean output anymore
+
+        from pandas import Index, Series, DataFrame
+
+        # self._orig is either Series or Index
+        idx = self._orig if isinstance(self._orig, Index) else self._orig.index
+
+        err_msg = ('others must be Series, Index, DataFrame, np.ndarrary or '
+                   'list-like (either containing only strings or containing '
+                   'only objects of type Series/Index/list-like/np.ndarray)')
+
+        # Generally speaking, all objects without an index inherit the index
+        # `idx` of the calling Series/Index - i.e. must have matching length.
+        # Objects with an index (i.e. Series/Index/DataFrame) keep their own
+        # index, *unless* ignore_index is set to True.
+        if isinstance(others, Series):
+            warn = not others.index.equals(idx)
+            # only reconstruct Series when absolutely necessary
+            los = [Series(others.values, index=idx)
+                   if ignore_index and warn else others]
+            return (los, warn)
+        elif isinstance(others, Index):
+            warn = not others.equals(idx)
+            los = [Series(others.values,
+                          index=(idx if ignore_index else others))]
+            return (los, warn)
+        elif isinstance(others, DataFrame):
+            warn = not others.index.equals(idx)
+            if ignore_index and warn:
+                # without copy, this could change "others"
+                # that was passed to str.cat
+                others = others.copy()
+                others.index = idx
+            return ([others[x] for x in others], warn)
+        elif isinstance(others, np.ndarray) and others.ndim == 2:
+            others = DataFrame(others, index=idx)
+            return ([others[x] for x in others], False)
+        elif is_list_like(others):
+            others = list(others)  # ensure iterators do not get read twice etc
+
+            # in case of list-like `others`, all elements must be
+            # either one-dimensional list-likes or scalars
+            if all(is_list_like(x) for x in others):
+                los = []
+                warn = False
+                # iterate through list and append list of series for each
+                # element (which we check to be one-dimensional and non-nested)
+                while others:
+                    nxt = others.pop(0)  # nxt is guaranteed list-like by above
+                    if not isinstance(nxt, (DataFrame, Series,
+                                            Index, np.ndarray)):
+                        # safety for non-persistent list-likes (e.g. iterators)
+                        # do not map indexed/typed objects; info needed below
+                        nxt = list(nxt)
+
+                    # known types for which we can avoid deep inspection
+                    no_deep = ((isinstance(nxt, np.ndarray) and nxt.ndim == 1)
+                               or isinstance(nxt, (Series, Index)))
+                    # nested list-likes are forbidden:
+                    # -> elements of nxt must not be list-like
+                    is_legal = ((no_deep and nxt.dtype == object)
+                                or all(not is_list_like(x) for x in nxt))
+
+                    # DataFrame is false positive of is_legal
+                    # because "x in df" returns column names
+                    if not is_legal or isinstance(nxt, DataFrame):
+                        raise TypeError(err_msg)
+
+                    nxt, wnx = self._get_series_list(nxt,
+                                                     ignore_index=ignore_index)
+                    los = los + nxt
+                    warn = warn or wnx
+                return (los, warn)
+            elif all(not is_list_like(x) for x in others):
+                return ([Series(others, index=idx)], False)
+        raise TypeError(err_msg)
+
+    def cat(self, others=None, sep=None, na_rep=None, join=None):
+        """
+        Concatenate strings in the Series/Index with given separator.
+
+        If `others` is specified, this function concatenates the Series/Index
+        and elements of `others` element-wise.
+        If `others` is not passed, then all values in the Series/Index are
+        concatenated into a single string with a given `sep`.
+
+        Parameters
+        ----------
+        others : Series, Index, DataFrame, np.ndarrary or list-like
+            Series, Index, DataFrame, np.ndarray (one- or two-dimensional) and
+            other list-likes of strings must have the same length as the
+            calling Series/Index, with the exception of indexed objects (i.e.
+            Series/Index/DataFrame) if `join` is not None.
+
+            If others is a list-like that contains a combination of Series,
+            np.ndarray (1-dim) or list-like, then all elements will be unpacked
+            and must satisfy the above criteria individually.
+
+            If others is None, the method returns the concatenation of all
+            strings in the calling Series/Index.
+        sep : string or None, default None
+            If None, concatenates without any separator.
+        na_rep : string or None, default None
+            Representation that is inserted for all missing values:
+
+            - If `na_rep` is None, and `others` is None, missing values in the
+              Series/Index are omitted from the result.
+            - If `na_rep` is None, and `others` is not None, a row containing a
+              missing value in any of the columns (before concatenation) will
+              have a missing value in the result.
+        join : {'left', 'right', 'outer', 'inner'}, default None
+            Determines the join-style between the calling Series/Index and any
+            Series/Index/DataFrame in `others` (objects without an index need
+            to match the length of the calling Series/Index). If None,
+            alignment is disabled, but this option will be removed in a future
+            version of pandas and replaced with a default of `'left'`. To
+            disable alignment, use `.values` on any Series/Index/DataFrame in
+            `others`.
+
+            .. versionadded:: 0.23.0
+
+        Returns
+        -------
+        concat : str if `other is None`, Series/Index of objects if `others is
+            not None`. In the latter case, the result will remain categorical
+            if the calling Series/Index is categorical.
+
+        See Also
+        --------
+        split : Split each string in the Series/Index
+
+        Examples
+        --------
+        When not passing `others`, all values are concatenated into a single
+        string:
+
+        >>> s = pd.Series(['a', 'b', np.nan, 'd'])
+        >>> s.str.cat(sep=' ')
+        'a b d'
+
+        By default, NA values in the Series are ignored. Using `na_rep`, they
+        can be given a representation:
+
+        >>> s.str.cat(sep=' ', na_rep='?')
+        'a b ? d'
+
+        If `others` is specified, corresponding values are concatenated with
+        the separator. Result will be a Series of strings.
+
+        >>> s.str.cat(['A', 'B', 'C', 'D'], sep=',')
+        0    a,A
+        1    b,B
+        2    NaN
+        3    d,D
+        dtype: object
+
+        Missing values will remain missing in the result, but can again be
+        represented using `na_rep`
+
+        >>> s.str.cat(['A', 'B', 'C', 'D'], sep=',', na_rep='-')
+        0    a,A
+        1    b,B
+        2    -,C
+        3    d,D
+        dtype: object
+
+        If `sep` is not specified, the values are concatenated without
+        separation.
+
+        >>> s.str.cat(['A', 'B', 'C', 'D'], na_rep='-')
+        0    aA
+        1    bB
+        2    -C
+        3    dD
+        dtype: object
+
+        Series with different indexes can be aligned before concatenation. The
+        `join`-keyword works as in other methods.
+
+        >>> t = pd.Series(['d', 'a', 'e', 'c'], index=[3, 0, 4, 2])
+        >>> s.str.cat(t, join=None, na_rep='-')
+        0    ad
+        1    ba
+        2    -e
+        3    dc
+        dtype: object
+        >>>
+        >>> s.str.cat(t, join='left', na_rep='-')
+        0    aa
+        1    b-
+        2    -c
+        3    dd
+        dtype: object
+        >>>
+        >>> s.str.cat(t, join='outer', na_rep='-')
+        0    aa
+        1    b-
+        2    -c
+        3    dd
+        4    -e
+        dtype: object
+        >>>
+        >>> s.str.cat(t, join='inner', na_rep='-')
+        0    aa
+        2    -c
+        3    dd
+        dtype: object
+        >>>
+        >>> s.str.cat(t, join='right', na_rep='-')
+        3    dd
+        0    aa
+        4    -e
+        2    -c
+        dtype: object
+
+        For more examples, see :ref:`here <text.concatenate>`.
+        """
+        from pandas import Index, Series, concat
+
+        if isinstance(others, compat.string_types):
+            raise ValueError("Did you mean to supply a `sep` keyword?")
+
+        if isinstance(self._orig, Index):
+            data = Series(self._orig, index=self._orig)
+        else:  # Series
+            data = self._orig
+
+        # concatenate Series/Index with itself if no "others"
+        if others is None:
+            result = str_cat(data, others=others, sep=sep, na_rep=na_rep)
+            return self._wrap_result(result,
+                                     use_codes=(not self._is_categorical))
+
+        try:
+            # turn anything in "others" into lists of Series
+            others, warn = self._get_series_list(others,
+                                                 ignore_index=(join is None))
+        except ValueError:  # do not catch TypeError raised by _get_series_list
+            if join is None:
+                raise ValueError('All arrays must be same length, except '
+                                 'those having an index if `join` is not None')
+            else:
+                raise ValueError('If `others` contains arrays or lists (or '
+                                 'other list-likes without an index), these '
+                                 'must all be of the same length as the '
+                                 'calling Series/Index.')
+
+        if join is None and warn:
+            warnings.warn("A future version of pandas will perform index "
+                          "alignment when `others` is a Series/Index/"
+                          "DataFrame (or a list-like containing one). To "
+                          "disable alignment (the behavior before v.0.23) and "
+                          "silence this warning, use `.values` on any Series/"
+                          "Index/DataFrame in `others`. To enable alignment "
+                          "and silence this warning, pass `join='left'|"
+                          "'outer'|'inner'|'right'`. The future default will "
+                          "be `join='left'`.", FutureWarning, stacklevel=2)
+
+        # align if required
+        if join is not None:
+            # Need to add keys for uniqueness in case of duplicate columns
+            others = concat(others, axis=1,
+                            join=(join if join == 'inner' else 'outer'),
+                            keys=range(len(others)))
+            data, others = data.align(others, join=join)
+            others = [others[x] for x in others]  # again list of Series
+
+        # str_cat discards index
+        res = str_cat(data, others=others, sep=sep, na_rep=na_rep)
+
+        if isinstance(self._orig, Index):
+            res = Index(res)
+        else:  # Series
+            res = Series(res, index=data.index)
+        return res
 
     @copy(str_split)
     def split(self, pat=None, n=-1, expand=False):

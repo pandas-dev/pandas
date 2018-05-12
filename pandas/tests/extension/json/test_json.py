@@ -1,8 +1,10 @@
 import operator
+import collections
 
 import pytest
 
-
+import pandas as pd
+import pandas.util.testing as tm
 from pandas.compat import PY2, PY36
 from pandas.tests.extension import base
 
@@ -19,7 +21,18 @@ def dtype():
 @pytest.fixture
 def data():
     """Length-100 PeriodArray for semantics test."""
-    return JSONArray(make_data())
+    data = make_data()
+
+    # Why the while loop? NumPy is unable to construct an ndarray from
+    # equal-length ndarrays. Many of our operations involve coercing the
+    # EA to an ndarray of objects. To avoid random test failures, we ensure
+    # that our data is coercable to an ndarray. Several tests deal with only
+    # the first two elements, so that's what we'll check.
+
+    while len(data[0]) == len(data[1]):
+        data = make_data()
+
+    return JSONArray(data)
 
 
 @pytest.fixture
@@ -39,8 +52,8 @@ def data_missing_for_sorting():
 
 
 @pytest.fixture
-def na_value():
-    return {}
+def na_value(dtype):
+    return dtype.na_value
 
 
 @pytest.fixture
@@ -59,27 +72,76 @@ def data_for_grouping():
     ])
 
 
-class TestDtype(base.BaseDtypeTests):
+class BaseJSON(object):
+    # NumPy doesn't handle an array of equal-length UserDicts.
+    # The default assert_series_equal eventually does a
+    # Series.values, which raises. We work around it by
+    # converting the UserDicts to dicts.
+    def assert_series_equal(self, left, right, **kwargs):
+        if left.dtype.name == 'json':
+            assert left.dtype == right.dtype
+            left = pd.Series(JSONArray(left.values.astype(object)),
+                             index=left.index, name=left.name)
+            right = pd.Series(JSONArray(right.values.astype(object)),
+                              index=right.index, name=right.name)
+        tm.assert_series_equal(left, right, **kwargs)
+
+    def assert_frame_equal(self, left, right, *args, **kwargs):
+        tm.assert_index_equal(
+            left.columns, right.columns,
+            exact=kwargs.get('check_column_type', 'equiv'),
+            check_names=kwargs.get('check_names', True),
+            check_exact=kwargs.get('check_exact', False),
+            check_categorical=kwargs.get('check_categorical', True),
+            obj='{obj}.columns'.format(obj=kwargs.get('obj', 'DataFrame')))
+
+        jsons = (left.dtypes == 'json').index
+
+        for col in jsons:
+            self.assert_series_equal(left[col], right[col],
+                                     *args, **kwargs)
+
+        left = left.drop(columns=jsons)
+        right = right.drop(columns=jsons)
+        tm.assert_frame_equal(left, right, *args, **kwargs)
+
+
+class TestDtype(BaseJSON, base.BaseDtypeTests):
     pass
 
 
-class TestInterface(base.BaseInterfaceTests):
+class TestInterface(BaseJSON, base.BaseInterfaceTests):
+    def test_custom_asserts(self):
+        # This would always trigger the KeyError from trying to put
+        # an array of equal-length UserDicts inside an ndarray.
+        data = JSONArray([collections.UserDict({'a': 1}),
+                          collections.UserDict({'b': 2}),
+                          collections.UserDict({'c': 3})])
+        a = pd.Series(data)
+        self.assert_series_equal(a, a)
+        self.assert_frame_equal(a.to_frame(), a.to_frame())
+
+        b = pd.Series(data.take([0, 0, 1]))
+        with pytest.raises(AssertionError):
+            self.assert_series_equal(a, b)
+
+        with pytest.raises(AssertionError):
+            self.assert_frame_equal(a.to_frame(), b.to_frame())
+
+
+class TestConstructors(BaseJSON, base.BaseConstructorsTests):
     pass
 
 
-class TestConstructors(base.BaseConstructorsTests):
+class TestReshaping(BaseJSON, base.BaseReshapingTests):
     pass
 
 
-class TestReshaping(base.BaseReshapingTests):
+class TestGetitem(BaseJSON, base.BaseGetitemTests):
     pass
 
 
-class TestGetitem(base.BaseGetitemTests):
-    pass
-
-
-class TestMissing(base.BaseMissingTests):
+class TestMissing(BaseJSON, base.BaseMissingTests):
     @pytest.mark.xfail(reason="Setting a dict as a scalar")
     def test_fillna_series(self):
         """We treat dictionaries as a mapping in fillna, not a scalar."""
@@ -94,7 +156,7 @@ unstable = pytest.mark.skipif(not PY36,  # 3.6 or higher
                               reason="Dictionary order unstable")
 
 
-class TestMethods(base.BaseMethodsTests):
+class TestMethods(BaseJSON, base.BaseMethodsTests):
     @unhashable
     def test_value_counts(self, all_data, dropna):
         pass
@@ -126,11 +188,20 @@ class TestMethods(base.BaseMethodsTests):
             data_missing_for_sorting, ascending)
 
 
-class TestCasting(base.BaseCastingTests):
-    pass
+class TestCasting(BaseJSON, base.BaseCastingTests):
+    @pytest.mark.xfail
+    def test_astype_str(self):
+        """This currently fails in NumPy on np.array(self, dtype=str) with
+
+        *** ValueError: setting an array element with a sequence
+        """
 
 
-class TestGroupby(base.BaseGroupbyTests):
+# We intentionally don't run base.BaseSetitemTests because pandas'
+# internals has trouble setting sequences of values into scalar positions.
+
+
+class TestGroupby(BaseJSON, base.BaseGroupbyTests):
 
     @unhashable
     def test_groupby_extension_transform(self):

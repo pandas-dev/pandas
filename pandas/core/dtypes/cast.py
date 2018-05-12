@@ -12,6 +12,7 @@ from .common import (_ensure_object, is_bool, is_integer, is_float,
                      is_complex, is_datetimetz, is_categorical_dtype,
                      is_datetimelike,
                      is_extension_type,
+                     is_extension_array_dtype,
                      is_object_dtype,
                      is_datetime64tz_dtype, is_datetime64_dtype,
                      is_datetime64_ns_dtype,
@@ -254,7 +255,6 @@ def maybe_upcast_putmask(result, mask, other):
 
 
 def maybe_promote(dtype, fill_value=np.nan):
-
     # if we passed an array here, determine the fill value by dtype
     if isinstance(fill_value, np.ndarray):
         if issubclass(fill_value.dtype.type, (np.datetime64, np.timedelta64)):
@@ -293,6 +293,8 @@ def maybe_promote(dtype, fill_value=np.nan):
     elif is_datetimetz(dtype):
         if isna(fill_value):
             fill_value = iNaT
+    elif is_extension_array_dtype(dtype) and isna(fill_value):
+        fill_value = dtype.na_value
     elif is_float(fill_value):
         if issubclass(dtype.type, np.bool_):
             dtype = np.object_
@@ -329,7 +331,7 @@ def maybe_promote(dtype, fill_value=np.nan):
         dtype = np.object_
 
     # in case we have a string that looked like a number
-    if is_categorical_dtype(dtype):
+    if is_extension_array_dtype(dtype):
         pass
     elif is_datetimetz(dtype):
         pass

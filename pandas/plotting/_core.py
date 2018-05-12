@@ -44,10 +44,17 @@ from pandas.plotting._tools import (_subplots, _flatten, table,
 try:
     from pandas.plotting import _converter
 except ImportError:
-    pass
+    _HAS_MPL = False
 else:
+    _HAS_MPL = True
     if get_option('plotting.matplotlib.register_converters'):
         _converter.register(explicit=True)
+
+
+def _raise_if_no_mpl():
+    # TODO(mpl_converter): remove once converter is explicit
+    if not _HAS_MPL:
+        raise ImportError("matplotlib is required for plotting.")
 
 
 def _get_standard_kind(kind):
@@ -97,6 +104,7 @@ class MPLPlot(object):
                  secondary_y=False, colormap=None,
                  table=False, layout=None, **kwds):
 
+        _raise_if_no_mpl()
         _converter._WARN = False
         self.data = data
         self.by = by
@@ -1995,50 +2003,164 @@ def plot_series(data, kind='line', ax=None,                    # Series unique
 
 
 _shared_docs['boxplot'] = """
-    Make a box plot from DataFrame column optionally grouped by some columns or
-    other inputs
+    Make a box plot from DataFrame columns.
+
+    Make a box-and-whisker plot from DataFrame columns, optionally grouped
+    by some other columns. A box plot is a method for graphically depicting
+    groups of numerical data through their quartiles.
+    The box extends from the Q1 to Q3 quartile values of the data,
+    with a line at the median (Q2). The whiskers extend from the edges
+    of box to show the range of the data. The position of the whiskers
+    is set by default to `1.5 * IQR (IQR = Q3 - Q1)` from the edges of the box.
+    Outlier points are those past the end of the whiskers.
+
+    For further details see
+    Wikipedia's entry for `boxplot <https://en.wikipedia.org/wiki/Box_plot>`_.
 
     Parameters
     ----------
-    data : the pandas object holding the data
-    column : column name or list of names, or vector
-        Can be any valid input to groupby
-    by : string or sequence
-        Column in the DataFrame to group by
-    ax : Matplotlib axes object, optional
-    fontsize : int or string
-    rot : label rotation angle
+    column : str or list of str, optional
+        Column name or list of names, or vector.
+        Can be any valid input to :meth:`pandas.DataFrame.groupby`.
+    by : str or array-like, optional
+        Column in the DataFrame to :meth:`pandas.DataFrame.groupby`.
+        One box-plot will be done per value of columns in `by`.
+    ax : object of class matplotlib.axes.Axes, optional
+        The matplotlib axes to be used by boxplot.
+    fontsize : float or str
+        Tick label font size in points or as a string (e.g., `large`).
+    rot : int or float, default 0
+        The rotation angle of labels (in degrees)
+        with respect to the screen coordinate sytem.
+    grid : boolean, default True
+        Setting this to True will show the grid.
     figsize : A tuple (width, height) in inches
-    grid : Setting this to True will show the grid
-    layout : tuple (optional)
-        (rows, columns) for the layout of the plot
-    return_type : {None, 'axes', 'dict', 'both'}, default None
-        The kind of object to return. The default is ``axes``
-        'axes' returns the matplotlib axes the boxplot is drawn on;
-        'dict' returns a dictionary whose values are the matplotlib
-        Lines of the boxplot;
-        'both' returns a namedtuple with the axes and dict.
+        The size of the figure to create in matplotlib.
+    layout : tuple (rows, columns), optional
+        For example, (3, 5) will display the subplots
+        using 3 columns and 5 rows, starting from the top-left.
+    return_type : {'axes', 'dict', 'both'} or None, default 'axes'
+        The kind of object to return. The default is ``axes``.
 
-        When grouping with ``by``, a Series mapping columns to ``return_type``
-        is returned, unless ``return_type`` is None, in which case a NumPy
-        array of axes is returned with the same shape as ``layout``.
-        See the prose documentation for more.
+        * 'axes' returns the matplotlib axes the boxplot is drawn on.
+        * 'dict' returns a dictionary whose values are the matplotlib
+          Lines of the boxplot.
+        * 'both' returns a namedtuple with the axes and dict.
+        * when grouping with ``by``, a Series mapping columns to
+          ``return_type`` is returned.
 
-    `**kwds` : Keyword Arguments
+          If ``return_type`` is `None`, a NumPy array
+          of axes with the same shape as ``layout`` is returned.
+    **kwds
         All other plotting keyword arguments to be passed to
-        matplotlib's boxplot function
+        :func:`matplotlib.pyplot.boxplot`.
 
     Returns
     -------
-    lines : dict
-    ax : matplotlib Axes
-    (ax, lines): namedtuple
+    result :
+
+        The return type depends on the `return_type` parameter:
+
+        * 'axes' : object of class matplotlib.axes.Axes
+        * 'dict' : dict of matplotlib.lines.Line2D objects
+        * 'both' : a nametuple with strucure (ax, lines)
+
+        For data grouped with ``by``:
+
+        * :class:`~pandas.Series`
+        * :class:`~numpy.array` (for ``return_type = None``)
+
+    See Also
+    --------
+    Series.plot.hist: Make a histogram.
+    matplotlib.pyplot.boxplot : Matplotlib equivalent plot.
 
     Notes
     -----
     Use ``return_type='dict'`` when you want to tweak the appearance
     of the lines after plotting. In this case a dict containing the Lines
     making up the boxes, caps, fliers, medians, and whiskers is returned.
+
+    Examples
+    --------
+
+    Boxplots can be created for every column in the dataframe
+    by ``df.boxplot()`` or indicating the columns to be used:
+
+    .. plot::
+        :context: close-figs
+
+        >>> np.random.seed(1234)
+        >>> df = pd.DataFrame(np.random.randn(10,4),
+        ...                   columns=['Col1', 'Col2', 'Col3', 'Col4'])
+        >>> boxplot = df.boxplot(column=['Col1', 'Col2', 'Col3'])
+
+    Boxplots of variables distributions grouped by the values of a third
+    variable can be created using the option ``by``. For instance:
+
+    .. plot::
+        :context: close-figs
+
+        >>> df = pd.DataFrame(np.random.randn(10, 2),
+        ...                   columns=['Col1', 'Col2'])
+        >>> df['X'] = pd.Series(['A', 'A', 'A', 'A', 'A',
+        ...                      'B', 'B', 'B', 'B', 'B'])
+        >>> boxplot = df.boxplot(by='X')
+
+    A list of strings (i.e. ``['X', 'Y']``) can be passed to boxplot
+    in order to group the data by combination of the variables in the x-axis:
+
+    .. plot::
+        :context: close-figs
+
+        >>> df = pd.DataFrame(np.random.randn(10,3),
+        ...                   columns=['Col1', 'Col2', 'Col3'])
+        >>> df['X'] = pd.Series(['A', 'A', 'A', 'A', 'A',
+        ...                      'B', 'B', 'B', 'B', 'B'])
+        >>> df['Y'] = pd.Series(['A', 'B', 'A', 'B', 'A',
+        ...                      'B', 'A', 'B', 'A', 'B'])
+        >>> boxplot = df.boxplot(column=['Col1', 'Col2'], by=['X', 'Y'])
+
+    The layout of boxplot can be adjusted giving a tuple to ``layout``:
+
+    .. plot::
+        :context: close-figs
+
+        >>> boxplot = df.boxplot(column=['Col1', 'Col2'], by='X',
+        ...                      layout=(2, 1))
+
+    Additional formatting can be done to the boxplot, like suppressing the grid
+    (``grid=False``), rotating the labels in the x-axis (i.e. ``rot=45``)
+    or changing the fontsize (i.e. ``fontsize=15``):
+
+    .. plot::
+        :context: close-figs
+
+        >>> boxplot = df.boxplot(grid=False, rot=45, fontsize=15)
+
+    The parameter ``return_type`` can be used to select the type of element
+    returned by `boxplot`.  When ``return_type='axes'`` is selected,
+    the matplotlib axes on which the boxplot is drawn are returned:
+
+        >>> boxplot = df.boxplot(column=['Col1','Col2'], return_type='axes')
+        >>> type(boxplot)
+        <class 'matplotlib.axes._subplots.AxesSubplot'>
+
+    When grouping with ``by``, a Series mapping columns to ``return_type``
+    is returned:
+
+        >>> boxplot = df.boxplot(column=['Col1', 'Col2'], by='X',
+        ...                      return_type='axes')
+        >>> type(boxplot)
+        <class 'pandas.core.series.Series'>
+
+    If ``return_type`` is `None`, a NumPy array of axes with the same shape
+    as ``layout`` is returned:
+
+        >>> boxplot =  df.boxplot(column=['Col1', 'Col2'], by='X',
+        ...                       return_type=None)
+        >>> type(boxplot)
+        <class 'numpy.ndarray'>
     """
 
 
@@ -2264,6 +2386,7 @@ def hist_frame(data, column=None, by=None, grid=True, xlabelsize=None,
         ...     }, index= ['pig', 'rabbit', 'duck', 'chicken', 'horse'])
         >>> hist = df.hist(bins=3)
     """
+    _raise_if_no_mpl()
     _converter._WARN = False
     if by is not None:
         axes = grouped_hist(data, column=column, by=by, ax=ax, grid=grid,
@@ -2403,6 +2526,7 @@ def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
     -------
     axes: collection of Matplotlib Axes
     """
+    _raise_if_no_mpl()
     _converter._WARN = False
 
     def plot_group(group, ax):
@@ -2469,6 +2593,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     >>> grouped = df.unstack(level='lvl1').groupby(level=0, axis=1)
     >>> boxplot_frame_groupby(grouped, subplots=False)
     """
+    _raise_if_no_mpl()
     _converter._WARN = False
     if subplots is True:
         naxes = len(grouped)

@@ -1,4 +1,10 @@
-"""An interface for extending pandas with custom arrays."""
+"""An interface for extending pandas with custom arrays.
+
+.. warning::
+
+   This is an experimental API and subject to breaking changes
+   without warning.
+"""
 import numpy as np
 
 from pandas.errors import AbstractMethodError
@@ -14,12 +20,15 @@ class ExtensionArray(object):
     with a custom type and will not attempt to coerce them to objects. They
     may be stored directly inside a :class:`DataFrame` or :class:`Series`.
 
+    .. versionadded:: 0.23.0
+
     Notes
     -----
     The interface includes the following abstract methods that must be
     implemented by subclasses:
 
-    * _constructor_from_sequence
+    * _from_sequence
+    * _from_factorized
     * __getitem__
     * __len__
     * dtype
@@ -29,11 +38,20 @@ class ExtensionArray(object):
     * copy
     * _concat_same_type
 
-    Some additional methods are available to satisfy pandas' internal, private
-    block API.
+    An additional method is available to satisfy pandas' internal,
+    private block API.
 
-    * _can_hold_na
     * _formatting_values
+
+    Some methods require casting the ExtensionArray to an ndarray of Python
+    objects with ``self.astype(object)``, which may be expensive. When
+    performance is a concern, we highly recommend overriding the following
+    methods:
+
+    * fillna
+    * unique
+    * factorize / _values_for_factorize
+    * argsort / _values_for_argsort
 
     This class does not inherit from 'abc.ABCMeta' for performance reasons.
     Methods and properties required by the interface raise
@@ -42,7 +60,7 @@ class ExtensionArray(object):
 
     ExtensionArrays are limited to 1 dimension.
 
-    They may be backed by none, one, or many NumPy ararys. For example,
+    They may be backed by none, one, or many NumPy arrays. For example,
     ``pandas.Categorical`` is an extension array backed by two arrays,
     one for codes and one for categories. An array of IPv6 address may
     be backed by a NumPy structured array with two fields, one for the
@@ -50,10 +68,11 @@ class ExtensionArray(object):
     by some other storage type, like Python lists. Pandas makes no
     assumptions on how the data are stored, just that it can be converted
     to a NumPy array.
-
-    Extension arrays should be able to be constructed with instances of
-    the class, i.e. ``ExtensionArray(extension_array)`` should return
-    an instance, not error.
+    The ExtensionArray interface does not impose any rules on how this data
+    is stored. However, currently, the backing data cannot be stored in
+    attributes called ``.values`` or ``._values`` to ensure full compatibility
+    with pandas internals. But other names as ``.data``, ``._data``,
+    ``._items``, ... can be freely used.
     """
     # '_typ' is for pandas.core.dtypes.generic.ABCExtensionArray.
     # Don't override this.
@@ -63,7 +82,7 @@ class ExtensionArray(object):
     # Constructors
     # ------------------------------------------------------------------------
     @classmethod
-    def _constructor_from_sequence(cls, scalars):
+    def _from_sequence(cls, scalars):
         """Construct a new ExtensionArray from a sequence of scalars.
 
         Parameters
@@ -207,6 +226,7 @@ class ExtensionArray(object):
     @property
     def shape(self):
         # type: () -> Tuple[int, ...]
+        """Return a tuple of the array dimensions."""
         return (len(self),)
 
     @property
@@ -350,7 +370,7 @@ class ExtensionArray(object):
                 func = pad_1d if method == 'pad' else backfill_1d
                 new_values = func(self.astype(object), limit=limit,
                                   mask=mask)
-                new_values = self._constructor_from_sequence(new_values)
+                new_values = self._from_sequence(new_values)
             else:
                 # fill with value
                 new_values = self.copy()
@@ -369,7 +389,7 @@ class ExtensionArray(object):
         from pandas import unique
 
         uniques = unique(self.astype(object))
-        return self._constructor_from_sequence(uniques)
+        return self._from_sequence(uniques)
 
     def _values_for_factorize(self):
         # type: () -> Tuple[ndarray, Any]
@@ -378,7 +398,8 @@ class ExtensionArray(object):
         Returns
         -------
         values : ndarray
-            An array suitable for factoraization. This should maintain order
+
+            An array suitable for factorization. This should maintain order
             and be a supported dtype (Float64, Int64, UInt64, String, Object).
             By default, the extension array is cast to object dtype.
         na_value : object
@@ -401,7 +422,7 @@ class ExtensionArray(object):
         Returns
         -------
         labels : ndarray
-            An interger NumPy array that's an indexer into the original
+            An integer NumPy array that's an indexer into the original
             ExtensionArray.
         uniques : ExtensionArray
             An ExtensionArray containing the unique values of `self`.
@@ -441,50 +462,94 @@ class ExtensionArray(object):
     # ------------------------------------------------------------------------
     # Indexing methods
     # ------------------------------------------------------------------------
-    def take(self, indexer, allow_fill=True, fill_value=None):
+
+    def take(self, indices, allow_fill=False, fill_value=None):
         # type: (Sequence[int], bool, Optional[Any]) -> ExtensionArray
         """Take elements from an array.
 
         Parameters
         ----------
-        indexer : sequence of integers
-            indices to be taken. -1 is used to indicate values
-            that are missing.
-        allow_fill : bool, default True
-            If False, indexer is assumed to contain no -1 values so no filling
-            will be done. This short-circuits computation of a mask. Result is
-            undefined if allow_fill == False and -1 is present in indexer.
-        fill_value : any, default None
-            Fill value to replace -1 values with. If applicable, this should
-            use the sentinel missing value for this type.
+        indices : sequence of integers
+            Indices to be taken.
+        allow_fill : bool, default False
+            How to handle negative values in `indices`.
+
+            * False: negative values in `indices` indicate positional indices
+              from the right (the default). This is similar to
+              :func:`numpy.take`.
+
+            * True: negative values in `indices` indicate
+              missing values. These values are set to `fill_value`. Any other
+              other negative values raise a ``ValueError``.
+
+        fill_value : any, optional
+            Fill value to use for NA-indices when `allow_fill` is True.
+            This may be ``None``, in which case the default NA value for
+            the type, ``self.dtype.na_value``, is used.
+
+            For many ExtensionArrays, there will be two representations of
+            `fill_value`: a user-facing "boxed" scalar, and a low-level
+            physical NA value. `fill_value` should be the user-facing version,
+            and the implementation should handle translating that to the
+            physical version for processing the take if nescessary.
+
+        Returns
+        -------
+        ExtensionArray
+
+        Raises
+        ------
+        IndexError
+            When the indices are out of bounds for the array.
+        ValueError
+            When `indices` contains negative values other than ``-1``
+            and `allow_fill` is True.
 
         Notes
         -----
-        This should follow pandas' semantics where -1 indicates missing values.
-        Positions where indexer is ``-1`` should be filled with the missing
-        value for this type.
-
-        This is called by ``Series.__getitem__``, ``.loc``, ``iloc``, when the
-        indexer is a sequence of values.
-
-        Examples
-        --------
-        Suppose the extension array is backed by a NumPy array stored as
-        ``self.data``. Then ``take`` may be written as
-
-        .. code-block:: python
-
-           def take(self, indexer, allow_fill=True, fill_value=None):
-               indexer = np.asarray(indexer)
-               mask = indexer == -1
-               result = self.data.take(indexer)
-               result[mask] = np.nan  # NA for this type
-               return type(self)(result)
+        ExtensionArray.take is called by ``Series.__getitem__``, ``.loc``,
+        ``iloc``, when `indices` is a sequence of values. Additionally,
+        it's called by :meth:`Series.reindex`, or any other method
+        that causes realignemnt, with a `fill_value`.
 
         See Also
         --------
         numpy.take
+        pandas.api.extensions.take
+
+        Examples
+        --------
+        Here's an example implementation, which relies on casting the
+        extension array to object dtype. This uses the helper method
+        :func:`pandas.api.extensions.take`.
+
+        .. code-block:: python
+
+           def take(self, indices, allow_fill=False, fill_value=None):
+               from pandas.core.algorithms import take
+
+               # If the ExtensionArray is backed by an ndarray, then
+               # just pass that here instead of coercing to object.
+               data = self.astype(object)
+
+               if allow_fill and fill_value is None:
+                   fill_value = self.dtype.na_value
+
+               # fill value should always be translated from the scalar
+               # type for the array, to the physical storage type for
+               # the data, before passing to take.
+
+               result = take(data, indices, fill_value=fill_value,
+                             allow_fill=allow_fill)
+               return self._from_sequence(result)
         """
+        # Implementer note: The `fill_value` parameter should be a user-facing
+        # value, an instance of self.dtype.type. When passed `fill_value=None`,
+        # the default of `self.dtype.na_value` should be used.
+        # This may differ from the physical storage type your ExtensionArray
+        # uses. In this case, your implementation is responsible for casting
+        # the user-facing type to the storage type, before using
+        # pandas.api.extensions.take
         raise AbstractMethodError(self)
 
     def copy(self, deep=False):
@@ -527,16 +592,12 @@ class ExtensionArray(object):
         """
         raise AbstractMethodError(cls)
 
-    @property
-    def _can_hold_na(self):
-        # type: () -> bool
-        """Whether your array can hold missing values. True by default.
-
-        Notes
-        -----
-        Setting this to false will optimize some operations like fillna.
-        """
-        return True
+    # The _can_hold_na attribute is set to True so that pandas internals
+    # will use the ExtensionDtype.na_value as the NA value in operations
+    # such as take(), reindex(), shift(), etc.  In addition, those results
+    # will then be of the ExtensionArray subclass rather than an array
+    # of objects
+    _can_hold_na = True
 
     @property
     def _ndarray_values(self):

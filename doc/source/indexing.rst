@@ -96,7 +96,7 @@ of multi-axis indexing.
 
       .. versionadded:: 0.18.1
 
-  See more at :ref:`Selection by Position <indexing.integer>`, 
+  See more at :ref:`Selection by Position <indexing.integer>`,
   :ref:`Advanced Indexing <advanced>` and :ref:`Advanced
   Hierarchical <advanced.advanced_hierarchical>`.
 
@@ -125,7 +125,7 @@ Basics
 As mentioned when introducing the data structures in the :ref:`last section
 <basics>`, the primary function of indexing with ``[]`` (a.k.a. ``__getitem__``
 for those familiar with implementing class behavior in Python) is selecting out
-lower-dimensional slices. The following table shows return type values when 
+lower-dimensional slices. The following table shows return type values when
 indexing pandas objects with ``[]``:
 
 .. csv-table::
@@ -235,7 +235,7 @@ as an attribute:
    - The attribute will not be available if it conflicts with an existing method name, e.g. ``s.min`` is not allowed.
 
    - Similarly, the attribute will not be available if it conflicts with any of the following list: ``index``,
-     ``major_axis``, ``minor_axis``, ``items``, ``labels``.
+     ``major_axis``, ``minor_axis``, ``items``.
 
    - In any of these cases, standard indexing will still work, e.g. ``s['1']``, ``s['min']``, and ``s['index']`` will
      access the corresponding element or column.
@@ -888,10 +888,10 @@ Boolean indexing
 .. _indexing.boolean:
 
 Another common operation is the use of boolean vectors to filter the data.
-The operators are: ``|`` for ``or``, ``&`` for ``and``, and ``~`` for ``not``. 
+The operators are: ``|`` for ``or``, ``&`` for ``and``, and ``~`` for ``not``.
 These **must** be grouped by using parentheses, since by default Python will
-evaluate an expression such as ``df.A > 2 & df.B < 3`` as 
-``df.A > (2 & df.B) < 3``, while the desired evaluation order is 
+evaluate an expression such as ``df.A > 2 & df.B < 3`` as
+``df.A > (2 & df.B) < 3``, while the desired evaluation order is
 ``(df.A > 2) & (df.B < 3)``.
 
 Using a boolean vector to index a Series works exactly as in a NumPy ndarray:
@@ -944,8 +944,8 @@ and :ref:`Advanced Indexing <advanced>` you may select along more than one axis 
 Indexing with isin
 ------------------
 
-Consider the :meth:`~Series.isin` method of ``Series``, which returns a boolean 
-vector that is true wherever the ``Series`` elements exist in the passed list. 
+Consider the :meth:`~Series.isin` method of ``Series``, which returns a boolean
+vector that is true wherever the ``Series`` elements exist in the passed list.
 This allows you to select rows where one or more columns have values you want:
 
 .. ipython:: python
@@ -1666,7 +1666,7 @@ Set an index
 
 .. _indexing.set_index:
 
-DataFrame has a :meth:`~DataFrame.set_index` method which takes a column name 
+DataFrame has a :meth:`~DataFrame.set_index` method which takes a column name
 (for a regular ``Index``) or a list of column names (for a ``MultiIndex``).
 To create a new, re-indexed DataFrame:
 
@@ -1707,9 +1707,9 @@ the index in-place (without creating a new object):
 Reset the index
 ~~~~~~~~~~~~~~~
 
-As a convenience, there is a new function on DataFrame called 
-:meth:`~DataFrame.reset_index` which transfers the index values into the 
-DataFrame's columns and sets a simple integer index. 
+As a convenience, there is a new function on DataFrame called
+:meth:`~DataFrame.reset_index` which transfers the index values into the
+DataFrame's columns and sets a simple integer index.
 This is the inverse operation of :meth:`~DataFrame.set_index`.
 
 
@@ -1773,7 +1773,7 @@ These both yield the same results, so which should you use? It is instructive to
 of operations on these and why method 2 (``.loc``) is much preferred over method 1 (chained ``[]``).
 
 ``dfmi['one']`` selects the first level of the columns and returns a DataFrame that is singly-indexed.
-Then another Python operation ``dfmi_with_one['second']`` selects the series indexed by ``'second'`` happens.
+Then another Python operation ``dfmi_with_one['second']`` selects the series indexed by ``'second'``.
 This is indicated by the variable ``dfmi_with_one`` because pandas sees these operations as separate events.
 e.g. separate calls to ``__getitem__``, so it has to treat them as linear operations, they happen one after another.
 
