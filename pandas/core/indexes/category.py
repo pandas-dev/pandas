@@ -436,10 +436,10 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         >>> non_monotonic_index.get_loc('b')
         array([False,  True, False,  True], dtype=bool)
         """
-        try:
-            codes = self.categories.get_loc(key)
-        except KeyError:
-            raise KeyError("Category `{}` unknown".format(key))
+        codes = self.categories.get_loc(key)
+        if (codes == -1):
+            raise KeyError(key)
+
         return self._engine.get_loc(codes)
 
     def get_value(self, series, key):

@@ -86,7 +86,7 @@ class TestCategoricalAnalytics(object):
         # Searching for single item argument, side='left' (default)
         res_cat = c1.searchsorted('apple')
         res_ser = s1.searchsorted('apple')
-        exp = np.int64(2)
+        exp = np.intp(2)
         assert res_cat == exp
         assert res_ser == exp
 
