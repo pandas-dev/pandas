@@ -647,6 +647,11 @@ def coerce_to_dtypes(result, dtypes):
 def astype_nansafe(arr, dtype, copy=True):
     """ return a view if copy is False, but
         need to be very careful as the result shape could change! """
+
+    # dispatch on extension dtype if needed
+    if is_extension_array_dtype(dtype):
+        return dtype.array_type._from_sequence(arr, copy=copy)
+
     if not isinstance(dtype, np.dtype):
         dtype = pandas_dtype(dtype)
 

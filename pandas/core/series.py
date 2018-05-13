@@ -4054,11 +4054,9 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 subarr = Categorical(arr, dtype.categories,
                                      ordered=dtype.ordered)
             elif is_extension_array_dtype(dtype):
-                # We don't allow casting to third party dtypes, since we don't
-                # know what array belongs to which type.
-                msg = ("Cannot cast data to extension dtype '{}'. "
-                       "Pass the extension array directly.".format(dtype))
-                raise ValueError(msg)
+                # create an extension array from its dtype
+                array_type = dtype.array_type
+                subarr = array_type(subarr, copy=copy)
 
             elif dtype is not None and raise_cast_failure:
                 raise

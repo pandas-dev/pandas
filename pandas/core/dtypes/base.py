@@ -156,6 +156,12 @@ class ExtensionDtype(_DtypeOpsMixin):
         """
         raise AbstractMethodError(self)
 
+    @property
+    def array_type(self):
+        """Return the array type associated with this dtype
+        """
+        raise AbstractMethodError(self)
+
     @classmethod
     def construct_from_string(cls, string):
         """Attempt to construct this type from a string.

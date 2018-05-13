@@ -27,7 +27,7 @@ class DecimalDtype(ExtensionDtype):
 class DecimalArray(ExtensionArray):
     dtype = DecimalDtype()
 
-    def __init__(self, values):
+    def __init__(self, values, copy=False):
         assert all(isinstance(v, decimal.Decimal) for v in values)
         values = np.asarray(values, dtype=object)
 
@@ -40,7 +40,7 @@ class DecimalArray(ExtensionArray):
         # self._values = self.values = self.data
 
     @classmethod
-    def _from_sequence(cls, scalars):
+    def _from_sequence(cls, scalars, copy=False):
         return cls(scalars)
 
     @classmethod
@@ -99,6 +99,9 @@ class DecimalArray(ExtensionArray):
     @classmethod
     def _concat_same_type(cls, to_concat):
         return cls(np.concatenate([x._data for x in to_concat]))
+
+
+DecimalDtype.array_type = DecimalArray
 
 
 def make_data():
