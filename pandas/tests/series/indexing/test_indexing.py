@@ -772,7 +772,7 @@ def test_head_tail(test_data):
 
 def test_reset_index_drop_errmsg():
     # https://github.com/pandas-dev/pandas/issues/20925
-    
+
     # Check KeyError raised for series where no 'level' name is defined
     s = pd.Series(range(4))
     with tm.assert_raises_regex(KeyError, 'must be same as name'):
