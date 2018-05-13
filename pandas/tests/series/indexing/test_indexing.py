@@ -772,16 +772,15 @@ def test_head_tail(test_data):
 
 def test_reset_index_drop_errmsg():
     # https://github.com/pandas-dev/pandas/issues/20925
-    # Data for Test Case 1 and 2
+    
+    # Checks that KeyError is raised for series where no 'level' name is defined
     s = pd.Series(range(4))
-    # Test Case 1
     with tm.assert_raises_regex(KeyError, 'must be same as name'):
         s.reset_index('wrong', drop=True)
-    # Test Case 2
     with tm.assert_raises_regex(KeyError, 'must be same as name'):
         s.reset_index('wrong')
-    # Data for Test Case 3
+
+    # Checks that KeyError is raised for series where 'level' to be dropped is not is defined levels
     s = pd.Series(range(4), index=pd.MultiIndex.from_product([[1, 2]] * 2))
-    # Test Case 3
     with tm.assert_raises_regex(KeyError, 'not found'):
         s.reset_index('wrong', drop=True)
