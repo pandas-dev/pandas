@@ -785,8 +785,3 @@ def test_reset_index_drop_errmsg():
     # Test Case 3
     with tm.assert_raises_regex(KeyError, 'not found'):
         s.reset_index('wrong', drop=True)
-    # Data for Test Case 4
-    s = pd.Series(range(4), name='valid')
-    # Test Case 4
-    with tm.assert_raises_regex(KeyError, 'must be same as name'):
-        s.reset_index(['valid', 'valid'], drop=True)

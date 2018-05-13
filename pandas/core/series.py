@@ -1198,10 +1198,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             if level is not None:
                 if not isinstance(level, (tuple, list)):
                     level = [level]
-                level = set(level)
                 level = [self.index._get_level_number(lev) for lev in level]
                 if isinstance(self.index, MultiIndex):
-                    if (len(level) < len(self.index.levels)):
+                    if len(level) < self.index.nlevels:
                         new_index = self.index.droplevel(level)
 
             if inplace:
