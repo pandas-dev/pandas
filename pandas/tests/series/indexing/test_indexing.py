@@ -780,7 +780,7 @@ def test_reset_index_drop_errmsg():
     with tm.assert_raises_regex(KeyError, 'must be same as name'):
         s.reset_index('wrong')
 
-    # Checks KeyError raised for series where 'level' to be dropped is not defined
+    # Check KeyError raised for series where 'level' to be dropped is undefined
     s = pd.Series(range(4), index=pd.MultiIndex.from_product([[1, 2]] * 2))
     with tm.assert_raises_regex(KeyError, 'not found'):
         s.reset_index('wrong', drop=True)
