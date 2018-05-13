@@ -364,18 +364,16 @@ class TestSeriesAnalytics(TestData):
         tm.assert_series_equal(s.mode(dropna), expected2)
 
     @pytest.mark.skipif(not compat.PY3, reason="only PY3")
-    @pytest.mark.parametrize('dropna, expected', [
-        (False, ['foo', np.nan]),
-    ])
-    def test_mode_sortwarning(self, dropna, expected):
+    def test_mode_sortwarning(self):
         # Check for the warning that is raised when the mode
         # results cannot be sorted
 
-        expected = Series(expected)
+        expected = Series(['foo', np.nan])
         s = Series([1, 'foo', 'foo', np.nan, np.nan])
 
         with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
-            result = s.mode(dropna).sort_values().reset_index(drop=True)
+            result = s.mode(dropna=False)
+            result = result.sort_values().reset_index(drop=True)
 
         tm.assert_series_equal(result, expected)
 
