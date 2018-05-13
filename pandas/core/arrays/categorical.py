@@ -1847,6 +1847,13 @@ class Categorical(ExtensionArray, PandasObject):
         """Returns an Iterator over the values of this Categorical."""
         return iter(self.get_values().tolist())
 
+    def __contains__(self, key):
+        """Returns True if `key` is in this Categorical."""
+        if key in self.categories:
+            return self.categories.get_loc(key) in self.codes
+        else:
+            return False
+
     def _tidy_repr(self, max_vals=10, footer=True):
         """ a short repr displaying only max_vals and an optional (but default
         footer)

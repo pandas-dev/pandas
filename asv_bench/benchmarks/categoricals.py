@@ -193,3 +193,47 @@ class IsMonotonic(object):
 
     def time_categorical_series_is_monotonic_decreasing(self):
         self.s.is_monotonic_decreasing
+
+
+class Contains(object):
+
+    params = (["a", "c", "d", "z", np.nan], [True, False])
+    param_names = ["value", "has_nan"]
+
+    def setup(self, value, has_nan):
+        n = 1 * 10 ** 4
+        obj_values = list("a" * n + "b" * n + "c" * n)
+        if has_nan:
+            obj_values = [np.nan] + obj_values[:-2] + [np.nan]
+
+        self.ci = pd.CategoricalIndex(obj_values, categories=list("abcd"))
+        self.cat = pd.Categorical(obj_values, categories=list("abcd"))
+
+    def time_contains_index(self, value, has_nan):
+        value in self.ci
+
+    def time_cat_isin(self, value, has_nan):
+        value in self.cat
+
+
+class Indexing(object):
+
+    params = (["a", "c"], [True, False])
+    param_names = ["value", "has_nan"]
+
+    def setup(self, value, has_nan):
+        n = 1 * 10 ** 4
+        obj_values = list("a" * n + "b" * n + "c" * n)
+        if has_nan:
+            obj_values = [np.nan] + obj_values[:-2] + [np.nan]
+
+        self.ci = pd.CategoricalIndex(obj_values, categories=list("abcd"))
+        self.cat = pd.Categorical(obj_values, categories=list("abcd"))
+        self.df = pd.DataFrame(dict(A=range(n * 3)), index=self.ci)
+        self.ser = pd.Series(range(n * 3), index=self.ci)
+
+    def time_loc_df(self, value, has_nan):
+        self.df.loc[value]
+
+    def time_loc_ser(self, value, has_nan):
+        self.ser.loc[value]
