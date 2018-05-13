@@ -1481,7 +1481,54 @@ def str_rsplit(arr, pat=None, n=None):
 
     Returns
     -------
-    split : Series/Index or DataFrame/MultiIndex of objects
+        Series/Index or DataFrame/MultiIndex of objects
+
+    See Also
+    --------
+    str.rsplit : Standard library version of this method.
+
+    Examples
+    --------
+    >>> s = pd.Series(["this is good text", "but this is even better"])
+
+    By default, split will return an object of the same size
+    having lists containing the split elements
+
+    >>> s.str.rsplit()
+    0           [this, is, good, text]
+    1    [but, this, is, even, better]
+    dtype: object
+    >>> s.str.rsplit("random")
+    0          [this is good text]
+    1    [but this is even better]
+    dtype: object
+
+    When using ''expand=True'', the split elements will expand out into
+    separate columns.
+
+    For Series object, output return type is DataFrame.
+
+    >>> s.str.rsplit(expand=True)
+          0     1     2     3       4
+    0  this    is  good  text    None
+    1   but  this    is  even  better
+
+    Parameter 'n' can be used to limit the number of splits in the output.
+
+    >>> s.str.rsplit("is", n=1)
+    0          [this ,  good text]
+    1    [but this ,  even better]
+    dtype: object
+
+    If NaN is present, it is propagated throughout the columns
+    during the split.
+
+    >>> s = pd.Series(["this is good text", "but this is even better", np.nan])
+    >>> s.str.rsplit(n=3, expand=True)
+              0    1     2       3
+    0      this   is  good    text
+    1  but this   is  even  better
+    2       NaN  NaN   NaN     NaN
     """
     if n is None or n == 0:
         n = -1
