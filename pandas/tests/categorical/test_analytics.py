@@ -86,9 +86,9 @@ class TestCategoricalAnalytics(object):
         # Searching for single item argument, side='left' (default)
         res_cat = c1.searchsorted('apple')
         res_ser = s1.searchsorted('apple')
-        exp = np.array([2], dtype=np.intp)
-        tm.assert_numpy_array_equal(res_cat, exp)
-        tm.assert_numpy_array_equal(res_ser, exp)
+        exp = np.int64(2)
+        assert res_cat == exp
+        assert res_ser == exp
 
         # Searching for single item array, side='left' (default)
         res_cat = c1.searchsorted(['bread'])

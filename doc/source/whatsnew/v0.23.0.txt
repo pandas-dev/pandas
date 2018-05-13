@@ -1289,6 +1289,9 @@ Indexing
 - Bug in performing in-place operations on a ``DataFrame`` with a duplicate ``Index`` (:issue:`17105`)
 - Bug in :meth:`IntervalIndex.get_loc` and :meth:`IntervalIndex.get_indexer` when used with an :class:`IntervalIndex` containing a single interval (:issue:`17284`, :issue:`20921`)
 - Bug in ``.loc`` with a ``uint64`` indexer (:issue:`20722`)
+- Bug in ``CategoricalIndex.searchsorted`` where the method didn't return a scalar when the input values was scalar (:issue:`21019`)
+- Bug in ``CategoricalIndex`` where slicing beyond the range of the data raised a KeyError (:issue:`21019`)
+
 
 MultiIndex
 ^^^^^^^^^^

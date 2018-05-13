@@ -627,15 +627,52 @@ class TestCategoricalIndex(object):
                       lambda: self.df2.reindex(['a'], limit=2))
 
     def test_loc_slice(self):
-        # slicing
-        # not implemented ATM
-        # GH9748
+        # Raises KeyError since the left slice 'a' is not unique
+        pytest.raises(KeyError, lambda: self.df.loc["a":"b"])
+        result = self.df.loc["b":"c"]
 
-        pytest.raises(TypeError, lambda: self.df.loc[1:5])
+        expected = DataFrame(
+            {"A": [2, 3, 4]},
+            index=CategoricalIndex(
+                ["b", "b", "c"], name="B", categories=list("cab")
+            ),
+        )
 
-        # result = df.loc[1:5]
-        # expected = df.iloc[[1,2,3,4]]
-        # assert_frame_equal(result, expected)
+        assert_frame_equal(result, expected)
+
+        ordered_df = DataFrame(
+            {"A": range(0, 6)},
+            index=CategoricalIndex(list("aabcde"), name="B", ordered=True),
+        )
+
+        result = ordered_df.loc["a":"b"]
+        expected = DataFrame(
+            {"A": range(0, 3)},
+            index=CategoricalIndex(
+                list("aab"), categories=list("abcde"), name="B", ordered=True
+            ),
+        )
+        assert_frame_equal(result, expected)
+
+        # This should select the entire dataframe
+        result = ordered_df.loc["a":"e"]
+        assert_frame_equal(result, ordered_df)
+
+        df_slice = ordered_df.loc["a":"b"]
+        # Although the edge is not within the slice, this should fall back
+        # to searchsorted slicing since the category is known
+        result = df_slice.loc["a":"e"]
+        assert_frame_equal(result, df_slice)
+
+        # If the categorical is not sorted and the requested edge
+        # is not in the slice we cannot perform slicing
+        df_slice.index = df_slice.index.as_unordered()
+        with pytest.raises(KeyError):
+            df_slice.loc["a":"e"]
+
+        with pytest.raises(KeyError):
+            # If the category is not known, there is nothing we can do
+            ordered_df.loc["a":"z"]
 
     def test_boolean_selection(self):
 

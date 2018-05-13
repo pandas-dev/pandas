@@ -432,13 +432,14 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         >>> monotonic_index.get_loc('b')
         slice(1, 3, None)
 
-        >>> non_monotonic_index = p.dCategoricalIndex(list('abcb'))
+        >>> non_monotonic_index = pd.CategoricalIndex(list('abcb'))
         >>> non_monotonic_index.get_loc('b')
         array([False,  True, False,  True], dtype=bool)
         """
-        codes = self.categories.get_loc(key)
-        if (codes == -1):
-            raise KeyError(key)
+        try:
+            codes = self.categories.get_loc(key)
+        except KeyError:
+            raise KeyError("Category `{}` unknown".format(key))
         return self._engine.get_loc(codes)
 
     def get_value(self, series, key):

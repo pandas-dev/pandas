@@ -1342,6 +1342,8 @@ class Categorical(ExtensionArray, PandasObject):
 
         if -1 in values_as_codes:
             raise ValueError("Value(s) to be inserted must be in categories.")
+        if is_scalar(value):
+            values_as_codes = np.asscalar(values_as_codes)
 
         return self.codes.searchsorted(values_as_codes, side=side,
                                        sorter=sorter)
