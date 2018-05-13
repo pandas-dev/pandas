@@ -2411,6 +2411,10 @@ class Categorical(ExtensionArray, PandasObject):
         return algorithms.isin(self.codes, code_values)
 
 
+# inform the Dtype about us
+CategoricalDtype.array_type = Categorical
+
+
 # The Series.cat accessor
 
 

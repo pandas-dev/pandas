@@ -10,7 +10,7 @@ from pandas import (
 from pandas.compat import string_types
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype, PeriodDtype,
-    IntervalDtype, CategoricalDtype)
+    IntervalDtype, CategoricalDtype, registry)
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_categorical,
     is_datetime64tz_dtype, is_datetimetz,
@@ -767,3 +767,24 @@ class TestCategoricalDtypeParametrized(object):
         msg = 'a CategoricalDtype must be passed to perform an update, '
         with tm.assert_raises_regex(ValueError, msg):
             dtype.update_dtype(bad_dtype)
+
+
+@pytest.mark.parametrize(
+    'dtype',
+    [DatetimeTZDtype, CategoricalDtype,
+     PeriodDtype, IntervalDtype])
+def test_registry(dtype):
+    assert dtype in registry.dtypes
+
+
+@pytest.mark.parametrize(
+    'dtype, expected',
+    [('int64', None),
+     ('interval', IntervalDtype()),
+     ('interval[int64]', IntervalDtype()),
+     ('category', CategoricalDtype()),
+     ('period[D]', PeriodDtype('D')),
+     ('datetime64[ns, US/Eastern]', DatetimeTZDtype('ns', 'US/Eastern'))])
+def test_registry_find(dtype, expected):
+
+    assert registry.find(dtype) == expected

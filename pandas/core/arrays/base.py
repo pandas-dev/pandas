@@ -36,7 +36,9 @@ class ExtensionArray(object):
     * isna
     * take
     * copy
+    * append
     * _concat_same_type
+    * array_type
 
     An additional method is available to satisfy pandas' internal,
     private block API.
@@ -49,6 +51,7 @@ class ExtensionArray(object):
     methods:
 
     * fillna
+    * dropna
     * unique
     * factorize / _values_for_factorize
     * argsort / _values_for_argsort
@@ -82,7 +85,7 @@ class ExtensionArray(object):
     # Constructors
     # ------------------------------------------------------------------------
     @classmethod
-    def _from_sequence(cls, scalars):
+    def _from_sequence(cls, scalars, copy=False):
         """Construct a new ExtensionArray from a sequence of scalars.
 
         Parameters
@@ -90,6 +93,8 @@ class ExtensionArray(object):
         scalars : Sequence
             Each element will be an instance of the scalar type for this
             array, ``cls.dtype.type``.
+        copy : boolean, default True
+            if True, copy the underlying data
         Returns
         -------
         ExtensionArray
@@ -379,6 +384,16 @@ class ExtensionArray(object):
             new_values = self.copy()
         return new_values
 
+    def dropna(self):
+        """ Return ExtensionArray without NA values
+
+        Returns
+        -------
+        valid : ExtensionArray
+        """
+
+        return self[~self.isna()]
+
     def unique(self):
         """Compute the ExtensionArray of unique values.
 
@@ -566,6 +581,34 @@ class ExtensionArray(object):
         ExtensionArray
         """
         raise AbstractMethodError(self)
+
+    def append(self, other):
+        """
+        Append a collection of Arrays together
+
+        Parameters
+        ----------
+        other : ExtensionArray or list/tuple of ExtensionArrays
+
+        Returns
+        -------
+        appended : ExtensionArray
+        """
+
+        to_concat = [self]
+        cls = self.__class__
+
+        if isinstance(other, (list, tuple)):
+            to_concat = to_concat + list(other)
+        else:
+            to_concat.append(other)
+
+        for obj in to_concat:
+            if not isinstance(obj, cls):
+                raise TypeError('all inputs must be of type {}'.format(
+                    cls.__name__))
+
+        return cls._concat_same_type(to_concat)
 
     # ------------------------------------------------------------------------
     # Block-related methods

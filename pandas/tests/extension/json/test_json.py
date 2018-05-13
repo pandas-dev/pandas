@@ -129,8 +129,16 @@ class TestInterface(BaseJSON, base.BaseInterfaceTests):
             self.assert_frame_equal(a.to_frame(), b.to_frame())
 
 
-class TestConstructors(BaseJSON, base.BaseConstructorsTests):
+class TestOps(BaseJSON, base.BaseOpsTests):
     pass
+
+
+class TestConstructors(BaseJSON, base.BaseConstructorsTests):
+
+    @pytest.mark.xfail(reason="not implemented constructor from dtype")
+    def test_from_dtype(self, data):
+        # construct from our dtype & string dtype
+        pass
 
 
 class TestReshaping(BaseJSON, base.BaseReshapingTests):

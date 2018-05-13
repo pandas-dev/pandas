@@ -65,6 +65,10 @@ class TestDtype(base.BaseDtypeTests):
     pass
 
 
+class TestOps(base.BaseOpsTests):
+    pass
+
+
 class TestInterface(base.BaseInterfaceTests):
     @pytest.mark.skip(reason="Memory usage doesn't match")
     def test_memory_usage(self):
