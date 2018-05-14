@@ -17,6 +17,8 @@ Reshaping and Pivot Tables
 Reshaping by pivoting DataFrame objects
 ---------------------------------------
 
+.. image:: _static/reshaping_pivot.png
+
 .. ipython::
    :suppress:
 
@@ -59,8 +61,6 @@ To select out everything for variable ``A`` we could do:
 .. ipython:: python
 
    df[df['variable'] == 'A']
-
-.. image:: _static/reshaping_pivot.png
 
 But suppose we wish to do time series operations with the variables. A better
 representation would be where the ``columns`` are the unique variables and an
