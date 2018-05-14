@@ -1465,19 +1465,21 @@ def str_split(arr, pat=None, n=None):
 
 def str_rsplit(arr, pat=None, n=None):
     """
-    Split each string in the Series/Index by the given delimiter
-    string, starting at the end of the string and working to the front.
-    Equivalent to :meth:`str.rsplit`.
+    Split strings around given separator/delimiter.
+
+    Returns a list of the words from each string in 
+    Series/Index, separated by the delimiter string 
+    (starting from the right). Equivalent to :meth:`str.rsplit`.
 
     Parameters
     ----------
     pat : string, default None
-        Separator to split on. If None, splits on whitespace
+        Separator to split on. If None, splits on whitespace.
     n : int, default -1 (all)
-        None, 0 and -1 will be interpreted as return all splits
+        None, 0 and -1 will be interpreted as return all splits.
     expand : bool, default False
-        * If True, return DataFrame/MultiIndex expanding dimensionality.
-        * If False, return Series/Index.
+          If True, return DataFrame/MultiIndex expanding dimensionality.
+          If False, return Series/Index.
 
     Returns
     -------
