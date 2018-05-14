@@ -5233,18 +5233,19 @@ class DataFrame(NDFrame):
         ...                    "C": ["small", "large", "large", "small",
         ...                          "small", "large", "small", "small",
         ...                          "large"],
-        ...                    "D": [1, 2, 2, 3, 3, 4, 5, 6, 7]})
+        ...                    "D": [1, 2, 2, 3, 3, 4, 5, 6, 7],
+        ...                    "E": [2, 4, 5, 5, 6, 6, 8, 9, 9]})
         >>> df
-             A    B      C  D
-        0  foo  one  small  1
-        1  foo  one  large  2
-        2  foo  one  large  2
-        3  foo  two  small  3
-        4  foo  two  small  3
-        5  bar  one  large  4
-        6  bar  one  small  5
-        7  bar  two  small  6
-        8  bar  two  large  7
+             A    B      C  D  E
+        0  foo  one  small  1  2
+        1  foo  one  large  2  4
+        2  foo  one  large  2  5
+        3  foo  two  small  3  5
+        4  foo  two  small  3  6
+        5  bar  one  large  4  6
+        6  bar  one  small  5  8
+        7  bar  two  small  6  9
+        8  bar  two  large  7  9
 
         This first example aggregates values by taking the sum.
 
@@ -5253,22 +5254,52 @@ class DataFrame(NDFrame):
         >>> table
         C        large  small
         A   B
-        bar one    4.0    5.0
-            two    7.0    6.0
-        foo one    4.0    1.0
-            two    NaN    6.0
+        bar one      4      5
+            two      7      6
+        foo one      4      1
+            two    NaN      6
+
+        We can also fill missing values using the `fill_value` parameter.
+
+        >>> table = pivot_table(df, values='D', index=['A', 'B'],
+        ...                     columns=['C'], aggfunc=np.sum, fill_value=0)
+        >>> table
+        C        large  small
+        A   B
+        bar one      4      5
+            two      7      6
+        foo one      4      1
+            two      0      6
+
+        The next example aggregates by taking the mean using values for multiple
+        columns.
+
+        >>> table = pivot_table(df, values=['D', 'E'], index=['A', 'C'],
+        ...                     aggfunc={'D': np.mean,
+        ...                              'E': np.mean})
+        >>> table
+                          D         E
+                       mean      mean
+        A   C
+        bar large  5.500000  7.500000
+            small  5.500000  8.500000
+        foo large  2.000000  4.500000
+            small  2.333333  4.333333
+
+        We can also calculate multiple types of aggregations for any given value
+        column.
 
         >>> table = pivot_table(df, values=['D', 'E'], index=['A', 'C'],
         ...                     aggfunc={'D': np.mean,
         ...                              'E': [min, max, np.mean]})
         >>> table
                           D   E
-                       mean max median min
+                       mean max      mean min
         A   C
-        bar large  5.500000  16   14.5  13
-            small  5.500000  15   14.5  14
-        foo large  2.000000  10    9.5   9
-            small  2.333333  12   11.0   8
+        bar large  5.500000  9   7.500000   6
+            small  5.500000  9   8.500000   8
+        foo large  2.000000  5   4.500000   4
+            small  2.333333  6   4.333333   2
 
         Returns
         -------
