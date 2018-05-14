@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
 import collections
+import textwrap
+import warnings
 
 import sys
 cdef bint PY3 = (sys.version_info[0] >= 3)
@@ -1188,6 +1190,15 @@ class Timedelta(_Timedelta):
             if other.dtype.kind == 'm':
                 # also timedelta-like
                 return _broadcast_floordiv_td64(self.value, other, _rfloordiv)
+            elif other.dtype.kind == 'i':
+                # Backwards compatibility
+                # GH-19761
+                msg = textwrap.dedent("""\
+                Floor division between integer array and Timedelta is
+                deprecated. Use 'array // timedelta.value' instead.
+                """)
+                warnings.warn(msg, FutureWarning)
+                return other // self.value
             raise TypeError('Invalid dtype {dtype} for '
                             '{op}'.format(dtype=other.dtype,
                                           op='__floordiv__'))

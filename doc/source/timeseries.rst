@@ -308,7 +308,7 @@ We convert the ``DatetimeIndex`` to an ``int64`` array, then divide by the conve
 
 .. ipython:: python
 
-   stamps.view('int64') // pd.Timedelta(1, unit='s')
+   stamps.view('int64') // pd.Timedelta(1, unit='s').value
 
 .. _timeseries.origin:
 
