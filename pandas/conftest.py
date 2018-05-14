@@ -2,6 +2,7 @@ import pytest
 
 import numpy as np
 import pandas as pd
+from pandas.compat import PY3
 import pandas.util._test_decorators as td
 
 
@@ -74,6 +75,24 @@ def observed(request):
     appear in the grouper [True]. [None] is supported for future compatiblity
     if we decide to change the default (and would need to warn if this
     parameter is not passed)"""
+    return request.param
+
+
+_all_arithmetic_operators = ['__add__', '__radd__',
+                             '__sub__', '__rsub__',
+                             '__mul__', '__rmul__',
+                             '__floordiv__', '__rfloordiv__',
+                             '__truediv__', '__rtruediv__',
+                             '__pow__', '__rpow__']
+if not PY3:
+    _all_arithmetic_operators.extend(['__div__', '__rdiv__'])
+
+
+@pytest.fixture(params=_all_arithmetic_operators)
+def all_arithmetic_operators(request):
+    """
+    Fixture for dunder names for common arithmetic operations
+    """
     return request.param
 
 
