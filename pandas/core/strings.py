@@ -262,29 +262,123 @@ def str_count(arr, pat, flags=0):
 
 def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
     """
-    Return boolean Series/``array`` whether given pattern/regex is
-    contained in each string in the Series/Index.
+    Test if pattern or regex is contained within a string of a Series or Index.
+
+    Return boolean Series or Index based on whether a given pattern or regex is
+    contained within a string of a Series or Index.
 
     Parameters
     ----------
-    pat : string
-        Character sequence or regular expression
-    case : boolean, default True
-        If True, case sensitive
+    pat : str
+        Character sequence or regular expression.
+    case : bool, default True
+        If True, case sensitive.
     flags : int, default 0 (no flags)
-        re module flags, e.g. re.IGNORECASE
-    na : default NaN, fill value for missing values.
+        Flags to pass through to the re module, e.g. re.IGNORECASE.
+    na : default NaN
+        Fill value for missing values.
     regex : bool, default True
-        If True use re.search, otherwise use Python in operator
+        If True, assumes the pat is a regular expression.
+
+        If False, treats the pat as a literal string.
 
     Returns
     -------
-    contained : Series/array of boolean values
+    Series or Index of boolean values
+        A Series or Index of boolean values indicating whether the
+        given pattern is contained within the string of each element
+        of the Series or Index.
 
     See Also
     --------
     match : analogous, but stricter, relying on re.match instead of re.search
 
+    Examples
+    --------
+
+    Returning a Series of booleans using only a literal pattern.
+
+    >>> s1 = pd.Series(['Mouse', 'dog', 'house and parrot', '23', np.NaN])
+    >>> s1.str.contains('og', regex=False)
+    0    False
+    1     True
+    2    False
+    3    False
+    4      NaN
+    dtype: object
+
+    Returning an Index of booleans using only a literal pattern.
+
+    >>> ind = pd.Index(['Mouse', 'dog', 'house and parrot', '23.0', np.NaN])
+    >>> ind.str.contains('23', regex=False)
+    Index([False, False, False, True, nan], dtype='object')
+
+    Specifying case sensitivity using `case`.
+
+    >>> s1.str.contains('oG', case=True, regex=True)
+    0    False
+    1    False
+    2    False
+    3    False
+    4      NaN
+    dtype: object
+
+    Specifying `na` to be `False` instead of `NaN` replaces NaN values
+    with `False`. If Series or Index does not contain NaN values
+    the resultant dtype will be `bool`, otherwise, an `object` dtype.
+
+    >>> s1.str.contains('og', na=False, regex=True)
+    0    False
+    1     True
+    2    False
+    3    False
+    4    False
+    dtype: bool
+
+    Returning 'house' and 'parrot' within same string.
+
+    >>> s1.str.contains('house|parrot', regex=True)
+    0    False
+    1    False
+    2     True
+    3    False
+    4      NaN
+    dtype: object
+
+    Ignoring case sensitivity using `flags` with regex.
+
+    >>> import re
+    >>> s1.str.contains('PARROT', flags=re.IGNORECASE, regex=True)
+    0    False
+    1    False
+    2     True
+    3    False
+    4      NaN
+    dtype: object
+
+    Returning any digit using regular expression.
+
+    >>> s1.str.contains('\d', regex=True)
+    0    False
+    1    False
+    2    False
+    3     True
+    4      NaN
+    dtype: object
+
+    Ensure `pat` is a not a literal pattern when `regex` is set to True.
+    Note in the following example one might expect only `s2[1]` and `s2[3]` to
+    return `True`. However, '.0' as a regex matches any character
+    followed by a 0.
+
+    >>> s2 = pd.Series(['40','40.0','41','41.0','35'])
+    >>> s2.str.contains('.0', regex=True)
+    0     True
+    1     True
+    2    False
+    3     True
+    4    False
+    dtype: bool
     """
     if regex:
         if not case:

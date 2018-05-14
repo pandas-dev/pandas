@@ -5835,7 +5835,8 @@ class JoinUnit(object):
                     if len(values) and values[0] is None:
                         fill_value = None
 
-                if getattr(self.block, 'is_datetimetz', False):
+                if getattr(self.block, 'is_datetimetz', False) or \
+                        is_datetimetz(empty_dtype):
                     pass
                 elif getattr(self.block, 'is_categorical', False):
                     pass

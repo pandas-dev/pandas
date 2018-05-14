@@ -519,13 +519,14 @@ Other Enhancements
 - :meth:`~pandas.core.window.Rolling.quantile` and :meth:`~pandas.core.window.Expanding.quantile` now accept the ``interpolation`` keyword, ``linear`` by default (:issue:`20497`)
 - zip compression is supported via ``compression=zip`` in :func:`DataFrame.to_pickle`, :func:`Series.to_pickle`, :func:`DataFrame.to_csv`, :func:`Series.to_csv`, :func:`DataFrame.to_json`, :func:`Series.to_json`. (:issue:`17778`)
 - :class:`pandas.tseries.api.offsets.WeekOfMonth` constructor now supports ``n=0`` (:issue:`20517`).
-- :class:`DataFrame` and :class:`Series` now support matrix multiplication (```@```) operator (:issue:`10259`) for Python>=3.5
+- :class:`DataFrame` and :class:`Series` now support matrix multiplication (``@``) operator (:issue:`10259`) for Python>=3.5
 - Updated :meth:`DataFrame.to_gbq` and :meth:`pandas.read_gbq` signature and documentation to reflect changes from
   the Pandas-GBQ library version 0.4.0. Adds intersphinx mapping to Pandas-GBQ
   library. (:issue:`20564`)
 - Added new writer for exporting Stata dta files in version 117, ``StataWriter117``.  This format supports exporting strings with lengths up to 2,000,000 characters (:issue:`16450`)
 - :func:`to_hdf` and :func:`read_hdf` now accept an ``errors`` keyword argument to control encoding error handling (:issue:`20835`)
-- :func:`date_range` now returns a linearly spaced ``DatetimeIndex`` if ``start``, ``stop``, and ``periods`` are specified, but ``freq`` is not. (:issue:`20808`)
+- :func:`cut` has gained the ``duplicates='raise'|'drop'`` option to control whether to raise on duplicated edges (:issue:`20947`)
+- :func:`date_range`, :func:`timedelta_range`, and :func:`interval_range` now return a linearly spaced index if ``start``, ``stop``, and ``periods`` are specified, but ``freq`` is not. (:issue:`20808`, :issue:`20983`, :issue:`20976`)
 
 .. _whatsnew_0230.api_breaking:
 
@@ -554,8 +555,8 @@ If installed, we now require:
 
 .. _whatsnew_0230.api_breaking.dict_insertion_order:
 
-Instantation from dicts preserves dict insertion order for python 3.6+
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Instantiation from dicts preserves dict insertion order for python 3.6+
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Until Python 3.6, dicts in Python had no formally defined ordering. For Python
 version 3.6 and later, dicts are ordered by insertion order, see
@@ -569,9 +570,9 @@ Previous Behavior (and current behavior if on Python < 3.6):
 .. code-block:: ipython
 
    In [1]: pd.Series({'Income': 2000,
-   ...                'Expenses': -1500,
-   ...                'Taxes': -200,
-   ...                'Net result': 300})
+                      'Expenses': -1500,
+                      'Taxes': -200,
+                      'Net result': 300})
    Expenses     -1500
    Income        2000
    Net result     300
@@ -806,7 +807,7 @@ Extraction of matching patterns from strings
 
 By default, extracting matching patterns from strings with :func:`str.extract` used to return a
 ``Series`` if a single group was being extracted (a ``DataFrame`` if more than one group was
-extracted``). As of Pandas 0.23.0 :func:`str.extract` always returns a ``DataFrame``, unless
+extracted). As of Pandas 0.23.0 :func:`str.extract` always returns a ``DataFrame``, unless
 ``expand`` is set to ``False``. Finallay, ``None`` was an accepted value for
 the ``expand`` parameter (which was equivalent to ``False``), but now raises a ``ValueError``. (:issue:`11386`)
 
@@ -917,9 +918,9 @@ Datetimelike API Changes
 - ``pandas.tseries.frequencies.get_freq_group()`` and ``pandas.tseries.frequencies.DAYS`` are removed from the public API (:issue:`18034`)
 - :func:`Series.truncate` and :func:`DataFrame.truncate` will raise a ``ValueError`` if the index is not sorted instead of an unhelpful ``KeyError`` (:issue:`17935`)
 - :attr:`Series.first` and :attr:`DataFrame.first` will now raise a ``TypeError``
-  rather than ``NotImplementedError`` when index is not a :class:`DatetimeIndex`` (:issue:`20725`).
-- :attr:`Series.last` and :attr:`DateFrame.last` will now raise a ``TypeError``
-  rather than ``NotImplementedError`` when index is not a :class:`DatetimeIndex`` (:issue:`20725`).
+  rather than ``NotImplementedError`` when index is not a :class:`DatetimeIndex` (:issue:`20725`).
+- :attr:`Series.last` and :attr:`DataFrame.last` will now raise a ``TypeError``
+  rather than ``NotImplementedError`` when index is not a :class:`DatetimeIndex` (:issue:`20725`).
 - Restricted ``DateOffset`` keyword arguments. Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior. Now, only valid arguments will be accepted. (:issue:`17176`, :issue:`18226`).
 - :func:`pandas.merge` provides a more informative error message when trying to merge on timezone-aware and timezone-naive columns (:issue:`15800`)
 - For :class:`DatetimeIndex` and :class:`TimedeltaIndex` with ``freq=None``, addition or subtraction of integer-dtyped array or ``Index`` will raise ``NullFrequencyError`` instead of ``TypeError`` (:issue:`19895`)
@@ -966,6 +967,7 @@ Other API Changes
 - Constructing a Series from a list of length 1 no longer broadcasts this list when a longer index is specified (:issue:`19714`, :issue:`20391`).
 - :func:`DataFrame.to_dict` with ``orient='index'`` no longer casts int columns to float for a DataFrame with only int and float columns (:issue:`18580`)
 - A user-defined-function that is passed to :func:`Series.rolling().aggregate() <pandas.core.window.Rolling.aggregate>`, :func:`DataFrame.rolling().aggregate() <pandas.core.window.Rolling.aggregate>`, or its expanding cousins, will now *always* be passed a ``Series``, rather than a ``np.array``; ``.apply()`` only has the ``raw`` keyword, see :ref:`here <whatsnew_0230.enhancements.window_raw>`. This is consistent with the signatures of ``.aggregate()`` across pandas (:issue:`20584`)
+- Rolling and Expanding types raise ``NotImplementedError`` upon iteration (:issue:`11704`).
 
 .. _whatsnew_0230.deprecations:
 
@@ -1005,6 +1007,7 @@ Deprecations
 - Setting ``PeriodIndex.freq`` (which was not guaranteed to work correctly) is deprecated. Use :meth:`PeriodIndex.asfreq` instead (:issue:`20678`)
 - ``Index.get_duplicates()`` is deprecated and will be removed in a future version (:issue:`20239`)
 - The previous default behavior of negative indices in ``Categorical.take`` is deprecated. In a future version it will change from meaning missing values to meaning positional indices from the right. The future behavior is consistent with :meth:`Series.take` (:issue:`20664`).
+- Passing multiple axes to the ``axis`` parameter in :func:`DataFrame.dropna` has been deprecated and will be removed in a future version (:issue:`20987`)
 
 
 .. _whatsnew_0230.prior_deprecations:
@@ -1365,12 +1368,14 @@ Reshaping
 - Comparisons between :class:`Series` and :class:`Index` would return a ``Series`` with an incorrect name, ignoring the ``Index``'s name attribute (:issue:`19582`)
 - Bug in :func:`qcut` where datetime and timedelta data with ``NaT`` present raised a ``ValueError`` (:issue:`19768`)
 - Bug in :func:`DataFrame.iterrows`, which would infers strings not compliant to `ISO8601 <https://en.wikipedia.org/wiki/ISO_8601>`_ to datetimes (:issue:`19671`)
-- Bug in :class:`Series` constructor with ``Categorical`` where a ```ValueError`` is not raised when an index of different length is given (:issue:`19342`)
+- Bug in :class:`Series` constructor with ``Categorical`` where a ``ValueError`` is not raised when an index of different length is given (:issue:`19342`)
 - Bug in :meth:`DataFrame.astype` where column metadata is lost when converting to categorical or a dictionary of dtypes (:issue:`19920`)
 - Bug in :func:`cut` and :func:`qcut` where timezone information was dropped (:issue:`19872`)
 - Bug in :class:`Series` constructor with a ``dtype=str``, previously raised in some cases (:issue:`19853`)
 - Bug in :func:`get_dummies`, and :func:`select_dtypes`, where duplicate column names caused incorrect behavior (:issue:`20848`)
 - Bug in :func:`isna`, which cannot handle ambiguous typed lists (:issue:`20675`)
+- Bug in :func:`concat` which raises an error when concatenating TZ-aware dataframes and all-NaT dataframes (:issue:`12396`)
+- Bug in :func:`concat` which raises an error when concatenating empty TZ-aware series (:issue:`18447`)
 
 Other
 ^^^^^
