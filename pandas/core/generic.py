@@ -6044,19 +6044,25 @@ class NDFrame(PandasObject, SelectionMixin):
 
     def asof(self, where, subset=None):
         """
-        The last row without any NaN is taken (or the last row without
-        NaN considering only the subset of columns in the case of a DataFrame)
+        Return the last row(s) without any `NaN`s before `where`.
+
+        The last row (for each element in `where`, if list) without any
+        `NaN` is taken.
+        In case of a :class:`~pandas.DataFrame`, the last row without `NaN`
+        considering only the subset of columns (if not `None`)
 
         .. versionadded:: 0.19.0 For DataFrame
 
-        If there is no good value, NaN is returned for a Series
+        If there is no good value, `NaN` is returned for a Series or
         a Series of NaN values for a DataFrame
 
         Parameters
         ----------
-        where : date or array of dates
-        subset : string or list of strings, default None
-           if not None use these columns for NaN propagation
+        where : date or array-like of dates
+            Date(s) before which the last row(s) are returned.
+        subset : str or array-like of str, default `None`
+            For DataFrame, if not `None`, only use these columns to
+            check for `NaN`s.
 
         Notes
         -----
@@ -6065,19 +6071,43 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        where is scalar
+        `where` is scalar
 
-          - value or NaN if input is Series
-          - Series if input is DataFrame
+            - value or `NaN` if input is Series
+            - Series if input is DataFrame
 
-        where is Index: same shape object as input
+        `where` is :class:`pandas.Index`:
+            - same shape object as input
 
         See Also
         --------
-        merge_asof
+        merge_asof : Perform an asof merge. Similar to left join.
 
+        Examples
+        --------
+        Take all columns into consideration
+
+        >>> df = pd.DataFrame({'a': [10, 20, 30, 40, 50],
+        ...                    'b': [None, None, None, None, 500]},
+        ...                   index=pd.DatetimeIndex(['2018-02-27 09:01:00',
+        ...                                           '2018-02-27 09:02:00',
+        ...                                           '2018-02-27 09:03:00',
+        ...                                           '2018-02-27 09:04:00',
+        ...                                           '2018-02-27 09:05:00']))
+        >>> df.asof(pd.DatetimeIndex(['2018-02-27 09:03:30',
+        ...                           '2018-02-27 09:04:30']))
+                              a   b
+        2018-02-27 09:03:30 NaN NaN
+        2018-02-27 09:04:30 NaN NaN
+
+        Take a single column into consideration
+
+        >>> df['a'].asof(pd.DatetimeIndex(['2018-02-27 09:03:30',
+        ...                                '2018-02-27 09:04:30']))
+        2018-02-27 09:03:30   30.0
+        2018-02-27 09:04:30   40.0
+        Name: a, dtype: float64
         """
-
         if isinstance(where, compat.string_types):
             from pandas import to_datetime
             where = to_datetime(where)
