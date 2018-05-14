@@ -35,8 +35,7 @@ Reshaping by pivoting DataFrame objects
 
    In [3]: df = unpivot(tm.makeTimeDataFrame())
 
-Data is often stored in so-called "stacked" or
-"record" format:
+Data is often stored in so-called "stacked" or "record" format:
 
 .. ipython:: python
 
@@ -96,7 +95,7 @@ are homogeneously-typed.
 .. note::
    ``pandas.pivot`` will error with a ``ValueError: Index contains duplicate
    entries, cannot reshape`` if the index/column pair is not unique. In this
-   case, consider using ``pandas.pivot_table`` which is a generalization
+   case, consider using :func:`~pandas.pivot_table` which is a generalization
    of pivot that can handle duplicate values for one index/column pair.
 
 .. _reshaping.stacking:
@@ -704,10 +703,124 @@ handling of NaN:
     In [3]: np.unique(x, return_inverse=True)[::-1]
     Out[3]: (array([3, 3, 0, 4, 1, 2]), array([nan, 3.14, inf, 'A', 'B'], dtype=object))
 
-
 .. note::
     If you just want to handle one column as a categorical variable (like R's factor),
     you can use  ``df["cat_col"] = pd.Categorical(df["col"])`` or
     ``df["cat_col"] = df["col"].astype("category")``. For full docs on :class:`~pandas.Categorical`,
     see the :ref:`Categorical introduction <categorical>` and the
     :ref:`API documentation <api.categorical>`.
+
+Frequently Asked Questions (and Examples)
+------------------
+
+In this section, we will review frequently asked questions and examples. The 
+column names and relevant column values are named to correspond with how this
+DataFrame will be pivoted in the answers below.
+
+.. ipython:: python
+
+   np.random.seed([3,1415])
+   n = 20
+   
+   cols = np.array(['key', 'row', 'item', 'col'])
+   arr1 = (np.random.randint(5, size=(n, 4)) // [2, 1, 2, 1]).astype(str)
+   
+   df = pd.DataFrame(np.core.defchararray.add(cols, arr1), columns=cols).join(
+       pd.DataFrame(np.random.rand(n, 2).round(2)).add_prefix('val')
+   )
+
+   df
+
+Question 1
+~~~~~~~~~~
+
+How do I pivot ``df`` such that the ``col`` values are columns,
+``row`` values are the index, and mean of ``val0`` are the values? In
+particular, the resulting DataFrame should look like:
+
+.. code-block:: ipython
+   
+   col   col0   col1   col2   col3  col4
+   row                                  
+   row0  0.77  0.605    NaN  0.860  0.65
+   row2  0.13    NaN  0.395  0.500  0.25
+   row3   NaN  0.310    NaN  0.545   NaN
+   row4   NaN  0.100  0.395  0.760  0.24
+
+**Answer**
+This solution uses :func:`~pandas.pivot_table`. Also note that
+``aggfunc='mean'`` is the default. It is included here to be explicit.
+
+.. ipython:: python
+
+   df.pivot_table(
+       values='val0', index='row', columns='col', aggfunc='mean')
+
+Note that we can also replace the missing values by using the ``fill_value``
+parameter.
+
+.. ipython:: python
+
+   df.pivot_table(
+       values='val0', index='row', columns='col', aggfunc='mean', fill_value=0)
+
+Also note that we can pass in other aggregation functions as well. For example,
+we can also pass in ``sum``.
+
+.. ipython:: python
+
+   df.pivot_table(
+       values='val0', index='row', columns='col', aggfunc='sum', fill_value=0)
+
+Question 2
+~~~~~~~~~~
+
+How can I perform multiple aggregations at the same time? For example, what if
+I wanted to perform both a ``sum`` and ``mean`` aggregation?
+
+**Answer**
+We can pass in a list to the ``aggfunc`` argument.
+
+.. ipython:: python
+
+   df.pivot_table(
+       values='val0', index='row', columns='col', aggfunc=['mean', 'sum'])
+
+Question 3
+~~~~~~~~~~
+
+How can I aggregate over multiple value columns?
+
+**Answer**
+We can pass in a list to the ``values`` parameter.
+
+.. ipython:: python
+
+   df.pivot_table(
+       values=['val0', 'val1'], index='row', columns='col', aggfunc=['mean'])
+
+Question 4
+~~~~~~~~~~
+
+How can I Group By over multiple columns?
+
+**Answer**
+We can pass in a list to the ``columns`` parameter.
+
+.. ipython:: python
+
+   df.pivot_table(
+       values=['val0'], index='row', columns=['item', 'col'], aggfunc=['mean'])
+
+Question 5
+~~~~~~~~~~
+
+How can I aggregate the frequency in which the columns and rows occur together
+a.k.a. "cross tabulation"?
+
+**Answer**
+We can pass ``size`` to the ``aggfunc`` parameter.
+
+.. ipython:: python
+
+   df.pivot_table(index='row', columns='col', fill_value=0, aggfunc='size')
