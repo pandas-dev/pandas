@@ -7806,7 +7806,61 @@ class NDFrame(PandasObject, SelectionMixin):
         If freq is specified then the index values are shifted but the data
         is not realigned. That is, use freq if you would like to extend the
         index when shifting and preserve the original data.
+        
+        Examples
+        --------
+        Compute the difference between a column in a dataframe and its shifted version
+        
+        >>> data = pd.DataFrame({'mydate': [pd.to_datetime('2016-06-06'),
+        ...                                 pd.to_datetime('2016-06-08'),
+        ...                                 pd.to_datetime('2016-06-09'),
+        ...                                 pd.to_datetime('2016-06-10'),
+        ...                                 pd.to_datetime('2016-06-12'),
+        ...                                 pd.to_datetime('2016-06-13')],
+        ...                     'myvalue': [1, 2, 3, 4, 5, 6],
+        ...                     'group': ['A', 'A', 'A', 'B', 'B', 'B']})
 
+        >>> data.set_index('mydate', inplace=True)
+        >>> data
+                        myvalue group
+            mydate
+            2016-06-06        1     A
+            2016-06-08        2     A
+            2016-06-09        3     A
+            2016-06-10        4     B
+            2016-06-12        5     B
+            2016-06-13        6     B
+        
+        For the groups compute the difference between current *myvalue* and *myvalue* shifted forward by 1 day
+        
+        >>> result = data.groupby('group').myvalue.apply(lambda x: x - x.shift(1, pd.Timedelta('1 days')))
+        >>> result
+            group  mydate
+            A      2016-06-06    NaN
+                   2016-06-07    NaN
+                   2016-06-08    NaN
+                   2016-06-09    1.0
+                   2016-06-10    NaN
+            B      2016-06-10    NaN
+                   2016-06-11    NaN
+                   2016-06-12    NaN
+                   2016-06-13    1.0
+                   2016-06-14    NaN
+            Name: myvalue, dtype: float64
+        
+        Merge result as a column named *delta* to the original data
+        
+        >>> result.name = 'delta'
+        >>> data.reset_index().merge(result.reset_index(), how='left', on=['mydate', 'group']).set_index('mydate')       
+                    myvalue group  delta
+        mydate
+        2016-06-06        1     A    NaN
+        2016-06-08        2     A    NaN
+        2016-06-09        3     A    1.0
+        2016-06-10        4     B    NaN
+        2016-06-12        5     B    NaN
+        2016-06-13        6     B    1.0
+        
         Returns
         -------
         shifted : %(klass)s
