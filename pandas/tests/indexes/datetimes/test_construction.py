@@ -33,16 +33,15 @@ class TestDatetimeIndex(object):
         tm.assert_index_equal(i, i2)
         assert i.tz.zone == 'US/Eastern'
 
-        i2 = DatetimeIndex(i.tz_localize(None).asi8, tz=i.dtype.tz)
+        i2 = DatetimeIndex(i.asi8, tz=i.dtype.tz)
         tm.assert_index_equal(i, i2)
         assert i.tz.zone == 'US/Eastern'
 
-        i2 = DatetimeIndex(i.tz_localize(None).asi8, dtype=i.dtype)
+        i2 = DatetimeIndex(i.asi8, dtype=i.dtype)
         tm.assert_index_equal(i, i2)
         assert i.tz.zone == 'US/Eastern'
 
-        i2 = DatetimeIndex(
-            i.tz_localize(None).asi8, dtype=i.dtype, tz=i.dtype.tz)
+        i2 = DatetimeIndex(i.asi8, dtype=i.dtype, tz=i.dtype.tz)
         tm.assert_index_equal(i, i2)
         assert i.tz.zone == 'US/Eastern'
 
@@ -471,9 +470,9 @@ class TestDatetimeIndex(object):
 
     @pytest.mark.parametrize('klass', [Index, DatetimeIndex])
     @pytest.mark.parametrize('box', [np.array, list])
-    def test_constructor_with_int_tz(self, klass):
+    def test_constructor_with_int_tz(self, klass, box):
         ts = Timestamp('2018-01-01', tz='US/Pacific')
-        result = klass(box(ts.value), dtype='datetime64[ns, US/Pacific]')
+        result = klass(box([ts.value]), dtype='datetime64[ns, US/Pacific]')
         expected = klass([ts])
         tm.assert_index_equal(result, expected)
 

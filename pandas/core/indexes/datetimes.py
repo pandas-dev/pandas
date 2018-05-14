@@ -437,8 +437,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 tz = timezones.maybe_get_tz(tz)
 
                 if (not isinstance(data, DatetimeIndex) or
-                        getattr(data, 'tz', None) is None) and
-                    not passed_integer_data:
+                        getattr(data, 'tz', None) is None) and not passed_integer_data:
                     # Convert tz-naive to UTC
                     ints = subarr.view('i8')
                     subarr = conversion.tz_localize_to_utc(ints, tz,
