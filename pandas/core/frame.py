@@ -5246,15 +5246,7 @@ class DataFrame(NDFrame):
         7  bar  two  small  6
         8  bar  two  large  7
 
-        >>> table = pivot_table(df, values='D', index=['A', 'B'],
-        ...                     columns=['C'], aggfunc=np.sum)
-        >>> table
-        C        large  small
-        A   B
-        bar one    4.0    5.0
-            two    7.0    6.0
-        foo one    4.0    1.0
-            two    NaN    6.0
+        This first example aggregates values by taking the sum.
 
         >>> table = pivot_table(df, values='D', index=['A', 'B'],
         ...                     columns=['C'], aggfunc=np.sum)
