@@ -1467,8 +1467,8 @@ def str_rsplit(arr, pat=None, n=None):
     """
     Split strings around given separator/delimiter.
 
-    Returns a list of the words from each string in 
-    Series/Index, separated by the delimiter string 
+    Returns a list of the words from each string in
+    Series/Index, separated by the delimiter string
     (starting from the right). Equivalent to :meth:`str.rsplit`.
 
     Parameters
