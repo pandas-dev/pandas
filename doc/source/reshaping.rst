@@ -81,7 +81,7 @@ column:
 .. ipython:: python
 
    df['value2'] = df['value'] * 2
-   pivoted = df.pivot('date', 'variable')
+   pivoted = df.pivot(index='date', columns='variable')
    pivoted
 
 You can then select subsets from the pivoted ``DataFrame``:
@@ -92,6 +92,12 @@ You can then select subsets from the pivoted ``DataFrame``:
 
 Note that this returns a view on the underlying data in the case where the data
 are homogeneously-typed.
+
+.. note::
+   ``pandas.pivot`` will error with a ``ValueError: Index contains duplicate
+   entries, cannot reshape`` if the index/column pair is not unique. In this
+   case, consider using ``pandas.pivot_table`` which is a generalization
+   of pivot that can handle duplicate values for one index/column pair.
 
 .. _reshaping.stacking:
 
