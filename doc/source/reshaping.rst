@@ -35,7 +35,7 @@ Reshaping by pivoting DataFrame objects
 
    In [3]: df = unpivot(tm.makeTimeDataFrame())
 
-Data is often stored in CSV files or databases in so-called "stacked" or
+Data is often stored in so-called "stacked" or
 "record" format:
 
 .. ipython:: python
