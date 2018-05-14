@@ -169,7 +169,7 @@ General Parsing Configuration
 dtype : Type name or dict of column -> type, default ``None``
   Data type for data or columns. E.g. ``{'a': np.float64, 'b': np.int32}``
   (unsupported with ``engine='python'``). Use `str` or `object` together
-  with suitable `na_values` settings to preserve and
+  with suitable ``na_values`` settings to preserve and
   not interpret dtype.
 
   .. versionadded:: 0.20.0 support for the Python parser.
