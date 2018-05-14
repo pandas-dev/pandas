@@ -1221,6 +1221,11 @@ class Timedelta(_Timedelta):
 
     def __rmod__(self, other):
         # Naive implementation, room for optimization
+        if hasattr(other, 'dtype') and other.dtype.kind == 'i':
+            # TODO: Remove this check with backwards-compat shim
+            # for integer / Timedelta is removed.
+            raise TypeError("Invalid type {dtype} for "
+                            "{op}".format(dtype=other.dtype, op='__mod__'))
         return self.__rdivmod__(other)[1]
 
     def __divmod__(self, other):
@@ -1230,6 +1235,11 @@ class Timedelta(_Timedelta):
 
     def __rdivmod__(self, other):
         # Naive implementation, room for optimization
+        if hasattr(other, 'dtype') and other.dtype.kind == 'i':
+            # TODO: Remove this check with backwards-compat shim
+            # for integer / Timedelta is removed.
+            raise TypeError("Invalid type {dtype} for "
+                            "{op}".format(dtype=other.dtype, op='__mod__'))
         div = other // self
         return div, other - div * self
 
