@@ -803,7 +803,6 @@ cdef class _Timedelta(timedelta):
         Timedelta.components : Return all attributes with assigned values (i.e.
             days, hours, minutes, seconds, milliseconds, microseconds, nanoseconds).
 
-
         Examples
         --------
         **Using string input**
@@ -812,12 +811,11 @@ cdef class _Timedelta(timedelta):
         >>> td.nanoseconds
         42
 
-        **Using integer inputs**
+        **Using integer input**
 
         >>> td = pd.Timedelta(42, unit='ns')
         >>> td.nanoseconds
         42 
-
         """
         self._ensure_components()
         return self._ns
