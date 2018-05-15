@@ -579,6 +579,17 @@ class TestDataFrameAlterAxes(TestData):
                              columns=['2001-01-01'])
         assert_frame_equal(df, expected)
 
+    def test_rename_bug2(self):
+        # GH 19497
+        # rename was changing Index to MultiIndex if Index contained tuples
+
+        df = DataFrame(data=np.arange(3), index=[(0, 0), (1, 1), (2, 2)],
+                       columns=["a"])
+        df = df.rename({(1, 1): (5, 4)}, axis="index")
+        expected = DataFrame(data=np.arange(3), index=[(0, 0), (5, 4), (2, 2)],
+                             columns=["a"])
+        assert_frame_equal(df, expected)
+
     def test_reorder_levels(self):
         index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
                            labels=[[0, 0, 0, 0, 0, 0],
