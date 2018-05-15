@@ -5296,7 +5296,7 @@ def _transform_index(index, func, level=None):
         return MultiIndex.from_tuples(items, names=index.names)
     else:
         items = [func(x) for x in index]
-        return Index(items, name=index.name)
+        return Index(items, name=index.name, tupleize_cols=False)
 
 
 def _putmask_smart(v, m, n):

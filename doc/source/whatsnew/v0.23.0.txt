@@ -1,7 +1,7 @@
 .. _whatsnew_0230:
 
-v0.23.0
--------
+v0.23.0 (May 15, 2017)
+----------------------
 
 This is a major release from 0.22.0 and includes a number of API changes,
 deprecations, new features, enhancements, and performance improvements along
@@ -319,6 +319,7 @@ The method has now gained a keyword ``join`` to control the manner of alignment,
 In v.0.23 `join` will default to None (meaning no alignment), but this default will change to ``'left'`` in a future version of pandas.
 
 .. ipython:: python
+   :okwarning:
 
     s = pd.Series(['a', 'b', 'c', 'd'])
     t = pd.Series(['b', 'd', 'e', 'c'], index=[1, 3, 4, 2])
@@ -569,10 +570,10 @@ Previous Behavior (and current behavior if on Python < 3.6):
 
 .. code-block:: ipython
 
-   In [1]: pd.Series({'Income': 2000,
-                      'Expenses': -1500,
-                      'Taxes': -200,
-                      'Net result': 300})
+   pd.Series({'Income': 2000,
+              'Expenses': -1500,
+              'Taxes': -200,
+              'Net result': 300})
    Expenses     -1500
    Income        2000
    Net result     300
@@ -612,6 +613,11 @@ Deprecate Panel
 ``Panel`` was deprecated in the 0.20.x release, showing as a ``DeprecationWarning``. Using ``Panel`` will now show a ``FutureWarning``. The recommended way to represent 3-D data are
 with a ``MultiIndex`` on a ``DataFrame`` via the :meth:`~Panel.to_frame` or with the `xarray package <http://xarray.pydata.org/en/stable/>`__. Pandas
 provides a :meth:`~Panel.to_xarray` method to automate this conversion. For more details see :ref:`Deprecate Panel <dsintro.deprecate_panel>` documentation. (:issue:`13563`, :issue:`18324`).
+
+.. ipython:: python
+   :suppress:
+
+   import pandas.util.testing as tm
 
 .. ipython:: python
    :okwarning:
@@ -1004,6 +1010,7 @@ Deprecations
   of the ``Series`` and ``Index`` classes have been deprecated and will be
   removed in a future version (:issue:`20419`).
 - ``DatetimeIndex.offset`` is deprecated. Use ``DatetimeIndex.freq`` instead (:issue:`20716`)
+- Floor division between an integer ndarray and a :class:`Timedelta` is deprecated. Divide by :attr:`Timedelta.value` instead (:issue:`19761`)
 - Setting ``PeriodIndex.freq`` (which was not guaranteed to work correctly) is deprecated. Use :meth:`PeriodIndex.asfreq` instead (:issue:`20678`)
 - ``Index.get_duplicates()`` is deprecated and will be removed in a future version (:issue:`20239`)
 - The previous default behavior of negative indices in ``Categorical.take`` is deprecated. In a future version it will change from meaning missing values to meaning positional indices from the right. The future behavior is consistent with :meth:`Series.take` (:issue:`20664`).
@@ -1080,6 +1087,7 @@ Performance Improvements
 - Improved performance of :func:`Series.isin` in the case of categorical dtypes (:issue:`20003`)
 - Improved performance of ``getattr(Series, attr)`` when the Series has certain index types. This manifiested in slow printing of large Series with a ``DatetimeIndex`` (:issue:`19764`)
 - Fixed a performance regression for :func:`GroupBy.nth` and :func:`GroupBy.last` with some object columns (:issue:`19283`)
+- Improved performance of :func:`pandas.core.arrays.Categorical.from_codes` (:issue:`18501`)
 
 .. _whatsnew_0230.docs:
 
@@ -1364,6 +1372,7 @@ Reshaping
 - Improved error message for :func:`DataFrame.merge` when there is no common merge key (:issue:`19427`)
 - Bug in :func:`DataFrame.join` which does an ``outer`` instead of a ``left`` join when being called with multiple DataFrames and some have non-unique indices (:issue:`19624`)
 - :func:`Series.rename` now accepts ``axis`` as a kwarg (:issue:`18589`)
+- Bug in :func:`~DataFrame.rename` where an Index of same-length tuples was converted to a MultiIndex (:issue:`19497`)
 - Comparisons between :class:`Series` and :class:`Index` would return a ``Series`` with an incorrect name, ignoring the ``Index``'s name attribute (:issue:`19582`)
 - Bug in :func:`qcut` where datetime and timedelta data with ``NaT`` present raised a ``ValueError`` (:issue:`19768`)
 - Bug in :func:`DataFrame.iterrows`, which would infers strings not compliant to `ISO8601 <https://en.wikipedia.org/wiki/ISO_8601>`_ to datetimes (:issue:`19671`)
