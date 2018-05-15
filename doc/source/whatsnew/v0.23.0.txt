@@ -569,10 +569,10 @@ Previous Behavior (and current behavior if on Python < 3.6):
 
 .. code-block:: ipython
 
-   In [1]: pd.Series({'Income': 2000,
-                      'Expenses': -1500,
-                      'Taxes': -200,
-                      'Net result': 300})
+   pd.Series({'Income': 2000,
+              'Expenses': -1500,
+              'Taxes': -200,
+              'Net result': 300})
    Expenses     -1500
    Income        2000
    Net result     300

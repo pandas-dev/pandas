@@ -1043,7 +1043,7 @@ Bug Fixes
 ~~~~~~~~~
 
 - Bug in incorrection computation of ``.mean()`` on ``timedelta64[ns]`` because of overflow (:issue:`9442`)
-- Bug in  ``.isin`` on older numpies (:issue: `11232`)
+- Bug in  ``.isin`` on older numpies (:issue:`11232`)
 - Bug in ``DataFrame.to_html(index=False)`` renders unnecessary ``name`` row (:issue:`10344`)
 - Bug in ``DataFrame.to_latex()`` the ``column_format`` argument could not be passed (:issue:`9402`)
 - Bug in ``DatetimeIndex`` when localizing with ``NaT`` (:issue:`10477`)
@@ -1094,7 +1094,7 @@ Bug Fixes
 
 
 - Bug in ``to_datetime`` and ``to_timedelta`` causing ``Index`` name to be lost (:issue:`10875`)
-- Bug in ``len(DataFrame.groupby)`` causing ``IndexError`` when there's a column containing only NaNs (:issue: `11016`)
+- Bug in ``len(DataFrame.groupby)`` causing ``IndexError`` when there's a column containing only NaNs (:issue:`11016`)
 
 - Bug that caused segfault when resampling an empty Series (:issue:`10228`)
 - Bug in ``DatetimeIndex`` and ``PeriodIndex.value_counts`` resets name from its result, but retains in result's ``Index``. (:issue:`10150`)

@@ -123,7 +123,7 @@ Other new features
 - Enhanced :ref:`read_csv/read_table <io.parse_dates>` for reading time series
   data and converting multiple columns to dates
 - Add :ref:`comments <io.comments>` option to parser functions: read_csv, etc.
-- Add :ref`dayfirst <io.dayfirst>` option to parser functions for parsing
+- Add :ref:`dayfirst <io.dayfirst>` option to parser functions for parsing
   international DD/MM/YYYY dates
 - Allow the user to specify the CSV reader :ref:`dialect <io.dialect>` to
   control quoting etc.

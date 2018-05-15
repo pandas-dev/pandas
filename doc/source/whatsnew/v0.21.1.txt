@@ -81,7 +81,7 @@ Deprecations
 ~~~~~~~~~~~~
 
 - ``pandas.tseries.register`` has been renamed to
-  :func:`pandas.plotting.register_matplotlib_converters`` (:issue:`18301`)
+  :func:`pandas.plotting.register_matplotlib_converters` (:issue:`18301`)
 
 .. _whatsnew_0211.performance:
 
@@ -101,7 +101,7 @@ Conversion
 - Bug in :class:`TimedeltaIndex` subtraction could incorrectly overflow when ``NaT`` is present (:issue:`17791`)
 - Bug in :class:`DatetimeIndex` subtracting datetimelike from DatetimeIndex could fail to overflow (:issue:`18020`)
 - Bug in :meth:`IntervalIndex.copy` when copying and ``IntervalIndex`` with non-default ``closed`` (:issue:`18339`)
-- Bug in :func:`DataFrame.to_dict` where columns of datetime that are tz-aware were not converted to required arrays when used with ``orient='records'``, raising``TypeError` (:issue:`18372`)
+- Bug in :func:`DataFrame.to_dict` where columns of datetime that are tz-aware were not converted to required arrays when used with ``orient='records'``, raising ``TypeError`` (:issue:`18372`)
 - Bug in :class:`DateTimeIndex` and :meth:`date_range` where mismatching tz-aware ``start`` and ``end`` timezones would not raise an err if ``end.tzinfo`` is None (:issue:`18431`)
 - Bug in :meth:`Series.fillna` which raised when passed a long integer on Python 2 (:issue:`18159`).
 

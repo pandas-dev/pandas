@@ -651,7 +651,7 @@ Enhancements
 
   Additionally, the ``method`` argument to ``interpolate`` has been expanded
   to include ``'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
-  'barycentric', 'krogh', 'piecewise_polynomial', 'pchip', `polynomial`, 'spline'``
+  'barycentric', 'krogh', 'piecewise_polynomial', 'pchip', 'polynomial', 'spline'``
   The new methods require scipy_. Consult the Scipy reference guide_ and documentation_ for more information
   about when the various methods are appropriate. See :ref:`the docs<missing_data.interpolate>`.
 
