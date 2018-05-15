@@ -144,6 +144,19 @@ class TestStringMethods(object):
         with tm.assert_raises_regex(ValueError, rgx):
             strings.str_cat(one, 'three')
 
+    @pytest.mark.parametrize('container', [Series, Index])
+    @pytest.mark.parametrize('other', [None, Series, Index])
+    def test_str_cat_name(self, container, other):
+        # https://github.com/pandas-dev/pandas/issues/21053
+        values = ['a', 'b']
+        if other:
+            other = other(values)
+        else:
+            other = values
+        result = container(values, name='name').str.cat(other, sep=',',
+                                                        join='left')
+        assert result.name == 'name'
+
     @pytest.mark.parametrize('series_or_index', ['series', 'index'])
     def test_str_cat(self, series_or_index):
         # test_cat above tests "str_cat" from ndarray to ndarray;
