@@ -983,7 +983,7 @@ Other:
 
     df.describe(include='all')
 
-  Without those arguments, 'describe` will behave as before, including only numerical columns or, if none are, only categorical columns. See also the :ref:`docs <basics.describe>`
+  Without those arguments, ``describe`` will behave as before, including only numerical columns or, if none are, only categorical columns. See also the :ref:`docs <basics.describe>`
 
 - Added ``split`` as an option to the ``orient`` argument in ``pd.DataFrame.to_dict``. (:issue:`7840`)
 
