@@ -5271,8 +5271,7 @@ class DataFrame(NDFrame):
         foo one      4      1
             two      0      6
 
-        The next example aggregates by taking the mean using values for
-        multiple columns.
+        The next example aggregates by taking the mean across multiple columns.
 
         >>> table = pivot_table(df, values=['D', 'E'], index=['A', 'C'],
         ...                     aggfunc={'D': np.mean,

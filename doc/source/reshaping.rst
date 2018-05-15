@@ -710,8 +710,8 @@ handling of NaN:
     see the :ref:`Categorical introduction <categorical>` and the
     :ref:`API documentation <api.categorical>`.
 
-Frequently Asked Questions (and Examples)
-------------------
+Examples
+--------
 
 In this section, we will review frequently asked questions and examples. The 
 column names and relevant column values are named to correspond with how this
@@ -723,18 +723,16 @@ DataFrame will be pivoted in the answers below.
    n = 20
    
    cols = np.array(['key', 'row', 'item', 'col'])
-   arr1 = (np.random.randint(5, size=(n, 4)) // [2, 1, 2, 1]).astype(str)
-   
-   df = pd.DataFrame(np.core.defchararray.add(cols, arr1), columns=cols).join(
-       pd.DataFrame(np.random.rand(n, 2).round(2)).add_prefix('val')
-   )
+   df = cols + pd.DataFrame((np.random.randint(5, size=(n, 4)) // [2, 1, 2, 1]).astype(str))
+   df.columns = cols
+   df = df.join(pd.DataFrame(np.random.rand(n, 2).round(2)).add_prefix('val'))
 
    df
 
-Question 1
-~~~~~~~~~~
+Pivoting with Single Aggregations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-How do I pivot ``df`` such that the ``col`` values are columns,
+Suppose we wanted to pivot ``df`` such that the ``col`` values are columns,
 ``row`` values are the index, and the mean of ``val0`` are the values? In
 particular, the resulting DataFrame should look like:
 
@@ -747,7 +745,6 @@ particular, the resulting DataFrame should look like:
    row3   NaN  0.310    NaN  0.545   NaN
    row4   NaN  0.100  0.395  0.760  0.24
 
-**Answer**
 This solution uses :func:`~pandas.pivot_table`. Also note that
 ``aggfunc='mean'`` is the default. It is included here to be explicit.
 
@@ -772,55 +769,37 @@ we can also pass in ``sum``.
    df.pivot_table(
        values='val0', index='row', columns='col', aggfunc='sum', fill_value=0)
 
-Question 2
-~~~~~~~~~~
+Another aggregation we can do is calculate the frequency in which the columns
+and rows occur together a.k.a. "cross tabulation". To do this, we can pass
+``size`` to the ``aggfunc`` parameter.
 
-How can I perform multiple aggregations at the same time? For example, what if
-I wanted to perform both a ``sum`` and ``mean`` aggregation?
+.. ipython:: python
 
-**Answer**
-We can pass in a list to the ``aggfunc`` argument.
+   df.pivot_table(index='row', columns='col', fill_value=0, aggfunc='size')
+
+Pivoting with Multiple Aggregations
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We can also perform multiple aggregations. For example, to perform both a
+``sum`` and ``mean``, we can pass in a list to the ``aggfunc`` argument.
 
 .. ipython:: python
 
    df.pivot_table(
        values='val0', index='row', columns='col', aggfunc=['mean', 'sum'])
 
-Question 3
-~~~~~~~~~~
-
-How can I aggregate over multiple value columns?
-
-**Answer**
-We can pass in a list to the ``values`` parameter.
+Note to aggregate over multiple value columns, we can pass in a list to the
+``values`` parameter.
 
 .. ipython:: python
 
    df.pivot_table(
        values=['val0', 'val1'], index='row', columns='col', aggfunc=['mean'])
 
-Question 4
-~~~~~~~~~~
-
-How can I Group By over multiple columns?
-
-**Answer**
-We can pass in a list to the ``columns`` parameter.
+Note to subdivide over multiple columns we can pass in a list to the
+``columns`` parameter.
 
 .. ipython:: python
 
    df.pivot_table(
        values=['val0'], index='row', columns=['item', 'col'], aggfunc=['mean'])
-
-Question 5
-~~~~~~~~~~
-
-How can I aggregate the frequency in which the columns and rows occur together
-a.k.a. "cross tabulation"?
-
-**Answer**
-We can pass ``size`` to the ``aggfunc`` parameter.
-
-.. ipython:: python
-
-   df.pivot_table(index='row', columns='col', fill_value=0, aggfunc='size')
