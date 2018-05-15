@@ -225,13 +225,13 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                 msg = 'periods must be a number, got {periods}'
                 raise TypeError(msg.format(periods=periods))
 
-        if data is None and freq is None:
-            raise ValueError("Must provide freq argument if no data is "
-                             "supplied")
-
         if data is None:
-            return cls._generate(start, end, periods, name, freq,
-                                 closed=closed)
+            if freq is None and com._any_none(periods, start, end):
+                msg = 'Must provide freq argument if no data is supplied'
+                raise ValueError(msg)
+            else:
+                return cls._generate(start, end, periods, name, freq,
+                                     closed=closed)
 
         if unit is not None:
             data = to_timedelta(data, unit=unit, box=False)
@@ -266,10 +266,10 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         return cls._simple_new(data, name=name, freq=freq)
 
     @classmethod
-    def _generate(cls, start, end, periods, name, offset, closed=None):
-        if com._count_not_none(start, end, periods) != 2:
-            raise ValueError('Of the three parameters: start, end, and '
-                             'periods, exactly two must be specified')
+    def _generate(cls, start, end, periods, name, freq, closed=None):
+        if com._count_not_none(start, end, periods, freq) != 3:
+            raise ValueError('Of the four parameters: start, end, periods, '
+                             'and freq, exactly three must be specified')
 
         if start is not None:
             start = Timedelta(start)
@@ -295,8 +295,11 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         else:
             raise ValueError("Closed has to be either 'left', 'right' or None")
 
-        index = _generate_regular_range(start, end, periods, offset)
-        index = cls._simple_new(index, name=name, freq=offset)
+        if freq is not None:
+            index = _generate_regular_range(start, end, periods, freq)
+            index = cls._simple_new(index, name=name, freq=freq)
+        else:
+            index = to_timedelta(np.linspace(start.value, end.value, periods))
 
         if not left_closed:
             index = index[1:]
@@ -1046,7 +1049,7 @@ def _generate_regular_range(start, end, periods, offset):
     return data
 
 
-def timedelta_range(start=None, end=None, periods=None, freq='D',
+def timedelta_range(start=None, end=None, periods=None, freq=None,
                     name=None, closed=None):
     """
     Return a fixed frequency TimedeltaIndex, with day as the default
@@ -1074,8 +1077,10 @@ def timedelta_range(start=None, end=None, periods=None, freq='D',
 
     Notes
     -----
-    Of the three parameters: ``start``, ``end``, and ``periods``, exactly two
-    must be specified.
+    Of the four parameters ``start``, ``end``, ``periods``, and ``freq``,
+    exactly three must be specified. If ``freq`` is omitted, the resulting
+    ``TimedeltaIndex`` will have ``periods`` linearly spaced elements between
+    ``start`` and ``end`` (closed on both sides).
 
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
@@ -1102,6 +1107,17 @@ def timedelta_range(start=None, end=None, periods=None, freq='D',
     TimedeltaIndex(['1 days 00:00:00', '1 days 06:00:00', '1 days 12:00:00',
                     '1 days 18:00:00', '2 days 00:00:00'],
                    dtype='timedelta64[ns]', freq='6H')
+
+    Specify ``start``, ``end``, and ``periods``; the frequency is generated
+    automatically (linearly spaced).
+
+    >>> pd.timedelta_range(start='1 day', end='5 days', periods=4)
+    TimedeltaIndex(['1 days 00:00:00', '2 days 08:00:00', '3 days 16:00:00',
+                '5 days 00:00:00'],
+               dtype='timedelta64[ns]', freq=None)
     """
+    if freq is None and com._any_none(periods, start, end):
+        freq = 'D'
+
     return TimedeltaIndex(start=start, end=end, periods=periods,
                           freq=freq, name=name, closed=closed)

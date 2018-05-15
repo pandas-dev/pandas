@@ -358,11 +358,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 msg = 'periods must be a number, got {periods}'
                 raise TypeError(msg.format(periods=periods))
 
-        if data is None and freq is None \
-                and com._any_none(periods, start, end):
-            raise ValueError("Must provide freq argument if no data is "
-                             "supplied")
-
         # if dtype has an embedded tz, capture it
         if dtype is not None:
             try:
@@ -377,9 +372,13 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 pass
 
         if data is None:
-            return cls._generate(start, end, periods, name, freq,
-                                 tz=tz, normalize=normalize, closed=closed,
-                                 ambiguous=ambiguous)
+            if freq is None and com._any_none(periods, start, end):
+                msg = 'Must provide freq argument if no data is supplied'
+                raise ValueError(msg)
+            else:
+                return cls._generate(start, end, periods, name, freq, tz=tz,
+                                     normalize=normalize, closed=closed,
+                                     ambiguous=ambiguous)
 
         if not isinstance(data, (np.ndarray, Index, ABCSeries)):
             if is_scalar(data):
@@ -587,10 +586,13 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                     if end is not None:
                         end = end.tz_localize(tz).asm8
             else:
+                # Create a linearly spaced date_range in local time
+                start = start.tz_localize(tz)
+                end = end.tz_localize(tz)
                 index = tools.to_datetime(np.linspace(start.value,
-                                                      end.value, periods))
-                if tz is not None:
-                    index = index.tz_localize('UTC').tz_convert(tz)
+                                                      end.value, periods),
+                                          utc=True)
+                index = index.tz_convert(tz)
 
         if not left_closed and len(index) and index[0] == start:
             index = index[1:]
@@ -2587,11 +2589,6 @@ def date_range(start=None, end=None, periods=None, freq=None, tz=None,
     """
     Return a fixed frequency DatetimeIndex.
 
-    Of the three parameters `start`, `end`, `periods`, and `freq` exactly
-    three must be specified. If `freq` is omitted, the resulting DatetimeIndex
-    will have `periods` linearly spaced elements between `start` and `end`
-    (closed on both sides).
-
     Parameters
     ----------
     start : str or datetime-like, optional
@@ -2625,8 +2622,19 @@ def date_range(start=None, end=None, periods=None, freq=None, tz=None,
     See Also
     --------
     pandas.DatetimeIndex : An immutable container for datetimes.
+    pandas.timedelta_range : Return a fixed frequency TimedeltaIndex.
     pandas.period_range : Return a fixed frequency PeriodIndex.
     pandas.interval_range : Return a fixed frequency IntervalIndex.
+
+    Notes
+    -----
+    Of the four parameters ``start``, ``end``, ``periods``, and ``freq``,
+    exactly three must be specified. If ``freq`` is omitted, the resulting
+    ``DatetimeIndex`` will have ``periods`` linearly spaced elements between
+    ``start`` and ``end`` (closed on both sides).
+
+    To learn more about the frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
 
     Examples
     --------
@@ -2766,8 +2774,10 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
 
     Notes
     -----
-    Of the three parameters: ``start``, ``end``, and ``periods``, exactly two
-    must be specified.
+    Of the four parameters: ``start``, ``end``, ``periods``, and ``freq``,
+    exactly three must be specified.  Specifying ``freq`` is a requirement
+    for ``bdate_range``.  Use ``date_range`` if specifying ``freq`` is not
+    desired.
 
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
@@ -2776,6 +2786,9 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
     -------
     rng : DatetimeIndex
     """
+    if freq is None:
+        msg = 'freq must be specified for bdate_range; use date_range instead'
+        raise TypeError(msg)
 
     if is_string_like(freq) and freq.startswith('C'):
         try:
