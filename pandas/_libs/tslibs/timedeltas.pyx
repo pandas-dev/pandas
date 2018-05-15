@@ -795,8 +795,7 @@ cdef class _Timedelta(timedelta):
         
         Returns
         -------
-        int
-            Number of nanoseconds
+        int : Number of nanoseconds
 
         See Also
         --------
