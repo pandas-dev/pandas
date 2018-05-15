@@ -93,7 +93,7 @@ Note that this returns a view on the underlying data in the case where the data
 are homogeneously-typed.
 
 .. note::
-   ``pandas.pivot`` will error with a ``ValueError: Index contains duplicate
+   :func:`~pandas.pivot` will error with a ``ValueError: Index contains duplicate
    entries, cannot reshape`` if the index/column pair is not unique. In this
    case, consider using :func:`~pandas.pivot_table` which is a generalization
    of pivot that can handle duplicate values for one index/column pair.
@@ -735,7 +735,7 @@ Question 1
 ~~~~~~~~~~
 
 How do I pivot ``df`` such that the ``col`` values are columns,
-``row`` values are the index, and mean of ``val0`` are the values? In
+``row`` values are the index, and the mean of ``val0`` are the values? In
 particular, the resulting DataFrame should look like:
 
 .. code-block:: ipython
