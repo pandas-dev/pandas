@@ -806,6 +806,7 @@ cdef class _Timedelta(timedelta):
 
         Examples
         --------
+        **Using string input**
         >>> td = pd.Timedelta('1 days 2 min 3 us 42 ns')
         >>> td.nanoseconds
         42
