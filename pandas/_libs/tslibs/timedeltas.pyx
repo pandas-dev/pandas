@@ -789,9 +789,17 @@ cdef class _Timedelta(timedelta):
     @property
     def nanoseconds(self):
         """
-        Number of nanoseconds (>= 0 and less than 1 microsecond).
+        Return the number of nanoseconds (n), where 0 <= n < 1 microsecond.
+        
+        Returns
+        -------
+        int
+            Number of nanoseconds
 
-        .components will return the shown components
+        See Also
+        --------
+        Timedelta.components : Return all attributes with assigned values (i.e.
+            days, seconds, microseconds, nanoseconds)
         """
         self._ensure_components()
         return self._ns
