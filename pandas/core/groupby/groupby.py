@@ -1265,19 +1265,20 @@ class GroupBy(_GroupBy):
     @Appender(_doc_template)
     def mean(self, *args, **kwargs):
         """
+        
         Compute mean of the target column for groups that are defined by the groupby columns.
         Missing values are excluded in computing the mean.
         If there is one groupby column, the groups are the unique values in the specified groupby column.
         If there are multiple groupby columns, the groups are the unique combinations of the specified groupby columns.
 
         Returns
-        -------
+
         pandas.core.series.Series
             The average of the target column ('B' in the examples below)
             grouped by the groupby columns ('A' and ['A', 'C'] in the examples below)
 
-        Example of groupby one column:the groups are stored as index in the result.
-        ---------------------------------------------------------------------------
+        Groubpy by one column. The result index are the group labels.
+
         >>> df = pd.DataFrame({'A': [1, 1, 2, 1, 2],
         ...                    'B': [np.nan, 2, 3, 4, 5]}, columns=['A', 'B'])
         >>> g = df.groupby('A')['B'].mean()
@@ -1286,8 +1287,8 @@ class GroupBy(_GroupBy):
         1    3.0
         2    4.0
 
-        Example of groupby multiple columns: the result index will be a MultiIndex.
-        ---------------------------------------------------------------------------
+        Groubpy by multiple columns.
+
         >>> df = pd.DataFrame({'A': [1, 1, 2, 1, 2],
         ...                    'B': [np.nan, 2, 3, 4, 5],
         ...                    'C': [1, 2, 1, 1, 2]}, columns=['A', 'B', 'C'])
