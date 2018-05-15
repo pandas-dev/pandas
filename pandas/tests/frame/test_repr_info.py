@@ -211,6 +211,7 @@ class TestDataFrameReprInfoEtc(TestData):
         buf = StringIO()
         df.info(buf=buf)
         result = buf.getvalue()
+        bytes = float(df.memory_usage().sum())
 
         expected = textwrap.dedent("""\
         <class 'pandas.core.frame.DataFrame'>
@@ -218,8 +219,8 @@ class TestDataFrameReprInfoEtc(TestData):
         Data columns (total 1 columns):
         a    2 non-null int64
         dtypes: int64(1)
-        memory usage: 96.0 bytes
-        """)
+        memory usage: {} bytes
+        """.format(bytes))
 
         assert result == expected
 
