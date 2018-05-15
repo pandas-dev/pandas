@@ -62,7 +62,7 @@ def cmp_docstring_sig(f):
         path = f.__code__.co_filename.split(args.path, 1)[-1][1:]
         return dict(path=path, lnum=f.__code__.co_firstlineno)
 
-    sig_names = set(inspect.getargspec(f).args)
+    sig_names = set(inspect.getfullargspec(f).args)
     # XXX numpydoc can be used to get the list of parameters
     doc = f.__doc__.lower()
     doc = re.split('^\s*parameters\s*', doc, 1, re.M)[-1]
