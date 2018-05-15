@@ -569,10 +569,10 @@ Previous Behavior (and current behavior if on Python < 3.6):
 
 .. code-block:: ipython
 
-   In [1]: pd.Series({'Income': 2000,
-                      'Expenses': -1500,
-                      'Taxes': -200,
-                      'Net result': 300})
+   pd.Series({'Income': 2000,
+              'Expenses': -1500,
+              'Taxes': -200,
+              'Net result': 300})
    Expenses     -1500
    Income        2000
    Net result     300
@@ -1364,6 +1364,7 @@ Reshaping
 - Improved error message for :func:`DataFrame.merge` when there is no common merge key (:issue:`19427`)
 - Bug in :func:`DataFrame.join` which does an ``outer`` instead of a ``left`` join when being called with multiple DataFrames and some have non-unique indices (:issue:`19624`)
 - :func:`Series.rename` now accepts ``axis`` as a kwarg (:issue:`18589`)
+- Bug in :func:`~DataFrame.rename` where an Index of same-length tuples was converted to a MultiIndex (:issue:`19497`)
 - Comparisons between :class:`Series` and :class:`Index` would return a ``Series`` with an incorrect name, ignoring the ``Index``'s name attribute (:issue:`19582`)
 - Bug in :func:`qcut` where datetime and timedelta data with ``NaT`` present raised a ``ValueError`` (:issue:`19768`)
 - Bug in :func:`DataFrame.iterrows`, which would infers strings not compliant to `ISO8601 <https://en.wikipedia.org/wiki/ISO_8601>`_ to datetimes (:issue:`19671`)
