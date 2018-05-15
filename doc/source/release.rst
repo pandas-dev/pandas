@@ -42,7 +42,7 @@ pandas 0.23.0
 
 **Release date**: May 15, 2017
 
-This is a major release from 0.23.0 and includes a number of API changes, new
+This is a major release from 0.22.0 and includes a number of API changes, new
 features, enhancements, and performance improvements along with a large number
 of bug fixes. We recommend that all users upgrade to this version.
 
