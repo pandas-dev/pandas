@@ -2616,7 +2616,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         axis = self._get_axis_number(axis)
         index = self.index
 
-        if level:
+        if level is not None:
             new_index, indexer = index.sortlevel(level, ascending=ascending,
                                                  sort_remaining=sort_remaining)
         elif isinstance(index, MultiIndex):
