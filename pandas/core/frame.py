@@ -4685,7 +4685,6 @@ class DataFrame(NDFrame):
             result.index = result.index.swaplevel(i, j)
         else:
             result.columns = result.columns.swaplevel(i, j)
-
         return result
 
     def reorder_levels(self, order, axis=0):

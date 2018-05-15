@@ -871,7 +871,7 @@ class TestDataFrameReshape(TestData):
 
         expected = pd.DataFrame([
             [3, 1, 2, 0]], columns=pd.MultiIndex.from_tuples([
-                ('c', 'A'), ('c', 'B'),('d', 'A'), ('d', 'B')], names=[
+                ('c', 'A'), ('c', 'B'), ('d', 'A'), ('d', 'B')], names=[
                     'baz', 'foo']))
         expected.index.name = 'bar'
 
