@@ -592,7 +592,8 @@ class SelectionMixin(object):
         else:
             for index, col in enumerate(obj):
                 try:
-                    colg = self._gotitem(col, ndim=1, subset=obj.iloc[:, [index]])
+                    colg = self._gotitem(col, ndim=1,
+                                         subset=obj.iloc[:, [index]])
                     results.append(colg.aggregate(arg))
                     keys.append(col)
                 except (TypeError, DataError):
