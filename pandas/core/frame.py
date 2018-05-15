@@ -5748,7 +5748,7 @@ class DataFrame(NDFrame):
             subset = self
 
         # TODO: _shallow_copy(subset)?
-        return self[key]
+        return subset[key]
 
     _agg_doc = dedent("""
     The aggregation operations are always performed over an axis, either the
