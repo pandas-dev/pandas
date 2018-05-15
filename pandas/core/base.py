@@ -609,7 +609,7 @@ class SelectionMixin(object):
             raise ValueError("no results")
 
         try:
-            return concat(results, keys=keys, axis=1)
+            return concat(results, keys=keys, axis=1, sort=False)
         except TypeError:
 
             # we are concatting non-NDFrame objects,
