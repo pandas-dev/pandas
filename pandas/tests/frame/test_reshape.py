@@ -862,7 +862,7 @@ class TestDataFrameReshape(TestData):
                 tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("level", [0, 'baz'])
-    def test_unstack_swaplevel(self, level):
+    def test_unstack_swaplevel_sortlevel(self, level):
         # GH 20994
         mi = pd.MultiIndex.from_product([[0], ['d', 'c']],
                                         names=['bar', 'baz'])
