@@ -235,13 +235,13 @@ documentation. If you build an extension array, publicize it on our
 
 .. _whatsnew_0230.enhancements.categorical_grouping:
 
-Categorical Groupers has gained an observed keyword
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+New ``observed`` keyword for excluding unobserved categories in ``groupby``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Grouping by a categorical includes the unobserved categories in the output.
-When grouping with multiple groupers, this means you get the cartesian product of all the
+When grouping by multiple categorical columns, this means you get the cartesian product of all the
 categories, including combinations where there are no observations, which can result in a large
-number of groupers. We have added a keyword ``observed`` to control this behavior, it defaults to
+number of groups. We have added a keyword ``observed`` to control this behavior, it defaults to
 ``observed=False`` for backward-compatiblity. (:issue:`14942`, :issue:`8138`, :issue:`15217`, :issue:`17594`, :issue:`8669`, :issue:`20583`, :issue:`20902`)
 
 .. ipython:: python
@@ -540,7 +540,7 @@ Other Enhancements
 - :func:`read_html` now reads all ``<tbody>`` elements in a ``<table>``, not just the first. (:issue:`20690`)
 - :meth:`~pandas.core.window.Rolling.quantile` and :meth:`~pandas.core.window.Expanding.quantile` now accept the ``interpolation`` keyword, ``linear`` by default (:issue:`20497`)
 - zip compression is supported via ``compression=zip`` in :func:`DataFrame.to_pickle`, :func:`Series.to_pickle`, :func:`DataFrame.to_csv`, :func:`Series.to_csv`, :func:`DataFrame.to_json`, :func:`Series.to_json`. (:issue:`17778`)
-- :class:`pandas.tseries.api.offsets.WeekOfMonth` constructor now supports ``n=0`` (:issue:`20517`).
+- :class:`~pandas.tseries.offsets.WeekOfMonth` constructor now supports ``n=0`` (:issue:`20517`).
 - :class:`DataFrame` and :class:`Series` now support matrix multiplication (``@``) operator (:issue:`10259`) for Python>=3.5
 - Updated :meth:`DataFrame.to_gbq` and :meth:`pandas.read_gbq` signature and documentation to reflect changes from
   the Pandas-GBQ library version 0.4.0. Adds intersphinx mapping to Pandas-GBQ
