@@ -5731,7 +5731,12 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Function application
 
-    def _gotitem(self, key, ndim, subset=None):
+    def _gotitem(self,
+                 key,           # type: Union[str, List[str]]
+                 ndim,          # type: int
+                 subset=None    # type: Union[Series, DataFrame, None]
+                 ):
+        # type: (...) -> Union[Series, DataFrame]
         """
         sub-classes to define
         return a sliced object
