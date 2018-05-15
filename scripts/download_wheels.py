@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """Fetch wheels from wheels.scipy.org for a pandas version."""
 import argparse
 import pathlib
@@ -23,7 +24,7 @@ def fetch(version):
     dest.mkdir(exist_ok=True)
 
     files = [x for x in root.xpath("//a/text()")
-             if x.startswith(f'pandas-{version}')
+             if x.startswith('pandas-{}'.format(version))
              and not dest.joinpath(x).exists()]
 
     N = len(files)
