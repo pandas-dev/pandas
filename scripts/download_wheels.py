@@ -33,7 +33,9 @@ def fetch(version):
         out = str(dest.joinpath(filename))
         link = urllib.request.urljoin(base, filename)
         urllib.request.urlretrieve(link, out)
-        print(f"Downloaded {link} to {out} [{i}/{N}]")
+        print("Downloaded {link} to {out} [{i}/{N}]".format(
+            link=link, out=out, i=i, N=N
+        ))
 
 
 def main(args=None):
