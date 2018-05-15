@@ -924,10 +924,12 @@ class TestDataFrameAggregate(TestData):
 
         tm.assert_frame_equal(result, expected)
 
-        # unsorted index. Still sorts the index for backwards compat
         with tm.assert_produces_warning(None):
             result = mdf[['D', 'C', 'B', 'A']].agg(['sum', 'min'])
 
+        # For backwards compatibility, the result's index is
+        # still sorted by function name, so it's ['min', 'sum']
+        # not ['sum', 'min'].
         expected = expected[['D', 'C', 'B', 'A']]
         tm.assert_frame_equal(result, expected)
 
