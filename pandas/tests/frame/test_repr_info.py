@@ -5,6 +5,7 @@ from __future__ import print_function
 from datetime import datetime, timedelta
 import re
 import sys
+import textwrap
 
 from numpy import nan
 import numpy as np
@@ -203,6 +204,25 @@ class TestDataFrameReprInfoEtc(TestData):
 
         frame.info()
         frame.info(verbose=False)
+
+    def test_info_memory(self):
+        # https://github.com/pandas-dev/pandas/issues/21056
+        df = pd.DataFrame({'a': pd.Series([1, 2], dtype='i8')})
+        buf = StringIO()
+        df.info(buf=buf)
+        result = buf.getvalue()
+        bytes = float(df.memory_usage().sum())
+
+        expected = textwrap.dedent("""\
+        <class 'pandas.core.frame.DataFrame'>
+        RangeIndex: 2 entries, 0 to 1
+        Data columns (total 1 columns):
+        a    2 non-null int64
+        dtypes: int64(1)
+        memory usage: {} bytes
+        """.format(bytes))
+
+        assert result == expected
 
     def test_info_wide(self):
         from pandas import set_option, reset_option
