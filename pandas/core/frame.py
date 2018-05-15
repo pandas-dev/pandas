@@ -5746,6 +5746,8 @@ class DataFrame(NDFrame):
         """
         if subset is None:
             subset = self
+        elif subset.ndim == 1:
+            subset = self._constructor(subset)
 
         # TODO: _shallow_copy(subset)?
         return subset[key]
