@@ -404,9 +404,10 @@ class TestTimedeltaMultiplicationDivision(object):
         with pytest.raises(TypeError):
             td.__rfloordiv__(np.float64(2.0))
         with pytest.raises(TypeError):
-            td.__rfloordiv__(np.int32(2.0))
-        with pytest.raises(TypeError):
             td.__rfloordiv__(np.uint8(9))
+        with tm.assert_produces_warning(FutureWarning):
+            # GH-19761: Change to TypeError.
+            td.__rfloordiv__(np.int32(2.0))
 
     def test_td_rfloordiv_timedeltalike_array(self):
         # GH#18846
@@ -432,7 +433,8 @@ class TestTimedeltaMultiplicationDivision(object):
         ser = pd.Series([1], dtype=np.int64)
         res = td.__rfloordiv__(ser)
         assert res is NotImplemented
-        with pytest.raises(TypeError):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            # TODO: GH-19761. Change to TypeError.
             ser // td
 
     def test_mod_timedeltalike(self):
