@@ -508,7 +508,8 @@ Attribute "names" are different
 
 Attribute "dtype" are different
 \\[left\\]:  CategoricalDtype\\(categories=\\[u?'a', u?'b'\\], ordered=False\\)
-\\[right\\]: CategoricalDtype\\(categories=\\[u?'a', u?'b', u?'c'\\], ordered=False\\)"""  # noqa
+\\[right\\]: CategoricalDtype\\(categories=\\[u?'a', u?'b', u?'c'\\], \
+ordered=False\\)"""
 
         with tm.assert_raises_regex(AssertionError, expected):
             assert_index_equal(pd.Index(pd.Categorical(['a', 'b'])),
@@ -623,7 +624,8 @@ Series values are different \\(33\\.33333 %\\)
 
 Attribute "dtype" are different
 \\[left\\]:  CategoricalDtype\\(categories=\\[u?'a', u?'b'\\], ordered=False\\)
-\\[right\\]: CategoricalDtype\\(categories=\\[u?'a', u?'b', u?'c'\\], ordered=False\\)"""  # noqa
+\\[right\\]: CategoricalDtype\\(categories=\\[u?'a', u?'b', u?'c'\\], \
+ordered=False\\)"""
 
         with tm.assert_raises_regex(AssertionError, expected):
             assert_series_equal(pd.Series(pd.Categorical(['a', 'b'])),
