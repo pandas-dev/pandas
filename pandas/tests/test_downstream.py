@@ -2,6 +2,8 @@
 """
 Testing that we work in the downstream packages
 """
+import subprocess
+
 import pytest
 import numpy as np  # noqa
 from pandas import DataFrame
@@ -51,6 +53,15 @@ def test_xarray(df):
     xarray = import_module('xarray')  # noqa
 
     assert df.to_xarray() is not None
+
+
+def test_xarray_oo_optimizable():
+    # GH 21071
+    ret = subprocess.run(["python", "-OO", "-c", "import pandas"])
+    result = ret.returncode
+    expected = 0
+
+    assert result == expected
 
 
 @tm.network
