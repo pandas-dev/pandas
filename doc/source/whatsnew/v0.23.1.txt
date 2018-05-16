@@ -43,7 +43,10 @@ Documentation Changes
 Bug Fixes
 ~~~~~~~~~
 
--
+Groupby/Resample/Rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Bug in :func:`DataFrame.agg` where applying multiple aggregation functions to a :class:`DataFrame` with duplicated column names would cause a stack overflow (:issue:`21063`)
 -
 
 Conversion
