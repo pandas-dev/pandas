@@ -175,7 +175,7 @@ def _concat_compat(to_concat, axis=0):
         return _concat_sparse(to_concat, axis=axis, typs=typs)
 
     extensions = [is_extension_array_dtype(x) for x in to_concat]
-    if any(extensions):
+    if any(extensions) and axis == 1:
         to_concat = [np.atleast_2d(x.astype('object')) for x in to_concat]
 
     if not nonempty:
@@ -416,6 +416,13 @@ def union_categoricals(to_union, sort_categories=False, ignore_order=False):
                        fastpath=True)
 
 
+def _concatenate_2d(to_concat, axis):
+    # coerce to 2d if needed & concatenate
+    if axis == 1:
+        to_concat = [np.atleast_2d(x) for x in to_concat]
+    return np.concatenate(to_concat, axis=axis)
+
+
 def _concat_datetime(to_concat, axis=0, typs=None):
     """
     provide concatenation of an datetimelike array of arrays each of which is a
@@ -432,61 +439,57 @@ def _concat_datetime(to_concat, axis=0, typs=None):
     a single array, preserving the combined dtypes
     """
 
-    def convert_to_pydatetime(x, axis):
-        # coerce to an object dtype
-
-        # if dtype is of datetimetz or timezone
-        if x.dtype.kind == _NS_DTYPE.kind:
-            if getattr(x, 'tz', None) is not None:
-                x = x.astype(object).values
-            else:
-                shape = x.shape
-                x = tslib.ints_to_pydatetime(x.view(np.int64).ravel(),
-                                             box="timestamp")
-                x = x.reshape(shape)
-
-        elif x.dtype == _TD_DTYPE:
-            shape = x.shape
-            x = tslib.ints_to_pytimedelta(x.view(np.int64).ravel(), box=True)
-            x = x.reshape(shape)
-
-        if axis == 1:
-            x = np.atleast_2d(x)
-        return x
-
     if typs is None:
         typs = get_dtype_kinds(to_concat)
 
+    # multiple types, need to coerce to object
+    if len(typs) != 1:
+        return _concatenate_2d([_convert_datetimelike_to_object(x)
+                                for x in to_concat],
+                               axis=axis)
+
     # must be single dtype
-    if len(typs) == 1:
-        _contains_datetime = any(typ.startswith('datetime') for typ in typs)
-        _contains_period = any(typ.startswith('period') for typ in typs)
+    if any(typ.startswith('datetime') for typ in typs):
 
-        if _contains_datetime:
+        if 'datetime' in typs:
+            to_concat = [np.array(x, copy=False).view(np.int64)
+                         for x in to_concat]
+            return _concatenate_2d(to_concat, axis=axis).view(_NS_DTYPE)
+        else:
+            # when to_concat has different tz, len(typs) > 1.
+            # thus no need to care
+            return _concat_datetimetz(to_concat)
 
-            if 'datetime' in typs:
-                new_values = np.concatenate([x.view(np.int64) for x in
-                                             to_concat], axis=axis)
-                return new_values.view(_NS_DTYPE)
-            else:
-                # when to_concat has different tz, len(typs) > 1.
-                # thus no need to care
-                return _concat_datetimetz(to_concat)
+    elif 'timedelta' in typs:
+        return _concatenate_2d([x.view(np.int64) for x in to_concat],
+                               axis=axis).view(_TD_DTYPE)
 
-        elif 'timedelta' in typs:
-            new_values = np.concatenate([x.view(np.int64) for x in to_concat],
-                                        axis=axis)
-            return new_values.view(_TD_DTYPE)
+    elif any(typ.startswith('period') for typ in typs):
+        # PeriodIndex must be handled by PeriodIndex,
+        # Thus can't meet this condition ATM
+        # Must be changed when we adding PeriodDtype
+        raise NotImplementedError("unable to concat PeriodDtype")
 
-        elif _contains_period:
-            # PeriodIndex must be handled by PeriodIndex,
-            # Thus can't meet this condition ATM
-            # Must be changed when we adding PeriodDtype
-            raise NotImplementedError
 
-    # need to coerce to object
-    to_concat = [convert_to_pydatetime(x, axis) for x in to_concat]
-    return np.concatenate(to_concat, axis=axis)
+def _convert_datetimelike_to_object(x):
+    # coerce datetimelike array to object dtype
+
+    # if dtype is of datetimetz or timezone
+    if x.dtype.kind == _NS_DTYPE.kind:
+        if getattr(x, 'tz', None) is not None:
+            x = x.astype(object).values
+        else:
+            shape = x.shape
+            x = tslib.ints_to_pydatetime(x.view(np.int64).ravel(),
+                                         box="timestamp")
+            x = x.reshape(shape)
+
+    elif x.dtype == _TD_DTYPE:
+        shape = x.shape
+        x = tslib.ints_to_pytimedelta(x.view(np.int64).ravel(), box=True)
+        x = x.reshape(shape)
+
+    return x
 
 
 def _concat_datetimetz(to_concat, name=None):

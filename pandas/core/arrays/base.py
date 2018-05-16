@@ -462,22 +462,36 @@ class ExtensionArray(object):
     # ------------------------------------------------------------------------
     # Indexing methods
     # ------------------------------------------------------------------------
-    def take(self, indexer, allow_fill=True, fill_value=None):
+
+    def take(self, indices, allow_fill=False, fill_value=None):
         # type: (Sequence[int], bool, Optional[Any]) -> ExtensionArray
         """Take elements from an array.
 
         Parameters
         ----------
-        indexer : sequence of integers
-            indices to be taken. -1 is used to indicate values
-            that are missing.
-        allow_fill : bool, default True
-            If False, indexer is assumed to contain no -1 values so no filling
-            will be done. This short-circuits computation of a mask. Result is
-            undefined if allow_fill == False and -1 is present in indexer.
-        fill_value : any, default None
-            Fill value to replace -1 values with. If applicable, this should
-            use the sentinel missing value for this type.
+        indices : sequence of integers
+            Indices to be taken.
+        allow_fill : bool, default False
+            How to handle negative values in `indices`.
+
+            * False: negative values in `indices` indicate positional indices
+              from the right (the default). This is similar to
+              :func:`numpy.take`.
+
+            * True: negative values in `indices` indicate
+              missing values. These values are set to `fill_value`. Any other
+              other negative values raise a ``ValueError``.
+
+        fill_value : any, optional
+            Fill value to use for NA-indices when `allow_fill` is True.
+            This may be ``None``, in which case the default NA value for
+            the type, ``self.dtype.na_value``, is used.
+
+            For many ExtensionArrays, there will be two representations of
+            `fill_value`: a user-facing "boxed" scalar, and a low-level
+            physical NA value. `fill_value` should be the user-facing version,
+            and the implementation should handle translating that to the
+            physical version for processing the take if nescessary.
 
         Returns
         -------
@@ -486,44 +500,56 @@ class ExtensionArray(object):
         Raises
         ------
         IndexError
-            When the indexer is out of bounds for the array.
+            When the indices are out of bounds for the array.
+        ValueError
+            When `indices` contains negative values other than ``-1``
+            and `allow_fill` is True.
 
         Notes
         -----
-        This should follow pandas' semantics where -1 indicates missing values.
-        Positions where indexer is ``-1`` should be filled with the missing
-        value for this type.
-        This gives rise to the special case of a take on an empty
-        ExtensionArray that does not raises an IndexError straight away
-        when the `indexer` is all ``-1``.
-
-        This is called by ``Series.__getitem__``, ``.loc``, ``iloc``, when the
-        indexer is a sequence of values.
-
-        Examples
-        --------
-        Suppose the extension array is backed by a NumPy array stored as
-        ``self.data``. Then ``take`` may be written as
-
-        .. code-block:: python
-
-           def take(self, indexer, allow_fill=True, fill_value=None):
-               indexer = np.asarray(indexer)
-               mask = indexer == -1
-
-               # take on empty array not handled as desired by numpy
-               # in case of -1 (all missing take)
-               if not len(self) and mask.all():
-                   return type(self)([np.nan] * len(indexer))
-
-               result = self.data.take(indexer)
-               result[mask] = np.nan  # NA for this type
-               return type(self)(result)
+        ExtensionArray.take is called by ``Series.__getitem__``, ``.loc``,
+        ``iloc``, when `indices` is a sequence of values. Additionally,
+        it's called by :meth:`Series.reindex`, or any other method
+        that causes realignemnt, with a `fill_value`.
 
         See Also
         --------
         numpy.take
+        pandas.api.extensions.take
+
+        Examples
+        --------
+        Here's an example implementation, which relies on casting the
+        extension array to object dtype. This uses the helper method
+        :func:`pandas.api.extensions.take`.
+
+        .. code-block:: python
+
+           def take(self, indices, allow_fill=False, fill_value=None):
+               from pandas.core.algorithms import take
+
+               # If the ExtensionArray is backed by an ndarray, then
+               # just pass that here instead of coercing to object.
+               data = self.astype(object)
+
+               if allow_fill and fill_value is None:
+                   fill_value = self.dtype.na_value
+
+               # fill value should always be translated from the scalar
+               # type for the array, to the physical storage type for
+               # the data, before passing to take.
+
+               result = take(data, indices, fill_value=fill_value,
+                             allow_fill=allow_fill)
+               return self._from_sequence(result)
         """
+        # Implementer note: The `fill_value` parameter should be a user-facing
+        # value, an instance of self.dtype.type. When passed `fill_value=None`,
+        # the default of `self.dtype.na_value` should be used.
+        # This may differ from the physical storage type your ExtensionArray
+        # uses. In this case, your implementation is responsible for casting
+        # the user-facing type to the storage type, before using
+        # pandas.api.extensions.take
         raise AbstractMethodError(self)
 
     def copy(self, deep=False):

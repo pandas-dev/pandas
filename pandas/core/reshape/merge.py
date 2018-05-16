@@ -705,8 +705,7 @@ class _MergeOperation(object):
                                 take_right = self.right[name]._values
 
             elif left_indexer is not None \
-                    and isinstance(self.left_join_keys[i], np.ndarray):
-
+                    and is_array_like(self.left_join_keys[i]):
                 take_left = self.left_join_keys[i]
                 take_right = self.right_join_keys[i]
 
@@ -956,14 +955,14 @@ class _MergeOperation(object):
 
                 # check whether ints and floats
                 elif is_integer_dtype(rk) and is_float_dtype(lk):
-                    if not (lk == lk.astype(rk.dtype)).all():
+                    if not (lk == lk.astype(rk.dtype))[~np.isnan(lk)].all():
                         warnings.warn('You are merging on int and float '
                                       'columns where the float values '
                                       'are not equal to their int '
                                       'representation', UserWarning)
 
                 elif is_float_dtype(rk) and is_integer_dtype(lk):
-                    if not (rk == rk.astype(lk.dtype)).all():
+                    if not (rk == rk.astype(lk.dtype))[~np.isnan(rk)].all():
                         warnings.warn('You are merging on int and float '
                                       'columns where the float values '
                                       'are not equal to their int '

@@ -181,6 +181,10 @@ class _Window(PandasObject, SelectionMixin):
         return "{klass} [{attrs}]".format(klass=self._window_type,
                                           attrs=','.join(attrs))
 
+    def __iter__(self):
+        url = 'https://github.com/pandas-dev/pandas/issues/11704'
+        raise NotImplementedError('See issue #11704 {url}'.format(url=url))
+
     def _get_index(self, index=None):
         """
         Return index as ndarrays
@@ -837,11 +841,7 @@ class _Rolling(_Window):
         index, indexi = self._get_index(index=index)
         results = []
         for b in blocks:
-            try:
-                values = self._prep_values(b.values)
-            except TypeError:
-                results.append(b.values.copy())
-                continue
+            values = self._prep_values(b.values)
 
             if values.size == 0:
                 results.append(values.copy())

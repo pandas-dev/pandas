@@ -573,7 +573,7 @@ class TestDataFrameSortIndexKinds(TestData):
                     bins=[-3, -0.5, 0, 0.5, 3])
         model = pd.concat([y, x1, x2], axis=1, keys=['Y', 'X1', 'X2'])
 
-        result = model.groupby(['X1', 'X2']).mean().unstack()
+        result = model.groupby(['X1', 'X2'], observed=True).mean().unstack()
         expected = IntervalIndex.from_tuples(
             [(-3.0, -0.5), (-0.5, 0.0),
              (0.0, 0.5), (0.5, 3.0)],
