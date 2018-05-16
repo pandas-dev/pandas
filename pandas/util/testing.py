@@ -955,13 +955,13 @@ def is_sorted(seq):
 
 
 def assert_categorical_equal(left, right, check_dtype=True,
-                             obj='Categorical', check_category_order=True):
+                             check_category_order=True, obj='Categorical'):
     """Test that Categoricals are equivalent.
 
     Parameters
     ----------
-    left, right : Categorical
-        Categoricals to compare
+    left : Categorical
+    right : Categorical
     check_dtype : bool, default True
         Check that integer dtype of the codes are the same
     obj : str, default 'Categorical'
