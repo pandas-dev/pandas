@@ -106,23 +106,17 @@ def _convert_and_box_cache(arg, cache_array, box, errors, name=None):
     return result.values
 
 
-def _return_parsed_timezone_results(result, tznames, tzoffsets, parsing_tzname,
+def _return_parsed_timezone_results(result, timezones, parsing_tzname,
                                     parsing_tzoffset, box):
     """
     Return results from array_strptime if a %z or %Z directive was passed.
-
-    If %Z is only parsed, timezones will be a pytz.timezone object.
-    If %z is only parsed, timezones will be a pytz.FixedOffset object.
-    If both %Z and %z are parsed, timezones will be a datetime.timezone object.
 
     Parameters
     ----------
     result : ndarray
         int64 date representations of the dates
-    tznames : ndarray
-        strings of timezone names if %Z is parsed
-    tzoffsets : ndarray
-        timedelta objects of the timezone offset if %z is parsed
+    timezones : ndarray
+        pytz timezone objects
     parsing_tzname : boolean
         True if %Z is parsed
     parsing_tzoffset : boolean
@@ -412,16 +406,18 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                     try:
                         parsing_tzname = '%Z' in format
                         parsing_tzoffset = '%z' in format
-                        if tz is not None and (parsing_tzname or
-                                               parsing_tzoffset):
+                        if parsing_tzoffset and parsing_tzname:
+                            raise ValueError("Cannot parse both %Z and %z")
+                        elif tz is not None and (parsing_tzname or
+                                                 parsing_tzoffset):
                             raise ValueError("Cannot pass a tz argument when "
                                              "parsing strings with timezone "
                                              "information.")
-                        result, tznames, tzoffsets = array_strptime(
+                        result, timezones = array_strptime(
                             arg, format, exact=exact, errors=errors)
                         if parsing_tzname or parsing_tzoffset:
                             return _return_parsed_timezone_results(
-                                result, tznames, tzoffsets, parsing_tzname,
+                                result, timezones, parsing_tzname,
                                 parsing_tzoffset, box)
                     except tslib.OutOfBoundsDatetime:
                         if errors == 'raise':
