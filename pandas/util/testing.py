@@ -833,8 +833,8 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
             # get_level_values may change dtype
             _check_types(left.levels[level], right.levels[level], obj=obj)
 
-    # skip exact index checking when `check_categorical` is False
-    if check_exact and check_categorical:
+    run_exact_index_check = check_exact and check_categorical
+    if run_exact_index_check:
         if not left.equals(right):
             diff = np.sum((left.values != right.values)
                           .astype(int)) * 100.0 / len(left)
