@@ -643,7 +643,7 @@ class TestTimestamp(object):
                                               reason='using truediv, so these'
                                                      ' are like floats')),
         pytest.param((946688461000000000 + 500000) / long(1000000000),
-                     dict(unit='s', us=500000),
+                     dict(unit='s'),
                      marks=pytest.mark.skipif(PY3,
                                               reason='get chopped in py2')),
         pytest.param((946688461000000000 + 500000000) / long(1000000000),

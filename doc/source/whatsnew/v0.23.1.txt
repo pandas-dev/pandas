@@ -44,7 +44,11 @@ Bug Fixes
 ~~~~~~~~~
 
 -
--
+
+Timedelta
+^^^^^^^^^
+- Bug in :class:`Timedelta`: where a numerical value with a unit would round values (:issue: `12690`)
+
 
 Conversion
 ^^^^^^^^^^
