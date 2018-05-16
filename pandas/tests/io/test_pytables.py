@@ -3006,9 +3006,6 @@ class TestHDFStore(Base):
             wp = tm.makePanel()
             self._check_roundtrip(wp.to_frame(), _check)
 
-    def test_longpanel(self):
-        pass
-
     def test_overwrite_node(self):
 
         with ensure_clean_store(self.path) as store:
