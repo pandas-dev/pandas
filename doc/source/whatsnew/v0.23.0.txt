@@ -1,6 +1,6 @@
 .. _whatsnew_0230:
 
-v0.23.0 (May 15, 2017)
+v0.23.0 (May 15, 2018)
 ----------------------
 
 This is a major release from 0.22.0 and includes a number of API changes,
