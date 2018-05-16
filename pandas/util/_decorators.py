@@ -54,10 +54,11 @@ def deprecate(name, alternative, version, alt_name=None,
     {rest}
     """)
     rest = getattr(wrapper, '__doc__', '')
-    docstring = tpl.format(version=version,
-                           msg='\n    '.join(wrap(msg, 70)),
-                           rest=dedent(rest))
-    wrapper.__doc__ = docstring
+    if rest:
+        docstring = tpl.format(version=version,
+                               msg='\n    '.join(wrap(msg, 70)),
+                               rest=dedent(rest))
+        wrapper.__doc__ = docstring
 
     return wrapper
 
