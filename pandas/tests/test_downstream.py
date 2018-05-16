@@ -57,11 +57,7 @@ def test_xarray(df):
 
 def test_oo_optimizable():
     # GH 21071
-    ret = subprocess.run(["python", "-OO", "-c", "import pandas"])
-    result = ret.returncode
-    expected = 0
-
-    assert result == expected
+    subprocess.check_call(["python", "-OO", "-c", "import pandas"])
 
 
 @tm.network
