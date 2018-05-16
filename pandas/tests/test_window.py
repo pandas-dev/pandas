@@ -520,6 +520,39 @@ class TestRolling(Base):
         with pytest.raises(NotImplementedError):
             iter(obj.rolling(2))
 
+    def test_agg(self):
+        # GH 15072
+        df = pd.DataFrame([
+            ['A', 10, 20],
+            ['A', 20, 30],
+            ['A', 30, 40],
+            ['B', 10, 30],
+            ['B', 30, 40],
+            ['B', 40, 80],
+            ['B', 80, 90]], columns=['stock', 'low', 'high'])
+
+        index = pd.MultiIndex.from_tuples([
+            ('A', 0), ('A', 1), ('A', 2),
+            ('B', 3), ('B', 4), ('B', 5), ('B', 6)], names=['stock', None])
+        columns = pd.MultiIndex.from_tuples([
+            ('A', 'mean'), ('A', 'max'), ('B', 'mean'), ('B', 'min')])
+        expected = pd.DataFrame([
+            [np.nan, np.nan, np.nan, np.nan],
+            [15., 20., 25., 20.],
+            [25., 30., 35., 30.],
+            [np.nan, np.nan, np.nan, np.nan],
+            [20., 30., 35., 30.],
+            [35., 40., 60., 40.],
+            [60., 80., 85., 80]], index=index, columns=columns)
+
+        result = df.groupby('stock').rolling(2).agg({
+            'low': ['mean', 'max'],
+            'high': ['mean', 'min']
+        })
+
+        tm.assert_frame_equal(result, expected)
+
+
 
 class TestExpanding(Base):
 
