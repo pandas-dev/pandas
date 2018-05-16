@@ -964,14 +964,14 @@ def assert_categorical_equal(left, right, check_dtype=True,
     right : Categorical
     check_dtype : bool, default True
         Check that integer dtype of the codes are the same
-    obj : str, default 'Categorical'
-        Specify object name being compared, internally used to show appropriate
-        assertion message
     check_category_order : bool, default True
         Whether the order of the categories should be compared, which
         implies identical integer codes.  If False, only the resulting
         values are compared.  The ordered attribute is
         checked regardless.
+    obj : str, default 'Categorical'
+        Specify object name being compared, internally used to show appropriate
+        assertion message
     """
     _check_isinstance(left, right, Categorical)
 
