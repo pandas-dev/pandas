@@ -2320,9 +2320,9 @@ class StringMethods(NoNewAttributesMixin):
         res = str_cat(data, others=others, sep=sep, na_rep=na_rep)
 
         if isinstance(self._orig, Index):
-            res = Index(res)
+            res = Index(res, name=self._orig.name)
         else:  # Series
-            res = Series(res, index=data.index)
+            res = Series(res, index=data.index, name=self._orig.name)
         return res
 
     @copy(str_split)

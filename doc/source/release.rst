@@ -42,7 +42,7 @@ pandas 0.23.0
 
 **Release date**: May 15, 2017
 
-This is a major release from 0.23.0 and includes a number of API changes, new
+This is a major release from 0.22.0 and includes a number of API changes, new
 features, enhancements, and performance improvements along with a large number
 of bug fixes. We recommend that all users upgrade to this version.
 
@@ -54,6 +54,7 @@ Highlights include:
 - :ref:`Merging / sorting on a combination of columns and index levels <whatsnew_0230.enhancements.merge_on_columns_and_levels>`.
 - :ref:`Extending Pandas with custom types <whatsnew_023.enhancements.extension>`.
 - :ref:`Excluding unobserved categories from groupby <whatsnew_0230.enhancements.categorical_grouping>`.
+- :ref:`Changes to make output shape of DataFrame.apply consistent <whatsnew_0230.api_breaking.apply>`.
 
 See the :ref:`full whatsnew <whatsnew_0230>` for a list of all the changes.
 

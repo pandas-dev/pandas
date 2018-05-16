@@ -1,6 +1,6 @@
 .. _whatsnew_0230:
 
-v0.23.0 (May 15, 2017)
+v0.23.0 (May 15, 2018)
 ----------------------
 
 This is a major release from 0.22.0 and includes a number of API changes,
@@ -8,224 +8,32 @@ deprecations, new features, enhancements, and performance improvements along
 with a large number of bug fixes. We recommend that all users upgrade to this
 version.
 
+Highlights include:
+
+- :ref:`Round-trippable JSON format with 'table' orient <whatsnew_0230.enhancements.round-trippable_json>`.
+- :ref:`Instantiation from dicts respects order for Python 3.6+ <whatsnew_0230.api_breaking.dict_insertion_order>`.
+- :ref:`Dependent column arguments for assign <whatsnew_0230.enhancements.assign_dependent>`.
+- :ref:`Merging / sorting on a combination of columns and index levels <whatsnew_0230.enhancements.merge_on_columns_and_levels>`.
+- :ref:`Extending Pandas with custom types <whatsnew_023.enhancements.extension>`.
+- :ref:`Excluding unobserved categories from groupby <whatsnew_0230.enhancements.categorical_grouping>`.
+- :ref:`Changes to make output shape of DataFrame.apply consistent <whatsnew_0230.api_breaking.apply>`.
+
+Check the :ref:`API Changes <whatsnew_0230.api_breaking>` and :ref:`deprecations <whatsnew_0230.deprecations>` before updating.
+
 .. warning::
 
    Starting January 1, 2019, pandas feature releases will support Python 3 only.
    See :ref:`install.dropping-27` for more.
 
+.. contents:: What's new in v0.23.0
+    :local:
+    :backlinks: none
+    :depth: 2
+
 .. _whatsnew_0230.enhancements:
 
 New features
 ~~~~~~~~~~~~
-
-.. _whatsnew_0210.enhancements.limit_area:
-
-``DataFrame.interpolate`` has gained the ``limit_area`` kwarg
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-:meth:`DataFrame.interpolate` has gained a ``limit_area`` parameter to allow further control of which ``NaN`` s are replaced.
-Use ``limit_area='inside'`` to fill only NaNs surrounded by valid values or use ``limit_area='outside'`` to fill only ``NaN`` s
-outside the existing valid values while preserving those inside.  (:issue:`16284`) See the :ref:`full documentation here <missing_data.interp_limits>`.
-
-
-.. ipython:: python
-
-   ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan, np.nan, 13, np.nan, np.nan])
-   ser
-
-Fill one consecutive inside value in both directions
-
-.. ipython:: python
-
-   ser.interpolate(limit_direction='both', limit_area='inside', limit=1)
-
-Fill all consecutive outside values backward
-
-.. ipython:: python
-
-   ser.interpolate(limit_direction='backward', limit_area='outside')
-
-Fill all consecutive outside values in both directions
-
-.. ipython:: python
-
-   ser.interpolate(limit_direction='both', limit_area='outside')
-
-.. _whatsnew_0210.enhancements.get_dummies_dtype:
-
-``get_dummies`` now supports ``dtype`` argument
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The :func:`get_dummies` now accepts a ``dtype`` argument, which specifies a dtype for the new columns. The default remains uint8. (:issue:`18330`)
-
-.. ipython:: python
-
-   df = pd.DataFrame({'a': [1, 2], 'b': [3, 4], 'c': [5, 6]})
-   pd.get_dummies(df, columns=['c']).dtypes
-   pd.get_dummies(df, columns=['c'], dtype=bool).dtypes
-
-
-.. _whatsnew_0230.enhancements.window_raw:
-
-Rolling/Expanding.apply() accepts a ``raw`` keyword to pass a ``Series`` to the function
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-:func:`Series.rolling().apply() <pandas.core.window.Rolling.apply>`, :func:`DataFrame.rolling().apply() <pandas.core.window.Rolling.apply>`,
-:func:`Series.expanding().apply() <pandas.core.window.Expanding.apply>`, and :func:`DataFrame.expanding().apply() <pandas.core.window.Expanding.apply>` have gained a ``raw=None`` parameter.
-This is similar to :func:`DataFame.apply`. This parameter, if ``True`` allows one to send a ``np.ndarray`` to the applied function. If ``False`` a ``Series`` will be passed. The
-default is ``None``, which preserves backward compatibility, so this will default to ``True``, sending an ``np.ndarray``.
-In a future version the default will be changed to ``False``, sending a ``Series``. (:issue:`5071`, :issue:`20584`)
-
-.. ipython:: python
-
-   s = pd.Series(np.arange(5), np.arange(5) + 1)
-   s
-
-Pass a ``Series``:
-
-.. ipython:: python
-
-   s.rolling(2, min_periods=1).apply(lambda x: x.iloc[-1], raw=False)
-
-Mimic the original behavior of passing a ndarray:
-
-.. ipython:: python
-
-   s.rolling(2, min_periods=1).apply(lambda x: x[-1], raw=True)
-
-
-.. _whatsnew_0230.enhancements.merge_on_columns_and_levels:
-
-Merging on a combination of columns and index levels
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Strings passed to :meth:`DataFrame.merge` as the ``on``, ``left_on``, and ``right_on``
-parameters may now refer to either column names or index level names.
-This enables merging ``DataFrame`` instances on a combination of index levels
-and columns without resetting indexes. See the :ref:`Merge on columns and
-levels <merging.merge_on_columns_and_levels>` documentation section.
-(:issue:`14355`)
-
-.. ipython:: python
-
-   left_index = pd.Index(['K0', 'K0', 'K1', 'K2'], name='key1')
-
-   left = pd.DataFrame({'A': ['A0', 'A1', 'A2', 'A3'],
-                        'B': ['B0', 'B1', 'B2', 'B3'],
-                        'key2': ['K0', 'K1', 'K0', 'K1']},
-                       index=left_index)
-
-   right_index = pd.Index(['K0', 'K1', 'K2', 'K2'], name='key1')
-
-   right = pd.DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
-                         'D': ['D0', 'D1', 'D2', 'D3'],
-                         'key2': ['K0', 'K0', 'K0', 'K1']},
-                        index=right_index)
-
-   left.merge(right, on=['key1', 'key2'])
-
-.. _whatsnew_0230.enhancements.sort_by_columns_and_levels:
-
-Sorting by a combination of columns and index levels
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Strings passed to :meth:`DataFrame.sort_values` as the ``by`` parameter may
-now refer to either column names or index level names.  This enables sorting
-``DataFrame`` instances by a combination of index levels and columns without
-resetting indexes. See the :ref:`Sorting by Indexes and Values
-<basics.sort_indexes_and_values>` documentation section.
-(:issue:`14353`)
-
-.. ipython:: python
-
-   # Build MultiIndex
-   idx = pd.MultiIndex.from_tuples([('a', 1), ('a', 2), ('a', 2),
-                                    ('b', 2), ('b', 1), ('b', 1)])
-   idx.names = ['first', 'second']
-
-   # Build DataFrame
-   df_multi = pd.DataFrame({'A': np.arange(6, 0, -1)},
-                           index=idx)
-   df_multi
-
-   # Sort by 'second' (index) and 'A' (column)
-   df_multi.sort_values(by=['second', 'A'])
-
-.. _whatsnew_0230.enhancements.timedelta_mod:
-
-Timedelta mod method
-^^^^^^^^^^^^^^^^^^^^
-
-``mod`` (%) and ``divmod`` operations are now defined on ``Timedelta`` objects
-when operating with either timedelta-like or with numeric arguments.
-See the :ref:`documentation here <timedeltas.mod_divmod>`. (:issue:`19365`)
-
-.. ipython:: python
-
-    td = pd.Timedelta(hours=37)
-    td % pd.Timedelta(minutes=45)
-
-.. _whatsnew_0230.enhancements.ran_inf:
-
-``.rank()`` handles ``inf`` values when ``NaN`` are present
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-In previous versions, ``.rank()`` would assign ``inf`` elements ``NaN`` as their ranks. Now ranks are calculated properly. (:issue:`6945`)
-
-.. ipython:: python
-
-    s = pd.Series([-np.inf, 0, 1, np.nan, np.inf])
-    s
-
-Previous Behavior:
-
-.. code-block:: ipython
-
-    In [11]: s.rank()
-    Out[11]:
-    0    1.0
-    1    2.0
-    2    3.0
-    3    NaN
-    4    NaN
-    dtype: float64
-
-Current Behavior:
-
-.. ipython:: python
-
-    s.rank()
-
-Furthermore, previously if you rank ``inf`` or ``-inf`` values together with ``NaN`` values, the calculation won't distinguish ``NaN`` from infinity when using 'top' or 'bottom' argument.
-
-.. ipython:: python
-
-    s = pd.Series([np.nan, np.nan, -np.inf, -np.inf])
-    s
-
-Previous Behavior:
-
-.. code-block:: ipython
-
-    In [15]: s.rank(na_option='top')
-    Out[15]:
-    0    2.5
-    1    2.5
-    2    2.5
-    3    2.5
-    dtype: float64
-
-Current Behavior:
-
-.. ipython:: python
-
-    s.rank(na_option='top')
-
-These bugs were squashed:
-
-- Bug in :meth:`DataFrame.rank` and :meth:`Series.rank` when ``method='dense'`` and ``pct=True`` in which percentile ranks were not being used with the number of distinct observations (:issue:`15630`)
-- Bug in :meth:`Series.rank` and :meth:`DataFrame.rank` when ``ascending='False'`` failed to return correct ranks for infinity if ``NaN`` were present (:issue:`19538`)
-- Bug in :func:`DataFrameGroupBy.rank` where ranks were incorrect when both infinity and ``NaN`` were present (:issue:`20561`)
 
 .. _whatsnew_0230.enhancements.round-trippable_json:
 
@@ -308,6 +116,330 @@ The :func:`DataFrame.assign` now accepts dependent keyword arguments for python 
 
       df.assign(A=df.A+1, C= lambda df: df.A* -1)
 
+
+
+.. _whatsnew_0230.enhancements.merge_on_columns_and_levels:
+
+Merging on a combination of columns and index levels
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Strings passed to :meth:`DataFrame.merge` as the ``on``, ``left_on``, and ``right_on``
+parameters may now refer to either column names or index level names.
+This enables merging ``DataFrame`` instances on a combination of index levels
+and columns without resetting indexes. See the :ref:`Merge on columns and
+levels <merging.merge_on_columns_and_levels>` documentation section.
+(:issue:`14355`)
+
+.. ipython:: python
+
+   left_index = pd.Index(['K0', 'K0', 'K1', 'K2'], name='key1')
+
+   left = pd.DataFrame({'A': ['A0', 'A1', 'A2', 'A3'],
+                        'B': ['B0', 'B1', 'B2', 'B3'],
+                        'key2': ['K0', 'K1', 'K0', 'K1']},
+                       index=left_index)
+
+   right_index = pd.Index(['K0', 'K1', 'K2', 'K2'], name='key1')
+
+   right = pd.DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
+                         'D': ['D0', 'D1', 'D2', 'D3'],
+                         'key2': ['K0', 'K0', 'K0', 'K1']},
+                        index=right_index)
+
+   left.merge(right, on=['key1', 'key2'])
+
+.. _whatsnew_0230.enhancements.sort_by_columns_and_levels:
+
+Sorting by a combination of columns and index levels
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Strings passed to :meth:`DataFrame.sort_values` as the ``by`` parameter may
+now refer to either column names or index level names.  This enables sorting
+``DataFrame`` instances by a combination of index levels and columns without
+resetting indexes. See the :ref:`Sorting by Indexes and Values
+<basics.sort_indexes_and_values>` documentation section.
+(:issue:`14353`)
+
+.. ipython:: python
+
+   # Build MultiIndex
+   idx = pd.MultiIndex.from_tuples([('a', 1), ('a', 2), ('a', 2),
+                                    ('b', 2), ('b', 1), ('b', 1)])
+   idx.names = ['first', 'second']
+
+   # Build DataFrame
+   df_multi = pd.DataFrame({'A': np.arange(6, 0, -1)},
+                           index=idx)
+   df_multi
+
+   # Sort by 'second' (index) and 'A' (column)
+   df_multi.sort_values(by=['second', 'A'])
+
+
+.. _whatsnew_023.enhancements.extension:
+
+Extending Pandas with Custom Types (Experimental)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Pandas now supports storing array-like objects that aren't necessarily 1-D NumPy
+arrays as columns in a DataFrame or values in a Series. This allows third-party
+libraries to implement extensions to NumPy's types, similar to how pandas
+implemented categoricals, datetimes with timezones, periods, and intervals.
+
+As a demonstration, we'll use cyberpandas_, which provides an ``IPArray`` type
+for storing ip addresses.
+
+.. code-block:: ipython
+
+   In [1]: from cyberpandas import IPArray
+
+   In [2]: values = IPArray([
+      ...:     0,
+      ...:     3232235777,
+      ...:     42540766452641154071740215577757643572
+      ...: ])
+      ...:
+      ...:
+
+``IPArray`` isn't a normal 1-D NumPy array, but because it's a pandas
+:class:`~pandas.api.extension.ExtensionArray`, it can be stored properly inside pandas' containers.
+
+.. code-block:: ipython
+
+   In [3]: ser = pd.Series(values)
+
+   In [4]: ser
+   Out[4]:
+   0                         0.0.0.0
+   1                     192.168.1.1
+   2    2001:db8:85a3::8a2e:370:7334
+   dtype: ip
+
+Notice that the dtype is ``ip``. The missing value semantics of the underlying
+array are respected:
+
+.. code-block:: ipython
+
+   In [5]: ser.isna()
+   Out[5]:
+   0     True
+   1    False
+   2    False
+   dtype: bool
+
+For more, see the :ref:`extension types <extending.extension-types>`
+documentation. If you build an extension array, publicize it on our
+:ref:`ecosystem page <ecosystem.extensions>`.
+
+.. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest/
+
+
+.. _whatsnew_0230.enhancements.categorical_grouping:
+
+New ``observed`` keyword for excluding unobserved categories in ``groupby``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Grouping by a categorical includes the unobserved categories in the output.
+When grouping by multiple categorical columns, this means you get the cartesian product of all the
+categories, including combinations where there are no observations, which can result in a large
+number of groups. We have added a keyword ``observed`` to control this behavior, it defaults to
+``observed=False`` for backward-compatiblity. (:issue:`14942`, :issue:`8138`, :issue:`15217`, :issue:`17594`, :issue:`8669`, :issue:`20583`, :issue:`20902`)
+
+.. ipython:: python
+
+   cat1 = pd.Categorical(["a", "a", "b", "b"],
+                         categories=["a", "b", "z"], ordered=True)
+   cat2 = pd.Categorical(["c", "d", "c", "d"],
+                         categories=["c", "d", "y"], ordered=True)
+   df = pd.DataFrame({"A": cat1, "B": cat2, "values": [1, 2, 3, 4]})
+   df['C'] = ['foo', 'bar'] * 2
+   df
+
+To show all values, the previous behavior:
+
+.. ipython:: python
+
+   df.groupby(['A', 'B', 'C'], observed=False).count()
+
+
+To show only observed values:
+
+.. ipython:: python
+
+   df.groupby(['A', 'B', 'C'], observed=True).count()
+
+For pivotting operations, this behavior is *already* controlled by the ``dropna`` keyword:
+
+.. ipython:: python
+
+   cat1 = pd.Categorical(["a", "a", "b", "b"],
+                         categories=["a", "b", "z"], ordered=True)
+   cat2 = pd.Categorical(["c", "d", "c", "d"],
+                         categories=["c", "d", "y"], ordered=True)
+   df = DataFrame({"A": cat1, "B": cat2, "values": [1, 2, 3, 4]})
+   df
+
+.. ipython:: python
+
+   pd.pivot_table(df, values='values', index=['A', 'B'],
+                  dropna=True)
+   pd.pivot_table(df, values='values', index=['A', 'B'],
+                  dropna=False)
+
+
+.. _whatsnew_0230.enhancements.window_raw:
+
+Rolling/Expanding.apply() accepts ``raw=False`` to pass a ``Series`` to the function
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`Series.rolling().apply() <pandas.core.window.Rolling.apply>`, :func:`DataFrame.rolling().apply() <pandas.core.window.Rolling.apply>`,
+:func:`Series.expanding().apply() <pandas.core.window.Expanding.apply>`, and :func:`DataFrame.expanding().apply() <pandas.core.window.Expanding.apply>` have gained a ``raw=None`` parameter.
+This is similar to :func:`DataFame.apply`. This parameter, if ``True`` allows one to send a ``np.ndarray`` to the applied function. If ``False`` a ``Series`` will be passed. The
+default is ``None``, which preserves backward compatibility, so this will default to ``True``, sending an ``np.ndarray``.
+In a future version the default will be changed to ``False``, sending a ``Series``. (:issue:`5071`, :issue:`20584`)
+
+.. ipython:: python
+
+   s = pd.Series(np.arange(5), np.arange(5) + 1)
+   s
+
+Pass a ``Series``:
+
+.. ipython:: python
+
+   s.rolling(2, min_periods=1).apply(lambda x: x.iloc[-1], raw=False)
+
+Mimic the original behavior of passing a ndarray:
+
+.. ipython:: python
+
+   s.rolling(2, min_periods=1).apply(lambda x: x[-1], raw=True)
+
+
+.. _whatsnew_0210.enhancements.limit_area:
+
+``DataFrame.interpolate`` has gained the ``limit_area`` kwarg
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:meth:`DataFrame.interpolate` has gained a ``limit_area`` parameter to allow further control of which ``NaN`` s are replaced.
+Use ``limit_area='inside'`` to fill only NaNs surrounded by valid values or use ``limit_area='outside'`` to fill only ``NaN`` s
+outside the existing valid values while preserving those inside.  (:issue:`16284`) See the :ref:`full documentation here <missing_data.interp_limits>`.
+
+
+.. ipython:: python
+
+   ser = pd.Series([np.nan, np.nan, 5, np.nan, np.nan, np.nan, 13, np.nan, np.nan])
+   ser
+
+Fill one consecutive inside value in both directions
+
+.. ipython:: python
+
+   ser.interpolate(limit_direction='both', limit_area='inside', limit=1)
+
+Fill all consecutive outside values backward
+
+.. ipython:: python
+
+   ser.interpolate(limit_direction='backward', limit_area='outside')
+
+Fill all consecutive outside values in both directions
+
+.. ipython:: python
+
+   ser.interpolate(limit_direction='both', limit_area='outside')
+
+.. _whatsnew_0210.enhancements.get_dummies_dtype:
+
+``get_dummies`` now supports ``dtype`` argument
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The :func:`get_dummies` now accepts a ``dtype`` argument, which specifies a dtype for the new columns. The default remains uint8. (:issue:`18330`)
+
+.. ipython:: python
+
+   df = pd.DataFrame({'a': [1, 2], 'b': [3, 4], 'c': [5, 6]})
+   pd.get_dummies(df, columns=['c']).dtypes
+   pd.get_dummies(df, columns=['c'], dtype=bool).dtypes
+
+
+.. _whatsnew_0230.enhancements.timedelta_mod:
+
+Timedelta mod method
+^^^^^^^^^^^^^^^^^^^^
+
+``mod`` (%) and ``divmod`` operations are now defined on ``Timedelta`` objects
+when operating with either timedelta-like or with numeric arguments.
+See the :ref:`documentation here <timedeltas.mod_divmod>`. (:issue:`19365`)
+
+.. ipython:: python
+
+    td = pd.Timedelta(hours=37)
+    td % pd.Timedelta(minutes=45)
+
+.. _whatsnew_0230.enhancements.ran_inf:
+
+``.rank()`` handles ``inf`` values when ``NaN`` are present
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In previous versions, ``.rank()`` would assign ``inf`` elements ``NaN`` as their ranks. Now ranks are calculated properly. (:issue:`6945`)
+
+.. ipython:: python
+
+    s = pd.Series([-np.inf, 0, 1, np.nan, np.inf])
+    s
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [11]: s.rank()
+    Out[11]:
+    0    1.0
+    1    2.0
+    2    3.0
+    3    NaN
+    4    NaN
+    dtype: float64
+
+Current Behavior:
+
+.. ipython:: python
+
+    s.rank()
+
+Furthermore, previously if you rank ``inf`` or ``-inf`` values together with ``NaN`` values, the calculation won't distinguish ``NaN`` from infinity when using 'top' or 'bottom' argument.
+
+.. ipython:: python
+
+    s = pd.Series([np.nan, np.nan, -np.inf, -np.inf])
+    s
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [15]: s.rank(na_option='top')
+    Out[15]:
+    0    2.5
+    1    2.5
+    2    2.5
+    3    2.5
+    dtype: float64
+
+Current Behavior:
+
+.. ipython:: python
+
+    s.rank(na_option='top')
+
+These bugs were squashed:
+
+- Bug in :meth:`DataFrame.rank` and :meth:`Series.rank` when ``method='dense'`` and ``pct=True`` in which percentile ranks were not being used with the number of distinct observations (:issue:`15630`)
+- Bug in :meth:`Series.rank` and :meth:`DataFrame.rank` when ``ascending='False'`` failed to return correct ranks for infinity if ``NaN`` were present (:issue:`19538`)
+- Bug in :func:`DataFrameGroupBy.rank` where ranks were incorrect when both infinity and ``NaN`` were present (:issue:`20561`)
+
+
 .. _whatsnew_0230.enhancements.str_cat_align:
 
 ``Series.str.cat`` has gained the ``join`` kwarg
@@ -357,116 +489,6 @@ Supplying a ``CategoricalDtype`` will make the categories in each column consist
     df = df.astype(cdt)
     df['A'].dtype
     df['B'].dtype
-
-.. _whatsnew_023.enhancements.extension:
-
-Extending Pandas with Custom Types (Experimental)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Pandas now supports storing array-like objects that aren't necessarily 1-D NumPy
-arrays as columns in a DataFrame or values in a Series. This allows third-party
-libraries to implement extensions to NumPy's types, similar to how pandas
-implemented categoricals, datetimes with timezones, periods, and intervals.
-
-As a demonstration, we'll use cyberpandas_, which provides an ``IPArray`` type
-for storing ip addresses.
-
-.. code-block:: ipython
-
-   In [1]: from cyberpandas import IPArray
-
-   In [2]: values = IPArray([
-      ...:     0,
-      ...:     3232235777,
-      ...:     42540766452641154071740215577757643572
-      ...: ])
-      ...:
-      ...:
-
-``IPArray`` isn't a normal 1-D NumPy array, but because it's a pandas
-:ref:`~pandas.api.extension.ExtensionArray`, it can be stored properly inside pandas' containers.
-
-.. code-block:: ipython
-
-   In [3]: ser = pd.Series(values)
-
-   In [4]: ser
-   Out[4]:
-   0                         0.0.0.0
-   1                     192.168.1.1
-   2    2001:db8:85a3::8a2e:370:7334
-   dtype: ip
-
-Notice that the dtype is ``ip``. The missing value semantics of the underlying
-array are respected:
-
-.. code-block:: ipython
-
-   In [5]: ser.isna()
-   Out[5]:
-   0     True
-   1    False
-   2    False
-   dtype: bool
-
-For more, see the :ref:`extension types <extending.extension-types>`
-documentation. If you build an extension array, publicize it on our
-:ref:`ecosystem page <ecosystem.extensions>`.
-
-.. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest/
-
-.. _whatsnew_0230.enhancements.categorical_grouping:
-
-Categorical Groupers has gained an observed keyword
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Grouping by a categorical includes the unobserved categories in the output.
-When grouping with multiple groupers, this means you get the cartesian product of all the
-categories, including combinations where there are no observations, which can result in a large
-number of groupers. We have added a keyword ``observed`` to control this behavior, it defaults to
-``observed=False`` for backward-compatiblity. (:issue:`14942`, :issue:`8138`, :issue:`15217`, :issue:`17594`, :issue:`8669`, :issue:`20583`, :issue:`20902`)
-
-
-.. ipython:: python
-
-   cat1 = pd.Categorical(["a", "a", "b", "b"],
-                         categories=["a", "b", "z"], ordered=True)
-   cat2 = pd.Categorical(["c", "d", "c", "d"],
-                         categories=["c", "d", "y"], ordered=True)
-   df = pd.DataFrame({"A": cat1, "B": cat2, "values": [1, 2, 3, 4]})
-   df['C'] = ['foo', 'bar'] * 2
-   df
-
-To show all values, the previous behavior:
-
-.. ipython:: python
-
-   df.groupby(['A', 'B', 'C'], observed=False).count()
-
-
-To show only observed values:
-
-.. ipython:: python
-
-   df.groupby(['A', 'B', 'C'], observed=True).count()
-
-For pivotting operations, this behavior is *already* controlled by the ``dropna`` keyword:
-
-.. ipython:: python
-
-   cat1 = pd.Categorical(["a", "a", "b", "b"],
-                         categories=["a", "b", "z"], ordered=True)
-   cat2 = pd.Categorical(["c", "d", "c", "d"],
-                         categories=["c", "d", "y"], ordered=True)
-   df = DataFrame({"A": cat1, "B": cat2, "values": [1, 2, 3, 4]})
-   df
-
-.. ipython:: python
-
-   pd.pivot_table(df, values='values', index=['A', 'B'],
-                  dropna=True)
-   pd.pivot_table(df, values='values', index=['A', 'B'],
-                  dropna=False)
 
 
 .. _whatsnew_0230.enhancements.other:
@@ -519,7 +541,7 @@ Other Enhancements
 - :func:`read_html` now reads all ``<tbody>`` elements in a ``<table>``, not just the first. (:issue:`20690`)
 - :meth:`~pandas.core.window.Rolling.quantile` and :meth:`~pandas.core.window.Expanding.quantile` now accept the ``interpolation`` keyword, ``linear`` by default (:issue:`20497`)
 - zip compression is supported via ``compression=zip`` in :func:`DataFrame.to_pickle`, :func:`Series.to_pickle`, :func:`DataFrame.to_csv`, :func:`Series.to_csv`, :func:`DataFrame.to_json`, :func:`Series.to_json`. (:issue:`17778`)
-- :class:`pandas.tseries.api.offsets.WeekOfMonth` constructor now supports ``n=0`` (:issue:`20517`).
+- :class:`~pandas.tseries.offsets.WeekOfMonth` constructor now supports ``n=0`` (:issue:`20517`).
 - :class:`DataFrame` and :class:`Series` now support matrix multiplication (``@``) operator (:issue:`10259`) for Python>=3.5
 - Updated :meth:`DataFrame.to_gbq` and :meth:`pandas.read_gbq` signature and documentation to reflect changes from
   the Pandas-GBQ library version 0.4.0. Adds intersphinx mapping to Pandas-GBQ

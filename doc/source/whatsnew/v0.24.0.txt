@@ -1,0 +1,180 @@
+.. _whatsnew_0240:
+
+v0.24.0
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_0240.enhancements:
+
+New features
+~~~~~~~~~~~~
+
+.. _whatsnew_0240.enhancements.other:
+
+Other Enhancements
+^^^^^^^^^^^^^^^^^^
+-
+-
+-
+
+.. _whatsnew_0240.api_breaking:
+
+
+Backwards incompatible API changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_0240.api.other:
+
+Other API Changes
+^^^^^^^^^^^^^^^^^
+
+-
+-
+-
+
+.. _whatsnew_0240.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+
+-
+-
+-
+
+.. _whatsnew_0240.prior_deprecations:
+
+Removal of prior version deprecations/changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- The ``LongPanel`` and ``WidePanel`` classes have been removed (:issue:`10892`)
+-
+-
+-
+
+.. _whatsnew_0240.performance:
+
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+-
+-
+-
+
+.. _whatsnew_0240.docs:
+
+Documentation Changes
+~~~~~~~~~~~~~~~~~~~~~
+
+-
+-
+-
+
+.. _whatsnew_0240.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~
+
+Categorical
+^^^^^^^^^^^
+
+-
+-
+-
+
+Datetimelike
+^^^^^^^^^^^^
+
+-
+-
+-
+
+Timedelta
+^^^^^^^^^
+
+-
+-
+-
+
+Timezones
+^^^^^^^^^
+
+-
+-
+-
+
+Offsets
+^^^^^^^
+
+-
+-
+-
+
+Numeric
+^^^^^^^
+
+-
+-
+-
+
+Strings
+^^^^^^^
+
+-
+-
+-
+
+Indexing
+^^^^^^^^
+
+-
+-
+-
+
+MultiIndex
+^^^^^^^^^^
+
+-
+-
+-
+
+I/O
+^^^
+
+-
+-
+-
+
+Plotting
+^^^^^^^^
+
+-
+-
+-
+
+Groupby/Resample/Rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+-
+-
+-
+
+Sparse
+^^^^^^
+
+-
+-
+-
+
+Reshaping
+^^^^^^^^^
+
+-
+-
+-
+
+Other
+^^^^^
+
+-
+-
+-
+

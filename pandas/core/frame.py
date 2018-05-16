@@ -2231,7 +2231,7 @@ class DataFrame(NDFrame):
             # returns size in human readable format
             for x in ['bytes', 'KB', 'MB', 'GB', 'TB']:
                 if num < 1024.0:
-                    return ("{num:3.1f}{size_q}"
+                    return ("{num:3.1f}{size_q} "
                             "{x}".format(num=num, size_q=size_qualifier, x=x))
                 num /= 1024.0
             return "{num:3.1f}{size_q} {pb}".format(num=num,
