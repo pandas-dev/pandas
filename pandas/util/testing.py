@@ -778,8 +778,12 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
 
     def _check_types(l, r, obj='Index'):
         if exact:
-            assert_class_equal(left, right, exact=exact, obj=obj)
-            assert_attr_equal('dtype', l, r, obj=obj)
+            assert_class_equal(l, r, exact=exact, obj=obj)
+
+            # Skip exact dtype checking with `check_categorical` is False
+            if check_categorical:
+                assert_attr_equal('dtype', l, r, obj=obj)
+
             # allow string-like to have different inferred_types
             if l.inferred_type in ('string', 'unicode'):
                 assert r.inferred_type in ('string', 'unicode')
@@ -829,7 +833,8 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
             # get_level_values may change dtype
             _check_types(left.levels[level], right.levels[level], obj=obj)
 
-    if check_exact:
+    # skip exact index checking when `check_categorical` is False
+    if check_exact and check_categorical:
         if not left.equals(right):
             diff = np.sum((left.values != right.values)
                           .astype(int)) * 100.0 / len(left)
