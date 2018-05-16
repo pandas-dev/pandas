@@ -2083,6 +2083,19 @@ class Index(IndexOpsMixin, PandasObject):
         else:
             return result
 
+    def _can_hold_identifiers_and_holds_name(self, name):
+        """
+        Faster check for ``name in self`` when we know `name` is a Python
+        identifier (e.g. in NDFrame.__getattr__, which hits this to support
+        . key lookup). For indexes that can't hold identifiers (everything
+        but object & categorical) we just return False.
+
+        https://github.com/pandas-dev/pandas/issues/19764
+        """
+        if self.is_object() or self.is_categorical():
+            return name in self
+        return False
+
     def append(self, other):
         """
         Append a collection of Index options together
@@ -2177,10 +2190,10 @@ class Index(IndexOpsMixin, PandasObject):
                 msg = ('When allow_fill=True and fill_value is not None, '
                        'all indices must be >= -1')
                 raise ValueError(msg)
-            taken = values.take(indices)
-            mask = indices == -1
-            if mask.any():
-                taken[mask] = na_value
+            taken = algos.take(values,
+                               indices,
+                               allow_fill=allow_fill,
+                               fill_value=na_value)
         else:
             taken = values.take(indices)
         return taken
@@ -3069,12 +3082,17 @@ class Index(IndexOpsMixin, PandasObject):
         # use this, e.g. DatetimeIndex
         s = getattr(series, '_values', None)
         if isinstance(s, (ExtensionArray, Index)) and is_scalar(key):
+            # GH 20825
+            # Unify Index and ExtensionArray treatment
+            # First try to convert the key to a location
+            # If that fails, see if key is an integer, and
+            # try that
             try:
-                return s[key]
-            except (IndexError, ValueError):
-
-                # invalid type as an indexer
-                pass
+                iloc = self.get_loc(key)
+                return s[iloc]
+            except KeyError:
+                if is_integer(key):
+                    return s[key]
 
         s = com._values_from_object(series)
         k = com._values_from_object(key)
@@ -4912,6 +4930,9 @@ def _ensure_index(index_like, copy=False):
         return index_like
     if hasattr(index_like, 'name'):
         return Index(index_like, name=index_like.name, copy=copy)
+
+    if is_iterator(index_like):
+        index_like = list(index_like)
 
     # must check for exactly list here because of strict type
     # check in clean_index_list

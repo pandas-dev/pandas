@@ -908,6 +908,31 @@ class TestDataFrameAggregate(TestData):
                              index=['max', 'min', 'sum'])
         tm.assert_frame_equal(result.reindex_like(expected), expected)
 
+    def test_agg_multiple_mixed_no_warning(self):
+        # https://github.com/pandas-dev/pandas/issues/20909
+        mdf = pd.DataFrame({'A': [1, 2, 3],
+                            'B': [1., 2., 3.],
+                            'C': ['foo', 'bar', 'baz'],
+                            'D': pd.date_range('20130101', periods=3)})
+        expected = pd.DataFrame({"A": [1, 6], 'B': [1.0, 6.0],
+                                 "C": ['bar', 'foobarbaz'],
+                                 "D": [pd.Timestamp('2013-01-01'), pd.NaT]},
+                                index=['min', 'sum'])
+        # sorted index
+        with tm.assert_produces_warning(None):
+            result = mdf.agg(['min', 'sum'])
+
+        tm.assert_frame_equal(result, expected)
+
+        with tm.assert_produces_warning(None):
+            result = mdf[['D', 'C', 'B', 'A']].agg(['sum', 'min'])
+
+        # For backwards compatibility, the result's index is
+        # still sorted by function name, so it's ['min', 'sum']
+        # not ['sum', 'min'].
+        expected = expected[['D', 'C', 'B', 'A']]
+        tm.assert_frame_equal(result, expected)
+
     def test_agg_dict_nested_renaming_depr(self):
 
         df = pd.DataFrame({'A': range(5), 'B': 5})

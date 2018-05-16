@@ -204,6 +204,43 @@ class TimelikeOps(object):
     def ceil(self, freq):
         return self._round(freq, np.ceil)
 
+    @classmethod
+    def _validate_frequency(cls, index, freq, **kwargs):
+        """
+        Validate that a frequency is compatible with the values of a given
+        DatetimeIndex or TimedeltaIndex
+
+        Parameters
+        ----------
+        index : DatetimeIndex or TimedeltaIndex
+            The index on which to determine if the given frequency is valid
+        freq : DateOffset
+            The frequency to validate
+        """
+        inferred = index.inferred_freq
+        if index.empty or inferred == freq.freqstr:
+            return None
+
+        on_freq = cls._generate(
+            index[0], None, len(index), None, freq, **kwargs)
+        if not np.array_equal(index.asi8, on_freq.asi8):
+            msg = ('Inferred frequency {infer} from passed values does not '
+                   'conform to passed frequency {passed}')
+            raise ValueError(msg.format(infer=inferred, passed=freq.freqstr))
+
+    @property
+    def freq(self):
+        """Return the frequency object if it is set, otherwise None"""
+        return self._freq
+
+    @freq.setter
+    def freq(self, value):
+        if value is not None:
+            value = frequencies.to_offset(value)
+            self._validate_frequency(self, value)
+
+        self._freq = value
+
 
 class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
     """ common ops mixin to support a unified interface datetimelike Index """

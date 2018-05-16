@@ -157,10 +157,46 @@ class TestDateRanges(TestData):
         start = datetime(2011, 1, 1, 5, 3, 40)
         end = datetime(2011, 1, 1, 8, 9, 40)
 
-        msg = ('Of the three parameters: start, end, and periods, '
-               'exactly two must be specified')
+        msg = ('Of the four parameters: start, end, periods, and '
+               'freq, exactly three must be specified')
         with tm.assert_raises_regex(ValueError, msg):
             date_range(start, end, periods=10, freq='s')
+
+    def test_date_range_convenience_periods(self):
+        # GH 20808
+        result = date_range('2018-04-24', '2018-04-27', periods=3)
+        expected = DatetimeIndex(['2018-04-24 00:00:00',
+                                  '2018-04-25 12:00:00',
+                                  '2018-04-27 00:00:00'], freq=None)
+
+        tm.assert_index_equal(result, expected)
+
+        # Test if spacing remains linear if tz changes to dst in range
+        result = date_range('2018-04-01 01:00:00',
+                            '2018-04-01 04:00:00',
+                            tz='Australia/Sydney',
+                            periods=3)
+        expected = DatetimeIndex([Timestamp('2018-04-01 01:00:00+1100',
+                                            tz='Australia/Sydney'),
+                                  Timestamp('2018-04-01 02:00:00+1000',
+                                            tz='Australia/Sydney'),
+                                  Timestamp('2018-04-01 04:00:00+1000',
+                                            tz='Australia/Sydney')])
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('start,end,result_tz', [
+        ['20180101', '20180103', 'US/Eastern'],
+        [datetime(2018, 1, 1), datetime(2018, 1, 3), 'US/Eastern'],
+        [Timestamp('20180101'), Timestamp('20180103'), 'US/Eastern'],
+        [Timestamp('20180101', tz='US/Eastern'),
+         Timestamp('20180103', tz='US/Eastern'), 'US/Eastern'],
+        [Timestamp('20180101', tz='US/Eastern'),
+         Timestamp('20180103', tz='US/Eastern'), None]])
+    def test_date_range_linspacing_tz(self, start, end, result_tz):
+        # GH 20983
+        result = date_range(start, end, periods=3, tz=result_tz)
+        expected = date_range('20180101', periods=3, freq='D', tz='US/Eastern')
+        tm.assert_index_equal(result, expected)
 
     def test_date_range_businesshour(self):
         idx = DatetimeIndex(['2014-07-04 09:00', '2014-07-04 10:00',
@@ -198,8 +234,8 @@ class TestDateRanges(TestData):
 
     def test_range_misspecified(self):
         # GH #1095
-        msg = ('Of the three parameters: start, end, and periods, '
-               'exactly two must be specified')
+        msg = ('Of the four parameters: start, end, periods, and '
+               'freq, exactly three must be specified')
 
         with tm.assert_raises_regex(ValueError, msg):
             date_range(start='1/1/2000')
@@ -324,6 +360,10 @@ class TestBusinessDateRange(object):
 
         with tm.assert_raises_regex(TypeError, msg):
             bdate_range('2011-1-1', '2012-1-1', 'B')
+
+        msg = 'freq must be specified for bdate_range; use date_range instead'
+        with tm.assert_raises_regex(TypeError, msg):
+            bdate_range(START, END, periods=10, freq=None)
 
     def test_naive_aware_conflicts(self):
         naive = bdate_range(START, END, freq=BDay(), tz=None)
