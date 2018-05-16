@@ -55,7 +55,7 @@ def test_xarray(df):
     assert df.to_xarray() is not None
 
 
-def test_xarray_oo_optimizable():
+def test_oo_optimizable():
     # GH 21071
     ret = subprocess.run(["python", "-OO", "-c", "import pandas"])
     result = ret.returncode
