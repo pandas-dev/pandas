@@ -358,11 +358,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 msg = 'periods must be a number, got {periods}'
                 raise TypeError(msg.format(periods=periods))
 
-        if data is None and freq is None \
-                and com._any_none(periods, start, end):
-            raise ValueError("Must provide freq argument if no data is "
-                             "supplied")
-
         # if dtype has an embedded tz, capture it
         if dtype is not None:
             try:
@@ -377,9 +372,13 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 pass
 
         if data is None:
-            return cls._generate(start, end, periods, name, freq,
-                                 tz=tz, normalize=normalize, closed=closed,
-                                 ambiguous=ambiguous)
+            if freq is None and com._any_none(periods, start, end):
+                msg = 'Must provide freq argument if no data is supplied'
+                raise ValueError(msg)
+            else:
+                return cls._generate(start, end, periods, name, freq, tz=tz,
+                                     normalize=normalize, closed=closed,
+                                     ambiguous=ambiguous)
 
         if not isinstance(data, (np.ndarray, Index, ABCSeries)):
             if is_scalar(data):
@@ -587,10 +586,13 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                     if end is not None:
                         end = end.tz_localize(tz).asm8
             else:
+                # Create a linearly spaced date_range in local time
+                start = start.tz_localize(tz)
+                end = end.tz_localize(tz)
                 index = tools.to_datetime(np.linspace(start.value,
-                                                      end.value, periods))
-                if tz is not None:
-                    index = index.tz_localize('UTC').tz_convert(tz)
+                                                      end.value, periods),
+                                          utc=True)
+                index = index.tz_convert(tz)
 
         if not left_closed and len(index) and index[0] == start:
             index = index[1:]
@@ -1363,7 +1365,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             converted = libts.ints_to_pydatetime(data[start_i:end_i],
                                                  tz=self.tz, freq=self.freq,
                                                  box="timestamp")
-            return iter(converted)
+            for v in converted:
+                yield v
 
     def _wrap_union_result(self, other, result):
         name = self.name if self.name == other.name else None
@@ -2368,15 +2371,23 @@ default 'raise'
 
     def indexer_at_time(self, time, asof=False):
         """
-        Select values at particular time of day (e.g. 9:30AM)
+        Returns index locations of index values at particular time of day
+        (e.g. 9:30AM).
 
         Parameters
         ----------
         time : datetime.time or string
+            datetime.time or string in appropriate format ("%H:%M", "%H%M",
+            "%I:%M%p", "%I%M%p", "%H:%M:%S", "%H%M%S", "%I:%M:%S%p",
+            "%I%M%S%p").
 
         Returns
         -------
-        values_at_time : TimeSeries
+        values_at_time : array of integers
+
+        See Also
+        --------
+        indexer_between_time, DataFrame.at_time
         """
         from dateutil.parser import parse
 
@@ -2398,24 +2409,25 @@ default 'raise'
     def indexer_between_time(self, start_time, end_time, include_start=True,
                              include_end=True):
         """
-        Select values between particular times of day (e.g., 9:00-9:30AM).
-
-        Return values of the index between two times.  If start_time or
-        end_time are strings then tseries.tools.to_time is used to convert to
-        a time object.
+        Return index locations of values between particular times of day
+        (e.g., 9:00-9:30AM).
 
         Parameters
         ----------
         start_time, end_time : datetime.time, str
             datetime.time or string in appropriate format ("%H:%M", "%H%M",
             "%I:%M%p", "%I%M%p", "%H:%M:%S", "%H%M%S", "%I:%M:%S%p",
-            "%I%M%S%p")
+            "%I%M%S%p").
         include_start : boolean, default True
         include_end : boolean, default True
 
         Returns
         -------
-        values_between_time : TimeSeries
+        values_between_time : array of integers
+
+        See Also
+        --------
+        indexer_at_time, DataFrame.between_time
         """
         start_time = tools.to_time(start_time)
         end_time = tools.to_time(end_time)
@@ -2578,11 +2590,6 @@ def date_range(start=None, end=None, periods=None, freq=None, tz=None,
     """
     Return a fixed frequency DatetimeIndex.
 
-    Of the three parameters `start`, `end`, `periods`, and `freq` exactly
-    three must be specified. If `freq` is omitted, the resulting DatetimeIndex
-    will have `periods` linearly spaced elements between `start` and `end`
-    (closed on both sides).
-
     Parameters
     ----------
     start : str or datetime-like, optional
@@ -2616,8 +2623,19 @@ def date_range(start=None, end=None, periods=None, freq=None, tz=None,
     See Also
     --------
     pandas.DatetimeIndex : An immutable container for datetimes.
+    pandas.timedelta_range : Return a fixed frequency TimedeltaIndex.
     pandas.period_range : Return a fixed frequency PeriodIndex.
     pandas.interval_range : Return a fixed frequency IntervalIndex.
+
+    Notes
+    -----
+    Of the four parameters ``start``, ``end``, ``periods``, and ``freq``,
+    exactly three must be specified. If ``freq`` is omitted, the resulting
+    ``DatetimeIndex`` will have ``periods`` linearly spaced elements between
+    ``start`` and ``end`` (closed on both sides).
+
+    To learn more about the frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
 
     Examples
     --------
@@ -2757,8 +2775,10 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
 
     Notes
     -----
-    Of the three parameters: ``start``, ``end``, and ``periods``, exactly two
-    must be specified.
+    Of the four parameters: ``start``, ``end``, ``periods``, and ``freq``,
+    exactly three must be specified.  Specifying ``freq`` is a requirement
+    for ``bdate_range``.  Use ``date_range`` if specifying ``freq`` is not
+    desired.
 
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
@@ -2767,6 +2787,9 @@ def bdate_range(start=None, end=None, periods=None, freq='B', tz=None,
     -------
     rng : DatetimeIndex
     """
+    if freq is None:
+        msg = 'freq must be specified for bdate_range; use date_range instead'
+        raise TypeError(msg)
 
     if is_string_like(freq) and freq.startswith('C'):
         try:

@@ -43,7 +43,6 @@ from pandas.core.dtypes.common import (
     is_extension_array_dtype,
     is_datetimetz,
     is_datetime64_any_dtype,
-    is_datetime64tz_dtype,
     is_bool_dtype,
     is_integer_dtype,
     is_float_dtype,
@@ -52,7 +51,6 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     needs_i8_conversion,
     _get_dtype_from_object,
-    _ensure_float,
     _ensure_float64,
     _ensure_int64,
     _ensure_platform_int,
@@ -2233,7 +2231,7 @@ class DataFrame(NDFrame):
             # returns size in human readable format
             for x in ['bytes', 'KB', 'MB', 'GB', 'TB']:
                 if num < 1024.0:
-                    return ("{num:3.1f}{size_q}"
+                    return ("{num:3.1f}{size_q} "
                             "{x}".format(num=num, size_q=size_qualifier, x=x))
                 num /= 1024.0
             return "{num:3.1f}{size_q} {pb}".format(num=num,
@@ -4170,14 +4168,15 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        axis : {0 or 'index', 1 or 'columns'}, or tuple/list thereof
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             Determine if rows or columns which contain missing values are
             removed.
 
             * 0, or 'index' : Drop rows which contain missing values.
             * 1, or 'columns' : Drop columns which contain missing value.
 
-            Pass tuple or list to drop on multiple axes.
+            .. deprecated:: 0.23.0: Pass tuple or list to drop on multiple
+            axes.
         how : {'any', 'all'}, default 'any'
             Determine if row or column is removed from DataFrame, when we have
             at least one NA or all NA.
@@ -4261,6 +4260,11 @@ class DataFrame(NDFrame):
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if isinstance(axis, (tuple, list)):
+            # GH20987
+            msg = ("supplying multiple axes to axis is deprecated and "
+                   "will be removed in a future version.")
+            warnings.warn(msg, FutureWarning, stacklevel=2)
+
             result = self
             for ax in axis:
                 result = result.dropna(how=how, thresh=thresh, subset=subset,
@@ -4887,20 +4891,7 @@ class DataFrame(NDFrame):
             else:
                 arr = func(series, otherSeries)
 
-            if do_fill:
-                arr = _ensure_float(arr)
-                arr[this_mask & other_mask] = np.nan
-
-            # try to downcast back to the original dtype
-            if needs_i8_conversion_i:
-                # ToDo: This conversion should be handled in
-                # _maybe_cast_to_datetime but the change affects lot...
-                if is_datetime64tz_dtype(new_dtype):
-                    arr = DatetimeIndex._simple_new(arr, tz=new_dtype.tz)
-                else:
-                    arr = maybe_cast_to_datetime(arr, new_dtype)
-            else:
-                arr = maybe_downcast_to_dtype(arr, this_dtype)
+            arr = maybe_downcast_to_dtype(arr, this_dtype)
 
             result[col] = arr
 
