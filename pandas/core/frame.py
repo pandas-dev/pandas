@@ -1392,7 +1392,13 @@ class DataFrame(NDFrame):
             else:
                 if isinstance(self.index, MultiIndex):
                     # array of tuples to numpy cols. copy copy copy
-                    ix_vals = lmap(np.array, zip(*self.index.values))
+                    tuples = self.index.values
+                    if len(tuples):
+                        ix_vals = lmap(np.array, zip(*tuples))
+                    else:
+                        # empty MultiIndex DF
+                        ix_vals = [np.array([], dtype=lev.dtype)
+                                   for lev in self.index.levels]
                 else:
                     ix_vals = [self.index.values]
 

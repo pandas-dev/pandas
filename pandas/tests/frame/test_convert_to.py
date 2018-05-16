@@ -328,3 +328,35 @@ class TestDataFrameConvertTo(TestData):
         result = DataFrame.from_dict(result, orient='index')[cols]
         expected = DataFrame.from_dict(expected, orient='index')[cols]
         tm.assert_frame_equal(result, expected)
+
+    def test_to_records_with_multiindex(self):
+        size = 4
+        idx1 = [u'a', u'a', u'b', u'b']
+        idx2 = [u'x', u'y', u'x', u'y']
+        tup = zip(idx1, idx2)
+        index = MultiIndex.from_tuples(tup)
+        random_data = np.random.randn(size, size)
+        df = DataFrame(random_data, index=index)
+
+        result = df.to_records(index=True)
+
+        col_arrays = [idx1, idx2] + [col for col in random_data.T]
+        expected = np.rec.fromarrays(
+            col_arrays, dtype=np.dtype([('level_0', '<U1'), ('level_1', '<U1'),
+                                        ('0', '<f8'), ('1', '<f8'),
+                                        ('2', '<f8'), ('3', '<f8')]))
+
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_to_records_with_empty_multiindex(self):
+        # GH 21064
+        multi = MultiIndex([['a'], ['b']], labels=[[], []])
+        df = DataFrame(columns=['A'], index=multi)
+
+        expected = np.rec.fromarrays([[], [], []],
+                                     dtype=np.dtype([('level_0', 'O'),
+                                                     ('level_1', 'O'),
+                                                     ('A', 'O')]))
+
+        result = df.to_records(index=True)
+        tm.assert_numpy_array_equal(result, expected)

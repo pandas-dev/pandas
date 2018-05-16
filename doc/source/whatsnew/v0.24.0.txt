@@ -131,7 +131,7 @@ Indexing
 MultiIndex
 ^^^^^^^^^^
 
--
+- Bug :func:`to_records` fails for empty MultiIndex DF (:issue:`21064`)
 -
 -
 
