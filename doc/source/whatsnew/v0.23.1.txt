@@ -48,6 +48,11 @@ Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in :func:`DataFrame.agg` where applying multiple aggregation functions to a :class:`DataFrame` with duplicated column names would cause a stack overflow (:issue:`21063`)
+
+Strings
+^^^^^^^
+
+- Bug in :meth:`Series.str.replace()` where the method throws `TypeError` on Python 3.5.2
 -
 
 Conversion
