@@ -48,16 +48,6 @@ class DatetimeArray(DatetimeLikeArrayMixin):
         return timezones.get_timezone(self.tzinfo)
 
     @property
-    def freq(self):
-        """get/set the frequency of the instance"""
-        return self._freq
-
-    @freq.setter
-    def freq(self, value):
-        """get/set the frequency of the instance"""
-        self._freq = value
-
-    @property
     def offset(self):
         """get/set the frequency of the instance"""
         msg = ('DatetimeIndex.offset has been deprecated and will be removed '

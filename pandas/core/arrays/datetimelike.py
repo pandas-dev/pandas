@@ -17,7 +17,10 @@ class DatetimeLikeArrayMixin(object):
 
     Assumes that __new__/__init__ defines:
         _data
-        freq
+        _freq
+
+    and that the inheriting class has methods:
+        _validate_frequency
     """
 
     @property
@@ -79,6 +82,20 @@ class DatetimeLikeArrayMixin(object):
         return result
 
     # ------------------------------------------------------------------
+    # Frequency Properties/Methods
+
+    @property
+    def freq(self):
+        """Return the frequency object if it is set, otherwise None"""
+        return self._freq
+
+    @freq.setter
+    def freq(self, value):
+        if value is not None:
+            value = frequencies.to_offset(value)
+            self._validate_frequency(self, value)
+
+        self._freq = value
 
     @property
     def freqstr(self):

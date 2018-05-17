@@ -228,19 +228,6 @@ class TimelikeOps(object):
                    'conform to passed frequency {passed}')
             raise ValueError(msg.format(infer=inferred, passed=freq.freqstr))
 
-    @property
-    def freq(self):
-        """Return the frequency object if it is set, otherwise None"""
-        return self._freq
-
-    @freq.setter
-    def freq(self, value):
-        if value is not None:
-            value = frequencies.to_offset(value)
-            self._validate_frequency(self, value)
-
-        self._freq = value
-
 
 class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
     """ common ops mixin to support a unified interface datetimelike Index """
