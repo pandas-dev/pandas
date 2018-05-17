@@ -1025,7 +1025,7 @@ def raise_assert_detail(obj, message, left, right, diff=None):
 
 def assert_numpy_array_equal(left, right, strict_nan=False,
                              check_dtype=True, err_msg=None,
-                             obj='numpy array', check_same=None):
+                             check_same=None, obj='numpy array'):
     """ Checks that 'np.ndarray' is equivalent
 
     Parameters
@@ -1038,11 +1038,11 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
         check dtype if both a and b are np.ndarray
     err_msg : str, default None
         If provided, used as assertion message
+    check_same : None|'copy'|'same', default None
+        Ensure left and right refer/do not refer to the same memory area
     obj : str, default 'numpy array'
         Specify object name being compared, internally used to show appropriate
         assertion message
-    check_same : None|'copy'|'same', default None
-        Ensure left and right refer/do not refer to the same memory area
     """
 
     # instance validation
