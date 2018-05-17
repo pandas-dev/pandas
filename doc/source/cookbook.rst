@@ -286,7 +286,7 @@ New Columns
    df = pd.DataFrame(
         {'AAA' : [1,1,1,2,2,2,3,3], 'BBB' : [2,1,3,4,5,1,2,3]}); df
 
-Method 1 : idxmin() to get the index of the mins
+Method 1 : idxmin() to get the index of the minimums
 
 .. ipython:: python
 
@@ -664,7 +664,7 @@ The :ref:`Pivot <reshaping.pivot>` docs.
 `Plot pandas DataFrame with year over year data
 <http://stackoverflow.com/questions/30379789/plot-pandas-data-frame-with-year-over-year-data>`__
 
-To create year and month crosstabulation:
+To create year and month cross tabulation:
 
 .. ipython:: python
 
@@ -723,7 +723,7 @@ Rolling Apply to multiple columns where function returns a Scalar (Volume Weight
    s = pd.concat([ (pd.Series(vwap(df.iloc[i:i+window]), index=[df.index[i+window]])) for i in range(len(df)-window) ]);
    s.round(2)
 
-Timeseries
+Time series
 ----------
 
 `Between times
@@ -1029,7 +1029,7 @@ Skip row between header and data
     01.01.1990 05:00;21;11;12;13
     """
 
-Option 1: pass rows explicitly to skiprows
+Option 1: pass rows explicitly to skip rows
 """"""""""""""""""""""""""""""""""""""""""
 
 .. ipython:: python

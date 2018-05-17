@@ -224,8 +224,9 @@ class DocBuilder:
         --------
         >>> DocBuilder(num_jobs=4)._sphinx_build('html')
         """
-        if kind not in ('html', 'latex'):
-            raise ValueError('kind must be html or latex, not {}'.format(kind))
+        if kind not in ('html', 'latex', 'spelling'):
+            raise ValueError('kind must be html, latex or '
+                             'spelling, not {}'.format(kind))
 
         self._run_os('sphinx-build',
                      '-j{}'.format(self.num_jobs),
@@ -303,6 +304,10 @@ class DocBuilder:
                      '-r',
                      '-q',
                      *fnames)
+
+    def spellcheck(self):
+        """Spell check the documentation."""
+        self._sphinx_build('spelling')
 
 
 def main():

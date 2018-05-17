@@ -103,7 +103,7 @@ left before or after the docstring. The text starts in the next line after the
 opening quotes. The closing quotes have their own line
 (meaning that they are not at the end of the last sentence).
 
-In rare occasions reST styles like bold text or itallics will be used in
+In rare occasions reST styles like bold text or italics will be used in
 docstrings, but is it common to have inline code, which is presented between
 backticks. It is considered inline code:
 
@@ -513,7 +513,7 @@ instead of at the beginning, it is good to let the users know about it.
 To give an intuition on what can be considered related, here there are some
 examples:
 
-* ``loc`` and ``iloc``, as they do the same, but in one case providing indices
+* ``loc`` and ``iloc``, as they do the same, but in one case providing indexes
   and in the other positions
 * ``max`` and ``min``, as they do the opposite
 * ``iterrows``, ``itertuples`` and ``iteritems``, as it is easy that a user
@@ -692,7 +692,7 @@ the standard library go first, followed by third-party libraries (like
 matplotlib).
 
 When illustrating examples with a single ``Series`` use the name ``s``, and if
-illustrating with a single ``DataFrame`` use the name ``df``. For indices,
+illustrating with a single ``DataFrame`` use the name ``df``. For indexes,
 ``idx`` is the preferred name. If a set of homogeneous ``Series`` or
 ``DataFrame`` is used, name them ``s1``, ``s2``, ``s3``...  or ``df1``,
 ``df2``, ``df3``... If the data is not homogeneous, and more than one structure
@@ -706,7 +706,7 @@ than 5, to show the example with the default values. If doing the ``mean``, we
 could use something like ``[1, 2, 3]``, so it is easy to see that the value
 returned is the mean.
 
-For more complex examples (groupping for example), avoid using data without
+For more complex examples (grouping for example), avoid using data without
 interpretation, like a matrix of random numbers with columns A, B, C, D...
 And instead use a meaningful example, which makes it easier to understand the
 concept. Unless required by the example, use names of animals, to keep examples
@@ -877,7 +877,7 @@ be tricky. Here are some attention points:
   the actual error only the error name is sufficient.
 
 * If there is a small part of the result that can vary (e.g. a hash in an object
-  represenation), you can use ``...`` to represent this part.
+  representation), you can use ``...`` to represent this part.
 
   If you want to show that ``s.plot()`` returns a matplotlib AxesSubplot object,
   this will fail the doctest ::

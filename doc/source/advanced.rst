@@ -182,7 +182,7 @@ For example:
    df[['foo','qux']].columns  # sliced
 
 This is done to avoid a recomputation of the levels in order to make slicing
-highly performant. If you want to see only the used levels, you can use the
+highly efficient. If you want to see only the used levels, you can use the
 :func:`MultiIndex.get_level_values` method.
 
 .. ipython:: python
@@ -387,7 +387,7 @@ Furthermore you can *set* the values using the following methods.
    df2.loc(axis=0)[:, :, ['C1', 'C3']] = -10
    df2
 
-You can use a right-hand-side of an alignable object as well.
+You can use a right-hand-side of an align object as well.
 
 .. ipython:: python
 
@@ -559,7 +559,7 @@ return a copy of the data rather than a view:
 
 .. _advanced.unsorted:
 
-Furthermore if you try to index something that is not fully lexsorted, this can raise:
+Furthermore if you try to index something that is not fully lex-sorted, this can raise:
 
 .. code-block:: ipython
 
@@ -593,7 +593,7 @@ Take Methods
 
 Similar to NumPy ndarrays, pandas Index, Series, and DataFrame also provides
 the ``take`` method that retrieves elements along a given axis at the given
-indices. The given indices must be either a list or an ndarray of integer
+indexes. The given indexes must be either a list or an ndarray of integer
 index positions. ``take`` will also accept negative integers as relative positions to the end of the object.
 
 .. ipython:: python
@@ -611,7 +611,7 @@ index positions. ``take`` will also accept negative integers as relative positio
    ser.iloc[positions]
    ser.take(positions)
 
-For DataFrames, the given indices should be a 1d list or ndarray that specifies
+For DataFrames, the given indexes should be a 1d list or ndarray that specifies
 row or column positions.
 
 .. ipython:: python
@@ -623,7 +623,7 @@ row or column positions.
    frm.take([0, 2], axis=1)
 
 It is important to note that the ``take`` method on pandas objects are not
-intended to work on boolean indices and may return unexpected results.
+intended to work on boolean indexes and may return unexpected results.
 
 .. ipython:: python
 
@@ -711,7 +711,7 @@ order is ``cab``).
 
    df2.sort_index()
 
-Groupby operations on the index will preserve the index nature as well.
+Group by operations on the index will preserve the index nature as well.
 
 .. ipython:: python
 
@@ -990,7 +990,7 @@ On the other hand, if the index is not monotonic, then both slice bounds must be
     KeyError: 'Cannot get right slice bound for non-unique label: 3'
 
 :meth:`Index.is_monotonic_increasing` and :meth:`Index.is_monotonic_decreasing` only check that
-an index is weakly monotonic. To check for strict montonicity, you can combine one of those with
+an index is weakly monotonic. To check for strict monotonicity, you can combine one of those with
 :meth:`Index.is_unique`
 
 .. ipython:: python

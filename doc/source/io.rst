@@ -503,7 +503,7 @@ This matches the behavior of :meth:`Categorical.set_categories`.
    converted using the :func:`to_numeric` function, or as appropriate, another
    converter such as :func:`to_datetime`.
 
-   When ``dtype`` is a ``CategoricalDtype`` with homogenous ``categories`` (
+   When ``dtype`` is a ``CategoricalDtype`` with homogeneous ``categories`` (
    all numeric, all datetimes, etc.), the conversion is done automatically.
 
    .. ipython:: python
@@ -554,7 +554,7 @@ If the header is in a row other than the first, pass the row number to
 
   Default behavior is to infer the column names: if no names are
   passed the behavior is identical to ``header=0`` and column names
-  are inferred from the first nonblank line of the file, if column
+  are inferred from the first non-blank line of the file, if column
   names are passed explicitly then the behavior is identical to
   ``header=None``.
 
@@ -953,7 +953,7 @@ datetime strings are all formatted the same way, you may get a large speed
 up by setting ``infer_datetime_format=True``.  If set, pandas will attempt
 to guess the format of your datetime strings, and then use a faster means
 of parsing the strings.  5-10x parsing speeds have been observed.  pandas
-will fallback to the usual parsing if either the format cannot be guessed
+will fall-back to the usual parsing if either the format cannot be guessed
 or the format that was guessed cannot properly parse the entire column
 of strings.  So in general, ``infer_datetime_format`` should not have any
 negative consequences if enabled.
@@ -1644,7 +1644,7 @@ over the string representation of the object. All arguments are optional:
     argument and returns a formatted string; to be applied to floats in the
     ``DataFrame``.
   - ``sparsify`` default True, set to False for a ``DataFrame`` with a hierarchical
-    index to print every multiindex key at each row.
+    index to print every multi-index key at each row.
   - ``index_names`` default True, will print the names of the indices
   - ``index`` default True, will print the index (ie, row labels)
   - ``header`` default True, will print the column labels
@@ -2178,7 +2178,7 @@ A few notes on the generated table schema:
 - The ``schema`` object contains a ``pandas_version`` field. This contains
   the version of pandas' dialect of the schema, and will be incremented
   with each revision.
-- All dates are converted to UTC when serializing. Even timezone naïve values,
+- All dates are converted to UTC when serializing. Even timezone naive values,
   which are treated as UTC with an offset of 0.
 
   .. ipython:: python
@@ -2237,7 +2237,7 @@ A few notes on the generated table schema:
     name is ``values``
   + For ``DataFrames``, the stringified version of the column name is used
   + For ``Index`` (not ``MultiIndex``), ``index.name`` is used, with a
-    fallback to ``index`` if that is None.
+    fall-back to ``index`` if that is None.
   + For ``MultiIndex``, ``mi.names`` is used. If any level has no name,
     then ``level_<i>`` is used.
 
@@ -2245,8 +2245,8 @@ A few notes on the generated table schema:
 .. versionadded:: 0.23.0
 
 ``read_json`` also accepts ``orient='table'`` as an argument. This allows for
-the preserveration of metadata such as dtypes and index names in a
-round-trippable manner.
+the preservation of metadata such as dtypes and index names in a
+round-trip manner.
 
   .. ipython:: python
 
@@ -2356,7 +2356,7 @@ Read a URL and match a table that contains specific text:
 
 Specify a header row (by default ``<th>`` or ``<td>`` elements located within a
 ``<thead>`` are used to form the column index, if multiple rows are contained within
-``<thead>`` then a multiindex is created); if specified, the header row is taken
+``<thead>`` then a multi-index is created); if specified, the header row is taken
 from the data minus the parsed header elements (``<th>`` elements).
 
 .. code-block:: python
@@ -2756,7 +2756,7 @@ Specifying Sheets
 - The arguments ``sheet_name`` allows specifying the sheet or sheets to read.
 - The default value for ``sheet_name`` is 0, indicating to read the first sheet
 - Pass a string to refer to the name of a particular sheet in the workbook.
-- Pass an integer to refer to the index of a sheet. Indices follow Python
+- Pass an integer to refer to the index of a sheet. Indexes follow Python
   convention, beginning at 0.
 - Pass a list of either strings or integers, to return a dictionary of specified sheets.
 - Pass a ``None`` to return a dictionary of all available sheets.
@@ -3141,7 +3141,7 @@ any pickled pandas object (or any other pickled object) from file:
 
 .. warning::
 
-   Several internal refactorings have been done while still preserving
+   Several internal refactoring have been done while still preserving
    compatibility with pickles created with older versions of pandas. However,
    for such cases, pickled ``DataFrames``, ``Series`` etc, must be read with
    ``pd.read_pickle``, rather than ``pickle.load``.
@@ -3467,7 +3467,7 @@ Fixed Format
 ''''''''''''
 
 The examples above show storing using ``put``, which write the HDF5 to ``PyTables`` in a fixed array format, called
-the ``fixed`` format. These types of stores are **not** appendable once written (though you can simply
+the ``fixed`` format. These types of stores are **not** able to be appended once written (though you can simply
 remove them and rewrite). Nor are they **queryable**; they must be
 retrieved in their entirety. They also do not support dataframes with non-unique column names.
 The ``fixed`` format stores offer very fast writing and slightly faster reading than ``table`` stores.
@@ -3820,7 +3820,7 @@ indexed dimension as the ``where``.
 
 .. note::
 
-   Indexes are automagically created on the indexables
+   Indexes are auto-magically created on the indexables
    and any data columns you specify. This behavior can be turned off by passing
    ``index=False`` to ``append``.
 
@@ -4629,7 +4629,7 @@ included in Python's standard library by default.
 You can find an overview of supported drivers for each SQL dialect in the
 `SQLAlchemy docs <http://docs.sqlalchemy.org/en/latest/dialects/index.html>`__.
 
-If SQLAlchemy is not installed, a fallback is only provided for sqlite (and
+If SQLAlchemy is not installed, a fall-back is only provided for sqlite (and
 for mysql for backwards compatibility, but this is deprecated and will be
 removed in a future version).
 This mode requires a Python database adapter which respect the `Python
@@ -4735,7 +4735,7 @@ SQL data type based on the dtype of the data. When you have columns of dtype
 You can always override the default type by specifying the desired SQL type of
 any of the columns by using the ``dtype`` argument. This argument needs a
 dictionary mapping column names to SQLAlchemy types (or strings for the sqlite3
-fallback mode).
+fall-back mode).
 For example, specifying to use the sqlalchemy ``String`` type instead of the
 default ``Text`` type for string columns:
 
@@ -4922,7 +4922,7 @@ You can combine SQLAlchemy expressions with parameters passed to :func:`read_sql
     pd.read_sql(expr, engine, params={'date': dt.datetime(2010, 10, 18)})
 
 
-Sqlite fallback
+Sqlite fall-back
 '''''''''''''''
 
 The use of sqlite is supported without using SQLAlchemy.

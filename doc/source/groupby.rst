@@ -942,7 +942,7 @@ that is itself a series, and possibly upcast the result to a DataFrame:
 
    ``apply`` can act as a reducer, transformer, *or* filter function, depending on exactly what is passed to it.
    So depending on the path taken, and exactly what you are grouping. Thus the grouped columns(s) may be included in
-   the output as well as set the indices.
+   the output as well as set the indexes.
 
 .. warning::
 
@@ -994,7 +994,7 @@ is only interesting over one column (here ``colname``), it may be filtered
 Handling of (un)observed Categorical values
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When using a ``Categorical`` grouper (as a single grouper, or as part of multipler groupers), the ``observed`` keyword
+When using a ``Categorical`` grouper (as a single grouper, or as part of multiple groupers), the ``observed`` keyword
 controls whether to return a cartesian product of all possible groupers values (``observed=False``) or only those
 that are observed groupers (``observed=True``).
 
@@ -1010,7 +1010,7 @@ Show only the observed values:
 
    pd.Series([1, 1, 1]).groupby(pd.Categorical(['a', 'a', 'a'], categories=['a', 'b']), observed=True).count()
 
-The returned dtype of the grouped will *always* include *all* of the catergories that were grouped.
+The returned dtype of the grouped will *always* include *all* of the categories that were grouped.
 
 .. ipython:: python
 
@@ -1328,11 +1328,11 @@ Groupby by Indexer to 'resample' data
 
 Resampling produces new hypothetical samples (resamples) from already existing observed data or from a model that generates data. These new samples are similar to the pre-existing samples.
 
-In order to resample to work on indices that are non-datetimelike, the following procedure can be utilized.
+In order to resample to work on indexes that are non-datetimelike, the following procedure can be utilized.
 
 In the following examples, **df.index // 5** returns a binary array which is used to determine what gets selected for the groupby operation.
 
-.. note:: The below example shows how we can downsample by consolidation of samples into fewer samples. Here by using **df.index // 5**, we are aggregating the samples in bins. By applying **std()** function, we aggregate the information contained in many samples into a small subset of values which is their standard deviation thereby reducing the number of samples.
+.. note:: The below example shows how we can down-sample by consolidation of samples into fewer samples. Here by using **df.index // 5**, we are aggregating the samples in bins. By applying **std()** function, we aggregate the information contained in many samples into a small subset of values which is their standard deviation thereby reducing the number of samples.
 
 .. ipython:: python
 

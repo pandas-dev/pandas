@@ -645,7 +645,7 @@ the quarter end:
    ts.index = (prng.asfreq('M', 'e') + 1).asfreq('H', 's') + 9
    ts.head()
 
-Categoricals
+Categorical
 ------------
 
 pandas can include categorical data in a ``DataFrame``. For full docs, see the
@@ -663,7 +663,7 @@ Convert the raw grades to a categorical data type.
     df["grade"]
 
 Rename the categories to more meaningful names (assigning to 
-``Series.cat.categories`` is inplace!).
+``Series.cat.categories`` is in place!).
 
 .. ipython:: python
 
