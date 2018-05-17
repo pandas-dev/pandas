@@ -49,7 +49,7 @@ Bug Fixes
 Categorical
 ^^^^^^^^^^^
 
-- Bug in :func:`pandas.util.testing.assert_index_equal` raised ``AssertionError`` if comparing two :class:`CategoricalIndex` objects when ``check_categorical=False`` (:issue:`19776`)
+- Bug in :func:`pandas.util.testing.assert_index_equal` which raised ``AssertionError`` incorrectly, when comparing two :class:`CategoricalIndex` objects with param ``check_categorical=False`` (:issue:`19776`)
 
 Conversion
 ^^^^^^^^^^
