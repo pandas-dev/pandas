@@ -785,7 +785,7 @@ def test_reset_index_drop_errmsg():
     with tm.assert_raises_regex(KeyError, 'not found'):
         s.reset_index('wrong', drop=True)
 
-    #Check that .reset_index([],drop=True) doesn't fail
+    # Check that .reset_index([],drop=True) doesn't fail
     result = pd.Series(range(4)).reset_index([], drop=True)
     expected = pd.Series(range(4))
     assert_series_equal(result, expected)
