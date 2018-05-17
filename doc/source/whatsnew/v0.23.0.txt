@@ -904,41 +904,7 @@ Optional sharing of x/y-axis by pandas.DataFrame().groupby().boxplot()
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 (:issue:`15184`)
 
-Previous Behavior:
-
-.. code-block:: jupyter-notebook
-
-   %pylab inline
-    import pandas as pd
-
-    N = 100
-    rand = random.random(N)
-    clas = random.binomial(5,.5, N)
-    df = pd.DataFrame({'Rand': rand-clas,
-                    'Rand2': rand,
-                    'Class': clas},
-                    index= np.arange(N))
-
-    df.groupby('Class').boxplot(sharey=True, sharex=False)
-    >>> TypeError: boxplot() got an unexpected keyword argument 'sharey'
-
-    Using boxplot with keywords sharex or sharey resulted in an error.
-
-New Behavior:
-
-.. ipython:: jpyter-notebook:
-    
-    ...
-
-    df.groupby('Class').boxplot(sharey=True, sharex=True)
-    df.groupby('Class').boxplot(sharey=True, sharex=False)
-    df.groupby('Class').boxplot(sharey=False, sharex=True)
-    df.groupby('Class').boxplot(sharey=False, sharex=False)
-
-    All leads to different behaviour. The shareing of axes both x and y
-    can be turned on and off separately. 
-
-To restore previous behavior, use boxplot() without keywords.  
+Optional sharing of x/y-axis by pandas.DataFrame().groupby().boxplot()
 
 .. _whatsnew_0230.api.datetimelike:
 

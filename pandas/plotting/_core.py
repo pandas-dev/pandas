@@ -2567,6 +2567,12 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     figsize : A tuple (width, height) in inches
     layout : tuple (optional)
         (rows, columns) for the layout of the plot
+    sharex :
+        * ``True`` - x-axes will be shared among subplots
+        * ``False`` - x-axes will not be shared
+    sharey :
+        * ``True`` - y-axes will be shared among subplots
+        * ``False`` - y-axes will not be shared
     `**kwds` : Keyword Arguments
         All other plotting keyword arguments to be passed to
         matplotlib's boxplot function
