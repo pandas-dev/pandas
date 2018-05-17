@@ -70,7 +70,6 @@ bar2,12,13,14,15
             with tm.assert_raises_regex(UnicodeDecodeError, msg):
                 self.read_csv(stream)
 
-
     def test_read_csv(self):
         if not compat.PY3:
             if compat.is_platform_windows():
