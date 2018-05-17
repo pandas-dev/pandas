@@ -791,9 +791,32 @@ cdef class _Timedelta(timedelta):
     @property
     def nanoseconds(self):
         """
-        Number of nanoseconds (>= 0 and less than 1 microsecond).
+        Return the number of nanoseconds (n), where 0 <= n < 1 microsecond.
+       
+        Returns
+        -------
+        int
+            Number of nanoseconds.
 
-        .components will return the shown components
+        See Also
+        --------
+        Timedelta.components : Return all attributes with assigned values
+            (i.e. days, hours, minutes, seconds, milliseconds, microseconds,
+            nanoseconds).
+
+        Examples
+        --------
+        **Using string input**
+
+        >>> td = pd.Timedelta('1 days 2 min 3 us 42 ns')
+        >>> td.nanoseconds
+        42
+
+        **Using integer input**
+
+        >>> td = pd.Timedelta(42, unit='ns')
+        >>> td.nanoseconds
+        42
         """
         self._ensure_components()
         return self._ns
