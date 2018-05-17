@@ -425,7 +425,7 @@ parse_date = _date_parser.parse
 
 # In Python 3.7, the private re._pattern_type is removed.
 # Python 3.5+ have typing.re.Pattern
-if PY35:
+if sys.version_info >= (3, 5, 4):
     import typing
     re_type = typing.re.Pattern
 else:
