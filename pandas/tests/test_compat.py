@@ -4,6 +4,7 @@ Testing that functions from compat work as expected
 """
 
 import pytest
+import re
 from pandas.compat import (range, zip, map, filter, lrange, lzip, lmap,
                            lfilter, builtins, iterkeys, itervalues, iteritems,
                            next, get_range_parameters, PY2, re_type)
@@ -92,5 +93,4 @@ class TestCompatFunctions(object):
 
 
 def test_re_type():
-    import re
     assert isinstance(re.compile(''), re_type)

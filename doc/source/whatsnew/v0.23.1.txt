@@ -52,7 +52,7 @@ Groupby/Resample/Rolling
 Strings
 ^^^^^^^
 
-- Bug in :meth:`Series.str.replace()` where the method throws `TypeError` on Python 3.5.2
+- Bug in :meth:`Series.str.replace()` where the method throws `TypeError` on Python 3.5.2 (:issue: `21078`)
 -
 
 Conversion
