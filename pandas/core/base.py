@@ -590,9 +590,10 @@ class SelectionMixin(object):
 
         # multiples
         else:
-            for col in obj:
+            for index, col in enumerate(obj):
                 try:
-                    colg = self._gotitem(col, ndim=1, subset=obj[col])
+                    colg = self._gotitem(col, ndim=1,
+                                         subset=obj.iloc[:, index])
                     results.append(colg.aggregate(arg))
                     keys.append(col)
                 except (TypeError, DataError):
@@ -675,7 +676,6 @@ class GroupByMixin(object):
         subset : object, default None
             subset to act on
         """
-
         # create a new object to prevent aliasing
         if subset is None:
             subset = self.obj
