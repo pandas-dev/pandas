@@ -13,6 +13,7 @@ New features
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 - :func:`to_datetime` now supports the ``%Z`` and ``%z`` directive when passed into ``format`` (:issue:`13486`)
+- :func:`Series.mode` and :func:`DataFrame.mode` now support the ``dropna`` parameter which can be used to specify whether NaN/NaT values should be considered (:issue:`17534`)
 -
 -
 

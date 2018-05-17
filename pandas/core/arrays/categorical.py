@@ -2129,7 +2129,7 @@ class Categorical(ExtensionArray, PandasObject):
         dropna : boolean, default True
             Don't consider counts of NaN/NaT.
 
-            .. versionadded:: 0.23.0
+            .. versionadded:: 0.24.0
 
         Returns
         -------

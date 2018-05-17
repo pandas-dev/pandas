@@ -231,28 +231,34 @@ class TestSeriesAnalytics(TestData):
     ])
     def test_mode_empty(self, dropna, expected):
         s = Series([], dtype=np.float64)
-        tm.assert_series_equal(s.mode(dropna), expected)
+        result = s.mode(dropna)
+        tm.assert_series_equal(result, expected)
 
-    @pytest.mark.parametrize('dropna, expected1, expected2, expected3', [
-        (True, [1], [1, 3], [1.0]),
-        (False, [1], [1, 3], [1, np.nan]),
+    @pytest.mark.parametrize('dropna, data, expected', [
+        (True, [1, 1, 1, 2], [1]),
+        (True, [1, 1, 1, 2, 3, 3, 3], [1, 3]),
+        (False, [1, 1, 1, 2], [1]),
+        (False, [1, 1, 1, 2, 3, 3, 3], [1, 3]),
     ])
-    def test_mode_numerical(self, dropna, expected1, expected2, expected3):
-        data_single = [1] * 5 + [2] * 3
-        data_multi = [1] * 5 + [2] * 3 + [3] * 5
+    @pytest.mark.parametrize(
+        'dt',
+        list(np.typecodes['AllInteger'] + np.typecodes['Float'])
+    )
+    def test_mode_numerical(self, dropna, data, expected, dt):
+        s = Series(data, dtype=dt)
+        result = s.mode(dropna)
+        expected = Series(expected, dtype=dt)
+        tm.assert_series_equal(result, expected)
 
-        for dt in np.typecodes['AllInteger'] + np.typecodes['Float']:
-            s = Series(data_single, dtype=dt)
-            expected1 = Series(expected1, dtype=dt)
-            tm.assert_series_equal(s.mode(dropna), expected1)
-
-            s = Series(data_multi, dtype=dt)
-            expected2 = Series(expected2, dtype=dt)
-            tm.assert_series_equal(s.mode(dropna), expected2)
-
-        s = Series([1, np.nan])
-        expected = Series(expected3)
-        tm.assert_series_equal(s.mode(dropna), expected)
+    @pytest.mark.parametrize('dropna, expected', [
+        (True, [1.0]),
+        (False, [1, np.nan]),
+    ])
+    def test_mode_numerical_nan(self, dropna, expected):
+        s = Series([1, 1, 2, np.nan, np.nan])
+        result = s.mode(dropna)
+        expected = Series(expected)
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('dropna, expected1, expected2, expected3', [
         (True, ['b'], ['bar'], ['nan']),
@@ -263,34 +269,37 @@ class TestSeriesAnalytics(TestData):
         data = ['a'] * 2 + ['b'] * 3
 
         s = Series(data, dtype='c')
+        result = s.mode(dropna)
         expected1 = Series(expected1, dtype='c')
-        tm.assert_series_equal(s.mode(dropna), expected1)
+        tm.assert_series_equal(result, expected1)
 
         data = ['foo', 'bar', 'bar', np.nan, np.nan, np.nan]
 
         s = Series(data, dtype=object)
-        expected2 = Series(expected2, dtype=object)
         result = s.mode(dropna).sort_values().reset_index(drop=True)
+        expected2 = Series(expected2, dtype=object)
         tm.assert_series_equal(result, expected2)
 
         data = ['foo', 'bar', 'bar', np.nan, np.nan, np.nan]
 
         s = Series(data, dtype=str)
+        result = s.mode(dropna)
         expected3 = Series(expected3, dtype=str)
-        tm.assert_series_equal(s.mode(dropna), expected3)
+        tm.assert_series_equal(result, expected3)
 
     @pytest.mark.parametrize('dropna, expected1, expected2', [
         (True, ['foo'], ['foo']),
         (False, ['foo'], [np.nan])
     ])
     def test_mode_mixeddtype(self, dropna, expected1, expected2):
-        expected = Series(expected1)
         s = Series([1, 'foo', 'foo'])
-        tm.assert_series_equal(s.mode(dropna), expected)
+        result = s.mode(dropna)
+        expected = Series(expected1)
+        tm.assert_series_equal(result, expected)
 
-        expected = Series(expected2, dtype=object)
         s = Series([1, 'foo', 'foo', np.nan, np.nan, np.nan])
         result = s.mode(dropna).sort_values().reset_index(drop=True)
+        expected = Series(expected2, dtype=object)
         tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('dropna, expected1, expected2', [
@@ -299,16 +308,18 @@ class TestSeriesAnalytics(TestData):
         (False, [np.nan], [np.nan, '2011-01-03', '2013-01-02']),
     ])
     def test_mode_datetime(self, dropna, expected1, expected2):
-        expected1 = Series(expected1, dtype='M8[ns]')
         s = Series(['2011-01-03', '2013-01-02',
                     '1900-05-03', 'nan', 'nan'], dtype='M8[ns]')
-        tm.assert_series_equal(s.mode(dropna), expected1)
+        result = s.mode(dropna)
+        expected1 = Series(expected1, dtype='M8[ns]')
+        tm.assert_series_equal(result, expected1)
 
-        expected2 = Series(expected2, dtype='M8[ns]')
         s = Series(['2011-01-03', '2013-01-02', '1900-05-03',
                     '2011-01-03', '2013-01-02', 'nan', 'nan'],
                    dtype='M8[ns]')
-        tm.assert_series_equal(s.mode(dropna), expected2)
+        result = s.mode(dropna)
+        expected2 = Series(expected2, dtype='M8[ns]')
+        tm.assert_series_equal(result, expected2)
 
     @pytest.mark.parametrize('dropna, expected1, expected2', [
         (True, ['-1 days', '0 days', '1 days'], ['2 min', '1 day']),
@@ -319,14 +330,16 @@ class TestSeriesAnalytics(TestData):
 
         s = Series(['1 days', '-1 days', '0 days', 'nan', 'nan'],
                    dtype='timedelta64[ns]')
+        result = s.mode(dropna)
         expected1 = Series(expected1, dtype='timedelta64[ns]')
-        tm.assert_series_equal(s.mode(dropna), expected1)
+        tm.assert_series_equal(result, expected1)
 
         s = Series(['1 day', '1 day', '-1 day', '-1 day 2 min',
                     '2 min', '2 min', 'nan', 'nan'],
                    dtype='timedelta64[ns]')
+        result = s.mode(dropna)
         expected2 = Series(expected2, dtype='timedelta64[ns]')
-        tm.assert_series_equal(s.mode(dropna), expected2)
+        tm.assert_series_equal(result, expected2)
 
     @pytest.mark.parametrize('dropna, expected1, expected2, expected3', [
         (True, Categorical([1, 2], categories=[1, 2]),
@@ -338,16 +351,19 @@ class TestSeriesAnalytics(TestData):
     ])
     def test_mode_category(self, dropna, expected1, expected2, expected3):
         s = Series(Categorical([1, 2, np.nan, np.nan]))
+        result = s.mode(dropna)
         expected1 = Series(expected1, dtype='category')
-        tm.assert_series_equal(s.mode(dropna), expected1)
+        tm.assert_series_equal(result, expected1)
 
         s = Series(Categorical([1, 'a', 'a', np.nan, np.nan]))
+        result = s.mode(dropna)
         expected2 = Series(expected2, dtype='category')
-        tm.assert_series_equal(s.mode(dropna), expected2)
+        tm.assert_series_equal(result, expected2)
 
         s = Series(Categorical([1, 1, 2, 3, 3, np.nan, np.nan]))
+        result = s.mode(dropna)
         expected3 = Series(expected3, dtype='category')
-        tm.assert_series_equal(s.mode(dropna), expected3)
+        tm.assert_series_equal(result, expected3)
 
     @pytest.mark.parametrize('dropna, expected1, expected2', [
         (True, [2**63], [1, 2**63]),
@@ -355,13 +371,15 @@ class TestSeriesAnalytics(TestData):
     ])
     def test_mode_intoverflow(self, dropna, expected1, expected2):
         # Test for uint64 overflow.
-        expected1 = Series(expected1, dtype=np.uint64)
         s = Series([1, 2**63, 2**63], dtype=np.uint64)
-        tm.assert_series_equal(s.mode(dropna), expected1)
+        result = s.mode(dropna)
+        expected1 = Series(expected1, dtype=np.uint64)
+        tm.assert_series_equal(result, expected1)
 
-        expected2 = Series(expected2, dtype=np.uint64)
         s = Series([1, 2**63], dtype=np.uint64)
-        tm.assert_series_equal(s.mode(dropna), expected2)
+        result = s.mode(dropna)
+        expected2 = Series(expected2, dtype=np.uint64)
+        tm.assert_series_equal(result, expected2)
 
     @pytest.mark.skipif(not compat.PY3, reason="only PY3")
     def test_mode_sortwarning(self):
