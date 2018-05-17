@@ -554,6 +554,14 @@ class TestDataFrameApply(TestData):
         result = df.apply(lambda x: x)
         assert_frame_equal(result, df)
 
+    def test_apply_dup_names_multi_agg(self):
+        # GH 21063
+        df = pd.DataFrame([[0, 1], [2, 3]], columns=['a', 'a'])
+        expected = pd.DataFrame([[0, 1]], columns=['a', 'a'], index=['min'])
+        result = df.agg(['min'])
+
+        tm.assert_frame_equal(result, expected)
+
 
 class TestInferOutputShape(object):
     # the user has supplied an opaque UDF where
