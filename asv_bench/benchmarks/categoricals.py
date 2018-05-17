@@ -173,3 +173,23 @@ class Isin(object):
 
     def time_isin_categorical(self, dtype):
         self.series.isin(self.sample)
+
+
+class IsMonotonic(object):
+
+    def setup(self):
+        N = 1000
+        self.c = pd.CategoricalIndex(list('a' * N + 'b' * N + 'c' * N))
+        self.s = pd.Series(self.c)
+
+    def time_categorical_index_is_monotonic_increasing(self):
+        self.c.is_monotonic_increasing
+
+    def time_categorical_index_is_monotonic_decreasing(self):
+        self.c.is_monotonic_decreasing
+
+    def time_categorical_series_is_monotonic_increasing(self):
+        self.s.is_monotonic_increasing
+
+    def time_categorical_series_is_monotonic_decreasing(self):
+        self.s.is_monotonic_decreasing
