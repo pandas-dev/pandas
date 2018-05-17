@@ -2231,7 +2231,7 @@ class DataFrame(NDFrame):
             # returns size in human readable format
             for x in ['bytes', 'KB', 'MB', 'GB', 'TB']:
                 if num < 1024.0:
-                    return ("{num:3.1f}{size_q}"
+                    return ("{num:3.1f}{size_q} "
                             "{x}".format(num=num, size_q=size_qualifier, x=x))
                 num /= 1024.0
             return "{num:3.1f}{size_q} {pb}".format(num=num,
@@ -4168,14 +4168,15 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        axis : {0 or 'index', 1 or 'columns'}, or tuple/list thereof
+        axis : {0 or 'index', 1 or 'columns'}, default 0
             Determine if rows or columns which contain missing values are
             removed.
 
             * 0, or 'index' : Drop rows which contain missing values.
             * 1, or 'columns' : Drop columns which contain missing value.
 
-            Pass tuple or list to drop on multiple axes.
+            .. deprecated:: 0.23.0: Pass tuple or list to drop on multiple
+            axes.
         how : {'any', 'all'}, default 'any'
             Determine if row or column is removed from DataFrame, when we have
             at least one NA or all NA.
@@ -4259,6 +4260,11 @@ class DataFrame(NDFrame):
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if isinstance(axis, (tuple, list)):
+            # GH20987
+            msg = ("supplying multiple axes to axis is deprecated and "
+                   "will be removed in a future version.")
+            warnings.warn(msg, FutureWarning, stacklevel=2)
+
             result = self
             for ax in axis:
                 result = result.dropna(how=how, thresh=thresh, subset=subset,
@@ -5725,7 +5731,12 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Function application
 
-    def _gotitem(self, key, ndim, subset=None):
+    def _gotitem(self,
+                 key,           # type: Union[str, List[str]]
+                 ndim,          # type: int
+                 subset=None    # type: Union[Series, DataFrame, None]
+                 ):
+        # type: (...) -> Union[Series, DataFrame]
         """
         sub-classes to define
         return a sliced object
@@ -5740,9 +5751,11 @@ class DataFrame(NDFrame):
         """
         if subset is None:
             subset = self
+        elif subset.ndim == 1:  # is Series
+            return subset
 
         # TODO: _shallow_copy(subset)?
-        return self[key]
+        return subset[key]
 
     _agg_doc = dedent("""
     The aggregation operations are always performed over an axis, either the

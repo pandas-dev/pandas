@@ -5296,7 +5296,7 @@ def _transform_index(index, func, level=None):
         return MultiIndex.from_tuples(items, names=index.names)
     else:
         items = [func(x) for x in index]
-        return Index(items, name=index.name)
+        return Index(items, name=index.name, tupleize_cols=False)
 
 
 def _putmask_smart(v, m, n):
@@ -5835,7 +5835,8 @@ class JoinUnit(object):
                     if len(values) and values[0] is None:
                         fill_value = None
 
-                if getattr(self.block, 'is_datetimetz', False):
+                if getattr(self.block, 'is_datetimetz', False) or \
+                        is_datetimetz(empty_dtype):
                     pass
                 elif getattr(self.block, 'is_categorical', False):
                     pass

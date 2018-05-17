@@ -105,7 +105,6 @@ class TestApi(Base):
     def tests_skip_nuisance(self):
 
         df = DataFrame({'A': range(5), 'B': range(5, 10), 'C': 'foo'})
-
         r = df.rolling(window=3)
         result = r[['A', 'B']].sum()
         expected = DataFrame({'A': [np.nan, np.nan, 3, 6, 9],
@@ -113,9 +112,12 @@ class TestApi(Base):
                              columns=list('AB'))
         tm.assert_frame_equal(result, expected)
 
-        expected = concat([r[['A', 'B']].sum(), df[['C']]], axis=1)
-        result = r.sum()
-        tm.assert_frame_equal(result, expected, check_like=True)
+    def test_skip_sum_object_raises(self):
+        df = DataFrame({'A': range(5), 'B': range(5, 10), 'C': 'foo'})
+        r = df.rolling(window=3)
+
+        with tm.assert_raises_regex(TypeError, 'cannot handle this type'):
+            r.sum()
 
     def test_agg(self):
         df = DataFrame({'A': range(5), 'B': range(0, 10, 2)})
@@ -510,6 +512,14 @@ class TestRolling(Base):
         tm.assert_index_equal(result.columns, df.columns)
         assert result.index.names == [None, '1', '2']
 
+    @pytest.mark.parametrize('klass', [pd.Series, pd.DataFrame])
+    def test_iter_raises(self, klass):
+        # https://github.com/pandas-dev/pandas/issues/11704
+        # Iteration over a Window
+        obj = klass([1, 2, 3, 4])
+        with pytest.raises(NotImplementedError):
+            iter(obj.rolling(2))
+
 
 class TestExpanding(Base):
 
@@ -587,6 +597,14 @@ class TestExpanding(Base):
         result = x.expanding(min_periods=1).sum()
         expected = pd.Series([np.nan])
         tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('klass', [pd.Series, pd.DataFrame])
+    def test_iter_raises(self, klass):
+        # https://github.com/pandas-dev/pandas/issues/11704
+        # Iteration over a Window
+        obj = klass([1, 2, 3, 4])
+        with pytest.raises(NotImplementedError):
+            iter(obj.expanding(2))
 
 
 class TestEWM(Base):
@@ -3172,6 +3190,28 @@ class TestGrouperGrouping(object):
         result = r.apply(lambda x: x.sum(), raw=raw)
         expected = g.apply(
             lambda x: x.rolling(4).apply(lambda y: y.sum(), raw=raw))
+        tm.assert_frame_equal(result, expected)
+
+    def test_rolling_apply_mutability(self):
+        # GH 14013
+        df = pd.DataFrame({'A': ['foo'] * 3 + ['bar'] * 3, 'B': [1] * 6})
+        g = df.groupby('A')
+
+        mi = pd.MultiIndex.from_tuples([('bar', 3), ('bar', 4), ('bar', 5),
+                                        ('foo', 0), ('foo', 1), ('foo', 2)])
+
+        mi.names = ['A', None]
+        # Grouped column should not be a part of the output
+        expected = pd.DataFrame([np.nan, 2., 2.] * 2, columns=['B'], index=mi)
+
+        result = g.rolling(window=2).sum()
+        tm.assert_frame_equal(result, expected)
+
+        # Call an arbitrary function on the groupby
+        g.sum()
+
+        # Make sure nothing has been mutated
+        result = g.rolling(window=2).sum()
         tm.assert_frame_equal(result, expected)
 
     def test_expanding(self):
