@@ -283,16 +283,15 @@ class TestSeriesAlterAxes(TestData):
 
     def test_reset_index_drop_errors(self):
         #  GH 20925
-    
-        # Check KeyError raised for series index where passed level name is missing
+
+        # KeyError raised for series index when passed level name is missing
         s = pd.Series(range(4))
         with tm.assert_raises_regex(KeyError, 'must be same as name'):
             s.reset_index('wrong', drop=True)
         with tm.assert_raises_regex(KeyError, 'must be same as name'):
             s.reset_index('wrong')
-    
-        # Check KeyError raised for series where 'level' to be dropped is missing
+
+        # KeyError raised for series when level to be dropped is missing
         s = pd.Series(range(4), index=pd.MultiIndex.from_product([[1, 2]] * 2))
         with tm.assert_raises_regex(KeyError, 'not found'):
             s.reset_index('wrong', drop=True)
-

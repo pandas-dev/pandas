@@ -768,4 +768,3 @@ def test_head_tail(test_data):
     assert_series_equal(test_data.series.head(0), test_data.series[0:0])
     assert_series_equal(test_data.series.tail(), test_data.series[-5:])
     assert_series_equal(test_data.series.tail(0), test_data.series[0:0])
-
