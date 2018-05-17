@@ -55,7 +55,7 @@ def read_clipboard(sep=r'\s+', **kwargs):  # pragma: no cover
 
     counts = {x.lstrip().count('\t') for x in lines}
     if len(lines) > 1 and len(counts) == 1 and counts.pop() != 0:
-        sep = r'\t'
+        sep = '\t'
 
     if sep is None and kwargs.get('delim_whitespace') is None:
         sep = r'\s+'
@@ -99,7 +99,7 @@ def to_clipboard(obj, excel=True, sep=None, **kwargs):  # pragma: no cover
     if excel:
         try:
             if sep is None:
-                sep = r'\t'
+                sep = '\t'
             buf = StringIO()
             # clipboard_set (pyperclip) expects unicode
             obj.to_csv(buf, sep=sep, encoding='utf-8', **kwargs)
