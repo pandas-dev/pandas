@@ -646,8 +646,8 @@ cdef parse_timezone_directive(object z):
     """
 
     cdef:
-        int gmtoff_fraction, hours, minutes, seconds, pad_number, microseconds,
-            total_minutes
+        int gmtoff_fraction, hours, minutes, seconds, pad_number, microseconds
+        int total_minutes
         object gmtoff_remainder, gmtoff_remainder_padding
 
     if z == 'Z':

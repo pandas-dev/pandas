@@ -550,7 +550,6 @@ Other Enhancements
 - :func:`to_hdf` and :func:`read_hdf` now accept an ``errors`` keyword argument to control encoding error handling (:issue:`20835`)
 - :func:`cut` has gained the ``duplicates='raise'|'drop'`` option to control whether to raise on duplicated edges (:issue:`20947`)
 - :func:`date_range`, :func:`timedelta_range`, and :func:`interval_range` now return a linearly spaced index if ``start``, ``stop``, and ``periods`` are specified, but ``freq`` is not. (:issue:`20808`, :issue:`20983`, :issue:`20976`)
-- :func:`to_datetime` now supports the ``%Z`` and ``%z`` directive when passed into ``format`` (:issue:`13486`)
 
 .. _whatsnew_0230.api_breaking:
 

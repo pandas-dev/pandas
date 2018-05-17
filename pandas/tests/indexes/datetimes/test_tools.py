@@ -7,7 +7,7 @@ import calendar
 import dateutil
 import numpy as np
 from dateutil.parser import parse
-from datetime import datetime, timedelta, date, time
+from datetime import datetime, date, time
 from distutils.version import LooseVersion
 
 import pandas as pd
@@ -23,12 +23,6 @@ import pandas.util._test_decorators as td
 from pandas.util.testing import assert_series_equal
 from pandas import (isna, to_datetime, Timestamp, Series, DataFrame,
                     Index, DatetimeIndex, NaT, date_range, compat)
-
-if PY3:
-    from datetime import timezone
-else:
-    def timezone(offset, name):
-        return
 
 
 class TestTimeConversionFormats(object):
@@ -205,39 +199,18 @@ class TestTimeConversionFormats(object):
          [pd.Timestamp('2010-01-01 12:00:00',
                        tzinfo=pytz.FixedOffset(60)),
           pd.Timestamp('2010-01-01 12:00:00',
-                       tzinfo=pytz.FixedOffset(-60))]]])
+                       tzinfo=pytz.FixedOffset(-60))]],
+        ['%Y-%m-%d %H:%M:%S %z',
+         ['2010-01-01 12:00:00 Z', '2010-01-01 12:00:00 Z'],
+         [pd.Timestamp('2010-01-01 12:00:00',
+                       tzinfo=pytz.FixedOffset(0)),
+          pd.Timestamp('2010-01-01 12:00:00',
+                       tzinfo=pytz.FixedOffset(0))]]])
     def test_to_datetime_parse_tzname_or_tzoffset(self, box, const,
                                                   assert_equal, fmt,
                                                   dates, expected_dates):
         # GH 13486
         # %z or %Z parsing
-        result = pd.to_datetime(dates, format=fmt, box=box)
-        expected = const(expected_dates)
-        getattr(tm, assert_equal)(result, expected)
-
-        with pytest.raises(ValueError):
-            pd.to_datetime(dates, format=fmt, box=box, utc=True)
-
-    @pytest.mark.skipif(not PY3,
-                        reason="datetime.timezone not supported in PY2")
-    @pytest.mark.parametrize("box,const,assert_equal", [
-        [True, pd.Index, 'assert_index_equal'],
-        [False, np.array, 'assert_numpy_array_equal']])
-    @pytest.mark.parametrize("dates,expected_dates", [
-        [['2010-01-01 12:00:00 UTC +0100'] * 2,
-         [pd.Timestamp('2010-01-01 13:00:00',
-                       tzinfo=timezone(timedelta(minutes=60), 'UTC'))] * 2],
-        [['2010-01-01 12:00:00 UTC +0100', '2010-01-01 12:00:00 GMT -0200'],
-         [pd.Timestamp('2010-01-01 13:00:00',
-                       tzinfo=timezone(timedelta(minutes=60), 'UTC')),
-          pd.Timestamp('2010-01-01 10:00:00',
-                       tzinfo=timezone(timedelta(minutes=-120), 'GMT'))]]])
-    def test_to_datetime_parse_tzname_and_tzoffset(self, box, const,
-                                                   assert_equal, dates,
-                                                   expected_dates):
-        # GH 13486
-        # %z and %Z parsing
-        fmt = '%Y-%m-%d %H:%M:%S %Z %z'
         result = pd.to_datetime(dates, format=fmt, box=box)
         expected = const(expected_dates)
         getattr(tm, assert_equal)(result, expected)

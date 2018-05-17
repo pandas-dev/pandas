@@ -15,6 +15,7 @@ and bug fixes. We recommend that all users upgrade to this version.
 New features
 ~~~~~~~~~~~~
 
+- - :func:`to_datetime` now supports the ``%Z`` and ``%z`` directive when passed into ``format`` (:issue:`13486`)
 
 .. _whatsnew_0231.deprecations:
 

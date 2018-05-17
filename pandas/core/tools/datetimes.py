@@ -2,7 +2,6 @@ from datetime import datetime, timedelta, time
 from collections import MutableMapping
 
 import numpy as np
-import pytz
 
 from pandas._libs import tslib
 from pandas._libs.tslibs.strptime import array_strptime
@@ -29,7 +28,7 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame)
 from pandas.core.dtypes.missing import notna
 from pandas.core import algorithms
-from pandas.compat import PY3, zip
+from pandas.compat import zip
 
 
 def _guess_datetime_format_for_array(arr, **kwargs):
@@ -133,31 +132,8 @@ def _return_parsed_timezone_results(result, timezones, parsing_tzname,
         - ndarray of Timestamps if box=False
 
     """
-    if parsing_tzname and not parsing_tzoffset:
-        tz_results = np.array([tslib.Timestamp(res, tz=tz)
-                               for res, tz in zip(result, tznames)])
-    elif parsing_tzoffset and not parsing_tzname:
-        tz_results = []
-        for res, offset in zip(result, tzoffsets):
-            offset_mins = offset.total_seconds() / 60
-            tzoffset = pytz.FixedOffset(offset_mins)
-            ts = tslib.Timestamp(res)
-            ts = ts.tz_localize(tzoffset)
-            tz_results.append(ts)
-        tz_results = np.array(tz_results)
-    elif parsing_tzoffset and parsing_tzname:
-        if not PY3:
-            raise ValueError("Parsing tzoffsets are not "
-                             "not supported in Python 3")
-        from datetime import timezone
-        tz_results = []
-        for res, offset, tzname in zip(result, tzoffsets, tznames):
-            # Do we need to validate these timezones?
-            # e.g. UTC / +0100
-            tzinfo = timezone(offset, tzname)
-            ts = tslib.Timestamp(res, tzinfo=tzinfo)
-            tz_results.append(ts)
-        tz_results = np.array(tz_results)
+    tz_results = np.array([tslib.Timestamp(res).tz_localize(tz) for res, tz
+                           in zip(result, timezones)])
     if box:
         from pandas import Index
         return Index(tz_results)
