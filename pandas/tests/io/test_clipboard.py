@@ -80,10 +80,12 @@ class TestClipboard(object):
 
             if excel in [None, True] and sep is not None:
                 # Expect Excel
-                result = read_clipboard(sep=sep, index_col=0, encoding=encoding)
+                result = read_clipboard(sep=sep, index_col=0,
+                                        encoding=encoding)
             elif excel in [None, True] and sep is None:
                 # Expect Excel with tabs
-                result = read_clipboard(sep='\t', index_col=0, encoding=encoding)
+                result = read_clipboard(sep='\t', index_col=0,
+                                        encoding=encoding)
             else:
                 # Expect df.__repr__ format
                 result = read_clipboard(encoding=encoding)
