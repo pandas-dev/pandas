@@ -3176,7 +3176,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         # handle ufuncs and lambdas
         if kwds or args and not isinstance(func, np.ufunc):
-            f = lambda x: func(x, *args, **kwds)
+            def f(x):
+                return func(x, *args, **kwds)
         else:
             f = func
 

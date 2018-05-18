@@ -99,7 +99,8 @@ class TestMultiIndex(Base):
         cond = [False, True]
 
         for klass in klasses:
-            f = lambda: i.where(klass(cond))
+            def f():
+                return i.where(klass(cond))
             pytest.raises(NotImplementedError, f)
 
     def test_repeat(self):
@@ -2415,7 +2416,8 @@ class TestMultiIndex(Base):
 
             # with a dup
             if with_nulls:
-                f = lambda a: np.insert(a, 1000, a[0])
+                def f(a):
+                    return np.insert(a, 1000, a[0])
                 labels = list(map(f, labels))
                 index = MultiIndex(levels=levels, labels=labels)
             else:
