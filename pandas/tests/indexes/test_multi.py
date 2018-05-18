@@ -2078,7 +2078,7 @@ class TestMultiIndex(Base):
         expected = index.droplevel(1)
         assert dropped.equals(expected)
 
-    def test_droplevel_multiple(self):
+    def test_droplevel_list(self):
         index = MultiIndex(
             levels=[Index(lrange(4)), Index(lrange(4)), Index(lrange(4))],
             labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
@@ -2088,6 +2088,16 @@ class TestMultiIndex(Base):
         dropped = index[:2].droplevel(['three', 'one'])
         expected = index[:2].droplevel(2).droplevel(0)
         assert dropped.equals(expected)
+
+        dropped = index[:2].droplevel([])
+        expected = index[:2]
+        assert dropped.equals(expected)
+
+        with pytest.raises(ValueError):
+            index[:2].droplevel(['one', 'two', 'three'])
+
+        with pytest.raises(KeyError):
+            index[:2].droplevel(['one', 'four'])
 
     def test_drop_not_lexsorted(self):
         # GH 12078
