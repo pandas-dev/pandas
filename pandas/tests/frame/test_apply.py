@@ -946,7 +946,7 @@ class TestDataFrameAggregate(TestData):
         df = pd.DataFrame({'A': range(5), 'B': 5})
 
         # nested renaming
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             df.agg({'A': {'foo': 'min'},
                     'B': {'bar': 'max'}})
 
@@ -1056,3 +1056,73 @@ class TestDataFrameAggregate(TestData):
         expected = df.size
 
         assert result == expected
+
+    @pytest.mark.parametrize("frame, expected_dict", [
+        [DataFrame(), {
+            'sum': Series(),
+            'max': Series(),
+            'min': Series(),
+            'all': Series(dtype=bool),
+            'any': Series(dtype=bool),
+            'mean': Series(),
+            'prod': Series(),
+            'std': Series(),
+            'var': Series(),
+            'median': Series(),
+            'cumprod': DataFrame(),
+            'cumsum': DataFrame(),
+        }],
+        [DataFrame([[np.nan, 1], [1, 2]]), {
+            'sum': Series([1., 3]),
+            'max': Series([1., 2]),
+            'min': Series([1., 1]),
+            'all': Series([True, True]),
+            'any': Series([True, True]),
+            'mean': Series([1, 1.5]),
+            'prod': Series([1., 2]),
+            'std': Series([np.nan, 0.707107]),
+            'var': Series([np.nan, 0.5]),
+            'median': Series([1, 1.5]),
+            'cumprod': DataFrame([[np.nan, 1], [1., 2.]]),
+            'cumsum': DataFrame([[np.nan, 1], [1., 3.]]),
+        }],
+        [DataFrame([['a', 'b'], ['b', 'a']]), {
+            'sum': Series(['ab', 'ba']),
+            'max': Series(['b', 'b']),
+            'min': Series(['a', 'a']),
+            'all': Series([True, True]),
+            'any': Series([True, True]),
+            'mean': Series([], index=pd.Index([], dtype='int64')),
+            'prod': Series([], index=pd.Index([], dtype='int64')),
+            'std': Series([], index=pd.Index([], dtype='int64')),
+            'var': Series([], index=pd.Index([], dtype='int64')),
+            'median': Series([], index=pd.Index([], dtype='int64')),
+            'cumprod': TypeError,
+            'cumsum': DataFrame([['a', 'b'], ['ab', 'ba']]),
+        }],
+    ])
+    @pytest.mark.parametrize("axis", [0, 1], ids=lambda x: "axis {}".format(x))
+    def test_agg_cython_table(self, cython_table_items,
+                              frame, expected_dict, axis):
+        # GH21224
+        # test if using items in pandas.core.base.SelectionMixin._cython_table
+        # in agg gives correct results
+        np_func, str_func = cython_table_items
+        expected = expected_dict[str_func]
+
+        if isinstance(expected, type) and issubclass(expected, Exception):
+            with pytest.raises(expected):
+                # e.g. DataFrame(['a b'.split()]).cumprod() will raise
+                frame.agg(np_func, axis=axis)
+            with pytest.raises(expected):
+                frame.agg(str_func, axis=axis)
+            return
+
+        result = frame.agg(np_func, axis=axis)
+        result_str_func = frame.agg(str_func, axis=axis)
+        if str_func in ('cumprod', 'cumsum'):
+            tm.assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result_str_func, expected)
+        else:
+            tm.assert_series_equal(result, expected)
+            tm.assert_series_equal(result_str_func, expected)

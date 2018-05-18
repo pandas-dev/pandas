@@ -6070,16 +6070,19 @@ class DataFrame(NDFrame):
     def aggregate(self, func, axis=0, *args, **kwargs):
         axis = self._get_axis_number(axis)
 
-        # TODO: flipped axis
         result = None
-        if axis == 0:
-            try:
-                result, how = self._aggregate(func, axis=0, *args, **kwargs)
-            except TypeError:
-                pass
+        try:
+            result, how = self._aggregate(func, axis=axis, *args, **kwargs)
+        except TypeError:
+            pass
         if result is None:
             return self.apply(func, axis=axis, args=args, **kwargs)
         return result
+
+    @Appender(NDFrame._aggregate.__doc__, indents=2)
+    def _aggregate(self, arg, axis=0, *args, **kwargs):
+        obj = self.T if axis == 1 else self
+        return super(DataFrame, obj)._aggregate(arg, *args, **kwargs)
 
     agg = aggregate
 
