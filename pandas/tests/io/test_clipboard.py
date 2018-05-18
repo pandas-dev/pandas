@@ -124,15 +124,22 @@ class TestClipboard(object):
         exp = pd.read_clipboard(**clip_kwargs)
 
         tm.assert_frame_equal(res, exp)
-        
+
     def test_excel_clipboard_format(self):
         for dt in self.data_types:
-            for sep in ['\t', None]:
-                data = self.data[dt]
-                data.to_clipboard(excel=True, sep=sep)
-                result = read_clipboard(sep='\t', index_col=0)
-                tm.assert_frame_equal(data, result, check_dtype=False)
-                assert clipboard_get().count('\t') > 0
+            for sep in ['\t', None, 'default']:
+                for excel in [True, None, 'default']:
+                    #Function default should be to to produce tab delimited
+                    kwargs = {}
+                    if excel != 'default':
+                        kwargs['excel'] = excel
+                    if sep != 'default':
+                        kwargs['sep'] = sep
+                    data = self.data[dt]
+                    data.to_clipboard(**kwargs)
+                    result = read_clipboard(sep='\t', index_col=0)
+                    tm.assert_frame_equal(data, result, check_dtype=False)
+                    assert clipboard_get().count('\t') > 0
 
     def test_invalid_encoding(self):
         # test case for testing invalid encoding
