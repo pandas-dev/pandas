@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
 import collections
+import textwrap
+import warnings
 
 import sys
 cdef bint PY3 = (sys.version_info[0] >= 3)
@@ -789,9 +791,32 @@ cdef class _Timedelta(timedelta):
     @property
     def nanoseconds(self):
         """
-        Number of nanoseconds (>= 0 and less than 1 microsecond).
+        Return the number of nanoseconds (n), where 0 <= n < 1 microsecond.
+       
+        Returns
+        -------
+        int
+            Number of nanoseconds.
 
-        .components will return the shown components
+        See Also
+        --------
+        Timedelta.components : Return all attributes with assigned values
+            (i.e. days, hours, minutes, seconds, milliseconds, microseconds,
+            nanoseconds).
+
+        Examples
+        --------
+        **Using string input**
+
+        >>> td = pd.Timedelta('1 days 2 min 3 us 42 ns')
+        >>> td.nanoseconds
+        42
+
+        **Using integer input**
+
+        >>> td = pd.Timedelta(42, unit='ns')
+        >>> td.nanoseconds
+        42
         """
         self._ensure_components()
         return self._ns
@@ -1188,6 +1213,18 @@ class Timedelta(_Timedelta):
             if other.dtype.kind == 'm':
                 # also timedelta-like
                 return _broadcast_floordiv_td64(self.value, other, _rfloordiv)
+            elif other.dtype.kind == 'i':
+                # Backwards compatibility
+                # GH-19761
+                msg = textwrap.dedent("""\
+                Floor division between integer array and Timedelta is
+                deprecated. Use 'array // timedelta.value' instead.
+                If you want to obtain epochs from an array of timestamps,
+                you can rather use
+                'array - pd.Timestamp("1970-01-01")) // pd.Timedelta("1s")'.
+                """)
+                warnings.warn(msg, FutureWarning)
+                return other // self.value
             raise TypeError('Invalid dtype {dtype} for '
                             '{op}'.format(dtype=other.dtype,
                                           op='__floordiv__'))
@@ -1210,6 +1247,11 @@ class Timedelta(_Timedelta):
 
     def __rmod__(self, other):
         # Naive implementation, room for optimization
+        if hasattr(other, 'dtype') and other.dtype.kind == 'i':
+            # TODO: Remove this check with backwards-compat shim
+            # for integer / Timedelta is removed.
+            raise TypeError("Invalid type {dtype} for "
+                            "{op}".format(dtype=other.dtype, op='__mod__'))
         return self.__rdivmod__(other)[1]
 
     def __divmod__(self, other):
@@ -1219,6 +1261,11 @@ class Timedelta(_Timedelta):
 
     def __rdivmod__(self, other):
         # Naive implementation, room for optimization
+        if hasattr(other, 'dtype') and other.dtype.kind == 'i':
+            # TODO: Remove this check with backwards-compat shim
+            # for integer / Timedelta is removed.
+            raise TypeError("Invalid type {dtype} for "
+                            "{op}".format(dtype=other.dtype, op='__mod__'))
         div = other // self
         return div, other - div * self
 

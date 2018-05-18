@@ -51,6 +51,7 @@ class Constructor(object):
 
         self.values_some_nan = list(np.tile(self.categories + [np.nan], N))
         self.values_all_nan = [np.nan] * len(self.values)
+        self.values_all_int8 = np.ones(N, 'int8')
 
     def time_regular(self):
         pd.Categorical(self.values, self.categories)
@@ -69,6 +70,9 @@ class Constructor(object):
 
     def time_all_nan(self):
         pd.Categorical(self.values_all_nan)
+
+    def time_from_codes_all_int8(self):
+        pd.Categorical.from_codes(self.values_all_int8, self.categories)
 
 
 class ValueCounts(object):
@@ -169,3 +173,23 @@ class Isin(object):
 
     def time_isin_categorical(self, dtype):
         self.series.isin(self.sample)
+
+
+class IsMonotonic(object):
+
+    def setup(self):
+        N = 1000
+        self.c = pd.CategoricalIndex(list('a' * N + 'b' * N + 'c' * N))
+        self.s = pd.Series(self.c)
+
+    def time_categorical_index_is_monotonic_increasing(self):
+        self.c.is_monotonic_increasing
+
+    def time_categorical_index_is_monotonic_decreasing(self):
+        self.c.is_monotonic_decreasing
+
+    def time_categorical_series_is_monotonic_increasing(self):
+        self.s.is_monotonic_increasing
+
+    def time_categorical_series_is_monotonic_decreasing(self):
+        self.s.is_monotonic_decreasing

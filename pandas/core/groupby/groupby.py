@@ -6,6 +6,7 @@ import collections
 import warnings
 import copy
 from textwrap import dedent
+from contextlib import contextmanager
 
 from pandas.compat import (
     zip, range, lzip,
@@ -549,6 +550,16 @@ class GroupByPlot(PandasObject):
         return attr
 
 
+@contextmanager
+def _group_selection_context(groupby):
+    """
+    set / reset the _group_selection_context
+    """
+    groupby._set_group_selection()
+    yield groupby
+    groupby._reset_group_selection()
+
+
 class _GroupBy(PandasObject, SelectionMixin):
     _group_selection = None
     _apply_whitelist = frozenset([])
@@ -696,26 +707,32 @@ class _GroupBy(PandasObject, SelectionMixin):
         each group regardless of whether a group selection was previously set.
         """
         if self._group_selection is not None:
-            self._group_selection = None
             # GH12839 clear cached selection too when changing group selection
+            self._group_selection = None
             self._reset_cache('_selected_obj')
 
     def _set_group_selection(self):
         """
         Create group based selection. Used when selection is not passed
         directly but instead via a grouper.
+
+        NOTE: this should be paired with a call to _reset_group_selection
         """
         grp = self.grouper
-        if self.as_index and getattr(grp, 'groupings', None) is not None and \
-           self.obj.ndim > 1:
-            ax = self.obj._info_axis
-            groupers = [g.name for g in grp.groupings
-                        if g.level is None and g.in_axis]
+        if not (self.as_index and
+                getattr(grp, 'groupings', None) is not None and
+                self.obj.ndim > 1 and
+                self._group_selection is None):
+            return
 
-            if len(groupers):
-                self._group_selection = ax.difference(Index(groupers)).tolist()
-                # GH12839 clear selected obj cache when group selection changes
-                self._reset_cache('_selected_obj')
+        ax = self.obj._info_axis
+        groupers = [g.name for g in grp.groupings
+                    if g.level is None and g.in_axis]
+
+        if len(groupers):
+            # GH12839 clear selected obj cache when group selection changes
+            self._group_selection = ax.difference(Index(groupers)).tolist()
+            self._reset_cache('_selected_obj')
 
     def _set_result_index_ordered(self, result):
         # set the result index on the passed values object and
@@ -781,10 +798,10 @@ b  2""")
                                                      type(self).__name__))
             raise AttributeError(msg)
 
-        # need to setup the selection
-        # as are not passed directly but in the grouper
         self._set_group_selection()
 
+        # need to setup the selection
+        # as are not passed directly but in the grouper
         f = getattr(self._selected_obj, name)
         if not isinstance(f, types.MethodType):
             return self.apply(lambda self: getattr(self, name))
@@ -897,7 +914,22 @@ b  2""")
 
         # ignore SettingWithCopy here in case the user mutates
         with option_context('mode.chained_assignment', None):
-            return self._python_apply_general(f)
+            try:
+                result = self._python_apply_general(f)
+            except Exception:
+
+                # gh-20949
+                # try again, with .apply acting as a filtering
+                # operation, by excluding the grouping column
+                # This would normally not be triggered
+                # except if the udf is trying an operation that
+                # fails on *some* columns, e.g. a numeric operation
+                # on a string grouper column
+
+                with _group_selection_context(self):
+                    return self._python_apply_general(f)
+
+        return result
 
     def _python_apply_general(self, f):
         keys, values, mutated = self.grouper.apply(f, self._selected_obj,
@@ -1275,9 +1307,9 @@ class GroupBy(_GroupBy):
         except GroupByError:
             raise
         except Exception:  # pragma: no cover
-            self._set_group_selection()
-            f = lambda x: x.mean(axis=self.axis, **kwargs)
-            return self._python_agg_general(f)
+            with _group_selection_context(self):
+                f = lambda x: x.mean(axis=self.axis, **kwargs)
+                return self._python_agg_general(f)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -1293,13 +1325,12 @@ class GroupBy(_GroupBy):
             raise
         except Exception:  # pragma: no cover
 
-            self._set_group_selection()
-
             def f(x):
                 if isinstance(x, np.ndarray):
                     x = Series(x)
                 return x.median(axis=self.axis, **kwargs)
-            return self._python_agg_general(f)
+            with _group_selection_context(self):
+                return self._python_agg_general(f)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -1336,9 +1367,9 @@ class GroupBy(_GroupBy):
         if ddof == 1:
             return self._cython_agg_general('var', **kwargs)
         else:
-            self._set_group_selection()
             f = lambda x: x.var(ddof=ddof, **kwargs)
-            return self._python_agg_general(f)
+            with _group_selection_context(self):
+                return self._python_agg_general(f)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -1384,6 +1415,7 @@ class GroupBy(_GroupBy):
                     kwargs['numeric_only'] = numeric_only
                 if 'min_count' not in kwargs:
                     kwargs['min_count'] = min_count
+
                 self._set_group_selection()
                 try:
                     return self._cython_agg_general(
@@ -1453,11 +1485,11 @@ class GroupBy(_GroupBy):
 
     @Appender(DataFrame.describe.__doc__)
     def describe(self, **kwargs):
-        self._set_group_selection()
-        result = self.apply(lambda x: x.describe(**kwargs))
-        if self.axis == 1:
-            return result.T
-        return result.unstack()
+        with _group_selection_context(self):
+            result = self.apply(lambda x: x.describe(**kwargs))
+            if self.axis == 1:
+                return result.T
+            return result.unstack()
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -1778,13 +1810,12 @@ class GroupBy(_GroupBy):
         .cumcount : Number the rows in each group.
         """
 
-        self._set_group_selection()
-
-        index = self._selected_obj.index
-        result = Series(self.grouper.group_info[0], index)
-        if not ascending:
-            result = self.ngroups - 1 - result
-        return result
+        with _group_selection_context(self):
+            index = self._selected_obj.index
+            result = Series(self.grouper.group_info[0], index)
+            if not ascending:
+                result = self.ngroups - 1 - result
+            return result
 
     @Substitution(name='groupby')
     def cumcount(self, ascending=True):
@@ -1835,11 +1866,10 @@ class GroupBy(_GroupBy):
         .ngroup : Number the groups themselves.
         """
 
-        self._set_group_selection()
-
-        index = self._selected_obj.index
-        cumcounts = self._cumcount_array(ascending=ascending)
-        return Series(cumcounts, index)
+        with _group_selection_context(self):
+            index = self._selected_obj.index
+            cumcounts = self._cumcount_array(ascending=ascending)
+            return Series(cumcounts, index)
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -3768,7 +3798,6 @@ class SeriesGroupBy(GroupBy):
 
     @Appender(Series.describe.__doc__)
     def describe(self, **kwargs):
-        self._set_group_selection()
         result = self.apply(lambda x: x.describe(**kwargs))
         if self.axis == 1:
             return result.T
@@ -4411,6 +4440,7 @@ class NDFrameGroupBy(GroupBy):
             return self._transform_general(func, *args, **kwargs)
 
         obj = self._obj_with_exclusions
+
         # nuiscance columns
         if not result.columns.equals(obj.columns):
             return self._transform_general(func, *args, **kwargs)

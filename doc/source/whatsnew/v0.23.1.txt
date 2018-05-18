@@ -1,7 +1,0 @@
-.. _whatsnew_0231.boxplot.sharexy:
-
-Optional sharing of x/y-axis by pandas.DataFrame().groupby().boxplot()
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-(:issue:`15184`)
-
-Boxplot now accepts sharex and sharey keywords.
