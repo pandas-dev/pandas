@@ -3,6 +3,7 @@ from pandas import compat, get_option, option_context, DataFrame
 from pandas.compat import StringIO, PY2
 import warnings
 
+
 def read_clipboard(sep=r'\s+', **kwargs):  # pragma: no cover
     r"""
     Read text from clipboard and pass to read_table. See read_table for the
