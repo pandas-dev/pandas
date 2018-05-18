@@ -64,7 +64,7 @@ Conversion
 Indexing
 ^^^^^^^^
 
--
+- Bug in :meth:`Series.reset_index` where appropriate error was not raised with an invalid level name (:issue:`20925`)
 -
 
 I/O
