@@ -76,7 +76,7 @@ I/O
 Plotting
 ^^^^^^^^
 
-- Optional sharing of x/y-axis by pandas.DataFrame().groupby().boxplot() (:issue:`20968`)
+- Optional sharing of x/y-axis by pandas.DataFrame().groupby().boxplot() (:issue: `20968`)
 -
 
 Reshaping
