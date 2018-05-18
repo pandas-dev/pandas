@@ -368,9 +368,13 @@ class TestDataFramePlots(TestPlotBase):
                 assert ax.get_legend() is None
 
     def test_groupby_boxplot_sharey(self):
-        # https://github.com/pandas-dev/pandas/issues/9737 using gridspec,
-        # the axis in fig.get_axis() are sorted differently than pandas
-        # expected them, so make sure that only the right ones are removed
+        # https://github.com/pandas-dev/pandas/issues/20968
+        # sharey can now be switched check whether the right
+        # pair of axes is turned on or off
+
+        def _assert_ytickslabels_visibility(axes, expected):
+            for ax, exp in zip(axes, expected):
+                self._check_visible(ax.get_yticklabels(), visible=exp)
 
         df = DataFrame({'a': [-1.43, -0.15, -3.70, -1.43, -0.14],
                         'b': [0.56, 0.84, 0.29, 0.56, 0.85],
@@ -379,27 +383,25 @@ class TestDataFramePlots(TestPlotBase):
 
         # standart behavior
         axes = df.groupby('c').boxplot()
-        self._check_visible(axes[0].get_yticklabels(), visible=True)
-        self._check_visible(axes[1].get_yticklabels(), visible=False)
-        self._check_visible(axes[2].get_yticklabels(), visible=True)
-        self._check_visible(axes[3].get_yticklabels(), visible=False)
+        expected = [True, False, True, False]
+        _assert_ytickslabels_visibility(axes, expected)
         # set sharey=True should be identical
         axes = df.groupby('c').boxplot(sharey=True)
-        self._check_visible(axes[0].get_yticklabels(), visible=True)
-        self._check_visible(axes[1].get_yticklabels(), visible=False)
-        self._check_visible(axes[2].get_yticklabels(), visible=True)
-        self._check_visible(axes[3].get_yticklabels(), visible=False)
+        expected = [True, False, True, False]
+        _assert_ytickslabels_visibility(axes, expected)
         # sharey=False, all yticklabels should be visible
         axes = df.groupby('c').boxplot(sharey=False)
-        self._check_visible(axes[0].get_yticklabels(), visible=True)
-        self._check_visible(axes[1].get_yticklabels(), visible=True)
-        self._check_visible(axes[2].get_yticklabels(), visible=True)
-        self._check_visible(axes[3].get_yticklabels(), visible=True)
+        expected = [True, True, True, True]
+        _assert_ytickslabels_visibility(axes, expected)
 
     def test_groupby_boxplot_sharex(self):
-        # https://github.com/pandas-dev/pandas/issues/9737 using gridspec,
-        # the axis in fig.get_axis() are sorted differently than pandas
-        # expected them, so make sure that only the right ones are removed
+        # https://github.com/pandas-dev/pandas/issues/20968
+        # sharex can now be switched check whether the right
+        # pair of axes is turned on or off
+
+        def _assert_xtickslabels_visibility(axes, expected):
+            for ax, exp in zip(axes, expected):
+                self._check_visible(ax.get_xticklabels(), visible=exp)
 
         df = DataFrame({'a': [-1.43, -0.15, -3.70, -1.43, -0.14],
                         'b': [0.56, 0.84, 0.29, 0.56, 0.85],
@@ -408,22 +410,17 @@ class TestDataFramePlots(TestPlotBase):
 
         # standart behavior
         axes = df.groupby('c').boxplot()
-        self._check_visible(axes[0].get_xticklabels(), visible=True)
-        self._check_visible(axes[1].get_xticklabels(), visible=True)
-        self._check_visible(axes[2].get_xticklabels(), visible=True)
-        self._check_visible(axes[3].get_xticklabels(), visible=True)
+        expected = [True, True, True, True]
+        _assert_xtickslabels_visibility(axes, expected)
         # set sharex=False should be identical
         axes = df.groupby('c').boxplot(sharex=False)
-        self._check_visible(axes[0].get_xticklabels(), visible=True)
-        self._check_visible(axes[1].get_xticklabels(), visible=True)
-        self._check_visible(axes[2].get_xticklabels(), visible=True)
-        self._check_visible(axes[3].get_xticklabels(), visible=True)
-        # sharex=True, yticklabels should be visible for bottom plots
+        expected = [True, True, True, True]
+        _assert_xtickslabels_visibility(axes, expected)
+        # sharex=True, yticklabels should be visible
+        # only for bottom plots
         axes = df.groupby('c').boxplot(sharex=True)
-        self._check_visible(axes[0].get_xticklabels(), visible=False)
-        self._check_visible(axes[1].get_xticklabels(), visible=False)
-        self._check_visible(axes[2].get_xticklabels(), visible=True)
-        self._check_visible(axes[3].get_xticklabels(), visible=True)
+        expected = [False, False, True, True]
+        _assert_xtickslabels_visibility(axes, expected)
 
     @pytest.mark.slow
     def test_subplots_timeseries(self):
