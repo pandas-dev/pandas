@@ -92,6 +92,7 @@ class TestClipboard(object):
                 tm.assert_frame_equal(data, result, check_dtype=False)
             else:
                 assert data.to_string() == result.to_string()
+                assert data.shape == result.shape
 
     def test_round_trip_frame_sep(self):
         for dt in self.data_types:
@@ -163,6 +164,7 @@ class TestClipboard(object):
                         # Expect spaces (ie. df.__repr__() default)
                         result = read_clipboard(sep=r'\s+')
                         assert result.to_string() == data.to_string()
+                        assert data.shape == result.shape
                     else:
                         # Expect other delimited ',' and '|'
                         result = read_clipboard(sep=sep, index_col=0)
