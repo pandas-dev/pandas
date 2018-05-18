@@ -105,8 +105,7 @@ def _convert_and_box_cache(arg, cache_array, box, errors, name=None):
     return result.values
 
 
-def _return_parsed_timezone_results(result, timezones, parsing_tzname,
-                                    parsing_tzoffset, box):
+def _return_parsed_timezone_results(result, timezones, box):
     """
     Return results from array_strptime if a %z or %Z directive was passed.
 
@@ -116,10 +115,6 @@ def _return_parsed_timezone_results(result, timezones, parsing_tzname,
         int64 date representations of the dates
     timezones : ndarray
         pytz timezone objects
-    parsing_tzname : boolean
-        True if %Z is parsed
-    parsing_tzoffset : boolean
-        True if %z is parsed
     box : boolean
         True boxes result as an Index-like, False returns an ndarray
 
@@ -393,8 +388,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                             arg, format, exact=exact, errors=errors)
                         if parsing_tzname or parsing_tzoffset:
                             return _return_parsed_timezone_results(
-                                result, timezones, parsing_tzname,
-                                parsing_tzoffset, box)
+                                result, timezones, box)
                     except tslib.OutOfBoundsDatetime:
                         if errors == 'raise':
                             raise

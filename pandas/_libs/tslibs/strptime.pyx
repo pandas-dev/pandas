@@ -60,7 +60,7 @@ def array_strptime(ndarray[object] values, object fmt,
         pandas_datetimestruct dts
         ndarray[int64_t] iresult
         ndarray[object] result_timezone
-        int year, month, day, minute, hour, second, weekday, julian, tz
+        int year, month, day, minute, hour, second, weekday, julian
         int week_of_year, week_of_year_start, parse_code
         int64_t us, ns
         object val, group_key, ampm, found, timezone
@@ -69,28 +69,26 @@ def array_strptime(ndarray[object] values, object fmt,
         bint is_ignore = errors=='ignore'
         bint is_coerce = errors=='coerce'
         int ordinal
-        dict _parse_code_table = {
-                        'y': 0,
-                        'Y': 1,
-                        'm': 2,
-                        'B': 3,
-                        'b': 4,
-                        'd': 5,
-                        'H': 6,
-                        'I': 7,
-                        'M': 8,
-                        'S': 9,
-                        'f': 10,
-                        'A': 11,
-                        'a': 12,
-                        'w': 13,
-                        'j': 14,
-                        'U': 15,
-                        'W': 16,
-                        'Z': 17,
-                        'p': 18,  # just an additional key, works only with I
-                        'z': 19,
-                    }
+        dict _parse_code_table = {'y': 0,
+                                  'Y': 1,
+                                  'm': 2,
+                                  'B': 3,
+                                  'b': 4,
+                                  'd': 5,
+                                  'H': 6,
+                                  'I': 7,
+                                  'M': 8,
+                                  'S': 9,
+                                  'f': 10,
+                                  'A': 11,
+                                  'a': 12,
+                                  'w': 13,
+                                  'j': 14,
+                                  'U': 15,
+                                  'W': 16,
+                                  'Z': 17,
+                                  'p': 18,  # an additional key, only with I
+                                  'z': 19}
 
     assert is_raise or is_ignore or is_coerce
 
@@ -633,7 +631,7 @@ cdef parse_timezone_directive(object z):
 
     Parameters
     ----------
-    z : string-like of the UTC offset
+    z : string of the UTC offset
 
     Returns
     -------

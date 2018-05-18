@@ -210,7 +210,6 @@ class TestTimeConversionFormats(object):
                                                   assert_equal, fmt,
                                                   dates, expected_dates):
         # GH 13486
-        # %z or %Z parsing
         result = pd.to_datetime(dates, format=fmt, box=box)
         expected = const(expected_dates)
         getattr(tm, assert_equal)(result, expected)
