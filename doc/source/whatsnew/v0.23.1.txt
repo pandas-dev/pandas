@@ -1,0 +1,91 @@
+.. _whatsnew_0231:
+
+v0.23.1
+-------
+
+This is a minor bug-fix release in the 0.23.x series and includes some small regression fixes
+and bug fixes. We recommend that all users upgrade to this version.
+
+.. contents:: What's new in v0.23.1
+    :local:
+    :backlinks: none
+
+.. _whatsnew_0231.enhancements:
+
+New features
+~~~~~~~~~~~~
+
+
+.. _whatsnew_0231.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+
+-
+-
+
+.. _whatsnew_0231.performance:
+
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Improved performance of :meth:`CategoricalIndex.is_monotonic_increasing`, :meth:`CategoricalIndex.is_monotonic_decreasing` and :meth:`CategoricalIndex.is_monotonic` (:issue:`21025`)
+-
+-
+
+Documentation Changes
+~~~~~~~~~~~~~~~~~~~~~
+
+-
+-
+
+.. _whatsnew_0231.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~
+
+Groupby/Resample/Rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Bug in :func:`DataFrame.agg` where applying multiple aggregation functions to a :class:`DataFrame` with duplicated column names would cause a stack overflow (:issue:`21063`)
+
+Strings
+^^^^^^^
+
+- Bug in :meth:`Series.str.replace()` where the method throws `TypeError` on Python 3.5.2 (:issue: `21078`)
+-
+
+Conversion
+^^^^^^^^^^
+
+-
+-
+
+Indexing
+^^^^^^^^
+
+-
+-
+
+I/O
+^^^
+
+-
+-
+
+Plotting
+^^^^^^^^
+
+- Optional sharing of x/y-axis by pandas.DataFrame().groupby().boxplot() (:issue:`20968`)
+-
+
+Reshaping
+^^^^^^^^^
+
+-
+-
+
+Categorical
+^^^^^^^^^^^
+
+-
