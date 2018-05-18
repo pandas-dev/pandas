@@ -94,3 +94,8 @@ Categorical
 ^^^^^^^^^^^
 
 -
+
+Numeric
+^^^^^^^
+
+- :meth:`~DataFrame.agg` now correctly handles numpy NaN-aware methods like :meth:`numpy.nansum` (:issue:`19629`)
