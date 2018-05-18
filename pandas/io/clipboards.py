@@ -1,7 +1,7 @@
 """ io on the clipboard """
 from pandas import compat, get_option, option_context, DataFrame
 from pandas.compat import StringIO, PY2
-
+import warnings
 
 def read_clipboard(sep=r'\s+', **kwargs):  # pragma: no cover
     r"""
@@ -60,6 +60,9 @@ def read_clipboard(sep=r'\s+', **kwargs):  # pragma: no cover
     if sep is None and kwargs.get('delim_whitespace') is None:
         sep = r'\s+'
 
+    if sep == r'\s+' and kwargs.get('engine') is None:
+        kwargs['engine'] = 'python'
+
     return read_table(StringIO(text), sep=sep, **kwargs)
 
 
@@ -108,8 +111,9 @@ def to_clipboard(obj, excel=True, sep=None, **kwargs):  # pragma: no cover
                 text = text.decode('utf-8')
             clipboard_set(text)
             return
-        except:
-            pass
+        except TypeError:
+            warnings.warn('to_clipboard in excel mode requires a single \
+            character separator. Set "excel=false" or change the separator')
 
     if isinstance(obj, DataFrame):
         # str(df) has various unhelpful defaults, like truncation
