@@ -924,6 +924,51 @@ bins, with ``NaN`` representing a missing value similar to other dtypes.
 
    pd.cut([0, 3, 5, 1], bins=c.categories)
 
+If we need intervals on a regular frequency, we can use the :func:`interval_range` function
+to create an ``IntervalIndex`` using various combinations of ``start``, ``end``, and ``periods``.
+The default frequency for ``interval_range`` is a 1 for numeric intervals, and calendar day for
+datetime-like intervals:
+
+.. ipython:: python
+
+   pd.interval_range(start=0, end=5)
+
+   pd.interval_range(start=pd.Timestamp('2017-01-01'), periods=4)
+
+   pd.interval_range(end=pd.Timedelta('3 days'), periods=3)
+
+The ``freq`` parameter can used to specify non-default frequencies, and can utilize a variety
+of :ref:`frequency aliases <timeseries.offset_aliases>` with datetime-like intervals:
+
+.. ipython:: python
+
+   pd.interval_range(start=0, periods=5, freq=1.5)
+
+   pd.interval_range(start=pd.Timestamp('2017-01-01'), periods=4, freq='W')
+
+   pd.interval_range(start=pd.Timedelta('0 days'), periods=3, freq='9H')
+
+Additionally, the ``closed`` parameter can be used to specify which side(s) the intervals
+are closed on.  Intervals are closed on the right side by default.
+
+.. ipython:: python
+
+   pd.interval_range(start=0, end=4, closed='both')
+
+   pd.interval_range(start=0, end=4, closed='neither')
+
+.. versionadded:: 0.23.0
+
+Specifying ``start``, ``end``, and ``periods`` will generate a range of evenly spaced
+intervals from ``start`` to ``end`` inclusively, with ``periods`` number of elements
+in the resulting ``IntervalIndex``:
+
+.. ipython:: python
+
+   pd.interval_range(start=0, end=6, periods=4)
+
+   pd.interval_range(pd.Timestamp('2018-01-01'), pd.Timestamp('2018-02-28'), periods=3)
+
 Miscellaneous indexing FAQ
 --------------------------
 
