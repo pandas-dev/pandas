@@ -124,9 +124,10 @@ class TestClipboard(object):
         exp = pd.read_clipboard(**clip_kwargs)
 
         tm.assert_frame_equal(res, exp)
+        
     def test_excel_clipboard_format(self):
         for dt in self.data_types:
-            for sep in ['\t',None]:
+            for sep in ['\t', None]:
                 data = self.data[dt]
                 data.to_clipboard(excel=True, sep=sep)
                 result = read_clipboard(sep='\t', index_col=0)
