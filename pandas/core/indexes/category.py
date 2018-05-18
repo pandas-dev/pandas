@@ -378,7 +378,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     # introspection
     @cache_readonly
     def is_unique(self):
-        return not self.duplicated().any()
+        return self._engine.is_unique
 
     @property
     def is_monotonic_increasing(self):

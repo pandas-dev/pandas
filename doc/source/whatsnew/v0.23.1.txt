@@ -30,6 +30,7 @@ Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved performance of :meth:`CategoricalIndex.is_monotonic_increasing`, :meth:`CategoricalIndex.is_monotonic_decreasing` and :meth:`CategoricalIndex.is_monotonic` (:issue:`21025`)
+- Improved performance of :meth:`CategoricalIndex.is_unique` (:issue:`21107`)
 -
 -
 
