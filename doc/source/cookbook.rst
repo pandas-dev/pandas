@@ -723,7 +723,7 @@ Rolling Apply to multiple columns where function returns a Scalar (Volume Weight
    s = pd.concat([ (pd.Series(vwap(df.iloc[i:i+window]), index=[df.index[i+window]])) for i in range(len(df)-window) ]);
    s.round(2)
 
-Time series
+Timeseries
 ----------
 
 `Between times

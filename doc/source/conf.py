@@ -64,22 +64,21 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.extlinks',
               'sphinx.ext.todo',
               'numpydoc',
-              # 'IPython.sphinxext.ipython_directive',
-              # 'IPython.sphinxext.ipython_console_highlighting',
-              # 'matplotlib.sphinxext.plot_directive',
+              'IPython.sphinxext.ipython_directive',
+              'IPython.sphinxext.ipython_console_highlighting',
+              'matplotlib.sphinxext.plot_directive',
               'sphinx.ext.intersphinx',
               'sphinx.ext.coverage',
               'sphinx.ext.mathjax',
               'sphinx.ext.ifconfig',
               'sphinx.ext.linkcode',
-              # 'nbsphinx',
+              'nbsphinx',
               'sphinxcontrib.spelling'
               ]
 
 exclude_patterns = ['**.ipynb_checkpoints']
 
 spelling_word_list_filename = 'spelling_wordlist.txt'
-spelling_show_suggestions = False
 spelling_ignore_pypi_package_names = True
 
 with open("index.rst") as f:

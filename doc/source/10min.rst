@@ -645,7 +645,7 @@ the quarter end:
    ts.index = (prng.asfreq('M', 'e') + 1).asfreq('H', 's') + 9
    ts.head()
 
-Categorical
+Categoricals
 ------------
 
 pandas can include categorical data in a ``DataFrame``. For full docs, see the

@@ -387,7 +387,7 @@ Furthermore you can *set* the values using the following methods.
    df2.loc(axis=0)[:, :, ['C1', 'C3']] = -10
    df2
 
-You can use a right-hand-side of an align object as well.
+You can use a right-hand-side of an alignable object as well.
 
 .. ipython:: python
 
@@ -593,7 +593,7 @@ Take Methods
 
 Similar to NumPy ndarrays, pandas Index, Series, and DataFrame also provides
 the ``take`` method that retrieves elements along a given axis at the given
-indexes. The given indexes must be either a list or an ndarray of integer
+indexes. The given indices must be either a list or an ndarray of integer
 index positions. ``take`` will also accept negative integers as relative positions to the end of the object.
 
 .. ipython:: python
@@ -711,7 +711,7 @@ order is ``cab``).
 
    df2.sort_index()
 
-Group by operations on the index will preserve the index nature as well.
+Groupby operations on the index will preserve the index nature as well.
 
 .. ipython:: python
 
