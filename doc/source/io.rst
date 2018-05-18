@@ -868,7 +868,7 @@ data columns:
    df
 
 .. note::
-   If a column or index contains an unparseable date, the entire column or
+   If a column or index contains an unparsable date, the entire column or
    index will be returned unaltered as an object data type. For non-standard
    datetime parsing, use :func:`to_datetime` after ``pd.read_csv``.
 
@@ -1812,7 +1812,7 @@ Writing to a file, with a date index and a date column:
    dfj2.to_json('test.json')
    open('test.json').read()
 
-Fallback Behavior
+Fall-back Behavior
 +++++++++++++++++
 
 If the JSON serializer cannot handle the container contents directly it will
@@ -4721,7 +4721,7 @@ writes ``data`` to the database in batches of 1000 rows at a time:
 
 .. note::
 
-    The function :func:`~pandas.DataFrame.to_sql` will perform a multivalue
+    The function :func:`~pandas.DataFrame.to_sql` will perform a multi-value
     insert if the engine dialect ``supports_multivalues_insert``. This will
     greatly speed up the insert in some cases.
 

@@ -513,7 +513,7 @@ _shared_docs['factorize'] = """
     See Also
     --------
     pandas.cut : Discretize continuous-valued array.
-    pandas.unique : Find the unique valuse in an array.
+    pandas.unique : Find the unique value in an array.
 
     Examples
     --------
@@ -558,7 +558,7 @@ _shared_docs['factorize'] = """
     [a, c]
     Categories (3, object): [a, b, c]
 
-    Notice that ``'b'`` is in ``uniques.categories``, desipite not being
+    Notice that ``'b'`` is in ``uniques.categories``, despite not being
     present in ``cat.values``.
 
     For all other pandas objects, an Index of the appropriate type is
@@ -576,8 +576,8 @@ _shared_docs['factorize'] = """
 @Substitution(
     values=dedent("""\
     values : sequence
-        A 1-D seqeunce. Sequences that aren't pandas objects are
-        coereced to ndarrays before factorization.
+        A 1-D sequence. Sequences that aren't pandas objects are
+        coerced to ndarrays before factorization.
     """),
     order=dedent("""\
     order
@@ -1457,7 +1457,7 @@ def take(arr, indices, axis=0, allow_fill=False, fill_value=None):
     Parameters
     ----------
     arr : sequence
-        Non array-likes (sequences without a dtype) are coereced
+        Non array-likes (sequences without a dtype) are coerced
         to an ndarray.
     indices : sequence of integers
         Indices to be taken.

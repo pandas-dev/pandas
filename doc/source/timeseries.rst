@@ -1738,7 +1738,7 @@ If ``Period`` freq is daily or higher (``D``, ``H``, ``T``, ``S``, ``L``, ``U``,
       ...
    ValueError: Input has different freq from Period(freq=H)
 
-If ``Period`` has other freqs, only the same ``offsets`` can be added. Otherwise, ``ValueError`` will be raised.
+If ``Period`` has other frequencies, only the same ``offsets`` can be added. Otherwise, ``ValueError`` will be raised.
 
 .. ipython:: python
 

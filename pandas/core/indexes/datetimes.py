@@ -2046,7 +2046,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         """
         Convert times to midnight.
 
-        The time component of the date-timeise converted to midnight i.e.
+        The time component of the date-time is converted to midnight i.e.
         00:00:00. This is useful in cases, when the time does not matter.
         Length is unaltered. The timezones are unaffected.
 

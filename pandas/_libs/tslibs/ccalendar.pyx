@@ -18,7 +18,7 @@ from strptime import LocaleTime
 # ----------------------------------------------------------------------
 # Constants
 
-# Slightly more performant cython lookups than a 2D table
+# Slightly more efficient cython lookups than a 2D table
 # The first 12 entries correspond to month lengths for non-leap years.
 # The remaining 12 entries give month lengths for leap years
 cdef int32_t* days_per_month_array = [

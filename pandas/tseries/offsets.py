@@ -1691,7 +1691,7 @@ class YearOffset(DateOffset):
 
     def _get_offset_day(self, other):
         # override BaseOffset method to use self.month instead of other.month
-        # TODO: there may be a more performant way to do this
+        # TODO: there may be a more efficient way to do this
         return liboffsets.get_day_of_month(other.replace(month=self.month),
                                            self._day_opt)
 

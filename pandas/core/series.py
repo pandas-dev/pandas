@@ -3088,7 +3088,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         --------
         Series.map: For element-wise operations
         Series.agg: only perform aggregating type operations
-        Series.transform: only perform transformating type operations
+        Series.transform: only perform transforming type operations
 
         Examples
         --------

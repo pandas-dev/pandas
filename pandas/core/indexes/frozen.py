@@ -129,7 +129,7 @@ class FrozenNDArray(PandasObject, np.ndarray):
         numpy.searchsorted : equivalent function
         """
 
-        # we are much more performant if the searched
+        # we are much more efficient if the searched
         # indexer is the same type as the array
         # this doesn't matter for int64, but DOES
         # matter for smaller int dtypes

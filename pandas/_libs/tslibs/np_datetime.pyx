@@ -80,7 +80,7 @@ reverse_ops[Py_GE] = Py_LE
 
 cdef inline bint cmp_scalar(int64_t lhs, int64_t rhs, int op) except -1:
     """
-    cmp_scalar is a more performant version of PyObject_RichCompare
+    cmp_scalar is a more efficient version of PyObject_RichCompare
     typed for int64_t arguments.
     """
     if op == Py_EQ:

@@ -60,7 +60,7 @@ class Styler(object):
     table_styles: list-like, default None
         list of {selector: (attr, value)} dicts; see Notes
     uuid: str, default None
-        a unique identifier to avoid CSS collisons; generated automatically
+        a unique identifier to avoid CSS collisions; generated automatically
     caption: str, default None
         caption to attach to the table
 
@@ -79,7 +79,7 @@ class Styler(object):
 
     If using in the Jupyter notebook, Styler has defined a ``_repr_html_``
     to automatically render itself. Otherwise call Styler.render to get
-    the genterated HTML.
+    the generated HTML.
 
     CSS classes are attached to the generated HTML
 
@@ -120,7 +120,7 @@ class Styler(object):
         if data.ndim == 1:
             data = data.to_frame()
         if not data.index.is_unique or not data.columns.is_unique:
-            raise ValueError("style is not supported for non-unique indicies.")
+            raise ValueError("style is not supported for non-unique indices.")
 
         self.data = data
         self.index = data.index
@@ -549,7 +549,7 @@ class Styler(object):
 
     def apply(self, func, axis=0, subset=None, **kwargs):
         """
-        Apply a function column-wise, row-wise, or table-wase,
+        Apply a function column-wise, row-wise, or table-wise,
         updating the HTML representation with the result.
 
         Parameters
@@ -1051,7 +1051,7 @@ class Styler(object):
     def bar(self, subset=None, axis=0, color='#d65f5f', width=100,
             align='left'):
         """
-        Color the background ``color`` proptional to the values in each column.
+        Color the background ``color`` proportional to the values in each column.
         Excludes non-numeric data by default.
 
         Parameters
