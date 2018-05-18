@@ -378,7 +378,7 @@ Various combinations of ``start``, ``end``, and ``periods`` can be used with
 
    pd.timedelta_range(start='1 days', end='5 days')
 
-   pd.timedelta_range( end='10 days', periods=4)
+   pd.timedelta_range(end='10 days', periods=4)
 
 The ``freq`` parameter can passed a variety of :ref:`frequency aliases <timeseries.offset_aliases>`:
 
