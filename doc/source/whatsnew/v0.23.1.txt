@@ -70,7 +70,7 @@ Indexing
 I/O
 ^^^
 
--
+-Bug in :func:`DataFrame.to_clipboard` where data sent to clipboard was not properly tab-delimited even when ``excel=True`` (:issue:`21104`)
 -
 
 Plotting
