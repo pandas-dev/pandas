@@ -777,6 +777,18 @@ cdef class _Timedelta(timedelta):
         most granular level of precision. Each level of resolution is 
         represented by a short string as defined below:
 
+        ============ ============
+        Resolution   Return value
+        ============ ============ 
+        Days         'D'
+        Hours        'H'
+        Minutes      'T'
+        Seconds      'S'
+        Milliseconds 'L' 
+        Microseconds 'U'
+        Nanoseconds  'N'
+        ============ ============
+
           - Days:         'D'
           - Hours:        'H'
           - Minutes:      'T'
