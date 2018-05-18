@@ -65,6 +65,7 @@ Indexing
 ^^^^^^^^
 
 - Bug in :meth:`Series.reset_index` where appropriate error was not raised with an invalid level name (:issue:`20925`)
+- :meth:`Index.droplevel` is now implemented also for flat indexes, for compatibility with MultiIndex (:issue:`21115`)
 -
 
 I/O
