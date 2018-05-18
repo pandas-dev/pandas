@@ -12,7 +12,7 @@ from pandas import get_option
 from pandas.util import testing as tm
 from pandas.util.testing import makeCustomDataframe as mkdf
 from pandas.io.clipboard.exceptions import PyperclipException
-from pandas.io.clipboard import clipboard_set
+from pandas.io.clipboard import clipboard_set, clipboard_get
 
 
 try:
@@ -81,6 +81,7 @@ class TestClipboard(object):
             self.check_round_trip_frame(dt, sep=',')
             self.check_round_trip_frame(dt, sep=r'\s+')
             self.check_round_trip_frame(dt, sep='|')
+            self.check_round_trip_frame(dt, sep='\t')
 
     def test_round_trip_frame_string(self):
         for dt in self.data_types:
@@ -123,6 +124,14 @@ class TestClipboard(object):
         exp = pd.read_clipboard(**clip_kwargs)
 
         tm.assert_frame_equal(res, exp)
+    def test_excel_clipboard_format(self):
+        for dt in self.data_types:
+            for sep in ['\t',None]:
+                data = self.data[dt]
+                data.to_clipboard(excel=True, sep=sep)
+                result = read_clipboard(sep='\t', index_col=0)
+                tm.assert_frame_equal(data, result, check_dtype=False)
+                assert clipboard_get().count('\t') > 0
 
     def test_invalid_encoding(self):
         # test case for testing invalid encoding
