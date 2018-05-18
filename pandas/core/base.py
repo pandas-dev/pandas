@@ -316,13 +316,14 @@ class SelectionMixin(object):
 
         raise ValueError("{arg} is an unknown string function".format(arg=arg))
 
-    def _aggregate(self, arg, *args, **kwargs):
+    def _aggregate(self, arg, axis=0, *args, **kwargs):
         """
         provide an implementation for the aggregators
 
         Parameters
         ----------
         arg : string, dict, function
+        axis : int
         *args : args to pass on to the function
         **kwargs : kwargs to pass on to the function
 
@@ -335,17 +336,18 @@ class SelectionMixin(object):
         how can be a string describe the required post-processing, or
         None if not required
         """
+        obj = self if axis == 0 else self.T
         is_aggregator = lambda x: isinstance(x, (list, tuple, dict))
         is_nested_renamer = False
 
         _axis = kwargs.pop('_axis', None)
         if _axis is None:
-            _axis = getattr(self, 'axis', 0)
+            _axis = getattr(obj, 'axis', 0)
         _level = kwargs.pop('_level', None)
 
         if isinstance(arg, compat.string_types):
-            return self._try_aggregate_string_function(arg, *args,
-                                                       **kwargs), None
+            return obj._try_aggregate_string_function(arg, *args,
+                                                      **kwargs), None
 
         if isinstance(arg, dict):
 
@@ -353,7 +355,7 @@ class SelectionMixin(object):
             if _axis != 0:  # pragma: no cover
                 raise ValueError('Can only pass dict with axis=0')
 
-            obj = self._selected_obj
+            selected_obj = obj._selected_obj
 
             def nested_renaming_depr(level=4):
                 # deprecation of nested renaming
@@ -388,16 +390,16 @@ class SelectionMixin(object):
                     if isinstance(v, dict):
                         is_nested_renamer = True
 
-                        if k not in obj.columns:
+                        if k not in selected_obj.columns:
                             msg = ('cannot perform renaming for {key} with a '
                                    'nested dictionary').format(key=k)
                             raise SpecificationError(msg)
                         nested_renaming_depr(4 + (_level or 0))
 
-                    elif isinstance(obj, ABCSeries):
+                    elif isinstance(selected_obj, ABCSeries):
                         nested_renaming_depr()
-                    elif isinstance(obj, ABCDataFrame) and \
-                            k not in obj.columns:
+                    elif isinstance(selected_obj, ABCDataFrame) and \
+                            k not in selected_obj.columns:
                         raise KeyError(
                             "Column '{col}' does not exist!".format(col=k))
 
@@ -407,8 +409,8 @@ class SelectionMixin(object):
                 # deprecation of renaming keys
                 # GH 15931
                 keys = list(compat.iterkeys(arg))
-                if (isinstance(obj, ABCDataFrame) and
-                        len(obj.columns.intersection(keys)) != len(keys)):
+                if (isinstance(selected_obj, ABCDataFrame) and len(
+                        selected_obj.columns.intersection(keys)) != len(keys)):
                     nested_renaming_depr()
 
             from pandas.core.reshape.concat import concat
@@ -417,7 +419,7 @@ class SelectionMixin(object):
                 """
                 aggregate a 1-dim with how
                 """
-                colg = self._gotitem(name, ndim=1, subset=subset)
+                colg = obj._gotitem(name, ndim=1, subset=subset)
                 if colg.ndim != 1:
                     raise SpecificationError("nested dictionary is ambiguous "
                                              "in aggregation")
@@ -427,8 +429,8 @@ class SelectionMixin(object):
                 """
                 aggregate a 2-dim with how
                 """
-                colg = self._gotitem(self._selection, ndim=2,
-                                     subset=obj)
+                colg = obj._gotitem(obj._selection, ndim=2,
+                                    subset=selected_obj)
                 return colg.aggregate(how, _level=None)
 
             def _agg(arg, func):
@@ -458,20 +460,22 @@ class SelectionMixin(object):
 
                 else:
 
-                    if self._selection is not None:
+                    if obj._selection is not None:
                         keys = None
 
             # some selection on the object
-            elif self._selection is not None:
+            elif obj._selection is not None:
 
-                sl = set(self._selection_list)
+                sl = set(obj._selection_list)
 
                 # we are a Series like object,
                 # but may have multiple aggregations
                 if len(sl) == 1:
 
-                    result = _agg(arg, lambda fname,
-                                  agg_how: _agg_1dim(self._selection, agg_how))
+                    result = _agg(
+                        arg,
+                        lambda fname, agg_how: _agg_1dim(
+                            obj._selection, agg_how))
 
                 # we are selecting the same set as we are aggregating
                 elif not len(sl - set(keys)):
@@ -516,7 +520,7 @@ class SelectionMixin(object):
                 return concat([result[k] for k in keys],
                               keys=keys, axis=1), True
 
-            elif isinstance(self, ABCSeries) and is_any_series():
+            elif isinstance(obj, ABCSeries) and is_any_series():
 
                 # we have a dict of Series
                 # return a MI Series
@@ -541,20 +545,20 @@ class SelectionMixin(object):
 
                 # we have a dict of scalars
                 result = Series(result,
-                                name=getattr(self, 'name', None))
+                                name=getattr(obj, 'name', None))
 
             return result, True
         elif is_list_like(arg) and arg not in compat.string_types:
             # we require a list, but not an 'str'
-            return self._aggregate_multiple_funcs(arg,
-                                                  _level=_level,
-                                                  _axis=_axis), None
+            return obj._aggregate_multiple_funcs(arg,
+                                                 _level=_level,
+                                                 _axis=_axis), None
         else:
             result = None
 
-        f = self._is_cython_func(arg)
-        if f and not args and not kwargs:
-            return getattr(self, f)(), None
+        f = obj._is_cython_func(arg)
+        if f is not None:
+            return getattr(obj, f)(*args, **kwargs), None
 
         # caller can react
         return result, True

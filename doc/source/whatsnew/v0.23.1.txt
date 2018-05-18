@@ -94,3 +94,8 @@ Categorical
 ^^^^^^^^^^^
 
 -
+
+Numeric
+^^^^^^^
+
+- :meth:`~DataFrame.agg` now correctly handles built-in methods like ``sum`` when axis=1 (:issue:`21134`)
