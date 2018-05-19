@@ -56,8 +56,8 @@ def _consensus_name_attr(objs):
     name = objs[0].name
     for obj in objs[1:]:
         name_check = (obj.name != name)
-        if isinstance(name_check, np.ndarray):
-            # 'If' test can also be a negative for 'np.bool_' or 'bool'
+        if not isinstance(name_check, (bool, np.bool_)):
+            # 'If' test can also be a positive for 'np.ndarray'
             return None
         elif name_check:
             return None
