@@ -771,8 +771,7 @@ cdef class _Timedelta(timedelta):
     @property
     def resolution(self):
         """
-        Return a string representing the lowest (i.e. smallest) time
-        resolution.
+        Return a string representing the lowest timedelta resolution.
 
         Each timedelta has a defined resolution that represents the lowest OR
         most granular level of precision. Each level of resolution is
@@ -793,12 +792,10 @@ cdef class _Timedelta(timedelta):
         Returns
         -------
         str
-            Time resolution.
+            Timedelta resolution.
 
         Examples
         --------
-        **Using string input**
-
         >>> td = pd.Timedelta('1 days 2 min 3 us 42 ns')
         >>> td.resolution
         'N'
@@ -810,8 +807,6 @@ cdef class _Timedelta(timedelta):
         >>> td = pd.Timedelta('2 min 3 s')
         >>> td.resolution
         'S'
-
-        **Using integer input**
 
         >>> td = pd.Timedelta(36, unit='us')
         >>> td.resolution
