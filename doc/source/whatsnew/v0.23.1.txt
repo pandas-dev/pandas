@@ -82,7 +82,7 @@ Plotting
 Reshaping
 ^^^^^^^^^
 
-- Bug in :func:`concat` where error was raised in concatenating Series with numpy scalar and tuple names (:issue:`21015`)
+- Bug in :func:`concat` where error was raised in concatenating ``Series`` with numpy scalar and tuple names (:issue:`21015`)
 -
 
 Categorical
