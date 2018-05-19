@@ -257,7 +257,7 @@ Pass ``errors='coerce'`` to convert unparseable data to ``NaT`` (not a time):
 Epoch Timestamps
 ~~~~~~~~~~~~~~~~
 
-pandas supports converting integer or float epoch times to ``Timestamp`` and 
+pandas supports converting integer or float epoch times to ``Timestamp`` and
 ``DatetimeIndex``. The default unit is nanoseconds, since that is how ``Timestamp``
 objects are stored internally. However, epochs are often stored in another ``unit``
 which can be specified. These are computed from the starting point specified by the
@@ -304,11 +304,12 @@ To invert the operation from above, namely, to convert from a ``Timestamp`` to a
    stamps = pd.date_range('2012-10-08 18:15:05', periods=4, freq='D')
    stamps
 
-We convert the ``DatetimeIndex`` to an ``int64`` array, then divide by the conversion unit.
+We subtract the epoch (midnight at January 1, 1970 UTC) and then floor divide by the
+"unit" (1 second).
 
 .. ipython:: python
 
-   stamps.view('int64') // pd.Timedelta(1, unit='s')
+   (stamps - pd.Timestamp("1970-01-01")) // pd.Timedelta('1s')
 
 .. _timeseries.origin:
 
