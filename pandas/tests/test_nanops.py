@@ -13,7 +13,8 @@ from pandas.core.dtypes.common import is_integer_dtype
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
-from pandas.compat.numpy import _np_version_under1p13
+from pandas.compat.numpy import (_np_version_under1p13, _np_version_under1p10,
+                                 _np_version_under1p12)
 
 use_bn = nanops._USE_BOTTLENECK
 
@@ -995,10 +996,16 @@ class TestNankurtFixedValues(object):
 
 
 @pytest.fixture(params=[
-    pd.Series([1, 2, 3, 4, 5, 6]),
-    pd.DataFrame([[1, 2, 3], [4, 5, 6]])
+    pd.Series([1, 2, 3, 4]),
+    pd.DataFrame([[1, 2], [3, 4]]),
+    pd.Series([np.nan, 2, 3, 4]),
+    pd.DataFrame([[np.nan, 2], [3, 4]]),
+    pd.Series(),
+    pd.DataFrame(),
+    pd.Series([np.nan]),
+    pd.DataFrame([[np.nan]]),
 ])
-def nan_test_object(request):
+def series_or_frame(request):
     return request.param
 
 
@@ -1010,30 +1017,27 @@ def nan_test_object(request):
     (np.median, np.nanmedian),
     (np.max, np.nanmax),
     (np.min, np.nanmin),
-])
-def test_np_nan_functions(standard, nan_method, nan_test_object):
-    tm.assert_almost_equal(nan_test_object.agg(standard),
-                           nan_test_object.agg(nan_method),
+], ids=lambda x: x.__name__)
+def test_np_nan_functions(standard, nan_method, series_or_frame):
+    tm.assert_almost_equal(series_or_frame.agg(standard),
+                           series_or_frame.agg(nan_method),
                            check_exact=True)
 
 
-@td.skip_if_no("numpy", min_version="1.10.0")
-def test_np_nanprod(nan_test_object):
-    tm.assert_almost_equal(nan_test_object.agg(np.prod),
-                           nan_test_object.agg(np.nanprod),
+@pytest.mark.skipif(_np_version_under1p10, reason="requires numpy>=1.10")
+def test_np_nanprod(series_or_frame):
+    tm.assert_almost_equal(series_or_frame.agg(np.prod),
+                           series_or_frame.agg(np.nanprod),
                            check_exact=True)
 
 
-@td.skip_if_no("numpy", min_version="1.12.0")
-def test_np_nancumprod(nan_test_object):
-    # Not using pytest params for methods as will fail at build time
-    methods = [
-        (np.cumprod, np.nancumprod),
-        (np.cumsum, np.nancumsum)
-    ]
-    for standard, nan_method in methods:
-        tm.assert_almost_equal(nan_test_object.agg(standard),
-                               nan_test_object.agg(nan_method),
+@pytest.mark.skipif(_np_version_under1p12, reason="requires numpy>=1.12")
+def test_np_nancumprod(series_or_frame):
+    funcs = [(np.cumprod, np.nancumprod),
+             (np.cumsum, np.nancumsum)]
+    for standard, nan_method in funcs:
+        tm.assert_almost_equal(series_or_frame.agg(standard),
+                               series_or_frame.agg(nan_method),
                                check_exact=True)
 
 

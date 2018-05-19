@@ -568,7 +568,7 @@ class SelectionMixin(object):
             result = None
 
         f = self._is_cython_func(arg)
-        if f:
+        if f is not None:
             return getattr(self, f)(*args, **kwargs), None
 
         # caller can react
