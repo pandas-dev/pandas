@@ -2362,8 +2362,9 @@ bar2,12,13,14,15
         df2 = pd.DataFrame([[5, 6], [7, 8]], columns=['c', 'd'],
                            index=pd.MultiIndex.from_tuples([(0, 0), (1, 1)]))
         result = pd.concat([df1.iloc[0], df2.iloc[0]])
-        expected = pd.Series({'a':1, 'b':2, 'c':5, 'd':6})
+        expected = pd.Series({'a': 1, 'b': 2, 'c': 5, 'd': 6})
         tm.assert_series_equal(result, expected)
+
 
 @pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame, pd.Panel])
 @pytest.mark.parametrize('dt', np.sctypes['float'])
