@@ -760,7 +760,32 @@ cdef class _Timedelta(timedelta):
 
     @property
     def delta(self):
-        """ return out delta in ns (for internal compat) """
+        """
+        Return the timedelta in nanoseconds (ns), for internal compatibility.
+
+        Returns
+        -------
+        int
+            Timedelta in nanoseconds.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('1 days 42 ns')
+        >>> td.delta
+        86400000000042
+
+        >>> td = pd.Timedelta('3 s')
+        >>> td.delta
+        3000000000
+
+        >>> td = pd.Timedelta('3 ms 5 us')
+        >>> td.delta
+        3005000
+
+        >>> td = pd.Timedelta(42, unit='ns')
+        >>> td.delta
+        42 
+        """
         return self.value
 
     @property
