@@ -1056,3 +1056,26 @@ class TestDataFrameAggregate(TestData):
         expected = df.size
 
         assert result == expected
+
+    @pytest.mark.parametrize("df", [
+        pd.DataFrame([[1, 2], [3, 4]]),
+        pd.DataFrame([[np.nan, 2], [3, 4]]),
+        pd.DataFrame(),
+    ])
+    def test_agg_function_input(self, df, cython_table_items):
+        # test whether the functions (keys) in
+        # pd.core.base.SelectionMixin._cython_table give the same result
+        # as the related strings (values) when used in df.agg. Examples:
+        # - ``df.agg(np.nansum)`` should give the same result as
+        #   ``df.agg('sum')``
+        # - ``df.agg(sum)`` should give the same result as ``df.agg('sum')``
+        # etc.
+        # GH21123
+        np_func, str_func = cython_table_items
+
+        tm.assert_almost_equal(df.agg(np_func),
+                               df.agg(str_func),
+                               )
+        tm.assert_almost_equal(df.agg(np_func, axis=1),
+                               df.agg(str_func, axis=1),
+                               )

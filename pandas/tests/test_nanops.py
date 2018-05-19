@@ -13,8 +13,7 @@ from pandas.core.dtypes.common import is_integer_dtype
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
-from pandas.compat.numpy import (_np_version_under1p13, _np_version_under1p10,
-                                 _np_version_under1p12)
+from pandas.compat.numpy import _np_version_under1p13
 
 use_bn = nanops._USE_BOTTLENECK
 
@@ -993,52 +992,6 @@ class TestNankurtFixedValues(object):
     @property
     def prng(self):
         return np.random.RandomState(1234)
-
-
-@pytest.fixture(params=[
-    pd.Series([1, 2, 3, 4]),
-    pd.DataFrame([[1, 2], [3, 4]]),
-    pd.Series([np.nan, 2, 3, 4]),
-    pd.DataFrame([[np.nan, 2], [3, 4]]),
-    pd.Series(),
-    pd.DataFrame(),
-    pd.Series([np.nan]),
-    pd.DataFrame([[np.nan]]),
-])
-def series_or_frame(request):
-    return request.param
-
-
-@pytest.mark.parametrize("standard, nan_method", [
-    (np.sum, np.nansum),
-    (np.mean, np.nanmean),
-    (np.std, np.nanstd),
-    (np.var, np.nanvar),
-    (np.median, np.nanmedian),
-    (np.max, np.nanmax),
-    (np.min, np.nanmin),
-], ids=lambda x: x.__name__)
-def test_np_nan_functions(standard, nan_method, series_or_frame):
-    tm.assert_almost_equal(series_or_frame.agg(standard),
-                           series_or_frame.agg(nan_method),
-                           check_exact=True)
-
-
-@pytest.mark.skipif(_np_version_under1p10, reason="requires numpy>=1.10")
-def test_np_nanprod(series_or_frame):
-    tm.assert_almost_equal(series_or_frame.agg(np.prod),
-                           series_or_frame.agg(np.nanprod),
-                           check_exact=True)
-
-
-@pytest.mark.skipif(_np_version_under1p12, reason="requires numpy>=1.12")
-def test_np_nancumprod(series_or_frame):
-    funcs = [(np.cumprod, np.nancumprod),
-             (np.cumsum, np.nancumsum)]
-    for standard, nan_method in funcs:
-        tm.assert_almost_equal(series_or_frame.agg(standard),
-                               series_or_frame.agg(nan_method),
-                               check_exact=True)
 
 
 def test_use_bottleneck():

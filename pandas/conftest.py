@@ -149,3 +149,20 @@ def tz_aware_fixture(request):
     Fixture for trying explicit timezones: {0}
     """
     return request.param
+
+
+@pytest.fixture(
+    # params: Python 3.5 randomizes dict access and xdist doesn't like that
+    # in fixtures. In order to get predetermined values we need to sort
+    # the list deterministically
+    # GH 21123
+    params=list(sorted(pd.core.base.SelectionMixin._cython_table.items(),
+                       key=lambda x: x[0].__name__)),
+    ids=lambda x: "({}-{!r})".format(x[0].__name__, x[1]),
+)
+def cython_table_items(request):
+    """
+    Fixture for returning the items in
+    pandas.core.base.SelectionMixin._cython_table
+    """
+    return request.param

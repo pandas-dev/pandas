@@ -587,3 +587,23 @@ class TestSeriesMap(TestData):
         result = s.map(mapping)
 
         tm.assert_series_equal(result, pd.Series(exp))
+
+    @pytest.mark.parametrize("series", [
+        pd.Series([1, 2, 3, 4]),
+        pd.Series([np.nan, 2, 3, 4]),
+        pd.Series(),
+    ])
+    def test_agg_function_input(self, series, cython_table_items):
+        # test whether the functions (keys) in
+        # pd.core.base.SelectionMixin._cython_table give the same result
+        # as the related strings (values), when used in ser.agg. Examples:
+        # - ``ser.agg(np.nansum)`` should give the same result as
+        #   ``ser.agg('sum')``
+        # - ``ser.agg(sum)`` should give the same result as ``ser.agg('sum')``
+        # etc.
+        # GH21123
+        np_func, str_func = cython_table_items
+
+        tm.assert_almost_equal(series.agg(np_func),
+                               series.agg(str_func),
+                               )
