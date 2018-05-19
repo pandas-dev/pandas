@@ -781,13 +781,13 @@ cdef class _Timedelta(timedelta):
         ============ ============
         Resolution   Return value
         ============ ============
-        Days         ``'D'``
-        Hours        ``'H'``
-        Minutes      ``'T'``
-        Seconds      ``'S'``
-        Milliseconds ``'L'``
-        Microseconds ``'U'``
-        Nanoseconds  ``'N'``
+        Days         'D'
+        Hours        'H'
+        Minutes      'T'
+        Seconds      'S'
+        Milliseconds 'L'
+        Microseconds 'U'
+        Nanoseconds  'N'
         ============ ============
 
         Returns
