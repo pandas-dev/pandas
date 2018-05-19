@@ -760,7 +760,36 @@ cdef class _Timedelta(timedelta):
 
     @property
     def delta(self):
-        """ return out delta in ns (for internal compat) """
+        """
+        Return the timedelta in nanoseconds (ns), for internal compatibility.
+
+        Returns
+        -------
+        int
+            Timedelta in nanoseconds.
+
+        Examples
+        --------
+        **Using string input**
+
+        >>> td = pd.Timedelta('1 days 42 ns')
+        >>> td.delta
+        86400000000042
+
+        >>> td = pd.Timedelta('3 s')
+        >>> td.delta
+        3000000000
+
+        >>> td = pd.Timedelta('3 ms 5 us')
+        >>> td.delta
+        3005000
+
+        **Using integer input**
+
+        >>> td = pd.Timedelta(42, unit='ns')
+        >>> td.delta
+        42
+        """
         return self.value
 
     @property
@@ -770,7 +799,48 @@ cdef class _Timedelta(timedelta):
 
     @property
     def resolution(self):
-        """ return a string representing the lowest resolution that we have """
+        """
+        Return a string representing the lowest (i.e. smallest) time resolution.
+
+        Each timedelta has a defined resolution that represents the lowest OR 
+        most granular level of precision. Each level of resolution is 
+        represented by a short string as defined below:
+
+          - Days:         'D'
+          - Hours:        'H'
+          - Minutes:      'T'
+          - Seconds:      'S'
+          - Milliseconds: 'L'
+          - Microseconds: 'U'
+          - Nanoseconds:  'N'
+
+        Returns
+        -------
+        str
+            Time resolution.
+
+        Examples
+        --------
+        **Using string input**
+
+        >>> td = pd.Timedelta('1 days 2 min 3 us 42 ns')
+        >>> td.resolution
+        'N'
+
+        >>> td = pd.Timedelta('1 days 2 min 3 us')
+        >>> td.resolution
+        'U'
+
+        >>> td = pd.Timedelta('2 min 3 s')
+        >>> td.resolution
+        'S'
+
+        **Using integer input**
+
+        >>> td = pd.Timedelta(36, unit='us')
+        >>> td.resolution
+        'U'
+        """ 
 
         self._ensure_components()
         if self._ns:
