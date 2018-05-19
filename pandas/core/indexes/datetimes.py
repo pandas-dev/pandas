@@ -437,7 +437,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 tz = timezones.maybe_get_tz(tz)
 
                 if (not isinstance(data, DatetimeIndex) or
-                        getattr(data, 'tz', None) is None) and not passed_integer_data:
+                    getattr(data, 'tz', None) is None) and not passed_integer_data:
                     # Convert tz-naive to UTC
                     ints = subarr.view('i8')
                     subarr = conversion.tz_localize_to_utc(ints, tz,
@@ -1242,7 +1242,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         See Index.join
         """
         if (not isinstance(other, DatetimeIndex) and len(other) > 0 and
-            other.inferred_type not in ('floating', 'mixed-integer',
+            other.inferred_type not in ('floating', 'integer', 'mixed-integer',
                                         'mixed-integer-float', 'mixed')):
             try:
                 other = DatetimeIndex(other)
@@ -2080,8 +2080,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                        dtype='datetime64[ns, Asia/Calcutta]', freq=None)
         """
         new_values = conversion.date_normalize(self.asi8, self.tz)
-        return DatetimeIndex(new_values, freq='infer', name=self.name,
-                             tz=self.tz)
+        return DatetimeIndex(new_values,
+                             freq='infer',
+                             name=self.name).tz_localize(self.tz)
 
     @Substitution(klass='DatetimeIndex')
     @Appender(_shared_docs['searchsorted'])
@@ -2162,8 +2163,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         try:
             new_dates = np.concatenate((self[:loc].asi8, [item.view(np.int64)],
                                         self[loc:].asi8))
-            if self.tz is not None:
-                new_dates = conversion.tz_convert(new_dates, 'UTC', self.tz)
             return DatetimeIndex(new_dates, name=self.name, freq=freq,
                                  tz=self.tz)
         except (AttributeError, TypeError):
@@ -2201,8 +2200,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 if (loc.start in (0, None) or loc.stop in (len(self), None)):
                     freq = self.freq
 
-        if self.tz is not None:
-            new_dates = conversion.tz_convert(new_dates, 'UTC', self.tz)
         return DatetimeIndex(new_dates, name=self.name, freq=freq, tz=self.tz)
 
     def tz_convert(self, tz):
