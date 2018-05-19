@@ -784,7 +784,7 @@ cdef class _Timedelta(timedelta):
 
         >>> td = pd.Timedelta(42, unit='ns')
         >>> td.delta
-        42 
+        42
         """
         return self.value
 
