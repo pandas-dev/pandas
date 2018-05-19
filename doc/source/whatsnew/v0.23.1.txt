@@ -55,6 +55,11 @@ Strings
 - Bug in :meth:`Series.str.replace()` where the method throws `TypeError` on Python 3.5.2 (:issue: `21078`)
 -
 
+Categorical
+^^^^^^^^^^^
+
+- Bug in :func:`pandas.util.testing.assert_index_equal` which raised ``AssertionError`` incorrectly, when comparing two :class:`CategoricalIndex` objects with param ``check_categorical=False`` (:issue:`19776`)
+
 Conversion
 ^^^^^^^^^^
 
