@@ -58,6 +58,11 @@ Timedelta
 ^^^^^^^^^
 - Bug in :class:`Timedelta`: where passing a float with a unit would prematurely round the float precision (:issue: `12690`)
 
+Categorical
+^^^^^^^^^^^
+
+- Bug in :func:`pandas.util.testing.assert_index_equal` which raised ``AssertionError`` incorrectly, when comparing two :class:`CategoricalIndex` objects with param ``check_categorical=False`` (:issue:`19776`)
+
 Conversion
 ^^^^^^^^^^
 
@@ -67,7 +72,7 @@ Conversion
 Indexing
 ^^^^^^^^
 
--
+- Bug in :meth:`Series.reset_index` where appropriate error was not raised with an invalid level name (:issue:`20925`)
 -
 
 I/O
