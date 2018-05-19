@@ -114,7 +114,7 @@ class PandasObject(StringMixin, DirNamesMixin):
 
     def __sizeof__(self):
         """
-        Generates the total memory usage for a object that returns
+        Generates the total memory usage for an object that returns
         either a value or Series of values
         """
         if hasattr(self, 'memory_usage'):
