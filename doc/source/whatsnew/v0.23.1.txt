@@ -56,7 +56,7 @@ Strings
 
 Timedelta
 ^^^^^^^^^
-- Bug in :class:`Timedelta`: where passing a float with a unit would prematurely round the float precision (:issue: `12690`)
+- Bug in :class:`Timedelta`: where passing a float with a unit would prematurely round the float precision (:issue: `14156`)
 
 Categorical
 ^^^^^^^^^^^
