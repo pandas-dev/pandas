@@ -2350,6 +2350,20 @@ bar2,12,13,14,15
 
         tm.assert_frame_equal(result, expected)
 
+    def test_concat_series_name_npscalar_tuple(self):
+        # GH21015
+        s1 = pd.Series({'a': 1.5}, name=np.int64(190))
+        s2 = pd.Series([], name=(43, 0))
+        result = pd.concat([s1, s2])
+        expected = pd.Series({'a': 1.5})
+        tm.assert_series_equal(result, expected)
+
+        df1 = pd.DataFrame([[1, 2], [3, 4]], columns=['a', 'b'], index=[0, 1])
+        df2 = pd.DataFrame([[5, 6], [7, 8]], columns=['c', 'd'],
+                           index=pd.MultiIndex.from_tuples([(0, 0), (1, 1)]))
+        result = pd.concat([df1.iloc[0], df2.iloc[0]])
+        expected = pd.Series({'a':1, 'b':2, 'c':5, 'd':6})
+        tm.assert_series_equal(result, expected)
 
 @pytest.mark.parametrize('pdt', [pd.Series, pd.DataFrame, pd.Panel])
 @pytest.mark.parametrize('dt', np.sctypes['float'])

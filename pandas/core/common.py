@@ -55,7 +55,11 @@ def flatten(l):
 def _consensus_name_attr(objs):
     name = objs[0].name
     for obj in objs[1:]:
-        if obj.name != name:
+        name_check = (obj.name != name)
+        if isinstance(name_check, np.ndarray):
+            # 'If' test can also be a negative for 'np.bool_' or 'bool'
+            return None
+        elif name_check:
             return None
     return name
 
