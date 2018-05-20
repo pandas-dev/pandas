@@ -15,6 +15,36 @@ and bug fixes. We recommend that all users upgrade to this version.
 New features
 ~~~~~~~~~~~~
 
+.. _whatsnew_0231.enhancements.new_multi_index_repr_:
+
+MultiIndex now has limits on many levels/labels are shown when printed
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Outputting a :class:`MultiIndex` used to print all level/label of the
+multiindex. This could be a problem for large indices as the output could be
+slow to print and make the console output difficult to navigate.
+
+Outputting of ``MultiIndex`` instances now has limits to the number of levels
+and labels shown ((:issue:`21145`):
+
+.. ipython:: python
+
+   index1=range(1000)
+   pd.MultiIndex.from_arrays([index1, index1])
+
+Previously all 1000 index rows would have been shown.
+
+For smaller number of values, all values will still be shown:
+
+.. ipython:: python
+
+   index1=range(30)
+   pd.MultiIndex.from_arrays([index1, index1])
+   index1=range(2)
+   pd.MultiIndex.from_arrays([index1, index1])
+
+You can change the cutoff point for when all values are shown in the outputs
+by changing :attr:`options.display.max_seq_items` (default is 100).
 
 .. _whatsnew_0231.deprecations:
 

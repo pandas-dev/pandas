@@ -7,7 +7,7 @@ from sys import getsizeof
 import numpy as np
 from pandas._libs import algos as libalgos, index as libindex, lib, Timestamp
 
-from pandas.compat import range, zip, lrange, lzip, map
+from pandas.compat import range, zip, lrange, lzip, map, u
 from pandas.compat.numpy import function as nv
 from pandas import compat
 
@@ -609,11 +609,28 @@ class MultiIndex(Index):
         """
         Return a list of tuples of the (attr,formatted_value)
         """
+        def to_string_helper(obj, attr_name):
+            """converts obj.attr_name to a string.
+            """
+            indices = getattr(obj, attr_name)
+            if attr_name == 'labels':
+                # self.labels is a list of FrozenNDArray, Index._format_data
+                # expects a pd.Index
+                indices = [Index(i) for i in indices]
+
+            _name = u("{}({}=").format(obj.__class__.__name__, attr_name)
+            attr_string = [idx._format_data(name=_name)
+                           for idx in indices]
+            attr_string = u("").join(attr_string)
+            if attr_string.endswith(u(", ")):  # else [1, 2, ], want [1, 2]
+                attr_string = attr_string[:-2]
+
+            return u("[{}]").format(attr_string)
+
         attrs = [
-            ('levels', ibase.default_pprint(self._levels,
-                                            max_seq_items=False)),
-            ('labels', ibase.default_pprint(self._labels,
-                                            max_seq_items=False))]
+            ('levels', to_string_helper(self, attr_name='levels')),
+            ('labels', to_string_helper(self, attr_name='labels')),
+        ]
         if com._any_not_none(*self.names):
             attrs.append(('names', ibase.default_pprint(self.names)))
         if self.sortorder is not None:
