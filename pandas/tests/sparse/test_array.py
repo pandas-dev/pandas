@@ -454,6 +454,16 @@ class TestSparseArray(object):
         assert_almost_equal(self.arr.to_dense(), self.arr_data)
         assert_almost_equal(self.arr.sp_values, np.asarray(self.arr))
 
+    def test_shape(self):
+        out = SparseArray([0, 0, 0, 0, 0])
+        assert out.shape == (5,)
+
+        out = SparseArray([])
+        assert out.shape == (0,)
+
+        out = SparseArray([0])
+        assert out.shape == (1,)
+
     def test_to_dense(self):
         vals = np.array([1, np.nan, np.nan, 3, np.nan])
         res = SparseArray(vals).to_dense()

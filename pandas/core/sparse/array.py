@@ -290,7 +290,9 @@ class SparseArray(PandasObject, np.ndarray):
         """Necessary for making this object picklable"""
         object_state = list(np.ndarray.__reduce__(self))
         subclass_state = self.fill_value, self.sp_index
-        object_state[2] = (object_state[2], subclass_state)
+        object_state[2] = list(object_state[2])
+        object_state[2][1] = super(SparseArray, self).shape
+        object_state[2] = (tuple(object_state[2]), subclass_state)
         return tuple(object_state)
 
     def __setstate__(self, state):
@@ -338,6 +340,10 @@ class SparseArray(PandasObject, np.ndarray):
         output.fill(self.fill_value)
         output.put(int_index.indices, self)
         return output
+
+    @property
+    def shape(self):
+        return (len(self),)
 
     @property
     def sp_values(self):
