@@ -4454,7 +4454,10 @@ class DataFrame(NDFrame):
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
 
-        if level:
+        # make sure that the axis is lexsorted to start
+        # if not we need to reconstruct to get the correct indexer
+        labels = labels._sort_levels_monotonic()
+        if level is not None:
 
             new_axis, indexer = labels.sortlevel(level, ascending=ascending,
                                                  sort_remaining=sort_remaining)
@@ -4462,9 +4465,6 @@ class DataFrame(NDFrame):
         elif isinstance(labels, MultiIndex):
             from pandas.core.sorting import lexsort_indexer
 
-            # make sure that the axis is lexsorted to start
-            # if not we need to reconstruct to get the correct indexer
-            labels = labels._sort_levels_monotonic()
             indexer = lexsort_indexer(labels._get_labels_for_sorting(),
                                       orders=ascending,
                                       na_position=na_position)
@@ -5731,7 +5731,12 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Function application
 
-    def _gotitem(self, key, ndim, subset=None):
+    def _gotitem(self,
+                 key,           # type: Union[str, List[str]]
+                 ndim,          # type: int
+                 subset=None    # type: Union[Series, DataFrame, None]
+                 ):
+        # type: (...) -> Union[Series, DataFrame]
         """
         sub-classes to define
         return a sliced object
@@ -5746,9 +5751,11 @@ class DataFrame(NDFrame):
         """
         if subset is None:
             subset = self
+        elif subset.ndim == 1:  # is Series
+            return subset
 
         # TODO: _shallow_copy(subset)?
-        return self[key]
+        return subset[key]
 
     _agg_doc = dedent("""
     The aggregation operations are always performed over an axis, either the
