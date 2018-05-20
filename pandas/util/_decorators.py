@@ -3,7 +3,7 @@ from pandas._libs.properties import cache_readonly  # noqa
 import inspect
 import types
 import warnings
-from textwrap import dedent, wrap
+from textwrap import dedent
 from functools import wraps, update_wrapper
 
 
@@ -39,26 +39,21 @@ def deprecate(name, alternative, version, alt_name=None,
     warning_msg = msg or '{} is deprecated, use {} instead'.format(name,
                                                                    alt_name)
 
-    @wraps(alternative)
-    def wrapper(*args, **kwargs):
-        warnings.warn(warning_msg, klass, stacklevel=stacklevel)
-        return alternative(*args, **kwargs)
-
     # adding deprecated directive to the docstring
     msg = msg or 'Use `{alt_name}` instead.'.format(alt_name=alt_name)
-    tpl = dedent("""
-    .. deprecated:: {version}
 
-       {msg}
+    @Substitution(version=version, msg=msg)
+    @Appender(name.__doc__)
+    @wraps(alternative)
+    def wrapper(*args, **kwargs):
+        """
+        .. deprecated:: %(version)s
 
-    {rest}
-    """)
-    rest = getattr(wrapper, '__doc__', '')
-    if rest:
-        docstring = tpl.format(version=version,
-                               msg='\n    '.join(wrap(msg, 70)),
-                               rest=dedent(rest))
-        wrapper.__doc__ = docstring
+           %(msg)s
+
+        """
+        warnings.warn(warning_msg, klass, stacklevel=stacklevel)
+        return alternative(*args, **kwargs)
 
     return wrapper
 

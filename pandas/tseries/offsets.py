@@ -14,7 +14,7 @@ import pandas.core.common as com
 # import after tools, dateutil check
 from dateutil.easter import easter
 from pandas._libs import tslib, Timestamp, OutOfBoundsDatetime, Timedelta
-from pandas.util._decorators import cache_readonly
+from pandas.util._decorators import cache_readonly, Appender, Substitution
 
 from pandas._libs.tslibs import ccalendar, frequencies as libfrequencies
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
@@ -1011,7 +1011,7 @@ class BusinessMonthBegin(MonthOffset):
 class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
     """
     DateOffset subclass representing one custom business month, incrementing
-    between [BEGIN/END] of month dates
+    between %(increment)s of month dates
 
     Parameters
     ----------
@@ -1089,16 +1089,15 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
         return result
 
 
+@Substitution(increment='end')
+@Appender(_CustomBusinessMonth.__doc__)
 class CustomBusinessMonthEnd(_CustomBusinessMonth):
-    if _CustomBusinessMonth.__doc__:
-        __doc__ = _CustomBusinessMonth.__doc__.replace('[BEGIN/END]', 'end')
     _prefix = 'CBM'
 
 
+@Substitution(increment='beginning')
+@Appender(_CustomBusinessMonth.__doc__)
 class CustomBusinessMonthBegin(_CustomBusinessMonth):
-    if _CustomBusinessMonth.__doc__:
-        __doc__ = _CustomBusinessMonth.__doc__.replace('[BEGIN/END]',
-                                                       'beginning')
     _prefix = 'CBMS'
 
 
