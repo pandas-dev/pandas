@@ -94,3 +94,8 @@ Categorical
 ^^^^^^^^^^^
 
 -
+
+Other
+^^^^^
+
+- Bug preventing pandas from being importable with -OO optimization (:issue:`21071`)
