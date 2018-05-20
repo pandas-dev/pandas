@@ -19,19 +19,19 @@ def deprecate(name, alternative, version, alt_name=None,
 
     Parameters
     ----------
-    name : str
-        Name of function to deprecate
-    alternative : str
-        Name of function to use instead
+    name : func
+        Function to deprecate.
+    alternative : func
+        Function to use instead.
     version : str
-        Version of pandas in which the method has been deprecated
+        Version of pandas in which the method has been deprecated.
     alt_name : str, optional
-        Name to use in preference of alternative.__name__
+        Name to use in preference of alternative.__name__.
     klass : Warning, default FutureWarning
     stacklevel : int, default 2
     msg : str
-          The message to display in the warning.
-          Default is '{name} is deprecated. Use {alt_name} instead.'
+        The message to display in the warning.
+        Default is '{name} is deprecated. Use {alt_name} instead.'
     """
 
     alt_name = alt_name or alternative.__name__
