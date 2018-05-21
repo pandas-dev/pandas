@@ -924,6 +924,10 @@ bins, with ``NaN`` representing a missing value similar to other dtypes.
 
    pd.cut([0, 3, 5, 1], bins=c.categories)
 
+
+Generating Ranges of Intervals
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 If we need intervals on a regular frequency, we can use the :func:`interval_range` function
 to create an ``IntervalIndex`` using various combinations of ``start``, ``end``, and ``periods``.
 The default frequency for ``interval_range`` is a 1 for numeric intervals, and calendar day for
