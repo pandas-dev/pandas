@@ -128,9 +128,8 @@ class TestAPI(TestPackers):
         with ensure_clean(self.path) as p:
 
             s = df.to_msgpack()
-            fh = open(p, 'wb')
-            fh.write(s)
-            fh.close()
+            with open(p, 'wb') as fh:
+                fh.write(s)
             result = read_msgpack(p)
             tm.assert_frame_equal(result, df)
 
