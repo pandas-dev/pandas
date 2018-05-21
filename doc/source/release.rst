@@ -34,8 +34,364 @@ analysis / manipulation tool available in any language.
 **Where to get it**
 
 * Source code: http://github.com/pandas-dev/pandas
-* Binary installers on PyPI: http://pypi.python.org/pypi/pandas
+* Binary installers on PyPI: https://pypi.org/project/pandas
 * Documentation: http://pandas.pydata.org
+
+pandas 0.23.0
+-------------
+
+**Release date**: May 15, 2017
+
+This is a major release from 0.22.0 and includes a number of API changes, new
+features, enhancements, and performance improvements along with a large number
+of bug fixes. We recommend that all users upgrade to this version.
+
+Highlights include:
+
+- :ref:`Round-trippable JSON format with 'table' orient <whatsnew_0230.enhancements.round-trippable_json>`.
+- :ref:`Instantiation from dicts respects order for Python 3.6+ <whatsnew_0230.api_breaking.dict_insertion_order>`.
+- :ref:`Dependent column arguments for assign <whatsnew_0230.enhancements.assign_dependent>`.
+- :ref:`Merging / sorting on a combination of columns and index levels <whatsnew_0230.enhancements.merge_on_columns_and_levels>`.
+- :ref:`Extending Pandas with custom types <whatsnew_023.enhancements.extension>`.
+- :ref:`Excluding unobserved categories from groupby <whatsnew_0230.enhancements.categorical_grouping>`.
+- :ref:`Changes to make output shape of DataFrame.apply consistent <whatsnew_0230.api_breaking.apply>`.
+
+See the :ref:`full whatsnew <whatsnew_0230>` for a list of all the changes.
+
+Thanks
+~~~~~~
+
+A total of 328 people contributed to this release.  People with a "+" by their
+names contributed a patch for the first time.
+
+* Aaron Critchley
+* AbdealiJK +
+* Adam Hooper +
+* Albert Villanova del Moral
+* Alejandro Giacometti +
+* Alejandro Hohmann +
+* Alex Rychyk
+* Alexander Buchkovsky
+* Alexander Lenail +
+* Alexander Michael Schade
+* Aly Sivji +
+* Andreas Költringer +
+* Andrew
+* Andrew Bui +
+* András Novoszáth +
+* Andy Craze +
+* Andy R. Terrel
+* Anh Le +
+* Anil Kumar Pallekonda +
+* Antoine Pitrou +
+* Antonio Linde +
+* Antonio Molina +
+* Antonio Quinonez +
+* Armin Varshokar +
+* Artem Bogachev +
+* Avi Sen +
+* Azeez Oluwafemi +
+* Ben Auffarth +
+* Bernhard Thiel +
+* Bhavesh Poddar +
+* BielStela +
+* Blair +
+* Bob Haffner
+* Brett Naul +
+* Brock Mendel
+* Bryce Guinta +
+* Carlos Eduardo Moreira dos Santos +
+* Carlos García Márquez +
+* Carol Willing
+* Cheuk Ting Ho +
+* Chitrank Dixit +
+* Chris
+* Chris Burr +
+* Chris Catalfo +
+* Chris Mazzullo
+* Christian Chwala +
+* Cihan Ceyhan +
+* Clemens Brunner
+* Colin +
+* Cornelius Riemenschneider
+* Crystal Gong +
+* DaanVanHauwermeiren
+* Dan Dixey +
+* Daniel Frank +
+* Daniel Garrido +
+* Daniel Sakuma +
+* DataOmbudsman +
+* Dave Hirschfeld
+* Dave Lewis +
+* David Adrián Cañones Castellano +
+* David Arcos +
+* David C Hall +
+* David Fischer
+* David Hoese +
+* David Lutz +
+* David Polo +
+* David Stansby
+* Dennis Kamau +
+* Dillon Niederhut
+* Dimitri +
+* Dr. Irv
+* Dror Atariah
+* Eric Chea +
+* Eric Kisslinger
+* Eric O. LEBIGOT (EOL) +
+* FAN-GOD +
+* Fabian Retkowski +
+* Fer Sar +
+* Gabriel de Maeztu +
+* Gianpaolo Macario +
+* Giftlin Rajaiah
+* Gilberto Olimpio +
+* Gina +
+* Gjelt +
+* Graham Inggs +
+* Grant Roch
+* Grant Smith +
+* Grzegorz Konefał +
+* Guilherme Beltramini
+* HagaiHargil +
+* Hamish Pitkeathly +
+* Hammad Mashkoor +
+* Hannah Ferchland +
+* Hans
+* Haochen Wu +
+* Hissashi Rocha +
+* Iain Barr +
+* Ibrahim Sharaf ElDen +
+* Ignasi Fosch +
+* Igor Conrado Alves de Lima +
+* Igor Shelvinskyi +
+* Imanflow +
+* Ingolf Becker
+* Israel Saeta Pérez
+* Iva Koevska +
+* Jakub Nowacki +
+* Jan F-F +
+* Jan Koch +
+* Jan Werkmann
+* Janelle Zoutkamp +
+* Jason Bandlow +
+* Jaume Bonet +
+* Jay Alammar +
+* Jeff Reback
+* JennaVergeynst
+* Jimmy Woo +
+* Jing Qiang Goh +
+* Joachim Wagner +
+* Joan Martin Miralles +
+* Joel Nothman
+* Joeun Park +
+* John Cant +
+* Johnny Metz +
+* Jon Mease
+* Jonas Schulze +
+* Jongwony +
+* Jordi Contestí +
+* Joris Van den Bossche
+* José F. R. Fonseca +
+* Jovixe +
+* Julio Martinez +
+* Jörg Döpfert
+* KOBAYASHI Ittoku +
+* Kate Surta +
+* Kenneth +
+* Kevin Kuhl
+* Kevin Sheppard
+* Krzysztof Chomski
+* Ksenia +
+* Ksenia Bobrova +
+* Kunal Gosar +
+* Kurtis Kerstein +
+* Kyle Barron +
+* Laksh Arora +
+* Laurens Geffert +
+* Leif Walsh
+* Liam Marshall +
+* Liam3851 +
+* Licht Takeuchi
+* Liudmila +
+* Ludovico Russo +
+* Mabel Villalba +
+* Manan Pal Singh +
+* Manraj Singh
+* Marc +
+* Marc Garcia
+* Marco Hemken +
+* Maria del Mar Bibiloni +
+* Mario Corchero +
+* Mark Woodbridge +
+* Martin Journois +
+* Mason Gallo +
+* Matias Heikkilä +
+* Matt Braymer-Hayes
+* Matt Kirk +
+* Matt Maybeno +
+* Matthew Kirk +
+* Matthew Rocklin +
+* Matthew Roeschke
+* Matthias Bussonnier +
+* Max Mikhaylov +
+* Maxim Veksler +
+* Maximilian Roos
+* Maximiliano Greco +
+* Michael Penkov
+* Michael Röttger +
+* Michael Selik +
+* Michael Waskom
+* Mie~~~
+* Mike Kutzma +
+* Ming Li +
+* Mitar +
+* Mitch Negus +
+* Montana Low +
+* Moritz Münst +
+* Mortada Mehyar
+* Myles Braithwaite +
+* Nate Yoder
+* Nicholas Ursa +
+* Nick Chmura
+* Nikos Karagiannakis +
+* Nipun Sadvilkar +
+* Nis Martensen +
+* Noah +
+* Noémi Éltető +
+* Olivier Bilodeau +
+* Ondrej Kokes +
+* Onno Eberhard +
+* Paul Ganssle +
+* Paul Mannino +
+* Paul Reidy
+* Paulo Roberto de Oliveira Castro +
+* Pepe Flores +
+* Peter Hoffmann
+* Phil Ngo +
+* Pietro Battiston
+* Pranav Suri +
+* Priyanka Ojha +
+* Pulkit Maloo +
+* README Bot +
+* Ray Bell +
+* Riccardo Magliocchetti +
+* Ridhwan Luthra +
+* Robert Meyer
+* Robin
+* Robin Kiplang'at +
+* Rohan Pandit +
+* Rok Mihevc +
+* Rouz Azari
+* Ryszard T. Kaleta +
+* Sam Cohan
+* Sam Foo
+* Samir Musali +
+* Samuel Sinayoko +
+* Sangwoong Yoon
+* SarahJessica +
+* Sharad Vijalapuram +
+* Shubham Chaudhary +
+* SiYoungOh +
+* Sietse Brouwer
+* Simone Basso +
+* Stefania Delprete +
+* Stefano Cianciulli +
+* Stephen Childs +
+* StephenVoland +
+* Stijn Van Hoey +
+* Sven
+* Talitha Pumar +
+* Tarbo Fukazawa +
+* Ted Petrou +
+* Thomas A Caswell
+* Tim Hoffmann +
+* Tim Swast
+* Tom Augspurger
+* Tommy +
+* Tulio Casagrande +
+* Tushar Gupta +
+* Tushar Mittal +
+* Upkar Lidder +
+* Victor Villas +
+* Vince W +
+* Vinícius Figueiredo +
+* Vipin Kumar +
+* WBare
+* Wenhuan +
+* Wes Turner
+* William Ayd
+* Wilson Lin +
+* Xbar
+* Yaroslav Halchenko
+* Yee Mey
+* Yeongseon Choe +
+* Yian +
+* Yimeng Zhang
+* ZhuBaohe +
+* Zihao Zhao +
+* adatasetaday +
+* akielbowicz +
+* akosel +
+* alinde1 +
+* amuta +
+* bolkedebruin
+* cbertinato
+* cgohlke
+* charlie0389 +
+* chris-b1
+* csfarkas +
+* dajcs +
+* deflatSOCO +
+* derestle-htwg
+* discort
+* dmanikowski-reef +
+* donK23 +
+* elrubio +
+* fivemok +
+* fjdiod
+* fjetter +
+* froessler +
+* gabrielclow
+* gfyoung
+* ghasemnaddaf
+* h-vetinari +
+* himanshu awasthi +
+* ignamv +
+* jayfoad +
+* jazzmuesli +
+* jbrockmendel
+* jen w +
+* jjames34 +
+* joaoavf +
+* joders +
+* jschendel
+* juan huguet +
+* l736x +
+* luzpaz +
+* mdeboc +
+* miguelmorin +
+* miker985
+* miquelcamprodon +
+* orereta +
+* ottiP +
+* peterpanmj +
+* rafarui +
+* raph-m +
+* readyready15728 +
+* rmihael +
+* samghelms +
+* scriptomation +
+* sfoo +
+* stefansimik +
+* stonebig
+* tmnhat2001 +
+* tomneep +
+* topper-123
+* tv3141 +
+* verakai +
+* xpvpc +
+* zhanghui +
 
 pandas 0.22.0
 -------------

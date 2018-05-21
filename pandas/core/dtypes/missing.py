@@ -120,7 +120,9 @@ def _isna_new(obj):
         return _isna_ndarraylike(obj)
     elif isinstance(obj, ABCGeneric):
         return obj._constructor(obj._data.isna(func=isna))
-    elif isinstance(obj, list) or hasattr(obj, '__array__'):
+    elif isinstance(obj, list):
+        return _isna_ndarraylike(np.asarray(obj, dtype=object))
+    elif hasattr(obj, '__array__'):
         return _isna_ndarraylike(np.asarray(obj))
     else:
         return obj is None
@@ -146,7 +148,9 @@ def _isna_old(obj):
         return _isna_ndarraylike_old(obj)
     elif isinstance(obj, ABCGeneric):
         return obj._constructor(obj._data.isna(func=_isna_old))
-    elif isinstance(obj, list) or hasattr(obj, '__array__'):
+    elif isinstance(obj, list):
+        return _isna_ndarraylike_old(np.asarray(obj, dtype=object))
+    elif hasattr(obj, '__array__'):
         return _isna_ndarraylike_old(np.asarray(obj))
     else:
         return obj is None
@@ -502,6 +506,8 @@ def na_value_for_dtype(dtype, compat=True):
     """
     dtype = pandas_dtype(dtype)
 
+    if is_extension_array_dtype(dtype):
+        return dtype.na_value
     if (is_datetime64_dtype(dtype) or is_datetime64tz_dtype(dtype) or
             is_timedelta64_dtype(dtype) or is_period_dtype(dtype)):
         return NaT

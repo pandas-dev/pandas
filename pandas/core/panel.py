@@ -1499,8 +1499,11 @@ class Panel(NDFrame):
                 raw_lengths.append(v.shape[axis])
 
         if have_frames:
+            # we want the "old" behavior here, of sorting only
+            # 1. we're doing a union (intersect=False)
+            # 2. the indices are not aligned.
             index = _get_objs_combined_axis(data.values(), axis=axis,
-                                            intersect=intersect)
+                                            intersect=intersect, sort=None)
 
         if have_raw_arrays:
             lengths = list(set(raw_lengths))
@@ -1530,24 +1533,3 @@ Panel._setup_axes(axes=['items', 'major_axis', 'minor_axis'], info_axis=0,
 ops.add_special_arithmetic_methods(Panel)
 ops.add_flex_arithmetic_methods(Panel)
 Panel._add_numeric_operations()
-
-
-# legacy
-class WidePanel(Panel):
-
-    def __init__(self, *args, **kwargs):
-        # deprecation, #10892
-        warnings.warn("WidePanel is deprecated. Please use Panel",
-                      FutureWarning, stacklevel=2)
-
-        super(WidePanel, self).__init__(*args, **kwargs)
-
-
-class LongPanel(DataFrame):
-
-    def __init__(self, *args, **kwargs):
-        # deprecation, #10892
-        warnings.warn("LongPanel is deprecated. Please use DataFrame",
-                      FutureWarning, stacklevel=2)
-
-        super(LongPanel, self).__init__(*args, **kwargs)

@@ -827,16 +827,18 @@ class TestDatetimeSeriesArithmetic(object):
         res = dt64 - obj
         assert_func(res, -expected)
 
-    def test_operators_datetimelike(self):
-        def run_ops(ops, get_ser, test_ser):
+    def test_operators_datetimelike_invalid(self, all_arithmetic_operators):
+        # these are all TypeEror ops
+        op_str = all_arithmetic_operators
+
+        def check(get_ser, test_ser):
 
             # check that we are getting a TypeError
             # with 'operate' (from core/ops.py) for the ops that are not
             # defined
-            for op_str in ops:
-                op = getattr(get_ser, op_str, None)
-                with tm.assert_raises_regex(TypeError, 'operate|cannot'):
-                    op(test_ser)
+            op = getattr(get_ser, op_str, None)
+            with tm.assert_raises_regex(TypeError, 'operate|cannot'):
+                op(test_ser)
 
         # ## timedelta64 ###
         td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
@@ -848,38 +850,16 @@ class TestDatetimeSeriesArithmetic(object):
         dt1.iloc[2] = np.nan
         dt2 = Series([Timestamp('20111231'), Timestamp('20120102'),
                       Timestamp('20120104')])
-        ops = ['__add__', '__mul__', '__floordiv__', '__truediv__', '__div__',
-               '__pow__', '__radd__', '__rmul__', '__rfloordiv__',
-               '__rtruediv__', '__rdiv__', '__rpow__']
-        run_ops(ops, dt1, dt2)
-        dt1 - dt2
-        dt2 - dt1
+        if op_str not in ['__sub__', '__rsub__']:
+            check(dt1, dt2)
 
         # ## datetime64 with timetimedelta ###
-        ops = ['__mul__', '__floordiv__', '__truediv__', '__div__', '__pow__',
-               '__rmul__', '__rfloordiv__', '__rtruediv__', '__rdiv__',
-               '__rpow__']
-        run_ops(ops, dt1, td1)
-        dt1 + td1
-        td1 + dt1
-        dt1 - td1
-        # TODO: Decide if this ought to work.
-        # td1 - dt1
-
-        # ## timetimedelta with datetime64 ###
-        ops = ['__sub__', '__mul__', '__floordiv__', '__truediv__', '__div__',
-               '__pow__', '__rmul__', '__rfloordiv__', '__rtruediv__',
-               '__rdiv__', '__rpow__']
-        run_ops(ops, td1, dt1)
-        td1 + dt1
-        dt1 + td1
+        # TODO(jreback) __rsub__ should raise?
+        if op_str not in ['__add__', '__radd__', '__sub__']:
+            check(dt1, td1)
 
         # 8260, 10763
         # datetime64 with tz
-        ops = ['__mul__', '__floordiv__', '__truediv__', '__div__', '__pow__',
-               '__rmul__', '__rfloordiv__', '__rtruediv__', '__rdiv__',
-               '__rpow__']
-
         tz = 'US/Eastern'
         dt1 = Series(date_range('2000-01-01 09:00:00', periods=5,
                                 tz=tz), name='foo')
@@ -888,7 +868,47 @@ class TestDatetimeSeriesArithmetic(object):
         td1 = Series(timedelta_range('1 days 1 min', periods=5, freq='H'))
         td2 = td1.copy()
         td2.iloc[1] = np.nan
-        run_ops(ops, dt1, td1)
+
+        if op_str not in ['__add__', '__radd__', '__sub__', '__rsub__']:
+            check(dt2, td2)
+
+    def test_operators_datetimelike(self):
+
+        # ## timedelta64 ###
+        td1 = Series([timedelta(minutes=5, seconds=3)] * 3)
+        td1.iloc[2] = np.nan
+
+        # ## datetime64 ###
+        dt1 = Series([Timestamp('20111230'), Timestamp('20120101'),
+                      Timestamp('20120103')])
+        dt1.iloc[2] = np.nan
+        dt2 = Series([Timestamp('20111231'), Timestamp('20120102'),
+                      Timestamp('20120104')])
+        dt1 - dt2
+        dt2 - dt1
+
+        # ## datetime64 with timetimedelta ###
+        dt1 + td1
+        td1 + dt1
+        dt1 - td1
+        # TODO: Decide if this ought to work.
+        # td1 - dt1
+
+        # ## timetimedelta with datetime64 ###
+        td1 + dt1
+        dt1 + td1
+
+    def test_operators_datetimelike_with_timezones(self):
+
+        tz = 'US/Eastern'
+        dt1 = Series(date_range('2000-01-01 09:00:00', periods=5,
+                                tz=tz), name='foo')
+        dt2 = dt1.copy()
+        dt2.iloc[2] = np.nan
+
+        td1 = Series(timedelta_range('1 days 1 min', periods=5, freq='H'))
+        td2 = td1.copy()
+        td2.iloc[1] = np.nan
 
         result = dt1 + td1[0]
         exp = (dt1.dt.tz_localize(None) + td1[0]).dt.tz_localize(tz)
@@ -1133,25 +1153,23 @@ class TestDatetimeSeriesArithmetic(object):
         res = dt - ser
         tm.assert_series_equal(res, -expected)
 
+    @pytest.mark.parametrize('op', ['__add__', '__radd__',
+                                    '__sub__', '__rsub__'])
     @pytest.mark.parametrize('tz', [None, 'Asia/Tokyo'])
-    def test_dt64_series_add_intlike(self, tz):
+    def test_dt64_series_add_intlike(self, tz, op):
         # GH#19123
         dti = pd.DatetimeIndex(['2016-01-02', '2016-02-03', 'NaT'], tz=tz)
         ser = Series(dti)
 
         other = Series([20, 30, 40], dtype='uint8')
 
-        pytest.raises(TypeError, ser.__add__, 1)
-        pytest.raises(TypeError, ser.__sub__, 1)
+        pytest.raises(TypeError, getattr(ser, op), 1)
 
-        pytest.raises(TypeError, ser.__add__, other)
-        pytest.raises(TypeError, ser.__sub__, other)
+        pytest.raises(TypeError, getattr(ser, op), other)
 
-        pytest.raises(TypeError, ser.__add__, other.values)
-        pytest.raises(TypeError, ser.__sub__, other.values)
+        pytest.raises(TypeError, getattr(ser, op), other.values)
 
-        pytest.raises(TypeError, ser.__add__, pd.Index(other))
-        pytest.raises(TypeError, ser.__sub__, pd.Index(other))
+        pytest.raises(TypeError, getattr(ser, op), pd.Index(other))
 
 
 class TestSeriesOperators(TestData):

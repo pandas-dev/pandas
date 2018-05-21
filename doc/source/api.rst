@@ -99,6 +99,7 @@ HDFStore: PyTables (HDF5)
    HDFStore.get
    HDFStore.select
    HDFStore.info
+   HDFStore.keys
 
 Feather
 ~~~~~~~
@@ -1631,6 +1632,8 @@ IntervalIndex Components
    IntervalIndex.length
    IntervalIndex.values
    IntervalIndex.is_non_overlapping_monotonic
+   IntervalIndex.get_loc
+   IntervalIndex.get_indexer
 
 
 .. _api.multiindex:
@@ -1687,6 +1690,7 @@ MultiIndex Components
    MultiIndex.swaplevel
    MultiIndex.reorder_levels
    MultiIndex.remove_unused_levels
+   MultiIndex.unique
 
 MultiIndex Selecting
 ~~~~~~~~~~~~~~~~~~~~
@@ -2104,6 +2108,7 @@ Standard moving window functions
    Rolling.skew
    Rolling.kurt
    Rolling.apply
+   Rolling.aggregate
    Rolling.quantile
    Window.mean
    Window.sum
@@ -2131,6 +2136,7 @@ Standard expanding window functions
    Expanding.skew
    Expanding.kurt
    Expanding.apply
+   Expanding.aggregate
    Expanding.quantile
 
 Exponentially-weighted moving window functions
@@ -2206,6 +2212,7 @@ Computations / Descriptive Stats
    GroupBy.ohlc
    GroupBy.prod
    GroupBy.rank
+   GroupBy.pct_change
    GroupBy.size
    GroupBy.sem
    GroupBy.std
@@ -2544,6 +2551,8 @@ objects.
    api.extensions.register_dataframe_accessor
    api.extensions.register_series_accessor
    api.extensions.register_index_accessor
+   api.extensions.ExtensionDtype
+   api.extensions.ExtensionArray
 
 .. This is to prevent warnings in the doc build. We don't want to encourage
 .. these methods.

@@ -33,6 +33,11 @@ class TestCategoricalIndex(Base):
         return CategoricalIndex(
             list('aabbca'), categories=categories, ordered=ordered)
 
+    def test_can_hold_identifiers(self):
+        idx = self.create_index(categories=list('abcd'))
+        key = idx[0]
+        assert idx._can_hold_identifiers_and_holds_name(key) is True
+
     def test_construction(self):
 
         ci = self.create_index(categories=list('abcd'))
@@ -538,35 +543,41 @@ class TestCategoricalIndex(Base):
         tm.assert_numpy_array_equal(indexer,
                                     np.array([-1, -1], dtype=np.intp))
 
-    def test_is_monotonic(self):
-        c = CategoricalIndex([1, 2, 3])
+    @pytest.mark.parametrize('data, non_lexsorted_data', [
+        [[1, 2, 3], [9, 0, 1, 2, 3]],
+        [list('abc'), list('fabcd')],
+    ])
+    def test_is_monotonic(self, data, non_lexsorted_data):
+        c = CategoricalIndex(data)
         assert c.is_monotonic_increasing
         assert not c.is_monotonic_decreasing
 
-        c = CategoricalIndex([1, 2, 3], ordered=True)
+        c = CategoricalIndex(data, ordered=True)
         assert c.is_monotonic_increasing
         assert not c.is_monotonic_decreasing
 
-        c = CategoricalIndex([1, 2, 3], categories=[3, 2, 1])
+        c = CategoricalIndex(data, categories=reversed(data))
         assert not c.is_monotonic_increasing
         assert c.is_monotonic_decreasing
 
-        c = CategoricalIndex([1, 3, 2], categories=[3, 2, 1])
+        c = CategoricalIndex(data, categories=reversed(data), ordered=True)
+        assert not c.is_monotonic_increasing
+        assert c.is_monotonic_decreasing
+
+        # test when data is neither monotonic increasing nor decreasing
+        reordered_data = [data[0], data[2], data[1]]
+        c = CategoricalIndex(reordered_data, categories=reversed(data))
         assert not c.is_monotonic_increasing
         assert not c.is_monotonic_decreasing
-
-        c = CategoricalIndex([1, 2, 3], categories=[3, 2, 1], ordered=True)
-        assert not c.is_monotonic_increasing
-        assert c.is_monotonic_decreasing
 
         # non lexsorted categories
-        categories = [9, 0, 1, 2, 3]
+        categories = non_lexsorted_data
 
-        c = CategoricalIndex([9, 0], categories=categories)
+        c = CategoricalIndex(categories[:2], categories=categories)
         assert c.is_monotonic_increasing
         assert not c.is_monotonic_decreasing
 
-        c = CategoricalIndex([0, 1], categories=categories)
+        c = CategoricalIndex(categories[1:3], categories=categories)
         assert c.is_monotonic_increasing
         assert not c.is_monotonic_decreasing
 
