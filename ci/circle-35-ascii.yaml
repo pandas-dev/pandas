@@ -11,3 +11,4 @@ dependencies:
   # universal
   - pytest
   - pytest-xdist
+  - hypothesis

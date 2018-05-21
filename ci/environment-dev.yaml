@@ -13,4 +13,3 @@ dependencies:
   - pytz
   - setuptools>=24.2.0
   - sphinx
-  - hypothesis>=3.46.0
