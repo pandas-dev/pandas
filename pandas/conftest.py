@@ -158,7 +158,7 @@ def tz_aware_fixture(request):
     # GH 21123
     params=list(sorted(pd.core.base.SelectionMixin._cython_table.items(),
                        key=lambda x: x[0].__name__)),
-    ids=lambda x: "({}-{!r})".format(x[0].__name__, x[1]),
+    ids=lambda x: "({}-{!r})_fixture".format(x[0].__name__, x[1]),
 )
 def cython_table_items(request):
     """

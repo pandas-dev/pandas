@@ -604,6 +604,7 @@ class TestSeriesMap(TestData):
         # GH21123
         np_func, str_func = cython_table_items
 
-        tm.assert_almost_equal(series.agg(np_func),
-                               series.agg(str_func),
-                               )
+        if str_func in ('cumprod', 'cumsum'):
+            tm.assert_series_equal(series.agg(np_func), series.agg(str_func))
+        else:
+            tm.assert_almost_equal(series.agg(np_func), series.agg(str_func))

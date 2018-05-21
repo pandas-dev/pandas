@@ -1072,10 +1072,11 @@ class TestDataFrameAggregate(TestData):
         # etc.
         # GH21123
         np_func, str_func = cython_table_items
-
-        tm.assert_almost_equal(df.agg(np_func),
-                               df.agg(str_func),
-                               )
-        tm.assert_almost_equal(df.agg(np_func, axis=1),
-                               df.agg(str_func, axis=1),
-                               )
+        if str_func in ('cumprod', 'cumsum'):
+            tm.assert_frame_equal(df.agg(np_func), df.agg(str_func))
+            tm.assert_frame_equal(df.agg(np_func, axis=1),
+                                  df.agg(str_func, axis=1))
+        else:
+            tm.assert_series_equal(df.agg(np_func), df.agg(str_func))
+            tm.assert_series_equal(df.agg(np_func, axis=1),
+                                   df.agg(str_func, axis=1))
