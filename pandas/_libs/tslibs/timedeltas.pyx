@@ -202,22 +202,22 @@ cpdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
 
     if unit == 'D' or unit == 'd':
         m = 1000000000L * 86400
-        p = 6
+        p = 9
     elif unit == 'h':
         m = 1000000000L * 3600
-        p = 6
+        p = 9
     elif unit == 'm':
         m = 1000000000L * 60
-        p = 6
+        p = 9
     elif unit == 's':
         m = 1000000000L
-        p = 6
+        p = 9
     elif unit == 'ms':
         m = 1000000L
-        p = 3
+        p = 6
     elif unit == 'us':
         m = 1000L
-        p = 0
+        p = 3
     elif unit == 'ns' or unit is None:
         m = 1L
         p = 0
@@ -231,10 +231,10 @@ cpdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
     # cast the unit, multiply base/frace separately
     # to avoid precision issues from float -> int
     base = <int64_t> ts
-    frac = ts -base
+    frac = ts - base
     if p:
         frac = round(frac, p)
-    return <int64_t> (base *m) + <int64_t> (frac *m)
+    return <int64_t> (base * m) + <int64_t> (frac * m)
 
 
 cdef inline _decode_if_necessary(object ts):

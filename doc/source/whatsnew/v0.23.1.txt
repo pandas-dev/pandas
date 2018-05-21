@@ -55,7 +55,10 @@ Strings
 ^^^^^^^
 
 - Bug in :meth:`Series.str.replace()` where the method throws `TypeError` on Python 3.5.2 (:issue: `21078`)
--
+
+Timedelta
+^^^^^^^^^
+- Bug in :class:`Timedelta`: where passing a float with a unit would prematurely round the float precision (:issue: `14156`)
 
 Categorical
 ^^^^^^^^^^^
