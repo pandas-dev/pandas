@@ -44,6 +44,8 @@ Documentation Changes
 Bug Fixes
 ~~~~~~~~~
 
+- tab completion on :class:`Index` in IPython no longer outputs deprecation warnings (:issue:`21125`)
+
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
