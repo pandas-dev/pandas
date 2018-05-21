@@ -1705,9 +1705,20 @@ class TestCrosstab(object):
         tm.assert_frame_equal(result, expected)
 
     def test_crosstab_dup_index_names(self):
-        # GH 13279, GH 18872
+        # duplicated index name should get renamed (GH 19029)
         s = pd.Series(range(3), name='foo')
-        pytest.raises(ValueError, pd.crosstab, s, s)
+        failed = False
+        try:
+           result=pd.crosstab(s,s)
+        except ValueError as e:
+            failed = True
+
+        assert failed == False
+
+        s0 = pd.Series(range(3),name='foo0')
+        s1 = pd.Series(range(3),name='foo1')
+        expected = pd.DataFrame(data=np.diag(np.ones(3,dtype='int64')), index=s0, columns=s1)
+        tm.assert_frame_equal(result,expected)
 
     @pytest.mark.parametrize("names", [['a', ('b', 'c')],
                                        [('a', 'b'), 'c']])
