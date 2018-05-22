@@ -2300,14 +2300,14 @@ class BaseGrouper(object):
     def names(self):
         # GH 19029
         # add suffix to level name in case they contain duplicates (GH 19029):
-        orig_names =  [ping.name for ping in self.groupings]
-        # if no names were assigned return the original names 
+        orig_names = [ping.name for ping in self.groupings]
+        # if no names were assigned return the original names
         if all(x is None for x in orig_names):
             return orig_names
         # in case duplicates are contained rename all of them
         if len(set(orig_names)) < len(orig_names):
-            orig_names = [''.join([str(x),str(i)])
-                                for i,x in enumerate(orig_names)]
+            orig_names = [''.join([str(x), str(i)])
+                          for i, x in enumerate(orig_names)]
 
         return orig_names
 

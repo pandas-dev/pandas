@@ -1677,9 +1677,9 @@ def test_tuple_correct_keyerror():
 
 
 def test_dup_index_names():
-    # duplicated index names in groupby operations should be renamed (GH 19029):
-    df = pd.DataFrame(data={'date': list(pd.date_range('5.1.2018', '5.3.2018')),
-                            'vals': list(range(3))})
+    # dup. index names in groupby operations should be renamed (GH 19029):
+    df = pd.DataFrame({'date': list(pd.date_range('5.1.2018', '5.3.2018')),
+                       'vals': list(range(3))})
 
     mi = pd.MultiIndex.from_product([[5], [1, 2, 3]], names=['date0', 'date1'])
     expected = pd.Series(data=list(range(3)), index=mi, name='vals')
@@ -1687,18 +1687,18 @@ def test_dup_index_names():
     failed = False
     try:
         result = df.groupby([df.date.dt.month, df.date.dt.day])['vals'].sum()
-    except ValueError as e:
+    except ValueError:
         failed = True
 
-    assert failed == False
+    assert failed is False
 
-    tm.assert_series_equal(result,expected)
+    tm.assert_series_equal(result, expected)
 
 
 def test_empty_index_names():
     # don't rename frames in case no names were assigned (GH 19029)
-    df = pd.DataFrame(data={'date': list(pd.date_range('5.1.2018', '5.3.2018')),
-                            'vals': list(range(3))})
+    df = pd.DataFrame({'date': list(pd.date_range('5.1.2018', '5.3.2018')),
+                       'vals': list(range(3))})
 
     mi = pd.MultiIndex.from_product([[5], [1, 2, 3]])
     expected = pd.Series(data=list(range(3)), index=mi, name='vals')
@@ -1706,11 +1706,10 @@ def test_empty_index_names():
     failed = False
     try:
         result = df.groupby([df.date.dt.month.rename(None),
-                        df.date.dt.day.rename(None)])['vals'].sum()
-    except ValueError as e:
+                             df.date.dt.day.rename(None)])['vals'].sum()
+    except ValueError:
         failed = True
 
-    assert failed == False
+    assert failed is False
 
-    tm.assert_series_equal(result,expected)
-
+    tm.assert_series_equal(result, expected)

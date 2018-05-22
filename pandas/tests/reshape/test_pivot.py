@@ -1709,16 +1709,17 @@ class TestCrosstab(object):
         s = pd.Series(range(3), name='foo')
         failed = False
         try:
-           result=pd.crosstab(s,s)
-        except ValueError as e:
+            result = pd.crosstab(s, s)
+        except ValueError:
             failed = True
 
-        assert failed == False
+        assert failed is False
 
-        s0 = pd.Series(range(3),name='foo0')
-        s1 = pd.Series(range(3),name='foo1')
-        expected = pd.DataFrame(data=np.diag(np.ones(3,dtype='int64')), index=s0, columns=s1)
-        tm.assert_frame_equal(result,expected)
+        s0 = pd.Series(range(3), name='foo0')
+        s1 = pd.Series(range(3), name='foo1')
+        expected = pd.DataFrame(np.diag(np.ones(3, dtype='int64')),
+                                index=s0, columns=s1)
+        tm.assert_frame_equal(result, expected)
 
     @pytest.mark.parametrize("names", [['a', ('b', 'c')],
                                        [('a', 'b'), 'c']])
