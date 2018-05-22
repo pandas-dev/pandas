@@ -29,7 +29,6 @@ class TestClipboard(object):
 
     @classmethod
     def setup_class(cls):
-        np.random.seed(0)
         cls.data = {}
         cls.data['string'] = mkdf(5, 3, c_idx_type='s', r_idx_type='i',
                                   c_idx_names=[None], r_idx_names=[None])
@@ -65,7 +64,6 @@ class TestClipboard(object):
         cls.data['delim_symbols'] = pd.DataFrame({'a': ['"a,\t"b|c', 'd\tef´'],
                                                   'b': ['hi\'j', 'k\'\'lm']})
         cls.data_types = list(cls.data.keys())
-        cls.data_expected = {}
 
     @classmethod
     def teardown_class(cls):
@@ -101,6 +99,14 @@ class TestClipboard(object):
         with tm.assert_produces_warning():
             self.data['string'].to_clipboard(excel=True, sep=r'\t')
 
+    def build_kwargs(self, sep, excel):
+        kwargs = {}
+        if excel != 'default':
+            kwargs['excel'] = excel
+        if sep != 'default':
+            kwargs['sep'] = sep
+        return kwargs
+
     @pytest.mark.parametrize('sep, excel', [
         ('\t', True),
         (None, True),
@@ -113,11 +119,7 @@ class TestClipboard(object):
     def test_clipboard_copy_tabs_default(self, sep, excel):
         for dt in self.data_types:
             data = self.data[dt]
-            kwargs = {}
-            if excel != 'default':
-                kwargs['excel'] = excel
-            if sep != 'default':
-                kwargs['sep'] = sep
+            kwargs = self.build_kwargs(sep, excel)
             data.to_clipboard(**kwargs)
             assert clipboard_get() == data.to_csv(sep='\t')
 
@@ -128,11 +130,7 @@ class TestClipboard(object):
     def test_clipboard_copy_delim(self, sep, excel):
         for dt in self.data_types:
             data = self.data[dt]
-            kwargs = {}
-            if excel != 'default':
-                kwargs['excel'] = excel
-            if sep != 'default':
-                kwargs['sep'] = sep
+            kwargs = self.build_kwargs(sep, excel)
             data.to_clipboard(**kwargs)
             assert clipboard_get() == data.to_csv(sep=sep)
 
@@ -144,11 +142,7 @@ class TestClipboard(object):
     def test_clipboard_copy_strings(self, sep, excel):
         for dt in self.data_types:
             data = self.data[dt]
-            kwargs = {}
-            if excel != 'default':
-                kwargs['excel'] = excel
-            if sep != 'default':
-                kwargs['sep'] = sep
+            kwargs = self.build_kwargs(sep, excel)
             data.to_clipboard(**kwargs)
             result = read_clipboard(sep=r'\s+')
             assert result.to_string() == data.to_string()
