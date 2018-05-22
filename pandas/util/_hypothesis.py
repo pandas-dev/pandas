@@ -7,9 +7,9 @@ For more information on hypothesis, check
 (http://hypothesis.readthedocs.io/en/latest/).
 """
 import string
-from hypothesis import (given,
-                        settings,
-                        assume,
+from hypothesis import (given,  # noqa:F401
+                        settings,   # noqa:F401
+                        assume, # noqa:F401
                         strategies as st,
                         )
 
@@ -113,7 +113,8 @@ def get_seq(draw, types, mixed=False, min_size=None, max_size=None,
 
     Examples
     --------
-    >>> seq_strategy = get_seq((int, str, bool), mixed=True, min_size=1, max_size=5)
+    >>> seq_strategy = get_seq((int, str, bool), mixed=True, min_size=1,
+...    max_size=5)
 
     >>> seq_strategy.example()
     ['lkYMSn', -2501, 35, 'J']
@@ -128,7 +129,8 @@ def get_seq(draw, types, mixed=False, min_size=None, max_size=None,
 ...                             mixed=False,
 ...                             min_size=1,
 ...                             max_size=5,
-...                             transform_func=lambda seq: [str(x) for x in seq])
+...                             transform_func=lambda seq:
+...                             [str(x) for x in seq])
 
     >>> seq_strategy.example()
     ['9552', '124', '-24024']
