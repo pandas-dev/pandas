@@ -44,6 +44,8 @@ Documentation Changes
 Bug Fixes
 ~~~~~~~~~
 
+- tab completion on :class:`Index` in IPython no longer outputs deprecation warnings (:issue:`21125`)
+
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -53,7 +55,10 @@ Strings
 ^^^^^^^
 
 - Bug in :meth:`Series.str.replace()` where the method throws `TypeError` on Python 3.5.2 (:issue: `21078`)
--
+
+Timedelta
+^^^^^^^^^
+- Bug in :class:`Timedelta`: where passing a float with a unit would prematurely round the float precision (:issue: `14156`)
 
 Categorical
 ^^^^^^^^^^^
@@ -70,6 +75,7 @@ Indexing
 ^^^^^^^^
 
 - Bug in :meth:`Series.reset_index` where appropriate error was not raised with an invalid level name (:issue:`20925`)
+- :meth:`Index.droplevel` is now implemented also for flat indexes, for compatibility with MultiIndex (:issue:`21115`)
 -
 
 I/O
@@ -87,7 +93,7 @@ Plotting
 Reshaping
 ^^^^^^^^^
 
--
+- Bug in :func:`concat` where error was raised in concatenating :class:`Series` with numpy scalar and tuple names (:issue:`21015`)
 -
 
 Categorical
