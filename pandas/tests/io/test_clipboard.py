@@ -115,7 +115,7 @@ class TestClipboard(object):
         (None, None),
         ('\t', 'default'),
         (None, 'default')
-        ])
+    ])
     def test_clipboard_copy_tabs_default(self, sep, excel):
         for dt in self.data_types:
             data = self.data[dt]
@@ -126,7 +126,7 @@ class TestClipboard(object):
     @pytest.mark.parametrize('sep, excel', [
         (',', True),
         ('|', True)
-        ])
+    ])
     def test_clipboard_copy_delim(self, sep, excel):
         for dt in self.data_types:
             data = self.data[dt]
@@ -138,7 +138,7 @@ class TestClipboard(object):
         ('\t', False),
         (None, False),
         ('default', False)
-        ])
+    ])
     def test_clipboard_copy_strings(self, sep, excel):
         for dt in self.data_types:
             data = self.data[dt]
