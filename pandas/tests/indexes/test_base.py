@@ -402,26 +402,30 @@ class TestIndex(Base):
             index = Index(vals)
             assert isinstance(index, TimedeltaIndex)
 
-    @pytest.mark.parametrize("values", [
-        # pass values without timezone, as DatetimeIndex localizes it
-        pd.date_range('2011-01-01', periods=5).values,
-        pd.date_range('2011-01-01', periods=5).asi8])
+    @pytest.mark.parametrize("attr, utc", [
+        ['values', False],
+        ['asi8', True]])
     @pytest.mark.parametrize("klass", [pd.Index, pd.DatetimeIndex])
-    def test_constructor_dtypes_datetime(self, tz_naive_fixture, values,
+    def test_constructor_dtypes_datetime(self, tz_naive_fixture, attr, utc,
                                          klass):
-        index = pd.date_range('2011-01-01', periods=5, tz=tz_naive_fixture)
+        index = pd.date_range('2011-01-01', periods=5)
+        arg = getattr(index, attr)
+        if utc:
+            index = index.tz_localize('UTC').tz_convert(tz_naive_fixture)
+        else:
+            index = index.tz_localize(tz_naive_fixture)
         dtype = index.dtype
 
-        result = klass(values, tz=tz_naive_fixture)
+        result = klass(arg, tz=tz_naive_fixture)
         tm.assert_index_equal(result, index)
 
-        result = klass(values, dtype=dtype)
+        result = klass(arg, dtype=dtype)
         tm.assert_index_equal(result, index)
 
-        result = klass(list(values), tz=tz_naive_fixture)
+        result = klass(list(arg), tz=tz_naive_fixture)
         tm.assert_index_equal(result, index)
 
-        result = klass(list(values), dtype=dtype)
+        result = klass(list(arg), dtype=dtype)
         tm.assert_index_equal(result, index)
 
     @pytest.mark.parametrize("attr", ['values', 'asi8'])

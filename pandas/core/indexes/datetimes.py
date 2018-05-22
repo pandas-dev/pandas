@@ -397,7 +397,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 is_integer_dtype(data) or lib.infer_dtype(data) == 'integer'):
             data = tools.to_datetime(data, dayfirst=dayfirst,
                                      yearfirst=yearfirst)
-        import pdb; pdb.set_trace()
+
         if isinstance(data, DatetimeIndex):
             if tz is None:
                 tz = data.tz
@@ -617,7 +617,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         we require the we have a dtype compat for the values
         if we are passed a non-dtype compat, then coerce using the constructor
         """
-        import pdb; pdb.set_trace()
         if getattr(values, 'dtype', None) is None:
             # empty, but with dtype compat
             if values is None:

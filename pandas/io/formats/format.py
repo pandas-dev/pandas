@@ -1237,7 +1237,7 @@ def format_percentiles(percentiles):
 
 
 def _is_dates_only(values):
-    import pdb; pdb.set_trace()
+
     # return a boolean if we are only dates (and don't have a timezone)
     values = DatetimeIndex(values)
     if values.tz is not None:
@@ -1254,7 +1254,7 @@ def _is_dates_only(values):
 
 
 def _format_datetime64(x, tz=None, nat_rep='NaT'):
-    import pdb; pdb.set_trace()
+
     if x is None or (is_scalar(x) and isna(x)):
         return nat_rep
 
@@ -1278,7 +1278,7 @@ def _format_datetime64_dateonly(x, nat_rep='NaT', date_format=None):
 
 
 def _get_format_datetime64(is_dates_only, nat_rep='NaT', date_format=None):
-    import pdb; pdb.set_trace()
+
     if is_dates_only:
         return lambda x, tz=None: _format_datetime64_dateonly(
             x, nat_rep=nat_rep, date_format=date_format)
@@ -1298,7 +1298,7 @@ class Datetime64TZFormatter(Datetime64Formatter):
 
     def _format_strings(self):
         """ we by definition have a TZ """
-        import pdb; pdb.set_trace()
+
         values = self.values.astype(object)
         is_dates_only = _is_dates_only(values)
         formatter = (self.formatter or
