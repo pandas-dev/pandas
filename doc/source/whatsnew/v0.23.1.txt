@@ -83,7 +83,7 @@ Indexing
 I/O
 ^^^
 
--
+- Bug in :meth:`DataFrame.to_stata` which prevented exporting DataFrames to buffers and most file-like objects (:issue:`21041`)
 -
 
 Plotting
