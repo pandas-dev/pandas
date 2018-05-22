@@ -217,7 +217,8 @@ class TestTimeConversionFormats(object):
         with pytest.raises(ValueError):
             pd.to_datetime(dates, format=fmt, box=box, utc=True)
 
-    @pytest.mark.parametrize('offset', ['+0', '-1foo', 'UTCbar', ':10'])
+    @pytest.mark.parametrize('offset', [
+        '+0', '-1foo', 'UTCbar', ':10', '+01:000:01'])
     def test_to_datetime_parse_timezone_malformed(self, offset):
         fmt = '%Y-%m-%d %H:%M:%S %z'
         date = '2010-01-01 12:00:00 ' + offset
