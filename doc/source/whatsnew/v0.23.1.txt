@@ -87,6 +87,7 @@ I/O
 ^^^
 
 - Bug in :meth:`DataFrame.to_stata` which prevented exporting DataFrames to buffers and most file-like objects (:issue:`21041`)
+- Bug when :meth:`pandas.io.json.json_normalize` was called with ``None`` values in nested levels in JSON  (:issue:`21158`)
 -
 
 Plotting
