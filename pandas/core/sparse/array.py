@@ -735,6 +735,17 @@ class SparseArray(PandasObject, np.ndarray):
         result = pd.Series(counts, index=keys)
         return result
 
+    def nonzero(self):
+        nonzero_locations = super(SparseArray, self).nonzero()[0].astype(int32)
+        real_nonzero_locations = np.zeros(len(nonzero_locations), dtype=int32)
+        real_location = 0
+        for i_loc, location in enumerate(nonzero_locations):
+            # TODO: One could vectorize the operation and/or implement binary search.
+            while self.sp_index.lookup(real_location) != location:
+                real_location += 1
+            real_nonzero_locations[i_loc] = real_location
+            real_location += 1
+        return real_nonzero_locations.reshape(1, len(real_nonzero_locations))
 
 def _maybe_to_dense(obj):
     """ try to convert to dense """
