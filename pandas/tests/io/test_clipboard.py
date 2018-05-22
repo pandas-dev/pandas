@@ -12,7 +12,7 @@ from pandas import get_option
 from pandas.util import testing as tm
 from pandas.util.testing import makeCustomDataframe as mkdf
 from pandas.io.clipboard.exceptions import PyperclipException
-from pandas.io.clipboard import clipboard_set
+from pandas.io.clipboard import clipboard_set, clipboard_get
 
 
 try:
@@ -29,6 +29,7 @@ class TestClipboard(object):
 
     @classmethod
     def setup_class(cls):
+        np.random.seed(0)
         cls.data = {}
         cls.data['string'] = mkdf(5, 3, c_idx_type='s', r_idx_type='i',
                                   c_idx_names=[None], r_idx_names=[None])
@@ -60,7 +61,11 @@ class TestClipboard(object):
         # unicode round trip test for GH 13747, GH 12529
         cls.data['utf8'] = pd.DataFrame({'a': ['µasd', 'Ωœ∑´'],
                                          'b': ['øπ∆˚¬', 'œ∑´®']})
+        # Test for quotes and common delimiters in text
+        cls.data['delim_symbols'] = pd.DataFrame({'a': ['"a,\t"b|c', 'd\tef´'],
+                                                  'b': ['hi\'j', 'k\'\'lm']})
         cls.data_types = list(cls.data.keys())
+        cls.data_expected = {}
 
     @classmethod
     def teardown_class(cls):
@@ -70,25 +75,84 @@ class TestClipboard(object):
                                encoding=None):
         data = self.data[data_type]
         data.to_clipboard(excel=excel, sep=sep, encoding=encoding)
-        if sep is not None:
-            result = read_clipboard(sep=sep, index_col=0, encoding=encoding)
-        else:
-            result = read_clipboard(encoding=encoding)
+        result = read_clipboard(sep=sep or '\t', index_col=0,
+                                encoding=encoding)
         tm.assert_frame_equal(data, result, check_dtype=False)
-
-    def test_round_trip_frame_sep(self):
-        for dt in self.data_types:
-            self.check_round_trip_frame(dt, sep=',')
-            self.check_round_trip_frame(dt, sep=r'\s+')
-            self.check_round_trip_frame(dt, sep='|')
-
-    def test_round_trip_frame_string(self):
-        for dt in self.data_types:
-            self.check_round_trip_frame(dt, excel=False)
 
     def test_round_trip_frame(self):
         for dt in self.data_types:
             self.check_round_trip_frame(dt)
+
+    def test_round_trip_frame_sep(self):
+        for dt in self.data_types:
+            self.check_round_trip_frame(dt, sep=',')
+            self.check_round_trip_frame(dt, sep='|')
+            self.check_round_trip_frame(dt, sep='\t')
+
+    def test_round_trip_frame_string(self):
+        for dt in self.data_types:
+            data = self.data[dt]
+            data.to_clipboard(excel=False, sep=None)
+            result = read_clipboard()
+            assert data.to_string() == result.to_string()
+            assert data.shape == result.shape
+
+    def test_excel_sep_warning(self):
+        with tm.assert_produces_warning():
+            self.data['string'].to_clipboard(excel=True, sep=r'\t')
+
+    @pytest.mark.parametrize('sep, excel', [
+        ('\t', True),
+        (None, True),
+        ('default', True),
+        ('\t', None),
+        (None, None),
+        ('\t', 'default'),
+        (None, 'default')
+        ])
+    def test_clipboard_copy_tabs_default(self, sep, excel):
+        for dt in self.data_types:
+            data = self.data[dt]
+            kwargs = {}
+            if excel != 'default':
+                kwargs['excel'] = excel
+            if sep != 'default':
+                kwargs['sep'] = sep
+            data.to_clipboard(**kwargs)
+            assert clipboard_get() == data.to_csv(sep='\t')
+
+    @pytest.mark.parametrize('sep, excel', [
+        (',', True),
+        ('|', True)
+        ])
+    def test_clipboard_copy_delim(self, sep, excel):
+        for dt in self.data_types:
+            data = self.data[dt]
+            kwargs = {}
+            if excel != 'default':
+                kwargs['excel'] = excel
+            if sep != 'default':
+                kwargs['sep'] = sep
+            data.to_clipboard(**kwargs)
+            assert clipboard_get() == data.to_csv(sep=sep)
+
+    @pytest.mark.parametrize('sep, excel', [
+        ('\t', False),
+        (None, False),
+        ('default', False)
+        ])
+    def test_clipboard_copy_strings(self, sep, excel):
+        for dt in self.data_types:
+            data = self.data[dt]
+            kwargs = {}
+            if excel != 'default':
+                kwargs['excel'] = excel
+            if sep != 'default':
+                kwargs['sep'] = sep
+            data.to_clipboard(**kwargs)
+            result = read_clipboard(sep=r'\s+')
+            assert result.to_string() == data.to_string()
+            assert data.shape == result.shape
 
     def test_read_clipboard_infer_excel(self):
         # gh-19010: avoid warnings
