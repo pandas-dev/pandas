@@ -558,14 +558,6 @@ def test_as_index():
     result = df.groupby(['cat', s], as_index=False, observed=True).sum()
     tm.assert_frame_equal(result, expected)
 
-    # GH 19029: conflicitng names should not raise a value error anymore
-    raised = False
-    try:
-        df.groupby(['cat', s.rename('cat')], observed=True).sum()
-    except ValueError:
-        raised = True
-    assert raised is False
-
     # is original index dropped?
     group_columns = ['cat', 'A']
     expected = DataFrame(

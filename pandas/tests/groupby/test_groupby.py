@@ -1678,38 +1678,40 @@ def test_tuple_correct_keyerror():
 
 def test_dup_index_names():
     # dup. index names in groupby operations should be renamed (GH 19029):
-    df = pd.DataFrame({'date': list(pd.date_range('5.1.2018', '5.3.2018')),
+    df = pd.DataFrame({'date': pd.date_range('5.1.2018', '5.3.2018'),
                        'vals': list(range(3))})
 
-    mi = pd.MultiIndex.from_product([[5], [1, 2, 3]], names=['date0', 'date1'])
+    # duplicates get suffixed by integer position
+    mi = pd.MultiIndex.from_product([[5], [1, 2, 3]],
+                                    names=['date_0', 'date_1'])
     expected = pd.Series(data=list(range(3)), index=mi, name='vals')
-
-    failed = False
-    try:
-        result = df.groupby([df.date.dt.month, df.date.dt.day])['vals'].sum()
-    except ValueError:
-        failed = True
-
-    assert failed is False
+    result = df.groupby([df.date.dt.month, df.date.dt.day])['vals'].sum()
 
     tm.assert_series_equal(result, expected)
 
-
-def test_empty_index_names():
-    # don't rename frames in case no names were assigned (GH 19029)
-    df = pd.DataFrame({'date': list(pd.date_range('5.1.2018', '5.3.2018')),
-                       'vals': list(range(3))})
-
-    mi = pd.MultiIndex.from_product([[5], [1, 2, 3]])
+    # 2 out of 3 are duplicates and None
+    mi = pd.MultiIndex.from_product([[2018], [5], [1, 2, 3]],
+                                    names=['0', '1', 'date'])
     expected = pd.Series(data=list(range(3)), index=mi, name='vals')
+    result = df.groupby([df.date.dt.year.rename(None),
+                         df.date.dt.month.rename(None),
+                         df.date.dt.day])['vals'].sum()
+    tm.assert_series_equal(result, expected)
 
-    failed = False
-    try:
-        result = df.groupby([df.date.dt.month.rename(None),
-                             df.date.dt.day.rename(None)])['vals'].sum()
-    except ValueError:
-        failed = True
+    # 2 out of 3 names (not None) are duplicates, the remaining is None
+    mi = pd.MultiIndex.from_product([[2018], [5], [1, 2, 3]],
+                                    names=['date_0', None, 'date_1'])
+    expected = pd.Series(data=list(range(3)), index=mi, name='vals')
+    result = df.groupby([df.date.dt.year,
+                         df.date.dt.month.rename(None),
+                         df.date.dt.day])['vals'].sum()
+    tm.assert_series_equal(result, expected)
 
-    assert failed is False
-
+    # all are None
+    mi = pd.MultiIndex.from_product([[2018], [5], [1, 2, 3]],
+                                    names=[None, None, None])
+    expected = pd.Series(data=list(range(3)), index=mi, name='vals')
+    result = df.groupby([df.date.dt.year.rename(None),
+                         df.date.dt.month.rename(None),
+                         df.date.dt.day.rename(None)])['vals'].sum()
     tm.assert_series_equal(result, expected)
