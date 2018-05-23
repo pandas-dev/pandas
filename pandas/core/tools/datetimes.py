@@ -105,7 +105,7 @@ def _convert_and_box_cache(arg, cache_array, box, errors, name=None):
     return result.values
 
 
-def _return_parsed_timezone_results(result, timezones, box):
+def _return_parsed_timezone_results(result, timezones, box, tz):
     """
     Return results from array_strptime if a %z or %Z directive was passed.
 
@@ -117,7 +117,8 @@ def _return_parsed_timezone_results(result, timezones, box):
         pytz timezone objects
     box : boolean
         True boxes result as an Index-like, False returns an ndarray
-
+    tz : object
+        None or pytz timezone object
     Returns
     -------
     tz_result : ndarray of parsed dates with timezone
@@ -127,6 +128,10 @@ def _return_parsed_timezone_results(result, timezones, box):
         - ndarray of Timestamps if box=False
 
     """
+    if tz is not None:
+        raise ValueError("Cannot pass a tz argument when "
+                         "parsing strings with timezone "
+                         "information.")
     tz_results = np.array([tslib.Timestamp(res).tz_localize(tz) for res, tz
                            in zip(result, timezones)])
     if box:
@@ -375,20 +380,11 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 # fallback
                 if result is None:
                     try:
-                        parsing_tzname = '%Z' in format
-                        parsing_tzoffset = '%z' in format
-                        if parsing_tzoffset and parsing_tzname:
-                            raise ValueError("Cannot parse both %Z and %z")
-                        elif tz is not None and (parsing_tzname or
-                                                 parsing_tzoffset):
-                            raise ValueError("Cannot pass a tz argument when "
-                                             "parsing strings with timezone "
-                                             "information.")
                         result, timezones = array_strptime(
                             arg, format, exact=exact, errors=errors)
-                        if parsing_tzname or parsing_tzoffset:
+                        if '%Z' in format or '%z' in format:
                             return _return_parsed_timezone_results(
-                                result, timezones, box)
+                                result, timezones, box, tz)
                     except tslib.OutOfBoundsDatetime:
                         if errors == 'raise':
                             raise

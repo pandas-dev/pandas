@@ -41,6 +41,26 @@ from util cimport is_string_object
 from nattype cimport checknull_with_nat, NPY_NAT
 from nattype import nat_strings
 
+cdef dict _parse_code_table = {'y': 0,
+                               'Y': 1,
+                               'm': 2,
+                               'B': 3,
+                               'b': 4,
+                               'd': 5,
+                               'H': 6,
+                               'I': 7,
+                               'M': 8,
+                               'S': 9,
+                               'f': 10,
+                               'A': 11,
+                               'a': 12,
+                               'w': 13,
+                               'j': 14,
+                               'U': 15,
+                               'W': 16,
+                               'Z': 17,
+                               'p': 18,  # an additional key, only with I
+                               'z': 19}
 
 def array_strptime(ndarray[object] values, object fmt,
                    bint exact=True, errors='raise'):
@@ -69,26 +89,7 @@ def array_strptime(ndarray[object] values, object fmt,
         bint is_ignore = errors=='ignore'
         bint is_coerce = errors=='coerce'
         int ordinal
-        dict _parse_code_table = {'y': 0,
-                                  'Y': 1,
-                                  'm': 2,
-                                  'B': 3,
-                                  'b': 4,
-                                  'd': 5,
-                                  'H': 6,
-                                  'I': 7,
-                                  'M': 8,
-                                  'S': 9,
-                                  'f': 10,
-                                  'A': 11,
-                                  'a': 12,
-                                  'w': 13,
-                                  'j': 14,
-                                  'U': 15,
-                                  'W': 16,
-                                  'Z': 17,
-                                  'p': 18,  # an additional key, only with I
-                                  'z': 19}
+
 
     assert is_raise or is_ignore or is_coerce
 
@@ -101,6 +102,8 @@ def array_strptime(ndarray[object] values, object fmt,
                     in fmt):
                 raise ValueError("Cannot use '%W' or '%U' without "
                                  "day and year")
+        elif '%Z' in fmt and '%z' in fmt:
+            raise ValueError("Cannot parse both %Z and %z")
 
     global _TimeRE_cache, _regex_cache
     with _cache_lock:
