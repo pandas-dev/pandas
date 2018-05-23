@@ -2,6 +2,9 @@ import string
 
 import pytest
 import numpy as np
+import pandas as pd
+
+import pandas.util.testing as tm
 
 from pandas.api.types import CategoricalDtype
 from pandas import Categorical
@@ -157,3 +160,13 @@ class TestMethods(base.BaseMethodsTests):
 
 class TestCasting(base.BaseCastingTests):
     pass
+
+
+def test_combine():
+    orig_data1 = make_data()
+    orig_data2 = make_data()
+    s1 = pd.Series(Categorical(orig_data1, ordered=True))
+    s2 = pd.Series(Categorical(orig_data2, ordered=True))
+    result = s1.combine(s2, lambda x1, x2: x1 <= x2)
+    expected = pd.Series([a <= b for (a, b) in zip(orig_data1, orig_data2)])
+    tm.assert_series_equal(result, expected)

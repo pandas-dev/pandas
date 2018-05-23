@@ -610,3 +610,14 @@ class ExtensionArray(object):
         used for interacting with our indexers.
         """
         return np.array(self)
+
+    # ------------------------------------------------------------------------
+    # Utilities for use by subclasses
+    # ------------------------------------------------------------------------
+    def is_sequence_of_dtype(self, seq):
+        """
+        Given a sequence, determine whether all members have the appropriate
+        type for this instance of an ExtensionArray
+        """
+        thistype = self.dtype.type
+        return all(isinstance(i, thistype) for i in seq)
