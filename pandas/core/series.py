@@ -2192,8 +2192,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 result = func(this_vals, other_vals)
             except TypeError:
                 result = NotImplemented
-            except Exception as e:
-                raise e
 
             if result is NotImplemented:
                 result = [func(a, b) for a, b in zip(this_vals, other_vals)]
@@ -2256,7 +2254,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             new_index = self.index.union(other.index)
             new_name = ops.get_op_result_name(self, other)
             new_values = []
-            for i, idx in enumerate(new_index):
+            for idx in new_index:
                 lv = self.get(idx, fill_value)
                 rv = other.get(idx, fill_value)
                 with np.errstate(all='ignore'):

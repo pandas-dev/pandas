@@ -157,16 +157,18 @@ class TestMethods(base.BaseMethodsTests):
     def test_value_counts(self, all_data, dropna):
         pass
 
+    def test_combine(self):
+        # GH 20825
+        orig_data1 = make_data()
+        orig_data2 = make_data()
+        s1 = pd.Series(Categorical(orig_data1, ordered=True))
+        s2 = pd.Series(Categorical(orig_data2, ordered=True))
+        result = s1.combine(s2, lambda x1, x2: x1 <= x2)
+        expected = pd.Series([a <= b for (a, b) in zip(orig_data1, orig_data2)])
+        tm.assert_series_equal(result, expected)
+
 
 class TestCasting(base.BaseCastingTests):
     pass
 
 
-def test_combine():
-    orig_data1 = make_data()
-    orig_data2 = make_data()
-    s1 = pd.Series(Categorical(orig_data1, ordered=True))
-    s2 = pd.Series(Categorical(orig_data2, ordered=True))
-    result = s1.combine(s2, lambda x1, x2: x1 <= x2)
-    expected = pd.Series([a <= b for (a, b) in zip(orig_data1, orig_data2)])
-    tm.assert_series_equal(result, expected)

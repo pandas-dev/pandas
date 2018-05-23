@@ -30,7 +30,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_interval_dtype,
     is_sequence,
-    is_list_like, is_extension_array_dtype)
+    is_list_like)
 from pandas.io.formats.printing import pprint_thing
 from pandas.core.algorithms import take_1d
 import pandas.core.common as com
@@ -1118,12 +1118,10 @@ def assert_extension_array_equal(left, right):
     right_na = right.isna()
     assert_numpy_array_equal(left_na, right_na)
 
-    if len(left_na) > 0 and len(right_na) > 0:
+    left_valid = left[~left_na].astype(object)
+    right_valid = right[~right_na].astype(object)
 
-        left_valid = left[~left_na].astype(object)
-        right_valid = right[~right_na].astype(object)
-
-        assert_numpy_array_equal(left_valid, right_valid)
+    assert_numpy_array_equal(left_valid, right_valid)
 
 
 # This could be refactored to use the NDFrame.equals method
@@ -1226,9 +1224,6 @@ def assert_series_equal(left, right, check_dtype=True,
         left = pd.IntervalIndex(left)
         right = pd.IntervalIndex(right)
         assert_index_equal(left, right, obj='{obj}.index'.format(obj=obj))
-    elif (is_extension_array_dtype(left) and not is_categorical_dtype(left) and
-          is_extension_array_dtype(right) and not is_categorical_dtype(right)):
-        return assert_extension_array_equal(left.values, right.values)
 
     else:
         _testing.assert_almost_equal(left.get_values(), right.get_values(),

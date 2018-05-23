@@ -138,6 +138,17 @@ class TestMethods(BaseDecimal, base.BaseMethodsTests):
 
         tm.assert_series_equal(result, expected)
 
+    def test_combine(self):
+        # GH 20825
+        orig_data1 = make_data()
+        orig_data2 = make_data()
+        s1 = pd.Series(orig_data1)
+        s2 = pd.Series(orig_data2)
+        result = s1.combine(s2, lambda x1, x2: x1 <= x2)
+        expected = pd.Series([a <= b for (a, b) in zip(orig_data1, orig_data2)])
+        tm.assert_series_equal(result, expected)
+
+
 
 class TestCasting(BaseDecimal, base.BaseCastingTests):
     pass
