@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 from pandas import (Index, DatetimeIndex, datetime, offsets,
-                    date_range, Timestamp)
+                    date_range, Timestamp, CategoricalIndex)
 
 
 class TestTimeSeries(object):
@@ -283,7 +283,9 @@ class TestDatetime64(object):
         # GH 12805
         dti = DatetimeIndex(freq='M', start='2012', end='2013')
         result = dti.month_name(locale=time_locale)
-        expected = Index([month.capitalize() for month in expected_months])
+        expected = CategoricalIndex(
+            [month.capitalize() for month in expected_months],
+            ordered=True, categories=expected_months)
         tm.assert_index_equal(result, expected)
         for date, expected in zip(dti, expected_months):
             result = date.month_name(locale=time_locale)
