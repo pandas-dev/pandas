@@ -62,6 +62,7 @@ cdef dict _parse_code_table = {'y': 0,
                                'p': 18,  # an additional key, only with I
                                'z': 19}
 
+
 def array_strptime(ndarray[object] values, object fmt,
                    bint exact=True, errors='raise'):
     """
@@ -89,7 +90,6 @@ def array_strptime(ndarray[object] values, object fmt,
         bint is_ignore = errors=='ignore'
         bint is_coerce = errors=='coerce'
         int ordinal
-
 
     assert is_raise or is_ignore or is_coerce
 
