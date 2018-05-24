@@ -3317,4 +3317,3 @@ class TestMultiIndex(Base):
         # Equality test: non-MultiIndex Index object vs MultiIndex object
         result = pd.Series(midx == idx)
         tm.assert_series_equal(result, expected)
-
