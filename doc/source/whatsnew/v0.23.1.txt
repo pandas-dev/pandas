@@ -78,7 +78,8 @@ Indexing
 
 - Bug in :meth:`Series.reset_index` where appropriate error was not raised with an invalid level name (:issue:`20925`)
 - Bug in :func:`interval_range` when ``start``/``periods`` or ``end``/``periods`` are specified with float ``start`` or ``end`` (:issue:`21161`)
--
+- Bug in :meth:`MultiIndex.set_names` where error was raised for a MultiIndex with self.nlevels == 1 (:issue:`21149`)
+- 
 
 I/O
 ^^^

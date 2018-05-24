@@ -165,6 +165,18 @@ class TestMultiIndex(Base):
         assert res is None
         assert ind.names == new_names2
 
+    def test_multiindex_set_names(self):
+        # GH 21149
+        '''Ensure that .set_names for MultiIndex with
+            nlevels == 1 does not raise any errors
+        '''
+        result = pd.MultiIndex.from_product([[0, 1]])
+        result.set_names('first', level=0, inplace=True)
+        expected = pd.MultiIndex(levels=[[0, 1]],
+                                 labels=[[0, 1]],
+                                 names=['first'])
+        tm.assert_index_equal(result, expected)
+
     def test_set_levels_labels_directly(self):
         # setting levels/labels directly raises AttributeError
 
