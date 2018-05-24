@@ -95,7 +95,7 @@ def _make_comparison_op(op, cls):
         # representations
         if needs_i8_conversion(self) and needs_i8_conversion(other):
             return self._evaluate_compare(other, op)
-        
+
         from .multi import MultiIndex
         if is_object_dtype(self) and not isinstance(self, MultiIndex):
             # don't pass MultiIndex
