@@ -96,10 +96,13 @@ def _make_comparison_op(op, cls):
         if needs_i8_conversion(self) and needs_i8_conversion(other):
             return self._evaluate_compare(other, op)
 
+        from .multi import MultiIndex
         if is_object_dtype(self) and self.nlevels == 1:
-            # don't pass MultiIndex
-            with np.errstate(all='ignore'):
-                result = ops._comp_method_OBJECT_ARRAY(op, self.values, other)
+            if not isinstance(self, MultiIndex):
+                # don't pass MultiIndex
+                with np.errstate(all='ignore'):
+                    result = ops._comp_method_OBJECT_ARRAY(op,
+                                                           self.values, other)
 
         else:
 
@@ -1383,8 +1386,8 @@ class Index(IndexOpsMixin, PandasObject):
                    labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
                    names=[u'baz', u'bar'])
         """
-
-        if level is not None and self.nlevels == 1:
+        from .multi import MultiIndex
+        if level is not None and not isinstance(self, MultiIndex):
             raise ValueError('Level must be None for non-MultiIndex')
 
         if level is not None and not is_list_like(level) and is_list_like(

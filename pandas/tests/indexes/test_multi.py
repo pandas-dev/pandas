@@ -3291,3 +3291,37 @@ class TestMultiIndex(Base):
         with pytest.raises(ValueError):
             ind.set_levels([['A', 'B', 'A', 'A', 'B'], [2, 1, 3, -2, 5]],
                            inplace=True)
+
+    testdata = [
+        (pd.MultiIndex.from_product([[0, 1], [1, 0]]), pd.Series(range(4)), 4),
+        (pd.MultiIndex.from_product([[0, 1]]), pd.Series(range(2)), 2),
+    ]
+
+    @pytest.mark.parametrize("midx,idx,count", testdata)
+    def test_multiindex_compare(self, midx, idx, count):
+        # GH 21149 - change in 'def cmp_method()'
+        expected = pd.Series([True]).repeat(count)
+        expected.reset_index(drop=True, inplace=True)
+        result = pd.Series(midx == midx)
+        tm.assert_series_equal(result, expected)
+        result = (idx == idx)
+        tm.assert_series_equal(result, expected)
+
+        expected = pd.Series([False]).repeat(count)
+        expected.reset_index(drop=True, inplace=True)
+        result = pd.Series(midx > midx)
+        tm.assert_series_equal(result, expected)
+        result = pd.Series(midx == idx)
+        tm.assert_series_equal(result, expected)
+
+        with tm.assert_raises_regex(TypeError, 'not supported'):
+            midx > idx
+
+    def test_multiindex_set_names(self):
+        # GH 21149 - change in 'def set_names()'
+        result = pd.MultiIndex.from_product([[0, 1]])
+        result.set_names('first', level=0, inplace=True)
+        expected = pd.MultiIndex(levels=[[0, 1]],
+                                 labels=[[0, 1]],
+                                 names=['first'])
+        tm.assert_index_equal(result, expected)
