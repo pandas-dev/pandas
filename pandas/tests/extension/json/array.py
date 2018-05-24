@@ -108,7 +108,8 @@ class JSONArray(ExtensionArray):
         return sys.getsizeof(self.data)
 
     def isna(self):
-        return np.array([x == self.dtype.na_value for x in self.data])
+        return np.array([x == self.dtype.na_value for x in self.data],
+                        dtype=bool)
 
     def take(self, indexer, allow_fill=False, fill_value=None):
         # re-implement here, since NumPy has trouble setting

@@ -90,7 +90,7 @@ class DecimalArray(ExtensionArray):
         return 0
 
     def isna(self):
-        return np.array([x.is_nan() for x in self._data])
+        return np.array([x.is_nan() for x in self._data], dtype=bool)
 
     @property
     def _na_value(self):
