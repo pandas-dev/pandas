@@ -621,10 +621,51 @@ class TestTimestamp(object):
         assert stamp.microsecond == 145224
         assert stamp.nanosecond == 192
 
-    def test_unit(self):
-
-        def check(val, unit=None, h=1, s=1, us=0):
-            stamp = Timestamp(val, unit=unit)
+    @pytest.mark.parametrize('value, check_kwargs', [
+        [946688461000000000, {}],
+        [946688461000000000 / long(1000), dict(unit='us')],
+        [946688461000000000 / long(1000000), dict(unit='ms')],
+        [946688461000000000 / long(1000000000), dict(unit='s')],
+        [10957, dict(unit='D', h=0)],
+        pytest.param((946688461000000000 + 500000) / long(1000000000),
+                     dict(unit='s', us=499, ns=964),
+                     marks=pytest.mark.skipif(not PY3,
+                                              reason='using truediv, so these'
+                                                     ' are like floats')),
+        pytest.param((946688461000000000 + 500000000) / long(1000000000),
+                     dict(unit='s', us=500000),
+                     marks=pytest.mark.skipif(not PY3,
+                                              reason='using truediv, so these'
+                                                     ' are like floats')),
+        pytest.param((946688461000000000 + 500000) / long(1000000),
+                     dict(unit='ms', us=500),
+                     marks=pytest.mark.skipif(not PY3,
+                                              reason='using truediv, so these'
+                                                     ' are like floats')),
+        pytest.param((946688461000000000 + 500000) / long(1000000000),
+                     dict(unit='s'),
+                     marks=pytest.mark.skipif(PY3,
+                                              reason='get chopped in py2')),
+        pytest.param((946688461000000000 + 500000000) / long(1000000000),
+                     dict(unit='s'),
+                     marks=pytest.mark.skipif(PY3,
+                                              reason='get chopped in py2')),
+        pytest.param((946688461000000000 + 500000) / long(1000000),
+                     dict(unit='ms'),
+                     marks=pytest.mark.skipif(PY3,
+                                              reason='get chopped in py2')),
+        [(946688461000000000 + 500000) / long(1000), dict(unit='us', us=500)],
+        [(946688461000000000 + 500000000) / long(1000000),
+         dict(unit='ms', us=500000)],
+        [946688461000000000 / 1000.0 + 5, dict(unit='us', us=5)],
+        [946688461000000000 / 1000.0 + 5000, dict(unit='us', us=5000)],
+        [946688461000000000 / 1000000.0 + 0.5, dict(unit='ms', us=500)],
+        [946688461000000000 / 1000000.0 + 0.005, dict(unit='ms', us=5, ns=5)],
+        [946688461000000000 / 1000000000.0 + 0.5, dict(unit='s', us=500000)],
+        [10957 + 0.5, dict(unit='D', h=12)]])
+    def test_unit(self, value, check_kwargs):
+        def check(value, unit=None, h=1, s=1, us=0, ns=0):
+            stamp = Timestamp(value, unit=unit)
             assert stamp.year == 2000
             assert stamp.month == 1
             assert stamp.day == 1
@@ -637,41 +678,9 @@ class TestTimestamp(object):
                 assert stamp.minute == 0
                 assert stamp.second == 0
                 assert stamp.microsecond == 0
-            assert stamp.nanosecond == 0
+            assert stamp.nanosecond == ns
 
-        ts = Timestamp('20000101 01:01:01')
-        val = ts.value
-        days = (ts - Timestamp('1970-01-01')).days
-
-        check(val)
-        check(val / long(1000), unit='us')
-        check(val / long(1000000), unit='ms')
-        check(val / long(1000000000), unit='s')
-        check(days, unit='D', h=0)
-
-        # using truediv, so these are like floats
-        if PY3:
-            check((val + 500000) / long(1000000000), unit='s', us=500)
-            check((val + 500000000) / long(1000000000), unit='s', us=500000)
-            check((val + 500000) / long(1000000), unit='ms', us=500)
-
-        # get chopped in py2
-        else:
-            check((val + 500000) / long(1000000000), unit='s')
-            check((val + 500000000) / long(1000000000), unit='s')
-            check((val + 500000) / long(1000000), unit='ms')
-
-        # ok
-        check((val + 500000) / long(1000), unit='us', us=500)
-        check((val + 500000000) / long(1000000), unit='ms', us=500000)
-
-        # floats
-        check(val / 1000.0 + 5, unit='us', us=5)
-        check(val / 1000.0 + 5000, unit='us', us=5000)
-        check(val / 1000000.0 + 0.5, unit='ms', us=500)
-        check(val / 1000000.0 + 0.005, unit='ms', us=5)
-        check(val / 1000000000.0 + 0.5, unit='s', us=500000)
-        check(days + 0.5, unit='D', h=12)
+        check(value, **check_kwargs)
 
     def test_roundtrip(self):
 
