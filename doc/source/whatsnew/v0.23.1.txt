@@ -47,7 +47,6 @@ Bug Fixes
 ~~~~~~~~~
 
 - tab completion on :class:`Index` in IPython no longer outputs deprecation warnings (:issue:`21125`)
-- :meth:`Series.combine()` no longer fails with :class:`~pandas.api.extensions.ExtensionArray` inside of :class:`Series` (:issue:`20825`)
 
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
