@@ -213,6 +213,7 @@ class TestCategoricalRepr(object):
         class County(StringMixin):
             name = u'San Sebastián'
             state = u'PR'
+
             def __unicode__(self):
                 return self.name + u', ' + self.state
 
@@ -222,7 +223,7 @@ class TestCategoricalRepr(object):
 
         # set sys.defaultencoding to ascii, then change it back after the test
         enc = sys.getdefaultencoding()
-        reload(sys)
+        reload(sys)  # noqa:F821
         sys.setdefaultencoding('ascii')
         try:
             repr(ser)
