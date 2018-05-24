@@ -101,6 +101,44 @@ class TestInterface(BaseDecimal, base.BaseInterfaceTests):
     pass
 
 
+<<<<<<< HEAD
+=======
+class TestOps(BaseDecimal, base.BaseOpsTests):
+
+    def compare(self, s, op, other):
+        # TODO(extension)
+
+        pytest.xfail("not implemented")
+
+        result = getattr(s, op)(other)
+        expected = result
+
+        self.assert_series_equal(result, expected)
+
+    def test_arith_scalar(self, data, all_arithmetic_operators):
+        # scalar
+        op = all_arithmetic_operators
+        s = pd.Series(data)
+        self.compare(s, op, 1)
+
+    def test_arith_array(self, data, all_arithmetic_operators):
+        # ndarray & other series
+        op = all_arithmetic_operators
+        s = pd.Series(data)
+        self.compare(s, op, np.ones(len(s), dtype=s.dtype.type))
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_compare_scalar(self, data, all_compare_operators):
+        op = all_compare_operators
+
+        # array
+        result = getattr(data, op)(0)
+        expected = getattr(data.data, op)(0)
+
+        tm.assert_series_equal(result, expected)
+
+
+>>>>>>> ENH: add ops to extension array
 class TestConstructors(BaseDecimal, base.BaseConstructorsTests):
 
     @pytest.mark.xfail(reason="not implemented constructor from dtype")

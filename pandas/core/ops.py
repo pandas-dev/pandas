@@ -27,7 +27,7 @@ from pandas.core.dtypes.common import (
     is_integer_dtype, is_categorical_dtype,
     is_object_dtype, is_timedelta64_dtype,
     is_datetime64_dtype, is_datetime64tz_dtype,
-    is_bool_dtype,
+    is_bool_dtype, is_extension_array_dtype,
     is_list_like,
     is_scalar,
     _ensure_object)
@@ -1003,8 +1003,18 @@ def _arith_method_SERIES(cls, op, special):
                         if op is divmod else _construct_result)
 
     def na_op(x, y):
-        import pandas.core.computation.expressions as expressions
+        # handle extension array ops
+        # TODO(extension)
+        # the ops *between* non-same-type extension arrays are not
+        # very well defined
+        if (is_extension_array_dtype(x) or is_extension_array_dtype(y)):
+            if (op_name.startswith('__r') and not
+                    is_extension_array_dtype(y) and not
+                    is_scalar(y)):
+                y = x.__class__._from_sequence(y)
+            return op(x, y)
 
+        import pandas.core.computation.expressions as expressions
         try:
             result = expressions.evaluate(op, str_rep, x, y, **eval_kwargs)
         except TypeError:
@@ -1025,6 +1035,7 @@ def _arith_method_SERIES(cls, op, special):
         return result
 
     def safe_na_op(lvalues, rvalues):
+        # all others
         try:
             with np.errstate(all='ignore'):
                 return na_op(lvalues, rvalues)
@@ -1035,14 +1046,21 @@ def _arith_method_SERIES(cls, op, special):
             raise
 
     def wrapper(left, right):
-
         if isinstance(right, ABCDataFrame):
             return NotImplemented
 
         left, right = _align_method_SERIES(left, right)
         res_name = get_op_result_name(left, right)
 
-        if is_datetime64_dtype(left) or is_datetime64tz_dtype(left):
+        if is_categorical_dtype(left):
+            raise TypeError("{typ} cannot perform the operation "
+                            "{op}".format(typ=type(left).__name__, op=str_rep))
+
+        elif (is_extension_array_dtype(left) or
+                is_extension_array_dtype(right)):
+            pass
+
+        elif is_datetime64_dtype(left) or is_datetime64tz_dtype(left):
             result = dispatch_to_index_op(op, left, right, pd.DatetimeIndex)
             return construct_result(left, result,
                                     index=left.index, name=res_name,
@@ -1053,10 +1071,6 @@ def _arith_method_SERIES(cls, op, special):
             return construct_result(left, result,
                                     index=left.index, name=res_name,
                                     dtype=result.dtype)
-
-        elif is_categorical_dtype(left):
-            raise TypeError("{typ} cannot perform the operation "
-                            "{op}".format(typ=type(left).__name__, op=str_rep))
 
         lvalues = left.values
         rvalues = right
@@ -1135,6 +1149,14 @@ def _comp_method_SERIES(cls, op, special):
         if is_categorical_dtype(y) and not is_scalar(y):
             # The `not is_scalar(y)` check excludes the string "category"
             return op(y, x)
+
+        # handle extension array ops
+        # TODO(extension)
+        # the ops *between* non-same-type extension arrays are not
+        # very well defined
+        elif (is_extension_array_dtype(x) or
+                is_extension_array_dtype(y)):
+            return op(x, y)
 
         elif is_object_dtype(x.dtype):
             result = _comp_method_OBJECT_ARRAY(op, x, y)
