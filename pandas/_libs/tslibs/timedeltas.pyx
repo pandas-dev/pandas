@@ -1246,7 +1246,7 @@ class Timedelta(_Timedelta):
                 deprecated. Use 'array // timedelta.value' instead.
                 If you want to obtain epochs from an array of timestamps,
                 you can rather use
-                'array - pd.Timestamp("1970-01-01")) // pd.Timedelta("1s")'.
+                '(array - pd.Timestamp("1970-01-01")) // pd.Timedelta("1s")'.
                 """)
                 warnings.warn(msg, FutureWarning)
                 return other // self.value
