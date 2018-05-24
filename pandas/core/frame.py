@@ -1774,8 +1774,11 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        fname : str or buffer
-            String path of file-like object.
+        fname : path (string), buffer or path object
+            string, path object (pathlib.Path or py._path.local.LocalPath) or
+            object implementing a binary write() functions. If using a buffer
+            then the buffer will not be automatically closed after the file
+            data has been written.
         convert_dates : dict
             Dictionary mapping columns containing datetime types to stata
             internal format to use when writing the dates. Options are 'tc',
