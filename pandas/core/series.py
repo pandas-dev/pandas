@@ -2187,7 +2187,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                                                fill_value)
         name = ops.get_op_result_name(self, other)
 
-        if is_extension_array_dtype(this) or is_extension_array_dtype(other):
+        if (is_extension_array_dtype(this_vals) or
+                is_extension_array_dtype(other_vals)):
             try:
                 result = func(this_vals, other_vals)
             except TypeError:
@@ -2195,7 +2196,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
             if result is NotImplemented:
                 result = [func(a, b) for a, b in zip(this_vals, other_vals)]
-                if is_extension_array_dtype(this):
+                if is_extension_array_dtype(this_vals):
                     excons = type(this_vals)._from_sequence
                 else:
                     excons = type(other_vals)._from_sequence
@@ -2244,7 +2245,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Series.combine_first : Combine Series values, choosing the calling
             Series's values first
         """
-        self_is_ext = is_extension_array_dtype(self)
+        self_is_ext = is_extension_array_dtype(self.values)
         if fill_value is None:
             if self_is_ext:
                 fill_value = self.dtype.na_value
@@ -2268,8 +2269,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 new_values = [func(lv, other) for lv in self._values]
             new_name = self.name
 
-        if (self_is_ext and self.values.is_sequence_of_dtype(new_values)):
-            new_values = self._values._from_sequence(new_values)
+        if self_is_ext and not is_categorical_dtype(self.values):
+            try:
+                new_values = self._values._from_sequence(new_values)
+            except TypeError:
+                pass
 
         return self._constructor(new_values, index=new_index, name=new_name)
 

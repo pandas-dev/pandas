@@ -142,11 +142,16 @@ class TestMethods(BaseDecimal, base.BaseMethodsTests):
         # GH 20825
         orig_data1 = make_data()
         orig_data2 = make_data()
-        s1 = pd.Series(orig_data1)
-        s2 = pd.Series(orig_data2)
+        s1 = pd.Series(DecimalArray(orig_data1))
+        s2 = pd.Series(DecimalArray(orig_data2))
         result = s1.combine(s2, lambda x1, x2: x1 <= x2)
         expected = pd.Series([a <= b for (a, b) in
                               zip(orig_data1, orig_data2)])
+        tm.assert_series_equal(result, expected)
+
+        result = s1.combine(s2, lambda x1, x2: x1 + x2)
+        expected = pd.Series(DecimalArray([a + b for (a, b) in
+                                           zip(orig_data1, orig_data2)]))
         tm.assert_series_equal(result, expected)
 
 
