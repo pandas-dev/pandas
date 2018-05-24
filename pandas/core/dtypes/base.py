@@ -109,6 +109,12 @@ class ExtensionDtype(_DtypeOpsMixin):
     * name
     * construct_from_string
 
+
+    Optionally one can assign an array_type for construction with the name
+    of this dtype via the Registry
+
+    * array_type
+
     The `na_value` class attribute can be used to set the default NA value
     for this type. :attr:`numpy.nan` is used by default.
 
@@ -117,6 +123,8 @@ class ExtensionDtype(_DtypeOpsMixin):
     ``pandas.errors.AbstractMethodError`` and no ``register`` method is
     provided for registering virtual subclasses.
     """
+
+    array_type = None
 
     def __str__(self):
         return self.name
