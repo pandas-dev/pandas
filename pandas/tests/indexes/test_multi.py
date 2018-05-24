@@ -3291,3 +3291,32 @@ class TestMultiIndex(Base):
         with pytest.raises(ValueError):
             ind.set_levels([['A', 'B', 'A', 'A', 'B'], [2, 1, 3, -2, 5]],
                            inplace=True)
+
+    @pytest.mark.parametrize("midx,idx,count", [
+        (pd.MultiIndex.from_product([[0, 1], [1, 0]]), pd.Series(range(4)), 4), (pd.MultiIndex.from_product([[0, 1]]), pd.Series(range(2)), 2)])
+    def test_multiindex_compare(self, midx, idx, count):
+        # GH 21149
+        '''Ensure comparison operations for MultiIndex with nlevels == 1
+            behave consistently with those for MultiIndex with nlevels > 1
+        '''
+        expected = pd.Series([True]).repeat(count)
+        expected.reset_index(drop=True, inplace=True)
+        # Equality self-test: MultiIndex object vs self
+        result = pd.Series(midx == midx)
+        tm.assert_series_equal(result, expected)
+        # Equality self-test: non-MultiIndex Index object vs self
+        result = (idx == idx)
+        tm.assert_series_equal(result, expected)
+
+        expected = pd.Series([False]).repeat(count)
+        expected.reset_index(drop=True, inplace=True)
+        # Greater than comparison: MultiIndex object vs self
+        result = pd.Series(midx > midx)
+        tm.assert_series_equal(result, expected)
+        # Equality test: non-MultiIndex Index object vs MultiIndex object
+        result = pd.Series(midx == idx)
+        tm.assert_series_equal(result, expected)
+        
+        # Greater-than test: non-MultiIndex Index object vs MultiIndex object
+        with tm.assert_raises_regex(TypeError, 'not supported'):
+            midx > idx
