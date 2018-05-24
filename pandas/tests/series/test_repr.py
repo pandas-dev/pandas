@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 
 import sys
 
+import pytest
 import numpy as np
 import pandas as pd
 
@@ -201,6 +202,34 @@ class TestSeriesRepr(TestData):
 
 
 class TestCategoricalRepr(object):
+
+    @pytest.mark.skipif(compat.PY3, reason="Decoding failure only in PY2")
+    def test_categorical_repr_unicode(self):
+        # GH#21002 if len(index) > 60, sys.getdefaultencoding()=='ascii',
+        # and we are working in PY2, then rendering a Categorical could raise
+        # UnicodeDecodeError by trying to decode when it shouldn't
+        from pandas.core.base import StringMixin
+
+        class County(StringMixin):
+            name = u'San Sebastián'
+            state = u'PR'
+            def __unicode__(self):
+                return self.name + u', ' + self.state
+
+        cat = pd.Categorical([County() for n in range(61)])
+        idx = pd.Index(cat)
+        ser = idx.to_series()
+
+        # set sys.defaultencoding to ascii, then change it back after the test
+        enc = sys.getdefaultencoding()
+        reload(sys)
+        sys.setdefaultencoding('ascii')
+        try:
+            repr(ser)
+            str(ser)
+        finally:
+            # restore encoding
+            sys.setdefaultencoding(enc)
 
     def test_categorical_repr(self):
         a = Series(Categorical([1, 2, 3, 4]))
