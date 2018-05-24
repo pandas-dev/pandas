@@ -2,7 +2,6 @@
 
 import re
 import numpy as np
-from collections import OrderedDict
 from pandas import compat
 from pandas.core.dtypes.generic import ABCIndexClass, ABCCategoricalIndex
 
@@ -18,22 +17,19 @@ class Registry(object):
 
     These are tried in order for inference.
     """
-    dtypes = OrderedDict()
+    dtypes = []
 
     @classmethod
-    def register(self, dtype, constructor=None):
+    def register(self, dtype):
         """
         Parameters
         ----------
-        dtype : PandasExtension Dtype
+        dtype : ExtensionDtype
         """
         if not issubclass(dtype, (PandasExtensionDtype, ExtensionDtype)):
             raise ValueError("can only register pandas extension dtypes")
 
-        if constructor is None:
-            constructor = dtype.construct_from_string
-
-        self.dtypes[dtype] = constructor
+        self.dtypes.append(dtype)
 
     def find(self, dtype):
         """
@@ -54,9 +50,9 @@ class Registry(object):
 
             return None
 
-        for dtype_type, constructor in self.dtypes.items():
+        for dtype_type in self.dtypes:
             try:
-                return constructor(dtype)
+                return dtype_type.construct_from_string(dtype)
             except TypeError:
                 pass
 
@@ -614,27 +610,21 @@ class PeriodDtype(PandasExtensionDtype):
     @classmethod
     def construct_from_string(cls, string):
         """
-        attempt to construct this type from a string, raise a TypeError
-        if its not possible
+        Strict construction from a string, raise a TypeError if not
+        possible
         """
         from pandas.tseries.offsets import DateOffset
-        if isinstance(string, (compat.string_types, DateOffset)):
+
+        if (isinstance(string, compat.string_types) and
+            (string.startswith('period[') or
+             string.startswith('Period[')) or
+                isinstance(string, DateOffset)):
+            # do not parse string like U as period[U]
             # avoid tuple to be regarded as freq
             try:
                 return cls(freq=string)
             except ValueError:
                 pass
-        raise TypeError("could not construct PeriodDtype")
-
-    @classmethod
-    def construct_from_string_strict(cls, string):
-        """
-        Strict construction from a string, raise a TypeError if not
-        possible
-        """
-        if string.startswith('period[') or string.startswith('Period['):
-            # do not parse string like U as period[U]
-            return PeriodDtype.construct_from_string(string)
         raise TypeError("could not construct PeriodDtype")
 
     def __unicode__(self):
@@ -751,20 +741,12 @@ class IntervalDtype(PandasExtensionDtype):
         attempt to construct this type from a string, raise a TypeError
         if its not possible
         """
-        if isinstance(string, compat.string_types):
+        if (isinstance(string, compat.string_types) and
+            (string.startswith('interval') or
+             string.startswith('Interval'))):
             return cls(string)
         msg = "a string needs to be passed, got type {typ}"
         raise TypeError(msg.format(typ=type(string)))
-
-    @classmethod
-    def construct_from_string_strict(cls, string):
-        """
-        Strict construction from a string, raise a TypeError if not
-        possible
-        """
-        if string.startswith('interval') or string.startswith('Interval'):
-            return IntervalDtype.construct_from_string(string)
-        raise TypeError("cannot construct IntervalDtype")
 
     def __unicode__(self):
         if self.subtype is None:
@@ -810,6 +792,6 @@ class IntervalDtype(PandasExtensionDtype):
 
 # register the dtypes in search order
 registry.register(DatetimeTZDtype)
-registry.register(PeriodDtype, PeriodDtype.construct_from_string_strict)
-registry.register(IntervalDtype, IntervalDtype.construct_from_string_strict)
+registry.register(PeriodDtype)
+registry.register(IntervalDtype)
 registry.register(CategoricalDtype)

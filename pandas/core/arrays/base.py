@@ -38,7 +38,6 @@ class ExtensionArray(object):
     * copy
     * append
     * _concat_same_type
-    * array_type
 
     An additional method is available to satisfy pandas' internal,
     private block API.

@@ -125,7 +125,7 @@ ExtensionType Changes
 ^^^^^^^^^^^^^^^^^^^^^
 
 - ``ExtensionArray`` has gained the abstract methods ``.dropna()`` and ``.append()``, and attribute ``array_type`` (:issue:`21185`)
-- ``ExtensionDtype`` has gained the ability to instantiate from string dtypes, e.g. ``decimal`` would instaniate a registered ``DecimalDtype`` (:issue:`21185`)
+- ``ExtensionDtype`` has gained the ability to instantiate from string dtypes, e.g. ``decimal`` would instantiate a registered ``DecimalDtype`` (:issue:`21185`)
 - The ``ExtensionArray`` constructor, ``_from_sequence`` now take the keyword arg ``copy=False`` (:issue:`21185`)
 
 .. _whatsnew_0240.api.other:
