@@ -3318,6 +3318,3 @@ class TestMultiIndex(Base):
         result = pd.Series(midx == idx)
         tm.assert_series_equal(result, expected)
 
-        # Greater-than test: non-MultiIndex Index object vs MultiIndex object
-        with tm.assert_raises_regex(TypeError, 'not supported'):
-            midx > idx
