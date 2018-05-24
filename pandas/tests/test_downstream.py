@@ -2,7 +2,9 @@
 """
 Testing that we work in the downstream packages
 """
+import pkgutil
 import subprocess
+import warnings
 
 import pytest
 import numpy as np  # noqa
@@ -57,7 +59,15 @@ def test_xarray(df):
 
 def test_oo_optimizable():
     # GH 21071
-    subprocess.check_call(["python", "-OO", "-c", "import pandas"])
+    pkg_gen = pkgutil.walk_packages('.')
+
+    # Ignore items at the top of the package like setup and versioneer
+    packages = [x for x in pkg_gen if x[0].path != '.']
+    statement = ";".join("import {name}".format(name=package.name)
+                         for package in packages)
+
+    with warnings.catch_warnings(record=True):
+        subprocess.check_call(["python", "-OO", "-c", statement])
 
 
 @tm.network
