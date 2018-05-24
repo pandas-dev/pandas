@@ -14,7 +14,7 @@ import pandas.core.common as com
 # import after tools, dateutil check
 from dateutil.easter import easter
 from pandas._libs import tslib, Timestamp, OutOfBoundsDatetime, Timedelta
-from pandas.util._decorators import cache_readonly, Appender, Substitution
+from pandas.util._decorators import cache_readonly
 
 from pandas._libs.tslibs import ccalendar, frequencies as libfrequencies
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
