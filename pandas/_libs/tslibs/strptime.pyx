@@ -82,14 +82,13 @@ def array_strptime(ndarray[object] values, object fmt,
         ndarray[int64_t] iresult
         ndarray[object] result_timezone
         int year, month, day, minute, hour, second, weekday, julian
-        int week_of_year, week_of_year_start, parse_code
+        int week_of_year, week_of_year_start, parse_code, ordinal
         int64_t us, ns
         object val, group_key, ampm, found, timezone
         dict found_key
         bint is_raise = errors=='raise'
         bint is_ignore = errors=='ignore'
         bint is_coerce = errors=='coerce'
-        int ordinal
 
     assert is_raise or is_ignore or is_coerce
 
