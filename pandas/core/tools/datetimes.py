@@ -132,7 +132,7 @@ def _return_parsed_timezone_results(result, timezones, box, tz):
         raise ValueError("Cannot pass a tz argument when "
                          "parsing strings with timezone "
                          "information.")
-    tz_results = np.array([tslib.Timestamp(res).tz_localize(tz) for res, tz
+    tz_results = np.array([tslib.Timestamp(res).tz_localize(zone) for res, zone
                            in zip(result, timezones)])
     if box:
         from pandas import Index
