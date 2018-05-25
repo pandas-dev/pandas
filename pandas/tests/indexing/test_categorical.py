@@ -645,6 +645,12 @@ class TestCategoricalIndex(object):
             index=CategoricalIndex(list("aabcde"), name="B", ordered=True),
         )
 
+        # This should select the entire dataframe
+        result = ordered_df.loc["a":"e"]
+        assert_frame_equal(result, ordered_df)
+        result_iloc = ordered_df.iloc[0:6]
+        assert_frame_equal(result_iloc, result)
+
         result = ordered_df.loc["a":"b"]
         expected = DataFrame(
             {"A": range(0, 3)},
@@ -654,21 +660,42 @@ class TestCategoricalIndex(object):
         )
         assert_frame_equal(result, expected)
 
-        # This should select the entire dataframe
-        result = ordered_df.loc["a":"e"]
+    @pytest.mark.parametrize(
+        "content",
+        [list("aab"), list("bbc"), list('bbc')],
+        ids=["right_edge", "left_edge", "both_edges"],
+    )
+    def test_loc_beyond_edge_slicing(self, content):
+        """
+        This test ensures that no `KeyError` is raised if trying to slice
+        beyond the edges of known, ordered categories.
+        """
+        # This dataframe might be a slice of a larger categorical
+        # (i.e. more categories are known than there are in the column)
+
+        ordered_df = DataFrame(
+            {"A": range(0, 3)},
+            index=CategoricalIndex(
+                content, categories=list("abcde"), name="B", ordered=True
+            ),
+        )
+
+        # Although the edge is not within the slice, this should fall back
+        # to searchsorted slicing since the category is known and the index
+        # is ordered. Since we're selecting a value larger/lower than the
+        # right/left edge we should get the original slice again.
+        result = ordered_df.loc["a": "d"]
         assert_frame_equal(result, ordered_df)
 
-        df_slice = ordered_df.loc["a":"b"]
-        # Although the edge is not within the slice, this should fall back
-        # to searchsorted slicing since the category is known
-        result = df_slice.loc["a":"e"]
-        assert_frame_equal(result, df_slice)
+        # Ensure that index based slicing gives the same result
+        result_iloc = ordered_df.iloc[0:4]
+        assert_frame_equal(result, result_iloc)
 
         # If the categorical is not sorted and the requested edge
         # is not in the slice we cannot perform slicing
-        df_slice.index = df_slice.index.as_unordered()
+        ordered_df.index = ordered_df.index.as_unordered()
         with pytest.raises(KeyError):
-            df_slice.loc["a":"e"]
+            ordered_df.loc["a": "d"]
 
         with pytest.raises(KeyError):
             # If the category is not known, there is nothing we can do
