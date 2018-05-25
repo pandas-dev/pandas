@@ -1758,11 +1758,25 @@ class StataReader(StataParser, BaseIterator):
         return self.value_label_dict
 
 
-def _open_file_binary_write(fname, encoding):
+def _open_file_binary_write(fname):
+    """
+    Open a binary file or no-op if file-like
+
+    Parameters
+    ----------
+    fname : string path, path object or buffer
+
+    Returns
+    -------
+    file : file-like object
+        File object supporting write
+    own : bool
+        True if the file was created, otherwise False
+    """
     if hasattr(fname, 'write'):
         # if 'b' not in fname.mode:
-        return fname
-    return open(fname, "wb")
+        return fname, False
+    return open(fname, "wb"), True
 
 
 def _set_endianness(endianness):
@@ -1899,7 +1913,9 @@ class StataWriter(StataParser):
     ----------
     fname : path (string), buffer or path object
         string, path object (pathlib.Path or py._path.local.LocalPath) or
-        object implementing a binary write() functions.
+        object implementing a binary write() functions. If using a buffer
+        then the buffer will not be automatically closed after the file
+        is written.
 
         .. versionadded:: 0.23.0 support for pathlib, py.path.
 
@@ -1970,6 +1986,7 @@ class StataWriter(StataParser):
         self._time_stamp = time_stamp
         self._data_label = data_label
         self._variable_labels = variable_labels
+        self._own_file = True
         # attach nobs, nvars, data, varlist, typlist
         self._prepare_pandas(data)
 
@@ -2183,9 +2200,7 @@ class StataWriter(StataParser):
                 self.fmtlist[key] = self._convert_dates[key]
 
     def write_file(self):
-        self._file = _open_file_binary_write(
-            self._fname, self._encoding or self._default_encoding
-        )
+        self._file, self._own_file = _open_file_binary_write(self._fname)
         try:
             self._write_header(time_stamp=self._time_stamp,
                                data_label=self._data_label)
@@ -2205,6 +2220,23 @@ class StataWriter(StataParser):
             self._write_file_close_tag()
             self._write_map()
         finally:
+            self._close()
+
+    def _close(self):
+        """
+        Close the file if it was created by the writer.
+
+        If a buffer or file-like object was passed in, for example a GzipFile,
+        then leave this file open for the caller to close. In either case,
+        attempt to flush the file contents to ensure they are written to disk
+        (if supported)
+        """
+        # Some file-like objects might not support flush
+        try:
+            self._file.flush()
+        except AttributeError:
+            pass
+        if self._own_file:
             self._file.close()
 
     def _write_map(self):
@@ -2374,7 +2406,7 @@ class StataWriter(StataParser):
 
     def _write_data(self):
         data = self.data
-        data.tofile(self._file)
+        self._file.write(data.tobytes())
 
     def _null_terminate(self, s, as_string=False):
         null_byte = '\x00'
@@ -2641,7 +2673,9 @@ class StataWriter117(StataWriter):
     ----------
     fname : path (string), buffer or path object
         string, path object (pathlib.Path or py._path.local.LocalPath) or
-        object implementing a binary write() functions.
+        object implementing a binary write() functions. If using a buffer
+        then the buffer will not be automatically closed after the file
+        is written.
     data : DataFrame
         Input to save
     convert_dates : dict
@@ -2879,7 +2913,7 @@ class StataWriter117(StataWriter):
         self._update_map('data')
         data = self.data
         self._file.write(b'<data>')
-        data.tofile(self._file)
+        self._file.write(data.tobytes())
         self._file.write(b'</data>')
 
     def _write_strls(self):
