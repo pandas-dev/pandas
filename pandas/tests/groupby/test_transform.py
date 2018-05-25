@@ -720,6 +720,22 @@ def test_group_fill_methods(mix_groupings, as_series, val1, val2,
         exp = DataFrame({'key': keys, 'val': _exp_vals})
         assert_frame_equal(result, exp)
 
+@pytest.mark.parametrize("fill_method", ['ffill', 'bfill'])
+def test_pad_stable_sorting(fill_method):
+    # GH 21207
+    x = [0] * 20
+    y = [np.nan] * 10 + [1] * 10
+
+    if fill_method == 'bfill':
+        y = y[::-1]
+
+    df = pd.DataFrame({'x': x, 'y': y})
+    expected = df.copy()
+
+    result = getattr(df.groupby('x'), fill_method)()
+
+    tm.assert_frame_equal(result, expected)
+
 
 @pytest.mark.parametrize("test_series", [True, False])
 @pytest.mark.parametrize("periods,fill_method,limit", [
