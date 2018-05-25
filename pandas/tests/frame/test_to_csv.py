@@ -943,6 +943,22 @@ class TestDataFrameToCSV(TestData):
             with tm.decompress_file(filename, compression) as fh:
                 assert_frame_equal(df, read_csv(fh, index_col=0))
 
+    def test_to_csv_compression_size(self, compression):
+
+        df = pd.concat(100 * [DataFrame([[0.123456, 0.234567, 0.567567],
+                                         [12.32112, 123123.2, 321321.2]],
+                                        columns=['X', 'Y', 'Z'])])
+
+        with ensure_clean() as filename:
+            import os
+            df.to_csv(filename, compression=compression)
+            file_size = os.path.getsize(filename)
+
+            if compression:
+                df.to_csv(filename, compression=None)
+                uncompressed_file_size = os.path.getsize(filename)
+                assert uncompressed_file_size > file_size
+
     def test_to_csv_date_format(self):
         with ensure_clean('__tmp_to_csv_date_format__') as path:
             dt_index = self.tsframe.index
