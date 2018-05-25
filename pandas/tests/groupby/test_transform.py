@@ -720,6 +720,7 @@ def test_group_fill_methods(mix_groupings, as_series, val1, val2,
         exp = DataFrame({'key': keys, 'val': _exp_vals})
         assert_frame_equal(result, exp)
 
+
 @pytest.mark.parametrize("fill_method", ['ffill', 'bfill'])
 def test_pad_stable_sorting(fill_method):
     # GH 21207
