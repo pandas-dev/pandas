@@ -18,12 +18,10 @@ dependencies:
   - numexpr
   - numpy
   - openpyxl
-  - pandas-datareader
   - psycopg2
   - pyarrow
   - pymysql
   - pytables
-  - python-dateutil
   - python-snappy
   - python=3.6*
   - pytz
@@ -45,3 +43,5 @@ dependencies:
   - pip:
     - brotlipy
     - coverage
+    - pandas-datareader
+    - python-dateutil
