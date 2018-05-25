@@ -41,7 +41,7 @@ def win_types(request):
     return request.param
 
 
-@pytest.fixture(params=['kaiser', 'gaussian', 'general_gaussian', 'slepian'])
+@pytest.fixture(params=['kaiser', 'gaussian', 'general_gaussian'])
 def win_types_special(request):
     return request.param
 
@@ -1079,8 +1079,7 @@ class TestMoments(Base):
         kwds = {
             'kaiser': {'beta': 1.},
             'gaussian': {'std': 1.},
-            'general_gaussian': {'power': 2., 'width': 2.},
-            'slepian': {'width': 0.5}}
+            'general_gaussian': {'power': 2., 'width': 2.}}
 
         vals = np.array([6.95, 15.21, 4.72, 9.12, 13.81, 13.49, 16.68, 9.48,
                          10.63, 14.48])
@@ -1090,8 +1089,6 @@ class TestMoments(Base):
                          13.65671, 12.01002, np.nan, np.nan],
             'general_gaussian': [np.nan, np.nan, 9.85011, 10.71589, 11.73161,
                                  13.08516, 12.95111, 12.74577, np.nan, np.nan],
-            'slepian': [np.nan, np.nan, 9.81073, 10.89359, 11.70284, 12.88331,
-                        12.96079, 12.77008, np.nan, np.nan],
             'kaiser': [np.nan, np.nan, 9.86851, 11.02969, 11.65161, 12.75129,
                        12.90702, 12.83757, np.nan, np.nan]
         }
