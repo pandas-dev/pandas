@@ -87,6 +87,7 @@ def test_pandas_gbq(df):
     pandas_gbq = import_module('pandas_gbq')  # noqa
 
 
+@pytest.xfail(reason="0.7.0 pending")
 @tm.network
 def test_pandas_datareader():
 
@@ -95,6 +96,7 @@ def test_pandas_datareader():
         'F', 'quandl', '2017-01-01', '2017-02-01')
 
 
+@pytest.xfail(reaason="downstream install issue")
 def test_geopandas():
 
     geopandas = import_module('geopandas')  # noqa
