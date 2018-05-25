@@ -75,7 +75,7 @@ Indexing
 I/O
 ^^^
 
--
+- Bug in :class:`pandas.io.common.BytesZipFile` where zip compression produces uncompressed zip archive (:issue:`17778`)
 -
 
 Plotting
