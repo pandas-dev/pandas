@@ -457,6 +457,21 @@ class TestCompression(object):
 
             tm.assert_frame_equal(df, df2)
 
+    def test_compression_size(self, compression):
+
+        df = pd.concat(100 * [pd.DataFrame([[0.123456, 0.234567, 0.567567],
+                                            [12.32112, 123123.2, 321321.2]],
+                                           columns=['X', 'Y', 'Z'])])
+
+        with tm.ensure_clean() as filename:
+            import os
+            df.to_pickle(filename, compression=compression)
+            file_size = os.path.getsize(filename)
+
+            if compression:
+                df.to_pickle(filename, compression=None)
+                uncompressed_file_size = os.path.getsize(filename)
+                assert uncompressed_file_size > file_size
 
 # ---------------------
 # test pickle compression
