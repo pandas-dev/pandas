@@ -109,8 +109,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         which is an integer/float number
     freq : string or pandas offset object, optional
         One of pandas date offset strings or corresponding objects. The string
-        'infer' can be passed in order to allow users to set the frequency of
-        the index as the inferred frequency upon creation
+        'infer' can be passed in order to set the frequency of the index as the
+         inferred frequency upon creation
     copy  : bool
         Make a copy of input ndarray
     start : starting value, timedelta-like, optional
