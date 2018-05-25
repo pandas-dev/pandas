@@ -1057,26 +1057,65 @@ class TestDataFrameAggregate(TestData):
 
         assert result == expected
 
-    @pytest.mark.parametrize("df", [
-        pd.DataFrame([[1, 2], [3, 4]]),
-        pd.DataFrame([[np.nan, 2], [3, 4]]),
-        pd.DataFrame(),
+    @pytest.mark.parametrize("inputs", [
+        [DataFrame(), {
+            'sum': Series(),
+            'max': Series(),
+            'min': Series(),
+            'all': Series(dtype=bool),
+            'any': Series(dtype=bool),
+            'mean': Series(),
+            'prod': Series(),
+            'std': Series(),
+            'var': Series(),
+            'median': Series(),
+            'cumprod': DataFrame(),
+            'cumsum': DataFrame(),
+        }],
+        [DataFrame([[np.nan, 1], [1, 2]]), {
+            'sum': Series([1., 3]),
+            'max': Series([1., 2]),
+            'min': Series([1., 1]),
+            'all': Series([True, True]),
+            'any': Series([True, True]),
+            'mean': Series([1, 1.5]),
+            'prod': Series([1., 2]),
+            'std': Series([np.nan, 0.707107]),
+            'var': Series([np.nan, 0.5]),
+            'median': Series([1, 1.5]),
+            'cumprod': DataFrame([[np.nan, 1], [1., 2.]]),
+            'cumsum': DataFrame([[np.nan, 1], [1., 3.]]),
+        }],
+        [DataFrame([['a', 'b'], ['b', 'a']]), {
+            'sum': Series(['ab', 'ba']),
+            'max': Series(['b', 'b']),
+            'min': Series(['a', 'a']),
+            'all': Series([True, True]),
+            'any': Series([True, True]),
+            'mean': Series([], index=pd.Index([], dtype='int64')),
+            'prod': Series([], index=pd.Index([], dtype='int64')),
+            'std': Series([], index=pd.Index([], dtype='int64')),
+            'var': Series([], index=pd.Index([], dtype='int64')),
+            'median': Series([], index=pd.Index([], dtype='int64')),
+            'cumprod': TypeError,
+            'cumsum': DataFrame([['a', 'b'], ['ab', 'ba']]),
+        }],
     ])
-    def test_agg_function_input(self, df, cython_table_items):
-        # test whether the functions (keys) in
-        # pd.core.base.SelectionMixin._cython_table give the same result
-        # as the related strings (values) when used in df.agg. Examples:
-        # - ``df.agg(np.nansum)`` should give the same result as
-        #   ``df.agg('sum')``
-        # - ``df.agg(sum)`` should give the same result as ``df.agg('sum')``
-        # etc.
+    @pytest.mark.parametrize("axis", [0, 1], ids=lambda x: "axis {}".format(x))
+    def test_agg_function_input(self, cython_table_items, inputs, axis):
         # GH21123
         np_func, str_func = cython_table_items
-        if str_func in ('cumprod', 'cumsum'):
-            tm.assert_frame_equal(df.agg(np_func), df.agg(str_func))
-            tm.assert_frame_equal(df.agg(np_func, axis=1),
-                                  df.agg(str_func, axis=1))
+        df = inputs[0]
+        expected = inputs[1][str_func]
+
+        if isinstance(expected, type) and issubclass(expected, Exception):
+            with pytest.raises(expected):
+                # e.g. DataFrame(['a b'.split()]).cumprod() will raise
+                df.agg(np_func, axis=axis)
+                df.agg(str_func, axis=axis)
+        elif str_func in ('cumprod', 'cumsum'):
+            tm.assert_frame_equal(df.agg(np_func, axis=axis), expected)
+            tm.assert_frame_equal(df.agg(str_func, axis=axis), expected)
         else:
-            tm.assert_series_equal(df.agg(np_func), df.agg(str_func))
-            tm.assert_series_equal(df.agg(np_func, axis=1),
-                                   df.agg(str_func, axis=1))
+            tm.assert_series_equal(df.agg(np_func, axis=axis), expected)
+            tm.assert_series_equal(df.agg(str_func, axis=axis), expected)

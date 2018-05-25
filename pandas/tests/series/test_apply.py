@@ -331,6 +331,67 @@ class TestSeriesAggregate(TestData):
                                        ('mean', 1.5)]))
         assert_series_equal(result[expected.index], expected)
 
+    @pytest.mark.parametrize("inputs", [
+        [Series(), {
+            'sum': 0,
+            'max': np.nan,
+            'min': np.nan,
+            'all': True,
+            'any': False,
+            'mean': np.nan,
+            'prod': 1,
+            'std': np.nan,
+            'var': np.nan,
+            'median': np.nan,
+            'cumprod': Series([], Index([])),
+            'cumsum': Series([], Index([])),
+        }],
+        [Series([np.nan, 1, 2, 3]), {
+            'sum': 6,
+            'max': 3,
+            'min': 1,
+            'all': True,
+            'any': True,
+            'mean': 2,
+            'prod': 6,
+            'std': 1,
+            'var': 1,
+            'median': 2,
+            'cumprod': Series([np.nan, 1, 2, 6]),
+            'cumsum': Series([np.nan, 1, 3, 6]),
+        }],
+        [Series('a b c'.split()), {
+            'sum': 'abc',
+            'max': 'c',
+            'min': 'a',
+            'all': 'c',  # see GH12863
+            'any': 'a',
+            'mean': TypeError,  # mean raises TypeError
+            'prod': TypeError,
+            'std': TypeError,
+            'var': TypeError,
+            'median': TypeError,
+            'cumprod': TypeError,
+            'cumsum': Series(['a', 'ab', 'abc']),
+        }],
+    ])
+    def test_agg_function_input(self, inputs, cython_table_items):
+        # GH21123
+        np_func, str_func = cython_table_items
+        series = inputs[0]
+        expected = inputs[1][str_func]
+
+        if isinstance(expected, type) and issubclass(expected, Exception):
+            with pytest.raises(expected):
+                series.agg(np_func)
+                series.agg(str_func)
+        elif str_func in ('cumprod', 'cumsum'):
+            tm.assert_series_equal(series.agg(np_func), expected)
+            tm.assert_series_equal(series.agg(str_func), expected)
+        else:
+            tm.assert_almost_equal(series.agg(np_func), expected)
+            tm.assert_almost_equal(series.agg(str_func), expected)
+
 
 class TestSeriesMap(TestData):
 
@@ -587,24 +648,3 @@ class TestSeriesMap(TestData):
         result = s.map(mapping)
 
         tm.assert_series_equal(result, pd.Series(exp))
-
-    @pytest.mark.parametrize("series", [
-        pd.Series([1, 2, 3, 4]),
-        pd.Series([np.nan, 2, 3, 4]),
-        pd.Series(),
-    ])
-    def test_agg_function_input(self, series, cython_table_items):
-        # test whether the functions (keys) in
-        # pd.core.base.SelectionMixin._cython_table give the same result
-        # as the related strings (values), when used in ser.agg. Examples:
-        # - ``ser.agg(np.nansum)`` should give the same result as
-        #   ``ser.agg('sum')``
-        # - ``ser.agg(sum)`` should give the same result as ``ser.agg('sum')``
-        # etc.
-        # GH21123
-        np_func, str_func = cython_table_items
-
-        if str_func in ('cumprod', 'cumsum'):
-            tm.assert_series_equal(series.agg(np_func), series.agg(str_func))
-        else:
-            tm.assert_almost_equal(series.agg(np_func), series.agg(str_func))
