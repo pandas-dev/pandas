@@ -129,10 +129,6 @@ class TestInterface(BaseJSON, base.BaseInterfaceTests):
             self.assert_frame_equal(a.to_frame(), b.to_frame())
 
 
-class TestOps(BaseJSON, base.BaseOpsTests):
-    pass
-
-
 class TestConstructors(BaseJSON, base.BaseConstructorsTests):
 
     @pytest.mark.xfail(reason="not implemented constructor from dtype")
