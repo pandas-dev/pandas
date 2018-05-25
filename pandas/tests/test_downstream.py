@@ -2,9 +2,7 @@
 """
 Testing that we work in the downstream packages
 """
-import pkgutil
 import subprocess
-import warnings
 
 import pytest
 import numpy as np  # noqa
