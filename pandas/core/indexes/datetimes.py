@@ -326,7 +326,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
     _is_numeric_dtype = False
     _infer_as_myclass = True
-    _timezone = cache_readonly(DatetimeArray._timezone.fget)
+    _timezone = cache_readonly(DatetimeArrayMixin._timezone.fget)
 
     def __new__(cls, data=None,
                 freq=None, start=None, end=None, periods=None, tz=None,
