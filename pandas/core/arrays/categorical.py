@@ -1,4 +1,5 @@
 # pylint: disable=E1101,W0232
+import operator
 
 import numpy as np
 from warnings import warn
@@ -58,6 +59,21 @@ _take_msg = textwrap.dedent("""\
     warning.
 
     Use 'allow_fill=False' to accept the new behavior.""")
+
+
+def _cat_arithmetic_op(op, reverse=False):
+    # arithmetic operations are disabled
+    def func(self, other):
+        from pandas.core.ops import _get_opstr
+        str_rep = _get_opstr(op, self.__class__)
+        raise TypeError("{typ} cannot perform the operation "
+                        "{op}".format(typ=type(self).__name__, op=str_rep))
+
+    opname = op.__name__
+    if reverse:
+        opname = '__r' + opname[2:]
+    func.__name__ = opname
+    return func
 
 
 def _cat_compare_op(op):
@@ -1202,6 +1218,24 @@ class Categorical(ExtensionArray, PandasObject):
     __gt__ = _cat_compare_op('__gt__')
     __le__ = _cat_compare_op('__le__')
     __ge__ = _cat_compare_op('__ge__')
+
+    __add__ = _cat_arithmetic_op(operator.add)
+    __radd__ = _cat_arithmetic_op(operator.add, True)
+    __sub__ = _cat_arithmetic_op(operator.sub)
+    __rsub__ = _cat_arithmetic_op(operator.sub, True)
+    __mul__ = _cat_arithmetic_op(operator.mul)
+    __rmul__ = _cat_arithmetic_op(operator.mul, True)
+    __truediv__ = _cat_arithmetic_op(operator.truediv)
+    __rtruediv__ = _cat_arithmetic_op(operator.truediv, True)
+    __floordiv__ = _cat_arithmetic_op(operator.floordiv)
+    __rfloordiv__ = _cat_arithmetic_op(operator.floordiv, True)
+    __mod__ = _cat_arithmetic_op(operator.mod)
+    __rmod__ = _cat_arithmetic_op(operator.mod, True)
+    __pow__ = _cat_arithmetic_op(operator.pow)
+    __rpow__ = _cat_arithmetic_op(operator.pow, True)
+    if compat.PY2:
+        __div__ = __truediv__
+        __rdiv__ = __rtruediv__
 
     # for Series/ndarray like compat
     @property
