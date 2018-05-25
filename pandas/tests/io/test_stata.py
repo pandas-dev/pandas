@@ -2,6 +2,8 @@
 # pylint: disable=E1101
 
 import datetime as dt
+import io
+import gzip
 import os
 import struct
 import warnings
@@ -1473,3 +1475,28 @@ class TestStata(object):
             with pytest.raises(ValueError):
                 original.to_stata(path,
                                   convert_dates={'wrong_name': 'tc'})
+
+    @pytest.mark.parametrize('version', [114, 117])
+    def test_nonfile_writing(self, version):
+        # GH 21041
+        bio = io.BytesIO()
+        df = tm.makeDataFrame()
+        df.index.name = 'index'
+        with tm.ensure_clean() as path:
+            df.to_stata(bio, version=version)
+            bio.seek(0)
+            with open(path, 'wb') as dta:
+                dta.write(bio.read())
+            reread = pd.read_stata(path, index_col='index')
+        tm.assert_frame_equal(df, reread)
+
+    def test_gzip_writing(self):
+        # writing version 117 requires seek and cannot be used with gzip
+        df = tm.makeDataFrame()
+        df.index.name = 'index'
+        with tm.ensure_clean() as path:
+            with gzip.GzipFile(path, 'wb') as gz:
+                df.to_stata(gz, version=114)
+            with gzip.GzipFile(path, 'rb') as gz:
+                reread = pd.read_stata(gz, index_col='index')
+        tm.assert_frame_equal(df, reread)

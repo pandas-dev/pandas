@@ -45,6 +45,7 @@ Deprecations
 Removal of prior version deprecations/changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+- The ``LongPanel`` and ``WidePanel`` classes have been removed (:issue:`10892`)
 -
 -
 -

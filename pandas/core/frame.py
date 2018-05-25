@@ -1774,8 +1774,11 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        fname : str or buffer
-            String path of file-like object.
+        fname : path (string), buffer or path object
+            string, path object (pathlib.Path or py._path.local.LocalPath) or
+            object implementing a binary write() functions. If using a buffer
+            then the buffer will not be automatically closed after the file
+            data has been written.
         convert_dates : dict
             Dictionary mapping columns containing datetime types to stata
             internal format to use when writing the dates. Options are 'tc',
@@ -4096,9 +4099,8 @@ class DataFrame(NDFrame):
             if not isinstance(level, (tuple, list)):
                 level = [level]
             level = [self.index._get_level_number(lev) for lev in level]
-            if isinstance(self.index, MultiIndex):
-                if len(level) < self.index.nlevels:
-                    new_index = self.index.droplevel(level)
+            if len(level) < self.index.nlevels:
+                new_index = self.index.droplevel(level)
 
         if not drop:
             if isinstance(self.index, MultiIndex):
@@ -4454,7 +4456,10 @@ class DataFrame(NDFrame):
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
 
-        if level:
+        # make sure that the axis is lexsorted to start
+        # if not we need to reconstruct to get the correct indexer
+        labels = labels._sort_levels_monotonic()
+        if level is not None:
 
             new_axis, indexer = labels.sortlevel(level, ascending=ascending,
                                                  sort_remaining=sort_remaining)
@@ -4462,9 +4467,6 @@ class DataFrame(NDFrame):
         elif isinstance(labels, MultiIndex):
             from pandas.core.sorting import lexsort_indexer
 
-            # make sure that the axis is lexsorted to start
-            # if not we need to reconstruct to get the correct indexer
-            labels = labels._sort_levels_monotonic()
             indexer = lexsort_indexer(labels._get_labels_for_sorting(),
                                       orders=ascending,
                                       na_position=na_position)
@@ -5731,7 +5733,12 @@ class DataFrame(NDFrame):
     # ----------------------------------------------------------------------
     # Function application
 
-    def _gotitem(self, key, ndim, subset=None):
+    def _gotitem(self,
+                 key,           # type: Union[str, List[str]]
+                 ndim,          # type: int
+                 subset=None    # type: Union[Series, DataFrame, None]
+                 ):
+        # type: (...) -> Union[Series, DataFrame]
         """
         sub-classes to define
         return a sliced object
@@ -5746,9 +5753,11 @@ class DataFrame(NDFrame):
         """
         if subset is None:
             subset = self
+        elif subset.ndim == 1:  # is Series
+            return subset
 
         # TODO: _shallow_copy(subset)?
-        return self[key]
+        return subset[key]
 
     _agg_doc = dedent("""
     The aggregation operations are always performed over an axis, either the
