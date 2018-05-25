@@ -185,6 +185,13 @@ options like ``dayfirst`` or ``format``, so use ``to_datetime`` if these are req
 
     pd.Timestamp('2010/11/12')
 
+You can also use the `DatetimeIndex` constructor directly:
+In [3]: pd.DatetimeIndex(['2018-01-01', '2018-01-03', '2018-01-05'])
+Out[3]: DatetimeIndex(['2018-01-01', '2018-01-03', '2018-01-05'], dtype='datetime64[ns]', freq=None)
+
+In [2]: pd.DatetimeIndex(['2018-01-01', '2018-01-03', '2018-01-05'], freq='infer')
+Out[2]: DatetimeIndex(['2018-01-01', '2018-01-03', '2018-01-05'], dtype='datetime64[ns]', freq='2D')
+
 Providing a Format Argument
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
