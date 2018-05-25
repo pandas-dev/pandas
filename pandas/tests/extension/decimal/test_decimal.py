@@ -99,10 +99,6 @@ class TestInterface(BaseDecimal, base.BaseInterfaceTests):
     pass
 
 
-class TestOps(BaseDecimal, base.BaseOpsTests):
-    pass
-
-
 class TestConstructors(BaseDecimal, base.BaseConstructorsTests):
 
     @pytest.mark.xfail(reason="not implemented constructor from dtype")
