@@ -9,7 +9,7 @@ from pandas.core.dtypes.dtypes import PeriodDtype
 from .datetimelike import DatetimeLikeArrayMixin
 
 
-class PeriodArray(DatetimeLikeArrayMixin):
+class PeriodArrayMixin(DatetimeLikeArrayMixin):
     @property
     def _box_func(self):
         return lambda x: Period._from_ordinal(ordinal=x, freq=self.freq)

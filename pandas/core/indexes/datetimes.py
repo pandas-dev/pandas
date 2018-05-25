@@ -35,7 +35,7 @@ from pandas.core.dtypes.missing import isna
 import pandas.core.dtypes.concat as _concat
 from pandas.errors import PerformanceWarning
 from pandas.core.algorithms import checked_add_with_arr
-from pandas.core.arrays.datetimes import DatetimeArray
+from pandas.core.arrays.datetimes import DatetimeArrayMixin
 
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.numeric import Int64Index, Float64Index
@@ -173,7 +173,7 @@ def _new_DatetimeIndex(cls, d):
     return result
 
 
-class DatetimeIndex(DatetimeArray, DatelikeOps, TimelikeOps,
+class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                     DatetimeIndexOpsMixin, Int64Index):
     """
     Immutable ndarray of datetime64 data, represented internally as int64, and

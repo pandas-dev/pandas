@@ -14,7 +14,7 @@ from pandas.core.dtypes.dtypes import DatetimeTZDtype
 from .datetimelike import DatetimeLikeArrayMixin
 
 
-class DatetimeArray(DatetimeLikeArrayMixin):
+class DatetimeArrayMixin(DatetimeLikeArrayMixin):
     """
     Assumes that subclass __new__/__init__ defines:
         tz

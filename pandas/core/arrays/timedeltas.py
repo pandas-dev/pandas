@@ -7,7 +7,7 @@ from pandas.core.dtypes.common import _TD_DTYPE
 from .datetimelike import DatetimeLikeArrayMixin
 
 
-class TimedeltaArray(DatetimeLikeArrayMixin):
+class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
     @property
     def _box_func(self):
         return lambda x: Timedelta(x, unit='ns')

@@ -17,7 +17,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.generic import ABCSeries
 
-from pandas.core.arrays.timedeltas import TimedeltaArray
+from pandas.core.arrays.timedeltas import TimedeltaArrayMixin
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.numeric import Int64Index
 import pandas.compat as compat
@@ -97,7 +97,7 @@ def _td_index_cmp(opname, cls):
     return compat.set_function_name(wrapper, opname, cls)
 
 
-class TimedeltaIndex(TimedeltaArray, DatetimeIndexOpsMixin,
+class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                      TimelikeOps, Int64Index):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
