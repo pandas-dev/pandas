@@ -59,15 +59,7 @@ def test_xarray(df):
 
 def test_oo_optimizable():
     # GH 21071
-    pkg_gen = pkgutil.walk_packages('.')
-
-    # Ignore items at the top of the package like setup and versioneer
-    packages = [x for x in pkg_gen if x[0].path != '.']
-    statement = ";".join("import {name}".format(name=package.name)
-                         for package in packages)
-
-    with warnings.catch_warnings(record=True):
-        subprocess.check_call(["python", "-OO", "-c", statement])
+    subprocess.check_call(["python", "-OO", "-c", "import pandas"])
 
 
 @tm.network
