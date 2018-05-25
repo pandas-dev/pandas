@@ -4177,8 +4177,9 @@ class DataFrame(NDFrame):
             * 0, or 'index' : Drop rows which contain missing values.
             * 1, or 'columns' : Drop columns which contain missing value.
 
-            .. deprecated:: 0.23.0: Pass tuple or list to drop on multiple
-            axes.
+            .. deprecated:: 0.23.0
+                Pass tuple or list to drop on multiple axes.
+
         how : {'any', 'all'}, default 'any'
             Determine if row or column is removed from DataFrame, when we have
             at least one NA or all NA.
