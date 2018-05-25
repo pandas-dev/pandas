@@ -193,6 +193,10 @@ class TestTimeConversionFormats(object):
          [pd.Timestamp('2010-01-01 12:00:00', tz='UTC'),
           pd.Timestamp('2010-01-01 12:00:00', tz='GMT'),
           pd.Timestamp('2010-01-01 12:00:00', tz='US/Pacific')]],
+        ['%Y-%m-%d %H:%M:%S%z',
+         ['2010-01-01 12:00:00+0100'] * 2,
+         [pd.Timestamp('2010-01-01 12:00:00',
+                       tzinfo=pytz.FixedOffset(60))] * 2],
         ['%Y-%m-%d %H:%M:%S %z',
          ['2010-01-01 12:00:00 +0100'] * 2,
          [pd.Timestamp('2010-01-01 12:00:00',
@@ -221,7 +225,7 @@ class TestTimeConversionFormats(object):
             pd.to_datetime(dates, format=fmt, box=box, utc=True)
 
     @pytest.mark.parametrize('offset', [
-        '+0', '-1foo', 'UTCbar', ':10', '+01:000:01'])
+        '+0', '-1foo', 'UTCbar', ':10', '+01:000:01', ''])
     def test_to_datetime_parse_timezone_malformed(self, offset):
         fmt = '%Y-%m-%d %H:%M:%S %z'
         date = '2010-01-01 12:00:00 ' + offset

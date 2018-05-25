@@ -16,7 +16,6 @@ New features
 ~~~~~~~~~~~~
 
 - :meth:`Index.droplevel` is now implemented also for flat indexes, for compatibility with MultiIndex (:issue:`21115`)
-- :func:`to_datetime` now supports the ``%Z`` and ``%z`` directive when passed into ``format`` (:issue:`13486`)
 
 
 .. _whatsnew_0231.deprecations:
