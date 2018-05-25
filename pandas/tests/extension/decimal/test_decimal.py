@@ -101,8 +101,6 @@ class TestInterface(BaseDecimal, base.BaseInterfaceTests):
     pass
 
 
-<<<<<<< HEAD
-=======
 class TestOps(BaseDecimal, base.BaseOpsTests):
 
     def compare(self, s, op, other):
@@ -138,7 +136,6 @@ class TestOps(BaseDecimal, base.BaseOpsTests):
         tm.assert_series_equal(result, expected)
 
 
->>>>>>> ENH: add ops to extension array
 class TestConstructors(BaseDecimal, base.BaseConstructorsTests):
 
     @pytest.mark.xfail(reason="not implemented constructor from dtype")

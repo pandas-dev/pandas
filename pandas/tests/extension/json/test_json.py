@@ -143,6 +143,10 @@ class TestReshaping(BaseJSON, base.BaseReshapingTests):
     pass
 
 
+class TestOps(BaseJSON, base.BaseOpsTests):
+    pass
+
+
 class TestGetitem(BaseJSON, base.BaseGetitemTests):
     pass
 

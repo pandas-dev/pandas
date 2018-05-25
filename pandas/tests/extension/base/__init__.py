@@ -46,6 +46,7 @@ from .dtype import BaseDtypeTests  # noqa
 from .getitem import BaseGetitemTests  # noqa
 from .groupby import BaseGroupbyTests  # noqa
 from .interface import BaseInterfaceTests  # noqa
+from .ops import BaseOpsTests  # noqa
 from .methods import BaseMethodsTests  # noqa
 from .missing import BaseMissingTests  # noqa
 from .reshaping import BaseReshapingTests  # noqa

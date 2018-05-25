@@ -57,8 +57,6 @@ class TestDtype(base.BaseDtypeTests):
         assert dtype.construct_array_type('foo') is Categorical
 
 
-<<<<<<< HEAD
-=======
 class TestOps(base.BaseOpsTests):
 
     def test_compare_scalar(self, data, all_compare_operators):
@@ -75,7 +73,6 @@ class TestOps(base.BaseOpsTests):
                 getattr(data, op)(0)
 
 
->>>>>>> ENH: add ops to extension array
 class TestInterface(base.BaseInterfaceTests):
     @pytest.mark.skip(reason="Memory usage doesn't match")
     def test_memory_usage(self):
