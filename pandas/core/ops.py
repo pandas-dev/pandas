@@ -1035,7 +1035,20 @@ def _arith_method_SERIES(cls, op, special):
         return result
 
     def safe_na_op(lvalues, rvalues):
-        # all others
+        """
+        return the result of evaluating na_op on the passed in values
+
+        try coercion to object type if the native types are not compatible
+
+        Parameters
+        ----------
+        lvalues : array-like
+        rvalues : array-like
+
+        Raises
+        ------
+        invalid operation raises TypeError
+        """
         try:
             with np.errstate(all='ignore'):
                 return na_op(lvalues, rvalues)

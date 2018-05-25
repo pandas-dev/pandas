@@ -690,6 +690,7 @@ class ExtensionArray(object):
             cls.__rdiv__ = cls._make_arithmetic_op(ops.rdiv)
 
         cls.__divmod__ = cls._make_arithmetic_op(divmod)
+        cls.__rdivmod__ = cls._make_arithmetic_op(ops.rdivmod)
 
     @classmethod
     def make_comparison_op(cls, op):

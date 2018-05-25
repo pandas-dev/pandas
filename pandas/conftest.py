@@ -101,7 +101,7 @@ def all_arithmetic_operators(request):
 def all_compare_operators(request):
     """
     Fixture for dunder names for common compare operations
-   """
+    """
     return request.param
 
 
