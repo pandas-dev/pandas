@@ -16,6 +16,20 @@ class DecimalDtype(ExtensionDtype):
     na_value = decimal.Decimal('NaN')
 
     @classmethod
+    def construct_array_type(cls, array):
+        """Return the array type associated with this dtype
+
+        Parameters
+        ----------
+        string : str
+
+        Returns
+        -------
+        type
+        """
+        return DecimalArray
+
+    @classmethod
     def construct_from_string(cls, string):
         if string == cls.name:
             return cls()
@@ -99,9 +113,6 @@ class DecimalArray(ExtensionArray):
     @classmethod
     def _concat_same_type(cls, to_concat):
         return cls(np.concatenate([x._data for x in to_concat]))
-
-
-DecimalDtype.array_type = DecimalArray
 
 
 def make_data():

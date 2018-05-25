@@ -33,6 +33,20 @@ class JSONDtype(ExtensionDtype):
         na_value = {}
 
     @classmethod
+    def construct_array_type(cls, array):
+        """Return the array type associated with this dtype
+
+        Parameters
+        ----------
+        string : str
+
+        Returns
+        -------
+        type
+        """
+        return JSONArray
+
+    @classmethod
     def construct_from_string(cls, string):
         if string == cls.name:
             return cls()
@@ -169,9 +183,6 @@ class JSONArray(ExtensionArray):
         # cast them to an (N, P) array, instead of an (N,) array of tuples.
         frozen = [()] + list(tuple(x.items()) for x in self)
         return np.array(frozen, dtype=object)[1:]
-
-
-JSONDtype.array_type = JSONArray
 
 
 def make_data():

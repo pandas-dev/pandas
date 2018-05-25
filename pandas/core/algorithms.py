@@ -154,7 +154,7 @@ def _reconstruct_data(values, dtype, original):
     """
     from pandas import Index
     if is_extension_array_dtype(dtype):
-        values = dtype.array_type._from_sequence(values)
+        values = dtype.construct_array_type(values)._from_sequence(values)
     elif is_datetime64tz_dtype(dtype) or is_period_dtype(dtype):
         values = Index(original)._shallow_copy(values, name=None)
     elif is_bool_dtype(dtype):
