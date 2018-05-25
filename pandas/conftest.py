@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 from pandas.compat import PY3
 import pandas.util._test_decorators as td
-from pandas.util._decorators import Substitution
 
 
 def pytest_addoption(parser):
@@ -134,19 +133,19 @@ nulls_fixture2 = nulls_fixture  # Generate cartesian product of nulls_fixture
 TIMEZONES = [None, 'UTC', 'US/Eastern', 'Asia/Tokyo', 'dateutil/US/Pacific']
 
 
-@Substitution(params=TIMEZONES)
+@td.parametrize_fixture_doc(str(TIMEZONES))
 @pytest.fixture(params=TIMEZONES)
 def tz_naive_fixture(request):
     """
-    Fixture for trying timezones including default (None): %(params)s
+    Fixture for trying timezones including default (None): {0}
     """
     return request.param
 
 
-@Substitution(params=TIMEZONES[1:])
+@td.parametrize_fixture_doc(str(TIMEZONES[1:]))
 @pytest.fixture(params=TIMEZONES[1:])
 def tz_aware_fixture(request):
     """
-    Fixture for trying explicit timezones: %(params)s
+    Fixture for trying explicit timezones: {0}
     """
     return request.param
