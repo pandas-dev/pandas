@@ -363,6 +363,12 @@ or ``np.timedelta64`` objects. Passing ``np.nan/pd.NaT/nat`` will represent miss
    pd.TimedeltaIndex(['1 days', '1 days, 00:00:05',
                      np.timedelta64(2,'D'), datetime.timedelta(days=2,seconds=2)])
 
+   In [5]: pd.TimedeltaIndex(['0 days', '10 days', '20 days'])
+   Out[5]: TimedeltaIndex(['0 days', '10 days', '20 days'], dtype='timedelta64[ns]', freq=None)
+
+   In [4]: pd.TimedeltaIndex(['0 days', '10 days', '20 days'], freq='infer')
+   Out[4]: TimedeltaIndex(['0 days', '10 days', '20 days'], dtype='timedelta64[ns]', freq='10D')
+
 Generating Ranges of Time Deltas
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
