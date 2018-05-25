@@ -1,7 +1,7 @@
 .. _whatsnew_0240:
 
 v0.24.0
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+-------
 
 .. _whatsnew_0240.enhancements:
 
@@ -12,8 +12,8 @@ New features
 
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
--
--
+- :func:`to_datetime` now supports the ``%Z`` and ``%z`` directive when passed into ``format`` (:issue:`13486`)
+- :func:`to_csv` now supports ``compression`` keyword when a file handle is passed. (:issue:`21227`)
 -
 
 .. _whatsnew_0240.api_breaking:
@@ -21,6 +21,13 @@ Other Enhancements
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_0240.api.datetimelike:
+
+Datetimelike API Changes
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+- For :class:`DatetimeIndex` and :class:`TimedeltaIndex` with non-``None`` ``freq`` attribute, addition or subtraction of integer-dtyped array or ``Index`` will return an object of the same class (:issue:`19959`)
 
 .. _whatsnew_0240.api.other:
 
@@ -177,4 +184,3 @@ Other
 -
 -
 -
-
