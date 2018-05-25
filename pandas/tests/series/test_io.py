@@ -162,6 +162,20 @@ class TestSeriesToCSV(TestData):
                                                    index_col=0,
                                                    squeeze=True))
 
+    def test_to_csv_compression_size(self, compression):
+
+        s = Series(100 * [0.123456, 0.234567, 0.567567], name='X')
+
+        with ensure_clean() as filename:
+            import os
+            s.to_csv(filename, compression=compression)
+            file_size = os.path.getsize(filename)
+
+            if compression:
+                s.to_csv(filename, compression=None)
+                uncompressed_file_size = os.path.getsize(filename)
+                assert uncompressed_file_size > file_size
+
 
 class TestSeriesIO(TestData):
 
