@@ -197,7 +197,7 @@ class TestFancy(Base):
         # List containing only missing label
         dfnu = DataFrame(np.random.randn(5, 3), index=list('AABCD'))
         with pytest.raises(KeyError):
-            dfnu.loc[['E']]
+            dfnu.ix[['E']]
 
         # ToDo: check_index_type can be True after GH 11497
 

@@ -110,15 +110,16 @@ class CompressionTests(object):
         # see gh-9770
         expected = self.read_csv(self.csv1, index_col=0, parse_dates=True)
 
-        with open(self.csv1) as f:
-            inputs = [self.csv1, self.csv1 + '.gz',
-                      self.csv1 + '.bz2', f]
+        inputs = [self.csv1, self.csv1 + '.gz',
+                  self.csv1 + '.bz2', open(self.csv1)]
 
-            for inp in inputs:
-                df = self.read_csv(inp, index_col=0, parse_dates=True,
-                                   compression='infer')
+        for f in inputs:
+            df = self.read_csv(f, index_col=0, parse_dates=True,
+                               compression='infer')
 
-                tm.assert_frame_equal(expected, df)
+            tm.assert_frame_equal(expected, df)
+
+        inputs[3].close()
 
     def test_read_csv_compressed_utf16_example(self):
         # GH18071

@@ -4096,8 +4096,9 @@ class DataFrame(NDFrame):
             if not isinstance(level, (tuple, list)):
                 level = [level]
             level = [self.index._get_level_number(lev) for lev in level]
-            if len(level) < self.index.nlevels:
-                new_index = self.index.droplevel(level)
+            if isinstance(self.index, MultiIndex):
+                if len(level) < self.index.nlevels:
+                    new_index = self.index.droplevel(level)
 
         if not drop:
             if isinstance(self.index, MultiIndex):
@@ -4453,10 +4454,7 @@ class DataFrame(NDFrame):
         axis = self._get_axis_number(axis)
         labels = self._get_axis(axis)
 
-        # make sure that the axis is lexsorted to start
-        # if not we need to reconstruct to get the correct indexer
-        labels = labels._sort_levels_monotonic()
-        if level is not None:
+        if level:
 
             new_axis, indexer = labels.sortlevel(level, ascending=ascending,
                                                  sort_remaining=sort_remaining)
@@ -4464,6 +4462,9 @@ class DataFrame(NDFrame):
         elif isinstance(labels, MultiIndex):
             from pandas.core.sorting import lexsort_indexer
 
+            # make sure that the axis is lexsorted to start
+            # if not we need to reconstruct to get the correct indexer
+            labels = labels._sort_levels_monotonic()
             indexer = lexsort_indexer(labels._get_labels_for_sorting(),
                                       orders=ascending,
                                       na_position=na_position)
