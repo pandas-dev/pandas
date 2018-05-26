@@ -464,7 +464,6 @@ class TestCompression(object):
                                            columns=['X', 'Y', 'Z'])])
 
         with tm.ensure_clean() as filename:
-            import os
             df.to_pickle(filename, compression=compression)
             file_size = os.path.getsize(filename)
 

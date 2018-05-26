@@ -21,7 +21,7 @@ def test_compression_roundtrip(compression):
         assert_frame_equal(df, pd.read_json(result))
 
 
-def test_to_csv_compression_size(compression):
+def test_to_json_compression_size(compression):
 
     df = pd.concat(100 * [pd.DataFrame([[0.123456, 0.234567, 0.567567],
                                         [12.32112, 123123.2, 321321.2]],

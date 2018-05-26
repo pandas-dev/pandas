@@ -167,11 +167,11 @@ class TestSeriesToCSV(TestData):
 
         with ensure_clean() as filename:
             import os
-            s.to_csv(filename, compression=compression)
+            s.to_csv(filename, compression=compression, header=True)
             file_size = os.path.getsize(filename)
 
             if compression:
-                s.to_csv(filename, compression=None)
+                s.to_csv(filename, compression=None, header=True)
                 uncompressed_file_size = os.path.getsize(filename)
                 assert uncompressed_file_size > file_size
 
