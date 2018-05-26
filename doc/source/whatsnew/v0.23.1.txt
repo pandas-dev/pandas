@@ -65,12 +65,13 @@ Indexing
 ^^^^^^^^
 
 - Bug in :meth:`Series.reset_index` where appropriate error was not raised with an invalid level name (:issue:`20925`)
+- Bug in :func:`interval_range` when ``start``/``periods`` or ``end``/``periods`` are specified with float ``start`` or ``end`` (:issue:`21161`)
 -
 
 I/O
 ^^^
 
--
+- Bug in :meth:`DataFrame.to_stata` which prevented exporting DataFrames to buffers and most file-like objects (:issue:`21041`)
 -
 
 Plotting
@@ -83,9 +84,4 @@ Reshaping
 ^^^^^^^^^
 
 -
--
-
-Categorical
-^^^^^^^^^^^
-
 -
