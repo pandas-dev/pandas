@@ -1557,14 +1557,14 @@ class TestDataFrameIndexing(TestData):
                                     'y',
                                     pd.datetime(2013, 1, 1),
                                     pd.datetime(2014, 1, 1)]})
-        df = pd.DataFrame(np.zeros((6, 2), dtype=int), columns=['a', 'b'])
+        df = pd.DataFrame(0, columns=list('ab'), index=range(6))
         df['b'] = pd.NaT
         df.loc[0, 'b'] = pd.datetime(2012, 1, 1)
         df.loc[1, 'b'] = 1
         df.loc[[2, 3], 'b'] = 'x', 'y'
-        A = pd.DataFrame([[13, pd.datetime(2013, 1, 1)],
-                          [14, pd.datetime(2014, 1, 1)]])
-        df.loc[[4, 5], ['a', 'b']] = A.values
+        A = np.array([[13, pd.datetime(2013, 1, 1)],
+                      [14, pd.datetime(2014, 1, 1)]])
+        df.loc[[4, 5], ['a', 'b']] = A
         assert_frame_equal(df, expected)
 
     def test_setitem_frame(self):
