@@ -1112,10 +1112,15 @@ class TestDataFrameAggregate(TestData):
             with pytest.raises(expected):
                 # e.g. DataFrame(['a b'.split()]).cumprod() will raise
                 df.agg(np_func, axis=axis)
+            with pytest.raises(expected):
                 df.agg(str_func, axis=axis)
-        elif str_func in ('cumprod', 'cumsum'):
-            tm.assert_frame_equal(df.agg(np_func, axis=axis), expected)
-            tm.assert_frame_equal(df.agg(str_func, axis=axis), expected)
+            return
+
+        result = df.agg(np_func, axis=axis)
+        result_str_func = df.agg(str_func, axis=axis)
+        if str_func in ('cumprod', 'cumsum'):
+            tm.assert_frame_equal(result, expected)
+            tm.assert_frame_equal(result_str_func, expected)
         else:
-            tm.assert_series_equal(df.agg(np_func, axis=axis), expected)
-            tm.assert_series_equal(df.agg(str_func, axis=axis), expected)
+            tm.assert_series_equal(result, expected)
+            tm.assert_series_equal(result_str_func, expected)

@@ -384,13 +384,21 @@ class TestSeriesAggregate(TestData):
         if isinstance(expected, type) and issubclass(expected, Exception):
             with pytest.raises(expected):
                 series.agg(np_func)
+            with pytest.raises(expected):
                 series.agg(str_func)
-        elif str_func in ('cumprod', 'cumsum'):
-            tm.assert_series_equal(series.agg(np_func), expected)
-            tm.assert_series_equal(series.agg(str_func), expected)
+            return
+
+        result = series.agg(np_func)
+        result_str_func = series.agg(str_func)
+        if str_func in ('cumprod', 'cumsum'):
+            tm.assert_series_equal(result, expected)
+            tm.assert_series_equal(result_str_func, expected)
+        elif tm.is_number(expected):
+            assert np.isclose(result, expected, equal_nan=True)
+            assert np.isclose(result_str_func, expected, equal_nan=True)
         else:
-            tm.assert_almost_equal(series.agg(np_func), expected)
-            tm.assert_almost_equal(series.agg(str_func), expected)
+            assert result == expected
+            assert result_str_func == expected
 
 
 class TestSeriesMap(TestData):
