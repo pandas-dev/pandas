@@ -1562,8 +1562,8 @@ class TestDataFrameIndexing(TestData):
         df.loc[0, 'b'] = pd.datetime(2012, 1, 1)
         df.loc[1, 'b'] = 1
         df.loc[[2, 3], 'b'] = 'x', 'y'
-        A = np.array([[13, pd.datetime(2013, 1, 1)],
-                      [14, pd.datetime(2014, 1, 1)]])
+        A = np.array([[13, np.datetime64('2013-01-01T00:00:00')],
+                      [14, np.datetime64('2014-01-01T00:00:00')]])
         df.loc[[4, 5], ['a', 'b']] = A
         assert_frame_equal(df, expected)
 
