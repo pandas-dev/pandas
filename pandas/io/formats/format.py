@@ -1237,7 +1237,6 @@ def format_percentiles(percentiles):
 
 
 def _is_dates_only(values):
-
     # return a boolean if we are only dates (and don't have a timezone)
     values = DatetimeIndex(values)
     if values.tz is not None:
@@ -1254,7 +1253,6 @@ def _is_dates_only(values):
 
 
 def _format_datetime64(x, tz=None, nat_rep='NaT'):
-
     if x is None or (is_scalar(x) and isna(x)):
         return nat_rep
 

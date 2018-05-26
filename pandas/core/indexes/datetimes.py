@@ -617,6 +617,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         we require the we have a dtype compat for the values
         if we are passed a non-dtype compat, then coerce using the constructor
         """
+
         if getattr(values, 'dtype', None) is None:
             # empty, but with dtype compat
             if values is None:
