@@ -1,0 +1,99 @@
+.. _whatsnew_0231:
+
+v0.23.1
+-------
+
+This is a minor bug-fix release in the 0.23.x series and includes some small regression fixes
+and bug fixes. We recommend that all users upgrade to this version.
+
+.. contents:: What's new in v0.23.1
+    :local:
+    :backlinks: none
+
+.. _whatsnew_0231.enhancements:
+
+New features
+~~~~~~~~~~~~
+
+- :meth:`Index.droplevel` is now implemented also for flat indexes, for compatibility with MultiIndex (:issue:`21115`)
+
+
+.. _whatsnew_0231.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+
+-
+-
+
+.. _whatsnew_0231.performance:
+
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Improved performance of :meth:`CategoricalIndex.is_monotonic_increasing`, :meth:`CategoricalIndex.is_monotonic_decreasing` and :meth:`CategoricalIndex.is_monotonic` (:issue:`21025`)
+-
+-
+
+Documentation Changes
+~~~~~~~~~~~~~~~~~~~~~
+
+-
+-
+
+.. _whatsnew_0231.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~
+
+- tab completion on :class:`Index` in IPython no longer outputs deprecation warnings (:issue:`21125`)
+
+Groupby/Resample/Rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Bug in :func:`DataFrame.agg` where applying multiple aggregation functions to a :class:`DataFrame` with duplicated column names would cause a stack overflow (:issue:`21063`)
+
+Strings
+^^^^^^^
+
+- Bug in :meth:`Series.str.replace()` where the method throws `TypeError` on Python 3.5.2 (:issue: `21078`)
+
+Timedelta
+^^^^^^^^^
+- Bug in :class:`Timedelta`: where passing a float with a unit would prematurely round the float precision (:issue: `14156`)
+
+Categorical
+^^^^^^^^^^^
+
+- Bug in :func:`pandas.util.testing.assert_index_equal` which raised ``AssertionError`` incorrectly, when comparing two :class:`CategoricalIndex` objects with param ``check_categorical=False`` (:issue:`19776`)
+
+Conversion
+^^^^^^^^^^
+
+-
+-
+
+Indexing
+^^^^^^^^
+
+- Bug in :meth:`Series.reset_index` where appropriate error was not raised with an invalid level name (:issue:`20925`)
+- Bug in :func:`interval_range` when ``start``/``periods`` or ``end``/``periods`` are specified with float ``start`` or ``end`` (:issue:`21161`)
+-
+
+I/O
+^^^
+
+- Bug in :meth:`DataFrame.to_stata` which prevented exporting DataFrames to buffers and most file-like objects (:issue:`21041`)
+-
+
+Plotting
+^^^^^^^^
+
+-
+-
+
+Reshaping
+^^^^^^^^^
+
+- Bug in :func:`concat` where error was raised in concatenating :class:`Series` with numpy scalar and tuple names (:issue:`21015`)
+-
