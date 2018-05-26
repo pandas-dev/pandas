@@ -778,12 +778,8 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
 
     def _check_types(l, r, obj='Index'):
         if exact:
-            assert_class_equal(l, r, exact=exact, obj=obj)
-
-            # Skip exact dtype checking when `check_categorical` is False
-            if check_categorical:
-                assert_attr_equal('dtype', l, r, obj=obj)
-
+            assert_class_equal(left, right, exact=exact, obj=obj)
+            assert_attr_equal('dtype', l, r, obj=obj)
             # allow string-like to have different inferred_types
             if l.inferred_type in ('string', 'unicode'):
                 assert r.inferred_type in ('string', 'unicode')
@@ -833,8 +829,7 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
             # get_level_values may change dtype
             _check_types(left.levels[level], right.levels[level], obj=obj)
 
-    # skip exact index checking when `check_categorical` is False
-    if check_exact and check_categorical:
+    if check_exact:
         if not left.equals(right):
             diff = np.sum((left.values != right.values)
                           .astype(int)) * 100.0 / len(left)
@@ -955,23 +950,23 @@ def is_sorted(seq):
 
 
 def assert_categorical_equal(left, right, check_dtype=True,
-                             check_category_order=True, obj='Categorical'):
+                             obj='Categorical', check_category_order=True):
     """Test that Categoricals are equivalent.
 
     Parameters
     ----------
-    left : Categorical
-    right : Categorical
+    left, right : Categorical
+        Categoricals to compare
     check_dtype : bool, default True
         Check that integer dtype of the codes are the same
+    obj : str, default 'Categorical'
+        Specify object name being compared, internally used to show appropriate
+        assertion message
     check_category_order : bool, default True
         Whether the order of the categories should be compared, which
         implies identical integer codes.  If False, only the resulting
         values are compared.  The ordered attribute is
         checked regardless.
-    obj : str, default 'Categorical'
-        Specify object name being compared, internally used to show appropriate
-        assertion message
     """
     _check_isinstance(left, right, Categorical)
 
@@ -1025,7 +1020,7 @@ def raise_assert_detail(obj, message, left, right, diff=None):
 
 def assert_numpy_array_equal(left, right, strict_nan=False,
                              check_dtype=True, err_msg=None,
-                             check_same=None, obj='numpy array'):
+                             obj='numpy array', check_same=None):
     """ Checks that 'np.ndarray' is equivalent
 
     Parameters
@@ -1038,11 +1033,11 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
         check dtype if both a and b are np.ndarray
     err_msg : str, default None
         If provided, used as assertion message
-    check_same : None|'copy'|'same', default None
-        Ensure left and right refer/do not refer to the same memory area
     obj : str, default 'numpy array'
         Specify object name being compared, internally used to show appropriate
         assertion message
+    check_same : None|'copy'|'same', default None
+        Ensure left and right refer/do not refer to the same memory area
     """
 
     # instance validation

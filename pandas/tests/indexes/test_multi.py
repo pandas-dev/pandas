@@ -99,8 +99,7 @@ class TestMultiIndex(Base):
         cond = [False, True]
 
         for klass in klasses:
-            def f():
-                return i.where(klass(cond))
+            f = lambda: i.where(klass(cond))
             pytest.raises(NotImplementedError, f)
 
     def test_repeat(self):
@@ -2079,7 +2078,7 @@ class TestMultiIndex(Base):
         expected = index.droplevel(1)
         assert dropped.equals(expected)
 
-    def test_droplevel_list(self):
+    def test_droplevel_multiple(self):
         index = MultiIndex(
             levels=[Index(lrange(4)), Index(lrange(4)), Index(lrange(4))],
             labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
@@ -2089,16 +2088,6 @@ class TestMultiIndex(Base):
         dropped = index[:2].droplevel(['three', 'one'])
         expected = index[:2].droplevel(2).droplevel(0)
         assert dropped.equals(expected)
-
-        dropped = index[:2].droplevel([])
-        expected = index[:2]
-        assert dropped.equals(expected)
-
-        with pytest.raises(ValueError):
-            index[:2].droplevel(['one', 'two', 'three'])
-
-        with pytest.raises(KeyError):
-            index[:2].droplevel(['one', 'four'])
 
     def test_drop_not_lexsorted(self):
         # GH 12078
@@ -2416,8 +2405,7 @@ class TestMultiIndex(Base):
 
             # with a dup
             if with_nulls:
-                def f(a):
-                    return np.insert(a, 1000, a[0])
+                f = lambda a: np.insert(a, 1000, a[0])
                 labels = list(map(f, labels))
                 index = MultiIndex(levels=levels, labels=labels)
             else:

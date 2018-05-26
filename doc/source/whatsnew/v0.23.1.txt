@@ -15,8 +15,6 @@ and bug fixes. We recommend that all users upgrade to this version.
 New features
 ~~~~~~~~~~~~
 
-- :meth:`Index.droplevel` is now implemented also for flat indexes, for compatibility with MultiIndex (:issue:`21115`)
-
 
 .. _whatsnew_0231.deprecations:
 
@@ -46,8 +44,6 @@ Documentation Changes
 Bug Fixes
 ~~~~~~~~~
 
-- tab completion on :class:`Index` in IPython no longer outputs deprecation warnings (:issue:`21125`)
-
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -57,15 +53,7 @@ Strings
 ^^^^^^^
 
 - Bug in :meth:`Series.str.replace()` where the method throws `TypeError` on Python 3.5.2 (:issue: `21078`)
-
-Timedelta
-^^^^^^^^^
-- Bug in :class:`Timedelta`: where passing a float with a unit would prematurely round the float precision (:issue: `14156`)
-
-Categorical
-^^^^^^^^^^^
-
-- Bug in :func:`pandas.util.testing.assert_index_equal` which raised ``AssertionError`` incorrectly, when comparing two :class:`CategoricalIndex` objects with param ``check_categorical=False`` (:issue:`19776`)
+-
 
 Conversion
 ^^^^^^^^^^
@@ -94,7 +82,7 @@ Plotting
 Reshaping
 ^^^^^^^^^
 
-- Bug in :func:`concat` where error was raised in concatenating :class:`Series` with numpy scalar and tuple names (:issue:`21015`)
+-
 -
 
 Categorical
