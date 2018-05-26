@@ -473,6 +473,7 @@ class TestCompression(object):
                 uncompressed_file_size = os.path.getsize(filename)
                 assert uncompressed_file_size > file_size
 
+
 # ---------------------
 # test pickle compression
 # ---------------------
