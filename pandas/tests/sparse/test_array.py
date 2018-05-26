@@ -455,6 +455,7 @@ class TestSparseArray(object):
         assert_almost_equal(self.arr.sp_values, np.asarray(self.arr))
 
     def test_shape(self):
+        # GH 21126
         out = SparseArray([0, 0, 0, 0, 0])
         assert out.shape == (5,)
 
