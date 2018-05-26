@@ -308,6 +308,14 @@ class DocBuilder:
     def spellcheck(self):
         """Spell check the documentation."""
         self._sphinx_build('spelling')
+        output_location = os.path.join('build', 'spelling', 'output.txt')
+        with open(output_location) as output:
+            lines = output.readlines()
+            if lines:
+                raise SyntaxError(
+                    'Found misspelled words.'
+                    ' Check pandas/doc/build/spelling/output.txt'
+                    ' for more details.')
 
 
 def main():
