@@ -64,7 +64,7 @@ Performance Improvements
 Documentation Changes
 ~~~~~~~~~~~~~~~~~~~~~
 
--
+- Added sphinx spelling extension, updated documentation on how to use the spell check (:issue:`21079`)
 -
 -
 
