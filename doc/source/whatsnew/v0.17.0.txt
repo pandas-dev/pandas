@@ -73,7 +73,7 @@ We are adding an implementation that natively supports datetime with timezones. 
 *could* be assigned a datetime with timezones, and would work as an ``object`` dtype. This had performance issues with a large
 number rows. See the :ref:`docs <timeseries.timezone_series>` for more details. (:issue:`8260`, :issue:`10763`, :issue:`11034`).
 
-The new implementation allows for having a single-timezone across all rows, with operations in a efficient manner.
+The new implementation allows for having a single-timezone across all rows, with operations in a performant manner.
 
 .. ipython:: python
 

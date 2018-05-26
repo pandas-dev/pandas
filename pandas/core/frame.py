@@ -4540,7 +4540,7 @@ class DataFrame(NDFrame):
 
         This method is equivalent to
         ``df.sort_values(columns, ascending=False).head(n)``, but more
-        efficient.
+        performant.
 
         Parameters
         ----------

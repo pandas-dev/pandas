@@ -1332,7 +1332,7 @@ In order to resample to work on indexes that are non-datetimelike, the following
 
 In the following examples, **df.index // 5** returns a binary array which is used to determine what gets selected for the groupby operation.
 
-.. note:: The below example shows how we can down-sample by consolidation of samples into fewer samples. Here by using **df.index // 5**, we are aggregating the samples in bins. By applying **std()** function, we aggregate the information contained in many samples into a small subset of values which is their standard deviation thereby reducing the number of samples.
+.. note:: The below example shows how we can downsample by consolidation of samples into fewer samples. Here by using **df.index // 5**, we are aggregating the samples in bins. By applying **std()** function, we aggregate the information contained in many samples into a small subset of values which is their standard deviation thereby reducing the number of samples.
 
 .. ipython:: python
 

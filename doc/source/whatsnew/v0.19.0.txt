@@ -1512,7 +1512,7 @@ Bug Fixes
 - Bug in ``.set_index`` raises ``AmbiguousTimeError`` if new index contains DST boundary and multi levels (:issue:`12920`)
 - Bug in ``.shift`` raises ``AmbiguousTimeError`` if data contains datetime near DST boundary (:issue:`13926`)
 - Bug in ``pd.read_hdf()`` returns incorrect result when a ``DataFrame`` with a ``categorical`` column and a query which doesn't match any values (:issue:`13792`)
-- Bug in ``.iloc`` when indexing with a non lex-sorted MultiIndex (:issue:`13797`)
+- Bug in ``.iloc`` when indexing with a non lexsorted MultiIndex (:issue:`13797`)
 - Bug in ``.loc`` when indexing with date strings in a reverse sorted ``DatetimeIndex`` (:issue:`14316`)
 - Bug in ``Series`` comparison operators when dealing with zero dim NumPy arrays (:issue:`13006`)
 - Bug in ``.combine_first`` may return incorrect ``dtype`` (:issue:`7630`, :issue:`10567`)

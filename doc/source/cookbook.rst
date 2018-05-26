@@ -307,7 +307,7 @@ MultiIndexing
 
 The :ref:`multindexing <advanced.hierarchical>` docs.
 
-`Creating a multi-index from a labeled frame
+`Creating a MultiIndex from a labeled frame
 <http://stackoverflow.com/questions/14916358/reshaping-dataframes-in-pandas-based-on-column-labels>`__
 
 .. ipython:: python
@@ -330,7 +330,7 @@ The :ref:`multindexing <advanced.hierarchical>` docs.
 Arithmetic
 **********
 
-`Performing arithmetic with a multi-index that needs broadcasting
+`Performing arithmetic with a MultiIndex that needs broadcasting
 <http://stackoverflow.com/questions/19501510/divide-entire-pandas-multiindex-dataframe-by-dataframe-variable/19502176#19502176>`__
 
 .. ipython:: python
@@ -342,7 +342,7 @@ Arithmetic
 Slicing
 *******
 
-`Slicing a multi-index with xs
+`Slicing a MultiIndex with xs
 <http://stackoverflow.com/questions/12590131/how-to-slice-multindex-columns-in-pandas-dataframes>`__
 
 .. ipython:: python
@@ -363,7 +363,7 @@ To take the cross section of the 1st level and 1st axis the index:
 
    df.xs('six',level=1,axis=0)
 
-`Slicing a multi-index with xs, method #2
+`Slicing a MultiIndex with xs, method #2
 <http://stackoverflow.com/questions/14964493/multiindex-based-indexing-in-pandas>`__
 
 .. ipython:: python
@@ -386,13 +386,13 @@ To take the cross section of the 1st level and 1st axis the index:
    df.loc[(All,'Math'),('Exams')]
    df.loc[(All,'Math'),(All,'II')]
 
-`Setting portions of a multi-index with xs
+`Setting portions of a MultiIndex with xs
 <http://stackoverflow.com/questions/19319432/pandas-selecting-a-lower-level-in-a-dataframe-to-do-a-ffill>`__
 
 Sorting
 *******
 
-`Sort by specific column or an ordered list of columns, with a multi-index
+`Sort by specific column or an ordered list of columns, with a MultiIndex
 <http://stackoverflow.com/questions/14733871/mutli-index-sorting-in-pandas>`__
 
 .. ipython:: python
@@ -677,7 +677,7 @@ To create year and month cross tabulation:
 Apply
 *****
 
-`Rolling Apply to Organize - Turning embedded lists into a multi-index frame
+`Rolling Apply to Organize - Turning embedded lists into a MultiIndex frame
 <http://stackoverflow.com/questions/17349981/converting-pandas-dataframe-with-categorical-values-into-binary-values>`__
 
 .. ipython:: python
@@ -1030,7 +1030,7 @@ Skip row between header and data
     """
 
 Option 1: pass rows explicitly to skip rows
-""""""""""""""""""""""""""""""""""""""""""
+"""""""""""""""""""""""""""""""""""""""""""
 
 .. ipython:: python
 

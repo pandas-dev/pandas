@@ -1801,7 +1801,7 @@ class _LocIndexer(_LocationIndexer):
         # this is a shortcut accessor to both .loc and .iloc
         # that provide the equivalent access of .at and .iat
         # a) avoid getting things via sections and (to minimize dtype changes)
-        # b) provide an efficient path
+        # b) provide a performant path
         if not hasattr(key, '__len__'):
             return False
 
@@ -1977,7 +1977,7 @@ class _iLocIndexer(_LocationIndexer):
         # this is a shortcut accessor to both .loc and .iloc
         # that provide the equivalent access of .at and .iat
         # a) avoid getting things via sections and (to minimize dtype changes)
-        # b) provide an efficient path
+        # b) provide a performant path
         if not hasattr(key, '__len__'):
             return False
 

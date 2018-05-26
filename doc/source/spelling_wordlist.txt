@@ -2377,12 +2377,17 @@ serialisable
 lzo
 usepackage
 booktabs
+coereced
 rcl
 multicolumns
+gfc
+automagically
 fastparquet
 brotli
 sql
 nullable
+performant
+lexsorted
 tw
 latin
 StrL

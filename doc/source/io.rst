@@ -116,7 +116,7 @@ header : int or list of ints, default ``'infer'``
   existing names.
 
   The header can be a list of ints that specify row locations
-  for a multi-index on the columns e.g. ``[0,1,3]``. Intervening rows
+  for a MultiIndex on the columns e.g. ``[0,1,3]``. Intervening rows
   that are not specified will be skipped (e.g. 2 in this example is
   skipped). Note that this parameter ignores commented lines and empty
   lines if ``skip_blank_lines=True``, so header=0 denotes the first
@@ -953,7 +953,7 @@ datetime strings are all formatted the same way, you may get a large speed
 up by setting ``infer_datetime_format=True``.  If set, pandas will attempt
 to guess the format of your datetime strings, and then use a faster means
 of parsing the strings.  5-10x parsing speeds have been observed.  pandas
-will fall-back to the usual parsing if either the format cannot be guessed
+will fallback to the usual parsing if either the format cannot be guessed
 or the format that was guessed cannot properly parse the entire column
 of strings.  So in general, ``infer_datetime_format`` should not have any
 negative consequences if enabled.
@@ -1644,7 +1644,7 @@ over the string representation of the object. All arguments are optional:
     argument and returns a formatted string; to be applied to floats in the
     ``DataFrame``.
   - ``sparsify`` default True, set to False for a ``DataFrame`` with a hierarchical
-    index to print every multi-index key at each row.
+    index to print every MultiIndex key at each row.
   - ``index_names`` default True, will print the names of the indices
   - ``index`` default True, will print the index (ie, row labels)
   - ``header`` default True, will print the column labels
@@ -1812,7 +1812,7 @@ Writing to a file, with a date index and a date column:
    dfj2.to_json('test.json')
    open('test.json').read()
 
-Fall-back Behavior
+Fallback Behavior
 +++++++++++++++++
 
 If the JSON serializer cannot handle the container contents directly it will
@@ -2237,7 +2237,7 @@ A few notes on the generated table schema:
     name is ``values``
   + For ``DataFrames``, the stringified version of the column name is used
   + For ``Index`` (not ``MultiIndex``), ``index.name`` is used, with a
-    fall-back to ``index`` if that is None.
+    fallback to ``index`` if that is None.
   + For ``MultiIndex``, ``mi.names`` is used. If any level has no name,
     then ``level_<i>`` is used.
 
@@ -2246,7 +2246,7 @@ A few notes on the generated table schema:
 
 ``read_json`` also accepts ``orient='table'`` as an argument. This allows for
 the preservation of metadata such as dtypes and index names in a
-round-trip manner.
+round-trippable manner.
 
   .. ipython:: python
 
@@ -3467,7 +3467,7 @@ Fixed Format
 ''''''''''''
 
 The examples above show storing using ``put``, which write the HDF5 to ``PyTables`` in a fixed array format, called
-the ``fixed`` format. These types of stores are **not** able to be appended once written (though you can simply
+the ``fixed`` format. These types of stores are **not** appendable once written (though you can simply
 remove them and rewrite). Nor are they **queryable**; they must be
 retrieved in their entirety. They also do not support dataframes with non-unique column names.
 The ``fixed`` format stores offer very fast writing and slightly faster reading than ``table`` stores.
@@ -3820,7 +3820,7 @@ indexed dimension as the ``where``.
 
 .. note::
 
-   Indexes are auto-magically created on the indexables
+   Indexes are automagically created on the indexables
    and any data columns you specify. This behavior can be turned off by passing
    ``index=False`` to ``append``.
 
@@ -4629,7 +4629,7 @@ included in Python's standard library by default.
 You can find an overview of supported drivers for each SQL dialect in the
 `SQLAlchemy docs <http://docs.sqlalchemy.org/en/latest/dialects/index.html>`__.
 
-If SQLAlchemy is not installed, a fall-back is only provided for sqlite (and
+If SQLAlchemy is not installed, a fallback is only provided for sqlite (and
 for mysql for backwards compatibility, but this is deprecated and will be
 removed in a future version).
 This mode requires a Python database adapter which respect the `Python
@@ -4735,7 +4735,7 @@ SQL data type based on the dtype of the data. When you have columns of dtype
 You can always override the default type by specifying the desired SQL type of
 any of the columns by using the ``dtype`` argument. This argument needs a
 dictionary mapping column names to SQLAlchemy types (or strings for the sqlite3
-fall-back mode).
+fallback mode).
 For example, specifying to use the sqlalchemy ``String`` type instead of the
 default ``Text`` type for string columns:
 
@@ -4922,7 +4922,7 @@ You can combine SQLAlchemy expressions with parameters passed to :func:`read_sql
     pd.read_sql(expr, engine, params={'date': dt.datetime(2010, 10, 18)})
 
 
-Sqlite fall-back
+Sqlite fallback
 '''''''''''''''
 
 The use of sqlite is supported without using SQLAlchemy.

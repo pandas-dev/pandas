@@ -182,7 +182,7 @@ For example:
    df[['foo','qux']].columns  # sliced
 
 This is done to avoid a recomputation of the levels in order to make slicing
-highly efficient. If you want to see only the used levels, you can use the
+highly performant. If you want to see only the used levels, you can use the
 :func:`MultiIndex.get_level_values` method.
 
 .. ipython:: python
@@ -342,7 +342,7 @@ As usual, **both sides** of the slicers are included as this is label indexing.
                        columns=micolumns).sort_index().sort_index(axis=1)
    dfmi
 
-Basic multi-index slicing using slices, lists, and labels.
+Basic MultiIndex slicing using slices, lists, and labels.
 
 .. ipython:: python
 
@@ -559,7 +559,7 @@ return a copy of the data rather than a view:
 
 .. _advanced.unsorted:
 
-Furthermore if you try to index something that is not fully lex-sorted, this can raise:
+Furthermore if you try to index something that is not fully lexsorted, this can raise:
 
 .. code-block:: ipython
 
@@ -593,7 +593,7 @@ Take Methods
 
 Similar to NumPy ndarrays, pandas Index, Series, and DataFrame also provides
 the ``take`` method that retrieves elements along a given axis at the given
-indexes. The given indices must be either a list or an ndarray of integer
+indices. The given indices must be either a list or an ndarray of integer
 index positions. ``take`` will also accept negative integers as relative positions to the end of the object.
 
 .. ipython:: python

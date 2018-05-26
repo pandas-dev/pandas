@@ -847,7 +847,7 @@ the categories being combined.
 
 By default, the resulting categories will be ordered as
 they appear in the data. If you want the categories to
-be lex-sorted, use ``sort_categories=True`` argument.
+be lexsorted, use ``sort_categories=True`` argument.
 
 .. ipython:: python
 

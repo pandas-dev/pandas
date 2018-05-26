@@ -25,7 +25,7 @@ pandas.
     for simplicity and performance reasons. It differs from the MaskedArray
     approach of, for example, :mod:`scikits.timeseries`. We are hopeful that
     NumPy will soon be able to provide a native NA type solution (similar to R)
-    efficient enough to be used in pandas.
+    performant enough to be used in pandas.
 
 See the :ref:`cookbook<cookbook.missing_data>` for some advanced strategies.
 

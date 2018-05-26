@@ -895,7 +895,7 @@ The merged result:
 
 .. note::
 
-   Merging on ``category`` dtypes that are the same can be quite efficient compared to ``object`` dtype merging.
+   Merging on ``category`` dtypes that are the same can be quite performant compared to ``object`` dtype merging.
 
 .. _merging.join.index:
 

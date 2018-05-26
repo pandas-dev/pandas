@@ -379,7 +379,7 @@ def test_observed_codes_remap(observed):
 
 def test_observed_perf():
     # we create a cartesian product, so this is
-    # non-efficient if we don't use observed values
+    # non-performant if we don't use observed values
     # gh-14942
     df = DataFrame({
         'cat': np.random.randint(0, 255, size=30000),

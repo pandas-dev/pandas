@@ -346,7 +346,7 @@ class Resolution(object):
 # Frequency Inference
 
 
-# TODO: this is non efficient logic here (and duplicative) and this
+# TODO: this is non performant logic here (and duplicative) and this
 # simply should call unique_1d directly
 # plus no reason to depend on khash directly
 cdef unique_deltas(ndarray[int64_t] arr):
