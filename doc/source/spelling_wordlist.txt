@@ -2378,6 +2378,8 @@ lzo
 usepackage
 booktabs
 coereced
+spellcheck
+misspelt
 rcl
 multicolumns
 gfc

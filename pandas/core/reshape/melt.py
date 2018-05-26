@@ -166,7 +166,8 @@ def wide_to_long(df, stubnames, i, j, sep="", suffix=r'\d+'):
     Wide panel to long format. Less flexible but more user-friendly than melt.
 
     With stubnames ['A', 'B'], this function expects to find one or more
-    group of columns with format A-suffix1, A-suffix2,..., B-suffix1, B-suffix2,...
+    group of columns with format
+    A-suffix1, A-suffix2,..., B-suffix1, B-suffix2,...
     You specify what you want to call this suffix in the resulting long format
     with `j` (for example `j='year'`)
 

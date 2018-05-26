@@ -1051,7 +1051,8 @@ class Styler(object):
     def bar(self, subset=None, axis=0, color='#d65f5f', width=100,
             align='left'):
         """
-        Color the background ``color`` proportional to the values in each column.
+        Color the background ``color`` proportional to the values in each
+        column.
         Excludes non-numeric data by default.
 
         Parameters
