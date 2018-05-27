@@ -97,3 +97,8 @@ Reshaping
 
 - Bug in :func:`concat` where error was raised in concatenating :class:`Series` with numpy scalar and tuple names (:issue:`21015`)
 -
+
+Numeric
+^^^^^^^
+
+- :meth:`~DataFrame.agg` now correctly handles built-in methods like ``sum`` when axis=1 (:issue:`21134`)
