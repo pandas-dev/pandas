@@ -11,7 +11,7 @@ from pandas.compat import range, lzip, zip, map, filter
 import pandas.compat as compat
 
 from pandas import (Categorical, DataFrame,
-                    Index, MultiIndex, Timedelta)
+                    Index, MultiIndex, Timedelta, Series)
 from pandas.core.arrays.categorical import _recode_for_categories
 from pandas.core.frame import _merge_doc
 from pandas.core.dtypes.common import (
@@ -492,6 +492,10 @@ class _MergeOperation(object):
                  left_index=False, right_index=False, sort=True,
                  suffixes=('_x', '_y'), copy=True, indicator=False,
                  validate=None):
+        if isinstance(left, Series):
+            left = left.to_frame()
+        if isinstance(right, Series):
+            right = right.to_frame()
         self.left = self.orig_left = left
         self.right = self.orig_right = right
         self.how = how
@@ -535,12 +539,14 @@ class _MergeOperation(object):
                 '{right_index}'.format(right_index=type(right_index)))
 
         # warn user when merging between different levels
-        if left.columns.nlevels != right.columns.nlevels:
-            msg = ('merging between different levels can give an unintended '
-                   'result ({left} levels on the left, {right} on the right)'
-                   ).format(left=left.columns.nlevels,
-                            right=right.columns.nlevels)
-            warnings.warn(msg, UserWarning)
+        if isinstance(left, DataFrame) and isinstance(right, DataFrame):
+            if left.columns.nlevels != right.columns.nlevels:
+                msg = ('merging between different levels can give an '
+                       'unintended result ({left} levels on the left, '
+                       '{right} on the right)'
+                       ).format(left=left.columns.nlevels,
+                                right=right.columns.nlevels)
+                warnings.warn(msg, UserWarning)
 
         self._validate_specification()
 

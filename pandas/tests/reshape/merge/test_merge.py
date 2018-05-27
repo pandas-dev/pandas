@@ -1864,3 +1864,24 @@ def test_merge_index_types(index):
         OrderedDict([('left_data', [1, 2]), ('right_data', [1.0, 2.0])]),
         index=index)
     assert_frame_equal(result, expected)
+
+
+def test_merge_series():
+    # GH 21220
+    a = pd.DataFrame({"A": [1, 2, 3, 4]},
+                     index=pd.MultiIndex.from_product([['a', 'b'], [0, 1]],
+                     names=['outer', 'inner']))
+    b = pd.Series([1, 2, 3, 4],
+                  index=pd.MultiIndex.from_product([['a', 'b'], [1, 2]],
+                  names=['outer', 'inner']), name='B')
+    expected = pd.DataFrame({"A": [2, 4], "B": [1, 3]},
+                            index=pd.MultiIndex.from_product([['a', 'b'], [1]],
+                            names=['outer', 'inner']))
+
+    # Testing current merge behvaior is as before
+    result = pd.merge(a, b.to_frame(), on=['outer', 'inner'])
+    tm.assert_frame_equal(result, expected)
+
+    # Testing changed merge behvaior is as expected
+    result = pd.merge(a, b, on=['outer', 'inner'])
+    tm.assert_frame_equal(result, expected)
