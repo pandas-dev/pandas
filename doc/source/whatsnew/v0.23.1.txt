@@ -67,6 +67,11 @@ Categorical
 
 - Bug in :func:`pandas.util.testing.assert_index_equal` which raised ``AssertionError`` incorrectly, when comparing two :class:`CategoricalIndex` objects with param ``check_categorical=False`` (:issue:`19776`)
 
+Sparse
+^^^^^^
+
+- Bug in :attr:`SparseArray.shape` ignores ``fill_values`` (:issue:`21126`)
+
 Conversion
 ^^^^^^^^^^
 
