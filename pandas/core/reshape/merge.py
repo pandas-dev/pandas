@@ -539,14 +539,12 @@ class _MergeOperation(object):
                 '{right_index}'.format(right_index=type(right_index)))
 
         # warn user when merging between different levels
-        if isinstance(left, DataFrame) and isinstance(right, DataFrame):
-            if left.columns.nlevels != right.columns.nlevels:
-                msg = ('merging between different levels can give an '
-                       'unintended result ({left} levels on the left, '
-                       '{right} on the right)'
-                       ).format(left=left.columns.nlevels,
-                                right=right.columns.nlevels)
-                warnings.warn(msg, UserWarning)
+        if left.columns.nlevels != right.columns.nlevels:
+            msg = ('merging between different levels can give an unintended '
+                   'result ({left} levels on the left, {right} on the right)'
+                   ).format(left=left.columns.nlevels,
+                            right=right.columns.nlevels)
+            warnings.warn(msg, UserWarning)
 
         self._validate_specification()
 
