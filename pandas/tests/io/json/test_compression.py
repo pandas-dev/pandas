@@ -21,24 +21,6 @@ def test_compression_roundtrip(compression):
         assert_frame_equal(df, pd.read_json(result))
 
 
-def test_to_json_compression_size(compression):
-
-    df = pd.concat(100 * [pd.DataFrame([[0.123456, 0.234567, 0.567567],
-                                        [12.32112, 123123.2, 321321.2]],
-                                       columns=['X', 'Y', 'Z'])],
-                   ignore_index=True)
-
-    with tm.ensure_clean() as filename:
-        import os
-        df.to_json(filename, compression=compression)
-        file_size = os.path.getsize(filename)
-
-        if compression:
-            df.to_json(filename, compression=None)
-            uncompressed_file_size = os.path.getsize(filename)
-            assert uncompressed_file_size > file_size
-
-
 def test_read_zipped_json():
     uncompressed_path = tm.get_data_path("tsframe_v012.json")
     uncompressed_df = pd.read_json(uncompressed_path)

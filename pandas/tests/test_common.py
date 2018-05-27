@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import pytest
+import os
 import collections
 from functools import partial
 
 import numpy as np
 
-from pandas import Series, Timestamp
+import pandas as pd
+from pandas import Series, DataFrame, Timestamp
 from pandas.compat import range, lmap
 import pandas.core.common as com
 from pandas.core import ops
@@ -222,3 +224,22 @@ def test_standardize_mapping():
 
     dd = collections.defaultdict(list)
     assert isinstance(com.standardize_mapping(dd), partial)
+
+
+@pytest.mark.parametrize('method', ['to_pickle', 'to_json', 'to_csv'])
+def test_compression_size(method, compression):
+
+    df = pd.concat(100 * [DataFrame([[0.123456, 0.234567, 0.567567],
+                                     [12.32112, 123123.2, 321321.2]],
+                                    columns=['X', 'Y', 'Z'])],
+                   ignore_index=True)
+    s = df.iloc[:, 0]
+
+    with tm.ensure_clean() as filename:
+        for obj in [df, s]:
+            getattr(obj, method)(filename, compression=compression)
+            file_size = os.path.getsize(filename)
+            getattr(obj, method)(filename, compression=None)
+            uncompressed_file_size = os.path.getsize(filename)
+            if compression:
+                assert uncompressed_file_size > file_size
