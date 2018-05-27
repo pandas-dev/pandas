@@ -35,24 +35,18 @@ class TestTextReader(object):
         self.xls1 = os.path.join(self.dirpath, 'test.xls')
 
     def test_file_handle(self):
-        try:
-            f = open(self.csv1, 'rb')
+        with open(self.csv1, 'rb') as f:
             reader = TextReader(f)
-            result = reader.read()  # noqa
-        finally:
-            f.close()
+            reader.read()
 
     def test_string_filename(self):
         reader = TextReader(self.csv1, header=None)
         reader.read()
 
     def test_file_handle_mmap(self):
-        try:
-            f = open(self.csv1, 'rb')
+        with open(self.csv1, 'rb') as f:
             reader = TextReader(f, memory_map=True, header=None)
             reader.read()
-        finally:
-            f.close()
 
     def test_StringIO(self):
         with open(self.csv1, 'rb') as f:

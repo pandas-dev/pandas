@@ -241,7 +241,7 @@ def str_count(arr, pat, flags=0):
     Escape ``'$'`` to find the literal dollar sign.
 
     >>> s = pd.Series(['$', 'B', 'Aab$', '$$ca', 'C$B$', 'cat'])
-    >>> s.str.count('\$')
+    >>> s.str.count('\\$')
     0    1
     1    0
     2    1
@@ -358,7 +358,7 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
 
     Returning any digit using regular expression.
 
-    >>> s1.str.contains('\d', regex=True)
+    >>> s1.str.contains('\\d', regex=True)
     0    False
     1    False
     2    False
@@ -2320,9 +2320,9 @@ class StringMethods(NoNewAttributesMixin):
         res = str_cat(data, others=others, sep=sep, na_rep=na_rep)
 
         if isinstance(self._orig, Index):
-            res = Index(res)
+            res = Index(res, name=self._orig.name)
         else:  # Series
-            res = Series(res, index=data.index)
+            res = Series(res, index=data.index, name=self._orig.name)
         return res
 
     @copy(str_split)
