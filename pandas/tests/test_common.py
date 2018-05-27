@@ -226,20 +226,20 @@ def test_standardize_mapping():
     assert isinstance(com.standardize_mapping(dd), partial)
 
 
+@pytest.mark.parametrize('frame', [
+    pd.concat(100 * [DataFrame([[0.123456, 0.234567, 0.567567],
+                                [12.32112, 123123.2, 321321.2]],
+              columns=['X', 'Y', 'Z'])], ignore_index=True),
+    pd.concat(100 * [Series([0.123456, 0.234567, 0.567567], name='X')],
+              ignore_index=True)])
 @pytest.mark.parametrize('method', ['to_pickle', 'to_json', 'to_csv'])
-def test_compression_size(method, compression):
-
-    df = pd.concat(100 * [DataFrame([[0.123456, 0.234567, 0.567567],
-                                     [12.32112, 123123.2, 321321.2]],
-                                    columns=['X', 'Y', 'Z'])],
-                   ignore_index=True)
-    s = df.iloc[:, 0]
+def test_compression_size(frame, method, compression):
+    if not compression:
+        pytest.skip("only test compression case.")
 
     with tm.ensure_clean() as filename:
-        for obj in [df, s]:
-            getattr(obj, method)(filename, compression=compression)
-            file_size = os.path.getsize(filename)
-            getattr(obj, method)(filename, compression=None)
-            uncompressed_file_size = os.path.getsize(filename)
-            if compression:
-                assert uncompressed_file_size > file_size
+        getattr(frame, method)(filename, compression=compression)
+        compressed = os.path.getsize(filename)
+        getattr(frame, method)(filename, compression=None)
+        uncompressed = os.path.getsize(filename)
+        assert uncompressed > compressed
