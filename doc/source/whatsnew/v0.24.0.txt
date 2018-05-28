@@ -161,6 +161,7 @@ Current Behavior:
     OverflowError: Trying to coerce negative values to unsigned integers
 
 - :class:`DatetimeIndex` now accepts :class:`Int64Index` arguments as epoch timestamps (:issue:`20997`)
+- Invalid consruction of ``IntervalDtype`` will now always raise a ``TypeError`` rather than a ``ValueError`` if the subdtype is invalid (:issue:`21185`)
 -
 -
 
