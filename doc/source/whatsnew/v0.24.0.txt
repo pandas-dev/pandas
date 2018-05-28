@@ -44,7 +44,7 @@ ExtensionType Changes
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
--
+- Invalid consruction of ``IntervalDtype`` will now always raise a ``TypeError`` rather than a ``ValueError`` if the subdtype is invalid (:issue:`21185`)
 -
 -
 

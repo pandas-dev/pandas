@@ -9,7 +9,6 @@ import pandas as pd
 from pandas import (
     Series, Categorical, CategoricalIndex, IntervalIndex, date_range)
 
-from pandas.compat import string_types
 from pandas.core.dtypes.dtypes import (
     DatetimeTZDtype, PeriodDtype,
     IntervalDtype, CategoricalDtype, registry)
@@ -448,7 +447,7 @@ class TestIntervalDtype(Base):
 
     def test_construction_errors(self):
         msg = 'could not construct IntervalDtype'
-        with tm.assert_raises_regex(ValueError, msg):
+        with tm.assert_raises_regex(TypeError, msg):
             IntervalDtype('xx')
 
     def test_construction_from_string(self):
@@ -458,14 +457,21 @@ class TestIntervalDtype(Base):
         assert is_dtype_equal(self.dtype, result)
 
     @pytest.mark.parametrize('string', [
-        'foo', 'interval[foo]', 'foo[int64]', 0, 3.14, ('a', 'b'), None])
+        'foo', 'foo[int64]', 0, 3.14, ('a', 'b'), None])
     def test_construction_from_string_errors(self, string):
-        if isinstance(string, string_types):
-            error, msg = ValueError, 'could not construct IntervalDtype'
-        else:
-            error, msg = TypeError, 'a string needs to be passed, got type'
+        # these are invalid entirely
+        msg = 'a string needs to be passed, got type'
 
-        with tm.assert_raises_regex(error, msg):
+        with tm.assert_raises_regex(TypeError, msg):
+            IntervalDtype.construct_from_string(string)
+
+    @pytest.mark.parametrize('string', [
+        'interval[foo]'])
+    def test_construction_from_string_error_subtype(self, string):
+        # this is an invalid subtype
+        msg = 'could not construct IntervalDtype'
+
+        with tm.assert_raises_regex(TypeError, msg):
             IntervalDtype.construct_from_string(string)
 
     def test_subclass(self):
