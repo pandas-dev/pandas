@@ -210,7 +210,7 @@ class TestTimeConversionFormats(object):
         ['%Y-%m-%d %H:%M:%S %z',
          ['2010-01-01 12:00:00 Z', '2010-01-01 12:00:00 Z'],
          [pd.Timestamp('2010-01-01 12:00:00',
-                       tzinfo=pytz.FixedOffset(0)),
+                       tzinfo=pytz.FixedOffset(0)),  # pytz coerces to UTC
           pd.Timestamp('2010-01-01 12:00:00',
                        tzinfo=pytz.FixedOffset(0))]]])
     def test_to_datetime_parse_tzname_or_tzoffset(self, box, const,
