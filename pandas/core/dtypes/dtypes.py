@@ -323,7 +323,7 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
 
         Parameters
         ----------
-        string : str
+        array : value array
 
         Returns
         -------
