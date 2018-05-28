@@ -722,19 +722,29 @@ def test_group_fill_methods(mix_groupings, as_series, val1, val2,
 
 
 @pytest.mark.parametrize("test_series", [True, False])
+@pytest.mark.parametrize("shuffle", [True, False])
 @pytest.mark.parametrize("periods,fill_method,limit", [
     (1, 'ffill', None), (1, 'ffill', 1),
     (1, 'bfill', None), (1, 'bfill', 1),
     (-1, 'ffill', None), (-1, 'ffill', 1),
     (-1, 'bfill', None), (-1, 'bfill', 1)])
-def test_pct_change(test_series, periods, fill_method, limit):
+def test_pct_change(test_series, shuffle, periods, fill_method, limit):
+    # Groupby pct change uses an apply if monotonic and a vectorized operation if non-monotonic
+    # Shuffle parameter tests each
     vals = [np.nan, np.nan, 1, 2, 4, 10, np.nan, np.nan]
-    exp_vals = Series(vals).pct_change(periods=periods,
-                                       fill_method=fill_method,
-                                       limit=limit).tolist()
-
-    df = DataFrame({'key': ['a'] * len(vals) + ['b'] * len(vals),
+    keys = ['a', 'b']
+    df = DataFrame({'key': [k for j in list(map(lambda x: [x] * len(vals), keys)) for k in j],
                     'vals': vals * 2})
+    if shuffle:
+        df = df.reindex(np.random.permutation(len(df))).reset_index(drop=True)
+
+    manual_apply = []
+    for k in keys:
+        manual_apply.append(Series(df.loc[df.key == k, 'vals'].values).pct_change(periods=periods,
+                                                                                  fill_method=fill_method,
+                                                                                  limit=limit))
+    exp_vals = pd.concat(manual_apply).reset_index(drop=True)
+    exp = pd.DataFrame(exp_vals, columns=['_pct_change'])
     grp = df.groupby('key')
 
     def get_result(grp_obj):
@@ -742,15 +752,22 @@ def test_pct_change(test_series, periods, fill_method, limit):
                                   fill_method=fill_method,
                                   limit=limit)
 
+    # Specifically test when monotonic and not monotonic
+
     if test_series:
-        exp = pd.Series(exp_vals * 2)
-        exp.name = 'vals'
+        exp = exp.loc[:, '_pct_change']
         grp = grp['vals']
         result = get_result(grp)
+        # Resort order by keys to compare to expected values
+        df.insert(0, '_pct_change', result)
+        result = df.sort_values(by='key')
+        result = result.loc[:, '_pct_change']
+        result = result.reset_index(drop=True)
         tm.assert_series_equal(result, exp)
     else:
-        exp = DataFrame({'vals': exp_vals * 2})
         result = get_result(grp)
+        result.reset_index(drop=True, inplace=True)
+        result.columns = ['_pct_change']
         tm.assert_frame_equal(result, exp)
 
 
