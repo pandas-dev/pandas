@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import collections
+
 import numpy as np
 import pytest
 
@@ -68,3 +70,16 @@ class TestCategoricalMissing(object):
 
         with tm.assert_raises_regex(ValueError, msg):
             cat.fillna(**fillna_kwargs)
+
+    @pytest.mark.parametrize("named", [True, False])
+    def test_fillna_iterable_category(self, named):
+        # https://github.com/pandas-dev/pandas/issues/21097
+        if named:
+            Point = collections.namedtuple("Point", "x y")
+        else:
+            Point = lambda *args: args  # tuple
+        cat = Categorical([Point(0, 0), Point(0, 1), None])
+        result = cat.fillna(Point(0, 0))
+        expected = Categorical([Point(0, 0), Point(0, 1), Point(0, 0)])
+
+        tm.assert_categorical_equal(result, expected)

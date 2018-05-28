@@ -12,6 +12,7 @@ from pandas._libs import lib, algos as libalgos
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCIndexClass, ABCCategoricalIndex)
 from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.cast import (
     maybe_infer_to_datetimelike,
     coerce_indexer_dtype)
@@ -1751,7 +1752,7 @@ class Categorical(ExtensionArray, PandasObject):
                 values[indexer] = values_codes[values_codes != -1]
 
             # If value is not a dict or Series it should be a scalar
-            elif is_scalar(value):
+            elif is_hashable(value):
                 if not isna(value) and value not in self.categories:
                     raise ValueError("fill value must be in categories")
 
