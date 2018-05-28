@@ -230,7 +230,7 @@ class TestJoin(object):
 
     def test_join_on_fails_with_wrong_object_type(self):
         # GH12081
-        """ GH 21220 - merging of Series and DataFrame is now allowed
+        """ GH21220 - merging of Series and DataFrame is now allowed
             Edited the test to remove the Series object from 'wrongly_typed'
         """
         wrongly_typed = [2, 'str', None, np.array([0, 1])]
