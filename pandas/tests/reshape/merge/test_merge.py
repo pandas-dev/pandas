@@ -1878,10 +1878,10 @@ def test_merge_series():
                             index=pd.MultiIndex.from_product([['a', 'b'], [1]],
                             names=['outer', 'inner']))
 
-    # Testing current merge behvaior is as before
+    # Test merge with a DataFrame and a Series 'converted-to-DataFrame' object
     result = pd.merge(a, b.to_frame(), on=['outer', 'inner'])
     tm.assert_frame_equal(result, expected)
 
-    # Testing changed merge behvaior is as expected
+    # Test merge with a DataFrame and a Series object
     result = pd.merge(a, b, on=['outer', 'inner'])
     tm.assert_frame_equal(result, expected)
