@@ -2070,7 +2070,7 @@ class GroupBy(_GroupBy):
     def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None,
                    axis=0):
         """Calcuate pct_change of each value to previous entry in group"""
-        if freq is not None or axis != 0:
+        if (freq is not None or axis != 0) or not self.grouper.is_monotonic:
             return self.apply(lambda x: x.pct_change(periods=periods,
                                                      fill_method=fill_method,
                                                      limit=limit, freq=freq,
@@ -3942,7 +3942,12 @@ class SeriesGroupBy(GroupBy):
         return func(self)
 
     def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None):
-        """Calculate percent change of each value to previous entry in group"""
+        """Calcuate pct_change of each value to previous entry in group"""
+        if not self.grouper.is_monotonic:
+            return self.apply(lambda x: x.pct_change(periods=periods,
+                                                     fill_method=fill_method,
+                                                     limit=limit, freq=freq))
+
         filled = getattr(self, fill_method)(limit=limit)
         shifted = filled.shift(periods=periods, freq=freq)
 
