@@ -33,12 +33,12 @@ class JSONDtype(ExtensionDtype):
         na_value = {}
 
     @classmethod
-    def construct_array_type(cls, array):
+    def construct_array_type(cls, array=None):
         """Return the array type associated with this dtype
 
         Parameters
         ----------
-        string : str
+        array : array-like, optional
 
         Returns
         -------
