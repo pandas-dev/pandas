@@ -385,10 +385,12 @@ class TestDataFramePlots(TestPlotBase):
         axes = df.groupby('c').boxplot()
         expected = [True, False, True, False]
         _assert_ytickslabels_visibility(axes, expected)
+
         # set sharey=True should be identical
         axes = df.groupby('c').boxplot(sharey=True)
         expected = [True, False, True, False]
         _assert_ytickslabels_visibility(axes, expected)
+
         # sharey=False, all yticklabels should be visible
         axes = df.groupby('c').boxplot(sharey=False)
         expected = [True, True, True, True]
@@ -412,10 +414,12 @@ class TestDataFramePlots(TestPlotBase):
         axes = df.groupby('c').boxplot()
         expected = [True, True, True, True]
         _assert_xtickslabels_visibility(axes, expected)
+
         # set sharex=False should be identical
         axes = df.groupby('c').boxplot(sharex=False)
         expected = [True, True, True, True]
         _assert_xtickslabels_visibility(axes, expected)
+
         # sharex=True, yticklabels should be visible
         # only for bottom plots
         axes = df.groupby('c').boxplot(sharex=True)
