@@ -3,8 +3,8 @@ from pandas._libs.properties import cache_readonly  # noqa
 import inspect
 import types
 import warnings
-from textwrap import dedent
-from functools import wraps, update_wrapper
+from textwrap import dedent, wrap
+from functools import wraps, update_wrapper, WRAPPER_ASSIGNMENTS
 
 
 def deprecate(name, alternative, version, alt_name=None,
@@ -19,8 +19,8 @@ def deprecate(name, alternative, version, alt_name=None,
 
     Parameters
     ----------
-    name : func
-        Function to deprecate.
+    name : str
+        Name of function to deprecate.
     alternative : func
         Function to use instead.
     version : str
@@ -41,10 +41,10 @@ def deprecate(name, alternative, version, alt_name=None,
 
     # adding deprecated directive to the docstring
     msg = msg or 'Use `{alt_name}` instead.'.format(alt_name=alt_name)
+    msg = '\n    '.join(wrap(msg, 70))
 
     @Substitution(version=version, msg=msg)
-    @Appender(name.__doc__)
-    @wraps(alternative)
+    @Appender(alternative.__doc__)
     def wrapper(*args, **kwargs):
         """
         .. deprecated:: %(version)s
@@ -54,6 +54,11 @@ def deprecate(name, alternative, version, alt_name=None,
         """
         warnings.warn(warning_msg, klass, stacklevel=stacklevel)
         return alternative(*args, **kwargs)
+
+    # Since we are using Substitution to create the required docstring,
+    # remove that from the attributes that should be assigned to the wrapper
+    assignments = tuple(x for x in WRAPPER_ASSIGNMENTS if x != '__doc__')
+    update_wrapper(wrapper, alternative, assigned=assignments)
 
     return wrapper
 
