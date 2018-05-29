@@ -2006,24 +2006,31 @@ class TestOpenpyxlTests(_WriterBase):
             assert xcell_b1.font == openpyxl_sty_merged
             assert xcell_a2.font == openpyxl_sty_merged
 
-    @pytest.mark.parametrize("mode,sheet_count", [('w', 1), ('a', 3)])
-    def test_write_append_mode(self, merge_cells, ext, engine, mode,
-                               sheet_count):
+    @pytest.mark.parametrize("mode,expected", [
+        ('w', ['baz']), ('a', ['foo', 'bar', 'baz'])])
+    def test_write_append_mode(self, merge_cells, ext, engine, mode, expected):
         import openpyxl
-        df = DataFrame(np.random.randn(3, 10))
+        df = DataFrame([1], columns=['baz'])
 
         with ensure_clean(ext) as f:
             wb = openpyxl.Workbook()
             wb.worksheets[0].title = 'foo'
+            wb.worksheets[0]['A1'].value = 'foo'
             wb.create_sheet('bar')
+            wb.worksheets[1]['A1'].value = 'bar'
             wb.save(f)
+            wb.close()
 
             writer = ExcelWriter(f, engine=engine, mode=mode)
-            df.to_excel(writer, sheet_name='baz')
+            df.to_excel(writer, sheet_name='baz', index=False)
             writer.save()
 
             wb2 = openpyxl.load_workbook(f)
-            assert len(wb2.worksheets) == sheet_count
+            result = [wb.title for wb in wb2.worksheets]
+            assert result == expected
+
+            for index, cell_value in enumerate(expected):
+                assert wb2.worksheets[index]['A1'].value == cell_value
 
 
 @td.skip_if_no('xlwt')
