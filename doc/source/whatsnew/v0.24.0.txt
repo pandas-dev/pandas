@@ -12,7 +12,7 @@ New features
 
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
--
+- :func:`to_datetime` now supports the ``%Z`` and ``%z`` directive when passed into ``format`` (:issue:`13486`)
 -
 -
 
