@@ -1174,6 +1174,7 @@ class BarPlot(MPLPlot):
         # 1-column DataFrame w.r.t. color handling
         self._is_series = isinstance(data, ABCSeries)
         self.bar_width = kwargs.pop('width', 0.5)
+        self.space_width = kwargs.pop('space', 0)
         pos = kwargs.pop('position', 0.5)
         kwargs.setdefault('align', 'center')
         self.tick_pos = np.arange(len(data))
@@ -1263,7 +1264,8 @@ class BarPlot(MPLPlot):
                 neg_prior = neg_prior + np.where(mask, 0, y)
             else:
                 w = self.bar_width / K
-                rect = self._plot(ax, self.ax_pos + (i + 0.5) * w, y, w,
+                s = self.space_width / K
+                rect = self._plot(ax, self.ax_pos + (i + 0.5) * w, y, w - s,
                                   start=start, label=label,
                                   log=self.log, **kwds)
             self._add_legend_handle(rect, label, index=i)
