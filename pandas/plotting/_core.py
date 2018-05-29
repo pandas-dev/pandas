@@ -2569,8 +2569,12 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
         (rows, columns) for the layout of the plot
     sharex : bool, default False
         Whether x-axes will be shared among subplots
+
+        .. versionadded:: 0.23.1
     sharey : bool, default True
         Whether y-axes will be shared among subplots
+
+        .. versionadded:: 0.23.1
     `**kwds` : Keyword Arguments
         All other plotting keyword arguments to be passed to
         matplotlib's boxplot function
