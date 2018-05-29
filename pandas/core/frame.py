@@ -1774,8 +1774,11 @@ class DataFrame(NDFrame):
 
         Parameters
         ----------
-        fname : str or buffer
-            String path of file-like object.
+        fname : path (string), buffer or path object
+            string, path object (pathlib.Path or py._path.local.LocalPath) or
+            object implementing a binary write() functions. If using a buffer
+            then the buffer will not be automatically closed after the file
+            data has been written.
         convert_dates : dict
             Dictionary mapping columns containing datetime types to stata
             internal format to use when writing the dates. Options are 'tc',
@@ -4174,8 +4177,9 @@ class DataFrame(NDFrame):
             * 0, or 'index' : Drop rows which contain missing values.
             * 1, or 'columns' : Drop columns which contain missing value.
 
-            .. deprecated:: 0.23.0: Pass tuple or list to drop on multiple
-            axes.
+            .. deprecated:: 0.23.0
+                Pass tuple or list to drop on multiple axes.
+
         how : {'any', 'all'}, default 'any'
             Determine if row or column is removed from DataFrame, when we have
             at least one NA or all NA.
@@ -7085,6 +7089,9 @@ class DataFrame(NDFrame):
             0 <= q <= 1, the quantile(s) to compute
         axis : {0, 1, 'index', 'columns'} (default 0)
             0 or 'index' for row-wise, 1 or 'columns' for column-wise
+        numeric_only : boolean, default True
+            If False, the quantile of datetime and timedelta data will be
+            computed as well
         interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
             .. versionadded:: 0.18.0
 
@@ -7112,7 +7119,7 @@ class DataFrame(NDFrame):
         --------
 
         >>> df = pd.DataFrame(np.array([[1, 1], [2, 10], [3, 100], [4, 100]]),
-                           columns=['a', 'b'])
+                              columns=['a', 'b'])
         >>> df.quantile(.1)
         a    1.3
         b    3.7
@@ -7121,6 +7128,20 @@ class DataFrame(NDFrame):
                a     b
         0.1  1.3   3.7
         0.5  2.5  55.0
+
+        Specifying `numeric_only=False` will also compute the quantile of
+        datetime and timedelta data.
+
+        >>> df = pd.DataFrame({'A': [1, 2],
+                               'B': [pd.Timestamp('2010'),
+                                     pd.Timestamp('2011')],
+                               'C': [pd.Timedelta('1 days'),
+                                     pd.Timedelta('2 days')]})
+        >>> df.quantile(0.5, numeric_only=False)
+        A                    1.5
+        B    2010-07-02 12:00:00
+        C        1 days 12:00:00
+        Name: 0.5, dtype: object
 
         See Also
         --------
