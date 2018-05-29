@@ -4086,7 +4086,10 @@ class NDFrameGroupBy(GroupBy):
     def aggregate(self, arg, *args, **kwargs):
 
         _level = kwargs.pop('_level', None)
-        result, how = self._aggregate(arg, _level=_level, *args, **kwargs)
+        _agg_kwargs = kwargs.copy()
+        axis = _agg_kwargs.pop('axis', 0)
+        result, how = self._aggregate(arg, axis, _level=_level,
+                                      *args, **_agg_kwargs)
         if how is None:
             return result
 
