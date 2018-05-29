@@ -1090,14 +1090,14 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
 
 
 class CustomBusinessMonthEnd(_CustomBusinessMonth):
-    # TODO: Replace condition with Subsitution after dropping Py27 support
+    # TODO(py27): Replace condition with Subsitution after dropping Py27
     if _CustomBusinessMonth.__doc__:
         __doc__ = _CustomBusinessMonth.__doc__.replace('[BEGIN/END]', 'end')
     _prefix = 'CBM'
 
 
 class CustomBusinessMonthBegin(_CustomBusinessMonth):
-    # TODO: Replace condition with Subsitution after dropping Py27 support
+    # TODO(py27): Replace condition with Subsitution after dropping Py27
     if _CustomBusinessMonth.__doc__:
         __doc__ = _CustomBusinessMonth.__doc__.replace('[BEGIN/END]',
                                                        'beginning')
