@@ -165,20 +165,20 @@ class TestMultiIndex(Base):
         assert res is None
         assert ind.names == new_names2
 
-    @pytest.mark.parametrize('inplace_flg,expected_out', [
-        (True, pd.MultiIndex(levels=[[0, 1]],
-                             labels=[[0, 1]],
-                             names=['first'])),
-        (False, pd.MultiIndex(levels=[[0, 1]],
-                              labels=[[0, 1]]))])
-    def test_multiindex_set_names(self, inplace_flg, expected_out):
+    @pytest.mark.parametrize('inplace', [True, False])
+    def test_set_names_with_nlevel_1(self, inplace):
         # GH 21149
-        """ Ensure that .set_names for MultiIndex with
-            nlevels == 1 does not raise any errors
-        """
-        result = pd.MultiIndex.from_product([[0, 1]])
-        result.set_names('first', level=0, inplace=inplace_flg)
-        expected = expected_out
+        # Ensure that .set_names for MultiIndex with
+        # nlevels == 1 does not raise any errors
+        expected = pd.MultiIndex(levels=[[0, 1]],
+                                 labels=[[0, 1]],
+                                 names=['first'])
+        m = pd.MultiIndex.from_product([[0, 1]])
+        result = m.set_names('first', level=0, inplace=inplace)
+
+        if inplace:
+            result = m
+
         tm.assert_index_equal(result, expected)
 
     def test_set_levels_labels_directly(self):
