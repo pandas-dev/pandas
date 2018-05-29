@@ -2009,19 +2009,20 @@ class TestOpenpyxlTests(_WriterBase):
     @pytest.mark.parametrize("mode,sheet_count", [('w', 1), ('a', 3)])
     def test_write_append_mode(self, merge_cells, ext, engine, mode,
                                sheet_count):
+        import openpyxl
         df = DataFrame(np.random.randn(3, 10))
 
-        with ensure_clean(ext) as infile, ensure_clean(ext) as outfile:
+        with ensure_clean(ext) as f:
             wb = openpyxl.Workbook()
-            wb.create_sheet('foo')
+            wb.worksheets[0].title = 'foo'
             wb.create_sheet('bar')
-            wb.save(infile)
+            wb.save(f)
 
-            writer = pd.ExcelWriter(outfile, engine=engine, mode=mode)
+            writer = ExcelWriter(f, engine=engine, mode=mode)
             df.to_excel(writer, sheet_name='baz')
             writer.save()
 
-            wb2 = openpyxl.load_workbook(outfile)
+            wb2 = openpyxl.load_workbook(f)
             assert len(wb2.worksheets) == sheet_count
 
 
@@ -2082,8 +2083,8 @@ class TestXlwtTests(_WriterBase):
         msg = "Append mode is not supported with xlwt!"
 
         with ensure_clean(ext) as f:
-            with tm.assert_raises_regexp("ValueError", msg):
-                pd.ExcelWriter(f, engine=engine, mode='a')
+            with tm.assert_raises_regex(ValueError, msg):
+                ExcelWriter(f, engine=engine, mode='a')
 
 
 @td.skip_if_no('xlsxwriter')
@@ -2140,8 +2141,8 @@ class TestXlsxWriterTests(_WriterBase):
         msg = "Append mode is not supported with xlsxwriter!"
 
         with ensure_clean(ext) as f:
-            with tm.assert_raises_regexp("ValueError", msg):
-                pd.ExcelWriter(f, engine=engine, mode='a')
+            with tm.assert_raises_regex(ValueError, msg):
+                ExcelWriter(f, engine=engine, mode='a')
 
 
 class TestExcelWriterEngineTests(object):
