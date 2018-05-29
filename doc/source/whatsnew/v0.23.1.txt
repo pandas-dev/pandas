@@ -52,6 +52,7 @@ Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in :func:`DataFrame.agg` where applying multiple aggregation functions to a :class:`DataFrame` with duplicated column names would cause a stack overflow (:issue:`21063`)
+- Bug in :func:`pandas.core.groupby.GroupBy.ffill` and :func:`pandas.core.groupby.GroupBy.bfill` where the fill within a grouping would not always be applied as intended due to the implementations' use of a non-stable sort (:issue:`21207`)
 
 Strings
 ^^^^^^^
@@ -66,6 +67,7 @@ Categorical
 ^^^^^^^^^^^
 
 - Bug in :func:`pandas.util.testing.assert_index_equal` which raised ``AssertionError`` incorrectly, when comparing two :class:`CategoricalIndex` objects with param ``check_categorical=False`` (:issue:`19776`)
+- Bug in :meth:`Categorical.fillna` incorrectly raising a ``TypeError`` when `value` the individual categories are iterable and `value` is an iterable (:issue:`21097`, :issue:`19788`)
 
 Conversion
 ^^^^^^^^^^
@@ -78,12 +80,14 @@ Indexing
 
 - Bug in :meth:`Series.reset_index` where appropriate error was not raised with an invalid level name (:issue:`20925`)
 - Bug in :func:`interval_range` when ``start``/``periods`` or ``end``/``periods`` are specified with float ``start`` or ``end`` (:issue:`21161`)
+- Bug in :meth:`MultiIndex.set_names` where error raised for a ``MultiIndex`` with ``nlevels == 1`` (:issue:`21149`)
 -
 
 I/O
 ^^^
 
--
+- Bug in IO methods specifying ``compression='zip'`` which produced uncompressed zip archives (:issue:`17778`, :issue:`21144`)
+- Bug in :meth:`DataFrame.to_stata` which prevented exporting DataFrames to buffers and most file-like objects (:issue:`21041`)
 -
 
 Plotting
@@ -96,9 +100,4 @@ Reshaping
 ^^^^^^^^^
 
 - Bug in :func:`concat` where error was raised in concatenating :class:`Series` with numpy scalar and tuple names (:issue:`21015`)
--
-
-Categorical
-^^^^^^^^^^^
-
 -
