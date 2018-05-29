@@ -2006,6 +2006,24 @@ class TestOpenpyxlTests(_WriterBase):
             assert xcell_b1.font == openpyxl_sty_merged
             assert xcell_a2.font == openpyxl_sty_merged
 
+    @pytest.mark.parametrize("mode,sheet_count", [('w', 1), ('a', 3)])
+    def test_write_append_mode(self, merge_cells, ext, engine, mode,
+                               sheet_count):
+        df = DataFrame(np.random.randn(3, 10))
+
+        with ensure_clean(ext) as infile, ensure_clean(ext) as outfile:
+            wb = openpyxl.Workbook()
+            wb.create_sheet('foo')
+            wb.create_sheet('bar')
+            wb.save(infile)
+
+            writer = pd.ExcelWriter(outfile, engine=engine, mode=mode)
+            df.to_excel(writer, sheet_name='baz')
+            writer.save()
+
+            wb2 = openpyxl.load_workbook(outfile)
+            assert len(wb2.worksheets) == sheet_count
+
 
 @td.skip_if_no('xlwt')
 @pytest.mark.parametrize("merge_cells,ext,engine", [
@@ -2060,6 +2078,13 @@ class TestXlwtTests(_WriterBase):
         assert xlwt.Alignment.HORZ_CENTER == xls_style.alignment.horz
         assert xlwt.Alignment.VERT_TOP == xls_style.alignment.vert
 
+    def test_write_append_mode_raises(self, merge_cells, ext, engine):
+        msg = "Append mode is not supported with xlwt!"
+
+        with ensure_clean(ext) as f:
+            with tm.assert_raises_regexp("ValueError", msg):
+                pd.ExcelWriter(f, engine=engine, mode='a')
+
 
 @td.skip_if_no('xlsxwriter')
 @pytest.mark.parametrize("merge_cells,ext,engine", [
@@ -2110,6 +2135,13 @@ class TestXlsxWriterTests(_WriterBase):
                 read_num_format = cell.style.number_format._format_code
 
             assert read_num_format == num_format
+
+    def test_write_append_mode_raises(self, merge_cells, ext, engine):
+        msg = "Append mode is not supported with xlsxwriter!"
+
+        with ensure_clean(ext) as f:
+            with tm.assert_raises_regexp("ValueError", msg):
+                pd.ExcelWriter(f, engine=engine, mode='a')
 
 
 class TestExcelWriterEngineTests(object):
