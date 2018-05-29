@@ -111,6 +111,7 @@ Reshaping
 ^^^^^^^^^
 
 - Bug in :func:`concat` where error was raised in concatenating :class:`Series` with numpy scalar and tuple names (:issue:`21015`)
+- Bug in :func:`pivot_table` with ``dropna=True``, an ordered ``Categorical`` for the index pivots and missing values in the ``values`` would give a mis-ordered result (:issue:`21133`)
 -
 
 Other
