@@ -1028,7 +1028,7 @@ class Index(IndexOpsMixin, PandasObject):
     @property
     def _formatter_func(self):
         """
-        Return the formatted data as a unicode string
+        Return the formatter function
         """
         return default_pprint
 
@@ -1042,11 +1042,7 @@ class Index(IndexOpsMixin, PandasObject):
                           (self.inferred_type == 'categorical' and
                            is_object_dtype(self.categories)))
 
-        formatter = self._formatter_func
-
-        if name is None:
-            name = self.__class__.__name__
-        return format_object_summary(self, formatter,
+        return format_object_summary(self, self._formatter_func,
                                      is_justify=is_justify, name=name)
 
     def _format_attrs(self):

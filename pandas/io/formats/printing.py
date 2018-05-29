@@ -295,7 +295,7 @@ def format_object_summary(obj, formatter, is_justify=True, name=None):
     if display_width is None:
         display_width = get_option('display.width') or 80
     if name is None:
-        name = obj.__name__
+        name = obj.__class__.__name__
 
     space1 = "\n%s" % (' ' * (len(name) + 1))
     space2 = "\n%s" % (' ' * (len(name) + 2))
