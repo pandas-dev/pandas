@@ -50,6 +50,7 @@ Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in :func:`DataFrame.agg` where applying multiple aggregation functions to a :class:`DataFrame` with duplicated column names would cause a stack overflow (:issue:`21063`)
+- Bug in :func:`pandas.core.groupby.GroupBy.ffill` and :func:`pandas.core.groupby.GroupBy.bfill` where the fill within a grouping would not always be applied as intended due to the implementations' use of a non-stable sort (:issue:`21207`)
 
 Strings
 ^^^^^^^
