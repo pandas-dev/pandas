@@ -256,9 +256,9 @@ def test_compression_size_fh(obj, method, compression):
     with tm.ensure_clean() as filename:
         with open(filename, 'w') as fh:
             getattr(obj, method)(fh, compression=compression)
-            compressed = os.path.getsize(filename)
+        compressed = os.path.getsize(filename)
     with tm.ensure_clean() as filename:
         with open(filename, 'w') as fh:
             getattr(obj, method)(fh, compression=None)
-            uncompressed = os.path.getsize(filename)
+        uncompressed = os.path.getsize(filename)
         assert uncompressed > compressed
