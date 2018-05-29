@@ -1055,8 +1055,11 @@ def _arith_method_SERIES(cls, op, special):
                                     dtype=result.dtype)
 
         elif is_categorical_dtype(left):
-            raise TypeError("{typ} cannot perform the operation "
-                            "{op}".format(typ=type(left).__name__, op=str_rep))
+            # raises TypeError
+            result = dispatch_to_index_op(op, left, right, pd.Categorical)
+            return construct_result(left, result,
+                                    index=left.index, name=res_name,
+                                    dtype=result.dtype)
 
         lvalues = left.values
         rvalues = right
