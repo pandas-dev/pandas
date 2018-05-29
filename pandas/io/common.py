@@ -5,7 +5,7 @@ import csv
 import codecs
 import mmap
 from contextlib import contextmanager, closing
-from zipfile import ZipFile
+import zipfile
 
 from pandas.compat import StringIO, BytesIO, string_types, text_type
 from pandas import compat
@@ -428,7 +428,7 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
     return f, handles
 
 
-class BytesZipFile(ZipFile, BytesIO):
+class BytesZipFile(zipfile.ZipFile, BytesIO):
     """
     Wrapper for standard library class ZipFile and allow the returned file-like
     handle to accept byte strings via `write` method.
@@ -437,10 +437,10 @@ class BytesZipFile(ZipFile, BytesIO):
     bytes strings into a member of the archive.
     """
     # GH 17778
-    def __init__(self, file, mode='r', **kwargs):
+    def __init__(self, file, mode, compression=zipfile.ZIP_DEFLATED, **kwargs):
         if mode in ['wb', 'rb']:
             mode = mode.replace('b', '')
-        super(BytesZipFile, self).__init__(file, mode, **kwargs)
+        super(BytesZipFile, self).__init__(file, mode, compression, **kwargs)
 
     def write(self, data):
         super(BytesZipFile, self).writestr(self.filename, data)
