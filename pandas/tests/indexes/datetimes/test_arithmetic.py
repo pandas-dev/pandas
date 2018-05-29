@@ -368,6 +368,49 @@ class TestDatetimeIndexArithmetic(object):
         tm.assert_index_equal(rng, expected)
 
     # -------------------------------------------------------------
+    # __add__/__sub__ with integer arrays
+
+    @pytest.mark.parametrize('freq', ['H', 'D'])
+    @pytest.mark.parametrize('box', [np.array, pd.Index])
+    def test_dti_add_intarray_tick(self, box, freq):
+        # GH#19959
+        dti = pd.date_range('2016-01-01', periods=2, freq=freq)
+        other = box([4, -1])
+        expected = DatetimeIndex([dti[n] + other[n] for n in range(len(dti))])
+        result = dti + other
+        tm.assert_index_equal(result, expected)
+        result = other + dti
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('freq', ['W', 'M', 'MS', 'Q'])
+    @pytest.mark.parametrize('box', [np.array, pd.Index])
+    def test_dti_add_intarray_non_tick(self, box, freq):
+        # GH#19959
+        dti = pd.date_range('2016-01-01', periods=2, freq=freq)
+        other = box([4, -1])
+        expected = DatetimeIndex([dti[n] + other[n] for n in range(len(dti))])
+        with tm.assert_produces_warning(PerformanceWarning):
+            result = dti + other
+        tm.assert_index_equal(result, expected)
+        with tm.assert_produces_warning(PerformanceWarning):
+            result = other + dti
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('box', [np.array, pd.Index])
+    def test_dti_add_intarray_no_freq(self, box):
+        # GH#19959
+        dti = pd.DatetimeIndex(['2016-01-01', 'NaT', '2017-04-05 06:07:08'])
+        other = box([9, 4, -1])
+        with pytest.raises(NullFrequencyError):
+            dti + other
+        with pytest.raises(NullFrequencyError):
+            other + dti
+        with pytest.raises(NullFrequencyError):
+            dti - other
+        with pytest.raises(TypeError):
+            other - dti
+
+    # -------------------------------------------------------------
     # DatetimeIndex.shift is used in integer addition
 
     def test_dti_shift_tzaware(self, tz):
@@ -528,7 +571,7 @@ class TestDatetimeIndexArithmetic(object):
         result = dti - tdi.values
         tm.assert_index_equal(result, expected)
 
-        msg = 'cannot perform __neg__ with this index type:'
+        msg = 'cannot subtract DatetimeIndex from'
         with tm.assert_raises_regex(TypeError, msg):
             tdi.values - dti
 
@@ -553,7 +596,8 @@ class TestDatetimeIndexArithmetic(object):
         tm.assert_index_equal(result, expected)
 
         msg = '|'.join(['cannot perform __neg__ with this index type:',
-                        'ufunc subtract cannot use operands with types'])
+                        'ufunc subtract cannot use operands with types',
+                        'cannot subtract DatetimeIndex from'])
         with tm.assert_raises_regex(TypeError, msg):
             tdi.values -= dti
 
