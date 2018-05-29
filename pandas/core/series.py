@@ -2185,25 +2185,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         this_vals, other_vals = ops.fill_binop(this.values, other.values,
                                                fill_value)
+
+        with np.errstate(all='ignore'):
+            result = func(this_vals, other_vals)
         name = ops.get_op_result_name(self, other)
-
-        if (is_extension_array_dtype(this_vals) or
-                is_extension_array_dtype(other_vals)):
-            try:
-                result = func(this_vals, other_vals)
-            except TypeError:
-                result = NotImplemented
-
-            if result is NotImplemented:
-                result = [func(a, b) for a, b in zip(this_vals, other_vals)]
-                if is_extension_array_dtype(this_vals):
-                    excons = type(this_vals)._from_sequence
-                else:
-                    excons = type(other_vals)._from_sequence
-                result = excons(result)
-        else:
-            with np.errstate(all='ignore'):
-                result = func(this_vals, other_vals)
         result = self._constructor(result, index=new_index, name=name)
         result = result.__finalize__(self)
         if name is None:
@@ -2223,9 +2208,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         func : function
             Function that takes two scalars as inputs and return a scalar
         fill_value : scalar value
-            The default specifies to use np.nan unless self is
-            backed by ExtensionArray, in which case the ExtensionArray
-            na_value is used.
+            The default specifies to use the appropriate NaN value for
+            the underlying dtype of the Series
 
         Returns
         -------
@@ -2247,10 +2231,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         self_is_ext = is_extension_array_dtype(self.values)
         if fill_value is None:
-            if self_is_ext:
-                fill_value = self.dtype.na_value
-            else:
-                fill_value = np.nan
+            fill_value = na_value_for_dtype(self.dtype, False)
+
         if isinstance(other, Series):
             new_index = self.index.union(other.index)
             new_name = ops.get_op_result_name(self, other)
@@ -2262,10 +2244,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                     new_values.append(func(lv, rv))
         else:
             new_index = self.index
-            if not self_is_ext:
-                with np.errstate(all='ignore'):
-                    new_values = func(self._values, other)
-            else:
+            with np.errstate(all='ignore'):
                 new_values = [func(lv, other) for lv in self._values]
             new_name = self.name
 
