@@ -318,12 +318,12 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             return np.bitwise_xor.reduce(hashed)
 
     @classmethod
-    def construct_array_type(cls, array):
+    def construct_array_type(cls, array=None):
         """Return the array type associated with this dtype
 
         Parameters
         ----------
-        array : value array
+        array : array-like, optional
 
         Returns
         -------

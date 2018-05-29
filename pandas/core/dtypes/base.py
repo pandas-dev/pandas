@@ -162,18 +162,20 @@ class ExtensionDtype(_DtypeOpsMixin):
         raise AbstractMethodError(self)
 
     @classmethod
-    def construct_array_type(cls, array):
+    def construct_array_type(cls, array=None):
         """Return the array type associated with this dtype
 
         Parameters
         ----------
-        string : str
+        array : array-like, optional
 
         Returns
         -------
         type
         """
-        return type(array)
+        if array is None:
+            return cls
+        raise NotImplementedError
 
     @classmethod
     def construct_from_string(cls, string):

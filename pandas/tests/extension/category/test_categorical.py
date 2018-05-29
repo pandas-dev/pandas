@@ -52,7 +52,9 @@ def data_for_grouping():
 
 
 class TestDtype(base.BaseDtypeTests):
-    pass
+
+    def test_array_type_with_arg(self, data, dtype):
+        assert dtype.construct_array_type('foo') is Categorical
 
 
 class TestInterface(base.BaseInterfaceTests):
