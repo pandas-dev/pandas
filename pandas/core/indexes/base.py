@@ -1384,7 +1384,8 @@ class Index(IndexOpsMixin, PandasObject):
                    names=[u'baz', u'bar'])
         """
 
-        if level is not None and self.nlevels == 1:
+        from .multi import MultiIndex
+        if level is not None and not isinstance(self, MultiIndex):
             raise ValueError('Level must be None for non-MultiIndex')
 
         if level is not None and not is_list_like(level) and is_list_like(
