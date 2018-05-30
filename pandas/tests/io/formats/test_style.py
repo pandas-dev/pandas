@@ -1031,7 +1031,9 @@ class TestStylerMatplotlibDep(object):
 
         result = df.style.background_gradient(
             subset=pd.IndexSlice[1, 'A'])._compute().ctx
-        assert result[(1, 0)] == ['background-color: #fff7fb']
+
+        assert result[(1, 0)] == ['background-color: #fff7fb',
+                                  'color: #000000']
 
 
 def test_block_names():
