@@ -729,15 +729,13 @@ def test_group_fill_methods(mix_groupings, as_series, val1, val2,
     (-1, 'ffill', None), (-1, 'ffill', 1),
     (-1, 'bfill', None), (-1, 'bfill', 1)])
 def test_pct_change(test_series, shuffle, periods, fill_method, limit):
-    # Groupby pct change uses an apply if monotonic
-    # and a vectorized operation if non-monotonic
-    # Shuffle parameter tests each
-    vals = [np.nan, np.nan, 1, 2, 4, 10, np.nan, np.nan]
+    vals = [3, np.nan, 1, 2, 4, 10, np.nan, np.nan]
     keys = ['a', 'b']
     key_v = [k for j in list(map(lambda x: [x] * len(vals), keys)) for k in j]
     df = DataFrame({'key': key_v, 'vals': vals * 2})
     if shuffle:
-        df = df.reindex(np.random.permutation(len(df))).reset_index(drop=True)
+        order = np.random.RandomState(seed=42).permutation(len(df))
+        df = df.reindex(order).reset_index(drop=True)
 
     manual_apply = []
     for k in keys:
@@ -746,7 +744,7 @@ def test_pct_change(test_series, shuffle, periods, fill_method, limit):
                                                 fill_method=fill_method,
                                                 limit=limit))
     exp_vals = pd.concat(manual_apply).reset_index(drop=True)
-    exp = pd.DataFrame(exp_vals, columns=['_pct_change'])
+    exp = pd.DataFrame(exp_vals, columns=['A'])
     grp = df.groupby('key')
 
     def get_result(grp_obj):
@@ -754,22 +752,19 @@ def test_pct_change(test_series, shuffle, periods, fill_method, limit):
                                   fill_method=fill_method,
                                   limit=limit)
 
-    # Specifically test when monotonic and not monotonic
-
     if test_series:
-        exp = exp.loc[:, '_pct_change']
+        exp = exp.loc[:, 'A']
         grp = grp['vals']
         result = get_result(grp)
-        # Resort order by keys to compare to expected values
-        df.insert(0, '_pct_change', result)
+        df.insert(0, 'A', result)
         result = df.sort_values(by='key')
-        result = result.loc[:, '_pct_change']
+        result = result.loc[:, 'A']
         result = result.reset_index(drop=True)
         tm.assert_series_equal(result, exp)
     else:
         result = get_result(grp)
         result.reset_index(drop=True, inplace=True)
-        result.columns = ['_pct_change']
+        result.columns = ['A']
         tm.assert_frame_equal(result, exp)
 
 
