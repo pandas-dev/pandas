@@ -2,9 +2,6 @@ import string
 
 import pytest
 import numpy as np
-import pandas as pd
-
-import pandas.util.testing as tm
 
 from pandas.api.types import CategoricalDtype
 from pandas import Categorical
@@ -30,6 +27,15 @@ def data():
 def data_missing():
     """Length 2 array with [NA, Valid]"""
     return Categorical([np.nan, 'A'])
+
+
+@pytest.fixture
+def data_repeated():
+    """Return different versions of data for count times"""
+    def gen(count):
+        for _ in range(count):
+            yield Categorical(make_data())
+    yield gen
 
 
 @pytest.fixture
@@ -157,16 +163,9 @@ class TestMethods(base.BaseMethodsTests):
     def test_value_counts(self, all_data, dropna):
         pass
 
-    def test_combine(self):
-        # GH 20825
-        orig_data1 = make_data()
-        orig_data2 = make_data()
-        s1 = pd.Series(Categorical(orig_data1, ordered=True))
-        s2 = pd.Series(Categorical(orig_data2, ordered=True))
-        result = s1.combine(s2, lambda x1, x2: x1 <= x2)
-        expected = pd.Series([a <= b for (a, b) in
-                              zip(orig_data1, orig_data2)])
-        tm.assert_series_equal(result, expected)
+    @pytest.mark.skip(reason="combine add for categorical not supported")
+    def test_combine_add(self, data_repeated):
+        pass
 
 
 class TestCasting(base.BaseCastingTests):

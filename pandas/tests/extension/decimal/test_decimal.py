@@ -26,6 +26,14 @@ def data_missing():
 
 
 @pytest.fixture
+def data_repeated():
+    def gen(count):
+        for _ in range(count):
+            yield DecimalArray(make_data())
+    yield gen
+
+
+@pytest.fixture
 def data_for_sorting():
     return DecimalArray([decimal.Decimal('1'),
                          decimal.Decimal('2'),
@@ -136,22 +144,6 @@ class TestMethods(BaseDecimal, base.BaseMethodsTests):
         result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
         expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
 
-        tm.assert_series_equal(result, expected)
-
-    def test_combine(self):
-        # GH 20825
-        orig_data1 = make_data()
-        orig_data2 = make_data()
-        s1 = pd.Series(DecimalArray(orig_data1))
-        s2 = pd.Series(DecimalArray(orig_data2))
-        result = s1.combine(s2, lambda x1, x2: x1 <= x2)
-        expected = pd.Series([a <= b for (a, b) in
-                              zip(orig_data1, orig_data2)])
-        tm.assert_series_equal(result, expected)
-
-        result = s1.combine(s2, lambda x1, x2: x1 + x2)
-        expected = pd.Series(DecimalArray([a + b for (a, b) in
-                                           zip(orig_data1, orig_data2)]))
         tm.assert_series_equal(result, expected)
 
 
