@@ -807,6 +807,8 @@ class ExcelWriter(object):
     mode : {'w' or 'a'}, default 'w'
         File mode to use (write or append).
 
+    .. versionadded:: 0.24.0
+
     Notes
     -----
     For compatibility with CSV writers, ExcelWriter serializes lists
@@ -1012,13 +1014,12 @@ class _OpenpyxlWriter(ExcelWriter):
             # Create workbook object with default optimized_write=True.
             self.book = Workbook()
 
-            # Openpyxl 1.6.1 adds a dummy sheet. We remove it.
             if self.book.worksheets:
                 try:
                     self.book.remove(self.book.worksheets[0])
                 except AttributeError:
 
-                    # compat
+                    # compat - for openpyxl <= 2.4
                     self.book.remove_sheet(self.book.worksheets[0])
 
     def save(self):

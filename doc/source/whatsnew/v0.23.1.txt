@@ -16,8 +16,6 @@ New features
 ~~~~~~~~~~~~
 
 - :meth:`Index.droplevel` is now implemented also for flat indexes, for compatibility with MultiIndex (:issue:`21115`)
-- ``ExcelWriter`` now accepts ``mode`` as a keyword argument, enabling append to existing workbooks when using the ``openpyxl`` engine (:issue:`3441`)
-
 
 .. _whatsnew_0231.deprecations:
 
