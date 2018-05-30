@@ -231,12 +231,10 @@ def test_standardize_mapping():
               columns=['X', 'Y', 'Z']),
     Series(100 * [0.123456, 0.234567, 0.567567], name='X')])
 @pytest.mark.parametrize('method', ['to_pickle', 'to_json', 'to_csv'])
-def test_compression_size(obj, method, compression):
-    if not compression:
-        pytest.skip("only test compression case.")
+def test_compression_size(obj, method, compression_only):
 
     with tm.ensure_clean() as filename:
-        getattr(obj, method)(filename, compression=compression)
+        getattr(obj, method)(filename, compression=compression_only)
         compressed = os.path.getsize(filename)
         getattr(obj, method)(filename, compression=None)
         uncompressed = os.path.getsize(filename)
@@ -249,16 +247,17 @@ def test_compression_size(obj, method, compression):
               columns=['X', 'Y', 'Z']),
     Series(100 * [0.123456, 0.234567, 0.567567], name='X')])
 @pytest.mark.parametrize('method', ['to_csv'])
-def test_compression_size_fh(obj, method, compression):
-    if not compression:
-        pytest.skip("only test compression case.")
+def test_compression_size_fh(obj, method, compression_only):
 
     with tm.ensure_clean() as filename:
         with open(filename, 'w') as fh:
-            getattr(obj, method)(fh, compression=compression)
+            getattr(obj, method)(fh, compression=compression_only)
+            # GH 17778
+            assert fh.closed
         compressed = os.path.getsize(filename)
     with tm.ensure_clean() as filename:
         with open(filename, 'w') as fh:
             getattr(obj, method)(fh, compression=None)
+            assert not fh.closed
         uncompressed = os.path.getsize(filename)
         assert uncompressed > compressed
