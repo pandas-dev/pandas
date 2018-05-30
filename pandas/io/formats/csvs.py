@@ -154,9 +154,9 @@ class CSVFormatter(object):
             # GH 17778 handles compression for byte strings.
             if not close and self.compression:
                 f.close()
-                with open(self.path_or_buf, 'r') as f:
+                with open(f.name, 'r') as f:
                     data = f.read()
-                f, handles = _get_handle(self.path_or_buf, self.mode,
+                f, handles = _get_handle(f.name, self.mode,
                                          encoding=encoding,
                                          compression=self.compression)
                 f.write(data)
