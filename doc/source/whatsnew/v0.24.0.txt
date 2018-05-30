@@ -13,7 +13,7 @@ New features
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 - :func:`to_datetime` now supports the ``%Z`` and ``%z`` directive when passed into ``format`` (:issue:`13486`)
--
+- ``ExtensionArray`` has a ``ExtensionOpsMixin`` factory that allows default operators to be defined (:issue:`20659`, :issue:`19577`)
 -
 
 .. _whatsnew_0240.api_breaking:

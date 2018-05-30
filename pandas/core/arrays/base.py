@@ -9,6 +9,11 @@ import numpy as np
 
 from pandas.errors import AbstractMethodError
 from pandas.compat.numpy import function as nv
+from pandas.compat import set_function_name, PY3
+import pandas.core.common as com
+from pandas.core.dtypes.common import (
+    is_extension_array_dtype,
+    is_list_like)
 
 _not_implemented_message = "{} does not implement {}."
 
@@ -610,3 +615,91 @@ class ExtensionArray(object):
         used for interacting with our indexers.
         """
         return np.array(self)
+
+
+def ExtensionOpsMixin(include_arith_ops, include_logic_ops):
+    """A mixin factory for creating default arithmetic and logical operators,
+    which are based on the underlying dtype backing the ExtensionArray
+
+    Parameters
+    ----------
+    include_arith_ops : boolean indicating whether arithmetic ops should be
+                        created
+    include_logic_ops : boolean indicating whether logical ops should be
+                        created
+
+    Returns
+    -------
+    A mixin class that has the associated operators defined.
+
+    Usage
+    ------
+    If you have defined a subclass MyClass(ExtensionArray), then
+    use MyClass(ExtensionArray, ExtensionOpsMixin(True, True)) to
+    get both the arithmetic and logical operators
+    """
+    class _ExtensionOpsMixin:
+        pass
+
+    def create_method(op_name):
+        def _binop(self, other):
+            def convert_values(parm):
+                if isinstance(parm, ExtensionArray):
+                    ovalues = list(parm)
+                elif is_extension_array_dtype(parm):
+                    ovalues = parm.values
+                elif is_list_like(parm):
+                    ovalues = parm
+                else:  # Assume its an object
+                    ovalues = [parm] * len(self)
+                return ovalues
+            lvalues = convert_values(self)
+            rvalues = convert_values(other)
+
+            # Get the method for each object.
+            def callfunc(a, b):
+                f = getattr(a, op_name, None)
+                if f is not None:
+                    return f(b)
+                else:
+                    return NotImplemented
+            res = [callfunc(a, b) for (a, b) in zip(lvalues, rvalues)]
+
+            # We can't use (NotImplemented in res) because the
+            # results might be objects that have overridden __eq__
+            if any(isinstance(r, type(NotImplemented)) for r in res):
+                msg = "invalid operation {opn} between {one} and {two}"
+                raise TypeError(msg.format(opn=op_name,
+                                           one=type(lvalues),
+                                           two=type(rvalues)))
+
+            res_values = com._values_from_object(res)
+
+            try:
+                res_values = self._from_sequence(res_values)
+            except TypeError:
+                pass
+
+            return res_values
+
+        name = '__{name}__'.format(name=op_name)
+        return set_function_name(_binop, name, _ExtensionOpsMixin)
+
+    if include_arith_ops:
+        arithops = ['__add__', '__radd__', '__sub__', '__rsub__', '__mul__',
+                    '__rmul__', '__pow__', '__rpow__', '__mod__', '__rmod__',
+                    '__floordiv__', '__rfloordiv__', '__truediv__',
+                    '__rtruediv__', '__divmod__', '__rdivmod__']
+        if not PY3:
+            arithops.extend(['__div__', '__rdiv__'])
+
+        for op_name in arithops:
+            setattr(_ExtensionOpsMixin, op_name, create_method(op_name))
+
+    if include_logic_ops:
+        logicops = ['__eq__', '__ne__', '__lt__', '__gt__',
+                    '__le__', '__ge__']
+        for op_name in logicops:
+            setattr(_ExtensionOpsMixin, op_name, create_method(op_name))
+
+    return _ExtensionOpsMixin

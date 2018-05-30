@@ -2196,23 +2196,22 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             result.name = None
         return result
 
-    def combine(self, other, func, fill_value=np.nan):
+    def combine(self, other, func, fill_value=None):
         """
         Perform elementwise binary operation on two Series using given function
         with optional fill value when an index is missing from one Series or
         the other
-
         Parameters
         ----------
         other : Series or scalar value
         func : function
             Function that takes two scalars as inputs and return a scalar
         fill_value : scalar value
-
+            The default specifies to use the appropriate NaN value for
+            the underlying dtype of the Series
         Returns
         -------
         result : Series
-
         Examples
         --------
         >>> s1 = Series([1, 2])
@@ -2221,26 +2220,36 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         0    0
         1    2
         dtype: int64
-
         See Also
         --------
         Series.combine_first : Combine Series values, choosing the calling
             Series's values first
         """
+        self_is_ext = is_extension_array_dtype(self.values)
+        if fill_value is None:
+            fill_value = na_value_for_dtype(self.dtype, False)
+
         if isinstance(other, Series):
             new_index = self.index.union(other.index)
             new_name = ops.get_op_result_name(self, other)
-            new_values = np.empty(len(new_index), dtype=self.dtype)
-            for i, idx in enumerate(new_index):
+            new_values = []
+            for idx in new_index:
                 lv = self.get(idx, fill_value)
                 rv = other.get(idx, fill_value)
                 with np.errstate(all='ignore'):
-                    new_values[i] = func(lv, rv)
+                    new_values.append(func(lv, rv))
         else:
             new_index = self.index
             with np.errstate(all='ignore'):
-                new_values = func(self._values, other)
+                new_values = [func(lv, other) for lv in self._values]
             new_name = self.name
+
+        if self_is_ext and not is_categorical_dtype(self.values):
+            try:
+                new_values = self._values._from_sequence(new_values)
+            except TypeError:
+                pass
+
         return self._constructor(new_values, index=new_index, name=new_name)
 
     def combine_first(self, other):

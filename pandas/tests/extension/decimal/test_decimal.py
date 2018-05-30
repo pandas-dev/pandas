@@ -7,6 +7,9 @@ import pytest
 
 from pandas.tests.extension import base
 
+from pandas.tests.series.test_operators import TestSeriesOperators
+from pandas.util._decorators import cache_readonly
+
 from .array import DecimalDtype, DecimalArray, make_data
 
 
@@ -183,3 +186,36 @@ def test_dataframe_constructor_with_different_dtype_raises():
     xpr = "Cannot coerce extension array to dtype 'int64'. "
     with tm.assert_raises_regex(ValueError, xpr):
         pd.DataFrame({"A": arr}, dtype='int64')
+
+
+_ts = pd.Series(DecimalArray(make_data()))
+
+
+class TestOperator(BaseDecimal, TestSeriesOperators):
+    @cache_readonly
+    def ts(self):
+        ts = _ts.copy()
+        ts.name = 'ts'
+        return ts
+
+    def test_operators(self):
+        def absfunc(v):
+            if isinstance(v, pd.Series):
+                vals = v.values
+                return pd.Series(vals._from_sequence([abs(i) for i in vals]))
+            else:
+                return abs(v)
+        context = decimal.getcontext()
+        divbyzerotrap = context.traps[decimal.DivisionByZero]
+        invalidoptrap = context.traps[decimal.InvalidOperation]
+        context.traps[decimal.DivisionByZero] = 0
+        context.traps[decimal.InvalidOperation] = 0
+        super(TestOperator, self).test_operators(absfunc)
+        context.traps[decimal.DivisionByZero] = divbyzerotrap
+        context.traps[decimal.InvalidOperation] = invalidoptrap
+
+    def test_operators_corner(self):
+        pytest.skip("Cannot add empty Series of float64 to DecimalArray")
+
+    def test_divmod(self):
+        pytest.skip("divmod not appropriate for Decimal type")
