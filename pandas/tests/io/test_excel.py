@@ -2019,7 +2019,6 @@ class TestOpenpyxlTests(_WriterBase):
             wb.create_sheet('bar')
             wb.worksheets[1]['A1'].value = 'bar'
             wb.save(f)
-            wb.close()
 
             writer = ExcelWriter(f, engine=engine, mode=mode)
             df.to_excel(writer, sheet_name='baz', index=False)
