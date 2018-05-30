@@ -1163,6 +1163,10 @@ class Index(IndexOpsMixin, PandasObject):
             from .category import CategoricalIndex
             return CategoricalIndex(self.values, name=self.name, dtype=dtype,
                                     copy=copy)
+        elif is_datetime64tz_dtype(dtype):
+            from pandas.core.indexes.datetimes import DatetimeIndex
+            return DatetimeIndex(self.values, name=self.name, dtype=dtype,
+                                 copy=copy)
         try:
             return Index(self.values.astype(dtype, copy=copy), name=self.name,
                          dtype=dtype)

@@ -408,6 +408,9 @@ class TestIndex(Base):
     @pytest.mark.parametrize("klass", [pd.Index, pd.DatetimeIndex])
     def test_constructor_dtypes_datetime(self, tz_naive_fixture, attr, utc,
                                          klass):
+        # Test constructing with a datetimetz dtype
+        # .values produces numpy datetimes, so these are considered naive
+        # .asi8 produces integers, so these are considered epoch timestamps
         index = pd.date_range('2011-01-01', periods=5)
         arg = getattr(index, attr)
         if utc:

@@ -34,7 +34,7 @@ Datetimelike API Changes
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
--
+- :class:`DatetimeIndex` now accepts :class:`Int64Index` arguments as epoch timestamps (:issue:`20997`)
 -
 -
 
@@ -90,7 +90,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 
--
+- Bug in :class:`Index` with ``datetime64[ns, tz]`` dtype that did not localize integer data correctly (:issue:`20964`)
 -
 -
 

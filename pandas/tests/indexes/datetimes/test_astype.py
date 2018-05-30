@@ -225,6 +225,13 @@ class TestDatetimeIndex(object):
         _check_rng(rng_eastern)
         _check_rng(rng_utc)
 
+    def test_integer_index_astype_datetimetz_dtype(self):
+        # GH 20997, 20964
+        val = [pd.Timestamp('2018-01-01', tz='US/Pacific').value]
+        result = pd.Index(val).astype('datetime64[ns, US/Pacific]')
+        expected = pd.DatetimeIndex(['2018-01-01'], tz='US/Pacific')
+        tm.assert_index_equal(result, expected)
+
 
 class TestToPeriod(object):
 
