@@ -6079,7 +6079,6 @@ class DataFrame(NDFrame):
             return self.apply(func, axis=axis, args=args, **kwargs)
         return result
 
-    @Appender(NDFrame._aggregate.__doc__, indents=2)
     def _aggregate(self, arg, axis=0, *args, **kwargs):
         obj = self.T if axis == 1 else self
         return super(DataFrame, obj)._aggregate(arg, *args, **kwargs)

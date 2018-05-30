@@ -4,6 +4,7 @@
 import pytest
 
 from collections import Counter, defaultdict, OrderedDict
+from itertools import chain
 
 import numpy as np
 import pandas as pd
@@ -15,6 +16,38 @@ from pandas.util.testing import assert_series_equal, assert_frame_equal
 import pandas.util.testing as tm
 
 from .common import TestData
+
+
+def _get_cython_table_params(series, func_names_and_expected):
+    """combine series, functions from SelectionMixin._cython_table
+    keys and expected result.
+
+    Parameters
+    ----------
+    series : Series
+        A Series
+    func_names_and_expected : Sequence of two items
+        The first item is a name of a NDFrame method ('sum', 'prod') etc.
+        The second item is the expected return value
+
+    Returns
+    -------
+    results : list
+        List of three items (Series, function, expected result)
+    """
+    table = pd.core.base.SelectionMixin._cython_table
+    if compat.PY36:
+        table = list(table.items())
+    else:  # dicts have random order in Python<3.6, which xdist doesn't like
+        table = sorted(((key, value) for key, value in table.items()),
+                       key=lambda x: x[0].__class__.__name__)
+    results = []
+    for func_name, expected in func_names_and_expected:
+        results.append((series, func_name, expected))
+        results += [
+            (series, func, expected) for func, name in table
+            if name == func_name]
+    return results
 
 
 class TestSeriesApply(TestData):
@@ -331,77 +364,84 @@ class TestSeriesAggregate(TestData):
                                        ('mean', 1.5)]))
         assert_series_equal(result[expected.index], expected)
 
-    @pytest.mark.parametrize("series, expected_dict", [
-        [Series(), {
-            'sum': 0,
-            'max': np.nan,
-            'min': np.nan,
-            'all': True,
-            'any': False,
-            'mean': np.nan,
-            'prod': 1,
-            'std': np.nan,
-            'var': np.nan,
-            'median': np.nan,
-            'cumprod': Series([], Index([])),
-            'cumsum': Series([], Index([])),
-        }],
-        [Series([np.nan, 1, 2, 3]), {
-            'sum': 6,
-            'max': 3,
-            'min': 1,
-            'all': True,
-            'any': True,
-            'mean': 2,
-            'prod': 6,
-            'std': 1,
-            'var': 1,
-            'median': 2,
-            'cumprod': Series([np.nan, 1, 2, 6]),
-            'cumsum': Series([np.nan, 1, 3, 6]),
-        }],
-        [Series('a b c'.split()), {
-            'sum': 'abc',
-            'max': 'c',
-            'min': 'a',
-            'all': 'c',  # see GH12863
-            'any': 'a',
-            'mean': TypeError,  # mean raises TypeError
-            'prod': TypeError,
-            'std': TypeError,
-            'var': TypeError,
-            'median': TypeError,
-            'cumprod': TypeError,
-            'cumsum': Series(['a', 'ab', 'abc']),
-        }],
-    ])
-    def test_agg_cython_table(self, cython_table_items,
-                              series, expected_dict):
+    @pytest.mark.parametrize("series, func, expected", chain(
+        _get_cython_table_params(Series(), [
+            ('sum', 0),
+            ('max', np.nan),
+            ('min', np.nan),
+            ('all', True),
+            ('any', False),
+            ('mean', np.nan),
+            ('prod', 1),
+            ('std', np.nan),
+            ('var', np.nan),
+            ('median', np.nan),
+        ]),
+        _get_cython_table_params(Series([np.nan, 1, 2, 3]), [
+            ('sum', 6),
+            ('max', 3),
+            ('min', 1),
+            ('all', True),
+            ('any', True),
+            ('mean', 2),
+            ('prod', 6),
+            ('std', 1),
+            ('var', 1),
+            ('median', 2),
+        ]),
+        _get_cython_table_params(Series('a b c'.split()), [
+            ('sum', 'abc'),
+            ('max', 'c'),
+            ('min', 'a'),
+            ('all', 'c'),  # see GH12863
+            ('any', 'a'),
+        ]),
+    ))
+    def test_agg_cython_table(self, series, func, expected):
         # GH21224
-        # test if using items in pandas.core.base.SelectionMixin._cython_table
-        # in agg gives correct results
-        np_func, str_func = cython_table_items
-        expected = expected_dict[str_func]
-
-        if isinstance(expected, type) and issubclass(expected, Exception):
-            with pytest.raises(expected):
-                # e.g. Series('a b'.split()).cumprod() will raise
-                series.agg(np_func)
-            with pytest.raises(expected):
-                series.agg(str_func)
-            return
-
-        result = series.agg(np_func)
-        result_str_func = series.agg(str_func)
-        if str_func in ('cumprod', 'cumsum'):
-            tm.assert_series_equal(result, expected)
-            tm.assert_series_equal(result_str_func, expected)
-        elif tm.is_number(expected):
+        # test reducing functions in
+        # pandas.core.base.SelectionMixin._cython_table
+        result = series.agg(func)
+        if tm.is_number(expected):
             assert np.isclose(result, expected, equal_nan=True)
-            assert np.isclose(result_str_func, expected, equal_nan=True)
         else:
             assert result == expected
-            assert result_str_func == expected
+
+    @pytest.mark.parametrize("series, func, expected", chain(
+        _get_cython_table_params(Series(), [
+            ('cumprod', Series([], Index([]))),
+            ('cumsum', Series([], Index([]))),
+        ]),
+        _get_cython_table_params(Series([np.nan, 1, 2, 3]), [
+            ('cumprod', Series([np.nan, 1, 2, 6])),
+            ('cumsum', Series([np.nan, 1, 3, 6])),
+        ]),
+        _get_cython_table_params(Series('a b c'.split()), [
+            ('cumsum', Series(['a', 'ab', 'abc'])),
+        ]),
+    ))
+    def test_agg_cython_table_transform(self, series, func, expected):
+        # GH21224
+        # test transforming functions in
+        # pandas.core.base.SelectionMixin._cython_table (cumprod, cumsum)
+        result = series.agg(func)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize("series, func, expected", chain(
+        _get_cython_table_params(Series('a b c'.split()), [
+            ('mean', TypeError),  # mean raises TypeError
+            ('prod', TypeError),
+            ('std', TypeError),
+            ('var', TypeError),
+            ('median', TypeError),
+            ('cumprod', TypeError),
+        ])
+    ))
+    def test_agg_cython_table_raises(self, series, func, expected):
+        # GH21224
+        with pytest.raises(expected):
+            # e.g. Series('a b'.split()).cumprod() will raise
+            series.agg(func)
 
 
 class TestSeriesMap(TestData):
