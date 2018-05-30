@@ -44,8 +44,6 @@ Documentation Changes
 Bug Fixes
 ~~~~~~~~~
 
-- tab completion on :class:`Index` in IPython no longer outputs deprecation warnings (:issue:`21125`)
-
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -99,3 +97,9 @@ Reshaping
 
 - Bug in :func:`concat` where error was raised in concatenating :class:`Series` with numpy scalar and tuple names (:issue:`21015`)
 -
+
+Other
+^^^^^
+
+- Tab completion on :class:`Index` in IPython no longer outputs deprecation warnings (:issue:`21125`)
+- Bug preventing pandas from being importable with -OO optimization (:issue:`21071`)
