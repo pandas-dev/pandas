@@ -9,7 +9,7 @@ dependencies:
   - feather-format
   - matplotlib
   - numexpr
-  - numpy=1.13*
+  - numpy=1.14*
   - openpyxl
   - pyarrow
   - pytables
