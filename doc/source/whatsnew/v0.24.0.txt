@@ -13,6 +13,7 @@ New features
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 - :func:`to_datetime` now supports the ``%Z`` and ``%z`` directive when passed into ``format`` (:issue:`13486`)
+- :func:`to_csv` now supports ``compression`` keyword when a file handle is passed. (:issue:`21227`)
 - ``ExtensionArray`` has a ``ExtensionOpsMixin`` factory that allows default operators to be defined (:issue:`20659`, :issue:`19577`)
 -
 
@@ -184,4 +185,3 @@ Other
 -
 -
 -
-

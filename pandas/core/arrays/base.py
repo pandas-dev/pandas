@@ -638,7 +638,7 @@ def ExtensionOpsMixin(include_arith_ops, include_logic_ops):
     use MyClass(ExtensionArray, ExtensionOpsMixin(True, True)) to
     get both the arithmetic and logical operators
     """
-    class _ExtensionOpsMixin:
+    class _ExtensionOpsMixin(object):
         pass
 
     def create_method(op_name):
