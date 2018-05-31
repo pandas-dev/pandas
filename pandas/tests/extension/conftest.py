@@ -35,7 +35,7 @@ def data_repeated():
     """Return different versions of data for count times"""
     def gen(count):
         for _ in range(count):
-            yield NotImplemented
+            yield NotImplementedError
     yield gen
 
 
