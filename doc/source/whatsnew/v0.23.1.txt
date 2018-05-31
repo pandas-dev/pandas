@@ -70,7 +70,7 @@ Categorical
 Sparse
 ^^^^^^
 
-- Bug in :attr:`SparseArray.shape` ignores ``fill_values`` (:issue:`21126`)
+- Bug in :attr:`SparseArray.shape` which previously only returned the shape :attr:`SparseArray.sp_values` (:issue:`21126`)
 
 Conversion
 ^^^^^^^^^^
