@@ -15,11 +15,11 @@ import numpy as np
 from pandas.compat import lrange, product, PY35
 from pandas import (compat, isna, notna, DataFrame, Series,
                     MultiIndex, date_range, Timestamp, Categorical,
-                    _np_version_under1p12, _np_version_under1p15)
+                    _np_version_under1p12, _np_version_under1p15,
+                    to_datetime, to_timedelta)
 import pandas as pd
 import pandas.core.nanops as nanops
 import pandas.core.algorithms as algorithms
-import pandas.io.formats.printing as printing
 
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
@@ -840,54 +840,74 @@ class TestDataFrameAnalytics(TestData):
                 expected = pd.Series(unit, index=r1.index, dtype=r1.dtype)
                 tm.assert_series_equal(r1, expected)
 
-    def test_mode(self):
-        df = pd.DataFrame({"A": [12, 12, 11, 12, 19, 11],
-                           "B": [10, 10, 10, np.nan, 3, 4],
-                           "C": [8, 8, 8, 9, 9, 9],
-                           "D": np.arange(6, dtype='int64'),
-                           "E": [8, 8, 1, 1, 3, 3]})
-        tm.assert_frame_equal(df[["A"]].mode(),
-                              pd.DataFrame({"A": [12]}))
-        expected = pd.Series([0, 1, 2, 3, 4, 5], dtype='int64', name='D').\
-            to_frame()
-        tm.assert_frame_equal(df[["D"]].mode(), expected)
-        expected = pd.Series([1, 3, 8], dtype='int64', name='E').to_frame()
-        tm.assert_frame_equal(df[["E"]].mode(), expected)
-        tm.assert_frame_equal(df[["A", "B"]].mode(),
-                              pd.DataFrame({"A": [12], "B": [10.]}))
-        tm.assert_frame_equal(df.mode(),
-                              pd.DataFrame({"A": [12, np.nan, np.nan, np.nan,
-                                                  np.nan, np.nan],
-                                            "B": [10, np.nan, np.nan, np.nan,
-                                                  np.nan, np.nan],
-                                            "C": [8, 9, np.nan, np.nan, np.nan,
-                                                  np.nan],
-                                            "D": [0, 1, 2, 3, 4, 5],
-                                            "E": [1, 3, 8, np.nan, np.nan,
-                                                  np.nan]}))
+    @pytest.mark.parametrize("dropna, expected", [
+        (True, {'A': [12],
+                'B': [10.0],
+                'C': [1.0],
+                'D': ['a'],
+                'E': Categorical(['a'], categories=['a']),
+                'F': to_datetime(['2000-1-2']),
+                'G': to_timedelta(['1 days'])}),
+        (False, {'A': [12],
+                 'B': [10.0],
+                 'C': [np.nan],
+                 'D': np.array([np.nan], dtype=object),
+                 'E': Categorical([np.nan], categories=['a']),
+                 'F': [pd.NaT],
+                 'G': to_timedelta([pd.NaT])}),
+        (True, {'H': [8, 9, np.nan, np.nan],
+                'I': [8, 9, np.nan, np.nan],
+                'J': [1, np.nan, np.nan, np.nan],
+                'K': Categorical(['a', np.nan, np.nan, np.nan],
+                                 categories=['a']),
+                'L': to_datetime(['2000-1-2', 'NaT', 'NaT', 'NaT']),
+                'M': to_timedelta(['1 days', 'nan', 'nan', 'nan']),
+                'N': [0, 1, 2, 3]}),
+        (False, {'H': [8, 9, np.nan, np.nan],
+                 'I': [8, 9, np.nan, np.nan],
+                 'J': [1, np.nan, np.nan, np.nan],
+                 'K': Categorical([np.nan, 'a', np.nan, np.nan],
+                                  categories=['a']),
+                 'L': to_datetime(['NaT', '2000-1-2', 'NaT', 'NaT']),
+                 'M': to_timedelta(['nan', '1 days', 'nan', 'nan']),
+                 'N': [0, 1, 2, 3]})
+    ])
+    def test_mode_dropna(self, dropna, expected):
 
-        # outputs in sorted order
-        df["C"] = list(reversed(df["C"]))
-        printing.pprint_thing(df["C"])
-        printing.pprint_thing(df["C"].mode())
-        a, b = (df[["A", "B", "C"]].mode(),
-                pd.DataFrame({"A": [12, np.nan],
-                              "B": [10, np.nan],
-                              "C": [8, 9]}))
-        printing.pprint_thing(a)
-        printing.pprint_thing(b)
-        tm.assert_frame_equal(a, b)
-        # should work with heterogeneous types
-        df = pd.DataFrame({"A": np.arange(6, dtype='int64'),
-                           "B": pd.date_range('2011', periods=6),
-                           "C": list('abcdef')})
-        exp = pd.DataFrame({"A": pd.Series(np.arange(6, dtype='int64'),
-                                           dtype=df["A"].dtype),
-                            "B": pd.Series(pd.date_range('2011', periods=6),
-                                           dtype=df["B"].dtype),
-                            "C": pd.Series(list('abcdef'),
-                                           dtype=df["C"].dtype)})
-        tm.assert_frame_equal(df.mode(), exp)
+        df = DataFrame({"A": [12, 12, 19, 11],
+                        "B": [10, 10, np.nan, 3],
+                        "C": [1, np.nan, np.nan, np.nan],
+                        "D": [np.nan, np.nan, 'a', np.nan],
+                        "E": Categorical([np.nan, np.nan, 'a', np.nan]),
+                        "F": to_datetime(['NaT', '2000-1-2', 'NaT', 'NaT']),
+                        "G": to_timedelta(['1 days', 'nan', 'nan', 'nan']),
+                        "H": [8, 8, 9, 9],
+                        "I": [9, 9, 8, 8],
+                        "J": [1, 1, np.nan, np.nan],
+                        "K": Categorical(['a', np.nan, 'a', np.nan]),
+                        "L": to_datetime(['2000-1-2', '2000-1-2',
+                                          'NaT', 'NaT']),
+                        "M": to_timedelta(['1 days', 'nan',
+                                           '1 days', 'nan']),
+                        "N": np.arange(4, dtype='int64')})
+
+        result = df[sorted(list(expected.keys()))].mode(dropna=dropna)
+        expected = DataFrame(expected)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.skipif(not compat.PY3, reason="only PY3")
+    def test_mode_sortwarning(self):
+        # Check for the warning that is raised when the mode
+        # results cannot be sorted
+
+        df = DataFrame({"A": [np.nan, np.nan, 'a', 'a']})
+        expected = DataFrame({'A': ['a', np.nan]})
+
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+            result = df.mode(dropna=False)
+            result = result.sort_values(by='A').reset_index(drop=True)
+
+        tm.assert_frame_equal(result, expected)
 
     def test_operators_timedelta64(self):
         from datetime import timedelta
