@@ -681,6 +681,7 @@ class ExtensionArray(object):
         cls.__rpow__ = cls._make_arithmetic_op(ops.rpow)
         cls.__pow__ = cls._make_arithmetic_op(operator.pow)
         cls.__mod__ = cls._make_arithmetic_op(operator.mod)
+        cls.__rmod__ = cls._make_arithmetic_op(ops.rmod)
         cls.__floordiv__ = cls._make_arithmetic_op(operator.floordiv)
         cls.__rfloordiv__ = cls._make_arithmetic_op(ops.rfloordiv)
         cls.__truediv__ = cls._make_arithmetic_op(operator.truediv)
