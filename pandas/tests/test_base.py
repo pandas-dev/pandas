@@ -998,6 +998,42 @@ class TestIndexOps(Ops):
             with pytest.raises(ValueError):
                 self.int_series.drop_duplicates(inplace=value)
 
+    def test_get(self):
+        for o in self.objs:
+            if isinstance(o, Series):
+                s = o.set_axis([2 * i for i in range(len(o))], inplace=False)
+                assert s.get(4) == s.iloc[2]
+
+                result = s.get([4, 6])
+                expected = s.iloc[[2, 3]]
+                tm.assert_series_equal(result, expected)
+
+                result = s.get(slice(2))
+                expected = s.iloc[[0, 1]]
+                tm.assert_series_equal(result, expected)
+
+                assert s.get(-1) is None
+                assert s.get(s.index.max() + 1) is None
+
+                s = Series(o.values[:6], index=list('abcdef'))
+                assert s.get('c') == s.iloc[2]
+
+                result = s.get(slice('b', 'd'))
+                expected = s.iloc[[1, 2, 3]]
+                tm.assert_series_equal(result, expected)
+
+                result = s.get('Z')
+                assert result is None
+
+                assert s.get(4) == s.iloc[4]
+                assert s.get(-1) == s.iloc[-1]
+                assert s.get(len(s)) is None
+
+                # GH 21257
+                s = pd.Series(o.values)
+                s2 = s[::2]
+                assert s2.get(1) is None
+
 
 class TestTranspose(Ops):
     errmsg = "the 'axes' parameter is not supported"
