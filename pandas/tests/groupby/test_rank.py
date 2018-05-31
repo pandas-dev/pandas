@@ -59,9 +59,9 @@ def test_rank_apply():
     ('first', False, False, [3., 4., 1., 5., 2.]),
     ('first', False, True, [.6, .8, .2, 1., .4]),
     ('dense', True, False, [1., 1., 3., 1., 2.]),
-    ('dense', True, True, [0.2, 0.2, 0.6, 0.2, 0.4]),
+    ('dense', True, True, [1. / 3., 1. / 3., 3. / 3., 1. / 3., 2. / 3.]),
     ('dense', False, False, [3., 3., 1., 3., 2.]),
-    ('dense', False, True, [.6, .6, .2, .6, .4]),
+    ('dense', False, True, [3. / 3., 3. / 3., 1. / 3., 3. / 3., 2. / 3.]),
 ])
 def test_rank_args(grps, vals, ties_method, ascending, pct, exp):
     key = np.repeat(grps, len(vals))
@@ -126,7 +126,7 @@ def test_infs_n_nans(grps, vals, ties_method, ascending, na_option, exp):
 @pytest.mark.parametrize("grps", [
     ['qux'], ['qux', 'quux']])
 @pytest.mark.parametrize("vals", [
-    [2, 2, np.nan, 8, 2, 6, np.nan, np.nan],  # floats
+    [2, 2, np.nan, 8, 2, 6, np.nan, np.nan],
     [pd.Timestamp('2018-01-02'), pd.Timestamp('2018-01-02'), np.nan,
      pd.Timestamp('2018-01-08'), pd.Timestamp('2018-01-02'),
      pd.Timestamp('2018-01-06'), np.nan, np.nan]
@@ -167,11 +167,11 @@ def test_infs_n_nans(grps, vals, ties_method, ascending, na_option, exp):
     ('dense', True, 'keep', False,
         [1., 1., np.nan, 3., 1., 2., np.nan, np.nan]),
     ('dense', True, 'keep', True,
-        [0.2, 0.2, np.nan, 0.6, 0.2, 0.4, np.nan, np.nan]),
+        [1. / 3., 1. / 3., np.nan, 3. / 3., 1. / 3., 2. / 3., np.nan, np.nan]),
     ('dense', False, 'keep', False,
         [3., 3., np.nan, 1., 3., 2., np.nan, np.nan]),
     ('dense', False, 'keep', True,
-        [.6, 0.6, np.nan, 0.2, 0.6, 0.4, np.nan, np.nan]),
+        [3. / 3., 3. / 3., np.nan, 1. / 3., 3. / 3., 2. / 3., np.nan, np.nan]),
     ('average', True, 'no_na', False, [2., 2., 7., 5., 2., 4., 7., 7.]),
     ('average', True, 'no_na', True,
         [0.25, 0.25, 0.875, 0.625, 0.25, 0.5, 0.875, 0.875]),
@@ -198,10 +198,10 @@ def test_infs_n_nans(grps, vals, ties_method, ascending, na_option, exp):
         [0.375, 0.5, 0.75, 0.125, 0.625, 0.25, 0.875, 1.]),
     ('dense', True, 'no_na', False, [1., 1., 4., 3., 1., 2., 4., 4.]),
     ('dense', True, 'no_na', True,
-        [0.125, 0.125, 0.5, 0.375, 0.125, 0.25, 0.5, 0.5]),
+     [0.25, 0.25, 1., 0.75, 0.25, 0.5, 1., 1.]),
     ('dense', False, 'no_na', False, [3., 3., 4., 1., 3., 2., 4., 4.]),
     ('dense', False, 'no_na', True,
-        [0.375, 0.375, 0.5, 0.125, 0.375, 0.25, 0.5, 0.5])
+     [0.75, 0.75, 1., 0.25, 0.75, 0.5, 1., 1.])
 ])
 def test_rank_args_missing(grps, vals, ties_method, ascending,
                            na_option, pct, exp):

@@ -418,7 +418,7 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
                         bint is_datetimelike, object ties_method,
                         bint ascending, bint pct, object na_option):
     """
-	Provides the rank of values within each group.
+    Provides the rank of values within each group.
 
     Parameters
     ----------
@@ -451,8 +451,8 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
     """
     cdef:
         TiebreakEnumType tiebreak
-        Py_ssize_t i, j, N, K, val_start=0, grp_start=0, dups=0, sum_ranks=0
-        Py_ssize_t grp_vals_seen=1, grp_na_count=0
+        Py_ssize_t i, j, N, K, grp_start=0, dups=0, sum_ranks=0
+        Py_ssize_t grp_vals_seen=1, grp_na_count=0, grp_tie_count=0
         ndarray[int64_t] _as
         ndarray[float64_t, ndim=2] grp_sizes
         ndarray[{{c_type}}] masked_vals
@@ -563,6 +563,7 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
                 dups = sum_ranks = 0
                 val_start = i
                 grp_vals_seen += 1
+                grp_tie_count +=1
 
             # Similar to the previous conditional, check now if we are moving
             # to a new group. If so, keep track of the index where the new
@@ -571,11 +572,16 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
             # (used by pct calculations later). also be sure to reset any of
             # the items helping to calculate dups
             if i == N - 1 or labels[_as[i]] != labels[_as[i+1]]:
-                for j in range(grp_start, i + 1):
-                    grp_sizes[_as[j], 0] = i - grp_start + 1 - grp_na_count
+                if tiebreak != TIEBREAK_DENSE:
+                    for j in range(grp_start, i + 1):
+                        grp_sizes[_as[j], 0] = i - grp_start + 1 - grp_na_count
+                else:
+                    for j in range(grp_start, i + 1):
+                        grp_sizes[_as[j], 0] = (grp_tie_count -
+                                                (grp_na_count > 0))
                 dups = sum_ranks = 0
                 grp_na_count = 0
-                val_start = i + 1
+                grp_tie_count = 0
                 grp_start = i + 1
                 grp_vals_seen = 1
 
