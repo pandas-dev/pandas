@@ -492,10 +492,8 @@ class _MergeOperation(object):
                  left_index=False, right_index=False, sort=True,
                  suffixes=('_x', '_y'), copy=True, indicator=False,
                  validate=None):
-        if isinstance(left, Series):
-            left = left.to_frame()
-        if isinstance(right, Series):
-            right = right.to_frame()
+        left = validate_operand(left)
+        right = validate_operand(right)
         self.left = self.orig_left = left
         self.right = self.orig_right = right
         self.how = how
@@ -521,13 +519,6 @@ class _MergeOperation(object):
         else:
             raise ValueError(
                 'indicator option can only accept boolean or string arguments')
-
-        if not isinstance(left, DataFrame):
-            raise ValueError('can not merge DataFrame with instance of '
-                             'type {left}'.format(left=type(left)))
-        if not isinstance(right, DataFrame):
-            raise ValueError('can not merge DataFrame with instance of '
-                             'type {right}'.format(right=type(right)))
 
         if not is_bool(left_index):
             raise ValueError(
@@ -1643,3 +1634,16 @@ def _should_fill(lname, rname):
 
 def _any(x):
     return x is not None and com._any_not_none(*x)
+
+
+def validate_operand(obj):
+    if isinstance(obj, DataFrame):
+        return obj
+    elif isinstance(obj, Series):
+        if obj.name is None:
+            raise ValueError('Cannot merge a Series without a name')
+        else:
+            return obj.to_frame()
+    else:
+        raise ValueError('Cannot merge a DataFrame or a Series with '
+                         'instance of type {obj}'.format(obj=type(obj)))
