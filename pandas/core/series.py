@@ -3276,7 +3276,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         copy : boolean, default True
             Also copy underlying data
         inplace : boolean, default False
-            Whether to return a new %(klass)s. If True then value of copy is
+            Whether to return a new Series. If True then value of copy is
             ignored.
         level : int or level name, default None
             In case of a MultiIndex, only rename labels in the specified
@@ -3768,8 +3768,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             non-ascii, for python versions prior to 3
         compression : string, optional
             A string representing the compression to use in the output file.
-            Allowed values are 'gzip', 'bz2', 'zip', 'xz'. This input is only
-            used when the first argument is a filename.
+            Allowed values are 'gzip', 'bz2', 'zip', 'xz'.
         date_format: string, default None
             Format string for datetime objects.
         decimal: string, default '.'
