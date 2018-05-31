@@ -3721,7 +3721,7 @@ class DataFrame(NDFrame):
         copy : boolean, default True
             Also copy underlying data
         inplace : boolean, default False
-            Whether to return a new %(klass)s. If True then value of copy is
+            Whether to return a new DataFrame. If True then value of copy is
             ignored.
         level : int or level name, default None
             In case of a MultiIndex, only rename labels in the specified
