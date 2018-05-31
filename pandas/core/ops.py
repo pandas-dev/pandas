@@ -998,7 +998,13 @@ def dispatch_to_extension_op(left, right, op_name):
     """
 
     method = getattr(left.values, op_name, None)
-    res_values = method(right)
+    if method is not None:
+        res_values = method(right)
+    if method is None or res_values is NotImplemented:
+        msg = "ExtensionArray invalid operation {opn} between {one} and {two}"
+        raise TypeError(msg.format(opn=op_name,
+                                   one=type(left.values),
+                                   two=type(right)))
 
     res_name = get_op_result_name(left, right)
     return left._constructor(res_values, index=left.index,

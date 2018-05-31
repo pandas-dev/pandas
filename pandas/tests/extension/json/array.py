@@ -16,11 +16,12 @@ import numbers
 import random
 import string
 import sys
+import operator
 
 import numpy as np
 
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import ExtensionArray, ExtensionOpsBase
 
 
 class JSONDtype(ExtensionDtype):
@@ -43,6 +44,7 @@ class JSONDtype(ExtensionDtype):
 
 class JSONArray(ExtensionArray):
     dtype = JSONDtype()
+    __le__ = ExtensionOpsBase.create_method(operator.le)
 
     def __init__(self, values):
         for val in values:

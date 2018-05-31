@@ -6,7 +6,9 @@ import sys
 import numpy as np
 
 import pandas as pd
-from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
+from pandas.core.arrays import (ExtensionArray,
+                                ExtensionArithmeticMixin,
+                                ExtensionComparisonMixin)
 from pandas.core.dtypes.base import ExtensionDtype
 
 
@@ -24,7 +26,8 @@ class DecimalDtype(ExtensionDtype):
                             "'{}'".format(cls, string))
 
 
-class DecimalArray(ExtensionArray, ExtensionOpsMixin(True, True)):
+class DecimalArray(ExtensionArray, ExtensionArithmeticMixin,
+                   ExtensionComparisonMixin):
     dtype = DecimalDtype()
 
     def __init__(self, values):
