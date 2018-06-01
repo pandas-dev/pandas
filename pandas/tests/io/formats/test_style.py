@@ -1057,6 +1057,14 @@ class TestStylerMatplotlibDep(object):
                 elif result[res][0].split(' ')[1] in ['#800026', '#440154']:
                     assert result[(res)][1].split(' ')[1] == '#f1f1f1'
 
+    @td.skip_if_no_mpl
+    @pytest.mark.parametrize("text_color_threshold", [1.1, '1', -1, [2, 2]])
+    def test_text_color_threshold_raises(self, text_color_threshold):
+        df = pd.DataFrame([[1, 2], [2, 4]], columns=['A', 'B'])
+        msg = "`text_color_threshold` must be a value from 0 to 1."
+        with tm.assert_raises_regex(ValueError, msg):
+            df.style.background_gradient(
+                text_color_threshold=text_color_threshold)
 
 
 def test_block_names():
