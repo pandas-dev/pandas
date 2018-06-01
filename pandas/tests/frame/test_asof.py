@@ -116,7 +116,8 @@ class TestFrameAsof(TestData):
         # Testing if DataFrame index preserve timezone (UTC)
         df = DataFrame(data=[1, 2], index=[timestamp1, timestamp2])
         result = df.asof(timestamp_internal)
-        expected = Series(2.0, index=RangeIndex(start=0, stop=1, step=1), name=timestamp_internal)
+        expected = Series(2.0, index=RangeIndex(start=0, stop=1, step=1),
+                          name=timestamp_internal)
         tm.assert_series_equal(result, expected)
 
     def test_different_time_zones(self):
@@ -129,5 +130,7 @@ class TestFrameAsof(TestData):
         # Testing awareness of DataFrame index considering different time zone
         df = DataFrame(data=[3, 4], index=[timestamp_utc1, timestamp_utc2])
         result = df.asof(timestamp_tz1)
-        expected = Series(3.0, index=RangeIndex(start=0, stop=1, step=1), name=timestamp_tz1)
+        expected = Series(3.0, index=RangeIndex(start=0, stop=1, step=1),
+                          name=timestamp_tz1)
         tm.assert_series_equal(result, expected)
+        
