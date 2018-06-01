@@ -1040,6 +1040,14 @@ class TestStylerMatplotlibDep(object):
         assert result[(1, 0)] == ['background-color: #fff7fb',
                                   'color: #000000']
 
+    @td.skip_if_no_mpl
+    def test_text_color_threshold(self):
+        df = pd.DataFrame([[1, 2], [2, 4]], columns=['A', 'B'])
+        for text_color_threshold in [1.1, '1', -1, [2, 2]]:
+            with pytest.raises(ValueError):
+                df.style.background_gradient(
+                    text_color_threshold=text_color_threshold)
+
 
 def test_block_names():
     # catch accidental removal of a block
