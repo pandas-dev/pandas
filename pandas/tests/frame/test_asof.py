@@ -133,4 +133,3 @@ class TestFrameAsof(TestData):
         expected = Series(3.0, index=RangeIndex(start=0, stop=1, step=1),
                           name=timestamp_tz1)
         tm.assert_series_equal(result, expected)
-        
