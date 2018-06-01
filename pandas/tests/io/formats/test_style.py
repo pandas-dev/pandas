@@ -1028,6 +1028,11 @@ class TestStylerMatplotlibDep(object):
             assert all("#" in x[0] for x in result.values())
             assert result[(0, 0)] == result[(0, 1)]
             assert result[(1, 0)] == result[(1, 1)]
+            for res in result:
+                if result[res][0].split(' ')[1] in ['#fde725', '#ffffcc']:
+                    assert result[(res)][1].split(' ')[1] == '#000000'
+                elif result[res][0].split(' ')[1] in ['#800026', '#440154']:
+                    assert result[(res)][1].split(' ')[1] == '#f1f1f1'
 
         result = df.style.background_gradient(
             subset=pd.IndexSlice[1, 'A'])._compute().ctx
