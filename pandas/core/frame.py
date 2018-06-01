@@ -1689,8 +1689,7 @@ class DataFrame(NDFrame):
             defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
         compression : string, optional
             A string representing the compression to use in the output file.
-            Allowed values are 'gzip', 'bz2', 'zip', 'xz'. This input is only
-            used when the first argument is a filename.
+            Allowed values are 'gzip', 'bz2', 'zip', 'xz'.
         line_terminator : string, default ``'\n'``
             The newline character or character sequence to use in the output
             file
@@ -3721,7 +3720,7 @@ class DataFrame(NDFrame):
         copy : boolean, default True
             Also copy underlying data
         inplace : boolean, default False
-            Whether to return a new %(klass)s. If True then value of copy is
+            Whether to return a new DataFrame. If True then value of copy is
             ignored.
         level : int or level name, default None
             In case of a MultiIndex, only rename labels in the specified
@@ -7039,7 +7038,7 @@ class DataFrame(NDFrame):
         else:
             raise ValueError('Axis must be 0 or 1 (got %r)' % axis_num)
 
-    def mode(self, axis=0, numeric_only=False):
+    def mode(self, axis=0, numeric_only=False, dropna=True):
         """
         Gets the mode(s) of each element along the axis selected. Adds a row
         for each mode per label, fills in gaps with nan.
@@ -7057,6 +7056,10 @@ class DataFrame(NDFrame):
             * 1 or 'columns' : get mode of each row
         numeric_only : boolean, default False
             if True, only apply to numeric columns
+        dropna : boolean, default True
+            Don't consider counts of NaN/NaT.
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -7073,7 +7076,7 @@ class DataFrame(NDFrame):
         data = self if not numeric_only else self._get_numeric_data()
 
         def f(s):
-            return s.mode()
+            return s.mode(dropna=dropna)
 
         return data.apply(f, axis=axis)
 
