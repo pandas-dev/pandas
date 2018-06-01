@@ -919,15 +919,21 @@ class Styler(object):
                 raise ValueError(msg)
 
             def relative_luminance(color):
-                """Calculate the relative luminance of a color according to W3C
-                standards, https://www.w3.org/WAI/GL/wiki/Relative_luminance
+                """
+                Calculate relative luminance of a color.
+
+                The calculation adheres to the W3C standards
+                (https://www.w3.org/WAI/GL/wiki/Relative_luminance)
+
                 Parameters
                 ----------
-                color : matplotlib color. Hex code, rgb-tuple, or
-                HTML color name.
+                color : matplotlib color
+                    Hex code, rgb-tuple, or HTML color name.
+
                 Returns
                 -------
-                luminance : float between 0 and 1
+                float
+                    The relative luminance as a value from 0 to 1
                 """
                 rgb = colors.colorConverter.to_rgba_array(color)[:, :3]
                 rgb = np.where(rgb <= .03928, rgb / 12.92,
