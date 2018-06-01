@@ -863,7 +863,7 @@ class Styler(object):
         return self
 
     def background_gradient(self, cmap='PuBu', low=0, high=0, axis=0,
-                            subset=None, text_color=0.2):
+                            subset=None, text_color=0.408):
         """
         Color the background in a gradient according to
         the data in each column (optionally row).
@@ -902,7 +902,7 @@ class Styler(object):
         return self
 
     @staticmethod
-    def _background_gradient(s, cmap='PuBu', low=0, high=0, text_color=0.2):
+    def _background_gradient(s, cmap='PuBu', low=0, high=0, text_color=0.408):
         """Color background in a range according to the data."""
         with _mpl(Styler.background_gradient) as (plt, colors):
             rng = s.max() - s.min()
