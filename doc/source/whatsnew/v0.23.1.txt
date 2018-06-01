@@ -45,6 +45,7 @@ Documentation Changes
 
 Bug Fixes
 ~~~~~~~~~
+
 - Bug in :func:`Dataframe.asof` that reaised ``TypeError`` when attempting to compare tz-naive and tz-aware timestamps (:issue:`21194`)
 
 
