@@ -1,4 +1,5 @@
 import decimal
+import operator
 
 import numpy as np
 import pandas as pd
@@ -6,9 +7,6 @@ import pandas.util.testing as tm
 import pytest
 
 from pandas.tests.extension import base
-
-from pandas.tests.series.test_operators import TestSeriesOperators
-from pandas.util._decorators import cache_readonly
 
 from .array import DecimalDtype, DecimalArray, make_data
 
@@ -188,34 +186,62 @@ def test_dataframe_constructor_with_different_dtype_raises():
         pd.DataFrame({"A": arr}, dtype='int64')
 
 
-_ts = pd.Series(DecimalArray(make_data()))
+class TestOps(BaseDecimal, base.BaseOpsTests):
+    def check_op(self, s, op_name, other):
 
+        short_opname = op_name.strip('_')
+        if short_opname[0] == 'r':
+            short_opname = short_opname[1:]
+        op = getattr(operator, short_opname)
+        result = op(s, other)
+        expected = s.combine(other, op)
+        self.assert_series_equal(result, expected)
 
-class TestOperator(BaseDecimal, TestSeriesOperators):
-    @cache_readonly
-    def ts(self):
-        ts = _ts.copy()
-        ts.name = 'ts'
-        return ts
+    def test_arith_scalar(self, data, all_arithmetic_operators):
+        # scalar
+        op_name = all_arithmetic_operators
+        s = pd.Series(data)
+        self.check_op(s, op_name, decimal.Decimal(1.5))
 
-    def test_operators(self):
-        def absfunc(v):
-            if isinstance(v, pd.Series):
-                vals = v.values
-                return pd.Series(vals._from_sequence([abs(i) for i in vals]))
-            else:
-                return abs(v)
+    def test_arith_array(self, data, all_arithmetic_operators):
+        op_name = all_arithmetic_operators
+        s = pd.Series(data)
+
         context = decimal.getcontext()
         divbyzerotrap = context.traps[decimal.DivisionByZero]
         invalidoptrap = context.traps[decimal.InvalidOperation]
         context.traps[decimal.DivisionByZero] = 0
         context.traps[decimal.InvalidOperation] = 0
-        super(TestOperator, self).test_operators(absfunc)
+
+        if "mod" not in op_name:
+            self.check_op(s, op_name, s * 2)
+        else:
+            self.check_op(s, op_name, pd.Series([int(d * 10) for d in data]))
+
+        self.check_op(s, op_name, 0)
         context.traps[decimal.DivisionByZero] = divbyzerotrap
         context.traps[decimal.InvalidOperation] = invalidoptrap
 
-    def test_operators_corner(self):
-        pytest.skip("Cannot add empty Series of float64 to DecimalArray")
+    @pytest.mark.skip(reason="divmod not appropriate for decimal")
+    def test_divmod(self, data):
+        pass
 
-    def test_divmod(self):
-        pytest.skip("divmod not appropriate for Decimal type")
+    def _compare_other(self, data, op_name, other):
+        s = pd.Series(data)
+        self.check_op(s, op_name, other)
+
+    def test_compare_scalar(self, data, all_compare_operators):
+        op_name = all_compare_operators
+        self._compare_other(data, op_name, 0.5)
+
+    def test_compare_array(self, data, all_compare_operators):
+        op_name = all_compare_operators
+
+        alter = np.random.choice([-1, 0, 1], len(data))
+        # Randomly double, halve or keep same value
+        other = pd.Series(data) * [decimal.Decimal(pow(2.0, i))
+                                   for i in alter]
+        self._compare_other(data, op_name, other)
+
+    def test_error(self):
+        pass

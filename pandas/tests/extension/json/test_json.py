@@ -232,19 +232,5 @@ class TestGroupby(BaseJSON, base.BaseGroupbyTests):
         )
 
 
-def test_ops(data):
-    s1 = pd.Series(data)
-    s2 = pd.Series(data)
-    # Here we test if the mixin method was defined but the underlying Dtype
-    # did not have the method defined
-    with tm.assert_raises_regex(TypeError, "ExtensionDtype invalid operation"):
-        (s1 <= s2)
-
-    # An object will always have __lt__ defined, so test if we catch that it
-    # was not implemented
-    with tm.assert_raises_regex(TypeError, "ExtensionArray invalid operation"):
-        (s1 < s2)
-
-    # Test that if method is not defined at all, we catch that as well
-    with tm.assert_raises_regex(TypeError, "ExtensionArray invalid operation"):
-        s1 + s2
+class TestOps(BaseJSON, base.BaseOpsTests):
+    pass

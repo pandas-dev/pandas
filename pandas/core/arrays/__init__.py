@@ -1,5 +1,5 @@
 from .base import (ExtensionArray,    # noqa
-                   ExtensionArithmeticMixin,
-                   ExtensionComparisonMixin,
-                   ExtensionOpsBase)
+                   ExtensionScalarArithmeticMixin,
+                   ExtensionScalarComparisonMixin,
+                   ExtensionScalarOpsMixin)
 from .categorical import Categorical  # noqa

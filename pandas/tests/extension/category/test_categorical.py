@@ -157,3 +157,18 @@ class TestMethods(base.BaseMethodsTests):
 
 class TestCasting(base.BaseCastingTests):
     pass
+
+
+class TestOps(base.BaseOpsTests):
+
+    def _compare_other(self, data, op, other):
+
+        if op == '__eq__':
+            assert not getattr(data, op)(other).all()
+
+        elif op == '__ne__':
+            assert getattr(data, op)(other).all()
+
+        else:
+            with pytest.raises(TypeError):
+                getattr(data, op)(other)

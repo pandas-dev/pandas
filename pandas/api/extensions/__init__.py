@@ -4,7 +4,7 @@ from pandas.core.accessor import (register_dataframe_accessor,  # noqa
                                   register_series_accessor)
 from pandas.core.algorithms import take  # noqa
 from pandas.core.arrays.base import (ExtensionArray,    # noqa
-                                     ExtensionArithmeticMixin,
-                                     ExtensionComparisonMixin,
-                                     ExtensionOpsBase)
+                                     ExtensionScalarArithmeticMixin,
+                                     ExtensionScalarComparisonMixin,
+                                     ExtensionScalarOpsMixin)
 from pandas.core.dtypes.dtypes import ExtensionDtype  # noqa

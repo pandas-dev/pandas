@@ -7,8 +7,8 @@ import numpy as np
 
 import pandas as pd
 from pandas.core.arrays import (ExtensionArray,
-                                ExtensionArithmeticMixin,
-                                ExtensionComparisonMixin)
+                                ExtensionScalarArithmeticMixin,
+                                ExtensionScalarComparisonMixin)
 from pandas.core.dtypes.base import ExtensionDtype
 
 
@@ -26,14 +26,15 @@ class DecimalDtype(ExtensionDtype):
                             "'{}'".format(cls, string))
 
 
-class DecimalArray(ExtensionArray, ExtensionArithmeticMixin,
-                   ExtensionComparisonMixin):
+class DecimalArray(ExtensionArray, ExtensionScalarArithmeticMixin,
+                   ExtensionScalarComparisonMixin):
     dtype = DecimalDtype()
 
     def __init__(self, values):
         for val in values:
             if not isinstance(val, self.dtype.type):
-                raise TypeError
+                raise TypeError("All values must be of type " +
+                                str(self.dtype.type))
         values = np.asarray(values, dtype=object)
 
         self._data = values

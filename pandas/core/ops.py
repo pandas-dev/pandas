@@ -991,20 +991,14 @@ def _construct_divmod_result(left, result, index, name, dtype):
     )
 
 
-def dispatch_to_extension_op(left, right, op_name):
+def dispatch_to_extension_op(op, left, right):
     """
     Assume that left is a Series backed by an ExtensionArray,
-    apply the operator defined by op_name.
+    apply the operator defined by op.
     """
 
-    method = getattr(left.values, op_name, None)
-    if method is not None:
-        res_values = method(right)
-    if method is None or res_values is NotImplemented:
-        msg = "ExtensionArray invalid operation {opn} between {one} and {two}"
-        raise TypeError(msg.format(opn=op_name,
-                                   one=type(left.values),
-                                   two=type(right)))
+    # This will raise TypeError if the op is not defined on the ExtensionArray
+    res_values = op(left.values, right)
 
     res_name = get_op_result_name(left, right)
     return left._constructor(res_values, index=left.index,
@@ -1080,7 +1074,7 @@ def _arith_method_SERIES(cls, op, special):
                             "{op}".format(typ=type(left).__name__, op=str_rep))
 
         elif is_extension_array_dtype(left):
-            return dispatch_to_extension_op(left, right, op_name)
+            return dispatch_to_extension_op(op, left, right)
 
         lvalues = left.values
         rvalues = right
@@ -1233,7 +1227,7 @@ def _comp_method_SERIES(cls, op, special):
                                      name=res_name)
 
         elif is_extension_array_dtype(self):
-            return dispatch_to_extension_op(self, other, op_name)
+            return dispatch_to_extension_op(op, self, other)
 
         elif isinstance(other, ABCSeries):
             # By this point we have checked that self._indexed_same(other)

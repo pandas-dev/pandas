@@ -10,11 +10,31 @@ New features
 
 .. _whatsnew_0240.enhancements.other:
 
+``ExtensionArray`` operator support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+An ``ExtensionArray`` subclass consisting of objects that have arithmetic and
+comparison operators defined on the underlying objects can easily support 
+those operators on the ``ExtensionArray``, and therefore the operators 
+on ``Series`` built on those ``ExtensionArray`` classes will work as expected.
+
+Two new mixin classes, :class:`ExtensionScalarArithmeticMixin` and
+:class:`ExtensionScalarComparisonMixin`, support this capability.  
+If developing an ``ExtensionArray`` subclass, for example ``MyExtensionArray``,
+simply include ``ExtensionScalarArithmeticMixin`` and/or 
+``ExtensionScalarComparisonMixin`` as parent classes of ``MyExtensionArray``
+as follows:
+
+.. code-block:: python
+
+    class MyExtensionArray(ExtensionArray, ExtensionScalarArithmeticMixin,
+                           ExtensionScalarComparisonMixin):
+
+
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 - :func:`to_datetime` now supports the ``%Z`` and ``%z`` directive when passed into ``format`` (:issue:`13486`)
-- :func:`to_csv` now supports ``compression`` keyword when a file handle is passed. (:issue:`21227`)
-- ``ExtensionArray`` has a ``ExtensionOpsMixin`` factory that allows default operators to be defined (:issue:`20659`, :issue:`19577`)
+- :func:`to_csv` now supports ``compression`` keyword when a file handle is passed. (:issue:`21227`)- ``ExtensionArray`` has a ``ExtensionOpsMixin`` factory that allows default operators to be defined (:issue:`20659`, :issue:`19577`)
 -
 
 .. _whatsnew_0240.api_breaking:
