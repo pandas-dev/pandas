@@ -1028,11 +1028,6 @@ class TestStylerMatplotlibDep(object):
             assert all("#" in x[0] for x in result.values())
             assert result[(0, 0)] == result[(0, 1)]
             assert result[(1, 0)] == result[(1, 1)]
-            for res in result:
-                if result[res][0].split(' ')[1] in ['#fde725', '#ffffcc']:
-                    assert result[(res)][1].split(' ')[1] == '#000000'
-                elif result[res][0].split(' ')[1] in ['#800026', '#440154']:
-                    assert result[(res)][1].split(' ')[1] == '#f1f1f1'
 
         result = df.style.background_gradient(
             subset=pd.IndexSlice[1, 'A'])._compute().ctx
@@ -1043,10 +1038,25 @@ class TestStylerMatplotlibDep(object):
     @td.skip_if_no_mpl
     def test_text_color_threshold(self):
         df = pd.DataFrame([[1, 2], [2, 4]], columns=['A', 'B'])
-        for text_color_threshold in [1.1, '1', -1, [2, 2]]:
-            with pytest.raises(ValueError):
-                df.style.background_gradient(
-                    text_color_threshold=text_color_threshold)
+        for c_map in [None, 'YlOrRd']:
+            result = df.style.background_gradient(cmap=c_map)._compute().ctx
+            for res in result:
+                bg_color = result[res][0].split(' ')[1]
+                assert bg_color in ['#fde725', '#ffffcc',
+                                    '#800026', '#440154'], (
+                    "Unexpected background color returned from "
+                    "`style.background_gradient()`")
+                text_color = result[(res)][1].split(' ')[1]
+                if bg_color in ['#fde725', '#ffffcc']:
+                    assert text_color == '#000000'
+                elif bg_color in ['#800026', '#440154']:
+                    assert text_color == '#f1f1f1'
+            for res in result:
+                if result[res][0].split(' ')[1] in ['#fde725', '#ffffcc']:
+                    assert result[(res)][1].split(' ')[1] == '#000000'
+                elif result[res][0].split(' ')[1] in ['#800026', '#440154']:
+                    assert result[(res)][1].split(' ')[1] == '#f1f1f1'
+
 
 
 def test_block_names():
