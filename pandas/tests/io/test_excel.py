@@ -2025,7 +2025,7 @@ class TestOpenpyxlTests(_WriterBase):
             writer.save()
 
             wb2 = openpyxl.load_workbook(f)
-            result = [wb.title for wb in wb2.worksheets]
+            result = [sheet.title for sheet in wb2.worksheets]
             assert result == expected
 
             for index, cell_value in enumerate(expected):
