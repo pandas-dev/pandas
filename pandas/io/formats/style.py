@@ -884,6 +884,8 @@ class Styler(object):
             visibility across varying background colors. From 0 to 1.
             0 = all text is dark colored, 1 = all text is light colored.
 
+            .. versionadded:: 0.24.0
+
         Returns
         -------
         self : Styler
