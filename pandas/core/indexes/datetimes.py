@@ -2040,7 +2040,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         Returns numpy array of python datetime.date objects (namely, the date
         part of Timestamps without timezone information).
         """
-        return libts.ints_to_pydatetime(self.normalize().asi8, box="date")
+        return libts.ints_to_pydatetime(self.asi8, box="date")
 
     def normalize(self):
         """
