@@ -996,7 +996,6 @@ Other API Changes
 - :func:`DataFrame.to_dict` with ``orient='index'`` no longer casts int columns to float for a DataFrame with only int and float columns (:issue:`18580`)
 - A user-defined-function that is passed to :func:`Series.rolling().aggregate() <pandas.core.window.Rolling.aggregate>`, :func:`DataFrame.rolling().aggregate() <pandas.core.window.Rolling.aggregate>`, or its expanding cousins, will now *always* be passed a ``Series``, rather than a ``np.array``; ``.apply()`` only has the ``raw`` keyword, see :ref:`here <whatsnew_0230.enhancements.window_raw>`. This is consistent with the signatures of ``.aggregate()`` across pandas (:issue:`20584`)
 - Rolling and Expanding types raise ``NotImplementedError`` upon iteration (:issue:`11704`).
-- ``DatetimeIndex._data`` now returns a numpy array in all cases (:issue:`20810`)
 
 .. _whatsnew_0230.deprecations:
 
