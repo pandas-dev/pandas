@@ -1837,8 +1837,9 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def quantile(self, q=0.5, interpolation='linear'):
         """
-        Return value at the given quantile, (you can also see numpy.percentile, much similar like series.quantile).
-
+        Return value at the given quantile
+        (you can also see numpy.percentile, much similar like series.quantile).
+ 
         Parameters
         ----------
         q : float or array-like, default 0.5 (50% quantile)
