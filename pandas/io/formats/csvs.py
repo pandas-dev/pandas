@@ -151,7 +151,8 @@ class CSVFormatter(object):
             self._save()
 
         finally:
-            # GH 17778 handles compression for byte strings.
+            # GH 17778 handles zip compression for byte strings separately to
+            # support Python 2
             if not close and self.compression:
                 f.close()
                 with open(f.name, 'rb') as f:
