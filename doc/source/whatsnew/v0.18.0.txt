@@ -414,7 +414,7 @@ New Behavior:
    df.loc[ix, 'b'] = df.loc[ix, 'b']
    df.dtypes
 
-When a DataFrame's integer slice is partially updated with a new slice of floats that could potentially be down casted to integer without losing precision, the dtype of the slice will be set to float instead of integer.
+When a DataFrame's integer slice is partially updated with a new slice of floats that could potentially be down-casted to integer without losing precision, the dtype of the slice will be set to float instead of integer.
 
 Previous Behavior:
 

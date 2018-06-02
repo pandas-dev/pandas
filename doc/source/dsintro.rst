@@ -882,7 +882,7 @@ dictionary of DataFrames as above, and the following named parameters:
    :header: "Parameter", "Default", "Description"
    :widths: 10, 10, 40
 
-   intersect, ``False``, drops elements whose indexes do not align
+   intersect, ``False``, drops elements whose indices do not align
    orient, ``items``, use ``minor`` to use DataFrames' columns as panel items
 
 For example, compare to the construction above:

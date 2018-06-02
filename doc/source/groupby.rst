@@ -942,7 +942,7 @@ that is itself a series, and possibly upcast the result to a DataFrame:
 
    ``apply`` can act as a reducer, transformer, *or* filter function, depending on exactly what is passed to it.
    So depending on the path taken, and exactly what you are grouping. Thus the grouped columns(s) may be included in
-   the output as well as set the indexes.
+   the output as well as set the indices.
 
 .. warning::
 
@@ -1328,7 +1328,7 @@ Groupby by Indexer to 'resample' data
 
 Resampling produces new hypothetical samples (resamples) from already existing observed data or from a model that generates data. These new samples are similar to the pre-existing samples.
 
-In order to resample to work on indexes that are non-datetimelike, the following procedure can be utilized.
+In order to resample to work on indices that are non-datetimelike, the following procedure can be utilized.
 
 In the following examples, **df.index // 5** returns a binary array which is used to determine what gets selected for the groupby operation.
 

@@ -228,9 +228,9 @@ Grouping by more than one column is done by passing a list of columns to the
 JOIN
 ----
 JOINs can be performed with :meth:`~pandas.DataFrame.join` or :meth:`~pandas.merge`. By default,
-:meth:`~pandas.DataFrame.join` will join the DataFrames on their indexes. Each method has
+:meth:`~pandas.DataFrame.join` will join the DataFrames on their indices. Each method has
 parameters allowing you to specify the type of join to perform (LEFT, RIGHT, INNER, FULL) or the
-columns to join on (column names or indexes).
+columns to join on (column names or indices).
 
 .. ipython:: python
 

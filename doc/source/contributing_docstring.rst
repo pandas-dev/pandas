@@ -513,7 +513,7 @@ instead of at the beginning, it is good to let the users know about it.
 To give an intuition on what can be considered related, here there are some
 examples:
 
-* ``loc`` and ``iloc``, as they do the same, but in one case providing indexes
+* ``loc`` and ``iloc``, as they do the same, but in one case providing indices
   and in the other positions
 * ``max`` and ``min``, as they do the opposite
 * ``iterrows``, ``itertuples`` and ``iteritems``, as it is easy that a user
@@ -692,7 +692,7 @@ the standard library go first, followed by third-party libraries (like
 matplotlib).
 
 When illustrating examples with a single ``Series`` use the name ``s``, and if
-illustrating with a single ``DataFrame`` use the name ``df``. For indexes,
+illustrating with a single ``DataFrame`` use the name ``df``. For indices,
 ``idx`` is the preferred name. If a set of homogeneous ``Series`` or
 ``DataFrame`` is used, name them ``s1``, ``s2``, ``s3``...  or ``df1``,
 ``df2``, ``df3``... If the data is not homogeneous, and more than one structure

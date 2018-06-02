@@ -3835,7 +3835,7 @@ Improvements to existing features
     in append
   - support write chunking to reduce memory footprint, via ``chunksize``
     keyword to append
-  - support auto-magic indexing via ``index`` keyword to append
+  - support automagic indexing via ``index`` keyword to append
   - support ``expectedrows`` keyword in append to inform ``PyTables`` about
     the expected table size
   - support ``start`` and ``stop`` keywords in select to limit the row

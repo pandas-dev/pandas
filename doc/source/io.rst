@@ -2756,7 +2756,7 @@ Specifying Sheets
 - The arguments ``sheet_name`` allows specifying the sheet or sheets to read.
 - The default value for ``sheet_name`` is 0, indicating to read the first sheet
 - Pass a string to refer to the name of a particular sheet in the workbook.
-- Pass an integer to refer to the index of a sheet. Indexes follow Python
+- Pass an integer to refer to the index of a sheet. Indices follow Python
   convention, beginning at 0.
 - Pass a list of either strings or integers, to return a dictionary of specified sheets.
 - Pass a ``None`` to return a dictionary of all available sheets.

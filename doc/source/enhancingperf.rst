@@ -601,7 +601,7 @@ on the original ``DataFrame`` or return a copy with the new column.
 
    For backwards compatibility, ``inplace`` defaults to ``True`` if not
    specified. This will change in a future version of pandas - if your
-   code depends on an in place assignment you should update to explicitly
+   code depends on an inplace assignment you should update to explicitly
    set ``inplace=True``.
 
 .. ipython:: python

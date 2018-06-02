@@ -370,7 +370,7 @@ Renaming categories is done by assigning new values to the
 
 .. note::
 
-    Be aware that assigning new categories is an in place operation, while most other operations
+    Be aware that assigning new categories is an inplace operation, while most other operations
     under ``Series.cat`` per default return a new ``Series`` of dtype `category`.
 
 Categories must be unique or a `ValueError` is raised:

@@ -78,7 +78,7 @@ extensions = ['sphinx.ext.autodoc',
 
 exclude_patterns = ['**.ipynb_checkpoints']
 
-spelling_word_list_filename = 'spelling_wordlist.txt'
+spelling_word_list_filename = ['spelling_wordlist.txt', 'names_wordlist.txt']
 spelling_ignore_pypi_package_names = True
 
 with open("index.rst") as f:
