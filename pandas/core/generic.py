@@ -7823,7 +7823,7 @@ class NDFrame(PandasObject, SelectionMixin):
         ...                                            name='mydate'))
 
         >>> data
-                    myvalue group   
+                    myvalue group
         mydate
         2016-06-06        1     A
         2016-06-08        2     A
