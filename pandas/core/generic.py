@@ -7790,12 +7790,12 @@ class NDFrame(PandasObject, SelectionMixin):
                           errors=errors)
 
     _shared_docs['shift'] = ("""
-        Shift index by desired number of periods with an optional time freq
+        Shift index by desired number of periods with an optional time freq.
 
         Parameters
         ----------
         periods : int
-            Number of periods to move, can be positive or negative
+            Number of periods to move, can be positive or negative.
         freq : DateOffset, timedelta, or time rule string, optional
             Increment to use from the tseries module or time rule (e.g. 'EOM').
             See Notes.
@@ -7809,8 +7809,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        Compute the difference between a column in a dataframe with grouped data, and
-        its shifted version.
+        Compute the difference between a column in a dataframe
+        with grouped data, and its shifted version.
 
         >>> data = pd.DataFrame({'myvalue': [1, 2, 3, 4, 5, 6],
         ...                      'group': ['A', 'A', 'A', 'B', 'B', 'B']},
@@ -7819,10 +7819,11 @@ class NDFrame(PandasObject, SelectionMixin):
         ...                                             '2016-06-09',
         ...                                             '2016-06-10',
         ...                                             '2016-06-12',
-        ...                                             '2016-06-13'], name='mydate'))
+        ...                                             '2016-06-13'],
+        ...                                            name='mydate'))
 
         >>> data
-                    myvalue group
+                    myvalue group   
         mydate
         2016-06-06        1     A
         2016-06-08        2     A
@@ -7834,7 +7835,8 @@ class NDFrame(PandasObject, SelectionMixin):
         For the groups compute the difference between current `myvalue` and
         `myvalue` shifted forward by 1 day
 
-        >>> result = data.groupby('group').myvalue.apply(lambda x: x - x.shift(1, pd.Timedelta('1 days')))
+        >>> result = data.groupby('group').myvalue.apply(
+        ...             lambda x: x - x.shift(1, pd.Timedelta('1 days')))
         >>> result
         group  mydate
         A      2016-06-06    NaN
@@ -7853,6 +7855,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         >>> result.name = 'delta'
         >>> pd.merge(data, result.to_frame(), on=['mydate', 'group'])
+                    myvalue group delta
         mydate
         2016-06-06        1     A    NaN
         2016-06-08        2     A    NaN
