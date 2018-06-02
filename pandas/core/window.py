@@ -96,7 +96,7 @@ class _Window(PandasObject, SelectionMixin):
         return self.win_type == 'freq'
 
     def validate(self):
-        if self.window==0:
+        if self.window == 0:
             raise ValueError("Please Enter a window other than 0")
         if self.center is not None and not is_bool(self.center):
             raise ValueError("center must be a boolean")
