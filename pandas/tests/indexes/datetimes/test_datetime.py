@@ -27,20 +27,17 @@ class TestDatetimeIndex(object):
         unpickled = tm.round_trip_pickle(index)
         tm.assert_index_equal(index, unpickled)
 
-    def test_date_accessor_with_tz(self):
+    @pytest.mark.parametrize("test_input", [
+        DatetimeIndex(['2013-01-24 15:01:00']),
+        DatetimeIndex(['2013-01-24 15:01:00'], dtype='datetime64[ns, CET]'),
+        DatetimeIndex(['2013-01-24 15:01:00'], dtype='datetime64[ns, EST]'),
+        DatetimeIndex(['2013-01-24 15:01:00'], dtype='datetime64[ns, UTC]')
+    ])
+    def test_date_accessor(self, test_input):
         # GH 21230
         from datetime import date
-        index = DatetimeIndex(['2013-01-24 15:01:00+01:00'],
-                              dtype='datetime64[ns, CET]', freq=None)
 
-        assert index.date == np.array(date(2013, 1, 24))
-
-    def test_date_accessor_without_tz(self):
-        # GH 21230
-        from datetime import date
-        index = DatetimeIndex(['2013-01-24 15:01:00+01:00'], freq=None)
-
-        assert index.date == np.array(date(2013, 1, 24))
+        assert test_input.date == np.array(date(2013, 1, 24))
 
     def test_reindex_preserves_tz_if_target_is_empty_list_or_array(self):
         # GH7774
