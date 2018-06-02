@@ -10,7 +10,7 @@ import pandas as pd
 
 from pandas import Series, DataFrame
 
-from pandas.compat import StringIO, u, PY2
+from pandas.compat import StringIO, u
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal, ensure_clean)
 import pandas.util.testing as tm
