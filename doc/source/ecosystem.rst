@@ -38,7 +38,10 @@ Statsmodels leverages pandas objects as the underlying data container for comput
 Use pandas DataFrames in your `scikit-learn <http://scikit-learn.org/>`__
 ML pipeline.
 
+`Featuretools <https://github.com/featuretools/featuretools/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Featuretools is a Python library for automated feature engineering built on top of pandas. It excels at transforming transactional and relational datasets into feature matrices for machine learning using reusable feature engineering "primitives". Users can contribute their own primitives in python and share them with the rest of the community. 
 
 .. _ecosystem.visualization:
 
