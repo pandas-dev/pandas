@@ -603,8 +603,8 @@ def lag_plot(series, lag=1, ax=None, **kwds):
 
 
 def autocorrelation_plot(series, n_lags=None, ax=None, **kwds):
-    """Autocorrelation plot for time series. Prints p value 
-    as the lag value where the ACF chart crosses the upper 
+    """Autocorrelation plot for time series. Prints p value
+    as the lag value where the ACF chart crosses the upper
     confidence interval for the first time.
 
     Parameters:
@@ -652,8 +652,8 @@ def autocorrelation_plot(series, n_lags=None, ax=None, **kwds):
     return ax
 
 def partial_autocorrelation_plot(series, n_lags=20, ax=None, **kwds):
-    """Partial autocorrelation plot for time series. Prints q value 
-    as the lag value where the ACF chart crosses the upper confidence 
+    """Partial autocorrelation plot for time series. Prints q value
+    as the lag value where the ACF chart crosses the upper confidence
     interval for the first time.
 
     Parameters:
@@ -663,7 +663,7 @@ def partial_autocorrelation_plot(series, n_lags=20, ax=None, **kwds):
     ax: Matplotlib axis object, optional
     kwds : keywords
         Options to pass to matplotlib plotting method
-
+        
     Returns:
     -----------
     ax: Matplotlib axis object
