@@ -2582,7 +2582,7 @@ Improvements to existing features
   docstrings for Panel flex methods. (:issue:`5336`)
 - ``NDFrame.drop()``, ``NDFrame.dropna()``, and ``.drop_duplicates()`` all
   accept ``inplace`` as a keyword argument; however, this only means that the
-  wrapper is updated in place, a copy is still made internally.
+  wrapper is updated inplace, a copy is still made internally.
   (:issue:`1960`, :issue:`5247`, :issue:`5628`, and related :issue:`2325` [still not
   closed])
 - Fixed bug in `tools.plotting.andrews_curvres` so that lines are drawn grouped
@@ -2625,7 +2625,7 @@ API Changes
   :issue:`5744`, :issue:`5756`)
 - Default export for ``to_clipboard`` is now csv with a sep of `\t` for
   compat (:issue:`3368`)
-- ``at`` now will enlarge the object in place (and return the same)
+- ``at`` now will enlarge the object inplace (and return the same)
   (:issue:`2578`)
 - ``DataFrame.plot`` will scatter plot x versus y by passing
   ``kind='scatter'`` (:issue:`2215`)
