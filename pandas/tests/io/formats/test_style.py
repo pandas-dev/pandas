@@ -1017,9 +1017,9 @@ class TestStyler(object):
         assert ctx['body'][1][2]['display_value'] == 3
 
 
+@td.skip_if_no_mpl
 class TestStylerMatplotlibDep(object):
 
-    @td.skip_if_no_mpl
     def test_background_gradient(self):
         df = pd.DataFrame([[1, 2], [2, 4]], columns=['A', 'B'])
 
@@ -1035,7 +1035,6 @@ class TestStylerMatplotlibDep(object):
         assert result[(1, 0)] == ['background-color: #fff7fb',
                                   'color: #000000']
 
-    @td.skip_if_no_mpl
     @pytest.mark.parametrize(
         'c_map,expected', [
             (None, {
@@ -1049,7 +1048,6 @@ class TestStylerMatplotlibDep(object):
         result = df.style.background_gradient(cmap=c_map)._compute().ctx
         assert result == expected
 
-    @td.skip_if_no_mpl
     @pytest.mark.parametrize("text_color_threshold", [1.1, '1', -1, [2, 2]])
     def test_text_color_threshold_raises(self, text_color_threshold):
         df = pd.DataFrame([[1, 2], [2, 4]], columns=['A', 'B'])
