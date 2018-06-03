@@ -1038,17 +1038,16 @@ class TestStylerMatplotlibDep(object):
     @td.skip_if_no_mpl
     @pytest.mark.parametrize(
         'c_map,expected', [
-            (None, [
-                ['background-color: #440154', 'color: #f1f1f1'],
-                ['background-color: #fde725', 'color: #000000']]),
-            ('YlOrRd', [
-                ['background-color: #ffffcc', 'color: #000000'],
-                ['background-color: #800026', 'color: #f1f1f1']])])
+            (None, {
+                (0, 0): ['background-color: #440154', 'color: #f1f1f1'],
+                (1, 0): ['background-color: #fde725', 'color: #000000']}),
+            ('YlOrRd', {
+                (0, 0): ['background-color: #ffffcc', 'color: #000000'],
+                (1, 0): ['background-color: #800026', 'color: #f1f1f1']})])
     def test_text_color_threshold(self, c_map, expected):
-        df = pd.DataFrame([[1, 2], [2, 4]], columns=['A', 'B'])
+        df = pd.DataFrame([1, 2], columns=['A'])
         result = df.style.background_gradient(cmap=c_map)._compute().ctx
-        assert result[0, 0] == expected[0]
-        assert result[1, 0] == expected[1]
+        assert result == expected
 
     @td.skip_if_no_mpl
     @pytest.mark.parametrize("text_color_threshold", [1.1, '1', -1, [2, 2]])
