@@ -2041,10 +2041,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         part of Timestamps without timezone information).
         """
         if (self.tz is None):
-            return libts.ints_to_pydatetime(self.normalize().asi8, box="date")
+            return libts.ints_to_pydatetime(self.asi8, box="date")
         else:
             return libts.ints_to_pydatetime(
-                self.normalize()._local_timestamps(), box="date")
+                self._local_timestamps(), box="date")
 
     def normalize(self):
         """
