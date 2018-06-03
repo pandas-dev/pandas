@@ -16,6 +16,10 @@ class Registry(object):
     to try inference from a string or a dtype class
 
     These are tried in order for inference.
+
+    Examples
+    --------
+    registry.register(MyExtensionDtype)
     """
     dtypes = []
 

@@ -91,6 +91,15 @@ extension array for IP Address data, this might be ``ipaddress.IPv4Address``.
 
 See the `extension dtype source`_ for interface definition.
 
+.. versionadded:: 0.24.0
+
+:class:`pandas.api.extension.ExtensionDtype` can be registered to pandas to allow creation via a string dtype name.
+This allows one to instantiate ``Series`` and ``.astype()`` with a registered string name, for
+example ``'category'`` is a registered string accessor for the ``CategoricalDtype``.
+
+See the `extension dtype dtypes`_ for more on how to register dtypes.
+
+
 :class:`~pandas.api.extension.ExtensionArray`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -131,6 +140,7 @@ To use a test, subclass it:
 See https://github.com/pandas-dev/pandas/blob/master/pandas/tests/extension/base/__init__.py
 for a list of all the tests available.
 
+.. _extension dtype dtypes: https://github.com/pandas-dev/pandas/blob/master/pandas/core/dtypes/dtypes.py
 .. _extension dtype source: https://github.com/pandas-dev/pandas/blob/master/pandas/core/dtypes/base.py
 .. _extension array source: https://github.com/pandas-dev/pandas/blob/master/pandas/core/arrays/base.py
 
@@ -174,11 +184,11 @@ There are 3 constructor properties to be defined:
 Following table shows how ``pandas`` data structures define constructor properties by default.
 
 ===========================  ======================= =============
-Property Attributes          ``Series``              ``DataFrame``      
+Property Attributes          ``Series``              ``DataFrame``
 ===========================  ======================= =============
-``_constructor``             ``Series``              ``DataFrame``      
-``_constructor_sliced``      ``NotImplementedError`` ``Series``         
-``_constructor_expanddim``   ``DataFrame``           ``Panel``          
+``_constructor``             ``Series``              ``DataFrame``
+``_constructor_sliced``      ``NotImplementedError`` ``Series``
+``_constructor_expanddim``   ``DataFrame``           ``Panel``
 ===========================  ======================= =============
 
 Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame`` overriding constructor properties.
