@@ -139,7 +139,7 @@ class TestSeriesToCSV(TestData):
 
     @pytest.mark.parametrize('s, encoding', [
         (Series([0.123456, 0.234567, 0.567567], index=['A', 'B', 'C'],
-                name='X'), 'utf-8'),
+                name='X'), None),
         (Series(['abc', 'def', 'ghi'], name='X'), 'ascii'),
         (Series(["123", u"你好", u"世界"], name=u"中文"), 'gb2312'),
         (Series(["123", u"Γειά σου", u"Κόσμε"], name=u"Ελληνικά"), 'cp737')
@@ -158,7 +158,7 @@ class TestSeriesToCSV(TestData):
 
             # explicitly ensure file was compressed
             with tm.decompress_file(filename, compression) as fh:
-                text = fh.read().decode(encoding)
+                text = fh.read().decode(encoding or 'utf8')
                 assert s.name in text
 
             with tm.decompress_file(filename, compression) as fh:

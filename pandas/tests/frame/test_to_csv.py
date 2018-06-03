@@ -922,7 +922,7 @@ class TestDataFrameToCSV(TestData):
     @pytest.mark.parametrize('frame, encoding', [
         (DataFrame([[0.123456, 0.234567, 0.567567],
                     [12.32112, 123123.2, 321321.2]],
-                   index=['A', 'B'], columns=['X', 'Y', 'Z']), 'utf-8'),
+                   index=['A', 'B'], columns=['X', 'Y', 'Z']), None),
         (DataFrame([['abc', 'def', 'ghi']], columns=['X', 'Y', 'Z']), 'ascii'),
         (DataFrame(5 * [[123, u"你好", u"世界"]],
                    columns=['X', 'Y', 'Z']), 'gb2312'),
@@ -942,7 +942,7 @@ class TestDataFrameToCSV(TestData):
 
             # explicitly make sure file is compressed
             with tm.decompress_file(filename, compression) as fh:
-                text = fh.read().decode(encoding)
+                text = fh.read().decode(encoding or 'utf8')
                 for col in frame.columns:
                     assert col in text
 
