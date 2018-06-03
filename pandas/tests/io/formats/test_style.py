@@ -1036,24 +1036,19 @@ class TestStylerMatplotlibDep(object):
                                   'color: #000000']
 
     @td.skip_if_no_mpl
-    @pytest.mark.parametrize("c_map", [None, 'YlOrRd'])
-    def test_text_color_threshold(self, c_map):
+    @pytest.mark.parametrize(
+        'c_map,expected', [
+            (None, [
+                ['background-color: #440154', 'color: #f1f1f1'],
+                ['background-color: #fde725', 'color: #000000']]),
+            ('YlOrRd', [
+                ['background-color: #ffffcc', 'color: #000000'],
+                ['background-color: #800026', 'color: #f1f1f1']])])
+    def test_text_color_threshold(self, c_map, expected):
         df = pd.DataFrame([[1, 2], [2, 4]], columns=['A', 'B'])
         result = df.style.background_gradient(cmap=c_map)._compute().ctx
-        test_colors = {None: {(0, 0): ('#440154', '#f1f1f1'),
-                              (1, 0): ('#fde725', '#000000')},
-                       'YlOrRd': {(0, 0): ('#ffffcc', '#000000'),
-                                  (1, 0): ('#800026', '#f1f1f1')}}
-        # Light text on dark background
-        assert result[0, 0][0].split(' ')[1] == test_colors[c_map][0, 0][0], (
-            'Unexpected background color returned from '
-            '`style.background_gradient()`')
-        assert result[0, 0][1].split(' ')[1] == test_colors[c_map][0, 0][1]
-        # Dark text on light background
-        assert result[1, 0][0].split(' ')[1] == test_colors[c_map][1, 0][0], (
-            'Unexpected background color returned from '
-            '`style.background_gradient()`')
-        assert result[1, 0][1].split(' ')[1] == test_colors[c_map][1, 0][1]
+        assert result[0, 0] == expected[0]
+        assert result[1, 0] == expected[1]
 
     @td.skip_if_no_mpl
     @pytest.mark.parametrize("text_color_threshold", [1.1, '1', -1, [2, 2]])
