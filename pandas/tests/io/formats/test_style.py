@@ -1064,7 +1064,7 @@ class TestStylerMatplotlibDep(object):
         msg = "`text_color_threshold` must be a value from 0 to 1."
         with tm.assert_raises_regex(ValueError, msg):
             df.style.background_gradient(
-                text_color_threshold=text_color_threshold)
+                text_color_threshold=text_color_threshold)._compute()
 
 
 def test_block_names():
