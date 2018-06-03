@@ -501,9 +501,11 @@ class TestDataFrameConstructors(TestData):
         tm.assert_frame_equal(result, expected, check_dtype=False)
 
     def test_constructor_dict_multiindex(self):
-        check = lambda result, expected: tm.assert_frame_equal(
-            result, expected, check_dtype=True, check_index_type=True,
-            check_column_type=True, check_names=True)
+        def check(result, expected):
+            return tm.assert_frame_equal(result, expected, check_dtype=True,
+                                         check_index_type=True,
+                                         check_column_type=True,
+                                         check_names=True)
         d = {('a', 'a'): {('i', 'i'): 0, ('i', 'j'): 1, ('j', 'i'): 2},
              ('b', 'a'): {('i', 'i'): 6, ('i', 'j'): 5, ('j', 'i'): 4},
              ('b', 'c'): {('i', 'i'): 7, ('i', 'j'): 8, ('j', 'i'): 9}}

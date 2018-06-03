@@ -224,7 +224,8 @@ class TestDataFrameIndexing(TestData):
 
     def test_setitem_other_callable(self):
         # GH 13299
-        inc = lambda x: x + 1
+        def inc(x):
+            return x + 1
 
         df = pd.DataFrame([[-1, 1], [1, -1]])
         df[df > 0] = inc
@@ -2083,7 +2084,8 @@ class TestDataFrameIndexing(TestData):
         icol = ['jim', 'joe', 'jolie']
 
         def verify_first_level(df, level, idx, check_index_type=True):
-            f = lambda val: np.nonzero(df[level] == val)[0]
+            def f(val):
+                return np.nonzero(df[level] == val)[0]
             i = np.concatenate(list(map(f, idx)))
             left = df.set_index(icol).reindex(idx, level=level)
             right = df.iloc[i].set_index(icol)
