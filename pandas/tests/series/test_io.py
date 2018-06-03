@@ -140,6 +140,7 @@ class TestSeriesToCSV(TestData):
     @pytest.mark.parametrize('s,encoding', [
         (Series([0.123456, 0.234567, 0.567567], index=['A', 'B', 'C'],
                 name='X'), None),
+        # GH 21241, 21118
         (Series(['abc', 'def', 'ghi'], name='X'), 'ascii'),
         (Series(["123", u"你好", u"世界"], name=u"中文"), 'gb2312'),
         (Series(["123", u"Γειά σου", u"Κόσμε"], name=u"Ελληνικά"), 'cp737')
