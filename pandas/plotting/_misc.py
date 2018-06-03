@@ -602,12 +602,15 @@ def lag_plot(series, lag=1, ax=None, **kwds):
     return ax
 
 
-def autocorrelation_plot(series, ax=None, **kwds):
-    """Autocorrelation plot for time series.
+def autocorrelation_plot(series, n_lags=None, ax=None, **kwds):
+    """Autocorrelation plot for time series. Prints p value 
+    as the lag value where the ACF chart crosses the upper 
+    confidence interval for the first time.
 
     Parameters:
     -----------
     series: Time series
+    n_lags: Number of lags to be plotted
     ax: Matplotlib axis object, optional
     kwds : keywords
         Options to pass to matplotlib plotting method
@@ -620,14 +623,14 @@ def autocorrelation_plot(series, ax=None, **kwds):
     n = len(series)
     data = np.asarray(series)
     if ax is None:
-        ax = plt.gca(xlim=(1, n), ylim=(-1.0, 1.0))
+        ax = plt.gca(xlim=(1, n_lags), ylim=(-1.0, 1.0))
     mean = np.mean(data)
     c0 = np.sum((data - mean) ** 2) / float(n)
 
     def r(h):
         return ((data[:n - h] - mean) *
                 (data[h:] - mean)).sum() / float(n) / c0
-    x = np.arange(n) + 1
+    x = (np.arange(n) + 1).astype(int)
     y = lmap(r, x)
     z95 = 1.959963984540054
     z99 = 2.5758293035489004
@@ -638,8 +641,47 @@ def autocorrelation_plot(series, ax=None, **kwds):
     ax.axhline(y=-z99 / np.sqrt(n), linestyle='--', color='grey')
     ax.set_xlabel("Lag")
     ax.set_ylabel("Autocorrelation")
-    ax.plot(x, y, **kwds)
+    if n_samples:
+        ax.plot(x[:n_lags], y[:n_lags], **kwds)
+    else:
+        ax.plot(x, y, **kwds)
     if 'label' in kwds:
         ax.legend()
     ax.grid()
+    print("q value: %d" % (x[y < z99 / np.sqrt(n)][0]))
+    return ax
+
+def partial_autocorrelation_plot(series, n_lags=20, ax=None, **kwds):
+    """Partial autocorrelation plot for time series. Prints q value 
+    as the lag value where the ACF chart crosses the upper confidence 
+    interval for the first time.
+
+    Parameters:
+    -----------
+    series: Time series
+    n_lags: Number of lags to be plotted
+    ax: Matplotlib axis object, optional
+    kwds : keywords
+        Options to pass to matplotlib plotting method
+
+    Returns:
+    -----------
+    ax: Matplotlib axis object
+    """
+    from statsmodels.tsa.stattools import pacf
+    n = len(series)
+    if ax is None:
+        ax = plt.gca(xlim=(1, n_lags), ylim=(-1.0, 1.0))
+    ret = pacf(series, n_lags)
+    ax.plot(ret, **kwds)
+    z95 = 1.959963984540054
+    z99 = 2.5758293035489004
+    ax.axhline(y=z99 / np.sqrt(n), linestyle='--', color='grey')
+    ax.axhline(y=z95 / np.sqrt(n), color='grey')
+    ax.axhline(y=0.0, color='black')
+    ax.axhline(y=-z95 / np.sqrt(n), color='grey')
+    ax.axhline(y=-z99 / np.sqrt(n), linestyle='--', color='grey')
+    ax.set_xlabel("Lag")
+    ax.set_ylabel("Partial autocorrelation")
+    print("p value: %d" % (ret < z99 / np.sqrt(n)).nonzero()[0][0])
     return ax
