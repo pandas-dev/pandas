@@ -152,11 +152,15 @@ class CSVFormatter(object):
 
         finally:
             # GH 17778 handles zip compression for byte strings separately to
-            # support Python 2
+            # support Python 2, also allow compression file handle
             if not close and self.compression:
                 f.close()
-                with open(f.name, 'rb') as f:
-                    data = f.read().decode(encoding)
+                if compat.PY2:
+                    _fh = open(f.name, 'r')
+                else:
+                    _fh = open(f.name, 'r', encoding=encoding)
+                with _fh:
+                    data = _fh.read()
                 f, handles = _get_handle(f.name, self.mode,
                                          encoding=encoding,
                                          compression=self.compression)
