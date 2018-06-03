@@ -9,6 +9,7 @@ import csv as csvlib
 import numpy as np
 
 from pandas.core.dtypes.missing import notna
+from pandas.core.dtypes.inference import is_file_like
 from pandas.core.index import Index, MultiIndex
 from pandas import compat
 from pandas.compat import (StringIO, range, zip)
@@ -129,16 +130,17 @@ class CSVFormatter(object):
 
         # PR 21300 uses string buffer to receive csv writing and dump into
         # file-like output with compression as option.
-        if hasattr(self.path_or_buf, 'name'):
-            path_or_buf = self.path_or_buf.name
-            f = StringIO()
-        elif isinstance(self.path_or_buf, compat.string_types):
+        if not is_file_like(self.path_or_buf):
             path_or_buf = self.path_or_buf
             f = StringIO()
+            close = True
+        elif hasattr(self.path_or_buf, 'name'):
+            path_or_buf = self.path_or_buf.name
+            f = StringIO()
+            close = True
         else:
             f = self.path_or_buf
-
-        close = f != self.path_or_buf
+            close = False
 
         try:
             writer_kwargs = dict(lineterminator=self.line_terminator,
