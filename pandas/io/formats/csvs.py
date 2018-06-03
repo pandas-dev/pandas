@@ -155,12 +155,10 @@ class CSVFormatter(object):
             # support Python 2, also allow compression file handle
             if not close and self.compression:
                 f.close()
-                if compat.PY2:
-                    _fh = open(f.name, 'r')
-                else:
-                    _fh = open(f.name, 'r', encoding=encoding)
-                with _fh:
-                    data = _fh.read()
+                with open(f.name, 'rb') as f:
+                    data = f.read()
+                if not compat.PY2:
+                    data = data.decode(encoding)
                 f, handles = _get_handle(f.name, self.mode,
                                          encoding=encoding,
                                          compression=self.compression)
