@@ -137,7 +137,7 @@ class TestSeriesToCSV(TestData):
         csv_str = s.to_csv(path=None)
         assert isinstance(csv_str, str)
 
-    @pytest.mark.parametrize('s, encoding', [
+    @pytest.mark.parametrize('s,encoding', [
         (Series([0.123456, 0.234567, 0.567567], index=['A', 'B', 'C'],
                 name='X'), None),
         (Series(['abc', 'def', 'ghi'], name='X'), 'ascii'),
@@ -152,9 +152,9 @@ class TestSeriesToCSV(TestData):
                      header=True)
 
             # test the round trip - to_csv -> read_csv
-            rs = pd.read_csv(filename, compression=compression,
-                             encoding=encoding, index_col=0, squeeze=True)
-            assert_series_equal(s, rs)
+            result = pd.read_csv(filename, compression=compression,
+                                 encoding=encoding, index_col=0, squeeze=True)
+            assert_series_equal(s, result)
 
             # explicitly ensure file was compressed
             with tm.decompress_file(filename, compression) as fh:
