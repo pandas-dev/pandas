@@ -129,15 +129,13 @@ class CSVFormatter(object):
             encoding = self.encoding
 
         # PR 21300 uses string buffer to receive csv writing and dump into
-        # file-like output with compression as option.
+        # file-like output with compression as option. GH 21241, 21118
+        f = StringIO()
+        close = True
         if not is_file_like(self.path_or_buf):
             path_or_buf = self.path_or_buf
-            f = StringIO()
-            close = True
         elif hasattr(self.path_or_buf, 'name'):
             path_or_buf = self.path_or_buf.name
-            f = StringIO()
-            close = True
         else:
             f = self.path_or_buf
             close = False
