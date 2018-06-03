@@ -1349,17 +1349,17 @@ def str_split(arr, pat=None, n=None):
     Parameters
     ----------
     pat : str, optional
-        String or regular expression to split on; If not specified, 
+        String or regular expression to split on; If not specified,
         split on whitespace.
     n : int, default -1 (all)
-        Limit number of splits in output; ``None``, 0 and -1 will 
+        Limit number of splits in output; ``None``, 0 and -1 will
         be interpreted as return all splits.
     expand : bool, default False
         Expand the splitted strings into separate columns.
 
     Returns
     -------
-    Series, Index, DataFrame or MultiIndex        
+    Series, Index, DataFrame or MultiIndex       
     """
     if pat is None:
         if n is None or n == 0:
@@ -1381,7 +1381,7 @@ def str_split(arr, pat=None, n=None):
 
 def str_rsplit(arr, pat=None, n=None):
     """
-    Split strings around given separator/delimiter (starting from 
+    Split strings around given separator/delimiter (starting from
     the right).
 
     Parameters
@@ -2243,8 +2243,8 @@ class StringMethods(NoNewAttributesMixin):
     _shared_docs['str_split'] = ("""
     Split strings around given separator/delimiter.
 
-    Returns a list of the words from each string in Series/Index, 
-    split by the given delimiter string, starting at the %(side)s of the 
+    Returns a list of the words from each string in Series/Index,
+    split by the given delimiter string, starting at the %(side)s of the
     string. Equivalent to :meth:`str.%(method)s`.
 
     Parameters
@@ -2309,8 +2309,8 @@ class StringMethods(NoNewAttributesMixin):
     1    [but this is even better]
     dtype: object
 
-    When using ``expand=True``, the split and rsplit elements will expand out into
-    separate columns.
+    When using ``expand=True``, the split and rsplit elements will
+    expand out into separate columns.
 
     For Series object, output return type is DataFrame.
 
