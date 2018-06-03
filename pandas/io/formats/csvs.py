@@ -127,14 +127,18 @@ class CSVFormatter(object):
         else:
             encoding = self.encoding
 
-        if hasattr(self.path_or_buf, 'write'):
-            f = self.path_or_buf
-            close = False
+        # PR 21300 uses string buffer to receive csv writing and dump into
+        # file-like output with compression as option.
+        if hasattr(self.path_or_buf, 'name'):
+            path_or_buf = self.path_or_buf.name
+            f = StringIO()
+        elif isinstance(self.path_or_buf, compat.string_types):
+            path_or_buf = self.path_or_buf
+            f = StringIO()
         else:
-            f, handles = _get_handle(self.path_or_buf, self.mode,
-                                     encoding=encoding,
-                                     compression=None)
-            close = True if self.compression is None else False
+            f = self.path_or_buf
+
+        close = f != self.path_or_buf
 
         try:
             writer_kwargs = dict(lineterminator=self.line_terminator,
@@ -151,21 +155,16 @@ class CSVFormatter(object):
             self._save()
 
         finally:
-            # GH 17778 handles zip compression for byte strings separately to
-            # support Python 2, also allow compression file handle
-            if not close and self.compression:
-                f.close()
-                with open(f.name, 'rb') as f:
-                    data = f.read()
-                if not compat.PY2:
-                    data = data.decode(encoding)
-                f, handles = _get_handle(f.name, self.mode,
+            # GH 17778 handles zip compression for byte strings separately.
+            buf = f.getvalue()
+            if close:
+                f, handles = _get_handle(path_or_buf, self.mode,
                                          encoding=encoding,
                                          compression=self.compression)
-                f.write(data)
-                close = True
-            if close:
+                f.write(buf)
                 f.close()
+                for _fh in handles:
+                    _fh.close()
 
     def _save_header(self):
 
