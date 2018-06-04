@@ -1,4 +1,4 @@
-#!/usr/env/bin python
+#!/usr/bin/env python
 
 """
 self-contained to write legacy storage (pickle/msgpack) files
