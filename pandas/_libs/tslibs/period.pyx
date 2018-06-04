@@ -1122,7 +1122,7 @@ cdef class _Period(object):
                     raise IncompatibleFrequency(msg)
                 return (self.ordinal - other.ordinal) * self.freq
             elif getattr(other, '_typ', None) == 'periodindex':
-                # GH#??? PeriodIndex - Period returns an object-index
+                # GH#21314 PeriodIndex - Period returns an object-index
                 # of DateOffset objects, for which we cannot use __neg__
                 # directly, so we have to apply it pointwise
                 return other.__sub__(self).map(lambda x: -x)
