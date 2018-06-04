@@ -1689,8 +1689,7 @@ class DataFrame(NDFrame):
             defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
         compression : string, optional
             A string representing the compression to use in the output file.
-            Allowed values are 'gzip', 'bz2', 'zip', 'xz'. This input is only
-            used when the first argument is a filename.
+            Allowed values are 'gzip', 'bz2', 'zip', 'xz'.
         line_terminator : string, default ``'\n'``
             The newline character or character sequence to use in the output
             file
@@ -3721,7 +3720,7 @@ class DataFrame(NDFrame):
         copy : boolean, default True
             Also copy underlying data
         inplace : boolean, default False
-            Whether to return a new %(klass)s. If True then value of copy is
+            Whether to return a new DataFrame. If True then value of copy is
             ignored.
         level : int or level name, default None
             In case of a MultiIndex, only rename labels in the specified
@@ -7039,7 +7038,7 @@ class DataFrame(NDFrame):
         else:
             raise ValueError('Axis must be 0 or 1 (got %r)' % axis_num)
 
-    def mode(self, axis=0, numeric_only=False):
+    def mode(self, axis=0, numeric_only=False, dropna=True):
         """
         Gets the mode(s) of each element along the axis selected. Adds a row
         for each mode per label, fills in gaps with nan.
@@ -7057,6 +7056,10 @@ class DataFrame(NDFrame):
             * 1 or 'columns' : get mode of each row
         numeric_only : boolean, default False
             if True, only apply to numeric columns
+        dropna : boolean, default True
+            Don't consider counts of NaN/NaT.
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -7073,7 +7076,7 @@ class DataFrame(NDFrame):
         data = self if not numeric_only else self._get_numeric_data()
 
         def f(s):
-            return s.mode()
+            return s.mode(dropna=dropna)
 
         return data.apply(f, axis=axis)
 
@@ -7089,6 +7092,9 @@ class DataFrame(NDFrame):
             0 <= q <= 1, the quantile(s) to compute
         axis : {0, 1, 'index', 'columns'} (default 0)
             0 or 'index' for row-wise, 1 or 'columns' for column-wise
+        numeric_only : boolean, default True
+            If False, the quantile of datetime and timedelta data will be
+            computed as well
         interpolation : {'linear', 'lower', 'higher', 'midpoint', 'nearest'}
             .. versionadded:: 0.18.0
 
@@ -7116,7 +7122,7 @@ class DataFrame(NDFrame):
         --------
 
         >>> df = pd.DataFrame(np.array([[1, 1], [2, 10], [3, 100], [4, 100]]),
-                           columns=['a', 'b'])
+                              columns=['a', 'b'])
         >>> df.quantile(.1)
         a    1.3
         b    3.7
@@ -7125,6 +7131,20 @@ class DataFrame(NDFrame):
                a     b
         0.1  1.3   3.7
         0.5  2.5  55.0
+
+        Specifying `numeric_only=False` will also compute the quantile of
+        datetime and timedelta data.
+
+        >>> df = pd.DataFrame({'A': [1, 2],
+                               'B': [pd.Timestamp('2010'),
+                                     pd.Timestamp('2011')],
+                               'C': [pd.Timedelta('1 days'),
+                                     pd.Timedelta('2 days')]})
+        >>> df.quantile(0.5, numeric_only=False)
+        A                    1.5
+        B    2010-07-02 12:00:00
+        C        1 days 12:00:00
+        Name: 0.5, dtype: object
 
         See Also
         --------
