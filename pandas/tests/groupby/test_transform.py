@@ -723,15 +723,19 @@ def test_group_fill_methods(mix_groupings, as_series, val1, val2,
 
 @pytest.mark.parametrize("test_series", [True, False])
 @pytest.mark.parametrize("shuffle", [True, False])
+@pytest.mark.parametrize("activate_cache", [True, False])
 @pytest.mark.parametrize("periods,fill_method,limit", [
     (1, 'ffill', None), (1, 'ffill', 1),
     (1, 'bfill', None), (1, 'bfill', 1),
     (-1, 'ffill', None), (-1, 'ffill', 1),
-    (-1, 'bfill', None), (-1, 'bfill', 1)])
-def test_pct_change(test_series, shuffle, periods, fill_method, limit):
-    vals = [3, np.nan, 1, 2, 4, 10, np.nan, np.nan]
+    (-1, 'bfill', None), (-1, 'bfill', 1),
+    (-1, None, None), (-1, None, 1),
+    (-1, None, None), (-1, None, 1)
+])
+def test_pct_change(test_series, shuffle, activate_cache, periods, fill_method, limit):
+    vals = [3, np.nan, 1, 2, 4, 10, np.nan, 9]
     keys = ['a', 'b']
-    key_v = [k for j in list(map(lambda x: [x] * len(vals), keys)) for k in j]
+    key_v = np.repeat(keys, len(vals))
     df = DataFrame({'key': key_v, 'vals': vals * 2})
     if shuffle:
         order = np.random.RandomState(seed=42).permutation(len(df))
@@ -739,13 +743,16 @@ def test_pct_change(test_series, shuffle, periods, fill_method, limit):
 
     manual_apply = []
     for k in keys:
-        subgroup = Series(df.loc[df.key == k, 'vals'].values)
-        manual_apply.append(subgroup.pct_change(periods=periods,
-                                                fill_method=fill_method,
-                                                limit=limit))
-    exp_vals = pd.concat(manual_apply).reset_index(drop=True)
-    exp = pd.DataFrame(exp_vals, columns=['A'])
+        ind = df.loc[df.key == k, 'vals']
+        manual_apply.append(ind.pct_change(periods=periods,
+                                           fill_method=fill_method,
+                                           limit=limit))
+    exp_vals = pd.concat(manual_apply, ignore_index=True)
+    exp = pd.DataFrame(exp_vals.values, columns=['A'])
     grp = df.groupby('key')
+
+    if activate_cache:
+        grp.grouper.is_monotonic
 
     def get_result(grp_obj):
         return grp_obj.pct_change(periods=periods,
@@ -763,7 +770,7 @@ def test_pct_change(test_series, shuffle, periods, fill_method, limit):
         tm.assert_series_equal(result, exp)
     else:
         result = get_result(grp)
-        result.reset_index(drop=True, inplace=True)
+        result = result.reset_index(drop=True)
         result.columns = ['A']
         tm.assert_frame_equal(result, exp)
 
