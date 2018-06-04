@@ -1,8 +1,8 @@
 # coding=utf-8
-
 import numpy as np
+import pytest
 from pandas import (DataFrame, date_range, Timestamp, Series,
-                    RangeIndex, to_datetime)
+                    to_datetime)
 
 import pandas.util.testing as tm
 
@@ -107,29 +107,23 @@ class TestFrameAsof(TestData):
         expected = Series(np.nan, index=['A', 'B'], name=3)
         tm.assert_series_equal(result, expected)
 
-    def test_time_zone_aware_index(self):
-        # GH21194
-        timestamp1 = Timestamp('2018-01-01 21:00:05.001+00:00')
-        timestamp2 = Timestamp('2018-01-01 22:35:10.550+00:00')
-        timestamp_internal = timestamp2 + ((timestamp2 - timestamp1) / 2)
 
-        # Testing if DataFrame index preserve timezone (UTC)
-        df = DataFrame(data=[1, 2], index=[timestamp1, timestamp2])
-        result = df.asof(timestamp_internal)
-        expected = Series(2.0, index=RangeIndex(start=0, stop=1, step=1),
-                          name=timestamp_internal)
-        tm.assert_series_equal(result, expected)
+    # Testing awareness of DataFrame index considering different
+    # UTC and different timezone
+    @pytest.mark.parametrize("stamp,expected",
+                             [(Timestamp('2018-01-01 23:22:43.325+00:00'),
+                              Series(2.0, name=Timestamp('2018-01-01 23:22:43.325+00:00'))),
+                              (Timestamp('2018-01-01 22:33:20.682+01:00'),
+                              Series(1.0, name=Timestamp('2018-01-01 22:33:20.682+01:00')))
+                              ]
+                             )
+    def test_time_zone_aware_index(self, stamp, expected):
+       # GH21194
+       df = DataFrame(data=[1, 2], index=[Timestamp('2018-01-01 21:00:05.001+00:00'),
+                                          Timestamp('2018-01-01 22:35:10.550+00:00')])
+       result = df.asof(stamp)
+       tm.assert_series_equal(result, expected)
 
-    def test_different_time_zones(self):
-        # UTC
-        timestamp_utc1 = Timestamp('2018-05-31 08:26:51.983+00:00')
-        timestamp_utc2 = Timestamp('2018-05-31 08:38:12.987+00:00')
-        # Different time zone
-        timestamp_tz1 = Timestamp('2018-05-31 10:33:20.682+02:00')
 
-        # Testing awareness of DataFrame index considering different time zone
-        df = DataFrame(data=[3, 4], index=[timestamp_utc1, timestamp_utc2])
-        result = df.asof(timestamp_tz1)
-        expected = Series(3.0, index=RangeIndex(start=0, stop=1, step=1),
-                          name=timestamp_tz1)
-        tm.assert_series_equal(result, expected)
+
+
