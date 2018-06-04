@@ -198,8 +198,9 @@ This could also potentially speed up the conversion considerably.
     pd.to_datetime('12-11-2010 00:00', format='%d-%m-%Y %H:%M')
 
 For more information on the choices available when specifying the ``format`` 
-option, see the Python `datetime documentation 
-<https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior`__.
+option, see the Python `datetime documentation`_.
+
+.. _datetime documentation: https://docs.python.org/3/library/datetime.html#strftime-and-strptime-behavior
 
 Assembling Datetime from Multiple DataFrame Columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -256,7 +257,7 @@ Pass ``errors='coerce'`` to convert unparseable data to ``NaT`` (not a time):
 Epoch Timestamps
 ~~~~~~~~~~~~~~~~
 
-pandas supports converting integer or float epoch times to ``Timestamp`` and 
+pandas supports converting integer or float epoch times to ``Timestamp`` and
 ``DatetimeIndex``. The default unit is nanoseconds, since that is how ``Timestamp``
 objects are stored internally. However, epochs are often stored in another ``unit``
 which can be specified. These are computed from the starting point specified by the
@@ -303,11 +304,12 @@ To invert the operation from above, namely, to convert from a ``Timestamp`` to a
    stamps = pd.date_range('2012-10-08 18:15:05', periods=4, freq='D')
    stamps
 
-We convert the ``DatetimeIndex`` to an ``int64`` array, then divide by the conversion unit.
+We subtract the epoch (midnight at January 1, 1970 UTC) and then floor divide by the
+"unit" (1 second).
 
 .. ipython:: python
 
-   stamps.view('int64') // pd.Timedelta(1, unit='s')
+   (stamps - pd.Timestamp("1970-01-01")) // pd.Timedelta('1s')
 
 .. _timeseries.origin:
 
@@ -390,6 +392,18 @@ of those specified will not be generated:
    pd.bdate_range(end=end, periods=20)
 
    pd.bdate_range(start=start, periods=20)
+
+.. versionadded:: 0.23.0
+
+Specifying ``start``, ``end``, and ``periods`` will generate a range of evenly spaced
+dates from ``start`` to ``end`` inclusively, with ``periods`` number of elements in the
+resulting ``DatetimeIndex``:
+
+.. ipython:: python
+
+   pd.date_range('2018-01-01', '2018-01-05', periods=5)
+
+   pd.date_range('2018-01-01', '2018-01-05', periods=10)
 
 .. _timeseries.custom-freq-ranges:
 
@@ -2191,10 +2205,9 @@ Ambiguous Times when Localizing
 
 In some cases, localize cannot determine the DST and non-DST hours when there are
 duplicates.  This often happens when reading files or database records that simply
-duplicate the hours.  Passing ``ambiguous='infer'`` (``infer_dst`` argument in prior
-releases) into ``tz_localize`` will attempt to determine the right offset.  Below
-the top example will fail as it contains ambiguous times and the bottom will
-infer the right offset.
+duplicate the hours.  Passing ``ambiguous='infer'`` into ``tz_localize`` will
+attempt to determine the right offset.  Below the top example will fail as it
+contains ambiguous times and the bottom will infer the right offset.
 
 .. ipython:: python
 

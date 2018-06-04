@@ -30,7 +30,7 @@ from .common import Base
 
 class TestMultiIndex(Base):
     _holder = MultiIndex
-    _compat_props = ['shape', 'ndim', 'size', 'itemsize']
+    _compat_props = ['shape', 'ndim', 'size']
 
     def setup_method(self, method):
         major_axis = Index(['foo', 'bar', 'baz', 'qux'])
@@ -47,6 +47,11 @@ class TestMultiIndex(Base):
 
     def create_index(self):
         return self.index
+
+    def test_can_hold_identifiers(self):
+        idx = self.create_index()
+        key = idx[0]
+        assert idx._can_hold_identifiers_and_holds_name(key) is True
 
     def test_boolean_context_compat2(self):
 
@@ -94,7 +99,8 @@ class TestMultiIndex(Base):
         cond = [False, True]
 
         for klass in klasses:
-            f = lambda: i.where(klass(cond))
+            def f():
+                return i.where(klass(cond))
             pytest.raises(NotImplementedError, f)
 
     def test_repeat(self):
@@ -158,6 +164,22 @@ class TestMultiIndex(Base):
         res = ind.set_names(new_names2, level=[0, 1], inplace=True)
         assert res is None
         assert ind.names == new_names2
+
+    @pytest.mark.parametrize('inplace', [True, False])
+    def test_set_names_with_nlevel_1(self, inplace):
+        # GH 21149
+        # Ensure that .set_names for MultiIndex with
+        # nlevels == 1 does not raise any errors
+        expected = pd.MultiIndex(levels=[[0, 1]],
+                                 labels=[[0, 1]],
+                                 names=['first'])
+        m = pd.MultiIndex.from_product([[0, 1]])
+        result = m.set_names('first', level=0, inplace=inplace)
+
+        if inplace:
+            result = m
+
+        tm.assert_index_equal(result, expected)
 
     def test_set_levels_labels_directly(self):
         # setting levels/labels directly raises AttributeError
@@ -615,8 +637,27 @@ class TestMultiIndex(Base):
         with tm.assert_raises_regex(ValueError, label_error):
             self.index.copy().set_labels([[0, 0, 0, 0], [0, 0]])
 
-    @pytest.mark.parametrize('names', [['a', 'b', 'a'], [1, 1, 2],
-                                       [1, 'a', 1]])
+    def test_constructor_nonhashable_names(self):
+        # GH 20527
+        levels = [[1, 2], [u'one', u'two']]
+        labels = [[0, 0, 1, 1], [0, 1, 0, 1]]
+        names = ((['foo'], ['bar']))
+        message = "MultiIndex.name must be a hashable type"
+        tm.assert_raises_regex(TypeError, message,
+                               MultiIndex, levels=levels,
+                               labels=labels, names=names)
+
+        # With .rename()
+        mi = MultiIndex(levels=[[1, 2], [u'one', u'two']],
+                        labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
+                        names=('foo', 'bar'))
+        renamed = [['foor'], ['barr']]
+        tm.assert_raises_regex(TypeError, message, mi.rename, names=renamed)
+        # With .set_names()
+        tm.assert_raises_regex(TypeError, message, mi.set_names, names=renamed)
+
+    @pytest.mark.parametrize('names', [['a', 'b', 'a'], ['1', '1', '2'],
+                                       ['1', 'a', '1']])
     def test_duplicate_level_names(self, names):
         # GH18872
         pytest.raises(ValueError, pd.MultiIndex.from_product,
@@ -2054,7 +2095,7 @@ class TestMultiIndex(Base):
         expected = index.droplevel(1)
         assert dropped.equals(expected)
 
-    def test_droplevel_multiple(self):
+    def test_droplevel_list(self):
         index = MultiIndex(
             levels=[Index(lrange(4)), Index(lrange(4)), Index(lrange(4))],
             labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
@@ -2064,6 +2105,16 @@ class TestMultiIndex(Base):
         dropped = index[:2].droplevel(['three', 'one'])
         expected = index[:2].droplevel(2).droplevel(0)
         assert dropped.equals(expected)
+
+        dropped = index[:2].droplevel([])
+        expected = index[:2]
+        assert dropped.equals(expected)
+
+        with pytest.raises(ValueError):
+            index[:2].droplevel(['one', 'two', 'three'])
+
+        with pytest.raises(KeyError):
+            index[:2].droplevel(['one', 'four'])
 
     def test_drop_not_lexsorted(self):
         # GH 12078
@@ -2381,7 +2432,8 @@ class TestMultiIndex(Base):
 
             # with a dup
             if with_nulls:
-                f = lambda a: np.insert(a, 1000, a[0])
+                def f(a):
+                    return np.insert(a, 1000, a[0])
                 labels = list(map(f, labels))
                 index = MultiIndex(levels=levels, labels=labels)
             else:
@@ -2413,7 +2465,12 @@ class TestMultiIndex(Base):
         for a in [101, 102]:
             mi = MultiIndex.from_arrays([[101, a], [3.5, np.nan]])
             assert not mi.has_duplicates
-            assert mi.get_duplicates() == []
+
+            with warnings.catch_warnings(record=True):
+                # Deprecated - see GH20239
+                assert mi.get_duplicates().equals(MultiIndex.from_arrays(
+                    [[], []]))
+
             tm.assert_numpy_array_equal(mi.duplicated(), np.zeros(
                 2, dtype='bool'))
 
@@ -2425,7 +2482,12 @@ class TestMultiIndex(Base):
                                 labels=np.random.permutation(list(lab)).T)
                 assert len(mi) == (n + 1) * (m + 1)
                 assert not mi.has_duplicates
-                assert mi.get_duplicates() == []
+
+                with warnings.catch_warnings(record=True):
+                    # Deprecated - see GH20239
+                    assert mi.get_duplicates().equals(MultiIndex.from_arrays(
+                        [[], []]))
+
                 tm.assert_numpy_array_equal(mi.duplicated(), np.zeros(
                     len(mi), dtype='bool'))
 
@@ -2452,22 +2514,32 @@ class TestMultiIndex(Base):
             assert result.unique
             tm.assert_index_equal(result, expected)
 
-    def test_unique(self):
-        mi = pd.MultiIndex.from_arrays([[1, 2, 1, 2], [1, 1, 1, 2]])
+    @pytest.mark.parametrize('names', [None, ['first', 'second']])
+    def test_unique(self, names):
+        mi = pd.MultiIndex.from_arrays([[1, 2, 1, 2], [1, 1, 1, 2]],
+                                       names=names)
 
         res = mi.unique()
-        exp = pd.MultiIndex.from_arrays([[1, 2, 2], [1, 1, 2]])
+        exp = pd.MultiIndex.from_arrays([[1, 2, 2], [1, 1, 2]], names=mi.names)
         tm.assert_index_equal(res, exp)
 
-        mi = pd.MultiIndex.from_arrays([list('aaaa'), list('abab')])
+        mi = pd.MultiIndex.from_arrays([list('aaaa'), list('abab')],
+                                       names=names)
         res = mi.unique()
-        exp = pd.MultiIndex.from_arrays([list('aa'), list('ab')])
+        exp = pd.MultiIndex.from_arrays([list('aa'), list('ab')],
+                                        names=mi.names)
         tm.assert_index_equal(res, exp)
 
-        mi = pd.MultiIndex.from_arrays([list('aaaa'), list('aaaa')])
+        mi = pd.MultiIndex.from_arrays([list('aaaa'), list('aaaa')],
+                                       names=names)
         res = mi.unique()
-        exp = pd.MultiIndex.from_arrays([['a'], ['a']])
+        exp = pd.MultiIndex.from_arrays([['a'], ['a']], names=mi.names)
         tm.assert_index_equal(res, exp)
+
+        # GH #20568 - empty MI
+        mi = pd.MultiIndex.from_arrays([[], []], names=names)
+        res = mi.unique()
+        tm.assert_index_equal(mi, res)
 
     @pytest.mark.parametrize('level', [0, 'first', 1, 'second'])
     def test_unique_level(self, level):
@@ -2482,6 +2554,11 @@ class TestMultiIndex(Base):
         result = mi.unique(level=level)
         expected = mi.get_level_values(level)
         tm.assert_index_equal(result, expected)
+
+        # With empty MI
+        mi = pd.MultiIndex.from_arrays([[], []], names=['first', 'second'])
+        result = mi.unique(level=level)
+        expected = mi.get_level_values(level)
 
     def test_unique_datetimelike(self):
         idx1 = pd.DatetimeIndex(['2015-01-01', '2015-01-01', '2015-01-01',

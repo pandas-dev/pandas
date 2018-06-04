@@ -44,7 +44,9 @@ from .casting import BaseCastingTests  # noqa
 from .constructors import BaseConstructorsTests  # noqa
 from .dtype import BaseDtypeTests  # noqa
 from .getitem import BaseGetitemTests  # noqa
+from .groupby import BaseGroupbyTests  # noqa
 from .interface import BaseInterfaceTests  # noqa
 from .methods import BaseMethodsTests  # noqa
 from .missing import BaseMissingTests  # noqa
 from .reshaping import BaseReshapingTests  # noqa
+from .setitem import BaseSetitemTests  # noqa

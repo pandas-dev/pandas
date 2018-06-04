@@ -99,6 +99,7 @@ HDFStore: PyTables (HDF5)
    HDFStore.get
    HDFStore.select
    HDFStore.info
+   HDFStore.keys
 
 Feather
 ~~~~~~~
@@ -263,7 +264,11 @@ Constructor
 Attributes
 ~~~~~~~~~~
 **Axes**
-  * **index**: axis labels
+
+.. autosummary::
+   :toctree: generated/
+
+   Series.index
 
 .. autosummary::
    :toctree: generated/
@@ -845,13 +850,15 @@ Attributes and underlying data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Axes**
 
-  * **index**: row labels
-  * **columns**: column labels
+.. autosummary::
+   :toctree: generated/
+
+   DataFrame.index
+   DataFrame.columns
 
 .. autosummary::
    :toctree: generated/
 
-   DataFrame.as_matrix
    DataFrame.dtypes
    DataFrame.ftypes
    DataFrame.get_dtype_counts
@@ -1452,7 +1459,6 @@ Modifying and Computations
    Index.is_floating
    Index.is_integer
    Index.is_interval
-   Index.is_lexsorted_for_tuple
    Index.is_mixed
    Index.is_numeric
    Index.is_object
@@ -1464,10 +1470,18 @@ Modifying and Computations
    Index.where
    Index.take
    Index.putmask
-   Index.set_names
    Index.unique
    Index.nunique
    Index.value_counts
+
+Compatibility with MultiIndex
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. autosummary::
+   :toctree: generated/
+
+   Index.set_names
+   Index.is_lexsorted_for_tuple
+   Index.droplevel
 
 Missing Values
 ~~~~~~~~~~~~~~
@@ -1625,6 +1639,8 @@ IntervalIndex Components
    IntervalIndex.length
    IntervalIndex.values
    IntervalIndex.is_non_overlapping_monotonic
+   IntervalIndex.get_loc
+   IntervalIndex.get_indexer
 
 
 .. _api.multiindex:
@@ -1681,6 +1697,7 @@ MultiIndex Components
    MultiIndex.swaplevel
    MultiIndex.reorder_levels
    MultiIndex.remove_unused_levels
+   MultiIndex.unique
 
 MultiIndex Selecting
 ~~~~~~~~~~~~~~~~~~~~
@@ -2098,6 +2115,7 @@ Standard moving window functions
    Rolling.skew
    Rolling.kurt
    Rolling.apply
+   Rolling.aggregate
    Rolling.quantile
    Window.mean
    Window.sum
@@ -2125,6 +2143,7 @@ Standard expanding window functions
    Expanding.skew
    Expanding.kurt
    Expanding.apply
+   Expanding.aggregate
    Expanding.quantile
 
 Exponentially-weighted moving window functions
@@ -2200,6 +2219,7 @@ Computations / Descriptive Stats
    GroupBy.ohlc
    GroupBy.prod
    GroupBy.rank
+   GroupBy.pct_change
    GroupBy.size
    GroupBy.sem
    GroupBy.std
@@ -2538,6 +2558,8 @@ objects.
    api.extensions.register_dataframe_accessor
    api.extensions.register_series_accessor
    api.extensions.register_index_accessor
+   api.extensions.ExtensionDtype
+   api.extensions.ExtensionArray
 
 .. This is to prevent warnings in the doc build. We don't want to encourage
 .. these methods.
@@ -2546,12 +2568,13 @@ objects.
    :hidden:
 
    generated/pandas.DataFrame.blocks
-   generated/pandas.DataFrame.columns
-   generated/pandas.DataFrame.index
+   generated/pandas.DataFrame.as_matrix
    generated/pandas.DataFrame.ix
    generated/pandas.Index.asi8
    generated/pandas.Index.data
    generated/pandas.Index.flags
+   generated/pandas.Index.holds_integer
+   generated/pandas.Index.is_type_compatible
    generated/pandas.Index.nlevels
    generated/pandas.Index.sort
    generated/pandas.Panel.agg
@@ -2566,6 +2589,6 @@ objects.
    generated/pandas.Series.asobject
    generated/pandas.Series.blocks
    generated/pandas.Series.from_array
-   generated/pandas.Series.index
    generated/pandas.Series.ix
-   generated/pandas.Timestamp.offset
+   generated/pandas.Series.imag
+   generated/pandas.Series.real

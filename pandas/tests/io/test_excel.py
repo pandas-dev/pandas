@@ -1,6 +1,5 @@
 # pylint: disable=E1101
 import os
-import sys
 import warnings
 from datetime import datetime, date, time, timedelta
 from distutils.version import LooseVersion
@@ -16,7 +15,7 @@ import pandas as pd
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 from pandas import DataFrame, Index, MultiIndex
-from pandas.compat import u, range, map, BytesIO, iteritems
+from pandas.compat import u, range, map, BytesIO, iteritems, PY36
 from pandas.core.config import set_option, get_option
 from pandas.io.common import URLError
 from pandas.io.excel import (
@@ -462,7 +461,7 @@ class ReadingTestsBase(SharedItems):
             )
         expected_header_none = DataFrame(pd.Series([0], dtype='int64'))
         tm.assert_frame_equal(actual_header_none, expected_header_none)
-        expected_header_zero = DataFrame(columns=[0], dtype='int64')
+        expected_header_zero = DataFrame(columns=[0])
         tm.assert_frame_equal(actual_header_zero, expected_header_zero)
 
     @td.skip_if_no('openpyxl')
@@ -504,19 +503,34 @@ class ReadingTestsBase(SharedItems):
         # GH10559: Minor improvement: Change "sheet_name" to "sheetname"
         # GH10969: DOC: Consistent var names (sheetname vs sheet_name)
         # GH12604: CLN GH10559 Rename sheetname variable to sheet_name
+        # GH20920: ExcelFile.parse() and pd.read_xlsx() have different
+        #          behavior for "sheetname" argument
         dfref = self.get_csv_refdf('test1')
-        df1 = self.get_exceldf('test1', ext, sheet_name='Sheet1')    # doc
+        df1 = self.get_exceldf('test1', ext,
+                               sheet_name='Sheet1')  # doc
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             df2 = self.get_exceldf('test1', ext,
                                    sheetname='Sheet1')  # bkwrd compat
 
+        excel = self.get_excelfile('test1', ext)
+        df1_parse = excel.parse(sheet_name='Sheet1')    # doc
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            df2_parse = excel.parse(sheetname='Sheet1')  # bkwrd compat
+
         tm.assert_frame_equal(df1, dfref, check_names=False)
         tm.assert_frame_equal(df2, dfref, check_names=False)
+        tm.assert_frame_equal(df1_parse, dfref, check_names=False)
+        tm.assert_frame_equal(df2_parse, dfref, check_names=False)
 
     def test_sheet_name_both_raises(self, ext):
         with tm.assert_raises_regex(TypeError, "Cannot specify both"):
             self.get_exceldf('test1', ext, sheetname='Sheet1',
                              sheet_name='Sheet1')
+
+        excel = self.get_excelfile('test1', ext)
+        with tm.assert_raises_regex(TypeError, "Cannot specify both"):
+            excel.parse(sheetname='Sheet1',
+                        sheet_name='Sheet1')
 
 
 @pytest.mark.parametrize("ext", ['.xls', '.xlsx', '.xlsm'])
@@ -585,9 +599,6 @@ class TestXlrdReader(ReadingTestsBase):
     def test_read_from_file_url(self, ext):
 
         # FILE
-        if sys.version_info[:2] < (2, 6):
-            pytest.skip("file:// not supported with Python < 2.6")
-
         localtable = os.path.join(self.dirpath, 'test1' + ext)
         local_table = read_excel(localtable)
 
@@ -2314,9 +2325,9 @@ def test_styler_to_excel(engine):
 
 
 @td.skip_if_no('openpyxl')
+@pytest.mark.skipif(not PY36, reason='requires fspath')
 class TestFSPath(object):
 
-    @pytest.mark.skipif(sys.version_info < (3, 6), reason='requires fspath')
     def test_excelfile_fspath(self):
         with tm.ensure_clean('foo.xlsx') as path:
             df = DataFrame({"A": [1, 2]})
@@ -2325,8 +2336,6 @@ class TestFSPath(object):
             result = os.fspath(xl)
             assert result == path
 
-    @pytest.mark.skipif(sys.version_info < (3, 6), reason='requires fspath')
-    # @pytest.mark.xfail
     def test_excelwriter_fspath(self):
         with tm.ensure_clean('foo.xlsx') as path:
             writer = ExcelWriter(path)

@@ -22,6 +22,7 @@ class Methods(object):
     def time_rolling(self, constructor, window, dtype, method):
         getattr(self.roll, method)()
 
+
 class VariableWindowMethods(Methods):
     sample_time = 0.2
     params = (['DataFrame', 'Series'],
@@ -36,6 +37,7 @@ class VariableWindowMethods(Methods):
         arr = (100 * np.random.random(N)).astype(dtype)
         index = pd.date_range('2017-01-01', periods=N, freq='5s')
         self.roll = getattr(pd, constructor)(arr, index=index).rolling(window)
+
 
 class Pairwise(object):
 
@@ -59,18 +61,19 @@ class Pairwise(object):
 
 
 class Quantile(object):
-
     sample_time = 0.2
     params = (['DataFrame', 'Series'],
               [10, 1000],
               ['int', 'float'],
-              [0, 0.5, 1])
+              [0, 0.5, 1],
+              ['linear', 'nearest', 'lower', 'higher', 'midpoint'])
     param_names = ['constructor', 'window', 'dtype', 'percentile']
 
-    def setup(self, constructor, window, dtype, percentile):
-        N = 10**5
+    def setup(self, constructor, window, dtype, percentile, interpolation):
+        N = 10 ** 5
         arr = np.random.random(N).astype(dtype)
         self.roll = getattr(pd, constructor)(arr).rolling(window)
 
-    def time_quantile(self, constructor, window, dtype, percentile):
-        self.roll.quantile(percentile)
+    def time_quantile(self, constructor, window, dtype, percentile,
+                      interpolation):
+        self.roll.quantile(percentile, interpolation=interpolation)

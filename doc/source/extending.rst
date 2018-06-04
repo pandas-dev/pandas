@@ -57,6 +57,13 @@ If you write a custom accessor, make a pull request adding it to our
 Extension Types
 ---------------
 
+.. versionadded:: 0.23.0
+
+.. warning::
+
+   The :class:`pandas.api.extension.ExtensionDtype` and :class:`pandas.api.extension.ExtensionArray` APIs are new and
+   experimental. They may change between versions without warning.
+
 Pandas defines an interface for implementing data types and arrays that *extend*
 NumPy's type system. Pandas itself uses the extension system for some types
 that aren't built into NumPy (categorical, period, interval, datetime with
@@ -72,10 +79,10 @@ on :ref:`ecosystem.extensions`.
 
 The interface consists of two classes.
 
-``ExtensionDtype``
-^^^^^^^^^^^^^^^^^^
+:class:`~pandas.api.extension.ExtensionDtype`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-An ``ExtensionDtype`` is similar to a ``numpy.dtype`` object. It describes the
+A :class:`pandas.api.extension.ExtensionDtype` is similar to a ``numpy.dtype`` object. It describes the
 data type. Implementors are responsible for a few unique items like the name.
 
 One particularly important item is the ``type`` property. This should be the
@@ -84,8 +91,8 @@ extension array for IP Address data, this might be ``ipaddress.IPv4Address``.
 
 See the `extension dtype source`_ for interface definition.
 
-``ExtensionArray``
-^^^^^^^^^^^^^^^^^^
+:class:`~pandas.api.extension.ExtensionArray`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This class provides all the array-like functionality. ExtensionArrays are
 limited to 1 dimension. An ExtensionArray is linked to an ExtensionDtype via the
@@ -105,6 +112,24 @@ by some other storage type, like Python lists.
 
 See the `extension array source`_ for the interface definition. The docstrings
 and comments contain guidance for properly implementing the interface.
+
+We provide a test suite for ensuring that your extension arrays satisfy the expected
+behavior. To use the test suite, you must provide several pytest fixtures and inherit
+from the base test class. The required fixtures are found in
+https://github.com/pandas-dev/pandas/blob/master/pandas/tests/extension/conftest.py.
+
+To use a test, subclass it:
+
+.. code-block:: python
+
+   from pandas.tests.extension import base
+
+   class TestConstructors(base.BaseConstructorsTests):
+       pass
+
+
+See https://github.com/pandas-dev/pandas/blob/master/pandas/tests/extension/base/__init__.py
+for a list of all the tests available.
 
 .. _extension dtype source: https://github.com/pandas-dev/pandas/blob/master/pandas/core/dtypes/base.py
 .. _extension array source: https://github.com/pandas-dev/pandas/blob/master/pandas/core/arrays/base.py

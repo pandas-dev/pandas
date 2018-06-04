@@ -530,7 +530,68 @@ class TestDataFrameTimeSeriesMethods(TestData):
         assert frame.last_valid_index() is None
         assert frame.first_valid_index() is None
 
-    def test_at_time_frame(self):
+        # GH20499: its preserves freq with holes
+        frame.index = date_range("20110101", periods=N, freq="B")
+        frame.iloc[1] = 1
+        frame.iloc[-2] = 1
+        assert frame.first_valid_index() == frame.index[1]
+        assert frame.last_valid_index() == frame.index[-2]
+        assert frame.first_valid_index().freq == frame.index.freq
+        assert frame.last_valid_index().freq == frame.index.freq
+
+    def test_first_subset(self):
+        ts = tm.makeTimeDataFrame(freq='12h')
+        result = ts.first('10d')
+        assert len(result) == 20
+
+        ts = tm.makeTimeDataFrame(freq='D')
+        result = ts.first('10d')
+        assert len(result) == 10
+
+        result = ts.first('3M')
+        expected = ts[:'3/31/2000']
+        assert_frame_equal(result, expected)
+
+        result = ts.first('21D')
+        expected = ts[:21]
+        assert_frame_equal(result, expected)
+
+        result = ts[:0].first('3M')
+        assert_frame_equal(result, ts[:0])
+
+    def test_first_raises(self):
+        # GH20725
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
+        with pytest.raises(TypeError):  # index is not a DatetimeIndex
+            df.first('1D')
+
+    def test_last_subset(self):
+        ts = tm.makeTimeDataFrame(freq='12h')
+        result = ts.last('10d')
+        assert len(result) == 20
+
+        ts = tm.makeTimeDataFrame(nper=30, freq='D')
+        result = ts.last('10d')
+        assert len(result) == 10
+
+        result = ts.last('21D')
+        expected = ts['2000-01-10':]
+        assert_frame_equal(result, expected)
+
+        result = ts.last('21D')
+        expected = ts[-21:]
+        assert_frame_equal(result, expected)
+
+        result = ts[:0].last('3M')
+        assert_frame_equal(result, ts[:0])
+
+    def test_last_raises(self):
+        # GH20725
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
+        with pytest.raises(TypeError):  # index is not a DatetimeIndex
+            df.last('1D')
+
+    def test_at_time(self):
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
         rs = ts.at_time(rng[1])
@@ -560,7 +621,13 @@ class TestDataFrameTimeSeriesMethods(TestData):
         rs = ts.at_time('16:00')
         assert len(rs) == 0
 
-    def test_between_time_frame(self):
+    def test_at_time_raises(self):
+        # GH20725
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
+        with pytest.raises(TypeError):  # index is not a DatetimeIndex
+            df.at_time('00:00')
+
+    def test_between_time(self):
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
         stime = time(0, 0)
@@ -619,6 +686,12 @@ class TestDataFrameTimeSeriesMethods(TestData):
                     assert (t <= etime) or (t >= stime)
                 else:
                     assert (t < etime) or (t >= stime)
+
+    def test_between_time_raises(self):
+        # GH20725
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
+        with pytest.raises(TypeError):  # index is not a DatetimeIndex
+            df.between_time(start_time='00:00', end_time='12:00')
 
     def test_operation_on_NaT(self):
         # Both NaT and Timestamp are in DataFrame.

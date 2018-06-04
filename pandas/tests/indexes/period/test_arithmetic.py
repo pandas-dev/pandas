@@ -477,6 +477,31 @@ class TestPeriodIndexArithmetic(object):
         tm.assert_index_equal(rng, expected)
 
     # ---------------------------------------------------------------
+    # __add__/__sub__ with integer arrays
+
+    @pytest.mark.parametrize('box', [np.array, pd.Index])
+    @pytest.mark.parametrize('op', [operator.add, ops.radd])
+    def test_pi_add_intarray(self, box, op):
+        # GH#19959
+        pi = pd.PeriodIndex([pd.Period('2015Q1'), pd.Period('NaT')])
+        other = box([4, -1])
+        result = op(pi, other)
+        expected = pd.PeriodIndex([pd.Period('2016Q1'), pd.Period('NaT')])
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('box', [np.array, pd.Index])
+    def test_pi_sub_intarray(self, box):
+        # GH#19959
+        pi = pd.PeriodIndex([pd.Period('2015Q1'), pd.Period('NaT')])
+        other = box([4, -1])
+        result = pi - other
+        expected = pd.PeriodIndex([pd.Period('2014Q1'), pd.Period('NaT')])
+        tm.assert_index_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            other - pi
+
+    # ---------------------------------------------------------------
     # Timedelta-like (timedelta, timedelta64, Timedelta, Tick)
     # TODO: Some of these are misnomers because of non-Tick DateOffsets
 

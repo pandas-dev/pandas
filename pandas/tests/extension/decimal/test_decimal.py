@@ -26,6 +26,20 @@ def data_missing():
 
 
 @pytest.fixture
+def data_for_sorting():
+    return DecimalArray([decimal.Decimal('1'),
+                         decimal.Decimal('2'),
+                         decimal.Decimal('0')])
+
+
+@pytest.fixture
+def data_missing_for_sorting():
+    return DecimalArray([decimal.Decimal('1'),
+                         decimal.Decimal('NaN'),
+                         decimal.Decimal('0')])
+
+
+@pytest.fixture
 def na_cmp():
     return lambda x, y: x.is_nan() and y.is_nan()
 
@@ -33,6 +47,15 @@ def na_cmp():
 @pytest.fixture
 def na_value():
     return decimal.Decimal("NaN")
+
+
+@pytest.fixture
+def data_for_grouping():
+    b = decimal.Decimal('1.0')
+    a = decimal.Decimal('0.0')
+    c = decimal.Decimal('2.0')
+    na = decimal.Decimal('NaN')
+    return DecimalArray([b, b, na, na, a, a, b, c])
 
 
 class BaseDecimal(object):
@@ -48,10 +71,24 @@ class BaseDecimal(object):
                                       *args, **kwargs)
 
     def assert_frame_equal(self, left, right, *args, **kwargs):
-        self.assert_series_equal(left.dtypes, right.dtypes)
-        for col in left.columns:
+        # TODO(EA): select_dtypes
+        tm.assert_index_equal(
+            left.columns, right.columns,
+            exact=kwargs.get('check_column_type', 'equiv'),
+            check_names=kwargs.get('check_names', True),
+            check_exact=kwargs.get('check_exact', False),
+            check_categorical=kwargs.get('check_categorical', True),
+            obj='{obj}.columns'.format(obj=kwargs.get('obj', 'DataFrame')))
+
+        decimals = (left.dtypes == 'decimal').index
+
+        for col in decimals:
             self.assert_series_equal(left[col], right[col],
                                      *args, **kwargs)
+
+        left = left.drop(columns=decimals)
+        right = right.drop(columns=decimals)
+        tm.assert_frame_equal(left, right, *args, **kwargs)
 
 
 class TestDtype(BaseDecimal, base.BaseDtypeTests):
@@ -71,7 +108,15 @@ class TestReshaping(BaseDecimal, base.BaseReshapingTests):
 
 
 class TestGetitem(BaseDecimal, base.BaseGetitemTests):
-    pass
+
+    def test_take_na_value_other_decimal(self):
+        arr = DecimalArray([decimal.Decimal('1.0'),
+                            decimal.Decimal('2.0')])
+        result = arr.take([0, -1], allow_fill=True,
+                          fill_value=decimal.Decimal('-1.0'))
+        expected = DecimalArray([decimal.Decimal('1.0'),
+                                 decimal.Decimal('-1.0')])
+        self.assert_extension_array_equal(result, expected)
 
 
 class TestMissing(BaseDecimal, base.BaseMissingTests):
@@ -98,6 +143,10 @@ class TestCasting(BaseDecimal, base.BaseCastingTests):
     pass
 
 
+class TestGroupby(BaseDecimal, base.BaseGroupbyTests):
+    pass
+
+
 def test_series_constructor_coerce_data_to_extension_dtype_raises():
     xpr = ("Cannot cast data to extension dtype 'decimal'. Pass the "
            "extension array directly.")
@@ -114,7 +163,7 @@ def test_series_constructor_with_same_dtype_ok():
 
 def test_series_constructor_coerce_extension_array_to_dtype_raises():
     arr = DecimalArray([decimal.Decimal('10.0')])
-    xpr = "Cannot specify a dtype 'int64' .* \('decimal'\)."
+    xpr = r"Cannot specify a dtype 'int64' .* \('decimal'\)."
 
     with tm.assert_raises_regex(ValueError, xpr):
         pd.Series(arr, dtype='int64')

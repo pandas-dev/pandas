@@ -287,6 +287,23 @@ class TestDataFrameDataTypes(TestData):
         ei = df[['b', 'c', 'f', 'k']]
         assert_frame_equal(ri, ei)
 
+    def test_select_dtypes_duplicate_columns(self):
+        # GH20839
+        odict = compat.OrderedDict
+        df = DataFrame(odict([('a', list('abc')),
+                              ('b', list(range(1, 4))),
+                              ('c', np.arange(3, 6).astype('u1')),
+                              ('d', np.arange(4.0, 7.0, dtype='float64')),
+                              ('e', [True, False, True]),
+                              ('f', pd.date_range('now', periods=3).values)]))
+        df.columns = ['a', 'a', 'b', 'b', 'b', 'c']
+
+        expected = DataFrame({'a': list(range(1, 4)),
+                              'b': np.arange(3, 6).astype('u1')})
+
+        result = df.select_dtypes(include=[np.number], exclude=['floating'])
+        assert_frame_equal(result, expected)
+
     def test_select_dtypes_not_an_attr_but_still_valid_dtype(self):
         df = DataFrame({'a': list('abc'),
                         'b': list(range(1, 4)),
@@ -875,10 +892,11 @@ class TestDataFrameDatetimeWithTZ(TestData):
                              columns=self.tzframe.columns)
         tm.assert_frame_equal(result, expected)
 
-        result = str(self.tzframe)
-        assert ('0 2013-01-01 2013-01-01 00:00:00-05:00 '
-                '2013-01-01 00:00:00+01:00') in result
-        assert ('1 2013-01-02                       '
-                'NaT                       NaT') in result
-        assert ('2 2013-01-03 2013-01-03 00:00:00-05:00 '
-                '2013-01-03 00:00:00+01:00') in result
+        with option_context('display.max_columns', 20):
+            result = str(self.tzframe)
+            assert ('0 2013-01-01 2013-01-01 00:00:00-05:00 '
+                    '2013-01-01 00:00:00+01:00') in result
+            assert ('1 2013-01-02                       '
+                    'NaT                       NaT') in result
+            assert ('2 2013-01-03 2013-01-03 00:00:00-05:00 '
+                    '2013-01-03 00:00:00+01:00') in result

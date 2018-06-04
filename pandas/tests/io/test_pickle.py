@@ -20,13 +20,12 @@ import os
 from distutils.version import LooseVersion
 import pandas as pd
 from pandas import Index
-from pandas.compat import is_platform_little_endian
+from pandas.compat import is_platform_little_endian, PY3
 import pandas
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 from pandas.tseries.offsets import Day, MonthEnd
 import shutil
-import sys
 
 
 @pytest.fixture(scope='module')
@@ -352,7 +351,7 @@ class TestCompression(object):
                 f.write(fh.read())
             f.close()
 
-    def test_write_explicit(self, compression_no_zip, get_random_path):
+    def test_write_explicit(self, compression, get_random_path):
         base = get_random_path
         path1 = base + ".compressed"
         path2 = base + ".raw"
@@ -361,10 +360,10 @@ class TestCompression(object):
             df = tm.makeDataFrame()
 
             # write to compressed file
-            df.to_pickle(p1, compression=compression_no_zip)
+            df.to_pickle(p1, compression=compression)
 
             # decompress
-            with tm.decompress_file(p1, compression=compression_no_zip) as f:
+            with tm.decompress_file(p1, compression=compression) as f:
                 with open(p2, "wb") as fh:
                     fh.write(f.read())
 
@@ -474,21 +473,12 @@ class TestProtocol(object):
             tm.assert_frame_equal(df, df2)
 
     @pytest.mark.parametrize('protocol', [3, 4])
-    @pytest.mark.skipif(sys.version_info[:2] >= (3, 4),
-                        reason="Testing invalid parameters for "
-                               "Python 2.x and 3.y (y < 4).")
+    @pytest.mark.skipif(PY3, reason="Testing invalid parameters for Python 2")
     def test_read_bad_versions(self, protocol, get_random_path):
-        # For Python 2.x (respectively 3.y with y < 4), [expected]
-        # HIGHEST_PROTOCOL should be 2 (respectively 3). Hence, the protocol
-        # parameter should not exceed 2 (respectively 3).
-        if sys.version_info[:2] < (3, 0):
-            expect_hp = 2
-        else:
-            expect_hp = 3
-        with tm.assert_raises_regex(ValueError,
-                                    "pickle protocol %d asked for; the highest"
-                                    " available protocol is %d" % (protocol,
-                                                                   expect_hp)):
+        # For Python 2, HIGHEST_PROTOCOL should be 2.
+        msg = ("pickle protocol {protocol} asked for; the highest available "
+               "protocol is 2").format(protocol=protocol)
+        with tm.assert_raises_regex(ValueError, msg):
             with tm.ensure_clean(get_random_path) as path:
                 df = tm.makeDataFrame()
                 df.to_pickle(path, protocol=protocol)

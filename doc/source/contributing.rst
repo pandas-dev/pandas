@@ -17,8 +17,8 @@ If you are brand new to pandas or open-source development, we recommend going
 through the `GitHub "issues" tab <https://github.com/pandas-dev/pandas/issues>`_
 to find issues that interest you. There are a number of issues listed under `Docs
 <https://github.com/pandas-dev/pandas/issues?labels=Docs&sort=updated&state=open>`_
-and `Difficulty Novice
-<https://github.com/pandas-dev/pandas/issues?q=is%3Aopen+is%3Aissue+label%3A%22Difficulty+Novice%22>`_
+and `good first issue
+<https://github.com/pandas-dev/pandas/issues?labels=good+first+issue&sort=updated&state=open>`_
 where you could start out. Once you've found an interesting issue, you can
 return here to get your development environment setup.
 
@@ -32,8 +32,9 @@ Bug reports and enhancement requests
 
 Bug reports are an important part of making *pandas* more stable. Having a complete bug report
 will allow others to reproduce the bug and provide insight into fixing. See
-`this stackoverflow article <https://stackoverflow.com/help/mcve>`_ for tips on
-writing a good bug report.
+`this stackoverflow article <https://stackoverflow.com/help/mcve>`_ and
+`this blogpost <http://matthewrocklin.com/blog/work/2018/02/28/minimal-bug-reports>`_
+for tips on writing a good bug report.
 
 Trying the bug-producing code out on the *master* branch is often a worthwhile exercise
 to confirm the bug still exists. It is also worth searching existing bug reports and pull requests
@@ -297,6 +298,11 @@ Some other important things to know about the docs:
   Standard**. Follow the :ref:`pandas docstring guide <docstring>` for detailed
   instructions on how to write a correct docstring.
 
+  .. toctree::
+     :maxdepth: 2
+
+     contributing_docstring.rst
+
 - The tutorials make heavy use of the `ipython directive
   <http://matplotlib.org/sampledoc/ipython_directive.html>`_ sphinx extension.
   This directive lets you put code in the documentation which will be run
@@ -467,7 +473,7 @@ Here are *some* of the more common ``cpplint`` issues:
   - every header file must include a header guard to avoid name collisions if re-included
 
 :ref:`Continuous Integration <contributing.ci>` will run the
-`cpplint <https://pypi.python.org/pypi/cpplint>`_ tool
+`cpplint <https://pypi.org/project/cpplint>`_ tool
 and report any stylistic errors in your code. Therefore, it is helpful before
 submitting code to run the check yourself::
 
@@ -515,7 +521,7 @@ the more common ``PEP8`` issues:
   - passing arguments should have spaces after commas, e.g. ``foo(arg1, arg2, kw1='bar')``
 
 :ref:`Continuous Integration <contributing.ci>` will run
-the `flake8 <http://pypi.python.org/pypi/flake8>`_ tool
+the `flake8 <https://pypi.org/project/flake8>`_ tool
 and report any stylistic errors in your code. Therefore, it is helpful before
 submitting code to run the check yourself on the diff::
 
@@ -792,7 +798,7 @@ Or with one of the following constructs::
     pytest pandas/tests/[test-module].py::[TestClass]
     pytest pandas/tests/[test-module].py::[TestClass]::[test_method]
 
-Using `pytest-xdist <https://pypi.python.org/pypi/pytest-xdist>`_, one can
+Using `pytest-xdist <https://pypi.org/project/pytest-xdist>`_, one can
 speed up local testing on multicore machines. To use this feature, you will
 need to install `pytest-xdist` via::
 
@@ -899,7 +905,7 @@ Documenting your code
 Changes should be reflected in the release notes located in ``doc/source/whatsnew/vx.y.z.txt``.
 This file contains an ongoing change log for each release.  Add an entry to this file to
 document your fix, enhancement or (unavoidable) breaking change.  Make sure to include the
-GitHub issue number when adding your entry (using `` :issue:`1234` `` where `1234` is the
+GitHub issue number when adding your entry (using ``:issue:`1234``` where ``1234`` is the
 issue/pull request number).
 
 If your code is an enhancement, it is most likely necessary to add usage
@@ -1019,7 +1025,7 @@ release.  To submit a pull request:
 #. Click ``Send Pull Request``.
 
 This request then goes to the repository maintainers, and they will review
-the code. 
+the code.
 
 .. _contributing.update-pr:
 
@@ -1027,7 +1033,7 @@ Updating your pull request
 --------------------------
 
 Based on the review you get on your pull request, you will probably need to make
-some changes to the code. In that case, you can make them in your branch, 
+some changes to the code. In that case, you can make them in your branch,
 add a new commit to that branch, push it to GitHub, and the pull request will be
 automatically updated.  Pushing them to GitHub again is done by::
 
@@ -1038,7 +1044,7 @@ This will automatically update your pull request with the latest code and restar
 
 Another reason you might need to update your pull request is to solve conflicts
 with changes that have been merged into the master branch since you opened your
-pull request. 
+pull request.
 
 To do this, you need to "merge upstream master" in your branch::
 
@@ -1086,6 +1092,5 @@ branch has not actually been merged.
 The branch will still exist on GitHub, so to delete it there do::
 
     git push origin --delete shiny-new-feature
-
 
 .. _Gitter: https://gitter.im/pydata/pandas

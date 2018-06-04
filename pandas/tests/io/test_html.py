@@ -101,7 +101,7 @@ class TestReadHtml(object):
 
     @network
     def test_spam_url(self):
-        url = ('http://ndb.nal.usda.gov/ndb/foods/show/1732?fg=&man=&'
+        url = ('http://ndb.nal.usda.gov/ndb/foods/show/300772?fg=&man=&'
                'lfacet=&format=&count=&max=25&offset=&sort=&qlookup=spam')
         df1 = self.read_html(url, '.*Water.*')
         df2 = self.read_html(url, 'Unit')
@@ -395,6 +395,33 @@ class TestReadHtml(object):
         res1 = self.read_html(StringIO(data1))
         res2 = self.read_html(StringIO(data2))
         assert_framelist_equal(res1, res2)
+
+    def test_multiple_tbody(self):
+        # GH-20690
+        # Read all tbody tags within a single table.
+        data = '''<table>
+            <thead>
+                <tr>
+                    <th>A</th>
+                    <th>B</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td>2</td>
+                </tr>
+            </tbody>
+            <tbody>
+                <tr>
+                    <td>3</td>
+                    <td>4</td>
+                </tr>
+            </tbody>
+        </table>'''
+        expected = DataFrame({'A': [1, 3], 'B': [2, 4]})
+        result = self.read_html(StringIO(data))[0]
+        tm.assert_frame_equal(result, expected)
 
     def test_header_and_one_column(self):
         """

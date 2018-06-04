@@ -1,0 +1,188 @@
+.. _whatsnew_0240:
+
+v0.24.0
+-------
+
+.. _whatsnew_0240.enhancements:
+
+New features
+~~~~~~~~~~~~
+
+.. _whatsnew_0240.enhancements.other:
+
+Other Enhancements
+^^^^^^^^^^^^^^^^^^
+- :func:`to_datetime` now supports the ``%Z`` and ``%z`` directive when passed into ``format`` (:issue:`13486`)
+- :func:`Series.mode` and :func:`DataFrame.mode` now support the ``dropna`` parameter which can be used to specify whether NaN/NaT values should be considered (:issue:`17534`)
+- :func:`to_csv` now supports ``compression`` keyword when a file handle is passed. (:issue:`21227`)
+-
+
+.. _whatsnew_0240.api_breaking:
+
+
+Backwards incompatible API changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_0240.api.datetimelike:
+
+Datetimelike API Changes
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+- For :class:`DatetimeIndex` and :class:`TimedeltaIndex` with non-``None`` ``freq`` attribute, addition or subtraction of integer-dtyped array or ``Index`` will return an object of the same class (:issue:`19959`)
+- :class:`PeriodIndex` subtraction of another ``PeriodIndex`` will now return an object-dtype :class:`Index` of :class:`DateOffset` objects instead of raising a ``TypeErrorr`` (:issue:`20049`)
+
+.. _whatsnew_0240.api.other:
+
+Other API Changes
+^^^^^^^^^^^^^^^^^
+
+-
+-
+-
+
+.. _whatsnew_0240.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+
+-
+-
+-
+
+.. _whatsnew_0240.prior_deprecations:
+
+Removal of prior version deprecations/changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- The ``LongPanel`` and ``WidePanel`` classes have been removed (:issue:`10892`)
+-
+-
+-
+
+.. _whatsnew_0240.performance:
+
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+-
+-
+-
+
+.. _whatsnew_0240.docs:
+
+Documentation Changes
+~~~~~~~~~~~~~~~~~~~~~
+
+-
+-
+-
+
+.. _whatsnew_0240.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~
+
+Categorical
+^^^^^^^^^^^
+
+-
+-
+-
+
+Datetimelike
+^^^^^^^^^^^^
+
+-
+-
+-
+
+Timedelta
+^^^^^^^^^
+
+-
+-
+-
+
+Timezones
+^^^^^^^^^
+
+-
+-
+-
+
+Offsets
+^^^^^^^
+
+-
+-
+-
+
+Numeric
+^^^^^^^
+
+-
+-
+-
+
+Strings
+^^^^^^^
+
+-
+-
+-
+
+Indexing
+^^^^^^^^
+
+-
+-
+-
+
+MultiIndex
+^^^^^^^^^^
+
+-
+-
+-
+
+I/O
+^^^
+
+-
+-
+-
+
+Plotting
+^^^^^^^^
+
+-
+-
+-
+
+Groupby/Resample/Rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+-
+-
+-
+
+Sparse
+^^^^^^
+
+-
+-
+-
+
+Reshaping
+^^^^^^^^^
+
+-
+-
+-
+
+Other
+^^^^^
+
+-
+-
+-

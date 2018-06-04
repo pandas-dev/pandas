@@ -219,7 +219,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     _is_numeric_dtype = False
     _infer_as_myclass = True
 
-    freq = None
+    _freq = None
 
     _engine_type = libindex.PeriodEngine
 
@@ -367,7 +367,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         result.name = name
         if freq is None:
             raise ValueError('freq is not specified and cannot be inferred')
-        result.freq = Period._maybe_convert_freq(freq)
+        result._freq = Period._maybe_convert_freq(freq)
         result._reset_identity()
         return result
 
@@ -559,6 +559,19 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             raise ValueError('Index is not monotonic')
         values = self.values
         return ((values[1:] - values[:-1]) < 2).all()
+
+    @property
+    def freq(self):
+        """Return the frequency object if it is set, otherwise None"""
+        return self._freq
+
+    @freq.setter
+    def freq(self, value):
+        msg = ('Setting PeriodIndex.freq has been deprecated and will be '
+               'removed in a future version; use PeriodIndex.asfreq instead. '
+               'The PeriodIndex.freq setter is not guaranteed to work.')
+        warnings.warn(msg, FutureWarning, stacklevel=2)
+        self._freq = value
 
     def asfreq(self, freq=None, how='E'):
         """
@@ -1060,7 +1073,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
                 np.ndarray.__setstate__(data, nd_state)
 
                 # backcompat
-                self.freq = Period._maybe_convert_freq(own_state[1])
+                self._freq = Period._maybe_convert_freq(own_state[1])
 
             else:  # pragma: no cover
                 data = np.empty(state)
@@ -1095,7 +1108,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         """
         raise NotImplementedError("Not yet implemented for PeriodIndex")
 
-    def tz_localize(self, tz, infer_dst=False):
+    def tz_localize(self, tz, ambiguous='raise'):
         """
         Localize tz-naive DatetimeIndex to given time zone (using
         pytz/dateutil), or remove timezone from tz-aware DatetimeIndex
@@ -1106,8 +1119,6 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             Time zone for time. Corresponding timestamps would be converted to
             time zone of the TimeSeries.
             None will remove timezone holding local time.
-        infer_dst : boolean, default False
-            Attempt to infer fall dst-transition hours based on order
 
         Returns
         -------

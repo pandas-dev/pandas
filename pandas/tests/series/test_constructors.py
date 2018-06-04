@@ -110,12 +110,32 @@ class TestSeriesConstructors(TestData):
             empty2 = Series(input_class(), index=lrange(10), dtype='float64')
             assert_series_equal(empty, empty2)
 
+            # GH 19853 : with empty string, index and dtype str
+            empty = Series('', dtype=str, index=range(3))
+            empty2 = Series('', index=range(3))
+            assert_series_equal(empty, empty2)
+
     @pytest.mark.parametrize('input_arg', [np.nan, float('nan')])
     def test_constructor_nan(self, input_arg):
         empty = Series(dtype='float64', index=lrange(10))
         empty2 = Series(input_arg, index=lrange(10))
 
         assert_series_equal(empty, empty2, check_index_type=False)
+
+    @pytest.mark.parametrize('dtype', [
+        'f8', 'i8', 'M8[ns]', 'm8[ns]', 'category', 'object',
+        'datetime64[ns, UTC]',
+    ])
+    @pytest.mark.parametrize('index', [None, pd.Index([])])
+    def test_constructor_dtype_only(self, dtype, index):
+        # GH-20865
+        result = pd.Series(dtype=dtype, index=index)
+        assert result.dtype == dtype
+        assert len(result) == 0
+
+    def test_constructor_no_data_index_order(self):
+        result = pd.Series(index=['b', 'a', 'c'])
+        assert result.index.tolist() == ['b', 'a', 'c']
 
     def test_constructor_series(self):
         index1 = ['d', 'b', 'a', 'c']

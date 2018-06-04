@@ -4,7 +4,6 @@ from warnings import catch_warnings
 import os
 import datetime
 import numpy as np
-import sys
 from distutils.version import LooseVersion
 
 from pandas import compat
@@ -129,9 +128,8 @@ class TestAPI(TestPackers):
         with ensure_clean(self.path) as p:
 
             s = df.to_msgpack()
-            fh = open(p, 'wb')
-            fh.write(s)
-            fh.close()
+            with open(p, 'wb') as fh:
+                fh.write(s)
             result = read_msgpack(p)
             tm.assert_frame_equal(result, df)
 
@@ -297,11 +295,6 @@ class TestBasic(TestPackers):
         assert NaT is nat_rec
 
     def test_datetimes(self):
-
-        # fails under 2.6/win32 (np.datetime64 seems broken)
-
-        if LooseVersion(sys.version) < LooseVersion('2.7'):
-            pytest.skip('2.6 with np.datetime64 is broken')
 
         for i in [datetime.datetime(2013, 1, 1),
                   datetime.datetime(2013, 1, 1, 5, 1),

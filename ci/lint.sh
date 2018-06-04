@@ -165,6 +165,14 @@ if [ "$LINT" ]; then
         RET=1
     fi
     echo "Check for deprecated messages without sphinx directive DONE"
+
+    echo "Check for old-style classes"
+    grep -R --include="*.py" -E "class\s\S*[^)]:" pandas scripts
+
+    if [ $? = "0" ]; then
+        RET=1
+    fi
+    echo "Check for old-style classes DONE"
     
 else
     echo "NOT Linting"

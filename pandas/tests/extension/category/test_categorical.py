@@ -30,8 +30,25 @@ def data_missing():
 
 
 @pytest.fixture
+def data_for_sorting():
+    return Categorical(['A', 'B', 'C'], categories=['C', 'A', 'B'],
+                       ordered=True)
+
+
+@pytest.fixture
+def data_missing_for_sorting():
+    return Categorical(['A', None, 'B'], categories=['B', 'A'],
+                       ordered=True)
+
+
+@pytest.fixture
 def na_value():
     return np.nan
+
+
+@pytest.fixture
+def data_for_grouping():
+    return Categorical(['a', 'a', None, None, 'b', 'b', 'a', 'c'])
 
 
 class TestDtype(base.BaseDtypeTests):
@@ -51,6 +68,10 @@ class TestConstructors(base.BaseConstructorsTests):
 
 class TestReshaping(base.BaseReshapingTests):
     @pytest.mark.skip(reason="Unobserved categories preseved in concat.")
+    def test_concat_columns(self, data, na_value):
+        pass
+
+    @pytest.mark.skip(reason="Unobserved categories preseved in concat.")
     def test_align(self, data, na_value):
         pass
 
@@ -58,14 +79,61 @@ class TestReshaping(base.BaseReshapingTests):
     def test_align_frame(self, data, na_value):
         pass
 
+    @pytest.mark.skip(reason="Unobserved categories preseved in concat.")
+    def test_merge(self, data, na_value):
+        pass
+
 
 class TestGetitem(base.BaseGetitemTests):
+    skip_take = pytest.mark.skip(reason="GH-20664.")
+
     @pytest.mark.skip(reason="Backwards compatibility")
     def test_getitem_scalar(self):
         # CategoricalDtype.type isn't "correct" since it should
         # be a parent of the elements (object). But don't want
         # to break things by changing.
         pass
+
+    @skip_take
+    def test_take(self):
+        # TODO remove this once Categorical.take is fixed
+        pass
+
+    @skip_take
+    def test_take_negative(self):
+        pass
+
+    @skip_take
+    def test_take_pandas_style_negative_raises(self):
+        pass
+
+    @skip_take
+    def test_take_non_na_fill_value(self):
+        pass
+
+    @skip_take
+    def test_take_out_of_bounds_raises(self):
+        pass
+
+    @pytest.mark.skip(reason="GH-20747. Unobserved categories.")
+    def test_take_series(self):
+        pass
+
+    @skip_take
+    def test_reindex_non_na_fill_value(self):
+        pass
+
+    @pytest.mark.xfail(reason="Categorical.take buggy")
+    def test_take_empty(self):
+        pass
+
+    @pytest.mark.xfail(reason="test not written correctly for categorical")
+    def test_reindex(self):
+        pass
+
+
+class TestSetitem(base.BaseSetitemTests):
+    pass
 
 
 class TestMissing(base.BaseMissingTests):

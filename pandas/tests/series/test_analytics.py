@@ -3,7 +3,7 @@
 
 from itertools import product
 from distutils.version import LooseVersion
-
+import operator
 import pytest
 
 from numpy import nan
@@ -18,7 +18,7 @@ from pandas.core.indexes.datetimes import Timestamp
 from pandas.core.indexes.timedeltas import Timedelta
 import pandas.core.nanops as nanops
 
-from pandas.compat import lrange, range
+from pandas.compat import lrange, range, PY35
 from pandas import compat
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal, assert_index_equal)
@@ -224,102 +224,6 @@ class TestSeriesAnalytics(TestData):
         # test with integers, test failure
         int_ts = Series(np.ones(10, dtype=int), index=lrange(10))
         tm.assert_almost_equal(np.median(int_ts), int_ts.median())
-
-    def test_mode(self):
-        # No mode should be found.
-        exp = Series([], dtype=np.float64)
-        tm.assert_series_equal(Series([]).mode(), exp)
-
-        exp = Series([1], dtype=np.int64)
-        tm.assert_series_equal(Series([1]).mode(), exp)
-
-        exp = Series(['a', 'b', 'c'], dtype=np.object)
-        tm.assert_series_equal(Series(['a', 'b', 'c']).mode(), exp)
-
-        # Test numerical data types.
-        exp_single = [1]
-        data_single = [1] * 5 + [2] * 3
-
-        exp_multi = [1, 3]
-        data_multi = [1] * 5 + [2] * 3 + [3] * 5
-
-        for dt in np.typecodes['AllInteger'] + np.typecodes['Float']:
-            s = Series(data_single, dtype=dt)
-            exp = Series(exp_single, dtype=dt)
-            tm.assert_series_equal(s.mode(), exp)
-
-            s = Series(data_multi, dtype=dt)
-            exp = Series(exp_multi, dtype=dt)
-            tm.assert_series_equal(s.mode(), exp)
-
-        # Test string and object types.
-        exp = ['b']
-        data = ['a'] * 2 + ['b'] * 3
-
-        s = Series(data, dtype='c')
-        exp = Series(exp, dtype='c')
-        tm.assert_series_equal(s.mode(), exp)
-
-        exp = ['bar']
-        data = ['foo'] * 2 + ['bar'] * 3
-
-        for dt in [str, object]:
-            s = Series(data, dtype=dt)
-            exp = Series(exp, dtype=dt)
-            tm.assert_series_equal(s.mode(), exp)
-
-        # Test datetime types.
-        exp = Series(['1900-05-03', '2011-01-03',
-                      '2013-01-02'], dtype='M8[ns]')
-        s = Series(['2011-01-03', '2013-01-02',
-                    '1900-05-03'], dtype='M8[ns]')
-        tm.assert_series_equal(s.mode(), exp)
-
-        exp = Series(['2011-01-03', '2013-01-02'], dtype='M8[ns]')
-        s = Series(['2011-01-03', '2013-01-02', '1900-05-03',
-                    '2011-01-03', '2013-01-02'], dtype='M8[ns]')
-        tm.assert_series_equal(s.mode(), exp)
-
-        # gh-5986: Test timedelta types.
-        exp = Series(['-1 days', '0 days', '1 days'], dtype='timedelta64[ns]')
-        s = Series(['1 days', '-1 days', '0 days'],
-                   dtype='timedelta64[ns]')
-        tm.assert_series_equal(s.mode(), exp)
-
-        exp = Series(['2 min', '1 day'], dtype='timedelta64[ns]')
-        s = Series(['1 day', '1 day', '-1 day', '-1 day 2 min',
-                    '2 min', '2 min'], dtype='timedelta64[ns]')
-        tm.assert_series_equal(s.mode(), exp)
-
-        # Test mixed dtype.
-        exp = Series(['foo'])
-        s = Series([1, 'foo', 'foo'])
-        tm.assert_series_equal(s.mode(), exp)
-
-        # Test for uint64 overflow.
-        exp = Series([2**63], dtype=np.uint64)
-        s = Series([1, 2**63, 2**63], dtype=np.uint64)
-        tm.assert_series_equal(s.mode(), exp)
-
-        exp = Series([1, 2**63], dtype=np.uint64)
-        s = Series([1, 2**63], dtype=np.uint64)
-        tm.assert_series_equal(s.mode(), exp)
-
-        # Test category dtype.
-        c = Categorical([1, 2])
-        exp = Categorical([1, 2], categories=[1, 2])
-        exp = Series(exp, dtype='category')
-        tm.assert_series_equal(Series(c).mode(), exp)
-
-        c = Categorical([1, 'a', 'a'])
-        exp = Categorical(['a'], categories=[1, 'a'])
-        exp = Series(exp, dtype='category')
-        tm.assert_series_equal(Series(c).mode(), exp)
-
-        c = Categorical([1, 1, 2, 3, 3])
-        exp = Categorical([1, 3], categories=[1, 2, 3])
-        exp = Series(exp, dtype='category')
-        tm.assert_series_equal(Series(c).mode(), exp)
 
     def test_prod(self):
         self._check_stat_op('prod', np.prod)
@@ -917,6 +821,52 @@ class TestSeriesAnalytics(TestData):
         # Check series argument
         assert_almost_equal(a.dot(b['1']), expected['1'])
         assert_almost_equal(a.dot(b2['1']), expected['1'])
+
+        pytest.raises(Exception, a.dot, a.values[:3])
+        pytest.raises(ValueError, a.dot, b.T)
+
+    @pytest.mark.skipif(not PY35,
+                        reason='matmul supported for Python>=3.5')
+    def test_matmul(self):
+        # matmul test is for GH #10259
+        a = Series(np.random.randn(4), index=['p', 'q', 'r', 's'])
+        b = DataFrame(np.random.randn(3, 4), index=['1', '2', '3'],
+                      columns=['p', 'q', 'r', 's']).T
+
+        # Series @ DataFrame
+        result = operator.matmul(a, b)
+        expected = Series(np.dot(a.values, b.values), index=['1', '2', '3'])
+        assert_series_equal(result, expected)
+
+        # DataFrame @ Series
+        result = operator.matmul(b.T, a)
+        expected = Series(np.dot(b.T.values, a.T.values),
+                          index=['1', '2', '3'])
+        assert_series_equal(result, expected)
+
+        # Series @ Series
+        result = operator.matmul(a, a)
+        expected = np.dot(a.values, a.values)
+        assert_almost_equal(result, expected)
+
+        # np.array @ Series (__rmatmul__)
+        result = operator.matmul(a.values, a)
+        expected = np.dot(a.values, a.values)
+        assert_almost_equal(result, expected)
+
+        # mixed dtype DataFrame @ Series
+        a['p'] = int(a.p)
+        result = operator.matmul(b.T, a)
+        expected = Series(np.dot(b.T.values, a.T.values),
+                          index=['1', '2', '3'])
+        assert_series_equal(result, expected)
+
+        # different dtypes DataFrame @ Series
+        a = a.astype(int)
+        result = operator.matmul(b.T, a)
+        expected = Series(np.dot(b.T.values, a.T.values),
+                          index=['1', '2', '3'])
+        assert_series_equal(result, expected)
 
         pytest.raises(Exception, a.dot, a.values[:3])
         pytest.raises(ValueError, a.dot, b.T)
@@ -1548,6 +1498,22 @@ class TestSeriesAnalytics(TestData):
         s = Series(np.arange(1000))
         assert s.is_unique
 
+    def test_is_unique_class_ne(self, capsys):
+        # GH 20661
+        class Foo(object):
+            def __init__(self, val):
+                self._value = val
+
+            def __ne__(self, other):
+                raise Exception("NEQ not supported")
+
+        li = [Foo(i) for i in range(5)]
+        s = pd.Series(li, index=[i for i in range(5)])
+        _, err = capsys.readouterr()
+        s.is_unique
+        _, err = capsys.readouterr()
+        assert len(err) == 0
+
     def test_is_monotonic(self):
 
         s = Series(np.random.randint(0, 10, size=1000))
@@ -1804,6 +1770,180 @@ def s_main_dtypes():
     return df
 
 
+class TestMode(object):
+
+    @pytest.mark.parametrize('dropna, expected', [
+        (True, Series([], dtype=np.float64)),
+        (False, Series([], dtype=np.float64))
+    ])
+    def test_mode_empty(self, dropna, expected):
+        s = Series([], dtype=np.float64)
+        result = s.mode(dropna)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('dropna, data, expected', [
+        (True, [1, 1, 1, 2], [1]),
+        (True, [1, 1, 1, 2, 3, 3, 3], [1, 3]),
+        (False, [1, 1, 1, 2], [1]),
+        (False, [1, 1, 1, 2, 3, 3, 3], [1, 3]),
+    ])
+    @pytest.mark.parametrize(
+        'dt',
+        list(np.typecodes['AllInteger'] + np.typecodes['Float'])
+    )
+    def test_mode_numerical(self, dropna, data, expected, dt):
+        s = Series(data, dtype=dt)
+        result = s.mode(dropna)
+        expected = Series(expected, dtype=dt)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('dropna, expected', [
+        (True, [1.0]),
+        (False, [1, np.nan]),
+    ])
+    def test_mode_numerical_nan(self, dropna, expected):
+        s = Series([1, 1, 2, np.nan, np.nan])
+        result = s.mode(dropna)
+        expected = Series(expected)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('dropna, expected1, expected2, expected3', [
+        (True, ['b'], ['bar'], ['nan']),
+        (False, ['b'], [np.nan], ['nan'])
+    ])
+    def test_mode_str_obj(self, dropna, expected1, expected2, expected3):
+        # Test string and object types.
+        data = ['a'] * 2 + ['b'] * 3
+
+        s = Series(data, dtype='c')
+        result = s.mode(dropna)
+        expected1 = Series(expected1, dtype='c')
+        tm.assert_series_equal(result, expected1)
+
+        data = ['foo', 'bar', 'bar', np.nan, np.nan, np.nan]
+
+        s = Series(data, dtype=object)
+        result = s.mode(dropna)
+        expected2 = Series(expected2, dtype=object)
+        tm.assert_series_equal(result, expected2)
+
+        data = ['foo', 'bar', 'bar', np.nan, np.nan, np.nan]
+
+        s = Series(data, dtype=str)
+        result = s.mode(dropna)
+        expected3 = Series(expected3, dtype=str)
+        tm.assert_series_equal(result, expected3)
+
+    @pytest.mark.parametrize('dropna, expected1, expected2', [
+        (True, ['foo'], ['foo']),
+        (False, ['foo'], [np.nan])
+    ])
+    def test_mode_mixeddtype(self, dropna, expected1, expected2):
+        s = Series([1, 'foo', 'foo'])
+        result = s.mode(dropna)
+        expected = Series(expected1)
+        tm.assert_series_equal(result, expected)
+
+        s = Series([1, 'foo', 'foo', np.nan, np.nan, np.nan])
+        result = s.mode(dropna)
+        expected = Series(expected2, dtype=object)
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('dropna, expected1, expected2', [
+        (True, ['1900-05-03', '2011-01-03', '2013-01-02'],
+               ['2011-01-03', '2013-01-02']),
+        (False, [np.nan], [np.nan, '2011-01-03', '2013-01-02']),
+    ])
+    def test_mode_datetime(self, dropna, expected1, expected2):
+        s = Series(['2011-01-03', '2013-01-02',
+                    '1900-05-03', 'nan', 'nan'], dtype='M8[ns]')
+        result = s.mode(dropna)
+        expected1 = Series(expected1, dtype='M8[ns]')
+        tm.assert_series_equal(result, expected1)
+
+        s = Series(['2011-01-03', '2013-01-02', '1900-05-03',
+                    '2011-01-03', '2013-01-02', 'nan', 'nan'],
+                   dtype='M8[ns]')
+        result = s.mode(dropna)
+        expected2 = Series(expected2, dtype='M8[ns]')
+        tm.assert_series_equal(result, expected2)
+
+    @pytest.mark.parametrize('dropna, expected1, expected2', [
+        (True, ['-1 days', '0 days', '1 days'], ['2 min', '1 day']),
+        (False, [np.nan], [np.nan, '2 min', '1 day']),
+    ])
+    def test_mode_timedelta(self, dropna, expected1, expected2):
+        # gh-5986: Test timedelta types.
+
+        s = Series(['1 days', '-1 days', '0 days', 'nan', 'nan'],
+                   dtype='timedelta64[ns]')
+        result = s.mode(dropna)
+        expected1 = Series(expected1, dtype='timedelta64[ns]')
+        tm.assert_series_equal(result, expected1)
+
+        s = Series(['1 day', '1 day', '-1 day', '-1 day 2 min',
+                    '2 min', '2 min', 'nan', 'nan'],
+                   dtype='timedelta64[ns]')
+        result = s.mode(dropna)
+        expected2 = Series(expected2, dtype='timedelta64[ns]')
+        tm.assert_series_equal(result, expected2)
+
+    @pytest.mark.parametrize('dropna, expected1, expected2, expected3', [
+        (True, Categorical([1, 2], categories=[1, 2]),
+         Categorical(['a'], categories=[1, 'a']),
+         Categorical([3, 1], categories=[3, 2, 1], ordered=True)),
+        (False, Categorical([np.nan], categories=[1, 2]),
+         Categorical([np.nan, 'a'], categories=[1, 'a']),
+         Categorical([np.nan, 3, 1], categories=[3, 2, 1], ordered=True)),
+    ])
+    def test_mode_category(self, dropna, expected1, expected2, expected3):
+        s = Series(Categorical([1, 2, np.nan, np.nan]))
+        result = s.mode(dropna)
+        expected1 = Series(expected1, dtype='category')
+        tm.assert_series_equal(result, expected1)
+
+        s = Series(Categorical([1, 'a', 'a', np.nan, np.nan]))
+        result = s.mode(dropna)
+        expected2 = Series(expected2, dtype='category')
+        tm.assert_series_equal(result, expected2)
+
+        s = Series(Categorical([1, 1, 2, 3, 3, np.nan, np.nan],
+                               categories=[3, 2, 1], ordered=True))
+        result = s.mode(dropna)
+        expected3 = Series(expected3, dtype='category')
+        tm.assert_series_equal(result, expected3)
+
+    @pytest.mark.parametrize('dropna, expected1, expected2', [
+        (True, [2**63], [1, 2**63]),
+        (False, [2**63], [1, 2**63])
+    ])
+    def test_mode_intoverflow(self, dropna, expected1, expected2):
+        # Test for uint64 overflow.
+        s = Series([1, 2**63, 2**63], dtype=np.uint64)
+        result = s.mode(dropna)
+        expected1 = Series(expected1, dtype=np.uint64)
+        tm.assert_series_equal(result, expected1)
+
+        s = Series([1, 2**63], dtype=np.uint64)
+        result = s.mode(dropna)
+        expected2 = Series(expected2, dtype=np.uint64)
+        tm.assert_series_equal(result, expected2)
+
+    @pytest.mark.skipif(not compat.PY3, reason="only PY3")
+    def test_mode_sortwarning(self):
+        # Check for the warning that is raised when the mode
+        # results cannot be sorted
+
+        expected = Series(['foo', np.nan])
+        s = Series([1, 'foo', 'foo', np.nan, np.nan])
+
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+            result = s.mode(dropna=False)
+            result = result.sort_values().reset_index(drop=True)
+
+        tm.assert_series_equal(result, expected)
+
+
 class TestNLargestNSmallest(object):
 
     @pytest.mark.parametrize(
@@ -1931,26 +2071,6 @@ class TestCategoricalSeriesAnalytics(object):
         _max = cat.max()
         assert np.isnan(_min)
         assert _max == 1
-
-    def test_mode(self):
-        s = Series(Categorical([1, 1, 2, 4, 5, 5, 5],
-                               categories=[5, 4, 3, 2, 1], ordered=True))
-        res = s.mode()
-        exp = Series(Categorical([5], categories=[
-                     5, 4, 3, 2, 1], ordered=True))
-        tm.assert_series_equal(res, exp)
-        s = Series(Categorical([1, 1, 1, 4, 5, 5, 5],
-                               categories=[5, 4, 3, 2, 1], ordered=True))
-        res = s.mode()
-        exp = Series(Categorical([5, 1], categories=[
-                     5, 4, 3, 2, 1], ordered=True))
-        tm.assert_series_equal(res, exp)
-        s = Series(Categorical([1, 2, 3, 4, 5], categories=[5, 4, 3, 2, 1],
-                               ordered=True))
-        res = s.mode()
-        exp = Series(Categorical([5, 4, 3, 2, 1], categories=[5, 4, 3, 2, 1],
-                                 ordered=True))
-        tm.assert_series_equal(res, exp)
 
     def test_value_counts(self):
         # GH 12835

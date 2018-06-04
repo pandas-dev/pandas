@@ -10,6 +10,7 @@ import os
 import abc
 import warnings
 import numpy as np
+from io import UnsupportedOperation
 
 from pandas.core.dtypes.common import (
     is_integer, is_float,
@@ -302,20 +303,11 @@ def read_excel(io,
                convert_float=True,
                **kwds):
 
-    # Can't use _deprecate_kwarg since sheetname=None has a special meaning
-    if is_integer(sheet_name) and sheet_name == 0 and 'sheetname' in kwds:
-        warnings.warn("The `sheetname` keyword is deprecated, use "
-                      "`sheet_name` instead", FutureWarning, stacklevel=2)
-        sheet_name = kwds.pop("sheetname")
-    elif 'sheetname' in kwds:
-        raise TypeError("Cannot specify both `sheet_name` and `sheetname`. "
-                        "Use just `sheet_name`")
-
     if not isinstance(io, ExcelFile):
         io = ExcelFile(io, engine=engine)
 
-    return io._parse_excel(
-        sheetname=sheet_name,
+    return io.parse(
+        sheet_name=sheet_name,
         header=header,
         names=names,
         index_col=index_col,
@@ -388,8 +380,13 @@ class ExcelFile(object):
         elif not isinstance(io, xlrd.Book) and hasattr(io, "read"):
             # N.B. xlrd.Book has a read attribute too
             if hasattr(io, 'seek'):
-                # GH 19779
-                io.seek(0)
+                try:
+                    # GH 19779
+                    io.seek(0)
+                except UnsupportedOperation:
+                    # HTTPResponse does not support seek()
+                    # GH 20434
+                    pass
 
             data = io.read()
             self.book = xlrd.open_workbook(file_contents=data)
@@ -429,7 +426,16 @@ class ExcelFile(object):
         docstring for more info on accepted parameters
         """
 
-        return self._parse_excel(sheetname=sheet_name,
+        # Can't use _deprecate_kwarg since sheetname=None has a special meaning
+        if is_integer(sheet_name) and sheet_name == 0 and 'sheetname' in kwds:
+            warnings.warn("The `sheetname` keyword is deprecated, use "
+                          "`sheet_name` instead", FutureWarning, stacklevel=2)
+            sheet_name = kwds.pop("sheetname")
+        elif 'sheetname' in kwds:
+            raise TypeError("Cannot specify both `sheet_name` "
+                            "and `sheetname`. Use just `sheet_name`")
+
+        return self._parse_excel(sheet_name=sheet_name,
                                  header=header,
                                  names=names,
                                  index_col=index_col,
@@ -483,7 +489,7 @@ class ExcelFile(object):
             return i in usecols
 
     def _parse_excel(self,
-                     sheetname=0,
+                     sheet_name=0,
                      header=0,
                      names=None,
                      index_col=None,
@@ -579,14 +585,14 @@ class ExcelFile(object):
         ret_dict = False
 
         # Keep sheetname to maintain backwards compatibility.
-        if isinstance(sheetname, list):
-            sheets = sheetname
+        if isinstance(sheet_name, list):
+            sheets = sheet_name
             ret_dict = True
-        elif sheetname is None:
+        elif sheet_name is None:
             sheets = self.sheet_names
             ret_dict = True
         else:
-            sheets = [sheetname]
+            sheets = [sheet_name]
 
         # handle same-type duplicates.
         sheets = list(OrderedDict.fromkeys(sheets).keys())

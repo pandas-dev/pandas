@@ -75,9 +75,8 @@ class TestSeriesToCSV(TestData):
             series_h = self.read_csv(path, header=0)
             assert series_h.name == "series"
 
-            outfile = open(path, "w")
-            outfile.write("1998-01-01|1.0\n1999-01-01|2.0")
-            outfile.close()
+            with open(path, "w") as outfile:
+                outfile.write("1998-01-01|1.0\n1999-01-01|2.0")
 
             series = self.read_csv(path, sep="|")
             check_series = Series({datetime(1998, 1, 1): 1.0,
@@ -138,26 +137,26 @@ class TestSeriesToCSV(TestData):
         csv_str = s.to_csv(path=None)
         assert isinstance(csv_str, str)
 
-    def test_to_csv_compression(self, compression_no_zip):
+    def test_to_csv_compression(self, compression):
 
         s = Series([0.123456, 0.234567, 0.567567], index=['A', 'B', 'C'],
                    name='X')
 
         with ensure_clean() as filename:
 
-            s.to_csv(filename, compression=compression_no_zip, header=True)
+            s.to_csv(filename, compression=compression, header=True)
 
             # test the round trip - to_csv -> read_csv
-            rs = pd.read_csv(filename, compression=compression_no_zip,
+            rs = pd.read_csv(filename, compression=compression,
                              index_col=0, squeeze=True)
             assert_series_equal(s, rs)
 
             # explicitly ensure file was compressed
-            with tm.decompress_file(filename, compression_no_zip) as fh:
+            with tm.decompress_file(filename, compression) as fh:
                 text = fh.read().decode('utf8')
                 assert s.name in text
 
-            with tm.decompress_file(filename, compression_no_zip) as fh:
+            with tm.decompress_file(filename, compression) as fh:
                 assert_series_equal(s, pd.read_csv(fh,
                                                    index_col=0,
                                                    squeeze=True))

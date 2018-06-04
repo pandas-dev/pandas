@@ -6,7 +6,7 @@ from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
 from pandas.core.reshape.concat import concat
 from pandas.core.series import Series
-from pandas.core.groupby import Grouper
+from pandas.core.groupby.groupby import Grouper
 from pandas.core.reshape.util import cartesian_product
 from pandas.core.index import Index, _get_objs_combined_axis
 from pandas.compat import range, lrange, zip
@@ -79,7 +79,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
                 pass
         values = list(values)
 
-    grouped = data.groupby(keys)
+    grouped = data.groupby(keys, observed=dropna)
     agged = grouped.agg(aggfunc)
 
     table = agged
@@ -120,6 +120,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
             data = data[data.notna().all(axis=1)]
         table = _add_margins(table, data, values, rows=index,
                              cols=columns, aggfunc=aggfunc,
+                             observed=dropna,
                              margins_name=margins_name, fill_value=fill_value)
 
     # discard the top level
@@ -138,7 +139,7 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
 
 
 def _add_margins(table, data, values, rows, cols, aggfunc,
-                 margins_name='All', fill_value=None):
+                 observed=None, margins_name='All', fill_value=None):
     if not isinstance(margins_name, compat.string_types):
         raise ValueError('margins_name argument must be a string')
 
@@ -168,6 +169,7 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
     if values:
         marginal_result_set = _generate_marginal_results(table, data, values,
                                                          rows, cols, aggfunc,
+                                                         observed,
                                                          grand_margin,
                                                          margins_name)
         if not isinstance(marginal_result_set, tuple):
@@ -175,7 +177,7 @@ def _add_margins(table, data, values, rows, cols, aggfunc,
         result, margin_keys, row_margin = marginal_result_set
     else:
         marginal_result_set = _generate_marginal_results_without_values(
-            table, data, rows, cols, aggfunc, margins_name)
+            table, data, rows, cols, aggfunc, observed, margins_name)
         if not isinstance(marginal_result_set, tuple):
             return marginal_result_set
         result, margin_keys, row_margin = marginal_result_set
@@ -230,6 +232,7 @@ def _compute_grand_margin(data, values, aggfunc,
 
 
 def _generate_marginal_results(table, data, values, rows, cols, aggfunc,
+                               observed,
                                grand_margin,
                                margins_name='All'):
     if len(cols) > 0:
@@ -241,10 +244,13 @@ def _generate_marginal_results(table, data, values, rows, cols, aggfunc,
             return (key, margins_name) + ('',) * (len(cols) - 1)
 
         if len(rows) > 0:
-            margin = data[rows + values].groupby(rows).agg(aggfunc)
+            margin = data[rows + values].groupby(
+                rows, observed=observed).agg(aggfunc)
             cat_axis = 1
 
-            for key, piece in table.groupby(level=0, axis=cat_axis):
+            for key, piece in table.groupby(level=0,
+                                            axis=cat_axis,
+                                            observed=observed):
                 all_key = _all_key(key)
 
                 # we are going to mutate this, so need to copy!
@@ -264,7 +270,9 @@ def _generate_marginal_results(table, data, values, rows, cols, aggfunc,
         else:
             margin = grand_margin
             cat_axis = 0
-            for key, piece in table.groupby(level=0, axis=cat_axis):
+            for key, piece in table.groupby(level=0,
+                                            axis=cat_axis,
+                                            observed=observed):
                 all_key = _all_key(key)
                 table_pieces.append(piece)
                 table_pieces.append(Series(margin[key], index=[all_key]))
@@ -279,7 +287,8 @@ def _generate_marginal_results(table, data, values, rows, cols, aggfunc,
         margin_keys = table.columns
 
     if len(cols) > 0:
-        row_margin = data[cols + values].groupby(cols).agg(aggfunc)
+        row_margin = data[cols + values].groupby(
+            cols, observed=observed).agg(aggfunc)
         row_margin = row_margin.stack()
 
         # slight hack
@@ -293,7 +302,7 @@ def _generate_marginal_results(table, data, values, rows, cols, aggfunc,
 
 def _generate_marginal_results_without_values(
         table, data, rows, cols, aggfunc,
-        margins_name='All'):
+        observed, margins_name='All'):
     if len(cols) > 0:
         # need to "interleave" the margins
         margin_keys = []
@@ -304,14 +313,17 @@ def _generate_marginal_results_without_values(
             return (margins_name, ) + ('', ) * (len(cols) - 1)
 
         if len(rows) > 0:
-            margin = data[rows].groupby(rows).apply(aggfunc)
+            margin = data[rows].groupby(rows,
+                                        observed=observed).apply(aggfunc)
             all_key = _all_key()
             table[all_key] = margin
             result = table
             margin_keys.append(all_key)
 
         else:
-            margin = data.groupby(level=0, axis=0).apply(aggfunc)
+            margin = data.groupby(level=0,
+                                  axis=0,
+                                  observed=observed).apply(aggfunc)
             all_key = _all_key()
             table[all_key] = margin
             result = table
@@ -322,7 +334,7 @@ def _generate_marginal_results_without_values(
         margin_keys = table.columns
 
     if len(cols):
-        row_margin = data[cols].groupby(cols).apply(aggfunc)
+        row_margin = data[cols].groupby(cols, observed=observed).apply(aggfunc)
     else:
         row_margin = Series(np.nan, index=result.columns)
 
@@ -437,7 +449,8 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     rownames = _get_names(index, rownames, prefix='row')
     colnames = _get_names(columns, colnames, prefix='col')
 
-    common_idx = _get_objs_combined_axis(index + columns, intersect=True)
+    common_idx = _get_objs_combined_axis(index + columns, intersect=True,
+                                         sort=False)
 
     data = {}
     data.update(zip(rownames, index))

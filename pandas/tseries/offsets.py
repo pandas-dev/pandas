@@ -1090,12 +1090,17 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
 
 
 class CustomBusinessMonthEnd(_CustomBusinessMonth):
-    __doc__ = _CustomBusinessMonth.__doc__.replace('[BEGIN/END]', 'end')
+    # TODO(py27): Replace condition with Subsitution after dropping Py27
+    if _CustomBusinessMonth.__doc__:
+        __doc__ = _CustomBusinessMonth.__doc__.replace('[BEGIN/END]', 'end')
     _prefix = 'CBM'
 
 
 class CustomBusinessMonthBegin(_CustomBusinessMonth):
-    __doc__ = _CustomBusinessMonth.__doc__.replace('[BEGIN/END]', 'beginning')
+    # TODO(py27): Replace condition with Subsitution after dropping Py27
+    if _CustomBusinessMonth.__doc__:
+        __doc__ = _CustomBusinessMonth.__doc__.replace('[BEGIN/END]',
+                                                       'beginning')
     _prefix = 'CBMS'
 
 
@@ -1460,9 +1465,6 @@ class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
         self.normalize = normalize
         self.weekday = weekday
         self.week = week
-
-        if self.n == 0:
-            raise ValueError('N cannot be 0')
 
         if self.weekday < 0 or self.weekday > 6:
             raise ValueError('Day must be 0<=day<=6, got {day}'

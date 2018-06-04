@@ -20,6 +20,7 @@ from numpy.random import randn, rand
 import numpy as np
 
 import pandas as pd
+from pandas.core.arrays import ExtensionArray
 from pandas.core.dtypes.missing import array_equivalent
 from pandas.core.dtypes.common import (
     is_datetimelike_v_numeric,
@@ -37,7 +38,7 @@ import pandas.core.common as com
 import pandas.compat as compat
 from pandas.compat import (
     filter, map, zip, range, unichr, lrange, lmap, lzip, u, callable, Counter,
-    raise_with_traceback, httplib, StringIO, PY3)
+    raise_with_traceback, httplib, StringIO, string_types, PY3, PY2)
 
 from pandas import (bdate_range, CategoricalIndex, Categorical, IntervalIndex,
                     DatetimeIndex, TimedeltaIndex, PeriodIndex, RangeIndex,
@@ -172,7 +173,7 @@ def decompress_file(path, compression):
     path : str
         The path where the file is read from
 
-    compression : {'gzip', 'bz2', 'xz', None}
+    compression : {'gzip', 'bz2', 'zip', 'xz', None}
         Name of the decompression to use
 
     Returns
@@ -777,8 +778,12 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
 
     def _check_types(l, r, obj='Index'):
         if exact:
-            assert_class_equal(left, right, exact=exact, obj=obj)
-            assert_attr_equal('dtype', l, r, obj=obj)
+            assert_class_equal(l, r, exact=exact, obj=obj)
+
+            # Skip exact dtype checking when `check_categorical` is False
+            if check_categorical:
+                assert_attr_equal('dtype', l, r, obj=obj)
+
             # allow string-like to have different inferred_types
             if l.inferred_type in ('string', 'unicode'):
                 assert r.inferred_type in ('string', 'unicode')
@@ -828,7 +833,8 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
             # get_level_values may change dtype
             _check_types(left.levels[level], right.levels[level], obj=obj)
 
-    if check_exact:
+    # skip exact index checking when `check_categorical` is False
+    if check_exact and check_categorical:
         if not left.equals(right):
             diff = np.sum((left.values != right.values)
                           .astype(int)) * 100.0 / len(left)
@@ -949,23 +955,23 @@ def is_sorted(seq):
 
 
 def assert_categorical_equal(left, right, check_dtype=True,
-                             obj='Categorical', check_category_order=True):
+                             check_category_order=True, obj='Categorical'):
     """Test that Categoricals are equivalent.
 
     Parameters
     ----------
-    left, right : Categorical
-        Categoricals to compare
+    left : Categorical
+    right : Categorical
     check_dtype : bool, default True
         Check that integer dtype of the codes are the same
-    obj : str, default 'Categorical'
-        Specify object name being compared, internally used to show appropriate
-        assertion message
     check_category_order : bool, default True
         Whether the order of the categories should be compared, which
         implies identical integer codes.  If False, only the resulting
         values are compared.  The ordered attribute is
         checked regardless.
+    obj : str, default 'Categorical'
+        Specify object name being compared, internally used to show appropriate
+        assertion message
     """
     _check_isinstance(left, right, Categorical)
 
@@ -991,10 +997,19 @@ def raise_assert_detail(obj, message, left, right, diff=None):
         left = pprint_thing(left)
     elif is_categorical_dtype(left):
         left = repr(left)
+
+    if PY2 and isinstance(left, string_types):
+        # left needs to be printable in native text type in python2
+        left = left.encode('utf-8')
+
     if isinstance(right, np.ndarray):
         right = pprint_thing(right)
     elif is_categorical_dtype(right):
         right = repr(right)
+
+    if PY2 and isinstance(right, string_types):
+        # right needs to be printable in native text type in python2
+        right = right.encode('utf-8')
 
     msg = """{obj} are different
 
@@ -1010,7 +1025,7 @@ def raise_assert_detail(obj, message, left, right, diff=None):
 
 def assert_numpy_array_equal(left, right, strict_nan=False,
                              check_dtype=True, err_msg=None,
-                             obj='numpy array', check_same=None):
+                             check_same=None, obj='numpy array'):
     """ Checks that 'np.ndarray' is equivalent
 
     Parameters
@@ -1023,11 +1038,11 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
         check dtype if both a and b are np.ndarray
     err_msg : str, default None
         If provided, used as assertion message
+    check_same : None|'copy'|'same', default None
+        Ensure left and right refer/do not refer to the same memory area
     obj : str, default 'numpy array'
         Specify object name being compared, internally used to show appropriate
         assertion message
-    check_same : None|'copy'|'same', default None
-        Ensure left and right refer/do not refer to the same memory area
     """
 
     # instance validation
@@ -1081,6 +1096,32 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
             assert_attr_equal('dtype', left, right, obj=obj)
 
     return True
+
+
+def assert_extension_array_equal(left, right):
+    """Check that left and right ExtensionArrays are equal.
+
+    Parameters
+    ----------
+    left, right : ExtensionArray
+        The two arrays to compare
+
+    Notes
+    -----
+    Missing values are checked separately from valid values.
+    A mask of missing values is computed for each and checked to match.
+    The remaining all-valid values are cast to object dtype and checked.
+    """
+    assert isinstance(left, ExtensionArray)
+    assert left.dtype == right.dtype
+    left_na = left.isna()
+    right_na = right.isna()
+    assert_numpy_array_equal(left_na, right_na)
+
+    left_valid = left[~left_na].astype(object)
+    right_valid = right[~right_na].astype(object)
+
+    assert_numpy_array_equal(left_valid, right_valid)
 
 
 # This could be refactored to use the NDFrame.equals method
@@ -2061,7 +2102,7 @@ _network_errno_vals = (
 # and conditionally raise on these exception types
 _network_error_classes = (IOError, httplib.HTTPException)
 
-if sys.version_info >= (3, 3):
+if PY3:
     _network_error_classes += (TimeoutError,)  # noqa
 
 
