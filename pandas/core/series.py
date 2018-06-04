@@ -2231,7 +2231,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         self_is_ext = is_extension_array_dtype(self.values)
         if fill_value is None:
-            fill_value = na_value_for_dtype(self.dtype, False)
+            fill_value = na_value_for_dtype(self.dtype, compat=False)
 
         if isinstance(other, Series):
             new_index = self.index.union(other.index)
