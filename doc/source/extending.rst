@@ -61,7 +61,7 @@ Extension Types
 
 .. warning::
 
-   The :class:`pandas.api.extension.ExtensionDtype` and :class:`pandas.api.extension.ExtensionArray` APIs are new and
+   The :class:`pandas.api.extensions.ExtensionDtype` and :class:`pandas.api.extensions.ExtensionArray` APIs are new and
    experimental. They may change between versions without warning.
 
 Pandas defines an interface for implementing data types and arrays that *extend*
@@ -79,10 +79,10 @@ on :ref:`ecosystem.extensions`.
 
 The interface consists of two classes.
 
-:class:`~pandas.api.extension.ExtensionDtype`
+:class:`~pandas.api.extensions.ExtensionDtype`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A :class:`pandas.api.extension.ExtensionDtype` is similar to a ``numpy.dtype`` object. It describes the
+A :class:`pandas.api.extensions.ExtensionDtype` is similar to a ``numpy.dtype`` object. It describes the
 data type. Implementors are responsible for a few unique items like the name.
 
 One particularly important item is the ``type`` property. This should be the
@@ -91,7 +91,7 @@ extension array for IP Address data, this might be ``ipaddress.IPv4Address``.
 
 See the `extension dtype source`_ for interface definition.
 
-:class:`~pandas.api.extension.ExtensionArray`
+:class:`~pandas.api.extensions.ExtensionArray`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This class provides all the array-like functionality. ExtensionArrays are
@@ -112,6 +112,37 @@ by some other storage type, like Python lists.
 
 See the `extension array source`_ for the interface definition. The docstrings
 and comments contain guidance for properly implementing the interface.
+
+:class:`~pandas.api.extensions.ExtensionArray` Operator Support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+By default, there are no operators defined for the class :class:`~pandas.api.extensions.ExtensionArray`.
+There are two ways that you can provide operator support for your ExtensionArray. One
+is to define each of the operators on your ExtensionArray subclass. The second method
+assumes that the underlying elements of the ExtensionArray have the individual operators
+already defined.  An ``ExtensionArray`` subclass consisting of objects that have arithmetic and
+comparison operators defined on the underlying objects can easily support 
+those operators on the ``ExtensionArray``, and therefore the operators 
+on ``Series`` built on those ``ExtensionArray`` classes will work as expected.
+
+Two mixin classes, :class:`~pandas.api.extensions.ExtensionScalarArithmeticMixin` and
+:class:`~pandas.api.extensions.ExtensionScalarComparisonMixin`, support this capability.  
+If developing an ``ExtensionArray`` subclass, for example ``MyExtensionArray``,
+simply include ``ExtensionScalarArithmeticMixin`` and/or 
+``ExtensionScalarComparisonMixin`` as parent classes of ``MyExtensionArray``
+as follows:
+
+.. code-block:: python
+
+    class MyExtensionArray(ExtensionArray, ExtensionScalarArithmeticMixin,
+                           ExtensionScalarComparisonMixin):
+
+Note that since ``pandas`` automatically calls the underlying operator on each
+element one-by-one, this might not be as performant as implementing your own
+version of the associated operators directly on the ExtensionArray.
+
+Testing Extension Arrays
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 We provide a test suite for ensuring that your extension arrays satisfy the expected
 behavior. To use the test suite, you must provide several pytest fixtures and inherit

@@ -993,12 +993,18 @@ def _construct_divmod_result(left, result, index, name, dtype):
 
 def dispatch_to_extension_op(op, left, right):
     """
-    Assume that left is a Series backed by an ExtensionArray,
+    Assume that left or right is a Series backed by an ExtensionArray,
     apply the operator defined by op.
     """
 
-    # This will raise TypeError if the op is not defined on the ExtensionArray
-    res_values = op(left.values, right)
+    # The op calls will raise TypeError if the op is not defined
+    # on the ExtensionArray
+    if is_extension_array_dtype(left):
+        res_values = op(left.values, right)
+    else:
+        # We know that left is not ExtensionArray and is Series and right is
+        # ExtensionArray.  Want to force ExtensionArray op to get called
+        res_values = op(list(left.values), right.values)
 
     res_name = get_op_result_name(left, right)
     return left._constructor(res_values, index=left.index,
@@ -1073,7 +1079,9 @@ def _arith_method_SERIES(cls, op, special):
             raise TypeError("{typ} cannot perform the operation "
                             "{op}".format(typ=type(left).__name__, op=str_rep))
 
-        elif is_extension_array_dtype(left):
+        elif (is_extension_array_dtype(left) or
+              (is_extension_array_dtype(right) and
+               not is_categorical_dtype(right))):
             return dispatch_to_extension_op(op, left, right)
 
         lvalues = left.values
@@ -1226,7 +1234,9 @@ def _comp_method_SERIES(cls, op, special):
             return self._constructor(res_values, index=self.index,
                                      name=res_name)
 
-        elif is_extension_array_dtype(self):
+        elif (is_extension_array_dtype(self) or
+              (is_extension_array_dtype(other) and
+               not is_categorical_dtype(other))):
             return dispatch_to_extension_op(op, self, other)
 
         elif isinstance(other, ABCSeries):

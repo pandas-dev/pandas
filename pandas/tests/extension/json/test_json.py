@@ -232,5 +232,9 @@ class TestGroupby(BaseJSON, base.BaseGroupbyTests):
         )
 
 
-class TestOps(BaseJSON, base.BaseOpsTests):
+class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
+    pass
+
+
+class TestComparisonOps(BaseJSON, base.BaseComparisonOpsTests):
     pass

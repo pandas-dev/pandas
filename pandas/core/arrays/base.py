@@ -12,10 +12,9 @@ import operator
 from pandas.errors import AbstractMethodError
 from pandas.compat.numpy import function as nv
 from pandas.compat import set_function_name, PY3
-from pandas.core.dtypes.common import (
-    is_extension_array_dtype,
-    is_list_like)
+from pandas.core.dtypes.common import is_list_like
 from pandas.core import ops
+from pandas.core.ops import _get_op_name
 
 _not_implemented_message = "{} does not implement {}."
 
@@ -636,10 +635,12 @@ class ExtensionScalarOpsMixin(object):
 
         Parameters
         ----------
-        op:               An operator that takes arguments op(a, b)
-        coerce_to_dtype:  boolean indicating whether to attempt to convert
-                          the result to the underlying ExtensionArray dtype
-                          (default True)
+        op: function
+            An operator that takes arguments op(a, b)
+        coerce_to_dtype:  bool
+            boolean indicating whether to attempt to convert
+            the result to the underlying ExtensionArray dtype
+            (default True)
 
         Returns
         -------
@@ -656,18 +657,14 @@ class ExtensionScalarOpsMixin(object):
 
         """
 
-        op_name = ops._get_op_name(op, False)
-
         def _binop(self, other):
-            def convert_values(parm):
-                if isinstance(parm, ExtensionArray) or is_list_like(parm):
-                    ovalues = parm
-                elif is_extension_array_dtype(parm):
-                    ovalues = parm.values
+            def convert_values(param):
+                if isinstance(param, ExtensionArray) or is_list_like(param):
+                    ovalues = param
                 else:  # Assume its an object
-                    ovalues = [parm] * len(self)
+                    ovalues = [param] * len(self)
                 return ovalues
-            lvalues = convert_values(self)
+            lvalues = self
             rvalues = convert_values(other)
 
             # If the operator is not defined for the underlying objects,
@@ -682,8 +679,8 @@ class ExtensionScalarOpsMixin(object):
 
             return res
 
-        name = '__{name}__'.format(name=op_name)
-        return set_function_name(_binop, name, cls)
+        op_name = _get_op_name(op, True)
+        return set_function_name(_binop, op_name, cls)
 
 
 class ExtensionScalarArithmeticMixin(ExtensionScalarOpsMixin):

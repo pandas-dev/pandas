@@ -1,5 +1,4 @@
 import decimal
-import operator
 
 import numpy as np
 import pandas as pd
@@ -186,22 +185,11 @@ def test_dataframe_constructor_with_different_dtype_raises():
         pd.DataFrame({"A": arr}, dtype='int64')
 
 
-class TestOps(BaseDecimal, base.BaseOpsTests):
-    def check_op(self, s, op_name, other):
+class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):
 
-        short_opname = op_name.strip('_')
-        if short_opname[0] == 'r':
-            short_opname = short_opname[1:]
-        op = getattr(operator, short_opname)
-        result = op(s, other)
-        expected = s.combine(other, op)
-        self.assert_series_equal(result, expected)
-
-    def test_arith_scalar(self, data, all_arithmetic_operators):
-        # scalar
-        op_name = all_arithmetic_operators
-        s = pd.Series(data)
-        self.check_op(s, op_name, decimal.Decimal(1.5))
+    def check_opname(self, s, op_name, other, exc=None):
+        super(TestArithmeticOps, self).check_opname(s, op_name,
+                                                    other, exc=None)
 
     def test_arith_array(self, data, all_arithmetic_operators):
         op_name = all_arithmetic_operators
@@ -213,12 +201,15 @@ class TestOps(BaseDecimal, base.BaseOpsTests):
         context.traps[decimal.DivisionByZero] = 0
         context.traps[decimal.InvalidOperation] = 0
 
-        if "mod" not in op_name:
-            self.check_op(s, op_name, s * 2)
-        else:
-            self.check_op(s, op_name, pd.Series([int(d * 10) for d in data]))
+        # Decimal supports ops with int, but not float
+        other = pd.Series([int(d * 100) for d in data])
+        self.check_opname(s, op_name, other)
 
-        self.check_op(s, op_name, 0)
+        if "mod" not in op_name:
+            self.check_opname(s, op_name, s * 2)
+
+        self.check_opname(s, op_name, 0)
+        self.check_opname(s, op_name, 5)
         context.traps[decimal.DivisionByZero] = divbyzerotrap
         context.traps[decimal.InvalidOperation] = invalidoptrap
 
@@ -226,9 +217,19 @@ class TestOps(BaseDecimal, base.BaseOpsTests):
     def test_divmod(self, data):
         pass
 
+    def test_error(self):
+        pass
+
+
+class TestComparisonOps(BaseDecimal, base.BaseComparisonOpsTests):
+
+    def check_opname(self, s, op_name, other, exc=None):
+        super(TestComparisonOps, self).check_opname(s, op_name,
+                                                    other, exc=None)
+
     def _compare_other(self, data, op_name, other):
         s = pd.Series(data)
-        self.check_op(s, op_name, other)
+        self.check_opname(s, op_name, other)
 
     def test_compare_scalar(self, data, all_compare_operators):
         op_name = all_compare_operators
@@ -242,6 +243,3 @@ class TestOps(BaseDecimal, base.BaseOpsTests):
         other = pd.Series(data) * [decimal.Decimal(pow(2.0, i))
                                    for i in alter]
         self._compare_other(data, op_name, other)
-
-    def test_error(self):
-        pass
