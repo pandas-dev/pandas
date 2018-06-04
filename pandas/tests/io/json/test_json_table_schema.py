@@ -12,6 +12,7 @@ from pandas.core.dtypes.dtypes import (
 from pandas.io.json.table_schema import (
     as_json_table_type,
     build_table_schema,
+    parse_table_schema,
     convert_pandas_type_to_json_field,
     convert_json_field_to_pandas_type,
     set_default_names)
@@ -85,6 +86,15 @@ class TestBuildSchema(object):
         result = build_table_schema(df, version=False)
         assert result == expected
 
+
+class TestParseSchema(object):
+
+    def test_empty_json_data(self):
+        # GH21287
+        df = pd.DataFrame([], columns=['a', 'b', 'c'])
+        json = df.to_json(None, orient='table')
+        df = parse_table_schema(json, True)
+        assert df.empty
 
 class TestTableSchemaType(object):
 

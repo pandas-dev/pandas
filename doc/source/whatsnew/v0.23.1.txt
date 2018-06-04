@@ -92,7 +92,7 @@ I/O
 
 - Bug in IO methods specifying ``compression='zip'`` which produced uncompressed zip archives (:issue:`17778`, :issue:`21144`)
 - Bug in :meth:`DataFrame.to_stata` which prevented exporting DataFrames to buffers and most file-like objects (:issue:`21041`)
--
+- Bug in IO JSON methods reading empty JSON schema back to DataFrame caused an error (:issue:`21287`)
 
 Plotting
 ^^^^^^^^
