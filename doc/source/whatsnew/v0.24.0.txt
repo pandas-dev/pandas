@@ -29,6 +29,7 @@ Datetimelike API Changes
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - For :class:`DatetimeIndex` and :class:`TimedeltaIndex` with non-``None`` ``freq`` attribute, addition or subtraction of integer-dtyped array or ``Index`` will return an object of the same class (:issue:`19959`)
+- Subtraction of :class:`Period` from :class:`Period` will return a :class:`DateOffset` object instead of an integer (:issue:`????`)
 
 .. _whatsnew_0240.api.other:
 
