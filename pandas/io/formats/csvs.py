@@ -131,7 +131,6 @@ class CSVFormatter(object):
         # PR 21300 uses string buffer to receive csv writing and dump into
         # file-like output with compression as option. GH 21241, 21118
         f = StringIO()
-        close = True
         if not is_file_like(self.path_or_buf):
             # path_or_buf is path
             path_or_buf = self.path_or_buf
@@ -141,7 +140,7 @@ class CSVFormatter(object):
         else:
             # path_or_buf is file-like IO objects.
             f = self.path_or_buf
-            close = False
+            path_or_buf = None
 
         try:
             writer_kwargs = dict(lineterminator=self.line_terminator,
@@ -160,7 +159,7 @@ class CSVFormatter(object):
         finally:
             # GH 17778 handles zip compression for byte strings separately.
             buf = f.getvalue()
-            if close:
+            if path_or_buf:
                 f, handles = _get_handle(path_or_buf, self.mode,
                                          encoding=encoding,
                                          compression=self.compression)
