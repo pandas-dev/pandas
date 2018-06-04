@@ -40,6 +40,7 @@ from pandas.core.dtypes.generic import (
     ABCIndex, ABCSeries, ABCDataFrame, ABCPeriodIndex, ABCIndexClass)
 from pandas.core.dtypes.missing import isna
 from pandas.core import common as com, algorithms, ops
+from pandas.core.algorithms import checked_add_with_arr
 from pandas.errors import NullFrequencyError, PerformanceWarning
 import pandas.io.formats.printing as printing
 
