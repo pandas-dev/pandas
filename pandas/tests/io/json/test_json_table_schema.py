@@ -96,6 +96,7 @@ class TestParseSchema(object):
         df = parse_table_schema(json, True)
         assert df.empty
 
+
 class TestTableSchemaType(object):
 
     @pytest.mark.parametrize('int_type', [
