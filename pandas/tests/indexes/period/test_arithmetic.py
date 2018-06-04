@@ -277,7 +277,8 @@ class TestPeriodIndexArithmetic(object):
         other = pd.period_range('1/6/2000', freq='D', periods=5)
 
         result = rng - other
-        expected = pd.Int64Index([-5, -5, -5, -5, -5])
+        off = rng.freq
+        expected = pd.Index([-5 * off] * 5)
         tm.assert_index_equal(result, expected)
 
     def test_pi_sub_pi_with_nat(self):
@@ -286,7 +287,8 @@ class TestPeriodIndexArithmetic(object):
         assert other[1:].equals(rng[1:])
 
         result = rng - other
-        expected = pd.Float64Index([np.nan, 0, 0, 0, 0])
+        off = rng.freq
+        expected = pd.Index([pd.NaT, 0 * off, 0 * off, 0 * off, 0 * off])
         tm.assert_index_equal(result, expected)
 
     def test_pi_sub_pi_mismatched_freq(self):
@@ -451,7 +453,8 @@ class TestPeriodIndexArithmetic(object):
         rng = pd.period_range('1/1/2000', freq='D', periods=5)
         other = pd.period_range('1/6/2000', freq='D', periods=5)
 
-        expected = pd.Int64Index([-5, -5, -5, -5, -5])
+        off = rng.freq
+        expected = pd.Index([-5 * off] * 5)
         result = rng - other
         tm.assert_index_equal(result, expected)
 

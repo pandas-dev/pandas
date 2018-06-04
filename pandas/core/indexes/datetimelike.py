@@ -796,9 +796,8 @@ class DatetimeIndexOpsMixin(object):
 
         Returns
         -------
-        result : np.ndarray
-            dtype is np.int64 if there are no NaTs in self or other,
-            otherwise np.float64
+        result : np.ndarray[object]
+            Array of DateOffset objects; nulls represented by NaT
         """
         if not is_period_dtype(self):
             raise TypeError("cannot subtract {dtype}-dtype to {cls}"
@@ -814,12 +813,11 @@ class DatetimeIndexOpsMixin(object):
         new_values = checked_add_with_arr(self.asi8, -other.asi8,
                                           arr_mask=self._isnan,
                                           b_mask=other._isnan)
-        new_values = new_values
+
+        new_values = np.array([self.freq * x for x in new_values])
         if self.hasnans or other.hasnans:
-            # we have to convert to float to represent NaNs
             mask = (self._isnan) | (other._isnan)
-            new_values = new_values.astype(np.float64)
-            new_values[mask] = np.nan
+            new_values[mask] = NaT
         return new_values
 
     def _add_offset(self, offset):
