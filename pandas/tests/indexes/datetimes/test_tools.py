@@ -179,6 +179,59 @@ class TestTimeConversionFormats(object):
         for s, format, dt in data:
             assert to_datetime(s, format=format, cache=cache) == dt
 
+    @pytest.mark.parametrize("box,const,assert_equal", [
+        [True, pd.Index, 'assert_index_equal'],
+        [False, np.array, 'assert_numpy_array_equal']])
+    @pytest.mark.parametrize("fmt,dates,expected_dates", [
+        ['%Y-%m-%d %H:%M:%S %Z',
+         ['2010-01-01 12:00:00 UTC'] * 2,
+         [pd.Timestamp('2010-01-01 12:00:00', tz='UTC')] * 2],
+        ['%Y-%m-%d %H:%M:%S %Z',
+         ['2010-01-01 12:00:00 UTC',
+          '2010-01-01 12:00:00 GMT',
+          '2010-01-01 12:00:00 US/Pacific'],
+         [pd.Timestamp('2010-01-01 12:00:00', tz='UTC'),
+          pd.Timestamp('2010-01-01 12:00:00', tz='GMT'),
+          pd.Timestamp('2010-01-01 12:00:00', tz='US/Pacific')]],
+        ['%Y-%m-%d %H:%M:%S%z',
+         ['2010-01-01 12:00:00+0100'] * 2,
+         [pd.Timestamp('2010-01-01 12:00:00',
+                       tzinfo=pytz.FixedOffset(60))] * 2],
+        ['%Y-%m-%d %H:%M:%S %z',
+         ['2010-01-01 12:00:00 +0100'] * 2,
+         [pd.Timestamp('2010-01-01 12:00:00',
+                       tzinfo=pytz.FixedOffset(60))] * 2],
+        ['%Y-%m-%d %H:%M:%S %z',
+         ['2010-01-01 12:00:00 +0100', '2010-01-01 12:00:00 -0100'],
+         [pd.Timestamp('2010-01-01 12:00:00',
+                       tzinfo=pytz.FixedOffset(60)),
+          pd.Timestamp('2010-01-01 12:00:00',
+                       tzinfo=pytz.FixedOffset(-60))]],
+        ['%Y-%m-%d %H:%M:%S %z',
+         ['2010-01-01 12:00:00 Z', '2010-01-01 12:00:00 Z'],
+         [pd.Timestamp('2010-01-01 12:00:00',
+                       tzinfo=pytz.FixedOffset(0)),  # pytz coerces to UTC
+          pd.Timestamp('2010-01-01 12:00:00',
+                       tzinfo=pytz.FixedOffset(0))]]])
+    def test_to_datetime_parse_tzname_or_tzoffset(self, box, const,
+                                                  assert_equal, fmt,
+                                                  dates, expected_dates):
+        # GH 13486
+        result = pd.to_datetime(dates, format=fmt, box=box)
+        expected = const(expected_dates)
+        getattr(tm, assert_equal)(result, expected)
+
+        with pytest.raises(ValueError):
+            pd.to_datetime(dates, format=fmt, box=box, utc=True)
+
+    @pytest.mark.parametrize('offset', [
+        '+0', '-1foo', 'UTCbar', ':10', '+01:000:01', ''])
+    def test_to_datetime_parse_timezone_malformed(self, offset):
+        fmt = '%Y-%m-%d %H:%M:%S %z'
+        date = '2010-01-01 12:00:00 ' + offset
+        with pytest.raises(ValueError):
+            pd.to_datetime([date], format=fmt)
+
 
 class TestToDatetime(object):
     def test_to_datetime_pydatetime(self):
@@ -649,6 +702,14 @@ class TestToDatetimeUnit(object):
 
         with pytest.raises(ValueError):
             pd.to_datetime(arr, errors='raise', cache=cache)
+
+    @pytest.mark.parametrize('cache', [True, False])
+    def test_unit_rounding(self, cache):
+        # GH 14156: argument will incur floating point errors but no
+        # premature rounding
+        result = pd.to_datetime(1434743731.8770001, unit='s', cache=cache)
+        expected = pd.Timestamp('2015-06-19 19:55:31.877000093')
+        assert result == expected
 
     @pytest.mark.parametrize('cache', [True, False])
     def test_dataframe(self, cache):

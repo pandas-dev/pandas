@@ -378,15 +378,15 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     # introspection
     @cache_readonly
     def is_unique(self):
-        return not self.duplicated().any()
+        return self._engine.is_unique
 
     @property
     def is_monotonic_increasing(self):
-        return Index(self.codes).is_monotonic_increasing
+        return self._engine.is_monotonic_increasing
 
     @property
     def is_monotonic_decreasing(self):
-        return Index(self.codes).is_monotonic_decreasing
+        return self._engine.is_monotonic_decreasing
 
     @Appender(_index_shared_docs['index_unique'] % _index_doc_kwargs)
     def unique(self, level=None):

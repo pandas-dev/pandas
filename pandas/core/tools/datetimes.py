@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, time
-import numpy as np
 from collections import MutableMapping
+
+import numpy as np
 
 from pandas._libs import tslib
 from pandas._libs.tslibs.strptime import array_strptime
@@ -27,6 +28,7 @@ from pandas.core.dtypes.generic import (
     ABCDataFrame)
 from pandas.core.dtypes.missing import notna
 from pandas.core import algorithms
+from pandas.compat import zip
 
 
 def _guess_datetime_format_for_array(arr, **kwargs):
@@ -101,6 +103,41 @@ def _convert_and_box_cache(arg, cache_array, box, errors, name=None):
         else:
             return DatetimeIndex(result, name=name)
     return result.values
+
+
+def _return_parsed_timezone_results(result, timezones, box, tz):
+    """
+    Return results from array_strptime if a %z or %Z directive was passed.
+
+    Parameters
+    ----------
+    result : ndarray
+        int64 date representations of the dates
+    timezones : ndarray
+        pytz timezone objects
+    box : boolean
+        True boxes result as an Index-like, False returns an ndarray
+    tz : object
+        None or pytz timezone object
+    Returns
+    -------
+    tz_result : ndarray of parsed dates with timezone
+        Returns:
+
+        - Index-like if box=True
+        - ndarray of Timestamps if box=False
+
+    """
+    if tz is not None:
+        raise ValueError("Cannot pass a tz argument when "
+                         "parsing strings with timezone "
+                         "information.")
+    tz_results = np.array([tslib.Timestamp(res).tz_localize(zone) for res, zone
+                           in zip(result, timezones)])
+    if box:
+        from pandas import Index
+        return Index(tz_results)
+    return tz_results
 
 
 def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
@@ -343,8 +380,11 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
                 # fallback
                 if result is None:
                     try:
-                        result = array_strptime(arg, format, exact=exact,
-                                                errors=errors)
+                        result, timezones = array_strptime(
+                            arg, format, exact=exact, errors=errors)
+                        if '%Z' in format or '%z' in format:
+                            return _return_parsed_timezone_results(
+                                result, timezones, box, tz)
                     except tslib.OutOfBoundsDatetime:
                         if errors == 'raise':
                             raise
