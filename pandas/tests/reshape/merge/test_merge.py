@@ -1526,6 +1526,17 @@ class TestMergeDtypes(object):
             result = B.merge(A, left_on='Y', right_on='X')
             assert_frame_equal(result, expected[['Y', 'X']])
 
+    def test_merge_incompat_infer_object(self):
+        # GH21119
+        df1 = DataFrame({'key': Series([True, False], dtype=object)})
+        df2 = DataFrame({'key': [True, False]})
+
+        expected = DataFrame({'key': [True, False]}, dtype=object)
+        result = pd.merge(df1, df2, on='key')
+        assert_frame_equal(result, expected)
+        result = pd.merge(df2, df1, on='key')
+        assert_frame_equal(result, expected)
+
     @pytest.mark.parametrize('df1_vals, df2_vals', [
         ([0, 1, 2], ["0", "1", "2"]),
         ([0.0, 1.0, 2.0], ["0", "1", "2"]),

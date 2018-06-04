@@ -28,6 +28,7 @@ from pandas.core.dtypes.common import (
     is_int_or_datetime_dtype,
     is_dtype_equal,
     is_bool,
+    is_bool_dtype,
     is_list_like,
     is_datetimelike,
     _ensure_int64,
@@ -974,9 +975,11 @@ class _MergeOperation(object):
 
             # Check if we are trying to merge on obviously
             # incompatible dtypes GH 9780, GH 15800
-            elif is_numeric_dtype(lk) and not is_numeric_dtype(rk):
+            elif ((is_numeric_dtype(lk) and not is_bool_dtype(lk))
+                    and not is_numeric_dtype(rk)):
                 raise ValueError(msg)
-            elif not is_numeric_dtype(lk) and is_numeric_dtype(rk):
+            elif (not is_numeric_dtype(lk)
+                    and (is_numeric_dtype(rk) and not is_bool_dtype(rk))):
                 raise ValueError(msg)
             elif is_datetimelike(lk) and not is_datetimelike(rk):
                 raise ValueError(msg)
