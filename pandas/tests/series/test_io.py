@@ -155,7 +155,16 @@ class TestSeriesToCSV(TestData):
             # test the round trip - to_csv -> read_csv
             result = pd.read_csv(filename, compression=compression,
                                  encoding=encoding, index_col=0, squeeze=True)
+
+            with open(filename, 'w') as fh:
+                s.to_csv(fh, compression=compression, encoding=encoding,
+                         header=True)
+
+            result_fh = pd.read_csv(filename, compression=compression,
+                                    encoding=encoding, index_col=0,
+                                    squeeze=True)
             assert_series_equal(s, result)
+            assert_series_equal(s, result_fh)
 
             # explicitly ensure file was compressed
             with tm.decompress_file(filename, compression) as fh:

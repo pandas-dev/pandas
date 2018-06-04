@@ -939,7 +939,14 @@ class TestDataFrameToCSV(TestData):
             # test the round trip - to_csv -> read_csv
             result = read_csv(filename, compression=compression,
                               index_col=0, encoding=encoding)
+
+            with open(filename, 'w') as fh:
+                df.to_csv(fh, compression=compression, encoding=encoding)
+
+            result_fh = read_csv(filename, compression=compression,
+                                 index_col=0, encoding=encoding)
             assert_frame_equal(df, result)
+            assert_frame_equal(df, result_fh)
 
             # explicitly make sure file is compressed
             with tm.decompress_file(filename, compression) as fh:
