@@ -133,10 +133,13 @@ class CSVFormatter(object):
         f = StringIO()
         close = True
         if not is_file_like(self.path_or_buf):
+            # path_or_buf is path
             path_or_buf = self.path_or_buf
         elif hasattr(self.path_or_buf, 'name'):
+            # path_or_buf is file handle
             path_or_buf = self.path_or_buf.name
         else:
+            # path_or_buf is file-like IO objects.
             f = self.path_or_buf
             close = False
 
