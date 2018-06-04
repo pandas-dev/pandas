@@ -513,6 +513,7 @@ class NSort(object):
     def time_nsmallest(self, keep):
         self.df.nsmallest(100, 'A', keep=keep)
 
+
 class Describe(object):
 
     goal_time = 0.2
