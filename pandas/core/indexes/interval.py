@@ -112,6 +112,10 @@ def maybe_convert_platform_interval(values):
     -------
     array
     """
+    if is_categorical_dtype(values):
+        # GH 21243/21253
+        values = np.array(values)
+
     if isinstance(values, (list, tuple)) and len(values) == 0:
         # GH 19016
         # empty lists/tuples get object dtype by default, but this is not

@@ -6,8 +6,9 @@ from functools import partial
 
 from pandas import (
     Interval, IntervalIndex, Index, Int64Index, Float64Index, Categorical,
-    date_range, timedelta_range, period_range, notna)
+    CategoricalIndex, date_range, timedelta_range, period_range, notna)
 from pandas.compat import lzip
+from pandas.core.dtypes.common import is_categorical_dtype
 from pandas.core.dtypes.dtypes import IntervalDtype
 import pandas.core.common as com
 import pandas.util.testing as tm
@@ -110,6 +111,22 @@ class Base(object):
                'for IntervalIndex')
         with tm.assert_raises_regex(TypeError, msg):
             constructor(**self.get_kwargs_from_breaks(breaks))
+
+    @pytest.mark.parametrize('cat_constructor', [
+        Categorical, CategoricalIndex])
+    def test_constructor_categorical_valid(self, constructor, cat_constructor):
+        # GH 21243/21253
+        if isinstance(constructor, partial) and constructor.func is Index:
+            # Index is defined to create CategoricalIndex from categorical data
+            pytest.skip()
+
+        breaks = np.arange(10, dtype='int64')
+        expected = IntervalIndex.from_breaks(breaks)
+
+        cat_breaks = cat_constructor(breaks)
+        result_kwargs = self.get_kwargs_from_breaks(cat_breaks)
+        result = constructor(**result_kwargs)
+        tm.assert_index_equal(result, expected)
 
     def test_generic_errors(self, constructor):
         # filler input data to be used when supplying invalid kwargs
@@ -238,6 +255,8 @@ class TestFromTuples(Base):
         tuples = lzip(breaks[:-1], breaks[1:])
         if isinstance(breaks, (list, tuple)):
             return {'data': tuples}
+        elif is_categorical_dtype(breaks):
+            return {'data': breaks._constructor(tuples)}
         return {'data': com._asarray_tuplesafe(tuples)}
 
     def test_constructor_errors(self):
@@ -286,6 +305,8 @@ class TestClassConstructors(Base):
 
         if isinstance(breaks, list):
             return {'data': ivs}
+        elif is_categorical_dtype(breaks):
+            return {'data': breaks._constructor(ivs)}
         return {'data': np.array(ivs, dtype=object)}
 
     def test_generic_errors(self, constructor):
