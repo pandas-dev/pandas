@@ -20,9 +20,7 @@ import sys
 import numpy as np
 
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.arrays import (ExtensionArray,
-                                ExtensionArithmeticOpsMixin,
-                                ExtensionComparisonOpsMixin)
+from pandas.core.arrays import ExtensionArray
 
 
 class JSONDtype(ExtensionDtype):
@@ -43,8 +41,7 @@ class JSONDtype(ExtensionDtype):
                             "'{}'".format(cls, string))
 
 
-class JSONArray(ExtensionArray, ExtensionArithmeticOpsMixin(),
-                ExtensionComparisonOpsMixin()):
+class JSONArray(ExtensionArray):
     dtype = JSONDtype()
 
     def __init__(self, values):

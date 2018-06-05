@@ -1,7 +1,3 @@
 from .base import (ExtensionArray,    # noqa
-                   ExtensionScalarArithmeticMixin,
-                   ExtensionScalarComparisonMixin,
-                   ExtensionScalarOpsMixin,
-                   ExtensionArithmeticOpsMixin,
-                   ExtensionComparisonOpsMixin)
+                   ExtensionScalarOpsMixin)
 from .categorical import Categorical  # noqa

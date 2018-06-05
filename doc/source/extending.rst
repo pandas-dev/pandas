@@ -122,66 +122,34 @@ By default, there are no operators defined for the class :class:`~pandas.api.ext
 There are two approaches for providing operator support for your ExtensionArray:
 
 1. Define each of the operators on your ExtensionArray subclass. 
-2. Use operators from pandas defined on the ExtensionArray subclass based on already defined
-   operators on the underlying elements.
+2. Use an operator implementation from pandas that depends on operators that are already defined
+   on the underlying elements (scalars) of the ExtensionArray.
     
-For the first approach, you will need to create a mixin class with a single class method,
-with the following signature:
+For the first approach, you define selected operators, e.g., ``_add__``, ``__le__``, etc. that
+you want your ExtensionArray subclass to support.
 
-.. code-block:: python
-
-    @classmethod
-    def _create_method(cls, op, coerce_to_dtype=True):
-
-The method ``create_method`` should return a method with the signature
-``binop(self, other)`` that returns the result of applying the operator ``op``
-to your ExtensionArray subclass.  Your mixin class will then become a base class
-for the provided :class:`ExtensionArithmeticOpsMixin` and
-:class:`ExtensionComparisonOpsMixin` classes. 
-
-For example, if your ExtensionArray subclass
-is called ``MyExtensionArray``, you could create a mixin class ``MyOpsMixin``
-that has the following skeleton:
-
-.. code-block:: python
-
-    class MyOpsMixin(object):
-    @classmethod
-    def _create_method(cls, op, coerce_to_dtype=True):
-        def _binop(self, other):
-            # Your implementation of the operator op
-        return _binop
-        
-Then to use this class to define the operators for ``MyExtensionArray``, you can write:
-
-.. code-block:: python
-
-    class MyExtensionArray(ExtensionArray,
-                           ExtensionArithmeticOpsMixin(MyOpsMixin),
-                           ExtensionComparisonOpsMixin(MyOpsMixin))
-                           
-The mixin classes :class:`ExtensionArithmeticOpsMixin` and
-:class:`ExtensionComparisonOpsMixin` will then define the appropriate operators
-using your implementation of those operators in ``MyOpsMixin``.
-
-The second approach assumes that the underlying elements of the ExtensionArray 
+The second approach assumes that the underlying elements (i.e., scalar type) of the ExtensionArray 
 have the individual operators already defined.  In other words, if your ExtensionArray
 named ``MyExtensionArray`` is implemented so that each element is an instance 
 of the class ``MyExtensionElement``, then if the operators are defined 
 for ``MyExtensionElement``, the second approach will automatically
 define the operators for ``MyExtensionArray``.
 
-Two mixin classes, :class:`~pandas.api.extensions.ExtensionScalarArithmeticMixin` and
-:class:`~pandas.api.extensions.ExtensionScalarComparisonMixin`, support this second
+A mixin class, :class:`~pandas.api.extensions.ExtensionScalarOpscMixin` supports this second
 approach.  If developing an ``ExtensionArray`` subclass, for example ``MyExtensionArray``,
-simply include ``ExtensionScalarArithmeticMixin`` and/or 
-``ExtensionScalarComparisonMixin`` as parent classes of ``MyExtensionArray``
-as follows:
+simply include ``ExtensionScalarOpsMixin`` as a parent class of ``MyExtensionArray``
+and then call the methods :meth:`~MyExtensionArray.addArithmeticOps` and/or
+:meth:`~MyExtensionArray.addComparisonOps` to hook the operators into 
+your ``MyExtensionArray`` class, as follows:
 
 .. code-block:: python
 
-    class MyExtensionArray(ExtensionArray, ExtensionScalarArithmeticMixin,
+    class MyExtensionArray(ExtensionArray, ExtensionScalarOpsMixin,
                            ExtensionScalarComparisonMixin):
+        pass
+    
+    MyExtensionArray.addArithmeticOps()
+    MyExtensionArray.addComparisonOps()
 
 Note that since ``pandas`` automatically calls the underlying operator on each
 element one-by-one, this might not be as performant as implementing your own

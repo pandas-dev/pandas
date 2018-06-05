@@ -7,8 +7,7 @@ import numpy as np
 
 import pandas as pd
 from pandas.core.arrays import (ExtensionArray,
-                                ExtensionScalarArithmeticMixin,
-                                ExtensionScalarComparisonMixin)
+                                ExtensionScalarOpsMixin)
 from pandas.core.dtypes.base import ExtensionDtype
 
 
@@ -26,8 +25,7 @@ class DecimalDtype(ExtensionDtype):
                             "'{}'".format(cls, string))
 
 
-class DecimalArray(ExtensionArray, ExtensionScalarArithmeticMixin,
-                   ExtensionScalarComparisonMixin):
+class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     dtype = DecimalDtype()
 
     def __init__(self, values):
@@ -105,6 +103,9 @@ class DecimalArray(ExtensionArray, ExtensionScalarArithmeticMixin,
     @classmethod
     def _concat_same_type(cls, to_concat):
         return cls(np.concatenate([x._data for x in to_concat]))
+
+DecimalArray.addArithmeticOps()
+DecimalArray.addComparisonOps()
 
 
 def make_data():
