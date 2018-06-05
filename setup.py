@@ -453,10 +453,11 @@ def pxd(name):
     return pjoin('pandas', name + '.pxd')
 
 
-# args to ignore warnings
 if is_platform_windows():
-    extra_compile_args = []
+    # static link c++ runtime
+    extra_compile_args = ['/MT']
 else:
+    # args to ignore warnings
     extra_compile_args = ['-Wno-unused-function']
 
 lib_depends = lib_depends + ['pandas/_libs/src/numpy_helper.h',
