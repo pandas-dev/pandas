@@ -1,5 +1,6 @@
 """Tests for Table Schema integration."""
 import json
+import io
 from collections import OrderedDict
 
 import numpy as np
@@ -566,6 +567,6 @@ class TestTableOrientReader(object):
         # GH 21287
         df = pd.DataFrame([], columns=['a', 'b', 'c'])
         expected = df.copy()
-        out = df.to_json(None, orient='table')
+        out = df.to_json(orient='table')
         result = pd.read_json(out, orient='table')
-        pd.testing.assert_frame_equal(expected, result)
+        tm.assert_frame_equal(expected, result)
