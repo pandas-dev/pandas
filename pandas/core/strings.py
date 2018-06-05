@@ -1359,7 +1359,7 @@ def str_split(arr, pat=None, n=None):
 
     Returns
     -------
-    Series, Index, DataFrame or MultiIndex       
+    Series, Index, DataFrame or MultiIndex
     """
     if pat is None:
         if n is None or n == 0:
