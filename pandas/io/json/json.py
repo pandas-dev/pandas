@@ -658,7 +658,6 @@ class Parser(object):
 
     def _try_convert_data(self, name, data, use_dtypes=True,
                           convert_dates=True):
-        print(data)
         """ try to parse a ndarray like into a column by inferring dtype """
 
         # don't try to coerce, unless a force conversion
