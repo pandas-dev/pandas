@@ -113,21 +113,67 @@ by some other storage type, like Python lists.
 See the `extension array source`_ for the interface definition. The docstrings
 and comments contain guidance for properly implementing the interface.
 
+.. _extending.extension.operator:
+
 :class:`~pandas.api.extensions.ExtensionArray` Operator Support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 By default, there are no operators defined for the class :class:`~pandas.api.extensions.ExtensionArray`.
-There are two ways that you can provide operator support for your ExtensionArray. One
-is to define each of the operators on your ExtensionArray subclass. The second method
-assumes that the underlying elements of the ExtensionArray have the individual operators
-already defined.  An ``ExtensionArray`` subclass consisting of objects that have arithmetic and
-comparison operators defined on the underlying objects can easily support 
-those operators on the ``ExtensionArray``, and therefore the operators 
-on ``Series`` built on those ``ExtensionArray`` classes will work as expected.
+There are two approaches for providing operator support for your ExtensionArray:
+
+1. Define each of the operators on your ExtensionArray subclass. 
+2. Use operators from pandas defined on the ExtensionArray subclass based on already defined
+   operators on the underlying elements.
+    
+For the first approach, you will need to create a mixin class with a single class method,
+with the following signature:
+
+.. code-block:: python
+
+    @classmethod
+    def _create_method(cls, op, coerce_to_dtype=True):
+
+The method ``create_method`` should return a method with the signature
+``binop(self, other)`` that returns the result of applying the operator ``op``
+to your ExtensionArray subclass.  Your mixin class will then become a base class
+for the provided :class:`ExtensionArithmeticOpsMixin` and
+:class:`ExtensionComparisonOpsMixin` classes. 
+
+For example, if your ExtensionArray subclass
+is called ``MyExtensionArray``, you could create a mixin class ``MyOpsMixin``
+that has the following skeleton:
+
+.. code-block:: python
+
+    class MyOpsMixin(object):
+    @classmethod
+    def _create_method(cls, op, coerce_to_dtype=True):
+        def _binop(self, other):
+            # Your implementation of the operator op
+        return _binop
+        
+Then to use this class to define the operators for ``MyExtensionArray``, you can write:
+
+.. code-block:: python
+
+    class MyExtensionArray(ExtensionArray,
+                           ExtensionArithmeticOpsMixin(MyOpsMixin),
+                           ExtensionComparisonOpsMixin(MyOpsMixin))
+                           
+The mixin classes :class:`ExtensionArithmeticOpsMixin` and
+:class:`ExtensionComparisonOpsMixin` will then define the appropriate operators
+using your implementation of those operators in ``MyOpsMixin``.
+
+The second approach assumes that the underlying elements of the ExtensionArray 
+have the individual operators already defined.  In other words, if your ExtensionArray
+named ``MyExtensionArray`` is implemented so that each element is an instance 
+of the class ``MyExtensionElement``, then if the operators are defined 
+for ``MyExtensionElement``, the second approach will automatically
+define the operators for ``MyExtensionArray``.
 
 Two mixin classes, :class:`~pandas.api.extensions.ExtensionScalarArithmeticMixin` and
-:class:`~pandas.api.extensions.ExtensionScalarComparisonMixin`, support this capability.  
-If developing an ``ExtensionArray`` subclass, for example ``MyExtensionArray``,
+:class:`~pandas.api.extensions.ExtensionScalarComparisonMixin`, support this second
+approach.  If developing an ``ExtensionArray`` subclass, for example ``MyExtensionArray``,
 simply include ``ExtensionScalarArithmeticMixin`` and/or 
 ``ExtensionScalarComparisonMixin`` as parent classes of ``MyExtensionArray``
 as follows:
@@ -140,6 +186,8 @@ as follows:
 Note that since ``pandas`` automatically calls the underlying operator on each
 element one-by-one, this might not be as performant as implementing your own
 version of the associated operators directly on the ExtensionArray.
+
+.. _extending.extension.testing:
 
 Testing Extension Arrays
 ^^^^^^^^^^^^^^^^^^^^^^^^

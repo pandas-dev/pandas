@@ -14,7 +14,6 @@ from pandas.compat.numpy import function as nv
 from pandas.compat import set_function_name, PY3
 from pandas.core.dtypes.common import is_list_like
 from pandas.core import ops
-from pandas.core.ops import _get_op_name
 
 _not_implemented_message = "{} does not implement {}."
 
@@ -618,6 +617,37 @@ class ExtensionArray(object):
         return np.array(self)
 
 
+class ExtensionDefaultOpsMixin(object):
+    """
+    A base class for default ops, that returns NotImplemented
+    """
+    @classmethod
+    def _create_method(cls, op, coerce_to_dtype=True):
+        """
+        A class method that returns a method will correspond to an
+        operator for an ExtensionArray subclass, by always indicating
+        the operator is NotImplemented
+
+        Parameters
+        ----------
+        op: function
+            An operator that takes arguments op(a, b)
+        coerce_to_dtype:  bool
+            boolean indicating whether to attempt to convert
+            the result to the underlying ExtensionArray dtype
+            (default True)
+
+        Returns
+        -------
+        A method that can be bound to a method of a class
+        """
+
+        def returnNotImplemented(self, other):
+            return NotImplemented
+
+        return returnNotImplemented
+
+
 class ExtensionScalarOpsMixin(object):
     """
     A base class for the mixins for different operators.
@@ -653,7 +683,8 @@ class ExtensionScalarOpsMixin(object):
         >>> __add__ = ExtensionScalarOpsMixin.create_method(operator.add)
 
         in the class definition of MyClass to create the operator
-        for addition.
+        for addition, that will be based on the operator implementation
+        of the underlying elements of the ExtensionArray
 
         """
 
@@ -679,13 +710,105 @@ class ExtensionScalarOpsMixin(object):
 
             return res
 
-        op_name = _get_op_name(op, True)
+        op_name = ops._get_op_name(op, True)
         return set_function_name(_binop, op_name, cls)
 
 
-class ExtensionScalarArithmeticMixin(ExtensionScalarOpsMixin):
+def ExtensionArithmeticOpsMixin(base=ExtensionDefaultOpsMixin):
+    """A mixin that will define the arithmetic operators.
+
+    Parameters
+    ----------
+    base: class
+        A class with the class method _create_method() defined as follows:
+
+        @classmethod
+        def _create_method(cls, op, coerce_to_dtype=True):
+            Parameters
+            ----------
+            op: function
+                An operator that takes arguments op(a, b)
+            coerce_to_dtype:  bool
+                boolean indicating whether to attempt to convert
+                the result to the underlying ExtensionArray dtype
+                (default True)
+
+            Returns
+            -------
+            A method that can be bound to a method of a class.  That method
+            should return the result of op(self, other) where self is
+            an ExtensionArray subclass
+    """
+
+    class _ExtensionArithmeticOpsMixin(base):
+        __add__ = base._create_method(operator.add)
+        __radd__ = base._create_method(ops.radd)
+        __sub__ = base._create_method(operator.sub)
+        __rsub__ = base._create_method(ops.rsub)
+        __mul__ = base._create_method(operator.mul)
+        __rmul__ = base._create_method(ops.rmul)
+        __pow__ = base._create_method(operator.pow)
+        __rpow__ = base._create_method(ops.rpow)
+        __mod__ = base._create_method(operator.mod)
+        __rmod__ = base._create_method(ops.rmod)
+        __floordiv__ = base._create_method(operator.floordiv)
+        __rfloordiv__ = base._create_method(ops.rfloordiv)
+        __truediv__ = base._create_method(operator.truediv)
+        __rtruediv__ = base._create_method(ops.rtruediv)
+        if not PY3:
+            __div__ = base._create_method(operator.div)
+            __rdiv__ = base._create_method(ops.rdiv)
+
+        __divmod__ = base._create_method(divmod)
+        __rdivmod__ = base._create_method(ops.rdivmod)
+
+    _ExtensionArithmeticOpsMixin.__name__ = (
+        "ExtensionArithmeticOpsMixin_" + base.__name__)
+    return _ExtensionArithmeticOpsMixin
+
+
+def ExtensionComparisonOpsMixin(base=ExtensionDefaultOpsMixin):
+    """A mixin that will define the comparison operators.
+
+    Parameters
+    ----------
+    base: class
+        A class with the class method _create_method() defined as follows:
+
+        @classmethod
+        def _create_method(cls, op, coerce_to_dtype=True):
+            Parameters
+            ----------
+            op: function
+                An operator that takes arguments op(a, b)
+            coerce_to_dtype:  bool
+                boolean indicating whether to attempt to convert
+                the result to the underlying ExtensionArray dtype
+                (default True)
+
+            Returns
+            -------
+            A method that can be bound to a method of a class.  That method
+            should return the result of op(self, other) where self is
+            an ExtensionArray subclass
+    """
+    class _ExtensionComparisonOpsMixin(base):
+        __eq__ = base._create_method(operator.eq, False)
+        __ne__ = base._create_method(operator.ne, False)
+        __lt__ = base._create_method(operator.lt, False)
+        __gt__ = base._create_method(operator.gt, False)
+        __le__ = base._create_method(operator.le, False)
+        __ge__ = base._create_method(operator.ge, False)
+
+    _ExtensionComparisonOpsMixin.__name__ = (
+        "ExtensionComparisonOpsMixin_" + base.__name__)
+    return _ExtensionComparisonOpsMixin
+
+
+class ExtensionScalarArithmeticMixin(
+        ExtensionArithmeticOpsMixin(ExtensionScalarOpsMixin)):
     """A mixin for defining the arithmetic operations on an ExtensionArray
-    class, where it assumed that the underlying objects have the operators
+    class, where it is assumed that the underlying objects have the operators
     already defined.
 
     Usage
@@ -694,44 +817,19 @@ class ExtensionScalarArithmeticMixin(ExtensionScalarOpsMixin):
     use MyClass(ExtensionArray, ExtensionScalarArithmeticMixin) to
     get the arithmetic operators
     """
-
-    __add__ = ExtensionScalarOpsMixin._create_method(operator.add)
-    __radd__ = ExtensionScalarOpsMixin._create_method(ops.radd)
-    __sub__ = ExtensionScalarOpsMixin._create_method(operator.sub)
-    __rsub__ = ExtensionScalarOpsMixin._create_method(ops.rsub)
-    __mul__ = ExtensionScalarOpsMixin._create_method(operator.mul)
-    __rmul__ = ExtensionScalarOpsMixin._create_method(ops.rmul)
-    __pow__ = ExtensionScalarOpsMixin._create_method(operator.pow)
-    __rpow__ = ExtensionScalarOpsMixin._create_method(ops.rpow)
-    __mod__ = ExtensionScalarOpsMixin._create_method(operator.mod)
-    __rmod__ = ExtensionScalarOpsMixin._create_method(ops.rmod)
-    __floordiv__ = ExtensionScalarOpsMixin._create_method(operator.floordiv)
-    __rfloordiv__ = ExtensionScalarOpsMixin._create_method(ops.rfloordiv)
-    __truediv__ = ExtensionScalarOpsMixin._create_method(operator.truediv)
-    __rtruediv__ = ExtensionScalarOpsMixin._create_method(ops.rtruediv)
-    if not PY3:
-        __div__ = ExtensionScalarOpsMixin._create_method(operator.div)
-        __rdiv__ = ExtensionScalarOpsMixin._create_method(ops.rdiv)
-
-    __divmod__ = ExtensionScalarOpsMixin._create_method(divmod)
-    __rdivmod__ = ExtensionScalarOpsMixin._create_method(ops.rdivmod)
+    pass
 
 
-class ExtensionScalarComparisonMixin(ExtensionScalarOpsMixin):
+class ExtensionScalarComparisonMixin(
+        ExtensionComparisonOpsMixin(ExtensionScalarOpsMixin)):
     """A mixin for defining the comparison operations on an ExtensionArray
-    class, where it assumed that the underlying objects have the operators
+    class, where it is assumed that the underlying objects have the operators
     already defined.
 
     Usage
     ------
     If you have defined a subclass MyClass(ExtensionArray), then
-    use MyClass(ExtensionArray, ExtensionComparisonMixin) to
+    use MyClass(ExtensionArray, ExtensionScalarComparisonMixin) to
     get the comparison operators
     """
-
-    __eq__ = ExtensionScalarOpsMixin._create_method(operator.eq, False)
-    __ne__ = ExtensionScalarOpsMixin._create_method(operator.ne, False)
-    __lt__ = ExtensionScalarOpsMixin._create_method(operator.lt, False)
-    __gt__ = ExtensionScalarOpsMixin._create_method(operator.gt, False)
-    __le__ = ExtensionScalarOpsMixin._create_method(operator.le, False)
-    __ge__ = ExtensionScalarOpsMixin._create_method(operator.ge, False)
+    pass

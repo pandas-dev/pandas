@@ -10,16 +10,31 @@ New features
 
 .. _whatsnew_0240.enhancements.other:
 
+.. _whatsnew_0240.enhancements.extension_array_operators
+
 ``ExtensionArray`` operator support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-An ``ExtensionArray`` subclass consisting of objects that have arithmetic and
-comparison operators defined on the underlying objects can easily support 
-those operators on the ``ExtensionArray``, and therefore the operators 
-on ``Series`` built on those ``ExtensionArray`` classes will work as expected.
+A ``Series`` based on ``ExtensionArray`` now supports arithmetic and comparison
+operators.  There are two approaches for providing operator support for an ExtensionArray:
 
-Two new mixin classes, :class:`ExtensionScalarArithmeticMixin` and
-:class:`ExtensionScalarComparisonMixin`, support this capability.  
+1. Define each of the operators on your ExtensionArray subclass. 
+2. Use operators from pandas defined on the ExtensionArray subclass based on already defined
+   operators on the underlying elements.
+
+To use the first approach where you define your own implementation of the operators,
+use one or both of the mixin classes, :class:`ExtensionArithmeticOpsMixin` and
+:class:`ExtensionComparisonOpsMixin` that, by default, will create
+operators that are ``NotImplemented``.  To use those classes, you will need to create
+a class that has the implementation of the operator methods.  Details can be found in the
+:ref:`ExtensionArray Operator Support <extending.extension.operator>` documentation section.
+
+For the second approach, which is appropriate if your ExtensionArray contains 
+elements that already have the operators
+defined on a per-element basis, pandas provides two mixins,
+:class:`ExtensionScalarArithmeticMixin` and :class:`ExtensionScalarComparisonMixin`,
+that you can use that will automatically define the operators on your ExtensionArray
+subclass.
 If developing an ``ExtensionArray`` subclass, for example ``MyExtensionArray``,
 simply include ``ExtensionScalarArithmeticMixin`` and/or 
 ``ExtensionScalarComparisonMixin`` as parent classes of ``MyExtensionArray``
@@ -30,6 +45,9 @@ as follows:
     class MyExtensionArray(ExtensionArray, ExtensionScalarArithmeticMixin,
                            ExtensionScalarComparisonMixin):
 
+See the :ref:`ExtensionArray Operator Support
+<extending.extension.operator>` documentation section for details on both 
+ways of adding operator support.
 
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^

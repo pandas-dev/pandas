@@ -233,7 +233,8 @@ class TestGroupby(BaseJSON, base.BaseGroupbyTests):
 
 
 class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
-    pass
+    def test_error(self, data, all_arithmetic_operators):
+        pass
 
 
 class TestComparisonOps(BaseJSON, base.BaseComparisonOpsTests):

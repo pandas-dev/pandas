@@ -6,5 +6,7 @@ from pandas.core.algorithms import take  # noqa
 from pandas.core.arrays.base import (ExtensionArray,    # noqa
                                      ExtensionScalarArithmeticMixin,
                                      ExtensionScalarComparisonMixin,
-                                     ExtensionScalarOpsMixin)
+                                     ExtensionScalarOpsMixin,
+                                     ExtensionArithmeticOpsMixin,
+                                     ExtensionComparisonOpsMixin)
 from pandas.core.dtypes.dtypes import ExtensionDtype  # noqa
