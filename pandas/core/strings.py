@@ -2172,9 +2172,9 @@ class StringMethods(NoNewAttributesMixin):
 
         Returns
         -------
-        concat : str if `other is None`, Series/Index of objects if `others is
-            not None`. In the latter case, the result will remain categorical
-            if the calling Series/Index is categorical.
+        concat :
+            str if `others` is None, Series/Index of objects if `others` is not
+            None.
 
         See Also
         --------
