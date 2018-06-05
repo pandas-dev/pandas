@@ -2040,11 +2040,16 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         Returns numpy array of python datetime.date objects (namely, the date
         part of Timestamps without timezone information).
         """
-        if (self.tz is None):
-            return libts.ints_to_pydatetime(self.asi8, box="date")
+
+        # If the Timestamps have a timezone that is not UTC,
+        # convert them into their i8 representation while
+        # keeping their timezone and not using UTC
+        if (self.tz is not None and self.tz is not utc):
+            timestamps = self._local_timestamps()
         else:
-            return libts.ints_to_pydatetime(
-                self._local_timestamps(), box="date")
+            timestamps = self.asi8
+
+        return libts.ints_to_pydatetime(timestamps, box="date")
 
     def normalize(self):
         """

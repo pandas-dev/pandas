@@ -2,7 +2,7 @@
 """
 Tests for DatetimeIndex timezone-related methods
 """
-from datetime import datetime, timedelta, tzinfo
+from datetime import datetime, timedelta, tzinfo, date
 from distutils.version import LooseVersion
 
 import pytest
@@ -705,6 +705,19 @@ class TestDatetimeIndexTimezones(object):
         result = left.join(right[:-5], how=join_type)
         assert isinstance(result, DatetimeIndex)
         assert result.tz.zone == 'UTC'
+
+    @pytest.mark.parametrize("dtype", [
+        None, 'datetime64[ns, CET]',
+        'datetime64[ns, EST]', 'datetime64[ns, UTC]'
+    ])
+    def test_date_accessor(self, dtype):
+        # Regression test for GH#21230
+        expected = np.array([date(2018, 6, 4), pd.NaT], ndmin=1)
+
+        index = DatetimeIndex(['2018-06-04 10:00:00', pd.NaT], dtype=dtype)
+        result = index.date
+
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_dti_drop_dont_lose_tz(self):
         # GH#2621

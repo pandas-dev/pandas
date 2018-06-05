@@ -27,17 +27,6 @@ class TestDatetimeIndex(object):
         unpickled = tm.round_trip_pickle(index)
         tm.assert_index_equal(index, unpickled)
 
-    @pytest.mark.parametrize("dtype", [
-        None, 'datetime64[ns, CET]',
-        'datetime64[ns, EST]', 'datetime64[ns, UTC]'
-    ])
-    def test_date_accessor(self, dtype):
-        # GH 21230
-
-        index = DatetimeIndex(['2013-01-24 15:01:00'], dtype=dtype)
-        tm.assert_numpy_array_equal(index.date,
-                                    np.array([date(2013, 1, 24)], ndmin=1))
-
     def test_reindex_preserves_tz_if_target_is_empty_list_or_array(self):
         # GH7774
         index = date_range('20130101', periods=3, tz='US/Eastern')
