@@ -535,7 +535,8 @@ class TestRolling(Base):
             ('A', 0), ('A', 1), ('A', 2),
             ('B', 3), ('B', 4), ('B', 5), ('B', 6)], names=['stock', None])
         columns = pd.MultiIndex.from_tuples([
-            ('A', 'mean'), ('A', 'max'), ('B', 'mean'), ('B', 'min')])
+            ('low', 'mean'), ('low', 'max'), ('high', 'mean'),
+            ('high', 'min')])
         expected = pd.DataFrame([
             [np.nan, np.nan, np.nan, np.nan],
             [15., 20., 25., 20.],
@@ -551,7 +552,6 @@ class TestRolling(Base):
         })
 
         tm.assert_frame_equal(result, expected)
-
 
 
 class TestExpanding(Base):

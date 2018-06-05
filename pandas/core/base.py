@@ -684,8 +684,14 @@ class GroupByMixin(object):
         # with the same groupby
         kwargs = dict([(attr, getattr(self, attr))
                        for attr in self._attributes])
+
+        if self._groupby.ndim == 1 and self._groupby.obj.name == key:
+            groupby = self._groupby
+        else:
+            groupby = self._groupby[key]
+
         self = self.__class__(subset,
-                              groupby=self._groupby[key],
+                              groupby=groupby,
                               parent=self,
                               **kwargs)
         self._reset_cache()
