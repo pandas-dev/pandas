@@ -1159,11 +1159,34 @@ class TestDataFrameAnalytics(TestData):
         self._check_bool_op('any', np.any, has_skipna=True, has_bool_only=True)
         self._check_bool_op('all', np.all, has_skipna=True, has_bool_only=True)
 
-        df = DataFrame(randn(10, 4)) > 0
-        df.any(1)
-        df.all(1)
-        df.any(1, bool_only=True)
-        df.all(1, bool_only=True)
+        df = DataFrame({
+            'A': [True, False, False],
+            'B': [True, True, False],
+            'C': [True, True, True],
+        }, index=['a', 'b', 'c'])
+        result = df[['A', 'B']].any(1)
+        expected = Series([True, True, False], index=['a', 'b', 'c'])
+        tm.assert_series_equal(result, expected)
+
+        result = df[['A', 'B']].any(1, bool_only=True)
+        tm.assert_series_equal(result, expected)
+
+        result = df.all(1)
+        expected = Series([True, False, False], index=['a', 'b', 'c'])
+        tm.assert_series_equal(result, expected)
+
+        result = df.all(1, bool_only=True)
+        tm.assert_series_equal(result, expected)
+
+        # Axis is None
+        result = df.all(axis=None).item()
+        assert result is False
+
+        result = df.any(axis=None).item()
+        assert result is True
+
+        result = df[['C']].all(axis=None).item()
+        assert result is True
 
         # skip pathological failure cases
         # class CantNonzero(object):
@@ -1184,6 +1207,80 @@ class TestDataFrameAnalytics(TestData):
         # df.all(1)
         # df.any(1, bool_only=True)
         # df.all(1, bool_only=True)
+
+    @pytest.mark.parametrize('func, data, expected', [
+        (np.any, {}, False),
+        (np.all, {}, True),
+        (np.any, {'A': []}, False),
+        (np.all, {'A': []}, True),
+        (np.any, {'A': [False, False]}, False),
+        (np.all, {'A': [False, False]}, False),
+        (np.any, {'A': [True, False]}, True),
+        (np.all, {'A': [True, False]}, False),
+        (np.any, {'A': [True, True]}, True),
+        (np.all, {'A': [True, True]}, True),
+
+        (np.any, {'A': [False], 'B': [False]}, False),
+        (np.all, {'A': [False], 'B': [False]}, False),
+
+        (np.any, {'A': [False, False], 'B': [False, True]}, True),
+        (np.all, {'A': [False, False], 'B': [False, True]}, False),
+
+        # other types
+        (np.all, {'A': pd.Series([0.0, 1.0], dtype='float')}, False),
+        (np.any, {'A': pd.Series([0.0, 1.0], dtype='float')}, True),
+        (np.all, {'A': pd.Series([0, 1], dtype=int)}, False),
+        (np.any, {'A': pd.Series([0, 1], dtype=int)}, True),
+        (np.all, {'A': pd.Series([0, 1], dtype='M8[ns]')}, False),
+        (np.any, {'A': pd.Series([0, 1], dtype='M8[ns]')}, True),
+        (np.all, {'A': pd.Series([1, 2], dtype='M8[ns]')}, True),
+        (np.any, {'A': pd.Series([1, 2], dtype='M8[ns]')}, True),
+        (np.all, {'A': pd.Series([0, 1], dtype='m8[ns]')}, False),
+        (np.any, {'A': pd.Series([0, 1], dtype='m8[ns]')}, True),
+        (np.all, {'A': pd.Series([1, 2], dtype='m8[ns]')}, True),
+        (np.any, {'A': pd.Series([1, 2], dtype='m8[ns]')}, True),
+        (np.all, {'A': pd.Series([0, 1], dtype='category')}, False),
+        (np.any, {'A': pd.Series([0, 1], dtype='category')}, True),
+        (np.all, {'A': pd.Series([1, 2], dtype='category')}, True),
+        (np.any, {'A': pd.Series([1, 2], dtype='category')}, True),
+
+        # (np.all, {'A': pd.Series([0, 1], dtype=int)}, False),
+
+        # # Mix
+        # GH-21484
+        # (np.all, {'A': pd.Series([10, 20], dtype='M8[ns]'),
+        #           'B': pd.Series([10, 20], dtype='m8[ns]')}, True),
+    ])
+    def test_any_all_np_func(self, func, data, expected):
+        # https://github.com/pandas-dev/pandas/issues/19976
+        data = DataFrame(data)
+        result = func(data)
+        assert isinstance(result, np.bool_)
+        assert result.item() is expected
+
+        # method version
+        result = getattr(DataFrame(data), func.__name__)(axis=None)
+        assert isinstance(result, np.bool_)
+        assert result.item() is expected
+
+    def test_any_all_object(self):
+        # https://github.com/pandas-dev/pandas/issues/19976
+        result = np.all(DataFrame(columns=['a', 'b'])).item()
+        assert result is True
+
+        result = np.any(DataFrame(columns=['a', 'b'])).item()
+        assert result is False
+
+    @pytest.mark.parametrize('method', ['any', 'all'])
+    def test_any_all_level_axis_none_raises(self, method):
+        df = DataFrame(
+            {"A": 1},
+            index=MultiIndex.from_product([['A', 'B'], ['a', 'b']],
+                                          names=['out', 'in'])
+        )
+        xpr = "Must specify 'axis' when aggregating by level."
+        with tm.assert_raises_regex(ValueError, xpr):
+            getattr(df, method)(axis=None, level='out')
 
     def _check_bool_op(self, name, alternative, frame=None, has_skipna=True,
                        has_bool_only=False):

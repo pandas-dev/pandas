@@ -3238,6 +3238,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         """
         delegate = self._values
+        if axis is None:
+            axis = self._stat_axis_number
         if isinstance(delegate, np.ndarray):
             # Validate that 'axis' is consistent with Series's single axis.
             self._get_axis_number(axis)
