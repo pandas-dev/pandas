@@ -241,3 +241,26 @@ def test_compression_size(obj, method, compression):
         getattr(obj, method)(filename, compression=None)
         uncompressed = os.path.getsize(filename)
         assert uncompressed > compressed
+
+
+@pytest.mark.parametrize('obj', [
+    DataFrame(100 * [[0.123456, 0.234567, 0.567567],
+                     [12.32112, 123123.2, 321321.2]],
+              columns=['X', 'Y', 'Z']),
+    Series(100 * [0.123456, 0.234567, 0.567567], name='X')])
+@pytest.mark.parametrize('method', ['to_csv'])
+def test_compression_size_fh(obj, method, compression_only):
+
+    with tm.ensure_clean() as filename:
+        with open(filename, 'w') as fh:
+            getattr(obj, method)(fh, compression=compression_only)
+            assert not fh.closed
+        assert fh.closed
+        compressed = os.path.getsize(filename)
+    with tm.ensure_clean() as filename:
+        with open(filename, 'w') as fh:
+            getattr(obj, method)(fh, compression=None)
+            assert not fh.closed
+        assert fh.closed
+        uncompressed = os.path.getsize(filename)
+        assert uncompressed > compressed
