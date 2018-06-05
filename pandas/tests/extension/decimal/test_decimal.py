@@ -92,15 +92,56 @@ class BaseDecimal(object):
 
 
 class TestDtype(BaseDecimal, base.BaseDtypeTests):
-    pass
+
+    def test_array_type_with_arg(self, data, dtype):
+        assert dtype.construct_array_type('foo') is DecimalArray
 
 
 class TestInterface(BaseDecimal, base.BaseInterfaceTests):
     pass
 
 
+class TestOps(BaseDecimal, base.BaseOpsTests):
+
+    def compare(self, s, op, other):
+        # TODO(extension)
+
+        pytest.xfail("not implemented")
+
+        result = getattr(s, op)(other)
+        expected = result
+
+        self.assert_series_equal(result, expected)
+
+    def test_arith_scalar(self, data, all_arithmetic_operators):
+        # scalar
+        op = all_arithmetic_operators
+        s = pd.Series(data)
+        self.compare(s, op, 1)
+
+    def test_arith_array(self, data, all_arithmetic_operators):
+        # ndarray & other series
+        op = all_arithmetic_operators
+        s = pd.Series(data)
+        self.compare(s, op, np.ones(len(s), dtype=s.dtype.type))
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_compare_scalar(self, data, all_compare_operators):
+        op = all_compare_operators
+
+        # array
+        result = getattr(data, op)(0)
+        expected = getattr(data.data, op)(0)
+
+        tm.assert_series_equal(result, expected)
+
+
 class TestConstructors(BaseDecimal, base.BaseConstructorsTests):
-    pass
+
+    @pytest.mark.xfail(reason="not implemented constructor from dtype")
+    def test_from_dtype(self, data):
+        # construct from our dtype & string dtype
+        pass
 
 
 class TestReshaping(BaseDecimal, base.BaseReshapingTests):
@@ -147,6 +188,10 @@ class TestGroupby(BaseDecimal, base.BaseGroupbyTests):
     pass
 
 
+# TODO(extension)
+@pytest.mark.xfail(reason=(
+    "raising AssertionError as this is not implemented, "
+    "though easy enough to do"))
 def test_series_constructor_coerce_data_to_extension_dtype_raises():
     xpr = ("Cannot cast data to extension dtype 'decimal'. Pass the "
            "extension array directly.")

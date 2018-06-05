@@ -633,8 +633,9 @@ class Block(PandasObject):
             return self.make_block(Categorical(self.values, dtype=dtype))
 
         # astype processing
-        dtype = np.dtype(dtype)
-        if self.dtype == dtype:
+        if not is_extension_array_dtype(dtype):
+            dtype = np.dtype(dtype)
+        if is_dtype_equal(self.dtype, dtype):
             if copy:
                 return self.copy()
             return self
@@ -662,7 +663,13 @@ class Block(PandasObject):
 
                 # _astype_nansafe works fine with 1-d only
                 values = astype_nansafe(values.ravel(), dtype, copy=True)
-                values = values.reshape(self.shape)
+
+                # TODO(extension)
+                # should we make this attribute?
+                try:
+                    values = values.reshape(self.shape)
+                except AttributeError:
+                    pass
 
             newb = make_block(values, placement=self.mgr_locs,
                               klass=klass)
@@ -3170,6 +3177,10 @@ def get_block_type(values, dtype=None):
         cls = TimeDeltaBlock
     elif issubclass(vtype, np.complexfloating):
         cls = ComplexBlock
+    elif is_categorical(values):
+        cls = CategoricalBlock
+    elif is_extension_array_dtype(values):
+        cls = ExtensionBlock
     elif issubclass(vtype, np.datetime64):
         assert not is_datetimetz(values)
         cls = DatetimeBlock
@@ -3179,10 +3190,6 @@ def get_block_type(values, dtype=None):
         cls = IntBlock
     elif dtype == np.bool_:
         cls = BoolBlock
-    elif is_categorical(values):
-        cls = CategoricalBlock
-    elif is_extension_array_dtype(values):
-        cls = ExtensionBlock
     else:
         cls = ObjectBlock
     return cls

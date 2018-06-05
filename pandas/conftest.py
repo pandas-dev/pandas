@@ -92,6 +92,15 @@ if not PY3:
 def all_arithmetic_operators(request):
     """
     Fixture for dunder names for common arithmetic operations
+   """
+    return request.param
+
+
+@pytest.fixture(params=['__eq__', '__ne__', '__le__',
+                        '__lt__', '__ge__', '__gt__'])
+def all_compare_operators(request):
+    """
+    Fixture for dunder names for common compare operations
     """
     return request.param
 

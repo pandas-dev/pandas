@@ -30,12 +30,22 @@ Datetimelike API Changes
 
 - For :class:`DatetimeIndex` and :class:`TimedeltaIndex` with non-``None`` ``freq`` attribute, addition or subtraction of integer-dtyped array or ``Index`` will return an object of the same class (:issue:`19959`)
 
+.. _whatsnew_0240.api.extension:
+
+ExtensionType Changes
+^^^^^^^^^^^^^^^^^^^^^
+
+- ``ExtensionArray`` has gained the abstract methods ``.dropna()`` and ``.append()`` (:issue:`21185`)
+- ``ExtensionDtype`` has gained the ability to instantiate from string dtypes, e.g. ``decimal`` would instantiate a registered ``DecimalDtype``; furthermore
+  the dtype has gained the ``construct_array_type`` (:issue:`21185`)
+- The ``ExtensionArray`` constructor, ``_from_sequence`` now take the keyword arg ``copy=False`` (:issue:`21185`)
+
 .. _whatsnew_0240.api.other:
 
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
--
+- Invalid consruction of ``IntervalDtype`` will now always raise a ``TypeError`` rather than a ``ValueError`` if the subdtype is invalid (:issue:`21185`)
 -
 -
 

@@ -16,6 +16,20 @@ class DecimalDtype(ExtensionDtype):
     na_value = decimal.Decimal('NaN')
 
     @classmethod
+    def construct_array_type(cls, array=None):
+        """Return the array type associated with this dtype
+
+        Parameters
+        ----------
+        array : array-like, optional
+
+        Returns
+        -------
+        type
+        """
+        return DecimalArray
+
+    @classmethod
     def construct_from_string(cls, string):
         if string == cls.name:
             return cls()
@@ -27,7 +41,7 @@ class DecimalDtype(ExtensionDtype):
 class DecimalArray(ExtensionArray):
     dtype = DecimalDtype()
 
-    def __init__(self, values):
+    def __init__(self, values, copy=False):
         assert all(isinstance(v, decimal.Decimal) for v in values)
         values = np.asarray(values, dtype=object)
 
@@ -40,7 +54,7 @@ class DecimalArray(ExtensionArray):
         # self._values = self.values = self.data
 
     @classmethod
-    def _from_sequence(cls, scalars):
+    def _from_sequence(cls, scalars, copy=False):
         return cls(scalars)
 
     @classmethod

@@ -52,7 +52,25 @@ def data_for_grouping():
 
 
 class TestDtype(base.BaseDtypeTests):
-    pass
+
+    def test_array_type_with_arg(self, data, dtype):
+        assert dtype.construct_array_type('foo') is Categorical
+
+
+class TestOps(base.BaseOpsTests):
+
+    def test_compare_scalar(self, data, all_compare_operators):
+        op = all_compare_operators
+
+        if op == '__eq__':
+            assert not getattr(data, op)(0).all()
+
+        elif op == '__ne__':
+            assert getattr(data, op)(0).all()
+
+        else:
+            with pytest.raises(TypeError):
+                getattr(data, op)(0)
 
 
 class TestInterface(base.BaseInterfaceTests):

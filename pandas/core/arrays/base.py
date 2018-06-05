@@ -9,6 +9,9 @@ import numpy as np
 
 from pandas.errors import AbstractMethodError
 from pandas.compat.numpy import function as nv
+from pandas.compat import set_function_name, PY3
+from pandas.core import ops
+import operator
 
 _not_implemented_message = "{} does not implement {}."
 
@@ -36,6 +39,7 @@ class ExtensionArray(object):
     * isna
     * take
     * copy
+    * append
     * _concat_same_type
 
     An additional method is available to satisfy pandas' internal,
@@ -49,6 +53,7 @@ class ExtensionArray(object):
     methods:
 
     * fillna
+    * dropna
     * unique
     * factorize / _values_for_factorize
     * argsort / _values_for_argsort
@@ -82,7 +87,7 @@ class ExtensionArray(object):
     # Constructors
     # ------------------------------------------------------------------------
     @classmethod
-    def _from_sequence(cls, scalars):
+    def _from_sequence(cls, scalars, copy=False):
         """Construct a new ExtensionArray from a sequence of scalars.
 
         Parameters
@@ -90,6 +95,8 @@ class ExtensionArray(object):
         scalars : Sequence
             Each element will be an instance of the scalar type for this
             array, ``cls.dtype.type``.
+        copy : boolean, default True
+            if True, copy the underlying data
         Returns
         -------
         ExtensionArray
@@ -379,6 +386,16 @@ class ExtensionArray(object):
             new_values = self.copy()
         return new_values
 
+    def dropna(self):
+        """ Return ExtensionArray without NA values
+
+        Returns
+        -------
+        valid : ExtensionArray
+        """
+
+        return self[~self.isna()]
+
     def unique(self):
         """Compute the ExtensionArray of unique values.
 
@@ -567,6 +584,34 @@ class ExtensionArray(object):
         """
         raise AbstractMethodError(self)
 
+    def append(self, other):
+        """
+        Append a collection of Arrays together
+
+        Parameters
+        ----------
+        other : ExtensionArray or list/tuple of ExtensionArrays
+
+        Returns
+        -------
+        appended : ExtensionArray
+        """
+
+        to_concat = [self]
+        cls = self.__class__
+
+        if isinstance(other, (list, tuple)):
+            to_concat = to_concat + list(other)
+        else:
+            to_concat.append(other)
+
+        for obj in to_concat:
+            if not isinstance(obj, cls):
+                raise TypeError('all inputs must be of type {}'.format(
+                    cls.__name__))
+
+        return cls._concat_same_type(to_concat)
+
     # ------------------------------------------------------------------------
     # Block-related methods
     # ------------------------------------------------------------------------
@@ -610,3 +655,56 @@ class ExtensionArray(object):
         used for interacting with our indexers.
         """
         return np.array(self)
+
+    # ------------------------------------------------------------------------
+    # ops-related methods
+    # ------------------------------------------------------------------------
+
+    @classmethod
+    def _add_comparison_methods_binary(cls):
+        cls.__eq__ = cls._make_comparison_op(operator.eq)
+        cls.__ne__ = cls._make_comparison_op(operator.ne)
+        cls.__lt__ = cls._make_comparison_op(operator.lt)
+        cls.__gt__ = cls._make_comparison_op(operator.gt)
+        cls.__le__ = cls._make_comparison_op(operator.le)
+        cls.__ge__ = cls._make_comparison_op(operator.ge)
+
+    @classmethod
+    def _add_numeric_methods_binary(cls):
+        """ add in numeric methods """
+        cls.__add__ = cls._make_arithmetic_op(operator.add)
+        cls.__radd__ = cls._make_arithmetic_op(ops.radd)
+        cls.__sub__ = cls._make_arithmetic_op(operator.sub)
+        cls.__rsub__ = cls._make_arithmetic_op(ops.rsub)
+        cls.__mul__ = cls._make_arithmetic_op(operator.mul)
+        cls.__rmul__ = cls._make_arithmetic_op(ops.rmul)
+        cls.__rpow__ = cls._make_arithmetic_op(ops.rpow)
+        cls.__pow__ = cls._make_arithmetic_op(operator.pow)
+        cls.__mod__ = cls._make_arithmetic_op(operator.mod)
+        cls.__rmod__ = cls._make_arithmetic_op(ops.rmod)
+        cls.__floordiv__ = cls._make_arithmetic_op(operator.floordiv)
+        cls.__rfloordiv__ = cls._make_arithmetic_op(ops.rfloordiv)
+        cls.__truediv__ = cls._make_arithmetic_op(operator.truediv)
+        cls.__rtruediv__ = cls._make_arithmetic_op(ops.rtruediv)
+        if not PY3:
+            cls.__div__ = cls._make_arithmetic_op(operator.div)
+            cls.__rdiv__ = cls._make_arithmetic_op(ops.rdiv)
+
+        cls.__divmod__ = cls._make_arithmetic_op(divmod)
+        cls.__rdivmod__ = cls._make_arithmetic_op(ops.rdivmod)
+
+    @classmethod
+    def make_comparison_op(cls, op):
+        def cmp_method(self, other):
+            raise NotImplementedError
+
+        name = '__{name}__'.format(name=op.__name__)
+        return set_function_name(cmp_method, name, cls)
+
+    @classmethod
+    def make_arithmetic_op(cls, op):
+        def integer_arithmetic_method(self, other):
+            raise NotImplementedError
+
+        name = '__{name}__'.format(name=op.__name__)
+        return set_function_name(integer_arithmetic_method, name, cls)

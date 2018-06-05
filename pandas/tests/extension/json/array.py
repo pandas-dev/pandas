@@ -33,6 +33,20 @@ class JSONDtype(ExtensionDtype):
         na_value = {}
 
     @classmethod
+    def construct_array_type(cls, array=None):
+        """Return the array type associated with this dtype
+
+        Parameters
+        ----------
+        array : array-like, optional
+
+        Returns
+        -------
+        type
+        """
+        return JSONArray
+
+    @classmethod
     def construct_from_string(cls, string):
         if string == cls.name:
             return cls()
@@ -44,7 +58,7 @@ class JSONDtype(ExtensionDtype):
 class JSONArray(ExtensionArray):
     dtype = JSONDtype()
 
-    def __init__(self, values):
+    def __init__(self, values, copy=False):
         for val in values:
             if not isinstance(val, self.dtype.type):
                 raise TypeError
@@ -58,7 +72,7 @@ class JSONArray(ExtensionArray):
         # self._values = self.values = self.data
 
     @classmethod
-    def _from_sequence(cls, scalars):
+    def _from_sequence(cls, scalars, copy=False):
         return cls(scalars)
 
     @classmethod
