@@ -336,6 +336,31 @@ class TestSeriesAnalytics(TestData):
                           index=['count', 'unique', 'top', 'freq'])
         tm.assert_series_equal(result, expected)
 
+        start = Timestamp(2018, 1, 1)
+        end = Timestamp(2018, 1, 5)
+        s = Series(date_range(start, end), name="tz-naive")
+        result = s.describe()
+        expected = Series(
+            [5, 5, start, 1, start, end],
+            name="tz-naive",
+            index=['count', 'unique', 'top', 'freq', 'first', 'last']
+        )
+        tm.assert_series_equal(result, expected)
+
+        start = Timestamp(2018, 1, 1)
+        end = Timestamp(2018, 1, 5)
+        tz = "US/Eastern"
+        s = Series(date_range(start, end, tz=tz), name="tz-aware")
+        result = s.describe()
+        expected = Series(
+            [5, 5, start.tz_localize(tz), 1, start.tz_localize(tz),
+             end.tz_localize(tz)
+             ],
+            name="tz-aware",
+            index=['count', 'unique', 'top', 'freq', 'first', 'last']
+        )
+        tm.assert_series_equal(result, expected)
+
     def test_argsort(self):
         self._check_accum_op('argsort', check_dtype=False)
         argsorted = self.ts.argsort()
