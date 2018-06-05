@@ -9,6 +9,7 @@ import csv as csvlib
 import numpy as np
 
 from pandas.core.dtypes.missing import notna
+from pandas.core.dtypes.inference import is_file_like
 from pandas.core.index import Index, MultiIndex
 from pandas import compat
 from pandas.compat import (StringIO, range, zip)
@@ -127,14 +128,19 @@ class CSVFormatter(object):
         else:
             encoding = self.encoding
 
-        if hasattr(self.path_or_buf, 'write'):
-            f = self.path_or_buf
-            close = False
+        # PR 21300 uses string buffer to receive csv writing and dump into
+        # file-like output with compression as option. GH 21241, 21118
+        f = StringIO()
+        if not is_file_like(self.path_or_buf):
+            # path_or_buf is path
+            path_or_buf = self.path_or_buf
+        elif hasattr(self.path_or_buf, 'name'):
+            # path_or_buf is file handle
+            path_or_buf = self.path_or_buf.name
         else:
-            f, handles = _get_handle(self.path_or_buf, self.mode,
-                                     encoding=encoding,
-                                     compression=None)
-            close = True if self.compression is None else False
+            # path_or_buf is file-like IO objects.
+            f = self.path_or_buf
+            path_or_buf = None
 
         try:
             writer_kwargs = dict(lineterminator=self.line_terminator,
@@ -151,18 +157,16 @@ class CSVFormatter(object):
             self._save()
 
         finally:
-            # GH 17778 handles compression for byte strings.
-            if not close and self.compression:
-                f.close()
-                with open(f.name, 'r') as f:
-                    data = f.read()
-                f, handles = _get_handle(f.name, self.mode,
+            # GH 17778 handles zip compression for byte strings separately.
+            buf = f.getvalue()
+            if path_or_buf:
+                f, handles = _get_handle(path_or_buf, self.mode,
                                          encoding=encoding,
                                          compression=self.compression)
-                f.write(data)
-                close = True
-            if close:
+                f.write(buf)
                 f.close()
+                for _fh in handles:
+                    _fh.close()
 
     def _save_header(self):
 
