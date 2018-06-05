@@ -685,10 +685,10 @@ class GroupByMixin(object):
         kwargs = dict([(attr, getattr(self, attr))
                        for attr in self._attributes])
 
-        if self._groupby.ndim == 1 and self._groupby.obj.name == key:
-            groupby = self._groupby
-        else:
-            groupby = self._groupby[key]
+        try:
+            groupby = self._groupby[key]  # get slice of frame
+        except Exception:
+            groupby = self._groupby  # working with a Series
 
         self = self.__class__(subset,
                               groupby=groupby,
