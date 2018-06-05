@@ -32,6 +32,7 @@ Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved performance of :meth:`CategoricalIndex.is_monotonic_increasing`, :meth:`CategoricalIndex.is_monotonic_decreasing` and :meth:`CategoricalIndex.is_monotonic` (:issue:`21025`)
+- Improved performance of :meth:`CategoricalIndex.is_unique` (:issue:`21107`)
 -
 -
 
@@ -85,7 +86,9 @@ Indexing
 - Bug in :meth:`Series.reset_index` where appropriate error was not raised with an invalid level name (:issue:`20925`)
 - Bug in :func:`interval_range` when ``start``/``periods`` or ``end``/``periods`` are specified with float ``start`` or ``end`` (:issue:`21161`)
 - Bug in :meth:`MultiIndex.set_names` where error raised for a ``MultiIndex`` with ``nlevels == 1`` (:issue:`21149`)
-- Bug in :attr:`DatetimeIndex.date` where an incorrect date is returned when the input date has a timezone (:issue:`21230`)
+- Bug in :attr:`DatetimeIndex.date` where an incorrect date is returned when the input date has a non-UTC timezone (:issue:`21230`)
+- Bug in :class:`IntervalIndex` constructors where creating an ``IntervalIndex`` from categorical data was not fully supported (:issue:`21243`, issue:`21253`)
+-
 
 I/O
 ^^^
