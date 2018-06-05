@@ -88,6 +88,7 @@ Indexing
 - Bug in :meth:`MultiIndex.set_names` where error raised for a ``MultiIndex`` with ``nlevels == 1`` (:issue:`21149`)
 - Bug in :attr:`DatetimeIndex.date` where an incorrect date is returned when the input date has a non-UTC timezone (:issue:`21230`)
 - Bug in :class:`IntervalIndex` constructors where creating an ``IntervalIndex`` from categorical data was not fully supported (:issue:`21243`, issue:`21253`)
+- Bug in :meth:`MultiIndex.sort_index` which was not guaranteed to sort correctly with ``level=1``; this was also causing data misalignment in particular :meth:`DataFrame.stack` operations (:issue:`20994`, :issue:`20945`, :issue:`21052`)
 -
 
 I/O
@@ -95,6 +96,7 @@ I/O
 
 - Bug in IO methods specifying ``compression='zip'`` which produced uncompressed zip archives (:issue:`17778`, :issue:`21144`)
 - Bug in :meth:`DataFrame.to_stata` which prevented exporting DataFrames to buffers and most file-like objects (:issue:`21041`)
+- Bug in :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` causes encoding error when compression and encoding are specified (:issue:`21241`, :issue:`21118`)
 -
 
 Plotting
