@@ -519,7 +519,6 @@ class Describe(object):
     goal_time = 0.2
 
     def setup(self):
-        np.random.seed(123)
         self.df = DataFrame({
             'a': np.random.randint(0, 100, int(1e6)),
             'b': np.random.randint(0, 100, int(1e6)),
