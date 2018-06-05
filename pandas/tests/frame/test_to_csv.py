@@ -919,29 +919,45 @@ class TestDataFrameToCSV(TestData):
         recons = pd.read_csv(StringIO(csv_str), index_col=0)
         assert_frame_equal(self.frame, recons)
 
-    def test_to_csv_compression(self, compression):
-
-        df = DataFrame([[0.123456, 0.234567, 0.567567],
-                        [12.32112, 123123.2, 321321.2]],
-                       index=['A', 'B'], columns=['X', 'Y', 'Z'])
+    @pytest.mark.parametrize('df,encoding', [
+        (DataFrame([[0.123456, 0.234567, 0.567567],
+                    [12.32112, 123123.2, 321321.2]],
+                   index=['A', 'B'], columns=['X', 'Y', 'Z']), None),
+        # GH 21241, 21118
+        (DataFrame([['abc', 'def', 'ghi']], columns=['X', 'Y', 'Z']), 'ascii'),
+        (DataFrame(5 * [[123, u"你好", u"世界"]],
+                   columns=['X', 'Y', 'Z']), 'gb2312'),
+        (DataFrame(5 * [[123, u"Γειά σου", u"Κόσμε"]],
+                   columns=['X', 'Y', 'Z']), 'cp737')
+    ])
+    def test_to_csv_compression(self, df, encoding, compression):
 
         with ensure_clean() as filename:
 
-            df.to_csv(filename, compression=compression)
+            df.to_csv(filename, compression=compression, encoding=encoding)
 
             # test the round trip - to_csv -> read_csv
-            rs = read_csv(filename, compression=compression,
-                          index_col=0)
-            assert_frame_equal(df, rs)
+            result = read_csv(filename, compression=compression,
+                              index_col=0, encoding=encoding)
+
+            with open(filename, 'w') as fh:
+                df.to_csv(fh, compression=compression, encoding=encoding)
+
+            result_fh = read_csv(filename, compression=compression,
+                                 index_col=0, encoding=encoding)
+            assert_frame_equal(df, result)
+            assert_frame_equal(df, result_fh)
 
             # explicitly make sure file is compressed
             with tm.decompress_file(filename, compression) as fh:
-                text = fh.read().decode('utf8')
+                text = fh.read().decode(encoding or 'utf8')
                 for col in df.columns:
                     assert col in text
 
             with tm.decompress_file(filename, compression) as fh:
-                assert_frame_equal(df, read_csv(fh, index_col=0))
+                assert_frame_equal(df, read_csv(fh,
+                                                index_col=0,
+                                                encoding=encoding))
 
     def test_to_csv_date_format(self):
         with ensure_clean('__tmp_to_csv_date_format__') as path:
