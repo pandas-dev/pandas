@@ -561,11 +561,11 @@ class TestTableOrientReader(object):
         out = df.to_json(orient="table")
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
-    
+
     def test_empty_frame_roundtrip(self):
         # GH 21287
         df = pd.DataFrame([], columns=['a', 'b', 'c'])
         expected = df.copy()
         out = df.to_json(None, orient='table')
         result = pd.read_json(out, orient='table')
-        tm.assert_frame_equal(expected, result)
+        pd.testing.assert_frame_equal(expected, result)
