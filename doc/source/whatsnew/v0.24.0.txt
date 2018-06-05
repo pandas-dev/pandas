@@ -161,7 +161,7 @@ Plotting
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
--
+- :func:`RollingGroupby.agg` and :func:`ExpandingGroupby.agg` now support multiple aggregation functions as parameters (:issue:`15072`)
 -
 -
 
