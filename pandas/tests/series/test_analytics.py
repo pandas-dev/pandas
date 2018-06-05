@@ -336,27 +336,21 @@ class TestSeriesAnalytics(TestData):
                           index=['count', 'unique', 'top', 'freq'])
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize("tz", [None, "US/Eastern"])
+    def test_describe_dt(self, tz):
+        if tz is None:
+            name = "tz-naive"
+        else:
+            name = "tz-aware"
         start = Timestamp(2018, 1, 1)
         end = Timestamp(2018, 1, 5)
-        s = Series(date_range(start, end), name="tz-naive")
-        result = s.describe()
-        expected = Series(
-            [5, 5, start, 1, start, end],
-            name="tz-naive",
-            index=['count', 'unique', 'top', 'freq', 'first', 'last']
-        )
-        tm.assert_series_equal(result, expected)
-
-        start = Timestamp(2018, 1, 1)
-        end = Timestamp(2018, 1, 5)
-        tz = "US/Eastern"
-        s = Series(date_range(start, end, tz=tz), name="tz-aware")
+        s = Series(date_range(start, end, tz=tz), name=name)
         result = s.describe()
         expected = Series(
             [5, 5, start.tz_localize(tz), 1, start.tz_localize(tz),
              end.tz_localize(tz)
              ],
-            name="tz-aware",
+            name=name,
             index=['count', 'unique', 'top', 'freq', 'first', 'last']
         )
         tm.assert_series_equal(result, expected)
