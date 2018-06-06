@@ -244,6 +244,10 @@ class TestCategoricalIndex(Base):
             list('aabbca') + [np.nan], categories=list('cabdef'))
         assert np.nan in ci
 
+        ci = CategoricalIndex(
+            list('aaa'), categories=list('cabdef'))
+        assert 'f' not in ci
+
     def test_min_max(self):
 
         ci = self.create_index(ordered=False)

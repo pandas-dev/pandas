@@ -1851,6 +1851,8 @@ class Categorical(ExtensionArray, PandasObject):
         """Returns True if `key` is in this Categorical."""
         if key in self.categories:
             return self.categories.get_loc(key) in self.codes
+        elif isna(key) and self.isna().any():
+            return True
         else:
             return False
 
