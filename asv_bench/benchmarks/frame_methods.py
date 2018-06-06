@@ -512,3 +512,21 @@ class NSort(object):
 
     def time_nsmallest(self, keep):
         self.df.nsmallest(100, 'A', keep=keep)
+
+
+class Describe(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        self.df = DataFrame({
+            'a': np.random.randint(0, 100, int(1e6)),
+            'b': np.random.randint(0, 100, int(1e6)),
+            'c': np.random.randint(0, 100, int(1e6))
+        })
+
+    def time_series_describe(self):
+        self.df['a'].describe()
+
+    def time_dataframe_describe(self):
+        self.df.describe()
