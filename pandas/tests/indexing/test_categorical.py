@@ -627,38 +627,29 @@ class TestCategoricalIndex(object):
                       lambda: self.df2.reindex(['a'], limit=2))
 
     def test_loc_slice(self):
-        # Raises KeyError since the left slice 'a' is not unique
-        pytest.raises(KeyError, lambda: self.df.loc["a":"b"])
-        result = self.df.loc["b":"c"]
-
-        expected = DataFrame(
-            {"A": [2, 3, 4]},
-            index=CategoricalIndex(
-                ["b", "b", "c"], name="B", categories=list("cab")
-            ),
+        df = DataFrame(
+            {"A": range(0, 6)},
+            index=CategoricalIndex(list("aabcde"), name="B"),
         )
 
+        # slice on an unordered categorical using in-sample, connected edges
+        result = df.loc["b":"d"]
+        expected = df.iloc[2:5]
         assert_frame_equal(result, expected)
 
-        ordered_df = DataFrame(
-            {"A": range(0, 6)},
-            index=CategoricalIndex(list("aabcde"), name="B", ordered=True),
-        )
-
-        # This should select the entire dataframe
-        result = ordered_df.loc["a":"e"]
-        assert_frame_equal(result, ordered_df)
-        result_iloc = ordered_df.iloc[0:6]
+        # Slice the entire dataframe
+        result = df.loc["a":"e"]
+        assert_frame_equal(result, df)
+        result_iloc = df.iloc[0:6]
         assert_frame_equal(result_iloc, result)
 
-        result = ordered_df.loc["a":"b"]
-        expected = DataFrame(
-            {"A": range(0, 3)},
-            index=CategoricalIndex(
-                list("aab"), categories=list("abcde"), name="B", ordered=True
-            ),
-        )
-        assert_frame_equal(result, expected)
+        # check if the result is identical to an ordinary index
+        df_non_cat_index = df.copy()
+        df_non_cat_index.index = df_non_cat_index.index.astype(str)
+        result = df.loc["a":"e"]
+        result_non_cat = df_non_cat_index.loc["a": "e"]
+        result.index = result.index.astype(str)
+        assert_frame_equal(result_non_cat, result)
 
     @pytest.mark.parametrize(
         "content",
@@ -669,6 +660,8 @@ class TestCategoricalIndex(object):
         """
         This test ensures that no `KeyError` is raised if trying to slice
         beyond the edges of known, ordered categories.
+
+        see GH21019
         """
         # This dataframe might be a slice of a larger categorical
         # (i.e. more categories are known than there are in the column)
@@ -700,6 +693,14 @@ class TestCategoricalIndex(object):
         with pytest.raises(KeyError):
             # If the category is not known, there is nothing we can do
             ordered_df.loc["a":"z"]
+
+        unordered_df = ordered_df.copy()
+        unordered_df.index = unordered_df.index.as_unordered()
+        with pytest.raises(KeyError):
+            # This operation previously succeeded for an ordered index. Since
+            # this index is no longer ordered, we cannot perfom out of range
+            # slicing / searchsorted
+            unordered_df.loc["a": "d"]
 
     def test_boolean_selection(self):
 

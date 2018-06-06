@@ -89,8 +89,7 @@ Indexing
 - Bug in :class:`IntervalIndex` constructors where creating an ``IntervalIndex`` from categorical data was not fully supported (:issue:`21243`, issue:`21253`)
 - Bug in :meth:`MultiIndex.sort_index` which was not guaranteed to sort correctly with ``level=1``; this was also causing data misalignment in particular :meth:`DataFrame.stack` operations (:issue:`20994`, :issue:`20945`, :issue:`21052`)
 - Bug in :func:`CategoricalIndex.searchsorted` where the method did not return a scalar when the input values was scalar (:issue:`21019`)
-- Bug in :class:`CategoricalIndex` where slicing beyond the range of the data raised a KeyError (:issue:`21019`)
--
+- Bug in :class:`CategoricalIndex` where slicing beyond the range of the data raised a ``KeyError`` (:issue:`21019`)
 
 I/O
 ^^^
