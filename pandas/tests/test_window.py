@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from itertools import product
 import pytest
 import warnings
@@ -348,10 +349,10 @@ class TestApi(Base):
             ('high', 'min')])
         expected = pd.DataFrame(expected_vals, index=index, columns=columns)
 
-        result = window.agg({
-            'low': ['mean', 'max'],
-            'high': ['mean', 'min']
-        })
+        result = window.agg(OrderedDict((
+            ('low', ['mean', 'max']),
+            ('high', ['mean', 'min']),
+        )))
 
         tm.assert_frame_equal(result, expected)
 
