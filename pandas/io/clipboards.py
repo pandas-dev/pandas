@@ -114,7 +114,7 @@ def to_clipboard(obj, excel=True, sep=None, **kwargs):  # pragma: no cover
             return
         except TypeError:
             warnings.warn('to_clipboard in excel mode requires a single \
-            character separator. Set "excel=false" or change the separator')
+            character separator. Set "excel=False" or change the separator')
 
     if isinstance(obj, DataFrame):
         # str(df) has various unhelpful defaults, like truncation
