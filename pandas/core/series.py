@@ -1195,11 +1195,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if drop:
             new_index = com._default_index(len(self))
-            if level is not None and isinstance(self.index, MultiIndex):
+            if level is not None:
                 if not isinstance(level, (tuple, list)):
                     level = [level]
                 level = [self.index._get_level_number(lev) for lev in level]
-                if len(level) < len(self.index.levels):
+                if len(level) < self.index.nlevels:
                     new_index = self.index.droplevel(level)
 
             if inplace:
@@ -1431,17 +1431,24 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self._constructor(out, index=lev,
                                  dtype='int64').__finalize__(self)
 
-    def mode(self):
+    def mode(self, dropna=True):
         """Return the mode(s) of the dataset.
 
         Always returns Series even if only one value is returned.
+
+        Parameters
+        -------
+        dropna : boolean, default True
+            Don't consider counts of NaN/NaT.
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
         modes : Series (sorted)
         """
         # TODO: Add option for bins like value_counts()
-        return algorithms.mode(self)
+        return algorithms.mode(self, dropna=dropna)
 
     def unique(self):
         """
@@ -2616,7 +2623,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         axis = self._get_axis_number(axis)
         index = self.index
 
-        if level:
+        if level is not None:
             new_index, indexer = index.sortlevel(level, ascending=ascending,
                                                  sort_remaining=sort_remaining)
         elif isinstance(index, MultiIndex):
@@ -3176,7 +3183,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         # handle ufuncs and lambdas
         if kwds or args and not isinstance(func, np.ufunc):
-            f = lambda x: func(x, *args, **kwds)
+            def f(x):
+                return func(x, *args, **kwds)
         else:
             f = func
 
@@ -3268,7 +3276,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         copy : boolean, default True
             Also copy underlying data
         inplace : boolean, default False
-            Whether to return a new %(klass)s. If True then value of copy is
+            Whether to return a new Series. If True then value of copy is
             ignored.
         level : int or level name, default None
             In case of a MultiIndex, only rename labels in the specified
@@ -3760,8 +3768,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             non-ascii, for python versions prior to 3
         compression : string, optional
             A string representing the compression to use in the output file.
-            Allowed values are 'gzip', 'bz2', 'zip', 'xz'. This input is only
-            used when the first argument is a filename.
+            Allowed values are 'gzip', 'bz2', 'zip', 'xz'.
         date_format: string, default None
             Format string for datetime objects.
         decimal: string, default '.'
