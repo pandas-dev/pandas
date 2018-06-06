@@ -623,7 +623,8 @@ def autocorrelation_plot(series, ax=None, n_lags=None, **kwds):
         if type(n_lags) is not int or type(n_lags) is not np.int:
             raise TypeError('Passed non integer number of lags.')
         if n_lags > len(x):
-            raise ValueError('Number of lags cannot be larger that the length of the series.')
+            raise ValueError('Number of lags cannot be larger '
+            'that the length of the series.')
     n = len(series)
     data = np.asarray(series)
     if ax is None:
@@ -653,8 +654,10 @@ def autocorrelation_plot(series, ax=None, n_lags=None, **kwds):
         ax.legend()
     ax.grid()
     return ax
-
-def partial_autocorrelation_plot(series, ax=None, n_lags=40, method='ywunbiased', **kwds):
+  
+  
+def partial_autocorrelation_plot(series, ax=None, n_lags=40,
+                                 method='ywunbiased', **kwds):
     """Partial autocorrelation plot for time series.
 
     Parameters:
@@ -674,7 +677,7 @@ def partial_autocorrelation_plot(series, ax=None, n_lags=40, method='ywunbiased'
         - ldb or ldbiased : Levinson-Durbin recursion without bias correction
     kwds : keywords
         Options to pass to matplotlib plotting method
-        
+
     Returns:
     -----------
     ax: Matplotlib axis object
