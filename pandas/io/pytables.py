@@ -1106,9 +1106,18 @@ class HDFStore(StringMixin):
                  g._v_name != u('table'))))
         ]
 
-    def walk(self):
-        """ Walk the pytables group hierarchy yielding the group name and pandas object names
-        for each group.  Any non-pandas PyTables objects that are not a group will be ignored.
+    def walk(self, where="/"):
+        """ Walk the pytables group hierarchy yielding the group name and
+        pandas object names for each group.  Any non-pandas PyTables objects
+        that are not a group will be ignored.
+
+        The where group itself is listed first (preorder), then each of its
+        child groups (following an alphanumerical order) is also traversed,
+        following the same procedure.  If where is not supplied, the root
+        group is used.
+
+        The where argument can be a path string
+        or a Group instance (see :ref:`GroupClassDescr`).
 
         Returns
         -------
@@ -1121,7 +1130,7 @@ class HDFStore(StringMixin):
         """
         _tables()
         self._check_if_open()
-        for g in self._handle.walk_groups():
+        for g in self._handle.walk_groups(where):
             if getattr(g._v_attrs, 'pandas_type', None) is not None:
                 continue
 
@@ -1136,7 +1145,6 @@ class HDFStore(StringMixin):
                     leaves.append(child._v_name)
 
             yield (g._v_pathname.rstrip('/'), groups, leaves)
-
 
     def get_node(self, key):
         """ return the node with the key or None if it does not exist """

@@ -5001,7 +5001,6 @@ class TestHDFStore(Base):
 
     # GH10143
     def test_walk(self):
-
         objs = {
             'df1': pd.DataFrame([1, 2, 3]),
             'df2': pd.DataFrame([4, 5, 6]),
@@ -5009,7 +5008,7 @@ class TestHDFStore(Base):
             'df4': pd.DataFrame([9, 10, 11]),
             's1': pd.Series([10, 9, 8]),
             'a1': np.array([[1, 2, 3], [4, 5, 6]])
-            }
+        }
 
         with ensure_clean_store('walk_groups.hdf', mode='w') as store:
             store.put('/first_group/df1', objs['df1'])
@@ -5020,23 +5019,41 @@ class TestHDFStore(Base):
             g1 = store._handle.get_node('/first_group')
             store._handle.create_array(g1, 'a1', objs['a1'])
 
-            expect = {
-                '': (set(['first_group', 'second_group']), set()),
-                '/first_group': (set(), set(['df1', 'df2'])),
-                '/second_group': (set(['third_group']), set(['df3', 's1'])),
-                '/second_group/third_group': (set(), set(['df4'])),
+            expect1 = {
+                '': ({'first_group', 'second_group'}, set()),
+                '/first_group': (set(), {'df1', 'df2'}),
+                '/second_group': ({'third_group'}, {'df3', 's1'}),
+                '/second_group/third_group': (set(), {'df4'}),
+            }
+            expect2 = {
+                '/second_group': ({'third_group'}, {'df3', 's1'}),
+                '/second_group/third_group': (set(), {'df4'}),
             }
 
-            for path, groups, leaves in store.walk():
-                self.assertIn(path, expect)
+            def assert_walk(path, groups, leaves, expect):
+                assert path in expect
                 expect_groups, expect_frames = expect[path]
 
-                self.assertEqual(expect_groups, set(groups))
-                self.assertEqual(expect_frames, set(leaves))
+                assert expect_groups == set(groups)
+                assert expect_frames == set(leaves)
                 for leaf in leaves:
                     frame_path = '/'.join([path, leaf])
-                    df = store.get(frame_path)
-                    self.assert_(df.equals(objs[leaf]))
+                    obj = store.get(frame_path)
+                    if 'df' in leaf:
+                        tm.assert_frame_equal(obj, objs[leaf])
+                    else:
+                        tm.assert_series_equal(obj, objs[leaf])
+
+            # Test with root node
+            for path_, groups_, leaves_ in store.walk():
+                assert_walk(path_, groups_, leaves_, expect1)
+            assert len(list(store.walk())) == len(expect1)
+
+            # Test with child node
+            for path_, groups_, leaves_ in store.walk(where="/second_group"):
+                assert_walk(path_, groups_, leaves_, expect2)
+
+            assert len(list(store.walk(where="/second_group"))) == len(expect2)
 
     @td.skip_if_no('pathlib')
     def test_read_from_pathlib_path(self):
