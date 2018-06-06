@@ -372,16 +372,12 @@ class TestDataFramePlots(TestPlotBase):
         # sharey can now be switched check whether the right
         # pair of axes is turned on or off
 
-        def _assert_ytickslabels_visibility(axes, expected):
-            for ax, exp in zip(axes, expected):
-                self._check_visible(ax.get_yticklabels(), visible=exp)
-
         df = DataFrame({'a': [-1.43, -0.15, -3.70, -1.43, -0.14],
                         'b': [0.56, 0.84, 0.29, 0.56, 0.85],
                         'c': [0, 1, 2, 3, 1]},
                        index=[0, 1, 2, 3, 4])
 
-        # standart behavior
+        # behavior without keyword
         axes = df.groupby('c').boxplot()
         expected = [True, False, True, False]
         _assert_ytickslabels_visibility(axes, expected)
@@ -396,21 +392,21 @@ class TestDataFramePlots(TestPlotBase):
         expected = [True, True, True, True]
         _assert_ytickslabels_visibility(axes, expected)
 
+    def _assert_ytickslabels_visibility(axes, expected):
+        for ax, exp in zip(axes, expected):
+            self._check_visible(ax.get_yticklabels(), visible=exp)
+
     def test_groupby_boxplot_sharex(self):
         # https://github.com/pandas-dev/pandas/issues/20968
         # sharex can now be switched check whether the right
         # pair of axes is turned on or off
-
-        def _assert_xtickslabels_visibility(axes, expected):
-            for ax, exp in zip(axes, expected):
-                self._check_visible(ax.get_xticklabels(), visible=exp)
 
         df = DataFrame({'a': [-1.43, -0.15, -3.70, -1.43, -0.14],
                         'b': [0.56, 0.84, 0.29, 0.56, 0.85],
                         'c': [0, 1, 2, 3, 1]},
                        index=[0, 1, 2, 3, 4])
 
-        # standart behavior
+        # behavior without keyword
         axes = df.groupby('c').boxplot()
         expected = [True, True, True, True]
         _assert_xtickslabels_visibility(axes, expected)
@@ -425,6 +421,10 @@ class TestDataFramePlots(TestPlotBase):
         axes = df.groupby('c').boxplot(sharex=True)
         expected = [False, False, True, True]
         _assert_xtickslabels_visibility(axes, expected)
+
+    def _assert_xtickslabels_visibility(axes, expected):
+        for ax, exp in zip(axes, expected):
+            self._check_visible(ax.get_xticklabels(), visible=exp)
 
     @pytest.mark.slow
     def test_subplots_timeseries(self):
