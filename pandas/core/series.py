@@ -1837,8 +1837,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def quantile(self, q=0.5, interpolation='linear'):
         """
-        Return value at the given quantile
-        (you can also see numpy.percentile, much similar like series.quantile).
+        Return value at the given quantile.
 
         Parameters
         ----------
@@ -1877,6 +1876,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         See Also
         --------
         pandas.core.window.Rolling.quantile
+        numpy.percentile
         """
 
         self._check_percentile(q)
