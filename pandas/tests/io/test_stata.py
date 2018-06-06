@@ -96,6 +96,7 @@ class TestStata(object):
         self.dta23 = os.path.join(self.dirpath, 'stata15.dta')
 
         self.dta24_111 = os.path.join(self.dirpath, 'stata7_111.dta')
+        self.dta25_118 = os.path.join(self.dirpath, 'stata16_118.dta')
 
         self.stata_dates = os.path.join(self.dirpath, 'stata13_dates.dta')
 
@@ -363,19 +364,14 @@ class TestStata(object):
         encoded = read_stata(self.dta_encoding, encoding="latin-1")
         result = encoded.kreis1849[0]
 
-        if compat.PY3:
-            expected = raw.kreis1849[0]
-            assert result == expected
-            assert isinstance(result, compat.string_types)
-        else:
-            expected = raw.kreis1849.str.decode("latin-1")[0]
-            assert result == expected
-            assert isinstance(result, unicode)  # noqa
+        expected = raw.kreis1849[0]
+        assert result == expected
+        assert isinstance(result, compat.string_types)
 
         with tm.ensure_clean() as path:
             encoded.to_stata(path, encoding='latin-1',
                              write_index=False, version=version)
-            reread_encoded = read_stata(path, encoding='latin-1')
+            reread_encoded = read_stata(path)
             tm.assert_frame_equal(encoded, reread_encoded)
 
     def test_read_write_dta11(self):
@@ -1500,3 +1496,18 @@ class TestStata(object):
             with gzip.GzipFile(path, 'rb') as gz:
                 reread = pd.read_stata(gz, index_col='index')
         tm.assert_frame_equal(df, reread)
+
+    def test_unicode_dta_118(self):
+        unicode_df = self.read_dta(self.dta25_118)
+
+        columns = ['utf8', 'latin1', 'ascii', 'utf8_strl', 'ascii_strl']
+        values = [[u'ραηδας', u'PÄNDÄS', 'p', u'ραηδας', 'p'],
+                  [u'ƤĀńĐąŜ', u'Ö', 'a', u'ƤĀńĐąŜ', 'a'],
+                  [u'ᴘᴀᴎᴅᴀS', u'Ü', 'n', u'ᴘᴀᴎᴅᴀS', 'n'],
+                  ['      ', '      ', 'd', '      ', 'd'],
+                  [' ', '', 'a', ' ', 'a'],
+                  ['', '', 's', '', 's'],
+                  ['', '', ' ', '', ' ']]
+        expected = pd.DataFrame(values, columns=columns)
+
+        tm.assert_frame_equal(unicode_df, expected)
