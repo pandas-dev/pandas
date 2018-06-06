@@ -260,12 +260,17 @@ class TestPeriodIndexComparisons(object):
 class TestPeriodIndexArithmetic(object):
     # ---------------------------------------------------------------
     # __add__/__sub__ with PeriodIndex
+    # PeriodIndex + other is defined for integers and timedelta-like others
+    # PeriodIndex - other is defined for integers, timedelta-like others,
+    #   and PeriodIndex (with matching freq)
 
     def test_pi_add_iadd_pi_raises(self):
         rng = pd.period_range('1/1/2000', freq='D', periods=5)
         other = pd.period_range('1/6/2000', freq='D', periods=5)
 
-        # previously performed setop union, now raises TypeError (GH14164)
+        # An earlier implementation of PeriodIndex addition performed
+        # a set operation (union).  This has since been changed to
+        # raise a TypeError. See GH#14164 and GH#13077 for historical reference.
         with pytest.raises(TypeError):
             rng + other
 
@@ -448,8 +453,9 @@ class TestPeriodIndexArithmetic(object):
 
     def test_pi_sub_isub_pi(self):
         # GH#20049
-        # previously raised TypeError (GH#14164), before that
-        # performed set operation.  See discussion in GH#13077
+        # For historical reference see GH#14164, GH#13077.
+        # PeriodIndex subtraction originally performed set difference,
+        # then changed to raise TypeError before being implemented in GH#20049
         rng = pd.period_range('1/1/2000', freq='D', periods=5)
         other = pd.period_range('1/6/2000', freq='D', periods=5)
 
