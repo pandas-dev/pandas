@@ -304,6 +304,15 @@ class _BaseOffset(object):
     _day_opt = None
     _attributes = frozenset(['n', 'normalize'])
 
+    def __init__(self, n=1, normalize=False):
+        n = self._validate_n(n)
+        object.__setattr__(self, "n", n)
+        object.__setattr__(self, "normalize", normalize)
+        object.__setattr__(self, "_cache", {})
+
+    def __setattr__(self, name, value):
+        raise AttributeError("DateOffset objects are immutable.")
+
     @property
     def kwds(self):
         # for backwards-compatibility

@@ -520,8 +520,7 @@ class TestBusinessDay(Base):
     def test_different_normalize_equals(self):
         # equivalent in this special case
         offset = BDay()
-        offset2 = BDay()
-        offset2.normalize = True
+        offset2 = BDay(normalize=True)
         assert offset == offset2
 
     def test_repr(self):
@@ -715,8 +714,7 @@ class TestBusinessHour(Base):
     def test_different_normalize_equals(self):
         # equivalent in this special case
         offset = self._offset()
-        offset2 = self._offset()
-        offset2.normalize = True
+        offset2 = self._offset(normalize=True)
         assert offset == offset2
 
     def test_repr(self):
@@ -1393,8 +1391,7 @@ class TestCustomBusinessHour(Base):
     def test_different_normalize_equals(self):
         # equivalent in this special case
         offset = self._offset()
-        offset2 = self._offset()
-        offset2.normalize = True
+        offset2 = self._offset(normalize=True)
         assert offset == offset2
 
     def test_repr(self):
@@ -1634,8 +1631,7 @@ class TestCustomBusinessDay(Base):
     def test_different_normalize_equals(self):
         # equivalent in this special case
         offset = CDay()
-        offset2 = CDay()
-        offset2.normalize = True
+        offset2 = CDay(normalize=True)
         assert offset == offset2
 
     def test_repr(self):
@@ -1920,8 +1916,7 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
     def test_different_normalize_equals(self):
         # equivalent in this special case
         offset = CBMonthEnd()
-        offset2 = CBMonthEnd()
-        offset2.normalize = True
+        offset2 = CBMonthEnd(normalize=True)
         assert offset == offset2
 
     def test_repr(self):
@@ -2037,8 +2032,7 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
     def test_different_normalize_equals(self):
         # equivalent in this special case
         offset = CBMonthBegin()
-        offset2 = CBMonthBegin()
-        offset2.normalize = True
+        offset2 = CBMonthBegin(normalize=True)
         assert offset == offset2
 
     def test_repr(self):
