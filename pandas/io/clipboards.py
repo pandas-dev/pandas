@@ -58,12 +58,22 @@ def read_clipboard(sep=r'\s+', **kwargs):  # pragma: no cover
     if len(lines) > 1 and len(counts) == 1 and counts.pop() != 0:
         sep = '\t'
 
+    # Edge case where sep is specified to be None
     if sep is None and kwargs.get('delim_whitespace') is None:
         sep = r'\s+'
 
-    if sep == r'\s+' and kwargs.get('engine') is None:
+    # Regex separator currently only works with python engine.
+    # Default to python if separator is multi-character (regex)
+    if len(sep) > 1 and kwargs.get('engine') is None:
         kwargs['engine'] = 'python'
+    elif len(sep) > 1 and kwargs.get('engine') == 'c':
+        warnings.warn('from_clipboard with regex separator does not work'
+                      ' properly with c engine')
 
+    # In PY2, the c table reader first encodes text with UTF-8 but Python
+    # table reader uses the format of the passed string.
+    # For PY2, encode strings first so that output from python and c
+    # engines produce consistent results
     if kwargs.get('engine') == 'python' and compat.PY2:
         text = text.encode('utf-8')
 
@@ -116,8 +126,9 @@ def to_clipboard(obj, excel=True, sep=None, **kwargs):  # pragma: no cover
             clipboard_set(text)
             return
         except TypeError:
-            warnings.warn('to_clipboard in excel mode requires a single \
-            character separator. Set "excel=False" or change the separator')
+            warnings.warn('to_clipboard in excel mode requires a single '
+                          'character separator. Set "excel=False" or change '
+                          'the separator')
 
     if isinstance(obj, DataFrame):
         # str(df) has various unhelpful defaults, like truncation
