@@ -102,8 +102,7 @@ Removal of prior version deprecations/changes
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
--
--
+- Improved performance of :func:`Series.describe` in case of numeric dtpyes (:issue:`21274`)
 -
 
 .. _whatsnew_0240.docs:
