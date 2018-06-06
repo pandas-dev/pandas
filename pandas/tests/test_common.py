@@ -252,12 +252,13 @@ def test_compression_size_fh(obj, method, compression_only):
     with tm.ensure_clean() as filename:
         with open(filename, 'w') as fh:
             getattr(obj, method)(fh, compression=compression_only)
-            # GH 17778
-            assert fh.closed
+            assert not fh.closed
+        assert fh.closed
         compressed = os.path.getsize(filename)
     with tm.ensure_clean() as filename:
         with open(filename, 'w') as fh:
             getattr(obj, method)(fh, compression=None)
             assert not fh.closed
+        assert fh.closed
         uncompressed = os.path.getsize(filename)
         assert uncompressed > compressed
