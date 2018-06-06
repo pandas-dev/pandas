@@ -617,47 +617,46 @@ class ExtensionArray(object):
         return np.array(self)
 
 
-
 class ExtensionOpsMixin(object):
     """
     A base class for linking the operators to their dunder names
     """
     @classmethod
-    def addArithmeticOps(cls):
-        cls.__add__ = cls._create_method(operator.add)
-        cls.__radd__ = cls._create_method(ops.radd)
-        cls.__sub__ = cls._create_method(operator.sub)
-        cls.__rsub__ = cls._create_method(ops.rsub)
-        cls.__mul__ = cls._create_method(operator.mul)
-        cls.__rmul__ = cls._create_method(ops.rmul)
-        cls.__pow__ = cls._create_method(operator.pow)
-        cls.__rpow__ = cls._create_method(ops.rpow)
-        cls.__mod__ = cls._create_method(operator.mod)
-        cls.__rmod__ = cls._create_method(ops.rmod)
-        cls.__floordiv__ = cls._create_method(operator.floordiv)
-        cls.__rfloordiv__ = cls._create_method(ops.rfloordiv)
-        cls.__truediv__ = cls._create_method(operator.truediv)
-        cls.__rtruediv__ = cls._create_method(ops.rtruediv)
+    def _add_arithmetic_ops(cls):
+        cls.__add__ = cls._create_arithmetic_method(operator.add)
+        cls.__radd__ = cls._create_arithmetic_method(ops.radd)
+        cls.__sub__ = cls._create_arithmetic_method(operator.sub)
+        cls.__rsub__ = cls._create_arithmetic_method(ops.rsub)
+        cls.__mul__ = cls._create_arithmetic_method(operator.mul)
+        cls.__rmul__ = cls._create_arithmetic_method(ops.rmul)
+        cls.__pow__ = cls._create_arithmetic_method(operator.pow)
+        cls.__rpow__ = cls._create_arithmetic_method(ops.rpow)
+        cls.__mod__ = cls._create_arithmetic_method(operator.mod)
+        cls.__rmod__ = cls._create_arithmetic_method(ops.rmod)
+        cls.__floordiv__ = cls._create_arithmetic_method(operator.floordiv)
+        cls.__rfloordiv__ = cls._create_arithmetic_method(ops.rfloordiv)
+        cls.__truediv__ = cls._create_arithmetic_method(operator.truediv)
+        cls.__rtruediv__ = cls._create_arithmetic_method(ops.rtruediv)
         if not PY3:
-            cls.__div__ = cls._create_method(operator.div)
-            cls.__rdiv__ = cls._create_method(ops.rdiv)
-    
-        cls.__divmod__ = cls._create_method(divmod)
-        cls.__rdivmod__ = cls._create_method(ops.rdivmod)
-        
+            cls.__div__ = cls._create_arithmetic_method(operator.div)
+            cls.__rdiv__ = cls._create_arithmetic_method(ops.rdiv)
+
+        cls.__divmod__ = cls._create_arithmetic_method(divmod)
+        cls.__rdivmod__ = cls._create_arithmetic_method(ops.rdivmod)
+
     @classmethod
-    def addComparisonOps(cls):
-        cls.__eq__ = cls._create_method(operator.eq, False)
-        cls.__ne__ = cls._create_method(operator.ne, False)
-        cls.__lt__ = cls._create_method(operator.lt, False)
-        cls.__gt__ = cls._create_method(operator.gt, False)
-        cls.__le__ = cls._create_method(operator.le, False)
-        cls.__ge__ = cls._create_method(operator.ge, False)
+    def _add_comparison_ops(cls):
+        cls.__eq__ = cls._create_comparison_method(operator.eq)
+        cls.__ne__ = cls._create_comparison_method(operator.ne)
+        cls.__lt__ = cls._create_comparison_method(operator.lt)
+        cls.__gt__ = cls._create_comparison_method(operator.gt)
+        cls.__le__ = cls._create_comparison_method(operator.le)
+        cls.__ge__ = cls._create_comparison_method(operator.ge)
 
 
 class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     """A mixin for defining the arithmetic and logical operations on
-    an ExtensionArray class, where it is assumed that the underlying objects 
+    an ExtensionArray class, where it is assumed that the underlying objects
     have the operators already defined.
 
     Usage
@@ -666,10 +665,10 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     use MyExtensionArray(ExtensionArray, ExtensionScalarOpsMixin) to
     get the arithmetic operators.  After the definition of MyExtensionArray,
     insert the lines
-    
+
     MyExtensionArray.addArithmeticOperators()
     MyExtensionArray.addComparisonOperators()
-    
+
     to link the operators to your class.
     """
 
@@ -730,3 +729,11 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
 
         op_name = ops._get_op_name(op, True)
         return set_function_name(_binop, op_name, cls)
+
+    @classmethod
+    def _create_arithmetic_method(cls, op):
+        return cls._create_method(op)
+
+    @classmethod
+    def _create_comparison_method(cls, op):
+        return cls._create_method(op, False)

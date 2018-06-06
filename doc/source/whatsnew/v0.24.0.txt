@@ -33,14 +33,17 @@ defined on a per-element basis, pandas provides a mixin,
 define the operators on your ExtensionArray subclass.
 If developing an ``ExtensionArray`` subclass, for example ``MyExtensionArray``,
 simply include ``ExtensionScalarOpsMixin`` as a parent class of ``MyExtensionArray``
-and then call the methods :meth:`~MyExtensionArray.addArithmeticOps` and/or
-:meth:`~MyExtensionArray.addComparisonOps` to hook the operators into 
+and then call the methods :meth:`~MyExtensionArray._add_arithmetic_ops` and/or
+:meth:`~MyExtensionArray._add_comparison_ops` to hook the operators into 
 your ``MyExtensionArray`` class, as follows:
 
 .. code-block:: python
 
-    class MyExtensionArray(ExtensionArray, ExtensionScalarArithmeticMixin,
-                           ExtensionScalarComparisonMixin):
+    class MyExtensionArray(ExtensionArray, ExtensionScalarOpsMixin):
+        pass
+    
+    MyExtensionArray._add_arithmetic_ops()
+    MyExtensionArray._add_comparison_ops()
 
 See the :ref:`ExtensionArray Operator Support
 <extending.extension.operator>` documentation section for details on both 

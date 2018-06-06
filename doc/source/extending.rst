@@ -138,18 +138,17 @@ define the operators for ``MyExtensionArray``.
 A mixin class, :class:`~pandas.api.extensions.ExtensionScalarOpscMixin` supports this second
 approach.  If developing an ``ExtensionArray`` subclass, for example ``MyExtensionArray``,
 simply include ``ExtensionScalarOpsMixin`` as a parent class of ``MyExtensionArray``
-and then call the methods :meth:`~MyExtensionArray.addArithmeticOps` and/or
-:meth:`~MyExtensionArray.addComparisonOps` to hook the operators into 
+and then call the methods :meth:`~MyExtensionArray._add_arithmetic_ops` and/or
+:meth:`~MyExtensionArray._add_comparison_ops` to hook the operators into 
 your ``MyExtensionArray`` class, as follows:
 
 .. code-block:: python
 
-    class MyExtensionArray(ExtensionArray, ExtensionScalarOpsMixin,
-                           ExtensionScalarComparisonMixin):
+    class MyExtensionArray(ExtensionArray, ExtensionScalarOpsMixin):
         pass
     
-    MyExtensionArray.addArithmeticOps()
-    MyExtensionArray.addComparisonOps()
+    MyExtensionArray._add_arithmetic_ops()
+    MyExtensionArray._add_comparison_ops()
 
 Note that since ``pandas`` automatically calls the underlying operator on each
 element one-by-one, this might not be as performant as implementing your own
