@@ -93,7 +93,6 @@ Indexing
 I/O
 ^^^
 
-=======
 - Bug in IO methods specifying ``compression='zip'`` which produced uncompressed zip archives (:issue:`17778`, :issue:`21144`)
 - Bug in :meth:`DataFrame.to_stata` which prevented exporting DataFrames to buffers and most file-like objects (:issue:`21041`)
 - Bug in :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` causes encoding error when compression and encoding are specified (:issue:`21241`, :issue:`21118`)
