@@ -246,8 +246,8 @@ class SelectionMixin(object):
 
     def __getitem__(self, key):
         if self._selection is not None:
-            raise Exception('Column(s) {selection} already selected'
-                            .format(selection=self._selection))
+            raise IndexError('Column(s) {selection} already selected'
+                             .format(selection=self._selection))
 
         if isinstance(key, (list, tuple, ABCSeries, ABCIndexClass,
                             np.ndarray)):
@@ -687,7 +687,7 @@ class GroupByMixin(object):
 
         try:
             groupby = self._groupby[key]  # get slice of frame
-        except Exception:
+        except IndexError:
             groupby = self._groupby  # working with a Series
 
         self = self.__class__(subset,
