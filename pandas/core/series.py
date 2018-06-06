@@ -1431,17 +1431,24 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         return self._constructor(out, index=lev,
                                  dtype='int64').__finalize__(self)
 
-    def mode(self):
+    def mode(self, dropna=True):
         """Return the mode(s) of the dataset.
 
         Always returns Series even if only one value is returned.
+
+        Parameters
+        -------
+        dropna : boolean, default True
+            Don't consider counts of NaN/NaT.
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
         modes : Series (sorted)
         """
         # TODO: Add option for bins like value_counts()
-        return algorithms.mode(self)
+        return algorithms.mode(self, dropna=dropna)
 
     def unique(self):
         """
@@ -1830,7 +1837,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def quantile(self, q=0.5, interpolation='linear'):
         """
-        Return value at the given quantile, a la numpy.percentile.
+        Return value at the given quantile.
 
         Parameters
         ----------
@@ -1869,6 +1876,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         See Also
         --------
         pandas.core.window.Rolling.quantile
+        numpy.percentile
         """
 
         self._check_percentile(q)
