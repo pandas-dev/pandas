@@ -927,14 +927,6 @@ yourself. To revert to the old setting, you can run this line:
 
   pd.options.display.max_columns = 20
 
-.. _whatsnew_0230.boxplot.sharexy:
-
-Optional sharing of x/y-axis by pandas.DataFrame().groupby().boxplot()
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-(:issue:`15184`)
-
-Optional sharing of x/y-axis by pandas.DataFrame().groupby().boxplot()
-
 .. _whatsnew_0230.api.datetimelike:
 
 Datetimelike API Changes
