@@ -454,8 +454,7 @@ def pxd(name):
 
 
 if is_platform_windows():
-    # static link c++ runtime
-    extra_compile_args = ['/MT']
+    extra_compile_args = []
 else:
     # args to ignore warnings
     extra_compile_args = ['-Wno-unused-function']
@@ -734,7 +733,7 @@ setup(name=DISTNAME,
       maintainer=AUTHOR,
       version=versioneer.get_version(),
       packages=find_packages(include=['pandas', 'pandas.*']),
-      package_data={'': ['data/*', 'templates/*'],
+      package_data={'': ['data/*', 'templates/*', '_libs/*.dll'],
                     'pandas.tests.io': ['data/legacy_hdf/*.h5',
                                         'data/legacy_pickle/*/*.pickle',
                                         'data/legacy_msgpack/*/*.msgpack',
