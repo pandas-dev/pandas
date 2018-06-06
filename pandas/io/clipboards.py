@@ -64,6 +64,9 @@ def read_clipboard(sep=r'\s+', **kwargs):  # pragma: no cover
     if sep == r'\s+' and kwargs.get('engine') is None:
         kwargs['engine'] = 'python'
 
+    if kwargs.get('engine') == 'python' and compat.PY2:
+        text = text.encode('utf-8')
+
     return read_table(StringIO(text), sep=sep, **kwargs)
 
 
