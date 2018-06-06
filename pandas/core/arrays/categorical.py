@@ -2523,7 +2523,7 @@ def _factorize_from_iterable(values):
                                       ordered=values.ordered)
         codes = values.codes
     else:
-        cat = Categorical(values, ordered=True)
+        cat = Categorical(values, ordered=False)
         categories = cat.categories
         codes = cat.codes
     return codes, categories
