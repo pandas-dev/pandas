@@ -551,7 +551,8 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     @property
     def is_full(self):
         """
-        Returns True if there are any missing periods from start to end
+        Returns True if this PeriodIndex is range-like in that all Periods
+        between start and end are present, in order.
         """
         if len(self) == 0:
             return True
