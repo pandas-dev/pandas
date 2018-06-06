@@ -686,7 +686,7 @@ class Parser(object):
 
         result = False
 
-        if len(data) and data.dtype == 'object':
+        if data.dtype == 'object':
 
             # try float
             try:
