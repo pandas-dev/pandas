@@ -106,6 +106,7 @@ class BaseMethodsTests(BaseExtensionTests):
 
     def test_combine_le(self, data_repeated):
         # GH 20825
+        # Test that combine works when doing a <= (le) comparison
         orig_data1, orig_data2 = data_repeated(2)
         s1 = pd.Series(orig_data1)
         s2 = pd.Series(orig_data2)
