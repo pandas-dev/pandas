@@ -328,16 +328,18 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         if self.categories._defer_to_indexing:
             return key in self.categories
 
-        return key in self.values
+        try:
+            code_value = self.categories.get_loc(key)
+        except KeyError:
+            if isna(key):
+                code_value = -1
+            else:
+                return False
+        return code_value in self._engine
 
     @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def contains(self, key):
-        hash(key)
-
-        if self.categories._defer_to_indexing:
-            return self.categories.contains(key)
-
-        return key in self.values
+        return key in self
 
     def __array__(self, dtype=None):
         """ the array interface, return my values """

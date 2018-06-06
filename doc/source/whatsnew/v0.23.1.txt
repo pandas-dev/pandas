@@ -33,6 +33,8 @@ Performance Improvements
 
 - Improved performance of :meth:`CategoricalIndex.is_monotonic_increasing`, :meth:`CategoricalIndex.is_monotonic_decreasing` and :meth:`CategoricalIndex.is_monotonic` (:issue:`21025`)
 - Improved performance of :meth:`CategoricalIndex.is_unique` (:issue:`21107`)
+- Improved performance of membership checks in :class:`CategoricalIndex`
+  (i.e. ``x in ci``-style checks are much faster). :meth:`CategoricalIndex.contains` is likewise much faster (:issue:`21107`)
 -
 -
 
