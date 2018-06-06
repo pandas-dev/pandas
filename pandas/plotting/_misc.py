@@ -602,16 +602,15 @@ def lag_plot(series, lag=1, ax=None, **kwds):
     return ax
 
 
-def autocorrelation_plot(series, n_lags=None, ax=None, **kwds):
-    """Autocorrelation plot for time series. Prints p value
-    as the lag value where the ACF chart crosses the upper
-    confidence interval for the first time.
+def autocorrelation_plot(series, ax=None, n_lags=None, **kwds):
+    """Autocorrelation plot for time series.
 
     Parameters:
     -----------
     series: Time series
-    n_lags: Number of lags to be plotted
     ax: Matplotlib axis object, optional
+    n_lags : int, optional
+        Number of lags to be plotted. Length of the series by default.
     kwds : keywords
         Options to pass to matplotlib plotting method
 
@@ -620,6 +619,11 @@ def autocorrelation_plot(series, n_lags=None, ax=None, **kwds):
     ax: Matplotlib axis object
     """
     import matplotlib.pyplot as plt
+    if n_lags:
+        if type(n_lags) is not int or type(n_lags) is not np.int:
+            raise TypeError('Passed non integer number of lags.')
+        if n_lags > len(x):
+            raise ValueError('Number of lags cannot be larger that the length of the series.')
     n = len(series)
     data = np.asarray(series)
     if ax is None:
@@ -641,26 +645,33 @@ def autocorrelation_plot(series, n_lags=None, ax=None, **kwds):
     ax.axhline(y=-z99 / np.sqrt(n), linestyle='--', color='grey')
     ax.set_xlabel("Lag")
     ax.set_ylabel("Autocorrelation")
-    if n_samples:
+    if n_lags:
         ax.plot(x[:n_lags], y[:n_lags], **kwds)
     else:
         ax.plot(x, y, **kwds)
     if 'label' in kwds:
         ax.legend()
     ax.grid()
-    print("q value: %d" % (x[y < z99 / np.sqrt(n)][0]))
     return ax
 
-def partial_autocorrelation_plot(series, n_lags=20, ax=None, **kwds):
-    """Partial autocorrelation plot for time series. Prints q value
-    as the lag value where the ACF chart crosses the upper confidence
-    interval for the first time.
+def partial_autocorrelation_plot(series, ax=None, n_lags=40, method='ywunbiased', **kwds):
+    """Partial autocorrelation plot for time series.
 
     Parameters:
     -----------
     series: Time series
-    n_lags: Number of lags to be plotted
     ax: Matplotlib axis object, optional
+    n_lags : int, optional
+        The largest lag for which pacf is returned, the default is 40
+    method : {'ywunbiased', 'ywmle', 'ols'}
+        specifies which method for the calculations to use:
+
+        - yw or ywunbiased : yule walker with bias correction in denominator
+          for acovf. Default.
+        - ywm or ywmle : yule walker without bias correction
+        - ols - regression of time series on lags of it and on constant
+        - ld or ldunbiased : Levinson-Durbin recursion with bias correction
+        - ldb or ldbiased : Levinson-Durbin recursion without bias correction
     kwds : keywords
         Options to pass to matplotlib plotting method
         
@@ -669,6 +680,8 @@ def partial_autocorrelation_plot(series, n_lags=20, ax=None, **kwds):
     ax: Matplotlib axis object
     """
     from statsmodels.tsa.stattools import pacf
+    if type(n_lags) is not int or type(n_lags) is not np.int:
+        raise TypeError('Passed non integer number of lags.')
     n = len(series)
     if ax is None:
         ax = plt.gca(xlim=(1, n_lags), ylim=(-1.0, 1.0))
@@ -683,5 +696,4 @@ def partial_autocorrelation_plot(series, n_lags=20, ax=None, **kwds):
     ax.axhline(y=-z99 / np.sqrt(n), linestyle='--', color='grey')
     ax.set_xlabel("Lag")
     ax.set_ylabel("Partial autocorrelation")
-    print("p value: %d" % (ret < z99 / np.sqrt(n)).nonzero()[0][0])
     return ax
