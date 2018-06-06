@@ -270,7 +270,8 @@ class TestPeriodIndexArithmetic(object):
 
         # An earlier implementation of PeriodIndex addition performed
         # a set operation (union).  This has since been changed to
-        # raise a TypeError. See GH#14164 and GH#13077 for historical reference.
+        # raise a TypeError. See GH#14164 and GH#13077 for historical
+        # reference.
         with pytest.raises(TypeError):
             rng + other
 
