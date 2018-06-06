@@ -324,20 +324,19 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
     def __contains__(self, key):
         hash(key)
-
-        if self.categories._defer_to_indexing:
-            return key in self.categories
-
-        return key in self.values
+        if isna(key):
+            return self.isna().any()
+        elif self.categories._defer_to_indexing:  # e.g. Interval values
+            loc = self.categories.get_loc(key)
+            return np.isin(self.codes, loc).any()
+        elif key in self.categories:
+            return self.categories.get_loc(key) in self._engine
+        else:
+            return False
 
     @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def contains(self, key):
-        hash(key)
-
-        if self.categories._defer_to_indexing:
-            return self.categories.contains(key)
-
-        return key in self.values
+        return key in self
 
     def __array__(self, dtype=None):
         """ the array interface, return my values """

@@ -65,7 +65,9 @@ Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved performance of :func:`Series.describe` in case of numeric dtpyes (:issue:`21274`)
--
+- Improved performance of membership checks in :class:`CategoricalIndex`
+  (i.e. ``x in ci``-style checks are much faster). :meth:`CategoricalIndex.contains`
+  is likewise much faster (:issue:`21369`)
 
 .. _whatsnew_0240.docs:
 
