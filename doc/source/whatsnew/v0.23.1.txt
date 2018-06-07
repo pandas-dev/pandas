@@ -90,6 +90,7 @@ Indexing
 - Bug in :meth:`MultiIndex.sort_index` which was not guaranteed to sort correctly with ``level=1``; this was also causing data misalignment in particular :meth:`DataFrame.stack` operations (:issue:`20994`, :issue:`20945`, :issue:`21052`)
 - Bug in :attr:`DatetimeIndex.time` where given a tz-aware Timestamp, a tz-aware Time is returned instead of tz-naive  (:issue:`21267`)
 - Bug in :func:`pandas.core.arrays.categorical._factorize_from_iterable` inappropriately caused ``TypeError`` to be raised when an ``Enum`` was used as a factor in a ``MultiIndex`` (:issue:`21298`)
+-
 
 I/O
 ^^^
