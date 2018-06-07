@@ -116,3 +116,4 @@ Other
 
 - Tab completion on :class:`Index` in IPython no longer outputs deprecation warnings (:issue:`21125`)
 - Bug preventing pandas from being importable with -OO optimization (:issue:`21071`)
+- Timestamp resolution returns a :class:`Timedelta` rather than a normal `timedelta` object (:issue:`21336`)
