@@ -454,6 +454,17 @@ class TestSparseArray(object):
         assert_almost_equal(self.arr.to_dense(), self.arr_data)
         assert_almost_equal(self.arr.sp_values, np.asarray(self.arr))
 
+    @pytest.mark.parametrize('data,shape,dtype', [
+        ([0, 0, 0, 0, 0], (5,), None),
+        ([], (0,), None),
+        ([0], (1,), None),
+        (['A', 'A', np.nan, 'B'], (4,), np.object)
+    ])
+    def test_shape(self, data, shape, dtype):
+        # GH 21126
+        out = SparseArray(data, dtype=dtype)
+        assert out.shape == shape
+
     def test_to_dense(self):
         vals = np.array([1, np.nan, np.nan, 3, np.nan])
         res = SparseArray(vals).to_dense()
