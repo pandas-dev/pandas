@@ -10,19 +10,22 @@ and bug fixes. We recommend that all users upgrade to this version.
     :local:
     :backlinks: none
 
-.. _whatsnew_0231.enhancements:
+.. _whatsnew_0231.fixed_regressions:
 
-New features
-~~~~~~~~~~~~
+Fixed Regressions
 
-
-.. _whatsnew_0231.deprecations:
-
-Deprecations
-~~~~~~~~~~~~
-
--
--
+- Reverted the ability of :func:`~DataFrame.to_sql` to perform multivalue
+  inserts as this caused regression in certain cases (:issue:`21103`).
+  In the future this will be made configurable.
+- Fixed regression in the :attr:`DatetimeIndex.date` and :attr:`DatetimeIndex.time`
+  attributes in case of timezone-aware data: :attr:`DatetimeIndex.time` returned
+  a tz-aware time instead of tz-naive (:issue:`21267`) and :attr:`DatetimeIndex.date`
+  returned incorrect date when the input date has a non-UTC timezone (:issue:`21230`).
+- Fixed regression in :meth:`pandas.io.json.json_normalize` when called with ``None`` values
+  in nested levels in JSON (:issue:`21158`).
+- Bug in :meth:`~DataFrame.to_csv` causes encoding error when compression and encoding are specified (:issue:`21241`, :issue:`21118`)
+- Bug preventing pandas from being importable with -OO optimization (:issue:`21071`)
+- Bug in :meth:`Categorical.fillna` incorrectly raising a ``TypeError`` when `value` the individual categories are iterable and `value` is an iterable (:issue:`21097`, :issue:`19788`)
 
 .. _whatsnew_0231.performance:
 
