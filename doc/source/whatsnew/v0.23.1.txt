@@ -10,6 +10,15 @@ and bug fixes. We recommend that all users upgrade to this version.
     :local:
     :backlinks: none
 
+
+Regressions
+~~~~~~~~~~~
+
+- Reverted the ability of :func:`~DataFrame.to_sql` to perform multivalue
+  inserts (:issue:`21103`). In the future this will be made configurable.
+
+
+
 .. _whatsnew_0231.enhancements:
 
 New features
