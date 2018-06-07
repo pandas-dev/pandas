@@ -107,7 +107,7 @@ Reshaping
 ^^^^^^^^^
 
 - Bug in :func:`concat` where error was raised in concatenating :class:`Series` with numpy scalar and tuple names (:issue:`21015`)
--
+- Bug in :func:`concat` warning message providing the wrong guidance for future behavior (:issue:`21101`)
 
 Other
 ^^^^^
