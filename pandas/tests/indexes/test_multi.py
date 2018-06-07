@@ -3311,13 +3311,13 @@ class TestMultiIndex(Base):
     def test_use_enum_in_multiindex(self):
         # GH 21298
         # Allow use of Enums as one of the factors in a MultiIndex.
+        from enum import Enum
+        from pandas.core.algorithms import take_1d
 
         # See https://github.com/pandas-dev/pandas/blob/
         # 0c65c57a279e755ab7093db925d1e580f9878dae/pandas/util/testing.py#L793-L799.
         # We cannot simply use tm.assert_index_equal, as the "expected" index
         # cannot actually be built yet.
-        from pandas.core.algorithms import take_1d
-
         def _get_ilevel_values(index, level):
             # accept level number only
             unique = index.levels[level]
@@ -3329,7 +3329,6 @@ class TestMultiIndex(Base):
             values = unique._shallow_copy(filled, name=index.names[level])
             return values
 
-        from enum import Enum
         MyEnum = Enum("MyEnum", "A B")
         df = pd.DataFrame(columns=pd.MultiIndex.from_product(iterables=[
             MyEnum,
