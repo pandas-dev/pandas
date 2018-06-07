@@ -243,6 +243,13 @@ class TestSeriesReplace(TestData):
         expected = pd.Series([1, 2, 3])
         tm.assert_series_equal(expected, result)
 
+    def test_repace_intertwined_key_value_dict(self):
+        # GH 20656
+        s = pd.Series(['a', 'b'])
+        expected = pd.Series(['b', 'a'])
+        result = s.replace({'a': 'b', 'b': 'a'})
+        tm.assert_series_equal(expected, result)
+
     def test_replace_unicode_with_number(self):
         # GH 15743
         s = pd.Series([1, 2, 3])

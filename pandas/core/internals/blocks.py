@@ -1689,6 +1689,44 @@ class Block(PandasObject):
                               placement=np.arange(len(result)),
                               ndim=ndim)
 
+    def _replace_coerce(self, mask=None, src=None, dst=None, inplace=True,
+                        convert=False, regex=False, mgr=None):
+        """
+        Replace value corresponding to the given boolean array with another
+        value.
+
+        Parameters
+        ----------
+        mask : array_like of bool
+            The mask of values to replace.
+        src : object
+            The value to replace. It is ignored if regex is False.
+        dst : object
+            The value to be replaced with.
+        convert : bool
+            If true, try to coerce any object types to better types.
+        regex : bool
+            If true, search for element matching with the pattern in src.
+            Masked element is ignored.
+        mgr : BlockPlacement, optional
+
+        Returns
+        -------
+        A new block if there is anything to replace or the original block.
+        """
+
+        if mask.any():
+            if not regex:
+                self = self.coerce_to_target_dtype(dst)
+                return self.putmask(mask, dst, inplace=inplace)
+            else:
+                return self._replace_single(src, dst, inplace=inplace,
+                                            regex=regex,
+                                            convert=convert,
+                                            mask=mask,
+                                            mgr=mgr)
+        return self
+
 
 class ScalarBlock(Block):
     """
@@ -2464,7 +2502,7 @@ class ObjectBlock(Block):
                                     regex=regex, mgr=mgr)
 
     def _replace_single(self, to_replace, value, inplace=False, filter=None,
-                        regex=False, convert=True, mgr=None):
+                        regex=False, convert=True, mgr=None, mask=None):
 
         inplace = validate_bool_kwarg(inplace, 'inplace')
 
@@ -2531,14 +2569,55 @@ class ObjectBlock(Block):
         else:
             filt = self.mgr_locs.isin(filter).nonzero()[0]
 
-        new_values[filt] = f(new_values[filt])
+        if mask is None:
+            new_values[filt] = f(new_values[filt])
+        else:
+            new_values[filt][mask] = f(new_values[filt][mask])
 
         # convert
         block = self.make_block(new_values)
         if convert:
             block = block.convert(by_item=True, numeric=False)
-
         return block
+
+    def _replace_coerce(self, mask=None, src=None, dst=None, inplace=True,
+                        convert=False, regex=False, mgr=None):
+        """
+        Replace value corresponding to the given boolean array with another
+        value.
+
+        Parameters
+        ----------
+        mask : array_like of bool
+            The mask of values to replace.
+        src : object
+            The value to replace. It is ignored if regex is False.
+        dst : object
+            The value to be replaced with.
+        convert : bool
+            If true, try to coerce any object types to better types.
+        regex : bool
+            If true, search for element matching with the pattern in src.
+            Masked element is ignored.
+        mgr : BlockPlacement, optional
+
+        Returns
+        -------
+        A new block if there is anything to replace or the original block.
+        """
+        if mask.any():
+            block = super(ObjectBlock, self)._replace_coerce(mask=mask,
+                                                             src=src,
+                                                             dst=dst,
+                                                             inplace=inplace,
+                                                             convert=convert,
+                                                             regex=regex,
+                                                             mgr=mgr)
+            if convert:
+                block = [b.convert(by_item=True, numeric=False, copy=True)
+                         for b in block]
+            return block
+        return self
 
 
 class CategoricalBlock(ExtensionBlock):
