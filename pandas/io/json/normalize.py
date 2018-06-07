@@ -80,7 +80,7 @@ def nested_to_record(ds, prefix="", sep=".", level=0):
                 if level != 0:  # so we skip copying for top level, common case
                     v = new_d.pop(k)
                     new_d[newkey] = v
-                if v is None:  # pop the key if the value is None
+                elif v is None:  # pop the key if the value is None
                     new_d.pop(k)
                 continue
             else:
