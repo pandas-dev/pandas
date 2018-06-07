@@ -2243,7 +2243,7 @@ class StringMethods(NoNewAttributesMixin):
     _shared_docs['str_split'] = ("""
     Split strings around given separator/delimiter.
 
-    Splits the string in the Series/Index from the %(side)s, 
+    Splits the string in the Series/Index from the %(side)s,
     at the specified delimiter string.Equivalent to :meth:`str.%(method)s`.
 
     Parameters
@@ -2287,12 +2287,12 @@ class StringMethods(NoNewAttributesMixin):
     """)
 
     @Appender(_shared_docs['str_split'] % {
-        'side':'beginning',
-        'method':'split', 
-        'also': 'rsplit : Split the string at the last occurrence of delimiter',
-        'example': 
-         """>>> s = pd.Series(["this is good text", "but this is even better"]) 
-    
+        'side': 'beginning',
+        'method': 'split',
+        'also': 'rsplit : Splits string at the last occurrence of delimiter',
+        'example':
+        """>>> s = pd.Series(["this is good text", "but this is even better"])
+
     By default, split will return an object of the same size
     having lists containing the split elements
 
@@ -2343,12 +2343,12 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result, expand=expand)
 
     @Appender(_shared_docs['str_split'] % {
-        'side':'end',
-        'method':'rsplit', 
-        'also': 'split : Split the string at the first occurrence of delimiter',
+        'side': 'end',
+        'method': 'rsplit',
+        'also': 'split : Splits string at the first occurrence of delimiter',
         'example':
         """>>> s = pd.Series(["this is good text", "but this is even better"])
-    
+
     By default, rsplit will return an object of the same size
     having lists containing the split elements
 
@@ -2378,7 +2378,7 @@ class StringMethods(NoNewAttributesMixin):
               0    1     2       3
     0      this   is  good    text
     1  but this   is  even  better
-    2       NaN  NaN   NaN     NaN """ })
+    2       NaN  NaN   NaN     NaN """})
     def rsplit(self, pat=None, n=-1, expand=False):
         result = str_rsplit(self._data, pat, n=n)
         return self._wrap_result(result, expand=expand)
