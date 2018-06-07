@@ -29,17 +29,6 @@ import pandas.util.testing as tm
 from .common import TestData
 
 
-@pytest.fixture(params=[str, 'str', 'U'])
-def string_dtype(request):
-    """Parametrized fixture for string dtypes.
-
-    * str
-    * 'str'
-    * 'U'
-    """
-    return request.param
-
-
 class TestSeriesConstructors(TestData):
 
     def test_invalid_dtype(self):
