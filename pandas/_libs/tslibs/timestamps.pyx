@@ -411,13 +411,10 @@ cdef class _Timestamp(datetime):
         # py27 compat, see GH#17329
         return round(self.value / 1e9, 6)
 
-
-
 # ----------------------------------------------------------------------
 
 # Python front end to C extension type _Timestamp
 # This serves as the box for datetime64
-
 
 class Timestamp(_Timestamp):
     """Pandas replacement for datetime.datetime
