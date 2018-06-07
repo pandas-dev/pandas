@@ -40,6 +40,14 @@ class TestDataFramePlots(TestPlotBase):
                                     "C": np.arange(20) + np.random.uniform(
                                         size=20)})
 
+    def _assert_ytickslabels_visibility(self, axes, expected):
+        for ax, exp in zip(axes, expected):
+            self._check_visible(ax.get_yticklabels(), visible=exp)
+
+    def _assert_xtickslabels_visibility(self, axes, expected):
+        for ax, exp in zip(axes, expected):
+            self._check_visible(ax.get_xticklabels(), visible=exp)
+
     @pytest.mark.slow
     def test_plot(self):
         df = self.tdf
@@ -2971,14 +2979,6 @@ class TestDataFramePlots(TestPlotBase):
         ax = getattr(df.plot, method)(**kwargs)
         self._check_ticks_props(axes=ax.right_ax,
                                 ylabelsize=fontsize)
-
-    def _assert_ytickslabels_visibility(self, axes, expected):
-        for ax, exp in zip(axes, expected):
-            self._check_visible(ax.get_yticklabels(), visible=exp)
-
-    def _assert_xtickslabels_visibility(self, axes, expected):
-        for ax, exp in zip(axes, expected):
-            self._check_visible(ax.get_xticklabels(), visible=exp)
 
 
 def _generate_4_axes_via_gridspec():
