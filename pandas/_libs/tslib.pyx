@@ -77,7 +77,7 @@ cdef inline object create_time_from_ts(
         int64_t value, pandas_datetimestruct dts,
         object tz, object freq):
     """ convenience routine to construct a datetime.time from its parts """
-    return time(dts.hour, dts.min, dts.sec, dts.us, tz)
+    return time(dts.hour, dts.min, dts.sec, dts.us)
 
 
 def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
