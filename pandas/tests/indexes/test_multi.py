@@ -3308,7 +3308,7 @@ class TestMultiIndex(Base):
             ind.set_levels([['A', 'B', 'A', 'A', 'B'], [2, 1, 3, -2, 5]],
                            inplace=True)
     
-    def test_use_enum():
+    def test_use_enum_in_multiindex(self):
         # GH 21298
         # Allow use of Enums as one of the factors in a MultiIndex.
         
