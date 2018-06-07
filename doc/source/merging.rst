@@ -1310,7 +1310,7 @@ For this, use the :meth:`~DataFrame.combine_first` method:
 
 Note that this method only takes values from the right ``DataFrame`` if they are
 missing in the left ``DataFrame``. A related method, :meth:`~DataFrame.update`, 
-alters non-NA values inplace:
+alters non-NA values in place:
 
 .. ipython:: python
    :suppress:
