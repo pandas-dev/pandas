@@ -863,7 +863,7 @@ class Styler(object):
         return self
 
     def background_gradient(self, cmap='PuBu', low=0, high=0, axis=0,
-                            subset=None):
+                            subset=None, text_color_threshold=0.408):
         """
         Color the background in a gradient according to
         the data in each column (optionally row).
@@ -879,6 +879,12 @@ class Styler(object):
             1 or 'columns' for columnwise, 0 or 'index' for rowwise
         subset: IndexSlice
             a valid slice for ``data`` to limit the style application to
+        text_color_threshold: float or int
+            luminance threshold for determining text color. Facilitates text
+            visibility across varying background colors. From 0 to 1.
+            0 = all text is dark colored, 1 = all text is light colored.
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -886,19 +892,26 @@ class Styler(object):
 
         Notes
         -----
-        Tune ``low`` and ``high`` to keep the text legible by
-        not using the entire range of the color map. These extend
-        the range of the data by ``low * (x.max() - x.min())``
-        and ``high * (x.max() - x.min())`` before normalizing.
+        Set ``text_color_threshold`` or tune ``low`` and ``high`` to keep the
+        text legible by not using the entire range of the color map. The range
+        of the data is extended by ``low * (x.max() - x.min())`` and ``high *
+        (x.max() - x.min())`` before normalizing.
+
+        Raises
+        ------
+        ValueError
+            If ``text_color_threshold`` is not a value from 0 to 1.
         """
         subset = _maybe_numeric_slice(self.data, subset)
         subset = _non_reducing_slice(subset)
         self.apply(self._background_gradient, cmap=cmap, subset=subset,
-                   axis=axis, low=low, high=high)
+                   axis=axis, low=low, high=high,
+                   text_color_threshold=text_color_threshold)
         return self
 
     @staticmethod
-    def _background_gradient(s, cmap='PuBu', low=0, high=0):
+    def _background_gradient(s, cmap='PuBu', low=0, high=0,
+                             text_color_threshold=0.408):
         """Color background in a range according to the data."""
         with _mpl(Styler.background_gradient) as (plt, colors):
             rng = s.max() - s.min()
@@ -909,8 +922,39 @@ class Styler(object):
             # https://github.com/matplotlib/matplotlib/issues/5427
             normed = norm(s.values)
             c = [colors.rgb2hex(x) for x in plt.cm.get_cmap(cmap)(normed)]
-            return ['background-color: {color}'.format(color=color)
-                    for color in c]
+            if (not isinstance(text_color_threshold, (float, int)) or
+                    not 0 <= text_color_threshold <= 1):
+                msg = "`text_color_threshold` must be a value from 0 to 1."
+                raise ValueError(msg)
+
+            def relative_luminance(color):
+                """
+                Calculate relative luminance of a color.
+
+                The calculation adheres to the W3C standards
+                (https://www.w3.org/WAI/GL/wiki/Relative_luminance)
+
+                Parameters
+                ----------
+                color : matplotlib color
+                    Hex code, rgb-tuple, or HTML color name.
+
+                Returns
+                -------
+                float
+                    The relative luminance as a value from 0 to 1
+                """
+                rgb = colors.colorConverter.to_rgba_array(color)[:, :3]
+                rgb = np.where(rgb <= .03928, rgb / 12.92,
+                               ((rgb + .055) / 1.055) ** 2.4)
+                lum = rgb.dot([.2126, .7152, .0722])
+                return lum.item()
+
+            text_colors = ['#f1f1f1' if relative_luminance(x) <
+                           text_color_threshold else '#000000' for x in c]
+
+            return ['background-color: {color};color: {tc}'.format(
+                    color=color, tc=tc) for color, tc in zip(c, text_colors)]
 
     def set_properties(self, subset=None, **kwargs):
         """
