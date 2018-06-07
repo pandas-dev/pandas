@@ -88,7 +88,7 @@ Indexing
 - Bug in :meth:`MultiIndex.set_names` where error raised for a ``MultiIndex`` with ``nlevels == 1`` (:issue:`21149`)
 - Bug in :class:`IntervalIndex` constructors where creating an ``IntervalIndex`` from categorical data was not fully supported (:issue:`21243`, issue:`21253`)
 - Bug in :meth:`MultiIndex.sort_index` which was not guaranteed to sort correctly with ``level=1``; this was also causing data misalignment in particular :meth:`DataFrame.stack` operations (:issue:`20994`, :issue:`20945`, :issue:`21052`)
--
+- Bug in :func:`pandas.core.arrays.categorical._factorize_from_iterable` inappropriately caused ``TypeError`` to be raised when an ``Enum`` was used as a factor in a ``MultiIndex`` (:issue:`21298`)
 
 I/O
 ^^^
