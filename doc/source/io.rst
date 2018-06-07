@@ -4719,12 +4719,6 @@ writes ``data`` to the database in batches of 1000 rows at a time:
 
     data.to_sql('data_chunked', engine, chunksize=1000)
 
-.. note::
-
-    The function :func:`~pandas.DataFrame.to_sql` will perform a multivalue
-    insert if the engine dialect ``supports_multivalues_insert``. This will
-    greatly speed up the insert in some cases.
-
 SQL data types
 ++++++++++++++
 
