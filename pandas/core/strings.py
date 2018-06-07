@@ -2243,9 +2243,8 @@ class StringMethods(NoNewAttributesMixin):
     _shared_docs['str_split'] = ("""
     Split strings around given separator/delimiter.
 
-    Returns a list of the words from each string in Series/Index,
-    split by the given delimiter string, starting at the %(side)s of the
-    string. Equivalent to :meth:`str.%(method)s`.
+    Splits the string in the Series/Index from the %(side)s, 
+    at the specified delimiter string.Equivalent to :meth:`str.%(method)s`.
 
     Parameters
     ----------
@@ -2284,9 +2283,17 @@ class StringMethods(NoNewAttributesMixin):
 
     Examples
     --------
-    >>> s = pd.Series(["this is good text", "but this is even better"])
+    %(example)s
+    """)
 
-    By default, split and rsplit will return an object of the same size
+    @Appender(_shared_docs['str_split'] % {
+        'side':'beginning',
+        'method':'split', 
+        'also': 'rsplit : Split the string at the last occurrence of delimiter',
+        'example': 
+         """>>> s = pd.Series(["this is good text", "but this is even better"]) 
+    
+    By default, split will return an object of the same size
     having lists containing the split elements
 
     >>> s.str.split()
@@ -2294,17 +2301,7 @@ class StringMethods(NoNewAttributesMixin):
     1    [but, this, is, even, better]
     dtype: object
 
-      >>> s.str.rsplit()
-    0           [this, is, good, text]
-    1    [but, this, is, even, better]
-    dtype: object
-
     >>> s.str.split("random")
-    0          [this is good text]
-    1    [but this is even better]
-    dtype: object
-
-    >>> s.str.rsplit("random")
     0          [this is good text]
     1    [but this is even better]
     dtype: object
@@ -2331,6 +2328,42 @@ class StringMethods(NoNewAttributesMixin):
     1    [but th,  is even better]
     dtype: object
 
+    If NaN is present, it is propagated throughout the columns
+    during the split.
+
+    >>> s = pd.Series(["this is good text", "but this is even better", np.nan])
+
+    >>> s.str.split(n=3, expand=True)
+          0     1     2            3
+    0  this    is  good         text
+    1   but  this    is  even better
+    2   NaN   NaN   NaN          NaN """})
+    def split(self, pat=None, n=-1, expand=False):
+        result = str_split(self._data, pat, n=n)
+        return self._wrap_result(result, expand=expand)
+
+    @Appender(_shared_docs['str_split'] % {
+        'side':'end',
+        'method':'rsplit', 
+        'also': 'split : Split the string at the first occurrence of delimiter',
+        'example':
+        """>>> s = pd.Series(["this is good text", "but this is even better"])
+    
+    By default, rsplit will return an object of the same size
+    having lists containing the split elements
+
+    >>> s.str.rsplit()
+    0           [this, is, good, text]
+    1    [but, this, is, even, better]
+    dtype: object
+
+    >>> s.str.rsplit("random")
+    0          [this is good text]
+    1    [but this is even better]
+    dtype: object
+
+    Parameter `n` can be used to limit the number of splits in the output.
+
     >>> s.str.rsplit("is", n=1)
     0          [this ,  good text]
     1    [but this ,  even better]
@@ -2341,27 +2374,11 @@ class StringMethods(NoNewAttributesMixin):
 
     >>> s = pd.Series(["this is good text", "but this is even better", np.nan])
 
-    >>> s.str.split(n=3, expand=True)
-          0     1     2            3
-    0  this    is  good         text
-    1   but  this    is  even better
-    2   NaN   NaN   NaN          NaN
-
     >>> s.str.rsplit(n=3, expand=True)
               0    1     2       3
     0      this   is  good    text
     1  but this   is  even  better
-    2       NaN  NaN   NaN     NaN
-    """)
-
-    @Appender(_shared_docs['str_split'] % dict(side='start',
-                                               method='split'))
-    def split(self, pat=None, n=-1, expand=False):
-        result = str_split(self._data, pat, n=n)
-        return self._wrap_result(result, expand=expand)
-
-    @Appender(_shared_docs['str_split'] % dict(side='end',
-                                               method='rsplit'))
+    2       NaN  NaN   NaN     NaN """ })
     def rsplit(self, pat=None, n=-1, expand=False):
         result = str_rsplit(self._data, pat, n=n)
         return self._wrap_result(result, expand=expand)
