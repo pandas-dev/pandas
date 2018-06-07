@@ -16,7 +16,7 @@ New features
 ~~~~~~~~~~~~
 
 - :meth:`Index.droplevel` is now implemented also for flat indexes, for compatibility with MultiIndex (:issue:`21115`)
-- :func: merge now allows  a ``DataFrame`` and a ``Series`` with a name as inputs (:issue:`21220`)
+
 
 
 .. _whatsnew_0231.deprecations:
