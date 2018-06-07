@@ -116,7 +116,7 @@ header : int or list of ints, default ``'infer'``
   existing names.
 
   The header can be a list of ints that specify row locations
-  for a multi-index on the columns e.g. ``[0,1,3]``. Intervening rows
+  for a MultiIndex on the columns e.g. ``[0,1,3]``. Intervening rows
   that are not specified will be skipped (e.g. 2 in this example is
   skipped). Note that this parameter ignores commented lines and empty
   lines if ``skip_blank_lines=True``, so header=0 denotes the first
@@ -503,7 +503,7 @@ This matches the behavior of :meth:`Categorical.set_categories`.
    converted using the :func:`to_numeric` function, or as appropriate, another
    converter such as :func:`to_datetime`.
 
-   When ``dtype`` is a ``CategoricalDtype`` with homogenous ``categories`` (
+   When ``dtype`` is a ``CategoricalDtype`` with homogeneous ``categories`` (
    all numeric, all datetimes, etc.), the conversion is done automatically.
 
    .. ipython:: python
@@ -554,7 +554,7 @@ If the header is in a row other than the first, pass the row number to
 
   Default behavior is to infer the column names: if no names are
   passed the behavior is identical to ``header=0`` and column names
-  are inferred from the first nonblank line of the file, if column
+  are inferred from the first non-blank line of the file, if column
   names are passed explicitly then the behavior is identical to
   ``header=None``.
 
@@ -868,7 +868,7 @@ data columns:
    df
 
 .. note::
-   If a column or index contains an unparseable date, the entire column or
+   If a column or index contains an unparsable date, the entire column or
    index will be returned unaltered as an object data type. For non-standard
    datetime parsing, use :func:`to_datetime` after ``pd.read_csv``.
 
@@ -1644,7 +1644,7 @@ over the string representation of the object. All arguments are optional:
     argument and returns a formatted string; to be applied to floats in the
     ``DataFrame``.
   - ``sparsify`` default True, set to False for a ``DataFrame`` with a hierarchical
-    index to print every multiindex key at each row.
+    index to print every MultiIndex key at each row.
   - ``index_names`` default True, will print the names of the indices
   - ``index`` default True, will print the index (ie, row labels)
   - ``header`` default True, will print the column labels
@@ -2178,7 +2178,7 @@ A few notes on the generated table schema:
 - The ``schema`` object contains a ``pandas_version`` field. This contains
   the version of pandas' dialect of the schema, and will be incremented
   with each revision.
-- All dates are converted to UTC when serializing. Even timezone naïve values,
+- All dates are converted to UTC when serializing. Even timezone naive values,
   which are treated as UTC with an offset of 0.
 
   .. ipython:: python
@@ -2245,7 +2245,7 @@ A few notes on the generated table schema:
 .. versionadded:: 0.23.0
 
 ``read_json`` also accepts ``orient='table'`` as an argument. This allows for
-the preserveration of metadata such as dtypes and index names in a
+the preservation of metadata such as dtypes and index names in a
 round-trippable manner.
 
   .. ipython:: python
@@ -2356,7 +2356,7 @@ Read a URL and match a table that contains specific text:
 
 Specify a header row (by default ``<th>`` or ``<td>`` elements located within a
 ``<thead>`` are used to form the column index, if multiple rows are contained within
-``<thead>`` then a multiindex is created); if specified, the header row is taken
+``<thead>`` then a multi-index is created); if specified, the header row is taken
 from the data minus the parsed header elements (``<th>`` elements).
 
 .. code-block:: python
@@ -3141,7 +3141,7 @@ any pickled pandas object (or any other pickled object) from file:
 
 .. warning::
 
-   Several internal refactorings have been done while still preserving
+   Several internal refactoring have been done while still preserving
    compatibility with pickles created with older versions of pandas. However,
    for such cases, pickled ``DataFrames``, ``Series`` etc, must be read with
    ``pd.read_pickle``, rather than ``pickle.load``.
