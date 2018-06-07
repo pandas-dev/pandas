@@ -10,6 +10,14 @@ and bug fixes. We recommend that all users upgrade to this version.
     :local:
     :backlinks: none
 
+.. _whatsnew_0231.fixed_regressions:
+
+Fixed Regressions
+~~~~~~~~~~~~~~~~~
+
+- Fixed regression in constructors coercing NA values like ``None`` to strings when passing ``dtype=str`` (:issue:`21083`)
+
+
 .. _whatsnew_0231.enhancements:
 
 New features

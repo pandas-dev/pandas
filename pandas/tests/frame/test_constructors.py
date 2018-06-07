@@ -151,6 +151,14 @@ class TestDataFrameConstructors(TestData):
         assert a.dtype == df.a.dtype
         assert b.dtype == df.b.dtype
 
+    def test_constructor_dtype_str_na_values(self):
+        # https://github.com/pandas-dev/pandas/issues/21083
+        df = DataFrame({'A': ['x', None]}, dtype=str)
+        result = df.isna()
+        expected = DataFrame({"A": [False, True]})
+        tm.assert_frame_equal(result, expected)
+        assert df.iloc[1, 0] is None
+
     def test_constructor_rec(self):
         rec = self.frame.to_records(index=False)
 

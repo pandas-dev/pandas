@@ -4054,7 +4054,20 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                                            isinstance(subarr, np.ndarray))):
                 subarr = construct_1d_object_array_from_listlike(subarr)
             elif not is_extension_type(subarr):
-                subarr = np.array(subarr, dtype=dtype, copy=copy)
+                subarr2 = np.array(subarr, dtype=dtype, copy=copy)
+
+                if dtype and dtype.kind in ("U", "S"):
+                    # GH-21083
+                    # We can't just return np.array(subarr, dtype='str') since
+                    # NumPy will convert the non-string objects into strings
+                    # Including NA values. Se we have to go
+                    # string -> object -> update NA, which requires an
+                    # additional pass over the data.
+                    na_values = isna(subarr)
+                    subarr2 = subarr2.astype(object)
+                    subarr2[na_values] = np.asarray(subarr)[na_values]
+
+                subarr = subarr2
         except (ValueError, TypeError):
             if is_categorical_dtype(dtype):
                 # We *do* allow casting to categorical, since we know
