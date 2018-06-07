@@ -243,7 +243,7 @@ their use cases, if it is not too generic.
         """
         Pivot a row index to columns.
 
-        When using a multi-index, a level can be pivoted so each value in
+        When using a MultiIndex, a level can be pivoted so each value in
         the index becomes a column. This is especially useful when a subindex
         is repeated for the main index, and data is easier to visualize as a
         pivot table.

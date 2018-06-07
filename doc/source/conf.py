@@ -77,8 +77,10 @@ extensions = ['sphinx.ext.autodoc',
               ]
 
 exclude_patterns = ['**.ipynb_checkpoints']
+import subprocess
+test = subprocess.check_output("git log --format='%an' | sort|uniq", shell=True)
 
-spelling_word_list_filename = ['spelling_wordlist.txt', 'names_wordlist.txt']
+spelling_word_list_filename = ['spelling_wordlist.txt', test.decode('utf-8', 'ignore').split()]
 spelling_ignore_pypi_package_names = True
 
 with open("index.rst") as f:
