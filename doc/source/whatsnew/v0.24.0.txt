@@ -80,6 +80,8 @@ Documentation Changes
 Bug Fixes
 ~~~~~~~~~
 
+- The top level None value is not dropped but rather preserved along with lower levels for consistency (:issue:`21356`)
+
 Categorical
 ^^^^^^^^^^^
 
