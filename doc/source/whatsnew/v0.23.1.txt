@@ -18,7 +18,6 @@ New features
 - :meth:`Index.droplevel` is now implemented also for flat indexes, for compatibility with MultiIndex (:issue:`21115`)
 
 
-
 .. _whatsnew_0231.deprecations:
 
 Deprecations
