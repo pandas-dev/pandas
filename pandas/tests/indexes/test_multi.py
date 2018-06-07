@@ -3307,33 +3307,40 @@ class TestMultiIndex(Base):
         with pytest.raises(ValueError):
             ind.set_levels([['A', 'B', 'A', 'A', 'B'], [2, 1, 3, -2, 5]],
                            inplace=True)
-    
+
     def test_use_enum_in_multiindex(self):
         # GH 21298
         # Allow use of Enums as one of the factors in a MultiIndex.
-        
-        # See https://github.com/pandas-dev/pandas/blob/0c65c57a279e755ab7093db925d1e580f9878dae
-        # /pandas/util/testing.py#L793-L799. We cannot simply use tm.assert_index_equal, as the
-        # "expected" index cannot actually be built yet.
+
+        # See https://github.com/pandas-dev/pandas/blob/
+        # 0c65c57a279e755ab7093db925d1e580f9878dae/pandas/util/testing.py#L793-L799.
+        # We cannot simply use tm.assert_index_equal, as the "expected" index
+        # cannot actually be built yet.
         from pandas.core.algorithms import take_1d
+
         def _get_ilevel_values(index, level):
             # accept level number only
             unique = index.levels[level]
             labels = index.labels[level]
-            filled = take_1d(unique.values, labels, fill_value=unique._na_value)
+            filled = take_1d(
+                unique.values,
+                labels, fill_value=unique._na_value
+            )
             values = unique._shallow_copy(filled, name=index.names[level])
             return values
-        
+
         from enum import Enum
         MyEnum = Enum("MyEnum", "A B")
-        df = pd.DataFrame(columns=pd.MultiIndex.from_product(iterables=[MyEnum, [1, 2]]))
-        exp_index_0 = pd.Index([MyEnum.A, MyEnum.A, MyEnum.B, MyEnum.B], dtype='object')
+        df = pd.DataFrame(columns=pd.MultiIndex.from_product(iterables=[
+            MyEnum,
+            [1, 2]
+        ]))
+        exp_index_0 = pd.Index([MyEnum.A, MyEnum.A, MyEnum.B, MyEnum.B],
+                               dtype='object')
         tm.assert_index_equal(_get_ilevel_values(df.columns, 0), exp_index_0)
-        
+
         expected = df.copy()
-        df = df.append({(MyEnum.A, 1): "abc", (MyEnum.B, 2): "xyz"}, ignore_index=True)
+        df = df.append({(MyEnum.A, 1): "abc", (MyEnum.B, 2): "xyz"},
+                       ignore_index=True)
         expected.loc[0, [(MyEnum.A, 1), (MyEnum.B, 2)]] = 'abc', 'xyz'
         tm.assert_frame_equal(df, expected)
-
-
-
