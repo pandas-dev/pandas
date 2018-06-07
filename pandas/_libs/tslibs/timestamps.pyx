@@ -400,10 +400,17 @@ cdef class _Timestamp(datetime):
     def asm8(self):
         return np.datetime64(self.value, 'ns')
 
+    @property
+    def resolution(self):
+        """ Return resolution in a native pandas format. """
+        # GH 21336
+        return Timedelta(nanoseconds=1)
+
     def timestamp(self):
         """Return POSIX timestamp as float."""
         # py27 compat, see GH#17329
         return round(self.value / 1e9, 6)
+
 
 
 # ----------------------------------------------------------------------
