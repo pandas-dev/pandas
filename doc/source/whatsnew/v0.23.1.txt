@@ -16,6 +16,10 @@ and bug fixes. We recommend that all users upgrade to this version.
 Fixed Regressions
 ~~~~~~~~~~~~~~~~~
 
+
+- Reverted the ability of :func:`~DataFrame.to_sql` to perform multivalue
+  inserts as this caused regression in certain cases (:issue:`21103`).
+  In the future this will be made configurable.
 - Fixed regression in the :attr:`DatetimeIndex.date` and :attr:`DatetimeIndex.time`
   attributes in case of timezone-aware data: :attr:`DatetimeIndex.time` returned
   a tz-aware time instead of tz-naive (:issue:`21267`) and :attr:`DatetimeIndex.date`
