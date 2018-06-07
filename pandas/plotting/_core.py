@@ -811,7 +811,7 @@ class PlanePlot(MPLPlot):
     def __init__(self, data, x, y, **kwargs):
         MPLPlot.__init__(self, data, **kwargs)
         if x is None or y is None:
-            raise ValueError(self._kind + ' requires and x and y column')
+            raise ValueError(self._kind + ' requires an x and y column')
         if is_integer(x) and not self.data.columns.holds_integer():
             x = self.data.columns[x]
         if is_integer(y) and not self.data.columns.holds_integer():
