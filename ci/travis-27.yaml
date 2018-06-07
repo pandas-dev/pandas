@@ -42,6 +42,7 @@ dependencies:
   - pytest
   - pytest-xdist
   - moto
+  - enum34
   - pip:
     - backports.lzma
     - cpplint
