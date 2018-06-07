@@ -428,7 +428,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             # must be integer dtype otherwise
             # assume this data are epoch timestamps
             if data.dtype != _INT64_DTYPE:
-                data = data.astype(np.int64)
+                data = data.astype(np.int64, copy=False)
             subarr = data.view(_NS_DTYPE)
 
         subarr = cls._simple_new(subarr, name=name, freq=freq, tz=tz)

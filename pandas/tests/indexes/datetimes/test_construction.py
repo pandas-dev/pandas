@@ -1,5 +1,6 @@
 from datetime import timedelta
 from operator import attrgetter
+from functools import partial
 
 import pytest
 import pytz
@@ -31,24 +32,24 @@ class TestDatetimeIndex(object):
         {'tz': 'dtype.tz'},
         {'dtype': 'dtype'},
         {'dtype': 'dtype', 'tz': 'dtype.tz'}])
-    def test_construction_with_alt(self, kwargs):
-        i = pd.date_range('20130101', periods=5, freq='H', tz='US/Eastern')
+    def test_construction_with_alt(self, kwargs, tz_aware_fixture):
+        tz = tz_aware_fixture
+        i = pd.date_range('20130101', periods=5, freq='H', tz=tz)
         kwargs = {key: attrgetter(val)(i) for key, val in kwargs.items()}
         result = DatetimeIndex(i, **kwargs)
         tm.assert_index_equal(i, result)
-        assert result.tz.zone == 'US/Eastern'
 
     @pytest.mark.parametrize('kwargs', [
         {'tz': 'dtype.tz'},
         {'dtype': 'dtype'},
         {'dtype': 'dtype', 'tz': 'dtype.tz'}])
-    def test_construction_with_alt_tz_localize(self, kwargs):
-        i = pd.date_range('20130101', periods=5, freq='H', tz='US/Eastern')
+    def test_construction_with_alt_tz_localize(self, kwargs, tz_aware_fixture):
+        tz = tz_aware_fixture
+        i = pd.date_range('20130101', periods=5, freq='H', tz=tz)
         kwargs = {key: attrgetter(val)(i) for key, val in kwargs.items()}
         result = DatetimeIndex(i.tz_localize(None).asi8, **kwargs)
-        expected = i - pd.Timedelta(hours=5)
+        expected = i.tz_localize(None).tz_localize('UTC').tz_convert(tz)
         tm.assert_index_equal(result, expected)
-        assert result.tz.zone == 'US/Eastern'
 
         # localize into the provided tz
         i2 = DatetimeIndex(i.tz_localize(None).asi8, tz='UTC')
@@ -474,11 +475,15 @@ class TestDatetimeIndex(object):
         assert pytz.timezone(tz) is result.tz
 
     @pytest.mark.parametrize('klass', [Index, DatetimeIndex])
-    @pytest.mark.parametrize('box', [np.array, list])
-    def test_constructor_with_int_tz(self, klass, box):
+    @pytest.mark.parametrize('box', [
+        np.array, partial(np.array, dtype=object), list])
+    @pytest.mark.parametrize('tz, dtype', [
+        ['US/Pacific', 'datetime64[ns, US/Pacific]'],
+        [None, 'datetime64[ns]']])
+    def test_constructor_with_int_tz(self, klass, box, tz, dtype):
         # GH 20997, 20964
-        ts = Timestamp('2018-01-01', tz='US/Pacific')
-        result = klass(box([ts.value]), dtype='datetime64[ns, US/Pacific]')
+        ts = Timestamp('2018-01-01', tz=tz)
+        result = klass(box([ts.value]), dtype=dtype)
         expected = klass([ts])
         tm.assert_index_equal(result, expected)
 
