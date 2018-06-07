@@ -4056,7 +4056,7 @@ def _sanitize_array(data, index, dtype=None, copy=False,
             elif not is_extension_type(subarr):
                 subarr2 = np.array(subarr, dtype=dtype, copy=copy)
 
-                if dtype and dtype.kind in ("U", "S"):
+                if dtype is not None and dtype.kind in ("U", "S"):
                     # GH-21083
                     # We can't just return np.array(subarr, dtype='str') since
                     # NumPy will convert the non-string objects into strings
