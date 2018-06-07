@@ -1394,7 +1394,7 @@ _kde_docstring = """
         In statistics, `kernel density estimation`_ (KDE) is a non-parametric
         way to estimate the probability density function (PDF) of a random
         variable. This function uses Gaussian kernels and includes automatic
-        bandwith determination.
+        bandwidth determination.
 
         .. _kernel density estimation:
             https://en.wikipedia.org/wiki/Kernel_density_estimation
@@ -2031,7 +2031,7 @@ _shared_docs['boxplot'] = """
         Tick label font size in points or as a string (e.g., `large`).
     rot : int or float, default 0
         The rotation angle of labels (in degrees)
-        with respect to the screen coordinate sytem.
+        with respect to the screen coordinate system.
     grid : boolean, default True
         Setting this to True will show the grid.
     figsize : A tuple (width, height) in inches
@@ -2063,7 +2063,7 @@ _shared_docs['boxplot'] = """
 
         * 'axes' : object of class matplotlib.axes.Axes
         * 'dict' : dict of matplotlib.lines.Line2D objects
-        * 'both' : a nametuple with strucure (ax, lines)
+        * 'both' : a namedtuple with structure (ax, lines)
 
         For data grouped with ``by``:
 
@@ -2848,8 +2848,8 @@ class SeriesPlotMethods(BasePlotMethods):
             >>> ax = s.plot.kde()
 
         A scalar bandwidth can be specified. Using a small bandwidth value can
-        lead to overfitting, while using a large bandwidth value may result
-        in underfitting:
+        lead to over-fitting, while using a large bandwidth value may result
+        in under-fitting:
 
         .. plot::
             :context: close-figs
@@ -3284,8 +3284,8 @@ class FramePlotMethods(BasePlotMethods):
             >>> ax = df.plot.kde()
 
         A scalar bandwidth can be specified. Using a small bandwidth value can
-        lead to overfitting, while using a large bandwidth value may result
-        in underfitting:
+        lead to over-fitting, while using a large bandwidth value may result
+        in under-fitting:
 
         .. plot::
             :context: close-figs
@@ -3415,7 +3415,7 @@ class FramePlotMethods(BasePlotMethods):
 
             - A sequence of color strings referred to by name, RGB or RGBA
               code, which will be used for each point's color recursively. For
-              intance ['green','yellow'] all points will be filled in green or
+              instance ['green','yellow'] all points will be filled in green or
               yellow, alternatively.
 
             - A column name or position whose values will be used to color the

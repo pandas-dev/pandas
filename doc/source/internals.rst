@@ -41,7 +41,7 @@ There are functions that make the creation of a regular index easy:
 - ``date_range``: fixed frequency date range generated from a time rule or
   DateOffset. An ndarray of Python datetime objects
 - ``period_range``: fixed frequency date range generated from a time rule or
-  DateOffset. An ndarray of ``Period`` objects, representing Timespans
+  DateOffset. An ndarray of ``Period`` objects, representing timespans
 
 The motivation for having an ``Index`` class in the first place was to enable
 different implementations of indexing. This means that it's possible for you,

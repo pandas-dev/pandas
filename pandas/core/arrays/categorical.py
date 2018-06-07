@@ -52,7 +52,7 @@ from .base import ExtensionArray
 
 _take_msg = textwrap.dedent("""\
     Interpreting negative values in 'indexer' as missing values.
-    In the future, this will change to meaning positional indicies
+    In the future, this will change to meaning positional indices
     from the right.
 
     Use 'allow_fill=True' to retain the previous behavior and silence this
@@ -1479,7 +1479,7 @@ class Categorical(ExtensionArray, PandasObject):
         # TODO(PY2): use correct signature
         # We have to do *args, **kwargs to avoid a a py2-only signature
         # issue since np.argsort differs from argsort.
-        """Return the indicies that would sort the Categorical.
+        """Return the indices that would sort the Categorical.
 
         Parameters
         ----------

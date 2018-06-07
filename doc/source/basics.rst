@@ -593,7 +593,7 @@ categorical columns:
     frame = pd.DataFrame({'a': ['Yes', 'Yes', 'No', 'No'], 'b': range(4)})
     frame.describe()
 
-This behaviour can be controlled by providing a list of types as ``include``/``exclude``
+This behavior can be controlled by providing a list of types as ``include``/``exclude``
 arguments. The special value ``all`` can also be used:
 
 .. ipython:: python

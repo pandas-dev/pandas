@@ -1524,7 +1524,7 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
             expected = self.panel.reindex(minor=['D', 'A', 'B', 'C'])
             assert_panel_equal(result, expected)
 
-            # neg indicies ok
+            # neg indices ok
             expected = self.panel.reindex(minor=['D', 'D', 'B', 'C'])
             result = self.panel.take([3, -1, 1, 2], axis=2)
             assert_panel_equal(result, expected)

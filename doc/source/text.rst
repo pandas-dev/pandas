@@ -55,8 +55,8 @@ Since ``df.columns`` is an Index object, we can use the ``.str`` accessor
    df.columns.str.lower()
 
 These string methods can then be used to clean up the columns as needed.
-Here we are removing leading and trailing whitespaces, lowercasing all names,
-and replacing any remaining whitespaces with underscores:
+Here we are removing leading and trailing white spaces, lower casing all names,
+and replacing any remaining white spaces with underscores:
 
 .. ipython:: python
 

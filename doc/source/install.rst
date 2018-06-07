@@ -31,7 +31,7 @@ PyPI and through conda.
 Starting **January 1, 2019**, all releases will be Python 3 only.
 
 If there are people interested in continued support for Python 2.7 past December
-31, 2018 (either backporting bugfixes or funding) please reach out to the
+31, 2018 (either backporting bug fixes or funding) please reach out to the
 maintainers on the issue tracker.
 
 For more information, see the `Python 3 statement`_ and the `Porting to Python 3 guide`_.
@@ -199,7 +199,7 @@ Running the test suite
 ----------------------
 
 pandas is equipped with an exhaustive set of unit tests, covering about 97% of
-the codebase as of this writing. To run it on your machine to verify that
+the code base as of this writing. To run it on your machine to verify that
 everything is working (and that you have all of the dependencies, soft and hard,
 installed), make sure you have `pytest
 <http://doc.pytest.org/en/latest/>`__ and run:

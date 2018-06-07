@@ -43,12 +43,12 @@ class TestPanel(object):
             expected = p.loc[['A', 'C']]
             tm.assert_panel_equal(result, expected)
 
-            # neg indicies
+            # neg indices
             result = p.iloc[[-1, 1], [-1, 1]]
             expected = p.loc[['D', 'B'], ['c', 'b']]
             tm.assert_panel_equal(result, expected)
 
-            # dups indicies
+            # dups indices
             result = p.iloc[[-1, -1, 1], [-1, 1]]
             expected = p.loc[['D', 'D', 'B'], ['c', 'b']]
             tm.assert_panel_equal(result, expected)

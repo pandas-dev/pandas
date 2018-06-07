@@ -149,7 +149,7 @@ More information can be found in the `ipython documentation
 
 Frequently Used Options
 -----------------------
-The following is a walkthrough of the more frequently used display options.
+The following is a walk-through of the more frequently used display options.
 
 ``display.max_rows`` and ``display.max_columns`` sets the maximum number
 of rows and columns displayed when a frame is pretty-printed.  Truncated

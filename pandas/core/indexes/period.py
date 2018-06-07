@@ -587,7 +587,7 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
             'S', 'START', or 'BEGIN' for start.
             Whether the elements should be aligned to the end
             or start within pa period. January 31st ('END') vs.
-            Janury 1st ('START') for example.
+            January 1st ('START') for example.
 
         Returns
         -------

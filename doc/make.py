@@ -224,8 +224,9 @@ class DocBuilder:
         --------
         >>> DocBuilder(num_jobs=4)._sphinx_build('html')
         """
-        if kind not in ('html', 'latex'):
-            raise ValueError('kind must be html or latex, not {}'.format(kind))
+        if kind not in ('html', 'latex', 'spelling'):
+            raise ValueError('kind must be html, latex or '
+                             'spelling, not {}'.format(kind))
 
         self._run_os('sphinx-build',
                      '-j{}'.format(self.num_jobs),
@@ -303,6 +304,18 @@ class DocBuilder:
                      '-r',
                      '-q',
                      *fnames)
+
+    def spellcheck(self):
+        """Spell check the documentation."""
+        self._sphinx_build('spelling')
+        output_location = os.path.join('build', 'spelling', 'output.txt')
+        with open(output_location) as output:
+            lines = output.readlines()
+            if lines:
+                raise SyntaxError(
+                    'Found misspelled words.'
+                    ' Check pandas/doc/build/spelling/output.txt'
+                    ' for more details.')
 
 
 def main():

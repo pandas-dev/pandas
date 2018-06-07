@@ -32,7 +32,7 @@ Cython (Writing C extensions for pandas)
 ----------------------------------------
 
 For many use cases writing pandas in pure Python and NumPy is sufficient. In some
-computationally heavy applications however, it can be possible to achieve sizeable
+computationally heavy applications however, it can be possible to achieve sizable
 speed-ups by offloading work to `cython <http://cython.org/>`__.
 
 This tutorial assumes you have refactored as much as possible in Python, for example
@@ -806,7 +806,7 @@ truncate any strings that are more than 60 characters in length. Second, we
 can't pass ``object`` arrays to ``numexpr`` thus string comparisons must be
 evaluated in Python space.
 
-The upshot is that this *only* applies to object-dtype'd expressions. So, if
+The upshot is that this *only* applies to object-dtype expressions. So, if
 you have an expression--for example
 
 .. ipython:: python

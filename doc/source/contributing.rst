@@ -436,6 +436,25 @@ the documentation are also built by Travis-CI. These docs are then hosted `here
 <http://pandas-docs.github.io/pandas-docs-travis>`__, see also
 the :ref:`Continuous Integration <contributing.ci>` section.
 
+Spell checking documentation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When contributing to documentation to **pandas** it's good to check if your work
+contains any spelling errors. Sphinx provides an easy way to spell check documentation
+and docstrings.
+
+Running the spell check is easy. Just navigate to your local ``pandas/doc/`` directory and run::
+
+    python make.py spellcheck
+
+The spellcheck will take a few minutes to run (between 1 to 6 minutes). Sphinx will alert you
+with warnings and misspelt words - these misspelt words will be added to a file called
+``output.txt`` and you can find it on your local directory ``pandas/doc/build/spelling/``.
+
+The Sphinx spelling extension uses an EN-US dictionary to correct words, what means that in
+some cases you might need to add a word to this dictionary. You can do so by adding the word to
+the bag-of-words file named ``spelling_wordlist.txt`` located in the folder ``pandas/doc/``.
+
 .. _contributing.code:
 
 Contributing to the code base
