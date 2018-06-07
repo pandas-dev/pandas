@@ -27,3 +27,4 @@ dependencies:
   - pytest
   - pytest-xdist
   - moto
+  - enum34
