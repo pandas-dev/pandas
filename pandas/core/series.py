@@ -4065,7 +4065,8 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                     # additional pass over the data.
                     na_values = isna(subarr)
                     subarr2 = subarr2.astype(object)
-                    subarr2[na_values] = np.asarray(subarr)[na_values]
+                    subarr2[na_values] = np.asarray(subarr,
+                                                    dtype=object)[na_values]
 
                 subarr = subarr2
         except (ValueError, TypeError):
