@@ -182,7 +182,7 @@ def read_stata(filepath_or_buffer, convert_dates=True,
                          preserve_dtypes=preserve_dtypes,
                          columns=columns,
                          order_categoricals=order_categoricals,
-                         chunksize=chunksize, encoding=encoding)
+                         chunksize=chunksize)
 
     if iterator or chunksize:
         data = reader
@@ -838,15 +838,8 @@ class StataMissingValue(StringMixin):
 
 
 class StataParser(object):
-    _default_encoding = 'latin-1'
 
-    def __init__(self, encoding):
-        if encoding is not None:
-            if encoding not in VALID_ENCODINGS:
-                raise ValueError('Unknown encoding. Only latin-1 and ascii '
-                                 'supported.')
-
-        self._encoding = encoding
+    def __init__(self):
 
         # type          code.
         # --------------------
@@ -964,8 +957,8 @@ class StataReader(StataParser, BaseIterator):
                  convert_categoricals=True, index_col=None,
                  convert_missing=False, preserve_dtypes=True,
                  columns=None, order_categoricals=True,
-                 encoding='latin-1', chunksize=None):
-        super(StataReader, self).__init__(encoding)
+                 encoding=None, chunksize=None):
+        super(StataReader, self).__init__()
         self.col_sizes = ()
 
         # Arguments to the reader (can be temporarily overridden in
@@ -977,10 +970,6 @@ class StataReader(StataParser, BaseIterator):
         self._preserve_dtypes = preserve_dtypes
         self._columns = columns
         self._order_categoricals = order_categoricals
-        if encoding is not None:
-            if encoding not in VALID_ENCODINGS:
-                raise ValueError('Unknown encoding. Only latin-1 and ascii '
-                                 'supported.')
         self._encoding = encoding
         self._chunksize = chunksize
 
@@ -998,18 +987,13 @@ class StataReader(StataParser, BaseIterator):
         path_or_buf = _stringify_path(path_or_buf)
         if isinstance(path_or_buf, str):
             path_or_buf, encoding, _, should_close = get_filepath_or_buffer(
-                path_or_buf, encoding=self._default_encoding
-            )
+                path_or_buf)
 
         if isinstance(path_or_buf, (str, text_type, bytes)):
             self.path_or_buf = open(path_or_buf, 'rb')
         else:
             # Copy to BytesIO, and ensure no encoding
             contents = path_or_buf.read()
-            try:
-                contents = contents.encode(self._default_encoding)
-            except:
-                pass
             self.path_or_buf = BytesIO(contents)
 
         self._read_header()
@@ -1030,6 +1014,15 @@ class StataReader(StataParser, BaseIterator):
         except IOError:
             pass
 
+    def _set_encoding(self):
+        """
+        Set string encoding which depends on file version
+        """
+        if self.format_version < 118:
+            self._encoding = 'latin-1'
+        else:
+            self._encoding = 'utf-8'
+
     def _read_header(self):
         first_char = self.path_or_buf.read(1)
         if struct.unpack('c', first_char)[0] == b'<':
@@ -1049,6 +1042,7 @@ class StataReader(StataParser, BaseIterator):
         self.format_version = int(self.path_or_buf.read(3))
         if self.format_version not in [117, 118]:
             raise ValueError(_version_error)
+        self._set_encoding()
         self.path_or_buf.read(21)  # </release><byteorder>
         self.byteorder = self.path_or_buf.read(3) == b'MSF' and '>' or '<'
         self.path_or_buf.read(15)  # </byteorder><K>
@@ -1235,6 +1229,7 @@ class StataReader(StataParser, BaseIterator):
         self.format_version = struct.unpack('b', first_char)[0]
         if self.format_version not in [104, 105, 108, 111, 113, 114, 115]:
             raise ValueError(_version_error)
+        self._set_encoding()
         self.byteorder = struct.unpack('b', self.path_or_buf.read(1))[
             0] == 0x1 and '>' or '<'
         self.filetype = struct.unpack('b', self.path_or_buf.read(1))[0]
@@ -1338,16 +1333,9 @@ class StataReader(StataParser, BaseIterator):
         return s.decode('utf-8')
 
     def _null_terminate(self, s):
-        if compat.PY3 or self._encoding is not None:
-            # have bytes not strings, so must decode
-            s = s.partition(b"\0")[0]
-            return s.decode(self._encoding or self._default_encoding)
-        else:
-            null_byte = "\0"
-            try:
-                return s.lstrip(null_byte)[:s.index(null_byte)]
-            except:
-                return s
+        # have bytes not strings, so must decode
+        s = s.partition(b"\0")[0]
+        return s.decode(self._encoding)
 
     def _read_value_labels(self):
         if self._value_labels_read:
@@ -1433,10 +1421,7 @@ class StataReader(StataParser, BaseIterator):
                                    self.path_or_buf.read(4))[0]
             va = self.path_or_buf.read(length)
             if typ == 130:
-                encoding = 'utf-8'
-                if self.format_version == 117:
-                    encoding = self._encoding or self._default_encoding
-                va = va[0:-1].decode(encoding)
+                va = va[0:-1].decode(self._encoding)
             # Wrap v_o in a string to allow uint64 values as keys on 32bit OS
             self.GSO[str(v_o)] = va
 
@@ -1980,9 +1965,14 @@ class StataWriter(StataParser):
     def __init__(self, fname, data, convert_dates=None, write_index=True,
                  encoding="latin-1", byteorder=None, time_stamp=None,
                  data_label=None, variable_labels=None):
-        super(StataWriter, self).__init__(encoding)
+        super(StataWriter, self).__init__()
         self._convert_dates = {} if convert_dates is None else convert_dates
         self._write_index = write_index
+        if encoding is not None:
+            if encoding not in VALID_ENCODINGS:
+                raise ValueError('Unknown encoding. Only latin-1 and ascii '
+                                 'supported.')
+        self._encoding = encoding
         self._time_stamp = time_stamp
         self._data_label = data_label
         self._variable_labels = variable_labels
