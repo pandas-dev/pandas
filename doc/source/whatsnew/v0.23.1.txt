@@ -117,6 +117,8 @@ I/O
 
 - Bug in IO methods specifying ``compression='zip'`` which produced uncompressed zip archives (:issue:`17778`, :issue:`21144`)
 - Bug in :meth:`DataFrame.to_stata` which prevented exporting DataFrames to buffers and most file-like objects (:issue:`21041`)
+- Bug when :meth:`pandas.io.json.json_normalize` was called with ``None`` values in nested levels in JSON  (:issue:`21158`)
+- Bug in :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` causes encoding error when compression and encoding are specified (:issue:`21241`, :issue:`21118`)
 - Bug in :meth:`read_stata` and :class:`StataReader` which did not correctly decode utf-8 strings on Python 3 from Stata 14 files (dta version 118) (:issue:`21244`)
 - Bug in IO JSON :func:`read_json` reading empty JSON schema with ``orient='table'`` back to :class:`DataFrame` caused an error (:issue:`21287`)
 
