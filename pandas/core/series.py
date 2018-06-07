@@ -2262,6 +2262,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if is_categorical_dtype(self.values):
             pass
         elif is_extension_array_dtype(self.values):
+            # The function can return something of any type, so check
+            # if the type is compatible with the calling EA
             try:
                 new_values = self._values._from_sequence(new_values)
             except TypeError:

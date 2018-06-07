@@ -178,10 +178,18 @@ Reshaping
 -
 -
 
-Other
-^^^^^
+ExtensionArray
+^^^^^^^^^^^^^^
 
 - :meth:`Series.combine()` works correctly with :class:`~pandas.api.extensions.ExtensionArray` inside of :class:`Series` (:issue:`20825`)
 - :meth:`Series.combine()` with scalar argument now works for any function type (:issue:`21248`)
+-
+-
+
+Other
+^^^^^
+
+-
+-
 -
 -
