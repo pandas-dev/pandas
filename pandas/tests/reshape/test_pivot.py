@@ -142,6 +142,25 @@ class TestPivotTable(object):
 
         tm.assert_frame_equal(result, expected)
 
+    def test_pivot_with_new_patch(self, dropna):
+        # gh-21133
+        df = pd.DataFrame(
+            {'A': pd.Categorical(['left', 'low', 'high', 'low', 'high'],
+                                 categories=['low', 'high', 'left'],
+                                 ordered=True),
+             'B': range(5)})
+
+        result = df.pivot_table(index='A', values='B', dropna=dropna)
+        expected = pd.DataFrame(
+            {'B': [2, 3, 0]},
+            index=pd.Index(
+                pd.Categorical.from_codes([0, 1, 2],
+                                          categories=['low', 'high', 'left'],
+                                          ordered=True),
+                name='A'))
+
+        tm.assert_frame_equal(result, expected)
+
     def test_pivot_with_non_observable_dropna(self, dropna):
         # gh-21133
         df = pd.DataFrame(
