@@ -1,8 +1,10 @@
 # pylint: disable=E1103
 
 
-from pandas.core.dtypes.common import is_list_like, is_scalar
+from pandas.core.dtypes.common import (
+    is_list_like, is_scalar, is_integer_dtype)
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
+from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 
 from pandas.core.reshape.concat import concat
 from pandas.core.series import Series
@@ -79,8 +81,22 @@ def pivot_table(data, values=None, index=None, columns=None, aggfunc='mean',
                 pass
         values = list(values)
 
-    grouped = data.groupby(keys, observed=dropna)
+    # group by the cartesian product of the grouper
+    # if we have a categorical
+    grouped = data.groupby(keys, observed=False)
     agged = grouped.agg(aggfunc)
+    if dropna and isinstance(agged, ABCDataFrame) and len(agged.columns):
+        agged = agged.dropna(how='all')
+
+        # gh-21133
+        # we want to down cast if
+        # the original values are ints
+        # as we grouped with a NaN value
+        # and then dropped, coercing to floats
+        for v in [v for v in values if v in data and v in agged]:
+            if (is_integer_dtype(data[v]) and
+                    not is_integer_dtype(agged[v])):
+                agged[v] = maybe_downcast_to_dtype(agged[v], data[v].dtype)
 
     table = agged
     if table.index.nlevels > 1:
