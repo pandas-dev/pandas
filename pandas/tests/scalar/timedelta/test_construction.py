@@ -210,3 +210,30 @@ def test_td_constructor_on_nanoseconds(constructed_td, conversion):
 def test_td_constructor_value_error():
     with pytest.raises(TypeError):
         Timedelta(nanoseconds='abc')
+
+
+class not_raises(object):
+    def __enter__(self):
+        pass
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+
+@pytest.mark.parametrize("redundant_unit, expectation", [
+    ("", not_raises()),
+    ("d", pytest.raises(ValueError)),
+    ("us", pytest.raises(ValueError)),
+])
+@pytest.mark.parametrize("unit", [
+   "d", "m", "s", "us"
+])
+@pytest.mark.parametrize("sign", [
+   +1, -1
+])
+@pytest.mark.parametrize("num", [
+    0.001, 1, 10
+])
+def test_string_with_unit(num, sign, unit, redundant_unit, expectation):
+    with expectation:
+        assert Timedelta(str(sign*num)+redundant_unit, unit=unit) == Timedelta(sign*num, unit=unit)
