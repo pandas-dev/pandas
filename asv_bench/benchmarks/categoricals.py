@@ -197,7 +197,14 @@ class IsMonotonic(object):
 
 class Contains(object):
 
-    params = (["a", "c", "d", "z", np.nan], [True, False])
+    params = ([
+        "b",  # in array
+        "d",  # in categories but not in codes
+        "z",  # nowhere
+        np.nan,
+    ],
+        [True, False],
+    )
     param_names = ["value", "has_nan"]
 
     def setup(self, value, has_nan):
@@ -227,10 +234,9 @@ class Indexing(object):
         if has_nan:
             obj_values = [np.nan] + obj_values[:-2] + [np.nan]
 
-        self.ci = pd.CategoricalIndex(obj_values, categories=list("abcd"))
-        self.cat = pd.Categorical(obj_values, categories=list("abcd"))
-        self.df = pd.DataFrame(dict(A=range(n * 3)), index=self.ci)
-        self.ser = pd.Series(range(n * 3), index=self.ci)
+        ci = pd.CategoricalIndex(obj_values, categories=list("abcd"))
+        self.df = pd.DataFrame(dict(A=range(n * 3)), index=ci)
+        self.ser = pd.Series(range(n * 3), index=ci)
 
     def time_loc_df(self, value, has_nan):
         self.df.loc[value]

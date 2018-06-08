@@ -64,7 +64,7 @@ Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Improved performance of :func:`Series.describe` in case of numeric dtpyes (:issue:`21274`)
-- Improved performance of indexing on a Series/DataFrame with a CategoricalIndex
+- Improved performance of indexing on a Series/DataFrame with a ``CategoricalIndex`` (:issue:`21022`)
 
 .. _whatsnew_0240.docs:
 
