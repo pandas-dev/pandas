@@ -3314,29 +3314,21 @@ class TestMultiIndex(Base):
         from enum import Enum
         from pandas.core.algorithms import take_1d
 
-        # See https://github.com/pandas-dev/pandas/blob/
-        # 0c65c57a279e755ab7093db925d1e580f9878dae/pandas/util/testing.py#L793-L799.
-        # We cannot simply use tm.assert_index_equal, as the "expected" index
-        # cannot actually be built yet.
-        def _get_ilevel_values(index, level):
-            # accept level number only
-            unique = index.levels[level]
-            labels = index.labels[level]
-            filled = take_1d(
-                unique.values,
-                labels, fill_value=unique._na_value
-            )
-            values = unique._shallow_copy(filled, name=index.names[level])
-            return values
-
         MyEnum = Enum("MyEnum", "A B")
         df = pd.DataFrame(columns=pd.MultiIndex.from_product(iterables=[
             MyEnum,
             [1, 2]
         ]))
+
+        # cf. https://github.com/pandas-dev/pandas/blob/
+        # 0c65c57a279e755ab7093db925d1e580f9878dae/pandas/util/testing.py#L793-L799
+        unique = df.columns.levels[0]
+        labels = df.columns.labels[0]
+        filled = take_1d(unique.values, labels, fill_value=unique._na_value)
+        df_index_0 = unique._shallow_copy(filled, name=df.columns.names[0])
         exp_index_0 = pd.Index([MyEnum.A, MyEnum.A, MyEnum.B, MyEnum.B],
                                dtype='object')
-        tm.assert_index_equal(_get_ilevel_values(df.columns, 0), exp_index_0)
+        tm.assert_index_equal(df_index_0, exp_index_0)
 
         expected = df.copy()
         df = df.append({(MyEnum.A, 1): "abc", (MyEnum.B, 2): "xyz"},
