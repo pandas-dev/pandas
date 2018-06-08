@@ -975,6 +975,9 @@ class _MergeOperation(object):
 
             # Check if we are trying to merge on obviously
             # incompatible dtypes GH 9780, GH 15800
+
+            # boolean values are considered as numeric, but are still allowed
+            # to be merged on object boolean values
             elif ((is_numeric_dtype(lk) and not is_bool_dtype(lk))
                     and not is_numeric_dtype(rk)):
                 raise ValueError(msg)
