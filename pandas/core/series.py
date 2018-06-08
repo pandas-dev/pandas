@@ -40,6 +40,7 @@ from pandas.core.dtypes.cast import (
     maybe_convert_platform,
     maybe_cast_to_datetime, maybe_castable,
     construct_1d_arraylike_from_scalar,
+    construct_1d_ndarray_preserving_na,
     construct_1d_object_array_from_listlike)
 from pandas.core.dtypes.missing import (
     isna,
@@ -4074,7 +4075,8 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                                            isinstance(subarr, np.ndarray))):
                 subarr = construct_1d_object_array_from_listlike(subarr)
             elif not is_extension_type(subarr):
-                subarr = np.array(subarr, dtype=dtype, copy=copy)
+                subarr = construct_1d_ndarray_preserving_na(subarr, dtype,
+                                                            copy=copy)
         except (ValueError, TypeError):
             if is_categorical_dtype(dtype):
                 # We *do* allow casting to categorical, since we know

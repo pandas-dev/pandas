@@ -189,7 +189,7 @@ widely used by institutions such as statistics offices, central banks,
 and international organisations. pandaSDMX can expose datasets and related 
 structural metadata including data flows, code-lists,
 and data structure definitions as pandas Series
-or multi-indexed DataFrames.  
+or MultiIndexed DataFrames.
    
 `fredapi <https://github.com/mortada/fredapi>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
