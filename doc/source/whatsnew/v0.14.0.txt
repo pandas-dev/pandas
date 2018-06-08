@@ -781,7 +781,7 @@ Enhancements
   noon, January 1, 4713 BC.  Because nanoseconds are used to define the time
   in pandas the actual range of dates that you can use is 1678 AD to 2262 AD. (:issue:`4041`)
 - ``DataFrame.to_stata`` will now check data for compatibility with Stata data types
-  and will upcast when needed.  When it is not possible to lossless upcast, a warning
+  and will upcast when needed.  When it is not possible to losslessly upcast, a warning
   is issued (:issue:`6327`)
 - ``DataFrame.to_stata`` and ``StataWriter`` will accept keyword arguments time_stamp
   and data_label which allow the time stamp and dataset label to be set when creating a

@@ -133,7 +133,7 @@ groupby operations on the index will preserve the index nature as well
 reindexing operations, will return a resulting index based on the type of the passed
 indexer, meaning that passing a list will return a plain-old-``Index``; indexing with
 a ``Categorical`` will return a ``CategoricalIndex``, indexed according to the categories
-of the PASSED ``Categorical`` dtype. This allows one to arbitrary index these even with
+of the PASSED ``Categorical`` dtype. This allows one to arbitrarly index these even with
 values NOT in the categories, similarly to how you can reindex ANY pandas index.
 
 .. code-block:: ipython

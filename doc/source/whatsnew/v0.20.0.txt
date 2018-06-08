@@ -462,7 +462,7 @@ Selecting via a scalar value that is contained *in* the intervals.
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
-- ``DataFrame.rolling()`` now accepts the parameter ``closed='right'|'left'|'both'|'neither'`` to choose the rolling window-endpoint closed. See the :ref:`documentation <stats.rolling_window.endpoints>` (:issue:`13965`)
+- ``DataFrame.rolling()`` now accepts the parameter ``closed='right'|'left'|'both'|'neither'`` to choose the rolling window-endpoint closedness. See the :ref:`documentation <stats.rolling_window.endpoints>` (:issue:`13965`)
 - Integration with the ``feather-format``, including a new top-level ``pd.read_feather()`` and ``DataFrame.to_feather()`` method, see :ref:`here <io.feather>`.
 - ``Series.str.replace()`` now accepts a callable, as replacement, which is passed to ``re.sub`` (:issue:`15055`)
 - ``Series.str.replace()`` now accepts a compiled regular expression as a pattern (:issue:`15446`)
