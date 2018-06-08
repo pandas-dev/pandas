@@ -352,7 +352,7 @@ class TestNestedToRecord(object):
                       errors='raise'
                       )
 
-    def test_nonetype(self):
+    def test_donot_drop_nonevalues(self):
         # GH21356
         data = [
             {'info': None,

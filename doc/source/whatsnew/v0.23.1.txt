@@ -31,6 +31,7 @@ Fixed Regressions
 - Bug in :meth:`Categorical.fillna` incorrectly raising a ``TypeError`` when `value` the individual categories are iterable and `value` is an iterable (:issue:`21097`, :issue:`19788`)
 - Regression in :func:`pivot_table` where an ordered ``Categorical`` with missing
   values for the pivot's ``index`` would give a mis-aligned result (:issue:`21133`)
+- Fixed Regression in :func:`nested_to_record` which now flattens list of dictionaries and doesnot drop keys with value as `None` (:issue:`21356`)
 
 
 .. _whatsnew_0231.performance:
