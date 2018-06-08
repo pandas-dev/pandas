@@ -391,13 +391,13 @@ class TestiLoc(Base):
             expected = df.ix[[0, 2, 6], [0, 2]]
         tm.assert_frame_equal(result, expected)
 
-        # neg indicies
+        # neg indices
         result = df.iloc[[-1, 1, 3], [-1, 1]]
         with catch_warnings(record=True):
             expected = df.ix[[18, 2, 6], [6, 2]]
         tm.assert_frame_equal(result, expected)
 
-        # dups indicies
+        # dups indices
         result = df.iloc[[-1, -1, 1, 3], [-1, 1]]
         with catch_warnings(record=True):
             expected = df.ix[[18, 18, 2, 6], [6, 2]]

@@ -700,7 +700,7 @@ Current Behavior
 Reindexing
 ~~~~~~~~~~
 
-The idiomatic way to achieve selecting potentially not-found elmenents is via ``.reindex()``. See also the section on :ref:`reindexing <basics.reindexing>`.
+The idiomatic way to achieve selecting potentially not-found elements is via ``.reindex()``. See also the section on :ref:`reindexing <basics.reindexing>`.
 
 .. ipython:: python
 
