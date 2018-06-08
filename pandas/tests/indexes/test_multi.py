@@ -99,7 +99,8 @@ class TestMultiIndex(Base):
         cond = [False, True]
 
         for klass in klasses:
-            f = lambda: i.where(klass(cond))
+            def f():
+                return i.where(klass(cond))
             pytest.raises(NotImplementedError, f)
 
     def test_repeat(self):
@@ -163,6 +164,22 @@ class TestMultiIndex(Base):
         res = ind.set_names(new_names2, level=[0, 1], inplace=True)
         assert res is None
         assert ind.names == new_names2
+
+    @pytest.mark.parametrize('inplace', [True, False])
+    def test_set_names_with_nlevel_1(self, inplace):
+        # GH 21149
+        # Ensure that .set_names for MultiIndex with
+        # nlevels == 1 does not raise any errors
+        expected = pd.MultiIndex(levels=[[0, 1]],
+                                 labels=[[0, 1]],
+                                 names=['first'])
+        m = pd.MultiIndex.from_product([[0, 1]])
+        result = m.set_names('first', level=0, inplace=inplace)
+
+        if inplace:
+            result = m
+
+        tm.assert_index_equal(result, expected)
 
     def test_set_levels_labels_directly(self):
         # setting levels/labels directly raises AttributeError
@@ -2078,7 +2095,7 @@ class TestMultiIndex(Base):
         expected = index.droplevel(1)
         assert dropped.equals(expected)
 
-    def test_droplevel_multiple(self):
+    def test_droplevel_list(self):
         index = MultiIndex(
             levels=[Index(lrange(4)), Index(lrange(4)), Index(lrange(4))],
             labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
@@ -2088,6 +2105,16 @@ class TestMultiIndex(Base):
         dropped = index[:2].droplevel(['three', 'one'])
         expected = index[:2].droplevel(2).droplevel(0)
         assert dropped.equals(expected)
+
+        dropped = index[:2].droplevel([])
+        expected = index[:2]
+        assert dropped.equals(expected)
+
+        with pytest.raises(ValueError):
+            index[:2].droplevel(['one', 'two', 'three'])
+
+        with pytest.raises(KeyError):
+            index[:2].droplevel(['one', 'four'])
 
     def test_drop_not_lexsorted(self):
         # GH 12078
@@ -2405,7 +2432,8 @@ class TestMultiIndex(Base):
 
             # with a dup
             if with_nulls:
-                f = lambda a: np.insert(a, 1000, a[0])
+                def f(a):
+                    return np.insert(a, 1000, a[0])
                 labels = list(map(f, labels))
                 index = MultiIndex(levels=levels, labels=labels)
             else:

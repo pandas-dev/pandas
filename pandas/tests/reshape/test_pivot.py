@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 
 from datetime import datetime, date, timedelta
 
@@ -14,6 +15,11 @@ from pandas.core.reshape.pivot import pivot_table, crosstab
 from pandas.compat import range, product
 import pandas.util.testing as tm
 from pandas.api.types import CategoricalDtype as CDT
+
+
+@pytest.fixture(params=[True, False])
+def dropna(request):
+    return request.param
 
 
 class TestPivotTable(object):
@@ -109,7 +115,6 @@ class TestPivotTable(object):
             index=exp_index)
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize('dropna', [True, False])
     def test_pivot_table_dropna_categoricals(self, dropna):
         # GH 15193
         categories = ['a', 'b', 'c', 'd']
@@ -134,6 +139,25 @@ class TestPivotTable(object):
             # add back the non observed to compare
             expected = expected.reindex(
                 columns=Categorical(categories)).astype('float')
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_pivot_with_non_observable_dropna(self, dropna):
+        # gh-21133
+        df = pd.DataFrame(
+            {'A': pd.Categorical([np.nan, 'low', 'high', 'low', 'high'],
+                                 categories=['low', 'high'],
+                                 ordered=True),
+             'B': range(5)})
+
+        result = df.pivot_table(index='A', values='B', dropna=dropna)
+        expected = pd.DataFrame(
+            {'B': [2, 3]},
+            index=pd.Index(
+                pd.Categorical.from_codes([0, 1],
+                                          categories=['low', 'high'],
+                                          ordered=True),
+                name='A'))
 
         tm.assert_frame_equal(result, expected)
 
