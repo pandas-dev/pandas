@@ -72,7 +72,7 @@ API changes
 
     df.groupby(ts, as_index=False).max()
 
-- ``groupby`` will not erroneously exclude columns if the column name conflics
+- ``groupby`` will not erroneously exclude columns if the column name conflicts
   with the grouper name (:issue:`8112`):
 
   .. ipython:: python
