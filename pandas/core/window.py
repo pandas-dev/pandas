@@ -603,7 +603,7 @@ class Window(_Window):
             pass
         elif is_integer(window):
             if window <= 0:
-                raise ValueError("please enter a positive window")
+                raise ValueError("window must be > 0 ")
             try:
                 import scipy.signal as sig
             except ImportError:
