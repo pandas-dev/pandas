@@ -132,7 +132,7 @@ Strings
 Indexing
 ^^^^^^^^
 
--
+- Bug in :func:`pandas.core.arrays.categorical._factorize_from_iterable` inappropriately caused ``TypeError`` to be raised when an ``Enum`` was used as a factor in a ``MultiIndex`` (:issue:`21298`)
 -
 -
 
