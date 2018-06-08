@@ -181,6 +181,9 @@ class Index(IndexOpsMixin, PandasObject):
     ----------
     data : array-like (1-dimensional)
     dtype : NumPy dtype (default: object)
+        If dtype is None, we find the dtype that best fits the data.
+        If an actual dtype is provided, we coerce to that dtype if it's safe.
+        Otherwise, an error will be raised.
     copy : bool
         Make a copy of input ndarray
     name : object
