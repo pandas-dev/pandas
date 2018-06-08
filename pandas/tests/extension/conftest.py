@@ -31,6 +31,15 @@ def all_data(request, data, data_missing):
 
 
 @pytest.fixture
+def data_repeated():
+    """Return different versions of data for count times"""
+    def gen(count):
+        for _ in range(count):
+            yield NotImplementedError
+    yield gen
+
+
+@pytest.fixture
 def data_for_sorting():
     """Length-3 array with a known sort order.
 
