@@ -88,24 +88,24 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
-Groupby/Resample/Rolling
+**Groupby/Resample/Rolling**
 
 - Bug in :func:`DataFrame.agg` where applying multiple aggregation functions to a :class:`DataFrame` with duplicated column names would cause a stack overflow (:issue:`21063`)
 - Bug in :func:`pandas.core.groupby.GroupBy.ffill` and :func:`pandas.core.groupby.GroupBy.bfill` where the fill within a grouping would not always be applied as intended due to the implementations' use of a non-stable sort (:issue:`21207`)
 - Bug in :func:`pandas.core.groupby.GroupBy.rank` where results did not scale to 100% when specifying ``method='dense'`` and ``pct=True``
 - Bug in :func:`pandas.DataFrame.rolling` and :func:`pandas.Series.rolling` which incorrectly accepted a 0 window size rather than raising (:issue:`21286`)
 
-Data-type specific
+**Data-type specific**
 
 - Bug in :meth:`Series.str.replace()` where the method throws `TypeError` on Python 3.5.2 (:issue: `21078`)
 - Bug in :class:`Timedelta`: where passing a float with a unit would prematurely round the float precision (:issue: `14156`)
 - Bug in :func:`pandas.testing.assert_index_equal` which raised ``AssertionError`` incorrectly, when comparing two :class:`CategoricalIndex` objects with param ``check_categorical=False`` (:issue:`19776`)
 
-Sparse
+**Sparse**
 
 - Bug in :attr:`SparseArray.shape` which previously only returned the shape :attr:`SparseArray.sp_values` (:issue:`21126`)
 
-Indexing
+**Indexing**
 
 - Bug in :meth:`Series.reset_index` where appropriate error was not raised with an invalid level name (:issue:`20925`)
 - Bug in :func:`interval_range` when ``start``/``periods`` or ``end``/``periods`` are specified with float ``start`` or ``end`` (:issue:`21161`)
@@ -113,7 +113,11 @@ Indexing
 - Bug in :class:`IntervalIndex` constructors where creating an ``IntervalIndex`` from categorical data was not fully supported (:issue:`21243`, issue:`21253`)
 - Bug in :meth:`MultiIndex.sort_index` which was not guaranteed to sort correctly with ``level=1``; this was also causing data misalignment in particular :meth:`DataFrame.stack` operations (:issue:`20994`, :issue:`20945`, :issue:`21052`)
 
-I/O
+**Plotting**
+
+- New keywords (sharex, sharey) to turn on/off sharing of x/y-axis by subplots generated with pandas.DataFrame().groupby().boxplot() (:issue: `20968`)
+
+**I/O**
 
 - Bug in IO methods specifying ``compression='zip'`` which produced uncompressed zip archives (:issue:`17778`, :issue:`21144`)
 - Bug in :meth:`DataFrame.to_stata` which prevented exporting DataFrames to buffers and most file-like objects (:issue:`21041`)
@@ -121,21 +125,13 @@ I/O
 - Bug in :meth:`DataFrame.to_csv` and :meth:`Series.to_csv` causes encoding error when compression and encoding are specified (:issue:`21241`, :issue:`21118`)
 - Bug in :meth:`read_stata` and :class:`StataReader` which did not correctly decode utf-8 strings on Python 3 from Stata 14 files (dta version 118) (:issue:`21244`)
 - Bug in IO JSON :func:`read_json` reading empty JSON schema with ``orient='table'`` back to :class:`DataFrame` caused an error (:issue:`21287`)
--
 
-Plotting
-^^^^^^^^
-
--
--
->>>>>>> b32fdc442... BUG: Fix encoding error in to_csv compression (#21300)
-
-Reshaping
+**Reshaping**
 
 - Bug in :func:`concat` where error was raised in concatenating :class:`Series` with numpy scalar and tuple names (:issue:`21015`)
 - Bug in :func:`concat` warning message providing the wrong guidance for future behavior (:issue:`21101`)
 
-Other
+**Other**
 
 - Tab completion on :class:`Index` in IPython no longer outputs deprecation warnings (:issue:`21125`)
 - Bug preventing pandas being used on Windows without C++ redistributable installed (:issue:`21106`)
