@@ -238,7 +238,7 @@ class TestJSONNormalize(object):
         tm.assert_frame_equal(result, expected)
 
     def test_missing_field(self, author_missing_data):
-        # GH20030: Checks for robustness of json_normalize
+        # GH20030:
         result = json_normalize(author_missing_data)
         ex_data = [
             {'info': np.nan,
