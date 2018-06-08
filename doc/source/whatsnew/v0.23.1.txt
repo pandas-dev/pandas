@@ -100,6 +100,8 @@ Bug Fixes
 - Bug in :meth:`Series.str.replace()` where the method throws `TypeError` on Python 3.5.2 (:issue: `21078`)
 - Bug in :class:`Timedelta`: where passing a float with a unit would prematurely round the float precision (:issue: `14156`)
 - Bug in :func:`pandas.testing.assert_index_equal` which raised ``AssertionError`` incorrectly, when comparing two :class:`CategoricalIndex` objects with param ``check_categorical=False`` (:issue:`19776`)
+- Bug in :class:`DataFrame` and :class:`Series` constructors not coercing values to strings when ``dtype=str`` is passed (:issue:`21083`)
+
 
 **Sparse**
 
