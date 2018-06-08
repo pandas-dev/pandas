@@ -1829,7 +1829,7 @@ class TestMode(object):
 
         data = ['foo', 'bar', 'bar', np.nan, np.nan, np.nan]
 
-        s = Series(data, dtype=str)
+        s = Series(data, dtype=object).astype(str)
         result = s.mode(dropna)
         expected3 = Series(expected3, dtype=str)
         tm.assert_series_equal(result, expected3)

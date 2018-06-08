@@ -137,6 +137,17 @@ class TestSeriesConstructors(TestData):
         result = pd.Series(index=['b', 'a', 'c'])
         assert result.index.tolist() == ['b', 'a', 'c']
 
+    def test_constructor_dtype_str_na_values(self, string_dtype):
+        # https://github.com/pandas-dev/pandas/issues/21083
+        ser = Series(['x', None], dtype=string_dtype)
+        result = ser.isna()
+        expected = Series([False, True])
+        tm.assert_series_equal(result, expected)
+        assert ser.iloc[1] is None
+
+        ser = Series(['x', np.nan], dtype=string_dtype)
+        assert np.isnan(ser.iloc[1])
+
     def test_constructor_series(self):
         index1 = ['d', 'b', 'a', 'c']
         index2 = sorted(index1)
@@ -164,22 +175,25 @@ class TestSeriesConstructors(TestData):
 
     @pytest.mark.parametrize('input_vals', [
         ([1, 2]),
-        ([1.0, 2.0, np.nan]),
         (['1', '2']),
         (list(pd.date_range('1/1/2011', periods=2, freq='H'))),
         (list(pd.date_range('1/1/2011', periods=2, freq='H',
                             tz='US/Eastern'))),
         ([pd.Interval(left=0, right=5)]),
     ])
-    def test_constructor_list_str(self, input_vals):
+    def test_constructor_list_str(self, input_vals, string_dtype):
         # GH 16605
         # Ensure that data elements from a list are converted to strings
         # when dtype is str, 'str', or 'U'
+        result = Series(input_vals, dtype=string_dtype)
+        expected = Series(input_vals).astype(string_dtype)
+        assert_series_equal(result, expected)
 
-        for dtype in ['str', str, 'U']:
-            result = Series(input_vals, dtype=dtype)
-            expected = Series(input_vals).astype(dtype)
-            assert_series_equal(result, expected)
+    def test_constructor_list_str_na(self, string_dtype):
+        result = Series([1.0, 2.0, np.nan], dtype=string_dtype)
+        expected = Series(['1.0', '2.0', np.nan], dtype=object)
+        assert_series_equal(result, expected)
+        assert np.isnan(result[2])
 
     def test_constructor_generator(self):
         gen = (i for i in range(10))

@@ -10,7 +10,6 @@ and bug fixes. We recommend that all users upgrade to this version.
     :local:
     :backlinks: none
 
-
 .. _whatsnew_0231.fixed_regressions:
 
 Fixed Regressions
@@ -29,6 +28,7 @@ Fixed Regressions
 - Bug in :meth:`~DataFrame.to_csv` causes encoding error when compression and encoding are specified (:issue:`21241`, :issue:`21118`)
 - Bug preventing pandas from being importable with -OO optimization (:issue:`21071`)
 - Bug in :meth:`Categorical.fillna` incorrectly raising a ``TypeError`` when `value` the individual categories are iterable and `value` is an iterable (:issue:`21097`, :issue:`19788`)
+- Fixed regression in constructors coercing NA values like ``None`` to strings when passing ``dtype=str`` (:issue:`21083`)
 - Regression in :func:`pivot_table` where an ordered ``Categorical`` with missing
   values for the pivot's ``index`` would give a mis-aligned result (:issue:`21133`)
 
