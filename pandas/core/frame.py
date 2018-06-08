@@ -2670,68 +2670,80 @@ class DataFrame(NDFrame):
     def __getitem__(self, key):
         key = com._apply_if_callable(key, self)
 
-        # shortcut if we are an actual column
-        is_mi_columns = isinstance(self.columns, MultiIndex)
+        # shortcut if the key is in columns
         try:
-            if key in self.columns and not is_mi_columns:
-                return self._getitem_column(key)
-        except:
+            if self.columns.is_unique and key in self.columns:
+                if self.columns.nlevels > 1:
+                    return self._getitem_multilevel(key)
+                return self._get_item_cache(key)
+        except (TypeError, ValueError):
+            # The TypeError correctly catches non hashable "key" (e.g. list)
+            # The ValueError can be removed once GH #21729 is fixed
             pass
 
-        # see if we can slice the rows
+        # Do we have a slicer (on rows)?
         indexer = convert_to_index_sliceable(self, key)
         if indexer is not None:
-            return self._getitem_slice(indexer)
+            return self._slice(indexer, axis=0)
 
-        if isinstance(key, (Series, np.ndarray, Index, list)):
-            # either boolean or fancy integer index
-            return self._getitem_array(key)
-        elif isinstance(key, DataFrame):
+        # Do we have a (boolean) DataFrame?
+        if isinstance(key, DataFrame):
             return self._getitem_frame(key)
-        elif is_mi_columns:
-            return self._getitem_multilevel(key)
-        else:
-            return self._getitem_column(key)
 
-    def _getitem_column(self, key):
-        """ return the actual column """
-
-        # get column
-        if self.columns.is_unique:
-            return self._get_item_cache(key)
-
-        # duplicate columns & possible reduce dimensionality
-        result = self._constructor(self._data.get(key))
-        if result.columns.is_unique:
-            result = result[key]
-
-        return result
-
-    def _getitem_slice(self, key):
-        return self._slice(key, axis=0)
-
-    def _getitem_array(self, key):
-        # also raises Exception if object array with NA values
+        # Do we have a (boolean) 1d indexer?
         if com.is_bool_indexer(key):
-            # warning here just in case -- previously __setitem__ was
-            # reindexing but __getitem__ was not; it seems more reasonable to
-            # go with the __setitem__ behavior since that is more consistent
-            # with all other indexing behavior
-            if isinstance(key, Series) and not key.index.equals(self.index):
-                warnings.warn("Boolean Series key will be reindexed to match "
-                              "DataFrame index.", UserWarning, stacklevel=3)
-            elif len(key) != len(self.index):
-                raise ValueError('Item wrong length %d instead of %d.' %
-                                 (len(key), len(self.index)))
-            # check_bool_indexer will throw exception if Series key cannot
-            # be reindexed to match DataFrame rows
-            key = check_bool_indexer(self.index, key)
-            indexer = key.nonzero()[0]
-            return self._take(indexer, axis=0)
+            return self._getitem_bool_array(key)
+
+        # We are left with two options: a single key, and a collection of keys,
+        # We interpret tuples as collections only for non-MultiIndex
+        is_single_key = isinstance(key, tuple) or not is_list_like(key)
+
+        if is_single_key:
+            if self.columns.nlevels > 1:
+                return self._getitem_multilevel(key)
+            indexer = self.columns.get_loc(key)
+            if is_integer(indexer):
+                indexer = [indexer]
         else:
+            if is_iterator(key):
+                key = list(key)
             indexer = self.loc._convert_to_indexer(key, axis=1,
                                                    raise_missing=True)
-            return self._take(indexer, axis=1)
+
+        # take() does not accept boolean indexers
+        if getattr(indexer, "dtype", None) == bool:
+            indexer = np.where(indexer)[0]
+
+        data = self._take(indexer, axis=1)
+
+        if is_single_key:
+            # What does looking for a single key in a non-unique index return?
+            # The behavior is inconsistent. It returns a Series, except when
+            # - the key itself is repeated (test on data.shape, #9519), or
+            # - we have a MultiIndex on columns (test on self.columns, #21309)
+            if data.shape[1] == 1 and not isinstance(self.columns, MultiIndex):
+                data = data[key]
+
+        return data
+
+    def _getitem_bool_array(self, key):
+        # also raises Exception if object array with NA values
+        # warning here just in case -- previously __setitem__ was
+        # reindexing but __getitem__ was not; it seems more reasonable to
+        # go with the __setitem__ behavior since that is more consistent
+        # with all other indexing behavior
+        if isinstance(key, Series) and not key.index.equals(self.index):
+            warnings.warn("Boolean Series key will be reindexed to match "
+                          "DataFrame index.", UserWarning, stacklevel=3)
+        elif len(key) != len(self.index):
+            raise ValueError('Item wrong length %d instead of %d.' %
+                             (len(key), len(self.index)))
+
+        # check_bool_indexer will throw exception if Series key cannot
+        # be reindexed to match DataFrame rows
+        key = check_bool_indexer(self.index, key)
+        indexer = key.nonzero()[0]
+        return self._take(indexer, axis=0)
 
     def _getitem_multilevel(self, key):
         loc = self.columns.get_loc(key)

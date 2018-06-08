@@ -92,45 +92,46 @@ class TestDataFrameIndexing(TestData):
             result = df.get(None)
             assert result is None
 
-    def test_getitem_iterator(self):
+    def test_loc_iterable(self):
         idx = iter(['A', 'B', 'C'])
         result = self.frame.loc[:, idx]
         expected = self.frame.loc[:, ['A', 'B', 'C']]
         assert_frame_equal(result, expected)
 
-        idx = iter(['A', 'B', 'C'])
-        result = self.frame.loc[:, idx]
-        expected = self.frame.loc[:, ['A', 'B', 'C']]
+    @pytest.mark.parametrize(
+        "idx_type",
+        [list, iter, Index, set,
+         lambda l: dict(zip(l, range(len(l)))),
+         lambda l: dict(zip(l, range(len(l)))).keys()],
+        ids=["list", "iter", "Index", "set", "dict", "dict_keys"])
+    @pytest.mark.parametrize("levels", [1, 2])
+    def test_getitem_listlike(self, idx_type, levels):
+        # GH 21294
+
+        if levels == 1:
+            frame, missing = self.frame, 'food'
+        else:
+            # MultiIndex columns
+            frame = DataFrame(randn(8, 3),
+                              columns=Index([('foo', 'bar'), ('baz', 'qux'),
+                                             ('peek', 'aboo')],
+                                            name=('sth', 'sth2')))
+            missing = ('good', 'food')
+
+        keys = [frame.columns[1], frame.columns[0]]
+        idx = idx_type(keys)
+        idx_check = list(idx_type(keys))
+
+        result = frame[idx]
+
+        expected = frame.loc[:, idx_check]
+        expected.columns.names = frame.columns.names
+
         assert_frame_equal(result, expected)
 
-    def test_getitem_list(self):
-        self.frame.columns.name = 'foo'
-
-        result = self.frame[['B', 'A']]
-        result2 = self.frame[Index(['B', 'A'])]
-
-        expected = self.frame.loc[:, ['B', 'A']]
-        expected.columns.name = 'foo'
-
-        assert_frame_equal(result, expected)
-        assert_frame_equal(result2, expected)
-
-        assert result.columns.name == 'foo'
-
+        idx = idx_type(keys + [missing])
         with tm.assert_raises_regex(KeyError, 'not in index'):
-            self.frame[['B', 'A', 'food']]
-        with tm.assert_raises_regex(KeyError, 'not in index'):
-            self.frame[Index(['B', 'A', 'foo'])]
-
-        # tuples
-        df = DataFrame(randn(8, 3),
-                       columns=Index([('foo', 'bar'), ('baz', 'qux'),
-                                      ('peek', 'aboo')], name=('sth', 'sth2')))
-
-        result = df[[('foo', 'bar'), ('baz', 'qux')]]
-        expected = df.iloc[:, :2]
-        assert_frame_equal(result, expected)
-        assert result.columns.names == ('sth', 'sth2')
+            frame[idx]
 
     def test_getitem_callable(self):
         # GH 12533
