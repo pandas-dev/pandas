@@ -60,6 +60,19 @@ class TestSeriesCombine(TestData):
         with tm.assert_raises_regex(ValueError, msg):
             pd.concat([s1, s2], verify_integrity=True)
 
+    def test_combine_scalar(self):
+        # GH 21248
+        # Note - combine() with another Series is tested elsewhere because
+        # it is used when testing operators
+        s = pd.Series([i * 10 for i in range(5)])
+        result = s.combine(3, lambda x, y: x + y)
+        expected = pd.Series([i * 10 + 3 for i in range(5)])
+        tm.assert_series_equal(result, expected)
+
+        result = s.combine(22, lambda x, y: min(x, y))
+        expected = pd.Series([min(i * 10, 22) for i in range(5)])
+        tm.assert_series_equal(result, expected)
+
     def test_combine_first(self):
         values = tm.makeIntIndex(20).values.astype(float)
         series = Series(values, index=tm.makeIntIndex(20))

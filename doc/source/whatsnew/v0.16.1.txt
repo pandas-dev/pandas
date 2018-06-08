@@ -133,7 +133,7 @@ groupby operations on the index will preserve the index nature as well
 reindexing operations, will return a resulting index based on the type of the passed
 indexer, meaning that passing a list will return a plain-old-``Index``; indexing with
 a ``Categorical`` will return a ``CategoricalIndex``, indexed according to the categories
-of the PASSED ``Categorical`` dtype. This allows one to arbitrary index these even with
+of the PASSED ``Categorical`` dtype. This allows one to arbitrarly index these even with
 values NOT in the categories, similarly to how you can reindex ANY pandas index.
 
 .. code-block:: ipython
@@ -455,7 +455,7 @@ Bug Fixes
 - Bug where using DataFrames asfreq would remove the name of the index. (:issue:`9885`)
 - Bug causing extra index point when resample BM/BQ (:issue:`9756`)
 - Changed caching in ``AbstractHolidayCalendar`` to be at the instance level rather than at the class level as the latter can result in unexpected behaviour. (:issue:`9552`)
-- Fixed latex output for multi-indexed dataframes (:issue:`9778`)
+- Fixed latex output for MultiIndexed dataframes (:issue:`9778`)
 - Bug causing an exception when setting an empty range using ``DataFrame.loc`` (:issue:`9596`)
 - Bug in hiding ticklabels with subplots and shared axes when adding a new plot to an existing grid of axes (:issue:`9158`)
 - Bug in ``transform`` and ``filter`` when grouping on a categorical variable (:issue:`9921`)

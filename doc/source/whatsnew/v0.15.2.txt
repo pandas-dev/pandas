@@ -199,7 +199,7 @@ Bug Fixes
 - Bug in ``groupby`` signatures that didn't include \*args or \*\*kwargs (:issue:`8733`).
 - ``io.data.Options`` now raises ``RemoteDataError`` when no expiry dates are available from Yahoo and when it receives no data from Yahoo (:issue:`8761`), (:issue:`8783`).
 - Unclear error message in csv parsing when passing dtype and names and the parsed data is a different data type (:issue:`8833`)
-- Bug in slicing a multi-index with an empty list and at least one boolean indexer (:issue:`8781`)
+- Bug in slicing a MultiIndex with an empty list and at least one boolean indexer (:issue:`8781`)
 - ``io.data.Options`` now raises ``RemoteDataError`` when no expiry dates are available from Yahoo (:issue:`8761`).
 - ``Timedelta`` kwargs may now be numpy ints and floats (:issue:`8757`).
 - Fixed several outstanding bugs for ``Timedelta`` arithmetic and comparisons (:issue:`8813`, :issue:`5963`, :issue:`5436`).
