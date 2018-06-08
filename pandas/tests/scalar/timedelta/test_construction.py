@@ -85,10 +85,6 @@ def test_construction():
     with pytest.raises(ValueError):
         Timedelta('10 days -1 h 1.5m 1s 3us')
 
-    # no units specified
-    with pytest.raises(ValueError):
-        Timedelta('3.1415')
-
     # invalid construction
     tm.assert_raises_regex(ValueError, "cannot construct a Timedelta",
                            lambda: Timedelta())
@@ -223,17 +219,14 @@ class not_raises(object):
 @pytest.mark.parametrize("redundant_unit, expectation", [
     ("", not_raises()),
     ("d", pytest.raises(ValueError)),
-    ("us", pytest.raises(ValueError)),
-])
+    ("us", pytest.raises(ValueError))])
 @pytest.mark.parametrize("unit", [
-   "d", "m", "s", "us"
-])
+    "d", "m", "s", "us"])
 @pytest.mark.parametrize("sign", [
-   +1, -1
-])
+    +1, -1])
 @pytest.mark.parametrize("num", [
-    0.001, 1, 10
-])
+    0.001, 1, 10])
 def test_string_with_unit(num, sign, unit, redundant_unit, expectation):
     with expectation:
-        assert Timedelta(str(sign*num)+redundant_unit, unit=unit) == Timedelta(sign*num, unit=unit)
+        assert Timedelta(str(sign * num) + redundant_unit, unit=unit) \
+        == Timedelta(sign * num, unit=unit)
