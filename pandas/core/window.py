@@ -96,8 +96,6 @@ class _Window(PandasObject, SelectionMixin):
         return self.win_type == 'freq'
 
     def validate(self):
-        if self.window <= 0:
-            raise ValueError("please enter a positive window")
         if self.center is not None and not is_bool(self.center):
             raise ValueError("center must be a boolean")
         if self.min_periods is not None and not \
@@ -604,6 +602,8 @@ class Window(_Window):
         if isinstance(window, (list, tuple, np.ndarray)):
             pass
         elif is_integer(window):
+            if window <= 0:
+                raise ValueError("please enter a positive window")
             try:
                 import scipy.signal as sig
             except ImportError:
