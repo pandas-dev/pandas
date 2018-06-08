@@ -389,10 +389,9 @@ class TestRolling(Base):
         c(window=2, min_periods=1, center=False)
 
         # GH 13383
-
         with pytest.raises(ValueError):
-            c(-1)
             c(0)
+            c(-1)
 
         # not valid
         for w in [2., 'foo', np.array([2])]:
@@ -403,6 +402,7 @@ class TestRolling(Base):
             with pytest.raises(ValueError):
                 c(window=2, min_periods=1, center=w)
 
+    # these tests seems unnecessary here 21291
     @td.skip_if_no_scipy
     @pytest.mark.parametrize(
         'which', ['series', 'frame'])
@@ -412,7 +412,7 @@ class TestRolling(Base):
         c = o.rolling
         with pytest.raises(ValueError):
             c(-1, win_type='boxcar')
-            c(0, win_type='boxcar')
+            
 
     @pytest.mark.parametrize(
         'window', [timedelta(days=3), pd.Timedelta(days=3)])
