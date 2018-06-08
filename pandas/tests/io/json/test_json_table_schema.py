@@ -560,3 +560,16 @@ class TestTableOrientReader(object):
         out = df.to_json(orient="table")
         result = pd.read_json(out, orient="table")
         tm.assert_frame_equal(df, result)
+
+    @pytest.mark.parametrize("strict_check", [
+        pytest.param(True, marks=pytest.mark.xfail), False])
+    def test_empty_frame_roundtrip(self, strict_check):
+        # GH 21287
+        df = pd.DataFrame([], columns=['a', 'b', 'c'])
+        expected = df.copy()
+        out = df.to_json(orient='table')
+        result = pd.read_json(out, orient='table')
+        # TODO: When DF coercion issue (#21345) is resolved tighten type checks
+        tm.assert_frame_equal(expected, result,
+                              check_dtype=strict_check,
+                              check_index_type=strict_check)
