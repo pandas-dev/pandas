@@ -132,5 +132,4 @@ Bug Fixes
 **Other**
 
 - Tab completion on :class:`Index` in IPython no longer outputs deprecation warnings (:issue:`21125`)
-- Bug preventing pandas from being importable with -OO optimization (:issue:`21071`)
 - Bug preventing pandas being used on Windows without C++ redistributable installed (:issue:`21106`)
