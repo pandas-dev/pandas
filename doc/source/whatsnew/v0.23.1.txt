@@ -10,8 +10,6 @@ and bug fixes. We recommend that all users upgrade to this version.
     :local:
     :backlinks: none
 
-.. _whatsnew_0231.enhancements:
-
 .. _whatsnew_0231.fixed_regressions:
 
 Fixed Regressions
