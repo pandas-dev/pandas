@@ -23,6 +23,7 @@ from pandas.core.dtypes.cast import (
     maybe_convert_scalar,
     find_common_type,
     construct_1d_object_array_from_listlike,
+    construct_1d_ndarray_preserving_na,
     construct_1d_arraylike_from_scalar)
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
@@ -440,3 +441,15 @@ class TestCommonTypes(object):
         tm.assert_categorical_equal(result, expected,
                                     check_category_order=True,
                                     check_dtype=True)
+
+
+@pytest.mark.parametrize('values, dtype, expected', [
+    ([1, 2, 3], None, np.array([1, 2, 3])),
+    (np.array([1, 2, 3]), None, np.array([1, 2, 3])),
+    (['1', '2', None], None, np.array(['1', '2', None])),
+    (['1', '2', None], np.dtype('str'), np.array(['1', '2', None])),
+    ([1, 2, None], np.dtype('str'), np.array(['1', '2', None])),
+])
+def test_construct_1d_ndarray_preserving_na(values, dtype, expected):
+    result = construct_1d_ndarray_preserving_na(values, dtype=dtype)
+    tm.assert_numpy_array_equal(result, expected)
