@@ -128,7 +128,6 @@ class TestTimedeltaComparison(object):
         assert t == CustomClass(True)
 
 
-
 class TestTimedeltas(object):
 
     @pytest.mark.parametrize("unit, value, expected", [
