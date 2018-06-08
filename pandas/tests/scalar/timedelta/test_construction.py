@@ -228,5 +228,5 @@ class not_raises(object):
     0.001, 1, 10])
 def test_string_with_unit(num, sign, unit, redundant_unit, expectation):
     with expectation:
-        assert Timedelta(str(sign * num) + redundant_unit, unit=unit) \
-        == Timedelta(sign * num, unit=unit)
+        assert Timedelta(str(sign * num) + redundant_unit, unit=unit)\
+            == Timedelta(sign * num, unit=unit)
