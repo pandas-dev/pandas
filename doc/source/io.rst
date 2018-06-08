@@ -2356,7 +2356,7 @@ Read a URL and match a table that contains specific text:
 
 Specify a header row (by default ``<th>`` or ``<td>`` elements located within a
 ``<thead>`` are used to form the column index, if multiple rows are contained within
-``<thead>`` then a multi-index is created); if specified, the header row is taken
+``<thead>`` then a MultiIndex is created); if specified, the header row is taken
 from the data minus the parsed header elements (``<th>`` elements).
 
 .. code-block:: python
@@ -3615,10 +3615,10 @@ defaults to `nan`.
     # we have provided a minimum string column size
     store.root.df_mixed.table
 
-Storing Multi-Index DataFrames
-++++++++++++++++++++++++++++++
+Storing MultiIndex DataFrames
++++++++++++++++++++++++++++++
 
-Storing multi-index ``DataFrames`` as tables is very similar to
+Storing MultiIndex ``DataFrames`` as tables is very similar to
 storing/selecting from homogeneous index ``DataFrames``.
 
 .. ipython:: python
@@ -4718,12 +4718,6 @@ writes ``data`` to the database in batches of 1000 rows at a time:
 .. ipython:: python
 
     data.to_sql('data_chunked', engine, chunksize=1000)
-
-.. note::
-
-    The function :func:`~pandas.DataFrame.to_sql` will perform a multi-value
-    insert if the engine dialect ``supports_multivalues_insert``. This will
-    greatly speed up the insert in some cases.
 
 SQL data types
 ++++++++++++++
