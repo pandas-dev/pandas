@@ -149,3 +149,14 @@ def tz_aware_fixture(request):
     Fixture for trying explicit timezones: {0}
     """
     return request.param
+
+
+@pytest.fixture(params=[str, 'str', 'U'])
+def string_dtype(request):
+    """Parametrized fixture for string dtypes.
+
+    * str
+    * 'str'
+    * 'U'
+    """
+    return request.param
