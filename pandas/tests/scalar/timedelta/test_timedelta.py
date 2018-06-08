@@ -103,6 +103,31 @@ class TestTimedeltaComparison(object):
         expected = np.array([False, False])
         tm.assert_numpy_array_equal(result, expected)
 
+    def test_custom_comparison_object(self):
+        # GH20829
+        class CustomClass(object):
+
+            def __init__(self, eq_result=None):
+                self.eq_result = eq_result
+
+            def __eq__(self, other):
+                if self.eq_result is None:
+                    return NotImplemented
+                elif self.eq_result:
+                    return True
+                else:
+                    return False
+
+        t = Timedelta('1s')
+
+        assert not (t == "string")
+        assert not (t == 1)
+        assert not (t == CustomClass())
+        assert not (t == CustomClass(False))
+
+        assert t == CustomClass(True)
+
+
 
 class TestTimedeltas(object):
 
