@@ -1001,7 +1001,6 @@ class Timedelta(_Timedelta):
                                  "[weeks, days, hours, minutes, seconds, "
                                  "milliseconds, microseconds, nanoseconds]")
 
-
         if isinstance(value, Timedelta):
             value = value.value
         elif is_string_object(value):
