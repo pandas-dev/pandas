@@ -223,17 +223,14 @@ class not_raises(object):
 @pytest.mark.parametrize("redundant_unit, expectation", [
     ("", not_raises()),
     ("d", pytest.raises(ValueError)),
-    ("us", pytest.raises(ValueError)),
-])
+    ("us", pytest.raises(ValueError))])
 @pytest.mark.parametrize("unit", [
-   "d", "m", "s", "us"
-])
+   "d", "m", "s", "us"])
 @pytest.mark.parametrize("sign", [
-   +1, -1
-])
+   +1, -1])
 @pytest.mark.parametrize("num", [
-    0.001, 1, 10
-])
+    0.001, 1, 10])
 def test_string_with_unit(num, sign, unit, redundant_unit, expectation):
     with expectation:
-        assert Timedelta(str(sign*num)+redundant_unit, unit=unit) == Timedelta(sign*num, unit=unit)
+        assert Timedelta(str(sign * num) + redundant_unit, unit=unit) \
+               == Timedelta(sign * num, unit=unit)
