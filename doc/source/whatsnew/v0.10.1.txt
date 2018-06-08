@@ -93,7 +93,7 @@ columns, this is equivalent to passing a
 
    store.select('df',columns = ['A','B'])
 
-``HDFStore`` now serializes multi-index dataframes when appending tables.
+``HDFStore`` now serializes MultiIndex dataframes when appending tables.
 
 .. ipython:: python
 

@@ -168,7 +168,7 @@ either match on the *index* or *columns* via the **axis** keyword:
 
    df_orig = df
 
-Furthermore you can align a level of a multi-indexed DataFrame with a Series.
+Furthermore you can align a level of a MultiIndexed DataFrame with a Series.
 
 .. ipython:: python
 
@@ -1034,7 +1034,7 @@ Passing a single function to ``.transform()`` with a ``Series`` will yield a sin
 Transform with multiple functions
 +++++++++++++++++++++++++++++++++
 
-Passing multiple functions will yield a column multi-indexed DataFrame.
+Passing multiple functions will yield a column MultiIndexed DataFrame.
 The first level will be the original frame column names; the second level
 will be the names of the transforming functions.
 
@@ -1060,7 +1060,7 @@ Passing a dict of functions will allow selective transforming per column.
 
    tsdf.transform({'A': np.abs, 'B': lambda x: x+1})
 
-Passing a dict of lists will generate a multi-indexed DataFrame with these
+Passing a dict of lists will generate a MultiIndexed DataFrame with these
 selective transforms.
 
 .. ipython:: python
@@ -1889,12 +1889,12 @@ faster than sorting the entire Series and calling ``head(n)`` on the result.
    df.nsmallest(5, ['a', 'c'])
 
 
-.. _basics.multi-index_sorting:
+.. _basics.multiindex_sorting:
 
-Sorting by a multi-index column
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Sorting by a MultiIndex column
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You must be explicit about sorting when the column is a multi-index, and fully specify
+You must be explicit about sorting when the column is a MultiIndex, and fully specify
 all levels to ``by``.
 
 .. ipython:: python

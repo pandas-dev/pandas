@@ -7,7 +7,7 @@ This is a major release from 0.11.0 and includes several new features and
 enhancements along with a large number of bug fixes.
 
 Highlights include a consistent I/O API naming scheme, routines to read html,
-write multi-indexes to csv files, read & write STATA data files, read & write JSON format
+write MultiIndexes to csv files, read & write STATA data files, read & write JSON format
 files, Python 3 support for ``HDFStore``, filtering of groupby expressions via ``filter``, and a
 revamped ``replace`` routine that accepts regular expressions.
 

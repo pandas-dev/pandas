@@ -1069,7 +1069,7 @@ Bug Fixes
 - Bug in ``offsets.generate_range`` where ``start`` and ``end`` have finer precision than ``offset`` (:issue:`9907`)
 - Bug in ``pd.rolling_*`` where ``Series.name`` would be lost in the output (:issue:`10565`)
 - Bug in ``stack`` when index or columns are not unique. (:issue:`10417`)
-- Bug in setting a ``Panel`` when an axis has a multi-index (:issue:`10360`)
+- Bug in setting a ``Panel`` when an axis has a MultiIndex (:issue:`10360`)
 - Bug in ``USFederalHolidayCalendar`` where ``USMemorialDay`` and ``USMartinLutherKingJr`` were incorrect (:issue:`10278` and :issue:`9760` )
 - Bug in ``.sample()`` where returned object, if set, gives unnecessary ``SettingWithCopyWarning`` (:issue:`10738`)
 - Bug in ``.sample()`` where weights passed as ``Series`` were not aligned along axis before being treated positionally, potentially causing problems if weight indices were not aligned with sampled object. (:issue:`10738`)
