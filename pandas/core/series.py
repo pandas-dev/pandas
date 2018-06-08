@@ -2209,6 +2209,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Perform elementwise binary operation on two Series using given function
         with optional fill value when an index is missing from one Series or
         the other
+
         Parameters
         ----------
         other : Series or scalar value
@@ -2221,6 +2222,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Returns
         -------
         result : Series
+
         Examples
         --------
         >>> s1 = Series([1, 2])
@@ -2229,6 +2231,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         0    0
         1    2
         dtype: int64
+
         See Also
         --------
         Series.combine_first : Combine Series values, choosing the calling
