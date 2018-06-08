@@ -219,7 +219,7 @@ def build_table_schema(data, index=True, primary_key=None, version=True):
     -----
     See `_as_json_table_type` for conversion types.
     Timedeltas as converted to ISO8601 duration format with
-    9 decimal places after the secnods field for nanosecond precision.
+    9 decimal places after the seconds field for nanosecond precision.
 
     Categoricals are converted to the `any` dtype, and use the `enum` field
     constraint to list the allowed values. The `ordered` attribute is included

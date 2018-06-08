@@ -2217,6 +2217,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         fill_value : scalar value
             The default specifies to use the appropriate NaN value for
             the underlying dtype of the Series
+
         Returns
         -------
         result : Series
@@ -2233,11 +2234,12 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Series.combine_first : Combine Series values, choosing the calling
             Series's values first
         """
-        self_is_ext = is_extension_array_dtype(self.values)
         if fill_value is None:
-            fill_value = na_value_for_dtype(self.dtype, False)
+            fill_value = na_value_for_dtype(self.dtype, compat=False)
 
         if isinstance(other, Series):
+            # If other is a Series, result is based on union of Series,
+            # so do this element by element
             new_index = self.index.union(other.index)
             new_name = ops.get_op_result_name(self, other)
             new_values = []
@@ -2247,12 +2249,18 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
                 with np.errstate(all='ignore'):
                     new_values.append(func(lv, rv))
         else:
+            # Assume that other is a scalar, so apply the function for
+            # each element in the Series
             new_index = self.index
             with np.errstate(all='ignore'):
                 new_values = [func(lv, other) for lv in self._values]
             new_name = self.name
 
-        if self_is_ext and not is_categorical_dtype(self.values):
+        if is_categorical_dtype(self.values):
+            pass
+        elif is_extension_array_dtype(self.values):
+            # The function can return something of any type, so check
+            # if the type is compatible with the calling EA
             try:
                 new_values = self._values._from_sequence(new_values)
             except TypeError:
@@ -3105,7 +3113,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         --------
         Series.map: For element-wise operations
         Series.agg: only perform aggregating type operations
-        Series.transform: only perform transformating type operations
+        Series.transform: only perform transforming type operations
 
         Examples
         --------
