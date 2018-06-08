@@ -6,6 +6,7 @@ retrieval and to reduce dependency on DB-specific API.
 
 from __future__ import print_function, division
 from datetime import datetime, date, time
+from functools import partial
 
 import warnings
 import re
@@ -398,7 +399,7 @@ def read_sql(sql, con, index_col=None, coerce_float=True, params=None,
 
 
 def to_sql(frame, name, con, schema=None, if_exists='fail', index=True,
-           index_label=None, chunksize=None, dtype=None):
+           index_label=None, chunksize=None, dtype=None, method='default'):
     """
     Write records stored in a DataFrame to a SQL database.
 
@@ -432,6 +433,8 @@ def to_sql(frame, name, con, schema=None, if_exists='fail', index=True,
         Optional specifying the datatype for columns. The SQL type should
         be a SQLAlchemy type, or a string for sqlite3 fallback connection.
         If all columns are of the same type, one single value can be used.
+    method : {'default', 'multi', callable}, default 'default'
+        Controls the SQL insertion clause used.
 
     """
     if if_exists not in ('fail', 'replace', 'append'):
@@ -447,7 +450,7 @@ def to_sql(frame, name, con, schema=None, if_exists='fail', index=True,
 
     pandas_sql.to_sql(frame, name, if_exists=if_exists, index=index,
                       index_label=index_label, schema=schema,
-                      chunksize=chunksize, dtype=dtype)
+                      chunksize=chunksize, dtype=dtype, method=method)
 
 
 def has_table(table_name, con, schema=None):
@@ -572,8 +575,25 @@ class SQLTable(PandasObject):
         else:
             self._execute_create()
 
-    def insert_statement(self):
-        return self.table.insert()
+    def _execute_insert(self, conn, keys, data_iter):
+        """Execute SQL statement inserting data
+
+        Parameters
+        ----------
+        data : list of list
+           of values to be inserted
+        """
+        data = [{k: v for k, v in zip(keys, row)} for row in data_iter]
+        conn.execute(self.table.insert(), data)
+
+    def _execute_insert_multi(self, conn, keys, data_iter):
+        """Alternative to _exec_insert for DBs that support multivalue INSERT.
+
+        Note: multi-value insert is usually faster for a few columns
+        but performance degrades quickly with increase of columns.
+        """
+        data = [{k: v for k, v in zip(keys, row)} for row in data_iter]
+        conn.execute(self.table.insert(data))
 
     def insert_data(self):
         if self.index is not None:
@@ -611,11 +631,18 @@ class SQLTable(PandasObject):
 
         return column_names, data_list
 
-    def _execute_insert(self, conn, keys, data_iter):
-        data = [{k: v for k, v in zip(keys, row)} for row in data_iter]
-        conn.execute(self.insert_statement(), data)
+    def insert(self, chunksize=None, method=None):
 
-    def insert(self, chunksize=None):
+        # set insert method
+        if method in (None, 'default'):
+            exec_insert = self._execute_insert
+        elif method == 'multi':
+            exec_insert = self._execute_insert_multi
+        elif callable(method):
+            exec_insert = partial(method, self)
+        else:
+            raise ValueError('Invalid parameter `method`: {}'.format(method))
+
         keys, data_list = self.insert_data()
 
         nrows = len(self.frame)
@@ -638,7 +665,7 @@ class SQLTable(PandasObject):
                     break
 
                 chunk_iter = zip(*[arr[start_i:end_i] for arr in data_list])
-                self._execute_insert(conn, keys, chunk_iter)
+                exec_insert(conn, keys, chunk_iter)
 
     def _query_iterator(self, result, chunksize, columns, coerce_float=True,
                         parse_dates=None):
@@ -1078,7 +1105,8 @@ class SQLDatabase(PandasSQL):
     read_sql = read_query
 
     def to_sql(self, frame, name, if_exists='fail', index=True,
-               index_label=None, schema=None, chunksize=None, dtype=None):
+               index_label=None, schema=None, chunksize=None, dtype=None,
+               method='default'):
         """
         Write records stored in a DataFrame to a SQL database.
 
@@ -1108,7 +1136,8 @@ class SQLDatabase(PandasSQL):
             Optional specifying the datatype for columns. The SQL type should
             be a SQLAlchemy type. If all columns are of the same type, one
             single value can be used.
-
+        method : {'default', 'multi', callable}, default 'default'
+            Controls the SQL insertion clause used.
         """
         if dtype and not is_dict_like(dtype):
             dtype = {col_name: dtype for col_name in frame}
@@ -1124,7 +1153,7 @@ class SQLDatabase(PandasSQL):
                          if_exists=if_exists, index_label=index_label,
                          schema=schema, dtype=dtype)
         table.create()
-        table.insert(chunksize)
+        table.insert(chunksize, method=method)
         if (not name.isdigit() and not name.islower()):
             # check for potentially case sensitivity issues (GH7815)
             # Only check when name is not a number and name is not lower case
@@ -1434,7 +1463,8 @@ class SQLiteDatabase(PandasSQL):
         return result
 
     def to_sql(self, frame, name, if_exists='fail', index=True,
-               index_label=None, schema=None, chunksize=None, dtype=None):
+               index_label=None, schema=None, chunksize=None, dtype=None,
+               method='default'):
         """
         Write records stored in a DataFrame to a SQL database.
 
@@ -1463,7 +1493,8 @@ class SQLiteDatabase(PandasSQL):
             Optional specifying the datatype for columns. The SQL type should
             be a string. If all columns are of the same type, one single value
             can be used.
-
+        method : {'default', 'multi', callable}, default 'default'
+            Controls the SQL insertion clause used.
         """
         if dtype and not is_dict_like(dtype):
             dtype = {col_name: dtype for col_name in frame}
@@ -1478,7 +1509,7 @@ class SQLiteDatabase(PandasSQL):
                             if_exists=if_exists, index_label=index_label,
                             dtype=dtype)
         table.create()
-        table.insert(chunksize)
+        table.insert(chunksize, method)
 
     def has_table(self, name, schema=None):
         # TODO(wesm): unused?

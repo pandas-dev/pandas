@@ -372,11 +372,15 @@ class PandasSQLTest(object):
         iris_frame = self.pandasSQL.read_query(query, params=params)
         self._check_iris_loaded_frame(iris_frame)
 
-    def _to_sql(self):
+    def _to_sql(self, method=None):
         self.drop_table('test_frame1')
 
-        self.pandasSQL.to_sql(self.test_frame1, 'test_frame1')
+        self.pandasSQL.to_sql(self.test_frame1, 'test_frame1', method=method)
         assert self.pandasSQL.has_table('test_frame1')
+
+        num_entries = len(self.test_frame1)
+        num_rows = self._count_rows('test_frame1')
+        assert num_rows == num_entries
 
         # Nuke table
         self.drop_table('test_frame1')
@@ -429,6 +433,25 @@ class PandasSQLTest(object):
         num_rows = self._count_rows('test_frame1')
 
         assert num_rows == num_entries
+        self.drop_table('test_frame1')
+
+    def _to_sql_method_callable(self):
+        check = []  # used to double check function below is really being used
+
+        def sample(pd_table, conn, keys, data_iter):
+            check.append(1)
+            data = [{k: v for k, v in zip(keys, row)} for row in data_iter]
+            conn.execute(pd_table.table.insert(), data)
+        self.drop_table('test_frame1')
+
+        self.pandasSQL.to_sql(self.test_frame1, 'test_frame1', method=sample)
+        assert self.pandasSQL.has_table('test_frame1')
+
+        assert check == [1]
+        num_entries = len(self.test_frame1)
+        num_rows = self._count_rows('test_frame1')
+        assert num_rows == num_entries
+        # Nuke table
         self.drop_table('test_frame1')
 
     def _roundtrip(self):
@@ -1180,7 +1203,7 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
             pytest.skip(
                 "Can't connect to {0} server".format(self.flavor))
 
-    def test_aread_sql(self):
+    def test_read_sql(self):
         self._read_sql_iris()
 
     def test_read_sql_parameter(self):
@@ -1203,6 +1226,12 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
     def test_to_sql_append(self):
         self._to_sql_append()
+
+    def test_to_sql_method_multi(self):
+        self._to_sql(method='multi')
+
+    def test_to_sql_method_callable(self):
+        self._to_sql_method_callable()
 
     def test_create_table(self):
         temp_conn = self.connect()
