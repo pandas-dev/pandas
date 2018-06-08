@@ -306,7 +306,14 @@ class Index(IndexOpsMixin, PandasObject):
                     if is_integer_dtype(dtype):
                         inferred = lib.infer_dtype(data)
                         if inferred == 'integer':
-                            data = np.array(data, copy=copy, dtype=dtype)
+                            try:
+                                data = np.array(data, copy=copy, dtype=dtype)
+                            except OverflowError:
+                                # gh-15823: a more user-friendly error message
+                                raise OverflowError(
+                                    "the elements provided in the data cannot "
+                                    "all be casted to the dtype {dtype}"
+                                    .format(dtype=dtype))
                         elif inferred in ['floating', 'mixed-integer-float']:
                             if isna(data).any():
                                 raise ValueError('cannot convert float '
