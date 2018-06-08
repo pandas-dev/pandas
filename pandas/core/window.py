@@ -604,10 +604,8 @@ class Window(_Window):
         if isinstance(window, (list, tuple, np.ndarray)):
             pass
         elif is_integer(window):
-            if window == 0:
-                raise ValueError("window must not be zero")
-            if window < 0:
-                raise ValueError("window must be non-negative")
+            if window <= 0:
+                raise ValueError("window must be positive")
             try:
                 import scipy.signal as sig
             except ImportError:
