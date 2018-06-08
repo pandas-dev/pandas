@@ -245,7 +245,7 @@ cdef inline _decode_if_necessary(object ts):
     return ts
 
 
-cdef inline parse_timedelta_string(object ts, object specified_unit=None):
+cdef inline parse_timedelta_string(object ts, specified_unit=None):
     """
     Parse a regular format timedelta string. Return an int64_t (in ns)
     or raise a ValueError on an invalid parse.
@@ -407,10 +407,7 @@ cdef inline parse_timedelta_string(object ts, object specified_unit=None):
         if have_value:
             raise ValueError("have leftover units")
         if len(number):
-            if specified_unit is None:
-                fallback_unit = 'ns'
-            else:
-                fallback_unit = specified_unit
+            fallback_unit = 'ns' if specified_unit is None else specified_unit
             r = timedelta_from_spec(number, frac, fallback_unit)
             result += timedelta_as_neg(r, neg)
 
@@ -1004,13 +1001,25 @@ class Timedelta(_Timedelta):
                                  "[weeks, days, hours, minutes, seconds, "
                                  "milliseconds, microseconds, nanoseconds]")
 
+
         if isinstance(value, Timedelta):
             value = value.value
         elif is_string_object(value):
-            if len(value) > 0 and value[0] == 'P':
+            # Check if it is just a number in a string
+            try:
+                value = int(value)
+            except (ValueError, TypeError):
+                try:
+                    value = float(value)
+                except (ValueError, TypeError):
+                    pass
+
+            if is_integer_object(value) or is_float_object(value):
+                value = convert_to_timedelta64(value, unit)
+            elif len(value) > 0 and value[0] == 'P':
                 value = parse_iso_format_string(value)
             else:
-                value = parse_timedelta_string(value)
+                value = parse_timedelta_string(value, unit)
             value = np.timedelta64(value)
         elif PyDelta_Check(value):
             value = convert_to_timedelta64(value, 'ns')
