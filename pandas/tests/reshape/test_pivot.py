@@ -155,10 +155,10 @@ class TestPivotTable(object):
         expected = pd.DataFrame(
           {'A': [np.nan, 5], 'B': [1, np.nan], 'C': [3.0, 3.0]},
           index=pd.Index(
-            pd.Categorical.from_codes([0, 1],
-                                      categories=['low', 'high'],
-                                      ordered=True),
-            name='In'))
+                         pd.Categorical.from_codes([0, 1],
+                                                   categories=['low', 'high'],
+                                                   ordered=True),
+                         name='In'))
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_with_non_observable_dropna(self, dropna):
