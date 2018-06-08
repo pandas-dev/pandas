@@ -5,7 +5,7 @@ import warnings
 
 from datetime import timedelta
 from itertools import product
-
+from enum import Enum
 import pytest
 
 import numpy as np
@@ -20,6 +20,7 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas._libs.tslib import Timestamp
+from pandas.core.algorithms import take_1d
 
 import pandas.util.testing as tm
 
@@ -3311,9 +3312,6 @@ class TestMultiIndex(Base):
     def test_use_enum_in_multiindex(self):
         # GH 21298
         # Allow use of Enums as one of the factors in a MultiIndex.
-        from enum import Enum
-        from pandas.core.algorithms import take_1d
-
         MyEnum = Enum("MyEnum", "A B")
         df = pd.DataFrame(columns=pd.MultiIndex.from_product(iterables=[
             MyEnum,
