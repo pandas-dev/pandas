@@ -147,7 +147,7 @@ MultiIndex
 I/O
 ^^^
 
--
+- Bug in :func:`to_clipboard` which passes r'\t' instead of '\t' to to_csv (:issue:`21385`)
 -
 -
 

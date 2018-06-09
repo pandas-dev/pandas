@@ -99,7 +99,7 @@ def to_clipboard(obj, excel=True, sep=None, **kwargs):  # pragma: no cover
     if excel:
         try:
             if sep is None:
-                sep = r'\t'
+                sep = '\t'
             buf = StringIO()
             # clipboard_set (pyperclip) expects unicode
             obj.to_csv(buf, sep=sep, encoding='utf-8', **kwargs)
