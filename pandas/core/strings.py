@@ -1343,24 +1343,7 @@ def str_pad(arr, width, side='left', fillchar=' '):
 
 
 def str_split(arr, pat=None, n=None):
-    """
-    Split strings around given separator/delimiter.
-
-    Parameters
-    ----------
-    pat : str, optional
-        String or regular expression to split on; If not specified,
-        split on whitespace.
-    n : int, default -1 (all)
-        Limit number of splits in output; ``None``, 0 and -1 will
-        be interpreted as return all splits.
-    expand : bool, default False
-        Expand the splitted strings into separate columns.
-
-    Returns
-    -------
-    Series, Index, DataFrame or MultiIndex
-    """
+  
     if pat is None:
         if n is None or n == 0:
             n = -1
@@ -1380,24 +1363,7 @@ def str_split(arr, pat=None, n=None):
 
 
 def str_rsplit(arr, pat=None, n=None):
-    """
-    Split strings around given separator/delimiter (starting from
-    the right).
-
-    Parameters
-    ----------
-    pat : string, default None
-        Separator to split on; If None, splits on whitespace.
-    n : int, default -1 (all)
-        None, 0 and -1 will be interpreted as return all splits.
-    expand : bool, default False
-          If True, return DataFrame/MultiIndex expanding dimensionality.
-          If False, return Series/Index.
-
-    Returns
-    -------
-    Series/Index or DataFrame/MultiIndex of objects
-    """
+    
     if n is None or n == 0:
         n = -1
     f = lambda x: x.rsplit(pat, n)
@@ -2279,21 +2245,14 @@ class StringMethods(NoNewAttributesMixin):
 
     See Also
     --------
-    %(also)s
+    split : Splits string at the first occurrence of delimiter
+    rsplit : Splits string at the last occurrence of delimiter
 
     Examples
     --------
-    %(example)s
-    """)
+    >>> s = pd.Series(["this is good text", "but this is even better"])
 
-    @Appender(_shared_docs['str_split'] % {
-        'side': 'beginning',
-        'method': 'split',
-        'also': 'rsplit : Splits string at the last occurrence of delimiter',
-        'example':
-        """>>> s = pd.Series(["this is good text", "but this is even better"])
-
-    By default, split will return an object of the same size
+    By default, split and rsplit will return an object of the same size
     having lists containing the split elements
 
     >>> s.str.split()
@@ -2301,7 +2260,17 @@ class StringMethods(NoNewAttributesMixin):
     1    [but, this, is, even, better]
     dtype: object
 
+    >>> s.str.rsplit()
+    0           [this, is, good, text]
+    1    [but, this, is, even, better]
+    dtype: object
+
     >>> s.str.split("random")
+    0          [this is good text]
+    1    [but this is even better]
+    dtype: object
+
+    >>> s.str.rsplit("random")
     0          [this is good text]
     1    [but this is even better]
     dtype: object
@@ -2328,42 +2297,6 @@ class StringMethods(NoNewAttributesMixin):
     1    [but th,  is even better]
     dtype: object
 
-    If NaN is present, it is propagated throughout the columns
-    during the split.
-
-    >>> s = pd.Series(["this is good text", "but this is even better", np.nan])
-
-    >>> s.str.split(n=3, expand=True)
-          0     1     2            3
-    0  this    is  good         text
-    1   but  this    is  even better
-    2   NaN   NaN   NaN          NaN """})
-    def split(self, pat=None, n=-1, expand=False):
-        result = str_split(self._data, pat, n=n)
-        return self._wrap_result(result, expand=expand)
-
-    @Appender(_shared_docs['str_split'] % {
-        'side': 'end',
-        'method': 'rsplit',
-        'also': 'split : Splits string at the first occurrence of delimiter',
-        'example':
-        """>>> s = pd.Series(["this is good text", "but this is even better"])
-
-    By default, rsplit will return an object of the same size
-    having lists containing the split elements
-
-    >>> s.str.rsplit()
-    0           [this, is, good, text]
-    1    [but, this, is, even, better]
-    dtype: object
-
-    >>> s.str.rsplit("random")
-    0          [this is good text]
-    1    [but this is even better]
-    dtype: object
-
-    Parameter `n` can be used to limit the number of splits in the output.
-
     >>> s.str.rsplit("is", n=1)
     0          [this ,  good text]
     1    [but this ,  even better]
@@ -2374,11 +2307,31 @@ class StringMethods(NoNewAttributesMixin):
 
     >>> s = pd.Series(["this is good text", "but this is even better", np.nan])
 
+    >>> s.str.split(n=3, expand=True)
+          0     1     2            3
+    0  this    is  good         text
+    1   but  this    is  even better
+    2   NaN   NaN   NaN          NaN 
+
     >>> s.str.rsplit(n=3, expand=True)
               0    1     2       3
     0      this   is  good    text
     1  but this   is  even  better
-    2       NaN  NaN   NaN     NaN """})
+    2       NaN  NaN   NaN     NaN
+    """)
+
+    @Appender(_shared_docs['str_split'] % {
+        'side': 'beginning',
+        'method': 'split'
+        })
+    def split(self, pat=None, n=-1, expand=False):
+        result = str_split(self._data, pat, n=n)
+        return self._wrap_result(result, expand=expand)
+
+    @Appender(_shared_docs['str_split'] % {
+        'side': 'end',
+        'method': 'rsplit'
+        })        
     def rsplit(self, pat=None, n=-1, expand=False):
         result = str_rsplit(self._data, pat, n=n)
         return self._wrap_result(result, expand=expand)
