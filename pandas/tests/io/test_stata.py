@@ -100,9 +100,9 @@ class TestStata(object):
 
         self.stata_dates = os.path.join(self.dirpath, 'stata13_dates.dta')
 
-    def read_dta(self, file):
+    def read_dta(self, file, encoding='latin-1'):
         # Legacy default reader configuration
-        return read_stata(file, convert_dates=True)
+        return read_stata(file, convert_dates=True, encoding=encoding)
 
     def read_csv(self, file):
         return read_csv(file, parse_dates=True)
@@ -269,7 +269,7 @@ class TestStata(object):
         tm.assert_frame_equal(parsed_117, expected, check_dtype=False)
 
     def test_read_dta18(self):
-        parsed_118 = self.read_dta(self.dta22_118)
+        parsed_118 = self.read_dta(self.dta22_118, encoding='utf-8')
         parsed_118["Bytes"] = parsed_118["Bytes"].astype('O')
         expected = DataFrame.from_records(
             [['Cat', 'Bogota', u'Bogotá', 1, 1.0, u'option b Ünicode', 1.0],
@@ -284,7 +284,7 @@ class TestStata(object):
         for col in parsed_118.columns:
             tm.assert_almost_equal(parsed_118[col], expected[col])
 
-        with StataReader(self.dta22_118) as rdr:
+        with StataReader(self.dta22_118, encoding='utf-8') as rdr:
             vl = rdr.variable_labels()
             vl_expected = {u'Unicode_Cities_Strl':
                            u'Here are some strls with Ünicode chars',
@@ -1354,7 +1354,7 @@ class TestStata(object):
         original = self.read_csv(self.csv3)
         with pytest.raises(ValueError):
             with tm.ensure_clean() as path:
-                original.to_stata(path, encoding='utf-8')
+                original.to_stata(path, encoding='pokemon')
 
     def test_path_pathlib(self):
         df = tm.makeDataFrame()

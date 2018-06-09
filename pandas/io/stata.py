@@ -37,7 +37,8 @@ from pandas.util._decorators import Appender
 from pandas.util._decorators import deprecate_kwarg
 
 VALID_ENCODINGS = ('ascii', 'us-ascii', 'latin-1', 'latin_1', 'iso-8859-1',
-                   'iso8859-1', '8859', 'cp819', 'latin', 'latin1', 'L1')
+                   'iso8859-1', '8859', 'cp819', 'latin', 'latin1', 'L1',
+                   'utf-8', 'utf8')
 
 _version_error = ("Version of given Stata file is not 104, 105, 108, "
                   "111 (Stata 7SE), 113 (Stata 8/9), 114 (Stata 10/11), "
@@ -1330,7 +1331,7 @@ class StataReader(StataParser, BaseIterator):
 
     def _decode(self, s):
         s = s.partition(b"\0")[0]
-        return s.decode('utf-8')
+        return s.decode(self._encoding or self._default_encoding)
 
     def _null_terminate(self, s):
         # have bytes not strings, so must decode

@@ -147,7 +147,8 @@ MultiIndex
 I/O
 ^^^
 
--
+- :func:`pandas.read_stata` now honours the ``encoding`` parameter, and supports the 'utf-8'
+  encoding.  #21244
 -
 -
 
