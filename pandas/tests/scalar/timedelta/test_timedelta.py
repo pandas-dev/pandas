@@ -1,4 +1,5 @@
 """ test the scalar Timedelta """
+import sys
 import pytest
 
 import numpy as np
@@ -42,8 +43,10 @@ class TestTimedeltaArithmetic(object):
             with pytest.raises(TypeError):
                 left + right
 
-            with pytest.raises(TypeError):
-                left > right
+            # GH 20829: python 2 comparison naturally does not raise TypeError
+            if sys.version_info >= (3, 0):
+                with pytest.raises(TypeError):
+                    left > right
 
             assert not left == right
             assert left != right
@@ -107,25 +110,48 @@ class TestTimedeltaComparison(object):
         # GH20829
         class CustomClass(object):
 
-            def __init__(self, eq_result=None):
-                self.eq_result = eq_result
+            def __init__(self, cmp_result=None):
+                self.cmp_result = cmp_result
+
+            def generic_result(self):
+                if self.cmp_result is None:
+                    return NotImplemented
+                else:
+                    return self.cmp_result
 
             def __eq__(self, other):
-                if self.eq_result is None:
-                    return NotImplemented
-                elif self.eq_result:
-                    return True
-                else:
-                    return False
+                return self.generic_result()
+
+            def __gt__(self, other):
+                return self.generic_result()
 
         t = Timedelta('1s')
 
         assert not (t == "string")
         assert not (t == 1)
         assert not (t == CustomClass())
-        assert not (t == CustomClass(False))
+        assert not (t == CustomClass(cmp_result=False))
 
-        assert t == CustomClass(True)
+        assert t < CustomClass(cmp_result=True)
+        assert not (t < CustomClass(cmp_result=False))
+
+        assert t == CustomClass(cmp_result=True)
+
+    @pytest.mark.parametrize("val", [
+        "string", 1])
+    def test_raise_comparisons_unknown_types(self, val):
+        # GH20829
+        t = Timedelta('1s')
+        if sys.version >= (3, 0):
+            # python 2 does not raises TypeError for comparisons of different types
+            with pytest.raises(TypeError):
+                t >= val
+            with pytest.raises(TypeError):
+                t > val
+            with pytest.raises(TypeError):
+                t <= val
+            with pytest.raises(TypeError):
+                t < val
 
 
 class TestTimedeltas(object):
