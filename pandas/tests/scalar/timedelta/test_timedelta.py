@@ -142,7 +142,7 @@ class TestTimedeltaComparison(object):
     def test_raise_comparisons_unknown_types(self, val):
         # GH20829
         t = Timedelta('1s')
-        if sys.version >= (3, 0):
+        if sys.version_info >= (3, 0):
             # python 2 does not raises TypeError for comparisons
             # of different types
             with pytest.raises(TypeError):
