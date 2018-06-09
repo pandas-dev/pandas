@@ -350,6 +350,10 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
         # sort of a temporary hack
         if ts.tzinfo is not None:
             if hasattr(tz, 'normalize') and hasattr(ts.tzinfo, '_utcoffset'):
+                # tz.localize does not correctly localize Timestamps near DST
+                if hasattr(ts, 'to_pydatetime'):
+                    nanos += ts.nanosecond
+                    ts = ts.to_pydatetime()
                 ts = tz.normalize(ts)
                 obj.value = pydatetime_to_dt64(ts, &obj.dts)
                 obj.tzinfo = ts.tzinfo

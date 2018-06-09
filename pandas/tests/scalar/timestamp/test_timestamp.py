@@ -528,6 +528,14 @@ class TestTimestampConstructors(object):
         with pytest.raises(AttributeError):
             ts.tz = tz
 
+    @pytest.mark.parametrize('offset', ['+0300', '+0200'])
+    def test_construct_timestamp_near_dst(self, offset):
+        # GH 20854
+        expected = Timestamp('2016-10-30 03:00:00{}'.format(offset),
+                             tz='Europe/Helsinki')
+        result = Timestamp(expected, tz='Europe/Helsinki')
+        assert result == expected
+
 
 class TestTimestamp(object):
 
