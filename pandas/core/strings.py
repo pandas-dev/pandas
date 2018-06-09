@@ -2245,8 +2245,7 @@ class StringMethods(NoNewAttributesMixin):
 
     See Also
     --------
-    split : Splits string at the first occurrence of delimiter
-    rsplit : Splits string at the last occurrence of delimiter
+    %(also)s
 
     Examples
     --------
@@ -2322,7 +2321,8 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(_shared_docs['str_split'] % {
         'side': 'beginning',
-        'method': 'split'
+        'method': 'split',
+        'also': 'rsplit : Splits string at the last occurrence of delimiter'
         })
     def split(self, pat=None, n=-1, expand=False):
         result = str_split(self._data, pat, n=n)
@@ -2330,7 +2330,8 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(_shared_docs['str_split'] % {
         'side': 'end',
-        'method': 'rsplit'
+        'method': 'rsplit',
+        'also': 'split : Splits string at the first occurrence of delimiter'
         })        
     def rsplit(self, pat=None, n=-1, expand=False):
         result = str_rsplit(self._data, pat, n=n)
