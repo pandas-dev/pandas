@@ -143,7 +143,8 @@ class TestTimedeltaComparison(object):
         # GH20829
         t = Timedelta('1s')
         if sys.version >= (3, 0):
-            # python 2 does not raises TypeError for comparisons of different types
+            # python 2 does not raises TypeError for comparisons
+            # of different types
             with pytest.raises(TypeError):
                 t >= val
             with pytest.raises(TypeError):
