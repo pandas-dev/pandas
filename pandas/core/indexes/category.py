@@ -324,18 +324,31 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
     def __contains__(self, key):
         hash(key)
-        if isna(key):
+
+        if isna(key):  # if key is a NaN, check if any NaN is in self.
             return self.isna().any()
-        elif self.categories._defer_to_indexing:  # e.g. Interval values
+
+        # is key in self.categories? Then get its location.
+        # If not (i.e. KeyError), it logically can't be in self either
+        try:
             loc = self.categories.get_loc(key)
-            return np.isin(self.codes, loc).any()
-        elif key in self.categories:
-            return self.categories.get_loc(key) in self._engine
-        else:
+        except KeyError:
             return False
+
+        # loc is the location of key in self.categories, but also the value
+        # for key in self.codes and in self._engine. key may be in categories,
+        # but still not in self, check this. Example:
+        # 'b' in CategoricalIndex(['a'], categories=['a', 'b']) #  False
+        if is_scalar(loc):
+            return loc in self._engine
+        else:
+            # if self.categories is IntervalIndex, loc is an array
+            # check if any scalar of the array is in self._engine
+            return any(loc_ in self._engine for loc_ in loc)
 
     @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def contains(self, key):
+        hash(key)
         return key in self
 
     def __array__(self, dtype=None):
