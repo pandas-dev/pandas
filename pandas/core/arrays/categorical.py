@@ -1849,10 +1849,14 @@ class Categorical(ExtensionArray, PandasObject):
 
     def __contains__(self, key):
         """Returns True if `key` is in this Categorical."""
-        if key in self.categories:
-            return self.categories.get_loc(key) in self.codes
-        elif isna(key) and self.isna().any():
-            return True
+        hash(key)
+        if isna(key):
+            return self.isna().any()
+        elif self.categories._defer_to_indexing:  # e.g. Interval values
+            loc = self.categories.get_loc(key)
+            return np.isin(self.codes, loc).any()
+        elif key in self.categories:
+            return self.categories.get_loc(key) in self._codes
         else:
             return False
 
