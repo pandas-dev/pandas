@@ -7287,7 +7287,7 @@ class DataFrame(NDFrame):
         >>> df.isin(foo)
                A      B
         0   True  False
-        1  False  False  # Column A in `other` has a 3, but not at index 1.
+        1  False  False  # Column A in `foo` has a 3, but not at index 1.
         2   True   True
         """
         if isinstance(values, dict):
