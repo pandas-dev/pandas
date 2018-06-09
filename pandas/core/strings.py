@@ -1343,24 +1343,7 @@ def str_pad(arr, width, side='left', fillchar=' '):
 
 
 def str_split(arr, pat=None, n=None):
-    """
-    Split strings around given separator/delimiter.
-
-    Parameters
-    ----------
-    pat : str, optional
-        String or regular expression to split on; If not specified,
-        split on whitespace.
-    n : int, default -1 (all)
-        Limit number of splits in output; ``None``, 0 and -1 will
-        be interpreted as return all splits.
-    expand : bool, default False
-        Expand the splitted strings into separate columns.
-
-    Returns
-    -------
-    Series, Index, DataFrame or MultiIndex
-    """
+  
     if pat is None:
         if n is None or n == 0:
             n = -1
@@ -1380,24 +1363,7 @@ def str_split(arr, pat=None, n=None):
 
 
 def str_rsplit(arr, pat=None, n=None):
-    """
-    Split strings around given separator/delimiter (starting from
-    the right).
-
-    Parameters
-    ----------
-    pat : string, default None
-        Separator to split on; If None, splits on whitespace.
-    n : int, default -1 (all)
-        None, 0 and -1 will be interpreted as return all splits.
-    expand : bool, default False
-          If True, return DataFrame/MultiIndex expanding dimensionality.
-          If False, return Series/Index.
-
-    Returns
-    -------
-    Series/Index or DataFrame/MultiIndex of objects
-    """
+    
     if n is None or n == 0:
         n = -1
     f = lambda x: x.rsplit(pat, n)
@@ -2243,9 +2209,8 @@ class StringMethods(NoNewAttributesMixin):
     _shared_docs['str_split'] = ("""
     Split strings around given separator/delimiter.
 
-    Returns a list of the words from each string in Series/Index,
-    split by the given delimiter string, starting at the %(side)s of the
-    string. Equivalent to :meth:`str.%(method)s`.
+    Splits the string in the Series/Index from the %(side)s,
+    at the specified delimiter string.Equivalent to :meth:`str.%(method)s`.
 
     Parameters
     ----------
@@ -2294,7 +2259,7 @@ class StringMethods(NoNewAttributesMixin):
     1    [but, this, is, even, better]
     dtype: object
 
-      >>> s.str.rsplit()
+    >>> s.str.rsplit()
     0           [this, is, good, text]
     1    [but, this, is, even, better]
     dtype: object
@@ -2345,7 +2310,7 @@ class StringMethods(NoNewAttributesMixin):
           0     1     2            3
     0  this    is  good         text
     1   but  this    is  even better
-    2   NaN   NaN   NaN          NaN
+    2   NaN   NaN   NaN          NaN 
 
     >>> s.str.rsplit(n=3, expand=True)
               0    1     2       3
@@ -2354,14 +2319,20 @@ class StringMethods(NoNewAttributesMixin):
     2       NaN  NaN   NaN     NaN
     """)
 
-    @Appender(_shared_docs['str_split'] % dict(side='start',
-                                               method='split'))
+    @Appender(_shared_docs['str_split'] % {
+        'side': 'beginning',
+        'method': 'split',
+        'also': 'rsplit : Splits string at the last occurrence of delimiter'
+        })
     def split(self, pat=None, n=-1, expand=False):
         result = str_split(self._data, pat, n=n)
         return self._wrap_result(result, expand=expand)
 
-    @Appender(_shared_docs['str_split'] % dict(side='end',
-                                               method='rsplit'))
+    @Appender(_shared_docs['str_split'] % {
+        'side': 'end',
+        'method': 'rsplit',
+        'also': 'split : Splits string at the first occurrence of delimiter'
+        })        
     def rsplit(self, pat=None, n=-1, expand=False):
         result = str_rsplit(self._data, pat, n=n)
         return self._wrap_result(result, expand=expand)
