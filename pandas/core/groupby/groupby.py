@@ -3935,38 +3935,10 @@ class SeriesGroupBy(GroupBy):
         return func(self)
 
     def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None):
-        """Calculate pct_change of each value to previous entry in group"""
-        grouper = self.grouper
-        cache_exist = getattr(grouper, '_cache', False)
-        if cache_exist:
-            in_cache = True if 'is_monotonic' in cache_exist.keys() else False
-        else:
-            in_cache = False
-        m = grouper.is_monotonic if in_cache else False
-        if not m or fill_method is None:
-            return self.apply(lambda x: x.pct_change(periods=periods,
-                                                     fill_method=fill_method,
-                                                     limit=limit, freq=freq))
-
-        def get_invalid_index(x):
-            if periods == 0:
-                return x
-            elif periods > 0:
-                ax = Index(np.arange(min(x), min(x) + periods))
-                return ax
-            elif periods < 0:
-                ax = Index(np.arange(max(x), max(x) + periods, -1))
-                return ax
-
-        filled = getattr(self, fill_method)(limit=limit)
-        shifted = filled.shift(periods=periods, freq=freq)
-        pct_change = (filled / shifted) - 1
-
-        invalid_index = Index([])
-        for i in [get_invalid_index(v) for k, v in self.indices.items()]:
-            invalid_index = invalid_index.union(i)
-        pct_change.iloc[invalid_index] = np.nan
-        return pct_change
+        """Calcuate pct_change of each value to previous entry in group"""
+        return self.apply(lambda x: x.pct_change(periods=periods,
+                                                 fill_method=fill_method,
+                                                 limit=limit, freq=freq))
 
 
 class NDFrameGroupBy(GroupBy):

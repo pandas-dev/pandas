@@ -723,16 +723,13 @@ def test_group_fill_methods(mix_groupings, as_series, val1, val2,
 
 @pytest.mark.parametrize("test_series", [True, False])
 @pytest.mark.parametrize("shuffle", [True, False])
-@pytest.mark.parametrize("activate_cache", [True, False])
 @pytest.mark.parametrize("periods,fill_method,limit", [
     (1, 'ffill', None), (1, 'ffill', 1),
     (1, 'bfill', None), (1, 'bfill', 1),
     (-1, 'ffill', None), (-1, 'ffill', 1),
     (-1, 'bfill', None), (-1, 'bfill', 1),
-    (-1, None, None), (-1, None, 1),
-    (-1, None, None), (-1, None, 1)
 ])
-def test_pct_change(test_series, shuffle, activate_cache, periods, fill_method, limit):
+def test_pct_change(test_series, shuffle, periods, fill_method, limit):
     vals = [3, np.nan, 1, 2, 4, 10, np.nan, 9]
     keys = ['a', 'b']
     key_v = np.repeat(keys, len(vals))
@@ -750,9 +747,6 @@ def test_pct_change(test_series, shuffle, activate_cache, periods, fill_method, 
     exp_vals = pd.concat(manual_apply, ignore_index=True)
     exp = pd.DataFrame(exp_vals.values, columns=['A'])
     grp = df.groupby('key')
-
-    if activate_cache:
-        grp.grouper.is_monotonic
 
     def get_result(grp_obj):
         return grp_obj.pct_change(periods=periods,
