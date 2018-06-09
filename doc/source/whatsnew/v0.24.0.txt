@@ -83,7 +83,7 @@ Bug Fixes
 Categorical
 ^^^^^^^^^^^
 
--
+- Fixed an issue where membership checks on ``CategoricalIndex`` with interval values may return false positive (:issue:`21022`)
 -
 -
 
