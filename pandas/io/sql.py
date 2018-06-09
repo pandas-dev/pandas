@@ -580,16 +580,20 @@ class SQLTable(PandasObject):
 
         Parameters
         ----------
-        data : list of list
-           of values to be inserted
+        conn : sqlalchemy.engine.Engine or sqlalchemy.engine.Connection
+        keys : list of str
+           Column names
+        data_iter : generator of list
+           Each item contains a list of values to be inserted
         """
         data = [{k: v for k, v in zip(keys, row)} for row in data_iter]
         conn.execute(self.table.insert(), data)
 
     def _execute_insert_multi(self, conn, keys, data_iter):
-        """Alternative to _exec_insert for DBs that support multivalue INSERT.
+        """Alternative to _execute_insert for DBs support multivalue INSERT.
 
-        Note: multi-value insert is usually faster for a few columns
+        Note: multi-value insert is usually faster for analytics DBs
+        and tables containing a few columns
         but performance degrades quickly with increase of columns.
         """
         data = [{k: v for k, v in zip(keys, row)} for row in data_iter]
