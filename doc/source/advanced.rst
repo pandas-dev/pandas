@@ -342,7 +342,7 @@ As usual, **both sides** of the slicers are included as this is label indexing.
                        columns=micolumns).sort_index().sort_index(axis=1)
    dfmi
 
-Basic multi-index slicing using slices, lists, and labels.
+Basic MultiIndex slicing using slices, lists, and labels.
 
 .. ipython:: python
 
@@ -1039,7 +1039,7 @@ On the other hand, if the index is not monotonic, then both slice bounds must be
     KeyError: 'Cannot get right slice bound for non-unique label: 3'
 
 :meth:`Index.is_monotonic_increasing` and :meth:`Index.is_monotonic_decreasing` only check that
-an index is weakly monotonic. To check for strict montonicity, you can combine one of those with
+an index is weakly monotonic. To check for strict monotonicity, you can combine one of those with
 :meth:`Index.is_unique`
 
 .. ipython:: python

@@ -207,7 +207,7 @@ def str_count(arr, pat, flags=0):
         Flags for the `re` module. For a complete list, `see here
         <https://docs.python.org/3/howto/regex.html#compilation-flags>`_.
     **kwargs
-        For compatability with other string methods. Not used.
+        For compatibility with other string methods. Not used.
 
     Returns
     -------
@@ -839,7 +839,7 @@ def _str_extract_frame(arr, pat, flags=0):
 
 
 def str_extract(arr, pat, flags=0, expand=True):
-    r"""
+    """
     For each subject string in the Series, extract groups from the
     first match of regular expression pat.
 
@@ -926,7 +926,7 @@ def str_extract(arr, pat, flags=0, expand=True):
 
 
 def str_extractall(arr, pat, flags=0):
-    r"""
+    """
     For each subject string in the Series, extract groups from all
     matches of regular expression pat. When each subject string in the
     Series has exactly one match, extractall(pat).xs(0, level='match')
@@ -1343,7 +1343,7 @@ def str_pad(arr, width, side='left', fillchar=' '):
 
 
 def str_split(arr, pat=None, n=None):
-  
+
     if pat is None:
         if n is None or n == 0:
             n = -1
@@ -2053,9 +2053,9 @@ class StringMethods(NoNewAttributesMixin):
 
         Returns
         -------
-        concat : str if `other is None`, Series/Index of objects if `others is
-            not None`. In the latter case, the result will remain categorical
-            if the calling Series/Index is categorical.
+        concat : str or Series/Index of objects
+            If `others` is None, `str` is returned, otherwise a `Series/Index`
+            (same type as caller) of objects is returned.
 
         See Also
         --------
