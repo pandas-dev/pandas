@@ -48,7 +48,7 @@ class _IndexSlice(object):
 
     See Also
     --------
-    MultiIndex.remove_unused_levels : Create new MultiIndex with no unused levels.
+    MultiIndex.remove_unused_levels : New MultiIndex with no unused levels.
 
     Notes
     -----
