@@ -46,6 +46,16 @@ class _IndexSlice(object):
     """
     Create an object to more easily perform multi-index slicing
 
+    See Also
+    --------
+    MultiIndex.remove_unused_levels : Create new MultiIndex with no unused levels.
+
+    Notes
+    -----
+    See the `Defined Levels Section
+    <http://pandas.pydata.org/pandas-docs/stable/advanced.html#defined-levels>`_
+    for further info on slicing a MultiIndex.
+
     Examples
     --------
 
