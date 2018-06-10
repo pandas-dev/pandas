@@ -1971,10 +1971,16 @@ class Categorical(ExtensionArray, PandasObject):
                 raise ValueError("Cannot set a Categorical with another, "
                                  "without identical categories")
 
-        rvalue = value if is_list_like(value) else [value]
-
+        # is the new value one of the defined categories?
         from pandas import Index
-        to_add = Index(rvalue).difference(self.categories)
+        if isinstance(value, tuple):
+            rvalue = [value]
+            to_add = Index(rvalue,
+                           tupleize_cols=False).difference(self.categories)
+        else:
+            if not is_list_like(value):
+                rvalue = [value]
+            to_add = Index(rvalue).difference(self.categories)
 
         # no assignments of values not in categories, but it's always ok to set
         # something to np.nan
