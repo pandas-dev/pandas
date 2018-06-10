@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
 
+from warnings import catch_warnings
+
 cimport cython
 from cython cimport Py_ssize_t
 
@@ -347,13 +349,14 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
     if tz is not None:
         tz = maybe_get_tz(tz)
 
-        # sort of a temporary hack
         if ts.tzinfo is not None:
             if hasattr(tz, 'normalize') and hasattr(ts.tzinfo, '_utcoffset'):
                 # tz.localize does not correctly localize Timestamps near DST
+                # but correctly localizes datetimes
                 if hasattr(ts, 'to_pydatetime'):
                     nanos += ts.nanosecond
-                    ts = ts.to_pydatetime()
+                    with catch_warnings(record=True):
+                        ts = ts.to_pydatetime()
                 ts = tz.normalize(ts)
                 obj.value = pydatetime_to_dt64(ts, &obj.dts)
                 obj.tzinfo = ts.tzinfo

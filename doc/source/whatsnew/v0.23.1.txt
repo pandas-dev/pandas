@@ -129,6 +129,10 @@ Bug Fixes
 - Bug in :func:`concat` where error was raised in concatenating :class:`Series` with numpy scalar and tuple names (:issue:`21015`)
 - Bug in :func:`concat` warning message providing the wrong guidance for future behavior (:issue:`21101`)
 
+**Timezones**
+- Bug in :class:`Timestamp` and :class:`DatetimeIndex` where passing a :class:`Timestamp` localized after a DST transition would return a datetime before the DST transition (:issue:`20854`)
+- Bug in comparing :class:`DataFrame`s with tz-aware :class:`DatetimeIndex` columns with a DST transition that raised a ``KeyError`` (:issue:`19970`)
+
 **Other**
 
 - Tab completion on :class:`Index` in IPython no longer outputs deprecation warnings (:issue:`21125`)
