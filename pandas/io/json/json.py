@@ -19,7 +19,17 @@ from .normalize import _convert_to_line_delimits
 from .table_schema import build_table_schema, parse_table_schema
 from pandas.core.dtypes.common import is_period_dtype
 
-loads = json.loads
+def loads(*args, **kwargs):
+    try:
+        return json.loads(*args, **kwargs)
+    except ValueError as err:
+        # if ValueError is from too large aa value return []
+        if err.args[0] == 'Value is too big':
+            return []
+        else:
+            # in case of something like '{"key":b:a:d}' re raise
+            raise
+
 dumps = json.dumps
 
 TABLE_SCHEMA_VERSION = '0.20.0'
