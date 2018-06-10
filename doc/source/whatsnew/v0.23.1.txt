@@ -122,6 +122,7 @@ Bug Fixes
 - Bug in IO methods specifying ``compression='zip'`` which produced uncompressed zip archives (:issue:`17778`, :issue:`21144`)
 - Bug in :meth:`DataFrame.to_stata` which prevented exporting DataFrames to buffers and most file-like objects (:issue:`21041`)
 - Bug in :meth:`read_stata` and :class:`StataReader` which did not correctly decode utf-8 strings on Python 3 from Stata 14 files (dta version 118) (:issue:`21244`)
+- Bug in IO JSON :func:`read_json` reading empty JSON schema with ``orient='table'`` back to :class:`DataFrame` caused an error (:issue:`21287`)
 
 **Reshaping**
 
@@ -131,3 +132,4 @@ Bug Fixes
 **Other**
 
 - Tab completion on :class:`Index` in IPython no longer outputs deprecation warnings (:issue:`21125`)
+- Bug preventing pandas being used on Windows without C++ redistributable installed (:issue:`21106`)
