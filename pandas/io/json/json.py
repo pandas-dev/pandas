@@ -19,6 +19,7 @@ from .normalize import _convert_to_line_delimits
 from .table_schema import build_table_schema, parse_table_schema
 from pandas.core.dtypes.common import is_period_dtype
 
+
 def loads(*args, **kwargs):
     try:
         return json.loads(*args, **kwargs)

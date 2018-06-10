@@ -1227,6 +1227,5 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         'records', 'index', 'columns', 'values'
     ])
     def test_int_overflow(self, orient):
-        bar = json.dumps({ 'foo' : 2**100000})
+        bar = json.dumps({'foo': 2**100000})
         read_json(bar, orient=orient)
-
