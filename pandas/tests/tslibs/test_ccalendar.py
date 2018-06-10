@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import calendar
 from datetime import datetime
 
 import numpy as np
@@ -17,9 +16,3 @@ def test_get_day_of_year():
     result = ccalendar.get_day_of_year(dt.year, dt.month, dt.day)
     expected = (dt - dt.replace(month=1, day=1)).days + 1
     assert result == expected
-
-
-def test_monthrange():
-    for y in range(2000, 2013):
-        for m in range(1, 13):
-            assert ccalendar.monthrange(y, m) == calendar.monthrange(y, m)
