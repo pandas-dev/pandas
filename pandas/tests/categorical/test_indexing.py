@@ -116,10 +116,8 @@ class TestCategoricalIndexing(object):
         tm.assert_categorical_equal(s, expected)
 
         # changing element to use new category
-        msg = ''.join([
-            "Cannot setitem on a Categorical with a new category, set the ",
-            "categories first"
-        ])
+        msg = ("Cannot setitem on a Categorical with a new category, set the "
+               "categories first")
         with tm.assert_raises_regex(ValueError, msg):
             s = Categorical([('a', 'a'), ('a', 'b'), ('b', 'a'), ('b', 'b')])
             s[0] = ('c', 'c')
