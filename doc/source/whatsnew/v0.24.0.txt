@@ -91,7 +91,7 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 
-- Fixed Bug where two :class:`DateOffset` objects with different `normalize` attributes could evaluate as equal (:issue:`????`)
+- Fixed Bug where two :class:`DateOffset` objects with different `normalize` attributes could evaluate as equal (:issue:`21404`)
 -
 -
 
