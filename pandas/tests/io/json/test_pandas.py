@@ -1222,3 +1222,10 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
                                                 "valid when 'orient' is "
                                                 "'split' or 'table'"):
             df.to_json(orient=orient, index=False)
+
+    @pytest.mark.parametrize('orient', [
+        'records', 'index', 'columns', 'values'
+    ])
+    def test_int_overflow(self, orient):
+        bar = json.dumps({'foo': 2**100000})
+        read_json(bar, orient=orient)
