@@ -1978,8 +1978,7 @@ class Categorical(ExtensionArray, PandasObject):
             to_add = Index(rvalue,
                            tupleize_cols=False).difference(self.categories)
         else:
-            if not is_list_like(value):
-                rvalue = [value]
+            rvalue = value if is_list_like(value) else [value]
             to_add = Index(rvalue).difference(self.categories)
 
         # no assignments of values not in categories, but it's always ok to set
