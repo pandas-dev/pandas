@@ -34,10 +34,9 @@ class CParserTests(object):
         cperr = 'Buffer overflow caught - possible malformed input file.'
 
         for malf in (malfw, malfs, malfl):
-            try:
+            with pytest.raises(pd.errors.ParserError) as excinfo:
                 self.read_table(StringIO(malf))
-            except Exception as err:
-                assert cperr in str(err)
+            assert cperr in str(excinfo.value)
 
     def test_buffer_rd_bytes(self):
         # see gh-12098: src->buffer in the C parser can be freed twice leading
