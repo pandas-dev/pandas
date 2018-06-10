@@ -2055,6 +2055,15 @@ class NDFrame(PandasObject, SelectionMixin):
         method : {'default', 'multi', callable}, default 'default'
             Controls the SQL insertion clause used.
 
+            * `'default'`: Uses standard SQL `INSERT` clause (one per row).
+            * `'multi'`: Pass multiple values in a single `INSERT` clause.
+            * callable: with signature `(pd_table, conn, keys, data_iter)`.
+
+            Details and a sample callable implementation on
+            section :ref:`insert method <io.sql.method>`.
+
+            .. versionadded:: 0.24.0
+
         Raises
         ------
         ValueError
@@ -2122,54 +2131,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         >>> engine.execute("SELECT * FROM integers").fetchall()
         [(1,), (None,), (2,)]
-
-        Insertion method:
-
-        .. versionadded:: 0.24.0
-
-        The parameter ``method`` controls the SQL insertion clause used.
-        Possible values are:
-
-         - `'default'`: Uses standard SQL `INSERT` clause
-         - `'multi'`: Pass multiple values in a single `INSERT` clause.
-            It uses a **special** SQL syntax not supported by all backends.
-            This usually provides a big performance for Analytic databases
-            like *Presto* and *Redshit*, but has worse performance for
-            traditional SQL backend if the table contains many columns.
-            For more information check SQLAlchemy `documention <http://docs.sqlalchemy.org/en/latest/core/dml.html?highlight=multivalues#sqlalchemy.sql.expression.Insert.values.params.*args>`__.
-         - callable: with signature `(pd_table, conn, keys, data_iter)`.
-            This can be used to implement more performant insertion based on
-            specific backend dialect features.
-            I.e. using *Postgresql* `COPY clause
-            <https://www.postgresql.org/docs/current/static/sql-copy.html>`__.
-            Check API for details and a sample implementation
-            :func:`~pandas.DataFrame.to_sql`.
-
-
-        Example of callable for Postgresql *COPY*::
-
-          # Alternative to_sql() *method* for DBs that support COPY FROM
-          import csv
-          from io import StringIO
-
-          def psql_insert_copy(table, conn, keys, data_iter):
-              # gets a DBAPI connection that can provide a cursor
-              dbapi_conn = conn.connection
-              with dbapi_conn.cursor() as cur:
-                  s_buf = StringIO()
-                  writer = csv.writer(s_buf)
-                  writer.writerows(data_iter)
-                  s_buf.seek(0)
-
-                  columns = ', '.join('"{}"'.format(k) for k in keys)
-                  if table.schema:
-                      table_name = '{}.{}'.format(table.schema, table.name)
-                  else:
-                      table_name = table.name
-
-                  sql = 'COPY {} ({}) FROM STDIN WITH CSV'.format(
-                      table_name, columns)
-                  cur.copy_expert(sql=sql, file=s_buf)
         """
         from pandas.io import sql
         sql.to_sql(self, name, con, schema=schema, if_exists=if_exists,

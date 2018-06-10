@@ -436,6 +436,14 @@ def to_sql(frame, name, con, schema=None, if_exists='fail', index=True,
     method : {'default', 'multi', callable}, default 'default'
         Controls the SQL insertion clause used.
 
+        * `'default'`: Uses standard SQL `INSERT` clause (one per row).
+        * `'multi'`: Pass multiple values in a single `INSERT` clause.
+        * callable: with signature `(pd_table, conn, keys, data_iter)`.
+
+        Details and a sample callable implementation on
+        section :ref:`insert method <io.sql.method>`.
+
+        .. versionadded:: 0.24.0
     """
     if if_exists not in ('fail', 'replace', 'append'):
         raise ValueError("'{0}' is not valid for if_exists".format(if_exists))
@@ -635,10 +643,10 @@ class SQLTable(PandasObject):
 
         return column_names, data_list
 
-    def insert(self, chunksize=None, method=None):
+    def insert(self, chunksize=None, method='default'):
 
         # set insert method
-        if method in (None, 'default'):
+        if method == 'default':
             exec_insert = self._execute_insert
         elif method == 'multi':
             exec_insert = self._execute_insert_multi
@@ -1142,6 +1150,15 @@ class SQLDatabase(PandasSQL):
             single value can be used.
         method : {'default', 'multi', callable}, default 'default'
             Controls the SQL insertion clause used.
+
+            * `'default'`: Uses standard SQL `INSERT` clause (one per row).
+            * `'multi'`: Pass multiple values in a single `INSERT` clause.
+            * callable: with signature `(pd_table, conn, keys, data_iter)`.
+
+            Details and a sample callable implementation on
+            section :ref:`insert method <io.sql.method>`.
+
+            .. versionadded:: 0.24.0
         """
         if dtype and not is_dict_like(dtype):
             dtype = {col_name: dtype for col_name in frame}
@@ -1499,6 +1516,15 @@ class SQLiteDatabase(PandasSQL):
             can be used.
         method : {'default', 'multi', callable}, default 'default'
             Controls the SQL insertion clause used.
+
+            * `'default'`: Uses standard SQL `INSERT` clause (one per row).
+            * `'multi'`: Pass multiple values in a single `INSERT` clause.
+            * callable: with signature `(pd_table, conn, keys, data_iter)`.
+
+            Details and a sample callable implementation on
+            section :ref:`insert method <io.sql.method>`.
+
+            .. versionadded:: 0.24.0
         """
         if dtype and not is_dict_like(dtype):
             dtype = {col_name: dtype for col_name in frame}
