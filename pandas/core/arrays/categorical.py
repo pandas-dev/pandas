@@ -1971,7 +1971,6 @@ class Categorical(ExtensionArray, PandasObject):
                 raise ValueError("Cannot set a Categorical with another, "
                                  "without identical categories")
 
-        # is the new value one of the defined categories?
         from pandas import Index
         if isinstance(value, tuple):
             rvalue = [value]
