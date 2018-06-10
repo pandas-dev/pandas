@@ -518,11 +518,10 @@ class TestBusinessDay(Base):
         self.offset2 = BDay(2)
 
     def test_different_normalize_equals(self):
-        # equivalent in this special case
-        offset = BDay()
-        offset2 = BDay()
-        offset2.normalize = True
-        assert offset == offset2
+        # GH#???? changed __eq__ to return False when `normalize` doesnt match
+        offset = self._offset()
+        offset2 = self._offset(normalize=True)
+        assert offset != offset2
 
     def test_repr(self):
         assert repr(self.offset) == '<BusinessDay>'
@@ -713,11 +712,10 @@ class TestBusinessHour(Base):
             BusinessHour(start='14:00:05')
 
     def test_different_normalize_equals(self):
-        # equivalent in this special case
+        # GH#???? changed __eq__ to return False when `normalize` doesnt match
         offset = self._offset()
-        offset2 = self._offset()
-        offset2.normalize = True
-        assert offset == offset2
+        offset2 = self._offset(normalize=True)
+        assert offset != offset2
 
     def test_repr(self):
         assert repr(self.offset1) == '<BusinessHour: BH=09:00-17:00>'
@@ -1391,11 +1389,10 @@ class TestCustomBusinessHour(Base):
             CustomBusinessHour(start='14:00:05')
 
     def test_different_normalize_equals(self):
-        # equivalent in this special case
+        # GH#???? changed __eq__ to return False when `normalize` doesnt match
         offset = self._offset()
-        offset2 = self._offset()
-        offset2.normalize = True
-        assert offset == offset2
+        offset2 = self._offset(normalize=True)
+        assert offset != offset2
 
     def test_repr(self):
         assert repr(self.offset1) == '<CustomBusinessHour: CBH=09:00-17:00>'
@@ -1632,11 +1629,10 @@ class TestCustomBusinessDay(Base):
         self.offset2 = CDay(2)
 
     def test_different_normalize_equals(self):
-        # equivalent in this special case
-        offset = CDay()
-        offset2 = CDay()
-        offset2.normalize = True
-        assert offset == offset2
+        # GH#???? changed __eq__ to return False when `normalize` doesnt match
+        offset = self._offset()
+        offset2 = self._offset(normalize=True)
+        assert offset != offset2
 
     def test_repr(self):
         assert repr(self.offset) == '<CustomBusinessDay>'
@@ -1916,13 +1912,13 @@ class CustomBusinessMonthBase(object):
 
 class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
     _object = CBMonthEnd
+    _offset = CBMonthEnd
 
     def test_different_normalize_equals(self):
-        # equivalent in this special case
-        offset = CBMonthEnd()
-        offset2 = CBMonthEnd()
-        offset2.normalize = True
-        assert offset == offset2
+        # GH#???? changed __eq__ to return False when `normalize` doesnt match
+        offset = self._offset()
+        offset2 = self._offset(normalize=True)
+        assert offset != offset2
 
     def test_repr(self):
         assert repr(self.offset) == '<CustomBusinessMonthEnd>'
@@ -2033,13 +2029,13 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
 
 class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
     _object = CBMonthBegin
+    _offset = CBMonthBegin
 
     def test_different_normalize_equals(self):
-        # equivalent in this special case
-        offset = CBMonthBegin()
-        offset2 = CBMonthBegin()
-        offset2.normalize = True
-        assert offset == offset2
+        # GH#???? changed __eq__ to return False when `normalize` doesnt match
+        offset = self._offset()
+        offset2 = self._offset(normalize=True)
+        assert offset != offset2
 
     def test_repr(self):
         assert repr(self.offset) == '<CustomBusinessMonthBegin>'
