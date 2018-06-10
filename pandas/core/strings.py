@@ -207,7 +207,7 @@ def str_count(arr, pat, flags=0):
         Flags for the `re` module. For a complete list, `see here
         <https://docs.python.org/3/howto/regex.html#compilation-flags>`_.
     **kwargs
-        For compatability with other string methods. Not used.
+        For compatibility with other string methods. Not used.
 
     Returns
     -------
@@ -1358,7 +1358,7 @@ def str_split(arr, pat=None, n=None):
         Limit number of splits in output.
         ``None``, 0 and -1 will be interpreted as return all splits.
     expand : bool, default False
-        Expand the splitted strings into separate columns.
+        Expand the split strings into separate columns.
 
         * If ``True``, return DataFrame/MultiIndex expanding dimensionality.
         * If ``False``, return Series/Index, containing lists of strings.

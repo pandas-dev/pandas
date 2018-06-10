@@ -103,7 +103,7 @@ left before or after the docstring. The text starts in the next line after the
 opening quotes. The closing quotes have their own line
 (meaning that they are not at the end of the last sentence).
 
-In rare occasions reST styles like bold text or itallics will be used in
+In rare occasions reST styles like bold text or italics will be used in
 docstrings, but is it common to have inline code, which is presented between
 backticks. It is considered inline code:
 
@@ -243,7 +243,7 @@ their use cases, if it is not too generic.
         """
         Pivot a row index to columns.
 
-        When using a multi-index, a level can be pivoted so each value in
+        When using a MultiIndex, a level can be pivoted so each value in
         the index becomes a column. This is especially useful when a subindex
         is repeated for the main index, and data is easier to visualize as a
         pivot table.
@@ -706,7 +706,7 @@ than 5, to show the example with the default values. If doing the ``mean``, we
 could use something like ``[1, 2, 3]``, so it is easy to see that the value
 returned is the mean.
 
-For more complex examples (groupping for example), avoid using data without
+For more complex examples (grouping for example), avoid using data without
 interpretation, like a matrix of random numbers with columns A, B, C, D...
 And instead use a meaningful example, which makes it easier to understand the
 concept. Unless required by the example, use names of animals, to keep examples
@@ -877,7 +877,7 @@ be tricky. Here are some attention points:
   the actual error only the error name is sufficient.
 
 * If there is a small part of the result that can vary (e.g. a hash in an object
-  represenation), you can use ``...`` to represent this part.
+  representation), you can use ``...`` to represent this part.
 
   If you want to show that ``s.plot()`` returns a matplotlib AxesSubplot object,
   this will fail the doctest ::
