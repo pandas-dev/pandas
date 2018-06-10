@@ -706,12 +706,12 @@ class Parser(object):
                 except (TypeError, ValueError):
                     pass
 
-        # do't coerce 0-len data
+        # don't coerce 0-len data
         if len(data) and (data.dtype == 'float' or data.dtype == 'object'):
 
-            # coerce ints if we can
+            # coerce float if we can
             try:
-                new_data = data.astype('int64')
+                new_data = data.astype('float64')
                 if (new_data == data).all():
                     data = new_data
                     result = True
@@ -721,7 +721,7 @@ class Parser(object):
         # coerce ints to 64
         if data.dtype == 'int':
 
-            # coerce floats to 64
+            # coerce ints to 64
             try:
                 data = data.astype('int64')
                 result = True
