@@ -227,7 +227,7 @@ class TestCommon(Base):
                                 normalize=False):
 
         if normalize and issubclass(offset, Tick):
-            # normalize=True disallowed for Tick subclasses
+            # normalize=True disallowed for Tick subclasses GH#21427
             return
 
         offset_s = self._get_offset(offset, normalize=normalize)
@@ -419,7 +419,7 @@ class TestCommon(Base):
 
         # when normalize=True, onOffset checks time is 00:00:00
         if issubclass(offset_types, Tick):
-            # normalize=True disallowed for Tick subclasses
+            # normalize=True disallowed for Tick subclasses GH#21427
             return
         offset_n = self._get_offset(offset_types, normalize=True)
         assert not offset_n.onOffset(dt)
@@ -448,7 +448,7 @@ class TestCommon(Base):
         assert isinstance(result, Timestamp)
         assert result == expected_localize
 
-        # normalize=True, disallowed for Tick subclasses
+        # normalize=True, disallowed for Tick subclasses GH#21427
         if issubclass(offset_types, Tick):
             return
         offset_s = self._get_offset(offset_types, normalize=True)
@@ -3152,6 +3152,7 @@ def test_require_integers(offset_types):
 
 def test_tick_normalize_raises(tick_classes):
     # check that trying to create a Tick object with normalize=True raises
+    # GH#21427
     cls = tick_classes
     with pytest.raises(ValueError):
         cls(n=3, normalize=True)

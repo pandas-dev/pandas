@@ -112,7 +112,7 @@ Timezones
 Offsets
 ^^^^^^^
 
-- :class:`Tick` subclasses can no longer be created with the argument `normalize=True` (:issue:`????`)
+- :class:`Tick` subclasses can no longer be created with the argument `normalize=True` (:issue:`21427`)
 -
 -
 

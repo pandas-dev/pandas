@@ -2221,7 +2221,7 @@ class Tick(SingleConstructorOffset):
         self.n = self._validate_n(n)
         if normalize:
             raise ValueError("Tick offset with `normalize=True` are not "
-                             "allowed.")
+                             "allowed.")  # GH#21427
         self.normalize = normalize
 
     __gt__ = _tick_comp(operator.gt)
