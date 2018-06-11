@@ -140,8 +140,8 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
             if new_arg_name is None and old_arg_value is not None:
                 msg = (
                     "the '{old_name}' keyword is deprecated and will be "
-                    "removed in a future version "
-                    "please takes steps to stop use of '{old_name}'"
+                    "removed in a future version. "
+                    "Please take steps to stop the use of '{old_name}'"
                 ).format(old_name=old_arg_name)
                 warnings.warn(msg, FutureWarning, stacklevel=stacklevel)
                 kwargs[old_arg_name] = old_arg_value
