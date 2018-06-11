@@ -1001,7 +1001,7 @@ class TestXlrdReader(ReadingTestsBase):
                           nrows='5')
 
     def test_read_excel_nrows_zero_parameter(self, ext):
-        # GH 16645
+        # GH 21141
         msg = "'nrows' must be an integer >=1"
         with tm.assert_raises_regex(ValueError, msg):
             pd.read_excel(os.path.join(self.dirpath, 'test1' + ext),
