@@ -1657,19 +1657,21 @@ class TestDataFrameConstructors(TestData):
             for i in range(len(df.columns)):
                 df.iloc[:, i]
 
-            # allow single nans to succeed
             indexer = np.arange(len(df.columns))[isna(df.columns)]
 
-            if len(indexer) == 1:
-                tm.assert_series_equal(df.iloc[:, indexer[0]],
-                                       df.loc[:, np.nan])
-
-            # multiple nans should fail
-            else:
-
+            # No NaN found -> error
+            if len(indexer) == 0:
                 def f():
                     df.loc[:, np.nan]
                 pytest.raises(TypeError, f)
+            # single nan should result in Series
+            elif len(indexer) == 1:
+                tm.assert_series_equal(df.iloc[:, indexer[0]],
+                                       df.loc[:, np.nan])
+            # multiple nans should result in DataFrame
+            else:
+                tm.assert_frame_equal(df.iloc[:, indexer],
+                                      df.loc[:, np.nan])
 
         df = DataFrame([[1, 2, 3], [4, 5, 6]], index=[1, np.nan])
         check(df)
@@ -1683,6 +1685,11 @@ class TestDataFrameConstructors(TestData):
 
         df = DataFrame([[0.0, 1, 2, 3.0], [4, 5, 6, 7]],
                        columns=[np.nan, 1.1, 2.2, np.nan])
+        check(df)
+
+        # GH 21428 (non-unique columns)
+        df = DataFrame([[0.0, 1, 2, 3.0], [4, 5, 6, 7]],
+                       columns=[np.nan, 1, 2, 2])
         check(df)
 
     def test_constructor_lists_to_object_dtype(self):
