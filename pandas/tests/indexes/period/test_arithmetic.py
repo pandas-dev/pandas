@@ -278,14 +278,21 @@ class TestPeriodIndexArithmetic(object):
         with pytest.raises(TypeError):
             rng += other
 
-    def test_pi_sub_pi(self):
+    def test_pi_sub_isub_pi(self):
+        # GH#20049
+        # For historical reference see GH#14164, GH#13077.
+        # PeriodIndex subtraction originally performed set difference,
+        # then changed to raise TypeError before being implemented in GH#20049
         rng = pd.period_range('1/1/2000', freq='D', periods=5)
         other = pd.period_range('1/6/2000', freq='D', periods=5)
 
-        result = rng - other
         off = rng.freq
         expected = pd.Index([-5 * off] * 5)
+        result = rng - other
         tm.assert_index_equal(result, expected)
+
+        rng -= other
+        tm.assert_index_equal(rng, expected)
 
     def test_pi_sub_pi_with_nat(self):
         rng = pd.period_range('1/1/2000', freq='D', periods=5)
@@ -451,22 +458,6 @@ class TestPeriodIndexArithmetic(object):
         result = rng - five
         exp = rng + (-five)
         tm.assert_index_equal(result, exp)
-
-    def test_pi_sub_isub_pi(self):
-        # GH#20049
-        # For historical reference see GH#14164, GH#13077.
-        # PeriodIndex subtraction originally performed set difference,
-        # then changed to raise TypeError before being implemented in GH#20049
-        rng = pd.period_range('1/1/2000', freq='D', periods=5)
-        other = pd.period_range('1/6/2000', freq='D', periods=5)
-
-        off = rng.freq
-        expected = pd.Index([-5 * off] * 5)
-        result = rng - other
-        tm.assert_index_equal(result, expected)
-
-        rng -= other
-        tm.assert_index_equal(rng, expected)
 
     def test_pi_sub_isub_offset(self):
         # offset
