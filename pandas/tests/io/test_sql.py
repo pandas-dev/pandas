@@ -372,7 +372,7 @@ class PandasSQLTest(object):
         iris_frame = self.pandasSQL.read_query(query, params=params)
         self._check_iris_loaded_frame(iris_frame)
 
-    def _to_sql(self, method=None):
+    def _to_sql(self, method='default'):
         self.drop_table('test_frame1')
 
         self.pandasSQL.to_sql(self.test_frame1, 'test_frame1', method=method)
