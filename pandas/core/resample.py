@@ -425,7 +425,7 @@ one pass, you can do
         appear (e.g., when the resampling frequency is higher than the original
         frequency). The backward fill will replace NaN values that appeared in
         the resampled data with the next value in the original sequence.
-        Missing values that existed in the orginal data will not be modified.
+        Missing values that existed in the original data will not be modified.
 
         Parameters
         ----------
@@ -529,7 +529,7 @@ one pass, you can do
         appear (e.g., when the resampling frequency is higher than the original
         frequency).
 
-        Missing values that existed in the orginal data will
+        Missing values that existed in the original data will
         not be modified.
 
         Parameters
