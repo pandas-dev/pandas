@@ -805,7 +805,7 @@ class DatetimeIndexOpsMixin(object):
                                     cls=type(self).__name__))
 
         if not len(self) == len(other):
-            raise ValueError("cannot add indices of unequal length")
+            raise ValueError("cannot subtract indices of unequal length")
         if self.freq != other.freq:
             msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
