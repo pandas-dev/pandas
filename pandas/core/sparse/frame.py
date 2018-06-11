@@ -148,9 +148,10 @@ class SparseDataFrame(DataFrame):
         if index is None:
             index = extract_index(list(data.values()))
 
-        sp_maker = lambda x: SparseArray(x, kind=self._default_kind,
-                                         fill_value=self._default_fill_value,
-                                         copy=True, dtype=dtype)
+        def sp_maker(x):
+            return SparseArray(x, kind=self._default_kind,
+                               fill_value=self._default_fill_value,
+                               copy=True, dtype=dtype)
         sdict = {}
         for k, v in compat.iteritems(data):
             if isinstance(v, Series):
@@ -397,9 +398,10 @@ class SparseDataFrame(DataFrame):
         sanitized_column : SparseArray
 
         """
-        sp_maker = lambda x, index=None: SparseArray(
-            x, index=index, fill_value=self._default_fill_value,
-            kind=self._default_kind)
+        def sp_maker(x, index=None):
+            return SparseArray(x, index=index,
+                               fill_value=self._default_fill_value,
+                               kind=self._default_kind)
         if isinstance(value, SparseSeries):
             clean = value.reindex(self.index).as_sparse_array(
                 fill_value=self._default_fill_value, kind=self._default_kind)
