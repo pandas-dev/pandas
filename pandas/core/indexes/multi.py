@@ -672,30 +672,18 @@ class MultiIndex(Index):
 
         if level is None:
             level = range(self.nlevels)
-            used = {}
         else:
             level = [self._get_level_number(l) for l in level]
-            used = {self.levels[l].name: l
-                    for l in set(range(self.nlevels)) - set(level)}
 
         # set the name
         for l, name in zip(level, names):
             if name is not None:
-
                 # GH 20527
                 # All items in 'names' need to be hashable:
                 if not is_hashable(name):
                     raise TypeError('{}.name must be a hashable type'
                                     .format(self.__class__.__name__))
-
-                if name in used:
-                    raise ValueError(
-                        'Duplicated level name: "{}", assigned to '
-                        'level {}, is already used for level '
-                        '{}.'.format(name, l, used[name]))
-
             self.levels[l].rename(name, inplace=True)
-            used[name] = l
 
     names = property(fset=_set_names, fget=_get_names,
                      doc="Names of levels in MultiIndex")

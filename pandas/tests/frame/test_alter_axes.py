@@ -130,19 +130,24 @@ class TestDataFrameAlterAxes(TestData):
         result = df.set_index(df.C)
         assert result.index.name == 'C'
 
-    @pytest.mark.parametrize('level', ['a', pd.Series(range(3), name='a')])
+    @pytest.mark.parametrize(
+        'level', ['a', pd.Series(range(0, 8, 2), name='a')])
     def test_set_index_duplicate_names(self, level):
-        # GH18872
+        # GH18872 - GH19029
         df = pd.DataFrame(np.arange(8).reshape(4, 2), columns=['a', 'b'])
 
         # Pass an existing level name:
         df.index.name = 'a'
-        pytest.raises(ValueError, df.set_index, level, append=True)
-        pytest.raises(ValueError, df.set_index, [level], append=True)
+        expected = pd.MultiIndex.from_tuples([(0, 0), (1, 2), (2, 4), (3, 6)],
+                                             names=['a', 'a'])
+        result = df.set_index(level, append=True)
+        tm.assert_index_equal(result.index, expected)
+        result = df.set_index([level], append=True)
+        tm.assert_index_equal(result.index, expected)
 
         # Pass twice the same level name:
         df.index.name = 'c'
-        pytest.raises(ValueError, df.set_index, [level, level])
+        # pytest.raises(ValueError, df.set_index, [level, level])
 
     def test_set_index_nonuniq(self):
         df = DataFrame({'A': ['foo', 'foo', 'foo', 'bar', 'bar'],

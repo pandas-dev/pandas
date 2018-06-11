@@ -553,14 +553,14 @@ def test_as_index():
         columns=['cat', 'A', 'B'])
     tm.assert_frame_equal(result, expected)
 
-    # another not in-axis grouper
-    s = Series(['a', 'b', 'b'], name='cat2')
+    # another not in-axis grouper (conflicting names in index)
+    s = Series(['a', 'b', 'b'], name='cat')
     result = df.groupby(['cat', s], as_index=False, observed=True).sum()
     tm.assert_frame_equal(result, expected)
 
-    # GH18872: conflicting names in desired index
-    with pytest.raises(ValueError):
-        df.groupby(['cat', s.rename('cat')], observed=True).sum()
+    # # GH18872: conflicting names in desired index
+    # with pytest.raises(ValueError):
+    #     df.groupby(['cat', s.rename('cat')], observed=True).sum()
 
     # is original index dropped?
     group_columns = ['cat', 'A']
