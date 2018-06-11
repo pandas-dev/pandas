@@ -995,10 +995,17 @@ class TestXlrdReader(ReadingTestsBase):
 
     def test_read_excel_nrows_non_integer_parameter(self, ext):
         # GH 16645
-        msg = "'nrows' must be an integer >=0"
+        msg = "'nrows' must be an integer >=1"
         with tm.assert_raises_regex(ValueError, msg):
             pd.read_excel(os.path.join(self.dirpath, 'test1' + ext),
                           nrows='5')
+
+    def test_read_excel_nrows_zero_parameter(self, ext):
+        # GH 16645
+        msg = "'nrows' must be an integer >=1"
+        with tm.assert_raises_regex(ValueError, msg):
+            pd.read_excel(os.path.join(self.dirpath, 'test1' + ext),
+                          nrows=0)
 
     def test_read_excel_squeeze(self, ext):
         # GH 12157

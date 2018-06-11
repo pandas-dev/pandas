@@ -1027,7 +1027,7 @@ class TextFileReader(BaseIterator):
         raise com.AbstractMethodError(self)
 
     def read(self, nrows=None):
-        nrows = _validate_integer('nrows', nrows)
+        nrows = _validate_integer('nrows', nrows, min_val=1)
 
         if nrows is not None:
             if self.options.get('skipfooter'):
