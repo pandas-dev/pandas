@@ -52,8 +52,7 @@ class _IndexSlice(object):
 
     Notes
     -----
-    See the `Defined Levels Section
-    <http://pandas.pydata.org/pandas-docs/stable/advanced.html#defined-levels>`_
+    See :ref:`Defined Levels <advanced.shown_levels>`
     for further info on slicing a MultiIndex.
 
     Examples
