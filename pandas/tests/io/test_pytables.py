@@ -4999,15 +4999,30 @@ class TestHDFStore(Base):
             store.close()
             pytest.raises(ValueError, read_hdf, path)
 
-    # GH10143
-    def test_walk(self):
+    @pytest.mark.parametrize('where, expected', [
+        ('/', {
+            '': ({'first_group', 'second_group'}, set()),
+            '/first_group': (set(), {'df1', 'df2'}),
+            '/second_group': ({'third_group'}, {'df3', 's1'}),
+            '/second_group/third_group': (set(), {'df4'}),
+        }),
+        ('/second_group', {
+            '/second_group': ({'third_group'}, {'df3', 's1'}),
+            '/second_group/third_group': (set(), {'df4'}),
+        })
+    ])
+    def test_walk(self, where, expected):
+        # GH10143
         objs = {
             'df1': pd.DataFrame([1, 2, 3]),
             'df2': pd.DataFrame([4, 5, 6]),
             'df3': pd.DataFrame([6, 7, 8]),
             'df4': pd.DataFrame([9, 10, 11]),
             's1': pd.Series([10, 9, 8]),
-            'a1': np.array([[1, 2, 3], [4, 5, 6]])
+            # Next 3 items aren't pandas objects and should be ignored
+            'a1': np.array([[1, 2, 3], [4, 5, 6]]),
+            'tb1': np.array([(1, 2, 3), (4, 5, 6)], dtype='i,i,i'),
+            'tb2': np.array([(7, 8, 9), (10, 11, 12)], dtype='i,i,i')
         }
 
         with ensure_clean_store('walk_groups.hdf', mode='w') as store:
@@ -5016,26 +5031,17 @@ class TestHDFStore(Base):
             store.put('/second_group/df3', objs['df3'])
             store.put('/second_group/s1', objs['s1'])
             store.put('/second_group/third_group/df4', objs['df4'])
-            g1 = store._handle.get_node('/first_group')
-            store._handle.create_array(g1, 'a1', objs['a1'])
+            # Create non-pandas objects
+            store._handle.create_array('/first_group', 'a1', objs['a1'])
+            store._handle.create_table('/first_group', 'tb1', obj=objs['tb1'])
+            store._handle.create_table('/second_group', 'tb2', obj=objs['tb2'])
 
-            expect1 = {
-                '': ({'first_group', 'second_group'}, set()),
-                '/first_group': (set(), {'df1', 'df2'}),
-                '/second_group': ({'third_group'}, {'df3', 's1'}),
-                '/second_group/third_group': (set(), {'df4'}),
-            }
-            expect2 = {
-                '/second_group': ({'third_group'}, {'df3', 's1'}),
-                '/second_group/third_group': (set(), {'df4'}),
-            }
-
-            def assert_walk(path, groups, leaves, expect):
-                assert path in expect
-                expect_groups, expect_frames = expect[path]
-
-                assert expect_groups == set(groups)
-                assert expect_frames == set(leaves)
+            assert len(list(store.walk(where=where))) == len(expected)
+            for path, groups, leaves in store.walk(where=where):
+                assert path in expected
+                expected_groups, expected_frames = expected[path]
+                assert expected_groups == set(groups)
+                assert expected_frames == set(leaves)
                 for leaf in leaves:
                     frame_path = '/'.join([path, leaf])
                     obj = store.get(frame_path)
@@ -5043,17 +5049,6 @@ class TestHDFStore(Base):
                         tm.assert_frame_equal(obj, objs[leaf])
                     else:
                         tm.assert_series_equal(obj, objs[leaf])
-
-            # Test with root node
-            for path_, groups_, leaves_ in store.walk():
-                assert_walk(path_, groups_, leaves_, expect1)
-            assert len(list(store.walk())) == len(expect1)
-
-            # Test with child node
-            for path_, groups_, leaves_ in store.walk(where="/second_group"):
-                assert_walk(path_, groups_, leaves_, expect2)
-
-            assert len(list(store.walk(where="/second_group"))) == len(expect2)
 
     @td.skip_if_no('pathlib')
     def test_read_from_pathlib_path(self):

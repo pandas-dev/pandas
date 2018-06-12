@@ -1107,25 +1107,32 @@ class HDFStore(StringMixin):
         ]
 
     def walk(self, where="/"):
-        """ Walk the pytables group hierarchy yielding the group name and
-        pandas object names for each group.  Any non-pandas PyTables objects
-        that are not a group will be ignored.
+        """ Walk the pytables group hierarchy for pandas objects
 
-        The where group itself is listed first (preorder), then each of its
+        This generator will yield the group path, subgroups and pandas object
+        names for each group.
+        Any non-pandas PyTables objects that are not a group will be ignored.
+
+        The `where` group itself is listed first (preorder), then each of its
         child groups (following an alphanumerical order) is also traversed,
-        following the same procedure.  If where is not supplied, the root
-        group is used.
+        following the same procedure.
 
-        The where argument can be a path string
-        or a Group instance (see :ref:`GroupClassDescr`).
+        .. versionadded:: 0.24.0
 
-        Returns
-        -------
-        A generator yielding tuples (`path`, `groups`, `leaves`) where:
+        Parameters
+        ----------
+        where : str, optional
+            Group where to start walking.
+            If not supplied, the root group is used.
 
-        - `path` is the full path to a group,
-        - `groups` is a list of group names contained in `path`
-        - `leaves` is a list of pandas object names contained in `path`
+        Yields
+        ------
+        path : str
+            Full path to a group (without trailing '/')
+        groups : list of str
+            names of the groups contained in `path`
+        leaves : list of str
+            names of the pandas objects contained in `path`
 
         """
         _tables()

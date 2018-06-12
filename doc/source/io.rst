@@ -3558,6 +3558,9 @@ everything in the sub-store and **below**, so be *careful*.
 You can walk through the group hierarchy using the ``walk`` method which
 will yield a tuple for each group key along with the relative keys of its contents.
 
+.. versionadded:: 0.24.0
+
+
 .. ipython:: python
 
    for (path, subgroups, subkeys) in store.walk():
