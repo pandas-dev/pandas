@@ -3,10 +3,11 @@ include LICENSE
 include RELEASE.md
 include README.md
 include setup.py
-include pyproject.toml
 
 graft doc
 prune doc/build
+
+graft LICENSES
 
 graft pandas
 
@@ -34,8 +35,6 @@ global-exclude *~
 global-exclude .DS_Store
 global-exclude .git*
 global-exclude \#*
-
-recursive-exclude pandas/tests/io/data
 
 include versioneer.py
 include pandas/_version.py
