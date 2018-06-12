@@ -33,11 +33,7 @@ from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 from pandas.io.common import (get_filepath_or_buffer, BaseIterator,
                               _stringify_path)
-from pandas.util._decorators import Appender
-from pandas.util._decorators import deprecate_kwarg
-
-VALID_ENCODINGS = ('ascii', 'us-ascii', 'latin-1', 'latin_1', 'iso-8859-1',
-                   'iso8859-1', '8859', 'cp819', 'latin', 'latin1', 'L1')
+from pandas.util._decorators import Appender, deprecate_kwarg
 
 _version_error = ("Version of given Stata file is not 104, 105, 108, "
                   "111 (Stata 7SE), 113 (Stata 8/9), 114 (Stata 10/11), "
@@ -169,6 +165,7 @@ path_or_buf : path (string), buffer or path object
 
 
 @Appender(_read_stata_doc)
+@deprecate_kwarg(old_arg_name='encoding', new_arg_name=None)
 @deprecate_kwarg(old_arg_name='index', new_arg_name='index_col')
 def read_stata(filepath_or_buffer, convert_dates=True,
                convert_categoricals=True, encoding=None, index_col=None,
@@ -952,6 +949,7 @@ class StataParser(object):
 class StataReader(StataParser, BaseIterator):
     __doc__ = _stata_reader_doc
 
+    @deprecate_kwarg(old_arg_name='encoding', new_arg_name=None)
     @deprecate_kwarg(old_arg_name='index', new_arg_name='index_col')
     def __init__(self, path_or_buf, convert_dates=True,
                  convert_categoricals=True, index_col=None,
@@ -970,7 +968,7 @@ class StataReader(StataParser, BaseIterator):
         self._preserve_dtypes = preserve_dtypes
         self._columns = columns
         self._order_categoricals = order_categoricals
-        self._encoding = encoding
+        self._encoding = None
         self._chunksize = chunksize
 
         # State variables for the file
@@ -1962,17 +1960,14 @@ class StataWriter(StataParser):
 
     _max_string_length = 244
 
+    @deprecate_kwarg(old_arg_name='encoding', new_arg_name=None)
     def __init__(self, fname, data, convert_dates=None, write_index=True,
                  encoding="latin-1", byteorder=None, time_stamp=None,
                  data_label=None, variable_labels=None):
         super(StataWriter, self).__init__()
         self._convert_dates = {} if convert_dates is None else convert_dates
         self._write_index = write_index
-        if encoding is not None:
-            if encoding not in VALID_ENCODINGS:
-                raise ValueError('Unknown encoding. Only latin-1 and ascii '
-                                 'supported.')
-        self._encoding = encoding
+        self._encoding = 'latin-1'
         self._time_stamp = time_stamp
         self._data_label = data_label
         self._variable_labels = variable_labels
@@ -2731,6 +2726,7 @@ class StataWriter117(StataWriter):
 
     _max_string_length = 2045
 
+    @deprecate_kwarg(old_arg_name='encoding', new_arg_name=None)
     def __init__(self, fname, data, convert_dates=None, write_index=True,
                  encoding="latin-1", byteorder=None, time_stamp=None,
                  data_label=None, variable_labels=None, convert_strl=None):
@@ -2738,9 +2734,10 @@ class StataWriter117(StataWriter):
         self._convert_strl = [] if convert_strl is None else convert_strl[:]
 
         super(StataWriter117, self).__init__(fname, data, convert_dates,
-                                             write_index, encoding, byteorder,
-                                             time_stamp, data_label,
-                                             variable_labels)
+                                             write_index, byteorder=byteorder,
+                                             time_stamp=time_stamp,
+                                             data_label=data_label,
+                                             variable_labels=variable_labels)
         self._map = None
         self._strl_blob = None
 
