@@ -395,13 +395,6 @@ class BaseOffset(_BaseOffset):
         return -self + other
 
 
-cdef class _Tick(object):
-    # dummy class to mix in to offsets.Tick so that we can write cython
-    # code to check `isinstance(obj, _Tick)` instead of `isinstance(obj, Tick)`,
-    # i.e. avoid non-cython dependencies.
-    pass
-
-
 # ----------------------------------------------------------------------
 # RelativeDelta Arithmetic
 
