@@ -55,7 +55,6 @@ import pandas.core.tools.datetimes as tools
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           join as libjoin, Timestamp)
 from pandas._libs.tslibs import (timezones, conversion, fields, parsing,
-                                 ccalendar,
                                  resolution as libresolution)
 
 # -------- some conversion wrapper functions
@@ -1452,14 +1451,14 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                     Timestamp(datetime(parsed.year, 12, 31, 23,
                                        59, 59, 999999), tz=self.tz))
         elif reso == 'month':
-            d = ccalendar.get_days_in_month(parsed.year, parsed.month)
+            d = libts.monthrange(parsed.year, parsed.month)[1]
             return (Timestamp(datetime(parsed.year, parsed.month, 1),
                               tz=self.tz),
                     Timestamp(datetime(parsed.year, parsed.month, d, 23,
                                        59, 59, 999999), tz=self.tz))
         elif reso == 'quarter':
             qe = (((parsed.month - 1) + 2) % 12) + 1  # two months ahead
-            d = ccalendar.get_days_in_month(parsed.year, qe)  # at end of month
+            d = libts.monthrange(parsed.year, qe)[1]   # at end of month
             return (Timestamp(datetime(parsed.year, parsed.month, 1),
                               tz=self.tz),
                     Timestamp(datetime(parsed.year, qe, d, 23, 59,
