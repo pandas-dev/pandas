@@ -19,7 +19,7 @@ from pandas.compat import PY2
 
 cimport cython
 
-from cpython.datetime cimport PyDateTime_Check, PyDateTime_IMPORT
+from cpython.datetime cimport PyDateTime_Check, PyDelta_Check, PyDateTime_IMPORT
 # import datetime C API
 PyDateTime_IMPORT
 
@@ -51,13 +51,13 @@ from conversion cimport tz_convert_utc_to_tzlocal
 from frequencies cimport (get_freq_code, get_base_alias,
                           get_to_timestamp_base, get_freq_str,
                           get_rule_month)
+#from offsets cimport _Tick
 from parsing import parse_time_string, NAT_SENTINEL
 from resolution import Resolution
 from nattype import nat_strings, NaT, iNaT
 from nattype cimport _nat_scalar_rules, NPY_NAT
 
-from pandas.tseries import offsets
-from pandas.tseries import frequencies
+from pandas.tseries import frequencies, offsets
 
 
 cdef extern from "period_helper.h":
@@ -1058,18 +1058,24 @@ cdef class _Period(object):
         return hash((self.ordinal, self.freqstr))
 
     def _add_delta(self, other):
-        if isinstance(other, (timedelta, np.timedelta64, offsets.Tick)):
+        cdef:
+            int64_t nanos, offset_nanos
+
+        if (PyDelta_Check(other) or util.is_timedelta64_object(other) or
+                isinstance(other, offsets.Tick)):
             offset = frequencies.to_offset(self.freq.rule_code)
             if isinstance(offset, offsets.Tick):
                 nanos = delta_to_nanoseconds(other)
                 offset_nanos = delta_to_nanoseconds(offset)
+
+                assert isinstance(self.freq, offsets.Tick), self.freq  # pretty sure we can skip the frequencies.to_offset call
 
                 if nanos % offset_nanos == 0:
                     ordinal = self.ordinal + (nanos // offset_nanos)
                     return Period(ordinal=ordinal, freq=self.freq)
             msg = 'Input cannot be converted to Period(freq={0})'
             raise IncompatibleFrequency(msg.format(self.freqstr))
-        elif isinstance(other, offsets.DateOffset):
+        elif getattr(other, "_typ", None) == "dateoffset":
             freqstr = other.rule_code
             base = get_base_alias(freqstr)
             if base == self.freq.rule_code:
@@ -1082,8 +1088,8 @@ cdef class _Period(object):
 
     def __add__(self, other):
         if is_period_object(self):
-            if isinstance(other, (timedelta, np.timedelta64,
-                                  offsets.DateOffset)):
+            if (PyDelta_Check(other) or util.is_timedelta64_object(other) or
+                    getattr(other, "_typ", None) == "dateoffset"):
                 return self._add_delta(other)
             elif other is NaT:
                 return NaT
@@ -1109,8 +1115,8 @@ cdef class _Period(object):
 
     def __sub__(self, other):
         if is_period_object(self):
-            if isinstance(other, (timedelta, np.timedelta64,
-                                  offsets.DateOffset)):
+            if (PyDelta_Check(other) or util.is_timedelta64_object(other) or
+                    getattr(other, "_typ", None) == "dateoffset"):
                 neg_other = -other
                 return self + neg_other
             elif util.is_integer_object(other):

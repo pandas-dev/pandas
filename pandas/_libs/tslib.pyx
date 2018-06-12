@@ -127,7 +127,7 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
     elif box == "datetime":
         func_create = create_datetime_from_ts
     else:
-        raise ValueError("box must be one of 'datetime', 'date', 'time' or" +
+        raise ValueError("box must be one of 'datetime', 'date', 'time' or"
                          " 'timestamp'")
 
     if tz is not None:
