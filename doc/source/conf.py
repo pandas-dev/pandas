@@ -78,7 +78,7 @@ extensions = ['sphinx.ext.autodoc',
               ]
 
 try:
-    import sphinxcontrib.spelling
+    import sphinxcontrib.spelling  # noqa
 except ImportError as err:
     logger.warn(('sphinxcontrib.spelling failed to import with error "{}". '
                 '`spellcheck` command is not available.'.format(err)))
