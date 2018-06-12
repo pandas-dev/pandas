@@ -75,4 +75,4 @@ Bug Fixes
 
 **Other**
 
--
+- Timestamp resolution returns a :class:`Timedelta` (in nanoseconds) rather than a normal `timedelta` object (in microseconds) (:issue:`21336`)
