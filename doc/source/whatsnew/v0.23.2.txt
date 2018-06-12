@@ -1,0 +1,82 @@
+.. _whatsnew_0232:
+
+v0.23.2
+-------
+
+This is a minor bug-fix release in the 0.23.x series and includes some small regression fixes
+and bug fixes. We recommend that all users upgrade to this version.
+
+.. contents:: What's new in v0.23.2
+    :local:
+    :backlinks: none
+
+.. _whatsnew_0232.enhancements:
+
+New features
+~~~~~~~~~~~~
+
+
+.. _whatsnew_0232.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+
+-
+-
+
+.. _whatsnew_0232.performance:
+
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+-
+-
+
+Documentation Changes
+~~~~~~~~~~~~~~~~~~~~~
+
+-
+-
+
+.. _whatsnew_0232.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~
+
+-
+-
+
+Conversion
+^^^^^^^^^^
+
+-
+-
+
+Indexing
+^^^^^^^^
+
+-
+-
+
+I/O
+^^^
+
+-
+-
+
+Plotting
+^^^^^^^^
+
+-
+-
+
+Reshaping
+^^^^^^^^^
+
+-
+-
+
+Categorical
+^^^^^^^^^^^
+
+-
