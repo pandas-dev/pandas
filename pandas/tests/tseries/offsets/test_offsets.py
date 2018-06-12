@@ -89,6 +89,7 @@ def test_to_m8():
 
 class Base(object):
     _offset = None
+    d = Timestamp(datetime(2008, 1, 2))
 
     timezones = [None, 'UTC', 'Asia/Tokyo', 'US/Eastern',
                  'dateutil/Asia/Tokyo', 'dateutil/US/Pacific']
@@ -149,7 +150,7 @@ class Base(object):
             pass
 
     def test_offsets_compare_equal(self):
-        # root cause of GH#456
+        # root cause of GH#456: __ne__ was not implemented
         if self._offset is None:
             return
         offset1 = self._offset()
@@ -158,19 +159,18 @@ class Base(object):
         assert offset1 == offset2
 
     def test_rsub(self):
-        if self._offset is None or not hasattr(self, 'd'):
-            # TODO: define `d` for classes where it is missing?
+        if self._offset is None:
+            # i.e. skip for TestCommon
             return
         assert self.d - self.offset2 == (-self.offset2).apply(self.d)
 
     def test_radd(self):
-        if self._offset is None or not hasattr(self, 'd'):
-            # TODO: define `d` for classes where it is missing?
+        if self._offset is None:
             return
         assert self.d + self.offset2 == self.offset2 + self.d
 
     def test_sub(self):
-        if self._offset is None or not hasattr(self, 'd'):
+        if self._offset is None:
             return
         off = self.offset2
         with pytest.raises(Exception):
@@ -181,13 +181,13 @@ class Base(object):
         assert self.d - self.offset2 == self.d - (2 * off - off)
 
     def testMult1(self):
-        if self._offset is None or not hasattr(self, 'd'):
+        if self._offset is None:
             return
         assert self.d + 10 * self.offset1 == self.d + self._offset(10)
         assert self.d + 5 * self.offset1 == self.d + self._offset(5)
 
     def testMult2(self):
-        if self._offset is None or not hasattr(self, 'd'):
+        if self._offset is None:
             return
         assert self.d + (-5 * self._offset(-10)) == self.d + self._offset(50)
         assert self.d + (-3 * self._offset(-2)) == self.d + self._offset(6)
@@ -1430,7 +1430,8 @@ class TestCustomBusinessHour(Base):
                 CustomBusinessHour(holidays=['2014-06-28']))
 
     def test_sub(self):
-        # override Base implementation
+        # override the Base.test_sub implementation because self.offset2 is
+        # defined differently in this class than the test expects
         pass
 
     def test_hash(self):
@@ -2095,6 +2096,9 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
 
 class TestWeek(Base):
     _offset = Week
+    d = Timestamp(datetime(2008, 1, 2))
+    offset1 = _offset()
+    offset2 = _offset(2)
 
     def test_repr(self):
         assert repr(Week(weekday=0)) == "<Week: weekday=0>"
@@ -2167,6 +2171,8 @@ class TestWeek(Base):
 
 class TestWeekOfMonth(Base):
     _offset = WeekOfMonth
+    offset1 = _offset()
+    offset2 = _offset(2)
 
     def test_constructor(self):
         with pytest.raises(ValueError, match="^Week"):
@@ -2266,6 +2272,8 @@ class TestWeekOfMonth(Base):
 
 class TestLastWeekOfMonth(Base):
     _offset = LastWeekOfMonth
+    offset1 = _offset()
+    offset2 = _offset(2)
 
     def test_constructor(self):
         with pytest.raises(ValueError, match="^N cannot be 0"):
@@ -2341,6 +2349,8 @@ class TestLastWeekOfMonth(Base):
 
 class TestSemiMonthEnd(Base):
     _offset = SemiMonthEnd
+    offset1 = _offset()
+    offset2 = _offset(2)
 
     def test_offset_whole_year(self):
         dates = (datetime(2007, 12, 31),
@@ -2511,6 +2521,8 @@ class TestSemiMonthEnd(Base):
 
 class TestSemiMonthBegin(Base):
     _offset = SemiMonthBegin
+    offset1 = _offset()
+    offset2 = _offset(2)
 
     def test_offset_whole_year(self):
         dates = (datetime(2007, 12, 15),
