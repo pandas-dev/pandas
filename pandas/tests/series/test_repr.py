@@ -203,7 +203,6 @@ class TestSeriesRepr(TestData):
 
 class TestCategoricalRepr(object):
 
-    @pytest.mark.skipif(compat.PY3, reason="Decoding failure only in PY2")
     def test_categorical_repr_unicode(self):
         # GH#21002 if len(index) > 60, sys.getdefaultencoding()=='ascii',
         # and we are working in PY2, then rendering a Categorical could raise
@@ -221,16 +220,24 @@ class TestCategoricalRepr(object):
         idx = pd.Index(cat)
         ser = idx.to_series()
 
-        # set sys.defaultencoding to ascii, then change it back after the test
-        enc = sys.getdefaultencoding()
-        reload(sys)  # noqa:F821
-        sys.setdefaultencoding('ascii')
-        try:
+        if compat.PY3:
+            # no reloading of sys, just check that the default (utf8) works
+            # as expected
             repr(ser)
             str(ser)
-        finally:
-            # restore encoding
-            sys.setdefaultencoding(enc)
+
+        else:
+            # set sys.defaultencoding to ascii, then change it back after
+            # the test
+            enc = sys.getdefaultencoding()
+            reload(sys)  # noqa:F821
+            sys.setdefaultencoding('ascii')
+            try:
+                repr(ser)
+                str(ser)
+            finally:
+                # restore encoding
+                sys.setdefaultencoding(enc)
 
     def test_categorical_repr(self):
         a = Series(Categorical([1, 2, 3, 4]))
