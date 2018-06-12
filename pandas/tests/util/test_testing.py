@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 import pandas as pd
 import pytest
 import numpy as np
@@ -851,5 +852,5 @@ def test_datapath_missing(datapath, request):
         datapath('not_a_file')
 
     result = datapath('data/iris.csv')
-    expected = 'pandas/tests/data/iris.csv'
+    expected = os.path.join('pandas', 'tests', 'data', 'iris.csv')
     assert result == expected
