@@ -132,5 +132,6 @@ Bug Fixes
 **Other**
 
 - Tab completion on :class:`Index` in IPython no longer outputs deprecation warnings (:issue:`21125`)
+- Timestamp resolution returns a :class:`Timedelta` (in nanoseconds) rather than a normal `timedelta` object (in microseconds) (:issue:`21336`)
 - Bug preventing pandas being used on Windows without C++ redistributable installed (:issue:`21106`)
 - Add `resolution_timedelta` to :class:`Timedelta` to get non-string representations of resolution (:issue: `21344`)
