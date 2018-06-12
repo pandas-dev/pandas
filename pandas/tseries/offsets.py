@@ -2211,7 +2211,7 @@ def _tick_comp(op):
     return f
 
 
-class Tick(SingleConstructorOffset, liboffsets._Tick):
+class Tick(SingleConstructorOffset):
     _inc = Timedelta(microseconds=1000)
     _prefix = 'undefined'
     _attributes = frozenset(['n', 'normalize'])
