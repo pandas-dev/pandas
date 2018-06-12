@@ -181,6 +181,9 @@ class Index(IndexOpsMixin, PandasObject):
     ----------
     data : array-like (1-dimensional)
     dtype : NumPy dtype (default: object)
+        If dtype is None, we find the dtype that best fits the data.
+        If an actual dtype is provided, we coerce to that dtype if it's safe.
+        Otherwise, an error will be raised.
     copy : bool
         Make a copy of input ndarray
     name : object
@@ -306,7 +309,14 @@ class Index(IndexOpsMixin, PandasObject):
                     if is_integer_dtype(dtype):
                         inferred = lib.infer_dtype(data)
                         if inferred == 'integer':
-                            data = np.array(data, copy=copy, dtype=dtype)
+                            try:
+                                data = np.array(data, copy=copy, dtype=dtype)
+                            except OverflowError:
+                                # gh-15823: a more user-friendly error message
+                                raise OverflowError(
+                                    "the elements provided in the data cannot "
+                                    "all be casted to the dtype {dtype}"
+                                    .format(dtype=dtype))
                         elif inferred in ['floating', 'mixed-integer-float']:
                             if isna(data).any():
                                 raise ValueError('cannot convert float '
@@ -2519,7 +2529,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def argsort(self, *args, **kwargs):
         """
-        Return the integer indicies that would sort the index.
+        Return the integer indices that would sort the index.
 
         Parameters
         ----------
@@ -2531,7 +2541,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         numpy.ndarray
-            Integer indicies that would sort the index if used as
+            Integer indices that would sort the index if used as
             an indexer.
 
         See also
