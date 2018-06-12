@@ -159,18 +159,23 @@ class Base(object):
         assert offset1 == offset2
 
     def test_rsub(self):
-        if self._offset is None:
-            # i.e. skip for TestCommon
+        if self._offset is None or not hasattr(self, "offset2"):
+            # i.e. skip for TestCommon and YQM subclasses that do not have
+            # offset2 attr
             return
         assert self.d - self.offset2 == (-self.offset2).apply(self.d)
 
     def test_radd(self):
-        if self._offset is None:
+        if self._offset is None or not hasattr(self, "offset2"):
+            # i.e. skip for TestCommon and YQM subclasses that do not have
+            # offset2 attr
             return
         assert self.d + self.offset2 == self.offset2 + self.d
 
     def test_sub(self):
-        if self._offset is None:
+        if self._offset is None or not hasattr(self, "offset2"):
+            # i.e. skip for TestCommon and YQM subclasses that do not have
+            # offset2 attr
             return
         off = self.offset2
         with pytest.raises(Exception):
@@ -181,7 +186,9 @@ class Base(object):
         assert self.d - self.offset2 == self.d - (2 * off - off)
 
     def testMult1(self):
-        if self._offset is None:
+        if self._offset is None or not hasattr(self, "offset1"):
+            # i.e. skip for TestCommon and YQM subclasses that do not have
+            # offset1 attr
             return
         assert self.d + 10 * self.offset1 == self.d + self._offset(10)
         assert self.d + 5 * self.offset1 == self.d + self._offset(5)
