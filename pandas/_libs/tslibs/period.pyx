@@ -1063,13 +1063,9 @@ cdef class _Period(object):
 
         if (PyDelta_Check(other) or util.is_timedelta64_object(other) or
                 isinstance(other, offsets.Tick)):
-            offset = frequencies.to_offset(self.freq.rule_code)
-            if isinstance(offset, offsets.Tick):
+            if isinstance(self.freq, offsets.Tick):
                 nanos = delta_to_nanoseconds(other)
-                offset_nanos = delta_to_nanoseconds(offset)
-
-                assert isinstance(self.freq, offsets.Tick), self.freq  # pretty sure we can skip the frequencies.to_offset call
-
+                offset_nanos = delta_to_nanoseconds(self.freq)
                 if nanos % offset_nanos == 0:
                     ordinal = self.ordinal + (nanos // offset_nanos)
                     return Period(ordinal=ordinal, freq=self.freq)
