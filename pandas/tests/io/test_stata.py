@@ -361,7 +361,8 @@ class TestStata(object):
 
         # GH 4626, proper encoding handling
         raw = read_stata(self.dta_encoding)
-        encoded = read_stata(self.dta_encoding, encoding="latin-1")
+        with tm.assert_produces_warning(FutureWarning):
+            encoded = read_stata(self.dta_encoding, encoding='latin-1')
         result = encoded.kreis1849[0]
 
         expected = raw.kreis1849[0]
@@ -369,8 +370,9 @@ class TestStata(object):
         assert isinstance(result, compat.string_types)
 
         with tm.ensure_clean() as path:
-            encoded.to_stata(path, encoding='latin-1',
-                             write_index=False, version=version)
+            with tm.assert_produces_warning(FutureWarning):
+                encoded.to_stata(path, write_index=False, version=version,
+                                 encoding='latin-1')
             reread_encoded = read_stata(path)
             tm.assert_frame_equal(encoded, reread_encoded)
 
@@ -1348,13 +1350,6 @@ class TestStata(object):
                 original.to_stata(path)
             assert 'ColumnTooBig' in cm.exception
             assert 'infinity' in cm.exception
-
-    def test_invalid_encoding(self):
-        # GH15723, validate encoding
-        original = self.read_csv(self.csv3)
-        with pytest.raises(ValueError):
-            with tm.ensure_clean() as path:
-                original.to_stata(path, encoding='utf-8')
 
     def test_path_pathlib(self):
         df = tm.makeDataFrame()
