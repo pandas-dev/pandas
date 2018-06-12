@@ -57,16 +57,10 @@ import pandas.core.dtypes.concat as _concat
 import pandas.core.missing as missing
 import pandas.core.algorithms as algos
 import pandas.core.sorting as sorting
-from pandas.io.formats.printing import pprint_thing
+from pandas.io.formats.printing import (
+    pprint_thing, default_pprint, format_object_summary, format_object_attrs)
 from pandas.core.ops import make_invalid_op
-from pandas.core.config import get_option
 from pandas.core.strings import StringMethods
-
-
-# simplify
-default_pprint = lambda x, max_seq_items=None: \
-    pprint_thing(x, escape_chars=('\t', '\r', '\n'), quote_strings=True,
-                 max_seq_items=max_seq_items)
 
 __all__ = ['Index']
 
@@ -187,6 +181,9 @@ class Index(IndexOpsMixin, PandasObject):
     ----------
     data : array-like (1-dimensional)
     dtype : NumPy dtype (default: object)
+        If dtype is None, we find the dtype that best fits the data.
+        If an actual dtype is provided, we coerce to that dtype if it's safe.
+        Otherwise, an error will be raised.
     copy : bool
         Make a copy of input ndarray
     name : object
@@ -312,7 +309,14 @@ class Index(IndexOpsMixin, PandasObject):
                     if is_integer_dtype(dtype):
                         inferred = lib.infer_dtype(data)
                         if inferred == 'integer':
-                            data = np.array(data, copy=copy, dtype=dtype)
+                            try:
+                                data = np.array(data, copy=copy, dtype=dtype)
+                            except OverflowError:
+                                # gh-15823: a more user-friendly error message
+                                raise OverflowError(
+                                    "the elements provided in the data cannot "
+                                    "all be casted to the dtype {dtype}"
+                                    .format(dtype=dtype))
                         elif inferred in ['floating', 'mixed-integer-float']:
                             if isna(data).any():
                                 raise ValueError('cannot convert float '
@@ -1034,7 +1038,7 @@ class Index(IndexOpsMixin, PandasObject):
     @property
     def _formatter_func(self):
         """
-        Return the formatted data as a unicode string
+        Return the formatter function
         """
         return default_pprint
 
@@ -1042,125 +1046,20 @@ class Index(IndexOpsMixin, PandasObject):
         """
         Return the formatted data as a unicode string
         """
-        from pandas.io.formats.console import get_console_size
-        from pandas.io.formats.format import _get_adjustment
-        display_width, _ = get_console_size()
-        if display_width is None:
-            display_width = get_option('display.width') or 80
-        if name is None:
-            name = self.__class__.__name__
-
-        space1 = "\n%s" % (' ' * (len(name) + 1))
-        space2 = "\n%s" % (' ' * (len(name) + 2))
-
-        n = len(self)
-        sep = ','
-        max_seq_items = get_option('display.max_seq_items') or n
-        formatter = self._formatter_func
 
         # do we want to justify (only do so for non-objects)
         is_justify = not (self.inferred_type in ('string', 'unicode') or
                           (self.inferred_type == 'categorical' and
                            is_object_dtype(self.categories)))
 
-        # are we a truncated display
-        is_truncated = n > max_seq_items
-
-        # adj can optionally handle unicode eastern asian width
-        adj = _get_adjustment()
-
-        def _extend_line(s, line, value, display_width, next_line_prefix):
-
-            if (adj.len(line.rstrip()) + adj.len(value.rstrip()) >=
-                    display_width):
-                s += line.rstrip()
-                line = next_line_prefix
-            line += value
-            return s, line
-
-        def best_len(values):
-            if values:
-                return max(adj.len(x) for x in values)
-            else:
-                return 0
-
-        if n == 0:
-            summary = '[], '
-        elif n == 1:
-            first = formatter(self[0])
-            summary = '[%s], ' % first
-        elif n == 2:
-            first = formatter(self[0])
-            last = formatter(self[-1])
-            summary = '[%s, %s], ' % (first, last)
-        else:
-
-            if n > max_seq_items:
-                n = min(max_seq_items // 2, 10)
-                head = [formatter(x) for x in self[:n]]
-                tail = [formatter(x) for x in self[-n:]]
-            else:
-                head = []
-                tail = [formatter(x) for x in self]
-
-            # adjust all values to max length if needed
-            if is_justify:
-
-                # however, if we are not truncated and we are only a single
-                # line, then don't justify
-                if (is_truncated or
-                        not (len(', '.join(head)) < display_width and
-                             len(', '.join(tail)) < display_width)):
-                    max_len = max(best_len(head), best_len(tail))
-                    head = [x.rjust(max_len) for x in head]
-                    tail = [x.rjust(max_len) for x in tail]
-
-            summary = ""
-            line = space2
-
-            for i in range(len(head)):
-                word = head[i] + sep + ' '
-                summary, line = _extend_line(summary, line, word,
-                                             display_width, space2)
-
-            if is_truncated:
-                # remove trailing space of last line
-                summary += line.rstrip() + space2 + '...'
-                line = space2
-
-            for i in range(len(tail) - 1):
-                word = tail[i] + sep + ' '
-                summary, line = _extend_line(summary, line, word,
-                                             display_width, space2)
-
-            # last value: no sep added + 1 space of width used for trailing ','
-            summary, line = _extend_line(summary, line, tail[-1],
-                                         display_width - 2, space2)
-            summary += line
-            summary += '],'
-
-            if len(summary) > (display_width):
-                summary += space1
-            else:  # one row
-                summary += ' '
-
-            # remove initial space
-            summary = '[' + summary[len(space2):]
-
-        return summary
+        return format_object_summary(self, self._formatter_func,
+                                     is_justify=is_justify, name=name)
 
     def _format_attrs(self):
         """
         Return a list of tuples of the (attr,formatted_value)
         """
-        attrs = []
-        attrs.append(('dtype', "'%s'" % self.dtype))
-        if self.name is not None:
-            attrs.append(('name', default_pprint(self.name)))
-        max_seq_items = get_option('display.max_seq_items') or len(self)
-        if len(self) > max_seq_items:
-            attrs.append(('length', len(self)))
-        return attrs
+        return format_object_attrs(self)
 
     def to_series(self, index=None, name=None):
         """
@@ -1384,7 +1283,8 @@ class Index(IndexOpsMixin, PandasObject):
                    names=[u'baz', u'bar'])
         """
 
-        if level is not None and self.nlevels == 1:
+        from .multi import MultiIndex
+        if level is not None and not isinstance(self, MultiIndex):
             raise ValueError('Level must be None for non-MultiIndex')
 
         if level is not None and not is_list_like(level) and is_list_like(
@@ -2190,10 +2090,10 @@ class Index(IndexOpsMixin, PandasObject):
                 msg = ('When allow_fill=True and fill_value is not None, '
                        'all indices must be >= -1')
                 raise ValueError(msg)
-            taken = values.take(indices)
-            mask = indices == -1
-            if mask.any():
-                taken[mask] = na_value
+            taken = algos.take(values,
+                               indices,
+                               allow_fill=allow_fill,
+                               fill_value=na_value)
         else:
             taken = values.take(indices)
         return taken
@@ -2629,7 +2529,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def argsort(self, *args, **kwargs):
         """
-        Return the integer indicies that would sort the index.
+        Return the integer indices that would sort the index.
 
         Parameters
         ----------
@@ -2641,7 +2541,7 @@ class Index(IndexOpsMixin, PandasObject):
         Returns
         -------
         numpy.ndarray
-            Integer indicies that would sort the index if used as
+            Integer indices that would sort the index if used as
             an indexer.
 
         See also
@@ -3157,6 +3057,60 @@ class Index(IndexOpsMixin, PandasObject):
         return self
 
     get_level_values = _get_level_values
+
+    def droplevel(self, level=0):
+        """
+        Return index with requested level(s) removed. If resulting index has
+        only 1 level left, the result will be of Index type, not MultiIndex.
+
+        .. versionadded:: 0.23.1 (support for non-MultiIndex)
+
+        Parameters
+        ----------
+        level : int, str, or list-like, default 0
+            If a string is given, must be the name of a level
+            If list-like, elements must be names or indexes of levels.
+
+        Returns
+        -------
+        index : Index or MultiIndex
+        """
+        if not isinstance(level, (tuple, list)):
+            level = [level]
+
+        levnums = sorted(self._get_level_number(lev) for lev in level)[::-1]
+
+        if len(level) == 0:
+            return self
+        if len(level) >= self.nlevels:
+            raise ValueError("Cannot remove {} levels from an index with {} "
+                             "levels: at least one level must be "
+                             "left.".format(len(level), self.nlevels))
+        # The two checks above guarantee that here self is a MultiIndex
+
+        new_levels = list(self.levels)
+        new_labels = list(self.labels)
+        new_names = list(self.names)
+
+        for i in levnums:
+            new_levels.pop(i)
+            new_labels.pop(i)
+            new_names.pop(i)
+
+        if len(new_levels) == 1:
+
+            # set nan if needed
+            mask = new_labels[0] == -1
+            result = new_levels[0].take(new_labels[0])
+            if mask.any():
+                result = result.putmask(mask, np.nan)
+
+            result.name = new_names[0]
+            return result
+        else:
+            from .multi import MultiIndex
+            return MultiIndex(levels=new_levels, labels=new_labels,
+                              names=new_names, verify_integrity=False)
 
     _index_shared_docs['get_indexer'] = """
         Compute indexer and mask for new index given the current index. The

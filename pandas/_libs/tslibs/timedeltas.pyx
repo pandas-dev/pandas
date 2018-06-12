@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
 import collections
+import textwrap
+import warnings
 
 import sys
 cdef bint PY3 = (sys.version_info[0] >= 3)
@@ -200,22 +202,22 @@ cpdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
 
     if unit == 'D' or unit == 'd':
         m = 1000000000L * 86400
-        p = 6
+        p = 9
     elif unit == 'h':
         m = 1000000000L * 3600
-        p = 6
+        p = 9
     elif unit == 'm':
         m = 1000000000L * 60
-        p = 6
+        p = 9
     elif unit == 's':
         m = 1000000000L
-        p = 6
+        p = 9
     elif unit == 'ms':
         m = 1000000L
-        p = 3
+        p = 6
     elif unit == 'us':
         m = 1000L
-        p = 0
+        p = 3
     elif unit == 'ns' or unit is None:
         m = 1L
         p = 0
@@ -229,10 +231,10 @@ cpdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
     # cast the unit, multiply base/frace separately
     # to avoid precision issues from float -> int
     base = <int64_t> ts
-    frac = ts -base
+    frac = ts - base
     if p:
         frac = round(frac, p)
-    return <int64_t> (base *m) + <int64_t> (frac *m)
+    return <int64_t> (base * m) + <int64_t> (frac * m)
 
 
 cdef inline _decode_if_necessary(object ts):
@@ -758,7 +760,32 @@ cdef class _Timedelta(timedelta):
 
     @property
     def delta(self):
-        """ return out delta in ns (for internal compat) """
+        """
+        Return the timedelta in nanoseconds (ns), for internal compatibility.
+
+        Returns
+        -------
+        int
+            Timedelta in nanoseconds.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('1 days 42 ns')
+        >>> td.delta
+        86400000000042
+
+        >>> td = pd.Timedelta('3 s')
+        >>> td.delta
+        3000000000
+
+        >>> td = pd.Timedelta('3 ms 5 us')
+        >>> td.delta
+        3005000
+
+        >>> td = pd.Timedelta(42, unit='ns')
+        >>> td.delta
+        42
+        """
         return self.value
 
     @property
@@ -789,9 +816,32 @@ cdef class _Timedelta(timedelta):
     @property
     def nanoseconds(self):
         """
-        Number of nanoseconds (>= 0 and less than 1 microsecond).
+        Return the number of nanoseconds (n), where 0 <= n < 1 microsecond.
+       
+        Returns
+        -------
+        int
+            Number of nanoseconds.
 
-        .components will return the shown components
+        See Also
+        --------
+        Timedelta.components : Return all attributes with assigned values
+            (i.e. days, hours, minutes, seconds, milliseconds, microseconds,
+            nanoseconds).
+
+        Examples
+        --------
+        **Using string input**
+
+        >>> td = pd.Timedelta('1 days 2 min 3 us 42 ns')
+        >>> td.nanoseconds
+        42
+
+        **Using integer input**
+
+        >>> td = pd.Timedelta(42, unit='ns')
+        >>> td.nanoseconds
+        42
         """
         self._ensure_components()
         return self._ns
@@ -918,7 +968,7 @@ class Timedelta(_Timedelta):
     days, seconds, microseconds,
     milliseconds, minutes, hours, weeks : numeric, optional
         Values for construction in compat with datetime.timedelta.
-        np ints and floats will be coereced to python ints and floats.
+        np ints and floats will be coerced to python ints and floats.
 
     Notes
     -----
@@ -1188,6 +1238,18 @@ class Timedelta(_Timedelta):
             if other.dtype.kind == 'm':
                 # also timedelta-like
                 return _broadcast_floordiv_td64(self.value, other, _rfloordiv)
+            elif other.dtype.kind == 'i':
+                # Backwards compatibility
+                # GH-19761
+                msg = textwrap.dedent("""\
+                Floor division between integer array and Timedelta is
+                deprecated. Use 'array // timedelta.value' instead.
+                If you want to obtain epochs from an array of timestamps,
+                you can rather use
+                '(array - pd.Timestamp("1970-01-01")) // pd.Timedelta("1s")'.
+                """)
+                warnings.warn(msg, FutureWarning)
+                return other // self.value
             raise TypeError('Invalid dtype {dtype} for '
                             '{op}'.format(dtype=other.dtype,
                                           op='__floordiv__'))
@@ -1210,6 +1272,11 @@ class Timedelta(_Timedelta):
 
     def __rmod__(self, other):
         # Naive implementation, room for optimization
+        if hasattr(other, 'dtype') and other.dtype.kind == 'i':
+            # TODO: Remove this check with backwards-compat shim
+            # for integer / Timedelta is removed.
+            raise TypeError("Invalid type {dtype} for "
+                            "{op}".format(dtype=other.dtype, op='__mod__'))
         return self.__rdivmod__(other)[1]
 
     def __divmod__(self, other):
@@ -1219,6 +1286,11 @@ class Timedelta(_Timedelta):
 
     def __rdivmod__(self, other):
         # Naive implementation, room for optimization
+        if hasattr(other, 'dtype') and other.dtype.kind == 'i':
+            # TODO: Remove this check with backwards-compat shim
+            # for integer / Timedelta is removed.
+            raise TypeError("Invalid type {dtype} for "
+                            "{op}".format(dtype=other.dtype, op='__mod__'))
         div = other // self
         return div, other - div * self
 

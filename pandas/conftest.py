@@ -5,6 +5,7 @@ import pytest
 import pandas
 import numpy as np
 import pandas as pd
+from pandas.compat import PY3
 import pandas.util._test_decorators as td
 
 
@@ -82,11 +83,39 @@ def observed(request):
     return request.param
 
 
+_all_arithmetic_operators = ['__add__', '__radd__',
+                             '__sub__', '__rsub__',
+                             '__mul__', '__rmul__',
+                             '__floordiv__', '__rfloordiv__',
+                             '__truediv__', '__rtruediv__',
+                             '__pow__', '__rpow__']
+if not PY3:
+    _all_arithmetic_operators.extend(['__div__', '__rdiv__'])
+
+
+@pytest.fixture(params=_all_arithmetic_operators)
+def all_arithmetic_operators(request):
+    """
+    Fixture for dunder names for common arithmetic operations
+    """
+    return request.param
+
+
 @pytest.fixture(params=[None, 'gzip', 'bz2', 'zip',
                         pytest.param('xz', marks=td.skip_if_no_lzma)])
 def compression(request):
     """
     Fixture for trying common compression types in compression tests
+    """
+    return request.param
+
+
+@pytest.fixture(params=['gzip', 'bz2', 'zip',
+                        pytest.param('xz', marks=td.skip_if_no_lzma)])
+def compression_only(request):
+    """
+    Fixture for trying common compression types in compression tests excluding
+    uncompressed case
     """
     return request.param
 
@@ -105,7 +134,6 @@ def join_type(request):
     return request.param
 
 
-<<<<<<< HEAD
 @pytest.fixture
 def datapath(request):
     """Get the path to a data file.
@@ -141,7 +169,8 @@ def datapath(request):
 def iris(datapath):
     """The iris dataset as a DataFrame."""
     return pandas.read_csv(datapath('data', 'iris.csv'))
-=======
+
+
 @pytest.fixture(params=[None, np.nan, pd.NaT, float('nan'), np.float('NaN')])
 def nulls_fixture(request):
     """
@@ -172,4 +201,14 @@ def tz_aware_fixture(request):
     Fixture for trying explicit timezones: {0}
     """
     return request.param
->>>>>>> upstream/master
+
+
+@pytest.fixture(params=[str, 'str', 'U'])
+def string_dtype(request):
+    """Parametrized fixture for string dtypes.
+
+    * str
+    * 'str'
+    * 'U'
+    """
+    return request.param

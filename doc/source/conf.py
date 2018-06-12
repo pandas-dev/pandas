@@ -16,9 +16,11 @@ import os
 import re
 import inspect
 import importlib
-from sphinx.ext.autosummary import _import_by_name
+import logging
 import warnings
+from sphinx.ext.autosummary import _import_by_name
 
+logger = logging.getLogger(__name__)
 
 try:
     raw_input          # Python 2
@@ -75,7 +77,18 @@ extensions = ['sphinx.ext.autodoc',
               'nbsphinx',
               ]
 
+try:
+    import sphinxcontrib.spelling  # noqa
+except ImportError as err:
+    logger.warn(('sphinxcontrib.spelling failed to import with error "{}". '
+                '`spellcheck` command is not available.'.format(err)))
+else:
+    extensions.append('sphinxcontrib.spelling')
+
 exclude_patterns = ['**.ipynb_checkpoints']
+
+spelling_word_list_filename = ['spelling_wordlist.txt', 'names_wordlist.txt']
+spelling_ignore_pypi_package_names = True
 
 with open("index.rst") as f:
     index_rst_lines = f.readlines()

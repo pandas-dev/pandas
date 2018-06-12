@@ -1365,7 +1365,8 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             converted = libts.ints_to_pydatetime(data[start_i:end_i],
                                                  tz=self.tz, freq=self.freq,
                                                  box="timestamp")
-            return iter(converted)
+            for v in converted:
+                yield v
 
     def _wrap_union_result(self, other, result):
         name = self.name if self.name == other.name else None
@@ -2031,7 +2032,16 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         """
         Returns numpy array of datetime.time. The time part of the Timestamps.
         """
-        return libts.ints_to_pydatetime(self.asi8, self.tz, box="time")
+
+        # If the Timestamps have a timezone that is not UTC,
+        # convert them into their i8 representation while
+        # keeping their timezone and not using UTC
+        if (self.tz is not None and self.tz is not utc):
+            timestamps = self._local_timestamps()
+        else:
+            timestamps = self.asi8
+
+        return libts.ints_to_pydatetime(timestamps, box="time")
 
     @property
     def date(self):
@@ -2039,13 +2049,22 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         Returns numpy array of python datetime.date objects (namely, the date
         part of Timestamps without timezone information).
         """
-        return libts.ints_to_pydatetime(self.normalize().asi8, box="date")
+
+        # If the Timestamps have a timezone that is not UTC,
+        # convert them into their i8 representation while
+        # keeping their timezone and not using UTC
+        if (self.tz is not None and self.tz is not utc):
+            timestamps = self._local_timestamps()
+        else:
+            timestamps = self.asi8
+
+        return libts.ints_to_pydatetime(timestamps, box="date")
 
     def normalize(self):
         """
         Convert times to midnight.
 
-        The time component of the date-timeise converted to midnight i.e.
+        The time component of the date-time is converted to midnight i.e.
         00:00:00. This is useful in cases, when the time does not matter.
         Length is unaltered. The timezones are unaffected.
 

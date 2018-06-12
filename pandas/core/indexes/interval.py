@@ -112,6 +112,10 @@ def maybe_convert_platform_interval(values):
     -------
     array
     """
+    if is_categorical_dtype(values):
+        # GH 21243/21253
+        values = np.array(values)
+
     if isinstance(values, (list, tuple)) and len(values) == 0:
         # GH 19016
         # empty lists/tuples get object dtype by default, but this is not
@@ -1572,6 +1576,10 @@ def interval_range(start=None, end=None, periods=None, freq=None,
         periods += 1
 
     if is_number(endpoint):
+        # force consistency between start/end/freq (lower end if freq skips it)
+        if com._all_not_none(start, end, freq):
+            end -= (end - start) % freq
+
         # compute the period/start/end if unspecified (at most one)
         if periods is None:
             periods = int((end - start) // freq) + 1
@@ -1579,10 +1587,6 @@ def interval_range(start=None, end=None, periods=None, freq=None,
             start = end - (periods - 1) * freq
         elif end is None:
             end = start + (periods - 1) * freq
-
-        # force end to be consistent with freq (lower if freq skips end)
-        if freq is not None:
-            end -= end % freq
 
         breaks = np.linspace(start, end, periods)
         if all(is_integer(x) for x in com._not_none(start, end, freq)):

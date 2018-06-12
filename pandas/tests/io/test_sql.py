@@ -1671,29 +1671,6 @@ class _TestSQLAlchemy(SQLAlchemyMixIn, PandasSQLTest):
 
         tm.assert_frame_equal(df, expected)
 
-    def test_insert_multivalues(self):
-        # issues addressed
-        # https://github.com/pandas-dev/pandas/issues/14315
-        # https://github.com/pandas-dev/pandas/issues/8953
-
-        db = sql.SQLDatabase(self.conn)
-        df = DataFrame({'A': [1, 0, 0], 'B': [1.1, 0.2, 4.3]})
-        table = sql.SQLTable("test_table", db, frame=df)
-        data = [
-            {'A': 1, 'B': 0.46},
-            {'A': 0, 'B': -2.06}
-        ]
-        statement = table.insert_statement(data, conn=self.conn)[0]
-
-        if self.supports_multivalues_insert:
-            assert statement.parameters == data, (
-                'insert statement should be multivalues'
-            )
-        else:
-            assert statement.parameters is None, (
-                'insert statement should not be multivalues'
-            )
-
 
 class _TestSQLAlchemyConn(_EngineToConnMixin, _TestSQLAlchemy):
 
@@ -1708,7 +1685,6 @@ class _TestSQLiteAlchemy(object):
 
     """
     flavor = 'sqlite'
-    supports_multivalues_insert = True
 
     @classmethod
     def connect(cls):
@@ -1757,7 +1733,6 @@ class _TestMySQLAlchemy(object):
 
     """
     flavor = 'mysql'
-    supports_multivalues_insert = True
 
     @classmethod
     def connect(cls):
@@ -1827,7 +1802,6 @@ class _TestPostgreSQLAlchemy(object):
 
     """
     flavor = 'postgresql'
-    supports_multivalues_insert = True
 
     @classmethod
     def connect(cls):

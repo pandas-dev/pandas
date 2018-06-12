@@ -1,0 +1,196 @@
+.. _whatsnew_0240:
+
+v0.24.0
+-------
+
+.. _whatsnew_0240.enhancements:
+
+New features
+~~~~~~~~~~~~
+
+.. _whatsnew_0240.enhancements.other:
+
+Other Enhancements
+^^^^^^^^^^^^^^^^^^
+- :func:`to_datetime` now supports the ``%Z`` and ``%z`` directive when passed into ``format`` (:issue:`13486`)
+- :func:`Series.mode` and :func:`DataFrame.mode` now support the ``dropna`` parameter which can be used to specify whether NaN/NaT values should be considered (:issue:`17534`)
+- :func:`to_csv` now supports ``compression`` keyword when a file handle is passed. (:issue:`21227`)
+- :meth:`Index.droplevel` is now implemented also for flat indexes, for compatibility with MultiIndex (:issue:`21115`)
+
+
+.. _whatsnew_0240.api_breaking:
+
+
+Backwards incompatible API changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. _whatsnew_0240.api.datetimelike:
+
+Datetimelike API Changes
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+- For :class:`DatetimeIndex` and :class:`TimedeltaIndex` with non-``None`` ``freq`` attribute, addition or subtraction of integer-dtyped array or ``Index`` will return an object of the same class (:issue:`19959`)
+
+.. _whatsnew_0240.api.other:
+
+Other API Changes
+^^^^^^^^^^^^^^^^^
+
+-
+-
+-
+
+.. _whatsnew_0240.deprecations:
+
+Deprecations
+~~~~~~~~~~~~
+
+- :meth:`DataFrame.to_stata`, :meth:`read_stata`, :class:`StataReader` and :class:`StataWriter` have deprecated the ``encoding`` argument.  The encoding of a Stata dta file is determined by the file type and cannot be changed (:issue:`21244`).
+-
+-
+
+.. _whatsnew_0240.prior_deprecations:
+
+Removal of prior version deprecations/changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- The ``LongPanel`` and ``WidePanel`` classes have been removed (:issue:`10892`)
+-
+-
+-
+
+.. _whatsnew_0240.performance:
+
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Improved performance of :func:`Series.describe` in case of numeric dtpyes (:issue:`21274`)
+-
+
+.. _whatsnew_0240.docs:
+
+Documentation Changes
+~~~~~~~~~~~~~~~~~~~~~
+
+- Added sphinx spelling extension, updated documentation on how to use the spell check (:issue:`21079`)
+-
+-
+
+.. _whatsnew_0240.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~
+
+Categorical
+^^^^^^^^^^^
+
+-
+-
+-
+
+Datetimelike
+^^^^^^^^^^^^
+
+-
+-
+-
+
+Timedelta
+^^^^^^^^^
+
+-
+-
+-
+
+Timezones
+^^^^^^^^^
+
+-
+-
+-
+
+Offsets
+^^^^^^^
+
+-
+-
+-
+
+Numeric
+^^^^^^^
+
+-
+-
+-
+
+Strings
+^^^^^^^
+
+-
+-
+-
+
+Indexing
+^^^^^^^^
+
+-
+-
+-
+
+MultiIndex
+^^^^^^^^^^
+
+-
+-
+-
+
+I/O
+^^^
+
+-
+-
+-
+
+Plotting
+^^^^^^^^
+
+-
+-
+-
+
+Groupby/Resample/Rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+-
+-
+-
+
+Sparse
+^^^^^^
+
+-
+-
+-
+
+Reshaping
+^^^^^^^^^
+
+-
+-
+-
+
+ExtensionArray
+^^^^^^^^^^^^^^
+
+- :meth:`Series.combine()` works correctly with :class:`~pandas.api.extensions.ExtensionArray` inside of :class:`Series` (:issue:`20825`)
+- :meth:`Series.combine()` with scalar argument now works for any function type (:issue:`21248`)
+-
+-
+
+Other
+^^^^^
+
+- :meth: `~pandas.io.formats.style.Styler.background_gradient` now takes a ``text_color_threshold`` parameter to automatically lighten the text color based on the luminance of the background color. This improves readability with dark background colors without the need to limit the background colormap range. (:issue:`21258`)
+-
+-
+-

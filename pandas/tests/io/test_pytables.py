@@ -1484,7 +1484,7 @@ class TestHDFStore(Base):
             store.append('df', df[2:])
             tm.assert_frame_equal(store['df'], df)
 
-            # check that we have indicies created
+            # check that we have indices created
             assert(store._handle.root.df.table.cols.index.is_indexed is True)
             assert(store._handle.root.df.table.cols.B.is_indexed is True)
 
@@ -3006,9 +3006,6 @@ class TestHDFStore(Base):
             wp = tm.makePanel()
             self._check_roundtrip(wp.to_frame(), _check)
 
-    def test_longpanel(self):
-        pass
-
     def test_overwrite_node(self):
 
         with ensure_clean_store(self.path) as store:
@@ -4513,7 +4510,7 @@ class TestHDFStore(Base):
                         keys = store.keys()
                     assert set(keys) == set(tstore.keys())
 
-                    # check indicies & nrows
+                    # check indices & nrows
                     for k in tstore.keys():
                         if tstore.get_storer(k).is_table:
                             new_t = tstore.get_storer(k)
