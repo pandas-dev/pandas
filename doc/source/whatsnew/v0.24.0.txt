@@ -112,7 +112,7 @@ Timezones
 Offsets
 ^^^^^^^
 
-- :class:`Tick` subclasses can no longer be created with the argument `normalize=True` (:issue:`21427`)
+- Fixed a bug where :class:``Tick`` subclasses (:class:``Day``, :class:``Hour``, :class:``Minute``, :class:``Second``, :class:``Milli``, :class:``Micro``, :class:``Nano``) could be created with the argument `normalize=True`, which could lead to addition failing to be monotone or associative (:issue:`21427`,:issue:`21434`)
 -
 -
 
