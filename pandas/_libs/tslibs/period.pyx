@@ -51,13 +51,13 @@ from conversion cimport tz_convert_utc_to_tzlocal
 from frequencies cimport (get_freq_code, get_base_alias,
                           get_to_timestamp_base, get_freq_str,
                           get_rule_month)
-#from offsets cimport _Tick
 from parsing import parse_time_string, NAT_SENTINEL
 from resolution import Resolution
 from nattype import nat_strings, NaT, iNaT
 from nattype cimport _nat_scalar_rules, NPY_NAT
 
-from pandas.tseries import frequencies, offsets
+from pandas.tseries import offsets
+from pandas.tseries import frequencies
 
 
 cdef extern from "period_helper.h":
