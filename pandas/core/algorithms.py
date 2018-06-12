@@ -25,8 +25,8 @@ from pandas.core.dtypes.common import (
     is_bool_dtype, needs_i8_conversion,
     is_datetimetz,
     is_datetime64_any_dtype, is_datetime64tz_dtype,
-    is_timedelta64_dtype, is_interval_dtype,
-    is_scalar, is_list_like,
+    is_timedelta64_dtype, is_datetimelike,
+    is_interval_dtype, is_scalar, is_list_like,
     _ensure_platform_int, _ensure_object,
     _ensure_float64, _ensure_uint64,
     _ensure_int64)
@@ -513,7 +513,7 @@ _shared_docs['factorize'] = """
     See Also
     --------
     pandas.cut : Discretize continuous-valued array.
-    pandas.unique : Find the unique valuse in an array.
+    pandas.unique : Find the unique value in an array.
 
     Examples
     --------
@@ -558,7 +558,7 @@ _shared_docs['factorize'] = """
     [a, c]
     Categories (3, object): [a, b, c]
 
-    Notice that ``'b'`` is in ``uniques.categories``, desipite not being
+    Notice that ``'b'`` is in ``uniques.categories``, despite not being
     present in ``cat.values``.
 
     For all other pandas objects, an Index of the appropriate type is
@@ -576,8 +576,8 @@ _shared_docs['factorize'] = """
 @Substitution(
     values=dedent("""\
     values : sequence
-        A 1-D seqeunce. Sequences that aren't pandas objects are
-        coereced to ndarrays before factorization.
+        A 1-D sequence. Sequences that aren't pandas objects are
+        coerced to ndarrays before factorization.
     """),
     order=dedent("""\
     order
@@ -798,7 +798,7 @@ def duplicated(values, keep='first'):
     return f(values, keep=keep)
 
 
-def mode(values):
+def mode(values, dropna=True):
     """
     Returns the mode(s) of an array.
 
@@ -806,6 +806,10 @@ def mode(values):
     ----------
     values : array-like
         Array over which to check for duplicate values.
+    dropna : boolean, default True
+        Don't consider counts of NaN/NaT.
+
+        .. versionadded:: 0.24.0
 
     Returns
     -------
@@ -818,20 +822,18 @@ def mode(values):
 
     # categorical is a fast-path
     if is_categorical_dtype(values):
-
         if isinstance(values, Series):
-            return Series(values.values.mode(), name=values.name)
-        return values.mode()
+            return Series(values.values.mode(dropna=dropna), name=values.name)
+        return values.mode(dropna=dropna)
+
+    if dropna and is_datetimelike(values):
+        mask = values.isnull()
+        values = values[~mask]
 
     values, dtype, ndtype = _ensure_data(values)
 
-    # TODO: this should support float64
-    if ndtype not in ['int64', 'uint64', 'object']:
-        ndtype = 'object'
-        values = _ensure_object(values)
-
     f = getattr(htable, "mode_{dtype}".format(dtype=ndtype))
-    result = f(values)
+    result = f(values, dropna=dropna)
     try:
         result = np.sort(result)
     except TypeError as e:
@@ -1457,7 +1459,7 @@ def take(arr, indices, axis=0, allow_fill=False, fill_value=None):
     Parameters
     ----------
     arr : sequence
-        Non array-likes (sequences without a dtype) are coereced
+        Non array-likes (sequences without a dtype) are coerced
         to an ndarray.
     indices : sequence of integers
         Indices to be taken.

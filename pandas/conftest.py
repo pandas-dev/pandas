@@ -105,6 +105,16 @@ def compression(request):
     return request.param
 
 
+@pytest.fixture(params=['gzip', 'bz2', 'zip',
+                        pytest.param('xz', marks=td.skip_if_no_lzma)])
+def compression_only(request):
+    """
+    Fixture for trying common compression types in compression tests excluding
+    uncompressed case
+    """
+    return request.param
+
+
 @pytest.fixture(scope='module')
 def datetime_tz_utc():
     from datetime import timezone
@@ -147,5 +157,16 @@ def tz_naive_fixture(request):
 def tz_aware_fixture(request):
     """
     Fixture for trying explicit timezones: {0}
+    """
+    return request.param
+
+
+@pytest.fixture(params=[str, 'str', 'U'])
+def string_dtype(request):
+    """Parametrized fixture for string dtypes.
+
+    * str
+    * 'str'
+    * 'U'
     """
     return request.param

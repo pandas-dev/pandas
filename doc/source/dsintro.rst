@@ -353,7 +353,7 @@ From a list of dicts
 From a dict of tuples
 ~~~~~~~~~~~~~~~~~~~~~
 
-You can automatically create a multi-indexed frame by passing a tuples
+You can automatically create a MultiIndexed frame by passing a tuples
 dictionary.
 
 .. ipython:: python
@@ -1014,7 +1014,7 @@ Deprecate Panel
 Over the last few years, pandas has increased in both breadth and depth, with new features,
 datatype support, and manipulation routines. As a result, supporting efficient indexing and functional
 routines for ``Series``, ``DataFrame`` and ``Panel`` has contributed to an increasingly fragmented and
-difficult-to-understand codebase.
+difficult-to-understand code base.
 
 The 3-D structure of a ``Panel`` is much less common for many types of data analysis,
 than the 1-D of the ``Series`` or the 2-D of the ``DataFrame``. Going forward it makes sense for
@@ -1023,7 +1023,7 @@ pandas to focus on these areas exclusively.
 Oftentimes, one can simply use a MultiIndex ``DataFrame`` for easily working with higher dimensional data.
 
 In addition, the ``xarray`` package was built from the ground up, specifically in order to
-support the multi-dimensional analysis that is one of ``Panel`` s main usecases.
+support the multi-dimensional analysis that is one of ``Panel`` s main use cases.
 `Here is a link to the xarray panel-transition documentation <http://xarray.pydata.org/en/stable/pandas.html#panel-transition>`__.
 
 .. ipython:: python

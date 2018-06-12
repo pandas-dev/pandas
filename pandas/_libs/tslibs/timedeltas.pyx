@@ -968,7 +968,7 @@ class Timedelta(_Timedelta):
     days, seconds, microseconds,
     milliseconds, minutes, hours, weeks : numeric, optional
         Values for construction in compat with datetime.timedelta.
-        np ints and floats will be coereced to python ints and floats.
+        np ints and floats will be coerced to python ints and floats.
 
     Notes
     -----
@@ -1246,7 +1246,7 @@ class Timedelta(_Timedelta):
                 deprecated. Use 'array // timedelta.value' instead.
                 If you want to obtain epochs from an array of timestamps,
                 you can rather use
-                'array - pd.Timestamp("1970-01-01")) // pd.Timedelta("1s")'.
+                '(array - pd.Timestamp("1970-01-01")) // pd.Timedelta("1s")'.
                 """)
                 warnings.warn(msg, FutureWarning)
                 return other // self.value
