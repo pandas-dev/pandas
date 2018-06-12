@@ -10,16 +10,11 @@ and bug fixes. We recommend that all users upgrade to this version.
     :local:
     :backlinks: none
 
-.. _whatsnew_0232.enhancements:
 
-New features
-~~~~~~~~~~~~
+.. _whatsnew_0232.fixed_regressions:
 
-
-.. _whatsnew_0232.deprecations:
-
-Deprecations
-~~~~~~~~~~~~
+Fixed Regressions
+~~~~~~~~~~~~~~~~~
 
 -
 -
@@ -43,40 +38,41 @@ Documentation Changes
 Bug Fixes
 ~~~~~~~~~
 
--
--
-
-Conversion
-^^^^^^^^^^
+**Groupby/Resample/Rolling**
 
 -
 -
 
-Indexing
-^^^^^^^^
+**Conversion**
+
 
 -
 -
 
-I/O
-^^^
+**Indexing**
 
 -
 -
 
-Plotting
-^^^^^^^^
+**I/O**
 
 -
 -
 
-Reshaping
-^^^^^^^^^
+**Plotting**
 
 -
 -
 
-Categorical
-^^^^^^^^^^^
+**Reshaping**
+
+-
+-
+
+**Categorical**
+
+-
+
+**Other**
 
 -
