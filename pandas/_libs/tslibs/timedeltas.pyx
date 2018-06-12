@@ -795,14 +795,15 @@ cdef class _Timedelta(timedelta):
 
     @property
     def resolution(self):
-        """ return a string representing the lowest resolution that we have. 
-            note that this is nonstandard behavior. 
-            to retrieve a timedelta object use the resolution_timedelta property
+        """
+        Return a string representing the lowest resolution that we have.
+        Note that this is nonstandard behavior.
+        To retrieve a timedelta object use the resolution_timedelta property
         """
 
         self._ensure_components()
         if self._ns:
-            return 
+            return "N"
         elif self._us:
             return "U"
         elif self._ms:
@@ -818,13 +819,17 @@ cdef class _Timedelta(timedelta):
 
     @property
     def resolution_timedelta(self):
-        """ return a timedelta object (rather than a string) 
-            representing the lowest resolution we have.
-            to retireve a string use the resolution property.
         """
+        Return a timedelta object (rather than a string)
+        representing the lowest resolution we have.
+        to retrieve a string use the resolution property.
+        """
+
         self._ensure_components()
         if self._ns:
-            return timedelta(nanoseconds=1)
+            # At time of writing datetime.timedelta doesn't
+            # support nanoseconds as a keyword argument.
+            return timedelta(microseconds=0.1)
         elif self._us:
             return timedelta(microseconds=1)
         elif self._ms:
@@ -836,7 +841,7 @@ cdef class _Timedelta(timedelta):
         elif self._h:
             return timedelta(hours=1)
         else:
-            return timedelta(days=1)        
+            return timedelta(days=1)
 
     @property
     def nanoseconds(self):
