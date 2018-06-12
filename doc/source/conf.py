@@ -16,9 +16,11 @@ import os
 import re
 import inspect
 import importlib
-from sphinx.ext.autosummary import _import_by_name
+import logging
 import warnings
+from sphinx.ext.autosummary import _import_by_name
 
+logger = logging.getLogger(__name__)
 
 try:
     raw_input          # Python 2
@@ -73,8 +75,15 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.ifconfig',
               'sphinx.ext.linkcode',
               'nbsphinx',
-              'sphinxcontrib.spelling'
               ]
+
+try:
+    import sphinxcontrib.spelling  # noqa
+except ImportError as err:
+    logger.warn(('sphinxcontrib.spelling failed to import with error "{}". '
+                '`spellcheck` command is not available.'.format(err)))
+else:
+    extensions.append('sphinxcontrib.spelling')
 
 exclude_patterns = ['**.ipynb_checkpoints']
 
