@@ -23,21 +23,19 @@ from pandas.compat import StringIO, range, lrange
 
 class CParserTests(object):
 
-    def test_buffer_overflow(self):
+    @pytest.mark.parametrize(
+        'malf',
+        ['1\r1\r1\r 1\r 1\r',
+         '1\r1\r1\r 1\r 1\r11\r',
+         '1\r1\r1\r 1\r 1\r11\r1\r'],
+        ids=['words pointer', 'stream pointer', 'lines pointer'])
+    def test_buffer_overflow(self, malf):
         # see gh-9205: test certain malformed input files that cause
         # buffer overflows in tokenizer.c
-
-        malfw = "1\r1\r1\r 1\r 1\r"         # buffer overflow in words pointer
-        malfs = "1\r1\r1\r 1\r 1\r11\r"     # buffer overflow in stream pointer
-        malfl = "1\r1\r1\r 1\r 1\r11\r1\r"  # buffer overflow in lines pointer
-
         cperr = 'Buffer overflow caught - possible malformed input file.'
-
-        for malf in (malfw, malfs, malfl):
-            try:
-                self.read_table(StringIO(malf))
-            except Exception as err:
-                assert cperr in str(err)
+        with pytest.raises(pd.errors.ParserError) as excinfo:
+            self.read_table(StringIO(malf))
+        assert cperr in str(excinfo.value)
 
     def test_buffer_rd_bytes(self):
         # see gh-12098: src->buffer in the C parser can be freed twice leading
