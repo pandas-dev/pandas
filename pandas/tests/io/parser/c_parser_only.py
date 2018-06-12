@@ -24,11 +24,12 @@ from pandas.compat import StringIO, range, lrange
 class CParserTests(object):
 
     @pytest.mark.parametrize(
-        '_description, malf',
-        [('buffer overflow in words pointer', '1\r1\r1\r 1\r 1\r'),
-         ('buffer overflow in stream pointer', '1\r1\r1\r 1\r 1\r11\r'),
-         ('buffer overflow in lines pointer', '1\r1\r1\r 1\r 1\r11\r1\r')])
-    def test_buffer_overflow(self, _description, malf):
+        'malf',
+        ['1\r1\r1\r 1\r 1\r',
+         '1\r1\r1\r 1\r 1\r11\r',
+         '1\r1\r1\r 1\r 1\r11\r1\r'],
+        ids=['words pointer', 'stream pointer', 'lines pointer'])
+    def test_buffer_overflow(self, malf):
         # see gh-9205: test certain malformed input files that cause
         # buffer overflows in tokenizer.c
         cperr = 'Buffer overflow caught - possible malformed input file.'
