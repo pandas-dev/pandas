@@ -46,6 +46,15 @@ class _IndexSlice(object):
     """
     Create an object to more easily perform multi-index slicing
 
+    See Also
+    --------
+    MultiIndex.remove_unused_levels : New MultiIndex with no unused levels.
+
+    Notes
+    -----
+    See :ref:`Defined Levels <advanced.shown_levels>`
+    for further info on slicing a MultiIndex.
+
     Examples
     --------
 
