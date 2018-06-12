@@ -388,7 +388,12 @@ cdef class _FrequencyInferer(object):
     """
     Not sure if I can avoid the state machine here
     """
-    cdef public index, values, warn, is_monotonic, _cache
+    cdef public:
+        index
+        values
+        bint warn
+        bint is_monotonic
+        dict _cache
 
     def __init__(self, index, warn=True):
         self.index = index
@@ -485,10 +490,14 @@ cdef class _FrequencyInferer(object):
             bint calendar_start = True
             bint business_start = True
             bint cal
+            int32_t[:] years
+            int32_t[:] months
+            int32_t[:] days
 
-        years = self.fields['Y']
-        months = self.fields['M']
-        days = self.fields['D']
+        fields = self.fields
+        years = fields['Y']
+        months = fields['M']
+        days = fields['D']
         weekdays = self.index.dayofweek
 
         from calendar import monthrange
