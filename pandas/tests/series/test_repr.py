@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 
 import sys
 
-import pytest
 import numpy as np
 import pandas as pd
 
