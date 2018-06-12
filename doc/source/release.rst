@@ -37,10 +37,57 @@ analysis / manipulation tool available in any language.
 * Binary installers on PyPI: https://pypi.org/project/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.23.1
+-------------
+
+**Release date**: June 12, 2018
+
+This is a minor release from 0.23.0 and includes a number of bug fixes and
+performance improvements.
+
+See the :ref:`full whatsnew <whatsnew_0231>` for a list of all the changes.
+
+Thanks
+~~~~~~
+
+A total of 30 people contributed to this release.  People with a "+" by their
+names contributed a patch for the first time.
+
+* Adam J. Stewart
+* Adam Kim +
+* Aly Sivji
+* Chalmer Lowe +
+* Damini Satya +
+* Dr. Irv
+* Gabe Fernando +
+* Giftlin Rajaiah
+* Jeff Reback
+* Jeremy Schendel +
+* Joris Van den Bossche
+* Kalyan Gokhale +
+* Kevin Sheppard
+* Matthew Roeschke
+* Max Kanter +
+* Ming Li
+* Pyry Kovanen +
+* Stefano Cianciulli
+* Tom Augspurger
+* Uddeshya Singh +
+* Wenhuan
+* William Ayd
+* chris-b1
+* gfyoung
+* h-vetinari
+* nprad +
+* ssikdar1 +
+* tmnhat2001
+* topper-123
+* zertrin +
+
 pandas 0.23.0
 -------------
 
-**Release date**: May 15, 2017
+**Release date**: May 15, 2018
 
 This is a major release from 0.22.0 and includes a number of API changes, new
 features, enhancements, and performance improvements along with a large number
