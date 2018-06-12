@@ -446,7 +446,18 @@ def crosstab(index, columns, values=None, rownames=None, colnames=None,
     >>> foo = pd.Categorical(['a', 'b'], categories=['a', 'b', 'c'])
     >>> bar = pd.Categorical(['d', 'e'], categories=['d', 'e', 'f'])
     >>> crosstab(foo, bar)  # 'c' and 'f' are not represented in the data,
-    ...                     # but they still will be counted in the output
+                            # and will not be shown in the output because
+                            # dropna is True by default. Set 'dropna=False'
+                            # to preserve categories with no data
+    ... # doctest: +SKIP
+    col_0  d  e
+    row_0
+    a      1  0
+    b      0  1
+
+    >>> crosstab(foo, bar, dropna=False)  # 'c' and 'f' are not represented
+                            # in the data, but they still will be counted
+                            # and shown in the output
     ... # doctest: +SKIP
     col_0  d  e  f
     row_0
