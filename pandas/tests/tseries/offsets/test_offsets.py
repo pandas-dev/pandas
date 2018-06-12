@@ -41,12 +41,6 @@ from pandas.tseries.holiday import USFederalHolidayCalendar
 from .common import assert_offset_equal, assert_onOffset
 
 
-def test_monthrange():
-    import calendar
-    for y in range(2000, 2013):
-        for m in range(1, 13):
-            assert tslib.monthrange(y, m) == calendar.monthrange(y, m)
-
 ####
 # Misc function tests
 ####
