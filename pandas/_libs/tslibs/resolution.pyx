@@ -5,7 +5,7 @@ from cython cimport Py_ssize_t
 
 import numpy as np
 cimport numpy as cnp
-from numpy cimport ndarray, int64_t, int32_t
+from numpy cimport ndarray, int64_t
 cnp.import_array()
 
 from util cimport is_string_object, get_nat
@@ -25,7 +25,6 @@ from fields import build_field_sarray
 from conversion import tz_convert
 from conversion cimport tz_convert_utc_to_tzlocal
 from ccalendar import MONTH_ALIASES, int_to_weekday
-from ccalendar cimport get_days_in_month
 
 from pandas._libs.properties import cache_readonly
 from pandas._libs.tslib import Timestamp
@@ -350,7 +349,7 @@ class Resolution(object):
 # TODO: this is non performant logic here (and duplicative) and this
 # simply should call unique_1d directly
 # plus no reason to depend on khash directly
-cdef ndarray[int64_t, ndim=1] unique_deltas(ndarray[int64_t] arr):
+cdef unique_deltas(ndarray[int64_t] arr):
     cdef:
         Py_ssize_t i, n = len(arr)
         int64_t val
@@ -385,11 +384,10 @@ def _maybe_add_count(base, count):
         return base
 
 
-cdef class _FrequencyInferer(object):
+class _FrequencyInferer(object):
     """
     Not sure if I can avoid the state machine here
     """
-    cdef public index, values, warn, is_monotonic, _cache
 
     def __init__(self, index, warn=True):
         self.index = index
@@ -477,20 +475,19 @@ cdef class _FrequencyInferer(object):
     def rep_stamp(self):
         return Timestamp(self.values[0])
 
-    cdef month_position_check(self):
+    def month_position_check(self):
         # TODO: cythonize this, very slow
-        cdef:
-            int32_t daysinmonth
-            bint calendar_end = True
-            bint business_end = True
-            bint calendar_start = True
-            bint business_start = True
+        calendar_end = True
+        business_end = True
+        calendar_start = True
+        business_start = True
 
         years = self.fields['Y']
         months = self.fields['M']
         days = self.fields['D']
         weekdays = self.index.dayofweek
 
+        from calendar import monthrange
         for y, m, d, wd in zip(years, months, days, weekdays):
 
             if calendar_start:
@@ -499,7 +496,7 @@ cdef class _FrequencyInferer(object):
                 business_start &= d == 1 or (d <= 3 and wd == 0)
 
             if calendar_end or business_end:
-                daysinmonth = get_days_in_month(y, m)
+                _, daysinmonth = monthrange(y, m)
                 cal = d == daysinmonth
                 if calendar_end:
                     calendar_end &= cal
@@ -594,7 +591,7 @@ cdef class _FrequencyInferer(object):
         return {'cs': 'MS', 'bs': 'BMS',
                 'ce': 'M', 'be': 'BM'}.get(pos_check)
 
-    cdef bint _is_business_daily(self):
+    def _is_business_daily(self):
         # quick check: cannot be business daily
         if self.day_deltas != [1, 3]:
             return False
