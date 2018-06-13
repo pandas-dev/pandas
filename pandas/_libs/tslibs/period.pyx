@@ -19,7 +19,8 @@ from pandas.compat import PY2
 
 cimport cython
 
-from cpython.datetime cimport PyDateTime_Check, PyDelta_Check, PyDateTime_IMPORT
+from cpython.datetime cimport (PyDateTime_Check, PyDelta_Check,
+                               PyDateTime_IMPORT)
 # import datetime C API
 PyDateTime_IMPORT
 
