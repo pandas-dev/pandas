@@ -84,6 +84,10 @@ except (ImportError, ModuleNotFoundError) as err:
                     '`spellcheck` command is not available.'.format(err)))
 else:
     extensions.append('sphinxcontrib.spelling')
+    spelling_ignore_pypi_package_names = True
+    spelling_word_list_filename = [
+        'spelling_wordlist.txt',
+        'names_wordlist.txt']
 
 exclude_patterns = ['**.ipynb_checkpoints']
 
