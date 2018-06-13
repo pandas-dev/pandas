@@ -5,7 +5,7 @@ import pytest
 import numpy as np
 
 import pandas.util.testing as tm
-from pandas import Categorical, Index, PeriodIndex
+from pandas import Categorical, Index, CategoricalIndex, PeriodIndex
 from pandas.tests.categorical.common import TestCategorical
 
 
@@ -103,3 +103,21 @@ class TestCategoricalIndexing(object):
             s.categories = [1, 2]
 
         pytest.raises(ValueError, f)
+
+    # Combinations of sorted/unique:
+    @pytest.mark.parametrize("idx_values", [[1, 2, 3, 4], [1, 3, 2, 4],
+                                            [1, 3, 3, 4], [1, 2, 2, 4]])
+    # Combinations of missing/unique
+    @pytest.mark.parametrize("key_values", [[1, 2], [1, 5], [1, 1], [5, 5]])
+    @pytest.mark.parametrize("key_class", [Categorical, CategoricalIndex])
+    def test_get_indexer_non_unique(self, idx_values, key_values, key_class):
+        # GH 21448
+        key = key_class(key_values, categories=range(1, 5))
+        # Test for flat index and CategoricalIndex with same/different cats:
+        for dtype in None, 'category', key.dtype:
+            idx = Index(idx_values, dtype=dtype)
+            expected, exp_miss = idx.get_indexer_non_unique(key_values)
+            result, res_miss = idx.get_indexer_non_unique(key)
+
+            tm.assert_numpy_array_equal(expected, result)
+            tm.assert_numpy_array_equal(exp_miss, res_miss)
