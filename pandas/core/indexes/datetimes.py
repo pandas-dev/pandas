@@ -55,6 +55,7 @@ import pandas.core.tools.datetimes as tools
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           join as libjoin, Timestamp)
 from pandas._libs.tslibs import (timezones, conversion, fields, parsing,
+                                 ccalendar,
                                  resolution as libresolution)
 
 # -------- some conversion wrapper functions
@@ -1451,14 +1452,14 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                     Timestamp(datetime(parsed.year, 12, 31, 23,
                                        59, 59, 999999), tz=self.tz))
         elif reso == 'month':
-            d = libts.monthrange(parsed.year, parsed.month)[1]
+            d = ccalendar.get_days_in_month(parsed.year, parsed.month)
             return (Timestamp(datetime(parsed.year, parsed.month, 1),
                               tz=self.tz),
                     Timestamp(datetime(parsed.year, parsed.month, d, 23,
                                        59, 59, 999999), tz=self.tz))
         elif reso == 'quarter':
             qe = (((parsed.month - 1) + 2) % 12) + 1  # two months ahead
-            d = libts.monthrange(parsed.year, qe)[1]   # at end of month
+            d = ccalendar.get_days_in_month(parsed.year, qe)  # at end of month
             return (Timestamp(datetime(parsed.year, parsed.month, 1),
                               tz=self.tz),
                     Timestamp(datetime(parsed.year, qe, d, 23, 59,
@@ -2032,7 +2033,16 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         """
         Returns numpy array of datetime.time. The time part of the Timestamps.
         """
-        return libts.ints_to_pydatetime(self.asi8, self.tz, box="time")
+
+        # If the Timestamps have a timezone that is not UTC,
+        # convert them into their i8 representation while
+        # keeping their timezone and not using UTC
+        if (self.tz is not None and self.tz is not utc):
+            timestamps = self._local_timestamps()
+        else:
+            timestamps = self.asi8
+
+        return libts.ints_to_pydatetime(timestamps, box="time")
 
     @property
     def date(self):
@@ -2040,13 +2050,22 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         Returns numpy array of python datetime.date objects (namely, the date
         part of Timestamps without timezone information).
         """
-        return libts.ints_to_pydatetime(self.normalize().asi8, box="date")
+
+        # If the Timestamps have a timezone that is not UTC,
+        # convert them into their i8 representation while
+        # keeping their timezone and not using UTC
+        if (self.tz is not None and self.tz is not utc):
+            timestamps = self._local_timestamps()
+        else:
+            timestamps = self.asi8
+
+        return libts.ints_to_pydatetime(timestamps, box="date")
 
     def normalize(self):
         """
         Convert times to midnight.
 
-        The time component of the date-timeise converted to midnight i.e.
+        The time component of the date-time is converted to midnight i.e.
         00:00:00. This is useful in cases, when the time does not matter.
         Length is unaltered. The timezones are unaffected.
 

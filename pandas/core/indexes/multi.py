@@ -1407,7 +1407,7 @@ class MultiIndex(Index):
 
         This is an *internal* function.
 
-        create a new MultiIndex from the current to monotonically sorted
+        Create a new MultiIndex from the current to monotonically sorted
         items IN the levels. This does not actually make the entire MultiIndex
         monotonic, JUST the levels.
 
@@ -1465,8 +1465,8 @@ class MultiIndex(Index):
 
     def remove_unused_levels(self):
         """
-        create a new MultiIndex from the current that removing
-        unused levels, meaning that they are not expressed in the labels
+        Create a new MultiIndex from the current that removes
+        unused levels, meaning that they are not expressed in the labels.
 
         The resulting MultiIndex will have the same outward
         appearance, meaning the same .values and ordering. It will also
@@ -2095,7 +2095,7 @@ class MultiIndex(Index):
 
         Notes
         -----
-        This method only works if the MultiIndex is properly lex-sorted. So,
+        This method only works if the MultiIndex is properly lexsorted. So,
         if only the first 2 levels of a 3-level MultiIndex are lexsorted,
         you can only pass two levels to ``.slice_locs``.
 

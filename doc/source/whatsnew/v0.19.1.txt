@@ -43,7 +43,7 @@ Bug Fixes
 - Bug in localizing an ambiguous timezone when a boolean is passed (:issue:`14402`)
 - Bug in ``TimedeltaIndex`` addition with a Datetime-like object where addition overflow in the negative direction was not being caught (:issue:`14068`, :issue:`14453`)
 - Bug in string indexing against data with ``object`` ``Index`` may raise ``AttributeError`` (:issue:`14424`)
-- Corrrecly raise ``ValueError`` on empty input to ``pd.eval()`` and ``df.query()`` (:issue:`13139`)
+- Correctly raise ``ValueError`` on empty input to ``pd.eval()`` and ``df.query()`` (:issue:`13139`)
 - Bug in ``RangeIndex.intersection`` when result is a empty set (:issue:`14364`).
 - Bug in groupby-transform broadcasting that could cause incorrect dtype coercion (:issue:`14457`)
 - Bug in ``Series.__setitem__`` which allowed mutating read-only arrays (:issue:`14359`).
