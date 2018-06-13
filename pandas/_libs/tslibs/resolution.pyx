@@ -389,8 +389,8 @@ cdef class _FrequencyInferer(object):
     Not sure if I can avoid the state machine here
     """
     cdef public:
-        index
-        values
+        object index
+        object values
         bint warn
         bint is_monotonic
         dict _cache
