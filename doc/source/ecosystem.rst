@@ -187,9 +187,9 @@ and metadata disseminated in
 `SDMX <http://www.sdmx.org>`_ 2.1, an ISO-standard
 widely used by institutions such as statistics offices, central banks,   
 and international organisations. pandaSDMX can expose datasets and related 
-structural metadata including dataflows, code-lists, 
-and datastructure definitions as pandas Series 
-or multi-indexed DataFrames.  
+structural metadata including data flows, code-lists,
+and data structure definitions as pandas Series
+or MultiIndexed DataFrames.
    
 `fredapi <https://github.com/mortada/fredapi>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -263,7 +263,7 @@ Data validation
 `Engarde <http://engarde.readthedocs.io/en/latest/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Engarde is a lightweight library used to explicitly state your assumptions abour your datasets
+Engarde is a lightweight library used to explicitly state your assumptions about your datasets
 and check that they're *actually* true.
 
 .. _ecosystem.extensions:

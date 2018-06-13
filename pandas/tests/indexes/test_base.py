@@ -481,6 +481,13 @@ class TestIndex(Base):
         tm.assert_raises_regex(TypeError, message,
                                indices.set_names, names=renamed)
 
+    def test_constructor_overflow_int64(self):
+        # see gh-15832
+        msg = ("the elements provided in the data cannot "
+               "all be casted to the dtype int64")
+        with tm.assert_raises_regex(OverflowError, msg):
+            Index([np.iinfo(np.uint64).max - 1], dtype="int64")
+
     def test_view_with_args(self):
 
         restricted = ['unicodeIndex', 'strIndex', 'catIndex', 'boolIndex',
