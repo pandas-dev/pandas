@@ -72,7 +72,7 @@ Other API Changes
 Deprecations
 ~~~~~~~~~~~~
 
--
+- :meth:`DataFrame.to_stata`, :meth:`read_stata`, :class:`StataReader` and :class:`StataWriter` have deprecated the ``encoding`` argument.  The encoding of a Stata dta file is determined by the file type and cannot be changed (:issue:`21244`).
 -
 -
 
