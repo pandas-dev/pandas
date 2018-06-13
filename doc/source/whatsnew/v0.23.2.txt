@@ -55,7 +55,7 @@ Conversion
 Indexing
 ^^^^^^^^
 
--
+- Bug in :meth:`Index.get_indexer_non_unique` with categorical key (:issue:`21448`)
 -
 
 I/O
