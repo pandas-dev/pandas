@@ -469,6 +469,15 @@ class TestDatetimeIndex(object):
         result = DatetimeIndex(['2010'], tz=non_norm_tz)
         assert pytz.timezone(tz) is result.tz
 
+    def test_constructor_timestamp_near_dst(self):
+        # GH 20854
+        ts = [Timestamp('2016-10-30 03:00:00+0300', tz='Europe/Helsinki'),
+              Timestamp('2016-10-30 03:00:00+0200', tz='Europe/Helsinki')]
+        result = DatetimeIndex(ts)
+        expected = DatetimeIndex([ts[0].to_pydatetime(),
+                                  ts[1].to_pydatetime()])
+        tm.assert_index_equal(result, expected)
+
 
 class TestTimeSeries(object):
 
