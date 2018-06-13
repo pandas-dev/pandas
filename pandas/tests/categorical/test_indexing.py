@@ -103,3 +103,22 @@ class TestCategoricalIndexing(object):
             s.categories = [1, 2]
 
         pytest.raises(ValueError, f)
+
+    def test_setitem_with_tuple_categories(self):
+        # GH 20439
+
+        # change element in Categorical of tuples
+        s = Categorical([('a', 'a'), ('a', 'b'), ('b', 'a'), ('b', 'b')])
+        s[0] = ('b', 'b')
+        expected = Categorical(
+            [('b', 'b'), ('a', 'b'), ('b', 'a'), ('b', 'b')],
+            categories=[('a', 'a'), ('a', 'b'), ('b', 'a'), ('b', 'b')]
+        )
+        tm.assert_categorical_equal(s, expected)
+
+        # change element in Categorical to use new category
+        msg = ("Cannot setitem on a Categorical with a new category, set the "
+               "categories first")
+        with tm.assert_raises_regex(ValueError, msg):
+            s = Categorical([('a', 'a'), ('a', 'b'), ('b', 'a'), ('b', 'b')])
+            s[0] = ('c', 'c')
