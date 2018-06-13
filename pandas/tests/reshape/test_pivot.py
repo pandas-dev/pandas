@@ -142,7 +142,6 @@ class TestPivotTable(object):
 
         tm.assert_frame_equal(result, expected)
 
-    
     def test_pivot_with_non_observable_dropna(self, dropna):
         # gh-21133
         df = pd.DataFrame(
@@ -161,7 +160,7 @@ class TestPivotTable(object):
                 name='A'))
 
         tm.assert_frame_equal(result, expected)
-        
+
         # gh-21378
         df2 = pd.DataFrame(
             {'A': pd.Categorical(['left', 'low', 'high', 'low', 'high'],
