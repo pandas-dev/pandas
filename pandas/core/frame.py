@@ -7283,11 +7283,11 @@ class DataFrame(NDFrame):
         When ``values`` is a Series or DataFrame:
 
         >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
-        >>> foo = pd.DataFrame({'A': [1, 3, 3, 2], 'B': ['e', 'f', 'f', 'e']})
-        >>> df.isin(foo)
+        >>> other = pd.DataFrame({'A': [1, 3, 3, 2], 'B': ['e', 'f', 'f', 'e']})
+        >>> df.isin(other)
                A      B
         0   True  False
-        1  False  False  # Column A in `foo` has a 3, but not at index 1.
+        1  False  False  # Column A in `other` has a 3, but not at index 1.
         2   True   True
         """
         if isinstance(values, dict):
