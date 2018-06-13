@@ -2217,7 +2217,6 @@ class Tick(SingleConstructorOffset):
     _attributes = frozenset(['n', 'normalize'])
 
     def __init__(self, n=1, normalize=False):
-        # TODO: do Tick classes with normalize=True make sense?
         self.n = self._validate_n(n)
         if normalize:
             raise ValueError("Tick offset with `normalize=True` are not "
