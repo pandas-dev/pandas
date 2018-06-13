@@ -347,25 +347,11 @@ cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
     if tz is not None:
         tz = maybe_get_tz(tz)
 
-        # sort of a temporary hack
         if ts.tzinfo is not None:
-            if hasattr(tz, 'normalize') and hasattr(ts.tzinfo, '_utcoffset'):
-                ts = tz.normalize(ts)
-                obj.value = pydatetime_to_dt64(ts, &obj.dts)
-                obj.tzinfo = ts.tzinfo
-            else:
-                # tzoffset
-                try:
-                    tz = ts.astimezone(tz).tzinfo
-                except:
-                    pass
-                obj.value = pydatetime_to_dt64(ts, &obj.dts)
-                ts_offset = get_utcoffset(ts.tzinfo, ts)
-                obj.value -= int(ts_offset.total_seconds() * 1e9)
-                tz_offset = get_utcoffset(tz, ts)
-                obj.value += int(tz_offset.total_seconds() * 1e9)
-                dt64_to_dtstruct(obj.value, &obj.dts)
-                obj.tzinfo = tz
+            # Convert the current timezone to the passed timezone
+            ts = ts.astimezone(tz)
+            obj.value = pydatetime_to_dt64(ts, &obj.dts)
+            obj.tzinfo = ts.tzinfo
         elif not is_utc(tz):
             ts = _localize_pydatetime(ts, tz)
             obj.value = pydatetime_to_dt64(ts, &obj.dts)
