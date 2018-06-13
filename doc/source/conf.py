@@ -79,22 +79,14 @@ extensions = ['sphinx.ext.autodoc',
 
 try:
     import sphinxcontrib.spelling  # noqa
-except ImportError as err:
-    logger.warn(('sphinxcontrib.spelling failed to import with error "{}". '
-                '`spellcheck` command is not available.'.format(err)))
+except (ImportError, ModuleNotFoundError) as err:
+    logger.warning(('sphinxcontrib.spelling failed to import with error "{}". '
+                    '`spellcheck` command is not available.'.format(err)))
 else:
     extensions.append('sphinxcontrib.spelling')
 
 exclude_patterns = ['**.ipynb_checkpoints']
 
-# Tries to import sphixcontrib.spelling - if not available pass
-try:
-    import sphinxcontrib.spelling
-    extensions.append('sphinxcontrib.spelling')
-    spelling_word_list_filename = ['spelling_wordlist.txt', 'names_wordlist.txt']
-    spelling_ignore_pypi_package_names = True
-except ModuleNotFoundError:
-    pass
 
 with open("index.rst") as f:
     index_rst_lines = f.readlines()
