@@ -25,6 +25,7 @@ from fields import build_field_sarray
 from conversion import tz_convert
 from conversion cimport tz_convert_utc_to_tzlocal
 from ccalendar import MONTH_ALIASES, int_to_weekday
+from ccalendar cimport get_days_in_month
 
 from pandas._libs.properties import cache_readonly
 from pandas._libs.tslib import Timestamp
@@ -487,7 +488,6 @@ class _FrequencyInferer(object):
         days = self.fields['D']
         weekdays = self.index.dayofweek
 
-        from calendar import monthrange
         for y, m, d, wd in zip(years, months, days, weekdays):
 
             if calendar_start:
@@ -496,7 +496,7 @@ class _FrequencyInferer(object):
                 business_start &= d == 1 or (d <= 3 and wd == 0)
 
             if calendar_end or business_end:
-                _, daysinmonth = monthrange(y, m)
+                daysinmonth = get_days_in_month(y, m)
                 cal = d == daysinmonth
                 if calendar_end:
                     calendar_end &= cal
