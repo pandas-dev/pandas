@@ -43,8 +43,11 @@ Bug Fixes
 -
 -
 
-**Conversion**
+**Data-type specific**
 
+- Bug in :meth:`Categorical.__setitem__` where error was raised when trying to set value to a tuple (:issue:`20439`)
+
+**Conversion**
 
 -
 -
