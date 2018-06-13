@@ -252,11 +252,9 @@ int parse_iso_8601_datetime(char *str, int len,
     }
 
     /* Next character must be a ':' or the end of the string */
-    if (sublen == 0) {
-        
+    if (sublen == 0) 
         goto finish;
-    }
-
+    
     if (*substr == ':') {
         has_hms_sep = 1;
         ++substr;
