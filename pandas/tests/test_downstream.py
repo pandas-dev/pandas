@@ -3,6 +3,7 @@
 Testing that we work in the downstream packages
 """
 import subprocess
+import sys
 
 import pytest
 import numpy as np  # noqa
@@ -57,7 +58,7 @@ def test_xarray(df):
 
 def test_oo_optimizable():
     # GH 21071
-    subprocess.check_call(["python", "-OO", "-c", "import pandas"])
+    subprocess.check_call([sys.executable, "-OO", "-c", "import pandas"])
 
 
 @tm.network
