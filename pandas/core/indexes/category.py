@@ -378,7 +378,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     # introspection
     @cache_readonly
     def is_unique(self):
-        return not self.duplicated().any()
+        return self._engine.is_unique
 
     @property
     def is_monotonic_increasing(self):
@@ -598,7 +598,12 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         target = ibase._ensure_index(target)
 
         if isinstance(target, CategoricalIndex):
-            target = target.categories
+            # Indexing on codes is more efficient if categories are the same:
+            if target.categories is self.categories:
+                target = target.codes
+                indexer, missing = self._engine.get_indexer_non_unique(target)
+                return _ensure_platform_int(indexer), missing
+            target = target.values
 
         codes = self.categories.get_indexer(target)
         indexer, missing = self._engine.get_indexer_non_unique(codes)

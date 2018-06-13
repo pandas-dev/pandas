@@ -1,0 +1,83 @@
+.. _whatsnew_0232:
+
+v0.23.2
+-------
+
+This is a minor bug-fix release in the 0.23.x series and includes some small regression fixes
+and bug fixes. We recommend that all users upgrade to this version.
+
+.. contents:: What's new in v0.23.2
+    :local:
+    :backlinks: none
+
+
+.. _whatsnew_0232.fixed_regressions:
+
+Fixed Regressions
+~~~~~~~~~~~~~~~~~
+
+-
+-
+
+.. _whatsnew_0232.performance:
+
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+-
+-
+
+Documentation Changes
+~~~~~~~~~~~~~~~~~~~~~
+
+-
+-
+
+.. _whatsnew_0232.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~
+
+**Groupby/Resample/Rolling**
+
+-
+-
+
+**Conversion**
+
+
+-
+-
+
+**Indexing**
+
+- Bug in :meth:`Index.get_indexer_non_unique` with categorical key (:issue:`21448`)
+- Bug in comparison operations for :class:`MultiIndex` where error was raised on equality / inequality comparison involving a MultiIndex with self.nlevels == 1 (:issue:`21149`)
+- 
+
+**I/O**
+
+-
+-
+
+**Plotting**
+
+-
+-
+
+**Reshaping**
+
+-
+-
+
+**Categorical**
+
+-
+
+**Timezones**
+- Bug in :class:`Timestamp` and :class:`DatetimeIndex` where passing a :class:`Timestamp` localized after a DST transition would return a datetime before the DST transition (:issue:`20854`)
+- Bug in comparing :class:`DataFrame`s with tz-aware :class:`DatetimeIndex` columns with a DST transition that raised a ``KeyError`` (:issue:`19970`)
+
+**Other**
+
+-

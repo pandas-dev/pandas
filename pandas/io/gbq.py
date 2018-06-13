@@ -56,7 +56,7 @@ def read_gbq(query, project_id=None, index_col=None, col_order=None,
         List of BigQuery column names in the desired order for results
         DataFrame.
     reauth : boolean, default False
-        Force Google BigQuery to reauthenticate the user. This is useful
+        Force Google BigQuery to re-authenticate the user. This is useful
         if multiple accounts are used.
     private_key : str, optional
         Service account private key in JSON format. Can be file path

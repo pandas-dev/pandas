@@ -1090,12 +1090,17 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
 
 
 class CustomBusinessMonthEnd(_CustomBusinessMonth):
-    __doc__ = _CustomBusinessMonth.__doc__.replace('[BEGIN/END]', 'end')
+    # TODO(py27): Replace condition with Subsitution after dropping Py27
+    if _CustomBusinessMonth.__doc__:
+        __doc__ = _CustomBusinessMonth.__doc__.replace('[BEGIN/END]', 'end')
     _prefix = 'CBM'
 
 
 class CustomBusinessMonthBegin(_CustomBusinessMonth):
-    __doc__ = _CustomBusinessMonth.__doc__.replace('[BEGIN/END]', 'beginning')
+    # TODO(py27): Replace condition with Subsitution after dropping Py27
+    if _CustomBusinessMonth.__doc__:
+        __doc__ = _CustomBusinessMonth.__doc__.replace('[BEGIN/END]',
+                                                       'beginning')
     _prefix = 'CBMS'
 
 
@@ -1135,7 +1140,7 @@ class SemiMonthOffset(DateOffset):
         # shift `other` to self.day_of_month, incrementing `n` if necessary
         n = liboffsets.roll_convention(other.day, self.n, self.day_of_month)
 
-        days_in_month = tslib.monthrange(other.year, other.month)[1]
+        days_in_month = ccalendar.get_days_in_month(other.year, other.month)
 
         # For SemiMonthBegin on other.day == 1 and
         # SemiMonthEnd on other.day == days_in_month,
@@ -1212,7 +1217,7 @@ class SemiMonthEnd(SemiMonthOffset):
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
             return False
-        _, days_in_month = tslib.monthrange(dt.year, dt.month)
+        days_in_month = ccalendar.get_days_in_month(dt.year, dt.month)
         return dt.day in (self.day_of_month, days_in_month)
 
     def _apply(self, n, other):
