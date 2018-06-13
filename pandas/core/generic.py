@@ -6882,6 +6882,8 @@ class NDFrame(PandasObject, SelectionMixin):
         rule : string
             the offset string or object representing target conversion
         axis : int, optional, default 0
+        how : string
+            method for down- or re-sampling, default to ‘mean’ for downsampling
         closed : {'right', 'left'}
             Which side of bin interval is closed. The default is 'left'
             for all frequency offsets except for 'M', 'A', 'Q', 'BM',
