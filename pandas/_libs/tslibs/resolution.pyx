@@ -377,9 +377,9 @@ cdef inline bint _is_multiple(int64_t us, int64_t mult):
     return us % mult == 0
 
 
-cdef inline str _maybe_add_count(str base, count):
+cdef inline str _maybe_add_count(str base, int64_t count):
     if count != 1:
-        return '{count}{base}'.format(count=int(count), base=base)
+        return '{count}{base}'.format(count=count, base=base)
     else:
         return base
 
@@ -640,9 +640,9 @@ cdef class _FrequencyInferer(object):
         return 'WOM-{week}{weekday}'.format(week=week, weekday=wd)
 
 
-class _TimedeltaFrequencyInferer(_FrequencyInferer):
+cdef class _TimedeltaFrequencyInferer(_FrequencyInferer):
 
-    def _infer_daily_rule(self):
+    cdef _infer_daily_rule(self):
         if self.is_unique:
             days = self.deltas[0] / _ONE_DAY
             if days % 7 == 0:
