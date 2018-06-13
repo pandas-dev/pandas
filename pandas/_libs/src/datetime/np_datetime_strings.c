@@ -253,9 +253,7 @@ int parse_iso_8601_datetime(char *str, int len,
 
     /* Next character must be a ':' or the end of the string */
     if (sublen == 0) {
-        if (!hour_was_2_digits) {
-            goto parse_error;
-        }
+        
         goto finish;
     }
 
