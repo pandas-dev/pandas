@@ -1944,11 +1944,16 @@ class TestMode(object):
         tm.assert_series_equal(result, expected)
 
 
-class TestNLargestNSmallest(object):
+def assert_check_nselect_boundary(vals, dtype, method):
+    # helper function for 'test_boundary_{dtype}' tests
+    s = Series(vals, dtype=dtype)
+    result = getattr(s, method)(3)
+    expected_idxr = [0, 1, 2] if method == 'nsmallest' else [3, 2, 1]
+    expected = s.loc[expected_idxr]
+    tm.assert_series_equal(result, expected)
 
-    @pytest.fixture(params=['nlargest', 'nsmallest'])
-    def method(self, request):
-        return request.param
+
+class TestNLargestNSmallest(object):
 
     @pytest.mark.parametrize(
         "r", [Series([3., 2, 1, 2, '5'], dtype='object'),
@@ -2032,39 +2037,31 @@ class TestNLargestNSmallest(object):
         expected = s.sort_values().head(n)
         assert_series_equal(result, expected)
 
-    def _check_nselect_boundary(self, vals, dtype, method):
-        # helper function for 'test_boundary_dtype' tests
-        s = Series(vals, dtype=dtype)
-        result = getattr(s, method)(3)
-        expected_idxr = [0, 1, 2] if method == 'nsmallest' else [3, 2, 1]
-        expected = s.loc[expected_idxr]
-        tm.assert_series_equal(result, expected)
-
-    @pytest.mark.parametrize('dtype', [
-        'int8', 'int16', 'int32', 'int64',
-        'uint8', 'uint16', 'uint32', 'uint64'])
-    def test_boundary_integer(self, method, dtype):
+    def test_boundary_integer(self, nselect_method, any_int_dtype):
         # GH 21426
-        min_val, max_val = np.iinfo(dtype).min, np.iinfo(dtype).max
+        dtype_info = np.iinfo(any_int_dtype)
+        min_val, max_val = dtype_info.min, dtype_info.max
         vals = [min_val, min_val + 1, max_val - 1, max_val]
-        self._check_nselect_boundary(vals, dtype, method)
+        assert_check_nselect_boundary(vals, any_int_dtype, nselect_method)
 
-    @pytest.mark.parametrize('dtype', ['float16', 'float32', 'float64'])
-    def test_boundary_float(self, method, dtype):
+    def test_boundary_float(self, nselect_method, float_dtype):
         # GH 21426
-        min_val, max_val = np.finfo(dtype).min, np.finfo(dtype).max
-        min_2nd, max_2nd = np.nextafter([min_val, max_val], 0, dtype=dtype)
+        dtype_info = np.finfo(float_dtype)
+        min_val, max_val = dtype_info.min, dtype_info.max
+        min_2nd, max_2nd = np.nextafter(
+            [min_val, max_val], 0, dtype=float_dtype)
         vals = [min_val, min_2nd, max_2nd, max_val]
-        self._check_nselect_boundary(vals, dtype, method)
+        assert_check_nselect_boundary(vals, float_dtype, nselect_method)
 
     @pytest.mark.parametrize('dtype', ['datetime64[ns]', 'timedelta64[ns]'])
-    def test_boundary_datetimelike(self, method, dtype):
+    def test_boundary_datetimelike(self, nselect_method, dtype):
         # GH 21426
         # use int64 bounds and +1 to min_val since true minimum is NaT
         # (include min_val/NaT at end to maintain same expected_idxr)
-        min_val, max_val = np.iinfo('int64').min, np.iinfo('int64').max
+        dtype_info = np.iinfo('int64')
+        min_val, max_val = dtype_info.min, dtype_info.max
         vals = [min_val + 1, min_val + 2, max_val - 1, max_val, min_val]
-        self._check_nselect_boundary(vals, dtype, method)
+        assert_check_nselect_boundary(vals, dtype, nselect_method)
 
 
 class TestCategoricalSeriesAnalytics(object):
