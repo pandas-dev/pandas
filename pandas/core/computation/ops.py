@@ -465,7 +465,7 @@ class Div(BinOp):
                                                       rhs.return_type))
 
         if truediv or PY3:
-            # do not upcast float32s to float64 un-necessarily 
+            # do not upcast float32s to float64 un-necessarily
             acceptable_dtypes = [np.float32, np.float_,
                                  np.complex64, np.complex_]
             _cast_inplace(com.flatten(self), acceptable_dtypes, np.float_)
