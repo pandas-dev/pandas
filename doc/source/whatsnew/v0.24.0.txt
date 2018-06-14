@@ -103,7 +103,7 @@ Performance Improvements
 
 - Improved performance of :func:`Series.describe` in case of numeric dtpyes (:issue:`21274`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.rank` when dealing with tied rankings (:issue:`21237`)
--
+
 
 .. _whatsnew_0240.docs:
 

@@ -6,6 +6,13 @@ Reindexing
 reindexing
 ga
 fe
+astype
+hexbin
+unparseable
+paramstyle
+ec
+Featuretools
+Hexbin
 reindexed
 automagic
 closedness
@@ -74,6 +81,11 @@ Groupby
 Unioning
 csv
 Upcase
+Unserialized
+rdk
+ri
+cr
+multivalue
 resampling
 Upcase
 Lowcase
