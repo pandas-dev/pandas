@@ -435,13 +435,12 @@ class Index(IndexOpsMixin, PandasObject):
                 if is_iterator(data):
                     data = list(data)
 
-                if data:
+                if data and all(isinstance(e, tuple) for e in data):
                     # we must be all tuples, otherwise don't construct
                     # 10697
-                    if all(isinstance(e, tuple) for e in data):
-                        from .multi import MultiIndex
-                        return MultiIndex.from_tuples(
-                            data, names=name or kwargs.get('names'))
+                    from .multi import MultiIndex
+                    return MultiIndex.from_tuples(
+                        data, names=name or kwargs.get('names'))
             # other iterable of some kind
             subarr = com._asarray_tuplesafe(data, dtype=object)
             return Index(subarr, dtype=dtype, copy=copy, name=name, **kwargs)
