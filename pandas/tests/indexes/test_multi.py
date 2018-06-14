@@ -3295,3 +3295,20 @@ class TestMultiIndex(Base):
         with pytest.raises(ValueError):
             ind.set_levels([['A', 'B', 'A', 'A', 'B'], [2, 1, 3, -2, 5]],
                            inplace=True)
+
+    def test_multiindex_compare(self):
+        # GH 21149
+        # Ensure comparison operations for MultiIndex with nlevels == 1
+        # behave consistently with those for MultiIndex with nlevels > 1
+
+        midx = pd.MultiIndex.from_product([[0, 1]])
+
+        # Equality self-test: MultiIndex object vs self
+        expected = pd.Series([True, True])
+        result = pd.Series(midx == midx)
+        tm.assert_series_equal(result, expected)
+
+        # Greater than comparison: MultiIndex object vs self
+        expected = pd.Series([False, False])
+        result = pd.Series(midx > midx)
+        tm.assert_series_equal(result, expected)
