@@ -1244,8 +1244,6 @@ class TestDataFrameAnalytics(TestData):
         (np.all, {'A': pd.Series([1, 2], dtype='category')}, True),
         (np.any, {'A': pd.Series([1, 2], dtype='category')}, True),
 
-        # (np.all, {'A': pd.Series([0, 1], dtype=int)}, False),
-
         # # Mix
         # GH-21484
         # (np.all, {'A': pd.Series([10, 20], dtype='M8[ns]'),
