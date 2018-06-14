@@ -24,6 +24,7 @@ Other Enhancements
   <https://pandas-gbq.readthedocs.io/en/latest/changelog.html#changelog-0-5-0>`__.
   (:issue:`21627`)
 - New method :meth:`HDFStore.walk` will recursively walk the group hierarchy of an HDF5 file (:issue:`10932`)
+- :func:`read_html` handles colspan and rowspan arguments and attempts to infer a header if the header is not explicitly specified (:issue:`17054`)
 -
 
 .. _whatsnew_0240.api_breaking:
@@ -223,7 +224,7 @@ MultiIndex
 I/O
 ^^^
 
--
+- :func:`read_html()` no longer ignores all-whitespace ``<tr>`` within ``<thead>`` when considering the ``skiprows`` and ``header`` arguments. Previously, users had to decrease their ``header`` and ``skiprows`` values on such tables to work around the issue. (:issue:`21641`)
 -
 -
 
