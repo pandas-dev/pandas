@@ -263,3 +263,15 @@ def test_compression_size_fh(obj, method, compression_only):
             assert not f.closed
         uncompressed = os.path.getsize(filename)
         assert uncompressed > compressed
+
+
+def test_compression_warning(compression_only):
+    df = DataFrame(100 * [[0.123456, 0.234567, 0.567567],
+                          [12.32112, 123123.2, 321321.2]],
+                   columns=['X', 'Y', 'Z'])
+    with tm.ensure_clean() as filename:
+        f, _handles = _get_handle(filename, 'w', compression=compression_only)
+        with tm.assert_produces_warning(RuntimeWarning,
+                                        check_stacklevel=False):
+            with f:
+                df.to_csv(f, compression=compression_only)
