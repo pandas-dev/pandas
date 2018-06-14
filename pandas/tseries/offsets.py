@@ -2205,8 +2205,11 @@ class Tick(SingleConstructorOffset):
     _prefix = 'undefined'
     _attributes = frozenset(['n', 'normalize'])
 
-    # TODO: do Tick classes with `normalize=True` make sense?
-    __init__ = BaseOffset.__init__
+    def __init__(self, n=1, normalize=False):
+        BaseOffset.__init__(self, n, normalize)
+        if normalize:
+            raise ValueError("Tick offset with `normalize=True` are not "
+                             "allowed.")  # GH#21427
 
     __gt__ = _tick_comp(operator.gt)
     __ge__ = _tick_comp(operator.ge)
