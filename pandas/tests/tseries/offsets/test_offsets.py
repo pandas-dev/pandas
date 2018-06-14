@@ -28,7 +28,7 @@ from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
                                     YearEnd, Day,
                                     QuarterEnd, BusinessMonthEnd, FY5253,
                                     Nano, Easter, FY5253Quarter,
-                                    LastWeekOfMonth)
+                                    LastWeekOfMonth, Tick)
 from pandas.core.tools.datetimes import format, ole2datetime
 import pandas.tseries.offsets as offsets
 from pandas.io.pickle import read_pickle
@@ -270,6 +270,11 @@ class TestCommon(Base):
 
     def _check_offsetfunc_works(self, offset, funcname, dt, expected,
                                 normalize=False):
+
+        if normalize and issubclass(offset, Tick):
+            # normalize=True disallowed for Tick subclasses GH#21427
+            return
+
         offset_s = self._get_offset(offset, normalize=normalize)
         func = getattr(offset_s, funcname)
 
@@ -458,6 +463,9 @@ class TestCommon(Base):
         assert offset_s.onOffset(dt)
 
         # when normalize=True, onOffset checks time is 00:00:00
+        if issubclass(offset_types, Tick):
+            # normalize=True disallowed for Tick subclasses GH#21427
+            return
         offset_n = self._get_offset(offset_types, normalize=True)
         assert not offset_n.onOffset(dt)
 
@@ -485,7 +493,9 @@ class TestCommon(Base):
         assert isinstance(result, Timestamp)
         assert result == expected_localize
 
-        # normalize=True
+        # normalize=True, disallowed for Tick subclasses GH#21427
+        if issubclass(offset_types, Tick):
+            return
         offset_s = self._get_offset(offset_types, normalize=True)
         expected = Timestamp(expected.date())
 
@@ -564,11 +574,10 @@ class TestBusinessDay(Base):
         self.offset2 = BDay(2)
 
     def test_different_normalize_equals(self):
-        # equivalent in this special case
-        offset = BDay()
-        offset2 = BDay()
-        offset2.normalize = True
-        assert offset == offset2
+        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        offset = self._offset()
+        offset2 = self._offset(normalize=True)
+        assert offset != offset2
 
     def test_repr(self):
         assert repr(self.offset) == '<BusinessDay>'
@@ -734,11 +743,10 @@ class TestBusinessHour(Base):
             BusinessHour(start='14:00:05')
 
     def test_different_normalize_equals(self):
-        # equivalent in this special case
+        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
         offset = self._offset()
-        offset2 = self._offset()
-        offset2.normalize = True
-        assert offset == offset2
+        offset2 = self._offset(normalize=True)
+        assert offset != offset2
 
     def test_repr(self):
         assert repr(self.offset1) == '<BusinessHour: BH=09:00-17:00>'
@@ -1397,11 +1405,10 @@ class TestCustomBusinessHour(Base):
             CustomBusinessHour(start='14:00:05')
 
     def test_different_normalize_equals(self):
-        # equivalent in this special case
+        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
         offset = self._offset()
-        offset2 = self._offset()
-        offset2.normalize = True
-        assert offset == offset2
+        offset2 = self._offset(normalize=True)
+        assert offset != offset2
 
     def test_repr(self):
         assert repr(self.offset1) == '<CustomBusinessHour: CBH=09:00-17:00>'
@@ -1627,11 +1634,10 @@ class TestCustomBusinessDay(Base):
         self.offset2 = CDay(2)
 
     def test_different_normalize_equals(self):
-        # equivalent in this special case
-        offset = CDay()
-        offset2 = CDay()
-        offset2.normalize = True
-        assert offset == offset2
+        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        offset = self._offset()
+        offset2 = self._offset(normalize=True)
+        assert offset != offset2
 
     def test_repr(self):
         assert repr(self.offset) == '<CustomBusinessDay>'
@@ -1865,11 +1871,10 @@ class TestCustomBusinessMonthEnd(CustomBusinessMonthBase, Base):
     _offset = CBMonthEnd
 
     def test_different_normalize_equals(self):
-        # equivalent in this special case
-        offset = CBMonthEnd()
-        offset2 = CBMonthEnd()
-        offset2.normalize = True
-        assert offset == offset2
+        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        offset = self._offset()
+        offset2 = self._offset(normalize=True)
+        assert offset != offset2
 
     def test_repr(self):
         assert repr(self.offset) == '<CustomBusinessMonthEnd>'
@@ -1982,11 +1987,10 @@ class TestCustomBusinessMonthBegin(CustomBusinessMonthBase, Base):
     _offset = CBMonthBegin
 
     def test_different_normalize_equals(self):
-        # equivalent in this special case
-        offset = CBMonthBegin()
-        offset2 = CBMonthBegin()
-        offset2.normalize = True
-        assert offset == offset2
+        # GH#21404 changed __eq__ to return False when `normalize` doesnt match
+        offset = self._offset()
+        offset2 = self._offset(normalize=True)
+        assert offset != offset2
 
     def test_repr(self):
         assert repr(self.offset) == '<CustomBusinessMonthBegin>'
@@ -3096,6 +3100,14 @@ def test_require_integers(offset_types):
     cls = offset_types
     with pytest.raises(ValueError):
         cls(n=1.5)
+
+
+def test_tick_normalize_raises(tick_classes):
+    # check that trying to create a Tick object with normalize=True raises
+    # GH#21427
+    cls = tick_classes
+    with pytest.raises(ValueError):
+        cls(n=3, normalize=True)
 
 
 def test_weeks_onoffset():

@@ -290,7 +290,7 @@ class DateOffset(BaseOffset):
         all_paras = self.__dict__.copy()
         if 'holidays' in all_paras and not all_paras['holidays']:
             all_paras.pop('holidays')
-        exclude = ['kwds', 'name', 'normalize', 'calendar']
+        exclude = ['kwds', 'name', 'calendar']
         attrs = [(k, v) for k, v in all_paras.items()
                  if (k not in exclude) and (k[0] != '_')]
         attrs = sorted(set(attrs))
@@ -2217,8 +2217,10 @@ class Tick(SingleConstructorOffset):
     _attributes = frozenset(['n', 'normalize'])
 
     def __init__(self, n=1, normalize=False):
-        # TODO: do Tick classes with normalize=True make sense?
         self.n = self._validate_n(n)
+        if normalize:
+            raise ValueError("Tick offset with `normalize=True` are not "
+                             "allowed.")  # GH#21427
         self.normalize = normalize
 
     __gt__ = _tick_comp(operator.gt)
