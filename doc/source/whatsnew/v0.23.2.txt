@@ -10,6 +10,36 @@ and bug fixes. We recommend that all users upgrade to this version.
     :local:
     :backlinks: none
 
+.. _whatsnew_0232.enhancements:
+
+Logical Reductions over Entire DataFrame
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+:meth:`DataFrame.all` and :meth:`DataFrame.any` now accept ``axis=None`` to reduce over all axes to a scalar (:issue:`19976`)
+
+.. ipython:: python
+
+   df = pd.DataFrame({"A": [1, 2], "B": [True, False]})
+   df.all(axis=None)
+
+
+This also provides compatibility with NumPy 1.15, which now dispatches to ``DataFrame.all``.
+With NumPy 1.15 and pandas 0.23.1 or earlier, :func:`numpy.all` will not reduce over every axis:
+
+.. code-block:: python
+
+   >>> # NumPy 1.15, pandas 0.23.1
+   >>> np.any(pd.DataFrame({"A": [False], "B": [False]}))
+   A    False
+   B    False
+   dtype: bool
+
+With pandas 0.23.2, that will correctly return False.
+
+.. ipython:: python
+
+   np.any(pd.DataFrame({"A": [False], "B": [False]}))
+
 
 .. _whatsnew_0232.fixed_regressions:
 
