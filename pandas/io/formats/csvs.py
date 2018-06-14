@@ -142,6 +142,11 @@ class CSVFormatter(object):
         elif hasattr(self.path_or_buf, 'write'):
             f = self.path_or_buf
             close = False
+            if self.compression:
+                import warnings
+                msg = ("compression has no effect when passing file-like "
+                       "object as input.")
+                warnings.warn(msg, RuntimeWarning, stacklevel=2)
         else:
             f, handles = _get_handle(self.path_or_buf, self.mode,
                                      encoding=encoding,
@@ -178,19 +183,6 @@ class CSVFormatter(object):
                 f.close()
                 for _fh in handles:
                     _fh.close()
-
-            # GH 17778 handles zip compression for byte strings separately.
-            # if path is not None:
-            #     buf = f.getvalue()
-            #     f, handles = _get_handle(path, self.mode,
-            #                              encoding=encoding,
-            #                              compression=self.compression)
-            #     f.write(buf)
-            #
-            #     if not py2zip:
-            #         f.close()
-            #         for _fh in handles:
-            #             _fh.close()
 
     def _save_header(self):
 
