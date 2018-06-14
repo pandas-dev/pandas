@@ -168,7 +168,7 @@ class TestPivotTable(object):
                                  ordered=True),
              'B': range(5)})
 
-        result2 = df.pivot_table(index='A', values='B', dropna=dropna)
+        result2 = df2.pivot_table(index='A', values='B', dropna=dropna)
         expected2 = pd.DataFrame(
             {'B': [2, 3, 0]},
             index=pd.Index(
