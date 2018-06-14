@@ -24,6 +24,41 @@ Other Enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. _whatsnew_0240.api.datetimelike.normalize
+
+Tick DateOffset Normalize Restrictions
+--------------------------------------
+
+Creating a ``Tick`` object (:class:``Day``, :class:``Hour``, :class:``Minute``,
+:class:``Second``, :class:``Milli``, :class:``Micro``, :class:``Nano``) with
+`normalize=True` is no longer supported.  This prevents unexpected behavior
+where addition could fail to be monotone or associative.  (:issue:`21427`)
+
+.. ipython:: python
+
+    ts = pd.Timestamp('2018-06-11 18:01:14')
+    ts
+    tic = pd.offsets.Hour(n=2, normalize=True)
+    tic
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [4]: ts + tic
+    Out [4]: Timestamp('2018-06-11 00:00:00')
+
+    In [5]: ts + tic + tic + tic == ts + (tic + tic + tic)
+    Out [5]: False
+
+Current Behavior:
+
+.. ipython:: python
+
+    tic = pd.offsets.Hour(n=2)
+    ts + tic + tic + tic == ts + (tic + tic + tic)
+
+
 .. _whatsnew_0240.api.datetimelike:
 
 Datetimelike API Changes
