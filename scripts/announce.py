@@ -67,21 +67,37 @@ def get_authors(revision_range):
     cur.discard('Homu')
     pre.discard('Homu')
 
-    # Update doc/source/names_wordlist.txt with the names of every author
-
-    path = os.path.dirname(os.path.dirname(__file__))
-    wordlist_path = os.path.join(path, 'doc', 'source', 'names_wordlist.txt')
-
-    with open(wordlist_path, 'w', encoding='utf-8') as wordlist:
-        for name in cur.union(pre):
-            name = re.sub('\W+', ' ', name).split()
-            wordlist.write('{}\n'.format('\n'.join(name)))
-
     # Append '+' to new authors.
     authors = [s + u' +' for s in cur - pre] + [s for s in cur & pre]
     authors.sort()
     return authors
 
+
+def update_name_wordlist():
+    # Update doc/source/names_wordlist.txt with the names of every author
+    all_names = set()
+
+    path = os.path.dirname(os.path.dirname(__file__))
+    wordlist_path = os.path.join(path, 'doc', 'source', 'names_wordlist.txt')
+
+    # Get all names from wordlist and add them to the set
+    with open(wordlist_path, encoding='utf-8') as namelist:
+        for name in namelist:
+            all_names.add(name.strip())
+
+    latest_tag = sorted(this_repo.tags,
+                        key=lambda t: t.commit.committed_datetime)[-1]
+    authors = get_authors('0.3.0..{}'.format(latest_tag))
+
+    # Add author names to set from version 0.3.0 until latest version
+    for author in authors:
+        all_names = all_names.union(re.sub('[.+\-!?]', ' ', author).split())
+
+    with open(wordlist_path, 'w', encoding='utf-8') as wordlist:
+        for name in all_names:
+            wordlist.write('{}\n'.format(name))
+
+update_name_wordlist()
 
 def get_pull_requests(repo, revision_range):
     prnums = []
