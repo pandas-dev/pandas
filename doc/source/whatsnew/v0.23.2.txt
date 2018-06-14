@@ -52,6 +52,7 @@ Bug Fixes
 **Indexing**
 
 - Bug in :meth:`Index.get_indexer_non_unique` with categorical key (:issue:`21448`)
+- Bug in comparison operations for :class:`MultiIndex` where error was raised on equality / inequality comparison involving a MultiIndex with ``nlevels == 1`` (:issue:`21149`)
 -
 
 **I/O**
