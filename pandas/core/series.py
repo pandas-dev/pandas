@@ -2305,7 +2305,11 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         # TODO: do we need name?
         name = ops.get_op_result_name(self, other)  # noqa
         rs_vals = com._where_compat(isna(this), other._values, this._values)
-        return self._constructor(rs_vals, index=new_index).__finalize__(self)
+        result = self._constructor(rs_vals, index=new_index).__finalize__(self)
+        # TODO DK can we simplify this using internals rather than public astype
+        if is_datetime64tz_dtype(self.dtype):
+            result = result.astype(self.dtype)
+        return result
 
     def update(self, other):
         """
