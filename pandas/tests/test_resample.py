@@ -2084,6 +2084,17 @@ class TestDatetimeIndex(Base):
                                        freq='D', tz='Europe/Paris')),
             'D Frequency')
 
+    def test_downsample_across_dst(self):
+        # GH 8531
+        tz = pytz.timezone('Europe/Berlin')
+        dt = datetime(2014,10,26)
+        dates = date_range(tz.localize(dt), periods=4, freq='2H')
+        result = Series(5, index=dates).resample('H').mean()
+        expected = Series([5., np.nan] * 3 + [5.],
+                          index=date_range(tz.localize(dt), periods=7,
+                                           freq='H'))
+        tm.assert_frame_equal(result, expected)
+
     def test_resample_with_nat(self):
         # GH 13020
         index = DatetimeIndex([pd.NaT,
