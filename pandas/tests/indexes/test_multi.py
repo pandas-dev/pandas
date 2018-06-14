@@ -3310,9 +3310,8 @@ class TestMultiIndex(Base):
 
     def test_multiindex_compare(self):
         # GH 21149
-        """ Ensure comparison operations for MultiIndex with nlevels == 1
-            behave consistently with those for MultiIndex with nlevels > 1
-        """
+        # Ensure comparison operations for MultiIndex with nlevels == 1
+        # behave consistently with those for MultiIndex with nlevels > 1
 
         midx = pd.MultiIndex.from_product([[0, 1]])
 
