@@ -445,11 +445,19 @@ class TestIndex(Base):
         result = klass(list(values), dtype=dtype)
         tm.assert_index_equal(result, index)
 
-    def test_constructor_empty_gen(self):
+    def test_constructor_empty_list(self):
         skip_index_keys = ["repeats", "periodIndex", "rangeIndex",
                            "tuples"]
         for key, index in self.generate_index_types(skip_index_keys):
             empty = index.__class__([])
+            assert isinstance(empty, index.__class__)
+            assert not len(empty)
+
+    def test_constructor_empty_gen(self):
+        skip_index_keys = ["repeats", "periodIndex", "rangeIndex",
+                           "tuples"]
+        for key, index in self.generate_index_types(skip_index_keys):
+            empty = index.__class__(x for x in [])
             assert isinstance(empty, index.__class__)
             assert not len(empty)
 
