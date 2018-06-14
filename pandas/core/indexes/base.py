@@ -431,7 +431,7 @@ class Index(IndexOpsMixin, PandasObject):
             cls._scalar_data_error(data)
         else:
             if tupleize_cols and is_list_like(data):
-                # GH21470: convert iterable to list before determining if empty 
+                # GH21470: convert iterable to list before determining if empty
                 if is_iterator(data):
                     data = list(data)
 
