@@ -28,7 +28,7 @@ from pandas.tseries.offsets import (BDay, CDay, BQuarterEnd, BMonthEnd,
                                     YearEnd, Day,
                                     QuarterEnd, BusinessMonthEnd, FY5253,
                                     Nano, Easter, FY5253Quarter,
-                                    LastWeekOfMonth)
+                                    LastWeekOfMonth, Tick)
 from pandas.core.tools.datetimes import format, ole2datetime
 import pandas.tseries.offsets as offsets
 from pandas.io.pickle import read_pickle
@@ -270,6 +270,11 @@ class TestCommon(Base):
 
     def _check_offsetfunc_works(self, offset, funcname, dt, expected,
                                 normalize=False):
+
+        if normalize and issubclass(offset, Tick):
+            # normalize=True disallowed for Tick subclasses GH#21427
+            return
+
         offset_s = self._get_offset(offset, normalize=normalize)
         func = getattr(offset_s, funcname)
 
@@ -458,6 +463,9 @@ class TestCommon(Base):
         assert offset_s.onOffset(dt)
 
         # when normalize=True, onOffset checks time is 00:00:00
+        if issubclass(offset_types, Tick):
+            # normalize=True disallowed for Tick subclasses GH#21427
+            return
         offset_n = self._get_offset(offset_types, normalize=True)
         assert not offset_n.onOffset(dt)
 
@@ -485,7 +493,9 @@ class TestCommon(Base):
         assert isinstance(result, Timestamp)
         assert result == expected_localize
 
-        # normalize=True
+        # normalize=True, disallowed for Tick subclasses GH#21427
+        if issubclass(offset_types, Tick):
+            return
         offset_s = self._get_offset(offset_types, normalize=True)
         expected = Timestamp(expected.date())
 
@@ -3090,6 +3100,14 @@ def test_require_integers(offset_types):
     cls = offset_types
     with pytest.raises(ValueError):
         cls(n=1.5)
+
+
+def test_tick_normalize_raises(tick_classes):
+    # check that trying to create a Tick object with normalize=True raises
+    # GH#21427
+    cls = tick_classes
+    with pytest.raises(ValueError):
+        cls(n=3, normalize=True)
 
 
 def test_weeks_onoffset():
