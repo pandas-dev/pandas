@@ -2262,29 +2262,6 @@ def network(t, url="http://www.google.com",
 
 with_connectivity_check = network
 
-
-@contextmanager
-def stdin_encoding(encoding=None):
-    """
-    Context manager for running bits of code while emulating an arbitrary
-    stdin encoding.
-
-    >>> import sys
-    >>> _encoding = sys.stdin.encoding
-    >>> with stdin_encoding('AES'): sys.stdin.encoding
-    'AES'
-    >>> sys.stdin.encoding==_encoding
-    True
-
-    """
-    import sys
-
-    _stdin = sys.stdin
-    sys.stdin = SimpleMock(sys.stdin, "encoding", encoding)
-    yield
-    sys.stdin = _stdin
-
-
 def assert_raises_regex(_exception, _regexp, _callable=None,
                         *args, **kwargs):
     r"""
