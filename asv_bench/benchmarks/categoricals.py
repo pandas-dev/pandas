@@ -193,3 +193,16 @@ class IsMonotonic(object):
 
     def time_categorical_series_is_monotonic_decreasing(self):
         self.s.is_monotonic_decreasing
+
+
+class Contains(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        N = 10**5
+        self.ci = tm.makeCategoricalIndex(N)
+        self.cat = self.ci.categories[0]
+
+    def time_contains(self):
+        self.cat in self.ci

@@ -24,7 +24,9 @@ Fixed Regressions
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
--
+- Improved performance of membership checks in :class:`CategoricalIndex`
+  (i.e. ``x in ci``-style checks are much faster). :meth:`CategoricalIndex.contains`
+  is likewise much faster (:issue:`21369`)
 -
 
 Documentation Changes
