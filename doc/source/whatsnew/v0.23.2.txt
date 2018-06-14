@@ -82,4 +82,5 @@ Bug Fixes
 
 **Other**
 
+- Bug in :class:`Timedelta` where non-zero timedeltas shorter than 1 microsecond were considered False (:issue:`21484`)
 -
