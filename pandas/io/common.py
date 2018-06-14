@@ -445,6 +445,13 @@ class BytesZipFile(zipfile.ZipFile, BytesIO):
     def write(self, data):
         super(BytesZipFile, self).writestr(self.filename, data)
 
+    @property
+    def closed(self):
+        if compat.PY2:
+            return self.fp is None
+        else:
+            return super(BytesZipFile, self).closed
+
 
 class MMapWrapper(BaseIterator):
     """
