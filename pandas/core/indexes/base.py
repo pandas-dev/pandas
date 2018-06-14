@@ -31,6 +31,7 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_dtype_union_equal,
     is_object_dtype,
+    is_categorical,
     is_categorical_dtype,
     is_interval_dtype,
     is_period_dtype,
@@ -90,7 +91,8 @@ def _make_comparison_op(op, cls):
         if needs_i8_conversion(self) and needs_i8_conversion(other):
             return self._evaluate_compare(other, op)
 
-        if is_object_dtype(self) and self.nlevels == 1:
+        from .multi import MultiIndex
+        if is_object_dtype(self) and not isinstance(self, MultiIndex):
             # don't pass MultiIndex
             with np.errstate(all='ignore'):
                 result = ops._comp_method_OBJECT_ARRAY(op, self.values, other)
@@ -1174,6 +1176,10 @@ class Index(IndexOpsMixin, PandasObject):
             return CategoricalIndex(self.values, name=self.name, dtype=dtype,
                                     copy=copy)
         try:
+            if is_datetime64tz_dtype(dtype):
+                from pandas.core.indexes.datetimes import DatetimeIndex
+                return DatetimeIndex(self.values, name=self.name, dtype=dtype,
+                                     copy=copy)
             return Index(self.values.astype(dtype, copy=copy), name=self.name,
                          dtype=dtype)
         except (TypeError, ValueError):
@@ -3300,6 +3306,8 @@ class Index(IndexOpsMixin, PandasObject):
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
         target = _ensure_index(target)
+        if is_categorical(target):
+            target = target.astype(target.dtype.categories.dtype)
         pself, ptarget = self._maybe_promote(target)
         if pself is not self or ptarget is not target:
             return pself.get_indexer_non_unique(ptarget)
