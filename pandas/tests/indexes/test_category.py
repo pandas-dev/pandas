@@ -244,6 +244,17 @@ class TestCategoricalIndex(Base):
             list('aabbca') + [np.nan], categories=list('cabdef'))
         assert np.nan in ci
 
+        ci = CategoricalIndex(
+            list('aaa'), categories=list('cabdef'))
+        assert 'f' not in ci
+
+    def test_containst_defer_to_indexing(self):
+        intervals = pd.interval_range(1, 4)
+        cat = pd.CategoricalIndex(list(intervals[:-1]), categories=intervals)
+        assert intervals[0] in cat
+        assert intervals[1] in cat
+        assert intervals[2] not in cat
+
     def test_min_max(self):
 
         ci = self.create_index(ordered=False)
