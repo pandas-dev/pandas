@@ -68,15 +68,14 @@ def get_authors(revision_range):
     pre.discard('Homu')
 
     # Update doc/source/names_wordlist.txt with the names of every author
-    names = []
-    [names.extend(re.sub('\W+', ' ', x).split()) for x in cur.union(pre)]
 
-    path = os.path.sep.join(os.path.abspath(__file__).split(os.path.sep)[:-2])
+    path = os.path.dirname(os.path.dirname(__file__))
     wordlist_path = os.path.join(path, 'doc', 'source', 'names_wordlist.txt')
 
     with open(wordlist_path, 'w', encoding='utf-8') as wordlist:
-        for name in names:
-            wordlist.write('{}\n'.format(name))
+        for name in cur.union(pre):
+            name = re.sub('\W+', ' ', name).split()
+            wordlist.write('{}\n'.format('\n'.join(name)))
 
     # Append '+' to new authors.
     authors = [s + u' +' for s in cur - pre] + [s for s in cur & pre]
