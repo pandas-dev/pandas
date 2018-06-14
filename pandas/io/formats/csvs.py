@@ -134,8 +134,9 @@ class CSVFormatter(object):
                    "object as input.")
             warnings.warn(msg, RuntimeWarning, stacklevel=2)
 
-        if (isinstance(self.path_or_buf, ZipFile) or
-                self.compression == 'zip'):
+        if isinstance(self.path_or_buf, ZipFile) or (
+                not hasattr(self.path_or_buf, 'write')
+                and self.compression == 'zip'):
             is_zip = True
         else:
             is_zip = False
