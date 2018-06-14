@@ -6,6 +6,7 @@ Module for formatting output data into CSV files.
 from __future__ import print_function
 
 import csv as csvlib
+from zipfile import ZipFile
 import numpy as np
 
 from pandas.core.dtypes.missing import notna
@@ -127,7 +128,7 @@ class CSVFormatter(object):
         else:
             encoding = self.encoding
 
-        if (not hasattr(self.path_or_buf, 'write') and
+        if (isinstance(self.path_or_buf, ZipFile) or
                 self.compression == 'zip'):
             is_zip = True
         else:
