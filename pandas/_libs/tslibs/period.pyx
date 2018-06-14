@@ -1073,7 +1073,7 @@ cdef class _Period(object):
                     return Period(ordinal=ordinal, freq=self.freq)
             msg = 'Input cannot be converted to Period(freq={0})'
             raise IncompatibleFrequency(msg.format(self.freqstr))
-        elif getattr(other, "_typ", None) == "dateoffset":
+        elif util.is_offset_object(other):
             freqstr = other.rule_code
             base = get_base_alias(freqstr)
             if base == self.freq.rule_code:
@@ -1087,7 +1087,7 @@ cdef class _Period(object):
     def __add__(self, other):
         if is_period_object(self):
             if (PyDelta_Check(other) or util.is_timedelta64_object(other) or
-                    getattr(other, "_typ", None) == "dateoffset"):
+                    util.is_offset_object(other)):
                 return self._add_delta(other)
             elif other is NaT:
                 return NaT
@@ -1114,7 +1114,7 @@ cdef class _Period(object):
     def __sub__(self, other):
         if is_period_object(self):
             if (PyDelta_Check(other) or util.is_timedelta64_object(other) or
-                    getattr(other, "_typ", None) == "dateoffset"):
+                    util.is_offset_object(other)):
                 neg_other = -other
                 return self + neg_other
             elif util.is_integer_object(other):
