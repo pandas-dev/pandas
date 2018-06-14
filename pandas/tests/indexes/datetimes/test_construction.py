@@ -494,6 +494,7 @@ class TestDatetimeIndex(object):
         ts = Timestamp('2018-01-01', tz=tz)
         result = klass(box([ts.value]), dtype=dtype)
         expected = klass([ts])
+        assert result == expected
 
 
 class TestTimeSeries(object):
