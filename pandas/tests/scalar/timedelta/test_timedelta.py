@@ -588,3 +588,31 @@ class TestTimedeltas(object):
         result = s.dt.components
         assert not result.iloc[0].isna().all()
         assert result.iloc[1].isna().all()
+
+    def test_resolution(self):
+        # GH 21344
+        assert Timedelta(nanoseconds=30).resolution == 'N'
+        # Note that datetime.timedelta doesn't offer
+        # finer resolution than microseconds
+        assert Timedelta(nanoseconds=30).resolution_timedelta.resolution == \
+            timedelta(0, 0, 1)
+
+        assert Timedelta(microseconds=30).resolution == 'U'
+        assert Timedelta(microseconds=30).resolution_timedelta.resolution == \
+            timedelta(0, 0, 1)
+
+        assert Timedelta(milliseconds=30).resolution == 'L'
+        assert Timedelta(milliseconds=30).resolution_timedelta.resolution == \
+            timedelta(0, 0, 1)
+
+        assert Timedelta(seconds=30).resolution == 'S'
+        assert Timedelta(seconds=30).resolution_timedelta.resolution == \
+            timedelta(0, 0, 1)
+
+        assert Timedelta(minutes=30).resolution == 'T'
+        assert Timedelta(minutes=30).resolution_timedelta.resolution == \
+            timedelta(0, 0, 1)
+
+        assert Timedelta(hours=2).resolution == 'H'
+        assert Timedelta(hours=2).resolution_timedelta.resolution == \
+            timedelta(0, 0, 1)
