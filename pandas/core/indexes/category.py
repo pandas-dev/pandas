@@ -326,7 +326,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         hash(key)
 
         if isna(key):  # if key is a NaN, check if any NaN is in self.
-            return self.isna().any()
+            return self.hasnans
 
         # is key in self.categories? Then get its location.
         # If not (i.e. KeyError), it logically can't be in self either
