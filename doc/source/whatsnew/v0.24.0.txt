@@ -24,7 +24,7 @@ Other Enhancements
   <https://pandas-gbq.readthedocs.io/en/latest/changelog.html#changelog-0-5-0>`__.
   (:issue:`21627`)
 - New method :meth:`HDFStore.walk` will recursively walk the group hierarchy of an HDF5 file (:issue:`10932`)
-- :func:`read_html` handles colspan and rowspan arguments and attempts to infer a header if the header is not explicitly specified (:issue:`17054`)
+- :func:`read_html` copies cell data across ``colspan``s and ``rowspan``s, and it treats all-``th`` table rows as headers if ``header`` kwarg is not given and there is no ``thead`` (:issue:`17054`)
 -
 
 .. _whatsnew_0240.api_breaking:

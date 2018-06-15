@@ -378,6 +378,8 @@ class _HtmlFrameParser(object):
         """
         Given a table, return parsed header, body, and foot.
 
+        Notes
+        -----
         Header and body are lists-of-lists. Top level list is a list of
         rows. Each row is a list of str text.
 
@@ -699,9 +701,6 @@ class _LxmlFrameParser(_HtmlFrameParser):
 
     def _equals_tag(self, obj, tag):
         return obj.tag == tag
-
-    def _contains_tag(self, obj, tag):
-        return obj.find(tag) is not None
 
     def _build_doc(self):
         """
