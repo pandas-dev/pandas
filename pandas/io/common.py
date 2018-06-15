@@ -30,14 +30,13 @@ _NA_VALUES = {'-1.#IND', '1.#QNAN', '1.#IND', '-1.#QNAN', '#N/A N/A', '#N/A',
 
 if compat.PY3:
     from urllib.request import urlopen, pathname2url
-    _urlopen = urlopen
     from urllib.parse import urlparse as parse_url
     from urllib.parse import (uses_relative, uses_netloc, uses_params,
                               urlencode, urljoin)
     from urllib.error import URLError
     from http.client import HTTPException  # noqa
 else:
-    from urllib2 import urlopen as _urlopen
+    from urllib2 import urlopen as urlopen2
     from urllib import urlencode, pathname2url  # noqa
     from urlparse import urlparse as parse_url
     from urlparse import uses_relative, uses_netloc, uses_params, urljoin
@@ -46,10 +45,10 @@ else:
     from contextlib import contextmanager, closing  # noqa
     from functools import wraps  # noqa
 
-    # @wraps(_urlopen)
+    # @wraps(urlopen2)
     @contextmanager
     def urlopen(*args, **kwargs):
-        with closing(_urlopen(*args, **kwargs)) as f:
+        with closing(urlopen2(*args, **kwargs)) as f:
             yield f
 
 
@@ -89,6 +88,34 @@ def _is_url(url):
         return parse_url(url).scheme in _VALID_URLS
     except Exception:
         return False
+
+
+def _urlopen(url, session=None):
+    compression = None
+    content_encoding = None
+    try:
+        import requests
+        if session:
+            if not isinstance(session, requests.sessions.Session):
+                raise ValueError(
+                    'Expected a requests.sessions.Session object, '
+                    'got {!r}'.format(session)
+                )
+            r = session.get(url)
+        else:
+            r = requests.get(url)
+        r.raise_for_status
+        content = r.content
+    except ImportError:
+        r = urlopen(url)
+        content = r.read()
+        content_encoding = r.headers.get('Content-Encoding', None)
+    r.close()
+    if content_encoding == 'gzip':
+        # Override compression based on Content-Encoding header.
+        compression = 'gzip'
+    reader = BytesIO(content)
+    return reader, compression
 
 
 def _expand_user(filepath_or_buffer):
@@ -177,7 +204,7 @@ def is_gcs_url(url):
 
 
 def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
-                           compression=None, mode=None):
+                           compression=None, mode=None, session=None):
     """
     If the filepath_or_buffer is a url, translate and return the buffer.
     Otherwise passthrough.
@@ -199,13 +226,7 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
     filepath_or_buffer = _stringify_path(filepath_or_buffer)
 
     if _is_url(filepath_or_buffer):
-        req = _urlopen(filepath_or_buffer)
-        content_encoding = req.headers.get('Content-Encoding', None)
-        if content_encoding == 'gzip':
-            # Override compression based on Content-Encoding header
-            compression = 'gzip'
-        reader = BytesIO(req.read())
-        req.close()
+        reader, compression = _urlopen(filepath_or_buffer, session=session)
         return reader, encoding, compression, True
 
     if is_s3_url(filepath_or_buffer):

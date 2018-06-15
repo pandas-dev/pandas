@@ -319,6 +319,9 @@ float_precision : str, optional
     values. The options are `None` for the ordinary converter,
     `high` for the high-precision converter, and `round_trip` for the
     round-trip converter.
+session : requests.Session
+    object with the a requests session configuration for remote file.
+    (requires the requests library)
 
 Returns
 -------
@@ -401,10 +404,11 @@ def _read(filepath_or_buffer, kwds):
         encoding = re.sub('_', '-', encoding).lower()
         kwds['encoding'] = encoding
 
+    session = kwds.get('session', None)
     compression = kwds.get('compression')
     compression = _infer_compression(filepath_or_buffer, compression)
     filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
-        filepath_or_buffer, encoding, compression)
+        filepath_or_buffer, encoding, compression, session=session)
     kwds['compression'] = compression
 
     if kwds.get('date_parser', None) is not None:
@@ -590,7 +594,8 @@ def _make_parser_function(name, default_sep=','):
                  delim_whitespace=False,
                  low_memory=_c_parser_defaults['low_memory'],
                  memory_map=False,
-                 float_precision=None):
+                 float_precision=None,
+                 session=None):
 
         # deprecate read_table GH21948
         if name == "read_table":
@@ -690,7 +695,8 @@ def _make_parser_function(name, default_sep=','):
                     mangle_dupe_cols=mangle_dupe_cols,
                     tupleize_cols=tupleize_cols,
                     infer_datetime_format=infer_datetime_format,
-                    skip_blank_lines=skip_blank_lines)
+                    skip_blank_lines=skip_blank_lines,
+                    session=session)
 
         return _read(filepath_or_buffer, kwds)
 
