@@ -392,8 +392,7 @@ def pivot(self, index=None, columns=None, values=None):
         cols = [columns] if index is None else [index, columns]
         append = index is None
         indexed = self.set_index(cols, append=append)
-    # adding the support for multi-index in pivot function
-    # assuming that for multi-index, index parameter for pivot function is list
+
     else:
         if index is None:
             index = self.index

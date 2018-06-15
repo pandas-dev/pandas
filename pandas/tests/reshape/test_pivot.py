@@ -283,8 +283,8 @@ class TestPivotTable(object):
         expected = concat([means, stds], keys=['mean', 'std'], axis=1)
         tm.assert_frame_equal(result, expected)
 
-    # adding the test case for multiple columns as index (#21425)
     def test_pivot_multiple_columns_as_index(self):
+        # adding the test case for multiple columns as index (#21425)
         df = DataFrame({'lev1': [1, 1, 1, 1, 2, 2, 2, 2],
                         'lev2': [1, 1, 2, 2, 1, 1, 2, 2],
                         'lev3': [1, 2, 1, 2, 1, 2, 1, 2],
