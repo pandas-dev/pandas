@@ -5,6 +5,8 @@ Module for formatting output data into CSV files.
 
 from __future__ import print_function
 
+import warnings
+
 import csv as csvlib
 from zipfile import ZipFile
 import numpy as np
@@ -129,7 +131,6 @@ class CSVFormatter(object):
             encoding = self.encoding
 
         if self.compression and hasattr(self.path_or_buf, 'write'):
-            import warnings
             msg = ("compression has no effect when passing file-like "
                    "object as input.")
             warnings.warn(msg, RuntimeWarning, stacklevel=2)
