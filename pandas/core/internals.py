@@ -17,6 +17,7 @@ from pandas.core.base import PandasObject
 
 from pandas.core.dtypes.dtypes import (
     ExtensionDtype, DatetimeTZDtype,
+    PandasExtensionDtype,
     CategoricalDtype)
 from pandas.core.dtypes.common import (
     _TD_DTYPE, _NS_DTYPE,
@@ -65,7 +66,7 @@ import pandas.core.common as com
 import pandas.core.algorithms as algos
 
 from pandas.core.index import Index, MultiIndex, _ensure_index
-from pandas.core.indexing import maybe_convert_indices, length_of_indexer
+from pandas.core.indexing import maybe_convert_indices, check_setitem_lengths
 from pandas.core.arrays import Categorical
 from pandas.core.indexes.datetimes import DatetimeIndex
 from pandas.core.indexes.timedeltas import TimedeltaIndex
@@ -598,7 +599,8 @@ class Block(PandasObject):
                                list(errors_legal_values), errors))
             raise ValueError(invalid_arg)
 
-        if inspect.isclass(dtype) and issubclass(dtype, ExtensionDtype):
+        if (inspect.isclass(dtype) and
+                issubclass(dtype, (PandasExtensionDtype, ExtensionDtype))):
             msg = ("Expected an instance of {}, but got the class instead. "
                    "Try instantiating 'dtype'.".format(dtype.__name__))
             raise TypeError(msg)
@@ -653,7 +655,7 @@ class Block(PandasObject):
 
                     # astype formatting
                     else:
-                        values = self.values
+                        values = self.get_values()
 
                 else:
                     values = self.get_values(dtype=dtype)
@@ -815,11 +817,24 @@ class Block(PandasObject):
         return self if kwargs['inplace'] else self.copy()
 
     def setitem(self, indexer, value, mgr=None):
-        """ set the value inplace; return a new block (of a possibly different
-        dtype)
+        """Set the value inplace, returning a a maybe different typed block.
 
-        indexer is a direct slice/positional indexer; value must be a
-        compatible shape
+        Parameters
+        ----------
+        indexer : tuple, list-like, array-like, slice
+            The subset of self.values to set
+        value : object
+            The value being set
+        mgr : BlockPlacement, optional
+
+        Returns
+        -------
+        Block
+
+        Notes
+        -----
+        `indexer` is a direct slice/positional indexer. `value` must
+        be a compatible shape.
         """
         # coerce None values, if appropriate
         if value is None:
@@ -874,22 +889,7 @@ class Block(PandasObject):
         values = transf(values)
 
         # length checking
-        # boolean with truth values == len of the value is ok too
-        if isinstance(indexer, (np.ndarray, list)):
-            if is_list_like(value) and len(indexer) != len(value):
-                if not (isinstance(indexer, np.ndarray) and
-                        indexer.dtype == np.bool_ and
-                        len(indexer[indexer]) == len(value)):
-                    raise ValueError("cannot set using a list-like indexer "
-                                     "with a different length than the value")
-
-        # slice
-        elif isinstance(indexer, slice):
-
-            if is_list_like(value) and len(values):
-                if len(value) != length_of_indexer(indexer, values):
-                    raise ValueError("cannot set using a slice indexer with a "
-                                     "different length than the value")
+        check_setitem_lengths(indexer, value, values)
 
         def _is_scalar_indexer(indexer):
             # return True if we are all scalar indexers
@@ -1889,6 +1889,11 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         return type(self.values)
 
     @property
+    def fill_value(self):
+        # Used in reindex_indexer
+        return self.values.dtype.na_value
+
+    @property
     def _can_hold_na(self):
         # The default ExtensionArray._can_hold_na is True
         return self._holder._can_hold_na
@@ -1897,6 +1902,37 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
     def is_view(self):
         """Extension arrays are never treated as views."""
         return False
+
+    def setitem(self, indexer, value, mgr=None):
+        """Set the value inplace, returning a same-typed block.
+
+        This differs from Block.setitem by not allowing setitem to change
+        the dtype of the Block.
+
+        Parameters
+        ----------
+        indexer : tuple, list-like, array-like, slice
+            The subset of self.values to set
+        value : object
+            The value being set
+        mgr : BlockPlacement, optional
+
+        Returns
+        -------
+        Block
+
+        Notes
+        -----
+        `indexer` is a direct slice/positional indexer. `value` must
+        be a compatible shape.
+        """
+        if isinstance(indexer, tuple):
+            # we are always 1-D
+            indexer = indexer[0]
+
+        check_setitem_lengths(indexer, value, self.values)
+        self.values[indexer] = value
+        return self
 
     def get_values(self, dtype=None):
         # ExtensionArrays must be iterable, so this works.
@@ -1920,7 +1956,8 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         # axis doesn't matter; we are really a single-dim object
         # but are passed the axis depending on the calling routing
         # if its REALLY axis 0, then this will be a reindex and not a take
-        new_values = self.values.take(indexer, fill_value=fill_value)
+        new_values = self.values.take(indexer, fill_value=fill_value,
+                                      allow_fill=True)
 
         # if we are a 1-dim object, then always place at 0
         if self.ndim == 1:
@@ -1962,6 +1999,23 @@ class ExtensionBlock(NonConsolidatableMixIn, Block):
         placement = placement or slice(0, len(values), 1)
         return self.make_block_same_class(values, ndim=self.ndim,
                                           placement=placement)
+
+    def fillna(self, value, limit=None, inplace=False, downcast=None,
+               mgr=None):
+        values = self.values if inplace else self.values.copy()
+        values = values.fillna(value=value, limit=limit)
+        return [self.make_block_same_class(values=values,
+                                           placement=self.mgr_locs,
+                                           ndim=self.ndim)]
+
+    def interpolate(self, method='pad', axis=0, inplace=False, limit=None,
+                    fill_value=None, **kwargs):
+
+        values = self.values if inplace else self.values.copy()
+        return self.make_block_same_class(
+            values=values.fillna(value=fill_value, method=method,
+                                 limit=limit),
+            placement=self.mgr_locs)
 
 
 class NumericBlock(Block):
@@ -2360,7 +2414,10 @@ class ObjectBlock(Block):
         return not (issubclass(value.dtype.type,
                                (np.integer, np.floating, np.complexfloating,
                                 np.datetime64, np.bool_)) or
-                    is_extension_type(value))
+                    # TODO(ExtensionArray): remove is_extension_type
+                    # when all extension arrays have been ported.
+                    is_extension_type(value) or
+                    is_extension_array_dtype(value))
 
     def replace(self, to_replace, value, inplace=False, filter=None,
                 regex=False, convert=True, mgr=None):
@@ -2522,27 +2579,6 @@ class CategoricalBlock(ExtensionBlock):
 
         return result
 
-    def fillna(self, value, limit=None, inplace=False, downcast=None,
-               mgr=None):
-        # we may need to upcast our fill to match our dtype
-        if limit is not None:
-            raise NotImplementedError("specifying a limit for 'fillna' has "
-                                      "not been implemented yet")
-
-        values = self.values if inplace else self.values.copy()
-        values = self._try_coerce_result(values.fillna(value=value,
-                                                       limit=limit))
-        return [self.make_block(values=values)]
-
-    def interpolate(self, method='pad', axis=0, inplace=False, limit=None,
-                    fill_value=None, **kwargs):
-
-        values = self.values if inplace else self.values.copy()
-        return self.make_block_same_class(
-            values=values.fillna(fill_value=fill_value, method=method,
-                                 limit=limit),
-            placement=self.mgr_locs)
-
     def shift(self, periods, axis=0, mgr=None):
         return self.make_block_same_class(values=self.values.shift(periods),
                                           placement=self.mgr_locs)
@@ -2600,12 +2636,12 @@ class DatetimeBlock(DatetimeLikeBlockMixin, Block):
 
     def _maybe_coerce_values(self, values):
         """Input validation for values passed to __init__. Ensure that
-        we have datetime64ns, coercing if nescessary.
+        we have datetime64ns, coercing if necessary.
 
-        Parametetrs
-        -----------
+        Parameters
+        ----------
         values : array-like
-            Must be convertable to datetime64
+            Must be convertible to datetime64
 
         Returns
         -------
@@ -2760,12 +2796,12 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
 
     def _maybe_coerce_values(self, values, dtype=None):
         """Input validation for values passed to __init__. Ensure that
-        we have datetime64TZ, coercing if nescessary.
+        we have datetime64TZ, coercing if necessary.
 
         Parametetrs
         -----------
         values : array-like
-            Must be convertable to datetime64
+            Must be convertible to datetime64
         dtype : string or DatetimeTZDtype, optional
             Does a shallow copy to this tz
 
@@ -2785,6 +2821,12 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
             raise ValueError("cannot create a DatetimeTZBlock without a tz")
 
         return values
+
+    @property
+    def is_view(self):
+        """ return a boolean if I am possibly a view """
+        # check the ndarray values of the DatetimeIndex values
+        return self.values.values.base is not None
 
     def copy(self, deep=True, mgr=None):
         """ copy constructor """
@@ -2904,6 +2946,35 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         new_values = self.values._shallow_copy(new_values)
         return [self.make_block_same_class(new_values,
                                            placement=self.mgr_locs)]
+
+    def diff(self, n, axis=0, mgr=None):
+        """1st discrete difference
+
+        Parameters
+        ----------
+        n : int, number of periods to diff
+        axis : int, axis to diff upon. default 0
+        mgr : default None
+
+        Return
+        ------
+        A list with a new TimeDeltaBlock.
+
+        Note
+        ----
+        The arguments here are mimicking shift so they are called correctly
+        by apply.
+        """
+        if axis == 0:
+            # Cannot currently calculate diff across multiple blocks since this
+            # function is invoked via apply
+            raise NotImplementedError
+        new_values = (self.values - self.shift(n, axis=axis)[0].values).asi8
+
+        # Reshape the new_values like how algos.diff does for timedelta data
+        new_values = new_values.reshape(1, len(new_values))
+        new_values = new_values.astype('timedelta64[ns]')
+        return [TimeDeltaBlock(new_values, placement=self.mgr_locs.indexer)]
 
     def concat_same_type(self, to_concat, placement=None):
         """
@@ -3489,7 +3560,8 @@ class BlockManager(PandasObject):
         # with a .values attribute.
         aligned_args = dict((k, kwargs[k])
                             for k in align_keys
-                            if hasattr(kwargs[k], 'values'))
+                            if hasattr(kwargs[k], 'values') and
+                            not isinstance(kwargs[k], ABCExtensionArray))
 
         for b in self.blocks:
             if filter is not None:
@@ -4811,7 +4883,7 @@ def form_blocks(arrays, names, axes):
     items_dict = defaultdict(list)
     extra_locs = []
 
-    names_idx = Index(names)
+    names_idx = _ensure_index(names)
     if names_idx.equals(axes[0]):
         names_indexer = np.arange(len(names_idx))
     else:
@@ -4976,7 +5048,7 @@ def _interleaved_dtype(blocks):
     dtype = find_common_type([b.dtype for b in blocks])
 
     # only numpy compat
-    if isinstance(dtype, ExtensionDtype):
+    if isinstance(dtype, (PandasExtensionDtype, ExtensionDtype)):
         dtype = np.object
 
     return dtype
@@ -5190,7 +5262,7 @@ def _safe_reshape(arr, new_shape):
     If possible, reshape `arr` to have shape `new_shape`,
     with a couple of exceptions (see gh-13012):
 
-    1) If `arr` is a Categorical or Index, `arr` will be
+    1) If `arr` is a ExtensionArray or Index, `arr` will be
        returned as is.
     2) If `arr` is a Series, the `_values` attribute will
        be reshaped and returned.
@@ -5224,7 +5296,7 @@ def _transform_index(index, func, level=None):
         return MultiIndex.from_tuples(items, names=index.names)
     else:
         items = [func(x) for x in index]
-        return Index(items, name=index.name)
+        return Index(items, name=index.name, tupleize_cols=False)
 
 
 def _putmask_smart(v, m, n):
@@ -5364,13 +5436,22 @@ def is_uniform_join_units(join_units):
         # all blocks need to have the same type
         all(type(ju.block) is type(join_units[0].block) for ju in join_units) and  # noqa
         # no blocks that would get missing values (can lead to type upcasts)
-        all(not ju.is_na for ju in join_units) and
+        # unless we're an extension dtype.
+        all(not ju.is_na or ju.block.is_extension for ju in join_units) and
         # no blocks with indexers (as then the dimensions do not fit)
         all(not ju.indexers for ju in join_units) and
         # disregard Panels
         all(ju.block.ndim <= 2 for ju in join_units) and
         # only use this path when there is something to concatenate
         len(join_units) > 1)
+
+
+def is_uniform_reindex(join_units):
+    return (
+        # TODO: should this be ju.block._can_hold_na?
+        all(ju.block and ju.block.is_extension for ju in join_units) and
+        len(set(ju.block.dtype.name for ju in join_units)) == 1
+    )
 
 
 def get_empty_dtype_and_na(join_units):
@@ -5389,6 +5470,12 @@ def get_empty_dtype_and_na(join_units):
         blk = join_units[0].block
         if blk is None:
             return np.float64, np.nan
+
+    if is_uniform_reindex(join_units):
+        # XXX: integrate property
+        empty_dtype = join_units[0].block.dtype
+        upcasted_na = join_units[0].block.fill_value
+        return empty_dtype, upcasted_na
 
     has_none_blocks = False
     dtypes = [None] * len(join_units)
@@ -5480,8 +5567,14 @@ def concatenate_join_units(join_units, concat_axis, copy):
     if len(to_concat) == 1:
         # Only one block, nothing to concatenate.
         concat_values = to_concat[0]
-        if copy and concat_values.base is not None:
-            concat_values = concat_values.copy()
+        if copy:
+            if isinstance(concat_values, np.ndarray):
+                # non-reindexed (=not yet copied) arrays are made into a view
+                # in JoinUnit.get_reindexed_values
+                if concat_values.base is not None:
+                    concat_values = concat_values.copy()
+            else:
+                concat_values = concat_values.copy()
     else:
         concat_values = _concat._concat_compat(to_concat, axis=concat_axis)
 
@@ -5742,7 +5835,8 @@ class JoinUnit(object):
                     if len(values) and values[0] is None:
                         fill_value = None
 
-                if getattr(self.block, 'is_datetimetz', False):
+                if getattr(self.block, 'is_datetimetz', False) or \
+                        is_datetimetz(empty_dtype):
                     pass
                 elif getattr(self.block, 'is_categorical', False):
                     pass
@@ -5762,7 +5856,7 @@ class JoinUnit(object):
                 # External code requested filling/upcasting, bool values must
                 # be upcasted to object to avoid being upcasted to numeric.
                 values = self.block.astype(np.object_).values
-            elif self.block.is_categorical:
+            elif self.block.is_extension:
                 values = self.block.values
             else:
                 # No dtype upcasting is done here, it will be performed during

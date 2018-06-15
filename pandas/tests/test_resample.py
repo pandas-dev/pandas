@@ -14,22 +14,19 @@ import numpy as np
 import pandas as pd
 import pandas.tseries.offsets as offsets
 import pandas.util.testing as tm
-import pandas.util._test_decorators as td
 from pandas import (Series, DataFrame, Panel, Index, isna,
                     notna, Timestamp)
 
-from pandas.core.dtypes.generic import ABCSeries, ABCDataFrame
 from pandas.compat import range, lrange, zip, product, OrderedDict
 from pandas.errors import UnsupportedFunctionCall
-from pandas.core.groupby import DataError
+from pandas.core.groupby.groupby import DataError
 import pandas.core.common as com
 
 from pandas.tseries.frequencies import to_offset
 from pandas.core.indexes.datetimes import date_range
 from pandas.tseries.offsets import Minute, BDay
 from pandas.core.indexes.period import period_range, PeriodIndex, Period
-from pandas.core.resample import (DatetimeIndex, TimeGrouper,
-                                  DatetimeIndexResampler)
+from pandas.core.resample import DatetimeIndex, TimeGrouper
 from pandas.core.indexes.timedeltas import timedelta_range, TimedeltaIndex
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal, assert_index_equal)
@@ -84,122 +81,6 @@ class TestResampleAPI(object):
         assert isinstance(result, DataFrame)
         assert len(result) == 217
 
-    def test_api_changes_v018(self):
-
-        # change from .resample(....., how=...)
-        # to .resample(......).how()
-
-        r = self.series.resample('H')
-        assert isinstance(r, DatetimeIndexResampler)
-
-        for how in ['sum', 'mean', 'prod', 'min', 'max', 'var', 'std']:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                result = self.series.resample('H', how=how)
-                expected = getattr(self.series.resample('H'), how)()
-                tm.assert_series_equal(result, expected)
-
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            result = self.series.resample('H', how='ohlc')
-            expected = self.series.resample('H').ohlc()
-            tm.assert_frame_equal(result, expected)
-
-        # compat for pandas-like methods
-        for how in ['sort_values', 'isna']:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                getattr(r, how)()
-
-        # invalids as these can be setting operations
-        r = self.series.resample('H')
-        pytest.raises(ValueError, lambda: r.iloc[0])
-        pytest.raises(ValueError, lambda: r.iat[0])
-        pytest.raises(ValueError, lambda: r.loc[0])
-        pytest.raises(ValueError, lambda: r.loc[
-            Timestamp('2013-01-01 00:00:00', offset='H')])
-        pytest.raises(ValueError, lambda: r.at[
-            Timestamp('2013-01-01 00:00:00', offset='H')])
-
-        def f():
-            r[0] = 5
-
-        pytest.raises(ValueError, f)
-
-        # str/repr
-        r = self.series.resample('H')
-        with tm.assert_produces_warning(None):
-            str(r)
-        with tm.assert_produces_warning(None):
-            repr(r)
-
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            tm.assert_numpy_array_equal(np.array(r), np.array(r.mean()))
-
-        # masquerade as Series/DataFrame as needed for API compat
-        assert isinstance(self.series.resample('H'), ABCSeries)
-        assert not isinstance(self.frame.resample('H'), ABCSeries)
-        assert not isinstance(self.series.resample('H'), ABCDataFrame)
-        assert isinstance(self.frame.resample('H'), ABCDataFrame)
-
-        # bin numeric ops
-        for op in ['__add__', '__mul__', '__truediv__', '__div__', '__sub__']:
-
-            if getattr(self.series, op, None) is None:
-                continue
-            r = self.series.resample('H')
-
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                assert isinstance(getattr(r, op)(2), Series)
-
-        # unary numeric ops
-        for op in ['__pos__', '__neg__', '__abs__', '__inv__']:
-
-            if getattr(self.series, op, None) is None:
-                continue
-            r = self.series.resample('H')
-
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                assert isinstance(getattr(r, op)(), Series)
-
-        # comparison ops
-        for op in ['__lt__', '__le__', '__gt__', '__ge__', '__eq__', '__ne__']:
-            r = self.series.resample('H')
-
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                assert isinstance(getattr(r, op)(2), Series)
-
-        # IPython introspection shouldn't trigger warning GH 13618
-        for op in ['_repr_json', '_repr_latex',
-                   '_ipython_canary_method_should_not_exist_']:
-            r = self.series.resample('H')
-            with tm.assert_produces_warning(None):
-                getattr(r, op, None)
-
-        # getitem compat
-        df = self.series.to_frame('foo')
-
-        # same as prior versions for DataFrame
-        pytest.raises(KeyError, lambda: df.resample('H')[0])
-
-        # compat for Series
-        # but we cannot be sure that we need a warning here
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            result = self.series.resample('H')[0]
-            expected = self.series.resample('H').mean()[0]
-            assert result == expected
-
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            result = self.series.resample('H')['2005-01-09 23:00:00']
-            expected = self.series.resample('H').mean()['2005-01-09 23:00:00']
-            assert result == expected
-
     def test_groupby_resample_api(self):
 
         # GH 12448
@@ -251,23 +132,6 @@ class TestResampleAPI(object):
         result = r.pipe(lambda x: x.max() - x.mean())
         tm.assert_frame_equal(result, expected)
 
-    @td.skip_if_no_mpl
-    def test_plot_api(self):
-        # .resample(....).plot(...)
-        # hitting warnings
-        # GH 12448
-        s = Series(np.random.randn(60),
-                   index=date_range('2016-01-01', periods=60, freq='1min'))
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            result = s.resample('15min').plot()
-            tm.assert_is_valid_plot_return_object(result)
-
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            result = s.resample('15min', how='sum').plot()
-            tm.assert_is_valid_plot_return_object(result)
-
     def test_getitem(self):
 
         r = self.frame.resample('H')
@@ -300,15 +164,6 @@ class TestResampleAPI(object):
 
         r = self.frame.resample('H')
         tm.assert_series_equal(r.A.sum(), r['A'].sum())
-
-        # getting
-        pytest.raises(AttributeError, lambda: r.F)
-
-        # setting
-        def f():
-            r.F = 'bah'
-
-        pytest.raises(ValueError, f)
 
     def test_api_compat_before_use(self):
 
@@ -1082,7 +937,7 @@ class TestDatetimeIndex(Base):
         def fn(x, a=1):
             return str(type(x))
 
-        class fn_class:
+        class FnClass(object):
 
             def __call__(self, x):
                 return str(type(x))
@@ -1091,7 +946,7 @@ class TestDatetimeIndex(Base):
         df_lambda = df.resample("M").apply(lambda x: str(type(x)))
         df_partial = df.resample("M").apply(partial(fn))
         df_partial2 = df.resample("M").apply(partial(fn, a=2))
-        df_class = df.resample("M").apply(fn_class())
+        df_class = df.resample("M").apply(FnClass())
 
         assert_frame_equal(df_standard, df_lambda)
         assert_frame_equal(df_standard, df_partial)
@@ -1326,6 +1181,19 @@ class TestDatetimeIndex(Base):
         result = ser.resample('w-sun').last()
         expected = ser.resample('w-sun', loffset=-bday).last()
         assert result.index[0] - bday == expected.index[0]
+
+    def test_resample_loffset_upsample(self):
+        # GH 20744
+        rng = date_range('1/1/2000 00:00:00', '1/1/2000 00:13:00', freq='min')
+        s = Series(np.random.randn(14), index=rng)
+
+        result = s.resample('5min', closed='right', label='right',
+                            loffset=timedelta(minutes=1)).ffill()
+        idx = date_range('1/1/2000', periods=4, freq='5min')
+        expected = Series([s[0], s[5], s[10], s[-1]],
+                          index=idx + timedelta(minutes=1))
+
+        assert_series_equal(result, expected)
 
     def test_resample_loffset_count(self):
         # GH 12725
@@ -2532,6 +2400,18 @@ class TestPeriodIndex(Base):
         expected = Series(1, index=expected_index)
         assert_series_equal(result, expected)
 
+    def test_resample_with_pytz(self):
+        # GH 13238
+        s = Series(2, index=pd.date_range('2017-01-01', periods=48, freq="H",
+                                          tz="US/Eastern"))
+        result = s.resample("D").mean()
+        expected = Series(2, index=pd.DatetimeIndex(['2017-01-01',
+                                                     '2017-01-02'],
+                                                    tz="US/Eastern"))
+        assert_series_equal(result, expected)
+        # Especially assert that the timezone is LMT for pytz
+        assert result.index.tz == pytz.timezone('US/Eastern')
+
     def test_with_local_timezone_dateutil(self):
         # see gh-5430
         local_timezone = 'dateutil/America/Los_Angeles'
@@ -2999,23 +2879,6 @@ class TestResamplerGrouper(object):
                                index=date_range('1/1/2000',
                                                 freq='s',
                                                 periods=40))
-
-    def test_back_compat_v180(self):
-
-        df = self.frame
-        for how in ['sum', 'mean', 'prod', 'min', 'max', 'var', 'std']:
-            with tm.assert_produces_warning(FutureWarning,
-                                            check_stacklevel=False):
-                result = df.groupby('A').resample('4s', how=how)
-                expected = getattr(df.groupby('A').resample('4s'), how)()
-                assert_frame_equal(result, expected)
-
-        with tm.assert_produces_warning(FutureWarning,
-                                        check_stacklevel=False):
-            result = df.groupby('A').resample('4s', how='mean',
-                                              fill_method='ffill')
-            expected = df.groupby('A').resample('4s').mean().ffill()
-            assert_frame_equal(result, expected)
 
     def test_tab_complete_ipython6_warning(self, ip):
         from IPython.core.completer import provisionalcompleter

@@ -111,6 +111,15 @@ if [ "$LINT" ]; then
         RET=1
     fi
 
+    # Check for the following code in the extension array base tests
+    # tm.assert_frame_equal
+    # tm.assert_series_equal
+    grep -r -E --include '*.py' --exclude base.py 'tm.assert_(series|frame)_equal' pandas/tests/extension/base
+
+    if [ $? = "0" ]; then
+        RET=1
+    fi
+
     echo "Check for invalid testing DONE"
 
     # Check for imports from pandas.core.common instead
@@ -156,6 +165,14 @@ if [ "$LINT" ]; then
         RET=1
     fi
     echo "Check for deprecated messages without sphinx directive DONE"
+
+    echo "Check for old-style classes"
+    grep -R --include="*.py" -E "class\s\S*[^)]:" pandas scripts
+
+    if [ $? = "0" ]; then
+        RET=1
+    fi
+    echo "Check for old-style classes DONE"
     
 else
     echo "NOT Linting"

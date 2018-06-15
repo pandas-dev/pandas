@@ -16,9 +16,11 @@ import os
 import re
 import inspect
 import importlib
+import logging
 import warnings
+from sphinx.ext.autosummary import _import_by_name
 
-from pandas.compat import u, PY3
+logger = logging.getLogger(__name__)
 
 try:
     raw_input          # Python 2
@@ -48,6 +50,10 @@ sys.path.extend([
 
 ])
 
+# numpydoc is available in the sphinxext directory, and can't be imported
+# until sphinxext is available in the Python path
+from numpydoc.docscrape import NumpyDocString
+
 # -- General configuration -----------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
@@ -60,10 +66,9 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.extlinks',
               'sphinx.ext.todo',
               'numpydoc',
-              'ipython_sphinxext.ipython_directive',
-              'ipython_sphinxext.ipython_console_highlighting',
-              # lowercase didn't work
+              'IPython.sphinxext.ipython_directive',
               'IPython.sphinxext.ipython_console_highlighting',
+              'matplotlib.sphinxext.plot_directive',
               'sphinx.ext.intersphinx',
               'sphinx.ext.coverage',
               'sphinx.ext.mathjax',
@@ -72,7 +77,18 @@ extensions = ['sphinx.ext.autodoc',
               'nbsphinx',
               ]
 
+try:
+    import sphinxcontrib.spelling  # noqa
+except ImportError as err:
+    logger.warn(('sphinxcontrib.spelling failed to import with error "{}". '
+                '`spellcheck` command is not available.'.format(err)))
+else:
+    extensions.append('sphinxcontrib.spelling')
+
 exclude_patterns = ['**.ipynb_checkpoints']
+
+spelling_word_list_filename = ['spelling_wordlist.txt', 'names_wordlist.txt']
+spelling_ignore_pypi_package_names = True
 
 with open("index.rst") as f:
     index_rst_lines = f.readlines()
@@ -86,37 +102,19 @@ autosummary_generate = False
 if any(re.match("\s*api\s*", l) for l in index_rst_lines):
     autosummary_generate = True
 
-files_to_delete = []
-for f in os.listdir(os.path.dirname(__file__)):
-    if (not f.endswith(('.ipynb', '.rst')) or
-            f.startswith('.') or os.path.basename(f) == 'index.rst'):
-        continue
+# numpydoc
+# for now use old parameter listing (styling + **kwargs problem)
+numpydoc_use_blockquotes = True
+# use member listing for attributes
+numpydoc_attributes_as_param_list = False
 
-    _file_basename = os.path.splitext(f)[0]
-    _regex_to_match = "\s*{}\s*$".format(_file_basename)
-    if not any(re.match(_regex_to_match, line) for line in index_rst_lines):
-        files_to_delete.append(f)
-
-if files_to_delete:
-    print("I'm about to DELETE the following:\n{}\n".format(
-        list(sorted(files_to_delete))))
-    sys.stdout.write("WARNING: I'd like to delete those "
-                     "to speed up processing (yes/no)? ")
-    if PY3:
-        answer = input()
-    else:
-        answer = raw_input()
-
-    if answer.lower().strip() in ('y', 'yes'):
-        for f in files_to_delete:
-            f = os.path.join(os.path.join(os.path.dirname(__file__), f))
-            f = os.path.abspath(f)
-            try:
-                print("Deleting {}".format(f))
-                os.unlink(f)
-            except:
-                print("Error deleting {}".format(f))
-                pass
+# matplotlib plot directive
+plot_include_source = True
+plot_formats = [("png", 90)]
+plot_html_show_formats = False
+plot_html_show_source_link = False
+plot_pre_code = """import numpy as np
+import pandas as pd"""
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['../_templates']
@@ -131,8 +129,8 @@ source_encoding = 'utf-8'
 master_doc = 'index'
 
 # General information about the project.
-project = u('pandas')
-copyright = u('2008-2014, the pandas development team')
+project = u'pandas'
+copyright = u'2008-2014, the pandas development team'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -215,15 +213,15 @@ html_theme_path = ['themes']
 # of the sidebar.
 # html_logo = None
 
-# The name of an image file (within the static path) to use as favicon of the
-# docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
-# pixels large.
-# html_favicon = None
-
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+# The name of an image file (within the static path) to use as favicon of the
+# docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
+# pixels large.
+html_favicon = os.path.join(html_static_path[0], 'favicon.ico')
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
@@ -343,8 +341,8 @@ nbsphinx_allow_errors = True
 # file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
     ('index', 'pandas.tex',
-     u('pandas: powerful Python data analysis toolkit'),
-     u('Wes McKinney\n\& PyData Development Team'), 'manual'),
+     u'pandas: powerful Python data analysis toolkit',
+     u'Wes McKinney\n\& PyData Development Team', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -368,6 +366,7 @@ latex_documents = [
 intersphinx_mapping = {
     'statsmodels': ('http://www.statsmodels.org/devel/', None),
     'matplotlib': ('http://matplotlib.org/', None),
+    'pandas-gbq': ('https://pandas-gbq.readthedocs.io/en/latest/', None),
     'python': ('https://docs.python.org/3/', None),
     'numpy': ('https://docs.scipy.org/doc/numpy/', None),
     'scipy': ('https://docs.scipy.org/doc/scipy/reference/', None),
@@ -523,9 +522,27 @@ class PandasAutosummary(Autosummary):
             summary = 'Series plotting accessor and method'
         return (display_name, sig, summary, real_name)
 
+    @staticmethod
+    def _is_deprecated(real_name):
+        try:
+            obj, parent, modname = _import_by_name(real_name)
+        except ImportError:
+            return False
+        doc = NumpyDocString(obj.__doc__ or '')
+        summary = ''.join(doc['Summary'] + doc['Extended Summary'])
+        return '.. deprecated::' in summary
+
+    def _add_deprecation_prefixes(self, items):
+        for item in items:
+            display_name, sig, summary, real_name = item
+            if self._is_deprecated(real_name):
+                summary = '(DEPRECATED) %s' % summary
+            yield display_name, sig, summary, real_name
+
     def get_items(self, names):
         items = Autosummary.get_items(self, names)
         items = [self._replace_pandas_items(*item) for item in items]
+        items = list(self._add_deprecation_prefixes(items))
         return items
 
 
@@ -585,6 +602,45 @@ def remove_flags_docstring(app, what, name, obj, options, lines):
         del lines[:]
 
 
+def process_class_docstrings(app, what, name, obj, options, lines):
+    """
+    For those classes for which we use ::
+
+    :template: autosummary/class_without_autosummary.rst
+
+    the documented attributes/methods have to be listed in the class
+    docstring. However, if one of those lists is empty, we use 'None',
+    which then generates warnings in sphinx / ugly html output.
+    This "autodoc-process-docstring" event connector removes that part
+    from the processed docstring.
+
+    """
+    if what == "class":
+        joined = '\n'.join(lines)
+
+        templates = [
+            """.. rubric:: Attributes
+
+.. autosummary::
+   :toctree:
+
+   None
+""",
+            """.. rubric:: Methods
+
+.. autosummary::
+   :toctree:
+
+   None
+"""
+        ]
+
+        for template in templates:
+            if template in joined:
+                joined = joined.replace(template, '')
+        lines[:] = joined.split('\n')
+
+
 suppress_warnings = [
     # We "overwrite" autosummary with our PandasAutosummary, but
     # still want the regular autosummary setup to run. So we just
@@ -595,6 +651,7 @@ suppress_warnings = [
 
 def setup(app):
     app.connect("autodoc-process-docstring", remove_flags_docstring)
+    app.connect("autodoc-process-docstring", process_class_docstrings)
     app.add_autodocumenter(AccessorDocumenter)
     app.add_autodocumenter(AccessorAttributeDocumenter)
     app.add_autodocumenter(AccessorMethodDocumenter)

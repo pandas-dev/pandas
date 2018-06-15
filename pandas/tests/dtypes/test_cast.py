@@ -22,7 +22,9 @@ from pandas.core.dtypes.cast import (
     maybe_convert_string_to_object,
     maybe_convert_scalar,
     find_common_type,
-    construct_1d_object_array_from_listlike)
+    construct_1d_object_array_from_listlike,
+    construct_1d_ndarray_preserving_na,
+    construct_1d_arraylike_from_scalar)
 from pandas.core.dtypes.dtypes import (
     CategoricalDtype,
     DatetimeTZDtype,
@@ -143,16 +145,6 @@ class TestInferDtype(object):
             dtype, val = infer_dtype_from_scalar(data)
             assert dtype == 'm8[ns]'
 
-        for tz in ['UTC', 'US/Eastern', 'Asia/Tokyo']:
-            dt = Timestamp(1, tz=tz)
-            dtype, val = infer_dtype_from_scalar(dt, pandas_dtype=True)
-            assert dtype == 'datetime64[ns, {0}]'.format(tz)
-            assert val == dt.value
-
-            dtype, val = infer_dtype_from_scalar(dt)
-            assert dtype == np.object_
-            assert val == dt
-
         for freq in ['M', 'D']:
             p = Period('2011-01-01', freq=freq)
             dtype, val = infer_dtype_from_scalar(p, pandas_dtype=True)
@@ -169,6 +161,17 @@ class TestInferDtype(object):
 
             dtype, val = infer_dtype_from_scalar(data)
             assert dtype == np.object_
+
+    @pytest.mark.parametrize('tz', ['UTC', 'US/Eastern', 'Asia/Tokyo'])
+    def testinfer_from_scalar_tz(self, tz):
+        dt = Timestamp(1, tz=tz)
+        dtype, val = infer_dtype_from_scalar(dt, pandas_dtype=True)
+        assert dtype == 'datetime64[ns, {0}]'.format(tz)
+        assert val == dt.value
+
+        dtype, val = infer_dtype_from_scalar(dt)
+        assert dtype == np.object_
+        assert val == dt
 
     def testinfer_dtype_from_scalar_errors(self):
         with pytest.raises(ValueError):
@@ -189,9 +192,9 @@ class TestInferDtype(object):
          (pd.Categorical(list('aabc')), 'category', True),
          (pd.Categorical([1, 2, 3]), 'category', True),
          (Timestamp('20160101'), np.object_, False),
-         (np.datetime64('2016-01-01'), np.dtype('<M8[D]'), False),
+         (np.datetime64('2016-01-01'), np.dtype('=M8[D]'), False),
          (pd.date_range('20160101', periods=3),
-          np.dtype('<M8[ns]'), False),
+          np.dtype('=M8[ns]'), False),
          (pd.date_range('20160101', periods=3, tz='US/Eastern'),
           'datetime64[ns, US/Eastern]', True),
          (pd.Series([1., 2, 3]), np.float64, False),
@@ -299,6 +302,10 @@ class TestMaybe(object):
         result = DataFrame(np.array([[NaT, 'a', 0],
                                      [NaT, 'b', 1]]))
         assert result.size == 6
+
+        # GH19671
+        result = Series(['M1701', Timestamp('20130101')])
+        assert result.dtype.kind == 'O'
 
 
 class TestConvert(object):
@@ -422,3 +429,27 @@ class TestCommonTypes(object):
     @pytest.mark.parametrize('val', [1, 2., None])
     def test_cast_1d_array_invalid_scalar(self, val):
         pytest.raises(TypeError, construct_1d_object_array_from_listlike, val)
+
+    def test_cast_1d_arraylike_from_scalar_categorical(self):
+        # GH 19565 - Categorical result from scalar did not maintain categories
+        # and ordering of the passed dtype
+        cats = ['a', 'b', 'c']
+        cat_type = CategoricalDtype(categories=cats, ordered=False)
+        expected = pd.Categorical(['a', 'a'], categories=cats)
+        result = construct_1d_arraylike_from_scalar('a', len(expected),
+                                                    cat_type)
+        tm.assert_categorical_equal(result, expected,
+                                    check_category_order=True,
+                                    check_dtype=True)
+
+
+@pytest.mark.parametrize('values, dtype, expected', [
+    ([1, 2, 3], None, np.array([1, 2, 3])),
+    (np.array([1, 2, 3]), None, np.array([1, 2, 3])),
+    (['1', '2', None], None, np.array(['1', '2', None])),
+    (['1', '2', None], np.dtype('str'), np.array(['1', '2', None])),
+    ([1, 2, None], np.dtype('str'), np.array(['1', '2', None])),
+])
+def test_construct_1d_ndarray_preserving_na(values, dtype, expected):
+    result = construct_1d_ndarray_preserving_na(values, dtype=dtype)
+    tm.assert_numpy_array_equal(result, expected)

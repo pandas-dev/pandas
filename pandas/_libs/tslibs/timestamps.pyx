@@ -24,7 +24,7 @@ cimport ccalendar
 from conversion import tz_localize_to_utc, date_normalize
 from conversion cimport (tz_convert_single, _TSObject,
                          convert_to_tsobject, convert_datetime_to_tsobject)
-from fields import get_date_field, get_start_end_field
+from fields import get_start_end_field, get_date_name_field
 from nattype import NaT
 from nattype cimport NPY_NAT
 from np_datetime import OutOfBoundsDatetime
@@ -107,6 +107,7 @@ cdef class _Timestamp(datetime):
     cdef readonly:
         int64_t value, nanosecond
         object freq       # frequency reference
+        list _date_attributes
 
     def __hash__(_Timestamp self):
         if self.nanosecond:
@@ -351,6 +352,16 @@ cdef class _Timestamp(datetime):
                                   field, freqstr, month_kw)
         return out[0]
 
+    cpdef _get_date_name_field(self, object field, object locale):
+        cdef:
+            int64_t val
+            ndarray out
+
+        val = self._maybe_convert_value_to_local()
+        out = get_date_name_field(np.array([val], dtype=np.int64),
+                                  field, locale=locale)
+        return out[0]
+
     @property
     def _repr_base(self):
         return '{date} {time}'.format(date=self._date_repr,
@@ -425,6 +436,8 @@ class Timestamp(_Timestamp):
         .. versionadded:: 0.19.0
     hour, minute, second, microsecond : int, optional, default 0
         .. versionadded:: 0.19.0
+    nanosecond : int, optional, default 0
+        .. versionadded:: 0.23.0
     tzinfo : datetime.tzinfo, optional, default None
         .. versionadded:: 0.19.0
 
@@ -556,7 +569,7 @@ class Timestamp(_Timestamp):
                 object freq=None, tz=None, unit=None,
                 year=None, month=None, day=None,
                 hour=None, minute=None, second=None, microsecond=None,
-                tzinfo=None):
+                nanosecond=None, tzinfo=None):
         # The parameter list folds together legacy parameter names (the first
         # four) and positional and keyword parameter names from pydatetime.
         #
@@ -580,6 +593,9 @@ class Timestamp(_Timestamp):
 
         cdef _TSObject ts
 
+        _date_attributes = [year, month, day, hour, minute, second,
+                            microsecond, nanosecond]
+
         if tzinfo is not None:
             if not PyTZInfo_Check(tzinfo):
                 # tzinfo must be a datetime.tzinfo object, GH#17690
@@ -588,7 +604,14 @@ class Timestamp(_Timestamp):
             elif tz is not None:
                 raise ValueError('Can provide at most one of tz, tzinfo')
 
-        if ts_input is _no_input:
+        if is_string_object(ts_input):
+            # User passed a date string to parse.
+            # Check that the user didn't also pass a date attribute kwarg.
+            if any(arg is not None for arg in _date_attributes):
+                raise ValueError('Cannot pass a date attribute keyword '
+                                 'argument when passing a date string')
+
+        elif ts_input is _no_input:
             # User passed keyword arguments.
             if tz is None:
                 # Handle the case where the user passes `tz` and not `tzinfo`
@@ -596,20 +619,20 @@ class Timestamp(_Timestamp):
             return Timestamp(datetime(year, month, day, hour or 0,
                                       minute or 0, second or 0,
                                       microsecond or 0, tzinfo),
-                             tz=tz)
+                             nanosecond=nanosecond, tz=tz)
         elif is_integer_object(freq):
             # User passed positional arguments:
             # Timestamp(year, month, day[, hour[, minute[, second[,
-            # microsecond[, tzinfo]]]]])
+            # microsecond[, nanosecond[, tzinfo]]]]]])
             return Timestamp(datetime(ts_input, freq, tz, unit or 0,
                                       year or 0, month or 0, day or 0,
-                                      hour), tz=hour)
+                                      minute), nanosecond=hour, tz=minute)
 
         if tzinfo is not None:
             # User passed tzinfo instead of tz; avoid silently ignoring
             tz, tzinfo = tzinfo, None
 
-        ts = convert_to_tsobject(ts_input, tz, unit, 0, 0)
+        ts = convert_to_tsobject(ts_input, tz, unit, 0, 0, nanosecond or 0)
 
         if ts.value == NPY_NAT:
             return NaT
@@ -677,6 +700,12 @@ class Timestamp(_Timestamp):
         """
         return self.tzinfo
 
+    @tz.setter
+    def tz(self, value):
+        # GH 3746: Prevent localizing or converting the index by setting tz
+        raise AttributeError("Cannot directly set timezone. Use tz_localize() "
+                             "or tz_convert() as appropriate")
+
     def __setstate__(self, state):
         self.value = state[0]
         self.freq = state[1]
@@ -701,12 +730,50 @@ class Timestamp(_Timestamp):
     def dayofweek(self):
         return self.weekday()
 
+    def day_name(self, locale=None):
+        """
+        Return the day name of the Timestamp with specified locale.
+
+        Parameters
+        ----------
+        locale : string, default None (English locale)
+            locale determining the language in which to return the day name
+
+        Returns
+        -------
+        day_name : string
+
+        .. versionadded:: 0.23.0
+        """
+        return self._get_date_name_field('day_name', locale)
+
+    def month_name(self, locale=None):
+        """
+        Return the month name of the Timestamp with specified locale.
+
+        Parameters
+        ----------
+        locale : string, default None (English locale)
+            locale determining the language in which to return the month name
+
+        Returns
+        -------
+        month_name : string
+
+        .. versionadded:: 0.23.0
+        """
+        return self._get_date_name_field('month_name', locale)
+
     @property
     def weekday_name(self):
-        cdef dict wdays = {0: 'Monday', 1: 'Tuesday', 2: 'Wednesday',
-                           3: 'Thursday', 4: 'Friday', 5: 'Saturday',
-                           6: 'Sunday'}
-        return wdays[self.weekday()]
+        """
+        .. deprecated:: 0.23.0
+            Use ``Timestamp.day_name()`` instead
+        """
+        warnings.warn("`weekday_name` is deprecated and will be removed in a "
+                      "future version. Use `day_name` instead",
+                      FutureWarning)
+        return self.day_name()
 
     @property
     def dayofyear(self):

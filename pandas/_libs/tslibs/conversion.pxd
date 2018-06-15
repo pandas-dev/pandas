@@ -16,7 +16,8 @@ cdef class _TSObject:
 
 
 cdef convert_to_tsobject(object ts, object tz, object unit,
-                         bint dayfirst, bint yearfirst)
+                         bint dayfirst, bint yearfirst,
+                         int32_t nanos=*)
 
 cdef _TSObject convert_datetime_to_tsobject(datetime ts, object tz,
                                             int32_t nanos=*)

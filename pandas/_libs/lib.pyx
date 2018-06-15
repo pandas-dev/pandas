@@ -21,10 +21,8 @@ from cpython cimport (Py_INCREF, PyTuple_SET_ITEM,
                       PyBytes_Check,
                       PyUnicode_Check,
                       PyTuple_New,
+                      Py_EQ,
                       PyObject_RichCompareBool)
-
-cimport cpython
-
 
 from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                PyTime_Check, PyDelta_Check,
@@ -105,6 +103,14 @@ def item_from_zerodim(object val):
     """
     If the value is a zerodim array, return the item it contains.
 
+    Parameters
+    ----------
+    val : object
+
+    Returns
+    -------
+    result : object
+
     Examples
     --------
     >>> item_from_zerodim(1)
@@ -117,7 +123,9 @@ def item_from_zerodim(object val):
     array([1])
 
     """
-    return util.unbox_if_zerodim(val)
+    if cnp.PyArray_IsZeroDim(val):
+        return cnp.PyArray_ToScalar(cnp.PyArray_DATA(val), val)
+    return val
 
 
 @cython.wraparound(False)
@@ -149,7 +157,7 @@ def fast_unique_multiple(list arrays):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def fast_unique_multiple_list(list lists):
+def fast_unique_multiple_list(list lists, bint sort=True):
     cdef:
         list buf
         Py_ssize_t k = len(lists)
@@ -166,10 +174,11 @@ def fast_unique_multiple_list(list lists):
             if val not in table:
                 table[val] = stub
                 uniques.append(val)
-    try:
-        uniques.sort()
-    except Exception:
-        pass
+    if sort:
+        try:
+            uniques.sort()
+        except Exception:
+            pass
 
     return uniques
 
@@ -407,72 +416,6 @@ def maybe_booleans_to_slice(ndarray[uint8_t] mask):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def scalar_compare(ndarray[object] values, object val, object op):
-    cdef:
-        Py_ssize_t i, n = len(values)
-        ndarray[uint8_t, cast=True] result
-        bint isnull_val
-        int flag
-        object x
-
-    if op is operator.lt:
-        flag = cpython.Py_LT
-    elif op is operator.le:
-        flag = cpython.Py_LE
-    elif op is operator.gt:
-        flag = cpython.Py_GT
-    elif op is operator.ge:
-        flag = cpython.Py_GE
-    elif op is operator.eq:
-        flag = cpython.Py_EQ
-    elif op is operator.ne:
-        flag = cpython.Py_NE
-    else:
-        raise ValueError('Unrecognized operator')
-
-    result = np.empty(n, dtype=bool).view(np.uint8)
-    isnull_val = checknull(val)
-
-    if flag == cpython.Py_NE:
-        for i in range(n):
-            x = values[i]
-            if checknull(x):
-                result[i] = True
-            elif isnull_val:
-                result[i] = True
-            else:
-                try:
-                    result[i] = PyObject_RichCompareBool(x, val, flag)
-                except (TypeError):
-                    result[i] = True
-    elif flag == cpython.Py_EQ:
-        for i in range(n):
-            x = values[i]
-            if checknull(x):
-                result[i] = False
-            elif isnull_val:
-                result[i] = False
-            else:
-                try:
-                    result[i] = PyObject_RichCompareBool(x, val, flag)
-                except (TypeError):
-                    result[i] = False
-
-    else:
-        for i in range(n):
-            x = values[i]
-            if checknull(x):
-                result[i] = False
-            elif isnull_val:
-                result[i] = False
-            else:
-                result[i] = PyObject_RichCompareBool(x, val, flag)
-
-    return result.view(bool)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
 cpdef bint array_equivalent_object(object[:] left, object[:] right):
     """ perform an element by element comparion on 1-d object arrays
         taking into account nan positions """
@@ -486,113 +429,10 @@ cpdef bint array_equivalent_object(object[:] left, object[:] right):
 
         # we are either not equal or both nan
         # I think None == None will be true here
-        if not (PyObject_RichCompareBool(x, y, cpython.Py_EQ) or
+        if not (PyObject_RichCompareBool(x, y, Py_EQ) or
                 _checknull(x) and _checknull(y)):
             return False
     return True
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def vec_compare(ndarray[object] left, ndarray[object] right, object op):
-    cdef:
-        Py_ssize_t i, n = len(left)
-        ndarray[uint8_t, cast=True] result
-        int flag
-
-    if n != len(right):
-        raise ValueError('Arrays were different lengths: %d vs %d'
-                         % (n, len(right)))
-
-    if op is operator.lt:
-        flag = cpython.Py_LT
-    elif op is operator.le:
-        flag = cpython.Py_LE
-    elif op is operator.gt:
-        flag = cpython.Py_GT
-    elif op is operator.ge:
-        flag = cpython.Py_GE
-    elif op is operator.eq:
-        flag = cpython.Py_EQ
-    elif op is operator.ne:
-        flag = cpython.Py_NE
-    else:
-        raise ValueError('Unrecognized operator')
-
-    result = np.empty(n, dtype=bool).view(np.uint8)
-
-    if flag == cpython.Py_NE:
-        for i in range(n):
-            x = left[i]
-            y = right[i]
-
-            if checknull(x) or checknull(y):
-                result[i] = True
-            else:
-                result[i] = PyObject_RichCompareBool(x, y, flag)
-    else:
-        for i in range(n):
-            x = left[i]
-            y = right[i]
-
-            if checknull(x) or checknull(y):
-                result[i] = False
-            else:
-                result[i] = PyObject_RichCompareBool(x, y, flag)
-
-    return result.view(bool)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def scalar_binop(ndarray[object] values, object val, object op):
-    cdef:
-        Py_ssize_t i, n = len(values)
-        ndarray[object] result
-        object x
-
-    result = np.empty(n, dtype=object)
-    if _checknull(val):
-        result.fill(val)
-        return result
-
-    for i in range(n):
-        x = values[i]
-        if _checknull(x):
-            result[i] = x
-        else:
-            result[i] = op(x, val)
-
-    return maybe_convert_bool(result)
-
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-def vec_binop(ndarray[object] left, ndarray[object] right, object op):
-    cdef:
-        Py_ssize_t i, n = len(left)
-        ndarray[object] result
-
-    if n != len(right):
-        raise ValueError('Arrays were different lengths: %d vs %d'
-                         % (n, len(right)))
-
-    result = np.empty(n, dtype=object)
-
-    for i in range(n):
-        x = left[i]
-        y = right[i]
-        try:
-            result[i] = op(x, y)
-        except TypeError:
-            if _checknull(x):
-                result[i] = x
-            elif _checknull(y):
-                result[i] = y
-            else:
-                raise
-
-    return maybe_convert_bool(result)
 
 
 def astype_intsafe(ndarray[object] arr, new_dtype):

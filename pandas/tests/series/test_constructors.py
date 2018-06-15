@@ -22,7 +22,7 @@ from pandas import (Index, Series, isna, date_range, Timestamp,
 from pandas._libs import lib
 from pandas._libs.tslib import iNaT
 
-from pandas.compat import lrange, range, zip, long
+from pandas.compat import lrange, range, zip, long, PY36
 from pandas.util.testing import assert_series_equal
 import pandas.util.testing as tm
 
@@ -110,12 +110,43 @@ class TestSeriesConstructors(TestData):
             empty2 = Series(input_class(), index=lrange(10), dtype='float64')
             assert_series_equal(empty, empty2)
 
+            # GH 19853 : with empty string, index and dtype str
+            empty = Series('', dtype=str, index=range(3))
+            empty2 = Series('', index=range(3))
+            assert_series_equal(empty, empty2)
+
     @pytest.mark.parametrize('input_arg', [np.nan, float('nan')])
     def test_constructor_nan(self, input_arg):
         empty = Series(dtype='float64', index=lrange(10))
         empty2 = Series(input_arg, index=lrange(10))
 
         assert_series_equal(empty, empty2, check_index_type=False)
+
+    @pytest.mark.parametrize('dtype', [
+        'f8', 'i8', 'M8[ns]', 'm8[ns]', 'category', 'object',
+        'datetime64[ns, UTC]',
+    ])
+    @pytest.mark.parametrize('index', [None, pd.Index([])])
+    def test_constructor_dtype_only(self, dtype, index):
+        # GH-20865
+        result = pd.Series(dtype=dtype, index=index)
+        assert result.dtype == dtype
+        assert len(result) == 0
+
+    def test_constructor_no_data_index_order(self):
+        result = pd.Series(index=['b', 'a', 'c'])
+        assert result.index.tolist() == ['b', 'a', 'c']
+
+    def test_constructor_dtype_str_na_values(self, string_dtype):
+        # https://github.com/pandas-dev/pandas/issues/21083
+        ser = Series(['x', None], dtype=string_dtype)
+        result = ser.isna()
+        expected = Series([False, True])
+        tm.assert_series_equal(result, expected)
+        assert ser.iloc[1] is None
+
+        ser = Series(['x', np.nan], dtype=string_dtype)
+        assert np.isnan(ser.iloc[1])
 
     def test_constructor_series(self):
         index1 = ['d', 'b', 'a', 'c']
@@ -144,22 +175,25 @@ class TestSeriesConstructors(TestData):
 
     @pytest.mark.parametrize('input_vals', [
         ([1, 2]),
-        ([1.0, 2.0, np.nan]),
         (['1', '2']),
         (list(pd.date_range('1/1/2011', periods=2, freq='H'))),
         (list(pd.date_range('1/1/2011', periods=2, freq='H',
                             tz='US/Eastern'))),
         ([pd.Interval(left=0, right=5)]),
     ])
-    def test_constructor_list_str(self, input_vals):
+    def test_constructor_list_str(self, input_vals, string_dtype):
         # GH 16605
         # Ensure that data elements from a list are converted to strings
         # when dtype is str, 'str', or 'U'
+        result = Series(input_vals, dtype=string_dtype)
+        expected = Series(input_vals).astype(string_dtype)
+        assert_series_equal(result, expected)
 
-        for dtype in ['str', str, 'U']:
-            result = Series(input_vals, dtype=dtype)
-            expected = Series(input_vals).astype(dtype)
-            assert_series_equal(result, expected)
+    def test_constructor_list_str_na(self, string_dtype):
+        result = Series([1.0, 2.0, np.nan], dtype=string_dtype)
+        expected = Series(['1.0', '2.0', np.nan], dtype=object)
+        assert_series_equal(result, expected)
+        assert np.isnan(result[2])
 
     def test_constructor_generator(self):
         gen = (i for i in range(10))
@@ -269,6 +303,13 @@ class TestSeriesConstructors(TestData):
         assert is_categorical_dtype(result)
         tm.assert_index_equal(result.cat.categories, pd.Index(['b', 'a']))
         assert result.cat.ordered is False
+
+        # GH 19565 - Check broadcasting of scalar with Categorical dtype
+        result = Series('a', index=[0, 1],
+                        dtype=CategoricalDtype(['a', 'b'], ordered=True))
+        expected = Series(['a', 'a'], index=[0, 1],
+                          dtype=CategoricalDtype(['a', 'b'], ordered=True))
+        tm.assert_series_equal(result, expected, check_categorical=True)
 
     def test_categorical_sideeffects_free(self):
         # Passing a categorical to a Series and then changing values in either
@@ -392,6 +433,34 @@ class TestSeriesConstructors(TestData):
     def test_constructor_default_index(self):
         s = Series([0, 1, 2])
         tm.assert_index_equal(s.index, pd.Index(np.arange(3)))
+
+    @pytest.mark.parametrize('input', [[1, 2, 3],
+                                       (1, 2, 3),
+                                       list(range(3)),
+                                       pd.Categorical(['a', 'b', 'a']),
+                                       (i for i in range(3)),
+                                       map(lambda x: x, range(3))])
+    def test_constructor_index_mismatch(self, input):
+        # GH 19342
+        # test that construction of a Series with an index of different length
+        # raises an error
+        msg = 'Length of passed values is 3, index implies 4'
+        with pytest.raises(ValueError, message=msg):
+            Series(input, index=np.arange(4))
+
+    def test_constructor_numpy_scalar(self):
+        # GH 19342
+        # construction with a numpy scalar
+        # should not raise
+        result = Series(np.array(100), index=np.arange(4), dtype='int64')
+        expected = Series(100, index=np.arange(4), dtype='int64')
+        tm.assert_series_equal(result, expected)
+
+    def test_constructor_broadcast_list(self):
+        # GH 19342
+        # construction with single-element container and index
+        # should raise
+        pytest.raises(ValueError, Series, ['foo'], index=['a', 'b', 'c'])
 
     def test_constructor_corner(self):
         df = tm.makeTimeDataFrame()
@@ -775,6 +844,18 @@ class TestSeriesConstructors(TestData):
         expected.iloc[0] = 0
         expected.iloc[1] = 1
         assert_series_equal(result, expected)
+
+    def test_constructor_dict_order(self):
+        # GH19018
+        # initialization ordering: by insertion order if python>= 3.6, else
+        # order by value
+        d = {'b': 1, 'a': 0, 'c': 2}
+        result = Series(d)
+        if PY36:
+            expected = Series([1, 0, 2], index=list('bac'))
+        else:
+            expected = Series([0, 1, 2], index=list('abc'))
+        tm.assert_series_equal(result, expected)
 
     @pytest.mark.parametrize("value", [2, np.nan, None, float('nan')])
     def test_constructor_dict_nan_key(self, value):

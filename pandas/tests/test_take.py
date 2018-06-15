@@ -3,6 +3,7 @@ import re
 from datetime import datetime
 
 import numpy as np
+import pytest
 from pandas.compat import long
 import pandas.core.algorithms as algos
 import pandas.util.testing as tm
@@ -445,3 +446,70 @@ class TestTake(object):
         expected = arr.take(indexer, axis=1)
         expected[:, [2, 4]] = datetime(2007, 1, 1)
         tm.assert_almost_equal(result, expected)
+
+    def test_take_axis_0(self):
+        arr = np.arange(12).reshape(4, 3)
+        result = algos.take(arr, [0, -1])
+        expected = np.array([[0, 1, 2], [9, 10, 11]])
+        tm.assert_numpy_array_equal(result, expected)
+
+        # allow_fill=True
+        result = algos.take(arr, [0, -1], allow_fill=True, fill_value=0)
+        expected = np.array([[0, 1, 2], [0, 0, 0]])
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_take_axis_1(self):
+        arr = np.arange(12).reshape(4, 3)
+        result = algos.take(arr, [0, -1], axis=1)
+        expected = np.array([[0, 2], [3, 5], [6, 8], [9, 11]])
+        tm.assert_numpy_array_equal(result, expected)
+
+        # allow_fill=True
+        result = algos.take(arr, [0, -1], axis=1, allow_fill=True,
+                            fill_value=0)
+        expected = np.array([[0, 0], [3, 0], [6, 0], [9, 0]])
+        tm.assert_numpy_array_equal(result, expected)
+
+
+class TestExtensionTake(object):
+    # The take method found in pd.api.extensions
+
+    def test_bounds_check_large(self):
+        arr = np.array([1, 2])
+        with pytest.raises(IndexError):
+            algos.take(arr, [2, 3], allow_fill=True)
+
+        with pytest.raises(IndexError):
+            algos.take(arr, [2, 3], allow_fill=False)
+
+    def test_bounds_check_small(self):
+        arr = np.array([1, 2, 3], dtype=np.int64)
+        indexer = [0, -1, -2]
+        with pytest.raises(ValueError):
+            algos.take(arr, indexer, allow_fill=True)
+
+        result = algos.take(arr, indexer)
+        expected = np.array([1, 3, 2], dtype=np.int64)
+        tm.assert_numpy_array_equal(result, expected)
+
+    @pytest.mark.parametrize('allow_fill', [True, False])
+    def test_take_empty(self, allow_fill):
+        arr = np.array([], dtype=np.int64)
+        # empty take is ok
+        result = algos.take(arr, [], allow_fill=allow_fill)
+        tm.assert_numpy_array_equal(arr, result)
+
+        with pytest.raises(IndexError):
+            algos.take(arr, [0], allow_fill=allow_fill)
+
+    def test_take_na_empty(self):
+        result = algos.take(np.array([]), [-1, -1], allow_fill=True,
+                            fill_value=0.0)
+        expected = np.array([0., 0.])
+        tm.assert_numpy_array_equal(result, expected)
+
+    def test_take_coerces_list(self):
+        arr = [1, 2, 3]
+        result = algos.take(arr, [0, 0])
+        expected = np.array([1, 1])
+        tm.assert_numpy_array_equal(result, expected)

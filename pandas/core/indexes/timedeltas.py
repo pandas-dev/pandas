@@ -1,7 +1,6 @@
 """ implement the TimedeltaIndex """
 
 from datetime import timedelta
-import warnings
 
 import numpy as np
 from pandas.core.dtypes.common import (
@@ -29,7 +28,8 @@ from pandas.core.indexes.base import _index_shared_docs
 import pandas.core.common as com
 import pandas.core.dtypes.concat as _concat
 from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
-from pandas.core.indexes.datetimelike import TimelikeOps, DatetimeIndexOpsMixin
+from pandas.core.indexes.datetimelike import (
+    TimelikeOps, DatetimeIndexOpsMixin)
 from pandas.core.tools.timedeltas import (
     to_timedelta, _coerce_scalar_to_timedelta_type)
 from pandas.tseries.offsets import Tick, DateOffset
@@ -60,30 +60,28 @@ def _td_index_cmp(opname, cls):
     nat_result = True if opname == '__ne__' else False
 
     def wrapper(self, other):
-        msg = "cannot compare a TimedeltaIndex with type {0}"
+        msg = "cannot compare a {cls} with type {typ}"
         func = getattr(super(TimedeltaIndex, self), opname)
         if _is_convertible_to_td(other) or other is NaT:
             try:
                 other = _to_m8(other)
             except ValueError:
                 # failed to parse as timedelta
-                raise TypeError(msg.format(type(other)))
+                raise TypeError(msg.format(cls=type(self).__name__,
+                                           typ=type(other).__name__))
             result = func(other)
             if isna(other):
                 result.fill(nat_result)
-        else:
-            if not is_list_like(other):
-                raise TypeError(msg.format(type(other)))
 
+        elif not is_list_like(other):
+            raise TypeError(msg.format(cls=type(self).__name__,
+                                       typ=type(other).__name__))
+        else:
             other = TimedeltaIndex(other).values
             result = func(other)
             result = com._values_from_object(result)
 
-            if isinstance(other, Index):
-                o_mask = other.values.view('i8') == iNaT
-            else:
-                o_mask = other.view('i8') == iNaT
-
+            o_mask = np.array(isna(other))
             if o_mask.any():
                 result[o_mask] = nat_result
 
@@ -198,12 +196,11 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     _is_numeric_dtype = True
     _infer_as_myclass = True
 
-    freq = None
+    _freq = None
 
-    def __new__(cls, data=None, unit=None,
-                freq=None, start=None, end=None, periods=None,
-                copy=False, name=None,
-                closed=None, verify_integrity=True, **kwargs):
+    def __new__(cls, data=None, unit=None, freq=None, start=None, end=None,
+                periods=None, closed=None, dtype=None, copy=False,
+                name=None, verify_integrity=True):
 
         if isinstance(data, TimedeltaIndex) and freq is None and name is None:
             if copy:
@@ -228,13 +225,13 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                 msg = 'periods must be a number, got {periods}'
                 raise TypeError(msg.format(periods=periods))
 
-        if data is None and freq is None:
-            raise ValueError("Must provide freq argument if no data is "
-                             "supplied")
-
         if data is None:
-            return cls._generate(start, end, periods, name, freq,
-                                 closed=closed)
+            if freq is None and com._any_none(periods, start, end):
+                msg = 'Must provide freq argument if no data is supplied'
+                raise ValueError(msg)
+            else:
+                return cls._generate(start, end, periods, name, freq,
+                                     closed=closed)
 
         if unit is not None:
             data = to_timedelta(data, unit=unit, box=False)
@@ -255,15 +252,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         if verify_integrity and len(data) > 0:
             if freq is not None and not freq_infer:
                 index = cls._simple_new(data, name=name)
-                inferred = index.inferred_freq
-                if inferred != freq.freqstr:
-                    on_freq = cls._generate(
-                        index[0], None, len(index), name, freq)
-                    if not np.array_equal(index.asi8, on_freq.asi8):
-                        raise ValueError('Inferred frequency {0} from passed '
-                                         'timedeltas does not conform to '
-                                         'passed frequency {1}'
-                                         .format(inferred, freq.freqstr))
+                cls._validate_frequency(index, freq)
                 index.freq = freq
                 return index
 
@@ -277,10 +266,10 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         return cls._simple_new(data, name=name, freq=freq)
 
     @classmethod
-    def _generate(cls, start, end, periods, name, offset, closed=None):
-        if com._count_not_none(start, end, periods) != 2:
-            raise ValueError('Of the three parameters: start, end, and '
-                             'periods, exactly two must be specified')
+    def _generate(cls, start, end, periods, name, freq, closed=None):
+        if com._count_not_none(start, end, periods, freq) != 3:
+            raise ValueError('Of the four parameters: start, end, periods, '
+                             'and freq, exactly three must be specified')
 
         if start is not None:
             start = Timedelta(start)
@@ -306,8 +295,11 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         else:
             raise ValueError("Closed has to be either 'left', 'right' or None")
 
-        index = _generate_regular_range(start, end, periods, offset)
-        index = cls._simple_new(index, name=name, freq=offset)
+        if freq is not None:
+            index = _generate_regular_range(start, end, periods, freq)
+            index = cls._simple_new(index, name=name, freq=freq)
+        else:
+            index = to_timedelta(np.linspace(start.value, end.value, periods))
 
         if not left_closed:
             index = index[1:]
@@ -331,7 +323,7 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         result = object.__new__(cls)
         result._data = values
         result.name = name
-        result.freq = freq
+        result._freq = freq
         result._reset_identity()
         return result
 
@@ -356,6 +348,12 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             attrs['freq'] = 'infer'
         return attrs
 
+    def _add_offset(self, other):
+        assert not isinstance(other, Tick)
+        raise TypeError("cannot add the type {typ} to a {cls}"
+                        .format(typ=type(other).__name__,
+                                cls=type(self).__name__))
+
     def _add_delta(self, delta):
         """
         Add a timedelta-like, Tick, or TimedeltaIndex-like object
@@ -377,6 +375,10 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         if isinstance(delta, (Tick, timedelta, np.timedelta64)):
             new_values = self._add_delta_td(delta)
         elif isinstance(delta, TimedeltaIndex):
+            new_values = self._add_delta_tdi(delta)
+        elif is_timedelta64_dtype(delta):
+            # ndarray[timedelta64] --> wrap in TimedeltaIndex
+            delta = TimedeltaIndex(delta)
             new_values = self._add_delta_tdi(delta)
         else:
             raise TypeError("cannot add the type {0} to a TimedeltaIndex"
@@ -413,10 +415,13 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     def _add_datelike(self, other):
         # adding a timedeltaindex to a datetimelike
         from pandas import Timestamp, DatetimeIndex
-        if other is NaT:
-            # GH#19124 pd.NaT is treated like a timedelta
-            return self._nat_new()
+        if isinstance(other, (DatetimeIndex, np.ndarray)):
+            # if other is an ndarray, we assume it is datetime64-dtype
+            # defer to implementation in DatetimeIndex
+            other = DatetimeIndex(other)
+            return other + self
         else:
+            assert other is not NaT
             other = Timestamp(other)
             i8 = self.asi8
             result = checked_add_with_arr(i8, other.value,
@@ -425,51 +430,20 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             return DatetimeIndex(result)
 
     def _sub_datelike(self, other):
-        # GH#19124 Timedelta - datetime is not in general well-defined.
-        # We make an exception for pd.NaT, which in this case quacks
-        # like a timedelta.
-        if other is NaT:
-            return self._nat_new()
-        else:
-            raise TypeError("cannot subtract a datelike from a TimedeltaIndex")
+        assert other is not NaT
+        raise TypeError("cannot subtract a datelike from a {cls}"
+                        .format(cls=type(self).__name__))
 
-    def _add_offset_array(self, other):
-        # Array/Index of DateOffset objects
+    def _addsub_offset_array(self, other, op):
+        # Add or subtract Array-like of DateOffset objects
         try:
             # TimedeltaIndex can only operate with a subset of DateOffset
             # subclasses.  Incompatible classes will raise AttributeError,
             # which we re-raise as TypeError
-            if len(other) == 1:
-                return self + other[0]
-            else:
-                from pandas.errors import PerformanceWarning
-                warnings.warn("Adding/subtracting array of DateOffsets to "
-                              "{} not vectorized".format(type(self)),
-                              PerformanceWarning)
-                return self.astype('O') + np.array(other)
-                # TODO: pass freq='infer' like we do in _sub_offset_array?
-                # TODO: This works for __add__ but loses dtype in __sub__
+            return DatetimeIndexOpsMixin._addsub_offset_array(self, other, op)
         except AttributeError:
-            raise TypeError("Cannot add non-tick DateOffset to TimedeltaIndex")
-
-    def _sub_offset_array(self, other):
-        # Array/Index of DateOffset objects
-        try:
-            # TimedeltaIndex can only operate with a subset of DateOffset
-            # subclasses.  Incompatible classes will raise AttributeError,
-            # which we re-raise as TypeError
-            if len(other) == 1:
-                return self - other[0]
-            else:
-                from pandas.errors import PerformanceWarning
-                warnings.warn("Adding/subtracting array of DateOffsets to "
-                              "{} not vectorized".format(type(self)),
-                              PerformanceWarning)
-                res_values = self.astype('O').values - np.array(other)
-                return self.__class__(res_values, freq='infer')
-        except AttributeError:
-            raise TypeError("Cannot subtrack non-tick DateOffset from"
-                            " TimedeltaIndex")
+            raise TypeError("Cannot add/subtract non-tick DateOffset to {cls}"
+                            .format(cls=type(self).__name__))
 
     def _format_native_types(self, na_rep=u('NaT'),
                              date_format=None, **kwargs):
@@ -522,7 +496,57 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
     def total_seconds(self):
         """
-        Total duration of each element expressed in seconds.
+        Return total duration of each element expressed in seconds.
+
+        This method is available directly on TimedeltaIndex and on Series
+        containing timedelta values under the ``.dt`` namespace.
+
+        Returns
+        -------
+        seconds : Float64Index or Series
+            When the calling object is a TimedeltaIndex, the return type is a
+            Float64Index. When the calling object is a Series, the return type
+            is Series of type `float64` whose index is the same as the
+            original.
+
+        See Also
+        --------
+        datetime.timedelta.total_seconds : Standard library version
+            of this method.
+        TimedeltaIndex.components : Return a DataFrame with components of
+            each Timedelta.
+
+        Examples
+        --------
+        **Series**
+
+        >>> s = pd.Series(pd.to_timedelta(np.arange(5), unit='d'))
+        >>> s
+        0   0 days
+        1   1 days
+        2   2 days
+        3   3 days
+        4   4 days
+        dtype: timedelta64[ns]
+
+        >>> s.dt.total_seconds()
+        0         0.0
+        1     86400.0
+        2    172800.0
+        3    259200.0
+        4    345600.0
+        dtype: float64
+
+        **TimedeltaIndex**
+
+        >>> idx = pd.to_timedelta(np.arange(5), unit='d')
+        >>> idx
+        TimedeltaIndex(['0 days', '1 days', '2 days', '3 days', '4 days'],
+                       dtype='timedelta64[ns]', freq=None)
+
+        >>> idx.total_seconds()
+        Float64Index([0.0, 86400.0, 172800.0, 259200.00000000003, 345600.0],
+                     dtype='float64')
         """
         return Index(self._maybe_mask_results(1e-9 * self.asi8),
                      name=self.name)
@@ -801,7 +825,8 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             else:
                 return (lbound + to_offset(parsed.resolution) -
                         Timedelta(1, 'ns'))
-        elif is_integer(label) or is_float(label):
+        elif ((is_integer(label) or is_float(label)) and
+              not is_timedelta64_dtype(label)):
             self._invalid_indexer('slice', label)
 
         return label
@@ -986,8 +1011,7 @@ def _is_convertible_to_index(other):
 
 
 def _is_convertible_to_td(key):
-    # TODO: Not all DateOffset objects are convertible to Timedelta
-    return isinstance(key, (DateOffset, timedelta, Timedelta,
+    return isinstance(key, (Tick, timedelta,
                             np.timedelta64, compat.string_types))
 
 
@@ -1025,7 +1049,7 @@ def _generate_regular_range(start, end, periods, offset):
     return data
 
 
-def timedelta_range(start=None, end=None, periods=None, freq='D',
+def timedelta_range(start=None, end=None, periods=None, freq=None,
                     name=None, closed=None):
     """
     Return a fixed frequency TimedeltaIndex, with day as the default
@@ -1053,8 +1077,10 @@ def timedelta_range(start=None, end=None, periods=None, freq='D',
 
     Notes
     -----
-    Of the three parameters: ``start``, ``end``, and ``periods``, exactly two
-    must be specified.
+    Of the four parameters ``start``, ``end``, ``periods``, and ``freq``,
+    exactly three must be specified. If ``freq`` is omitted, the resulting
+    ``TimedeltaIndex`` will have ``periods`` linearly spaced elements between
+    ``start`` and ``end`` (closed on both sides).
 
     To learn more about the frequency strings, please see `this link
     <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
@@ -1081,6 +1107,17 @@ def timedelta_range(start=None, end=None, periods=None, freq='D',
     TimedeltaIndex(['1 days 00:00:00', '1 days 06:00:00', '1 days 12:00:00',
                     '1 days 18:00:00', '2 days 00:00:00'],
                    dtype='timedelta64[ns]', freq='6H')
+
+    Specify ``start``, ``end``, and ``periods``; the frequency is generated
+    automatically (linearly spaced).
+
+    >>> pd.timedelta_range(start='1 day', end='5 days', periods=4)
+    TimedeltaIndex(['1 days 00:00:00', '2 days 08:00:00', '3 days 16:00:00',
+                '5 days 00:00:00'],
+               dtype='timedelta64[ns]', freq=None)
     """
+    if freq is None and com._any_none(periods, start, end):
+        freq = 'D'
+
     return TimedeltaIndex(start=start, end=end, periods=periods,
                           freq=freq, name=name, closed=closed)

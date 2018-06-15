@@ -417,7 +417,8 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
                         ndarray[int64_t] labels,
                         bint is_datetimelike, object ties_method,
                         bint ascending, bint pct, object na_option):
-    """Provides the rank of values within each group
+    """
+    Provides the rank of values within each group.
 
     Parameters
     ----------
@@ -425,17 +426,25 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
     values : array of {{c_type}} values to be ranked
     labels : array containing unique label for each group, with its ordering
         matching up to the corresponding record in `values`
-    is_datetimelike : bool
-        unused in this method but provided for call compatability with other
+    is_datetimelike : bool, default False
+        unused in this method but provided for call compatibility with other
         Cython transformations
-    ties_method :  {'keep', 'top', 'bottom'}
+    ties_method : {'average', 'min', 'max', 'first', 'dense'}, default
+        'average'
+        * average: average rank of group
+        * min: lowest rank in group
+        * max: highest rank in group
+        * first: ranks assigned in order they appear in the array
+        * dense: like 'min', but rank always increases by 1 between groups
+    ascending : boolean, default True
+        False for ranks by high (1) to low (N)
+        na_option : {'keep', 'top', 'bottom'}, default 'keep'
+    pct : boolean, default False
+        Compute percentage rank of data within each group
+    na_option : {'keep', 'top', 'bottom'}, default 'keep'
         * keep: leave NA values where they are
         * top: smallest rank if ascending
         * bottom: smallest rank if descending
-    ascending : boolean
-        False for ranks by high (1) to low (N)
-    pct : boolean
-        Compute percentage rank of data within each group
 
     Notes
     -----
@@ -443,8 +452,8 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
     """
     cdef:
         TiebreakEnumType tiebreak
-        Py_ssize_t i, j, N, K, val_start=0, grp_start=0, dups=0, sum_ranks=0
-        Py_ssize_t grp_vals_seen=1, grp_na_count=0
+        Py_ssize_t i, j, N, K, grp_start=0, dups=0, sum_ranks=0
+        Py_ssize_t grp_vals_seen=1, grp_na_count=0, grp_tie_count=0
         ndarray[int64_t] _as
         ndarray[float64_t, ndim=2] grp_sizes
         ndarray[{{c_type}}] masked_vals
@@ -506,25 +515,22 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
             dups += 1
             sum_ranks += i - grp_start + 1
 
-            # if keep_na, check for missing values and assign back
-            # to the result where appropriate
-            if keep_na and masked_vals[_as[i]] == nan_fill_val:
-                grp_na_count += 1
-                out[_as[i], 0] = nan
-            else:
-                # this implementation is inefficient because it will
-                # continue overwriting previously encountered dups
-                # i.e. if 5 duplicated values are encountered it will
-                # write to the result as follows (assumes avg tiebreaker):
-                # 1
-                # .5  .5
-                # .33 .33 .33
-                # .25 .25 .25 .25
-                # .2  .2  .2  .2  .2
-                #
-                # could potentially be optimized to only write to the
-                # result once the last duplicate value is encountered
-                if tiebreak == TIEBREAK_AVERAGE:
+            # Update out only when there is a transition of values or labels.
+            # When a new value or group is encountered, go back #dups steps(
+            # the number of occurrence of current value) and assign the ranks
+            # based on the the starting index of the current group (grp_start)
+            # and the current index
+            if (i == N - 1 or
+                    (masked_vals[_as[i]] != masked_vals[_as[i+1]]) or
+                    (mask[_as[i]] ^ mask[_as[i+1]]) or
+                    (labels[_as[i]] != labels[_as[i+1]])):
+                # if keep_na, check for missing values and assign back
+                # to the result where appropriate
+                if keep_na and mask[_as[i]]:
+                    for j in range(i - dups + 1, i + 1):
+                        out[_as[j], 0] = nan
+                        grp_na_count = dups
+                elif tiebreak == TIEBREAK_AVERAGE:
                     for j in range(i - dups + 1, i + 1):
                         out[_as[j], 0] = sum_ranks / <float64_t>dups
                 elif tiebreak == TIEBREAK_MIN:
@@ -543,32 +549,38 @@ def group_rank_{{name}}(ndarray[float64_t, ndim=2] out,
                     for j in range(i - dups + 1, i + 1):
                         out[_as[j], 0] = grp_vals_seen
 
-            # look forward to the next value (using the sorting in _as)
-            # if the value does not equal the current value then we need to
-            # reset the dups and sum_ranks, knowing that a new value is coming
-            # up. the conditional also needs to handle nan equality and the
-            # end of iteration
-            if (i == N - 1 or (
-                    (masked_vals[_as[i]] != masked_vals[_as[i+1]]) and not
-                    (mask[_as[i]] and mask[_as[i+1]]))):
-                dups = sum_ranks = 0
-                val_start = i
-                grp_vals_seen += 1
+                # look forward to the next value (using the sorting in _as)
+                # if the value does not equal the current value then we need to
+                # reset the dups and sum_ranks, knowing that a new value is
+                # coming up. the conditional also needs to handle nan equality
+                # and the end of iteration
+                if (i == N - 1 or
+                        (masked_vals[_as[i]] != masked_vals[_as[i+1]]) or
+                        (mask[_as[i]] ^ mask[_as[i+1]])):
+                    dups = sum_ranks = 0
+                    grp_vals_seen += 1
+                    grp_tie_count += 1
 
-            # Similar to the previous conditional, check now if we are moving
-            # to a new group. If so, keep track of the index where the new
-            # group occurs, so the tiebreaker calculations can decrement that
-            # from their position. fill in the size of each group encountered
-            # (used by pct calculations later). also be sure to reset any of
-            # the items helping to calculate dups
-            if i == N - 1 or labels[_as[i]] != labels[_as[i+1]]:
-                for j in range(grp_start, i + 1):
-                    grp_sizes[_as[j], 0] = i - grp_start + 1 - grp_na_count
-                dups = sum_ranks = 0
-                grp_na_count = 0
-                val_start = i + 1
-                grp_start = i + 1
-                grp_vals_seen = 1
+                # Similar to the previous conditional, check now if we are
+                # moving to a new group. If so, keep track of the index where
+                # the new group occurs, so the tiebreaker calculations can
+                # decrement that from their position. fill in the size of each
+                # group encountered (used by pct calculations later). also be
+                # sure to reset any of the items helping to calculate dups
+                if i == N - 1 or labels[_as[i]] != labels[_as[i+1]]:
+                    if tiebreak != TIEBREAK_DENSE:
+                        for j in range(grp_start, i + 1):
+                            grp_sizes[_as[j], 0] = (i - grp_start + 1 -
+                                                    grp_na_count)
+                    else:
+                        for j in range(grp_start, i + 1):
+                            grp_sizes[_as[j], 0] = (grp_tie_count -
+                                                    (grp_na_count > 0))
+                    dups = sum_ranks = 0
+                    grp_na_count = 0
+                    grp_tie_count = 0
+                    grp_start = i + 1
+                    grp_vals_seen = 1
 
         if pct:
             for i in range(N):
@@ -791,166 +803,3 @@ def group_cummax_{{name}}(ndarray[{{dest_type2}}, ndim=2] out,
                     out[i, j] = mval
 
 {{endfor}}
-
-#----------------------------------------------------------------------
-# other grouping functions not needing a template
-#----------------------------------------------------------------------
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def group_median_float64(ndarray[float64_t, ndim=2] out,
-                         ndarray[int64_t] counts,
-                         ndarray[float64_t, ndim=2] values,
-                         ndarray[int64_t] labels,
-                         Py_ssize_t min_count=-1):
-    """
-    Only aggregates on axis=0
-    """
-    cdef:
-        Py_ssize_t i, j, N, K, ngroups, size
-        ndarray[int64_t] _counts
-        ndarray data
-        float64_t* ptr
-
-    assert min_count == -1, "'min_count' only used in add and prod"
-
-    ngroups = len(counts)
-    N, K = (<object> values).shape
-
-    indexer, _counts = groupsort_indexer(labels, ngroups)
-    counts[:] = _counts[1:]
-
-    data = np.empty((K, N), dtype=np.float64)
-    ptr = <float64_t*> data.data
-
-    take_2d_axis1_float64_float64(values.T, indexer, out=data)
-
-    with nogil:
-
-        for i in range(K):
-            # exclude NA group
-            ptr += _counts[0]
-            for j in range(ngroups):
-                size = _counts[j + 1]
-                out[j, i] = median_linear(ptr, size)
-                ptr += size
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def group_cumprod_float64(float64_t[:, :] out,
-                          float64_t[:, :] values,
-                          int64_t[:] labels,
-                          bint is_datetimelike):
-    """
-    Only transforms on axis=0
-    """
-    cdef:
-        Py_ssize_t i, j, N, K, size
-        float64_t val
-        float64_t[:, :] accum
-        int64_t lab
-
-    N, K = (<object> values).shape
-    accum = np.ones_like(values)
-
-    with nogil:
-        for i in range(N):
-            lab = labels[i]
-
-            if lab < 0:
-                continue
-            for j in range(K):
-                val = values[i, j]
-                if val == val:
-                    accum[lab, j] *= val
-                    out[i, j] = accum[lab, j]
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def group_cumsum(numeric[:, :] out,
-                 numeric[:, :] values,
-                 int64_t[:] labels,
-                 is_datetimelike):
-    """
-    Only transforms on axis=0
-    """
-    cdef:
-        Py_ssize_t i, j, N, K, size
-        numeric val
-        numeric[:, :] accum
-        int64_t lab
-
-    N, K = (<object> values).shape
-    accum = np.zeros_like(values)
-
-    with nogil:
-        for i in range(N):
-            lab = labels[i]
-
-            if lab < 0:
-                continue
-            for j in range(K):
-                val = values[i, j]
-
-                if numeric == float32_t or numeric == float64_t:
-                    if val == val:
-                        accum[lab, j] += val
-                        out[i, j] = accum[lab, j]
-                else:
-                    accum[lab, j] += val
-                    out[i, j] = accum[lab, j]
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def group_shift_indexer(int64_t[:] out, int64_t[:] labels,
-                        int ngroups, int periods):
-    cdef:
-        Py_ssize_t N, i, j, ii
-        int offset, sign
-        int64_t lab, idxer, idxer_slot
-        int64_t[:] label_seen = np.zeros(ngroups, dtype=np.int64)
-        int64_t[:, :] label_indexer
-
-    N, = (<object> labels).shape
-
-    if periods < 0:
-        periods = -periods
-        offset = N - 1
-        sign = -1
-    elif periods > 0:
-        offset = 0
-        sign = 1
-
-    if periods == 0:
-        with nogil:
-            for i in range(N):
-                out[i] = i
-    else:
-        # array of each previous indexer seen
-        label_indexer = np.zeros((ngroups, periods), dtype=np.int64)
-        with nogil:
-            for i in range(N):
-                ## reverse iterator if shifting backwards
-                ii = offset + sign * i
-                lab = labels[ii]
-
-                # Skip null keys
-                if lab == -1:
-                    out[ii] = -1
-                    continue
-
-                label_seen[lab] += 1
-
-                idxer_slot = label_seen[lab] % periods
-                idxer = label_indexer[lab, idxer_slot]
-
-                if label_seen[lab] > periods:
-                    out[ii] = idxer
-                else:
-                    out[ii] = -1
-
-                label_indexer[lab, idxer_slot] = ii

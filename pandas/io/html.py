@@ -14,8 +14,7 @@ import numpy as np
 
 from pandas.core.dtypes.common import is_list_like
 from pandas.errors import EmptyDataError
-from pandas.io.common import (_is_url, urlopen,
-                              parse_url, _validate_header_arg)
+from pandas.io.common import _is_url, urlopen, _validate_header_arg
 from pandas.io.parsers import TextParser
 from pandas.compat import (lrange, lmap, u, string_types, iteritems,
                            raise_with_traceback, binary_type)
@@ -160,6 +159,14 @@ class _HtmlFrameParser(object):
     attrs : dict
         List of HTML <table> element attributes to match.
 
+    encoding : str
+        Encoding to be used by parser
+
+    displayed_only : bool
+        Whether or not items with "display:none" should be ignored
+
+        .. versionadded:: 0.23.0
+
     Attributes
     ----------
     io : str or file-like
@@ -171,6 +178,14 @@ class _HtmlFrameParser(object):
     attrs : dict-like
         A dictionary of valid table attributes to use to search for table
         elements.
+
+    encoding : str
+        Encoding to be used by parser
+
+    displayed_only : bool
+        Whether or not items with "display:none" should be ignored
+
+        .. versionadded:: 0.23.0
 
     Notes
     -----
@@ -187,11 +202,12 @@ class _HtmlFrameParser(object):
     functionality.
     """
 
-    def __init__(self, io, match, attrs, encoding):
+    def __init__(self, io, match, attrs, encoding, displayed_only):
         self.io = io
         self.match = match
         self.attrs = attrs
         self.encoding = encoding
+        self.displayed_only = displayed_only
 
     def parse_tables(self):
         tables = self._parse_tables(self._build_doc(), self.match, self.attrs)
@@ -308,7 +324,7 @@ class _HtmlFrameParser(object):
         raise com.AbstractMethodError(self)
 
     def _parse_tbody(self, table):
-        """Return the body of the table.
+        """Return the list of tbody elements from the parsed table element.
 
         Parameters
         ----------
@@ -317,8 +333,8 @@ class _HtmlFrameParser(object):
 
         Returns
         -------
-        tbody : node-like
-            A <tbody>...</tbody> element.
+        tbodys : list of node-like
+            A list of <tbody>...</tbody> elements
         """
         raise com.AbstractMethodError(self)
 
@@ -372,13 +388,38 @@ class _HtmlFrameParser(object):
             np.array(res).squeeze()) if res and len(res) == 1 else res
 
     def _parse_raw_tbody(self, table):
-        tbody = self._parse_tbody(table)
+        tbodies = self._parse_tbody(table)
 
-        try:
-            res = self._parse_tr(tbody[0])
-        except IndexError:
-            res = self._parse_tr(table)
-        return self._parse_raw_data(res)
+        raw_data = []
+
+        if tbodies:
+            for tbody in tbodies:
+                raw_data.extend(self._parse_tr(tbody))
+        else:
+            raw_data.extend(self._parse_tr(table))
+
+        return self._parse_raw_data(raw_data)
+
+    def _handle_hidden_tables(self, tbl_list, attr_name):
+        """Returns list of tables, potentially removing hidden elements
+
+        Parameters
+        ----------
+        tbl_list : list of Tag or list of Element
+            Type of list elements will vary depending upon parser used
+        attr_name : str
+            Name of the accessor for retrieving HTML attributes
+
+        Returns
+        -------
+        list of Tag or list of Element
+            Return type matches `tbl_list`
+        """
+        if not self.displayed_only:
+            return tbl_list
+
+        return [x for x in tbl_list if "display:none" not in
+                getattr(x, attr_name).get('style', '').replace(" ", "")]
 
 
 class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
@@ -431,8 +472,14 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
 
         result = []
         unique_tables = set()
+        tables = self._handle_hidden_tables(tables, "attrs")
 
         for table in tables:
+            if self.displayed_only:
+                for elem in table.find_all(
+                        style=re.compile(r"display:\s*none")):
+                    elem.decompose()
+
             if (table not in unique_tables and
                     table.find(text=match) is not None):
                 result.append(table)
@@ -510,8 +557,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
         return row.xpath('.//td|.//th')
 
     def _parse_tr(self, table):
-        expr = './/tr[normalize-space()]'
-        return table.xpath(expr)
+        return table.xpath('.//tr')
 
     def _parse_tables(self, doc, match, kwargs):
         pattern = match.pattern
@@ -527,6 +573,17 @@ class _LxmlFrameParser(_HtmlFrameParser):
             xpath_expr += _build_xpath_expr(kwargs)
 
         tables = doc.xpath(xpath_expr, namespaces=_re_namespace)
+
+        tables = self._handle_hidden_tables(tables, "attrib")
+        if self.displayed_only:
+            for table in tables:
+                # lxml utilizes XPATH 1.0 which does not have regex
+                # support. As a result, we find all elements with a style
+                # attribute and iterate them to check for display:none
+                for elem in table.xpath('.//*[@style]'):
+                    if "display:none" in elem.attrib.get(
+                            "style", "").replace(" ", ""):
+                        elem.getparent().remove(elem)
 
         if not tables:
             raise ValueError("No tables found matching regex {patt!r}"
@@ -551,18 +608,20 @@ class _LxmlFrameParser(_HtmlFrameParser):
         """
         from lxml.html import parse, fromstring, HTMLParser
         from lxml.etree import XMLSyntaxError
-
-        parser = HTMLParser(recover=False, encoding=self.encoding)
+        parser = HTMLParser(recover=True, encoding=self.encoding)
 
         try:
-            # try to parse the input in the simplest way
-            r = parse(self.io, parser=parser)
-
+            if _is_url(self.io):
+                with urlopen(self.io) as f:
+                    r = parse(f, parser=parser)
+            else:
+                # try to parse the input in the simplest way
+                r = parse(self.io, parser=parser)
             try:
                 r = r.getroot()
             except AttributeError:
                 pass
-        except (UnicodeDecodeError, IOError):
+        except (UnicodeDecodeError, IOError) as e:
             # if the input is a blob of html goop
             if not _is_url(self.io):
                 r = fromstring(self.io, parser=parser)
@@ -572,17 +631,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
                 except AttributeError:
                     pass
             else:
-                # not a url
-                scheme = parse_url(self.io).scheme
-                if scheme not in _valid_schemes:
-                    # lxml can't parse it
-                    msg = (('{invalid!r} is not a valid url scheme, valid '
-                            'schemes are {valid}')
-                           .format(invalid=scheme, valid=_valid_schemes))
-                    raise ValueError(msg)
-                else:
-                    # something else happened: maybe a faulty connection
-                    raise
+                raise e
         else:
             if not hasattr(r, 'text_content'):
                 raise XMLSyntaxError("no text parsed from document", 0, 0, 0)
@@ -602,12 +651,21 @@ class _LxmlFrameParser(_HtmlFrameParser):
         thead = table.xpath(expr)
         res = []
         if thead:
-            trs = self._parse_tr(thead[0])
-            for tr in trs:
-                cols = [_remove_whitespace(x.text_content()) for x in
-                        self._parse_td(tr)]
+            # Grab any directly descending table headers first
+            ths = thead[0].xpath('./th')
+            if ths:
+                cols = [_remove_whitespace(x.text_content()) for x in ths]
                 if any(col != '' for col in cols):
                     res.append(cols)
+            else:
+                trs = self._parse_tr(thead[0])
+
+                for tr in trs:
+                    cols = [_remove_whitespace(x.text_content()) for x in
+                            self._parse_td(tr)]
+
+                    if any(col != '' for col in cols):
+                        res.append(cols)
         return res
 
     def _parse_raw_tfoot(self, table):
@@ -684,14 +742,10 @@ def _parser_dispatch(flavor):
             raise ImportError(
                 "BeautifulSoup4 (bs4) not found, please install it")
         import bs4
-        if LooseVersion(bs4.__version__) == LooseVersion('4.2.0'):
-            raise ValueError("You're using a version"
-                             " of BeautifulSoup4 (4.2.0) that has been"
-                             " known to cause problems on certain"
-                             " operating systems such as Debian. "
-                             "Please install a version of"
-                             " BeautifulSoup4 != 4.2.0, both earlier"
-                             " and later releases will work.")
+        if LooseVersion(bs4.__version__) <= LooseVersion('4.2.0'):
+            raise ValueError("A minimum version of BeautifulSoup 4.2.1 "
+                             "is required")
+
     else:
         if not _HAS_LXML:
             raise ImportError("lxml not found, please install it")
@@ -729,7 +783,7 @@ def _validate_flavor(flavor):
     return flavor
 
 
-def _parse(flavor, io, match, attrs, encoding, **kwargs):
+def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
     flavor = _validate_flavor(flavor)
     compiled_match = re.compile(match)  # you can pass a compiled regex here
 
@@ -737,7 +791,7 @@ def _parse(flavor, io, match, attrs, encoding, **kwargs):
     retained = None
     for flav in flavor:
         parser = _parser_dispatch(flav)
-        p = parser(io, compiled_match, attrs, encoding)
+        p = parser(io, compiled_match, attrs, encoding, displayed_only)
 
         try:
             tables = p.parse_tables()
@@ -773,7 +827,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
               skiprows=None, attrs=None, parse_dates=False,
               tupleize_cols=None, thousands=',', encoding=None,
               decimal='.', converters=None, na_values=None,
-              keep_default_na=True):
+              keep_default_na=True, displayed_only=True):
     r"""Read HTML tables into a ``list`` of ``DataFrame`` objects.
 
     Parameters
@@ -877,6 +931,11 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
 
         .. versionadded:: 0.19.0
 
+    display_only : bool, default True
+        Whether elements with "display: none" should be parsed
+
+        .. versionadded:: 0.23.0
+
     Returns
     -------
     dfs : list of DataFrames
@@ -924,4 +983,5 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
                   parse_dates=parse_dates, tupleize_cols=tupleize_cols,
                   thousands=thousands, attrs=attrs, encoding=encoding,
                   decimal=decimal, converters=converters, na_values=na_values,
-                  keep_default_na=keep_default_na)
+                  keep_default_na=keep_default_na,
+                  displayed_only=displayed_only)

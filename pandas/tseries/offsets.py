@@ -290,7 +290,7 @@ class DateOffset(BaseOffset):
         all_paras = self.__dict__.copy()
         if 'holidays' in all_paras and not all_paras['holidays']:
             all_paras.pop('holidays')
-        exclude = ['kwds', 'name', 'normalize', 'calendar']
+        exclude = ['kwds', 'name', 'calendar']
         attrs = [(k, v) for k, v in all_paras.items()
                  if (k not in exclude) and (k[0] != '_')]
         attrs = sorted(set(attrs))
@@ -1090,12 +1090,17 @@ class _CustomBusinessMonth(_CustomMixin, BusinessMixin, MonthOffset):
 
 
 class CustomBusinessMonthEnd(_CustomBusinessMonth):
-    __doc__ = _CustomBusinessMonth.__doc__.replace('[BEGIN/END]', 'end')
+    # TODO(py27): Replace condition with Subsitution after dropping Py27
+    if _CustomBusinessMonth.__doc__:
+        __doc__ = _CustomBusinessMonth.__doc__.replace('[BEGIN/END]', 'end')
     _prefix = 'CBM'
 
 
 class CustomBusinessMonthBegin(_CustomBusinessMonth):
-    __doc__ = _CustomBusinessMonth.__doc__.replace('[BEGIN/END]', 'beginning')
+    # TODO(py27): Replace condition with Subsitution after dropping Py27
+    if _CustomBusinessMonth.__doc__:
+        __doc__ = _CustomBusinessMonth.__doc__.replace('[BEGIN/END]',
+                                                       'beginning')
     _prefix = 'CBMS'
 
 
@@ -1135,7 +1140,7 @@ class SemiMonthOffset(DateOffset):
         # shift `other` to self.day_of_month, incrementing `n` if necessary
         n = liboffsets.roll_convention(other.day, self.n, self.day_of_month)
 
-        days_in_month = tslib.monthrange(other.year, other.month)[1]
+        days_in_month = ccalendar.get_days_in_month(other.year, other.month)
 
         # For SemiMonthBegin on other.day == 1 and
         # SemiMonthEnd on other.day == days_in_month,
@@ -1212,7 +1217,7 @@ class SemiMonthEnd(SemiMonthOffset):
     def onOffset(self, dt):
         if self.normalize and not _is_normalized(dt):
             return False
-        _, days_in_month = tslib.monthrange(dt.year, dt.month)
+        days_in_month = ccalendar.get_days_in_month(dt.year, dt.month)
         return dt.day in (self.day_of_month, days_in_month)
 
     def _apply(self, n, other):
@@ -1460,9 +1465,6 @@ class WeekOfMonth(_WeekOfMonthMixin, DateOffset):
         self.normalize = normalize
         self.weekday = weekday
         self.week = week
-
-        if self.n == 0:
-            raise ValueError('N cannot be 0')
 
         if self.weekday < 0 or self.weekday > 6:
             raise ValueError('Day must be 0<=day<=6, got {day}'
@@ -2215,8 +2217,10 @@ class Tick(SingleConstructorOffset):
     _attributes = frozenset(['n', 'normalize'])
 
     def __init__(self, n=1, normalize=False):
-        # TODO: do Tick classes with normalize=True make sense?
         self.n = self._validate_n(n)
+        if normalize:
+            raise ValueError("Tick offset with `normalize=True` are not "
+                             "allowed.")  # GH#21427
         self.normalize = normalize
 
     __gt__ = _tick_comp(operator.gt)

@@ -22,7 +22,6 @@ from pandas.core.config import get_option
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core import accessor
 import pandas.core.common as com
-import pandas.core.base as base
 import pandas.core.missing as missing
 import pandas.core.indexes.base as ibase
 
@@ -76,7 +75,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     _attributes = ['name']
 
     def __new__(cls, data=None, categories=None, ordered=None, dtype=None,
-                copy=False, name=None, fastpath=False, **kwargs):
+                copy=False, name=None, fastpath=False):
 
         if fastpath:
             return cls._simple_new(data, name=name, dtype=dtype)
@@ -326,19 +325,31 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def __contains__(self, key):
         hash(key)
 
-        if self.categories._defer_to_indexing:
-            return key in self.categories
+        if isna(key):  # if key is a NaN, check if any NaN is in self.
+            return self.isna().any()
 
-        return key in self.values
+        # is key in self.categories? Then get its location.
+        # If not (i.e. KeyError), it logically can't be in self either
+        try:
+            loc = self.categories.get_loc(key)
+        except KeyError:
+            return False
+
+        # loc is the location of key in self.categories, but also the value
+        # for key in self.codes and in self._engine. key may be in categories,
+        # but still not in self, check this. Example:
+        # 'b' in CategoricalIndex(['a'], categories=['a', 'b']) #  False
+        if is_scalar(loc):
+            return loc in self._engine
+        else:
+            # if self.categories is IntervalIndex, loc is an array
+            # check if any scalar of the array is in self._engine
+            return any(loc_ in self._engine for loc_ in loc)
 
     @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def contains(self, key):
         hash(key)
-
-        if self.categories._defer_to_indexing:
-            return self.categories.contains(key)
-
-        return key in self.values
+        return key in self
 
     def __array__(self, dtype=None):
         """ the array interface, return my values """
@@ -379,15 +390,15 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     # introspection
     @cache_readonly
     def is_unique(self):
-        return not self.duplicated().any()
+        return self._engine.is_unique
 
     @property
     def is_monotonic_increasing(self):
-        return Index(self.codes).is_monotonic_increasing
+        return self._engine.is_monotonic_increasing
 
     @property
     def is_monotonic_decreasing(self):
-        return Index(self.codes).is_monotonic_decreasing
+        return self._engine.is_monotonic_decreasing
 
     @Appender(_index_shared_docs['index_unique'] % _index_doc_kwargs)
     def unique(self, level=None):
@@ -399,7 +410,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         return self._shallow_copy(result, categories=result.categories,
                                   ordered=result.ordered)
 
-    @Appender(base._shared_docs['duplicated'] % _index_doc_kwargs)
+    @Appender(Index.duplicated.__doc__)
     def duplicated(self, keep='first'):
         from pandas._libs.hashtable import duplicated_int64
         codes = self.codes.astype('i8')
@@ -599,7 +610,12 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         target = ibase._ensure_index(target)
 
         if isinstance(target, CategoricalIndex):
-            target = target.categories
+            # Indexing on codes is more efficient if categories are the same:
+            if target.categories is self.categories:
+                target = target.codes
+                indexer, missing = self._engine.get_indexer_non_unique(target)
+                return _ensure_platform_int(indexer), missing
+            target = target.values
 
         codes = self.categories.get_indexer(target)
         indexer, missing = self._engine.get_indexer_non_unique(codes)
@@ -661,20 +677,71 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     take_nd = take
 
     def map(self, mapper):
-        """Apply mapper function to its categories (not codes).
+        """
+        Map values using input correspondence (a dict, Series, or function).
+
+        Maps the values (their categories, not the codes) of the index to new
+        categories. If the mapping correspondence is one-to-one the result is a
+        :class:`~pandas.CategoricalIndex` which has the same order property as
+        the original, otherwise an :class:`~pandas.Index` is returned.
+
+        If a `dict` or :class:`~pandas.Series` is used any unmapped category is
+        mapped to `NaN`. Note that if this happens an :class:`~pandas.Index`
+        will be returned.
 
         Parameters
         ----------
-        mapper : callable
-            Function to be applied. When all categories are mapped
-            to different categories, the result will be a CategoricalIndex
-            which has the same order property as the original. Otherwise,
-            the result will be a Index.
+        mapper : function, dict, or Series
+            Mapping correspondence.
 
         Returns
         -------
-        applied : CategoricalIndex or Index
+        pandas.CategoricalIndex or pandas.Index
+            Mapped index.
 
+        See Also
+        --------
+        Index.map : Apply a mapping correspondence on an
+            :class:`~pandas.Index`.
+        Series.map : Apply a mapping correspondence on a
+            :class:`~pandas.Series`.
+        Series.apply : Apply more complex functions on a
+            :class:`~pandas.Series`.
+
+        Examples
+        --------
+        >>> idx = pd.CategoricalIndex(['a', 'b', 'c'])
+        >>> idx
+        CategoricalIndex(['a', 'b', 'c'], categories=['a', 'b', 'c'],
+                         ordered=False, dtype='category')
+        >>> idx.map(lambda x: x.upper())
+        CategoricalIndex(['A', 'B', 'C'], categories=['A', 'B', 'C'],
+                         ordered=False, dtype='category')
+        >>> idx.map({'a': 'first', 'b': 'second', 'c': 'third'})
+        CategoricalIndex(['first', 'second', 'third'], categories=['first',
+                         'second', 'third'], ordered=False, dtype='category')
+
+        If the mapping is one-to-one the ordering of the categories is
+        preserved:
+
+        >>> idx = pd.CategoricalIndex(['a', 'b', 'c'], ordered=True)
+        >>> idx
+        CategoricalIndex(['a', 'b', 'c'], categories=['a', 'b', 'c'],
+                         ordered=True, dtype='category')
+        >>> idx.map({'a': 3, 'b': 2, 'c': 1})
+        CategoricalIndex([3, 2, 1], categories=[3, 2, 1], ordered=True,
+                         dtype='category')
+
+        If the mapping is not one-to-one an :class:`~pandas.Index` is returned:
+
+        >>> idx.map({'a': 'first', 'b': 'second', 'c': 'first'})
+        Index(['first', 'second', 'first'], dtype='object')
+
+        If a `dict` is used, all unmapped categories are mapped to `NaN` and
+        the result is an :class:`~pandas.Index`:
+
+        >>> idx.map({'a': 'first', 'b': 'second'})
+        Index(['first', 'second', nan], dtype='object')
         """
         return self._shallow_copy_with_infer(self.values.map(mapper))
 
@@ -732,9 +799,9 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         result.name = name
         return result
 
-    def _codes_for_groupby(self, sort):
+    def _codes_for_groupby(self, sort, observed):
         """ Return a Categorical adjusted for groupby """
-        return self.values._codes_for_groupby(sort)
+        return self.values._codes_for_groupby(sort, observed)
 
     @classmethod
     def _add_comparison_methods(cls):

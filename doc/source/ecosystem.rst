@@ -38,7 +38,10 @@ Statsmodels leverages pandas objects as the underlying data container for comput
 Use pandas DataFrames in your `scikit-learn <http://scikit-learn.org/>`__
 ML pipeline.
 
+`Featuretools <https://github.com/featuretools/featuretools/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Featuretools is a Python library for automated feature engineering built on top of pandas. It excels at transforming temporal and relational datasets into feature matrices for machine learning using reusable feature engineering "primitives". Users can contribute their own primitives in Python and share them with the rest of the community. 
 
 .. _ecosystem.visualization:
 
@@ -184,9 +187,9 @@ and metadata disseminated in
 `SDMX <http://www.sdmx.org>`_ 2.1, an ISO-standard
 widely used by institutions such as statistics offices, central banks,   
 and international organisations. pandaSDMX can expose datasets and related 
-structural metadata including dataflows, code-lists, 
-and datastructure definitions as pandas Series 
-or multi-indexed DataFrames.  
+structural metadata including data flows, code-lists,
+and data structure definitions as pandas Series
+or MultiIndexed DataFrames.
    
 `fredapi <https://github.com/mortada/fredapi>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -260,5 +263,40 @@ Data validation
 `Engarde <http://engarde.readthedocs.io/en/latest/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Engarde is a lightweight library used to explicitly state your assumptions abour your datasets
+Engarde is a lightweight library used to explicitly state your assumptions about your datasets
 and check that they're *actually* true.
+
+.. _ecosystem.extensions:
+
+Extension Data Types
+--------------------
+
+Pandas provides an interface for defining
+:ref:`extension types <extending.extension-types>` to extend NumPy's type
+system. The following libraries implement that interface to provide types not
+found in NumPy or pandas, which work well with pandas' data containers.
+
+`cyberpandas`_
+~~~~~~~~~~~~~~
+
+Cyberpandas provides an extension type for storing arrays of IP Addresses. These
+arrays can be stored inside pandas' Series and DataFrame.
+
+.. _ecosystem.accessors:
+
+Accessors
+---------
+
+A directory of projects providing
+:ref:`extension accessors <extending.register-accessors>`. This is for users to
+discover new accessors and for library authors to coordinate on the namespace.
+
+============== ========== =========================
+Library        Accessor   Classes
+============== ========== =========================
+`cyberpandas`_ ``ip``     ``Series``
+`pdvega`_      ``vgplot`` ``Series``, ``DataFrame``
+============== ========== =========================
+
+.. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
+.. _pdvega: https://jakevdp.github.io/pdvega/

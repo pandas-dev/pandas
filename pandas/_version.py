@@ -12,6 +12,7 @@ import os
 import re
 import subprocess
 import sys
+from pandas.compat import PY3
 
 
 def get_keywords():
@@ -25,7 +26,7 @@ def get_keywords():
     return keywords
 
 
-class VersioneerConfig:
+class VersioneerConfig(object):
     pass
 
 
@@ -83,7 +84,7 @@ def run_command(commands, args, cwd=None, verbose=False, hide_stderr=False):
             print("unable to find command, tried %s" % (commands,))
         return None
     stdout = p.communicate()[0].strip()
-    if sys.version_info[0] >= 3:
+    if PY3:
         stdout = stdout.decode()
     if p.returncode != 0:
         if verbose:

@@ -11,13 +11,12 @@ import numpy as np
 from pandas._libs import lib, tslib
 
 from pandas import compat
-from pandas.compat import long, zip, iteritems
+from pandas.compat import long, zip, iteritems, PY36, OrderedDict
 from pandas.core.config import get_option
 from pandas.core.dtypes.generic import ABCSeries, ABCIndex
-from pandas.core.dtypes.common import _NS_DTYPE
+from pandas.core.dtypes.common import _NS_DTYPE, is_integer
 from pandas.core.dtypes.inference import _iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
-from pandas.api import types
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
 
@@ -56,8 +55,11 @@ def flatten(l):
 def _consensus_name_attr(objs):
     name = objs[0].name
     for obj in objs[1:]:
-        if obj.name != name:
-            return None
+        try:
+            if obj.name != name:
+                name = None
+        except ValueError:
+            name = None
     return name
 
 
@@ -184,6 +186,16 @@ def _try_sort(iterable):
         return sorted(listed)
     except Exception:
         return listed
+
+
+def _dict_keys_to_ordered_list(mapping):
+    # when pandas drops support for Python < 3.6, this function
+    # can be replaced by a simple list(mapping.keys())
+    if PY36 or isinstance(mapping, OrderedDict):
+        keys = list(mapping.keys())
+    else:
+        keys = _try_sort(mapping)
+    return keys
 
 
 def iterpairs(seq):
@@ -560,7 +572,7 @@ def _random_state(state=None):
     np.random.RandomState
     """
 
-    if types.is_integer(state):
+    if is_integer(state):
         return np.random.RandomState(state)
     elif isinstance(state, np.random.RandomState):
         return state

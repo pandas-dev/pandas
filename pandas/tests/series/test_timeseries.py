@@ -352,34 +352,33 @@ class TestTimeSeries(TestData):
         s = Series([1., 1.5, np.nan, 2.5, 3.])
 
         chg = s.pct_change()
-        expected = Series([np.nan, 0.5, np.nan, 2.5 / 1.5 - 1, .2])
+        expected = Series([np.nan, 0.5, 0., 2.5 / 1.5 - 1, .2])
         assert_series_equal(chg, expected)
 
-    def test_pct_change_periods_freq(self):
+    @pytest.mark.parametrize("freq, periods, fill_method, limit",
+                             [('5B', 5, None, None),
+                              ('3B', 3, None, None),
+                              ('3B', 3, 'bfill', None),
+                              ('7B', 7, 'pad', 1),
+                              ('7B', 7, 'bfill', 3),
+                              ('14B', 14, None, None)])
+    def test_pct_change_periods_freq(self, freq, periods, fill_method, limit):
         # GH 7292
-        rs_freq = self.ts.pct_change(freq='5B')
-        rs_periods = self.ts.pct_change(5)
-        assert_series_equal(rs_freq, rs_periods)
-
-        rs_freq = self.ts.pct_change(freq='3B', fill_method=None)
-        rs_periods = self.ts.pct_change(3, fill_method=None)
-        assert_series_equal(rs_freq, rs_periods)
-
-        rs_freq = self.ts.pct_change(freq='3B', fill_method='bfill')
-        rs_periods = self.ts.pct_change(3, fill_method='bfill')
-        assert_series_equal(rs_freq, rs_periods)
-
-        rs_freq = self.ts.pct_change(freq='7B', fill_method='pad', limit=1)
-        rs_periods = self.ts.pct_change(7, fill_method='pad', limit=1)
-        assert_series_equal(rs_freq, rs_periods)
-
-        rs_freq = self.ts.pct_change(freq='7B', fill_method='bfill', limit=3)
-        rs_periods = self.ts.pct_change(7, fill_method='bfill', limit=3)
+        rs_freq = self.ts.pct_change(freq=freq,
+                                     fill_method=fill_method,
+                                     limit=limit)
+        rs_periods = self.ts.pct_change(periods,
+                                        fill_method=fill_method,
+                                        limit=limit)
         assert_series_equal(rs_freq, rs_periods)
 
         empty_ts = Series(index=self.ts.index)
-        rs_freq = empty_ts.pct_change(freq='14B')
-        rs_periods = empty_ts.pct_change(14)
+        rs_freq = empty_ts.pct_change(freq=freq,
+                                      fill_method=fill_method,
+                                      limit=limit)
+        rs_periods = empty_ts.pct_change(periods,
+                                         fill_method=fill_method,
+                                         limit=limit)
         assert_series_equal(rs_freq, rs_periods)
 
     def test_autocorr(self):
@@ -432,6 +431,15 @@ class TestTimeSeries(TestData):
         empty = Series()
         assert empty.last_valid_index() is None
         assert empty.first_valid_index() is None
+
+        # GH20499: its preserves freq with holes
+        ts.index = date_range("20110101", periods=len(ts), freq="B")
+        ts.iloc[1] = 1
+        ts.iloc[-2] = 1
+        assert ts.first_valid_index() == ts.index[1]
+        assert ts.last_valid_index() == ts.index[-2]
+        assert ts.first_valid_index().freq == ts.index.freq
+        assert ts.last_valid_index().freq == ts.index.freq
 
     def test_mpl_compat_hack(self):
         result = self.ts[:, np.newaxis]
@@ -620,6 +628,12 @@ class TestTimeSeries(TestData):
         result = ts[:0].first('3M')
         assert_series_equal(result, ts[:0])
 
+    def test_first_raises(self):
+        # GH20725
+        ser = pd.Series('a b c'.split())
+        with pytest.raises(TypeError):  # index is not a DatetimeIndex
+            ser.first('1D')
+
     def test_last_subset(self):
         ts = _simple_ts('1/1/2000', '1/1/2010', freq='12h')
         result = ts.last('10d')
@@ -639,6 +653,12 @@ class TestTimeSeries(TestData):
 
         result = ts[:0].last('3M')
         assert_series_equal(result, ts[:0])
+
+    def test_last_raises(self):
+        # GH20725
+        ser = pd.Series('a b c'.split())
+        with pytest.raises(TypeError):  # index is not a DatetimeIndex
+            ser.last('1D')
 
     def test_format_pre_1900_dates(self):
         rng = date_range('1/1/1850', '1/1/1950', freq='A-DEC')
@@ -687,6 +707,12 @@ class TestTimeSeries(TestData):
         ts = Series(np.random.randn(len(rng)), rng)
         rs = ts.at_time('16:00')
         assert len(rs) == 0
+
+    def test_at_time_raises(self):
+        # GH20725
+        ser = pd.Series('a b c'.split())
+        with pytest.raises(TypeError):  # index is not a DatetimeIndex
+            ser.at_time('00:00')
 
     def test_between(self):
         series = Series(date_range('1/1/2000', periods=10))
@@ -755,6 +781,12 @@ class TestTimeSeries(TestData):
                     assert (t <= etime) or (t >= stime)
                 else:
                     assert (t < etime) or (t >= stime)
+
+    def test_between_time_raises(self):
+        # GH20725
+        ser = pd.Series('a b c'.split())
+        with pytest.raises(TypeError):  # index is not a DatetimeIndex
+            ser.between_time(start_time='00:00', end_time='12:00')
 
     def test_between_time_types(self):
         # GH11818

@@ -40,6 +40,14 @@ class TestDataFramePlots(TestPlotBase):
                                     "C": np.arange(20) + np.random.uniform(
                                         size=20)})
 
+    def _assert_ytickslabels_visibility(self, axes, expected):
+        for ax, exp in zip(axes, expected):
+            self._check_visible(ax.get_yticklabels(), visible=exp)
+
+    def _assert_xtickslabels_visibility(self, axes, expected):
+        for ax, exp in zip(axes, expected):
+            self._check_visible(ax.get_xticklabels(), visible=exp)
+
     @pytest.mark.slow
     def test_plot(self):
         df = self.tdf
@@ -366,6 +374,57 @@ class TestDataFramePlots(TestPlotBase):
             axes = df.plot(kind=kind, subplots=True, legend=False)
             for ax in axes:
                 assert ax.get_legend() is None
+
+    def test_groupby_boxplot_sharey(self):
+        # https://github.com/pandas-dev/pandas/issues/20968
+        # sharey can now be switched check whether the right
+        # pair of axes is turned on or off
+
+        df = DataFrame({'a': [-1.43, -0.15, -3.70, -1.43, -0.14],
+                        'b': [0.56, 0.84, 0.29, 0.56, 0.85],
+                        'c': [0, 1, 2, 3, 1]},
+                       index=[0, 1, 2, 3, 4])
+
+        # behavior without keyword
+        axes = df.groupby('c').boxplot()
+        expected = [True, False, True, False]
+        self._assert_ytickslabels_visibility(axes, expected)
+
+        # set sharey=True should be identical
+        axes = df.groupby('c').boxplot(sharey=True)
+        expected = [True, False, True, False]
+        self._assert_ytickslabels_visibility(axes, expected)
+
+        # sharey=False, all yticklabels should be visible
+        axes = df.groupby('c').boxplot(sharey=False)
+        expected = [True, True, True, True]
+        self._assert_ytickslabels_visibility(axes, expected)
+
+    def test_groupby_boxplot_sharex(self):
+        # https://github.com/pandas-dev/pandas/issues/20968
+        # sharex can now be switched check whether the right
+        # pair of axes is turned on or off
+
+        df = DataFrame({'a': [-1.43, -0.15, -3.70, -1.43, -0.14],
+                        'b': [0.56, 0.84, 0.29, 0.56, 0.85],
+                        'c': [0, 1, 2, 3, 1]},
+                       index=[0, 1, 2, 3, 4])
+
+        # behavior without keyword
+        axes = df.groupby('c').boxplot()
+        expected = [True, True, True, True]
+        self._assert_xtickslabels_visibility(axes, expected)
+
+        # set sharex=False should be identical
+        axes = df.groupby('c').boxplot(sharex=False)
+        expected = [True, True, True, True]
+        self._assert_xtickslabels_visibility(axes, expected)
+
+        # sharex=True, yticklabels should be visible
+        # only for bottom plots
+        axes = df.groupby('c').boxplot(sharex=True)
+        expected = [False, False, True, True]
+        self._assert_xtickslabels_visibility(axes, expected)
 
     @pytest.mark.slow
     def test_subplots_timeseries(self):
@@ -2170,25 +2229,50 @@ class TestDataFramePlots(TestPlotBase):
         with pytest.raises(ValueError):
             df.plot(kind='aasdf')
 
-    @pytest.mark.parametrize("x,y", [
-        (['B', 'C'], 'A'),
-        ('A', ['B', 'C'])
+    @pytest.mark.parametrize("x,y,lbl", [
+        (['B', 'C'], 'A', 'a'),
+        (['A'], ['B', 'C'], ['b', 'c']),
+        ('A', ['B', 'C'], 'badlabel')
     ])
-    def test_invalid_xy_args(self, x, y):
-        # GH 18671
+    def test_invalid_xy_args(self, x, y, lbl):
+        # GH 18671, 19699 allows y to be list-like but not x
         df = DataFrame({"A": [1, 2], 'B': [3, 4], 'C': [5, 6]})
         with pytest.raises(ValueError):
-            df.plot(x=x, y=y)
+            df.plot(x=x, y=y, label=lbl)
 
     @pytest.mark.parametrize("x,y", [
         ('A', 'B'),
-        ('B', 'A')
+        (['A'], 'B')
     ])
     def test_invalid_xy_args_dup_cols(self, x, y):
-        # GH 18671
+        # GH 18671, 19699 allows y to be list-like but not x
         df = DataFrame([[1, 3, 5], [2, 4, 6]], columns=list('AAB'))
         with pytest.raises(ValueError):
             df.plot(x=x, y=y)
+
+    @pytest.mark.parametrize("x,y,lbl,colors", [
+        ('A', ['B'], ['b'], ['red']),
+        ('A', ['B', 'C'], ['b', 'c'], ['red', 'blue']),
+        (0, [1, 2], ['bokeh', 'cython'], ['green', 'yellow'])
+    ])
+    def test_y_listlike(self, x, y, lbl, colors):
+        # GH 19699: tests list-like y and verifies lbls & colors
+        df = DataFrame({"A": [1, 2], 'B': [3, 4], 'C': [5, 6]})
+        _check_plot_works(df.plot, x='A', y=y, label=lbl)
+
+        ax = df.plot(x=x, y=y, label=lbl, color=colors)
+        assert len(ax.lines) == len(y)
+        self._check_colors(ax.get_lines(), linecolors=colors)
+
+    @pytest.mark.parametrize("x,y,colnames", [
+        (0, 1, ['A', 'B']),
+        (1, 0, [0, 1])
+    ])
+    def test_xy_args_integer(self, x, y, colnames):
+        # GH 20056: tests integer args for xy and checks col names
+        df = DataFrame({"A": [1, 2], 'B': [3, 4]})
+        df.columns = colnames
+        _check_plot_works(df.plot, x=x, y=y)
 
     @pytest.mark.slow
     def test_hexbin_basic(self):
@@ -2461,6 +2545,7 @@ class TestDataFramePlots(TestPlotBase):
 
         tm.close()
 
+    @td.xfail_if_mpl_2_2
     def test_table(self):
         df = DataFrame(np.random.rand(10, 3),
                        index=list(string.ascii_letters[:10]))

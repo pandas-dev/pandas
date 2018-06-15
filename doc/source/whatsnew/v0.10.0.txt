@@ -370,7 +370,7 @@ Updated PyTables Support
       df1.get_dtype_counts()
 
 - performance improvements on table writing
-- support for arbitrarily indexed dimensions
+- support for arbitrarly indexed dimensions
 - ``SparseSeries`` now has a ``density`` property (:issue:`2384`)
 - enable ``Series.str.strip/lstrip/rstrip`` methods to take an input argument
   to strip arbitrary characters (:issue:`2411`)
@@ -409,7 +409,7 @@ N Dimensional Panels (Experimental)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Adding experimental support for Panel4D and factory functions to create n-dimensional named panels.
-:ref:`Docs <dsintro.panel4d>` for NDim. Here is a taste of what to expect.
+Here is a taste of what to expect.
 
 .. code-block:: ipython
 

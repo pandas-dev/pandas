@@ -168,7 +168,7 @@ either match on the *index* or *columns* via the **axis** keyword:
 
    df_orig = df
 
-Furthermore you can align a level of a multi-indexed DataFrame with a Series.
+Furthermore you can align a level of a MultiIndexed DataFrame with a Series.
 
 .. ipython:: python
 
@@ -593,7 +593,7 @@ categorical columns:
     frame = pd.DataFrame({'a': ['Yes', 'Yes', 'No', 'No'], 'b': range(4)})
     frame.describe()
 
-This behaviour can be controlled by providing a list of types as ``include``/``exclude``
+This behavior can be controlled by providing a list of types as ``include``/``exclude``
 arguments. The special value ``all`` can also be used:
 
 .. ipython:: python
@@ -746,7 +746,7 @@ What if the function you wish to apply takes its data as, say, the second argume
 In this case, provide ``pipe`` with a tuple of ``(callable, data_keyword)``.
 ``.pipe`` will route the ``DataFrame`` to the argument specified in the tuple.
 
-For example, we can fit a regression using statsmodels. Their API expects a formula first and a ``DataFrame`` as the second argument, ``data``. We pass in the function, keyword pair ``(sm.poisson, 'data')`` to ``pipe``:
+For example, we can fit a regression using statsmodels. Their API expects a formula first and a ``DataFrame`` as the second argument, ``data``. We pass in the function, keyword pair ``(sm.ols, 'data')`` to ``pipe``:
 
 .. ipython:: python
 
@@ -756,7 +756,7 @@ For example, we can fit a regression using statsmodels. Their API expects a form
 
    (bb.query('h > 0')
       .assign(ln_h = lambda df: np.log(df.h))
-      .pipe((sm.poisson, 'data'), 'hr ~ ln_h + year + g + C(lg)')
+      .pipe((sm.ols, 'data'), 'hr ~ ln_h + year + g + C(lg)')
       .fit()
       .summary()
    )
@@ -1034,7 +1034,7 @@ Passing a single function to ``.transform()`` with a ``Series`` will yield a sin
 Transform with multiple functions
 +++++++++++++++++++++++++++++++++
 
-Passing multiple functions will yield a column multi-indexed DataFrame.
+Passing multiple functions will yield a column MultiIndexed DataFrame.
 The first level will be the original frame column names; the second level
 will be the names of the transforming functions.
 
@@ -1060,7 +1060,7 @@ Passing a dict of functions will allow selective transforming per column.
 
    tsdf.transform({'A': np.abs, 'B': lambda x: x+1})
 
-Passing a dict of lists will generate a multi-indexed DataFrame with these
+Passing a dict of lists will generate a MultiIndexed DataFrame with these
 selective transforms.
 
 .. ipython:: python
@@ -1889,12 +1889,12 @@ faster than sorting the entire Series and calling ``head(n)`` on the result.
    df.nsmallest(5, ['a', 'c'])
 
 
-.. _basics.multi-index_sorting:
+.. _basics.multiindex_sorting:
 
-Sorting by a multi-index column
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Sorting by a MultiIndex column
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You must be explicit about sorting when the column is a multi-index, and fully specify
+You must be explicit about sorting when the column is a MultiIndex, and fully specify
 all levels to ``by``.
 
 .. ipython:: python
@@ -2312,4 +2312,4 @@ All NumPy dtypes are subclasses of ``numpy.generic``:
 .. note::
 
     Pandas also defines the types ``category``, and ``datetime64[ns, tz]``, which are not integrated into the normal
-    NumPy hierarchy and wont show up with the above function.
+    NumPy hierarchy and won't show up with the above function.

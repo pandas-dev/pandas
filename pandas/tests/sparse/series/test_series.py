@@ -14,7 +14,7 @@ from pandas import (Series, DataFrame, bdate_range,
 from pandas.tseries.offsets import BDay
 import pandas.util.testing as tm
 import pandas.util._test_decorators as td
-from pandas.compat import range
+from pandas.compat import range, PY36
 from pandas.core.reshape.util import cartesian_product
 
 import pandas.core.sparse.frame as spf
@@ -112,6 +112,18 @@ class TestSparseSeries(SharedWithSparse):
         expected = SparseSeries(series)
 
         result = SparseSeries(constructor_dict)
+        tm.assert_sp_series_equal(result, expected)
+
+    def test_constructor_dict_order(self):
+        # GH19018
+        # initialization ordering: by insertion order if python>= 3.6, else
+        # order by value
+        d = {'b': 1, 'a': 0, 'c': 2}
+        result = SparseSeries(d)
+        if PY36:
+            expected = SparseSeries([1, 0, 2], index=list('bac'))
+        else:
+            expected = SparseSeries([0, 1, 2], index=list('abc'))
         tm.assert_sp_series_equal(result, expected)
 
     def test_constructor_dtype(self):

@@ -134,7 +134,7 @@ class build_ext(_build_ext):
         _build_ext.build_extensions(self)
 
 
-DESCRIPTION = ("Powerful data structures for data analysis, time series,"
+DESCRIPTION = ("Powerful data structures for data analysis, time series, "
                "and statistics")
 LONG_DESCRIPTION = """
 **pandas** is a Python package providing fast, flexible, and expressive data
@@ -313,6 +313,7 @@ class CheckSDist(sdist_class):
                  'pandas/_libs/testing.pyx',
                  'pandas/_libs/skiplist.pyx',
                  'pandas/_libs/sparse.pyx',
+                 'pandas/_libs/ops.pyx',
                  'pandas/_libs/parsers.pyx',
                  'pandas/_libs/tslibs/ccalendar.pyx',
                  'pandas/_libs/tslibs/period.pyx',
@@ -449,13 +450,13 @@ common_include = ['pandas/_libs/src/klib', 'pandas/_libs/src']
 
 
 def pxd(name):
-    return os.path.abspath(pjoin('pandas', name + '.pxd'))
+    return pjoin('pandas', name + '.pxd')
 
 
-# args to ignore warnings
 if is_platform_windows():
     extra_compile_args = []
 else:
+    # args to ignore warnings
     extra_compile_args = ['-Wno-unused-function']
 
 lib_depends = lib_depends + ['pandas/_libs/src/numpy_helper.h',
@@ -525,6 +526,10 @@ ext_data = {
     '_libs.reduction': {
         'pyxfile': '_libs/reduction',
         'pxdfiles': ['_libs/src/util']},
+    '_libs.ops': {
+        'pyxfile': '_libs/ops',
+        'pxdfiles': ['_libs/src/util',
+                     '_libs/missing']},
     '_libs.tslibs.period': {
         'pyxfile': '_libs/tslibs/period',
         'pxdfiles': ['_libs/src/util',
@@ -598,6 +603,7 @@ ext_data = {
         'pyxfile': '_libs/tslibs/resolution',
         'pxdfiles': ['_libs/src/util',
                      '_libs/khash',
+                     '_libs/tslibs/ccalendar',
                      '_libs/tslibs/frequencies',
                      '_libs/tslibs/timezones'],
         'depends': tseries_depends,
@@ -728,7 +734,7 @@ setup(name=DISTNAME,
       maintainer=AUTHOR,
       version=versioneer.get_version(),
       packages=find_packages(include=['pandas', 'pandas.*']),
-      package_data={'': ['data/*', 'templates/*'],
+      package_data={'': ['data/*', 'templates/*', '_libs/*.dll'],
                     'pandas.tests.io': ['data/legacy_hdf/*.h5',
                                         'data/legacy_pickle/*/*.pickle',
                                         'data/legacy_msgpack/*/*.msgpack',
@@ -743,4 +749,5 @@ setup(name=DISTNAME,
       long_description=LONG_DESCRIPTION,
       classifiers=CLASSIFIERS,
       platforms='any',
+      python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*',
       **setuptools_kwargs)

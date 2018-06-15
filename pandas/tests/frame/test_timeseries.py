@@ -57,6 +57,32 @@ class TestDataFrameTimeSeriesMethods(TestData):
             1), 'z': pd.Series(1)}).astype('float64')
         assert_frame_equal(result, expected)
 
+    @pytest.mark.parametrize('tz', [None, 'UTC'])
+    def test_diff_datetime_axis0(self, tz):
+        # GH 18578
+        df = DataFrame({0: date_range('2010', freq='D', periods=2, tz=tz),
+                        1: date_range('2010', freq='D', periods=2, tz=tz)})
+
+        result = df.diff(axis=0)
+        expected = DataFrame({0: pd.TimedeltaIndex(['NaT', '1 days']),
+                              1: pd.TimedeltaIndex(['NaT', '1 days'])})
+        assert_frame_equal(result, expected)
+
+    @pytest.mark.parametrize('tz', [None, 'UTC'])
+    def test_diff_datetime_axis1(self, tz):
+        # GH 18578
+        df = DataFrame({0: date_range('2010', freq='D', periods=2, tz=tz),
+                        1: date_range('2010', freq='D', periods=2, tz=tz)})
+        if tz is None:
+            result = df.diff(axis=1)
+            expected = DataFrame({0: pd.TimedeltaIndex(['NaT', 'NaT']),
+                                  1: pd.TimedeltaIndex(['0 days',
+                                                        '0 days'])})
+            assert_frame_equal(result, expected)
+        else:
+            with pytest.raises(NotImplementedError):
+                result = df.diff(axis=1)
+
     def test_diff_timedelta(self):
         # GH 4533
         df = DataFrame(dict(time=[Timestamp('20130101 9:01'),
@@ -118,40 +144,35 @@ class TestDataFrameTimeSeriesMethods(TestData):
         df = DataFrame({'a': s, 'b': s})
 
         chg = df.pct_change()
-        expected = Series([np.nan, 0.5, np.nan, 2.5 / 1.5 - 1, .2])
+        expected = Series([np.nan, 0.5, 0., 2.5 / 1.5 - 1, .2])
         edf = DataFrame({'a': expected, 'b': expected})
         assert_frame_equal(chg, edf)
 
-    def test_pct_change_periods_freq(self):
+    @pytest.mark.parametrize("freq, periods, fill_method, limit",
+                             [('5B', 5, None, None),
+                              ('3B', 3, None, None),
+                              ('3B', 3, 'bfill', None),
+                              ('7B', 7, 'pad', 1),
+                              ('7B', 7, 'bfill', 3),
+                              ('14B', 14, None, None)])
+    def test_pct_change_periods_freq(self, freq, periods, fill_method, limit):
         # GH 7292
-        rs_freq = self.tsframe.pct_change(freq='5B')
-        rs_periods = self.tsframe.pct_change(5)
-        assert_frame_equal(rs_freq, rs_periods)
-
-        rs_freq = self.tsframe.pct_change(freq='3B', fill_method=None)
-        rs_periods = self.tsframe.pct_change(3, fill_method=None)
-        assert_frame_equal(rs_freq, rs_periods)
-
-        rs_freq = self.tsframe.pct_change(freq='3B', fill_method='bfill')
-        rs_periods = self.tsframe.pct_change(3, fill_method='bfill')
-        assert_frame_equal(rs_freq, rs_periods)
-
-        rs_freq = self.tsframe.pct_change(freq='7B',
-                                          fill_method='pad',
-                                          limit=1)
-        rs_periods = self.tsframe.pct_change(7, fill_method='pad', limit=1)
-        assert_frame_equal(rs_freq, rs_periods)
-
-        rs_freq = self.tsframe.pct_change(freq='7B',
-                                          fill_method='bfill',
-                                          limit=3)
-        rs_periods = self.tsframe.pct_change(7, fill_method='bfill', limit=3)
+        rs_freq = self.tsframe.pct_change(freq=freq,
+                                          fill_method=fill_method,
+                                          limit=limit)
+        rs_periods = self.tsframe.pct_change(periods,
+                                             fill_method=fill_method,
+                                             limit=limit)
         assert_frame_equal(rs_freq, rs_periods)
 
         empty_ts = DataFrame(index=self.tsframe.index,
                              columns=self.tsframe.columns)
-        rs_freq = empty_ts.pct_change(freq='14B')
-        rs_periods = empty_ts.pct_change(14)
+        rs_freq = empty_ts.pct_change(freq=freq,
+                                      fill_method=fill_method,
+                                      limit=limit)
+        rs_periods = empty_ts.pct_change(periods,
+                                         fill_method=fill_method,
+                                         limit=limit)
         assert_frame_equal(rs_freq, rs_periods)
 
     def test_frame_ctor_datetime64_column(self):
@@ -509,7 +530,68 @@ class TestDataFrameTimeSeriesMethods(TestData):
         assert frame.last_valid_index() is None
         assert frame.first_valid_index() is None
 
-    def test_at_time_frame(self):
+        # GH20499: its preserves freq with holes
+        frame.index = date_range("20110101", periods=N, freq="B")
+        frame.iloc[1] = 1
+        frame.iloc[-2] = 1
+        assert frame.first_valid_index() == frame.index[1]
+        assert frame.last_valid_index() == frame.index[-2]
+        assert frame.first_valid_index().freq == frame.index.freq
+        assert frame.last_valid_index().freq == frame.index.freq
+
+    def test_first_subset(self):
+        ts = tm.makeTimeDataFrame(freq='12h')
+        result = ts.first('10d')
+        assert len(result) == 20
+
+        ts = tm.makeTimeDataFrame(freq='D')
+        result = ts.first('10d')
+        assert len(result) == 10
+
+        result = ts.first('3M')
+        expected = ts[:'3/31/2000']
+        assert_frame_equal(result, expected)
+
+        result = ts.first('21D')
+        expected = ts[:21]
+        assert_frame_equal(result, expected)
+
+        result = ts[:0].first('3M')
+        assert_frame_equal(result, ts[:0])
+
+    def test_first_raises(self):
+        # GH20725
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
+        with pytest.raises(TypeError):  # index is not a DatetimeIndex
+            df.first('1D')
+
+    def test_last_subset(self):
+        ts = tm.makeTimeDataFrame(freq='12h')
+        result = ts.last('10d')
+        assert len(result) == 20
+
+        ts = tm.makeTimeDataFrame(nper=30, freq='D')
+        result = ts.last('10d')
+        assert len(result) == 10
+
+        result = ts.last('21D')
+        expected = ts['2000-01-10':]
+        assert_frame_equal(result, expected)
+
+        result = ts.last('21D')
+        expected = ts[-21:]
+        assert_frame_equal(result, expected)
+
+        result = ts[:0].last('3M')
+        assert_frame_equal(result, ts[:0])
+
+    def test_last_raises(self):
+        # GH20725
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
+        with pytest.raises(TypeError):  # index is not a DatetimeIndex
+            df.last('1D')
+
+    def test_at_time(self):
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
         rs = ts.at_time(rng[1])
@@ -539,7 +621,13 @@ class TestDataFrameTimeSeriesMethods(TestData):
         rs = ts.at_time('16:00')
         assert len(rs) == 0
 
-    def test_between_time_frame(self):
+    def test_at_time_raises(self):
+        # GH20725
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
+        with pytest.raises(TypeError):  # index is not a DatetimeIndex
+            df.at_time('00:00')
+
+    def test_between_time(self):
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
         stime = time(0, 0)
@@ -598,6 +686,12 @@ class TestDataFrameTimeSeriesMethods(TestData):
                     assert (t <= etime) or (t >= stime)
                 else:
                     assert (t < etime) or (t >= stime)
+
+    def test_between_time_raises(self):
+        # GH20725
+        df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
+        with pytest.raises(TypeError):  # index is not a DatetimeIndex
+            df.between_time(start_time='00:00', end_time='12:00')
 
     def test_operation_on_NaT(self):
         # Both NaT and Timestamp are in DataFrame.

@@ -6,7 +6,8 @@ import warnings
 from pandas.core.dtypes.missing import notna, isna
 from pandas.core.dtypes.generic import ABCDatetimeIndex, ABCPeriodIndex
 from pandas.core.dtypes.dtypes import IntervalDtype
-from pandas.core.dtypes.cast import maybe_convert_platform, find_common_type
+from pandas.core.dtypes.cast import (
+    maybe_convert_platform, find_common_type, maybe_downcast_to_dtype)
 from pandas.core.dtypes.common import (
     _ensure_platform_int,
     is_list_like,
@@ -111,6 +112,10 @@ def maybe_convert_platform_interval(values):
     -------
     array
     """
+    if is_categorical_dtype(values):
+        # GH 21243/21253
+        values = np.array(values)
+
     if isinstance(values, (list, tuple)) and len(values) == 0:
         # GH 19016
         # empty lists/tuples get object dtype by default, but this is not
@@ -159,20 +164,22 @@ class IntervalIndex(IntervalMixin, Index):
 
     Attributes
     ----------
-    left
-    right
     closed
-    mid
-    length
-    values
     is_non_overlapping_monotonic
+    left
+    length
+    mid
+    right
+    values
 
     Methods
     -------
-    from_arrays
-    from_tuples
-    from_breaks
     contains
+    from_arrays
+    from_breaks
+    from_tuples
+    get_indexer
+    get_loc
 
     Examples
     ---------
@@ -213,8 +220,8 @@ class IntervalIndex(IntervalMixin, Index):
 
     _mask = None
 
-    def __new__(cls, data, closed=None, name=None, copy=False, dtype=None,
-                fastpath=False, verify_integrity=True):
+    def __new__(cls, data, closed=None, dtype=None, copy=False,
+                name=None, fastpath=False, verify_integrity=True):
 
         if fastpath:
             return cls._simple_new(data.left, data.right, closed, name,
@@ -457,7 +464,7 @@ class IntervalIndex(IntervalMixin, Index):
     def from_arrays(cls, left, right, closed='right', name=None, copy=False,
                     dtype=None):
         """
-        Construct an IntervalIndex from a a left and right array
+        Construct from two arrays defining the left and right bounds.
 
         Parameters
         ----------
@@ -471,11 +478,38 @@ class IntervalIndex(IntervalMixin, Index):
         name : object, optional
             Name to be stored in the index.
         copy : boolean, default False
-            copy the data
-        dtype : dtype or None, default None
-            If None, dtype will be inferred
+            Copy the data.
+        dtype : dtype, optional
+            If None, dtype will be inferred.
 
-            ..versionadded:: 0.23.0
+            .. versionadded:: 0.23.0
+
+        Returns
+        -------
+        index : IntervalIndex
+
+        Notes
+        -----
+        Each element of `left` must be less than or equal to the `right`
+        element at the same position. If an element is missing, it must be
+        missing in both `left` and `right`. A TypeError is raised when
+        using an unsupported type for `left` or `right`. At the moment,
+        'category', 'object', and 'string' subtypes are not supported.
+
+        Raises
+        ------
+        ValueError
+            When a value is missing in only one of `left` or `right`.
+            When a value in `left` is greater than the corresponding value
+            in `right`.
+
+        See Also
+        --------
+        interval_range : Function to create a fixed frequency IntervalIndex.
+        IntervalIndex.from_breaks : Construct an IntervalIndex from an array of
+            splits.
+        IntervalIndex.from_tuples : Construct an IntervalIndex from a
+            list/array of tuples.
 
         Examples
         --------
@@ -484,13 +518,29 @@ class IntervalIndex(IntervalMixin, Index):
                       closed='right',
                       dtype='interval[int64]')
 
-        See Also
-        --------
-        interval_range : Function to create a fixed frequency IntervalIndex
-        IntervalIndex.from_breaks : Construct an IntervalIndex from an array of
-                                    splits
-        IntervalIndex.from_tuples : Construct an IntervalIndex from a
-                                    list/array of tuples
+        If you want to segment different groups of people based on
+        ages, you can apply the method as follows:
+
+        >>> ages = pd.IntervalIndex.from_arrays([0, 2, 13],
+        ...                                     [2, 13, 19], closed='left')
+        >>> ages
+        IntervalIndex([[0, 2), [2, 13), [13, 19)]
+                      closed='left',
+                      dtype='interval[int64]')
+        >>> s = pd.Series(['baby', 'kid', 'teen'], ages)
+        >>> s
+        [0, 2)      baby
+        [2, 13)      kid
+        [13, 19)    teen
+        dtype: object
+
+        Values may be missing, but they must be missing in both arrays.
+
+        >>> pd.IntervalIndex.from_arrays([0, np.nan, 13],
+        ...                              [2, np.nan, 19])
+        IntervalIndex([(0.0, 2.0], nan, (13.0, 19.0]]
+                      closed='right',
+                      dtype='interval[float64]')
         """
         left = maybe_convert_platform_interval(left)
         right = maybe_convert_platform_interval(right)
@@ -895,8 +945,11 @@ class IntervalIndex(IntervalMixin, Index):
         if isinstance(label, IntervalMixin):
             raise NotImplementedError
 
+        # GH 20921: "not is_monotonic_increasing" for the second condition
+        # instead of "is_monotonic_decreasing" to account for single element
+        # indexes being both increasing and decreasing
         if ((side == 'left' and self.left.is_monotonic_increasing) or
-                (side == 'right' and self.left.is_monotonic_decreasing)):
+                (side == 'right' and not self.left.is_monotonic_increasing)):
             sub_idx = self.right
             if self.open_right or exclude_label:
                 label = _get_next_label(label)
@@ -1417,8 +1470,13 @@ def interval_range(start=None, end=None, periods=None, freq=None,
 
     Notes
     -----
-    Of the three parameters: ``start``, ``end``, and ``periods``, exactly two
-    must be specified.
+    Of the four parameters ``start``, ``end``, ``periods``, and ``freq``,
+    exactly three must be specified. If ``freq`` is omitted, the resulting
+    ``IntervalIndex`` will have ``periods`` linearly spaced elements between
+    ``start`` and ``end``, inclusively.
+
+    To learn more about datetime-like frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
 
     Returns
     -------
@@ -1457,6 +1515,14 @@ def interval_range(start=None, end=None, periods=None, freq=None,
                    (2017-03-01, 2017-04-01]]
                   closed='right', dtype='interval[datetime64[ns]]')
 
+    Specify ``start``, ``end``, and ``periods``; the frequency is generated
+    automatically (linearly spaced).
+
+    >>> pd.interval_range(start=0, end=6, periods=4)
+    IntervalIndex([(0.0, 1.5], (1.5, 3.0], (3.0, 4.5], (4.5, 6.0]]
+              closed='right',
+              dtype='interval[float64]')
+
     The ``closed`` parameter specifies which endpoints of the individual
     intervals within the ``IntervalIndex`` are closed.
 
@@ -1468,19 +1534,21 @@ def interval_range(start=None, end=None, periods=None, freq=None,
     --------
     IntervalIndex : an Index of intervals that are all closed on the same side.
     """
-    if com._count_not_none(start, end, periods) != 2:
-        raise ValueError('Of the three parameters: start, end, and periods, '
-                         'exactly two must be specified')
-
     start = com._maybe_box_datetimelike(start)
     end = com._maybe_box_datetimelike(end)
-    endpoint = next(com._not_none(start, end))
+    endpoint = start if start is not None else end
+
+    if freq is None and com._any_none(periods, start, end):
+        freq = 1 if is_number(endpoint) else 'D'
+
+    if com._count_not_none(start, end, periods, freq) != 3:
+        raise ValueError('Of the four parameters: start, end, periods, and '
+                         'freq, exactly three must be specified')
 
     if not _is_valid_endpoint(start):
         msg = 'start must be numeric or datetime-like, got {start}'
         raise ValueError(msg.format(start=start))
-
-    if not _is_valid_endpoint(end):
+    elif not _is_valid_endpoint(end):
         msg = 'end must be numeric or datetime-like, got {end}'
         raise ValueError(msg.format(end=end))
 
@@ -1490,8 +1558,7 @@ def interval_range(start=None, end=None, periods=None, freq=None,
         msg = 'periods must be a number, got {periods}'
         raise TypeError(msg.format(periods=periods))
 
-    freq = freq or (1 if is_number(endpoint) else 'D')
-    if not is_number(freq):
+    if freq is not None and not is_number(freq):
         try:
             freq = to_offset(freq)
         except ValueError:
@@ -1504,28 +1571,34 @@ def interval_range(start=None, end=None, periods=None, freq=None,
                 _is_type_compatible(end, freq)]):
         raise TypeError("start, end, freq need to be type compatible")
 
+    # +1 to convert interval count to breaks count (n breaks = n-1 intervals)
+    if periods is not None:
+        periods += 1
+
     if is_number(endpoint):
+        # force consistency between start/end/freq (lower end if freq skips it)
+        if com._all_not_none(start, end, freq):
+            end -= (end - start) % freq
+
+        # compute the period/start/end if unspecified (at most one)
         if periods is None:
-            periods = int((end - start) // freq)
+            periods = int((end - start) // freq) + 1
+        elif start is None:
+            start = end - (periods - 1) * freq
+        elif end is None:
+            end = start + (periods - 1) * freq
 
-        if start is None:
-            start = end - periods * freq
-
-        # force end to be consistent with freq (lower if freq skips over end)
-        end = start + periods * freq
-
-        # end + freq for inclusive endpoint
-        breaks = np.arange(start, end + freq, freq)
-    elif isinstance(endpoint, Timestamp):
-        # add one to account for interval endpoints (n breaks = n-1 intervals)
-        if periods is not None:
-            periods += 1
-        breaks = date_range(start=start, end=end, periods=periods, freq=freq)
+        breaks = np.linspace(start, end, periods)
+        if all(is_integer(x) for x in com._not_none(start, end, freq)):
+            # np.linspace always produces float output
+            breaks = maybe_downcast_to_dtype(breaks, 'int64')
     else:
-        # add one to account for interval endpoints (n breaks = n-1 intervals)
-        if periods is not None:
-            periods += 1
-        breaks = timedelta_range(start=start, end=end, periods=periods,
-                                 freq=freq)
+        # delegate to the appropriate range function
+        if isinstance(endpoint, Timestamp):
+            range_func = date_range
+        else:
+            range_func = timedelta_range
+
+        breaks = range_func(start=start, end=end, periods=periods, freq=freq)
 
     return IntervalIndex.from_breaks(breaks, name=name, closed=closed)

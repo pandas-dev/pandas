@@ -10,6 +10,7 @@ import os
 import abc
 import warnings
 import numpy as np
+from io import UnsupportedOperation
 
 from pandas.core.dtypes.common import (
     is_integer, is_float,
@@ -302,20 +303,11 @@ def read_excel(io,
                convert_float=True,
                **kwds):
 
-    # Can't use _deprecate_kwarg since sheetname=None has a special meaning
-    if is_integer(sheet_name) and sheet_name == 0 and 'sheetname' in kwds:
-        warnings.warn("The `sheetname` keyword is deprecated, use "
-                      "`sheet_name` instead", FutureWarning, stacklevel=2)
-        sheet_name = kwds.pop("sheetname")
-    elif 'sheetname' in kwds:
-        raise TypeError("Cannot specify both `sheet_name` and `sheetname`. "
-                        "Use just `sheet_name`")
-
     if not isinstance(io, ExcelFile):
         io = ExcelFile(io, engine=engine)
 
-    return io._parse_excel(
-        sheetname=sheet_name,
+    return io.parse(
+        sheet_name=sheet_name,
         header=header,
         names=names,
         index_col=index_col,
@@ -387,6 +379,15 @@ class ExcelFile(object):
             self.book = io
         elif not isinstance(io, xlrd.Book) and hasattr(io, "read"):
             # N.B. xlrd.Book has a read attribute too
+            if hasattr(io, 'seek'):
+                try:
+                    # GH 19779
+                    io.seek(0)
+                except UnsupportedOperation:
+                    # HTTPResponse does not support seek()
+                    # GH 20434
+                    pass
+
             data = io.read()
             self.book = xlrd.open_workbook(file_contents=data)
         elif isinstance(self._io, compat.string_types):
@@ -425,7 +426,16 @@ class ExcelFile(object):
         docstring for more info on accepted parameters
         """
 
-        return self._parse_excel(sheetname=sheet_name,
+        # Can't use _deprecate_kwarg since sheetname=None has a special meaning
+        if is_integer(sheet_name) and sheet_name == 0 and 'sheetname' in kwds:
+            warnings.warn("The `sheetname` keyword is deprecated, use "
+                          "`sheet_name` instead", FutureWarning, stacklevel=2)
+            sheet_name = kwds.pop("sheetname")
+        elif 'sheetname' in kwds:
+            raise TypeError("Cannot specify both `sheet_name` "
+                            "and `sheetname`. Use just `sheet_name`")
+
+        return self._parse_excel(sheet_name=sheet_name,
                                  header=header,
                                  names=names,
                                  index_col=index_col,
@@ -479,7 +489,7 @@ class ExcelFile(object):
             return i in usecols
 
     def _parse_excel(self,
-                     sheetname=0,
+                     sheet_name=0,
                      header=0,
                      names=None,
                      index_col=None,
@@ -575,14 +585,14 @@ class ExcelFile(object):
         ret_dict = False
 
         # Keep sheetname to maintain backwards compatibility.
-        if isinstance(sheetname, list):
-            sheets = sheetname
+        if isinstance(sheet_name, list):
+            sheets = sheet_name
             ret_dict = True
-        elif sheetname is None:
+        elif sheet_name is None:
             sheets = self.sheet_names
             ret_dict = True
         else:
-            sheets = [sheetname]
+            sheets = [sheet_name]
 
         # handle same-type duplicates.
         sheets = list(OrderedDict.fromkeys(sheets).keys())
@@ -775,35 +785,6 @@ def _pop_header_name(row, index_col):
         return none_fill(row[i]), row[:i] + [''] + row[i + 1:]
 
 
-def _conv_value(val):
-    """ Convert numpy types to Python types for the Excel writers.
-
-        Parameters
-        ----------
-        val : object
-            Value to be written into cells
-
-        Returns
-        -------
-        If val is a numpy int, float, or bool, then the equivalent Python
-        types are returned. :obj:`datetime`, :obj:`date`, and :obj:`timedelta`
-        are passed and formatting must be handled in the writer. :obj:`str`
-        representation is returned for all other types.
-    """
-    if is_integer(val):
-        val = int(val)
-    elif is_float(val):
-        val = float(val)
-    elif is_bool(val):
-        val = bool(val)
-    elif isinstance(val, (datetime, date, timedelta)):
-        pass
-    else:
-        val = compat.to_str(val)
-
-    return val
-
-
 @add_metaclass(abc.ABCMeta)
 class ExcelWriter(object):
     """
@@ -948,6 +929,39 @@ class ExcelWriter(object):
             raise ValueError('Must pass explicit sheet_name or set '
                              'cur_sheet property')
         return sheet_name
+
+    def _value_with_fmt(self, val):
+        """Convert numpy types to Python types for the Excel writers.
+
+        Parameters
+        ----------
+        val : object
+            Value to be written into cells
+
+        Returns
+        -------
+        Tuple with the first element being the converted value and the second
+            being an optional format
+        """
+        fmt = None
+
+        if is_integer(val):
+            val = int(val)
+        elif is_float(val):
+            val = float(val)
+        elif is_bool(val):
+            val = bool(val)
+        elif isinstance(val, datetime):
+            fmt = self.datetime_format
+        elif isinstance(val, date):
+            fmt = self.date_format
+        elif isinstance(val, timedelta):
+            val = val.total_seconds() / float(86400)
+            fmt = '0'
+        else:
+            val = compat.to_str(val)
+
+        return val, fmt
 
     @classmethod
     def check_extension(cls, ext):
@@ -1378,7 +1392,9 @@ class _OpenpyxlWriter(ExcelWriter):
                 row=startrow + cell.row + 1,
                 column=startcol + cell.col + 1
             )
-            xcell.value = _conv_value(cell.val)
+            xcell.value, fmt = self._value_with_fmt(cell.val)
+            if fmt:
+                xcell.number_format = fmt
 
             style_kwargs = {}
             if cell.style:
@@ -1465,25 +1481,16 @@ class _XlwtWriter(ExcelWriter):
         style_dict = {}
 
         for cell in cells:
-            val = _conv_value(cell.val)
-
-            num_format_str = None
-            if isinstance(cell.val, datetime):
-                num_format_str = self.datetime_format
-            elif isinstance(cell.val, date):
-                num_format_str = self.date_format
-            elif isinstance(cell.val, timedelta):
-                delta = cell.val
-                val = delta.total_seconds() / float(86400)
+            val, fmt = self._value_with_fmt(cell.val)
 
             stylekey = json.dumps(cell.style)
-            if num_format_str:
-                stylekey += num_format_str
+            if fmt:
+                stylekey += fmt
 
             if stylekey in style_dict:
                 style = style_dict[stylekey]
             else:
-                style = self._convert_to_style(cell.style, num_format_str)
+                style = self._convert_to_style(cell.style, fmt)
                 style_dict[stylekey] = style
 
             if cell.mergestart is not None and cell.mergeend is not None:
@@ -1741,23 +1748,17 @@ class _XlsxWriter(ExcelWriter):
             wks.freeze_panes(*(freeze_panes))
 
         for cell in cells:
-            val = _conv_value(cell.val)
-
-            num_format_str = None
-            if isinstance(cell.val, datetime):
-                num_format_str = self.datetime_format
-            elif isinstance(cell.val, date):
-                num_format_str = self.date_format
+            val, fmt = self._value_with_fmt(cell.val)
 
             stylekey = json.dumps(cell.style)
-            if num_format_str:
-                stylekey += num_format_str
+            if fmt:
+                stylekey += fmt
 
             if stylekey in style_dict:
                 style = style_dict[stylekey]
             else:
                 style = self.book.add_format(
-                    _XlsxStyler.convert(cell.style, num_format_str))
+                    _XlsxStyler.convert(cell.style, fmt))
                 style_dict[stylekey] = style
 
             if cell.mergestart is not None and cell.mergeend is not None:

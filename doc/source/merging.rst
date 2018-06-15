@@ -152,11 +152,11 @@ functionality below.
 Set logic on the other axes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When gluing together multiple ``DataFrame``s, you have a choice of how to handle 
-the other axes (other than the one being concatenated). This can be done in 
+When gluing together multiple DataFrames, you have a choice of how to handle
+the other axes (other than the one being concatenated). This can be done in
 the following three ways:
 
-- Take the (sorted) union of them all, ``join='outer'``. This is the default
+- Take the union of them all, ``join='outer'``. This is the default
   option as it results in zero information loss.
 - Take the intersection, ``join='inner'``.
 - Use a specific index, as passed to the ``join_axes`` argument.
@@ -167,10 +167,10 @@ behavior:
 .. ipython:: python
 
    df4 = pd.DataFrame({'B': ['B2', 'B3', 'B6', 'B7'],
-                    'D': ['D2', 'D3', 'D6', 'D7'],
-                    'F': ['F2', 'F3', 'F6', 'F7']},
-                   index=[2, 3, 6, 7])
-   result = pd.concat([df1, df4], axis=1)
+                       'D': ['D2', 'D3', 'D6', 'D7'],
+                       'F': ['F2', 'F3', 'F6', 'F7']},
+                      index=[2, 3, 6, 7])
+   result = pd.concat([df1, df4], axis=1, sort=False)
 
 
 .. ipython:: python
@@ -181,8 +181,16 @@ behavior:
           labels=['df1', 'df4'], vertical=False);
    plt.close('all');
 
-Note that the row indexes have been unioned and sorted. Here is the same thing
-with ``join='inner'``:
+.. warning::
+
+   .. versionchanged:: 0.23.0
+
+   The default behavior with ``join='outer'`` is to sort the other axis
+   (columns in this case). In a future version of pandas, the default will
+   be to not sort. We specified ``sort=False`` to opt in to the new
+   behavior now.
+
+Here is the same thing with ``join='inner'``:
 
 .. ipython:: python
 
@@ -583,7 +591,7 @@ and ``right`` is a subclass of DataFrame, the return type will still be
 
 ``merge`` is a function in the pandas namespace, and it is also available as a
 ``DataFrame`` instance method :meth:`~DataFrame.merge`, with the calling 
-``DataFrame `` being implicitly considered the left object in the join.
+``DataFrame`` being implicitly considered the left object in the join.
 
 The related :meth:`~DataFrame.join` method, uses ``merge`` internally for the
 index-on-index (by default) and column(s)-on-index join. If you are joining on
@@ -636,7 +644,7 @@ key combination:
 
 Here is a more complicated example with multiple join keys. Only the keys 
 appearing in ``left`` and ``right`` are present (the intersection), since 
-``how='inner'```by default.
+``how='inner'`` by default.
 
 .. ipython:: python
 
@@ -721,7 +729,7 @@ either the left or right tables, the values in the joined table will be
           labels=['left', 'right'], vertical=False);
    plt.close('all');
 
-Here is another example with duplicate join keys in ``DataFrame``s:
+Here is another example with duplicate join keys in DataFrames:
 
 .. ipython:: python
 
@@ -1077,12 +1085,12 @@ As you can see, this drops any rows where there was no match.
 
 .. _merging.join_on_mi:
 
-Joining a single Index to a Multi-index
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Joining a single Index to a MultiIndex
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can join a singly-indexed ``DataFrame`` with a level of a multi-indexed ``DataFrame``.
+You can join a singly-indexed ``DataFrame`` with a level of a MultiIndexed ``DataFrame``.
 The level will match on the name of the index of the singly-indexed frame against
-a level name of the multi-indexed frame.
+a level name of the MultiIndexed frame.
 
 ..  ipython:: python
 
@@ -1122,8 +1130,8 @@ This is equivalent but less verbose and more memory efficient / faster than this
           labels=['left', 'right'], vertical=False);
    plt.close('all');
 
-Joining with two multi-indexes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Joining with two MultiIndexes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This is not implemented via ``join`` at-the-moment, however it can be done using
 the following code.
@@ -1202,7 +1210,7 @@ Overlapping value columns
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The merge ``suffixes`` argument takes a tuple of list of strings to append to
-overlapping column names in the input ``DataFrame``s to disambiguate the result
+overlapping column names in the input ``DataFrame``\ s to disambiguate the result
 columns:
 
 .. ipython:: python
@@ -1302,7 +1310,7 @@ For this, use the :meth:`~DataFrame.combine_first` method:
 
 Note that this method only takes values from the right ``DataFrame`` if they are
 missing in the left ``DataFrame``. A related method, :meth:`~DataFrame.update`, 
-alters non-NA values inplace:
+alters non-NA values in place:
 
 .. ipython:: python
    :suppress:

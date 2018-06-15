@@ -31,7 +31,7 @@ from pandas.core.internals import (BlockManager,
                                    create_block_manager_from_blocks)
 from pandas.core.series import Series
 from pandas.core.reshape.util import cartesian_product
-from pandas.util._decorators import Appender
+from pandas.util._decorators import Appender, Substitution
 from pandas.util._validators import validate_axis_style_args
 
 _shared_doc_kwargs = dict(
@@ -204,10 +204,8 @@ class Panel(NDFrame):
                                for k, v in compat.iteritems(data)
                                if k in haxis)
         else:
-            ks = list(data.keys())
-            if not isinstance(data, OrderedDict):
-                ks = com._try_sort(ks)
-            haxis = Index(ks)
+            keys = com._dict_keys_to_ordered_list(data)
+            haxis = Index(keys)
 
         for k, v in compat.iteritems(data):
             if isinstance(v, dict):
@@ -914,7 +912,7 @@ class Panel(NDFrame):
         -------
         grouped : PanelGroupBy
         """
-        from pandas.core.groupby import PanelGroupBy
+        from pandas.core.groupby.groupby import PanelGroupBy
         axis = self._get_axis_number(axis)
         return PanelGroupBy(self, function, axis=axis)
 
@@ -1256,7 +1254,8 @@ class Panel(NDFrame):
 
         return super(Panel, self).transpose(*axes, **kwargs)
 
-    @Appender(_shared_docs['fillna'] % _shared_doc_kwargs)
+    @Substitution(**_shared_doc_kwargs)
+    @Appender(NDFrame.fillna.__doc__)
     def fillna(self, value=None, method=None, axis=None, inplace=False,
                limit=None, downcast=None, **kwargs):
         return super(Panel, self).fillna(value=value, method=method, axis=axis,
@@ -1406,7 +1405,7 @@ class Panel(NDFrame):
     # miscellaneous data creation
     @staticmethod
     def _extract_axes(self, data, axes, **kwargs):
-        """ return a list of the axis indicies """
+        """ return a list of the axis indices """
         return [self._extract_axis(self, data, axis=i, **kwargs)
                 for i, a in enumerate(axes)]
 
@@ -1448,11 +1447,11 @@ class Panel(NDFrame):
 
         Returns
         -------
-        dict of aligned results & indicies
+        dict of aligned results & indices
         """
 
         result = dict()
-        # caller differs dict/ODict, presered type
+        # caller differs dict/ODict, preserved type
         if isinstance(frames, OrderedDict):
             result = OrderedDict()
 
@@ -1500,8 +1499,11 @@ class Panel(NDFrame):
                 raw_lengths.append(v.shape[axis])
 
         if have_frames:
+            # we want the "old" behavior here, of sorting only
+            # 1. we're doing a union (intersect=False)
+            # 2. the indices are not aligned.
             index = _get_objs_combined_axis(data.values(), axis=axis,
-                                            intersect=intersect)
+                                            intersect=intersect, sort=None)
 
         if have_raw_arrays:
             lengths = list(set(raw_lengths))
@@ -1525,29 +1527,9 @@ Panel._setup_axes(axes=['items', 'major_axis', 'minor_axis'], info_axis=0,
                   stat_axis=1, aliases={'major': 'major_axis',
                                         'minor': 'minor_axis'},
                   slicers={'major_axis': 'index',
-                           'minor_axis': 'columns'})
+                           'minor_axis': 'columns'},
+                  docs={})
 
-ops.add_special_arithmetic_methods(Panel, **ops.panel_special_funcs)
-ops.add_flex_arithmetic_methods(Panel, **ops.panel_flex_funcs)
+ops.add_special_arithmetic_methods(Panel)
+ops.add_flex_arithmetic_methods(Panel)
 Panel._add_numeric_operations()
-
-
-# legacy
-class WidePanel(Panel):
-
-    def __init__(self, *args, **kwargs):
-        # deprecation, #10892
-        warnings.warn("WidePanel is deprecated. Please use Panel",
-                      FutureWarning, stacklevel=2)
-
-        super(WidePanel, self).__init__(*args, **kwargs)
-
-
-class LongPanel(DataFrame):
-
-    def __init__(self, *args, **kwargs):
-        # deprecation, #10892
-        warnings.warn("LongPanel is deprecated. Please use DataFrame",
-                      FutureWarning, stacklevel=2)
-
-        super(LongPanel, self).__init__(*args, **kwargs)

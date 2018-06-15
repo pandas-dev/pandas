@@ -4,8 +4,15 @@ import pandas as pd
 import pandas.util.testing as tm
 from pandas.core.internals import ExtensionBlock
 
+from .base import BaseExtensionTests
 
-class BaseConstructorsTests(object):
+
+class BaseConstructorsTests(BaseExtensionTests):
+
+    def test_array_from_scalars(self, data):
+        scalars = [data[0], data[1], data[2]]
+        result = data._from_sequence(scalars)
+        assert isinstance(result, type(data))
 
     def test_series_constructor(self, data):
         result = pd.Series(data)
@@ -34,10 +41,7 @@ class BaseConstructorsTests(object):
         assert result.shape == (len(data), 1)
         assert isinstance(result._data.blocks[0], ExtensionBlock)
 
-    @pytest.mark.xfail(reason="GH-19342")
     def test_series_given_mismatched_index_raises(self, data):
-        msg = 'Wrong number of items passed 3, placement implies 4'
-        with tm.assert_raises_regex(ValueError, None) as m:
+        msg = 'Length of passed values is 3, index implies 5'
+        with tm.assert_raises_regex(ValueError, msg):
             pd.Series(data[:3], index=[0, 1, 2, 3, 4])
-
-        assert m.match(msg)

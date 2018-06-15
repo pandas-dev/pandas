@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import timedelta
+import operator
+
 import pytest
 import numpy as np
 
@@ -9,6 +11,7 @@ from pandas import (Timedelta,
                     period_range, Period, PeriodIndex,
                     _np_version_under1p10)
 import pandas.core.indexes.period as period
+from pandas.core import ops
 from pandas.errors import PerformanceWarning
 
 
@@ -255,6 +258,76 @@ class TestPeriodIndexComparisons(object):
 
 
 class TestPeriodIndexArithmetic(object):
+
+    # -------------------------------------------------------------
+    # Invalid Operations
+
+    @pytest.mark.parametrize('other', [3.14, np.array([2.0, 3.0])])
+    @pytest.mark.parametrize('op', [operator.add, ops.radd,
+                                    operator.sub, ops.rsub])
+    def test_pi_add_sub_float(self, op, other):
+        dti = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq='D')
+        pi = dti.to_period('D')
+        with pytest.raises(TypeError):
+            op(pi, other)
+
+    # -----------------------------------------------------------------
+    # __add__/__sub__ with ndarray[datetime64] and ndarray[timedelta64]
+
+    def test_pi_add_sub_dt64_array_raises(self):
+        rng = pd.period_range('1/1/2000', freq='D', periods=3)
+        dti = pd.date_range('2016-01-01', periods=3)
+        dtarr = dti.values
+
+        with pytest.raises(TypeError):
+            rng + dtarr
+        with pytest.raises(TypeError):
+            dtarr + rng
+
+        with pytest.raises(TypeError):
+            rng - dtarr
+        with pytest.raises(TypeError):
+            dtarr - rng
+
+    def test_pi_add_sub_td64_array_non_tick_raises(self):
+        rng = pd.period_range('1/1/2000', freq='Q', periods=3)
+        dti = pd.date_range('2016-01-01', periods=3)
+        tdi = dti - dti.shift(1)
+        tdarr = tdi.values
+
+        with pytest.raises(period.IncompatibleFrequency):
+            rng + tdarr
+        with pytest.raises(period.IncompatibleFrequency):
+            tdarr + rng
+
+        with pytest.raises(period.IncompatibleFrequency):
+            rng - tdarr
+        with pytest.raises(period.IncompatibleFrequency):
+            tdarr - rng
+
+    @pytest.mark.xfail(reason='op with TimedeltaIndex raises, with ndarray OK')
+    def test_pi_add_sub_td64_array_tick(self):
+        rng = pd.period_range('1/1/2000', freq='Q', periods=3)
+        dti = pd.date_range('2016-01-01', periods=3)
+        tdi = dti - dti.shift(1)
+        tdarr = tdi.values
+
+        expected = rng + tdi
+        result = rng + tdarr
+        tm.assert_index_equal(result, expected)
+        result = tdarr + rng
+        tm.assert_index_equal(result, expected)
+
+        expected = rng - tdi
+        result = rng - tdarr
+        tm.assert_index_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            tdarr - rng
+
+    # -----------------------------------------------------------------
+    # operations with array/Index of DateOffset objects
+
     @pytest.mark.parametrize('box', [np.array, pd.Index])
     def test_pi_add_offset_array(self, box):
         # GH#18849
@@ -375,6 +448,31 @@ class TestPeriodIndexArithmetic(object):
 
         rng -= pd.offsets.MonthEnd(5)
         tm.assert_index_equal(rng, expected)
+
+    # ---------------------------------------------------------------
+    # __add__/__sub__ with integer arrays
+
+    @pytest.mark.parametrize('box', [np.array, pd.Index])
+    @pytest.mark.parametrize('op', [operator.add, ops.radd])
+    def test_pi_add_intarray(self, box, op):
+        # GH#19959
+        pi = pd.PeriodIndex([pd.Period('2015Q1'), pd.Period('NaT')])
+        other = box([4, -1])
+        result = op(pi, other)
+        expected = pd.PeriodIndex([pd.Period('2016Q1'), pd.Period('NaT')])
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('box', [np.array, pd.Index])
+    def test_pi_sub_intarray(self, box):
+        # GH#19959
+        pi = pd.PeriodIndex([pd.Period('2015Q1'), pd.Period('NaT')])
+        other = box([4, -1])
+        result = pi - other
+        expected = pd.PeriodIndex([pd.Period('2014Q1'), pd.Period('NaT')])
+        tm.assert_index_equal(result, expected)
+
+        with pytest.raises(TypeError):
+            other - pi
 
     # ---------------------------------------------------------------
     # Timedelta-like (timedelta, timedelta64, Timedelta, Tick)

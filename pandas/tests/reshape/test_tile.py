@@ -4,7 +4,8 @@ import pytest
 import numpy as np
 from pandas.compat import zip
 
-from pandas import (Series, isna, to_datetime, DatetimeIndex,
+import pandas as pd
+from pandas import (DataFrame, Series, isna, to_datetime, DatetimeIndex, Index,
                     Timestamp, Interval, IntervalIndex, Categorical,
                     cut, qcut, date_range, NaT, TimedeltaIndex)
 from pandas.tseries.offsets import Nano, Day
@@ -103,6 +104,12 @@ class TestCut(object):
         pytest.raises(ValueError, cut, [], 2)
 
         pytest.raises(ValueError, cut, [1, 2, 3], 0.5)
+
+    @pytest.mark.parametrize('arg', [2, np.eye(2), DataFrame(np.eye(2))])
+    @pytest.mark.parametrize('cut_func', [cut, qcut])
+    def test_cut_not_1d_arg(self, arg, cut_func):
+        with pytest.raises(ValueError):
+            cut_func(arg, 2)
 
     def test_cut_out_of_range_more(self):
         # #1511
@@ -251,18 +258,6 @@ class TestCut(object):
         result = qcut(arr, 4)
         assert isna(result[:20]).all()
 
-    @pytest.mark.parametrize('s', [
-        Series(DatetimeIndex(['20180101', NaT, '20180103'])),
-        Series(TimedeltaIndex(['0 days', NaT, '2 days']))],
-        ids=lambda x: str(x.dtype))
-    def test_qcut_nat(self, s):
-        # GH 19768
-        intervals = IntervalIndex.from_tuples(
-            [(s[0] - Nano(), s[2] - Day()), np.nan, (s[2] - Day(), s[2])])
-        expected = Series(Categorical(intervals, ordered=True))
-        result = qcut(s, 2)
-        tm.assert_series_equal(result, expected)
-
     def test_qcut_index(self):
         result = qcut([0, 2], 2)
         intervals = [Interval(-0.001, 1), Interval(1, 2)]
@@ -342,6 +337,21 @@ class TestCut(object):
             [-0.001, 1.5, 3], closed='right').repeat(2)).astype(
             CDT(ordered=True))
         tm.assert_series_equal(result, expected)
+
+    def test_cut_duplicates_bin(self):
+        # issue 20947
+        values = Series(np.array([1, 3, 5, 7, 9]),
+                        index=["a", "b", "c", "d", "e"])
+        bins = [0, 2, 4, 6, 10, 10]
+        result = cut(values, bins, duplicates='drop')
+        expected = cut(values, pd.unique(bins))
+        tm.assert_series_equal(result, expected)
+
+        pytest.raises(ValueError, cut, values, bins)
+        pytest.raises(ValueError, cut, values, bins, duplicates='raise')
+
+        # invalid
+        pytest.raises(ValueError, cut, values, bins, duplicates='foo')
 
     def test_qcut_duplicates_bin(self):
         # GH 7751
@@ -452,6 +462,37 @@ class TestCut(object):
         result = cut(s, 1, labels=False)
         tm.assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize(
+        "array_1_writeable, array_2_writeable",
+        [(True, True), (True, False), (False, False)])
+    def test_cut_read_only(self, array_1_writeable, array_2_writeable):
+        # issue 18773
+        array_1 = np.arange(0, 100, 10)
+        array_1.flags.writeable = array_1_writeable
+
+        array_2 = np.arange(0, 100, 10)
+        array_2.flags.writeable = array_2_writeable
+
+        hundred_elements = np.arange(100)
+
+        tm.assert_categorical_equal(cut(hundred_elements, array_1),
+                                    cut(hundred_elements, array_2))
+
+
+class TestDatelike(object):
+
+    @pytest.mark.parametrize('s', [
+        Series(DatetimeIndex(['20180101', NaT, '20180103'])),
+        Series(TimedeltaIndex(['0 days', NaT, '2 days']))],
+        ids=lambda x: str(x.dtype))
+    def test_qcut_nat(self, s):
+        # GH 19768
+        intervals = IntervalIndex.from_tuples(
+            [(s[0] - Nano(), s[2] - Day()), np.nan, (s[2] - Day(), s[2])])
+        expected = Series(Categorical(intervals, ordered=True))
+        result = qcut(s, 2)
+        tm.assert_series_equal(result, expected)
+
     def test_datetime_cut(self):
         # GH 14714
         # testing for time data to be present as series
@@ -488,6 +529,47 @@ class TestCut(object):
         result, bins = cut(data, 3, retbins=True)
         tm.assert_series_equal(Series(result), expected)
 
+    @pytest.mark.parametrize('bins', [
+        3, [Timestamp('2013-01-01 04:57:07.200000'),
+            Timestamp('2013-01-01 21:00:00'),
+            Timestamp('2013-01-02 13:00:00'),
+            Timestamp('2013-01-03 05:00:00')]])
+    @pytest.mark.parametrize('box', [list, np.array, Index, Series])
+    def test_datetimetz_cut(self, bins, box):
+        # GH 19872
+        tz = 'US/Eastern'
+        s = Series(date_range('20130101', periods=3, tz=tz))
+        if not isinstance(bins, int):
+            bins = box(bins)
+        result = cut(s, bins)
+        expected = (
+            Series(IntervalIndex([
+                Interval(Timestamp('2012-12-31 23:57:07.200000', tz=tz),
+                         Timestamp('2013-01-01 16:00:00', tz=tz)),
+                Interval(Timestamp('2013-01-01 16:00:00', tz=tz),
+                         Timestamp('2013-01-02 08:00:00', tz=tz)),
+                Interval(Timestamp('2013-01-02 08:00:00', tz=tz),
+                         Timestamp('2013-01-03 00:00:00', tz=tz))]))
+            .astype(CDT(ordered=True)))
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('bins', [3, np.linspace(0, 1, 4)])
+    def test_datetimetz_qcut(self, bins):
+        # GH 19872
+        tz = 'US/Eastern'
+        s = Series(date_range('20130101', periods=3, tz=tz))
+        result = qcut(s, bins)
+        expected = (
+            Series(IntervalIndex([
+                Interval(Timestamp('2012-12-31 23:59:59.999999999', tz=tz),
+                         Timestamp('2013-01-01 16:00:00', tz=tz)),
+                Interval(Timestamp('2013-01-01 16:00:00', tz=tz),
+                         Timestamp('2013-01-02 08:00:00', tz=tz)),
+                Interval(Timestamp('2013-01-02 08:00:00', tz=tz),
+                         Timestamp('2013-01-03 00:00:00', tz=tz))]))
+            .astype(CDT(ordered=True)))
+        tm.assert_series_equal(result, expected)
+
     def test_datetime_bin(self):
         data = [np.datetime64('2012-12-13'), np.datetime64('2012-12-15')]
         bin_data = ['2012-12-12', '2012-12-14', '2012-12-16']
@@ -523,19 +605,3 @@ class TestCut(object):
         mask = result.isna()
         tm.assert_numpy_array_equal(
             mask, np.array([False, True, True, True, True]))
-
-    @pytest.mark.parametrize(
-        "array_1_writeable, array_2_writeable",
-        [(True, True), (True, False), (False, False)])
-    def test_cut_read_only(self, array_1_writeable, array_2_writeable):
-        # issue 18773
-        array_1 = np.arange(0, 100, 10)
-        array_1.flags.writeable = array_1_writeable
-
-        array_2 = np.arange(0, 100, 10)
-        array_2.flags.writeable = array_2_writeable
-
-        hundred_elements = np.arange(100)
-
-        tm.assert_categorical_equal(cut(hundred_elements, array_1),
-                                    cut(hundred_elements, array_2))

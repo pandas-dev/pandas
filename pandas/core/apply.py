@@ -111,8 +111,14 @@ class FrameApply(object):
 
         # string dispatch
         if isinstance(self.f, compat.string_types):
-            self.kwds['axis'] = self.axis
-            return getattr(self.obj, self.f)(*self.args, **self.kwds)
+            # Support for `frame.transform('method')`
+            # Some methods (shift, etc.) require the axis argument, others
+            # don't, so inspect and insert if necessary.
+            func = getattr(self.obj, self.f)
+            sig = compat.signature(func)
+            if 'axis' in sig.args:
+                self.kwds['axis'] = self.axis
+            return func(*self.args, **self.kwds)
 
         # ufunc
         elif isinstance(self.f, np.ufunc):
@@ -162,7 +168,7 @@ class FrameApply(object):
                 pass
 
         if reduce:
-            return Series(np.nan, index=self.agg_axis)
+            return self.obj._constructor_sliced(np.nan, index=self.agg_axis)
         else:
             return self.obj.copy()
 
@@ -175,11 +181,13 @@ class FrameApply(object):
             result = np.apply_along_axis(self.f, self.axis, self.values)
 
         # TODO: mixed type case
-        from pandas import DataFrame, Series
         if result.ndim == 2:
-            return DataFrame(result, index=self.index, columns=self.columns)
+            return self.obj._constructor(result,
+                                         index=self.index,
+                                         columns=self.columns)
         else:
-            return Series(result, index=self.agg_axis)
+            return self.obj._constructor_sliced(result,
+                                                index=self.agg_axis)
 
     def apply_broadcast(self, target):
         result_values = np.empty_like(target.values)
@@ -189,7 +197,7 @@ class FrameApply(object):
 
         for i, col in enumerate(target.columns):
             res = self.f(target[col])
-            ares = np. asarray(res).ndim
+            ares = np.asarray(res).ndim
 
             # must be a scalar or 1d
             if ares > 1:
@@ -232,7 +240,7 @@ class FrameApply(object):
                                           axis=self.axis,
                                           dummy=dummy,
                                           labels=labels)
-                return Series(result, index=labels)
+                return self.obj._constructor_sliced(result, index=labels)
             except Exception:
                 pass
 
@@ -291,8 +299,7 @@ class FrameApply(object):
             return self.wrap_results_for_axis()
 
         # dict of scalars
-        from pandas import Series
-        result = Series(results)
+        result = self.obj._constructor_sliced(results)
         result.index = self.res_index
 
         return result
@@ -379,7 +386,6 @@ class FrameColumnApply(FrameApply):
         # we have a non-series and don't want inference
         elif not isinstance(results[0], ABCSeries):
             from pandas import Series
-
             result = Series(results)
             result.index = self.res_index
 

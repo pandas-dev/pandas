@@ -54,20 +54,21 @@ bar2,12,13,14,15
         # and C engine will raise UnicodeDecodeError instead of
         # c engine raising ParserError and swallowing exception
         # that caused read to fail.
-        handle = open(self.csv_shiftjs, "rb")
         codec = codecs.lookup("utf-8")
         utf8 = codecs.lookup('utf-8')
-        # stream must be binary UTF8
-        stream = codecs.StreamRecoder(
-            handle, utf8.encode, utf8.decode, codec.streamreader,
-            codec.streamwriter)
+
         if compat.PY3:
             msg = "'utf-8' codec can't decode byte"
         else:
             msg = "'utf8' codec can't decode byte"
-        with tm.assert_raises_regex(UnicodeDecodeError, msg):
-            self.read_csv(stream)
-        stream.close()
+
+        # stream must be binary UTF8
+        with open(self.csv_shiftjs, "rb") as handle, codecs.StreamRecoder(
+                handle, utf8.encode, utf8.decode, codec.streamreader,
+                codec.streamwriter) as stream:
+
+            with tm.assert_raises_regex(UnicodeDecodeError, msg):
+                self.read_csv(stream)
 
     def test_read_csv(self):
         if not compat.PY3:
@@ -1275,10 +1276,8 @@ eight,1,2,3"""
         else:  # Python engine
             assert output == 'Filled 1 NA values in column a\n'
 
+    @pytest.mark.skipif(PY3, reason="won't work in Python 3")
     def test_iteration_open_handle(self):
-        if PY3:
-            pytest.skip(
-                "won't work in Python 3 {0}".format(sys.version_info))
 
         with tm.ensure_clean() as path:
             with open(path, 'wb') as f:

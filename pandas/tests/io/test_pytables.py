@@ -373,6 +373,23 @@ class TestHDFStore(Base):
             assert set(store.keys()) == expected
             assert set(store) == expected
 
+    def test_keys_ignore_hdf_softlink(self):
+
+        # GH 20523
+        # Puts a softlink into HDF file and rereads
+
+        with ensure_clean_store(self.path) as store:
+
+            df = DataFrame(dict(A=lrange(5), B=lrange(5)))
+            store.put("df", df)
+
+            assert store.keys() == ["/df"]
+
+            store._handle.create_soft_link(store._handle.root, "symlink", "df")
+
+            # Should ignore the softlink
+            assert store.keys() == ["/df"]
+
     def test_iter_empty(self):
 
         with ensure_clean_store(self.path) as store:
@@ -1445,6 +1462,18 @@ class TestHDFStore(Base):
             tm.assert_series_equal(pd.read_hdf(path, 'ss4'),
                                    pd.concat([df['B'], df2['B']]))
 
+    @pytest.mark.parametrize("format", ['fixed', 'table'])
+    def test_to_hdf_errors(self, format):
+
+        data = ['\ud800foo']
+        ser = pd.Series(data, index=pd.Index(data))
+        with ensure_clean_path(self.path) as path:
+            # GH 20835
+            ser.to_hdf(path, 'table', format=format, errors='surrogatepass')
+
+            result = pd.read_hdf(path, 'table', errors='surrogatepass')
+            tm.assert_series_equal(result, ser)
+
     def test_append_with_data_columns(self):
 
         with ensure_clean_store(self.path) as store:
@@ -1455,7 +1484,7 @@ class TestHDFStore(Base):
             store.append('df', df[2:])
             tm.assert_frame_equal(store['df'], df)
 
-            # check that we have indicies created
+            # check that we have indices created
             assert(store._handle.root.df.table.cols.index.is_indexed is True)
             assert(store._handle.root.df.table.cols.B.is_indexed is True)
 
@@ -2034,7 +2063,7 @@ class TestHDFStore(Base):
                                'bool': 1, 'int16': 1, 'int8': 1,
                                'int64': 1, 'object': 1, 'datetime64[ns]': 2})
             result = result.sort_index()
-            result = expected.sort_index()
+            expected = expected.sort_index()
             tm.assert_series_equal(result, expected)
 
     def test_table_mixed_dtypes(self):
@@ -2977,9 +3006,6 @@ class TestHDFStore(Base):
             wp = tm.makePanel()
             self._check_roundtrip(wp.to_frame(), _check)
 
-    def test_longpanel(self):
-        pass
-
     def test_overwrite_node(self):
 
         with ensure_clean_store(self.path) as store:
@@ -3819,8 +3845,15 @@ class TestHDFStore(Base):
 
         with ensure_clean_store(self.path) as store:
             _maybe_remove(store, 'df')
-            store.append('df', df)
 
+            # GH 17912
+            # HDFStore.select_column should raise a KeyError
+            # exception if the key is not a valid store
+            with pytest.raises(KeyError,
+                               message='No object named index in the file'):
+                store.select_column('df', 'index')
+
+            store.append('df', df)
             # error
             pytest.raises(KeyError, store.select_column, 'df', 'foo')
 
@@ -4478,7 +4511,7 @@ class TestHDFStore(Base):
                         keys = store.keys()
                     assert set(keys) == set(tstore.keys())
 
-                    # check indicies & nrows
+                    # check indices & nrows
                     for k in tstore.keys():
                         if tstore.get_storer(k).is_table:
                             new_t = tstore.get_storer(k)
@@ -4853,15 +4886,17 @@ class TestHDFStore(Base):
         if compat.PY3:
             types_should_run.append(tm.makeUnicodeIndex)
         else:
-            types_should_fail.append(tm.makeUnicodeIndex)
+            # TODO: Add back to types_should_fail
+            # https://github.com/pandas-dev/pandas/issues/20907
+            pass
 
         for index in types_should_fail:
             df = DataFrame(np.random.randn(10, 2), columns=index(2))
             with ensure_clean_path(self.path) as path:
                 with catch_warnings(record=True):
-                    with pytest.raises(
-                        ValueError, msg=("cannot have non-object label "
-                                         "DataIndexableCol")):
+                    with tm.assert_raises_regex(
+                        ValueError, ("cannot have non-object label "
+                                     "DataIndexableCol")):
                         df.to_hdf(path, 'df', format='table',
                                   data_columns=True)
 
