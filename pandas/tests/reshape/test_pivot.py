@@ -162,14 +162,14 @@ class TestPivotTable(object):
         tm.assert_frame_equal(result, expected)
 
         # gh-21378
-        df2 = pd.DataFrame(
+        df = pd.DataFrame(
             {'A': pd.Categorical(['left', 'low', 'high', 'low', 'high'],
                                  categories=['low', 'high', 'left'],
                                  ordered=True),
              'B': range(5)})
 
-        result2 = df2.pivot_table(index='A', values='B', dropna=dropna)
-        expected2 = pd.DataFrame(
+        result = df.pivot_table(index='A', values='B', dropna=dropna)
+        expected = pd.DataFrame(
             {'B': [2, 3, 0]},
             index=pd.Index(
                 pd.Categorical.from_codes([0, 1, 2],
@@ -177,7 +177,7 @@ class TestPivotTable(object):
                                           ordered=True),
                 name='A'))
 
-        tm.assert_frame_equal(result2, expected2)
+        tm.assert_frame_equal(result, expected)
 
     def test_pass_array(self):
         result = self.data.pivot_table(
