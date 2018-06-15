@@ -172,7 +172,10 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                 data = data.set_ordered(ordered)
             if isinstance(dtype, CategoricalDtype):
                 # we want to silently ignore dtype='category'
-                data = data._set_dtype(dtype)
+                if dtype != data.dtype:
+                    data = data._set_dtype(dtype)
+                else:
+                    data = data.copy()
         return data
 
     @classmethod
