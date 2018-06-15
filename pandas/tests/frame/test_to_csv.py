@@ -946,10 +946,9 @@ class TestDataFrameToCSV(TestData):
                                       encoding=encoding)
             with f:
                 df.to_csv(f, encoding=encoding)
-            result_fh = pd.read_csv(filename, compression=compression,
-                                    encoding=encoding, index_col=0,
-                                    squeeze=True)
-            assert_frame_equal(df, result_fh)
+            result = pd.read_csv(filename, compression=compression,
+                                 encoding=encoding, index_col=0, squeeze=True)
+            assert_frame_equal(df, result)
 
             # explicitly make sure file is compressed
             with tm.decompress_file(filename, compression) as fh:

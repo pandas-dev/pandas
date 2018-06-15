@@ -265,6 +265,7 @@ def test_compression_size_fh(obj, method, compression_only):
         assert uncompressed > compressed
 
 
+# GH 21227
 def test_compression_warning(compression_only):
     df = DataFrame(100 * [[0.123456, 0.234567, 0.567567],
                           [12.32112, 123123.2, 321321.2]],

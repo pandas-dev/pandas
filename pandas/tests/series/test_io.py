@@ -162,10 +162,9 @@ class TestSeriesToCSV(TestData):
                                       encoding=encoding)
             with f:
                 s.to_csv(f, encoding=encoding, header=True)
-            result_fh = pd.read_csv(filename, compression=compression,
-                                    encoding=encoding, index_col=0,
-                                    squeeze=True)
-            assert_series_equal(s, result_fh)
+            result = pd.read_csv(filename, compression=compression,
+                                 encoding=encoding, index_col=0, squeeze=True)
+            assert_series_equal(s, result)
 
             # explicitly ensure file was compressed
             with tm.decompress_file(filename, compression) as fh:
