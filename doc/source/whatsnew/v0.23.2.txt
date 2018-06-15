@@ -56,7 +56,7 @@ Bug Fixes
 
 **I/O**
 
--
+- Bug in :meth:`to_csv` when handling file-like object incorrectly (:issue:`21471`)
 -
 
 **Plotting**
