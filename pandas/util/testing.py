@@ -2262,6 +2262,7 @@ def network(t, url="http://www.google.com",
 
 with_connectivity_check = network
 
+
 def assert_raises_regex(_exception, _regexp, _callable=None,
                         *args, **kwargs):
     r"""
