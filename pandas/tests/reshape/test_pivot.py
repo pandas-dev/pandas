@@ -294,9 +294,10 @@ class TestPivotTable(object):
                           values='values')
         exp_index = pd.MultiIndex.from_product([[1, 2], [1, 2]],
                                                names=['lev1', 'lev2'])
-        exp_columns = pd.MultiIndex.from_arrays([[1, 2]],
-                                                names=['lev3'])
-        expected = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]], exp_index, exp_columns)
+        exp_columns = Index([1, 2], name='lev3')
+        expected = DataFrame([[0, 1], [2, 3], [4, 5], [6, 7]],
+                             exp_index,
+                             exp_columns)
         tm.assert_frame_equal(result, expected)
 
     def test_pivot_index_with_nan(self):
