@@ -138,8 +138,8 @@ class CSVFormatter(object):
 
         # when zip compression is called.
         is_zip = isinstance(self.path_or_buf, ZipFile) or (
-                    not hasattr(self.path_or_buf, 'write')
-                    and self.compression == 'zip')
+            not hasattr(self.path_or_buf, 'write')
+            and self.compression == 'zip')
 
         if is_zip:
             # zipfile doesn't support writing string to archive. uses string
