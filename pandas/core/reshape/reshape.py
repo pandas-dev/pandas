@@ -397,11 +397,9 @@ def pivot(self, index=None, columns=None, values=None):
         if index is None:
             index = self.index
             index = MultiIndex.from_arrays([index, self[columns]])
-        # added this case to handle multi-index
         elif isinstance(index, list):
-            indexes = []
-            for i in index:
-                indexes.append(self[i])
+            # Iterating through the list of multiple columns of an index
+            indexes = [self[column] for column in index]
             indexes.append(self[columns])
             index = MultiIndex.from_arrays(indexes)
         else:
