@@ -12,7 +12,7 @@ from numpy import nan
 from numpy.random import randn
 import numpy as np
 
-from pandas.compat import lrange, product, PY35
+from pandas.compat import lrange, PY35
 from pandas import (compat, isna, notna, DataFrame, Series,
                     MultiIndex, date_range, Timestamp, Categorical,
                     _np_version_under1p12, _np_version_under1p15)
@@ -2240,54 +2240,49 @@ class TestNLargestNSmallest(object):
 
     # ----------------------------------------------------------------------
     # Top / bottom
-    @pytest.mark.parametrize(
-        'method, n, order',
-        product(['nsmallest', 'nlargest'], range(1, 11),
-                [['a'],
-                 ['c'],
-                 ['a', 'b'],
-                 ['a', 'c'],
-                 ['b', 'a'],
-                 ['b', 'c'],
-                 ['a', 'b', 'c'],
-                 ['c', 'a', 'b'],
-                 ['c', 'b', 'a'],
-                 ['b', 'c', 'a'],
-                 ['b', 'a', 'c'],
+    @pytest.mark.parametrize('order', [
+        ['a'],
+        ['c'],
+        ['a', 'b'],
+        ['a', 'c'],
+        ['b', 'a'],
+        ['b', 'c'],
+        ['a', 'b', 'c'],
+        ['c', 'a', 'b'],
+        ['c', 'b', 'a'],
+        ['b', 'c', 'a'],
+        ['b', 'a', 'c'],
 
-                 # dups!
-                 ['b', 'c', 'c'],
-
-                 ]))
-    def test_n(self, df_strings, method, n, order):
+        # dups!
+        ['b', 'c', 'c']])
+    @pytest.mark.parametrize('n', range(1, 11))
+    def test_n(self, df_strings, nselect_method, n, order):
         # GH10393
         df = df_strings
         if 'b' in order:
 
             error_msg = self.dtype_error_msg_template.format(
-                column='b', method=method, dtype='object')
+                column='b', method=nselect_method, dtype='object')
             with tm.assert_raises_regex(TypeError, error_msg):
-                getattr(df, method)(n, order)
+                getattr(df, nselect_method)(n, order)
         else:
-            ascending = method == 'nsmallest'
-            result = getattr(df, method)(n, order)
+            ascending = nselect_method == 'nsmallest'
+            result = getattr(df, nselect_method)(n, order)
             expected = df.sort_values(order, ascending=ascending).head(n)
             tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        'method, columns',
-        product(['nsmallest', 'nlargest'],
-                product(['group'], ['category_string', 'string'])
-                ))
-    def test_n_error(self, df_main_dtypes, method, columns):
+    @pytest.mark.parametrize('columns', [
+        ('group', 'category_string'), ('group', 'string')])
+    def test_n_error(self, df_main_dtypes, nselect_method, columns):
         df = df_main_dtypes
+        col = columns[1]
         error_msg = self.dtype_error_msg_template.format(
-            column=columns[1], method=method, dtype=df[columns[1]].dtype)
+            column=col, method=nselect_method, dtype=df[col].dtype)
         # escape some characters that may be in the repr
         error_msg = (error_msg.replace('(', '\\(').replace(")", "\\)")
                               .replace("[", "\\[").replace("]", "\\]"))
         with tm.assert_raises_regex(TypeError, error_msg):
-            getattr(df, method)(2, columns)
+            getattr(df, nselect_method)(2, columns)
 
     def test_n_all_dtypes(self, df_main_dtypes):
         df = df_main_dtypes
@@ -2308,15 +2303,14 @@ class TestNLargestNSmallest(object):
         expected = pd.DataFrame({'a': [1] * 3, 'b': [1, 2, 3]})
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        'n, order',
-        product([1, 2, 3, 4, 5],
-                [['a', 'b', 'c'],
-                 ['c', 'b', 'a'],
-                 ['a'],
-                 ['b'],
-                 ['a', 'b'],
-                 ['c', 'b']]))
+    @pytest.mark.parametrize('order', [
+        ['a', 'b', 'c'],
+        ['c', 'b', 'a'],
+        ['a'],
+        ['b'],
+        ['a', 'b'],
+        ['c', 'b']])
+    @pytest.mark.parametrize('n', range(1, 6))
     def test_n_duplicate_index(self, df_duplicates, n, order):
         # GH 13412
 
