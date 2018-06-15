@@ -391,18 +391,21 @@ class TestReadHtml(object):
                 </tr>
             </tbody>
         </table>'''
+
         data2 = data1 + '''<table>
             <tbody>
             </tbody>
         </table>'''
-        res1 = self.read_html(StringIO(data1))
-        res2 = self.read_html(StringIO(data2))
-        assert_framelist_equal(res1, res2)
+
+        expected = self.read_html(data1)
+        result = self.read_html(data2)
+
+        assert_framelist_equal(result, expected)
 
     def test_multiple_tbody(self):
         # GH-20690
         # Read all tbody tags within a single table.
-        data = '''<table>
+        result = self.read_html('''<table>
             <thead>
                 <tr>
                     <th>A</th>
@@ -421,9 +424,10 @@ class TestReadHtml(object):
                     <td>4</td>
                 </tr>
             </tbody>
-        </table>'''
+        </table>''')[0]
+
         expected = DataFrame({'A': [1, 3], 'B': [2, 4]})
-        result = self.read_html(StringIO(data))[0]
+
         tm.assert_frame_equal(result, expected)
 
     def test_header_and_one_column(self):
@@ -431,9 +435,7 @@ class TestReadHtml(object):
         Don't fail with bs4 when there is a header and only one column
         as described in issue #9178
         """
-        data = StringIO('''<html>
-            <body>
-             <table>
+        result = self.read_html('''<table>
                 <thead>
                     <tr>
                         <th>Header</th>
@@ -444,18 +446,17 @@ class TestReadHtml(object):
                         <td>first</td>
                     </tr>
                 </tbody>
-            </table>
-            </body>
-        </html>''')
+            </table>''')[0]
+
         expected = DataFrame(data={'Header': 'first'}, index=[0])
-        result = self.read_html(data)[0]
+
         tm.assert_frame_equal(result, expected)
 
     def test_thead_without_tr(self):
         """
         Ensure parser adds <tr> within <thead> on malformed HTML.
         """
-        data1 = StringIO('''<table>
+        expected = self.read_html('''<table>
             <thead>
                 <tr>
                     <th>Country</th>
@@ -470,8 +471,9 @@ class TestReadHtml(object):
                     <td>1944</td>
                 </tr>
             </tbody>
-        </table>''')
-        data2 = StringIO('''<table>
+        </table>''')[0]
+
+        result = self.read_html('''<table>
             <thead>
                 <th>Country</th>
                 <th>Municipality</th>
@@ -484,10 +486,9 @@ class TestReadHtml(object):
                     <td>1944</td>
                 </tr>
             </tbody>
-        </table>''')
-        res1 = self.read_html(data1)
-        res2 = self.read_html(data2, header=0)
-        assert_framelist_equal(res1, res2)
+        </table>''')[0]
+
+        tm.assert_frame_equal(result, expected)
 
     def test_tfoot_read(self):
         """
@@ -512,18 +513,21 @@ class TestReadHtml(object):
             </tfoot>
         </table>'''
 
+        expected1 = DataFrame({'A': ['bodyA'], 'B': ['bodyB']})
+        expected2 = DataFrame({'A': ['bodyA', 'footA'],
+                               'B': ['bodyB', 'footB']})
+
         data1 = data_template.format(footer="")
         data2 = data_template.format(
             footer="<tr><td>footA</td><th>footB</th></tr>")
 
-        d1 = {'A': ['bodyA'], 'B': ['bodyB']}
-        d2 = {'A': ['bodyA', 'footA'], 'B': ['bodyB', 'footB']}
+        result1 = self.read_html(data1)[0]
+        result2 = self.read_html(data2)[0]
 
-        tm.assert_frame_equal(self.read_html(data1)[0], DataFrame(d1))
-        tm.assert_frame_equal(self.read_html(data2)[0], DataFrame(d2))
+        tm.assert_frame_equal(result1, expected1)
+        tm.assert_frame_equal(result2, expected2)
 
     def test_countries_municipalities(self):
-        # GH5048
         data1 = StringIO('''<table>
             <thead>
                 <tr>
@@ -540,6 +544,7 @@ class TestReadHtml(object):
                 </tr>
             </tbody>
         </table>''')
+
         data2 = StringIO('''
         <table>
             <tbody>
@@ -555,20 +560,22 @@ class TestReadHtml(object):
                 </tr>
             </tbody>
         </table>''')
-        res1 = self.read_html(data1)
-        res2 = self.read_html(data2, header=0)
-        assert_framelist_equal(res1, res2)
+
+        expected = self.read_html(data1)[0]
+        result = self.read_html(data2, header=0)[0]  # GH5048
+
+        tm.assert_frame_equal(result, expected)
 
     def test_nyse_wsj_commas_table(self, datapath):
         data = datapath('io', 'data', 'nyse_wsj.html')
         df = self.read_html(data, index_col=0, header=0,
                             attrs={'class': 'mdcTable'})[0]
 
-        columns = Index(['Issue(Roll over for charts and headlines)',
-                         'Volume', 'Price', 'Chg', '% Chg'])
+        expected = Index(['Issue(Roll over for charts and headlines)',
+                          'Volume', 'Price', 'Chg', '% Chg'])
         nrows = 100
         assert df.shape[0] == nrows
-        tm.assert_index_equal(df.columns, columns)
+        tm.assert_index_equal(df.columns, expected)
 
     @pytest.mark.slow
     def test_banklist_header(self, datapath):
@@ -621,7 +628,7 @@ class TestReadHtml(object):
         assert gc in df.to_string()
 
     def test_different_number_of_cols(self):
-        expected = """<table border="1" class="dataframe">
+        expected = self.read_html("""<table>
                         <thead>
                             <tr style="text-align: right;">
                             <th></th>
@@ -650,8 +657,9 @@ class TestReadHtml(object):
                             <td> 0.222</td>
                             </tr>
                         </tbody>
-                    </table>"""
-        out = """<table border="1" class="dataframe">
+                    </table>""", index_col=0)[0]
+
+        result = self.read_html("""<table>
                     <thead>
                         <tr style="text-align: right;">
                         <th></th>
@@ -677,228 +685,254 @@ class TestReadHtml(object):
                         <td> 0.222</td>
                         </tr>
                     </tbody>
-                 </table>"""
-        expected = self.read_html(expected, index_col=0)[0]
-        res = self.read_html(out, index_col=0)[0]
-        tm.assert_frame_equal(expected, res)
+                 </table>""", index_col=0)[0]
+
+        tm.assert_frame_equal(result, expected)
 
     def test_colspan_rowspan_are_1(self):
         # GH17054
-        expected = """<table>
-                        <tr>
-                          <th>X</th>
-                          <th>Y</th>
-                          <th>Z</th>
-                          <th>W</th>
-                        </tr>
-                      </table>"""
-        out = """<table>
-                   <tr>
-                     <th colspan="1">X</th>
-                     <th>Y</th>
-                     <th rowspan="1">Z</th>
-                     <th>W</th>
-                   </tr>
-                 </table>"""
-        expected = self.read_html(expected)[0]
-        res = self.read_html(out)[0]
-        tm.assert_frame_equal(expected, res)
+        expected = self.read_html(
+            """<table>
+                 <tr>
+                   <th>X</th>
+                   <th>Y</th>
+                   <th>Z</th>
+                   <th>W</th>
+                 </tr>
+               </table>""")[0]
+
+        result = self.read_html(
+            """<table>
+                 <tr>
+                   <th colspan="1">X</th>
+                   <th>Y</th>
+                   <th rowspan="1">Z</th>
+                   <th>W</th>
+                 </tr>
+               </table>""")[0]
+
+        tm.assert_frame_equal(result, expected)
 
     def test_colspan_rowspan_are_more_than_1(self):
         # GH17054
-        expected = """<table>
-                        <tr>
-                          <td>X</td>
-                          <td>X</td>
-                          <td>Y</td>
-                          <td>Z</td>
-                          <td>W</td>
-                        </tr>
-                        <tr>
-                          <td>1</td>
-                          <td>2</td>
-                          <td>2</td>
-                          <td>Z</td>
-                          <td>3</td>
-                        </tr>
-                      </table>"""
-        out = """<table>
-                   <tr>
-                     <td colspan="2">X</td>
-                     <td>Y</td>
-                     <td rowspan="2">Z</td>
-                     <td>W</td>
-                   </tr>
-                   <tr>
-                     <td>1</td>
-                     <td colspan="2">2</td>
-                     <td>3</td>
-                   </tr>
-                 </table>"""
-        expected = self.read_html(expected)[0]
-        res = self.read_html(out)[0]
-        tm.assert_frame_equal(expected, res)
+        expected = self.read_html(
+            """<table>
+                 <tr>
+                   <td>X</td>
+                   <td>X</td>
+                   <td>Y</td>
+                   <td>Z</td>
+                   <td>W</td>
+                 </tr>
+                 <tr>
+                   <td>1</td>
+                   <td>2</td>
+                   <td>2</td>
+                   <td>Z</td>
+                   <td>3</td>
+                 </tr>
+               </table>""")[0]
+
+        result = self.read_html(
+            """<table>
+                 <tr>
+                   <td colspan="2">X</td>
+                   <td>Y</td>
+                   <td rowspan="2">Z</td>
+                   <td>W</td>
+                 </tr>
+                 <tr>
+                   <td>1</td>
+                   <td colspan="2">2</td>
+                   <td>3</td>
+                 </tr>
+               </table>""")[0]
+
+        tm.assert_frame_equal(result, expected)
 
     def test_tbody_colspan_rowspan_copy_values(self):
         # GH17054
-        expected = """<table>
-                        <tr>
-                          <td>1</td>
-                          <td>1</td>
-                          <td>2</td>
-                          <td>3</td>
-                          <td>4</td>
-                        </tr>
-                        <tr>
-                          <td>5</td>
-                          <td>6</td>
-                          <td>6</td>
-                          <td>3</td>
-                          <td>7</td>
-                        </tr>
-                      </table>"""
-        out = """<table>
-                   <tr>
-                     <td colspan="2">1</td>
-                     <td>2</td>
-                     <td rowspan="2">3</td>
-                     <td>4</td>
-                   </tr>
-                   <tr>
-                     <td>5</td>
-                     <td colspan="2">6</td>
-                     <td>7</td>
-                   </tr>
-                 </table>"""
-        expected = self.read_html(expected)[0]
-        res = self.read_html(out)[0]
-        tm.assert_frame_equal(expected, res)
+        expected = self.read_html(
+            """<table>
+                 <tr>
+                   <td>1</td>
+                   <td>1</td>
+                   <td>2</td>
+                   <td>3</td>
+                   <td>4</td>
+                 </tr>
+                 <tr>
+                   <td>5</td>
+                   <td>6</td>
+                   <td>6</td>
+                   <td>3</td>
+                   <td>7</td>
+                 </tr>
+               </table>""")[0]
+
+        result = self.read_html(
+            """<table>
+                 <tr>
+                   <td colspan="2">1</td>
+                   <td>2</td>
+                   <td rowspan="2">3</td>
+                   <td>4</td>
+                 </tr>
+                 <tr>
+                   <td>5</td>
+                   <td colspan="2">6</td>
+                   <td>7</td>
+                 </tr>
+               </table>""")[0]
+
+        tm.assert_frame_equal(result, expected)
 
     def test_colspan_rowspan_both_not_1(self):
         # GH17054
-        expected = """<table>
-                        <tr>
-                          <td>a</td>
-                          <td>b</td>
-                          <td>b</td>
-                          <td>b</td>
-                          <td>c</td>
-                        </tr>
-                        <tr>
-                          <td>a</td>
-                          <td>b</td>
-                          <td>b</td>
-                          <td>b</td>
-                          <td>d</td>
-                        </tr>
-                      </table>"""
-        out = """<table>
-                   <tr>
-                     <td rowspan="2">a</td>
-                     <td rowspan="2" colspan="3">b</td>
-                     <td>c</td>
-                   </tr>
-                   <tr>
-                     <td>d</td>
-                   </tr>
-                 </table>"""
-        expected = self.read_html(expected)[0]
-        res = self.read_html(out)[0]
-        tm.assert_frame_equal(expected, res)
+        expected = self.read_html(
+            """<table>
+                 <tr>
+                   <td>a</td>
+                   <td>b</td>
+                   <td>b</td>
+                   <td>b</td>
+                   <td>c</td>
+                 </tr>
+                 <tr>
+                   <td>a</td>
+                   <td>b</td>
+                   <td>b</td>
+                   <td>b</td>
+                   <td>d</td>
+                 </tr>
+               </table>""")[0]
+
+        result = self.read_html(
+            """<table>
+                 <tr>
+                   <td rowspan="2">a</td>
+                   <td rowspan="2" colspan="3">b</td>
+                   <td>c</td>
+                 </tr>
+                 <tr>
+                   <td>d</td>
+                 </tr>
+               </table>""")[0]
+
+        tm.assert_frame_equal(result, expected)
 
     def test_rowspan_at_end_of_row(self):
         # GH17054
-        expected = """<table>
-                        <tr>
-                          <td>a</td>
-                          <td>b</td>
-                        </tr>
-                        <tr>
-                          <td>c</td>
-                          <td>b</td>
-                        </tr>
-                      </table>"""
-        out = """<table>
-                   <tr>
-                     <td>a</td>
-                     <td rowspan="2">b</td>
-                   </tr>
-                   <tr>
-                     <td>c</td>
-                   </tr>
-                 </table>"""
-        expected = self.read_html(expected)[0]
-        res = self.read_html(out)[0]
-        tm.assert_frame_equal(expected, res)
+        expected = read_html(
+            """<table>
+                 <tr>
+                   <td>a</td>
+                   <td>b</td>
+                 </tr>
+                 <tr>
+                   <td>c</td>
+                   <td>b</td>
+                 </tr>
+               </table>""")[0]
+
+        result = read_html(
+            """<table>
+                 <tr>
+                   <td>a</td>
+                   <td rowspan="2">b</td>
+                 </tr>
+                 <tr>
+                   <td>c</td>
+                 </tr>
+               </table>""")[0]
+
+        tm.assert_frame_equal(result, expected)
 
     def test_rowspan_only_rows(self):
         # GH17054
-        expected = """<table>
-                        <tr>
-                          <td>a</td>
-                          <td>b</td>
-                        </tr>
-                        <tr>
-                          <td>a</td>
-                          <td>b</td>
-                        </tr>
-                        <tr>
-                          <td>a</td>
-                          <td>b</td>
-                        </tr>
-                      </table>"""
-        out = """<table>
-                   <tr>
-                     <td rowspan="3">a</td>
-                     <td rowspan="3">b</td>
-                   </tr>
-                 </table>"""
-        expected = self.read_html(expected)[0]
-        res = self.read_html(out)[0]
-        print(res)
-        tm.assert_frame_equal(expected, res)
+        expected = self.read_html(
+            """<table>
+                 <tr>
+                   <td>a</td>
+                   <td>b</td>
+                 </tr>
+                 <tr>
+                   <td>a</td>
+                   <td>b</td>
+                 </tr>
+                 <tr>
+                   <td>a</td>
+                   <td>b</td>
+                 </tr>
+               </table>""")[0]
 
-    def test_header_should_be_inferred_from_th_elements(self):
+        result = read_html(
+            """<table>
+                 <tr>
+                   <td rowspan="3">a</td>
+                   <td rowspan="3">b</td>
+                 </tr>
+               </table>""")[0]
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_header_inferred_from_th_elements(self):
         # GH17054
-        expected = """<table>
-                        <thead>
-                            <tr>
-                            <th>X</th>
-                            <th>X</th>
-                            <th>Y</th>
-                            <th>Z</th>
-                            <th>W</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                            <td>1</td>
-                            <td>2</td>
-                            <td>3</td>
-                            <td>4</td>
-                            <td>5</td>
-                        </tbody>
-                    </table>"""
-        out = """<table>
-                            <tr>
-                            <th>X</th>
-                            <th>X</th>
-                            <th>Y</th>
-                            <th>Z</th>
-                            <th>W</th>
-                            </tr>
-                            <tr>
-                            <td>1</td>
-                            <td>2</td>
-                            <td>3</td>
-                            <td>4</td>
-                            <td>5</td>
-                    </table>"""
-        expected = self.read_html(expected)[0]  # header is explicit
-        res = self.read_html(out)[0]            # infer header
-        tm.assert_frame_equal(expected, res)
-        res2 = self.read_html(out, header=0)[0]  # manually set header
-        tm.assert_frame_equal(expected, res2)
+        expected = read_html(
+            """<table>
+                 <thead>
+                   <tr>
+                     <th>X</th>
+                     <th>X</th>
+                     <th>Y</th>
+                     <th>Z</th>
+                     <th>W</th>
+                   </tr>
+                   <tr>
+                     <th>a</th>
+                     <th>b</th>
+                     <th>a</th>
+                     <th>a</th>
+                     <th>a</th>
+                   </tr>
+                 </thead>
+                 <tbody>
+                   <tr>
+                     <td>1</td>
+                     <td>2</td>
+                     <td>3</td>
+                     <td>4</td>
+                     <td>5</td>
+                   </tr>
+                 </tbody>
+               </table>""")[0]
+
+        result = read_html(
+            """<table>
+                 <tr>
+                   <th>X</th>
+                   <th>X</th>
+                   <th>Y</th>
+                   <th>Z</th>
+                   <th>W</th>
+                 </tr>
+                 <tr>
+                   <th>a</th>
+                   <th>b</th>
+                   <th>a</th>
+                   <th>a</th>
+                   <th>a</th>
+                 </tr>
+                 <tr>
+                   <td>1</td>
+                   <td>2</td>
+                   <td>3</td>
+                   <td>4</td>
+                   <td>5</td>
+                 </tr>
+               </table>""")[0]
+
+        tm.assert_frame_equal(result, expected)
 
     def test_parse_dates_list(self):
         df = DataFrame({'date': date_range('1/1/2001', periods=10)})
@@ -936,9 +970,8 @@ class TestReadHtml(object):
         assert result['sq mi'].dtype == np.dtype('float64')
 
     def test_decimal_rows(self):
-
         # GH 12907
-        data = StringIO('''<html>
+        result = self.read_html('''<html>
             <body>
              <table>
                 <thead>
@@ -953,9 +986,10 @@ class TestReadHtml(object):
                 </tbody>
             </table>
             </body>
-        </html>''')
+        </html>''', decimal='#')[0]
+
         expected = DataFrame(data={'Header': 1100.101}, index=[0])
-        result = self.read_html(data, decimal='#')[0]
+
         assert result['Header'].dtype == np.dtype('float64')
         tm.assert_frame_equal(result, expected)
 
@@ -963,53 +997,61 @@ class TestReadHtml(object):
         # GH 6114
         for arg in [True, False]:
             with pytest.raises(TypeError):
-                read_html(self.spam_data, header=arg)
+                self.read_html(self.spam_data, header=arg)
 
     def test_converters(self):
         # GH 13461
-        html_data = """<table>
-                        <thead>
-                            <th>a</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                            <td> 0.763</td>
-                            </tr>
-                            <tr>
-                            <td> 0.244</td>
-                            </tr>
-                        </tbody>
-                    </table>"""
+        result = self.read_html(
+            """<table>
+                 <thead>
+                   <tr>
+                     <th>a</th>
+                    </tr>
+                 </thead>
+                 <tbody>
+                   <tr>
+                     <td> 0.763</td>
+                   </tr>
+                   <tr>
+                     <td> 0.244</td>
+                   </tr>
+                 </tbody>
+               </table>""",
+            converters={'a': str}
+        )[0]
 
-        expected_df = DataFrame({'a': ['0.763', '0.244']})
-        html_df = read_html(html_data, converters={'a': str})[0]
-        tm.assert_frame_equal(expected_df, html_df)
+        expected = DataFrame({'a': ['0.763', '0.244']})
+
+        tm.assert_frame_equal(result, expected)
 
     def test_na_values(self):
         # GH 13461
-        html_data = """<table>
-                        <thead>
-                            <th>a</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                            <td> 0.763</td>
-                            </tr>
-                            <tr>
-                            <td> 0.244</td>
-                            </tr>
-                        </tbody>
-                    </table>"""
+        result = self.read_html(
+            """<table>
+                 <thead>
+                   <tr>
+                     <th>a</th>
+                   </tr>
+                 </thead>
+                 <tbody>
+                   <tr>
+                     <td> 0.763</td>
+                   </tr>
+                   <tr>
+                     <td> 0.244</td>
+                   </tr>
+                 </tbody>
+               </table>""",
+            na_values=[0.244])[0]
 
-        expected_df = DataFrame({'a': [0.763, np.nan]})
-        html_df = read_html(html_data, na_values=[0.244])[0]
-        tm.assert_frame_equal(expected_df, html_df)
+        expected = DataFrame({'a': [0.763, np.nan]})
+
+        tm.assert_frame_equal(result, expected)
 
     def test_keep_default_na(self):
         html_data = """<table>
                         <thead>
+                            <tr>
                             <th>a</th>
                             </tr>
                         </thead>
@@ -1024,11 +1066,11 @@ class TestReadHtml(object):
                     </table>"""
 
         expected_df = DataFrame({'a': ['N/A', 'NA']})
-        html_df = read_html(html_data, keep_default_na=False)[0]
+        html_df = self.read_html(html_data, keep_default_na=False)[0]
         tm.assert_frame_equal(expected_df, html_df)
 
         expected_df = DataFrame({'a': [np.nan, np.nan]})
-        html_df = read_html(html_data, keep_default_na=True)[0]
+        html_df = self.read_html(html_data, keep_default_na=True)[0]
         tm.assert_frame_equal(expected_df, html_df)
 
     def test_multiple_header_rows(self):
@@ -1040,7 +1082,7 @@ class TestReadHtml(object):
                                ["Name", "Unnamed: 1_level_1",
                                 "Unnamed: 2_level_1"]]
         html = expected_df.to_html(index=False)
-        html_df = read_html(html, )[0]
+        html_df = self.read_html(html, )[0]
         tm.assert_frame_equal(expected_df, html_df)
 
     def test_works_on_valid_markup(self, datapath):

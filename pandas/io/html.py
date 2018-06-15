@@ -236,7 +236,8 @@ class _HtmlFrameParser(object):
         str or unicode
             The attribute value.
         """
-        raise com.AbstractMethodError(self)
+        # Both lxml and BeautifulSoup have the same implementation:
+        return obj.get(attr)
 
     def _text_getter(self, obj):
         """
@@ -409,18 +410,11 @@ class _HtmlFrameParser(object):
                        self._parse_td(row))
 
         if not header_rows:
-            # The table has no <thead>. Move the top all-<th> rows from the
-            # <tbody> to the <thead>. (This is a common case because many
+            # The table has no <thead>. Move the top all-<th> rows from
+            # body_rows to header_rows. (This is a common case because many
             # tables in the wild have no <thead> or <tfoot>
             while body_rows and row_is_all_th(body_rows[0]):
                 header_rows.append(body_rows.pop(0))
-
-        if not footer_rows:
-            # The table has no <tfoot>. Treat last all-<th> rows as footers.
-            while body_rows and row_is_all_th(body_rows[-1]):
-                # .insert(), not .append(): we're moving "bottom of <tbody>" to
-                # "top of <tfoot>"
-                footer_rows.insert(0, body_rows.pop())
 
         header = self._expand_colspan_rowspan(header_rows)
         body = self._expand_colspan_rowspan(body_rows)
@@ -578,9 +572,6 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
                              .format(patt=match.pattern))
         return result
 
-    def _attr_getter(self, obj, attr):
-        return obj.get(attr)
-
     def _text_getter(self, obj):
         return obj.text
 
@@ -661,9 +652,6 @@ class _LxmlFrameParser(_HtmlFrameParser):
 
     def __init__(self, *args, **kwargs):
         super(_LxmlFrameParser, self).__init__(*args, **kwargs)
-
-    def _attr_getter(self, obj, attr):
-        return obj.get(attr)
 
     def _text_getter(self, obj):
         return obj.text_content()
