@@ -130,17 +130,16 @@ class CSVFormatter(object):
         else:
             encoding = self.encoding
 
+        # GH 21227 internal compression is not used when file-like passed.
         if self.compression and hasattr(self.path_or_buf, 'write'):
             msg = ("compression has no effect when passing file-like "
                    "object as input.")
             warnings.warn(msg, RuntimeWarning, stacklevel=2)
 
-        if isinstance(self.path_or_buf, ZipFile) or (
-                not hasattr(self.path_or_buf, 'write')
-                and self.compression == 'zip'):
-            is_zip = True
-        else:
-            is_zip = False
+        # when zip compression is called.
+        is_zip = isinstance(self.path_or_buf, ZipFile) or (
+                    not hasattr(self.path_or_buf, 'write')
+                    and self.compression == 'zip')
 
         if is_zip:
             # zipfile doesn't support writing string to archive. uses string
@@ -178,6 +177,7 @@ class CSVFormatter(object):
                 try:
                     self.path_or_buf.write(buf)
                 except AttributeError:
+                    # when path_or_buf is not file-like, create handle.
                     f, handles = _get_handle(self.path_or_buf, self.mode,
                                              encoding=encoding,
                                              compression=self.compression)
