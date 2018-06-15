@@ -453,10 +453,10 @@ def pxd(name):
     return pjoin('pandas', name + '.pxd')
 
 
-# args to ignore warnings
 if is_platform_windows():
     extra_compile_args = []
 else:
+    # args to ignore warnings
     extra_compile_args = ['-Wno-unused-function']
 
 lib_depends = lib_depends + ['pandas/_libs/src/numpy_helper.h',
@@ -603,6 +603,7 @@ ext_data = {
         'pyxfile': '_libs/tslibs/resolution',
         'pxdfiles': ['_libs/src/util',
                      '_libs/khash',
+                     '_libs/tslibs/ccalendar',
                      '_libs/tslibs/frequencies',
                      '_libs/tslibs/timezones'],
         'depends': tseries_depends,
@@ -733,7 +734,7 @@ setup(name=DISTNAME,
       maintainer=AUTHOR,
       version=versioneer.get_version(),
       packages=find_packages(include=['pandas', 'pandas.*']),
-      package_data={'': ['data/*', 'templates/*'],
+      package_data={'': ['data/*', 'templates/*', '_libs/*.dll'],
                     'pandas.tests.io': ['data/legacy_hdf/*.h5',
                                         'data/legacy_pickle/*/*.pickle',
                                         'data/legacy_msgpack/*/*.msgpack',

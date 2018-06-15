@@ -325,19 +325,31 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def __contains__(self, key):
         hash(key)
 
-        if self.categories._defer_to_indexing:
-            return key in self.categories
+        if isna(key):  # if key is a NaN, check if any NaN is in self.
+            return self.hasnans
 
-        return key in self.values
+        # is key in self.categories? Then get its location.
+        # If not (i.e. KeyError), it logically can't be in self either
+        try:
+            loc = self.categories.get_loc(key)
+        except KeyError:
+            return False
+
+        # loc is the location of key in self.categories, but also the value
+        # for key in self.codes and in self._engine. key may be in categories,
+        # but still not in self, check this. Example:
+        # 'b' in CategoricalIndex(['a'], categories=['a', 'b']) #  False
+        if is_scalar(loc):
+            return loc in self._engine
+        else:
+            # if self.categories is IntervalIndex, loc is an array
+            # check if any scalar of the array is in self._engine
+            return any(loc_ in self._engine for loc_ in loc)
 
     @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def contains(self, key):
         hash(key)
-
-        if self.categories._defer_to_indexing:
-            return self.categories.contains(key)
-
-        return key in self.values
+        return key in self
 
     def __array__(self, dtype=None):
         """ the array interface, return my values """
@@ -598,7 +610,12 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         target = ibase._ensure_index(target)
 
         if isinstance(target, CategoricalIndex):
-            target = target.categories
+            # Indexing on codes is more efficient if categories are the same:
+            if target.categories is self.categories:
+                target = target.codes
+                indexer, missing = self._engine.get_indexer_non_unique(target)
+                return _ensure_platform_int(indexer), missing
+            target = target.values
 
         codes = self.categories.get_indexer(target)
         indexer, missing = self._engine.get_indexer_non_unique(codes)

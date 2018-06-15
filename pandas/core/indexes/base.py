@@ -31,6 +31,7 @@ from pandas.core.dtypes.common import (
     is_dtype_equal,
     is_dtype_union_equal,
     is_object_dtype,
+    is_categorical,
     is_categorical_dtype,
     is_interval_dtype,
     is_period_dtype,
@@ -90,7 +91,8 @@ def _make_comparison_op(op, cls):
         if needs_i8_conversion(self) and needs_i8_conversion(other):
             return self._evaluate_compare(other, op)
 
-        if is_object_dtype(self) and self.nlevels == 1:
+        from .multi import MultiIndex
+        if is_object_dtype(self) and not isinstance(self, MultiIndex):
             # don't pass MultiIndex
             with np.errstate(all='ignore'):
                 result = ops._comp_method_OBJECT_ARRAY(op, self.values, other)
@@ -181,6 +183,9 @@ class Index(IndexOpsMixin, PandasObject):
     ----------
     data : array-like (1-dimensional)
     dtype : NumPy dtype (default: object)
+        If dtype is None, we find the dtype that best fits the data.
+        If an actual dtype is provided, we coerce to that dtype if it's safe.
+        Otherwise, an error will be raised.
     copy : bool
         Make a copy of input ndarray
     name : object
@@ -278,7 +283,7 @@ class Index(IndexOpsMixin, PandasObject):
             if (is_datetime64_any_dtype(data) or
                 (dtype is not None and is_datetime64_any_dtype(dtype)) or
                     'tz' in kwargs):
-                from pandas.core.indexes.datetimes import DatetimeIndex
+                from pandas import DatetimeIndex
                 result = DatetimeIndex(data, copy=copy, name=name,
                                        dtype=dtype, **kwargs)
                 if dtype is not None and is_dtype_equal(_o_dtype, dtype):
@@ -288,7 +293,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             elif (is_timedelta64_dtype(data) or
                   (dtype is not None and is_timedelta64_dtype(dtype))):
-                from pandas.core.indexes.timedeltas import TimedeltaIndex
+                from pandas import TimedeltaIndex
                 result = TimedeltaIndex(data, copy=copy, name=name, **kwargs)
                 if dtype is not None and _o_dtype == dtype:
                     return Index(result.to_pytimedelta(), dtype=_o_dtype)
@@ -306,7 +311,14 @@ class Index(IndexOpsMixin, PandasObject):
                     if is_integer_dtype(dtype):
                         inferred = lib.infer_dtype(data)
                         if inferred == 'integer':
-                            data = np.array(data, copy=copy, dtype=dtype)
+                            try:
+                                data = np.array(data, copy=copy, dtype=dtype)
+                            except OverflowError:
+                                # gh-15823: a more user-friendly error message
+                                raise OverflowError(
+                                    "the elements provided in the data cannot "
+                                    "all be casted to the dtype {dtype}"
+                                    .format(dtype=dtype))
                         elif inferred in ['floating', 'mixed-integer-float']:
                             if isna(data).any():
                                 raise ValueError('cannot convert float '
@@ -392,8 +404,7 @@ class Index(IndexOpsMixin, PandasObject):
                         if (lib.is_datetime_with_singletz_array(subarr) or
                                 'tz' in kwargs):
                             # only when subarr has the same tz
-                            from pandas.core.indexes.datetimes import (
-                                DatetimeIndex)
+                            from pandas import DatetimeIndex
                             try:
                                 return DatetimeIndex(subarr, copy=copy,
                                                      name=name, **kwargs)
@@ -401,8 +412,7 @@ class Index(IndexOpsMixin, PandasObject):
                                 pass
 
                     elif inferred.startswith('timedelta'):
-                        from pandas.core.indexes.timedeltas import (
-                            TimedeltaIndex)
+                        from pandas import TimedeltaIndex
                         return TimedeltaIndex(subarr, copy=copy, name=name,
                                               **kwargs)
                     elif inferred == 'period':
@@ -1164,6 +1174,10 @@ class Index(IndexOpsMixin, PandasObject):
             return CategoricalIndex(self.values, name=self.name, dtype=dtype,
                                     copy=copy)
         try:
+            if is_datetime64tz_dtype(dtype):
+                from pandas import DatetimeIndex
+                return DatetimeIndex(self.values, name=self.name, dtype=dtype,
+                                     copy=copy)
             return Index(self.values.astype(dtype, copy=copy), name=self.name,
                          dtype=dtype)
         except (TypeError, ValueError):
@@ -3290,6 +3304,8 @@ class Index(IndexOpsMixin, PandasObject):
     @Appender(_index_shared_docs['get_indexer_non_unique'] % _index_doc_kwargs)
     def get_indexer_non_unique(self, target):
         target = _ensure_index(target)
+        if is_categorical(target):
+            target = target.astype(target.dtype.categories.dtype)
         pself, ptarget = self._maybe_promote(target)
         if pself is not self or ptarget is not target:
             return pself.get_indexer_non_unique(ptarget)
@@ -3315,7 +3331,7 @@ class Index(IndexOpsMixin, PandasObject):
 
     def _maybe_promote(self, other):
         # A hack, but it works
-        from pandas.core.indexes.datetimes import DatetimeIndex
+        from pandas import DatetimeIndex
         if self.inferred_type == 'date' and isinstance(other, DatetimeIndex):
             return DatetimeIndex(self), other
         elif self.inferred_type == 'boolean':
