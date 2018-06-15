@@ -14,7 +14,7 @@ from pandas.core.dtypes.common import is_list_like
 from pandas.errors import EmptyDataError
 from pandas.io.common import _is_url, urlopen, _validate_header_arg
 from pandas.io.parsers import TextParser
-from pandas.compat import (lrange, lmap, lfilter, u, string_types, iteritems,
+from pandas.compat import (lrange, lmap, u, string_types, iteritems,
                            raise_with_traceback, binary_type)
 from pandas import Series
 import pandas.core.common as com
@@ -189,6 +189,7 @@ class _HtmlFrameParser(object):
     -----
     To subclass this class effectively you must override the following methods:
         * :func:`_build_doc`
+        * :func:`_attr_getter`
         * :func:`_text_getter`
         * :func:`_parse_td`
         * :func:`_parse_thead_tr`
@@ -208,7 +209,8 @@ class _HtmlFrameParser(object):
         self.displayed_only = displayed_only
 
     def parse_tables(self):
-        """Parse and return all tables from the DOM.
+        """
+        Parse and return all tables from the DOM.
 
         Returns
         -------
@@ -217,8 +219,28 @@ class _HtmlFrameParser(object):
         tables = self._parse_tables(self._build_doc(), self.match, self.attrs)
         return (self._parse_thead_tbody_tfoot(table) for table in tables)
 
+    def _attr_getter(self, obj, attr):
+        """
+        Return the attribute value of an individual DOM node.
+
+        Parameters
+        ----------
+        obj : node-like
+            A DOM node.
+
+        attr : str or unicode
+            The attribute, such as "colspan"
+
+        Returns
+        -------
+        text : str or unicode
+            The attribute value.
+        """
+        raise com.AbstractMethodError(self)
+
     def _text_getter(self, obj):
-        """Return the text of an individual DOM node.
+        """
+        Return the text of an individual DOM node.
 
         Parameters
         ----------
@@ -237,7 +259,8 @@ class _HtmlFrameParser(object):
 
         Parameters
         ----------
-        obj : an HTML row element
+        obj : node-like
+            A DOM <tr> node.
 
         Returns
         -------
@@ -247,7 +270,8 @@ class _HtmlFrameParser(object):
         raise com.AbstractMethodError(self)
 
     def _parse_thead_tr(self, table):
-        """Return the list of thead row elements from the parsed table element.
+        """
+        Return the list of thead row elements from the parsed table element.
 
         Parameters
         ----------
@@ -260,7 +284,8 @@ class _HtmlFrameParser(object):
         raise com.AbstractMethodError(self)
 
     def _parse_tbody_tr(self, table):
-        """Return the list of tbody row elements from the parsed table element.
+        """
+        Return the list of tbody row elements from the parsed table element.
 
         HTML5 table bodies consist of either 0 or more <tbody> elements (which
         only contain <tr> elements) or 0 or more <tr> elements. This method
@@ -277,7 +302,8 @@ class _HtmlFrameParser(object):
         raise com.AbstractMethodError(self)
 
     def _parse_tfoot_tr(self, table):
-        """Return the list of tfoot row elements from the parsed table element.
+        """
+        Return the list of tfoot row elements from the parsed table element.
 
         Parameters
         ----------
@@ -290,7 +316,8 @@ class _HtmlFrameParser(object):
         raise com.AbstractMethodError(self)
 
     def _parse_tables(self, doc, match, attrs):
-        """Return all tables from the parsed DOM.
+        """
+        Return all tables from the parsed DOM.
 
         Parameters
         ----------
@@ -314,7 +341,8 @@ class _HtmlFrameParser(object):
         raise com.AbstractMethodError(self)
 
     def _equals_tag(self, obj, tag):
-        """Return whether an individual DOM node matches a tag
+        """
+        Return whether an individual DOM node matches a tag
 
         Parameters
         ----------
@@ -332,7 +360,8 @@ class _HtmlFrameParser(object):
         raise com.AbstractMethodError(self)
 
     def _build_doc(self):
-        """Return a tree-like object that can be used to iterate over the DOM.
+        """
+        Return a tree-like object that can be used to iterate over the DOM.
 
         Returns
         -------
@@ -341,48 +370,49 @@ class _HtmlFrameParser(object):
         raise com.AbstractMethodError(self)
 
     def _parse_thead_tbody_tfoot(self, table_html):
-        """Given a table, return parsed header, body, and foot.
-           Header and body are lists-of-lists. Top level list is a list of
-           rows. Each row is a list of parsed elements.
+        """
+        Given a table, return parsed header, body, and foot.
 
-           Logic: Use <thead>, <tbody>, <tfoot> elements to identify
-                  header, body, and footer, otherwise:
-                  - Put all rows into body
-                  - Move rows from top of body to header only if
-                    all elements inside row are <th>
-                  - Move rows from bottom of body to footer only if
-                    all elements inside row are <th>
+        Header and body are lists-of-lists. Top level list is a list of
+        rows. Each row is a list of str text.
+
+        Logic: Use <thead>, <tbody>, <tfoot> elements to identify
+               header, body, and footer, otherwise:
+               - Put all rows into body
+               - Move rows from top of body to header only if
+                 all elements inside row are <th>
+               - Move rows from bottom of body to footer only if
+                 all elements inside row are <th>
 
         Parameters
         ----------
-        table_html : a single HTML table element.
+        table_html : node-like
 
         Returns
         -------
         tuple of (header, body, footer)
-        header : list of rows, each of which is a list of parsed
-                 header elements
-        body : list of rows, each of which is a list of parsed body elements
-        footer : list of rows, each of which is a list of parsed
-                 footer elements
         """
 
         header_rows = self._parse_thead_tr(table_html)
         body_rows = self._parse_tbody_tr(table_html)
         footer_rows = self._parse_tfoot_tr(table_html)
 
+        def row_is_all_th(row):
+            return all(self._equals_tag(t, 'th') for t in
+                       self._parse_td(row))
+
         if not header_rows:
-            # The table has no <thead>. Treat first all-<th> rows as headers.
-            while body_rows and all(self._equals_tag(t, 'th') for t in
-                                    self._parse_td(body_rows[0])):
-                # this row should be a header row, move it from body to header
+            # The table has no <thead>. Move the top all-<th> rows from the
+            # <tbody> to the <thead>. (This is a common case because many
+            # tables in the wild have no <thead> or <tfoot>
+            while body_rows and row_is_all_th(body_rows[0]):
                 header_rows.append(body_rows.pop(0))
 
         if not footer_rows:
             # The table has no <tfoot>. Treat last all-<th> rows as footers.
-            while body_rows and all(self._equals_tag(t, 'th') for t in
-                                    self._parse_td(body_rows[-1])):
-                # this row should be a footer row, move it from body to footer
+            while body_rows and row_is_all_th(body_rows[-1]):
+                # .insert(), not .append(): we're moving "bottom of <tbody>" to
+                # "top of <tfoot>"
                 footer_rows.insert(0, body_rows.pop())
 
         header = self._expand_colspan_rowspan(header_rows)
@@ -392,8 +422,9 @@ class _HtmlFrameParser(object):
         return header, body, footer
 
     def _expand_colspan_rowspan(self, rows):
-        """Given a list of <tr>s, return a list of text rows that copy cell
-           text across rowspans/colspans.
+        """
+        Given a list of <tr>s, return a list of text rows that copy cell
+        text across rowspans/colspans.
 
         Parameters
         ----------
@@ -404,50 +435,69 @@ class _HtmlFrameParser(object):
         res : list of rows, each of which is a list of str in that row
         """
 
-        res = []
-        saved_span = []
-        for row in rows:
-            extracted_row = self._parse_td(row)
-            cols_text = [_remove_whitespace(
-                self._text_getter(col)) for col in extracted_row]
-            col_colspans = [int(col.get('colspan', 1))
-                            for col in extracted_row]
-            col_rowspans = [int(col.get('rowspan', 1))
-                            for col in extracted_row]
-            # expand cols using col_colspans
-            # maybe this can be done with a list comprehension, dunno
-            cols = list(zip(
-                list(com.flatten(
-                    lmap(lambda text_nc: [text_nc[0]] * text_nc[1],
-                         list(zip(cols_text, col_colspans))))),
-                list(com.flatten(
-                    lmap(lambda nc_nr: [nc_nr[1]] * nc_nr[0],
-                         list(zip(col_colspans, col_rowspans))))))
-            )
-            # cols is now a list of (text, number of rows)
-            # now insert any previous rowspans
-            for (col, (text, nr)) in saved_span:
-                cols.insert(col, (text, nr))
+        all_texts = []  # list of rows, each a list of str
+        remainder = []  # list of (index, text, nrows)
 
-            # save next saved_span
-            def advance_item_to_next_row(item):
-                (col, (text, nr)) = item
-                if nr == 1:
-                    return None
-                else:
-                    return (col, (text, nr - 1))
-            saved_span = lfilter(lambda i: i is not None,
-                                 lmap(advance_item_to_next_row,
-                                      list(enumerate(cols))))
-            cols = [text for (text, nr) in cols]
-            # generate cols with text only
-            if any([col != '' for col in cols]):
-                res.append(cols)
+        for tr in rows:
+            texts = []  # the output for this row
+            next_remainder = []
 
-        return res
+            index = 0
+            tds = self._parse_td(tr)
+            for td in tds:
+                # Append texts from previous rows with rowspan>1 that come
+                # before this <td>
+                while remainder and remainder[0][0] <= index:
+                    prev_i, prev_text, prev_rowspan = remainder.pop(0)
+                    texts.append(prev_text)
+                    if prev_rowspan > 1:
+                        next_remainder.append((prev_i, prev_text,
+                                               prev_rowspan - 1))
+                    index += 1
+
+                # Append the text from this <td>, colspan times
+                text = _remove_whitespace(self._text_getter(td))
+                rowspan = int(self._attr_getter(td, 'rowspan') or 1)
+                colspan = int(self._attr_getter(td, 'colspan') or 1)
+
+                for _ in range(colspan):
+                    texts.append(text)
+                    if rowspan > 1:
+                        next_remainder.append((index, text, rowspan - 1))
+                    index += 1
+
+            # Append texts from previous rows at the final position
+            for prev_i, prev_text, prev_rowspan in remainder:
+                texts.append(prev_text)
+                if prev_rowspan > 1:
+                    next_remainder.append((prev_i, prev_text,
+                                           prev_rowspan - 1))
+
+            all_texts.append(texts)
+            remainder = next_remainder
+
+        # Append rows that only appear because the previous row had non-1
+        # rowspan
+        while remainder:
+            next_remainder = []
+            texts = []
+            for prev_i, prev_text, prev_rowspan in remainder:
+                texts.append(prev_text)
+                if prev_rowspan > 1:
+                    next_remainder.append((prev_i, prev_text,
+                                           prev_rowspan - 1))
+            all_texts.append(texts)
+            remainder = next_remainder
+
+        # ignore all-empty-text rows
+        no_empty = [row for row in all_texts
+                    if any(text for text in row)]
+
+        return no_empty
 
     def _handle_hidden_tables(self, tbl_list, attr_name):
-        """Returns list of tables, potentially removing hidden elements
+        """
+        Return list of tables, potentially removing hidden elements
 
         Parameters
         ----------
@@ -514,6 +564,9 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
             raise ValueError("No tables found matching pattern {patt!r}"
                              .format(patt=match.pattern))
         return result
+
+    def _attr_getter(self, obj, attr):
+        return obj.get(attr)
 
     def _text_getter(self, obj):
         return obj.text
@@ -596,11 +649,14 @@ class _LxmlFrameParser(_HtmlFrameParser):
     def __init__(self, *args, **kwargs):
         super(_LxmlFrameParser, self).__init__(*args, **kwargs)
 
+    def _attr_getter(self, obj, attr):
+        return obj.get(attr)
+
     def _text_getter(self, obj):
         return obj.text_content()
 
     def _parse_td(self, row):
-        # Look for direct descendents only: the "row" element here may be a
+        # Look for direct children only: the "row" element here may be a
         # <thead> or <tfoot> (see _parse_thead_tr).
         return row.xpath('./td|./th')
 
@@ -694,12 +750,14 @@ class _LxmlFrameParser(_HtmlFrameParser):
         for thead in table.xpath('.//thead'):
             rows.extend(thead.xpath('./tr'))
 
-            # lxml does not clean up the clearly-erroneous
-            # <thead><th>foo</th><th>bar</th></thead>.
+            # HACK: lxml does not clean up the clearly-erroneous
+            # <thead><th>foo</th><th>bar</th></thead>. (Missing <tr>). Add
+            # the <thead> and _pretend_ it's a <tr>; _parse_td() will find its
+            # children as though it's a <tr>.
+            #
+            # Better solution would be to use html5lib.
             elements_at_root = thead.xpath('./td|./th')
             if elements_at_root:
-                # Pass the entire <thead> as a row. _parse_td() will interpret
-                # it correctly.
                 rows.append(thead)
 
         return rows

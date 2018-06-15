@@ -362,7 +362,7 @@ class TestReadHtml(object):
                              attrs={'class': 'style1'})
         df = dfs[all_non_nan_table_index]
 
-        assert not any(s.isnull().any() for _, s in df.iteritems())
+        assert not any(s.isna().any() for _, s in df.iteritems())
 
     @pytest.mark.slow
     def test_thousands_macau_index_col(self, datapath):
@@ -371,7 +371,7 @@ class TestReadHtml(object):
         dfs = self.read_html(macau_data, index_col=0, header=0)
         df = dfs[all_non_nan_table_index]
 
-        assert not any(s.isnull().any() for _, s in df.iteritems())
+        assert not any(s.isna().any() for _, s in df.iteritems())
 
     def test_empty_tables(self):
         """
@@ -685,29 +685,21 @@ class TestReadHtml(object):
     def test_colspan_rowspan_are_1(self):
         # GH17054
         expected = """<table>
-                        <thead>
-                            <tr>
-                            <th>X</th>
-                            <th>Y</th>
-                            <th>Z</th>
-                            <th>W</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        </tbody>
-                    </table>"""
+                        <tr>
+                          <th>X</th>
+                          <th>Y</th>
+                          <th>Z</th>
+                          <th>W</th>
+                        </tr>
+                      </table>"""
         out = """<table>
-                   <thead>
-                       <tr>
-                       <th colspan="1">X</th>
-                       <th>Y</th>
-                       <th rowspan="1">Z</th>
-                       <th>W</th>
-                       </tr>
-                   </thead>
-                   <tbody>
-                   </tbody>
-               </table>"""
+                   <tr>
+                     <th colspan="1">X</th>
+                     <th>Y</th>
+                     <th rowspan="1">Z</th>
+                     <th>W</th>
+                   </tr>
+                 </table>"""
         expected = self.read_html(expected)[0]
         res = self.read_html(out)[0]
         tm.assert_frame_equal(expected, res)
@@ -715,42 +707,34 @@ class TestReadHtml(object):
     def test_colspan_rowspan_are_more_than_1(self):
         # GH17054
         expected = """<table>
-                        <thead>
-                            <tr>
-                            <th>X</th>
-                            <th>X</th>
-                            <th>Y</th>
-                            <th>Z</th>
-                            <th>W</th>
-                            </tr>
-                            <tr>
-                            <th>1</th>
-                            <th>2</th>
-                            <th>2</th>
-                            <th>Z</th>
-                            <th>3</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        </tbody>
-                    </table>"""
+                        <tr>
+                          <td>X</td>
+                          <td>X</td>
+                          <td>Y</td>
+                          <td>Z</td>
+                          <td>W</td>
+                        </tr>
+                        <tr>
+                          <td>1</td>
+                          <td>2</td>
+                          <td>2</td>
+                          <td>Z</td>
+                          <td>3</td>
+                        </tr>
+                      </table>"""
         out = """<table>
-                   <thead>
-                       <tr>
-                       <th colspan="2">X</th>
-                       <th>Y</th>
-                       <th rowspan="2">Z</th>
-                       <th>W</th>
-                       </tr>
-                       <tr>
-                       <th>1</th>
-                       <th colspan="2">2</th>
-                       <th>3</th>
-                       </tr>
-                   </thead>
-                   <tbody>
-                   </tbody>
-               </table>"""
+                   <tr>
+                     <td colspan="2">X</td>
+                     <td>Y</td>
+                     <td rowspan="2">Z</td>
+                     <td>W</td>
+                   </tr>
+                   <tr>
+                     <td>1</td>
+                     <td colspan="2">2</td>
+                     <td>3</td>
+                   </tr>
+                 </table>"""
         expected = self.read_html(expected)[0]
         res = self.read_html(out)[0]
         tm.assert_frame_equal(expected, res)
@@ -758,40 +742,120 @@ class TestReadHtml(object):
     def test_tbody_colspan_rowspan_copy_values(self):
         # GH17054
         expected = """<table>
-                        <tbody>
-                            <tr>
-                            <td>1</td>
-                            <td>1</td>
-                            <td>2</td>
-                            <td>3</td>
-                            <td>4</td>
-                            </tr>
-                            <tr>
-                            <td>5</td>
-                            <td>6</td>
-                            <td>6</td>
-                            <td>3</td>
-                            <td>7</td>
-                            </tr>
-                        </tbody>
-                    </table>"""
+                        <tr>
+                          <td>1</td>
+                          <td>1</td>
+                          <td>2</td>
+                          <td>3</td>
+                          <td>4</td>
+                        </tr>
+                        <tr>
+                          <td>5</td>
+                          <td>6</td>
+                          <td>6</td>
+                          <td>3</td>
+                          <td>7</td>
+                        </tr>
+                      </table>"""
         out = """<table>
-                   <tbody>
-                       <tr>
-                       <td colspan="2">1</td>
-                       <td>2</td>
-                       <td rowspan="2">3</td>
-                       <td>4</td>
-                       </tr>
-                       <tr>
-                       <td>5</td>
-                       <td colspan="2">6</td>
-                       <td>7</td>
-                       </tr>
-                   </tbody>
-               </table>"""
+                   <tr>
+                     <td colspan="2">1</td>
+                     <td>2</td>
+                     <td rowspan="2">3</td>
+                     <td>4</td>
+                   </tr>
+                   <tr>
+                     <td>5</td>
+                     <td colspan="2">6</td>
+                     <td>7</td>
+                   </tr>
+                 </table>"""
         expected = self.read_html(expected)[0]
         res = self.read_html(out)[0]
+        tm.assert_frame_equal(expected, res)
+
+    def test_colspan_rowspan_both_not_1(self):
+        # GH17054
+        expected = """<table>
+                        <tr>
+                          <td>a</td>
+                          <td>b</td>
+                          <td>b</td>
+                          <td>b</td>
+                          <td>c</td>
+                        </tr>
+                        <tr>
+                          <td>a</td>
+                          <td>b</td>
+                          <td>b</td>
+                          <td>b</td>
+                          <td>d</td>
+                        </tr>
+                      </table>"""
+        out = """<table>
+                   <tr>
+                     <td rowspan="2">a</td>
+                     <td rowspan="2" colspan="3">b</td>
+                     <td>c</td>
+                   </tr>
+                   <tr>
+                     <td>d</td>
+                   </tr>
+                 </table>"""
+        expected = self.read_html(expected)[0]
+        res = self.read_html(out)[0]
+        tm.assert_frame_equal(expected, res)
+
+    def test_rowspan_at_end_of_row(self):
+        # GH17054
+        expected = """<table>
+                        <tr>
+                          <td>a</td>
+                          <td>b</td>
+                        </tr>
+                        <tr>
+                          <td>c</td>
+                          <td>b</td>
+                        </tr>
+                      </table>"""
+        out = """<table>
+                   <tr>
+                     <td>a</td>
+                     <td rowspan="2">b</td>
+                   </tr>
+                   <tr>
+                     <td>c</td>
+                   </tr>
+                 </table>"""
+        expected = self.read_html(expected)[0]
+        res = self.read_html(out)[0]
+        tm.assert_frame_equal(expected, res)
+
+    def test_rowspan_only_rows(self):
+        # GH17054
+        expected = """<table>
+                        <tr>
+                          <td>a</td>
+                          <td>b</td>
+                        </tr>
+                        <tr>
+                          <td>a</td>
+                          <td>b</td>
+                        </tr>
+                        <tr>
+                          <td>a</td>
+                          <td>b</td>
+                        </tr>
+                      </table>"""
+        out = """<table>
+                   <tr>
+                     <td rowspan="3">a</td>
+                     <td rowspan="3">b</td>
+                   </tr>
+                 </table>"""
+        expected = self.read_html(expected)[0]
+        res = self.read_html(out)[0]
+        print(res)
         tm.assert_frame_equal(expected, res)
 
     def test_header_should_be_inferred_from_th_elements(self):
