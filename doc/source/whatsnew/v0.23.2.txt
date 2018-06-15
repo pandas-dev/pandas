@@ -16,7 +16,7 @@ and bug fixes. We recommend that all users upgrade to this version.
 Fixed Regressions
 ~~~~~~~~~~~~~~~~~
 
--
+- Fixed Regression in :meth:`to_csv` when handling file-like object incorrectly (:issue:`21471`)
 -
 
 .. _whatsnew_0232.performance:
@@ -56,7 +56,7 @@ Bug Fixes
 
 **I/O**
 
-- Bug in :meth:`to_csv` when handling file-like object incorrectly (:issue:`21471`)
+-
 -
 
 **Plotting**
