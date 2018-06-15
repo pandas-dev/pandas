@@ -214,7 +214,7 @@ class _HtmlFrameParser(object):
 
         Returns
         -------
-        tables : list of parsed (header, body, footer) tuples from tables
+        list of parsed (header, body, footer) tuples from tables.
         """
         tables = self._parse_tables(self._build_doc(), self.match, self.attrs)
         return (self._parse_thead_tbody_tfoot(table) for table in tables)
@@ -233,7 +233,7 @@ class _HtmlFrameParser(object):
 
         Returns
         -------
-        text : str or unicode
+        str or unicode
             The attribute value.
         """
         raise com.AbstractMethodError(self)
@@ -264,7 +264,7 @@ class _HtmlFrameParser(object):
 
         Returns
         -------
-        columns : list of node-like
+        list of node-like
             These are the elements of each row, i.e., the columns.
         """
         raise com.AbstractMethodError(self)
@@ -279,7 +279,8 @@ class _HtmlFrameParser(object):
 
         Returns
         -------
-        rows : list of <tr> row elements of a table
+        list of node-like
+            These are the <tr> row elements of a table.
         """
         raise com.AbstractMethodError(self)
 
@@ -297,7 +298,8 @@ class _HtmlFrameParser(object):
 
         Returns
         -------
-        rows : list of <tr> row elements of a table
+        list of node-like
+            These are the <tr> row elements of a table.
         """
         raise com.AbstractMethodError(self)
 
@@ -311,7 +313,8 @@ class _HtmlFrameParser(object):
 
         Returns
         -------
-        rows : list of <tr> row elements of a table
+        list of node-like
+            These are the <tr> row elements of a table.
         """
         raise com.AbstractMethodError(self)
 
@@ -336,7 +339,8 @@ class _HtmlFrameParser(object):
 
         Returns
         -------
-        tables : list of HTML <table> elements to be parsed into raw data.
+        list of node-like
+            HTML <table> elements to be parsed into raw data.
         """
         raise com.AbstractMethodError(self)
 
@@ -354,8 +358,8 @@ class _HtmlFrameParser(object):
 
         Returns
         -------
-        is_tag_equal : boolean
-            boolean indicating if the object is equal to tag 'tag'
+        boolean
+            Whether the object is equal to tag 'tag'
         """
         raise com.AbstractMethodError(self)
 
@@ -365,7 +369,8 @@ class _HtmlFrameParser(object):
 
         Returns
         -------
-        obj : the DOM from which to parse the table element.
+        node-like
+            The DOM from which to parse the table element.
         """
         raise com.AbstractMethodError(self)
 
@@ -390,7 +395,7 @@ class _HtmlFrameParser(object):
 
         Returns
         -------
-        tuple of (header, body, footer)
+        tuple of (header, body, footer), each a list of list-of-text rows.
         """
 
         header_rows = self._parse_thead_tr(table_html)
@@ -432,7 +437,8 @@ class _HtmlFrameParser(object):
 
         Returns
         -------
-        res : list of rows, each of which is a list of str in that row
+        list of list
+            Each returned row is a list of str text.
         """
 
         all_texts = []  # list of rows, each a list of str
@@ -501,14 +507,14 @@ class _HtmlFrameParser(object):
 
         Parameters
         ----------
-        tbl_list : list of Tag or list of Element
+        tbl_list : list of node-like
             Type of list elements will vary depending upon parser used
         attr_name : str
             Name of the accessor for retrieving HTML attributes
 
         Returns
         -------
-        list of Tag or list of Element
+        list of node-like
             Return type matches `tbl_list`
         """
         if not self.displayed_only:
