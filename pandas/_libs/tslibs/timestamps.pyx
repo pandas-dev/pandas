@@ -72,31 +72,50 @@ def round_ns(values, rounder, freq):
     -------
     int or :obj:`ndarray`
     """
+    def _round_non_int_multiple(value):
+        if unit < 1000:
+            # for nano rounding, work with the last 6 digits separately
+            # due to float precision
+            buff = 1000000
+            r = (buff * (value // buff) + unit *
+                 (rounder((value % buff) * (1 / float(unit)))).astype('i8'))
+        else:
+            if unit % 1000 != 0:
+                msg = 'Precision will be lost using frequency: {}'
+                warnings.warn(msg.format(freq))
+
+            # GH19206
+            # to deal with round-off when unit is large
+            if unit >= 1e9:
+                divisor = 10 ** int(np.log10(unit / 1e7))
+            else:
+                divisor = 10
+
+            r = (unit * rounder((value * (divisor / float(unit))) / divisor)
+                 .astype('i8'))
+
+        return r
+
+    # GH21262 If the Timestamp is multiple of the freq str
+    # then we don't apply _round_non_int_multiple
+
+    def _apply_round(value):
+        if value % unit == 0:
+            return value
+        else:
+            return _round_non_int_multiple(value)
+
     from pandas.tseries.frequencies import to_offset
     unit = to_offset(freq).nanos
-    if unit < 1000:
-        # for nano rounding, work with the last 6 digits separately
-        # due to float precision
-        buff = 1000000
-        r = (buff * (values // buff) + unit *
-             (rounder((values % buff) * (1 / float(unit)))).astype('i8'))
+
+    if type(values) is int:
+      if values % unit == 0:
+        return values
+      else:
+        return _round_non_int_multiple(values)
+
     else:
-        if unit % 1000 != 0:
-            msg = 'Precision will be lost using frequency: {}'
-            warnings.warn(msg.format(freq))
-
-        # GH19206
-        # to deal with round-off when unit is large
-        if unit >= 1e9:
-            divisor = 10 ** int(np.log10(unit / 1e7))
-        else:
-            divisor = 10
-
-        r = (unit * rounder((values * (divisor / float(unit))) / divisor)
-             .astype('i8'))
-
-    return r
-
+        return np.fromiter((_apply_round(item) for item in values), np.int64)
 
 # This is PITA. Because we inherit from datetime, which has very specific
 # construction requirements, we need to do object instantiation in python

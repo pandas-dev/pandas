@@ -118,6 +118,27 @@ class TestTimestampUnaryOps(object):
             expected = Timestamp(expected)
             assert result == expected
 
+    @pytest.mark.parametrize('test_input, freq, expected', [
+        ('2018-01-01 00:02:06', '2s',  '2018-01-01 00:02:06'),
+        ('2018-01-01 00:02:00', '2T',  '2018-01-01 00:02:00'),
+        ('2018-01-01 00:04:00', '4T',  '2018-01-01 00:04:00'),
+        ('2018-01-01 00:15:00', '15T', '2018-01-01 00:15:00'),
+        ('2018-01-01 00:20:00', '20T', '2018-01-01 00:20:00'),
+        ('2018-01-01 03:00:00', '3H',  '2018-01-01 03:00:00'),
+    ])
+    def test_round_minute_freq(self, test_input, freq, expected):
+        # Ensure timestamps that shouldnt round dont!
+        # GH#21262
+        dt = Timestamp(test_input)
+        expected = Timestamp(expected)
+
+        result_ceil = dt.ceil(freq)
+        assert result_ceil == expected
+        result_floor = dt.floor(freq)
+        assert result_floor == expected
+        result_round = dt.round(freq)
+        assert result_round == expected
+
     def test_ceil(self):
         dt = Timestamp('20130101 09:10:11')
         result = dt.ceil('D')
@@ -257,7 +278,6 @@ class TestTimestampUnaryOps(object):
         if PY3:
             # datetime.timestamp() converts in the local timezone
             with tm.set_timezone('UTC'):
-
                 # should agree with datetime.timestamp method
                 dt = ts.to_pydatetime()
                 assert dt.timestamp() == ts.timestamp()
