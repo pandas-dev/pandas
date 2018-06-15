@@ -8970,17 +8970,17 @@ class NDFrame(PandasObject, SelectionMixin):
 
         if how == 'first':
             # First valid value case
-            i = is_valid.idxmax()
-            if not is_valid[i]:
-                return None
-            return i
+            i = is_valid.values[::].argmin()
+            idxpos = i
 
         elif how == 'last':
             # Last valid value case
             i = is_valid.values[::-1].argmax()
-            if not is_valid.iat[len(self) - i - 1]:
-                return None
-            return self.index[len(self) - i - 1]
+            idxpos = len(self) - i - 1
+
+        if not is_valid.iat[idxpos]:
+            return None
+        return self.index[idxpos]
 
     @Appender(_shared_docs['valid_index'] % {'position': 'first',
                                              'klass': 'NDFrame'})
