@@ -3,7 +3,6 @@
 import numpy as np
 from warnings import warn
 import textwrap
-import types
 
 from pandas import compat
 from pandas.compat import u, lzip
