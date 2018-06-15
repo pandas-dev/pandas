@@ -1131,9 +1131,12 @@ class SelectNSeries(SelectN):
             return dropped[slc].sort_values(ascending=ascending).head(n)
 
         # fast method
-        arr, _, _ = _ensure_data(dropped.values)
+        arr, pandas_dtype, _ = _ensure_data(dropped.values)
         if method == 'nlargest':
             arr = -arr
+            if is_integer_dtype(pandas_dtype):
+                # GH 21426: ensure reverse ordering at boundaries
+                arr -= 1
 
         if self.keep == 'last':
             arr = arr[::-1]

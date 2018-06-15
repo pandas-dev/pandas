@@ -80,4 +80,5 @@ Bug Fixes
 
 **Other**
 
+- Bug in :meth:`Series.nlargest` for signed and unsigned integer dtypes when the minimum value is present (:issue:`21426`)
 -
