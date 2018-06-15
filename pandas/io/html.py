@@ -354,12 +354,12 @@ class _HtmlFrameParser(object):
             A DOM node.
 
         tag : str
-            Tag name to be checked for equality
+            Tag name to be checked for equality.
 
         Returns
         -------
         boolean
-            Whether the object is equal to tag 'tag'
+            Whether `obj`'s tag name is `tag`
         """
         raise com.AbstractMethodError(self)
 
@@ -430,12 +430,17 @@ class _HtmlFrameParser(object):
 
     def _expand_colspan_rowspan(self, rows):
         """
-        Given a list of <tr>s, return a list of text rows that copy cell
-        text across rowspans/colspans.
+        Given a list of <tr>s, return a list of text rows.
+
+        Notes
+        -----
+        Any cell with ``rowspan`` or ``colspan`` will have its contents copied
+        to subsequent cells.
 
         Parameters
         ----------
-        rows : list of <tr>s
+        rows : list of node-like
+            List of <tr>s
 
         Returns
         -------
