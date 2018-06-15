@@ -24,7 +24,9 @@ Fixed Regressions
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
--
+- Improved performance of membership checks in :class:`CategoricalIndex`
+  (i.e. ``x in ci``-style checks are much faster). :meth:`CategoricalIndex.contains`
+  is likewise much faster (:issue:`21369`)
 -
 
 Documentation Changes
@@ -52,6 +54,7 @@ Bug Fixes
 **Indexing**
 
 - Bug in :meth:`Index.get_indexer_non_unique` with categorical key (:issue:`21448`)
+- Bug in comparison operations for :class:`MultiIndex` where error was raised on equality / inequality comparison involving a MultiIndex with ``nlevels == 1`` (:issue:`21149`)
 -
 
 **I/O**
