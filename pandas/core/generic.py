@@ -8970,13 +8970,10 @@ class NDFrame(PandasObject, SelectionMixin):
 
         if how == 'first':
             # First valid value case
-            i = is_valid.values[::].argmin()
-            idxpos = i
-
+            idxpos = is_valid.values[::].argmin()
         elif how == 'last':
             # Last valid value case
-            i = is_valid.values[::-1].argmax()
-            idxpos = len(self) - i - 1
+            idxpos = len(self) - 1 - is_valid.values[::-1].argmax()
 
         if not is_valid.iat[idxpos]:
             return None
