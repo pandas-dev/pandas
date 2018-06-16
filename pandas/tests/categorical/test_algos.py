@@ -71,6 +71,23 @@ def test_isin_empty(empty):
     tm.assert_numpy_array_equal(expected, result)
 
 
+def test_contains():
+
+    c = pd.Categorical(list('aabbca'), categories=list('cab'))
+
+    assert 'b' in c
+    assert 'z' not in c
+    assert np.nan not in c
+
+    # assert codes NOT in index
+    assert 0 not in c
+    assert 1 not in c
+
+    c = pd.Categorical(list('aabbca') + [np.nan], categories=list('cab'))
+
+    assert np.nan in c
+
+
 class TestTake(object):
     # https://github.com/pandas-dev/pandas/issues/20664
 

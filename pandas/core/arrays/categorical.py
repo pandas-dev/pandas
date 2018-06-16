@@ -1846,6 +1846,43 @@ class Categorical(ExtensionArray, PandasObject):
         """Returns an Iterator over the values of this Categorical."""
         return iter(self.get_values().tolist())
 
+    @staticmethod
+    def _contains(key, categories, container):
+        """Returns True if `key` is in `categories` and the
+        location of `key` in `categories` is in `container`.
+
+        This is a helper method used in :method:`Categorical.__contains__`
+        and in :class:`CategoricalIndex.__contains__`.
+        """
+
+        # is key in categories? Then get its location in categories.
+        # If not (i.e. KeyError), its location logically can't be in
+        # container either.
+        try:
+            loc = categories.get_loc(key)
+        except KeyError:
+            return False
+
+        # loc is the location of key in categories, but also the value
+        # for key in container. So, key may be in categories,
+        # but still not in container, this must be checked. Example:
+        # 'b' in Categorical(['a'], categories=['a', 'b']) #  False
+        if is_scalar(loc):
+            return loc in container
+        else:
+            # if categories is an IntervalIndex, loc is an array.
+            # Check if any scalar of the array is in the container
+            return any(loc_ in container for loc_ in loc)
+
+    def __contains__(self, key):
+        """Returns True if `key` is in this Categorical."""
+        hash(key)
+
+        if isna(key):  # if key is a NaN, check if any NaN is in self.
+            return self.isna().any()
+
+        return self._contains(key, self.categories, container=self._codes)
+
     def _tidy_repr(self, max_vals=10, footer=True):
         """ a short repr displaying only max_vals and an optional (but default
         footer)
