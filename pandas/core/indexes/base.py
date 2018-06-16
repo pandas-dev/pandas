@@ -3148,8 +3148,12 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> indexer = index.get_indexer(new_index)
-        >>> new_values = cur_values.take(indexer)
+        >>> index = Index(['c', 'a', 'b'])
+        >>> index.get_indexer(['a', 'b', 'x'])
+        array([ 1,  2, -1], dtype=int32)
+
+        Notice that the return value is an array of locations in ``index``
+        and ``x`` is marked by -1, as it is not in ``index``.
 
         Returns
         -------
