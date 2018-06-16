@@ -250,7 +250,7 @@ class _Concatenator(object):
 
         if isinstance(objs, dict):
             if keys is None:
-                if not isinstance(objs,OrderedDict):
+                if not isinstance(objs, OrderedDict):
                     keys = sorted(objs)
                 else:
                     keys = objs
