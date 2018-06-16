@@ -447,10 +447,7 @@ class BytesZipFile(zipfile.ZipFile, BytesIO):
 
     @property
     def closed(self):
-        if compat.PY2:
-            return self.fp is None
-        else:
-            return super(BytesZipFile, self).closed
+        return self.fp is None
 
 
 class MMapWrapper(BaseIterator):
