@@ -174,10 +174,9 @@ class CSVFormatter(object):
             if is_zip:
                 # GH 17778 handles zip compression separately.
                 buf = f.getvalue()
-                try:
+                if hasattr(self.path_or_buf, 'write'):
                     self.path_or_buf.write(buf)
-                except AttributeError:
-                    # when path_or_buf is not file-like, create handle.
+                else:
                     f, handles = _get_handle(self.path_or_buf, self.mode,
                                              encoding=encoding,
                                              compression=self.compression)
