@@ -69,6 +69,10 @@ if [ "$DOC" ]; then
            pandas/core/reshape/reshape.py \
            pandas/core/reshape/tile.py
 
+    echo "Running spellcheck on documentation"
+    cd doc
+    ./make.py spellcheck
+
 fi
 
 exit 0

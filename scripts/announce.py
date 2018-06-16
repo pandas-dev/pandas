@@ -97,7 +97,6 @@ def update_name_wordlist():
         for name in all_names:
             wordlist.write('{}\n'.format(name))
 
-update_name_wordlist()
 
 def get_pull_requests(repo, revision_range):
     prnums = []
