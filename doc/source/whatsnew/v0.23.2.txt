@@ -16,7 +16,7 @@ and bug fixes. We recommend that all users upgrade to this version.
 Fixed Regressions
 ~~~~~~~~~~~~~~~~~
 
-- Bug in :meth:`first_valid_index` raised for a row index with duplicate values (:issue:`21441`)
+- Bug in both :meth:`DataFrame.first_valid_index` and :meth:`Series.first_valid_index` raised for a row index with duplicate values (:issue:`21441`)
 -
 
 .. _whatsnew_0232.performance:
