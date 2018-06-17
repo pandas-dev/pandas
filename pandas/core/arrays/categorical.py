@@ -1848,11 +1848,35 @@ class Categorical(ExtensionArray, PandasObject):
 
     @staticmethod
     def _contains(key, categories, container):
-        """Returns True if `key` is in `categories` and the
-        location of `key` in `categories` is in `container`.
+        """
+        Helper for membership check for ``key``.
 
-        This is a helper method used in :method:`Categorical.__contains__`
+        This helper method is used in :method:`Categorical.__contains__`
         and in :class:`CategoricalIndex.__contains__`.
+
+        Returns True if ``key`` is in ``categories`` and the
+        location of ``key`` in ``categories`` is in ``container``.
+
+        Parameters
+        ----------
+        key : a hashable object
+            The key to check membership for.
+        categories : Sequence
+            The possible values for ``key``. The location for ``key``
+            in ``categories`` is also its value in ``container``
+        container : Container (e.g. list-like or mapping)
+            The container to check for membership in.
+
+        Returns
+        -------
+        is_in : bool
+            True if ``key`` is in ``categories`` and location of
+            ``key`` in ``categories`` is in ``container``, else False.
+
+        Notes
+        -----
+        This method does not check for Nan values. Do that separately
+        before calling this method.
         """
 
         # is key in categories? Then get its location in categories.

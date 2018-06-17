@@ -72,7 +72,7 @@ def test_isin_empty(empty):
 
 
 def test_contains():
-
+    # GH21508
     c = pd.Categorical(list('aabbca'), categories=list('cab'))
 
     assert 'b' in c
@@ -84,7 +84,6 @@ def test_contains():
     assert 1 not in c
 
     c = pd.Categorical(list('aabbca') + [np.nan], categories=list('cab'))
-
     assert np.nan in c
 
 
