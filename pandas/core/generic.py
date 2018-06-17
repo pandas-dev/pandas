@@ -3138,12 +3138,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 new_axis = axis.drop(labels, level=level, errors=errors)
             else:
                 new_axis = axis.drop(labels, errors=errors)
-            dropped = self.reindex(**{axis_name: new_axis})
-            try:
-                dropped.axes[axis_].set_names(axis.names, inplace=True)
-            except AttributeError:
-                pass
-            result = dropped
+            result = self.reindex(**{axis_name: new_axis})
 
         else:
             labels = _ensure_object(com._index_labels_to_array(labels))
@@ -3154,8 +3149,11 @@ class NDFrame(PandasObject, SelectionMixin):
             else:
                 indexer = ~axis.isin(labels)
 
-            if errors == 'raise' and indexer.all():
-                raise KeyError('{} not found in axis'.format(labels))
+            # Check if label doesn't exist along axis
+            if len(labels):
+                labels_missing = (~np.array([label in axis for label in labels])).any()
+                if errors == 'raise' and labels_missing:
+                    raise KeyError('{} not found in axis'.format(labels))
 
             slicer = [slice(None)] * self.ndim
             slicer[self._get_axis_number(axis_name)] = indexer

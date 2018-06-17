@@ -1719,7 +1719,6 @@ class MultiIndex(Index):
                 if errors != 'ignore':
                     raise ValueError('labels %s not contained in axis' %
                                      labels[mask])
-                indexer = indexer[~mask]
         except Exception:
             pass
 

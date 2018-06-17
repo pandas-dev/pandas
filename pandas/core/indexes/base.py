@@ -4335,13 +4335,13 @@ class Index(IndexOpsMixin, PandasObject):
         Raises
         ------
         KeyError
-            If none of the labels are found in the selected axis
+            If not all of the labels are found in the selected axis
         """
         arr_dtype = 'object' if self.dtype == 'object' else None
         labels = com._index_labels_to_array(labels, dtype=arr_dtype)
         indexer = self.get_indexer(labels)
         mask = indexer == -1
-        if mask.any():
+        if mask.any() and len(mask):
             if errors != 'ignore':
                 raise KeyError(
                     'labels %s not contained in axis' % labels[mask])
