@@ -83,5 +83,5 @@ Bug Fixes
 **Other**
 
 - Bug in :meth:`Series.nlargest` for signed and unsigned integer dtypes when the minimum value is present (:issue:`21426`)
-- Bug in :class:`_Concatenator` should not sort Ordered Dictionaries (:issue:`21510`)
+- Bug in :class:`_Concatenator` should maintain dict ordering when :meth:`concat` is called (:issue:`2151`)
 -

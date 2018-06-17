@@ -1297,13 +1297,14 @@ class TestConcatenate(ConcatenateBase):
 
     def test_concat_with_ordered_dict(self):
         # GH 21510
-        ps = pd.concat(OrderedDict([('First', pd.Series(range(3))),
-                                    ('Another', pd.Series(range(4)))]))
-        ps_list = list(ps.keys())
-        exp_list = [('First', 0), ('First', 1), ('First', 2),
-                    ('Another', 0), ('Another', 1),
-                    ('Another', 2), ('Another', 3)]
-        assert ps_list == exp_list
+        result = pd.concat(OrderedDict([('First', pd.Series(range(3))),
+                                        ('Another', pd.Series(range(4)))]))
+        a = pd.Series(range(3), range(3))
+        b = pd.Series(range(4), range(4))
+        a.index = pd.MultiIndex.from_tuples([('First', v) for v in a.index])
+        b.index = pd.MultiIndex.from_tuples([('Another', v) for v in b.index])
+        expected = a.append(b)
+        tm.assert_series_equal(result, expected)
 
     def test_crossed_dtypes_weird_corner(self):
         columns = ['A', 'B', 'C', 'D']
