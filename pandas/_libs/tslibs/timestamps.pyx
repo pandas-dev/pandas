@@ -109,13 +109,14 @@ def round_ns(values, rounder, freq):
     unit = to_offset(freq).nanos
 
     if type(values) is int:
-      if values % unit == 0:
-        return values
-      else:
-        return _round_non_int_multiple(values)
+        if values % unit == 0:
+            return values
+        else:
+            return _round_non_int_multiple(values)
 
     else:
         return np.fromiter((_apply_round(item) for item in values), np.int64)
+
 
 # This is PITA. Because we inherit from datetime, which has very specific
 # construction requirements, we need to do object instantiation in python
