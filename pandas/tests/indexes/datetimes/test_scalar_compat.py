@@ -134,6 +134,21 @@ class TestDatetimeIndexOps(object):
             ts = '2016-10-17 12:00:00.001501031'
             DatetimeIndex([ts]).round('1010ns')
 
+    def test_no_rounding_occurs(self, tz):
+        # GH 21262
+        rng = date_range(start='2016-01-01', periods=5,
+                         freq='2Min', tz=tz)
+
+        expected_rng = DatetimeIndex([
+            Timestamp('2016-01-01 00:00:00', tz=tz, freq='2T'),
+            Timestamp('2016-01-01 00:02:00', tz=tz, freq='2T'),
+            Timestamp('2016-01-01 00:04:00', tz=tz, freq='2T'),
+            Timestamp('2016-01-01 00:06:00', tz=tz, freq='2T'),
+            Timestamp('2016-01-01 00:08:00', tz=tz, freq='2T'),
+        ])
+
+        tm.assert_index_equal(rng.round(freq='2T'), expected_rng)
+
     @pytest.mark.parametrize('test_input, rounder, freq, expected', [
         (['2117-01-01 00:00:45'], 'floor', '15s', ['2117-01-01 00:00:45']),
         (['2117-01-01 00:00:45'], 'ceil', '15s', ['2117-01-01 00:00:45']),
