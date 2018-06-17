@@ -8969,7 +8969,7 @@ class NDFrame(PandasObject, SelectionMixin):
             is_valid = is_valid.any(1)  # reduce axis 1
 
         if how == 'last':
-            is_valid.sort_index(ascending=False, inplace=True)
+            is_valid = is_valid[::-1]
 
         idxpos = is_valid.idxmax()
 
