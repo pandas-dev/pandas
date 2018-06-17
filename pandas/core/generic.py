@@ -8975,7 +8975,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         if isinstance(is_valid[idxpos], ABCSeries):
             for chk_notna in is_valid[idxpos]:
-                chk_notna = True and chk_notna
+                chk_notna = False or chk_notna
         else:
             chk_notna = is_valid[idxpos]
 
