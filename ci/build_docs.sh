@@ -34,6 +34,9 @@ if [ "$DOC" ]; then
     echo ./make.py
     ./make.py
 
+    echo "Running spell check on documentation"
+    ./make.py spellcheck
+
     echo ########################
     echo # Create and send docs #
     echo ########################
@@ -69,9 +72,6 @@ if [ "$DOC" ]; then
            pandas/core/reshape/reshape.py \
            pandas/core/reshape/tile.py
 
-    echo "Running spellcheck on documentation"
-    cd doc
-    ./make.py spellcheck
 
 fi
 
