@@ -517,19 +517,20 @@ def test_drop():
 
 
 @pytest.mark.parametrize('index, drop_labels, expected_index', [
-        ([1, 2, 3], [], [1, 2, 3]),
-        ([1, 1, 2], [], [1, 1, 2]),
-        ([1, 2, 3], [2], [1, 3]),
-        ([1, 1, 3], [1], [3]),
+    ([1, 2, 3], [], [1, 2, 3]),
+    ([1, 1, 2], [], [1, 1, 2]),
+    ([1, 2, 3], [2], [1, 3]),
+    ([1, 1, 3], [1], [3]),
     ])
 def test_drop_empty_list(index, drop_labels, expected_index):
     # GH 21494
     df = pd.DataFrame(index=index).drop(drop_labels)
     assert (df.index.values == expected_index).all()
 
+
 @pytest.mark.parametrize('index, drop_labels, error_key', [
-        ([1, 2, 3], [1, 4], 'not contained in axis'),
-        ([1, 2, 2], [1, 4], 'not found in axis'),
+    ([1, 2, 3], [1, 4], 'not contained in axis'),
+    ([1, 2, 2], [1, 4], 'not found in axis'),
     ])
 def test_drop_non_empty_list(index, drop_labels, error_key):
     # GH 21494

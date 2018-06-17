@@ -3151,7 +3151,8 @@ class NDFrame(PandasObject, SelectionMixin):
 
             # Check if label doesn't exist along axis
             if len(labels):
-                labels_missing = (~np.array([label in axis for label in labels])).any()
+                labels_missing = (~np.array([label in axis
+                                             for label in labels])).any()
                 if errors == 'raise' and labels_missing:
                     raise KeyError('{} not found in axis'.format(labels))
 
