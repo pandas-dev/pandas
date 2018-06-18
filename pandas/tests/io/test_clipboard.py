@@ -66,6 +66,15 @@ class TestClipboard(object):
     def teardown_class(cls):
         del cls.data_types, cls.data
 
+    def test_read_delim_warning(self):
+        with tm.assert_produces_warning():
+            self.data['string'].to_clipboard()
+            pd.read_clipboard(sep=r'\s+', engine='c')
+
+    def test_write_delim_warning(self):
+        with tm.assert_produces_warning():
+            self.data['string'].to_clipboard(excel=True, sep=r'\s+')
+
     def check_round_trip_frame(self, data_type, excel=None, sep=None,
                                encoding=None):
         data = self.data[data_type]
@@ -136,14 +145,3 @@ class TestClipboard(object):
         for enc in ['UTF-8', 'utf-8', 'utf8']:
             for dt in self.data_types:
                 self.check_round_trip_frame(dt, encoding=enc)
-
-    def test_clipboard_read_delim_warning(self):
-        for dt in self.data_types:
-            with tm.assert_produces_warning():
-                self.data[dt].to_clipboard()
-                res = pd.read_clipboard(sep=r'\s+', engine='c')
-
-    def test_excel_write_delim_warning(self):
-        for dt in self.data_types:
-            with tm.assert_produces_warning():
-                self.data[dt].to_clipboard(excel=True, sep=r'\t')
