@@ -453,6 +453,15 @@ def test_reindex_fill_value():
     assert_series_equal(result, expected)
 
 
+def test_reindex_datetimeindexes_tz_naive_and_aware():
+    # GH 8306
+    idx = date_range('20131101', tz='America/Chicago', periods=7)
+    newidx = date_range('20131103', periods=10, freq='H')
+    s = Series(range(7), index=idx)
+    with pytest.raises(TypeError):
+        s.reindex(newidx, method='ffill')
+
+
 def test_rename():
     # GH 17407
     s = Series(range(1, 6), index=pd.Index(range(2, 7), name='IntIndex'))
