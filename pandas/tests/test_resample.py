@@ -649,6 +649,13 @@ class Base(object):
         expected = frame.reindex(new_index, fill_value=4.0)
         assert_frame_equal(result, expected)
 
+    def test_resample_interpolate(self):
+        # # 12925
+        df = self.create_series().to_frame('value')
+        assert_frame_equal(
+            df.resample('1T').asfreq().interpolate(),
+            df.resample('1T').interpolate())
+
     def test_raises_on_non_datetimelike_index(self):
         # this is a non datetimelike index
         xp = DataFrame()
