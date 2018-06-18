@@ -49,8 +49,9 @@ Bug Fixes
 
 **Conversion**
 
+- Bug in constructing :class:`Index` with an iterator or generator (:issue:`21470`)
 - Bug in :meth:`Series.nlargest` for signed and unsigned integer dtypes when the minimum value is present (:issue:`21426`)
--
+
 
 **Indexing**
 
