@@ -127,8 +127,8 @@ def _read(obj):
     raw_text : str
     """
     if _is_url(obj):
-        with urlopen(obj) as url:
-            text = url.read()
+        import requests
+        text = requests.get(obj).content
     elif hasattr(obj, 'read'):
         text = obj.read()
     elif isinstance(obj, char_types):
