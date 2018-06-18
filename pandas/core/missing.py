@@ -761,7 +761,7 @@ def _interp_limit(invalid, fw_limit, bw_limit):
     """
     # handle forward first; the backward direction is the same except
     # 1. operate on the reversed array
-    # 2. subtract the returned indicies from N - 1
+    # 2. subtract the returned indices from N - 1
     N = len(invalid)
     f_idx = set()
     b_idx = set()

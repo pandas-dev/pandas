@@ -80,7 +80,8 @@ from pandas import compat
 from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (Appender, Substitution,
-                                     rewrite_axis_style_signature)
+                                     rewrite_axis_style_signature,
+                                     deprecate_kwarg)
 from pandas.util._validators import (validate_bool_kwarg,
                                      validate_axis_style_args)
 
@@ -1136,7 +1137,7 @@ class DataFrame(NDFrame):
             Number of rows to be inserted in each chunk from the dataframe.
             Set to ``None`` to load the whole dataframe at once.
         reauth : bool, default False
-            Force Google BigQuery to reauthenticate the user. This is useful
+            Force Google BigQuery to re-authenticate the user. This is useful
             if multiple accounts are used.
         if_exists : str, default 'fail'
             Behavior when the destination table exists. Value can be one of:
@@ -1764,6 +1765,7 @@ class DataFrame(NDFrame):
                         startcol=startcol, freeze_panes=freeze_panes,
                         engine=engine)
 
+    @deprecate_kwarg(old_arg_name='encoding', new_arg_name=None)
     def to_stata(self, fname, convert_dates=None, write_index=True,
                  encoding="latin-1", byteorder=None, time_stamp=None,
                  data_label=None, variable_labels=None, version=114,
@@ -1869,9 +1871,8 @@ class DataFrame(NDFrame):
             kwargs['convert_strl'] = convert_strl
 
         writer = statawriter(fname, self, convert_dates=convert_dates,
-                             encoding=encoding, byteorder=byteorder,
-                             time_stamp=time_stamp, data_label=data_label,
-                             write_index=write_index,
+                             byteorder=byteorder, time_stamp=time_stamp,
+                             data_label=data_label, write_index=write_index,
                              variable_labels=variable_labels, **kwargs)
         writer.write_file()
 
@@ -5924,7 +5925,7 @@ class DataFrame(NDFrame):
         --------
         DataFrame.applymap: For elementwise operations
         DataFrame.aggregate: only perform aggregating type operations
-        DataFrame.transform: only perform transformating type operations
+        DataFrame.transform: only perform transforming type operations
 
         Examples
         --------
@@ -6567,7 +6568,7 @@ class DataFrame(NDFrame):
         See Also
         --------
         pandas.Series.cov : compute covariance with another Series
-        pandas.core.window.EWM.cov: expoential weighted sample covariance
+        pandas.core.window.EWM.cov: exponential weighted sample covariance
         pandas.core.window.Expanding.cov : expanding sample covariance
         pandas.core.window.Rolling.cov : rolling sample covariance
 
@@ -7283,11 +7284,11 @@ class DataFrame(NDFrame):
         When ``values`` is a Series or DataFrame:
 
         >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
-        >>> other = DataFrame({'A': [1, 3, 3, 2], 'B': ['e', 'f', 'f', 'e']})
-        >>> df.isin(other)
+        >>> df2 = pd.DataFrame({'A': [1, 3, 3, 2], 'B': ['e', 'f', 'f', 'e']})
+        >>> df.isin(df2)
                A      B
         0   True  False
-        1  False  False  # Column A in `other` has a 3, but not at index 1.
+        1  False  False  # Column A in `df2` has a 3, but not at index 1.
         2   True   True
         """
         if isinstance(values, dict):

@@ -161,3 +161,18 @@ cdef inline bint _checknull(object val):
 
 cdef inline bint is_period_object(object val):
     return getattr(val, '_typ', '_typ') == 'period'
+
+
+cdef inline bint is_offset_object(object val):
+    """
+    Check if an object is a DateOffset object.
+
+    Parameters
+    ----------
+    val : object
+
+    Returns
+    -------
+    is_date_offset : bool
+    """
+    return getattr(val, '_typ', None) == "dateoffset"
