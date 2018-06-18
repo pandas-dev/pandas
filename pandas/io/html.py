@@ -15,10 +15,9 @@ from pandas.compat import (
 from pandas.errors import AbstractMethodError, EmptyDataError
 
 from pandas.core.dtypes.common import is_list_like
-
 from pandas import Series
 
-from pandas.io.common import _is_url, _validate_header_arg, urlopen
+from pandas.io.common import _is_url, _urlopen, _validate_header_arg, urlopen
 from pandas.io.formats.printing import pprint_thing
 from pandas.io.parsers import TextParser
 
@@ -115,7 +114,7 @@ def _get_skiprows(skiprows):
                     type(skiprows).__name__)
 
 
-def _read(obj):
+def _read(obj, session=None):
     """Try to read from a url, file or string.
 
     Parameters
@@ -127,8 +126,7 @@ def _read(obj):
     raw_text : str
     """
     if _is_url(obj):
-        with urlopen(obj) as url:
-            text = url.read()
+        text, _ = _urlopen(obj, session=session)
     elif hasattr(obj, 'read'):
         text = obj.read()
     elif isinstance(obj, char_types):
@@ -203,12 +201,13 @@ class _HtmlFrameParser(object):
     functionality.
     """
 
-    def __init__(self, io, match, attrs, encoding, displayed_only):
+    def __init__(self, io, match, attrs, encoding, displayed_only, session=None):
         self.io = io
         self.match = match
         self.attrs = attrs
         self.encoding = encoding
         self.displayed_only = displayed_only
+        self.session = session
 
     def parse_tables(self):
         """
@@ -592,7 +591,7 @@ class _BeautifulSoupHtml5LibFrameParser(_HtmlFrameParser):
         return table.select('tfoot tr')
 
     def _setup_build_doc(self):
-        raw_text = _read(self.io)
+        raw_text = _read(self.io, self.session)
         if not raw_text:
             raise ValueError('No text parsed from document: {doc}'
                              .format(doc=self.io))
@@ -715,7 +714,7 @@ class _LxmlFrameParser(_HtmlFrameParser):
 
         try:
             if _is_url(self.io):
-                with urlopen(self.io) as f:
+                with _urlopen(self.io) as f:
                     r = parse(f, parser=parser)
             else:
                 # try to parse the input in the simplest way
@@ -890,9 +889,10 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
 
     # hack around python 3 deleting the exception variable
     retained = None
+    session = kwargs.get('session', None)
     for flav in flavor:
         parser = _parser_dispatch(flav)
-        p = parser(io, compiled_match, attrs, encoding, displayed_only)
+        p = parser(io, compiled_match, attrs, encoding, displayed_only, session)
 
         try:
             tables = p.parse_tables()
@@ -928,7 +928,7 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
               skiprows=None, attrs=None, parse_dates=False,
               tupleize_cols=None, thousands=',', encoding=None,
               decimal='.', converters=None, na_values=None,
-              keep_default_na=True, displayed_only=True):
+              keep_default_na=True, displayed_only=True, session=None):
     r"""Read HTML tables into a ``list`` of ``DataFrame`` objects.
 
     Parameters
@@ -1091,4 +1091,4 @@ def read_html(io, match='.+', flavor=None, header=None, index_col=None,
                   thousands=thousands, attrs=attrs, encoding=encoding,
                   decimal=decimal, converters=converters, na_values=na_values,
                   keep_default_na=keep_default_na,
-                  displayed_only=displayed_only)
+                  displayed_only=displayed_only, session=session)

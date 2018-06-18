@@ -228,7 +228,7 @@ class JSONTableWriter(FrameWriter):
 def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
               convert_axes=True, convert_dates=True, keep_default_dates=True,
               numpy=False, precise_float=False, date_unit=None, encoding=None,
-              lines=False, chunksize=None, compression='infer'):
+              lines=False, chunksize=None, compression='infer', session=None):
     """
     Convert a JSON string to pandas object
 
@@ -410,6 +410,7 @@ def read_json(path_or_buf=None, orient=None, typ='frame', dtype=True,
     compression = _infer_compression(path_or_buf, compression)
     filepath_or_buffer, _, compression, should_close = get_filepath_or_buffer(
         path_or_buf, encoding=encoding, compression=compression,
+        session=session,
     )
 
     json_reader = JsonReader(

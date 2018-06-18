@@ -332,7 +332,8 @@ def read_excel(io,
                         "`sheet`")
 
     if not isinstance(io, ExcelFile):
-        io = ExcelFile(io, engine=engine)
+        session = kwds.get('session', None)
+        io = ExcelFile(io, engine=engine, session=session)
 
     return io.parse(
         sheet_name=sheet_name,
@@ -396,10 +397,11 @@ class ExcelFile(object):
         if engine is not None and engine != 'xlrd':
             raise ValueError("Unknown engine: {engine}".format(engine=engine))
 
+        session = kwds.pop('session', None)
         # If io is a url, want to keep the data as bytes so can't pass
         # to get_filepath_or_buffer()
         if _is_url(self._io):
-            io = _urlopen(self._io)
+            io, _ = _urlopen(self._io, session=session)
         elif not isinstance(self.io, (ExcelFile, xlrd.Book)):
             io, _, _, _ = get_filepath_or_buffer(self._io)
 
