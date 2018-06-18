@@ -201,7 +201,8 @@ class _HtmlFrameParser(object):
     functionality.
     """
 
-    def __init__(self, io, match, attrs, encoding, displayed_only, session=None):
+    def __init__(self, io, match, attrs, encoding, displayed_only,
+                 session=None):
         self.io = io
         self.match = match
         self.attrs = attrs
@@ -892,7 +893,8 @@ def _parse(flavor, io, match, attrs, encoding, displayed_only, **kwargs):
     session = kwargs.get('session', None)
     for flav in flavor:
         parser = _parser_dispatch(flav)
-        p = parser(io, compiled_match, attrs, encoding, displayed_only, session)
+        p = parser(io, compiled_match, attrs, encoding, displayed_only,
+                   session)
 
         try:
             tables = p.parse_tables()
