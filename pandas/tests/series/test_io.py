@@ -11,6 +11,7 @@ import pandas as pd
 from pandas import Series, DataFrame
 
 from pandas.compat import StringIO, u
+from pandas.io.common import _get_handle
 from pandas.util.testing import (assert_series_equal, assert_almost_equal,
                                  assert_frame_equal, ensure_clean)
 import pandas.util.testing as tm
@@ -152,20 +153,19 @@ class TestSeriesToCSV(TestData):
 
             s.to_csv(filename, compression=compression, encoding=encoding,
                      header=True)
-
             # test the round trip - to_csv -> read_csv
             result = pd.read_csv(filename, compression=compression,
                                  encoding=encoding, index_col=0, squeeze=True)
-
-            with open(filename, 'w') as fh:
-                s.to_csv(fh, compression=compression, encoding=encoding,
-                         header=True)
-
-            result_fh = pd.read_csv(filename, compression=compression,
-                                    encoding=encoding, index_col=0,
-                                    squeeze=True)
             assert_series_equal(s, result)
-            assert_series_equal(s, result_fh)
+
+            # test the round trip using file handle - to_csv -> read_csv
+            f, _handles = _get_handle(filename, 'w', compression=compression,
+                                      encoding=encoding)
+            with f:
+                s.to_csv(f, encoding=encoding, header=True)
+            result = pd.read_csv(filename, compression=compression,
+                                 encoding=encoding, index_col=0, squeeze=True)
+            assert_series_equal(s, result)
 
             # explicitly ensure file was compressed
             with tm.decompress_file(filename, compression) as fh:

@@ -11,6 +11,7 @@ from pandas import Series, DataFrame, Timestamp
 from pandas.compat import range, lmap
 import pandas.core.common as com
 from pandas.core import ops
+from pandas.io.common import _get_handle
 import pandas.util.testing as tm
 
 
@@ -248,19 +249,34 @@ def test_compression_size(obj, method, compression):
                      [12.32112, 123123.2, 321321.2]],
               columns=['X', 'Y', 'Z']),
     Series(100 * [0.123456, 0.234567, 0.567567], name='X')])
-@pytest.mark.parametrize('method', ['to_csv'])
+@pytest.mark.parametrize('method', ['to_csv', 'to_json'])
 def test_compression_size_fh(obj, method, compression_only):
 
     with tm.ensure_clean() as filename:
-        with open(filename, 'w') as fh:
-            getattr(obj, method)(fh, compression=compression_only)
-            assert not fh.closed
-        assert fh.closed
+        f, _handles = _get_handle(filename, 'w', compression=compression_only)
+        with f:
+            getattr(obj, method)(f)
+            assert not f.closed
+        assert f.closed
         compressed = os.path.getsize(filename)
     with tm.ensure_clean() as filename:
-        with open(filename, 'w') as fh:
-            getattr(obj, method)(fh, compression=None)
-            assert not fh.closed
-        assert fh.closed
+        f, _handles = _get_handle(filename, 'w', compression=None)
+        with f:
+            getattr(obj, method)(f)
+            assert not f.closed
+        assert f.closed
         uncompressed = os.path.getsize(filename)
         assert uncompressed > compressed
+
+
+# GH 21227
+def test_compression_warning(compression_only):
+    df = DataFrame(100 * [[0.123456, 0.234567, 0.567567],
+                          [12.32112, 123123.2, 321321.2]],
+                   columns=['X', 'Y', 'Z'])
+    with tm.ensure_clean() as filename:
+        f, _handles = _get_handle(filename, 'w', compression=compression_only)
+        with tm.assert_produces_warning(RuntimeWarning,
+                                        check_stacklevel=False):
+            with f:
+                df.to_csv(f, compression=compression_only)
