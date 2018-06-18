@@ -48,11 +48,11 @@ Bug Fixes
 
 **Timedelta**
 
-- Bug in constructing :class:`Index` with an iterator or generator (:issue:`21470`)
 - Bug in :class:`Timedelta` where non-zero timedeltas shorter than 1 microsecond were considered False (:issue:`21484`)
 
 **Conversion**
 
+- Bug in constructing :class:`Index` with an iterator or generator (:issue:`21470`)
 - Bug in :meth:`Series.nlargest` for signed and unsigned integer dtypes when the minimum value is present (:issue:`21426`)
 
 
