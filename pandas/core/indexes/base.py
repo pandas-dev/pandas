@@ -436,12 +436,14 @@ class Index(IndexOpsMixin, PandasObject):
         elif data is None or is_scalar(data):
             cls._scalar_data_error(data)
         else:
-            if tupleize_cols and is_list_like(data) and data:
+            if tupleize_cols and is_list_like(data):
+                # GH21470: convert iterable to list before determining if empty
                 if is_iterator(data):
                     data = list(data)
-                # we must be all tuples, otherwise don't construct
-                # 10697
-                if all(isinstance(e, tuple) for e in data):
+
+                if data and all(isinstance(e, tuple) for e in data):
+                    # we must be all tuples, otherwise don't construct
+                    # 10697
                     from .multi import MultiIndex
                     return MultiIndex.from_tuples(
                         data, names=name or kwargs.get('names'))

@@ -3,7 +3,6 @@
 import numpy as np
 from warnings import warn
 import textwrap
-import types
 
 from pandas import compat
 from pandas.compat import u, lzip
@@ -28,7 +27,7 @@ from pandas.core.dtypes.common import (
     is_categorical,
     is_categorical_dtype,
     is_list_like, is_sequence,
-    is_scalar,
+    is_scalar, is_iterator,
     is_dict_like)
 
 from pandas.core.algorithms import factorize, take_1d, unique1d, take
@@ -2473,7 +2472,7 @@ def _convert_to_list_like(list_like):
     if isinstance(list_like, list):
         return list_like
     if (is_sequence(list_like) or isinstance(list_like, tuple) or
-            isinstance(list_like, types.GeneratorType)):
+            is_iterator(list_like)):
         return list(list_like)
     elif is_scalar(list_like):
         return [list_like]
