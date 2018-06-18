@@ -512,24 +512,25 @@ def test_drop():
 
     # GH 16877
     s = Series([2, 3], index=[0, 1])
-    with tm.assert_raises_regex(KeyError, 'not contained in axis'):
+    with tm.assert_raises_regex(KeyError, 'not found in axis'):
         s.drop([False, True])
 
 
-@pytest.mark.parametrize('index, drop_labels, expected_index', [
-    ([1, 2, 3], [], [1, 2, 3]),
-    ([1, 1, 2], [], [1, 1, 2]),
-    ([1, 2, 3], [2], [1, 3]),
-    ([1, 1, 3], [1], [3]),
+@pytest.mark.parametrize('index, drop_labels', [
+    ([1, 2, 3], []),
+    ([1, 1, 2], []),
+    ([1, 2, 3], [2]),
+    ([1, 1, 3], [1]),
 ])
-def test_drop_empty_list(index, drop_labels, expected_index):
+def test_drop_empty_list(index, drop_labels):
     # GH 21494
+    expected_index = [i for i in index if i not in drop_labels]
     df = pd.DataFrame(index=index).drop(drop_labels)
     assert (df.index.values == expected_index).all()
 
 
 @pytest.mark.parametrize('index, drop_labels, error_key', [
-    ([1, 2, 3], [1, 4], 'not contained in axis'),
+    ([1, 2, 3], [1, 4], 'not found in axis'),
     ([1, 2, 2], [1, 4], 'not found in axis'),
 ])
 def test_drop_non_empty_list(index, drop_labels, error_key):

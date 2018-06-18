@@ -4341,10 +4341,10 @@ class Index(IndexOpsMixin, PandasObject):
         labels = com._index_labels_to_array(labels, dtype=arr_dtype)
         indexer = self.get_indexer(labels)
         mask = indexer == -1
-        if mask.any() and len(mask):
+        if mask.any():
             if errors != 'ignore':
                 raise KeyError(
-                    'labels %s not contained in axis' % labels[mask])
+                    '{} not found in axis'.format(labels[mask]))
             indexer = indexer[~mask]
         return self.delete(indexer)
 
