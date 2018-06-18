@@ -104,7 +104,7 @@ def _urlopen(url, session=None):
             r = session.get(url)
         else:
             r = requests.get(url)
-        r.raise_for_status
+        r.raise_for_status()
         content = r.content
     except ImportError:
         r = urlopen(url)
