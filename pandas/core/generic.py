@@ -3129,7 +3129,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         axis = self._get_axis_number(axis)
         axis_name = self._get_axis_name(axis)
-        axis, axis_ = self._get_axis(axis), axis
+        axis = self._get_axis(axis)
 
         if axis.is_unique:
             if level is not None:
@@ -3146,6 +3146,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 if not isinstance(axis, MultiIndex):
                     raise AssertionError('axis must be a MultiIndex')
                 indexer = ~axis.get_level_values(level).isin(labels)
+                #GH 18561 MultiIndex.drop should raise if label is absent
                 if errors == 'raise' and indexer.all():
                     raise KeyError('{} not found in axis'.format(labels))
             else:
