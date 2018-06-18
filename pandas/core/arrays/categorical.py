@@ -157,6 +157,55 @@ def _maybe_to_categorical(array):
     return array
 
 
+def contains(cat, key, container):
+    """
+    Helper for membership check for ``key`` in ``cat``.
+
+    This is a helper method for :method:`__contains__`
+    and :class:`CategoricalIndex.__contains__`.
+
+    Returns True if ``key`` is in ``cat.categories`` and the
+    location of ``key`` in ``categories`` is in ``container``.
+
+    Parameters
+    ----------
+    cat : :class:`Categorical`or :class:`categoricalIndex`
+    key : a hashable object
+        The key to check membership for.
+    container : Container (e.g. list-like or mapping)
+        The container to check for membership in.
+
+    Returns
+    -------
+    is_in : bool
+        True if ``key`` is in ``self.categories`` and location of
+        ``key`` in ``categories`` is in ``container``, else False.
+
+    Notes
+    -----
+    This method does not check for Nan values. Do that separately
+    before calling this method.
+    """
+    # get location of key in categories.
+    # If a KeyError, the key isn't in categories, so logically
+    #  can't be in container either.
+    try:
+        loc = cat.categories.get_loc(key)
+    except KeyError:
+        return False
+
+    # loc is the location of key in categories, but also the *value*
+    # for key in container. So, `key` may be in categories,
+    # but still not in `container`. Example ('b' in categories,
+    # but not in values):
+    # 'b' in Categorical(['a'], categories=['a', 'b'])  # False
+    if is_scalar(loc):
+        return loc in container
+    else:
+        # if categories is an IntervalIndex, loc is an array.
+        return any(loc_ in container for loc_ in loc)
+
+
 _codes_doc = """The category codes of this categorical.
 
 Level codes are an array if integer which are the positions of the real
@@ -1846,58 +1895,6 @@ class Categorical(ExtensionArray, PandasObject):
         """Returns an Iterator over the values of this Categorical."""
         return iter(self.get_values().tolist())
 
-    @staticmethod
-    def _contains(key, categories, container):
-        """
-        Helper for membership check for ``key``.
-
-        This helper method is used in :method:`Categorical.__contains__`
-        and in :class:`CategoricalIndex.__contains__`.
-
-        Returns True if ``key`` is in ``categories`` and the
-        location of ``key`` in ``categories`` is in ``container``.
-
-        Parameters
-        ----------
-        key : a hashable object
-            The key to check membership for.
-        categories : Sequence
-            The possible values for ``key``. The location for ``key``
-            in ``categories`` is also its value in ``container``
-        container : Container (e.g. list-like or mapping)
-            The container to check for membership in.
-
-        Returns
-        -------
-        is_in : bool
-            True if ``key`` is in ``categories`` and location of
-            ``key`` in ``categories`` is in ``container``, else False.
-
-        Notes
-        -----
-        This method does not check for Nan values. Do that separately
-        before calling this method.
-        """
-
-        # is key in categories? Then get its location in categories.
-        # If not (i.e. KeyError), its location logically can't be in
-        # container either.
-        try:
-            loc = categories.get_loc(key)
-        except KeyError:
-            return False
-
-        # loc is the location of key in categories, but also the value
-        # for key in container. So, key may be in categories,
-        # but still not in container, this must be checked. Example:
-        # 'b' in Categorical(['a'], categories=['a', 'b']) #  False
-        if is_scalar(loc):
-            return loc in container
-        else:
-            # if categories is an IntervalIndex, loc is an array.
-            # Check if any scalar of the array is in the container
-            return any(loc_ in container for loc_ in loc)
-
     def __contains__(self, key):
         """Returns True if `key` is in this Categorical."""
         hash(key)
@@ -1905,7 +1902,7 @@ class Categorical(ExtensionArray, PandasObject):
         if isna(key):  # if key is a NaN, check if any NaN is in self.
             return self.isna().any()
 
-        return self._contains(key, self.categories, container=self._codes)
+        return contains(self, key, container=self._codes)
 
     def _tidy_repr(self, max_vals=10, footer=True):
         """ a short repr displaying only max_vals and an optional (but default

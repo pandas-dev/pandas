@@ -24,7 +24,7 @@ from pandas.core import accessor
 import pandas.core.common as com
 import pandas.core.missing as missing
 import pandas.core.indexes.base as ibase
-from pandas.core.arrays import Categorical
+from pandas.core.arrays.categorical import Categorical, contains
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass='CategoricalIndex'))
@@ -327,8 +327,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         if isna(key):  # if key is a NaN, check if any NaN is in self.
             return self.hasnans
 
-        return Categorical._contains(key, categories=self.categories,
-                                     container=self._engine)
+        return contains(self, key, container=self._engine)
 
     @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def contains(self, key):
