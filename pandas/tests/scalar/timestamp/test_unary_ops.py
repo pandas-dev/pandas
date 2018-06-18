@@ -257,6 +257,13 @@ class TestTimestampUnaryOps(object):
         ts2b = normalize(ts2)
         assert ts2 == ts2b
 
+    def test_replace_dst_border(self):
+        # Gh 7825
+        t = Timestamp('2013-11-3', tz='America/Chicago')
+        result = t.replace(hour=3)
+        expected = Timestamp('2013-11-3 03:00:00', tz='America/Chicago')
+        assert result == expected
+
     # --------------------------------------------------------------
 
     @td.skip_if_windows
