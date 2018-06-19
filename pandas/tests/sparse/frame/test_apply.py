@@ -99,3 +99,13 @@ def test_apply_toindex():
     result = tmp_df.apply(lambda x: x[x == 1].index.tolist(), axis=1)
     expected = pd.Series([[0, 1, 2], [0], [0, 1], [0, 1]])
     tm.assert_series_equal(result, expected)
+
+    result = tmp_df.apply(lambda x: [x[x==1].index.tolist()] , axis=1)
+    expected = pd.Series([[[0, 1, 2]], [[0]], [[0, 1]], [[0, 1]]])
+    tm.assert_series_equal(result, expected)
+
+    tmp2 = np.array([[1, 0, 0], [1, 0, 0], [0, 1, 1]])
+    tmp2_df = pd.DataFrame(tmp2)
+    result = temp2_df.apply(lambda x: x[x==1].index.tolist(), axis=1)
+    expected = pd.Series([[0], [0], [1, 2]])
+    tm.assert_series_equal(result, expected)
