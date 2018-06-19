@@ -64,7 +64,7 @@ Bug Fixes
 
 **I/O**
 
--
+- Bug in :meth:`json_normalize` where passing an array of values and a `record_prefix` would raise a `TypeError` (:issue:`21536`)
 -
 
 **Plotting**
