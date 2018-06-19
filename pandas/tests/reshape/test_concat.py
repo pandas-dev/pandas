@@ -1300,9 +1300,10 @@ class TestConcatenate(ConcatenateBase):
         result = pd.concat(OrderedDict([('First', pd.Series(range(3))),
                                         ('Another', pd.Series(range(4)))]))
         index = MultiIndex(levels=[['First', 'Another'], [0, 1, 2, 3]],
-                           labels=[[0, 0, 0, 1, 1, 1, 1], [0, 1, 2, 0, 1, 2, 3]])
+                           labels=[[0, 0, 0, 1, 1, 1, 1],
+                                   [0, 1, 2, 0, 1, 2, 3]])
         data = list(range(3)) + list(range(4))
-        expected = pd.Series(data,index=index)
+        expected = pd.Series(data, index=index)
         tm.assert_series_equal(result, expected)
 
     def test_crossed_dtypes_weird_corner(self):
