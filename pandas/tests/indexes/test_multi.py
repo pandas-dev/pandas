@@ -5,7 +5,6 @@ import warnings
 
 from datetime import timedelta
 from itertools import product
-from enum import Enum
 import pytest
 
 import numpy as np
@@ -20,7 +19,6 @@ from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas._libs.tslib import Timestamp
-from pandas.core.algorithms import take_1d
 
 import pandas.util.testing as tm
 
@@ -3309,24 +3307,19 @@ class TestMultiIndex(Base):
             ind.set_levels([['A', 'B', 'A', 'A', 'B'], [2, 1, 3, -2, 5]],
                            inplace=True)
 
+    @td.skip_if_no('enum')
     def test_use_enum_in_multiindex(self):
         # GH 21298
         # Allow use of Enums as one of the factors in a MultiIndex.
+        from enum import Enum
         MyEnum = Enum("MyEnum", "A B")
         df = pd.DataFrame(columns=pd.MultiIndex.from_product(iterables=[
             MyEnum,
             [1, 2]
         ]))
 
-        # cf. https://github.com/pandas-dev/pandas/blob/
-        # 0c65c57a279e755ab7093db925d1e580f9878dae/pandas/util/testing.py#L793-L799
-        unique = df.columns.levels[0]
-        labels = df.columns.labels[0]
-        filled = take_1d(unique.values, labels, fill_value=unique._na_value)
-        df_index_0 = unique._shallow_copy(filled, name=df.columns.names[0])
-        exp_index_0 = pd.Index([MyEnum.A, MyEnum.A, MyEnum.B, MyEnum.B],
-                               dtype='object')
-        tm.assert_index_equal(df_index_0, exp_index_0)
+        exp_index_0 = pd.Index([MyEnum.A, MyEnum.B], dtype='object')
+        tm.assert_index_equal(df.columns.levels[0], exp_index_0)
 
         expected = df.copy()
         df = df.append({(MyEnum.A, 1): "abc", (MyEnum.B, 2): "xyz"},
