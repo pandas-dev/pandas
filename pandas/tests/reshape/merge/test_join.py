@@ -228,18 +228,19 @@ class TestJoin(object):
                             index=tm.makeCustomIndex(10, 2))
             merge(df, df2, right_on='a', left_on=['a', 'b'])
 
-    def test_join_on_fails_with_wrong_object_type(self):
-        # GH12081
-        wrongly_typed = [2, 'str', None, np.array([0, 1])]
-        # GH21220 - merging of Series and DataFrame is now allowed
-        # Edited the test to remove the Series object from 'wrongly_typed'
-        df = DataFrame({'a': [1, 1]})
+    @pytest.mark.parametrize("wrong_type", [2, 'str', None, np.array([0, 1])])
+    def test_join_on_fails_with_wrong_object_type(self, wrong_type):
+        # GH12081 - original issue
 
-        for obj in wrongly_typed:
-            with tm.assert_raises_regex(ValueError, str(type(obj))):
-                merge(obj, df, left_on='a', right_on='a')
-            with tm.assert_raises_regex(ValueError, str(type(obj))):
-                merge(df, obj, left_on='a', right_on='a')
+        # GH21220 - merging of Series and DataFrame is now allowed
+        # Edited the test to remove the Series object from test parameters
+        # Also, parameterized the original test
+
+        df = DataFrame({'a': [1, 1]})
+        with tm.assert_raises_regex(ValueError, str(type(wrong_type))):
+            merge(wrong_type, df, left_on='a', right_on='a')
+        with tm.assert_raises_regex(ValueError, str(type(wrong_type))):
+            merge(df, wrong_type, left_on='a', right_on='a')
 
     def test_join_on_pass_vector(self):
         expected = self.target.join(self.source, on='C')

@@ -1867,23 +1867,14 @@ def test_merge_index_types(index):
 
 
 @pytest.mark.parametrize("on,left_on,right_on,left_index,right_index,nms,nm", [
-                         (['outer', 'inner'], None, None, False, False,
-                          ['outer', 'inner'], 'B'),
-                         (None, None, None, True, True, ['outer', 'inner'],
-                          'B'),
-                         (None, ['outer', 'inner'], None, False, True, None,
-                          'B'),
-                         (None, None, ['outer', 'inner'], True, False, None,
-                          'B'),
-                         (['outer', 'inner'], None, None, False, False,
-                          ['outer', 'inner'], None),
-                         (None, None, None, True, True, ['outer', 'inner'],
-                          None),
-                         (None, ['outer', 'inner'], None, False, True, None,
-                          None),
-                         (None, None, ['outer', 'inner'], True, False, None,
-                          None),
-                         ])
+    (['outer', 'inner'], None, None, False, False, ['outer', 'inner'], 'B'),
+    (None, None, None, True, True, ['outer', 'inner'], 'B'),
+    (None, ['outer', 'inner'], None, False, True, None, 'B'),
+    (None, None, ['outer', 'inner'], True, False, None, 'B'),
+    (['outer', 'inner'], None, None, False, False, ['outer', 'inner'], None),
+    (None, None, None, True, True, ['outer', 'inner'], None),
+    (None, ['outer', 'inner'], None, False, True, None, None),
+    (None, None, ['outer', 'inner'], True, False, None, None)])
 def test_merge_series(on, left_on, right_on, left_index, right_index, nms, nm):
     # GH 21220
     a = pd.DataFrame({"A": [1, 2, 3, 4]},

@@ -1645,5 +1645,5 @@ def validate_operand(obj):
         else:
             return obj.to_frame()
     else:
-        raise ValueError('Cannot merge a DataFrame or a Series with '
-                         'instance of type {obj}'.format(obj=type(obj)))
+        raise TypeError('Can only merge Series or DataFrame objects, '
+                        'a {obj} was passed'.format(obj=type(obj)))

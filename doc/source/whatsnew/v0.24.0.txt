@@ -7,7 +7,7 @@ v0.24.0
 
 New features
 ~~~~~~~~~~~~
-- :func: merge now allows  a ``DataFrame`` and a ``Series`` with a name as inputs (:issue:`21220`)
+- :func:`merge` now directly allows merge between objects of type ``DataFrame`` and ``Series`` with a name, without need to convert the ``Series`` object into a ``DataFrame`` beforehand (:issue:`21220`)
 
 .. _whatsnew_0240.enhancements.other:
 
