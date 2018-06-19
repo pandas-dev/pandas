@@ -1528,15 +1528,18 @@ class TestDataFrameAnalytics(TestData):
             df.drop_duplicates(subset)
 
     def test_duplicated_do_not_fail_on_wide_dataframes(self):
-        # Given the wide dataframe with a lot of columns with different (important!) values
+        # Given the wide dataframe with a lot of columns
+        # with different (important!) values
         data = {}
         for i in range(100):
             data['col_{0:02d}'.format(i)] = np.random.randint(0, 1000, 30000)
         df = pd.DataFrame(data).T
         # When we request to calculate duplicates
         dupes = df.duplicated()
-        # Then we get the bool pd.Series as a result (don't fail during calculation)
-        # Actual values doesn't matter here, though usually it's all False in this case
+        # Then we get the bool pd.Series as a result
+        # and don't fail during calculation.
+        # Actual values doesn't matter here, though usually
+        # it's all False in this case
         assert isinstance(dupes, pd.Series)
         assert dupes.dtype == np.bool
 
