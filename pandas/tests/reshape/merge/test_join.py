@@ -237,9 +237,9 @@ class TestJoin(object):
         # Also, parameterized the original test
 
         df = DataFrame({'a': [1, 1]})
-        with tm.assert_raises_regex(ValueError, str(type(wrong_type))):
+        with tm.assert_raises_regex(TypeError, str(type(wrong_type))):
             merge(wrong_type, df, left_on='a', right_on='a')
-        with tm.assert_raises_regex(ValueError, str(type(wrong_type))):
+        with tm.assert_raises_regex(TypeError, str(type(wrong_type))):
             merge(df, wrong_type, left_on='a', right_on='a')
 
     def test_join_on_pass_vector(self):
