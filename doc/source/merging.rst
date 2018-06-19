@@ -1085,12 +1085,12 @@ As you can see, this drops any rows where there was no match.
 
 .. _merging.join_on_mi:
 
-Joining a single Index to a Multi-index
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Joining a single Index to a MultiIndex
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can join a singly-indexed ``DataFrame`` with a level of a multi-indexed ``DataFrame``.
+You can join a singly-indexed ``DataFrame`` with a level of a MultiIndexed ``DataFrame``.
 The level will match on the name of the index of the singly-indexed frame against
-a level name of the multi-indexed frame.
+a level name of the MultiIndexed frame.
 
 ..  ipython:: python
 
@@ -1130,8 +1130,8 @@ This is equivalent but less verbose and more memory efficient / faster than this
           labels=['left', 'right'], vertical=False);
    plt.close('all');
 
-Joining with two multi-indexes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Joining with two MultiIndexes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This is not implemented via ``join`` at-the-moment, however it can be done using
 the following code.
@@ -1310,7 +1310,7 @@ For this, use the :meth:`~DataFrame.combine_first` method:
 
 Note that this method only takes values from the right ``DataFrame`` if they are
 missing in the left ``DataFrame``. A related method, :meth:`~DataFrame.update`, 
-alters non-NA values inplace:
+alters non-NA values in place:
 
 .. ipython:: python
    :suppress:

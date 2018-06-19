@@ -778,8 +778,12 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
 
     def _check_types(l, r, obj='Index'):
         if exact:
-            assert_class_equal(left, right, exact=exact, obj=obj)
-            assert_attr_equal('dtype', l, r, obj=obj)
+            assert_class_equal(l, r, exact=exact, obj=obj)
+
+            # Skip exact dtype checking when `check_categorical` is False
+            if check_categorical:
+                assert_attr_equal('dtype', l, r, obj=obj)
+
             # allow string-like to have different inferred_types
             if l.inferred_type in ('string', 'unicode'):
                 assert r.inferred_type in ('string', 'unicode')
@@ -829,7 +833,8 @@ def assert_index_equal(left, right, exact='equiv', check_names=True,
             # get_level_values may change dtype
             _check_types(left.levels[level], right.levels[level], obj=obj)
 
-    if check_exact:
+    # skip exact index checking when `check_categorical` is False
+    if check_exact and check_categorical:
         if not left.equals(right):
             diff = np.sum((left.values != right.values)
                           .astype(int)) * 100.0 / len(left)
@@ -950,23 +955,23 @@ def is_sorted(seq):
 
 
 def assert_categorical_equal(left, right, check_dtype=True,
-                             obj='Categorical', check_category_order=True):
+                             check_category_order=True, obj='Categorical'):
     """Test that Categoricals are equivalent.
 
     Parameters
     ----------
-    left, right : Categorical
-        Categoricals to compare
+    left : Categorical
+    right : Categorical
     check_dtype : bool, default True
         Check that integer dtype of the codes are the same
-    obj : str, default 'Categorical'
-        Specify object name being compared, internally used to show appropriate
-        assertion message
     check_category_order : bool, default True
         Whether the order of the categories should be compared, which
         implies identical integer codes.  If False, only the resulting
         values are compared.  The ordered attribute is
         checked regardless.
+    obj : str, default 'Categorical'
+        Specify object name being compared, internally used to show appropriate
+        assertion message
     """
     _check_isinstance(left, right, Categorical)
 
@@ -1020,7 +1025,7 @@ def raise_assert_detail(obj, message, left, right, diff=None):
 
 def assert_numpy_array_equal(left, right, strict_nan=False,
                              check_dtype=True, err_msg=None,
-                             obj='numpy array', check_same=None):
+                             check_same=None, obj='numpy array'):
     """ Checks that 'np.ndarray' is equivalent
 
     Parameters
@@ -1033,11 +1038,11 @@ def assert_numpy_array_equal(left, right, strict_nan=False,
         check dtype if both a and b are np.ndarray
     err_msg : str, default None
         If provided, used as assertion message
+    check_same : None|'copy'|'same', default None
+        Ensure left and right refer/do not refer to the same memory area
     obj : str, default 'numpy array'
         Specify object name being compared, internally used to show appropriate
         assertion message
-    check_same : None|'copy'|'same', default None
-        Ensure left and right refer/do not refer to the same memory area
     """
 
     # instance validation
@@ -2256,59 +2261,6 @@ def network(t, url="http://www.google.com",
 
 
 with_connectivity_check = network
-
-
-class SimpleMock(object):
-
-    """
-    Poor man's mocking object
-
-    Note: only works for new-style classes, assumes  __getattribute__ exists.
-
-    >>> a = type("Duck",(),{})
-    >>> a.attr1,a.attr2 ="fizz","buzz"
-    >>> b = SimpleMock(a,"attr1","bar")
-    >>> b.attr1 == "bar" and b.attr2 == "buzz"
-    True
-    >>> a.attr1 == "fizz" and a.attr2 == "buzz"
-    True
-    """
-
-    def __init__(self, obj, *args, **kwds):
-        assert(len(args) % 2 == 0)
-        attrs = kwds.get("attrs", {})
-        for k, v in zip(args[::2], args[1::2]):
-            # dict comprehensions break 2.6
-            attrs[k] = v
-        self.attrs = attrs
-        self.obj = obj
-
-    def __getattribute__(self, name):
-        attrs = object.__getattribute__(self, "attrs")
-        obj = object.__getattribute__(self, "obj")
-        return attrs.get(name, type(obj).__getattribute__(obj, name))
-
-
-@contextmanager
-def stdin_encoding(encoding=None):
-    """
-    Context manager for running bits of code while emulating an arbitrary
-    stdin encoding.
-
-    >>> import sys
-    >>> _encoding = sys.stdin.encoding
-    >>> with stdin_encoding('AES'): sys.stdin.encoding
-    'AES'
-    >>> sys.stdin.encoding==_encoding
-    True
-
-    """
-    import sys
-
-    _stdin = sys.stdin
-    sys.stdin = SimpleMock(sys.stdin, "encoding", encoding)
-    yield
-    sys.stdin = _stdin
 
 
 def assert_raises_regex(_exception, _regexp, _callable=None,

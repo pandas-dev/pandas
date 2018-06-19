@@ -181,6 +181,10 @@ class _Window(PandasObject, SelectionMixin):
         return "{klass} [{attrs}]".format(klass=self._window_type,
                                           attrs=','.join(attrs))
 
+    def __iter__(self):
+        url = 'https://github.com/pandas-dev/pandas/issues/11704'
+        raise NotImplementedError('See issue #11704 {url}'.format(url=url))
+
     def _get_index(self, index=None):
         """
         Return index as ndarrays
@@ -598,8 +602,8 @@ class Window(_Window):
         if isinstance(window, (list, tuple, np.ndarray)):
             pass
         elif is_integer(window):
-            if window < 0:
-                raise ValueError("window must be non-negative")
+            if window <= 0:
+                raise ValueError("window must be > 0 ")
             try:
                 import scipy.signal as sig
             except ImportError:

@@ -54,20 +54,21 @@ bar2,12,13,14,15
         # and C engine will raise UnicodeDecodeError instead of
         # c engine raising ParserError and swallowing exception
         # that caused read to fail.
-        handle = open(self.csv_shiftjs, "rb")
         codec = codecs.lookup("utf-8")
         utf8 = codecs.lookup('utf-8')
-        # stream must be binary UTF8
-        stream = codecs.StreamRecoder(
-            handle, utf8.encode, utf8.decode, codec.streamreader,
-            codec.streamwriter)
+
         if compat.PY3:
             msg = "'utf-8' codec can't decode byte"
         else:
             msg = "'utf8' codec can't decode byte"
-        with tm.assert_raises_regex(UnicodeDecodeError, msg):
-            self.read_csv(stream)
-        stream.close()
+
+        # stream must be binary UTF8
+        with open(self.csv_shiftjs, "rb") as handle, codecs.StreamRecoder(
+                handle, utf8.encode, utf8.decode, codec.streamreader,
+                codec.streamwriter) as stream:
+
+            with tm.assert_raises_regex(UnicodeDecodeError, msg):
+                self.read_csv(stream)
 
     def test_read_csv(self):
         if not compat.PY3:
@@ -235,6 +236,21 @@ c,4,5
                               'B': [1, 3, 4],
                               'C': [2, 4, 5]})
         out = self.read_csv(StringIO(data))
+        tm.assert_frame_equal(out, expected)
+
+    def test_read_csv_low_memory_no_rows_with_index(self):
+        if self.engine == "c" and not self.low_memory:
+            pytest.skip("This is a low-memory specific test")
+
+        # see gh-21141
+        data = """A,B,C
+1,1,1,2
+2,2,3,4
+3,3,4,5
+"""
+        out = self.read_csv(StringIO(data), low_memory=True,
+                            index_col=0, nrows=0)
+        expected = DataFrame(columns=["A", "B", "C"])
         tm.assert_frame_equal(out, expected)
 
     def test_read_csv_dataframe(self):

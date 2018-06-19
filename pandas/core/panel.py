@@ -1405,7 +1405,7 @@ class Panel(NDFrame):
     # miscellaneous data creation
     @staticmethod
     def _extract_axes(self, data, axes, **kwargs):
-        """ return a list of the axis indicies """
+        """ return a list of the axis indices """
         return [self._extract_axis(self, data, axis=i, **kwargs)
                 for i, a in enumerate(axes)]
 
@@ -1447,11 +1447,11 @@ class Panel(NDFrame):
 
         Returns
         -------
-        dict of aligned results & indicies
+        dict of aligned results & indices
         """
 
         result = dict()
-        # caller differs dict/ODict, presered type
+        # caller differs dict/ODict, preserved type
         if isinstance(frames, OrderedDict):
             result = OrderedDict()
 
@@ -1533,24 +1533,3 @@ Panel._setup_axes(axes=['items', 'major_axis', 'minor_axis'], info_axis=0,
 ops.add_special_arithmetic_methods(Panel)
 ops.add_flex_arithmetic_methods(Panel)
 Panel._add_numeric_operations()
-
-
-# legacy
-class WidePanel(Panel):
-
-    def __init__(self, *args, **kwargs):
-        # deprecation, #10892
-        warnings.warn("WidePanel is deprecated. Please use Panel",
-                      FutureWarning, stacklevel=2)
-
-        super(WidePanel, self).__init__(*args, **kwargs)
-
-
-class LongPanel(DataFrame):
-
-    def __init__(self, *args, **kwargs):
-        # deprecation, #10892
-        warnings.warn("LongPanel is deprecated. Please use DataFrame",
-                      FutureWarning, stacklevel=2)
-
-        super(LongPanel, self).__init__(*args, **kwargs)
