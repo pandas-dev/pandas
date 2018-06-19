@@ -183,9 +183,11 @@ def contains(cat, key, container):
 
     Notes
     -----
-    This method does not check for Nan values. Do that separately
+    This method does not check for NaN values. Do that separately
     before calling this method.
     """
+    hash(key)
+
     # get location of key in categories.
     # If a KeyError, the key isn't in categories, so logically
     #  can't be in container either.
@@ -1897,9 +1899,8 @@ class Categorical(ExtensionArray, PandasObject):
 
     def __contains__(self, key):
         """Returns True if `key` is in this Categorical."""
-        hash(key)
-
-        if isna(key):  # if key is a NaN, check if any NaN is in self.
+        # if key is a NaN, check if any NaN is in self.
+        if isna(key):
             return self.isna().any()
 
         return contains(self, key, container=self._codes)
