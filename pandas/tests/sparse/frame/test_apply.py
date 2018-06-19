@@ -93,6 +93,7 @@ def test_applymap(frame):
 
 
 def test_apply_toindex():
+    # GH 21539
     tmp = np.array([[1, 1, 1], [1, 0, 0], [1, 1, 0], [1, 1, 0]])
     tmp_df = pd.DataFrame(tmp)
     result = tmp_df.apply(lambda x: x[x == 1].index.tolist(), axis=1)
