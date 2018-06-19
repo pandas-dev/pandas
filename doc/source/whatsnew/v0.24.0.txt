@@ -728,6 +728,7 @@ Other
 - :meth: `~pandas.io.formats.style.Styler.background_gradient` now takes a ``text_color_threshold`` parameter to automatically lighten the text color based on the luminance of the background color. This improves readability with dark background colors without the need to limit the background colormap range. (:issue:`21258`)
 - Require at least 0.28.2 version of ``cython`` to support read-only memoryviews (:issue:`21688`)
 - :meth: `~pandas.io.formats.style.Styler.background_gradient` now also supports tablewise application (in addition to rowwise and columnwise) with ``axis=None`` (:issue:`15204`)
+- :meth: `~pandas.io.formats.style.Styler.bar` now also supports tablewise application (in addition to rowwise and columnwise) with ``axis=None``
 -
 -
 -
