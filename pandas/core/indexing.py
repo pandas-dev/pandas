@@ -688,7 +688,8 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         if isinstance(indexer, tuple):
 
             # flatten np.ndarray indexers
-            ravel = lambda i: i.ravel() if isinstance(i, np.ndarray) else i
+            def ravel(i):
+                return i.ravel() if isinstance(i, np.ndarray) else i
             indexer = tuple(map(ravel, indexer))
 
             aligners = [not com.is_null_slice(idx) for idx in indexer]
@@ -925,33 +926,10 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         """ create the reindex map for our objects, raise the _exception if we
         can't create the indexer
         """
-        try:
-            o = self.obj
-            d = {}
-            for key, axis in zip(tup, o._AXIS_ORDERS):
-                ax = o._get_axis(axis)
-                # Have the index compute an indexer or return None
-                # if it cannot handle:
-                indexer, keyarr = ax._convert_listlike_indexer(key,
-                                                               kind=self.name)
-                # We only act on all found values:
-                if indexer is not None and (indexer != -1).all():
-                    self._validate_read_indexer(key, indexer, axis)
-                    d[axis] = (ax[indexer], indexer)
-                    continue
-
-                # If we are trying to get actual keys from empty Series, we
-                # patiently wait for a KeyError later on - otherwise, convert
-                if len(ax) or not len(key):
-                    key = self._convert_for_reindex(key, axis)
-                indexer = ax.get_indexer_for(key)
-                keyarr = ax.reindex(keyarr)[0]
-                self._validate_read_indexer(keyarr, indexer,
-                                            o._get_axis_number(axis))
-                d[axis] = (keyarr, indexer)
-            return o._reindex_with_indexers(d, copy=True, allow_dups=True)
-        except (KeyError, IndexingError) as detail:
-            raise self._exception(detail)
+        o = self.obj
+        d = {axis: self._get_listlike_indexer(key, axis)
+             for (key, axis) in zip(tup, o._AXIS_ORDERS)}
+        return o._reindex_with_indexers(d, copy=True, allow_dups=True)
 
     def _convert_for_reindex(self, key, axis=None):
         return key
@@ -1124,7 +1102,88 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
             return self._get_label(key, axis=axis)
 
+    def _get_listlike_indexer(self, key, axis, raise_missing=False):
+        """
+        Transform a list-like of keys into a new index and an indexer.
+
+        Parameters
+        ----------
+        key : list-like
+            Target labels
+        axis: int
+            Dimension on which the indexing is being made
+        raise_missing: bool
+            Whether to raise a KeyError if some labels are not found. Will be
+            removed in the future, and then this method will always behave as
+            if raise_missing=True.
+
+        Raises
+        ------
+        KeyError
+            If at least one key was requested but none was found, and
+            raise_missing=True.
+
+        Returns
+        -------
+        keyarr: Index
+            New index (coinciding with 'key' if the axis is unique)
+        values : array-like
+            An indexer for the return object; -1 denotes keys not found
+        """
+        o = self.obj
+        ax = o._get_axis(axis)
+
+        # Have the index compute an indexer or return None
+        # if it cannot handle:
+        indexer, keyarr = ax._convert_listlike_indexer(key,
+                                                       kind=self.name)
+        # We only act on all found values:
+        if indexer is not None and (indexer != -1).all():
+            self._validate_read_indexer(key, indexer, axis,
+                                        raise_missing=raise_missing)
+            return ax[indexer], indexer
+
+        if ax.is_unique:
+            # If we are trying to get actual keys from empty Series, we
+            # patiently wait for a KeyError later on - otherwise, convert
+            if len(ax) or not len(key):
+                key = self._convert_for_reindex(key, axis)
+            indexer = ax.get_indexer_for(key)
+            keyarr = ax.reindex(keyarr)[0]
+        else:
+            keyarr, indexer, new_indexer = ax._reindex_non_unique(keyarr)
+
+        self._validate_read_indexer(keyarr, indexer,
+                                    o._get_axis_number(axis),
+                                    raise_missing=raise_missing)
+        return keyarr, indexer
+
     def _getitem_iterable(self, key, axis=None):
+        """
+        Index current object with an an iterable key (which can be a boolean
+        indexer, or a collection of keys).
+
+        Parameters
+        ----------
+        key : iterable
+            Target labels, or boolean indexer
+        axis: int, default None
+            Dimension on which the indexing is being made
+
+        Raises
+        ------
+        KeyError
+            If no key was found. Will change in the future to raise if not all
+            keys were found.
+        IndexingError
+            If the boolean indexer is unalignable with the object being
+            indexed.
+
+        Returns
+        -------
+        scalar, DataFrame, or Series: indexed value(s),
+        """
+
         if axis is None:
             axis = self.axis or 0
 
@@ -1133,54 +1192,18 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         labels = self.obj._get_axis(axis)
 
         if com.is_bool_indexer(key):
+            # A boolean indexer
             key = check_bool_indexer(labels, key)
             inds, = key.nonzero()
             return self.obj._take(inds, axis=axis)
         else:
-            # Have the index compute an indexer or return None
-            # if it cannot handle; we only act on all found values
-            indexer, keyarr = labels._convert_listlike_indexer(
-                key, kind=self.name)
-            if indexer is not None and (indexer != -1).all():
-                self._validate_read_indexer(key, indexer, axis)
-                return self.obj.take(indexer, axis=axis)
+            # A collection of keys
+            keyarr, indexer = self._get_listlike_indexer(key, axis,
+                                                         raise_missing=False)
+            return self.obj._reindex_with_indexers({axis: [keyarr, indexer]},
+                                                   copy=True, allow_dups=True)
 
-            ax = self.obj._get_axis(axis)
-            # existing labels are unique and indexer are unique
-            if labels.is_unique and Index(keyarr).is_unique:
-                indexer = ax.get_indexer_for(key)
-                self._validate_read_indexer(key, indexer, axis)
-
-                d = {axis: [ax.reindex(keyarr)[0], indexer]}
-                return self.obj._reindex_with_indexers(d, copy=True,
-                                                       allow_dups=True)
-
-            # existing labels are non-unique
-            else:
-
-                # reindex with the specified axis
-                if axis + 1 > self.obj.ndim:
-                    raise AssertionError("invalid indexing error with "
-                                         "non-unique index")
-
-                new_target, indexer, new_indexer = labels._reindex_non_unique(
-                    keyarr)
-
-                if new_indexer is not None:
-                    result = self.obj._take(indexer[indexer != -1], axis=axis)
-
-                    self._validate_read_indexer(key, new_indexer, axis)
-                    result = result._reindex_with_indexers(
-                        {axis: [new_target, new_indexer]},
-                        copy=True, allow_dups=True)
-
-                else:
-                    self._validate_read_indexer(key, indexer, axis)
-                    result = self.obj._take(indexer, axis=axis)
-
-                return result
-
-    def _validate_read_indexer(self, key, indexer, axis):
+    def _validate_read_indexer(self, key, indexer, axis, raise_missing=False):
         """
         Check that indexer can be used to return a result (e.g. at least one
         element was found, unless the list of keys was actually empty).
@@ -1193,11 +1216,16 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
             Indices corresponding to the key (with -1 indicating not found)
         axis: int
             Dimension on which the indexing is being made
+        raise_missing: bool
+            Whether to raise a KeyError if some labels are not found. Will be
+            removed in the future, and then this method will always behave as
+            if raise_missing=True.
 
         Raises
         ------
         KeyError
-            If at least one key was requested none was found.
+            If at least one key was requested but none was found, and
+            raise_missing=True.
         """
 
         ax = self.obj._get_axis(axis)
@@ -1214,6 +1242,12 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                     u"None of [{key}] are in the [{axis}]".format(
                         key=key, axis=self.obj._get_axis_name(axis)))
 
+            # We (temporarily) allow for some missing keys with .loc, except in
+            # some cases (e.g. setting) in which "raise_missing" will be False
+            if not(self.name == 'loc' and not raise_missing):
+                not_found = list(set(key) - set(ax))
+                raise KeyError("{} not in index".format(not_found))
+
             # we skip the warning on Categorical/Interval
             # as this check is actually done (check for
             # non-missing values), but a bit later in the
@@ -1229,9 +1263,10 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
 
             if not (ax.is_categorical() or ax.is_interval()):
                 warnings.warn(_missing_key_warning,
-                              FutureWarning, stacklevel=5)
+                              FutureWarning, stacklevel=6)
 
-    def _convert_to_indexer(self, obj, axis=None, is_setter=False):
+    def _convert_to_indexer(self, obj, axis=None, is_setter=False,
+                            raise_missing=False):
         """
         Convert indexing key into something we can use to do actual fancy
         indexing on an ndarray
@@ -1310,33 +1345,10 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
                 inds, = obj.nonzero()
                 return inds
             else:
-
-                # Have the index compute an indexer or return None
-                # if it cannot handle
-                indexer, objarr = labels._convert_listlike_indexer(
-                    obj, kind=self.name)
-                if indexer is not None:
-                    return indexer
-
-                # unique index
-                if labels.is_unique:
-                    indexer = check = labels.get_indexer(objarr)
-
-                # non-unique (dups)
-                else:
-                    (indexer,
-                     missing) = labels.get_indexer_non_unique(objarr)
-                    # 'indexer' has dupes, create 'check' using 'missing'
-                    check = np.zeros(len(objarr), dtype=np.intp)
-                    check[missing] = -1
-
-                mask = check == -1
-                if mask.any():
-                    raise KeyError('{mask} not in index'
-                                   .format(mask=objarr[mask]))
-
-                return com._values_from_object(indexer)
-
+                # When setting, missing keys are not allowed, even with .loc:
+                kwargs = {'raise_missing': True if is_setter else
+                          raise_missing}
+                return self._get_listlike_indexer(obj, axis, **kwargs)[1]
         else:
             try:
                 return labels.get_loc(obj)
