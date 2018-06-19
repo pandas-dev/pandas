@@ -3146,7 +3146,7 @@ class NDFrame(PandasObject, SelectionMixin):
                 if not isinstance(axis, MultiIndex):
                     raise AssertionError('axis must be a MultiIndex')
                 indexer = ~axis.get_level_values(level).isin(labels)
-                #GH 18561 MultiIndex.drop should raise if label is absent
+                # GH 18561 MultiIndex.drop should raise if label is absent
                 if errors == 'raise' and indexer.all():
                     raise KeyError('{} not found in axis'.format(labels))
             else:
