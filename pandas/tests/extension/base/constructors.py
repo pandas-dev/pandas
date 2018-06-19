@@ -52,8 +52,8 @@ class BaseConstructorsTests(BaseExtensionTests):
         dtype = data.dtype
 
         expected = pd.Series(data)
-        result = pd.Series(np.array(data), dtype=dtype)
+        result = pd.Series(list(data), dtype=dtype)
         self.assert_series_equal(result, expected)
 
-        result = pd.Series(np.array(data), dtype=str(dtype))
+        result = pd.Series(list(data), dtype=str(dtype))
         self.assert_series_equal(result, expected)

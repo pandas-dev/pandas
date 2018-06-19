@@ -173,8 +173,6 @@ class ExtensionDtype(_DtypeOpsMixin):
         -------
         type
         """
-        if array is None:
-            return cls
         raise NotImplementedError
 
     @classmethod

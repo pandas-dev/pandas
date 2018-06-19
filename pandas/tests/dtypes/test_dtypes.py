@@ -788,6 +788,7 @@ def test_registry(dtype):
     [('int64', None),
      ('interval', IntervalDtype()),
      ('interval[int64]', IntervalDtype()),
+     ('interval[datetime64[ns]]', IntervalDtype('datetime64[ns]')),
      ('category', CategoricalDtype()),
      ('period[D]', PeriodDtype('D')),
      ('datetime64[ns, US/Eastern]', DatetimeTZDtype('ns', 'US/Eastern'))])

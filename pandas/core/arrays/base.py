@@ -92,7 +92,7 @@ class ExtensionArray(object):
         scalars : Sequence
             Each element will be an instance of the scalar type for this
             array, ``cls.dtype.type``.
-        copy : boolean, default True
+        copy : boolean, default False
             if True, copy the underlying data
         Returns
         -------

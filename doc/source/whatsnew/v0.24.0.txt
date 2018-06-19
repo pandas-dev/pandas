@@ -128,6 +128,9 @@ ExtensionType Changes
 - ``ExtensionDtype`` has gained the ability to instantiate from string dtypes, e.g. ``decimal`` would instantiate a registered ``DecimalDtype``; furthermore
   the dtype has gained the ``construct_array_type`` (:issue:`21185`)
 - The ``ExtensionArray`` constructor, ``_from_sequence`` now take the keyword arg ``copy=False`` (:issue:`21185`)
+- :meth:`Series.combine()` works correctly with :class:`~pandas.api.extensions.ExtensionArray` inside of :class:`Series` (:issue:`20825`)
+- :meth:`Series.combine()` with scalar argument now works for any function type (:issue:`21248`)
+-
 
 .. _whatsnew_0240.api.other:
 
@@ -324,12 +327,6 @@ Reshaping
 -
 -
 
-ExtensionArray
-^^^^^^^^^^^^^^
-
-- :meth:`Series.combine()` works correctly with :class:`~pandas.api.extensions.ExtensionArray` inside of :class:`Series` (:issue:`20825`)
-- :meth:`Series.combine()` with scalar argument now works for any function type (:issue:`21248`)
--
 -
 
 Other

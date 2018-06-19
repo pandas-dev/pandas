@@ -9,13 +9,14 @@ from .base import ExtensionDtype, _DtypeOpsMixin
 
 
 class Registry(object):
-    """ Registry for dtype inference
+    """
+    Registry for dtype inference
 
-    We can directly construct dtypes in pandas_dtypes if they are
-    a type; the registry allows us to register an extension dtype
-    to try inference from a string or a dtype class
+    The registry allows one to map a string repr of a extension
+    dtype to an extenstion dtype.
 
-    These are tried in order for inference.
+    Multiple extension types can be registered.
+    These are tried in order.
 
     Examples
     --------
