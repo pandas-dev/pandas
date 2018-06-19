@@ -52,7 +52,8 @@ def get_group_index(labels, shape, sort, xnull):
                 return i
         return len(shape)
 
-    def maybe_lift(lab, size):  # pormote nan values
+    def maybe_lift(lab, size):
+        # promote nan values (assigned to -1 here) so that all values are non-negative
         return (lab + 1, size + 1) if (lab == -1).any() else (lab, size)
 
     labels = map(_ensure_int64, labels)
@@ -62,6 +63,8 @@ def get_group_index(labels, shape, sort, xnull):
     labels = list(labels)
     shape = list(shape)
 
+    # Iteratively process all the labels in chunks sized so less than _INT64_MAX unique int ids
+    # will be required for each chunk
     while True:
         # how many levels can be done without overflow:
         nlev = _int64_cut_off(shape)
