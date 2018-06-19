@@ -461,3 +461,87 @@ def test_rename():
     assert_series_equal(result, expected)
 
     assert result.name == expected.name
+
+
+@pytest.mark.parametrize('data, index, drop_labels,'
+                         ' axis, expected_data, expected_index',
+                         [([1, 2], ['one', 'two'], ['two'],
+                           0, [1], ['one']),
+                          # Unique Index
+                          ([1, 2], ['one', 'two'], ['two'],
+                           'rows', [1], ['one']),
+                          ([1, 1, 2], ['one', 'two', 'one'], ['two'],
+                           0, [1, 2], ['one', 'one']),
+                          # GH 5248 Non-Unique Index
+                          ([1, 1, 2], ['one', 'two', 'one'], 'two',
+                           0, [1, 2], ['one', 'one']),
+                          ([1, 1, 2], ['one', 'two', 'one'], ['one'],
+                           0, [1], ['two']),
+                          ([1, 1, 2], ['one', 'two', 'one'], 'one',
+                           0, [1], ['two'])])
+def test_drop_unique_and_non_unique_index(data, index, axis, drop_labels,
+                                          expected_data, expected_index):
+
+    s = Series(data=data, index=index)
+    result = s.drop(drop_labels, axis=axis)
+    expected = Series(data=expected_data, index=expected_index)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize('data, index, drop_labels,'
+                         ' axis, error_type, error_desc',
+                         [(range(3), list('abc'), 'bc',
+                           0, KeyError, 'not found in axis'),
+                          # single string/tuple-like
+                          (range(3), list('abc'), ('a',),
+                           0, KeyError, 'not found in axis'),
+                          (range(3), list('abc'), 'one',
+                           'columns', ValueError, 'No axis named columns')
+                          # bad axis
+                          ])
+def test_drop_exception_raised(data, index, drop_labels,
+                               axis, error_type, error_desc):
+
+    with tm.assert_raises_regex(error_type, error_desc):
+        Series(data, index=index).drop(drop_labels, axis=axis)
+
+
+def test_drop_with_ignore_errors():
+    # errors='ignore'
+    s = Series(range(3), index=list('abc'))
+    result = s.drop('bc', errors='ignore')
+    tm.assert_series_equal(result, s)
+    result = s.drop(['a', 'd'], errors='ignore')
+    expected = s.iloc[1:]
+    tm.assert_series_equal(result, expected)
+
+    # GH 8522
+    s = Series([2, 3], index=[True, False])
+    assert s.index.is_object()
+    result = s.drop(True)
+    expected = Series([3], index=[False])
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize('index, drop_labels', [
+    ([1, 2, 3], []),
+    ([1, 1, 2], []),
+    ([1, 2, 3], [2]),
+    ([1, 1, 3], [1]),
+])
+def test_drop_empty_list(index, drop_labels):
+    # GH 21494
+    expected_index = [i for i in index if i not in drop_labels]
+    series = pd.Series(index=index).drop(drop_labels)
+    tm.assert_series_equal(series, pd.Series(index=expected_index))
+
+
+@pytest.mark.parametrize('data, index, drop_labels', [
+    (None, [1, 2, 3], [1, 4]),
+    (None, [1, 2, 2], [1, 4]),
+    ([2, 3], [0, 1], [False, True])
+])
+def test_drop_non_empty_list(data, index, drop_labels):
+    # GH 21494 and GH 16877
+    with tm.assert_raises_regex(KeyError, 'not found in axis'):
+        pd.Series(data=data, index=index).drop(drop_labels)
