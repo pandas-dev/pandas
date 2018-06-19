@@ -1,5 +1,6 @@
 import pytest
 import numpy as np
+import pandas as pd
 from pandas import SparseDataFrame, DataFrame, Series, bdate_range
 from pandas.core import nanops
 from pandas.util import testing as tm
@@ -100,12 +101,8 @@ def test_apply_toindex():
     expected = pd.Series([[0, 1, 2], [0], [0, 1], [0, 1]])
     tm.assert_series_equal(result, expected)
 
-    result = tmp_df.apply(lambda x: [x[x == 1].index.tolist()], axis=1)
-    expected = pd.Series([[[0, 1, 2]], [[0]], [[0, 1]], [[0, 1]]])
-    tm.assert_series_equal(result, expected)
-
-    tmp2 = np.array([[1, 0, 0], [1, 0, 0], [0, 1, 1]])
+    tpm2 = np.array([[5, 1, 3], [1, np.nan, 0], [1, 2, 0], [np.nan, 1, 0]])
     tmp2_df = pd.DataFrame(tmp2)
-    result = temp2_df.apply(lambda x: x[x == 1].index.tolist(), axis=1)
-    expected = pd.Series([[0], [0], [1, 2]])
+    result = tmp2_df.apply(lambda x: x[x == 0].index.tolist())
+    expected = pd.Series([], [], [1, 2, 3])
     tm.assert_series_equal(result, expected)
