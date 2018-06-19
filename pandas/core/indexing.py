@@ -1132,33 +1132,31 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         """
         o = self.obj
         ax = o._get_axis(axis)
-        try:
-            # Have the index compute an indexer or return None
-            # if it cannot handle:
-            indexer, keyarr = ax._convert_listlike_indexer(key,
-                                                           kind=self.name)
-            # We only act on all found values:
-            if indexer is not None and (indexer != -1).all():
-                self._validate_read_indexer(key, indexer, axis,
-                                            raise_missing=raise_missing)
-                return ax[indexer], indexer
 
-            if ax.is_unique:
-                # If we are trying to get actual keys from empty Series, we
-                # patiently wait for a KeyError later on - otherwise, convert
-                if len(ax) or not len(key):
-                    key = self._convert_for_reindex(key, axis)
-                indexer = ax.get_indexer_for(key)
-                keyarr = ax.reindex(keyarr)[0]
-            else:
-                keyarr, indexer, new_indexer = ax._reindex_non_unique(keyarr)
-
-            self._validate_read_indexer(keyarr, indexer,
-                                        o._get_axis_number(axis),
+        # Have the index compute an indexer or return None
+        # if it cannot handle:
+        indexer, keyarr = ax._convert_listlike_indexer(key,
+                                                       kind=self.name)
+        # We only act on all found values:
+        if indexer is not None and (indexer != -1).all():
+            self._validate_read_indexer(key, indexer, axis,
                                         raise_missing=raise_missing)
-            return keyarr, indexer
-        except (KeyError, IndexingError) as detail:
-            raise self._exception(detail)
+            return ax[indexer], indexer
+
+        if ax.is_unique:
+            # If we are trying to get actual keys from empty Series, we
+            # patiently wait for a KeyError later on - otherwise, convert
+            if len(ax) or not len(key):
+                key = self._convert_for_reindex(key, axis)
+            indexer = ax.get_indexer_for(key)
+            keyarr = ax.reindex(keyarr)[0]
+        else:
+            keyarr, indexer, new_indexer = ax._reindex_non_unique(keyarr)
+
+        self._validate_read_indexer(keyarr, indexer,
+                                    o._get_axis_number(axis),
+                                    raise_missing=raise_missing)
+        return keyarr, indexer
 
     def _getitem_iterable(self, key, axis=None):
         """
