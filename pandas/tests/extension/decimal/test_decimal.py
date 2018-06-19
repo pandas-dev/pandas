@@ -102,7 +102,7 @@ class BaseDecimal(object):
 class TestDtype(BaseDecimal, base.BaseDtypeTests):
 
     def test_array_type_with_arg(self, data, dtype):
-        assert dtype.construct_array_type('foo') is DecimalArray
+        assert dtype.construct_array_type() is DecimalArray
 
 
 class TestInterface(BaseDecimal, base.BaseInterfaceTests):

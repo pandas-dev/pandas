@@ -109,7 +109,7 @@ class BaseJSON(object):
 class TestDtype(BaseJSON, base.BaseDtypeTests):
 
     def test_array_type_with_arg(self, data, dtype):
-        assert dtype.construct_array_type('foo') is JSONArray
+        assert dtype.construct_array_type() is JSONArray
 
 
 class TestInterface(BaseJSON, base.BaseInterfaceTests):

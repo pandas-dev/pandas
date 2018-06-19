@@ -16,12 +16,8 @@ class DecimalDtype(ExtensionDtype):
     na_value = decimal.Decimal('NaN')
 
     @classmethod
-    def construct_array_type(cls, array=None):
+    def construct_array_type(cls):
         """Return the array type associated with this dtype
-
-        Parameters
-        ----------
-        array : array-like, optional
 
         Returns
         -------
