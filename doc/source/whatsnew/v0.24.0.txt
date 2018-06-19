@@ -225,7 +225,7 @@ Plotting
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
--
+- Bug in :func:`pandas.core.groupby.first` and :func:`pandas.core.groupby.last` with ``as_index=False`` leading to the loss of timezone information (:issue:`15884`)
 -
 -
 
