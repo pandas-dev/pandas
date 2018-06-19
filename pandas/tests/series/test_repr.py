@@ -228,15 +228,9 @@ class TestCategoricalRepr(object):
         else:
             # set sys.defaultencoding to ascii, then change it back after
             # the test
-            enc = sys.getdefaultencoding()
-            reload(sys)  # noqa:F821
-            sys.setdefaultencoding('ascii')
-            try:
+            with tm.set_defaultencoding('ascii'):
                 repr(ser)
                 str(ser)
-            finally:
-                # restore encoding
-                sys.setdefaultencoding(enc)
 
     def test_categorical_repr(self):
         a = Series(Categorical([1, 2, 3, 4]))
