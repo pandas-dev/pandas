@@ -2070,10 +2070,24 @@ class GroupBy(_GroupBy):
     def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None,
                    axis=0):
         """Calcuate pct_change of each value to previous entry in group"""
-        return self.apply(lambda x: x.pct_change(periods=periods,
-                                                 fill_method=fill_method,
-                                                 limit=limit, freq=freq,
-                                                 axis=axis))
+        if freq is not None or axis != 0:
+            return self.apply(lambda x: x.pct_change(periods=periods,
+                                                     fill_method=fill_method,
+                                                     limit=limit, freq=freq,
+                                                     axis=axis))
+        if fill_method:
+            new = DataFrameGroupBy(self._obj_with_exclusions,
+                                   grouper=self.grouper)
+            new.obj = getattr(new, fill_method)(limit=limit)
+            new._reset_cache()
+        else:
+            new = self
+
+        obj = new.obj.drop(self.grouper.names, axis=1)
+        shifted = new.shift(periods=periods, freq=freq).\
+            drop(self.grouper.names, axis=1)
+        return (obj / shifted) - 1
+
 
     @Substitution(name='groupby')
     @Appender(_doc_template)
@@ -3936,9 +3950,15 @@ class SeriesGroupBy(GroupBy):
 
     def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None):
         """Calcuate pct_change of each value to previous entry in group"""
-        return self.apply(lambda x: x.pct_change(periods=periods,
-                                                 fill_method=fill_method,
-                                                 limit=limit, freq=freq))
+        if fill_method:
+            new = SeriesGroupBy(self.obj, grouper=self.grouper)
+            new.obj = getattr(new, fill_method)(limit=limit)
+            new._reset_cache()
+        else:
+            new = self
+
+        shifted = new.shift(periods=periods, freq=freq)
+        return (new.obj / shifted) - 1
 
 
 class NDFrameGroupBy(GroupBy):

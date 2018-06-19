@@ -730,7 +730,7 @@ def test_group_fill_methods(mix_groupings, as_series, val1, val2,
     (-1, 'bfill', None), (-1, 'bfill', 1),
 ])
 def test_pct_change(test_series, shuffle, periods, fill_method, limit):
-    vals = [3, np.nan, 1, 2, 4, 10, np.nan, 9]
+    vals = [3, np.nan, 1, 2, 4, 10, np.nan, 4]
     keys = ['a', 'b']
     key_v = np.repeat(keys, len(vals))
     df = DataFrame({'key': key_v, 'vals': vals * 2})
@@ -765,7 +765,10 @@ def test_pct_change(test_series, shuffle, periods, fill_method, limit):
     else:
         result = get_result(grp)
         result = result.reset_index(drop=True)
-        result.columns = ['A']
+        df.insert(0, 'A', result)
+        result = df.sort_values(by='key')
+        result = result.loc[:, ['A']]
+        result = result.reset_index(drop=True)
         tm.assert_frame_equal(result, exp)
 
 
