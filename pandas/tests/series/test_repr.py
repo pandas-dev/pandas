@@ -11,6 +11,7 @@ import pandas as pd
 from pandas import (Index, Series, DataFrame, date_range, option_context,
                     Categorical, period_range, timedelta_range)
 from pandas.core.index import MultiIndex
+from pandas.core.base import StringMixin
 
 from pandas.compat import lrange, range, u
 from pandas import compat
@@ -206,7 +207,6 @@ class TestCategoricalRepr(object):
         # GH#21002 if len(index) > 60, sys.getdefaultencoding()=='ascii',
         # and we are working in PY2, then rendering a Categorical could raise
         # UnicodeDecodeError by trying to decode when it shouldn't
-        from pandas.core.base import StringMixin
 
         class County(StringMixin):
             name = u'San Sebastián'
