@@ -90,3 +90,11 @@ def test_applymap(frame):
     # just test that it works
     result = frame.applymap(lambda x: x * 2)
     assert isinstance(result, SparseDataFrame)
+
+
+def test_apply_toindex():
+    tmp = np.array([[1, 1, 1], [1, 0, 0], [1, 1, 0], [1, 1, 0]])
+    tmp_df = pd.DataFrame(tmp)
+    result = tmp_df.apply(lambda x: x[x == 1].index.tolist(), axis=1)
+    expected = pd.Series([[0, 1, 2], [0], [0, 1], [0, 1]])
+    tm.assert_series_equal(result, expected)
