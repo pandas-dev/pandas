@@ -52,7 +52,17 @@ def get_group_index(labels, shape, sort, xnull):
                 return i
         return len(shape)
 
-    def loop(labels, shape):
+    def maybe_lift(lab, size):  # pormote nan values
+        return (lab + 1, size + 1) if (lab == -1).any() else (lab, size)
+
+    labels = map(_ensure_int64, labels)
+    if not xnull:
+        labels, shape = map(list, zip(*map(maybe_lift, labels, shape)))
+
+    labels = list(labels)
+    shape = list(shape)
+
+    while True:
         # how many levels can be done without overflow:
         nlev = _int64_cut_off(shape)
 
@@ -74,7 +84,7 @@ def get_group_index(labels, shape, sort, xnull):
             out[mask] = -1
 
         if nlev == len(shape):  # all levels done!
-            return out
+            break
 
         # compress what has been done so far in order to avoid overflow
         # to retain lexical ranks, obs_ids should be sorted
@@ -83,16 +93,7 @@ def get_group_index(labels, shape, sort, xnull):
         labels = [comp_ids] + labels[nlev:]
         shape = [len(obs_ids)] + shape[nlev:]
 
-        return loop(labels, shape)
-
-    def maybe_lift(lab, size):  # pormote nan values
-        return (lab + 1, size + 1) if (lab == -1).any() else (lab, size)
-
-    labels = map(_ensure_int64, labels)
-    if not xnull:
-        labels, shape = map(list, zip(*map(maybe_lift, labels, shape)))
-
-    return loop(list(labels), list(shape))
+    return out
 
 
 def get_compressed_ids(labels, sizes):
