@@ -61,6 +61,9 @@ Current Behavior:
 
 .. _whatsnew_0240.api.datetimelike:
 
+
+.. _whatsnew_0240.api.period_subtraction:
+
 Period Subtraction
 ^^^^^^^^^^^^^^^^^^
 
@@ -84,7 +87,7 @@ Previous Behavior:
     In [4]: june - april
     Out [4]: 2
 
-Similarly, subtraction of a ``Period`` from a ``PeriodIndex`` will not return
+Similarly, subtraction of a ``Period`` from a ``PeriodIndex`` will now return
 an ``Index`` of ``DateOffset`` objects instead of an ``Int64Index``
 
 .. ipython:: python
@@ -105,7 +108,6 @@ Datetimelike API Changes
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - For :class:`DatetimeIndex` and :class:`TimedeltaIndex` with non-``None`` ``freq`` attribute, addition or subtraction of integer-dtyped array or ``Index`` will return an object of the same class (:issue:`19959`)
-- Subtraction of :class:`Period` from :class:`Period` will return a :class:`DateOffset` object instead of an integer (:issue:`21314`)
 - Subtraction of :class:`Period` from :class:`PeriodIndex` (or vice-versa) will return an object-dtype :class:`Index` instead of :class:`Int64Index` (:issue:`21314`)
 
 .. _whatsnew_0240.api.other:
