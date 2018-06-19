@@ -28,7 +28,9 @@ class DecimalArray(ExtensionArray):
     dtype = DecimalDtype()
 
     def __init__(self, values):
-        assert all(isinstance(v, decimal.Decimal) for v in values)
+        for val in values:
+            if not isinstance(val, self.dtype.type):
+                raise TypeError
         values = np.asarray(values, dtype=object)
 
         self._data = values

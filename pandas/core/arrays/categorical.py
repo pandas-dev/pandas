@@ -3,7 +3,6 @@
 import numpy as np
 from warnings import warn
 import textwrap
-import types
 
 from pandas import compat
 from pandas.compat import u, lzip
@@ -28,7 +27,7 @@ from pandas.core.dtypes.common import (
     is_categorical,
     is_categorical_dtype,
     is_list_like, is_sequence,
-    is_scalar,
+    is_scalar, is_iterator,
     is_dict_like)
 
 from pandas.core.algorithms import factorize, take_1d, unique1d, take
@@ -52,7 +51,7 @@ from .base import ExtensionArray
 
 _take_msg = textwrap.dedent("""\
     Interpreting negative values in 'indexer' as missing values.
-    In the future, this will change to meaning positional indicies
+    In the future, this will change to meaning positional indices
     from the right.
 
     Use 'allow_fill=True' to retain the previous behavior and silence this
@@ -1479,7 +1478,7 @@ class Categorical(ExtensionArray, PandasObject):
         # TODO(PY2): use correct signature
         # We have to do *args, **kwargs to avoid a a py2-only signature
         # issue since np.argsort differs from argsort.
-        """Return the indicies that would sort the Categorical.
+        """Return the indices that would sort the Categorical.
 
         Parameters
         ----------
@@ -2118,11 +2117,18 @@ class Categorical(ExtensionArray, PandasObject):
         else:
             return self.categories[pointer]
 
-    def mode(self):
+    def mode(self, dropna=True):
         """
         Returns the mode(s) of the Categorical.
 
         Always returns `Categorical` even if only one value.
+
+        Parameters
+        ----------
+        dropna : boolean, default True
+            Don't consider counts of NaN/NaT.
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -2130,8 +2136,11 @@ class Categorical(ExtensionArray, PandasObject):
         """
 
         import pandas._libs.hashtable as htable
-        good = self._codes != -1
-        values = sorted(htable.mode_int64(_ensure_int64(self._codes[good])))
+        values = self._codes
+        if dropna:
+            good = self._codes != -1
+            values = self._codes[good]
+        values = sorted(htable.mode_int64(_ensure_int64(values), dropna))
         result = self._constructor(values=values, categories=self.categories,
                                    ordered=self.ordered, fastpath=True)
         return result
@@ -2473,7 +2482,7 @@ def _convert_to_list_like(list_like):
     if isinstance(list_like, list):
         return list_like
     if (is_sequence(list_like) or isinstance(list_like, tuple) or
-            isinstance(list_like, types.GeneratorType)):
+            is_iterator(list_like)):
         return list(list_like)
     elif is_scalar(list_like):
         return [list_like]

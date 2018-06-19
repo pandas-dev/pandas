@@ -402,26 +402,33 @@ class TestIndex(Base):
             index = Index(vals)
             assert isinstance(index, TimedeltaIndex)
 
-    @pytest.mark.parametrize("values", [
-        # pass values without timezone, as DatetimeIndex localizes it
-        pd.date_range('2011-01-01', periods=5).values,
-        pd.date_range('2011-01-01', periods=5).asi8])
+    @pytest.mark.parametrize("attr, utc", [
+        ['values', False],
+        ['asi8', True]])
     @pytest.mark.parametrize("klass", [pd.Index, pd.DatetimeIndex])
-    def test_constructor_dtypes_datetime(self, tz_naive_fixture, values,
+    def test_constructor_dtypes_datetime(self, tz_naive_fixture, attr, utc,
                                          klass):
-        index = pd.date_range('2011-01-01', periods=5, tz=tz_naive_fixture)
+        # Test constructing with a datetimetz dtype
+        # .values produces numpy datetimes, so these are considered naive
+        # .asi8 produces integers, so these are considered epoch timestamps
+        index = pd.date_range('2011-01-01', periods=5)
+        arg = getattr(index, attr)
+        if utc:
+            index = index.tz_localize('UTC').tz_convert(tz_naive_fixture)
+        else:
+            index = index.tz_localize(tz_naive_fixture)
         dtype = index.dtype
 
-        result = klass(values, tz=tz_naive_fixture)
+        result = klass(arg, tz=tz_naive_fixture)
         tm.assert_index_equal(result, index)
 
-        result = klass(values, dtype=dtype)
+        result = klass(arg, dtype=dtype)
         tm.assert_index_equal(result, index)
 
-        result = klass(list(values), tz=tz_naive_fixture)
+        result = klass(list(arg), tz=tz_naive_fixture)
         tm.assert_index_equal(result, index)
 
-        result = klass(list(values), dtype=dtype)
+        result = klass(list(arg), dtype=dtype)
         tm.assert_index_equal(result, index)
 
     @pytest.mark.parametrize("attr", ['values', 'asi8'])
@@ -438,21 +445,24 @@ class TestIndex(Base):
         result = klass(list(values), dtype=dtype)
         tm.assert_index_equal(result, index)
 
-    def test_constructor_empty_gen(self):
-        skip_index_keys = ["repeats", "periodIndex", "rangeIndex",
-                           "tuples"]
-        for key, index in self.generate_index_types(skip_index_keys):
-            empty = index.__class__([])
-            assert isinstance(empty, index.__class__)
-            assert not len(empty)
+    @pytest.mark.parametrize("value", [[], iter([]), (x for x in [])])
+    @pytest.mark.parametrize("klass",
+                             [Index, Float64Index, Int64Index, UInt64Index,
+                              CategoricalIndex, DatetimeIndex, TimedeltaIndex])
+    def test_constructor_empty(self, value, klass):
+        empty = klass(value)
+        assert isinstance(empty, klass)
+        assert not len(empty)
 
     @pytest.mark.parametrize("empty,klass", [
         (PeriodIndex([], freq='B'), PeriodIndex),
+        (PeriodIndex(iter([]), freq='B'), PeriodIndex),
+        (PeriodIndex((x for x in []), freq='B'), PeriodIndex),
         (RangeIndex(step=1), pd.RangeIndex),
         (MultiIndex(levels=[[1, 2], ['blue', 'red']],
                     labels=[[], []]), MultiIndex)
     ])
-    def test_constructor_empty(self, empty, klass):
+    def test_constructor_empty_special(self, empty, klass):
         assert isinstance(empty, klass)
         assert not len(empty)
 
@@ -473,6 +483,13 @@ class TestIndex(Base):
         # With .set_names()
         tm.assert_raises_regex(TypeError, message,
                                indices.set_names, names=renamed)
+
+    def test_constructor_overflow_int64(self):
+        # see gh-15832
+        msg = ("the elements provided in the data cannot "
+               "all be casted to the dtype int64")
+        with tm.assert_raises_regex(OverflowError, msg):
+            Index([np.iinfo(np.uint64).max - 1], dtype="int64")
 
     def test_view_with_args(self):
 

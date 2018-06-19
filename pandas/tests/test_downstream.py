@@ -2,6 +2,9 @@
 """
 Testing that we work in the downstream packages
 """
+import subprocess
+import sys
+
 import pytest
 import numpy as np  # noqa
 from pandas import DataFrame
@@ -53,6 +56,11 @@ def test_xarray(df):
     assert df.to_xarray() is not None
 
 
+def test_oo_optimizable():
+    # GH 21071
+    subprocess.check_call([sys.executable, "-OO", "-c", "import pandas"])
+
+
 @tm.network
 def test_statsmodels():
 
@@ -96,7 +104,6 @@ def test_pandas_datareader():
         'F', 'quandl', '2017-01-01', '2017-02-01')
 
 
-@pytest.mark.xfail(reaason="downstream install issue")
 def test_geopandas():
 
     geopandas = import_module('geopandas')  # noqa

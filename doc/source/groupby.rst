@@ -680,8 +680,7 @@ match the shape of the input array.
    data_range = lambda x: x.max() - x.min()
    ts.groupby(key).transform(data_range)
 
-Alternatively the built-in methods can be could be used to produce the same
-outputs
+Alternatively, the built-in methods could be used to produce the same outputs.
 
 .. ipython:: python
 
@@ -994,7 +993,7 @@ is only interesting over one column (here ``colname``), it may be filtered
 Handling of (un)observed Categorical values
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When using a ``Categorical`` grouper (as a single grouper, or as part of multipler groupers), the ``observed`` keyword
+When using a ``Categorical`` grouper (as a single grouper, or as part of multiple groupers), the ``observed`` keyword
 controls whether to return a cartesian product of all possible groupers values (``observed=False``) or only those
 that are observed groupers (``observed=True``).
 
@@ -1010,7 +1009,7 @@ Show only the observed values:
 
    pd.Series([1, 1, 1]).groupby(pd.Categorical(['a', 'a', 'a'], categories=['a', 'b']), observed=True).count()
 
-The returned dtype of the grouped will *always* include *all* of the catergories that were grouped.
+The returned dtype of the grouped will *always* include *all* of the categories that were grouped.
 
 .. ipython:: python
 

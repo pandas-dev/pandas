@@ -11,9 +11,9 @@ dependencies:
   - lxml
   - matplotlib
   - numexpr
-  - numpy=1.10*
+  - numpy=1.12*
   - openpyxl
-  - pytables==3.2.2
+  - pytables
   - python=2.7.*
   - pytz
   - s3fs
