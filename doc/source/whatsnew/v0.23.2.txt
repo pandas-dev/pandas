@@ -61,6 +61,7 @@ Bug Fixes
 
 **I/O**
 
+- Bug in :func:`read_csv` that caused it to incorrectly raise an error when ``nrows=0``, ``low_memory=True``, and ``index_col`` was not ``None`` (:issue:`21141`)
 -
 -
 
