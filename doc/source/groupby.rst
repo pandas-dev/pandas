@@ -680,7 +680,7 @@ match the shape of the input array.
    data_range = lambda x: x.max() - x.min()
    ts.groupby(key).transform(data_range)
 
-Alternatively the built-in methods could be used to produce the same outputs.
+Alternatively, the built-in methods could be used to produce the same outputs.
 
 .. ipython:: python
 
