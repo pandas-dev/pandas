@@ -8971,8 +8971,9 @@ class NDFrame(PandasObject, SelectionMixin):
         if how == 'first':
             idx = is_valid.idxmax()
             if isinstance(is_valid[idx], ABCSeries):
-                for chk_notna in is_valid[idx]:
-                    chk_notna = False or chk_notna
+                chk_notna = False
+                for idxinstance in is_valid[idx]:
+                    chk_notna = chk_notna or idxinstance
             else:
                 chk_notna = is_valid[idx]
 
