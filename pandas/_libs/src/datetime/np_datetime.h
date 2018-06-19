@@ -71,14 +71,10 @@ void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
                                          PANDAS_DATETIMEUNIT fr,
                                          pandas_timedeltastruct *result);
 
-int dayofweek(int y, int m, int d);
-
 extern const int days_per_month_table[2][12];
 
 // stuff numpy-derived code needs in header
 // ----------------------------------------------------------------------------
-
-int is_leapyear(npy_int64 year);
 
 /*
  * Calculates the days offset from the 1970 epoch.

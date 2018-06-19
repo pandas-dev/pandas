@@ -591,6 +591,7 @@ ext_data = {
     '_libs.tslibs.offsets': {
         'pyxfile': '_libs/tslibs/offsets',
         'pxdfiles': ['_libs/src/util',
+                     '_libs/tslibs/ccalendar',
                      '_libs/tslibs/conversion',
                      '_libs/tslibs/frequencies',
                      '_libs/tslibs/nattype'],
