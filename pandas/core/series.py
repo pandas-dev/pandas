@@ -77,6 +77,7 @@ from pandas.util._validators import validate_bool_kwarg
 from pandas._libs import index as libindex, tslib as libts, lib, iNaT
 from pandas.core.config import get_option
 from pandas.core.strings import StringMethods
+from pandas.core.sets import SetMethods
 
 import pandas.plotting._core as gfx
 
@@ -158,7 +159,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Copy input data
     """
     _metadata = ['name']
-    _accessors = set(['dt', 'cat', 'str'])
+    _accessors = set(['dt', 'cat', 'str', 'set'])
     _deprecations = generic.NDFrame._deprecations | frozenset(
         ['asobject', 'sortlevel', 'reshape', 'get_value', 'set_value',
          'from_csv', 'valid'])
@@ -3992,6 +3993,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     # Accessor Methods
     # ----------------------------------------------------------------------
     str = CachedAccessor("str", StringMethods)
+    set = CachedAccessor("set", SetMethods)
     dt = CachedAccessor("dt", CombinedDatetimelikeProperties)
     cat = CachedAccessor("cat", CategoricalAccessor)
     plot = CachedAccessor("plot", gfx.SeriesPlotMethods)
