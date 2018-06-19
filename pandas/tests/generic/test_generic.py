@@ -612,19 +612,6 @@ class Generic(object):
         else:
             tm.assert_series_equal(res, Series(exp))
 
-    @pytest.mark.parametrize("data,index,expected_first,expected_last", [
-        ({'A': [1, 2, 3]}, [1, 1, 2], 1, 2),
-        ({'A': [1, 2, 3]}, [1, 2, 2], 1, 2),
-        ({'A': [1, 2, 3, 4]}, ['d', 'd', 'd', 'd'], 'd', 'd'),
-        ({'A': [1, np.nan, 3]}, [1, 1, 2], 1, 2),
-        ({'A': [np.nan, np.nan, 3]}, [1, 1, 2], 2, 2),
-        ({'A': [1, np.nan, 3]}, [1, 2, 2], 1, 2)])
-    def test_valid_index(self, data, index, expected_first, expected_last):
-        # GH 21441
-        df = DataFrame(data, index=index)
-        assert expected_first == df.first_valid_index()
-        assert expected_last == df.last_valid_index()
-
 
 class TestNDFrame(object):
     # tests that don't fit elsewhere
