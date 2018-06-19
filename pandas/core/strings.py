@@ -2210,7 +2210,7 @@ class StringMethods(NoNewAttributesMixin):
     Split strings around given separator/delimiter.
 
     Splits the string in the Series/Index from the %(side)s,
-    at the specified delimiter string.Equivalent to :meth:`str.%(method)s`.
+    at the specified delimiter string. Equivalent to :meth:`str.%(method)s`.
 
     Parameters
     ----------
@@ -2245,84 +2245,79 @@ class StringMethods(NoNewAttributesMixin):
 
     See Also
     --------
-    %(also)s
+     Series.str.split : Split strings around given separator/delimiter.
+     Series.str.rsplit : Splits string around given separator/delimiter, starting from 
+     the right.
+     Series.str.join : Join lists contained as elements in the Series/Index 
+     with passed delimiter. 
+     str.split : Standard library version for split.
+     str.rsplit : Standard library version for rsplit.
 
     Examples
     --------
-    >>> s = pd.Series(["this is good text", "but this is even better"])
+    >>> s = pd.Series(["this is a regular sentence", "this,is,comma,separated,text", np.nan])
 
     By default, split and rsplit will return an object of the same size
-    having lists containing the split elements
+    having lists containing the split elements.
 
-    >>> s.str.split()
-    0           [this, is, good, text]
-    1    [but, this, is, even, better]
+    Parameter `n` can be used to limit the number of splits on the delimiter. If delimiter is
+    not specified, string is split on whitespace.
+
+    >>> s.str.split(n=2)
+    0    [this, is, a regular sentence]
+    1    [this,is,comma,separated,text]
+    2                               NaN
     dtype: object
 
-    >>> s.str.rsplit()
-    0           [this, is, good, text]
-    1    [but, this, is, even, better]
+    >>> s.str.rsplit(n=2)   
+    0    [this is a, regular, sentence]
+    1    [this,is,comma,separated,text]
+    2                               NaN
     dtype: object
 
-    >>> s.str.split("random")
-    0          [this is good text]
-    1    [but this is even better]
+    >>> s.str.split(",", n=2)          
+    0        [this is a regular sentence]
+    1    [this, is, comma,separated,text]
+    2                                 NaN
     dtype: object
 
-    >>> s.str.rsplit("random")
-    0          [this is good text]
-    1    [but this is even better]
+    >>> s.str.rsplit(",", n=2)    
+    0        [this is a regular sentence]
+    1    [this,is,comma, separated, text]
+    2                                 NaN
     dtype: object
 
     When using ``expand=True``, the split and rsplit elements will
     expand out into separate columns.
 
-    For Series object, output return type is DataFrame.
+    >>> s.str.split(n=2, expand=True)     
+                                  0     1                   2
+    0                          this    is  a regular sentence
+    1  this,is,comma,separated,text  None                None
+    2                           NaN   NaN                 NaN
 
-    >>> s.str.split(expand=True)
-          0     1     2     3       4
-    0  this    is  good  text    None
-    1   but  this    is  even  better
+    >>> s.str.rsplit(n=2, expand=True)
+                                  0        1         2
+    0                     this is a  regular  sentence
+    1  this,is,comma,separated,text     None      None
+    2                           NaN      NaN       NaN
 
-    >>> s.str.split(" is ", expand=True)
-              0            1
-    0      this    good text
-    1  but this  even better
+    >>> s.str.split(",", n=2, expand=True)
+                                0     1                     2
+    0  this is a regular sentence  None                  None
+    1                        this    is  comma,separated,text
+    2                         NaN   NaN                   NaN
 
-    Parameter `n` can be used to limit the number of splits in the output.
-
-    >>> s.str.split("is", n=1)
-    0          [th,  is good text]
-    1    [but th,  is even better]
-    dtype: object
-
-    >>> s.str.rsplit("is", n=1)
-    0          [this ,  good text]
-    1    [but this ,  even better]
-    dtype: object
-
-    If NaN is present, it is propagated throughout the columns
-    during the split.
-
-    >>> s = pd.Series(["this is good text", "but this is even better", np.nan])
-
-    >>> s.str.split(n=3, expand=True)
-          0     1     2            3
-    0  this    is  good         text
-    1   but  this    is  even better
-    2   NaN   NaN   NaN          NaN 
-
-    >>> s.str.rsplit(n=3, expand=True)
-              0    1     2       3
-    0      this   is  good    text
-    1  but this   is  even  better
-    2       NaN  NaN   NaN     NaN
+    >>> s.str.rsplit(",", n=2, expand=True)
+                                0          1     2
+    0  this is a regular sentence       None  None
+    1               this,is,comma  separated  text
+    2                         NaN        NaN   NaN
     """)
 
     @Appender(_shared_docs['str_split'] % {
         'side': 'beginning',
-        'method': 'split',
-        'also': 'rsplit : Splits string at the last occurrence of delimiter'
+        'method': 'split'
         })
     def split(self, pat=None, n=-1, expand=False):
         result = str_split(self._data, pat, n=n)
@@ -2330,8 +2325,7 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(_shared_docs['str_split'] % {
         'side': 'end',
-        'method': 'rsplit',
-        'also': 'split : Splits string at the first occurrence of delimiter'
+        'method': 'rsplit'
         })        
     def rsplit(self, pat=None, n=-1, expand=False):
         result = str_rsplit(self._data, pat, n=n)
