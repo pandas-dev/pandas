@@ -8,6 +8,8 @@ v0.24.0
 New features
 ~~~~~~~~~~~~
 
+- ``ExcelWriter`` now accepts ``mode`` as a keyword argument, enabling append to existing workbooks when using the ``openpyxl`` engine (:issue:`3441`)
+
 .. _whatsnew_0240.enhancements.other:
 
 Other Enhancements
