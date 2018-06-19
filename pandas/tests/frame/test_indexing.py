@@ -3515,24 +3515,3 @@ class TestDataFrameIndexingCategorical(object):
         with tm.assert_produces_warning(False):
             df['group'] = pd.cut(df.value, range(0, 105, 10), right=False,
                                  labels=labels)
-
-    @pytest.mark.parametrize('index, drop_labels', [
-        ([1, 2, 3], []),
-        ([1, 1, 2], []),
-        ([1, 2, 3], [2]),
-        ([1, 1, 3], [1]),
-    ])
-    def test_drop_empty_list(self, index, drop_labels):
-        # GH 21494
-        expected_index = [i for i in index if i not in drop_labels]
-        frame = pd.DataFrame(index=index).drop(drop_labels)
-        tm.assert_frame_equal(frame, pd.DataFrame(index=expected_index))
-
-    @pytest.mark.parametrize('index, drop_labels', [
-        ([1, 2, 3], [1, 4]),
-        ([1, 2, 2], [1, 4]),
-    ])
-    def test_drop_non_empty_list(self, index, drop_labels):
-        # GH 21494
-        with tm.assert_raises_regex(KeyError, 'not found in axis'):
-            pd.DataFrame(index=index).drop(drop_labels)

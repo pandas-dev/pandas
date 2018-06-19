@@ -3140,12 +3140,14 @@ class NDFrame(PandasObject, SelectionMixin):
                 new_axis = axis.drop(labels, errors=errors)
             result = self.reindex(**{axis_name: new_axis})
 
+        # Case for non-unique axis
         else:
             labels = _ensure_object(com._index_labels_to_array(labels))
             if level is not None:
                 if not isinstance(axis, MultiIndex):
                     raise AssertionError('axis must be a MultiIndex')
                 indexer = ~axis.get_level_values(level).isin(labels)
+
                 # GH 18561 MultiIndex.drop should raise if label is absent
                 if errors == 'raise' and indexer.all():
                     raise KeyError('{} not found in axis'.format(labels))
