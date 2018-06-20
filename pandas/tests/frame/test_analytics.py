@@ -1527,6 +1527,7 @@ class TestDataFrameAnalytics(TestData):
         with pytest.raises(KeyError):
             df.drop_duplicates(subset)
 
+    @pytest.mark.slow
     def test_duplicated_do_not_fail_on_wide_dataframes(self):
         # Given the wide dataframe with a lot of columns
         # with different (important!) values
