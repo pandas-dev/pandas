@@ -2004,6 +2004,31 @@ class TestOpenpyxlTests(_WriterBase):
             assert xcell_b1.font == openpyxl_sty_merged
             assert xcell_a2.font == openpyxl_sty_merged
 
+    @pytest.mark.parametrize("mode,expected", [
+        ('w', ['baz']), ('a', ['foo', 'bar', 'baz'])])
+    def test_write_append_mode(self, merge_cells, ext, engine, mode, expected):
+        import openpyxl
+        df = DataFrame([1], columns=['baz'])
+
+        with ensure_clean(ext) as f:
+            wb = openpyxl.Workbook()
+            wb.worksheets[0].title = 'foo'
+            wb.worksheets[0]['A1'].value = 'foo'
+            wb.create_sheet('bar')
+            wb.worksheets[1]['A1'].value = 'bar'
+            wb.save(f)
+
+            writer = ExcelWriter(f, engine=engine, mode=mode)
+            df.to_excel(writer, sheet_name='baz', index=False)
+            writer.save()
+
+            wb2 = openpyxl.load_workbook(f)
+            result = [sheet.title for sheet in wb2.worksheets]
+            assert result == expected
+
+            for index, cell_value in enumerate(expected):
+                assert wb2.worksheets[index]['A1'].value == cell_value
+
 
 @td.skip_if_no('xlwt')
 @pytest.mark.parametrize("merge_cells,ext,engine", [
@@ -2058,6 +2083,13 @@ class TestXlwtTests(_WriterBase):
         assert xlwt.Alignment.HORZ_CENTER == xls_style.alignment.horz
         assert xlwt.Alignment.VERT_TOP == xls_style.alignment.vert
 
+    def test_write_append_mode_raises(self, merge_cells, ext, engine):
+        msg = "Append mode is not supported with xlwt!"
+
+        with ensure_clean(ext) as f:
+            with tm.assert_raises_regex(ValueError, msg):
+                ExcelWriter(f, engine=engine, mode='a')
+
 
 @td.skip_if_no('xlsxwriter')
 @pytest.mark.parametrize("merge_cells,ext,engine", [
@@ -2108,6 +2140,13 @@ class TestXlsxWriterTests(_WriterBase):
                 read_num_format = cell.style.number_format._format_code
 
             assert read_num_format == num_format
+
+    def test_write_append_mode_raises(self, merge_cells, ext, engine):
+        msg = "Append mode is not supported with xlsxwriter!"
+
+        with ensure_clean(ext) as f:
+            with tm.assert_raises_regex(ValueError, msg):
+                ExcelWriter(f, engine=engine, mode='a')
 
 
 class TestExcelWriterEngineTests(object):

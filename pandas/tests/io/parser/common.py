@@ -238,6 +238,21 @@ c,4,5
         out = self.read_csv(StringIO(data))
         tm.assert_frame_equal(out, expected)
 
+    def test_read_csv_low_memory_no_rows_with_index(self):
+        if self.engine == "c" and not self.low_memory:
+            pytest.skip("This is a low-memory specific test")
+
+        # see gh-21141
+        data = """A,B,C
+1,1,1,2
+2,2,3,4
+3,3,4,5
+"""
+        out = self.read_csv(StringIO(data), low_memory=True,
+                            index_col=0, nrows=0)
+        expected = DataFrame(columns=["A", "B", "C"])
+        tm.assert_frame_equal(out, expected)
+
     def test_read_csv_dataframe(self):
         df = self.read_csv(self.csv1, index_col=0, parse_dates=True)
         df2 = self.read_table(self.csv1, sep=',', index_col=0,

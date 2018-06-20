@@ -1,8 +1,10 @@
-import pytest
+from datetime import timedelta
+from operator import attrgetter
+from functools import partial
 
+import pytest
 import pytz
 import numpy as np
-from datetime import timedelta
 
 import pandas as pd
 from pandas import offsets
@@ -26,25 +28,28 @@ class TestDatetimeIndex(object):
                                                  freq='ns')})
         assert df.dttz.dtype.tz.zone == 'US/Eastern'
 
-    def test_construction_with_alt(self):
+    @pytest.mark.parametrize('kwargs', [
+        {'tz': 'dtype.tz'},
+        {'dtype': 'dtype'},
+        {'dtype': 'dtype', 'tz': 'dtype.tz'}])
+    def test_construction_with_alt(self, kwargs, tz_aware_fixture):
+        tz = tz_aware_fixture
+        i = pd.date_range('20130101', periods=5, freq='H', tz=tz)
+        kwargs = {key: attrgetter(val)(i) for key, val in kwargs.items()}
+        result = DatetimeIndex(i, **kwargs)
+        tm.assert_index_equal(i, result)
 
-        i = pd.date_range('20130101', periods=5, freq='H', tz='US/Eastern')
-        i2 = DatetimeIndex(i, dtype=i.dtype)
-        tm.assert_index_equal(i, i2)
-        assert i.tz.zone == 'US/Eastern'
-
-        i2 = DatetimeIndex(i.tz_localize(None).asi8, tz=i.dtype.tz)
-        tm.assert_index_equal(i, i2)
-        assert i.tz.zone == 'US/Eastern'
-
-        i2 = DatetimeIndex(i.tz_localize(None).asi8, dtype=i.dtype)
-        tm.assert_index_equal(i, i2)
-        assert i.tz.zone == 'US/Eastern'
-
-        i2 = DatetimeIndex(
-            i.tz_localize(None).asi8, dtype=i.dtype, tz=i.dtype.tz)
-        tm.assert_index_equal(i, i2)
-        assert i.tz.zone == 'US/Eastern'
+    @pytest.mark.parametrize('kwargs', [
+        {'tz': 'dtype.tz'},
+        {'dtype': 'dtype'},
+        {'dtype': 'dtype', 'tz': 'dtype.tz'}])
+    def test_construction_with_alt_tz_localize(self, kwargs, tz_aware_fixture):
+        tz = tz_aware_fixture
+        i = pd.date_range('20130101', periods=5, freq='H', tz=tz)
+        kwargs = {key: attrgetter(val)(i) for key, val in kwargs.items()}
+        result = DatetimeIndex(i.tz_localize(None).asi8, **kwargs)
+        expected = i.tz_localize(None).tz_localize('UTC').tz_convert(tz)
+        tm.assert_index_equal(result, expected)
 
         # localize into the provided tz
         i2 = DatetimeIndex(i.tz_localize(None).asi8, tz='UTC')
@@ -468,6 +473,28 @@ class TestDatetimeIndex(object):
         non_norm_tz = Timestamp('2010', tz=tz).tz
         result = DatetimeIndex(['2010'], tz=non_norm_tz)
         assert pytz.timezone(tz) is result.tz
+
+    def test_constructor_timestamp_near_dst(self):
+        # GH 20854
+        ts = [Timestamp('2016-10-30 03:00:00+0300', tz='Europe/Helsinki'),
+              Timestamp('2016-10-30 03:00:00+0200', tz='Europe/Helsinki')]
+        result = DatetimeIndex(ts)
+        expected = DatetimeIndex([ts[0].to_pydatetime(),
+                                  ts[1].to_pydatetime()])
+        tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('klass', [Index, DatetimeIndex])
+    @pytest.mark.parametrize('box', [
+        np.array, partial(np.array, dtype=object), list])
+    @pytest.mark.parametrize('tz, dtype', [
+        ['US/Pacific', 'datetime64[ns, US/Pacific]'],
+        [None, 'datetime64[ns]']])
+    def test_constructor_with_int_tz(self, klass, box, tz, dtype):
+        # GH 20997, 20964
+        ts = Timestamp('2018-01-01', tz=tz)
+        result = klass(box([ts.value]), dtype=dtype)
+        expected = klass([ts])
+        assert result == expected
 
 
 class TestTimeSeries(object):
