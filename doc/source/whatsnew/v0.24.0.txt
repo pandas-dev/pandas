@@ -197,7 +197,7 @@ Strings
 Indexing
 ^^^^^^^^
 
--
+- The traceback from a ``KeyError`` when asking ``.loc`` for a single missing label is now shorted and clearer (:issue:`21557`)
 -
 -
 
