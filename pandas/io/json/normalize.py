@@ -170,6 +170,11 @@ def json_normalize(data, record_path=None, meta=None,
     3      Summit        1234   John Kasich     Ohio        OH
     4    Cuyahoga        1337   John Kasich     Ohio        OH
 
+    >>> data = {'A': [1, 2]}
+    >>> json_normalize(data, 'A', record_prefix='Prefix.')
+        Prefix.0
+    0          1
+    1          2
     """
     def _pull_field(js, spec):
         result = js
