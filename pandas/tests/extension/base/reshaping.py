@@ -26,14 +26,6 @@ class BaseReshapingTests(BaseExtensionTests):
         assert dtype == data.dtype
         assert isinstance(result._data.blocks[0], ExtensionBlock)
 
-    def test_append(self, data):
-
-        wrapped = pd.Series(data)
-        result = wrapped.append(wrapped)
-        expected = pd.concat([wrapped, wrapped])
-
-        self.assert_series_equal(result, expected)
-
     @pytest.mark.parametrize('in_frame', [True, False])
     def test_concat_all_na_block(self, data_missing, in_frame):
         valid_block = pd.Series(data_missing.take([1, 1]), index=[0, 1])

@@ -36,7 +36,6 @@ class ExtensionArray(object):
     * isna
     * take
     * copy
-    * append
     * _concat_same_type
 
     An additional method is available to satisfy pandas' internal,
@@ -580,34 +579,6 @@ class ExtensionArray(object):
         ExtensionArray
         """
         raise AbstractMethodError(self)
-
-    def append(self, other):
-        """
-        Append a collection of Arrays together
-
-        Parameters
-        ----------
-        other : ExtensionArray or list/tuple of ExtensionArrays
-
-        Returns
-        -------
-        appended : ExtensionArray
-        """
-
-        to_concat = [self]
-        cls = self.__class__
-
-        if isinstance(other, (list, tuple)):
-            to_concat = to_concat + list(other)
-        else:
-            to_concat.append(other)
-
-        for obj in to_concat:
-            if not isinstance(obj, cls):
-                raise TypeError('all inputs must be of type {}'.format(
-                    cls.__name__))
-
-        return cls._concat_same_type(to_concat)
 
     # ------------------------------------------------------------------------
     # Block-related methods
