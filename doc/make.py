@@ -312,7 +312,8 @@ class DocBuilder:
             from scripts.announce import update_name_wordlist
             update_name_wordlist()
         except (ImportError, ModuleNotFoundError):
-            print("Unable to update name wordlist, run python script/announce.py to update the list.")
+            print("Unable to update name wordlist, install GitPython "
+                  "to update this list automatically.")
         self._sphinx_build('spelling')
         output_location = os.path.join('build', 'spelling', 'output.txt')
         with open(output_location) as output:

@@ -5,6 +5,8 @@ NumPy
 Reindexing
 reindexing
 ga
+pypy
+internet
 fe
 astype
 hexbin

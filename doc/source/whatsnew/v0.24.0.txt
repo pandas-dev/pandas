@@ -101,7 +101,7 @@ Removal of prior version deprecations/changes
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Improved performance of :func:`Series.describe` in case of numeric dtpyes (:issue:`21274`)
+- Improved performance of :func:`Series.describe` in case of numeric dtypes (:issue:`21274`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.rank` when dealing with tied rankings (:issue:`21237`)
 
 

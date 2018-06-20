@@ -79,7 +79,6 @@ extensions = ['sphinx.ext.autodoc',
 
 try:
     import sphinxcontrib.spelling  # noqa
-    import git
 except (ImportError, ModuleNotFoundError) as err:
     logger.warning(('sphinxcontrib.spelling failed to import with error "{}". '
                     '`spellcheck` command is not available.'.format(err)))
