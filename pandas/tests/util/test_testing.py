@@ -851,6 +851,6 @@ def test_datapath_missing(datapath, request):
     with pytest.raises(ValueError):
         datapath('not_a_file')
 
-    result = datapath('data/iris.csv')
+    result = datapath('data', 'iris.csv')
     expected = os.path.join('pandas', 'tests', 'data', 'iris.csv')
     assert result == expected
