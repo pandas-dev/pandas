@@ -185,14 +185,16 @@ options like ``dayfirst`` or ``format``, so use ``to_datetime`` if these are req
 
     pd.Timestamp('2010/11/12')
 
-You can also use the `DatetimeIndex` constructor directly:
-
-'infer' can be passed in order to set the frequency of the index as the inferred frequency
-upon creation
+You can also use the ``DatetimeIndex`` constructor directly:
 
 .. ipython:: python
 
     pd.DatetimeIndex(['2018-01-01', '2018-01-03', '2018-01-05'])
+
+The string 'infer' can be passed in order to set the frequency of the index as the
+inferred frequency upon creation:
+
+.. ipython:: python
 
     pd.DatetimeIndex(['2018-01-01', '2018-01-03', '2018-01-05'], freq='infer')
 
