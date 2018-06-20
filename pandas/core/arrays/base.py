@@ -49,6 +49,7 @@ class ExtensionArray(object):
     methods:
 
     * fillna
+    * dropna
     * unique
     * factorize / _values_for_factorize
     * argsort / _values_for_argsort
