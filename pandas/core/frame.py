@@ -1690,7 +1690,8 @@ class DataFrame(NDFrame):
             defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
         compression : string, optional
             A string representing the compression to use in the output file.
-            Allowed values are 'gzip', 'bz2', 'zip', 'xz'.
+            Allowed values are 'gzip', 'bz2', 'zip', 'xz'. This input is only
+            used when the first argument is a filename.
         line_terminator : string, default ``'\n'``
             The newline character or character sequence to use in the output
             file
@@ -2723,7 +2724,8 @@ class DataFrame(NDFrame):
             indexer = key.nonzero()[0]
             return self._take(indexer, axis=0)
         else:
-            indexer = self.loc._convert_to_indexer(key, axis=1)
+            indexer = self.loc._convert_to_indexer(key, axis=1,
+                                                   raise_missing=True)
             return self._take(indexer, axis=1)
 
     def _getitem_multilevel(self, key):

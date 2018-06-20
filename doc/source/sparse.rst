@@ -104,9 +104,9 @@ Sparse data should have the same dtype as its dense representation. Currently,
 ``float64``, ``int64`` and ``bool`` dtypes are supported. Depending on the original
 dtype, ``fill_value`` default changes:
 
-- ``float64``: ``np.nan``
-- ``int64``: ``0``
-- ``bool``: ``False``
+* ``float64``: ``np.nan``
+* ``int64``: ``0``
+* ``bool``: ``False``
 
 .. ipython:: python
 
