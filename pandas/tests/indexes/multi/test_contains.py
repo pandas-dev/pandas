@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import pandas as pd
-from pandas import MultiIndex
-import pytest
-from pandas.compat import PY3, PYPY, lrange, lzip, range, u
 import numpy as np
+import pandas as pd
 import pandas.util.testing as tm
+import pytest
+from pandas import Int64Index, MultiIndex, PeriodIndex, UInt64Index
+from pandas.compat import PYPY
+from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin, iNaT
 
 
 def test_contains_top_level():

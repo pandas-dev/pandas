@@ -30,7 +30,7 @@ def test_join_level(idx, other, join_type):
     if join_type in ('outer', 'inner'):
         join_index2, ridx2, lidx2 = \
             idx.join(other, how=join_type, level='second',
-                        return_indexers=True)
+                     return_indexers=True)
 
         assert join_index.equals(join_index2)
         tm.assert_numpy_array_equal(lidx, lidx2)
@@ -92,4 +92,3 @@ def test_join_self_unique(idx, join_type):
     if idx.is_unique:
         joined = idx.join(idx, how=join_type)
         assert (idx == joined).all()
-

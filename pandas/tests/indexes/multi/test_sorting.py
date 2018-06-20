@@ -1,16 +1,8 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-import pandas as pd
 import pandas.util.testing as tm
 import pytest
-from pandas import (CategoricalIndex, DatetimeIndex, Float64Index, Index,
-                    Int64Index, IntervalIndex, MultiIndex, PeriodIndex,
-                    RangeIndex, Series, TimedeltaIndex, UInt64Index, compat,
-                    isna)
-from pandas._libs.tslib import iNaT
-from pandas.compat import PY3
-from pandas.core.indexes.base import InvalidIndexError
-from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
+from pandas import CategoricalIndex, MultiIndex, RangeIndex
 
 
 def test_sortlevel(idx):

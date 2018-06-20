@@ -1,22 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import warnings
-from itertools import product
 
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
-import pytest
-from pandas import (CategoricalIndex, DataFrame, DatetimeIndex, Float64Index,
-                    Index, Int64Index, IntervalIndex, MultiIndex, PeriodIndex,
-                    RangeIndex, Series, TimedeltaIndex, UInt64Index, compat,
-                    date_range, isna, period_range)
-from pandas._libs.tslib import iNaT
-from pandas.compat import PY3, PYPY, lrange, lzip, range, u
-from pandas.core.dtypes.dtypes import CategoricalDtype
-from pandas.core.indexes.base import InvalidIndexError
-from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
-from pandas.util.testing import assert_copy
+from pandas import (Index, MultiIndex, PeriodIndex, RangeIndex, Series, compat,
+                    isna)
+from pandas.compat import lrange, lzip, range
 
 
 def test_equals(named_index):

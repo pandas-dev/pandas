@@ -6,11 +6,9 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 import pytest
-from pandas import (CategoricalIndex, DataFrame, DatetimeIndex, Float64Index,
-                    Index, Int64Index, IntervalIndex, MultiIndex, PeriodIndex,
-                    RangeIndex, Series, TimedeltaIndex, UInt64Index, compat,
-                    date_range, isna)
-from pandas.compat import long, lrange, range
+from pandas import (DataFrame, IntervalIndex, MultiIndex,
+                    RangeIndex, compat, date_range)
+from pandas.compat import lrange, range
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 
@@ -408,6 +406,7 @@ def test_unsortedindex_doc_examples():
 
     assert dfm.index.is_lexsorted()
     assert dfm.index.lexsort_depth == 2
+
 
 def test_hash_error(indices):
     index = indices

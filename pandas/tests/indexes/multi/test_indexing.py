@@ -4,17 +4,12 @@
 from datetime import timedelta
 
 import numpy as np
-import pandas as pd
 import pandas.util.testing as tm
 import pytest
-from pandas import Index, MultiIndex
+from pandas import (Index, Int64Index, MultiIndex, PeriodIndex, RangeIndex,
+                    UInt64Index, compat)
 from pandas.compat import lrange
-from pandas.core.indexes.base import InvalidIndexError
-from pandas.util.testing import assert_almost_equal
-from pandas import (CategoricalIndex, DatetimeIndex, Float64Index, Index,
-                    Int64Index, IntervalIndex, MultiIndex, PeriodIndex,
-                    RangeIndex, Series, TimedeltaIndex, UInt64Index, compat,
-                    isna)
+from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin, iNaT
 
 
 def test_slice_locs_partial(idx):
@@ -109,7 +104,6 @@ def test_slice_locs_not_contained():
 
     result = index.slice_locs(-1, 10)
     assert result == (0, len(index))
-
 
 
 def test_to_series(idx):

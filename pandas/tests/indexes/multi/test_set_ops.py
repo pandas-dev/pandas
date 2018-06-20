@@ -1,11 +1,11 @@
-from pandas import (CategoricalIndex, DatetimeIndex, Float64Index, Index,
-                    Int64Index, IntervalIndex, MultiIndex, PeriodIndex,
-                    RangeIndex, Series, TimedeltaIndex, UInt64Index, compat,
-                    isna)
+# -*- coding: utf-8 -*-
 
-import pandas.util.testing as tm
+
 import numpy as np
 import pandas as pd
+import pandas.util.testing as tm
+from pandas import (CategoricalIndex, DatetimeIndex, MultiIndex, PeriodIndex,
+                    Series, TimedeltaIndex, compat)
 
 
 def test_setops_errorcases(named_index):

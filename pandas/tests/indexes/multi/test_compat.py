@@ -2,20 +2,10 @@
 
 
 import numpy as np
-import pandas as pd
 import pandas.util.testing as tm
 import pytest
-from pandas import (CategoricalIndex, DatetimeIndex, Float64Index, Index,
-                    Int64Index, IntervalIndex, MultiIndex, PeriodIndex,
-                    RangeIndex, Series, TimedeltaIndex, UInt64Index, compat,
-                    isna)
-from pandas._libs.tslib import iNaT
-from pandas.compat import PY3
-from pandas.core.indexes.base import InvalidIndexError
-from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
-from pandas.compat import PY3, PYPY, lrange, lzip, range, u, long
-import numpy as np
-
+from pandas import MultiIndex
+from pandas.compat import PY3, long
 
 
 def test_numeric_compat(idx):
@@ -128,6 +118,7 @@ def test_ndarray_compat_properties(idx, _compat_props):
 
 def test_compat(indices):
     assert indices.tolist() == list(indices)
+
 
 def test_pickle_compat_construction(_holder):
     # this is testing for pickle compat

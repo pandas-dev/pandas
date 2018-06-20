@@ -7,11 +7,10 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 import pytest
-from pandas import (CategoricalIndex, DataFrame, DatetimeIndex, Float64Index,
-                    Index, Int64Index, IntervalIndex, MultiIndex, PeriodIndex,
-                    RangeIndex, Series, TimedeltaIndex, UInt64Index, compat,
-                    date_range, isna, period_range)
-from pandas.compat import PYPY, lrange, lzip, range, u
+from pandas import (DataFrame, DatetimeIndex, Float64Index, Index, Int64Index,
+                    MultiIndex, PeriodIndex, TimedeltaIndex, UInt64Index,
+                    compat, date_range, period_range)
+from pandas.compat import lrange, range, u
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas.util.testing import assert_copy
@@ -480,17 +479,17 @@ def test_multiindex_compare():
         # Ensure comparison operations for MultiIndex with nlevels == 1
         # behave consistently with those for MultiIndex with nlevels > 1
 
-        midx = pd.MultiIndex.from_product([[0, 1]])
+    midx = pd.MultiIndex.from_product([[0, 1]])
 
-        # Equality self-test: MultiIndex object vs self
-        expected = pd.Series([True, True])
-        result = pd.Series(midx == midx)
-        tm.assert_series_equal(result, expected)
+    # Equality self-test: MultiIndex object vs self
+    expected = pd.Series([True, True])
+    result = pd.Series(midx == midx)
+    tm.assert_series_equal(result, expected)
 
-        # Greater than comparison: MultiIndex object vs self
-        expected = pd.Series([False, False])
-        result = pd.Series(midx > midx)
-        tm.assert_series_equal(result, expected)
+    # Greater than comparison: MultiIndex object vs self
+    expected = pd.Series([False, False])
+    result = pd.Series(midx > midx)
+    tm.assert_series_equal(result, expected)
 
 
 def test_duplicate_multiindex_labels():
@@ -652,6 +651,7 @@ def test_duplicates(idx):
 
             tm.assert_numpy_array_equal(mi.duplicated(), np.zeros(
                 len(mi), dtype='bool'))
+
 
 def test_map(idx):
     # callable

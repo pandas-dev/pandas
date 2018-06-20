@@ -1,13 +1,9 @@
 # -*- coding: utf-8 -*-
 
-import pytest
-
 import numpy as np
 import pandas as pd
-from pandas import (CategoricalIndex, DatetimeIndex, Float64Index, Index,
-                    Int64Index, IntervalIndex, MultiIndex, PeriodIndex,
-                    RangeIndex, Series, TimedeltaIndex, UInt64Index, compat,
-                    isna)
+import pytest
+from pandas import Index, IntervalIndex, MultiIndex
 
 
 def test_is_monotonic_increasing():

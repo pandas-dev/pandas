@@ -97,4 +97,3 @@ def test_reindex_base(idx):
 
     with tm.assert_raises_regex(ValueError, 'Invalid fill method'):
         idx.get_indexer(idx, method='invalid')
-

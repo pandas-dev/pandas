@@ -487,17 +487,18 @@ def test_create_index_existing_name(idx):
     result = pd.Index(index)
     tm.assert_index_equal(
         result, Index(Index([('foo', 'one'), ('foo', 'two'),
-                                ('bar', 'one'), ('baz', 'two'),
-                                ('qux', 'one'), ('qux', 'two')],
+                             ('bar', 'one'), ('baz', 'two'),
+                             ('qux', 'one'), ('qux', 'two')],
                             dtype='object'),
-                        names=['foo', 'bar']))
+                      names=['foo', 'bar']))
 
     result = pd.Index(index, names=['A', 'B'])
     tm.assert_index_equal(
         result,
         Index(Index([('foo', 'one'), ('foo', 'two'), ('bar', 'one'),
-                        ('baz', 'two'), ('qux', 'one'), ('qux', 'two')],
+                     ('baz', 'two'), ('qux', 'one'), ('qux', 'two')],
                     dtype='object'), names=['A', 'B']))
+
 
 def test_tuples_with_name_string():
     # GH 15110 and GH 14848

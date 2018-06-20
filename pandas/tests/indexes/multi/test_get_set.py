@@ -5,15 +5,10 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 import pytest
-from pandas import CategoricalIndex, Index, MultiIndex
-from pandas.compat import range
-from pandas.compat import PY3, PYPY, lrange, lzip, range, u
-from pandas.util.testing import assert_almost_equal
+from pandas import CategoricalIndex, Index, IntervalIndex, MultiIndex
+from pandas.compat import lrange, range
 from pandas.core.indexes.base import InvalidIndexError
-from pandas import (CategoricalIndex, DatetimeIndex, Float64Index, Index,
-                    Int64Index, IntervalIndex, MultiIndex, PeriodIndex,
-                    RangeIndex, Series, TimedeltaIndex, UInt64Index, compat,
-                    isna)
+from pandas.util.testing import assert_almost_equal
 
 
 def test_get_loc(idx):
@@ -312,7 +307,7 @@ def test_set_levels(idx):
 
         with tm.assert_raises_regex(ValueError, "^On"):
             idx.set_labels([0, 1, 2, 3, 4, 5], level=0,
-                              inplace=inplace)
+                           inplace=inplace)
         assert_matching(idx.labels, original_index.labels,
                         check_dtype=True)
 
