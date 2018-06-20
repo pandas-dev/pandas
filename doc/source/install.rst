@@ -31,7 +31,7 @@ PyPI and through conda.
 Starting **January 1, 2019**, all releases will be Python 3 only.
 
 If there are people interested in continued support for Python 2.7 past December
-31, 2018 (either backporting bugfixes or funding) please reach out to the
+31, 2018 (either backporting bug fixes or funding) please reach out to the
 maintainers on the issue tracker.
 
 For more information, see the `Python 3 statement`_ and the `Porting to Python 3 guide`_.
@@ -199,7 +199,7 @@ Running the test suite
 ----------------------
 
 pandas is equipped with an exhaustive set of unit tests, covering about 97% of
-the codebase as of this writing. To run it on your machine to verify that
+the code base as of this writing. To run it on your machine to verify that
 everything is working (and that you have all of the dependencies, soft and hard,
 installed), make sure you have `pytest
 <http://doc.pytest.org/en/latest/>`__ and run:
@@ -261,17 +261,17 @@ Optional Dependencies
 * `Apache Parquet <https://parquet.apache.org/>`__, either `pyarrow <http://arrow.apache.org/docs/python/>`__ (>= 0.4.1) or `fastparquet <https://fastparquet.readthedocs.io/en/latest>`__ (>= 0.0.6) for parquet-based storage. The `snappy <https://pypi.org/project/python-snappy>`__ and `brotli <https://pypi.org/project/brotlipy>`__ are available for compression support.
 * `SQLAlchemy <http://www.sqlalchemy.org>`__: for SQL database support. Version 0.8.1 or higher recommended. Besides SQLAlchemy, you also need a database specific driver. You can find an overview of supported drivers for each SQL dialect in the `SQLAlchemy docs <http://docs.sqlalchemy.org/en/latest/dialects/index.html>`__. Some common drivers are:
 
-  * `psycopg2 <http://initd.org/psycopg/>`__: for PostgreSQL
-  * `pymysql <https://github.com/PyMySQL/PyMySQL>`__: for MySQL.
-  * `SQLite <https://docs.python.org/3/library/sqlite3.html>`__: for SQLite, this is included in Python's standard library by default.
+    * `psycopg2 <http://initd.org/psycopg/>`__: for PostgreSQL
+    * `pymysql <https://github.com/PyMySQL/PyMySQL>`__: for MySQL.
+    * `SQLite <https://docs.python.org/3/library/sqlite3.html>`__: for SQLite, this is included in Python's standard library by default.
 
 * `matplotlib <http://matplotlib.org/>`__: for plotting, Version 1.4.3 or higher.
 * For Excel I/O:
 
-  * `xlrd/xlwt <http://www.python-excel.org/>`__: Excel reading (xlrd) and writing (xlwt)
-  * `openpyxl <http://https://openpyxl.readthedocs.io/en/default/>`__: openpyxl version 2.4.0
-    for writing .xlsx files (xlrd >= 0.9.0)
-  * `XlsxWriter <https://pypi.org/project/XlsxWriter>`__: Alternative Excel writer
+    * `xlrd/xlwt <http://www.python-excel.org/>`__: Excel reading (xlrd) and writing (xlwt)
+    * `openpyxl <http://https://openpyxl.readthedocs.io/en/default/>`__: openpyxl version 2.4.0
+      for writing .xlsx files (xlrd >= 0.9.0)
+    * `XlsxWriter <https://pypi.org/project/XlsxWriter>`__: Alternative Excel writer
 
 * `Jinja2 <http://jinja.pocoo.org/>`__: Template engine for conditional HTML formatting.
 * `s3fs <http://s3fs.readthedocs.io/>`__: necessary for Amazon S3 access (s3fs >= 0.0.7).

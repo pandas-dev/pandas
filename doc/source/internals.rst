@@ -24,24 +24,24 @@ Indexing
 In pandas there are a few objects implemented which can serve as valid
 containers for the axis labels:
 
-- ``Index``: the generic "ordered set" object, an ndarray of object dtype
+* ``Index``: the generic "ordered set" object, an ndarray of object dtype
   assuming nothing about its contents. The labels must be hashable (and
   likely immutable) and unique. Populates a dict of label to location in
   Cython to do ``O(1)`` lookups.
-- ``Int64Index``: a version of ``Index`` highly optimized for 64-bit integer
+* ``Int64Index``: a version of ``Index`` highly optimized for 64-bit integer
   data, such as time stamps
-- ``Float64Index``: a version of ``Index`` highly optimized for 64-bit float data
-- ``MultiIndex``: the standard hierarchical index object
-- ``DatetimeIndex``: An Index object with ``Timestamp`` boxed elements (impl are the int64 values)
-- ``TimedeltaIndex``: An Index object with ``Timedelta`` boxed elements (impl are the in64 values)
-- ``PeriodIndex``: An Index object with Period elements
+* ``Float64Index``: a version of ``Index`` highly optimized for 64-bit float data
+* ``MultiIndex``: the standard hierarchical index object
+* ``DatetimeIndex``: An Index object with ``Timestamp`` boxed elements (impl are the int64 values)
+* ``TimedeltaIndex``: An Index object with ``Timedelta`` boxed elements (impl are the in64 values)
+* ``PeriodIndex``: An Index object with Period elements
 
 There are functions that make the creation of a regular index easy:
 
-- ``date_range``: fixed frequency date range generated from a time rule or
+* ``date_range``: fixed frequency date range generated from a time rule or
   DateOffset. An ndarray of Python datetime objects
-- ``period_range``: fixed frequency date range generated from a time rule or
-  DateOffset. An ndarray of ``Period`` objects, representing Timespans
+* ``period_range``: fixed frequency date range generated from a time rule or
+  DateOffset. An ndarray of ``Period`` objects, representing timespans
 
 The motivation for having an ``Index`` class in the first place was to enable
 different implementations of indexing. This means that it's possible for you,
@@ -52,22 +52,22 @@ From an internal implementation point of view, the relevant methods that an
 ``Index`` must define are one or more of the following (depending on how
 incompatible the new object internals are with the ``Index`` functions):
 
-- ``get_loc``: returns an "indexer" (an integer, or in some cases a
+* ``get_loc``: returns an "indexer" (an integer, or in some cases a
   slice object) for a label
-- ``slice_locs``: returns the "range" to slice between two labels
-- ``get_indexer``: Computes the indexing vector for reindexing / data
+* ``slice_locs``: returns the "range" to slice between two labels
+* ``get_indexer``: Computes the indexing vector for reindexing / data
   alignment purposes. See the source / docstrings for more on this
-- ``get_indexer_non_unique``: Computes the indexing vector for reindexing / data
+* ``get_indexer_non_unique``: Computes the indexing vector for reindexing / data
   alignment purposes when the index is non-unique. See the source / docstrings
   for more on this
-- ``reindex``: Does any pre-conversion of the input index then calls
+* ``reindex``: Does any pre-conversion of the input index then calls
   ``get_indexer``
-- ``union``, ``intersection``: computes the union or intersection of two
+* ``union``, ``intersection``: computes the union or intersection of two
   Index objects
-- ``insert``: Inserts a new label into an Index, yielding a new object
-- ``delete``: Delete a label, yielding a new object
-- ``drop``: Deletes a set of labels
-- ``take``: Analogous to ndarray.take
+* ``insert``: Inserts a new label into an Index, yielding a new object
+* ``delete``: Delete a label, yielding a new object
+* ``drop``: Deletes a set of labels
+* ``take``: Analogous to ndarray.take
 
 MultiIndex
 ~~~~~~~~~~

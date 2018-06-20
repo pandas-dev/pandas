@@ -9,13 +9,17 @@ New features
 ~~~~~~~~~~~~
 - :func:`merge` now directly allows merge between objects of type ``DataFrame`` and ``Series`` with a name, without the need to convert the ``Series`` object into a ``DataFrame`` beforehand (:issue:`21220`)
 
+- ``ExcelWriter`` now accepts ``mode`` as a keyword argument, enabling append to existing workbooks when using the ``openpyxl`` engine (:issue:`3441`)
+
 .. _whatsnew_0240.enhancements.other:
 
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^
--
--
--
+- :func:`to_datetime` now supports the ``%Z`` and ``%z`` directive when passed into ``format`` (:issue:`13486`)
+- :func:`Series.mode` and :func:`DataFrame.mode` now support the ``dropna`` parameter which can be used to specify whether NaN/NaT values should be considered (:issue:`17534`)
+- :func:`to_csv` now supports ``compression`` keyword when a file handle is passed. (:issue:`21227`)
+- :meth:`Index.droplevel` is now implemented also for flat indexes, for compatibility with MultiIndex (:issue:`21115`)
+
 
 .. _whatsnew_0240.api_breaking:
 
@@ -23,12 +27,80 @@ Other Enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. _whatsnew_0240.api.datetimelike.normalize:
+
+Tick DateOffset Normalize Restrictions
+--------------------------------------
+
+Creating a ``Tick`` object (:class:``Day``, :class:``Hour``, :class:``Minute``,
+:class:``Second``, :class:``Milli``, :class:``Micro``, :class:``Nano``) with
+`normalize=True` is no longer supported.  This prevents unexpected behavior
+where addition could fail to be monotone or associative.  (:issue:`21427`)
+
+.. ipython:: python
+
+    ts = pd.Timestamp('2018-06-11 18:01:14')
+    ts
+    tic = pd.offsets.Hour(n=2, normalize=True)
+    tic
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [4]: ts + tic
+    Out [4]: Timestamp('2018-06-11 00:00:00')
+
+    In [5]: ts + tic + tic + tic == ts + (tic + tic + tic)
+    Out [5]: False
+
+Current Behavior:
+
+.. ipython:: python
+
+    tic = pd.offsets.Hour(n=2)
+    ts + tic + tic + tic == ts + (tic + tic + tic)
+
+
+.. _whatsnew_0240.api.datetimelike:
+
+Datetimelike API Changes
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+- For :class:`DatetimeIndex` and :class:`TimedeltaIndex` with non-``None`` ``freq`` attribute, addition or subtraction of integer-dtyped array or ``Index`` will return an object of the same class (:issue:`19959`)
+
 .. _whatsnew_0240.api.other:
 
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
--
+.. _whatsnew_0240.api.other.incompatibilities:
+
+Series and Index Data-Dtype Incompatibilities
+---------------------------------------------
+
+``Series`` and ``Index`` constructors now raise when the
+data is incompatible with a passed ``dtype=`` (:issue:`15832`)
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [4]: pd.Series([-1], dtype="uint64")
+    Out [4]:
+    0    18446744073709551615
+    dtype: uint64
+
+Current Behavior:
+
+.. code-block:: ipython
+
+    In [4]: pd.Series([-1], dtype="uint64")
+    Out [4]:
+    ...
+    OverflowError: Trying to coerce negative values to unsigned integers
+
+- :class:`DatetimeIndex` now accepts :class:`Int64Index` arguments as epoch timestamps (:issue:`20997`)
 -
 -
 
@@ -37,7 +109,7 @@ Other API Changes
 Deprecations
 ~~~~~~~~~~~~
 
--
+- :meth:`DataFrame.to_stata`, :meth:`read_stata`, :class:`StataReader` and :class:`StataWriter` have deprecated the ``encoding`` argument.  The encoding of a Stata dta file is determined by the file type and cannot be changed (:issue:`21244`).
 -
 -
 
@@ -56,8 +128,8 @@ Removal of prior version deprecations/changes
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
--
--
+- Improved performance of :func:`Series.describe` in case of numeric dtpyes (:issue:`21274`)
+- Improved performance of :func:`pandas.core.groupby.GroupBy.rank` when dealing with tied rankings (:issue:`21237`)
 -
 
 .. _whatsnew_0240.docs:
@@ -65,7 +137,7 @@ Performance Improvements
 Documentation Changes
 ~~~~~~~~~~~~~~~~~~~~~
 
--
+- Added sphinx spelling extension, updated documentation on how to use the spell check (:issue:`21079`)
 -
 -
 
@@ -84,8 +156,8 @@ Categorical
 Datetimelike
 ^^^^^^^^^^^^
 
--
--
+- Fixed bug where two :class:`DateOffset` objects with different ``normalize`` attributes could evaluate as equal (:issue:`21404`)
+- Bug in :class:`Index` with ``datetime64[ns, tz]`` dtype that did not localize integer data correctly (:issue:`20964`)
 -
 
 Timedelta
@@ -172,10 +244,18 @@ Reshaping
 -
 -
 
+ExtensionArray
+^^^^^^^^^^^^^^
+
+- :meth:`Series.combine()` works correctly with :class:`~pandas.api.extensions.ExtensionArray` inside of :class:`Series` (:issue:`20825`)
+- :meth:`Series.combine()` with scalar argument now works for any function type (:issue:`21248`)
+-
+-
+
 Other
 ^^^^^
 
+- :meth: `~pandas.io.formats.style.Styler.background_gradient` now takes a ``text_color_threshold`` parameter to automatically lighten the text color based on the luminance of the background color. This improves readability with dark background colors without the need to limit the background colormap range. (:issue:`21258`)
 -
 -
 -
-

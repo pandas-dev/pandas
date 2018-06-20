@@ -3607,7 +3607,7 @@ class NDFrame(PandasObject, SelectionMixin):
         If desired, we can fill in the missing values using one of several
         options.
 
-        For example, to backpropagate the last valid value to fill the ``NaN``
+        For example, to back-propagate the last valid value to fill the ``NaN``
         values, pass ``bfill`` as an argument to the ``method`` keyword.
 
         >>> df2.reindex(date_index2, method='bfill')
@@ -4541,7 +4541,7 @@ class NDFrame(PandasObject, SelectionMixin):
         e.g. If the dtypes are float16 and float32, dtype will be upcast to
         float32.  If dtypes are int32 and uint8, dtype will be upcase to
         int32. By numpy.find_common_type convention, mixing int64 and uint64
-        will result in a flot64 dtype.
+        will result in a float64 dtype.
 
         This method is provided for backwards compatibility. Generally,
         it is recommended to use '.values'.
@@ -4622,7 +4622,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.DataFrame.index : Retrievie the index labels
+        pandas.DataFrame.index : Retrieve the index labels
         pandas.DataFrame.columns : Retrieving the column names
         """
         self._consolidate_inplace()
@@ -5175,8 +5175,7 @@ class NDFrame(PandasObject, SelectionMixin):
         --------
         pandas.to_datetime : Convert argument to datetime.
         pandas.to_timedelta : Convert argument to timedelta.
-        pandas.to_numeric : Return a fixed frequency timedelta index,
-            with day as the default.
+        pandas.to_numeric : Convert argument to numeric type.
 
         Returns
         -------
@@ -5210,7 +5209,7 @@ class NDFrame(PandasObject, SelectionMixin):
         --------
         pandas.to_datetime : Convert argument to datetime.
         pandas.to_timedelta : Convert argument to timedelta.
-        pandas.to_numeric : Convert argument to numeric typeR
+        pandas.to_numeric : Convert argument to numeric type.
 
         Returns
         -------
@@ -5702,7 +5701,7 @@ class NDFrame(PandasObject, SelectionMixin):
         the correct type for replacement.
 
         Compare the behavior of ``s.replace({'a': None})`` and
-        ``s.replace('a', None)`` to understand the pecularities
+        ``s.replace('a', None)`` to understand the peculiarities
         of the `to_replace` parameter:
 
         >>> s = pd.Series([10, 'a', 'a', 'b', 'a'])
@@ -8519,7 +8518,7 @@ class NDFrame(PandasObject, SelectionMixin):
             stat_index = (['count', 'mean', 'std', 'min'] +
                           formatted_percentiles + ['max'])
             d = ([series.count(), series.mean(), series.std(), series.min()] +
-                 [series.quantile(x) for x in percentiles] + [series.max()])
+                 series.quantile(percentiles).tolist() + [series.max()])
             return pd.Series(d, index=stat_index, name=series.name)
 
         def describe_categorical_1d(data):
@@ -8969,18 +8968,17 @@ class NDFrame(PandasObject, SelectionMixin):
             is_valid = is_valid.any(1)  # reduce axis 1
 
         if how == 'first':
-            # First valid value case
-            i = is_valid.idxmax()
-            if not is_valid[i]:
-                return None
-            return i
+            idxpos = is_valid.values[::].argmax()
 
-        elif how == 'last':
-            # Last valid value case
-            i = is_valid.values[::-1].argmax()
-            if not is_valid.iat[len(self) - i - 1]:
-                return None
-            return self.index[len(self) - i - 1]
+        if how == 'last':
+            idxpos = len(self) - 1 - is_valid.values[::-1].argmax()
+
+        chk_notna = is_valid.iat[idxpos]
+        idx = self.index[idxpos]
+
+        if not chk_notna:
+            return None
+        return idx
 
     @Appender(_shared_docs['valid_index'] % {'position': 'first',
                                              'klass': 'NDFrame'})

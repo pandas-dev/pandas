@@ -1200,9 +1200,9 @@ Attributes and underlying data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Axes**
 
-  * **items**: axis 0; each item corresponds to a DataFrame contained inside
-  * **major_axis**: axis 1; the index (rows) of each of the DataFrames
-  * **minor_axis**: axis 2; the columns of each of the DataFrames
+* **items**: axis 0; each item corresponds to a DataFrame contained inside
+* **major_axis**: axis 1; the index (rows) of each of the DataFrames
+* **minor_axis**: axis 2; the columns of each of the DataFrames
 
 .. autosummary::
    :toctree: generated/
