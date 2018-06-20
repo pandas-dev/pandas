@@ -506,7 +506,15 @@ class TestDataFrameTimeSeriesMethods(TestData):
         actual_series = ts.asfreq(freq='1S', fill_value=9.0)
         assert_series_equal(expected_series, actual_series)
 
-    def test_first_last_valid(self):
+    @pytest.mark.parametrize("data,idx,expected_first,expected_last", [
+        ({'A': [1, 2, 3]}, [1, 1, 2], 1, 2),
+        ({'A': [1, 2, 3]}, [1, 2, 2], 1, 2),
+        ({'A': [1, 2, 3, 4]}, ['d', 'd', 'd', 'd'], 'd', 'd'),
+        ({'A': [1, np.nan, 3]}, [1, 1, 2], 1, 2),
+        ({'A': [np.nan, np.nan, 3]}, [1, 1, 2], 2, 2),
+        ({'A': [1, np.nan, 3]}, [1, 2, 2], 1, 2)])
+    def test_first_last_valid(self, data, idx,
+                              expected_first, expected_last):
         N = len(self.frame.index)
         mat = randn(N)
         mat[:5] = nan
@@ -538,6 +546,11 @@ class TestDataFrameTimeSeriesMethods(TestData):
         assert frame.last_valid_index() == frame.index[-2]
         assert frame.first_valid_index().freq == frame.index.freq
         assert frame.last_valid_index().freq == frame.index.freq
+
+        # GH 21441
+        df = DataFrame(data, index=idx)
+        assert expected_first == df.first_valid_index()
+        assert expected_last == df.last_valid_index()
 
     def test_first_subset(self):
         ts = tm.makeTimeDataFrame(freq='12h')
