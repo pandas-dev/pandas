@@ -8,6 +8,8 @@ v0.24.0
 New features
 ~~~~~~~~~~~~
 
+- ``ExcelWriter`` now accepts ``mode`` as a keyword argument, enabling append to existing workbooks when using the ``openpyxl`` engine (:issue:`3441`)
+
 .. _whatsnew_0240.enhancements.other:
 
 Other Enhancements
@@ -24,7 +26,7 @@ Other Enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. _whatsnew_0240.api.datetimelike.normalize
+.. _whatsnew_0240.api.datetimelike.normalize:
 
 Tick DateOffset Normalize Restrictions
 --------------------------------------
@@ -114,6 +116,32 @@ Datetimelike API Changes
 
 Other API Changes
 ^^^^^^^^^^^^^^^^^
+
+.. _whatsnew_0240.api.other.incompatibilities:
+
+Series and Index Data-Dtype Incompatibilities
+---------------------------------------------
+
+``Series`` and ``Index`` constructors now raise when the
+data is incompatible with a passed ``dtype=`` (:issue:`15832`)
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [4]: pd.Series([-1], dtype="uint64")
+    Out [4]:
+    0    18446744073709551615
+    dtype: uint64
+
+Current Behavior:
+
+.. code-block:: ipython
+
+    In [4]: pd.Series([-1], dtype="uint64")
+    Out [4]:
+    ...
+    OverflowError: Trying to coerce negative values to unsigned integers
 
 - :class:`DatetimeIndex` now accepts :class:`Int64Index` arguments as epoch timestamps (:issue:`20997`)
 -

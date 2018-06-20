@@ -24,6 +24,7 @@ from pandas.core import accessor
 import pandas.core.common as com
 import pandas.core.missing as missing
 import pandas.core.indexes.base as ibase
+from pandas.core.arrays.categorical import Categorical, contains
 
 _index_doc_kwargs = dict(ibase._index_doc_kwargs)
 _index_doc_kwargs.update(dict(target_klass='CategoricalIndex'))
@@ -125,7 +126,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         CategoricalIndex
         """
 
-        from pandas.core.arrays import Categorical
         if categories is None:
             categories = self.categories
         if ordered is None:
@@ -162,7 +162,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         if not isinstance(data, ABCCategorical):
             if ordered is None and dtype is None:
                 ordered = False
-            from pandas.core.arrays import Categorical
             data = Categorical(data, categories=categories, ordered=ordered,
                                dtype=dtype)
         else:
@@ -323,32 +322,14 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
 
     @Appender(_index_shared_docs['__contains__'] % _index_doc_kwargs)
     def __contains__(self, key):
-        hash(key)
-
-        if isna(key):  # if key is a NaN, check if any NaN is in self.
+        # if key is a NaN, check if any NaN is in self.
+        if isna(key):
             return self.hasnans
 
-        # is key in self.categories? Then get its location.
-        # If not (i.e. KeyError), it logically can't be in self either
-        try:
-            loc = self.categories.get_loc(key)
-        except KeyError:
-            return False
-
-        # loc is the location of key in self.categories, but also the value
-        # for key in self.codes and in self._engine. key may be in categories,
-        # but still not in self, check this. Example:
-        # 'b' in CategoricalIndex(['a'], categories=['a', 'b']) #  False
-        if is_scalar(loc):
-            return loc in self._engine
-        else:
-            # if self.categories is IntervalIndex, loc is an array
-            # check if any scalar of the array is in self._engine
-            return any(loc_ in self._engine for loc_ in loc)
+        return contains(self, key, container=self._engine)
 
     @Appender(_index_shared_docs['contains'] % _index_doc_kwargs)
     def contains(self, key):
-        hash(key)
         return key in self
 
     def __array__(self, dtype=None):
@@ -479,7 +460,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             other = self._na_value
         values = np.where(cond, self.values, other)
 
-        from pandas.core.arrays import Categorical
         cat = Categorical(values,
                           categories=self.categories,
                           ordered=self.ordered)
@@ -862,7 +842,6 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
     def _add_accessors(cls):
         """ add in Categorical accessor methods """
 
-        from pandas.core.arrays import Categorical
         CategoricalIndex._add_delegate_accessors(
             delegate=Categorical, accessors=["rename_categories",
                                              "reorder_categories",
