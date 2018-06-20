@@ -22,36 +22,36 @@ Group By: split-apply-combine
 By "group by" we are referring to a process involving one or more of the following
 steps:
 
- - **Splitting** the data into groups based on some criteria.
- - **Applying** a function to each group independently.
- - **Combining** the results into a data structure.
+* **Splitting** the data into groups based on some criteria.
+* **Applying** a function to each group independently.
+* **Combining** the results into a data structure.
 
 Out of these, the split step is the most straightforward. In fact, in many
 situations we may wish to split the data set into groups and do something with
 those groups. In the apply step, we might wish to one of the
 following:
 
- - **Aggregation**: compute a summary statistic (or statistics) for each
-   group. Some examples:
+* **Aggregation**: compute a summary statistic (or statistics) for each
+  group. Some examples:
 
-    - Compute group sums or means.
-    - Compute group sizes / counts.
+    * Compute group sums or means.
+    * Compute group sizes / counts.
 
- - **Transformation**: perform some group-specific computations and return a
-   like-indexed object. Some examples:
+* **Transformation**: perform some group-specific computations and return a
+  like-indexed object. Some examples:
 
-    - Standardize data (zscore) within a group.
-    - Filling NAs within groups with a value derived from each group.
+    * Standardize data (zscore) within a group.
+    * Filling NAs within groups with a value derived from each group.
 
- - **Filtration**: discard some groups, according to a group-wise computation
-   that evaluates True or False. Some examples:
+* **Filtration**: discard some groups, according to a group-wise computation
+  that evaluates True or False. Some examples:
 
-    - Discard data that belongs to groups with only a few members.
-    - Filter out data based on the group sum or mean.
+    * Discard data that belongs to groups with only a few members.
+    * Filter out data based on the group sum or mean.
 
- - Some combination of the above: GroupBy will examine the results of the apply
-   step and try to return a sensibly combined result if it doesn't fit into
-   either of the above two categories.
+* Some combination of the above: GroupBy will examine the results of the apply
+  step and try to return a sensibly combined result if it doesn't fit into
+  either of the above two categories.
 
 Since the set of object instance methods on pandas data structures are generally
 rich and expressive, we often simply want to invoke, say, a DataFrame function
@@ -88,15 +88,15 @@ object (more on what the GroupBy object is later), you may do the following:
 
 The mapping can be specified many different ways:
 
-  - A Python function, to be called on each of the axis labels.
-  - A list or NumPy array of the same length as the selected axis.
-  - A dict or ``Series``, providing a ``label -> group name`` mapping.
-  - For ``DataFrame`` objects, a string indicating a column to be used to group.
-    Of course ``df.groupby('A')`` is just syntactic sugar for
-    ``df.groupby(df['A'])``, but it makes life simpler.
-  - For ``DataFrame`` objects, a string indicating an index level to be used to
-    group.
-  - A list of any of the above things.
+* A Python function, to be called on each of the axis labels.
+* A list or NumPy array of the same length as the selected axis.
+* A dict or ``Series``, providing a ``label -> group name`` mapping.
+* For ``DataFrame`` objects, a string indicating a column to be used to group.
+  Of course ``df.groupby('A')`` is just syntactic sugar for
+  ``df.groupby(df['A'])``, but it makes life simpler.
+* For ``DataFrame`` objects, a string indicating an index level to be used to
+  group.
+* A list of any of the above things.
 
 Collectively we refer to the grouping objects as the **keys**. For example,
 consider the following ``DataFrame``:

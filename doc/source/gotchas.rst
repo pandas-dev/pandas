@@ -193,9 +193,9 @@ Choice of ``NA`` representation
 For lack of ``NA`` (missing) support from the ground up in NumPy and Python in
 general, we were given the difficult choice between either:
 
-- A *masked array* solution: an array of data and an array of boolean values
+* A *masked array* solution: an array of data and an array of boolean values
   indicating whether a value is there or is missing.
-- Using a special sentinel value, bit pattern, or set of sentinel values to
+* Using a special sentinel value, bit pattern, or set of sentinel values to
   denote ``NA`` across the dtypes.
 
 For many reasons we chose the latter. After years of production use it has
