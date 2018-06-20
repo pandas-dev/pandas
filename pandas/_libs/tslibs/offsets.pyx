@@ -379,6 +379,45 @@ class _BaseOffset(object):
                              'got {n}'.format(n=n))
         return nint
 
+    def __setstate__(self, state):
+        """Reconstruct an instance from a pickled state"""
+        if 'offset' in state:
+            # Older (<0.22.0) versions have offset attribute instead of _offset
+            if '_offset' in state:  # pragma: no cover
+                raise AssertionError('Unexpected key `_offset`')
+            state['_offset'] = state.pop('offset')
+            state['kwds']['offset'] = state['_offset']
+
+        if '_offset' in state and not isinstance(state['_offset'], timedelta):
+            # relativedelta, we need to populate using its kwds
+            offset = state['_offset']
+            odict = offset.__dict__
+            kwds = {key: odict[key] for key in odict if odict[key]}
+            state.update(kwds)
+
+        self.__dict__ = state
+        if 'weekmask' in state and 'holidays' in state:
+            calendar, holidays = _get_calendar(weekmask=self.weekmask,
+                                               holidays=self.holidays,
+                                               calendar=None)
+            self.calendar = calendar
+            self.holidays = holidays
+
+    def __getstate__(self):
+        """Return a pickleable state"""
+        state = self.__dict__.copy()
+
+        # we don't want to actually pickle the calendar object
+        # as its a np.busyday; we recreate on deserilization
+        if 'calendar' in state:
+            del state['calendar']
+        try:
+            state['kwds'].pop('calendar')
+        except KeyError:
+            pass
+
+        return state
+
 
 class BaseOffset(_BaseOffset):
     # Here we add __rfoo__ methods that don't play well with cdef classes

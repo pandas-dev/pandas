@@ -853,14 +853,6 @@ class MultiIndex(Index):
         return True
 
     @cache_readonly
-    def is_monotonic(self):
-        """
-        return if the index is monotonic increasing (only equal or
-        increasing) values.
-        """
-        return self.is_monotonic_increasing
-
-    @cache_readonly
     def is_monotonic_increasing(self):
         """
         return if the index is monotonic increasing (only equal or
@@ -886,10 +878,6 @@ class MultiIndex(Index):
         """
         # monotonic decreasing if and only if reverse is monotonic increasing
         return self[::-1].is_monotonic_increasing
-
-    @cache_readonly
-    def is_unique(self):
-        return not self.duplicated().any()
 
     @cache_readonly
     def _have_mixed_levels(self):

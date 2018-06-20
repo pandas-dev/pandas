@@ -428,12 +428,14 @@ class Index(IndexOpsMixin, PandasObject):
         elif data is None or is_scalar(data):
             cls._scalar_data_error(data)
         else:
-            if tupleize_cols and is_list_like(data) and data:
+            if tupleize_cols and is_list_like(data):
+                # GH21470: convert iterable to list before determining if empty
                 if is_iterator(data):
                     data = list(data)
-                # we must be all tuples, otherwise don't construct
-                # 10697
-                if all(isinstance(e, tuple) for e in data):
+
+                if data and all(isinstance(e, tuple) for e in data):
+                    # we must be all tuples, otherwise don't construct
+                    # 10697
                     from .multi import MultiIndex
                     return MultiIndex.from_tuples(
                         data, names=name or kwargs.get('names'))
@@ -3146,17 +3148,22 @@ class Index(IndexOpsMixin, PandasObject):
 
             .. versionadded:: 0.21.0 (list-like tolerance)
 
-        Examples
-        --------
-        >>> indexer = index.get_indexer(new_index)
-        >>> new_values = cur_values.take(indexer)
-
         Returns
         -------
         indexer : ndarray of int
             Integers from 0 to n - 1 indicating that the index at these
             positions matches the corresponding target values. Missing values
             in the target are marked by -1.
+
+        Examples
+        --------
+        >>> index = pd.Index(['c', 'a', 'b'])
+        >>> index.get_indexer(['a', 'b', 'x'])
+        array([ 1,  2, -1])
+
+        Notice that the return value is an array of locations in ``index``
+        and ``x`` is marked by -1, as it is not in ``index``.
+
         """
 
     @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
@@ -3627,7 +3634,7 @@ class Index(IndexOpsMixin, PandasObject):
             else:
 
                 # need to retake to have the same size as the indexer
-                indexer[~check] = 0
+                indexer[~check] = -1
 
                 # reset the new indexer to account for the new size
                 new_indexer = np.arange(len(self.take(indexer)))
