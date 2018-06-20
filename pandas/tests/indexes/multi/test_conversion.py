@@ -10,9 +10,9 @@ from pandas.compat import PY3, range
 from pandas.util.testing import assert_almost_equal
 
 
-def test_tolist(_index):
-    result = _index.tolist()
-    exp = list(_index.values)
+def test_tolist(idx):
+    result = idx.tolist()
+    exp = list(idx.values)
     assert result == exp
 
 

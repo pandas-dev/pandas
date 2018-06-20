@@ -154,12 +154,12 @@ def take_invalid_kwargs():
                            indices, mode='clip')
 
 
-def test_isna_behavior(_index):
+def test_isna_behavior(idx):
     # should not segfault GH5123
     # NOTE: if MI representation changes, may make sense to allow
     # isna(MI)
     with pytest.raises(NotImplementedError):
-        pd.isna(_index)
+        pd.isna(idx)
 
 
 def test_large_multiindex_error():
@@ -213,14 +213,13 @@ def test_million_record_attribute_error():
         df['a'].foo()
 
 
-def test_can_hold_identifiers(_index):
-    idx = _index
+def test_can_hold_identifiers(idx):
     key = idx[0]
     assert idx._can_hold_identifiers_and_holds_name(key) is True
 
 
-def test_metadata_immutable(_index):
-    levels, labels = _index.levels, _index.labels
+def test_metadata_immutable(idx):
+    levels, labels = idx.levels, idx.labels
     # shouldn't be able to set at either the top level or base level
     mutable_regex = re.compile('does not support mutable operations')
     with tm.assert_raises_regex(TypeError, mutable_regex):
@@ -233,7 +232,7 @@ def test_metadata_immutable(_index):
     with tm.assert_raises_regex(TypeError, mutable_regex):
         labels[0][0] = labels[0][0]
     # and for names
-    names = _index.names
+    names = idx.names
     with tm.assert_raises_regex(TypeError, mutable_regex):
         names[0] = names[0]
 

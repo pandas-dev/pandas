@@ -16,13 +16,13 @@ from pandas import (CategoricalIndex, DatetimeIndex, Float64Index, Index,
                     isna)
 
 
-def test_get_loc(_index):
-    assert _index.get_loc(('foo', 'two')) == 1
-    assert _index.get_loc(('baz', 'two')) == 3
-    pytest.raises(KeyError, _index.get_loc, ('bar', 'two'))
-    pytest.raises(KeyError, _index.get_loc, 'quux')
+def test_get_loc(idx):
+    assert idx.get_loc(('foo', 'two')) == 1
+    assert idx.get_loc(('baz', 'two')) == 3
+    pytest.raises(KeyError, idx.get_loc, ('bar', 'two'))
+    pytest.raises(KeyError, idx.get_loc, 'quux')
 
-    pytest.raises(NotImplementedError, _index.get_loc, 'foo',
+    pytest.raises(NotImplementedError, idx.get_loc, 'foo',
                   method='nearest')
 
     # 3 levels
@@ -188,12 +188,12 @@ def test_get_indexer_nearest():
         midx.get_indexer(['a'], method='pad', tolerance=2)
 
 
-def test_set_name_methods(_index, index_names):
+def test_set_name_methods(idx, index_names):
     # so long as these are synonyms, we don't need to test set_names
-    assert _index.rename == _index.set_names
+    assert idx.rename == idx.set_names
     new_names = [name + "SUFFIX" for name in index_names]
-    ind = _index.set_names(new_names)
-    assert _index.names == index_names
+    ind = idx.set_names(new_names)
+    assert idx.names == index_names
     assert ind.names == new_names
     with tm.assert_raises_regex(ValueError, "^Length"):
         ind.set_names(new_names + new_names)
@@ -203,8 +203,8 @@ def test_set_name_methods(_index, index_names):
     assert ind.names == new_names2
 
     # set names for specific level (# GH7792)
-    ind = _index.set_names(new_names[0], level=0)
-    assert _index.names == index_names
+    ind = idx.set_names(new_names[0], level=0)
+    assert idx.names == index_names
     assert ind.names == [new_names[0], index_names[1]]
 
     res = ind.set_names(new_names2[0], level=0, inplace=True)
@@ -212,8 +212,8 @@ def test_set_name_methods(_index, index_names):
     assert ind.names == [new_names2[0], index_names[1]]
 
     # set names for multiple levels
-    ind = _index.set_names(new_names, level=[0, 1])
-    assert _index.names == index_names
+    ind = idx.set_names(new_names, level=[0, 1])
+    assert idx.names == index_names
     assert ind.names == new_names
 
     res = ind.set_names(new_names2, level=[0, 1], inplace=True)
@@ -221,29 +221,29 @@ def test_set_name_methods(_index, index_names):
     assert ind.names == new_names2
 
 
-def test_set_levels_labels_directly(_index):
+def test_set_levels_labels_directly(idx):
     # setting levels/labels directly raises AttributeError
 
-    levels = _index.levels
+    levels = idx.levels
     new_levels = [[lev + 'a' for lev in level] for level in levels]
 
-    labels = _index.labels
+    labels = idx.labels
     major_labels, minor_labels = labels
     major_labels = [(x + 1) % 3 for x in major_labels]
     minor_labels = [(x + 1) % 1 for x in minor_labels]
     new_labels = [major_labels, minor_labels]
 
     with pytest.raises(AttributeError):
-        _index.levels = new_levels
+        idx.levels = new_levels
 
     with pytest.raises(AttributeError):
-        _index.labels = new_labels
+        idx.labels = new_labels
 
 
-def test_set_levels(_index):
+def test_set_levels(idx):
     # side note - you probably wouldn't want to use levels and labels
     # directly like this - but it is possible.
-    levels = _index.levels
+    levels = idx.levels
     new_levels = [[lev + 'a' for lev in level] for level in levels]
 
     def assert_matching(actual, expected, check_dtype=False):
@@ -256,81 +256,81 @@ def test_set_levels(_index):
             tm.assert_numpy_array_equal(act, exp, check_dtype=check_dtype)
 
     # level changing [w/o mutation]
-    ind2 = _index.set_levels(new_levels)
+    ind2 = idx.set_levels(new_levels)
     assert_matching(ind2.levels, new_levels)
-    assert_matching(_index.levels, levels)
+    assert_matching(idx.levels, levels)
 
     # level changing [w/ mutation]
-    ind2 = _index.copy()
+    ind2 = idx.copy()
     inplace_return = ind2.set_levels(new_levels, inplace=True)
     assert inplace_return is None
     assert_matching(ind2.levels, new_levels)
 
     # level changing specific level [w/o mutation]
-    ind2 = _index.set_levels(new_levels[0], level=0)
+    ind2 = idx.set_levels(new_levels[0], level=0)
     assert_matching(ind2.levels, [new_levels[0], levels[1]])
-    assert_matching(_index.levels, levels)
+    assert_matching(idx.levels, levels)
 
-    ind2 = _index.set_levels(new_levels[1], level=1)
+    ind2 = idx.set_levels(new_levels[1], level=1)
     assert_matching(ind2.levels, [levels[0], new_levels[1]])
-    assert_matching(_index.levels, levels)
+    assert_matching(idx.levels, levels)
 
     # level changing multiple levels [w/o mutation]
-    ind2 = _index.set_levels(new_levels, level=[0, 1])
+    ind2 = idx.set_levels(new_levels, level=[0, 1])
     assert_matching(ind2.levels, new_levels)
-    assert_matching(_index.levels, levels)
+    assert_matching(idx.levels, levels)
 
     # level changing specific level [w/ mutation]
-    ind2 = _index.copy()
+    ind2 = idx.copy()
     inplace_return = ind2.set_levels(new_levels[0], level=0, inplace=True)
     assert inplace_return is None
     assert_matching(ind2.levels, [new_levels[0], levels[1]])
-    assert_matching(_index.levels, levels)
+    assert_matching(idx.levels, levels)
 
-    ind2 = _index.copy()
+    ind2 = idx.copy()
     inplace_return = ind2.set_levels(new_levels[1], level=1, inplace=True)
     assert inplace_return is None
     assert_matching(ind2.levels, [levels[0], new_levels[1]])
-    assert_matching(_index.levels, levels)
+    assert_matching(idx.levels, levels)
 
     # level changing multiple levels [w/ mutation]
-    ind2 = _index.copy()
+    ind2 = idx.copy()
     inplace_return = ind2.set_levels(new_levels, level=[0, 1],
                                      inplace=True)
     assert inplace_return is None
     assert_matching(ind2.levels, new_levels)
-    assert_matching(_index.levels, levels)
+    assert_matching(idx.levels, levels)
 
     # illegal level changing should not change levels
     # GH 13754
-    original_index = _index.copy()
+    original_index = idx.copy()
     for inplace in [True, False]:
         with tm.assert_raises_regex(ValueError, "^On"):
-            _index.set_levels(['c'], level=0, inplace=inplace)
-        assert_matching(_index.levels, original_index.levels,
+            idx.set_levels(['c'], level=0, inplace=inplace)
+        assert_matching(idx.levels, original_index.levels,
                         check_dtype=True)
 
         with tm.assert_raises_regex(ValueError, "^On"):
-            _index.set_labels([0, 1, 2, 3, 4, 5], level=0,
+            idx.set_labels([0, 1, 2, 3, 4, 5], level=0,
                               inplace=inplace)
-        assert_matching(_index.labels, original_index.labels,
+        assert_matching(idx.labels, original_index.labels,
                         check_dtype=True)
 
         with tm.assert_raises_regex(TypeError, "^Levels"):
-            _index.set_levels('c', level=0, inplace=inplace)
-        assert_matching(_index.levels, original_index.levels,
+            idx.set_levels('c', level=0, inplace=inplace)
+        assert_matching(idx.levels, original_index.levels,
                         check_dtype=True)
 
         with tm.assert_raises_regex(TypeError, "^Labels"):
-            _index.set_labels(1, level=0, inplace=inplace)
-        assert_matching(_index.labels, original_index.labels,
+            idx.set_labels(1, level=0, inplace=inplace)
+        assert_matching(idx.labels, original_index.labels,
                         check_dtype=True)
 
 
-def test_set_labels(_index):
+def test_set_labels(idx):
     # side note - you probably wouldn't want to use levels and labels
     # directly like this - but it is possible.
-    labels = _index.labels
+    labels = idx.labels
     major_labels, minor_labels = labels
     major_labels = [(x + 1) % 3 for x in major_labels]
     minor_labels = [(x + 1) % 1 for x in minor_labels]
@@ -346,50 +346,50 @@ def test_set_labels(_index):
             tm.assert_numpy_array_equal(act, exp)
 
     # label changing [w/o mutation]
-    ind2 = _index.set_labels(new_labels)
+    ind2 = idx.set_labels(new_labels)
     assert_matching(ind2.labels, new_labels)
-    assert_matching(_index.labels, labels)
+    assert_matching(idx.labels, labels)
 
     # label changing [w/ mutation]
-    ind2 = _index.copy()
+    ind2 = idx.copy()
     inplace_return = ind2.set_labels(new_labels, inplace=True)
     assert inplace_return is None
     assert_matching(ind2.labels, new_labels)
 
     # label changing specific level [w/o mutation]
-    ind2 = _index.set_labels(new_labels[0], level=0)
+    ind2 = idx.set_labels(new_labels[0], level=0)
     assert_matching(ind2.labels, [new_labels[0], labels[1]])
-    assert_matching(_index.labels, labels)
+    assert_matching(idx.labels, labels)
 
-    ind2 = _index.set_labels(new_labels[1], level=1)
+    ind2 = idx.set_labels(new_labels[1], level=1)
     assert_matching(ind2.labels, [labels[0], new_labels[1]])
-    assert_matching(_index.labels, labels)
+    assert_matching(idx.labels, labels)
 
     # label changing multiple levels [w/o mutation]
-    ind2 = _index.set_labels(new_labels, level=[0, 1])
+    ind2 = idx.set_labels(new_labels, level=[0, 1])
     assert_matching(ind2.labels, new_labels)
-    assert_matching(_index.labels, labels)
+    assert_matching(idx.labels, labels)
 
     # label changing specific level [w/ mutation]
-    ind2 = _index.copy()
+    ind2 = idx.copy()
     inplace_return = ind2.set_labels(new_labels[0], level=0, inplace=True)
     assert inplace_return is None
     assert_matching(ind2.labels, [new_labels[0], labels[1]])
-    assert_matching(_index.labels, labels)
+    assert_matching(idx.labels, labels)
 
-    ind2 = _index.copy()
+    ind2 = idx.copy()
     inplace_return = ind2.set_labels(new_labels[1], level=1, inplace=True)
     assert inplace_return is None
     assert_matching(ind2.labels, [labels[0], new_labels[1]])
-    assert_matching(_index.labels, labels)
+    assert_matching(idx.labels, labels)
 
     # label changing multiple levels [w/ mutation]
-    ind2 = _index.copy()
+    ind2 = idx.copy()
     inplace_return = ind2.set_labels(new_labels, level=[0, 1],
                                      inplace=True)
     assert inplace_return is None
     assert_matching(ind2.labels, new_labels)
-    assert_matching(_index.labels, labels)
+    assert_matching(idx.labels, labels)
 
     # label changing for levels of different magnitude of categories
     ind = pd.MultiIndex.from_tuples([(0, i) for i in range(130)])
@@ -407,51 +407,51 @@ def test_set_labels(_index):
     assert result.equals(expected)
 
 
-def test_set_levels_labels_names_bad_input(_index):
-    levels, labels = _index.levels, _index.labels
-    names = _index.names
+def test_set_levels_labels_names_bad_input(idx):
+    levels, labels = idx.levels, idx.labels
+    names = idx.names
 
     with tm.assert_raises_regex(ValueError, 'Length of levels'):
-        _index.set_levels([levels[0]])
+        idx.set_levels([levels[0]])
 
     with tm.assert_raises_regex(ValueError, 'Length of labels'):
-        _index.set_labels([labels[0]])
+        idx.set_labels([labels[0]])
 
     with tm.assert_raises_regex(ValueError, 'Length of names'):
-        _index.set_names([names[0]])
+        idx.set_names([names[0]])
 
     # shouldn't scalar data error, instead should demand list-like
     with tm.assert_raises_regex(TypeError, 'list of lists-like'):
-        _index.set_levels(levels[0])
+        idx.set_levels(levels[0])
 
     # shouldn't scalar data error, instead should demand list-like
     with tm.assert_raises_regex(TypeError, 'list of lists-like'):
-        _index.set_labels(labels[0])
+        idx.set_labels(labels[0])
 
     # shouldn't scalar data error, instead should demand list-like
     with tm.assert_raises_regex(TypeError, 'list-like'):
-        _index.set_names(names[0])
+        idx.set_names(names[0])
 
     # should have equal lengths
     with tm.assert_raises_regex(TypeError, 'list of lists-like'):
-        _index.set_levels(levels[0], level=[0, 1])
+        idx.set_levels(levels[0], level=[0, 1])
 
     with tm.assert_raises_regex(TypeError, 'list-like'):
-        _index.set_levels(levels, level=0)
+        idx.set_levels(levels, level=0)
 
     # should have equal lengths
     with tm.assert_raises_regex(TypeError, 'list of lists-like'):
-        _index.set_labels(labels[0], level=[0, 1])
+        idx.set_labels(labels[0], level=[0, 1])
 
     with tm.assert_raises_regex(TypeError, 'list-like'):
-        _index.set_labels(labels, level=0)
+        idx.set_labels(labels, level=0)
 
     # should have equal lengths
     with tm.assert_raises_regex(ValueError, 'Length of names'):
-        _index.set_names(names[0], level=[0, 1])
+        idx.set_names(names[0], level=[0, 1])
 
     with tm.assert_raises_regex(TypeError, 'string'):
-        _index.set_names(names, level=0)
+        idx.set_names(names, level=0)
 
 
 @pytest.mark.parametrize('inplace', [True, False])
@@ -505,24 +505,24 @@ def test_set_value_keeps_names():
     assert df.index.names == ('Name', 'Number')
 
 
-def test_get_level_number_integer(_index):
-    _index.names = [1, 0]
-    assert _index._get_level_number(1) == 0
-    assert _index._get_level_number(0) == 1
-    pytest.raises(IndexError, _index._get_level_number, 2)
+def test_get_level_number_integer(idx):
+    idx.names = [1, 0]
+    assert idx._get_level_number(1) == 0
+    assert idx._get_level_number(0) == 1
+    pytest.raises(IndexError, idx._get_level_number, 2)
     tm.assert_raises_regex(KeyError, 'Level fourth not found',
-                           _index._get_level_number, 'fourth')
+                           idx._get_level_number, 'fourth')
 
 
-def test_get_level_values(_index):
-    result = _index.get_level_values(0)
+def test_get_level_values(idx):
+    result = idx.get_level_values(0)
     expected = Index(['foo', 'foo', 'bar', 'baz', 'qux', 'qux'],
                      name='first')
     tm.assert_index_equal(result, expected)
     assert result.name == 'first'
 
-    result = _index.get_level_values('first')
-    expected = _index.get_level_values(0)
+    result = idx.get_level_values('first')
+    expected = idx.get_level_values(0)
     tm.assert_index_equal(result, expected)
 
     # GH 10460
@@ -538,25 +538,25 @@ def test_get_level_values(_index):
     tm.assert_index_equal(index.get_level_values(1), exp)
 
 
-def test_getitem(_index):
+def test_getitem(idx):
     # scalar
-    assert _index[2] == ('bar', 'one')
+    assert idx[2] == ('bar', 'one')
 
     # slice
-    result = _index[2:5]
-    expected = _index[[2, 3, 4]]
+    result = idx[2:5]
+    expected = idx[[2, 3, 4]]
     assert result.equals(expected)
 
     # boolean
-    result = _index[[True, False, True, False, True, True]]
-    result2 = _index[np.array([True, False, True, False, True, True])]
-    expected = _index[[0, 2, 4, 5]]
+    result = idx[[True, False, True, False, True, True]]
+    result2 = idx[np.array([True, False, True, False, True, True])]
+    expected = idx[[0, 2, 4, 5]]
     assert result.equals(expected)
     assert result2.equals(expected)
 
 
-def test_getitem_group_select(_index):
-    sorted_idx, _ = _index.sortlevel(0)
+def test_getitem_group_select(idx):
+    sorted_idx, _ = idx.sortlevel(0)
     assert sorted_idx.get_loc('baz') == slice(3, 4)
     assert sorted_idx.get_loc('foo') == slice(0, 2)
 
@@ -625,9 +625,9 @@ def test_get_level_values_na():
     tm.assert_index_equal(result, expected)
 
 
-def test_get_unique_index(_index):
-    idx = _index[[0, 1, 0, 1, 1, 0, 0]]
-    expected = _index._shallow_copy(idx[[0, 1]])
+def test_get_unique_index(idx):
+    idx = idx[[0, 1, 0, 1, 1, 0, 0]]
+    expected = idx._shallow_copy(idx[[0, 1]])
 
     for dropna in [False, True]:
         result = idx._get_unique_index(dropna=dropna)

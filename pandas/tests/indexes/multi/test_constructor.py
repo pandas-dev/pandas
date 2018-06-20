@@ -52,7 +52,7 @@ def test_constructor_nonhashable_names():
     tm.assert_raises_regex(TypeError, message, mi.set_names, names=renamed)
 
 
-def test_constructor_mismatched_label_levels(_index):
+def test_constructor_mismatched_label_levels(idx):
     labels = [np.array([1]), np.array([2]), np.array([3])]
     levels = ["a"]
     tm.assert_raises_regex(ValueError, "Length of levels and labels "
@@ -71,10 +71,10 @@ def test_constructor_mismatched_label_levels(_index):
 
     # external API
     with tm.assert_raises_regex(ValueError, length_error):
-        _index.copy().set_levels([['a'], ['b']])
+        idx.copy().set_levels([['a'], ['b']])
 
     with tm.assert_raises_regex(ValueError, label_error):
-        _index.copy().set_labels([[0, 0, 0, 0], [0, 0]])
+        idx.copy().set_labels([[0, 0, 0, 0], [0, 0]])
 
 
 def test_copy_in_constructor():
@@ -167,14 +167,14 @@ def test_reconstruct_remove_unused():
     assert result2.is_(result)
 
 
-def test_from_arrays(_index):
+def test_from_arrays(idx):
     arrays = []
-    for lev, lab in zip(_index.levels, _index.labels):
+    for lev, lab in zip(idx.levels, idx.labels):
         arrays.append(np.asarray(lev).take(lab))
 
     # list of arrays as input
-    result = MultiIndex.from_arrays(arrays, names=_index.names)
-    tm.assert_index_equal(result, _index)
+    result = MultiIndex.from_arrays(arrays, names=idx.names)
+    tm.assert_index_equal(result, idx)
 
     # infer correctly
     result = MultiIndex.from_arrays([[pd.NaT, Timestamp('20130101')],
@@ -183,15 +183,15 @@ def test_from_arrays(_index):
     assert result.levels[1].equals(Index(['a', 'b']))
 
 
-def test_from_arrays_iterator(_index):
+def test_from_arrays_iterator(idx):
     # GH 18434
     arrays = []
-    for lev, lab in zip(_index.levels, _index.labels):
+    for lev, lab in zip(idx.levels, idx.labels):
         arrays.append(np.asarray(lev).take(lab))
 
     # iterator as input
-    result = MultiIndex.from_arrays(iter(arrays), names=_index.names)
-    tm.assert_index_equal(result, _index)
+    result = MultiIndex.from_arrays(iter(arrays), names=idx.names)
+    tm.assert_index_equal(result, idx)
 
     # invalid iterator input
     with tm.assert_raises_regex(
@@ -376,9 +376,9 @@ def test_from_tuples_empty():
     tm.assert_index_equal(result, expected)
 
 
-def test_from_tuples_index_values(_index):
-    result = MultiIndex.from_tuples(_index)
-    assert (result.values == _index.values).all()
+def test_from_tuples_index_values(idx):
+    result = MultiIndex.from_tuples(idx)
+    assert (result.values == idx.values).all()
 
 
 def test_from_product_empty():
@@ -478,11 +478,11 @@ def test_from_product_iterator():
         MultiIndex.from_product(0)
 
 
-def test_create_index_existing_name(_index):
+def test_create_index_existing_name(idx):
 
     # GH11193, when an existing index is passed, and a new name is not
     # specified, the new index should inherit the previous object name
-    index = _index
+    index = idx
     index.names = ['foo', 'bar']
     result = pd.Index(index)
     tm.assert_index_equal(

@@ -13,10 +13,10 @@ from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 
 
-def test_sortlevel(_index):
+def test_sortlevel(idx):
     import random
 
-    tuples = list(_index)
+    tuples = list(idx)
     random.shuffle(tuples)
 
     index = MultiIndex.from_tuples(tuples)

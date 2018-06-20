@@ -21,26 +21,26 @@ def check_level_names(index, names):
     assert [level.name for level in index.levels] == list(names)
 
 
-def test_insert(_index):
+def test_insert(idx):
     # key contained in all levels
-    new_index = _index.insert(0, ('bar', 'two'))
-    assert new_index.equal_levels(_index)
+    new_index = idx.insert(0, ('bar', 'two'))
+    assert new_index.equal_levels(idx)
     assert new_index[0] == ('bar', 'two')
 
     # key not contained in all levels
-    new_index = _index.insert(0, ('abc', 'three'))
+    new_index = idx.insert(0, ('abc', 'three'))
 
-    exp0 = Index(list(_index.levels[0]) + ['abc'], name='first')
+    exp0 = Index(list(idx.levels[0]) + ['abc'], name='first')
     tm.assert_index_equal(new_index.levels[0], exp0)
 
-    exp1 = Index(list(_index.levels[1]) + ['three'], name='second')
+    exp1 = Index(list(idx.levels[1]) + ['three'], name='second')
     tm.assert_index_equal(new_index.levels[1], exp1)
     assert new_index[0] == ('abc', 'three')
 
     # key wrong length
     msg = "Item must have length equal to number of levels"
     with tm.assert_raises_regex(ValueError, msg):
-        _index.insert(0, ('foo2',))
+        idx.insert(0, ('foo2',))
 
     left = pd.DataFrame([['a', 'b', 0], ['b', 'd', 1]],
                         columns=['1st', '2nd', '3rd'])
@@ -88,32 +88,32 @@ def test_insert(_index):
     tm.assert_series_equal(left, right)
 
 
-def test_bounds(_index):
-    _index._bounds
+def test_bounds(idx):
+    idx._bounds
 
 
-def test_append(_index):
-    result = _index[:3].append(_index[3:])
-    assert result.equals(_index)
+def test_append(idx):
+    result = idx[:3].append(idx[3:])
+    assert result.equals(idx)
 
-    foos = [_index[:1], _index[1:3], _index[3:]]
+    foos = [idx[:1], idx[1:3], idx[3:]]
     result = foos[0].append(foos[1:])
-    assert result.equals(_index)
+    assert result.equals(idx)
 
     # empty
-    result = _index.append([])
-    assert result.equals(_index)
+    result = idx.append([])
+    assert result.equals(idx)
 
 
-def test_groupby(_index):
-    groups = _index.groupby(np.array([1, 1, 1, 2, 2, 2]))
-    labels = _index.get_values().tolist()
+def test_groupby(idx):
+    groups = idx.groupby(np.array([1, 1, 1, 2, 2, 2]))
+    labels = idx.get_values().tolist()
     exp = {1: labels[:3], 2: labels[3:]}
     tm.assert_dict_equal(groups, exp)
 
     # GH5620
-    groups = _index.groupby(_index)
-    exp = {key: [key] for key in _index}
+    groups = idx.groupby(idx)
+    exp = {key: [key] for key in idx}
     tm.assert_dict_equal(groups, exp)
 
 
@@ -162,34 +162,34 @@ def test_where_array_like():
         pytest.raises(NotImplementedError, f)
 
 
-def test_reorder_levels(_index):
+def test_reorder_levels(idx):
     # this blows up
     tm.assert_raises_regex(IndexError, '^Too many levels',
-                           _index.reorder_levels, [2, 1, 0])
+                           idx.reorder_levels, [2, 1, 0])
 
 
-def test_astype(_index):
-    expected = _index.copy()
-    actual = _index.astype('O')
+def test_astype(idx):
+    expected = idx.copy()
+    actual = idx.astype('O')
     assert_copy(actual.levels, expected.levels)
     assert_copy(actual.labels, expected.labels)
     check_level_names(actual, expected.names)
 
     with tm.assert_raises_regex(TypeError, "^Setting.*dtype.*object"):
-        _index.astype(np.dtype(int))
+        idx.astype(np.dtype(int))
 
 
 @pytest.mark.parametrize('ordered', [True, False])
-def test_astype_category(_index, ordered):
+def test_astype_category(idx, ordered):
     # GH 18630
     msg = '> 1 ndim Categorical are not supported at this time'
     with tm.assert_raises_regex(NotImplementedError, msg):
-        _index.astype(CategoricalDtype(ordered=ordered))
+        idx.astype(CategoricalDtype(ordered=ordered))
 
     if ordered is False:
         # dtype='category' defaults to ordered=False, so only test once
         with tm.assert_raises_regex(NotImplementedError, msg):
-            _index.astype('category')
+            idx.astype('category')
 
 
 @pytest.mark.parametrize('first_type,second_type', [
@@ -306,8 +306,8 @@ def test_take(named_index):
                 ind.freq
 
 
-def test_take_invalid_kwargs(_index):
-    idx = _index
+def test_take_invalid_kwargs(idx):
+    idx = idx
     indices = [1, 2]
 
     msg = r"take\(\) got an unexpected keyword argument 'foo'"
@@ -364,35 +364,35 @@ def test_take_fill_value():
         idx.take(np.array([1, -5]))
 
 
-def test_iter(_index):
-    result = list(_index)
+def test_iter(idx):
+    result = list(idx)
     expected = [('foo', 'one'), ('foo', 'two'), ('bar', 'one'),
                 ('baz', 'two'), ('qux', 'one'), ('qux', 'two')]
     assert result == expected
 
 
-def test_sub(_index):
+def test_sub(idx):
 
-    first = _index
+    first = idx
 
     # - now raises (previously was set op difference)
     with pytest.raises(TypeError):
-        first - _index[-3:]
+        first - idx[-3:]
     with pytest.raises(TypeError):
-        _index[-3:] - first
+        idx[-3:] - first
     with pytest.raises(TypeError):
-        _index[-3:] - first.tolist()
+        idx[-3:] - first.tolist()
     with pytest.raises(TypeError):
-        first.tolist() - _index[-3:]
+        first.tolist() - idx[-3:]
 
 
-def test_nlevels(_index):
-    assert _index.nlevels == 2
+def test_nlevels(idx):
+    assert idx.nlevels == 2
 
 
-def test_argsort(_index):
-    result = _index.argsort()
-    expected = _index.values.argsort()
+def test_argsort(idx):
+    result = idx.argsort()
+    expected = idx.values.argsort()
     tm.assert_numpy_array_equal(result, expected)
 
 
@@ -456,10 +456,10 @@ def test_unique_datetimelike():
 
 
 @pytest.mark.parametrize('level', [0, 'first', 1, 'second'])
-def test_unique_level(_index, level):
+def test_unique_level(idx, level):
     # GH #17896 - with level= argument
-    result = _index.unique(level=level)
-    expected = _index.get_level_values(level).unique()
+    result = idx.unique(level=level)
+    expected = idx.get_level_values(level).unique()
     tm.assert_index_equal(result, expected)
 
     # With already unique level
@@ -540,9 +540,9 @@ def test_duplicate_meta_data():
         assert idx.drop_duplicates().names == idx.names
 
 
-def test_duplicates(_index):
-    assert not _index.has_duplicates
-    assert _index.append(_index).has_duplicates
+def test_duplicates(idx):
+    assert not idx.has_duplicates
+    assert idx.append(idx).has_duplicates
 
     index = MultiIndex(levels=[[0, 1], [0, 1, 2]], labels=[
         [0, 0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 0, 1, 2]])
@@ -653,9 +653,9 @@ def test_duplicates(_index):
             tm.assert_numpy_array_equal(mi.duplicated(), np.zeros(
                 len(mi), dtype='bool'))
 
-def test_map(_index):
+def test_map(idx):
     # callable
-    index = _index
+    index = idx
 
     # we don't infer UInt64
     if isinstance(index, pd.UInt64Index):
@@ -670,28 +670,27 @@ def test_map(_index):
 @pytest.mark.parametrize(
     "mapper",
     [
-        lambda values, index: {i: e for e, i in zip(values, index)},
-        lambda values, index: pd.Series(values, index)])
-def test_map_dictlike(_index, mapper):
+        lambda values, idx: {i: e for e, i in zip(values, idx)},
+        lambda values, idx: pd.Series(values, idx)])
+def test_map_dictlike(idx, mapper):
 
-    index = _index
-    if isinstance(index, (pd.CategoricalIndex, pd.IntervalIndex)):
-        pytest.skip("skipping tests for {}".format(type(index)))
+    if isinstance(idx, (pd.CategoricalIndex, pd.IntervalIndex)):
+        pytest.skip("skipping tests for {}".format(type(idx)))
 
-    identity = mapper(index.values, index)
+    identity = mapper(idx.values, idx)
 
     # we don't infer to UInt64 for a dict
-    if isinstance(index, pd.UInt64Index) and isinstance(identity, dict):
-        expected = index.astype('int64')
+    if isinstance(idx, pd.UInt64Index) and isinstance(identity, dict):
+        expected = idx.astype('int64')
     else:
-        expected = index
+        expected = idx
 
-    result = index.map(identity)
+    result = idx.map(identity)
     tm.assert_index_equal(result, expected)
 
     # empty mappable
-    expected = pd.Index([np.nan] * len(index))
-    result = index.map(mapper(expected, index))
+    expected = pd.Index([np.nan] * len(idx))
+    result = idx.map(mapper(expected, idx))
     tm.assert_index_equal(result, expected)
 
 

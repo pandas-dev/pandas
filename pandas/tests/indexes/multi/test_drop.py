@@ -10,61 +10,61 @@ from pandas.compat import lrange
 from pandas.errors import PerformanceWarning
 
 
-def test_drop(_index):
-    dropped = _index.drop([('foo', 'two'), ('qux', 'one')])
+def test_drop(idx):
+    dropped = idx.drop([('foo', 'two'), ('qux', 'one')])
 
     index = MultiIndex.from_tuples([('foo', 'two'), ('qux', 'one')])
-    dropped2 = _index.drop(index)
+    dropped2 = idx.drop(index)
 
-    expected = _index[[0, 2, 3, 5]]
+    expected = idx[[0, 2, 3, 5]]
     tm.assert_index_equal(dropped, expected)
     tm.assert_index_equal(dropped2, expected)
 
-    dropped = _index.drop(['bar'])
-    expected = _index[[0, 1, 3, 4, 5]]
+    dropped = idx.drop(['bar'])
+    expected = idx[[0, 1, 3, 4, 5]]
     tm.assert_index_equal(dropped, expected)
 
-    dropped = _index.drop('foo')
-    expected = _index[[2, 3, 4, 5]]
+    dropped = idx.drop('foo')
+    expected = idx[[2, 3, 4, 5]]
     tm.assert_index_equal(dropped, expected)
 
     index = MultiIndex.from_tuples([('bar', 'two')])
-    pytest.raises(KeyError, _index.drop, [('bar', 'two')])
-    pytest.raises(KeyError, _index.drop, index)
-    pytest.raises(KeyError, _index.drop, ['foo', 'two'])
+    pytest.raises(KeyError, idx.drop, [('bar', 'two')])
+    pytest.raises(KeyError, idx.drop, index)
+    pytest.raises(KeyError, idx.drop, ['foo', 'two'])
 
     # partially correct argument
     mixed_index = MultiIndex.from_tuples([('qux', 'one'), ('bar', 'two')])
-    pytest.raises(KeyError, _index.drop, mixed_index)
+    pytest.raises(KeyError, idx.drop, mixed_index)
 
     # error='ignore'
-    dropped = _index.drop(index, errors='ignore')
-    expected = _index[[0, 1, 2, 3, 4, 5]]
+    dropped = idx.drop(index, errors='ignore')
+    expected = idx[[0, 1, 2, 3, 4, 5]]
     tm.assert_index_equal(dropped, expected)
 
-    dropped = _index.drop(mixed_index, errors='ignore')
-    expected = _index[[0, 1, 2, 3, 5]]
+    dropped = idx.drop(mixed_index, errors='ignore')
+    expected = idx[[0, 1, 2, 3, 5]]
     tm.assert_index_equal(dropped, expected)
 
-    dropped = _index.drop(['foo', 'two'], errors='ignore')
-    expected = _index[[2, 3, 4, 5]]
+    dropped = idx.drop(['foo', 'two'], errors='ignore')
+    expected = idx[[2, 3, 4, 5]]
     tm.assert_index_equal(dropped, expected)
 
     # mixed partial / full drop
-    dropped = _index.drop(['foo', ('qux', 'one')])
-    expected = _index[[2, 3, 5]]
+    dropped = idx.drop(['foo', ('qux', 'one')])
+    expected = idx[[2, 3, 5]]
     tm.assert_index_equal(dropped, expected)
 
     # mixed partial / full drop / error='ignore'
     mixed_index = ['foo', ('qux', 'one'), 'two']
-    pytest.raises(KeyError, _index.drop, mixed_index)
-    dropped = _index.drop(mixed_index, errors='ignore')
-    expected = _index[[2, 3, 5]]
+    pytest.raises(KeyError, idx.drop, mixed_index)
+    dropped = idx.drop(mixed_index, errors='ignore')
+    expected = idx[[2, 3, 5]]
     tm.assert_index_equal(dropped, expected)
 
 
-def test_droplevel_with_names(_index):
-    index = _index[_index.get_loc('foo')]
+def test_droplevel_with_names(idx):
+    index = idx[idx.get_loc('foo')]
     dropped = index.droplevel(0)
     assert dropped.name == 'second'
 

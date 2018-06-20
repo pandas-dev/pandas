@@ -17,8 +17,8 @@ from pandas import (CategoricalIndex, DatetimeIndex, Float64Index, Index,
                     isna)
 
 
-def test_slice_locs_partial(_index):
-    sorted_idx, _ = _index.sortlevel(0)
+def test_slice_locs_partial(idx):
+    sorted_idx, _ = idx.sortlevel(0)
 
     result = sorted_idx.slice_locs(('foo', 'two'), ('qux', 'one'))
     assert result == (1, 5)
@@ -112,21 +112,19 @@ def test_slice_locs_not_contained():
 
 
 
-def test_to_series(_index):
+def test_to_series(idx):
     # assert that we are creating a copy of the index
 
-    idx = _index
     s = idx.to_series()
     assert s.values is not idx.values
     assert s.index is not idx
     assert s.name == idx.name
 
 
-def test_to_series_with_arguments(_index):
+def test_to_series_with_arguments(idx):
     # GH18699
 
     # index kwarg
-    idx = _index
     s = idx.to_series(index=idx)
 
     assert s.values is not idx.values
@@ -134,7 +132,7 @@ def test_to_series_with_arguments(_index):
     assert s.name == idx.name
 
     # name kwarg
-    idx = _index
+    idx = idx
     s = idx.to_series(name='__test')
 
     assert s.values is not idx.values
@@ -142,10 +140,9 @@ def test_to_series_with_arguments(_index):
     assert s.name != idx.name
 
 
-def test_shift(_index):
+def test_shift(idx):
 
     # GH8083 test the base class for shift
-    idx = _index
     pytest.raises(NotImplementedError, idx.shift, 1)
     pytest.raises(NotImplementedError, idx.shift, 1, 2)
 
@@ -229,15 +226,14 @@ def test_fillna(named_index):
             assert idx.hasnans
 
 
-def test_putmask_with_wrong_mask(_index):
+def test_putmask_with_wrong_mask(idx):
     # GH18368
-    index = _index
 
     with pytest.raises(ValueError):
-        index.putmask(np.ones(len(index) + 1, np.bool), 1)
+        idx.putmask(np.ones(len(idx) + 1, np.bool), 1)
 
     with pytest.raises(ValueError):
-        index.putmask(np.ones(len(index) - 1, np.bool), 1)
+        idx.putmask(np.ones(len(idx) - 1, np.bool), 1)
 
     with pytest.raises(ValueError):
-        index.putmask('foo', 1)
+        idx.putmask('foo', 1)

@@ -40,9 +40,9 @@ def test_equals(named_index):
             assert not idx.equals(pd.Series(idx))
 
 
-def test_equals_op(_index):
+def test_equals_op(idx):
     # GH9947, GH10637
-    index_a = _index
+    index_a = idx
     if isinstance(index_a, PeriodIndex):
         return
 
@@ -103,14 +103,14 @@ def test_equals_op(_index):
         tm.assert_series_equal(series_a == item, Series(expected3))
 
 
-def test_equals_multi(_index):
-    assert _index.equals(_index)
-    assert not _index.equals(_index.values)
-    assert _index.equals(Index(_index.values))
+def test_equals_multi(idx):
+    assert idx.equals(idx)
+    assert not idx.equals(idx.values)
+    assert idx.equals(Index(idx.values))
 
-    assert _index.equal_levels(_index)
-    assert not _index.equals(_index[:-1])
-    assert not _index.equals(_index[-1])
+    assert idx.equal_levels(idx)
+    assert not idx.equals(idx[:-1])
+    assert not idx.equals(idx[-1])
 
     # different number of levels
     index = MultiIndex(levels=[Index(lrange(4)), Index(lrange(4)), Index(
@@ -130,8 +130,8 @@ def test_equals_multi(_index):
 
     index = MultiIndex(levels=[major_axis, minor_axis],
                        labels=[major_labels, minor_labels])
-    assert not _index.equals(index)
-    assert not _index.equal_levels(index)
+    assert not idx.equals(index)
+    assert not idx.equal_levels(index)
 
     # some of the labels are different
     major_axis = Index(['foo', 'bar', 'baz', 'qux'])
@@ -142,12 +142,12 @@ def test_equals_multi(_index):
 
     index = MultiIndex(levels=[major_axis, minor_axis],
                        labels=[major_labels, minor_labels])
-    assert not _index.equals(index)
+    assert not idx.equals(index)
 
 
-def test_identical(_index):
-    mi = _index.copy()
-    mi2 = _index.copy()
+def test_identical(idx):
+    mi = idx.copy()
+    mi2 = idx.copy()
     assert mi.identical(mi2)
 
     mi = mi.set_names(['new1', 'new2'])
@@ -164,9 +164,9 @@ def test_identical(_index):
     assert mi.equals(mi4)
 
 
-def test_equals_operator(_index):
+def test_equals_operator(idx):
     # GH9785
-    assert (_index == _index).all()
+    assert (idx == idx).all()
 
 
 def test_equals_missing_values():
@@ -209,13 +209,13 @@ def test_is_():
     assert not mi5.is_(mi)
 
 
-def test_is_all_dates(_index):
-    assert not _index.is_all_dates
+def test_is_all_dates(idx):
+    assert not idx.is_all_dates
 
 
-def test_is_numeric(_index):
+def test_is_numeric(idx):
     # MultiIndex is never numeric
-    assert not _index.is_numeric()
+    assert not idx.is_numeric()
 
 
 def test_nulls(named_index):

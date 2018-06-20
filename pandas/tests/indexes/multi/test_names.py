@@ -30,20 +30,20 @@ def test_index_name_retained():
     tm.assert_frame_equal(result, df_expected)
 
 
-def test_changing_names(_index):
+def test_changing_names(idx):
 
     # names should be applied to levels
-    level_names = [level.name for level in _index.levels]
-    check_level_names(_index, _index.names)
+    level_names = [level.name for level in idx.levels]
+    check_level_names(idx, idx.names)
 
-    view = _index.view()
-    copy = _index.copy()
-    shallow_copy = _index._shallow_copy()
+    view = idx.view()
+    copy = idx.copy()
+    shallow_copy = idx._shallow_copy()
 
     # changing names should change level names on object
-    new_names = [name + "a" for name in _index.names]
-    _index.names = new_names
-    check_level_names(_index, new_names)
+    new_names = [name + "a" for name in idx.names]
+    idx.names = new_names
+    check_level_names(idx, new_names)
 
     # but not on copies
     check_level_names(view, level_names)
@@ -52,12 +52,12 @@ def test_changing_names(_index):
 
     # and copies shouldn't change original
     shallow_copy.names = [name + "c" for name in shallow_copy.names]
-    check_level_names(_index, new_names)
+    check_level_names(idx, new_names)
 
 
-def test_take_preserve_name(_index):
-    taken = _index.take([3, 0, 1])
-    assert taken.names == _index.names
+def test_take_preserve_name(idx):
+    taken = idx.take([3, 0, 1])
+    assert taken.names == idx.names
 
 
 def test_copy_names():
@@ -83,15 +83,15 @@ def test_copy_names():
     assert multi_idx3.names == ['NewName1', 'NewName2']
 
 
-def test_names(_index, index_names):
+def test_names(idx, index_names):
 
     # names are assigned in setup
     names = index_names
-    level_names = [level.name for level in _index.levels]
+    level_names = [level.name for level in idx.levels]
     assert names == level_names
 
     # setting bad names on existing
-    index = _index
+    index = idx
     tm.assert_raises_regex(ValueError, "^Length of names",
                            setattr, index, "names",
                            list(index.names) + ["third"])
@@ -99,8 +99,8 @@ def test_names(_index, index_names):
                            setattr, index, "names", [])
 
     # initializing with bad names (should always be equivalent)
-    major_axis, minor_axis = _index.levels
-    major_labels, minor_labels = _index.labels
+    major_axis, minor_axis = idx.levels
+    major_labels, minor_labels = idx.labels
     tm.assert_raises_regex(ValueError, "^Length of names", MultiIndex,
                            levels=[major_axis, minor_axis],
                            labels=[major_labels, minor_labels],

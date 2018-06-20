@@ -12,24 +12,24 @@ from pandas import Index, MultiIndex
                          [Index(['three', 'one', 'two']),
                              Index(['one']),
                              Index(['one', 'three'])])
-def test_join_level(_index, other, join_type):
-    join_index, lidx, ridx = other.join(_index, how=join_type,
+def test_join_level(idx, other, join_type):
+    join_index, lidx, ridx = other.join(idx, how=join_type,
                                         level='second',
                                         return_indexers=True)
 
-    exp_level = other.join(_index.levels[1], how=join_type)
-    assert join_index.levels[0].equals(_index.levels[0])
+    exp_level = other.join(idx.levels[1], how=join_type)
+    assert join_index.levels[0].equals(idx.levels[0])
     assert join_index.levels[1].equals(exp_level)
 
     # pare down levels
     mask = np.array(
-        [x[1] in exp_level for x in _index], dtype=bool)
-    exp_values = _index.values[mask]
+        [x[1] in exp_level for x in idx], dtype=bool)
+    exp_values = idx.values[mask]
     tm.assert_numpy_array_equal(join_index.values, exp_values)
 
     if join_type in ('outer', 'inner'):
         join_index2, ridx2, lidx2 = \
-            _index.join(other, how=join_type, level='second',
+            idx.join(other, how=join_type, level='second',
                         return_indexers=True)
 
         assert join_index.equals(join_index2)
@@ -38,20 +38,19 @@ def test_join_level(_index, other, join_type):
         tm.assert_numpy_array_equal(join_index2.values, exp_values)
 
 
-def test_join_level_corner_case(_index):
+def test_join_level_corner_case(idx):
     # some corner cases
-    idx = Index(['three', 'one', 'two'])
-    result = idx.join(_index, level='second')
+    index = Index(['three', 'one', 'two'])
+    result = index.join(idx, level='second')
     assert isinstance(result, MultiIndex)
 
     tm.assert_raises_regex(TypeError, "Join.*MultiIndex.*ambiguous",
-                           _index.join, _index, level=1)
+                           idx.join, idx, level=1)
 
 
-def test_join_self(_index, join_type):
-    res = _index
-    joined = res.join(res, how=join_type)
-    assert res is joined
+def test_join_self(idx, join_type):
+    joined = idx.join(idx, how=join_type)
+    assert idx is joined
 
 
 def test_join_multi():
@@ -89,9 +88,8 @@ def test_join_multi():
     tm.assert_numpy_array_equal(ridx, exp_ridx)
 
 
-def test_join_self_unique(_index, join_type):
-    index = _index
-    if index.is_unique:
-        joined = index.join(index, how=join_type)
-        assert (index == joined).all()
+def test_join_self_unique(idx, join_type):
+    if idx.is_unique:
+        joined = idx.join(idx, how=join_type)
+        assert (idx == joined).all()
 

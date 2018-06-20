@@ -32,21 +32,21 @@ def assert_multiindex_copied(copy, original):
     assert copy.sortorder == original.sortorder
 
 
-def test_copy(_index):
-    i_copy = _index.copy()
+def test_copy(idx):
+    i_copy = idx.copy()
 
-    assert_multiindex_copied(i_copy, _index)
-
-
-def test_shallow_copy(_index):
-    i_copy = _index._shallow_copy()
-
-    assert_multiindex_copied(i_copy, _index)
+    assert_multiindex_copied(i_copy, idx)
 
 
-def test_view(_index):
-    i_view = _index.view()
-    assert_multiindex_copied(i_view, _index)
+def test_shallow_copy(idx):
+    i_copy = idx._shallow_copy()
+
+    assert_multiindex_copied(i_copy, idx)
+
+
+def test_view(idx):
+    i_view = idx.view()
+    assert_multiindex_copied(i_view, idx)
 
 
 def test_copy_name(named_index):

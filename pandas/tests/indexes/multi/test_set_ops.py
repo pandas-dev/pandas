@@ -149,12 +149,10 @@ def test_symmetric_difference(named_index):
                 first.symmetric_difference([1, 2, 3])
 
 
-def test_empty(_index):
+def test_empty(idx):
     # GH 15270
-    index = _index
-    assert not index.empty
-    assert index[:0].empty
-
+    assert not idx.empty
+    assert idx[:0].empty
 
 
 def test_unique_na():
@@ -164,44 +162,44 @@ def test_unique_na():
     tm.assert_index_equal(result, expected)
 
 
-def test_difference(_index):
+def test_difference(idx):
 
-    first = _index
-    result = first.difference(_index[-3:])
-    expected = MultiIndex.from_tuples(sorted(_index[:-3].values),
+    first = idx
+    result = first.difference(idx[-3:])
+    expected = MultiIndex.from_tuples(sorted(idx[:-3].values),
                                       sortorder=0,
-                                      names=_index.names)
+                                      names=idx.names)
 
     assert isinstance(result, MultiIndex)
     assert result.equals(expected)
-    assert result.names == _index.names
+    assert result.names == idx.names
 
     # empty difference: reflexive
-    result = _index.difference(_index)
-    expected = _index[:0]
+    result = idx.difference(idx)
+    expected = idx[:0]
     assert result.equals(expected)
-    assert result.names == _index.names
+    assert result.names == idx.names
 
     # empty difference: superset
-    result = _index[-3:].difference(_index)
-    expected = _index[:0]
+    result = idx[-3:].difference(idx)
+    expected = idx[:0]
     assert result.equals(expected)
-    assert result.names == _index.names
+    assert result.names == idx.names
 
     # empty difference: degenerate
-    result = _index[:0].difference(_index)
-    expected = _index[:0]
+    result = idx[:0].difference(idx)
+    expected = idx[:0]
     assert result.equals(expected)
-    assert result.names == _index.names
+    assert result.names == idx.names
 
     # names not the same
-    chunklet = _index[-3:]
+    chunklet = idx[-3:]
     chunklet.names = ['foo', 'baz']
     result = first.difference(chunklet)
     assert result.names == (None, None)
 
     # empty, but non-equal
-    result = _index.difference(_index.sortlevel(1)[0])
+    result = idx.difference(idx.sortlevel(1)[0])
     assert len(result) == 0
 
     # raise Exception called with non-MultiIndex
@@ -224,23 +222,23 @@ def test_difference(_index):
                            first.difference, [1, 2, 3, 4, 5])
 
 
-def test_union(_index):
-    piece1 = _index[:5][::-1]
-    piece2 = _index[3:]
+def test_union(idx):
+    piece1 = idx[:5][::-1]
+    piece2 = idx[3:]
 
     the_union = piece1 | piece2
 
-    tups = sorted(_index.values)
+    tups = sorted(idx.values)
     expected = MultiIndex.from_tuples(tups)
 
     assert the_union.equals(expected)
 
     # corner case, pass self or empty thing:
-    the_union = _index.union(_index)
-    assert the_union is _index
+    the_union = idx.union(idx)
+    assert the_union is idx
 
-    the_union = _index.union(_index[:0])
-    assert the_union is _index
+    the_union = idx.union(idx[:0])
+    assert the_union is idx
 
     # won't work in python 3
     # tuples = _index.values
@@ -251,7 +249,7 @@ def test_union(_index):
     # def test_union_with_regular_index(self):
     #     other = Index(['A', 'B', 'C'])
 
-    #     result = other.union(_index)
+    #     result = other.union(idx)
     #     assert ('foo', 'one') in result
     #     assert 'B' in result
 
@@ -259,22 +257,22 @@ def test_union(_index):
     #     assert result.equals(result2)
 
 
-def test_intersection(_index):
-    piece1 = _index[:5][::-1]
-    piece2 = _index[3:]
+def test_intersection(idx):
+    piece1 = idx[:5][::-1]
+    piece2 = idx[3:]
 
     the_int = piece1 & piece2
-    tups = sorted(_index[3:5].values)
+    tups = sorted(idx[3:5].values)
     expected = MultiIndex.from_tuples(tups)
     assert the_int.equals(expected)
 
     # corner case, pass self
-    the_int = _index.intersection(_index)
-    assert the_int is _index
+    the_int = idx.intersection(idx)
+    assert the_int is idx
 
     # empty intersection: disjoint
-    empty = _index[:2] & _index[2:]
-    expected = _index[:0]
+    empty = idx[:2] & idx[2:]
+    expected = idx[:0]
     assert empty.equals(expected)
 
     # can't do in python 3

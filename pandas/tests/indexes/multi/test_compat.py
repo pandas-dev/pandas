@@ -18,9 +18,7 @@ import numpy as np
 
 
 
-def test_numeric_compat(_index):
-
-    idx = _index
+def test_numeric_compat(idx):
     tm.assert_raises_regex(TypeError, "cannot perform __mul__",
                            lambda: idx * 1)
     tm.assert_raises_regex(TypeError, "cannot perform __rmul__",
@@ -37,19 +35,16 @@ def test_numeric_compat(_index):
                            lambda: 1 // idx)
 
 
-def test_logical_compat(_index):
-    idx = _index
+def test_logical_compat(idx):
     tm.assert_raises_regex(TypeError, 'cannot perform all',
                            lambda: idx.all())
     tm.assert_raises_regex(TypeError, 'cannot perform any',
                            lambda: idx.any())
 
 
-def test_boolean_context_compat(_index):
+def test_boolean_context_compat(idx):
 
     # boolean context compat
-    idx = _index
-
     def f():
         if idx:
             pass
@@ -118,8 +113,7 @@ def test_inplace_mutation_resets_values():
     tm.assert_almost_equal(mi2.values, new_values)
 
 
-def test_ndarray_compat_properties(_index, _compat_props):
-    idx = _index
+def test_ndarray_compat_properties(idx, _compat_props):
     assert idx.T.equals(idx)
     assert idx.transpose().equals(idx)
 

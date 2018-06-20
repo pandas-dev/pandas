@@ -11,25 +11,25 @@ def check_level_names(index, names):
     assert [level.name for level in index.levels] == list(names)
 
 
-def test_reindex(_index):
-    result, indexer = _index.reindex(list(_index[:4]))
+def test_reindex(idx):
+    result, indexer = idx.reindex(list(idx[:4]))
     assert isinstance(result, MultiIndex)
-    check_level_names(result, _index[:4].names)
+    check_level_names(result, idx[:4].names)
 
-    result, indexer = _index.reindex(list(_index))
+    result, indexer = idx.reindex(list(idx))
     assert isinstance(result, MultiIndex)
     assert indexer is None
-    check_level_names(result, _index.names)
+    check_level_names(result, idx.names)
 
 
-def test_reindex_level(_index):
-    idx = Index(['one'])
+def test_reindex_level(idx):
+    index = Index(['one'])
 
-    target, indexer = _index.reindex(idx, level='second')
-    target2, indexer2 = idx.reindex(_index, level='second')
+    target, indexer = idx.reindex(index, level='second')
+    target2, indexer2 = index.reindex(idx, level='second')
 
-    exp_index = _index.join(idx, level='second', how='right')
-    exp_index2 = _index.join(idx, level='second', how='left')
+    exp_index = idx.join(index, level='second', how='right')
+    exp_index2 = idx.join(index, level='second', how='left')
 
     assert target.equals(exp_index)
     exp_indexer = np.array([0, 2, 4])
@@ -40,17 +40,17 @@ def test_reindex_level(_index):
     tm.assert_numpy_array_equal(indexer2, exp_indexer2, check_dtype=False)
 
     tm.assert_raises_regex(TypeError, "Fill method not supported",
-                           _index.reindex, _index,
+                           idx.reindex, idx,
                            method='pad', level='second')
 
     tm.assert_raises_regex(TypeError, "Fill method not supported",
-                           idx.reindex, idx, method='bfill',
+                           index.reindex, index, method='bfill',
                            level='first')
 
 
-def test_reindex_preserves_names_when_target_is_list_or_ndarray(_index):
+def test_reindex_preserves_names_when_target_is_list_or_ndarray(idx):
     # GH6552
-    idx = _index.copy()
+    idx = idx.copy()
     target = idx.copy()
     idx.names = target.names = [None, None]
 
@@ -88,8 +88,8 @@ def test_reindex_lvl_preserves_type_if_target_is_empty_list_or_array():
     assert idx.reindex([], level=1)[0].levels[1].dtype.type == np.object_
 
 
-def test_reindex_base(_index):
-    idx = _index
+def test_reindex_base(idx):
+    idx = idx
     expected = np.arange(idx.size, dtype=np.intp)
 
     actual = idx.get_indexer(idx)

@@ -15,9 +15,9 @@ def test_dtype_str(indices):
     assert dtype == str(indices.dtype)
 
 
-def test_format(_index):
-    _index.format()
-    _index[:0].format()
+def test_format(idx):
+    idx.format()
+    idx[:0].format()
 
 
 def test_format_integer_names():
@@ -26,14 +26,14 @@ def test_format_integer_names():
     index.format(names=True)
 
 
-def test_format_sparse_config(_index):
+def test_format_sparse_config(idx):
     warn_filters = warnings.filters
     warnings.filterwarnings('ignore', category=FutureWarning,
                             module=".*format")
     # GH1538
     pd.set_option('display.multi_sparse', False)
 
-    result = _index.format()
+    result = idx.format()
     assert result[1] == 'foo  two'
 
     tm.reset_display_options()
@@ -125,9 +125,8 @@ def test_bytestring_with_unicode():
         str(idx)
 
 
-def test_repr_max_seq_item_setting(_index):
+def test_repr_max_seq_item_setting(idx):
     # GH10182
-    idx = _index
     idx = idx.repeat(50)
     with pd.option_context("display.max_seq_items", None):
         repr(idx)

@@ -25,10 +25,10 @@ def test_contains_with_nat():
         assert val in mi
 
 
-def test_contains(_index):
-    assert ('foo', 'two') in _index
-    assert ('bar', 'two') not in _index
-    assert None not in _index
+def test_contains(idx):
+    assert ('foo', 'two') in idx
+    assert ('bar', 'two') not in idx
+    assert None not in idx
 
 
 @pytest.mark.skipif(not PYPY, reason="tuples cmp recursively on PyPy")
