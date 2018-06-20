@@ -21,7 +21,6 @@ from contextlib import contextmanager
 import webbrowser
 import jinja2
 
-from scripts.announce import update_name_wordlist
 
 
 DOC_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -309,7 +308,11 @@ class DocBuilder:
 
     def spellcheck(self):
         """Spell check the documentation."""
-        update_name_wordlist()
+        try:
+            from scripts.announce import update_name_wordlist
+            update_name_wordlist()
+        except (ImportError, ModuleNotFoundError):
+            print("Unable to update name wordlist, run python script/announce.py to update the list.")
         self._sphinx_build('spelling')
         output_location = os.path.join('build', 'spelling', 'output.txt')
         with open(output_location) as output:
