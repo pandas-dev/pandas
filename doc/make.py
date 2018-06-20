@@ -22,7 +22,6 @@ import webbrowser
 import jinja2
 
 
-
 DOC_PATH = os.path.dirname(os.path.abspath(__file__))
 SOURCE_PATH = os.path.join(DOC_PATH, 'source')
 BUILD_PATH = os.path.join(DOC_PATH, 'build')
@@ -311,9 +310,9 @@ class DocBuilder:
         try:
             from scripts.announce import update_name_wordlist
             update_name_wordlist()
-        except (ImportError, ModuleNotFoundError):
-            print("Unable to update name wordlist, install GitPython "
-                  "to update this list automatically.")
+        except ImportError:
+            print("Unable to update name wordlist, run "
+                  "scripts/announce.py to update the list.")
         self._sphinx_build('spelling')
         output_location = os.path.join('build', 'spelling', 'output.txt')
         with open(output_location) as output:

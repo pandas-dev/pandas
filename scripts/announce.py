@@ -133,6 +133,7 @@ def main(revision_range, repo):
     print(heading)
     print(u"=" * len(heading))
     print(author_msg % len(authors))
+    update_name_wordlist()
 
     for s in authors:
         print(u'* ' + s)
