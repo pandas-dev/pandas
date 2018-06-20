@@ -7,6 +7,7 @@ from pandas.io.formats.console import detect_console_encoding, locale
 def mock_raises_exception(error=Exception):
     raise error
 
+
 @pytest.mark.parametrize('empty,filled', [
     ['stdin', 'stdout'],
     ['stdout', 'stdin']
