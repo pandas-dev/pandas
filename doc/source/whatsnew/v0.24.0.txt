@@ -150,7 +150,7 @@ Timezones
 Offsets
 ^^^^^^^
 
--
+- :class:`DateOffset` objects are now immutable.  Attempting to alter one of these will now raise ``AttributeError`` (:issue:`21341`)
 -
 -
 
