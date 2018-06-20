@@ -8969,18 +8969,13 @@ class NDFrame(PandasObject, SelectionMixin):
             is_valid = is_valid.any(1)  # reduce axis 1
 
         if how == 'first':
-            idx = is_valid.idxmax()
-            if isinstance(is_valid[idx], ABCSeries):
-                chk_notna = False
-                for idxinstance in is_valid[idx]:
-                    chk_notna = chk_notna or idxinstance
-            else:
-                chk_notna = is_valid[idx]
+            idxpos = is_valid.values[::].argmax()
 
         if how == 'last':
             idxpos = len(self) - 1 - is_valid.values[::-1].argmax()
-            chk_notna = is_valid.iat[idxpos]
-            idx = self.index[idxpos]
+
+        chk_notna = is_valid.iat[idxpos]
+        idx = self.index[idxpos]
 
         if not chk_notna:
             return None
