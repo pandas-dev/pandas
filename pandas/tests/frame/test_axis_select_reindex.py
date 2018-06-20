@@ -1152,22 +1152,16 @@ class TestDataFrameSelectReindex(TestData):
                                         errors='ignore')
         assert_frame_equal(expected_no_err.T, actual)
 
-    @pytest.mark.parametrize('index, drop_labels', [
-        ([1, 2, 3], []),
-        ([1, 1, 2], []),
-        ([1, 2, 3], [2]),
-        ([1, 1, 3], [1]),
-    ])
+    @pytest.mark.parametrize('index', [[1, 2, 3], [1, 1, 2]])
+    @pytest.mark.parametrize('drop_labels', [[], [1], [2]])
     def test_drop_empty_list(self, index, drop_labels):
         # GH 21494
         expected_index = [i for i in index if i not in drop_labels]
         frame = pd.DataFrame(index=index).drop(drop_labels)
         tm.assert_frame_equal(frame, pd.DataFrame(index=expected_index))
 
-    @pytest.mark.parametrize('index, drop_labels', [
-        ([1, 2, 3], [1, 4]),
-        ([1, 2, 2], [1, 4]),
-    ])
+    @pytest.mark.parametrize('index', [[1, 2, 3], [1, 2, 2]])
+    @pytest.mark.parametrize('drop_labels', [[1, 4]])
     def test_drop_non_empty_list(self, index, drop_labels):
         # GH 21494
         with tm.assert_raises_regex(KeyError, 'not found in axis'):
