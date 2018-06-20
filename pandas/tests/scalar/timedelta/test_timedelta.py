@@ -588,3 +588,17 @@ class TestTimedeltas(object):
         result = s.dt.components
         assert not result.iloc[0].isna().all()
         assert result.iloc[1].isna().all()
+
+
+@pytest.mark.parametrize('value, expected', [
+    (Timedelta('10S'), True),
+    (Timedelta('-10S'), True),
+    (Timedelta(10, unit='ns'), True),
+    (Timedelta(0, unit='ns'), False),
+    (Timedelta(-10, unit='ns'), True),
+    (Timedelta(None), True),
+    (pd.NaT, True),
+])
+def test_truthiness(value, expected):
+    # https://github.com/pandas-dev/pandas/issues/21484
+    assert bool(value) is expected

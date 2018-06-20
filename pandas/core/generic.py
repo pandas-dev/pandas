@@ -5175,8 +5175,7 @@ class NDFrame(PandasObject, SelectionMixin):
         --------
         pandas.to_datetime : Convert argument to datetime.
         pandas.to_timedelta : Convert argument to timedelta.
-        pandas.to_numeric : Return a fixed frequency timedelta index,
-            with day as the default.
+        pandas.to_numeric : Convert argument to numeric type.
 
         Returns
         -------
@@ -5210,7 +5209,7 @@ class NDFrame(PandasObject, SelectionMixin):
         --------
         pandas.to_datetime : Convert argument to datetime.
         pandas.to_timedelta : Convert argument to timedelta.
-        pandas.to_numeric : Convert argument to numeric typeR
+        pandas.to_numeric : Convert argument to numeric type.
 
         Returns
         -------
@@ -8969,18 +8968,17 @@ class NDFrame(PandasObject, SelectionMixin):
             is_valid = is_valid.any(1)  # reduce axis 1
 
         if how == 'first':
-            # First valid value case
-            i = is_valid.idxmax()
-            if not is_valid[i]:
-                return None
-            return i
+            idxpos = is_valid.values[::].argmax()
 
-        elif how == 'last':
-            # Last valid value case
-            i = is_valid.values[::-1].argmax()
-            if not is_valid.iat[len(self) - i - 1]:
-                return None
-            return self.index[len(self) - i - 1]
+        if how == 'last':
+            idxpos = len(self) - 1 - is_valid.values[::-1].argmax()
+
+        chk_notna = is_valid.iat[idxpos]
+        idx = self.index[idxpos]
+
+        if not chk_notna:
+            return None
+        return idx
 
     @Appender(_shared_docs['valid_index'] % {'position': 'first',
                                              'klass': 'NDFrame'})

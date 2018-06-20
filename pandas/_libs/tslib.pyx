@@ -25,9 +25,7 @@ from tslibs.np_datetime cimport (check_dts_bounds,
                                  _string_to_dts,
                                  dt64_to_dtstruct, dtstruct_to_dt64,
                                  pydatetime_to_dt64, pydate_to_dt64,
-                                 get_datetime64_value,
-                                 days_per_month_table,
-                                 dayofweek, is_leapyear)
+                                 get_datetime64_value)
 from tslibs.np_datetime import OutOfBoundsDatetime
 
 from tslibs.parsing import parse_datetime_string
@@ -127,7 +125,7 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
     elif box == "datetime":
         func_create = create_datetime_from_ts
     else:
-        raise ValueError("box must be one of 'datetime', 'date', 'time' or" +
+        raise ValueError("box must be one of 'datetime', 'date', 'time' or"
                          " 'timestamp'")
 
     if tz is not None:
@@ -761,18 +759,6 @@ cdef inline bint _parse_today_now(str val, int64_t* iresult):
 
 # ----------------------------------------------------------------------
 # Some general helper functions
-
-
-def monthrange(int64_t year, int64_t month):
-    cdef:
-        int64_t days
-
-    if month < 1 or month > 12:
-        raise ValueError("bad month number 0; must be 1-12")
-
-    days = days_per_month_table[is_leapyear(year)][month - 1]
-
-    return (dayofweek(year, month, 1), days)
 
 
 cpdef normalize_date(object dt):

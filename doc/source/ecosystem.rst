@@ -39,7 +39,7 @@ Use pandas DataFrames in your `scikit-learn <http://scikit-learn.org/>`__
 ML pipeline.
 
 `Featuretools <https://github.com/featuretools/featuretools/>`__
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Featuretools is a Python library for automated feature engineering built on top of pandas. It excels at transforming temporal and relational datasets into feature matrices for machine learning using reusable feature engineering "primitives". Users can contribute their own primitives in Python and share them with the rest of the community. 
 
@@ -159,14 +159,14 @@ See more in the  `pandas-datareader docs <https://pandas-datareader.readthedocs.
 
 The following data feeds are available:
 
-  * Yahoo! Finance
-  * Google Finance
-  * FRED
-  * Fama/French
-  * World Bank
-  * OECD
-  * Eurostat
-  * EDGAR Index
+* Yahoo! Finance
+* Google Finance
+* FRED
+* Fama/French
+* World Bank
+* OECD
+* Eurostat
+* EDGAR Index
 
 `quandl/Python <https://github.com/quandl/Python>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
