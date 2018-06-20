@@ -203,3 +203,4 @@ Various Tutorials
 - `Pandas Tutorial, by Mikhail Semeniuk <http://www.bearrelroll.com/2013/05/python-pandas-tutorial>`_
 - `Pandas DataFrames Tutorial, by Karlijn Willems <http://www.datacamp.com/community/tutorials/pandas-tutorial-dataframe-python>`_
 - `A concise tutorial with real life examples <https://tutswiki.com/pandas-cookbook/chapter1>`_
+- `Data Analysis and Exploration with Pandas, by Theodore Petrou <https://www.packtpub.com/big-data-and-business-intelligence/data-analysis-and-exploration-pandas-video>`_
