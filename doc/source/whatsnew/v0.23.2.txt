@@ -26,7 +26,7 @@ Performance Improvements
 
 - Improved performance of membership checks in :class:`CategoricalIndex`
   (i.e. ``x in ci``-style checks are much faster). :meth:`CategoricalIndex.contains`
-  is likewise much faster (:issue:`21369`)
+  is likewise much faster (:issue:`21369`, :issue:`21508`)
 - Improved performance of :meth:`MultiIndex.is_unique` (:issue:`21522`)
 -
 

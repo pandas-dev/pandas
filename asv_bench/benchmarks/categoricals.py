@@ -202,7 +202,11 @@ class Contains(object):
     def setup(self):
         N = 10**5
         self.ci = tm.makeCategoricalIndex(N)
-        self.cat = self.ci.categories[0]
+        self.c = self.ci.values
+        self.key = self.ci.categories[0]
 
-    def time_contains(self):
-        self.cat in self.ci
+    def time_categorical_index_contains(self):
+        self.key in self.ci
+
+    def time_categorical_contains(self):
+        self.key in self.c
