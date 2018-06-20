@@ -135,8 +135,8 @@ _numeric_only_doc = """numeric_only : boolean, default None
 """
 
 _merge_doc = """
-Merge DataFrame objects by performing a database-style join operation by
-columns or indexes.
+Merge DataFrame or named Series objects by performing a database-style join
+operation by columns or indexes.
 
 If joining columns on columns, the DataFrame indexes *will be
 ignored*. Otherwise if joining indexes on indexes or indexes on a column or
@@ -144,7 +144,7 @@ columns, the index will be passed on.
 
 Parameters
 ----------%s
-right : DataFrame
+right : DataFrame or named Series
 how : {'left', 'right', 'outer', 'inner'}, default 'inner'
     * left: use only keys from left frame, similar to a SQL left outer join;
       preserve key order
@@ -208,6 +208,7 @@ Notes
 -----
 Support for specifying index levels as the `on`, `left_on`, and
 `right_on` parameters was added in version 0.23.0
+Support for merging named Series objects was added in version 0.24.0
 
 Examples
 --------
