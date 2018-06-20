@@ -6865,7 +6865,7 @@ class DataFrame(NDFrame):
                 values = self.values
                 result = f(values)
 
-                if (filter_type == 'bool' and values.dtype.kind == 'O' and
+                if (filter_type == 'bool' and is_object_dtype(values) and
                         axis is None):
                     # work around https://github.com/numpy/numpy/issues/10489
                     # TODO: combine with hasattr(result, 'dtype') further down

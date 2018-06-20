@@ -9057,15 +9057,14 @@ _bool_doc = """
 
 Parameters
 ----------
-axis : {None, 0 or 'index', 1 or 'columns'}, default None
-    Indicate which axis should be reduced. By default all axes are reduced
-    and a scalar is returned.
+axis : {0 or 'index', 1 or 'columns', None}, default 0
+    Indicate which axis or axes should be reduced.
 
-    * None : reduce all axes, return a scalar.
     * 0 / 'index' : reduce the index, return a Series whose index is the
       original column labels.
     * 1 / 'columns' : reduce the columns, return a Series whose index is the
       original index.
+    * None : reduce all axes, return a scalar.
 
 skipna : boolean, default True
     Exclude NA/null values. If an entire row/column is NA, the result
@@ -9120,9 +9119,9 @@ col1     True
 col2    False
 dtype: bool
 
-Specify ``axis=1`` to check if row-wise values all return True.
+Specify ``axis='columns'`` to check if row-wise values all return True.
 
->>> df.all(axis=1)
+>>> df.all(axis='columns')
 0     True
 1    False
 dtype: bool
