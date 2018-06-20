@@ -453,6 +453,15 @@ def test_reindex_fill_value():
     assert_series_equal(result, expected)
 
 
+def test_reindex_datetimeindexes_tz_naive_and_aware():
+    # GH 8306
+    idx = date_range('20131101', tz='America/Chicago', periods=7)
+    newidx = date_range('20131103', periods=10, freq='H')
+    s = Series(range(7), index=idx)
+    with pytest.raises(TypeError):
+        s.reindex(newidx, method='ffill')
+
+
 def test_rename():
     # GH 17407
     s = Series(range(1, 6), index=pd.Index(range(2, 7), name='IntIndex'))
@@ -463,22 +472,25 @@ def test_rename():
     assert result.name == expected.name
 
 
-@pytest.mark.parametrize('data, index, drop_labels,'
-                         ' axis, expected_data, expected_index',
-                         [([1, 2], ['one', 'two'], ['two'],
-                           0, [1], ['one']),
-                          # Unique Index
-                          ([1, 2], ['one', 'two'], ['two'],
-                           'rows', [1], ['one']),
-                          ([1, 1, 2], ['one', 'two', 'one'], ['two'],
-                           0, [1, 2], ['one', 'one']),
-                          # GH 5248 Non-Unique Index
-                          ([1, 1, 2], ['one', 'two', 'one'], 'two',
-                           0, [1, 2], ['one', 'one']),
-                          ([1, 1, 2], ['one', 'two', 'one'], ['one'],
-                           0, [1], ['two']),
-                          ([1, 1, 2], ['one', 'two', 'one'], 'one',
-                           0, [1], ['two'])])
+@pytest.mark.parametrize(
+    'data, index, drop_labels,'
+    ' axis, expected_data, expected_index',
+    [
+        # Unique Index
+        ([1, 2], ['one', 'two'], ['two'],
+         0, [1], ['one']),
+        ([1, 2], ['one', 'two'], ['two'],
+         'rows', [1], ['one']),
+        ([1, 1, 2], ['one', 'two', 'one'], ['two'],
+         0, [1, 2], ['one', 'one']),
+
+        # GH 5248 Non-Unique Index
+        ([1, 1, 2], ['one', 'two', 'one'], 'two',
+         0, [1, 2], ['one', 'one']),
+        ([1, 1, 2], ['one', 'two', 'one'], ['one'],
+         0, [1], ['two']),
+        ([1, 1, 2], ['one', 'two', 'one'], 'one',
+         0, [1], ['two'])])
 def test_drop_unique_and_non_unique_index(data, index, axis, drop_labels,
                                           expected_data, expected_index):
 
@@ -488,17 +500,19 @@ def test_drop_unique_and_non_unique_index(data, index, axis, drop_labels,
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize('data, index, drop_labels,'
-                         ' axis, error_type, error_desc',
-                         [(range(3), list('abc'), 'bc',
-                           0, KeyError, 'not found in axis'),
-                          # single string/tuple-like
-                          (range(3), list('abc'), ('a',),
-                           0, KeyError, 'not found in axis'),
-                          (range(3), list('abc'), 'one',
-                           'columns', ValueError, 'No axis named columns')
-                          # bad axis
-                          ])
+@pytest.mark.parametrize(
+    'data, index, drop_labels,'
+    ' axis, error_type, error_desc',
+    [
+        # single string/tuple-like
+        (range(3), list('abc'), 'bc',
+         0, KeyError, 'not found in axis'),
+
+        # bad axis
+        (range(3), list('abc'), ('a',),
+         0, KeyError, 'not found in axis'),
+        (range(3), list('abc'), 'one',
+         'columns', ValueError, 'No axis named columns')])
 def test_drop_exception_raised(data, index, drop_labels,
                                axis, error_type, error_desc):
 

@@ -445,21 +445,24 @@ class TestIndex(Base):
         result = klass(list(values), dtype=dtype)
         tm.assert_index_equal(result, index)
 
-    def test_constructor_empty_gen(self):
-        skip_index_keys = ["repeats", "periodIndex", "rangeIndex",
-                           "tuples"]
-        for key, index in self.generate_index_types(skip_index_keys):
-            empty = index.__class__([])
-            assert isinstance(empty, index.__class__)
-            assert not len(empty)
+    @pytest.mark.parametrize("value", [[], iter([]), (x for x in [])])
+    @pytest.mark.parametrize("klass",
+                             [Index, Float64Index, Int64Index, UInt64Index,
+                              CategoricalIndex, DatetimeIndex, TimedeltaIndex])
+    def test_constructor_empty(self, value, klass):
+        empty = klass(value)
+        assert isinstance(empty, klass)
+        assert not len(empty)
 
     @pytest.mark.parametrize("empty,klass", [
         (PeriodIndex([], freq='B'), PeriodIndex),
+        (PeriodIndex(iter([]), freq='B'), PeriodIndex),
+        (PeriodIndex((x for x in []), freq='B'), PeriodIndex),
         (RangeIndex(step=1), pd.RangeIndex),
         (MultiIndex(levels=[[1, 2], ['blue', 'red']],
                     labels=[[], []]), MultiIndex)
     ])
-    def test_constructor_empty(self, empty, klass):
+    def test_constructor_empty_special(self, empty, klass):
         assert isinstance(empty, klass)
         assert not len(empty)
 
