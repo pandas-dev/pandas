@@ -1,78 +1,17 @@
 import numpy as np
 
+from functools import reduce
+from operator import __or__, __xor__, __and__, __sub__
+
 from pandas.core.dtypes.generic import ABCSeries
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.common import is_list_like
 
-import pandas.compat as compat
 from pandas.core.base import NoNewAttributesMixin
 from pandas.util._decorators import Appender
-import re
-from functools import reduce
-from operator import __or__, __xor__, __and__, __sub__
-import pandas._libs.lib as lib
+import pandas.compat as compat
 
 _shared_docs = dict()
-
-
-def _na_map(f, arr, na_result=np.nan, dtype=object):
-    # should really _check_ for NA
-    return _map(f, arr, na_mask=True, na_value=na_result, dtype=dtype)
-
-
-def _map(f, arr, na_mask=False, na_value=np.nan, dtype=object):
-    if not len(arr):
-        return np.ndarray(0, dtype=dtype)
-
-    if isinstance(arr, ABCSeries):
-        arr = arr.values
-    if not isinstance(arr, np.ndarray):
-        arr = np.asarray(arr, dtype=object)
-    if na_mask:
-        mask = isna(arr)
-        try:
-            convert = not all(mask)
-            result = lib.map_infer_mask(arr, f, mask.view(np.uint8), convert)
-        except (TypeError, AttributeError) as e:
-            # Reraise the exception if callable `f` got wrong number of args.
-            # The user may want to be warned by this, instead of getting NaN
-            if compat.PY2:
-                p_err = r'takes (no|(exactly|at (least|most)) ?\d+) arguments?'
-            else:
-                p_err = (r'((takes)|(missing)) (?(2)from \d+ to )?\d+ '
-                         r'(?(3)required )positional arguments?')
-
-            if len(e.args) >= 1 and re.search(p_err, e.args[0]):
-                raise e
-
-            def g(x):
-                try:
-                    return f(x)
-                except (TypeError, AttributeError):
-                    return na_value
-
-            return _map(g, arr, dtype=dtype)
-        if na_value is not np.nan:
-            np.putmask(result, mask, na_value)
-            if result.dtype == object:
-                result = lib.maybe_convert_objects(result)
-        return result
-    else:
-        return lib.map_infer(arr, f)
-
-
-def _noarg_wrapper(f, docstring=None, **kargs):
-    def wrapper(self):
-        result = _na_map(f, self._data, **kargs)
-        return self._wrap_result(result)
-
-    wrapper.__name__ = f.__name__
-    if docstring is not None:
-        wrapper.__doc__ = docstring
-    else:
-        raise ValueError('Provide docstring')
-
-    return wrapper
 
 
 class SetMethods(NoNewAttributesMixin):
@@ -97,9 +36,11 @@ class SetMethods(NoNewAttributesMixin):
         """
         TODO
         """
+
         # signature following GH13877
         if not isinstance(data, ABCSeries):
-            raise AttributeError("Must use Series for set accessor!")
+            raise ValueError("Must pass Series for validating inputs of set "
+                             "accessor operations")
 
         if fill_value is not None and fill_value is not np.nan:
             err_str = ("The parameter 'fill_value' must be list-like!")
@@ -147,22 +88,13 @@ class SetMethods(NoNewAttributesMixin):
 
         return data
 
-    def __getitem__(self, key):
-        if isinstance(key, slice):
-            return self.slice(start=key.start, stop=key.stop, step=key.step)
-        else:
-            return self.get(key)
-
-    def __iter__(self):
-        i = 0
-        g = self.get(i)
-        while g.notna().any():
-            yield g
-            i += 1
-            g = self.get(i)
-
     def _wrap_result(self, result, name=None, index=None):
+        """
+        TODO
+        """
+
         from pandas import Series
+
         if name is None:
             name = getattr(result, 'name', None)
         if name is None:
@@ -236,16 +168,25 @@ class SetMethods(NoNewAttributesMixin):
         raise TypeError(err_msg)
 
     def _apply_op(self, others, operator, errors, fill_value, join):
+        """
+        TODO
+        """
+
         from pandas import concat
 
         data = self._validate(self._data, errors, fill_value)
 
         # concatenate Series/Index with itself if no "others"
         if others is None:
-            return reduce(operator, data)
+            return reduce(operator, data.dropna())
 
-        # turn others into list of series -- necessary for concat/align
-        others = self._get_series_list(others)
+        try:
+            # turn others into list of series -- necessary for concat/align
+            others = self._get_series_list(others)
+        except ValueError:  # do not catch TypeError raised by _get_series_list
+            raise ValueError('If `others` contains arrays, these must all be '
+                             'of the same length as the calling Series.')
+        # check if all series are legal for set ops; raise/convert otherwise
         others = [self._validate(x, errors, fill_value) for x in others]
 
         # Need to add keys for uniqueness in case of duplicate columns
@@ -260,19 +201,22 @@ class SetMethods(NoNewAttributesMixin):
             allcols = [self._validate(x, 'skip', fill_value) for x in allcols]
 
         result = self._apply_op_core(allcols, operator)
-        return self._wrap_result(result, index=data.index)
+        index = others.index if join == 'right' else data.index
+        return self._wrap_result(result, index=index)
 
     def _apply_op_core(self, list_of_series, operator):
-        # others: list of Series; all aligned with data
+        """
+        TODO
+        """
+        # list_of_series: must be aligned already!
         masks = np.array([isna(x).values for x in list_of_series])
         na_mask = np.logical_or.reduce(masks, axis=0)
         result = np.empty(len(na_mask), dtype=object)
         np.putmask(result, na_mask, np.nan)
 
         # apply operator over columns left-to-right; everything aligned already
-        result[~na_mask] = reduce(lambda x, y: operator(x[~na_mask],
-                                                        y[~na_mask]),
-                                  [x.values for x in list_of_series])
+        result[~na_mask] = reduce(operator,
+                                  [x.values[~na_mask] for x in list_of_series])
         return result
 
     _shared_docs['set_ops'] = ("""
@@ -571,15 +515,18 @@ class SetMethods(NoNewAttributesMixin):
     def xor(self, others=None, join='left', errors='raise', fill_value=None):
         return self._apply_op(others, __xor__, errors, fill_value, join)
 
-    _shared_docs['len'] = ("""
-    Compute length of each set in the Series.
+    def len(self, errors='raise', fill_value=None):
+        """
+        TODO
+        """
 
-    Returns
-    -------
-    lengths : Series of integer values
-    """)
+        from pandas import Series
 
-    len = _noarg_wrapper(len, docstring=_shared_docs['len'], dtype=int)
+        data = self._validate(self._data, errors, fill_value)
+        na_mask = data.isna()
+        result = Series(index=data.index)
+        result.loc[~na_mask] = data.dropna().map(len)
+        return result
 
     @classmethod
     def _make_accessor(cls, data):
