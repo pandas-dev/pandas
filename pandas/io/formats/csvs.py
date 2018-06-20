@@ -5,11 +5,13 @@ Module for formatting output data into CSV files.
 
 from __future__ import print_function
 
+import warnings
+
 import csv as csvlib
+from zipfile import ZipFile
 import numpy as np
 
 from pandas.core.dtypes.missing import notna
-from pandas.core.dtypes.inference import is_file_like
 from pandas.core.index import Index, MultiIndex
 from pandas import compat
 from pandas.compat import (StringIO, range, zip)
@@ -128,19 +130,31 @@ class CSVFormatter(object):
         else:
             encoding = self.encoding
 
-        # PR 21300 uses string buffer to receive csv writing and dump into
-        # file-like output with compression as option. GH 21241, 21118
-        f = StringIO()
-        if not is_file_like(self.path_or_buf):
-            # path_or_buf is path
-            path_or_buf = self.path_or_buf
-        elif hasattr(self.path_or_buf, 'name'):
-            # path_or_buf is file handle
-            path_or_buf = self.path_or_buf.name
-        else:
-            # path_or_buf is file-like IO objects.
+        # GH 21227 internal compression is not used when file-like passed.
+        if self.compression and hasattr(self.path_or_buf, 'write'):
+            msg = ("compression has no effect when passing file-like "
+                   "object as input.")
+            warnings.warn(msg, RuntimeWarning, stacklevel=2)
+
+        # when zip compression is called.
+        is_zip = isinstance(self.path_or_buf, ZipFile) or (
+            not hasattr(self.path_or_buf, 'write')
+            and self.compression == 'zip')
+
+        if is_zip:
+            # zipfile doesn't support writing string to archive. uses string
+            # buffer to receive csv writing and dump into zip compression
+            # file handle. GH 21241, 21118
+            f = StringIO()
+            close = False
+        elif hasattr(self.path_or_buf, 'write'):
             f = self.path_or_buf
-            path_or_buf = None
+            close = False
+        else:
+            f, handles = _get_handle(self.path_or_buf, self.mode,
+                                     encoding=encoding,
+                                     compression=self.compression)
+            close = True
 
         try:
             writer_kwargs = dict(lineterminator=self.line_terminator,
@@ -157,13 +171,18 @@ class CSVFormatter(object):
             self._save()
 
         finally:
-            # GH 17778 handles zip compression for byte strings separately.
-            buf = f.getvalue()
-            if path_or_buf:
-                f, handles = _get_handle(path_or_buf, self.mode,
-                                         encoding=encoding,
-                                         compression=self.compression)
-                f.write(buf)
+            if is_zip:
+                # GH 17778 handles zip compression separately.
+                buf = f.getvalue()
+                if hasattr(self.path_or_buf, 'write'):
+                    self.path_or_buf.write(buf)
+                else:
+                    f, handles = _get_handle(self.path_or_buf, self.mode,
+                                             encoding=encoding,
+                                             compression=self.compression)
+                    f.write(buf)
+                    close = True
+            if close:
                 f.close()
                 for _fh in handles:
                     _fh.close()
