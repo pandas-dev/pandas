@@ -7,18 +7,7 @@ import pandas.util.testing as tm
 import pytest
 from pandas import DataFrame, MultiIndex, date_range
 from pandas.compat import PY3, range
-
 from pandas.util.testing import assert_almost_equal
-
-
-def test_tuples_with_name_string():
-    # GH 15110 and GH 14848
-
-    li = [(0, 0, 1), (0, 1, 0), (1, 0, 0)]
-    with pytest.raises(ValueError):
-        pd.Index(li, name='abc')
-    with pytest.raises(ValueError):
-        pd.Index(li, name='a')
 
 
 def test_tolist(_index):
@@ -150,3 +139,12 @@ def test_roundtrip_pickle_with_tz():
          ], names=['one', 'two', 'three'])
     unpickled = tm.round_trip_pickle(index)
     assert index.equal_levels(unpickled)
+
+
+def test_pickle(indices):
+    unpickled = tm.round_trip_pickle(indices)
+    assert indices.equals(unpickled)
+    original_name, indices.name = indices.name, 'foo'
+    unpickled = tm.round_trip_pickle(indices)
+    assert indices.equals(unpickled)
+    indices.name = original_name

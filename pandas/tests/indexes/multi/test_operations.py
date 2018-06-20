@@ -7,133 +7,18 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 import pytest
-from pandas import DataFrame, Index, MultiIndex, date_range, period_range
+from pandas import (CategoricalIndex, DataFrame, DatetimeIndex, Float64Index,
+                    Index, Int64Index, IntervalIndex, MultiIndex, PeriodIndex,
+                    RangeIndex, Series, TimedeltaIndex, UInt64Index, compat,
+                    date_range, isna, period_range)
 from pandas.compat import PYPY, lrange, lzip, range, u
 from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas.util.testing import assert_copy
 
 
 def check_level_names(index, names):
     assert [level.name for level in index.levels] == list(names)
-
-
-def test_difference(_index):
-
-    first = _index
-    result = first.difference(_index[-3:])
-    expected = MultiIndex.from_tuples(sorted(_index[:-3].values),
-                                      sortorder=0,
-                                      names=_index.names)
-
-    assert isinstance(result, MultiIndex)
-    assert result.equals(expected)
-    assert result.names == _index.names
-
-    # empty difference: reflexive
-    result = _index.difference(_index)
-    expected = _index[:0]
-    assert result.equals(expected)
-    assert result.names == _index.names
-
-    # empty difference: superset
-    result = _index[-3:].difference(_index)
-    expected = _index[:0]
-    assert result.equals(expected)
-    assert result.names == _index.names
-
-    # empty difference: degenerate
-    result = _index[:0].difference(_index)
-    expected = _index[:0]
-    assert result.equals(expected)
-    assert result.names == _index.names
-
-    # names not the same
-    chunklet = _index[-3:]
-    chunklet.names = ['foo', 'baz']
-    result = first.difference(chunklet)
-    assert result.names == (None, None)
-
-    # empty, but non-equal
-    result = _index.difference(_index.sortlevel(1)[0])
-    assert len(result) == 0
-
-    # raise Exception called with non-MultiIndex
-    result = first.difference(first.values)
-    assert result.equals(first[:0])
-
-    # name from empty array
-    result = first.difference([])
-    assert first.equals(result)
-    assert first.names == result.names
-
-    # name from non-empty array
-    result = first.difference([('foo', 'one')])
-    expected = pd.MultiIndex.from_tuples([('bar', 'one'), ('baz', 'two'), (
-        'foo', 'two'), ('qux', 'one'), ('qux', 'two')])
-    expected.names = first.names
-    assert first.names == result.names
-    tm.assert_raises_regex(TypeError, "other must be a MultiIndex "
-                           "or a list of tuples",
-                           first.difference, [1, 2, 3, 4, 5])
-
-
-def test_union(_index):
-    piece1 = _index[:5][::-1]
-    piece2 = _index[3:]
-
-    the_union = piece1 | piece2
-
-    tups = sorted(_index.values)
-    expected = MultiIndex.from_tuples(tups)
-
-    assert the_union.equals(expected)
-
-    # corner case, pass self or empty thing:
-    the_union = _index.union(_index)
-    assert the_union is _index
-
-    the_union = _index.union(_index[:0])
-    assert the_union is _index
-
-    # won't work in python 3
-    # tuples = _index.values
-    # result = _index[:4] | tuples[4:]
-    # assert result.equals(tuples)
-
-    # not valid for python 3
-    # def test_union_with_regular_index(self):
-    #     other = Index(['A', 'B', 'C'])
-
-    #     result = other.union(_index)
-    #     assert ('foo', 'one') in result
-    #     assert 'B' in result
-
-    #     result2 = _index.union(other)
-    #     assert result.equals(result2)
-
-
-def test_intersection(_index):
-    piece1 = _index[:5][::-1]
-    piece2 = _index[3:]
-
-    the_int = piece1 & piece2
-    tups = sorted(_index[3:5].values)
-    expected = MultiIndex.from_tuples(tups)
-    assert the_int.equals(expected)
-
-    # corner case, pass self
-    the_int = _index.intersection(_index)
-    assert the_int is _index
-
-    # empty intersection: disjoint
-    empty = _index[:2] & _index[2:]
-    expected = _index[:0]
-    assert empty.equals(expected)
-
-    # can't do in python 3
-    # tuples = _index.values
-    # result = _index & tuples
-    # assert result.equals(tuples)
 
 
 def test_insert(_index):
@@ -203,78 +88,8 @@ def test_insert(_index):
     tm.assert_series_equal(left, right)
 
 
-def test_is_all_dates(_index):
-    assert not _index.is_all_dates
-
-
-def test_is_numeric(_index):
-    # MultiIndex is never numeric
-    assert not _index.is_numeric()
-
-
 def test_bounds(_index):
     _index._bounds
-
-
-def test_equals_multi(_index):
-    assert _index.equals(_index)
-    assert not _index.equals(_index.values)
-    assert _index.equals(Index(_index.values))
-
-    assert _index.equal_levels(_index)
-    assert not _index.equals(_index[:-1])
-    assert not _index.equals(_index[-1])
-
-    # different number of levels
-    index = MultiIndex(levels=[Index(lrange(4)), Index(lrange(4)), Index(
-        lrange(4))], labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
-            [0, 1, 0, 0, 0, 1, 0, 1]), np.array([1, 0, 1, 1, 0, 0, 1, 0])])
-
-    index2 = MultiIndex(levels=index.levels[:-1], labels=index.labels[:-1])
-    assert not index.equals(index2)
-    assert not index.equal_levels(index2)
-
-    # levels are different
-    major_axis = Index(lrange(4))
-    minor_axis = Index(lrange(2))
-
-    major_labels = np.array([0, 0, 1, 2, 2, 3])
-    minor_labels = np.array([0, 1, 0, 0, 1, 0])
-
-    index = MultiIndex(levels=[major_axis, minor_axis],
-                       labels=[major_labels, minor_labels])
-    assert not _index.equals(index)
-    assert not _index.equal_levels(index)
-
-    # some of the labels are different
-    major_axis = Index(['foo', 'bar', 'baz', 'qux'])
-    minor_axis = Index(['one', 'two'])
-
-    major_labels = np.array([0, 0, 2, 2, 3, 3])
-    minor_labels = np.array([0, 1, 0, 1, 0, 1])
-
-    index = MultiIndex(levels=[major_axis, minor_axis],
-                       labels=[major_labels, minor_labels])
-    assert not _index.equals(index)
-
-
-def test_identical(_index):
-    mi = _index.copy()
-    mi2 = _index.copy()
-    assert mi.identical(mi2)
-
-    mi = mi.set_names(['new1', 'new2'])
-    assert mi.equals(mi2)
-    assert not mi.identical(mi2)
-
-    mi2 = mi2.set_names(['new1', 'new2'])
-    assert mi.identical(mi2)
-
-    mi3 = Index(mi.tolist(), names=mi.names)
-    mi4 = Index(mi.tolist(), names=mi.names, tupleize_cols=False)
-    assert mi.identical(mi3)
-    assert not mi.identical(mi4)
-    assert mi.equals(mi4)
 
 
 def test_append(_index):
@@ -300,11 +115,6 @@ def test_groupby(_index):
     groups = _index.groupby(_index)
     exp = {key: [key] for key in _index}
     tm.assert_dict_equal(groups, exp)
-
-
-def test_equals_operator(_index):
-    # GH9785
-    assert (_index == _index).all()
 
 
 def test_truncate():
@@ -442,36 +252,6 @@ def test_numpy_repeat():
         ValueError, msg, np.repeat, m, reps, axis=1)
 
 
-def test_is_():
-    mi = MultiIndex.from_tuples(lzip(range(10), range(10)))
-    assert mi.is_(mi)
-    assert mi.is_(mi.view())
-    assert mi.is_(mi.view().view().view().view())
-    mi2 = mi.view()
-    # names are metadata, they don't change id
-    mi2.names = ["A", "B"]
-    assert mi2.is_(mi)
-    assert mi.is_(mi2)
-
-    assert mi.is_(mi.set_names(["C", "D"]))
-    mi2 = mi.view()
-    mi2.set_names(["E", "F"], inplace=True)
-    assert mi.is_(mi2)
-    # levels are inherent properties, they change identity
-    mi3 = mi2.set_levels([lrange(10), lrange(10)])
-    assert not mi3.is_(mi2)
-    # shouldn't change
-    assert mi2.is_(mi)
-    mi4 = mi3.view()
-
-    # GH 17464 - Remove duplicate MultiIndex levels
-    mi4.set_levels([lrange(10), lrange(10)], inplace=True)
-    assert not mi4.is_(mi3)
-    mi5 = mi.view()
-    mi5.set_levels(mi5.levels, inplace=True)
-    assert not mi5.is_(mi)
-
-
 def test_append_mixed_dtypes():
     # GH 13660
     dti = date_range('2011-01-01', freq='M', periods=3, )
@@ -505,6 +285,42 @@ def test_append_mixed_dtypes():
                                   dti_tz.append(pd.Index(['x', 'y', 'z'])),
                                   pi.append(pd.Index(['x', 'y', 'z']))])
     tm.assert_index_equal(res, exp)
+
+
+def test_take(named_index):
+    indexer = [4, 3, 0, 2]
+    for k, ind in named_index.items():
+
+        # separate
+        if k in ['boolIndex', 'tuples', 'empty']:
+            continue
+
+        result = ind.take(indexer)
+        expected = ind[indexer]
+        assert result.equals(expected)
+
+        if not isinstance(ind,
+                          (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
+            # GH 10791
+            with pytest.raises(AttributeError):
+                ind.freq
+
+
+def test_take_invalid_kwargs(_index):
+    idx = _index
+    indices = [1, 2]
+
+    msg = r"take\(\) got an unexpected keyword argument 'foo'"
+    tm.assert_raises_regex(TypeError, msg, idx.take,
+                           indices, foo=2)
+
+    msg = "the 'out' parameter is not supported"
+    tm.assert_raises_regex(ValueError, msg, idx.take,
+                           indices, out=indices)
+
+    msg = "the 'mode' parameter is not supported"
+    tm.assert_raises_regex(ValueError, msg, idx.take,
+                           indices, mode='clip')
 
 
 def test_take_fill_value():
@@ -677,68 +493,6 @@ def test_multiindex_compare():
         tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.skipif(not PYPY, reason="tuples cmp recursively on PyPy")
-def test_isin_nan_pypy():
-    idx = MultiIndex.from_arrays([['foo', 'bar'], [1.0, np.nan]])
-    tm.assert_numpy_array_equal(idx.isin([('bar', np.nan)]),
-                                np.array([False, True]))
-    tm.assert_numpy_array_equal(idx.isin([('bar', float('nan'))]),
-                                np.array([False, True]))
-
-
-def test_isin():
-    values = [('foo', 2), ('bar', 3), ('quux', 4)]
-
-    idx = MultiIndex.from_arrays([['qux', 'baz', 'foo', 'bar'], np.arange(
-        4)])
-    result = idx.isin(values)
-    expected = np.array([False, False, True, True])
-    tm.assert_numpy_array_equal(result, expected)
-
-    # empty, return dtype bool
-    idx = MultiIndex.from_arrays([[], []])
-    result = idx.isin(values)
-    assert len(result) == 0
-    assert result.dtype == np.bool_
-
-
-@pytest.mark.skipif(PYPY, reason="tuples cmp recursively on PyPy")
-def test_isin_nan_not_pypy():
-    idx = MultiIndex.from_arrays([['foo', 'bar'], [1.0, np.nan]])
-    tm.assert_numpy_array_equal(idx.isin([('bar', np.nan)]),
-                                np.array([False, False]))
-    tm.assert_numpy_array_equal(idx.isin([('bar', float('nan'))]),
-                                np.array([False, False]))
-
-
-def test_isin_level_kwarg():
-    idx = MultiIndex.from_arrays([['qux', 'baz', 'foo', 'bar'], np.arange(
-        4)])
-
-    vals_0 = ['foo', 'bar', 'quux']
-    vals_1 = [2, 3, 10]
-
-    expected = np.array([False, False, True, True])
-    tm.assert_numpy_array_equal(expected, idx.isin(vals_0, level=0))
-    tm.assert_numpy_array_equal(expected, idx.isin(vals_0, level=-2))
-
-    tm.assert_numpy_array_equal(expected, idx.isin(vals_1, level=1))
-    tm.assert_numpy_array_equal(expected, idx.isin(vals_1, level=-1))
-
-    pytest.raises(IndexError, idx.isin, vals_0, level=5)
-    pytest.raises(IndexError, idx.isin, vals_0, level=-5)
-
-    pytest.raises(KeyError, idx.isin, vals_0, level=1.0)
-    pytest.raises(KeyError, idx.isin, vals_1, level=-1.0)
-    pytest.raises(KeyError, idx.isin, vals_1, level='A')
-
-    idx.names = ['A', 'B']
-    tm.assert_numpy_array_equal(expected, idx.isin(vals_0, level='A'))
-    tm.assert_numpy_array_equal(expected, idx.isin(vals_1, level='B'))
-
-    pytest.raises(KeyError, idx.isin, vals_1, level='C')
-
-
 def test_duplicate_multiindex_labels():
     # GH 17464
     # Make sure that a MultiIndex with duplicate levels throws a ValueError
@@ -898,3 +652,98 @@ def test_duplicates(_index):
 
             tm.assert_numpy_array_equal(mi.duplicated(), np.zeros(
                 len(mi), dtype='bool'))
+
+def test_map(_index):
+    # callable
+    index = _index
+
+    # we don't infer UInt64
+    if isinstance(index, pd.UInt64Index):
+        expected = index.astype('int64')
+    else:
+        expected = index
+
+    result = index.map(lambda x: x)
+    tm.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    "mapper",
+    [
+        lambda values, index: {i: e for e, i in zip(values, index)},
+        lambda values, index: pd.Series(values, index)])
+def test_map_dictlike(_index, mapper):
+
+    index = _index
+    if isinstance(index, (pd.CategoricalIndex, pd.IntervalIndex)):
+        pytest.skip("skipping tests for {}".format(type(index)))
+
+    identity = mapper(index.values, index)
+
+    # we don't infer to UInt64 for a dict
+    if isinstance(index, pd.UInt64Index) and isinstance(identity, dict):
+        expected = index.astype('int64')
+    else:
+        expected = index
+
+    result = index.map(identity)
+    tm.assert_index_equal(result, expected)
+
+    # empty mappable
+    expected = pd.Index([np.nan] * len(index))
+    result = index.map(mapper(expected, index))
+    tm.assert_index_equal(result, expected)
+
+
+def test_numpy_ufuncs(named_index):
+    # test ufuncs of numpy 1.9.2. see:
+    # http://docs.scipy.org/doc/numpy/reference/ufuncs.html
+
+    # some functions are skipped because it may return different result
+    # for unicode input depending on numpy version
+
+    for name, idx in compat.iteritems(named_index):
+        for func in [np.exp, np.exp2, np.expm1, np.log, np.log2, np.log10,
+                     np.log1p, np.sqrt, np.sin, np.cos, np.tan, np.arcsin,
+                     np.arccos, np.arctan, np.sinh, np.cosh, np.tanh,
+                     np.arcsinh, np.arccosh, np.arctanh, np.deg2rad,
+                     np.rad2deg]:
+            if isinstance(idx, DatetimeIndexOpsMixin):
+                # raise TypeError or ValueError (PeriodIndex)
+                # PeriodIndex behavior should be changed in future version
+                with pytest.raises(Exception):
+                    with np.errstate(all='ignore'):
+                        func(idx)
+            elif isinstance(idx, (Float64Index, Int64Index, UInt64Index)):
+                # coerces to float (e.g. np.sin)
+                with np.errstate(all='ignore'):
+                    result = func(idx)
+                    exp = Index(func(idx.values), name=idx.name)
+
+                tm.assert_index_equal(result, exp)
+                assert isinstance(result, pd.Float64Index)
+            else:
+                # raise AttributeError or TypeError
+                if len(idx) == 0:
+                    continue
+                else:
+                    with pytest.raises(Exception):
+                        with np.errstate(all='ignore'):
+                            func(idx)
+
+        for func in [np.isfinite, np.isinf, np.isnan, np.signbit]:
+            if isinstance(idx, DatetimeIndexOpsMixin):
+                # raise TypeError or ValueError (PeriodIndex)
+                with pytest.raises(Exception):
+                    func(idx)
+            elif isinstance(idx, (Float64Index, Int64Index, UInt64Index)):
+                # Results in bool array
+                result = func(idx)
+                assert isinstance(result, np.ndarray)
+                assert not isinstance(result, Index)
+            else:
+                if len(idx) == 0:
+                    continue
+                else:
+                    with pytest.raises(Exception):
+                        func(idx)

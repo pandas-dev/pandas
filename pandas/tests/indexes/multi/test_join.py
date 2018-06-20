@@ -87,3 +87,11 @@ def test_join_multi():
     tm.assert_index_equal(jidx, midx)
     assert lidx is None
     tm.assert_numpy_array_equal(ridx, exp_ridx)
+
+
+def test_join_self_unique(_index, join_type):
+    index = _index
+    if index.is_unique:
+        joined = index.join(index, how=join_type)
+        assert (index == joined).all()
+

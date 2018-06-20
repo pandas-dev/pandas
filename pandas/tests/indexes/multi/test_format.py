@@ -9,6 +9,12 @@ from pandas import MultiIndex, compat
 from pandas.compat import PY3, range, u
 
 
+def test_dtype_str(indices):
+    dtype = indices.dtype_str
+    assert isinstance(dtype, compat.string_types)
+    assert dtype == str(indices.dtype)
+
+
 def test_format(_index):
     _index.format()
     _index[:0].format()
@@ -117,3 +123,12 @@ def test_bytestring_with_unicode():
         bytes(idx)
     else:
         str(idx)
+
+
+def test_repr_max_seq_item_setting(_index):
+    # GH10182
+    idx = _index
+    idx = idx.repeat(50)
+    with pd.option_context("display.max_seq_items", None):
+        repr(idx)
+        assert '...' not in str(idx)

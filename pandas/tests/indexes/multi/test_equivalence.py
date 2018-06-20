@@ -1,0 +1,244 @@
+# -*- coding: utf-8 -*-
+
+import warnings
+from itertools import product
+
+import numpy as np
+import pandas as pd
+import pandas.util.testing as tm
+import pytest
+from pandas import (CategoricalIndex, DataFrame, DatetimeIndex, Float64Index,
+                    Index, Int64Index, IntervalIndex, MultiIndex, PeriodIndex,
+                    RangeIndex, Series, TimedeltaIndex, UInt64Index, compat,
+                    date_range, isna, period_range)
+from pandas._libs.tslib import iNaT
+from pandas.compat import PY3, PYPY, lrange, lzip, range, u
+from pandas.core.dtypes.dtypes import CategoricalDtype
+from pandas.core.indexes.base import InvalidIndexError
+from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
+from pandas.util.testing import assert_copy
+
+
+def test_equals(named_index):
+
+    for name, idx in compat.iteritems(named_index):
+        assert idx.equals(idx)
+        assert idx.equals(idx.copy())
+        assert idx.equals(idx.astype(object))
+
+        assert not idx.equals(list(idx))
+        assert not idx.equals(np.array(idx))
+
+        # Cannot pass in non-int64 dtype to RangeIndex
+        if not isinstance(idx, RangeIndex):
+            same_values = Index(idx, dtype=object)
+            assert idx.equals(same_values)
+            assert same_values.equals(idx)
+
+        if idx.nlevels == 1:
+            # do not test MultiIndex
+            assert not idx.equals(pd.Series(idx))
+
+
+def test_equals_op(_index):
+    # GH9947, GH10637
+    index_a = _index
+    if isinstance(index_a, PeriodIndex):
+        return
+
+    n = len(index_a)
+    index_b = index_a[0:-1]
+    index_c = index_a[0:-1].append(index_a[-2:-1])
+    index_d = index_a[0:1]
+    with tm.assert_raises_regex(ValueError, "Lengths must match"):
+        index_a == index_b
+    expected1 = np.array([True] * n)
+    expected2 = np.array([True] * (n - 1) + [False])
+    tm.assert_numpy_array_equal(index_a == index_a, expected1)
+    tm.assert_numpy_array_equal(index_a == index_c, expected2)
+
+    # test comparisons with numpy arrays
+    array_a = np.array(index_a)
+    array_b = np.array(index_a[0:-1])
+    array_c = np.array(index_a[0:-1].append(index_a[-2:-1]))
+    array_d = np.array(index_a[0:1])
+    with tm.assert_raises_regex(ValueError, "Lengths must match"):
+        index_a == array_b
+    tm.assert_numpy_array_equal(index_a == array_a, expected1)
+    tm.assert_numpy_array_equal(index_a == array_c, expected2)
+
+    # test comparisons with Series
+    series_a = Series(array_a)
+    series_b = Series(array_b)
+    series_c = Series(array_c)
+    series_d = Series(array_d)
+    with tm.assert_raises_regex(ValueError, "Lengths must match"):
+        index_a == series_b
+
+    tm.assert_numpy_array_equal(index_a == series_a, expected1)
+    tm.assert_numpy_array_equal(index_a == series_c, expected2)
+
+    # cases where length is 1 for one of them
+    with tm.assert_raises_regex(ValueError, "Lengths must match"):
+        index_a == index_d
+    with tm.assert_raises_regex(ValueError, "Lengths must match"):
+        index_a == series_d
+    with tm.assert_raises_regex(ValueError, "Lengths must match"):
+        index_a == array_d
+    msg = "Can only compare identically-labeled Series objects"
+    with tm.assert_raises_regex(ValueError, msg):
+        series_a == series_d
+    with tm.assert_raises_regex(ValueError, "Lengths must match"):
+        series_a == array_d
+
+    # comparing with a scalar should broadcast; note that we are excluding
+    # MultiIndex because in this case each item in the index is a tuple of
+    # length 2, and therefore is considered an array of length 2 in the
+    # comparison instead of a scalar
+    if not isinstance(index_a, MultiIndex):
+        expected3 = np.array([False] * (len(index_a) - 2) + [True, False])
+        # assuming the 2nd to last item is unique in the data
+        item = index_a[-2]
+        tm.assert_numpy_array_equal(index_a == item, expected3)
+        tm.assert_series_equal(series_a == item, Series(expected3))
+
+
+def test_equals_multi(_index):
+    assert _index.equals(_index)
+    assert not _index.equals(_index.values)
+    assert _index.equals(Index(_index.values))
+
+    assert _index.equal_levels(_index)
+    assert not _index.equals(_index[:-1])
+    assert not _index.equals(_index[-1])
+
+    # different number of levels
+    index = MultiIndex(levels=[Index(lrange(4)), Index(lrange(4)), Index(
+        lrange(4))], labels=[np.array([0, 0, 1, 2, 2, 2, 3, 3]), np.array(
+            [0, 1, 0, 0, 0, 1, 0, 1]), np.array([1, 0, 1, 1, 0, 0, 1, 0])])
+
+    index2 = MultiIndex(levels=index.levels[:-1], labels=index.labels[:-1])
+    assert not index.equals(index2)
+    assert not index.equal_levels(index2)
+
+    # levels are different
+    major_axis = Index(lrange(4))
+    minor_axis = Index(lrange(2))
+
+    major_labels = np.array([0, 0, 1, 2, 2, 3])
+    minor_labels = np.array([0, 1, 0, 0, 1, 0])
+
+    index = MultiIndex(levels=[major_axis, minor_axis],
+                       labels=[major_labels, minor_labels])
+    assert not _index.equals(index)
+    assert not _index.equal_levels(index)
+
+    # some of the labels are different
+    major_axis = Index(['foo', 'bar', 'baz', 'qux'])
+    minor_axis = Index(['one', 'two'])
+
+    major_labels = np.array([0, 0, 2, 2, 3, 3])
+    minor_labels = np.array([0, 1, 0, 1, 0, 1])
+
+    index = MultiIndex(levels=[major_axis, minor_axis],
+                       labels=[major_labels, minor_labels])
+    assert not _index.equals(index)
+
+
+def test_identical(_index):
+    mi = _index.copy()
+    mi2 = _index.copy()
+    assert mi.identical(mi2)
+
+    mi = mi.set_names(['new1', 'new2'])
+    assert mi.equals(mi2)
+    assert not mi.identical(mi2)
+
+    mi2 = mi2.set_names(['new1', 'new2'])
+    assert mi.identical(mi2)
+
+    mi3 = Index(mi.tolist(), names=mi.names)
+    mi4 = Index(mi.tolist(), names=mi.names, tupleize_cols=False)
+    assert mi.identical(mi3)
+    assert not mi.identical(mi4)
+    assert mi.equals(mi4)
+
+
+def test_equals_operator(_index):
+    # GH9785
+    assert (_index == _index).all()
+
+
+def test_equals_missing_values():
+    # make sure take is not using -1
+    i = pd.MultiIndex.from_tuples([(0, pd.NaT),
+                                   (0, pd.Timestamp('20130101'))])
+    result = i[0:1].equals(i[0])
+    assert not result
+    result = i[1:2].equals(i[1])
+    assert not result
+
+
+def test_is_():
+    mi = MultiIndex.from_tuples(lzip(range(10), range(10)))
+    assert mi.is_(mi)
+    assert mi.is_(mi.view())
+    assert mi.is_(mi.view().view().view().view())
+    mi2 = mi.view()
+    # names are metadata, they don't change id
+    mi2.names = ["A", "B"]
+    assert mi2.is_(mi)
+    assert mi.is_(mi2)
+
+    assert mi.is_(mi.set_names(["C", "D"]))
+    mi2 = mi.view()
+    mi2.set_names(["E", "F"], inplace=True)
+    assert mi.is_(mi2)
+    # levels are inherent properties, they change identity
+    mi3 = mi2.set_levels([lrange(10), lrange(10)])
+    assert not mi3.is_(mi2)
+    # shouldn't change
+    assert mi2.is_(mi)
+    mi4 = mi3.view()
+
+    # GH 17464 - Remove duplicate MultiIndex levels
+    mi4.set_levels([lrange(10), lrange(10)], inplace=True)
+    assert not mi4.is_(mi3)
+    mi5 = mi.view()
+    mi5.set_levels(mi5.levels, inplace=True)
+    assert not mi5.is_(mi)
+
+
+def test_is_all_dates(_index):
+    assert not _index.is_all_dates
+
+
+def test_is_numeric(_index):
+    # MultiIndex is never numeric
+    assert not _index.is_numeric()
+
+
+def test_nulls(named_index):
+    # this is really a smoke test for the methods
+    # as these are adequately tested for function elsewhere
+
+    for name, index in named_index.items():
+        if len(index) == 0:
+            tm.assert_numpy_array_equal(
+                index.isna(), np.array([], dtype=bool))
+        elif isinstance(index, MultiIndex):
+            idx = index.copy()
+            msg = "isna is not defined for MultiIndex"
+            with tm.assert_raises_regex(NotImplementedError, msg):
+                idx.isna()
+        else:
+
+            if not index.hasnans:
+                tm.assert_numpy_array_equal(
+                    index.isna(), np.zeros(len(index), dtype=bool))
+                tm.assert_numpy_array_equal(
+                    index.notna(), np.ones(len(index), dtype=bool))
+            else:
+                result = isna(index)
+                tm.assert_numpy_array_equal(index.isna(), result)
+                tm.assert_numpy_array_equal(index.notna(), ~result)

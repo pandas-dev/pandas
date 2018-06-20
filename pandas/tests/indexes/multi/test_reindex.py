@@ -86,3 +86,15 @@ def test_reindex_lvl_preserves_type_if_target_is_empty_list_or_array():
     idx = pd.MultiIndex.from_product([[0, 1], ['a', 'b']])
     assert idx.reindex([], level=0)[0].levels[0].dtype.type == np.int64
     assert idx.reindex([], level=1)[0].levels[1].dtype.type == np.object_
+
+
+def test_reindex_base(_index):
+    idx = _index
+    expected = np.arange(idx.size, dtype=np.intp)
+
+    actual = idx.get_indexer(idx)
+    tm.assert_numpy_array_equal(expected, actual)
+
+    with tm.assert_raises_regex(ValueError, 'Invalid fill method'):
+        idx.get_indexer(idx, method='invalid')
+

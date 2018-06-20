@@ -476,3 +476,34 @@ def test_from_product_iterator():
     with tm.assert_raises_regex(
             TypeError, "Input must be a list / sequence of iterables."):
         MultiIndex.from_product(0)
+
+
+def test_create_index_existing_name(_index):
+
+    # GH11193, when an existing index is passed, and a new name is not
+    # specified, the new index should inherit the previous object name
+    index = _index
+    index.names = ['foo', 'bar']
+    result = pd.Index(index)
+    tm.assert_index_equal(
+        result, Index(Index([('foo', 'one'), ('foo', 'two'),
+                                ('bar', 'one'), ('baz', 'two'),
+                                ('qux', 'one'), ('qux', 'two')],
+                            dtype='object'),
+                        names=['foo', 'bar']))
+
+    result = pd.Index(index, names=['A', 'B'])
+    tm.assert_index_equal(
+        result,
+        Index(Index([('foo', 'one'), ('foo', 'two'), ('bar', 'one'),
+                        ('baz', 'two'), ('qux', 'one'), ('qux', 'two')],
+                    dtype='object'), names=['A', 'B']))
+
+def test_tuples_with_name_string():
+    # GH 15110 and GH 14848
+
+    li = [(0, 0, 1), (0, 1, 0), (1, 0, 0)]
+    with pytest.raises(ValueError):
+        pd.Index(li, name='abc')
+    with pytest.raises(ValueError):
+        pd.Index(li, name='a')

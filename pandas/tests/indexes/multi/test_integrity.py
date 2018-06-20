@@ -2,19 +2,17 @@
 
 import re
 
-
-import pytest
-
 import numpy as np
-
 import pandas as pd
-
-from pandas import DataFrame, MultiIndex, date_range
-from pandas.compat import long, lrange, range
-from pandas.errors import PerformanceWarning, UnsortedIndexError
-from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
-
 import pandas.util.testing as tm
+import pytest
+from pandas import (CategoricalIndex, DataFrame, DatetimeIndex, Float64Index,
+                    Index, Int64Index, IntervalIndex, MultiIndex, PeriodIndex,
+                    RangeIndex, Series, TimedeltaIndex, UInt64Index, compat,
+                    date_range, isna)
+from pandas.compat import long, lrange, range
+from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
+from pandas.errors import PerformanceWarning, UnsortedIndexError
 
 
 def test_labels_dtypes():
@@ -133,16 +131,6 @@ def test_hash_collisions():
         assert result == i
 
 
-def test_equals_missing_values():
-    # make sure take is not using -1
-    i = pd.MultiIndex.from_tuples([(0, pd.NaT),
-                                   (0, pd.Timestamp('20130101'))])
-    result = i[0:1].equals(i[0])
-    assert not result
-    result = i[1:2].equals(i[1])
-    assert not result
-
-
 def test_dims():
     pass
 
@@ -248,67 +236,6 @@ def test_metadata_immutable(_index):
     names = _index.names
     with tm.assert_raises_regex(TypeError, mutable_regex):
         names[0] = names[0]
-
-
-def test_boolean_context_compat2():
-
-    # boolean context compat
-    # GH7897
-    i1 = MultiIndex.from_tuples([('A', 1), ('A', 2)])
-    i2 = MultiIndex.from_tuples([('A', 1), ('A', 3)])
-    common = i1.intersection(i2)
-
-    def f():
-        if common:
-            pass
-
-    tm.assert_raises_regex(ValueError, 'The truth value of a', f)
-
-
-def test_inplace_mutation_resets_values():
-    levels = [['a', 'b', 'c'], [4]]
-    levels2 = [[1, 2, 3], ['a']]
-    labels = [[0, 1, 0, 2, 2, 0], [0, 0, 0, 0, 0, 0]]
-
-    mi1 = MultiIndex(levels=levels, labels=labels)
-    mi2 = MultiIndex(levels=levels2, labels=labels)
-    vals = mi1.values.copy()
-    vals2 = mi2.values.copy()
-
-    assert mi1._tuples is not None
-
-    # Make sure level setting works
-    new_vals = mi1.set_levels(levels2).values
-    tm.assert_almost_equal(vals2, new_vals)
-
-    # Non-inplace doesn't kill _tuples [implementation detail]
-    tm.assert_almost_equal(mi1._tuples, vals)
-
-    # ...and values is still same too
-    tm.assert_almost_equal(mi1.values, vals)
-
-    # Inplace should kill _tuples
-    mi1.set_levels(levels2, inplace=True)
-    tm.assert_almost_equal(mi1.values, vals2)
-
-    # Make sure label setting works too
-    labels2 = [[0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]]
-    exp_values = np.empty((6,), dtype=object)
-    exp_values[:] = [(long(1), 'a')] * 6
-
-    # Must be 1d array of tuples
-    assert exp_values.shape == (6,)
-    new_values = mi2.set_labels(labels2).values
-
-    # Not inplace shouldn't change
-    tm.assert_almost_equal(mi2._tuples, vals2)
-
-    # Should have correct values
-    tm.assert_almost_equal(exp_values, new_values)
-
-    # ...and again setting inplace should kill _tuples, etc
-    mi2.set_labels(labels2, inplace=True)
-    tm.assert_almost_equal(mi2.values, new_values)
 
 
 def test_level_setting_resets_attributes():
@@ -482,3 +409,42 @@ def test_unsortedindex_doc_examples():
 
     assert dfm.index.is_lexsorted()
     assert dfm.index.lexsort_depth == 2
+
+def test_hash_error(indices):
+    index = indices
+    tm.assert_raises_regex(TypeError, "unhashable type: %r" %
+                           type(index).__name__, hash, indices)
+
+
+def test_mutability(indices):
+    if not len(indices):
+        return
+    pytest.raises(TypeError, indices.__setitem__, 0, indices[0])
+
+
+def test_wrong_number_names(indices):
+    def testit(ind):
+        ind.names = ["apple", "banana", "carrot"]
+    tm.assert_raises_regex(ValueError, "^Length", testit, indices)
+
+
+def test_memory_usage(named_index):
+    for name, index in compat.iteritems(named_index):
+        result = index.memory_usage()
+        if len(index):
+            index.get_loc(index[0])
+            result2 = index.memory_usage()
+            result3 = index.memory_usage(deep=True)
+
+            # RangeIndex, IntervalIndex
+            # don't have engines
+            if not isinstance(index, (RangeIndex, IntervalIndex)):
+                assert result2 > result
+
+            if index.inferred_type == 'object':
+                assert result3 > result2
+
+        else:
+
+            # we report 0 for no-length
+            assert result == 0

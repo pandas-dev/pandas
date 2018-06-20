@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 
+import pytest
 
 import numpy as np
 import pandas as pd
-from pandas import Index, MultiIndex
+from pandas import (CategoricalIndex, DatetimeIndex, Float64Index, Index,
+                    Int64Index, IntervalIndex, MultiIndex, PeriodIndex,
+                    RangeIndex, Series, TimedeltaIndex, UInt64Index, compat,
+                    isna)
 
 
 def test_is_monotonic_increasing():
@@ -157,3 +161,49 @@ def test_is_strictly_monotonic_decreasing():
                         labels=[[0, 0, 1, 1], [0, 0, 0, 1]])
     assert idx.is_monotonic_decreasing
     assert not idx._is_strictly_monotonic_decreasing
+
+
+def test_searchsorted_monotonic(indices):
+    # GH17271
+    # not implemented for tuple searches in MultiIndex
+    # or Intervals searches in IntervalIndex
+    if isinstance(indices, (MultiIndex, IntervalIndex)):
+        return
+
+    # nothing to test if the index is empty
+    if indices.empty:
+        return
+    value = indices[0]
+
+    # determine the expected results (handle dupes for 'right')
+    expected_left, expected_right = 0, (indices == value).argmin()
+    if expected_right == 0:
+        # all values are the same, expected_right should be length
+        expected_right = len(indices)
+
+    # test _searchsorted_monotonic in all cases
+    # test searchsorted only for increasing
+    if indices.is_monotonic_increasing:
+        ssm_left = indices._searchsorted_monotonic(value, side='left')
+        assert expected_left == ssm_left
+
+        ssm_right = indices._searchsorted_monotonic(value, side='right')
+        assert expected_right == ssm_right
+
+        ss_left = indices.searchsorted(value, side='left')
+        assert expected_left == ss_left
+
+        ss_right = indices.searchsorted(value, side='right')
+        assert expected_right == ss_right
+
+    elif indices.is_monotonic_decreasing:
+        ssm_left = indices._searchsorted_monotonic(value, side='left')
+        assert expected_left == ssm_left
+
+        ssm_right = indices._searchsorted_monotonic(value, side='right')
+        assert expected_right == ssm_right
+
+    else:
+        # non-monotonic should raise.
+        with pytest.raises(ValueError):
+            indices._searchsorted_monotonic(value, side='left')
