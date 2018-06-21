@@ -463,7 +463,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        ndarray.ndim
+        ndarray.ndim : Number of array dimensions.
 
         Examples
         --------
@@ -487,7 +487,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        ndarray.size
+        ndarray.size : Number of elements in the array.
 
         Examples
         --------
@@ -9420,9 +9420,12 @@ use ``axis=1``
 _any_see_also = """\
 See Also
 --------
-pandas.DataFrame.any : Return whether any element is True over requested axis.
-pandas.DataFrame.all : Return whether all elements are True.
-pandas.Series.all : Return whether all elements are True over series or dataframe axis.
+any : Standard library version of this method.
+numpy.any : Numpy version of this method.
+Series.any : Return whether any element is True.
+Series.all : Return whether all elements are True.
+DataFrame.any : Return whether any element is True over requested axis.
+DataFrame.all : Return whether all elements are True over requested axis.
 """
 
 _any_desc = """\
