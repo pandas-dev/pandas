@@ -1,7 +1,13 @@
 .. _whatsnew_0230:
 
-v0.23.0 (May 15, 2018)
-----------------------
+
+********************
+What's New in 0.23.0
+********************
+
+{{ common_imports }}
+
+**v0.23.0 (May 15, 2018)**
 
 This is a major release from 0.22.0 and includes a number of API changes,
 deprecations, new features, enhancements, and performance improvements along
@@ -1413,3 +1419,7 @@ Other
 - Improved error message when attempting to use a Python keyword as an identifier in a ``numexpr`` backed query (:issue:`18221`)
 - Bug in accessing a :func:`pandas.get_option`, which raised ``KeyError`` rather than ``OptionError`` when looking up a non-existent option key in some cases (:issue:`19789`)
 - Bug in :func:`testing.assert_series_equal` and :func:`testing.assert_frame_equal` for Series or DataFrames with differing unicode data (:issue:`20503`)
+
+.. _whatsnew_0230.contributors:
+
+{{ contributors["v0.23.0"] }}

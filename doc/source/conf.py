@@ -40,6 +40,7 @@ sys.setrecursionlimit(5000)
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 # sys.path.append(os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../sphinxext'))
+sys.path.insert(0, os.path.abspath('../../scripts'))
 
 sys.path.extend([
 
@@ -53,6 +54,7 @@ sys.path.extend([
 # numpydoc is available in the sphinxext directory, and can't be imported
 # until sphinxext is available in the Python path
 from numpydoc.docscrape import NumpyDocString
+import announce
 
 # -- General configuration -----------------------------------------------
 
@@ -120,7 +122,10 @@ import pandas as pd"""
 templates_path = ['../_templates']
 
 # The suffix of source filenames.
-source_suffix = '.rst'
+source_suffix = [
+    '.rst',
+    '.txt',
+]
 
 # The encoding of source files.
 source_encoding = 'utf-8'
@@ -298,8 +303,39 @@ html_additional_pages = {
     for page in moved_api_pages
 }
 
+
+common_imports = """\
+.. currentmodule:: pandas
+
+.. ipython:: python
+   :suppress:
+
+   import numpy as np
+   from pandas import *
+   import pandas as pd
+   randn = np.random.randn
+   np.set_printoptions(precision=4, suppress=True)
+   options.display.max_rows = 15
+"""
+
+
+def get_contributors(start, end):
+
+    return announce.build_string('{}..{}'.format(start, end), None)
+
+
+contributors = {
+    'v0.24.0': announce.build_string('v0.23.1..HEAD'),
+    'v0.23.2': announce.build_string('v0.23.1..HEAD'),
+    'v0.23.1': announce.build_string('v0.23.0..v0.23.1'),
+    'v0.23.0': announce.build_string('v0.22.0..v0.23.0'),
+}
+
+
 html_context = {
-    'redirects': {old: new for old, new in moved_api_pages}
+    'redirects': {old: new for old, new in moved_api_pages},
+    'common_imports': common_imports,
+    'contributors': contributors,
 }
 
 # If false, no module index is generated.
@@ -649,7 +685,23 @@ suppress_warnings = [
 ]
 
 
+def rstjinja(app, docname, source):
+    """
+    Render our pages as a jinja template for fancy templating goodness.
+    """
+    # http://ericholscher.com/blog/2016/jul/25/integrating-jinja-rst-sphinx/
+    # Make sure we're outputting HTML
+    if app.builder.format != 'html':
+        return
+    src = source[0]
+    rendered = app.builder.templates.render_string(
+        src, app.config.html_context
+    )
+    source[0] = rendered
+
+
 def setup(app):
+    app.connect("source-read", rstjinja)
     app.connect("autodoc-process-docstring", remove_flags_docstring)
     app.connect("autodoc-process-docstring", process_class_docstrings)
     app.add_autodocumenter(AccessorDocumenter)

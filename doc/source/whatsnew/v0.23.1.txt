@@ -1,7 +1,10 @@
 .. _whatsnew_0231:
 
-v0.23.1
--------
+********************
+What's New in 0.23.1
+********************
+
+{{ common_imports }}
 
 This is a minor bug-fix release in the 0.23.x series and includes some small regression fixes
 and bug fixes. We recommend that all users upgrade to this version.
@@ -133,3 +136,7 @@ Bug Fixes
 
 - Tab completion on :class:`Index` in IPython no longer outputs deprecation warnings (:issue:`21125`)
 - Bug preventing pandas being used on Windows without C++ redistributable installed (:issue:`21106`)
+
+.. _whatsnew_0231.contributors:
+
+{{ contributors['v0.22.0'] }}

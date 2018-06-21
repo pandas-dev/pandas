@@ -1,19 +1,26 @@
 .. _whatsnew_0240:
 
-v0.24.0
--------
+********************
+What's New in 0.24.0
+********************
+
+{{ common_imports }}
+
+These are the changes in pandas 0.24.0. See :ref:`release` for a full changelog
+including other versions of pandas.
 
 .. _whatsnew_0240.enhancements:
 
-New features
-~~~~~~~~~~~~
+Highlights
+==========
 
 - ``ExcelWriter`` now accepts ``mode`` as a keyword argument, enabling append to existing workbooks when using the ``openpyxl`` engine (:issue:`3441`)
 
 .. _whatsnew_0240.enhancements.other:
 
 Other Enhancements
-^^^^^^^^^^^^^^^^^^
+------------------
+
 - :func:`to_datetime` now supports the ``%Z`` and ``%z`` directive when passed into ``format`` (:issue:`13486`)
 - :func:`Series.mode` and :func:`DataFrame.mode` now support the ``dropna`` parameter which can be used to specify whether NaN/NaT values should be considered (:issue:`17534`)
 - :func:`to_csv` now supports ``compression`` keyword when a file handle is passed. (:issue:`21227`)
@@ -24,7 +31,7 @@ Other Enhancements
 
 
 Backwards incompatible API changes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+==================================
 
 .. _whatsnew_0240.api.datetimelike.normalize:
 
@@ -64,7 +71,7 @@ Current Behavior:
 .. _whatsnew_0240.api.datetimelike:
 
 Datetimelike API Changes
-^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------
 
 - For :class:`DatetimeIndex` and :class:`TimedeltaIndex` with non-``None`` ``freq`` attribute, addition or subtraction of integer-dtyped array or ``Index`` will return an object of the same class (:issue:`19959`)
 - :class:`DateOffset` objects are now immutable. Attempting to alter one of these will now raise ``AttributeError`` (:issue:`21341`)
@@ -72,7 +79,7 @@ Datetimelike API Changes
 .. _whatsnew_0240.api.other:
 
 Other API Changes
-^^^^^^^^^^^^^^^^^
+=================
 
 .. _whatsnew_0240.api.other.incompatibilities:
 
@@ -107,7 +114,7 @@ Current Behavior:
 .. _whatsnew_0240.deprecations:
 
 Deprecations
-~~~~~~~~~~~~
+============
 
 - :meth:`DataFrame.to_stata`, :meth:`read_stata`, :class:`StataReader` and :class:`StataWriter` have deprecated the ``encoding`` argument.  The encoding of a Stata dta file is determined by the file type and cannot be changed (:issue:`21244`).
 -
@@ -116,7 +123,7 @@ Deprecations
 .. _whatsnew_0240.prior_deprecations:
 
 Removal of prior version deprecations/changes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+=============================================
 
 - The ``LongPanel`` and ``WidePanel`` classes have been removed (:issue:`10892`)
 -
@@ -126,7 +133,7 @@ Removal of prior version deprecations/changes
 .. _whatsnew_0240.performance:
 
 Performance Improvements
-~~~~~~~~~~~~~~~~~~~~~~~~
+========================
 
 - Improved performance of :func:`Series.describe` in case of numeric dtpyes (:issue:`21274`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.rank` when dealing with tied rankings (:issue:`21237`)
@@ -135,7 +142,7 @@ Performance Improvements
 .. _whatsnew_0240.docs:
 
 Documentation Changes
-~~~~~~~~~~~~~~~~~~~~~
+=====================
 
 - Added sphinx spelling extension, updated documentation on how to use the spell check (:issue:`21079`)
 -
@@ -144,107 +151,107 @@ Documentation Changes
 .. _whatsnew_0240.bug_fixes:
 
 Bug Fixes
-~~~~~~~~~
+=========
 
 Categorical
-^^^^^^^^^^^
+-----------
 
 -
 -
 -
 
 Datetimelike
-^^^^^^^^^^^^
+------------
 
 - Fixed bug where two :class:`DateOffset` objects with different ``normalize`` attributes could evaluate as equal (:issue:`21404`)
 - Bug in :class:`Index` with ``datetime64[ns, tz]`` dtype that did not localize integer data correctly (:issue:`20964`)
 -
 
 Timedelta
-^^^^^^^^^
+---------
 
 -
 -
 -
 
 Timezones
-^^^^^^^^^
+---------
 
 -
 -
 -
 
 Offsets
-^^^^^^^
+-------
 
 -
 -
 
 Numeric
-^^^^^^^
+-------
 
 -
 -
 -
 
 Strings
-^^^^^^^
+-------
 
 -
 -
 -
 
 Indexing
-^^^^^^^^
+--------
 
 - The traceback from a ``KeyError`` when asking ``.loc`` for a single missing label is now shorter and more clear (:issue:`21557`)
 -
 -
 
 MultiIndex
-^^^^^^^^^^
+----------
 
 -
 -
 -
 
 I/O
-^^^
+---
 
 -
 -
 -
 
 Plotting
-^^^^^^^^
+--------
 
 -
 -
 -
 
 Groupby/Resample/Rolling
-^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------
 
 -
 -
 -
 
 Sparse
-^^^^^^
+------
 
 -
 -
 -
 
 Reshaping
-^^^^^^^^^
+---------
 
 -
 -
 -
 
 ExtensionArray
-^^^^^^^^^^^^^^
+--------------
 
 - :meth:`Series.combine()` works correctly with :class:`~pandas.api.extensions.ExtensionArray` inside of :class:`Series` (:issue:`20825`)
 - :meth:`Series.combine()` with scalar argument now works for any function type (:issue:`21248`)
@@ -252,9 +259,13 @@ ExtensionArray
 -
 
 Other
-^^^^^
+-----
 
-- :meth: `~pandas.io.formats.style.Styler.background_gradient` now takes a ``text_color_threshold`` parameter to automatically lighten the text color based on the luminance of the background color. This improves readability with dark background colors without the need to limit the background colormap range. (:issue:`21258`)
+- :meth:`~pandas.io.formats.style.Styler.background_gradient` now takes a ``text_color_threshold`` parameter to automatically lighten the text color based on the luminance of the background color. This improves readability with dark background colors without the need to limit the background colormap range. (:issue:`21258`)
 -
 -
 -
+
+.. _whatsnew_0240.contributors:
+
+{{ contributors['v0.24.0'] }}

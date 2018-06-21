@@ -38,6 +38,7 @@ from __future__ import print_function, division
 import os
 import re
 import codecs
+import textwrap
 from git import Repo
 
 UTF8Writer = codecs.getwriter('utf8')
@@ -98,19 +99,27 @@ def get_pull_requests(repo, revision_range):
     return prs
 
 
-def main(revision_range, repo):
+def build_string(revision_range, heading="Contributors"):
     lst_release, cur_release = [r.strip() for r in revision_range.split('..')]
-
-    # document authors
     authors = get_authors(revision_range)
-    heading = u"Contributors"
-    print()
-    print(heading)
-    print(u"=" * len(heading))
-    print(author_msg % len(authors))
+    uline = '=' * len(heading)
 
-    for s in authors:
-        print(u'* ' + s)
+    tpl = textwrap.dedent("""\
+    {heading}
+    {uline}
+
+    {author_message}
+    {authors}""").format(heading=heading,
+                         uline=uline,
+                         author_message=author_msg % len(authors),
+                         authors="* " + '\n* '.join(authors))
+    return tpl
+
+
+def main(revision_range):
+    # document authors
+    text = build_string(revision_range)
+    print(text)
 
 
 if __name__ == "__main__":
@@ -118,7 +127,5 @@ if __name__ == "__main__":
 
     parser = ArgumentParser(description="Generate author lists for release")
     parser.add_argument('revision_range', help='<revision>..<revision>')
-    parser.add_argument('--repo', help="Github org/repository",
-                        default="pandas-dev/pandas")
     args = parser.parse_args()
-    main(args.revision_range, args.repo)
+    main(args.revision_range)

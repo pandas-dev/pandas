@@ -107,6 +107,5 @@ doc/build/html/index.html
 # Windows specific leftover:
 doc/tmp.sv
 doc/source/styled.xlsx
-doc/source/templates/
 env/
 doc/source/savefig/

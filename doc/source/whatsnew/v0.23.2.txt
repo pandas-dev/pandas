@@ -1,7 +1,10 @@
 .. _whatsnew_0232:
 
-v0.23.2
--------
+********************
+What's New in 0.23.2
+********************
+
+{{ common_imports }}
 
 This is a minor bug-fix release in the 0.23.x series and includes some small regression fixes
 and bug fixes. We recommend that all users upgrade to this version.
@@ -102,3 +105,7 @@ Bug Fixes
 **Other**
 
 -
+
+.. _whatsnew_0232.contributors:
+
+{{ contributors['v0.23.2'] }}
