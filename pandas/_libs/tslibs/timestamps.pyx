@@ -663,7 +663,7 @@ class Timestamp(_Timestamp):
         value = np.array([value], dtype=np.int64)
 
         # Will only ever contain 1 element for timestamp
-        r = Timestamp.round_values(value, rounder, freq).item()
+        r = round_ns(value, rounder, freq).item()
         result = Timestamp(r, unit='ns')
         if self.tz is not None:
             result = result.tz_localize(self.tz)
