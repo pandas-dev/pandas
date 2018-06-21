@@ -162,12 +162,8 @@ class ExtensionDtype(_DtypeOpsMixin):
         raise AbstractMethodError(self)
 
     @classmethod
-    def construct_array_type(cls, array=None):
+    def construct_array_type(cls):
         """Return the array type associated with this dtype
-
-        Parameters
-        ----------
-        array : array-like, optional
 
         Returns
         -------
