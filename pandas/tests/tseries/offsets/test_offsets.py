@@ -234,6 +234,14 @@ class TestCommon(Base):
                  'Nano': Timestamp(np_datetime64_compat(
                                    '2011-01-01T09:00:00.000000001Z'))}
 
+    def test_immutable(self, offset_types):
+        # GH#21341 check that __setattr__ raises
+        offset = self._get_offset(offset_types)
+        with pytest.raises(AttributeError):
+            offset.normalize = True
+        with pytest.raises(AttributeError):
+            offset.n = 91
+
     def test_return_type(self, offset_types):
         offset = self._get_offset(offset_types)
 
