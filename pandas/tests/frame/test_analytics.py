@@ -1507,6 +1507,23 @@ class TestDataFrameAnalytics(TestData):
         with pytest.raises(KeyError):
             df.drop_duplicates(subset)
 
+    @pytest.mark.slow
+    def test_duplicated_do_not_fail_on_wide_dataframes(self):
+        # gh-21524
+        # Given the wide dataframe with a lot of columns
+        # with different (important!) values
+        data = {'col_{0:02d}'.format(i): np.random.randint(0, 1000, 30000)
+                for i in range(100)}
+        df = pd.DataFrame(data).T
+        result = df.duplicated()
+
+        # Then duplicates produce the bool pd.Series as a result
+        # and don't fail during calculation.
+        # Actual values doesn't matter here, though usually
+        # it's all False in this case
+        assert isinstance(result, pd.Series)
+        assert result.dtype == np.bool
+
     def test_drop_duplicates_with_duplicate_column_names(self):
         # GH17836
         df = DataFrame([
