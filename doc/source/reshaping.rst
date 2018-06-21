@@ -654,7 +654,7 @@ When a column contains only one level, it will be omitted in the result.
     pd.get_dummies(df, drop_first=True)
 
 By default new columns will have ``np.uint8`` dtype.
-To choose another dtype, use the``dtype`` argument:
+To choose another dtype, use the ``dtype`` argument:
 
 .. ipython:: python
 

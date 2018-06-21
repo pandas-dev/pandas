@@ -279,9 +279,9 @@ need to be:
 
 Ignoring indexes on the concatenation axis
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-For ``DataFrame``s which don't have a meaningful index, you may wish to append
-them and ignore the fact that they may have overlapping indexes. To do this, use
-the ``ignore_index`` argument:
+For ``DataFrame`` objects which don't have a meaningful index, you may wish
+to append them and ignore the fact that they may have overlapping indexes. To
+do this, use the ``ignore_index`` argument:
 
 .. ipython:: python
 
@@ -314,7 +314,7 @@ This is also a valid argument to :meth:`DataFrame.append`:
 Concatenating with mixed ndims
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can concatenate a mix of ``Series`` and ``DataFrame``s. The
+You can concatenate a mix of ``Series`` and ``DataFrame`` objects. The
 ``Series`` will be transformed to ``DataFrame`` with the column name as
 the name of the ``Series``.
 
