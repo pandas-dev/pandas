@@ -18,7 +18,7 @@ Fixed Regressions
 
 - Fixed regression in :meth:`to_csv` when handling file-like object incorrectly (:issue:`21471`)
 - Bug in both :meth:`DataFrame.first_valid_index` and :meth:`Series.first_valid_index` raised for a row index having duplicate values (:issue:`21441`)
-- 
+-
 
 .. _whatsnew_0232.performance:
 
@@ -28,6 +28,9 @@ Performance Improvements
 - Improved performance of membership checks in :class:`CategoricalIndex`
   (i.e. ``x in ci``-style checks are much faster). :meth:`CategoricalIndex.contains`
   is likewise much faster (:issue:`21369`, :issue:`21508`)
+- Improved performance of :meth:`HDFStore.groups` (and dependent functions like
+  :meth:`~HDFStore.keys`.  (i.e. ``x in store`` checks are much faster)
+  (:issue:`21372`)
 - Improved performance of :meth:`MultiIndex.is_unique` (:issue:`21522`)
 -
 
