@@ -542,12 +542,30 @@ class TestSeriesConstructors(TestData):
         tm.assert_series_equal(Series(np.array([np.nan, pd.NaT])), exp)
 
     def test_constructor_cast(self):
-        pytest.raises(ValueError, Series, ['a', 'b', 'c'], dtype=float)
+        msg = "could not convert string to float"
+        with tm.assert_raises_regex(ValueError, msg):
+            Series(["a", "b", "c"], dtype=float)
 
-    def test_constructor_dtype_nocast(self):
-        # 1572
+    def test_constructor_unsigned_dtype_overflow(self, uint_dtype):
+        # see gh-15832
+        msg = 'Trying to coerce negative values to unsigned integers'
+        with tm.assert_raises_regex(OverflowError, msg):
+            Series([-1], dtype=uint_dtype)
+
+    def test_constructor_coerce_float_fail(self, any_int_dtype):
+        # see gh-15832
+        msg = "Trying to coerce float values to integers"
+        with tm.assert_raises_regex(ValueError, msg):
+            Series([1, 2, 3.5], dtype=any_int_dtype)
+
+    def test_constructor_coerce_float_valid(self, float_dtype):
+        s = Series([1, 2, 3.5], dtype=float_dtype)
+        expected = Series([1, 2, 3.5]).astype(float_dtype)
+        assert_series_equal(s, expected)
+
+    def test_constructor_dtype_no_cast(self):
+        # see gh-1572
         s = Series([1, 2, 3])
-
         s2 = Series(s, dtype=np.int64)
 
         s2[1] = 5
