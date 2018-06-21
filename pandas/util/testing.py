@@ -553,6 +553,28 @@ def _valid_locales(locales, normalize):
 # Stdout / stderr decorators
 
 
+@contextmanager
+def set_defaultencoding(encoding):
+    """
+    Set default encoding (as given by sys.getdefaultencoding()) to the given
+    encoding; restore on exit.
+
+    Parameters
+    ----------
+    encoding : str
+    """
+    if not PY2:
+        raise ValueError("set_defaultencoding context is only available "
+                         "in Python 2.")
+    orig = sys.getdefaultencoding()
+    reload(sys)  # noqa:F821
+    sys.setdefaultencoding(encoding)
+    try:
+        yield
+    finally:
+        sys.setdefaultencoding(orig)
+
+
 def capture_stdout(f):
     """
     Decorator to capture stdout in a buffer so that it can be checked

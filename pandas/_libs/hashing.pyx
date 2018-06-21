@@ -8,8 +8,7 @@ import numpy as np
 from numpy cimport ndarray, uint8_t, uint32_t, uint64_t
 
 from util cimport _checknull
-from cpython cimport (PyString_Check,
-                      PyBytes_Check,
+from cpython cimport (PyBytes_Check,
                       PyUnicode_Check)
 from libc.stdlib cimport malloc, free
 
@@ -62,9 +61,7 @@ def hash_object_array(ndarray[object] arr, object key, object encoding='utf8'):
     cdef list datas = []
     for i in range(n):
         val = arr[i]
-        if PyString_Check(val):
-            data = <bytes>val.encode(encoding)
-        elif PyBytes_Check(val):
+        if PyBytes_Check(val):
             data = <bytes>val
         elif PyUnicode_Check(val):
             data = <bytes>val.encode(encoding)
