@@ -207,7 +207,7 @@ def str_count(arr, pat, flags=0):
         Flags for the `re` module. For a complete list, `see here
         <https://docs.python.org/3/howto/regex.html#compilation-flags>`_.
     **kwargs
-        For compatability with other string methods. Not used.
+        For compatibility with other string methods. Not used.
 
     Returns
     -------
@@ -1343,7 +1343,7 @@ def str_pad(arr, width, side='left', fillchar=' '):
 
 
 def str_split(arr, pat=None, n=None):
-  
+
     if pat is None:
         if n is None or n == 0:
             n = -1
@@ -2053,9 +2053,9 @@ class StringMethods(NoNewAttributesMixin):
 
         Returns
         -------
-        concat : str if `other is None`, Series/Index of objects if `others is
-            not None`. In the latter case, the result will remain categorical
-            if the calling Series/Index is categorical.
+        concat : str or Series/Index of objects
+            If `others` is None, `str` is returned, otherwise a `Series/Index`
+            (same type as caller) of objects is returned.
 
         See Also
         --------
@@ -2231,6 +2231,16 @@ class StringMethods(NoNewAttributesMixin):
     Series, Index, DataFrame or MultiIndex
         Type matches caller unless ``expand=True`` (see Notes).
 
+    See Also
+    --------
+     Series.str.split : Split strings around given separator/delimiter.
+     Series.str.rsplit : Splits string around given separator/delimiter, 
+     starting from the right.
+     Series.str.join : Join lists contained as elements in the Series/Index 
+     with passed delimiter. 
+     str.split : Standard library version for split.
+     str.rsplit : Standard library version for rsplit.
+
     Notes
     -----
     The handling of the `n` keyword depends on the number of found splits:
@@ -2243,76 +2253,50 @@ class StringMethods(NoNewAttributesMixin):
     If using ``expand=True``, Series and Index callers return DataFrame and
     MultiIndex objects, respectively.
 
-    See Also
-    --------
-     Series.str.split : Split strings around given separator/delimiter.
-     Series.str.rsplit : Splits string around given separator/delimiter, starting from 
-     the right.
-     Series.str.join : Join lists contained as elements in the Series/Index 
-     with passed delimiter. 
-     str.split : Standard library version for split.
-     str.rsplit : Standard library version for rsplit.
-
     Examples
     --------
-    >>> s = pd.Series(["this is a regular sentence", "this,is,comma,separated,text", np.nan])
+    >>> s = pd.Series(["this is a regular sentence",
+    "path/to/python/file", np.nan])
 
     By default, split and rsplit will return an object of the same size
     having lists containing the split elements.
 
-    Parameter `n` can be used to limit the number of splits on the delimiter. If delimiter is
-    not specified, string is split on whitespace.
-
-    >>> s.str.split(n=2)
-    0    [this, is, a regular sentence]
-    1    [this,is,comma,separated,text]
-    2                               NaN
-    dtype: object
-
-    >>> s.str.rsplit(n=2)   
-    0    [this is a, regular, sentence]
-    1    [this,is,comma,separated,text]
-    2                               NaN
-    dtype: object
-
-    >>> s.str.split(",", n=2)          
-    0        [this is a regular sentence]
-    1    [this, is, comma,separated,text]
+    >>> s.str.split()
+    0    [this, is, a, regular, sentence]
+    1               [path/to/python/file]
     2                                 NaN
     dtype: object
 
-    >>> s.str.rsplit(",", n=2)    
-    0        [this is a regular sentence]
-    1    [this,is,comma, separated, text]
-    2                                 NaN
+    Parameter `n` can be used to limit the number of splits on the
+    delimiter.
+
+    >>> s.str.split("/", n=2) 
+    0    [this is a regular sentence]
+    1         [path, to, python/file]
+    2                             NaN
+    dtype: object 
+
+    >>> s.str.rsplit("/", n=2)
+    0    [this is a regular sentence]
+    1         [path/to, python, file]
+    2                             NaN
     dtype: object
 
-    When using ``expand=True``, the split and rsplit elements will
-    expand out into separate columns.
+    When using ``expand=True``, the split elements will expand out into
+    separate columns. If NaN is present, it is propagated throughout 
+    the columns during the split.
 
-    >>> s.str.split(n=2, expand=True)     
-                                  0     1                   2
-    0                          this    is  a regular sentence
-    1  this,is,comma,separated,text  None                None
-    2                           NaN   NaN                 NaN
+    >>> s.str.split(expand=True)
+                         0     1     2        3         4
+    0                 this    is     a  regular  sentence
+    1  path/to/python/file  None  None     None      None
+    2                  NaN   NaN   NaN      NaN       NaN
 
-    >>> s.str.rsplit(n=2, expand=True)
-                                  0        1         2
-    0                     this is a  regular  sentence
-    1  this,is,comma,separated,text     None      None
-    2                           NaN      NaN       NaN
-
-    >>> s.str.split(",", n=2, expand=True)
-                                0     1                     2
-    0  this is a regular sentence  None                  None
-    1                        this    is  comma,separated,text
-    2                         NaN   NaN                   NaN
-
-    >>> s.str.rsplit(",", n=2, expand=True)
-                                0          1     2
-    0  this is a regular sentence       None  None
-    1               this,is,comma  separated  text
-    2                         NaN        NaN   NaN
+    >>> s.str.split("/", n=2, expand=True)
+                                0     1            2
+    0  this is a regular sentence  None         None
+    1                        path    to  python/file
+    2                         NaN   NaN          NaN
     """)
 
     @Appender(_shared_docs['str_split'] % {

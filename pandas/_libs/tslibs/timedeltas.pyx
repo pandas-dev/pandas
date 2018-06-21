@@ -899,6 +899,9 @@ cdef class _Timedelta(timedelta):
     def __str__(self):
         return self._repr_base(format='long')
 
+    def __bool__(self):
+        return self.value != 0
+
     def isoformat(self):
         """
         Format Timedelta as ISO 8601 Duration like
@@ -968,7 +971,7 @@ class Timedelta(_Timedelta):
     days, seconds, microseconds,
     milliseconds, minutes, hours, weeks : numeric, optional
         Values for construction in compat with datetime.timedelta.
-        np ints and floats will be coereced to python ints and floats.
+        np ints and floats will be coerced to python ints and floats.
 
     Notes
     -----

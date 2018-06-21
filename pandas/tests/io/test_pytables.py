@@ -1484,7 +1484,7 @@ class TestHDFStore(Base):
             store.append('df', df[2:])
             tm.assert_frame_equal(store['df'], df)
 
-            # check that we have indicies created
+            # check that we have indices created
             assert(store._handle.root.df.table.cols.index.is_indexed is True)
             assert(store._handle.root.df.table.cols.B.is_indexed is True)
 
@@ -2047,7 +2047,7 @@ class TestHDFStore(Base):
             assert df1.dtypes[0] == 'float32'
 
             # check with mixed dtypes
-            df1 = DataFrame(dict((c, Series(np.random.randn(5), dtype=c))
+            df1 = DataFrame(dict((c, Series(np.random.randint(5), dtype=c))
                                  for c in ['float32', 'float64', 'int32',
                                            'int64', 'int16', 'int8']))
             df1['string'] = 'foo'
@@ -4511,7 +4511,7 @@ class TestHDFStore(Base):
                         keys = store.keys()
                     assert set(keys) == set(tstore.keys())
 
-                    # check indicies & nrows
+                    # check indices & nrows
                     for k in tstore.keys():
                         if tstore.get_storer(k).is_table:
                             new_t = tstore.get_storer(k)

@@ -451,6 +451,18 @@ class TestFloat64Index(Numeric):
             i = Float64Index([0, 1.1, np.NAN])
             pytest.raises(ValueError, lambda: i.astype(dtype))
 
+    def test_type_coercion_fail(self, any_int_dtype):
+        # see gh-15832
+        msg = "Trying to coerce float values to integers"
+        with tm.assert_raises_regex(ValueError, msg):
+            Index([1, 2, 3.5], dtype=any_int_dtype)
+
+    def test_type_coercion_valid(self, float_dtype):
+        # There is no Float32Index, so we always
+        # generate Float64Index.
+        i = Index([1, 2, 3.5], dtype=float_dtype)
+        tm.assert_index_equal(i, Index([1, 2, 3.5]))
+
     def test_equals_numeric(self):
 
         i = Float64Index([1.0, 2.0])
@@ -861,6 +873,14 @@ class TestInt64Index(NumericInt):
         arr_with_floats = [0, 2, 3, 4, 5, 1.25, 3, -1]
         with tm.assert_raises_regex(TypeError, 'casting'):
             Int64Index(arr_with_floats)
+
+    def test_constructor_coercion_signed_to_unsigned(self, uint_dtype):
+
+        # see gh-15832
+        msg = "Trying to coerce negative values to unsigned integers"
+
+        with tm.assert_raises_regex(OverflowError, msg):
+            Index([-1], dtype=uint_dtype)
 
     def test_coerce_list(self):
         # coerce things
