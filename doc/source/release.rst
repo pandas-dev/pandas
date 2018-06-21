@@ -2641,7 +2641,7 @@ Improvements to existing features
   option it is no longer possible to round trip Excel files with merged
   MultiIndex and Hierarchical Rows. Set the ``merge_cells`` to ``False`` to
   restore the previous behaviour.  (:issue:`5254`)
-- The FRED DataReader now accepts multiple series (:issue`3413`)
+- The FRED DataReader now accepts multiple series (:issue:`3413`)
 - StataWriter adjusts variable names to Stata's limitations (:issue:`5709`)
 
 API Changes
