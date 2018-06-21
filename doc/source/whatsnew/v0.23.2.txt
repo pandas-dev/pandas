@@ -80,6 +80,7 @@ Bug Fixes
 
 **Categorical**
 
+- Bug in rendering :class:`Series` with ``Categorical`` dtype in rare conditions under Python 2.7 (:issue:`21002`)
 -
 
 **Timezones**
