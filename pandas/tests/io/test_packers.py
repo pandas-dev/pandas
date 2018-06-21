@@ -928,7 +928,8 @@ TestPackers
         # GH12142 0.17 files packed in P2 can't be read in P3
         if (compat.PY3 and version.startswith('0.17.') and
                 legacy_packer.split('.')[-4][-1] == '2'):
-            pytest.skip("Files packed in Py2 can't be read in Py3.")
+            msg = "Files packed in Py2 can't be read in Py3 ({})"
+            pytest.skip(msg.format(version))
         try:
             with catch_warnings(record=True):
                 self.compare(current_packers_data, all_packers_data,

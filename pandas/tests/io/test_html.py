@@ -28,6 +28,22 @@ from pandas.util.testing import makeCustomDataframe as mkdf, network
 HERE = os.path.dirname(__file__)
 
 
+def pytest_generate_tests(metafunc):
+    # Defers evaluation of the fixture until after collection.
+    # https://docs.pytest.org/en/latest/example/parametrize.html\
+    # deferring-the-setup-of-parametrized-resources
+    if 'html_file' in metafunc.fixturenames:
+        paths = glob.glob(
+            os.path.join(HERE, 'data', 'html_encoding', '*.html')
+        )
+        metafunc.parametrize("html_file", paths, indirect=True)
+
+
+@pytest.fixture
+def html_file(request, datapath):
+    return datapath(request.param)
+
+
 def assert_framelist_equal(list1, list2, *args, **kwargs):
     assert len(list1) == len(list2), ('lists are not of equal size '
                                       'len(list1) == {0}, '
@@ -838,22 +854,22 @@ class TestReadHtml(object):
         else:
             assert len(dfs) == 1  # Should not parse hidden table
 
-    @pytest.mark.parametrize("f", glob.glob(
-        os.path.join(HERE, 'data', 'html_encoding', '*.html')))
-    def test_encode(self, f):
-        _, encoding = os.path.splitext(os.path.basename(f))[0].split('_')
+    def test_encode(self, html_file):
+        _, encoding = os.path.splitext(
+            os.path.basename(html_file)
+        )[0].split('_')
 
         try:
-            with open(f, 'rb') as fobj:
+            with open(html_file, 'rb') as fobj:
                 from_string = self.read_html(fobj.read(), encoding=encoding,
                                              index_col=0).pop()
 
-            with open(f, 'rb') as fobj:
+            with open(html_file, 'rb') as fobj:
                 from_file_like = self.read_html(BytesIO(fobj.read()),
                                                 encoding=encoding,
                                                 index_col=0).pop()
 
-            from_filename = self.read_html(f, encoding=encoding,
+            from_filename = self.read_html(html_file, encoding=encoding,
                                            index_col=0).pop()
             tm.assert_frame_equal(from_string, from_file_like)
             tm.assert_frame_equal(from_string, from_filename)
