@@ -107,7 +107,10 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         Optional timedelta-like data to construct index with
     unit: unit of the arg (D,h,m,s,ms,us,ns) denote the unit, optional
         which is an integer/float number
-    freq: a frequency for the index, optional
+    freq : string or pandas offset object, optional
+        One of pandas date offset strings or corresponding objects. The string
+        'infer' can be passed in order to set the frequency of the index as the
+        inferred frequency upon creation
     copy  : bool
         Make a copy of input ndarray
     start : starting value, timedelta-like, optional
