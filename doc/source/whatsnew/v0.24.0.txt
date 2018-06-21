@@ -67,6 +67,7 @@ Datetimelike API Changes
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - For :class:`DatetimeIndex` and :class:`TimedeltaIndex` with non-``None`` ``freq`` attribute, addition or subtraction of integer-dtyped array or ``Index`` will return an object of the same class (:issue:`19959`)
+- :class:`DateOffset` objects are now immutable. Attempting to alter one of these will now raise ``AttributeError`` (:issue:`21341`)
 
 .. _whatsnew_0240.api.other:
 
@@ -176,7 +177,6 @@ Timezones
 Offsets
 ^^^^^^^
 
--
 -
 -
 
