@@ -9420,7 +9420,6 @@ use ``axis=1``
 _any_see_also = """\
 See Also
 --------
-any : Standard library version of this method.
 numpy.any : Numpy version of this method.
 Series.any : Return whether any element is True.
 Series.all : Return whether all elements are True.
