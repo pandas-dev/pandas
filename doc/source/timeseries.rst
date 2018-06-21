@@ -2169,8 +2169,8 @@ still considered to be equal even if they are in different time zones:
    rng_berlin[5]
    rng_eastern[5] == rng_berlin[5]
 
-Like ``Series``, ``DataFrame``, and ``DatetimeIndex``, ``Timestamp``s can be converted to other
-time zones using ``tz_convert``:
+Like ``Series``, ``DataFrame``, and ``DatetimeIndex``; ``Timestamp`` objects
+can be converted to other time zones using ``tz_convert``:
 
 .. ipython:: python
 

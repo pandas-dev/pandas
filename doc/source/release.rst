@@ -2837,7 +2837,7 @@ API Changes
   copy through chained assignment is detected, settable via option ``mode.chained_assignment``
 - test the list of ``NA`` values in the csv parser. add ``N/A``, ``#NA`` as independent default
   na values (:issue:`5521`)
-- The refactoring involving``Series`` deriving from ``NDFrame`` breaks ``rpy2<=2.3.8``. an Issue
+- The refactoring involving ``Series`` deriving from ``NDFrame`` breaks ``rpy2<=2.3.8``. an Issue
   has been opened against rpy2 and a workaround is detailed in :issue:`5698`. Thanks @JanSchulz.
 - ``Series.argmin`` and ``Series.argmax`` are now aliased to ``Series.idxmin`` and ``Series.idxmax``.
   These return the *index* of the min or max element respectively. Prior to 0.13.0 these would return
