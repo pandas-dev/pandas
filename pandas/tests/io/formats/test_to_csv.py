@@ -303,4 +303,4 @@ $1$,$2$
         output = out.getvalue()
         assert output == expected_ascii
         sys.stdout = saved_stdout
-        assert sys.stdout.closed == False
+        assert sys.stdout.closed is False
