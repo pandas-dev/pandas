@@ -104,5 +104,5 @@ def test_apply_toindex():
     tmp2 = np.array([[5, 1, 3], [1, np.nan, 0], [1, 2, 0], [np.nan, 1, 0]])
     tmp2_df = pd.DataFrame(tmp2)
     result = tmp2_df.apply(lambda x: x[x == 0].index.tolist())
-    expected = pd.Series([], [], [1, 2, 3])
+    expected = pd.Series([[], [], [1, 2, 3]])
     tm.assert_series_equal(result, expected)
