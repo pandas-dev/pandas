@@ -139,6 +139,14 @@ def join_type(request):
     return request.param
 
 
+@pytest.fixture(params=['nlargest', 'nsmallest'])
+def nselect_method(request):
+    """
+    Fixture for trying all nselect methods
+    """
+    return request.param
+
+
 @pytest.fixture(params=[None, np.nan, pd.NaT, float('nan'), np.float('NaN')])
 def nulls_fixture(request):
     """
@@ -168,4 +176,78 @@ def tz_aware_fixture(request):
     """
     Fixture for trying explicit timezones: {0}
     """
+    return request.param
+
+
+@pytest.fixture(params=[str, 'str', 'U'])
+def string_dtype(request):
+    """Parametrized fixture for string dtypes.
+
+    * str
+    * 'str'
+    * 'U'
+    """
+    return request.param
+
+
+@pytest.fixture(params=["float32", "float64"])
+def float_dtype(request):
+    """
+    Parameterized fixture for float dtypes.
+
+    * float32
+    * float64
+    """
+
+    return request.param
+
+
+UNSIGNED_INT_DTYPES = ["uint8", "uint16", "uint32", "uint64"]
+SIGNED_INT_DTYPES = ["int8", "int16", "int32", "int64"]
+ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES
+
+
+@pytest.fixture(params=SIGNED_INT_DTYPES)
+def sint_dtype(request):
+    """
+    Parameterized fixture for signed integer dtypes.
+
+    * int8
+    * int16
+    * int32
+    * int64
+    """
+
+    return request.param
+
+
+@pytest.fixture(params=UNSIGNED_INT_DTYPES)
+def uint_dtype(request):
+    """
+    Parameterized fixture for unsigned integer dtypes.
+
+    * uint8
+    * uint16
+    * uint32
+    * uint64
+    """
+
+    return request.param
+
+
+@pytest.fixture(params=ALL_INT_DTYPES)
+def any_int_dtype(request):
+    """
+    Parameterized fixture for any integer dtypes.
+
+    * int8
+    * uint8
+    * int16
+    * uint16
+    * int32
+    * uint32
+    * int64
+    * uint64
+    """
+
     return request.param

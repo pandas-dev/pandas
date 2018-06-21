@@ -40,7 +40,9 @@ from pandas.core.dtypes.cast import (
     maybe_convert_platform,
     maybe_cast_to_datetime, maybe_castable,
     construct_1d_arraylike_from_scalar,
-    construct_1d_object_array_from_listlike)
+    construct_1d_ndarray_preserving_na,
+    construct_1d_object_array_from_listlike,
+    maybe_cast_to_integer_array)
 from pandas.core.dtypes.missing import (
     isna,
     notna,
@@ -3789,7 +3791,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             non-ascii, for python versions prior to 3
         compression : string, optional
             A string representing the compression to use in the output file.
-            Allowed values are 'gzip', 'bz2', 'zip', 'xz'.
+            Allowed values are 'gzip', 'bz2', 'zip', 'xz'. This input is only
+            used when the first argument is a filename.
         date_format: string, default None
             Format string for datetime objects.
         decimal: string, default '.'
@@ -4066,6 +4069,11 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 return arr
 
         try:
+            # gh-15832: Check if we are requesting a numeric dype and
+            # that we can convert the data to the requested dtype.
+            if is_float_dtype(dtype) or is_integer_dtype(dtype):
+                subarr = maybe_cast_to_integer_array(arr, dtype)
+
             subarr = maybe_cast_to_datetime(arr, dtype)
             # Take care in creating object arrays (but iterators are not
             # supported):
@@ -4074,7 +4082,8 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                                            isinstance(subarr, np.ndarray))):
                 subarr = construct_1d_object_array_from_listlike(subarr)
             elif not is_extension_type(subarr):
-                subarr = np.array(subarr, dtype=dtype, copy=copy)
+                subarr = construct_1d_ndarray_preserving_na(subarr, dtype,
+                                                            copy=copy)
         except (ValueError, TypeError):
             if is_categorical_dtype(dtype):
                 # We *do* allow casting to categorical, since we know

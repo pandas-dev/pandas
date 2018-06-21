@@ -296,7 +296,7 @@ def parse_table_schema(json, precise_float):
     """
     table = loads(json, precise_float=precise_float)
     col_order = [field['name'] for field in table['schema']['fields']]
-    df = DataFrame(table['data'])[col_order]
+    df = DataFrame(table['data'], columns=col_order)[col_order]
 
     dtypes = {field['name']: convert_json_field_to_pandas_type(field)
               for field in table['schema']['fields']}

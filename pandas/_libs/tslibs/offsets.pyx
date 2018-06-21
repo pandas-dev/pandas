@@ -304,6 +304,15 @@ class _BaseOffset(object):
     _day_opt = None
     _attributes = frozenset(['n', 'normalize'])
 
+    def __init__(self, n=1, normalize=False):
+        n = self._validate_n(n)
+        object.__setattr__(self, "n", n)
+        object.__setattr__(self, "normalize", normalize)
+        object.__setattr__(self, "_cache", {})
+
+    def __setattr__(self, name, value):
+        raise AttributeError("DateOffset objects are immutable.")
+
     @property
     def kwds(self):
         # for backwards-compatibility
@@ -378,6 +387,46 @@ class _BaseOffset(object):
             raise ValueError('`n` argument must be an integer, '
                              'got {n}'.format(n=n))
         return nint
+
+    def __setstate__(self, state):
+        """Reconstruct an instance from a pickled state"""
+        if 'offset' in state:
+            # Older (<0.22.0) versions have offset attribute instead of _offset
+            if '_offset' in state:  # pragma: no cover
+                raise AssertionError('Unexpected key `_offset`')
+            state['_offset'] = state.pop('offset')
+            state['kwds']['offset'] = state['_offset']
+
+        if '_offset' in state and not isinstance(state['_offset'], timedelta):
+            # relativedelta, we need to populate using its kwds
+            offset = state['_offset']
+            odict = offset.__dict__
+            kwds = {key: odict[key] for key in odict if odict[key]}
+            state.update(kwds)
+
+        self.__dict__.update(state)
+
+        if 'weekmask' in state and 'holidays' in state:
+            calendar, holidays = _get_calendar(weekmask=self.weekmask,
+                                               holidays=self.holidays,
+                                               calendar=None)
+            object.__setattr__(self, "calendar", calendar)
+            object.__setattr__(self, "holidays", holidays)
+
+    def __getstate__(self):
+        """Return a pickleable state"""
+        state = self.__dict__.copy()
+
+        # we don't want to actually pickle the calendar object
+        # as its a np.busyday; we recreate on deserilization
+        if 'calendar' in state:
+            del state['calendar']
+        try:
+            state['kwds'].pop('calendar')
+        except KeyError:
+            pass
+
+        return state
 
 
 class BaseOffset(_BaseOffset):

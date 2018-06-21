@@ -80,7 +80,8 @@ from pandas import compat
 from pandas.compat import PY36
 from pandas.compat.numpy import function as nv
 from pandas.util._decorators import (Appender, Substitution,
-                                     rewrite_axis_style_signature)
+                                     rewrite_axis_style_signature,
+                                     deprecate_kwarg)
 from pandas.util._validators import (validate_bool_kwarg,
                                      validate_axis_style_args)
 
@@ -1689,7 +1690,8 @@ class DataFrame(NDFrame):
             defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
         compression : string, optional
             A string representing the compression to use in the output file.
-            Allowed values are 'gzip', 'bz2', 'zip', 'xz'.
+            Allowed values are 'gzip', 'bz2', 'zip', 'xz'. This input is only
+            used when the first argument is a filename.
         line_terminator : string, default ``'\n'``
             The newline character or character sequence to use in the output
             file
@@ -1764,6 +1766,7 @@ class DataFrame(NDFrame):
                         startcol=startcol, freeze_panes=freeze_panes,
                         engine=engine)
 
+    @deprecate_kwarg(old_arg_name='encoding', new_arg_name=None)
     def to_stata(self, fname, convert_dates=None, write_index=True,
                  encoding="latin-1", byteorder=None, time_stamp=None,
                  data_label=None, variable_labels=None, version=114,
@@ -1869,9 +1872,8 @@ class DataFrame(NDFrame):
             kwargs['convert_strl'] = convert_strl
 
         writer = statawriter(fname, self, convert_dates=convert_dates,
-                             encoding=encoding, byteorder=byteorder,
-                             time_stamp=time_stamp, data_label=data_label,
-                             write_index=write_index,
+                             byteorder=byteorder, time_stamp=time_stamp,
+                             data_label=data_label, write_index=write_index,
                              variable_labels=variable_labels, **kwargs)
         writer.write_file()
 
@@ -2722,7 +2724,8 @@ class DataFrame(NDFrame):
             indexer = key.nonzero()[0]
             return self._take(indexer, axis=0)
         else:
-            indexer = self.loc._convert_to_indexer(key, axis=1)
+            indexer = self.loc._convert_to_indexer(key, axis=1,
+                                                   raise_missing=True)
             return self._take(indexer, axis=1)
 
     def _getitem_multilevel(self, key):
@@ -7283,11 +7286,11 @@ class DataFrame(NDFrame):
         When ``values`` is a Series or DataFrame:
 
         >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
-        >>> other = DataFrame({'A': [1, 3, 3, 2], 'B': ['e', 'f', 'f', 'e']})
-        >>> df.isin(other)
+        >>> df2 = pd.DataFrame({'A': [1, 3, 3, 2], 'B': ['e', 'f', 'f', 'e']})
+        >>> df.isin(df2)
                A      B
         0   True  False
-        1  False  False  # Column A in `other` has a 3, but not at index 1.
+        1  False  False  # Column A in `df2` has a 3, but not at index 1.
         2   True   True
         """
         if isinstance(values, dict):

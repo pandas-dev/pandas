@@ -51,9 +51,9 @@ labels are collectively referred to as the **index**. The basic method to create
 
 Here, ``data`` can be many different things:
 
- - a Python dict
- - an ndarray
- - a scalar value (like 5)
+* a Python dict
+* an ndarray
+* a scalar value (like 5)
 
 The passed **index** is a list of axis labels. Thus, this separates into a few
 cases depending on what **data is**:
@@ -246,12 +246,12 @@ potentially different types. You can think of it like a spreadsheet or SQL
 table, or a dict of Series objects. It is generally the most commonly used
 pandas object. Like Series, DataFrame accepts many different kinds of input:
 
- - Dict of 1D ndarrays, lists, dicts, or Series
- - 2-D numpy.ndarray
- - `Structured or record
-   <http://docs.scipy.org/doc/numpy/user/basics.rec.html>`__ ndarray
- - A ``Series``
- - Another ``DataFrame``
+* Dict of 1D ndarrays, lists, dicts, or Series
+* 2-D numpy.ndarray
+* `Structured or record
+  <http://docs.scipy.org/doc/numpy/user/basics.rec.html>`__ ndarray
+* A ``Series``
+* Another ``DataFrame``
 
 Along with the data, you can optionally pass **index** (row labels) and
 **columns** (column labels) arguments. If you pass an index and / or columns,
@@ -353,7 +353,7 @@ From a list of dicts
 From a dict of tuples
 ~~~~~~~~~~~~~~~~~~~~~
 
-You can automatically create a multi-indexed frame by passing a tuples
+You can automatically create a MultiIndexed frame by passing a tuples
 dictionary.
 
 .. ipython:: python
@@ -842,10 +842,10 @@ econometric analysis of panel data. However, for the strict purposes of slicing
 and dicing a collection of DataFrame objects, you may find the axis names
 slightly arbitrary:
 
-  - **items**: axis 0, each item corresponds to a DataFrame contained inside
-  - **major_axis**: axis 1, it is the **index** (rows) of each of the
-    DataFrames
-  - **minor_axis**: axis 2, it is the **columns** of each of the DataFrames
+* **items**: axis 0, each item corresponds to a DataFrame contained inside
+* **major_axis**: axis 1, it is the **index** (rows) of each of the
+  DataFrames
+* **minor_axis**: axis 2, it is the **columns** of each of the DataFrames
 
 Construction of Panels works about like you would expect:
 
