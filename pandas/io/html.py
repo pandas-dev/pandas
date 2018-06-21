@@ -496,11 +496,7 @@ class _HtmlFrameParser(object):
             all_texts.append(texts)
             remainder = next_remainder
 
-        # ignore all-empty-text rows
-        no_empty = [row for row in all_texts
-                    if any(text for text in row)]
-
-        return no_empty
+        return all_texts
 
     def _handle_hidden_tables(self, tbl_list, attr_name):
         """
@@ -785,10 +781,16 @@ def _data_to_frame(**kwargs):
     header = kwargs.pop('header')
     kwargs['skiprows'] = _get_skiprows(kwargs['skiprows'])
     if head:
-        rows = lrange(len(head))
         body = head + body
-        if header is None:  # special case when a table has <th> elements
-            header = 0 if rows == [0] else rows
+
+        # Infer header when there is a <thead> or top <th>-only rows
+        if header is None:
+            if len(head) == 1:
+                header = 0
+            else:
+                # ignore all-empty-text rows
+                header = [i for i, row in enumerate(head)
+                          if any(text for text in row)]
 
     if foot:
         body += foot

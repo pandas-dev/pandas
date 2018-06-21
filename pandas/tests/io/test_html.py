@@ -15,6 +15,7 @@ from pandas import (DataFrame, MultiIndex, read_csv, Timestamp, Index,
                     date_range, Series)
 from pandas.compat import (map, zip, StringIO, BytesIO,
                            is_platform_windows, PY3, reload)
+from pandas.errors import ParserError
 from pandas.io.common import URLError, file_path_to_url
 import pandas.io.html
 from pandas.io.html import read_html
@@ -147,7 +148,7 @@ class TestReadHtml(object):
             assert isinstance(df, DataFrame)
 
     def test_spam_header(self):
-        df = self.read_html(self.spam_data, '.*Water.*', header=1)[0]
+        df = self.read_html(self.spam_data, '.*Water.*', header=2)[0]
         assert df.columns[0] == 'Proximates'
         assert not df.empty
 
@@ -424,7 +425,7 @@ class TestReadHtml(object):
             </tbody>
         </table>''')[0]
 
-        expected = DataFrame({'A': [1, 3], 'B': [2, 4]})
+        expected = DataFrame(data=[[1, 2], [3, 4]], columns=['A', 'B'])
 
         tm.assert_frame_equal(result, expected)
 
@@ -471,11 +472,8 @@ class TestReadHtml(object):
             </tbody>
         </table>''')[0]
 
-        expected = DataFrame(data={
-            'Country': ['Ukraine'],
-            'Municipality': ['Odessa'],
-            'Year': [1944],
-        })
+        expected = DataFrame(data=[['Ukraine', 'Odessa', 1944]],
+                             columns=['Country', 'Municipality', 'Year'])
 
         tm.assert_frame_equal(result, expected)
 
@@ -502,9 +500,10 @@ class TestReadHtml(object):
             </tfoot>
         </table>'''
 
-        expected1 = DataFrame({'A': ['bodyA'], 'B': ['bodyB']})
-        expected2 = DataFrame({'A': ['bodyA', 'footA'],
-                               'B': ['bodyB', 'footB']})
+        expected1 = DataFrame(data=[['bodyA', 'bodyB']], columns=['A', 'B'])
+
+        expected2 = DataFrame(data=[['bodyA', 'bodyB'], ['footA', 'footB']],
+                              columns=['A', 'B'])
 
         data1 = data_template.format(footer="")
         data2 = data_template.format(
@@ -532,7 +531,7 @@ class TestReadHtml(object):
             </table>
         ''', header=0)[0]
 
-        expected = DataFrame(data={'S': ['text'], 'I': [1944]})
+        expected = DataFrame([['text', 1944]], columns=('S', 'I'))
 
         tm.assert_frame_equal(result, expected)
 
@@ -676,11 +675,7 @@ class TestReadHtml(object):
             </table>
         """)[0]
 
-        expected = DataFrame(data={
-            'A': ['a'],
-            'B': ['b'],
-            'C': ['c'],
-        })
+        expected = DataFrame([['a', 'b', 'c']], columns=['A', 'B', 'C'])
 
         tm.assert_frame_equal(result, expected)
 
@@ -708,13 +703,8 @@ class TestReadHtml(object):
             </table>
         """, header=0)[0]
 
-        expected = DataFrame(data={
-            'X': ['A'],
-            'X.1': ['B'],
-            'Y': ['B'],
-            'Z': ['Z'],
-            'W': ['C'],
-        })
+        expected = DataFrame(data=[['A', 'B', 'B', 'Z', 'C']],
+                             columns=['X', 'X.1', 'Y', 'Z', 'W'])
 
         tm.assert_frame_equal(result, expected)
 
@@ -739,13 +729,8 @@ class TestReadHtml(object):
             </table>
         """, header=0)[0]
 
-        expected = DataFrame(data={
-            'A': ['A'],
-            'B': ['B'],
-            'B.1': ['B'],
-            'B.2': ['B'],
-            'C': ['D'],
-        })
+        expected = DataFrame(data=[['A', 'B', 'B', 'B', 'D']],
+                             columns=['A', 'B', 'B.1', 'B.2', 'C'])
 
         tm.assert_frame_equal(result, expected)
 
@@ -769,10 +754,7 @@ class TestReadHtml(object):
             </table>
         """, header=0)[0]
 
-        expected = DataFrame(data={
-            'A': ['C'],
-            'B': ['B']
-        })
+        expected = DataFrame(data=[['C', 'B']], columns=['A', 'B'])
 
         tm.assert_frame_equal(result, expected)
 
@@ -788,14 +770,12 @@ class TestReadHtml(object):
             </table>
         """, header=0)[0]
 
-        expected = DataFrame(data={
-            'A': ['A', 'A'],
-            'B': ['B', 'B'],
-        })
+        expected = DataFrame(data=[['A', 'B'], ['A', 'B']],
+                             columns=['A', 'B'])
 
         tm.assert_frame_equal(result, expected)
 
-    def test_header_inferred_from_th_elements(self):
+    def test_header_inferred_from_rows_with_only_th(self):
         # GH17054
         result = self.read_html("""
             <table>
@@ -814,10 +794,9 @@ class TestReadHtml(object):
             </table>
         """)[0]
 
-        expected = DataFrame(data={
-            ('A', 'a'): [1],
-            ('B', 'b'): [2],
-        })
+        columns = MultiIndex(levels=[['A', 'B'], ['a', 'b']],
+                             labels=[[0, 1], [0, 1]])
+        expected = DataFrame(data=[[1, 2]], columns=columns)
 
         tm.assert_frame_equal(result, expected)
 
@@ -855,6 +834,23 @@ class TestReadHtml(object):
         assert os.path.getsize(data), '%r is an empty file' % data
         result = self.read_html(data, 'Arizona', header=1)[0]
         assert result['sq mi'].dtype == np.dtype('float64')
+
+    def test_parser_error_on_empty_header_row(self):
+        with tm.assert_raises_regex(ParserError,
+                                    r"Passed header=\[0,1\] are "
+                                    r"too many rows for this "
+                                    r"multi_index of columns"):
+            self.read_html("""
+                <table>
+                    <thead>
+                        <tr><th></th><th></tr>
+                        <tr><th>A</th><th>B</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>a</td><td>b</td></tr>
+                    </tbody>
+                </table>
+            """, header=[0, 1])
 
     def test_decimal_rows(self):
         # GH 12907
@@ -959,6 +955,49 @@ class TestReadHtml(object):
         expected_df = DataFrame({'a': [np.nan, np.nan]})
         html_df = self.read_html(html_data, keep_default_na=True)[0]
         tm.assert_frame_equal(expected_df, html_df)
+
+    def test_preserve_empty_rows(self):
+        result = self.read_html("""
+            <table>
+                <tr>
+                    <th>A</th>
+                    <th>B</th>
+                </tr>
+                <tr>
+                    <td>a</td>
+                    <td>b</td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </table>
+        """)[0]
+
+        expected = DataFrame(data=[['a', 'b'], [np.nan, np.nan]],
+                             columns=['A', 'B'])
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_ignore_empty_rows_when_inferring_header(self):
+        result = self.read_html("""
+            <table>
+                <thead>
+                    <tr><th></th><th></tr>
+                    <tr><th>A</th><th>B</th></tr>
+                    <tr><th>a</th><th>b</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>1</td><td>2</td></tr>
+                </tbody>
+            </table>
+        """)[0]
+
+        columns = MultiIndex(levels=[['A', 'B'], ['a', 'b']],
+                             labels=[[0, 1], [0, 1]])
+        expected = DataFrame(data=[[1, 2]], columns=columns)
+
+        tm.assert_frame_equal(result, expected)
 
     def test_multiple_header_rows(self):
         # Issue #13434
