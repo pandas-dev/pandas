@@ -126,18 +126,16 @@ class TestTimestampUnaryOps(object):
         ('2018-01-01 00:20:00', '20T', '2018-01-01 00:20:00'),
         ('2018-01-01 03:00:00', '3H', '2018-01-01 03:00:00'),
     ])
-    def test_round_minute_freq(self, test_input, freq, expected):
+    @pytest.mark.parametrize('rounder', ['ceil', 'floor', 'round'])
+    def test_round_minute_freq(self, test_input, freq, expected, rounder):
         # Ensure timestamps that shouldnt round dont!
         # GH#21262
+
         dt = Timestamp(test_input)
         expected = Timestamp(expected)
-
-        result_ceil = dt.ceil(freq)
-        assert result_ceil == expected
-        result_floor = dt.floor(freq)
-        assert result_floor == expected
-        result_round = dt.round(freq)
-        assert result_round == expected
+        func = getattr(dt, rounder)
+        result = func(freq)
+        assert result == expected
 
     def test_ceil(self):
         dt = Timestamp('20130101 09:10:11')

@@ -58,21 +58,31 @@ cdef inline object create_timestamp_from_ts(int64_t value,
     return ts_base
 
 
-def round_ns(values, rounder, freq):
+cdef inline round_ns(values, rounder, freq):
+
     """
     Applies rounding function at given frequency
 
     Parameters
     ----------
-    values : int, :obj:`ndarray`
-    rounder : function
+    values : np.array
+    rounder : function, eg. 'Ceil', 'Floor', 'round'
     freq : str, obj
 
     Returns
     -------
-    int or :obj:`ndarray`
+    np.array
     """
     def _round_non_int_multiple(value):
+
+        from pandas.tseries.frequencies import to_offset
+        unit = to_offset(freq).nanos
+
+        # GH21262 If the Timestamp is multiple of the freq str
+        # don't apply any rounding
+        if value % unit == 0:
+            return value
+
         if unit < 1000:
             # for nano rounding, work with the last 6 digits separately
             # due to float precision
@@ -96,26 +106,7 @@ def round_ns(values, rounder, freq):
 
         return r
 
-    # GH21262 If the Timestamp is multiple of the freq str
-    # then we don't apply _round_non_int_multiple
-
-    def _apply_round(value):
-        if value % unit == 0:
-            return value
-        else:
-            return _round_non_int_multiple(value)
-
-    from pandas.tseries.frequencies import to_offset
-    unit = to_offset(freq).nanos
-
-    if type(values) is int:
-        if values % unit == 0:
-            return values
-        else:
-            return _round_non_int_multiple(values)
-
-    else:
-        return np.fromiter((_apply_round(item) for item in values), np.int64)
+    return np.fromiter((_round_non_int_multiple(item) for item in values), np.int64)
 
 
 # This is PITA. Because we inherit from datetime, which has very specific
@@ -663,13 +654,23 @@ class Timestamp(_Timestamp):
 
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq)
 
+    @staticmethod
+    def round_values(values, rounder, freq):
+        """
+        DatetimeIndex/PeriodIndex also use Timestamp rounding
+        """
+        return round_ns(values, rounder, freq)
+
     def _round(self, freq, rounder):
         if self.tz is not None:
             value = self.tz_localize(None).value
         else:
             value = self.value
 
-        r = round_ns(value, rounder, freq)
+        value = np.array([value], dtype=np.int64)
+
+        # Will only ever contain 1 element for timestamp
+        r = Timestamp.round_values(value, rounder, freq).item()
         result = Timestamp(r, unit='ns')
         if self.tz is not None:
             result = result.tz_localize(self.tz)
