@@ -796,7 +796,7 @@ class IntervalIndex(IntervalMixin, Index):
     @cache_readonly
     def dtype(self):
         """Return the dtype object of the underlying data"""
-        return IntervalDtype(str(self.left.dtype))
+        return IntervalDtype(self.left.dtype.name)
 
     @property
     def inferred_type(self):
