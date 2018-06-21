@@ -9,6 +9,7 @@ from numpy import nan
 import numpy as np
 
 from pandas.compat import (lmap, range, lrange, StringIO, u)
+from pandas.io.common import _get_handle
 import pandas.core.common as com
 from pandas.errors import ParserError
 from pandas import (DataFrame, Index, Series, MultiIndex, Timestamp,
@@ -935,18 +936,19 @@ class TestDataFrameToCSV(TestData):
         with ensure_clean() as filename:
 
             df.to_csv(filename, compression=compression, encoding=encoding)
-
             # test the round trip - to_csv -> read_csv
             result = read_csv(filename, compression=compression,
                               index_col=0, encoding=encoding)
-
-            with open(filename, 'w') as fh:
-                df.to_csv(fh, compression=compression, encoding=encoding)
-
-            result_fh = read_csv(filename, compression=compression,
-                                 index_col=0, encoding=encoding)
             assert_frame_equal(df, result)
-            assert_frame_equal(df, result_fh)
+
+            # test the round trip using file handle - to_csv -> read_csv
+            f, _handles = _get_handle(filename, 'w', compression=compression,
+                                      encoding=encoding)
+            with f:
+                df.to_csv(f, encoding=encoding)
+            result = pd.read_csv(filename, compression=compression,
+                                 encoding=encoding, index_col=0, squeeze=True)
+            assert_frame_equal(df, result)
 
             # explicitly make sure file is compressed
             with tm.decompress_file(filename, compression) as fh:

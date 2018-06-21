@@ -110,3 +110,4 @@ doc/source/styled.xlsx
 doc/source/templates/
 env/
 doc/source/savefig/
+*my-dev-test.py
