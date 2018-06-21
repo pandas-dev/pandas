@@ -17,7 +17,8 @@ Fixed Regressions
 ~~~~~~~~~~~~~~~~~
 
 - Fixed regression in :meth:`to_csv` when handling file-like object incorrectly (:issue:`21471`)
--
+- Bug in both :meth:`DataFrame.first_valid_index` and :meth:`Series.first_valid_index` raised for a row index having duplicate values (:issue:`21441`)
+- 
 
 .. _whatsnew_0232.performance:
 
@@ -26,7 +27,7 @@ Performance Improvements
 
 - Improved performance of membership checks in :class:`CategoricalIndex`
   (i.e. ``x in ci``-style checks are much faster). :meth:`CategoricalIndex.contains`
-  is likewise much faster (:issue:`21369`)
+  is likewise much faster (:issue:`21369`, :issue:`21508`)
 - Improved performance of :meth:`MultiIndex.is_unique` (:issue:`21522`)
 -
 
@@ -61,6 +62,7 @@ Bug Fixes
 - Bug in :meth:`Index.get_indexer_non_unique` with categorical key (:issue:`21448`)
 - Bug in comparison operations for :class:`MultiIndex` where error was raised on equality / inequality comparison involving a MultiIndex with ``nlevels == 1`` (:issue:`21149`)
 - Bug in :meth:`DataFrame.drop` behaviour is not consistent for unique and non-unique indexes (:issue:`21494`)
+- Bug in :func:`DataFrame.duplicated` with a large number of columns causing a 'maximum recursion depth exceeded' (:issue:`21524`).
 -
 
 **I/O**
