@@ -130,7 +130,7 @@ class BaseGetitemTests(BaseExtensionTests):
         expected = s.iloc[[0, 1]]
         self.assert_series_equal(result, expected)
 
-        assert s.get(-1) is None
+        assert s.get(-1) == s.iloc[-1]
         assert s.get(s.index.max() + 1) is None
 
         s = pd.Series(data[:6], index=list('abcdef'))

@@ -31,7 +31,7 @@ subclass.
 For the second approach, which is appropriate if your ExtensionArray contains 
 elements that already have the operators
 defined on a per-element basis, pandas provides a mixin,
-:class:`ExtensionScalarOpsMixin` that you can use that can
+:class:`ExtensionScalarOpsMixin` that you can use to
 define the operators on your ExtensionArray subclass.
 If developing an ``ExtensionArray`` subclass, for example ``MyExtensionArray``,
 simply include ``ExtensionScalarOpsMixin`` as a parent class of ``MyExtensionArray``

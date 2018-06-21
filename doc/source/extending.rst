@@ -135,7 +135,7 @@ of the class ``MyExtensionElement``, then if the operators are defined
 for ``MyExtensionElement``, the second approach will automatically
 define the operators for ``MyExtensionArray``.
 
-A mixin class, :class:`~pandas.api.extensions.ExtensionScalarOpscMixin` supports this second
+A mixin class, :class:`~pandas.api.extensions.ExtensionScalarOpsMixin` supports this second
 approach.  If developing an ``ExtensionArray`` subclass, for example ``MyExtensionArray``,
 simply include ``ExtensionScalarOpsMixin`` as a parent class of ``MyExtensionArray``
 and then call the methods :meth:`~MyExtensionArray._add_arithmetic_ops` and/or

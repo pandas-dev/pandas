@@ -666,8 +666,8 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
     get the arithmetic operators.  After the definition of MyExtensionArray,
     insert the lines
 
-    MyExtensionArray.addArithmeticOperators()
-    MyExtensionArray.addComparisonOperators()
+    MyExtensionArray._add_arithmetic_ops()
+    MyExtensionArray._add_comparison_ops()
 
     to link the operators to your class.
     """
