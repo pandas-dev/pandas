@@ -902,6 +902,20 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         return retval
 
     def _multi_take_opportunity(self, tup):
+        """
+        Check whether there is the possibility to use ``_multi_take``.
+        Currently the limit is that all axes being indexed must be indexed with
+        list-likes.
+
+        Parameters
+        ----------
+        tup : tuple
+            Tuple of indexers, one per axis
+
+        Returns
+        -------
+        boolean: Whether the current indexing can be passed through _multi_take
+        """
         if not all(is_list_like_indexer(x) for x in tup):
             return False
 
@@ -912,9 +926,21 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         return True
 
     def _multi_take(self, tup):
-        """ create the reindex map for our objects, raise the _exception if we
-        can't create the indexer
         """
+        Create the indexers for the passed tuple of keys, and execute the take
+        operation. This allows the take operation to be executed all at once -
+        rather than once for each dimension - improving efficiency.
+
+        Parameters
+        ----------
+        tup : tuple
+            Tuple of indexers, one per axis
+
+        Returns
+        -------
+        values: same type as the object being indexed
+        """
+        # GH 836
         o = self.obj
         d = {axis: self._get_listlike_indexer(key, axis)
              for (key, axis) in zip(tup, o._AXIS_ORDERS)}
