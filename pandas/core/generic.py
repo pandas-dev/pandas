@@ -9420,7 +9420,9 @@ use ``axis=1``
 _any_see_also = """\
 See Also
 --------
+pandas.DataFrame.any : Return whether any element is True over requested axis.
 pandas.DataFrame.all : Return whether all elements are True.
+pandas.Series.all : Return whether all elements are True over series or dataframe axis.
 """
 
 _any_desc = """\
