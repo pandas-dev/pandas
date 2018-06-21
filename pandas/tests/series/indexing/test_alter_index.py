@@ -537,12 +537,8 @@ def test_drop_with_ignore_errors():
     tm.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize('index, drop_labels', [
-    ([1, 2, 3], []),
-    ([1, 1, 2], []),
-    ([1, 2, 3], [2]),
-    ([1, 1, 3], [1]),
-])
+@pytest.mark.parametrize('index', [[1, 2, 3], [1, 1, 3]])
+@pytest.mark.parametrize('drop_labels', [[], [1], [3]])
 def test_drop_empty_list(index, drop_labels):
     # GH 21494
     expected_index = [i for i in index if i not in drop_labels]

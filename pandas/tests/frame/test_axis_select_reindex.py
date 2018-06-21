@@ -1161,7 +1161,7 @@ class TestDataFrameSelectReindex(TestData):
         tm.assert_frame_equal(frame, pd.DataFrame(index=expected_index))
 
     @pytest.mark.parametrize('index', [[1, 2, 3], [1, 2, 2]])
-    @pytest.mark.parametrize('drop_labels', [[1, 4]])
+    @pytest.mark.parametrize('drop_labels', [[1, 4], [4, 5]])
     def test_drop_non_empty_list(self, index, drop_labels):
         # GH 21494
         with tm.assert_raises_regex(KeyError, 'not found in axis'):
