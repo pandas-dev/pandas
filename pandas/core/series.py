@@ -2066,7 +2066,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def __rmatmul__(self, other):
         """ Matrix multiplication using binary `@` operator in Python>=3.5 """
-        return self.dot(np.transpose(other)).T
+        return self.dot(np.transpose(other))
 
     @Substitution(klass='Series')
     @Appender(base._shared_docs['searchsorted'])
