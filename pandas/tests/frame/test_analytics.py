@@ -1159,6 +1159,7 @@ class TestDataFrameAnalytics(TestData):
         self._check_bool_op('any', np.any, has_skipna=True, has_bool_only=True)
         self._check_bool_op('all', np.all, has_skipna=True, has_bool_only=True)
 
+    def test_any_all_extra(self):
         df = DataFrame({
             'A': [True, False, False],
             'B': [True, True, False],
@@ -1231,14 +1232,22 @@ class TestDataFrameAnalytics(TestData):
         (np.any, {'A': pd.Series([0.0, 1.0], dtype='float')}, True),
         (np.all, {'A': pd.Series([0, 1], dtype=int)}, False),
         (np.any, {'A': pd.Series([0, 1], dtype=int)}, True),
-        (np.all, {'A': pd.Series([0, 1], dtype='M8[ns]')}, False),
-        (np.any, {'A': pd.Series([0, 1], dtype='M8[ns]')}, True),
-        (np.all, {'A': pd.Series([1, 2], dtype='M8[ns]')}, True),
-        (np.any, {'A': pd.Series([1, 2], dtype='M8[ns]')}, True),
-        (np.all, {'A': pd.Series([0, 1], dtype='m8[ns]')}, False),
-        (np.any, {'A': pd.Series([0, 1], dtype='m8[ns]')}, True),
-        (np.all, {'A': pd.Series([1, 2], dtype='m8[ns]')}, True),
-        (np.any, {'A': pd.Series([1, 2], dtype='m8[ns]')}, True),
+        pytest.param(np.all, {'A': pd.Series([0, 1], dtype='M8[ns]')}, False,
+                     marks=[td.skip_if_np_lt_115]),
+        pytest.param(np.any, {'A': pd.Series([0, 1], dtype='M8[ns]')}, True,
+                     marks=[td.skip_if_np_lt_115]),
+        pytest.param(np.all, {'A': pd.Series([1, 2], dtype='M8[ns]')}, True,
+                     marks=[td.skip_if_np_lt_115]),
+        pytest.param(np.any, {'A': pd.Series([1, 2], dtype='M8[ns]')}, True,
+                     marks=[td.skip_if_np_lt_115]),
+        pytest.param(np.all, {'A': pd.Series([0, 1], dtype='m8[ns]')}, False,
+                     marks=[td.skip_if_np_lt_115]),
+        pytest.param(np.any, {'A': pd.Series([0, 1], dtype='m8[ns]')}, True,
+                     marks=[td.skip_if_np_lt_115]),
+        pytest.param(np.all, {'A': pd.Series([1, 2], dtype='m8[ns]')}, True,
+                     marks=[td.skip_if_np_lt_115]),
+        pytest.param(np.any, {'A': pd.Series([1, 2], dtype='m8[ns]')}, True,
+                     marks=[td.skip_if_np_lt_115]),
         (np.all, {'A': pd.Series([0, 1], dtype='category')}, False),
         (np.any, {'A': pd.Series([0, 1], dtype='category')}, True),
         (np.all, {'A': pd.Series([1, 2], dtype='category')}, True),

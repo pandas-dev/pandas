@@ -27,6 +27,7 @@ For more information, refer to the ``pytest`` documentation on ``skipif``.
 import pytest
 import locale
 from distutils.version import LooseVersion
+import numpy as np
 
 from pandas.compat import (is_platform_windows, is_platform_32bit, PY3,
                            import_lzma)
@@ -160,6 +161,9 @@ def skip_if_no(package, min_version=None):
 
 skip_if_no_mpl = pytest.mark.skipif(_skip_if_no_mpl(),
                                     reason="Missing matplotlib dependency")
+
+skip_if_np_lt_115 = pytest.mark.skipif(np.__version__ < LooseVersion("1.15.0"),
+                                       reason="NumPy 1.15 or greater required")
 skip_if_mpl = pytest.mark.skipif(not _skip_if_no_mpl(),
                                  reason="matplotlib is present")
 skip_if_mpl_1_5 = pytest.mark.skipif(_skip_if_mpl_1_5(),
