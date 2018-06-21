@@ -58,7 +58,7 @@ cdef inline object create_timestamp_from_ts(int64_t value,
     return ts_base
 
 
-cdef inline round_ns(values, rounder, freq):
+def round_ns(values, rounder, freq):
 
     """
     Applies rounding function at given frequency
@@ -653,13 +653,6 @@ class Timestamp(_Timestamp):
             freq = to_offset(freq)
 
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq)
-
-    @staticmethod
-    def round_values(values, rounder, freq):
-        """
-        DatetimeIndex/PeriodIndex also use Timestamp rounding
-        """
-        return round_ns(values, rounder, freq)
 
     def _round(self, freq, rounder):
         if self.tz is not None:
