@@ -2255,8 +2255,7 @@ class StringMethods(NoNewAttributesMixin):
 
     Examples
     --------
-    >>> s = pd.Series(["this is a regular sentence",
-    "path/to/python/file", np.nan])
+    >>> s = pd.Series(["this is a regular sentence", "path/to/python/file", np.nan])
 
     By default, split and rsplit will return an object of the same size
     having lists containing the split elements.
