@@ -61,6 +61,7 @@ Bug Fixes
 
 - Bug in :meth:`Index.get_indexer_non_unique` with categorical key (:issue:`21448`)
 - Bug in comparison operations for :class:`MultiIndex` where error was raised on equality / inequality comparison involving a MultiIndex with ``nlevels == 1`` (:issue:`21149`)
+- Bug in :func:`DataFrame.duplicated` with a large number of columns causing a 'maximum recursion depth exceeded' (:issue:`21524`).
 -
 
 **I/O**
