@@ -1807,8 +1807,6 @@ class _LocIndexer(_LocationIndexer):
 
             try:
                 key = self._convert_scalar_indexer(key, axis)
-                if not ax.contains(key):
-                    error()
             except TypeError as e:
 
                 # python 3 type errors should be raised
@@ -1816,6 +1814,9 @@ class _LocIndexer(_LocationIndexer):
                     error()
                 raise
             except:
+                error()
+
+            if not ax.contains(key):
                 error()
 
     def _is_scalar_access(self, key):
