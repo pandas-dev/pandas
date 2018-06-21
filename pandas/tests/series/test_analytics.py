@@ -854,6 +854,7 @@ class TestSeriesAnalytics(TestData):
         expected = np.dot(a.values, a.values)
         assert_almost_equal(result, expected)
 
+        # GH 21530
         # np.array (matrix) @ Series (__rmatmul__)
         result = operator.matmul(b.T.values, a)
         expected = np.dot(b.T.values, a.values)
