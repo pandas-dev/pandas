@@ -854,6 +854,11 @@ class TestSeriesAnalytics(TestData):
         expected = np.dot(a.values, a.values)
         assert_almost_equal(result, expected)
 
+        # np.array (matrix) @ Series (__rmatmul__)
+        result = operator.matmul(b.T.values, a)
+        expected = np.dot(b.T.values, a.values)
+        assert_almost_equal(result, expected)
+
         # mixed dtype DataFrame @ Series
         a['p'] = int(a.p)
         result = operator.matmul(b.T, a)
