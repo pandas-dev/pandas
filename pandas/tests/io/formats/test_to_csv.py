@@ -6,6 +6,7 @@ import pandas as pd
 import pytest
 from pandas import DataFrame
 from pandas.util import testing as tm
+from pandas.compat import StringIO
 
 
 class TestToCSV(object):
@@ -285,3 +286,21 @@ $1$,$2$
             df.to_csv(path, encoding='utf-8')
             with open(path, 'r') as f:
                 assert f.read() == expected_utf8
+
+    def test_to_csv_stdout_file(self):
+        # GH 21561
+        str_array = [{'names': ['foo', 'bar']}, {'names': ['baz', 'qux']}]
+        df = pd.DataFrame(str_array)
+        expected_ascii = '''\
+,names
+0,"['foo', 'bar']"
+1,"['baz', 'qux']"
+'''
+        saved_stdout = sys.stdout
+        out = StringIO()
+        sys.stdout = out
+        df.to_csv(sys.stdout, encoding='ascii')
+        output = out.getvalue()
+        assert output == expected_ascii
+        sys.stdout = saved_stdout
+        assert sys.stdout.closed == False
