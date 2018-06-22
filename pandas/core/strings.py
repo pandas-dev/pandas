@@ -2255,7 +2255,8 @@ class StringMethods(NoNewAttributesMixin):
 
     Examples
     --------
-    >>> s = pd.Series(["this is a regular sentence", "https://docs.python.org/3/tutorial/index.html", np.nan])
+    >>> s = pd.Series(["this is a regular sentence",
+    "https://docs.python.org/3/tutorial/index.html", np.nan])
 
     In the default setting, the string is split by whitespace.
 
@@ -2265,7 +2266,8 @@ class StringMethods(NoNewAttributesMixin):
     2                                                NaN
     dtype: object
 
-    Without the `n` parameter, the outputs of `rsplit` and `split` are identical.
+    Without the `n` parameter, the outputs of `rsplit` and `split`
+    are identical.
 
     >>> s.str.rsplit()
     0                   [this, is, a, regular, sentence]
@@ -2301,10 +2303,15 @@ class StringMethods(NoNewAttributesMixin):
     the columns during the split.
 
     >>> s.str.split(expand=True)
-                                                   0     1     2        3         4
-    0                                           this    is     a  regular  sentence
-    1  https://docs.python.org/3/tutorial/index.html  None  None     None      None
-    2                                            NaN   NaN   NaN      NaN       NaN
+                                                   0     1     2        3
+    0                                           this    is     a  regular
+    1  https://docs.python.org/3/tutorial/index.html  None  None     None
+    2                                            NaN   NaN   NaN      NaN \
+
+                 4
+    0     sentence
+    1         None
+    2          NaN
 
     For slightly more complex use cases like splitting the html document name
     from a url, a combination of parameter settings can be used.
