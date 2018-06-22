@@ -25,7 +25,6 @@ def test_mut_exclusive():
 
 
 def test_get_callable_name():
-    from functools import partial
     getname = com._get_callable_name
 
     def fn(x):
@@ -154,8 +153,7 @@ def test_random_state():
 
     # Check with random state object
     state2 = npr.RandomState(10)
-    assert (com._random_state(state2).uniform() ==
-            npr.RandomState(10).uniform())
+    assert com._random_state(state2).uniform() == npr.RandomState(10).uniform()
 
     # check with no arg random state
     assert com._random_state() is np.random
