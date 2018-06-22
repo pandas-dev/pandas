@@ -285,3 +285,18 @@ $1$,$2$
             df.to_csv(path, encoding='utf-8')
             with open(path, 'r') as f:
                 assert f.read() == expected_utf8
+
+    @tm.capture_stdout
+    def test_to_csv_stdout_file(self):
+        # GH 21561
+        df = pd.DataFrame([['foo', 'bar'], ['baz', 'qux']],
+                          columns=['name_1', 'name_2'])
+        expected_ascii = '''\
+,name_1,name_2
+0,foo,bar
+1,baz,qux
+'''
+        df.to_csv(sys.stdout, encoding='ascii')
+        output = sys.stdout.getvalue()
+        assert output == expected_ascii
+        assert not sys.stdout.closed
