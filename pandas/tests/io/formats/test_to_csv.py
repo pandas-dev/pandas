@@ -6,7 +6,6 @@ import pandas as pd
 import pytest
 from pandas import DataFrame
 from pandas.util import testing as tm
-from pandas.util.testing import capture_stdout
 
 class TestToCSV(object):
 
@@ -286,7 +285,7 @@ $1$,$2$
             with open(path, 'r') as f:
                 assert f.read() == expected_utf8
 
-    @capture_stdout
+    @tm.capture_stdout
     def test_to_csv_stdout_file(self):
         # GH 21561
         df = pd.DataFrame([['foo', 'bar'], ['baz', 'qux']], 
