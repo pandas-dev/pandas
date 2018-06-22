@@ -43,6 +43,10 @@ def to_numeric(arg, errors='raise', downcast=None):
         checked satisfy that specification, no downcasting will be
         performed on the data.
 
+        Also Note that the default return dtype is `float64` or `int64`
+        depending on the data supplied.`downcast` for `float` or `int`
+        should only be used if output desired is `float32` or `int32`
+
         .. versionadded:: 0.19.0
 
     Returns
