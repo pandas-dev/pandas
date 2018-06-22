@@ -524,14 +524,13 @@ class TestTimeSeries(object):
                               (rng3, expected3), (rng4, expected4)]:
             tm.assert_index_equal(rng, expected)
 
-    @pytest.mark.parametrize('dtype', [np.int64, np.int32, np.int16, np.int8])
-    def test_dti_constructor_small_int(self, dtype):
-        # GH 13721
+    def test_dti_constructor_small_int(self, any_int_dtype):
+        # see gh-13721
         exp = DatetimeIndex(['1970-01-01 00:00:00.00000000',
                              '1970-01-01 00:00:00.00000001',
                              '1970-01-01 00:00:00.00000002'])
 
-        arr = np.array([0, 10, 20], dtype=dtype)
+        arr = np.array([0, 10, 20], dtype=any_int_dtype)
         tm.assert_index_equal(DatetimeIndex(arr), exp)
 
     def test_ctor_str_intraday(self):
