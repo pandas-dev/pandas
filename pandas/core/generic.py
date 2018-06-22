@@ -463,7 +463,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        ndarray.ndim
+        ndarray.ndim : Number of array dimensions.
 
         Examples
         --------
@@ -487,7 +487,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        ndarray.size
+        ndarray.size : Number of elements in the array.
 
         Examples
         --------
@@ -3129,7 +3129,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         axis = self._get_axis_number(axis)
         axis_name = self._get_axis_name(axis)
-        axis, axis_ = self._get_axis(axis), axis
+        axis = self._get_axis(axis)
 
         if axis.is_unique:
             if level is not None:
@@ -3138,24 +3138,25 @@ class NDFrame(PandasObject, SelectionMixin):
                 new_axis = axis.drop(labels, level=level, errors=errors)
             else:
                 new_axis = axis.drop(labels, errors=errors)
-            dropped = self.reindex(**{axis_name: new_axis})
-            try:
-                dropped.axes[axis_].set_names(axis.names, inplace=True)
-            except AttributeError:
-                pass
-            result = dropped
+            result = self.reindex(**{axis_name: new_axis})
 
+        # Case for non-unique axis
         else:
             labels = _ensure_object(com._index_labels_to_array(labels))
             if level is not None:
                 if not isinstance(axis, MultiIndex):
                     raise AssertionError('axis must be a MultiIndex')
                 indexer = ~axis.get_level_values(level).isin(labels)
+
+                # GH 18561 MultiIndex.drop should raise if label is absent
+                if errors == 'raise' and indexer.all():
+                    raise KeyError('{} not found in axis'.format(labels))
             else:
                 indexer = ~axis.isin(labels)
-
-            if errors == 'raise' and indexer.all():
-                raise KeyError('{} not found in axis'.format(labels))
+                # Check if label doesn't exist along axis
+                labels_missing = (axis.get_indexer_for(labels) == -1).any()
+                if errors == 'raise' and labels_missing:
+                    raise KeyError('{} not found in axis'.format(labels))
 
             slicer = [slice(None)] * self.ndim
             slicer[self._get_axis_number(axis_name)] = indexer
@@ -9419,7 +9420,11 @@ use ``axis=1``
 _any_see_also = """\
 See Also
 --------
-pandas.DataFrame.all : Return whether all elements are True.
+numpy.any : Numpy version of this method.
+Series.any : Return whether any element is True.
+Series.all : Return whether all elements are True.
+DataFrame.any : Return whether any element is True over requested axis.
+DataFrame.all : Return whether all elements are True over requested axis.
 """
 
 _any_desc = """\
