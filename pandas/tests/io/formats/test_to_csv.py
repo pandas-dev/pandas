@@ -7,6 +7,7 @@ import pytest
 from pandas import DataFrame
 from pandas.util import testing as tm
 
+
 class TestToCSV(object):
 
     @pytest.mark.xfail((3, 6, 5) > sys.version_info >= (3, 5),
@@ -288,7 +289,7 @@ $1$,$2$
     @tm.capture_stdout
     def test_to_csv_stdout_file(self):
         # GH 21561
-        df = pd.DataFrame([['foo', 'bar'], ['baz', 'qux']], 
+        df = pd.DataFrame([['foo', 'bar'], ['baz', 'qux']],
                           columns=['name_1', 'name_2'])
         expected_ascii = '''\
 ,name_1,name_2
