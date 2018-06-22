@@ -857,7 +857,7 @@ class TestSeriesAnalytics(TestData):
 
         # GH 21530
         # vector (1D list) @ Series (__rmatmul__)
-        result = operator.matmul(a.tolist(), a)
+        result = operator.matmul(a.values.tolist(), a)
         expected = np.dot(a.values, a.values)
         assert_almost_equal(result, expected)
 
@@ -869,7 +869,7 @@ class TestSeriesAnalytics(TestData):
 
         # GH 21530
         # matrix (2D nested lists) @ Series (__rmatmul__)
-        result = operator.matmul(b.T.tolist(), a)
+        result = operator.matmul(b.T.values.tolist(), a)
         expected = np.dot(b.T.values, a.values)
         assert_almost_equal(result, expected)
 
