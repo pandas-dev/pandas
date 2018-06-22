@@ -1343,108 +1343,7 @@ def str_pad(arr, width, side='left', fillchar=' '):
 
 
 def str_split(arr, pat=None, n=None):
-    """
-    Split strings around given separator/delimiter.
 
-    Split each string in the caller's values by given
-    pattern, propagating NaN values. Equivalent to :meth:`str.split`.
-
-    Parameters
-    ----------
-    pat : str, optional
-        String or regular expression to split on.
-        If not specified, split on whitespace.
-    n : int, default -1 (all)
-        Limit number of splits in output.
-        ``None``, 0 and -1 will be interpreted as return all splits.
-    expand : bool, default False
-        Expand the split strings into separate columns.
-
-        * If ``True``, return DataFrame/MultiIndex expanding dimensionality.
-        * If ``False``, return Series/Index, containing lists of strings.
-
-    Returns
-    -------
-    Series, Index, DataFrame or MultiIndex
-        Type matches caller unless ``expand=True`` (see Notes).
-
-    Notes
-    -----
-    The handling of the `n` keyword depends on the number of found splits:
-
-    - If found splits > `n`,  make first `n` splits only
-    - If found splits <= `n`, make all splits
-    - If for a certain row the number of found splits < `n`,
-      append `None` for padding up to `n` if ``expand=True``
-
-    If using ``expand=True``, Series and Index callers return DataFrame and
-    MultiIndex objects, respectively.
-
-    See Also
-    --------
-    str.split : Standard library version of this method.
-    Series.str.get_dummies : Split each string into dummy variables.
-    Series.str.partition : Split string on a separator, returning
-        the before, separator, and after components.
-
-    Examples
-    --------
-    >>> s = pd.Series(["this is good text", "but this is even better"])
-
-    By default, split will return an object of the same size
-    having lists containing the split elements
-
-    >>> s.str.split()
-    0           [this, is, good, text]
-    1    [but, this, is, even, better]
-    dtype: object
-    >>> s.str.split("random")
-    0          [this is good text]
-    1    [but this is even better]
-    dtype: object
-
-    When using ``expand=True``, the split elements will expand out into
-    separate columns.
-
-    For Series object, output return type is DataFrame.
-
-    >>> s.str.split(expand=True)
-          0     1     2     3       4
-    0  this    is  good  text    None
-    1   but  this    is  even  better
-    >>> s.str.split(" is ", expand=True)
-              0            1
-    0      this    good text
-    1  but this  even better
-
-    For Index object, output return type is MultiIndex.
-
-    >>> i = pd.Index(["ba 100 001", "ba 101 002", "ba 102 003"])
-    >>> i.str.split(expand=True)
-    MultiIndex(levels=[['ba'], ['100', '101', '102'], ['001', '002', '003']],
-           labels=[[0, 0, 0], [0, 1, 2], [0, 1, 2]])
-
-    Parameter `n` can be used to limit the number of splits in the output.
-
-    >>> s.str.split("is", n=1)
-    0          [th,  is good text]
-    1    [but th,  is even better]
-    dtype: object
-    >>> s.str.split("is", n=1, expand=True)
-            0                1
-    0      th     is good text
-    1  but th   is even better
-
-    If NaN is present, it is propagated throughout the columns
-    during the split.
-
-    >>> s = pd.Series(["this is good text", "but this is even better", np.nan])
-    >>> s.str.split(n=3, expand=True)
-          0     1     2            3
-    0  this    is  good         text
-    1   but  this    is  even better
-    2   NaN   NaN   NaN          NaN
-    """
     if pat is None:
         if n is None or n == 0:
             n = -1
@@ -1464,25 +1363,7 @@ def str_split(arr, pat=None, n=None):
 
 
 def str_rsplit(arr, pat=None, n=None):
-    """
-    Split each string in the Series/Index by the given delimiter
-    string, starting at the end of the string and working to the front.
-    Equivalent to :meth:`str.rsplit`.
 
-    Parameters
-    ----------
-    pat : string, default None
-        Separator to split on. If None, splits on whitespace
-    n : int, default -1 (all)
-        None, 0 and -1 will be interpreted as return all splits
-    expand : bool, default False
-        * If True, return DataFrame/MultiIndex expanding dimensionality.
-        * If False, return Series/Index.
-
-    Returns
-    -------
-    split : Series/Index or DataFrame/MultiIndex of objects
-    """
     if n is None or n == 0:
         n = -1
     f = lambda x: x.rsplit(pat, n)
@@ -2325,12 +2206,133 @@ class StringMethods(NoNewAttributesMixin):
             res = Series(res, index=data.index, name=self._orig.name)
         return res
 
-    @copy(str_split)
+    _shared_docs['str_split'] = ("""
+    Split strings around given separator/delimiter.
+
+    Splits the string in the Series/Index from the %(side)s,
+    at the specified delimiter string. Equivalent to :meth:`str.%(method)s`.
+
+    Parameters
+    ----------
+    pat : str, optional
+        String or regular expression to split on.
+        If not specified, split on whitespace.
+    n : int, default -1 (all)
+        Limit number of splits in output.
+        ``None``, 0 and -1 will be interpreted as return all splits.
+    expand : bool, default False
+        Expand the splitted strings into separate columns.
+
+        * If ``True``, return DataFrame/MultiIndex expanding dimensionality.
+        * If ``False``, return Series/Index, containing lists of strings.
+
+    Returns
+    -------
+    Series, Index, DataFrame or MultiIndex
+        Type matches caller unless ``expand=True`` (see Notes).
+
+    See Also
+    --------
+     Series.str.split : Split strings around given separator/delimiter.
+     Series.str.rsplit : Splits string around given separator/delimiter,
+     starting from the right.
+     Series.str.join : Join lists contained as elements in the Series/Index
+     with passed delimiter.
+     str.split : Standard library version for split.
+     str.rsplit : Standard library version for rsplit.
+
+    Notes
+    -----
+    The handling of the `n` keyword depends on the number of found splits:
+
+    - If found splits > `n`,  make first `n` splits only
+    - If found splits <= `n`, make all splits
+    - If for a certain row the number of found splits < `n`,
+      append `None` for padding up to `n` if ``expand=True``
+
+    If using ``expand=True``, Series and Index callers return DataFrame and
+    MultiIndex objects, respectively.
+
+    Examples
+    --------
+    >>> s = pd.Series(["this is a regular sentence",
+    "https://docs.python.org/3/tutorial/index.html", np.nan])
+
+    In the default setting, the string is split by whitespace.
+
+    >>> s.str.split()
+    0                   [this, is, a, regular, sentence]
+    1    [https://docs.python.org/3/tutorial/index.html]
+    2                                                NaN
+    dtype: object
+
+    Without the `n` parameter, the outputs of `rsplit` and `split`
+    are identical.
+
+    >>> s.str.rsplit()
+    0                   [this, is, a, regular, sentence]
+    1    [https://docs.python.org/3/tutorial/index.html]
+    2                                                NaN
+    dtype: object
+
+    The `n` parameter can be used to limit the number of splits on the
+    delimiter. The outputs of `split` and `rsplit` are different.
+
+    >>> s.str.split(n=2)
+    0                     [this, is, a regular sentence]
+    1    [https://docs.python.org/3/tutorial/index.html]
+    2                                                NaN
+    dtype: object
+
+    >>> s.str.rsplit(n=2)
+    0                     [this is a, regular, sentence]
+    1    [https://docs.python.org/3/tutorial/index.html]
+    2                                                NaN
+    dtype: object
+
+    The `pat` parameter can be used to split by other characters.
+
+    >>> s.str.split(pat = "/")
+    0                         [this is a regular sentence]
+    1    [https:, , docs.python.org, 3, tutorial, index...
+    2                                                  NaN
+    dtype: object
+
+    When using ``expand=True``, the split elements will expand out into
+    separate columns. If NaN is present, it is propagated throughout
+    the columns during the split.
+
+    >>> s.str.split(expand=True)
+                                                   0     1     2        3
+    0                                           this    is     a  regular
+    1  https://docs.python.org/3/tutorial/index.html  None  None     None
+    2                                            NaN   NaN   NaN      NaN \
+
+                 4
+    0     sentence
+    1         None
+    2          NaN
+
+    For slightly more complex use cases like splitting the html document name
+    from a url, a combination of parameter settings can be used.
+
+    >>> s.str.rsplit("/", n=1, expand=True)
+                                        0           1
+    0          this is a regular sentence        None
+    1  https://docs.python.org/3/tutorial  index.html
+    2                                 NaN         NaN
+    """)
+
+    @Appender(_shared_docs['str_split'] % {
+        'side': 'beginning',
+        'method': 'split'})
     def split(self, pat=None, n=-1, expand=False):
         result = str_split(self._data, pat, n=n)
         return self._wrap_result(result, expand=expand)
 
-    @copy(str_rsplit)
+    @Appender(_shared_docs['str_split'] % {
+        'side': 'end',
+        'method': 'rsplit'})
     def rsplit(self, pat=None, n=-1, expand=False):
         result = str_rsplit(self._data, pat, n=n)
         return self._wrap_result(result, expand=expand)
