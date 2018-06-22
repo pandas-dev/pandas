@@ -221,15 +221,15 @@ def test_nth_multi_index(three_group):
 
 
 @pytest.mark.parametrize('data, expected_first, expected_last', [
-    ({'id': ['A'], 
+    ({'id': ['A'],
       'time': Timestamp('2012-02-01 14:00:00',
                         tz='US/Central'),
       'foo': [1]},
-     {'id': ['A'], 
+     {'id': ['A'],
       'time': Timestamp('2012-02-01 14:00:00',
                         tz='US/Central'),
       'foo': [1]},
-     {'id': ['A'],  
+     {'id': ['A'],
       'time': Timestamp('2012-02-01 14:00:00',
                         tz='US/Central'),
       'foo': [1]}),
@@ -276,6 +276,7 @@ def test_first_last_tz(data, expected_first, expected_last):
 
     result = df.groupby('id', as_index=False)['time'].last()
     assert_frame_equal(result, expected[['id', 'time']])
+
 
 def test_nth_multi_index_as_expected():
     # PR 9090, related to issue 8979
