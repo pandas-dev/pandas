@@ -224,9 +224,15 @@ def assert_almost_equal(left, right, check_exact=False,
     check_dtype: bool, default True
         check dtype if both a and b are the same type
     check_less_precise : bool or int, default False
-        Specify comparison precision. Only used when check_exact is False.
+        Specify comparison precision. Only used when `check_exact` is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
-        If int, then specify the digits to compare
+        If int, then specify the digits to compare.
+
+        When comparing two numbers, if the first number has magnitude less
+        than 1e-5, we compare the two numbers directly and check whether
+        they are equivalent within the specified precision. Otherwise, we
+        compare the **ratio** of the second number to the first number and
+        check whether it is equivalent to 1 within the specified precision.
     """
     if isinstance(left, pd.Index):
         return assert_index_equal(left, right, check_exact=check_exact,
