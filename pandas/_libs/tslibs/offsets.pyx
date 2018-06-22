@@ -404,6 +404,9 @@ class _BaseOffset(object):
             kwds = {key: odict[key] for key in odict if odict[key]}
             state.update(kwds)
 
+        if '_cache' not in state:
+            state['_cache'] = {}
+
         self.__dict__.update(state)
 
         if 'weekmask' in state and 'holidays' in state:
