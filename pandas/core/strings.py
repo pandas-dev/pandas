@@ -2255,30 +2255,45 @@ class StringMethods(NoNewAttributesMixin):
 
     Examples
     --------
-    >>> s = pd.Series(["this is a regular sentence", "path/to/python/file", np.nan])
+    >>> s = pd.Series(["this is a regular sentence", "https://docs.python.org/3/tutorial/index.html", np.nan]) 
 
-    By default, split and rsplit will return an object of the same size
-    having lists containing the split elements.
+    In the default setting, the string is split by whitespace.
 
     >>> s.str.split()
-    0    [this, is, a, regular, sentence]
-    1               [path/to/python/file]
-    2                                 NaN
+    0                   [this, is, a, regular, sentence]
+    1    [https://docs.python.org/3/tutorial/index.html]
+    2                                                NaN
     dtype: object
 
-    Parameter `n` can be used to limit the number of splits on the
-    delimiter.
+    Without the `n` parameter, the outputs of `rsplit` and `split` are identical.
 
-    >>> s.str.split("/", n=2) 
-    0    [this is a regular sentence]
-    1         [path, to, python/file]
-    2                             NaN
-    dtype: object 
+    >>> s.str.rsplit()
+    0                   [this, is, a, regular, sentence]
+    1    [https://docs.python.org/3/tutorial/index.html]
+    2                                                NaN
+    dtype: object
 
-    >>> s.str.rsplit("/", n=2)
-    0    [this is a regular sentence]
-    1         [path/to, python, file]
-    2                             NaN
+    The `n` parameter can be used to limit the number of splits on the
+    delimiter. The outputs of `split` and `rsplit` are different.
+
+    >>> s.str.split(n=2)     
+    0                     [this, is, a regular sentence]
+    1    [https://docs.python.org/3/tutorial/index.html]
+    2                                                NaN
+    dtype: object
+
+    >>> s.str.rsplit(n=2)
+    0                     [this is a, regular, sentence]
+    1    [https://docs.python.org/3/tutorial/index.html]
+    2                                                NaN
+    dtype: object
+
+    The `pat` parameter can be used to split by other characters. 
+
+    >>> s.str.split(pat = "/")
+    0                         [this is a regular sentence]
+    1    [https:, , docs.python.org, 3, tutorial, index...
+    2                                                  NaN
     dtype: object
 
     When using ``expand=True``, the split elements will expand out into
@@ -2286,16 +2301,19 @@ class StringMethods(NoNewAttributesMixin):
     the columns during the split.
 
     >>> s.str.split(expand=True)
-                         0     1     2        3         4
-    0                 this    is     a  regular  sentence
-    1  path/to/python/file  None  None     None      None
-    2                  NaN   NaN   NaN      NaN       NaN
+                                                   0     1     2        3         4
+    0                                           this    is     a  regular  sentence 
+    1  https://docs.python.org/3/tutorial/index.html  None  None     None      None
+    2                                            NaN   NaN   NaN      NaN       NaN
 
-    >>> s.str.split("/", n=2, expand=True)
-                                0     1            2
-    0  this is a regular sentence  None         None
-    1                        path    to  python/file
-    2                         NaN   NaN          NaN
+    For slightly more complex use cases like splitting the html document name
+    from a url, a combination of parameter settings can be used.
+
+    >>> s.str.rsplit("/", n=1, expand=True)
+                                        0           1
+    0          this is a regular sentence        None
+    1  https://docs.python.org/3/tutorial  index.html
+    2                                 NaN         NaN
     """)
 
     @Appender(_shared_docs['str_split'] % {
