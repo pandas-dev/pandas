@@ -16,6 +16,10 @@ def to_numeric(arg, errors='raise', downcast=None):
     """
     Convert argument to a numeric type.
 
+    The default return dtype is `float64` or `int64`
+    depending on the data supplied. Use the `downcast` parameter
+    to obtain other dtypes.
+
     Parameters
     ----------
     arg : list, tuple, 1-d array, or Series
