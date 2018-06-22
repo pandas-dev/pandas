@@ -249,3 +249,12 @@ class TestSeriesReplace(TestData):
         result = s.replace([2, '4'], np.nan)
         expected = pd.Series([1, np.nan, 3, np.nan, 4, 5])
         tm.assert_series_equal(expected, result)
+
+    @pytest.mark.parametrize('to_replace', [pd.NaT, [np.nan, pd.NaT]])
+    def test_replace_with_tz_aware_data(self, to_replace):
+        # GH 11792
+        ts = pd.Timestamp('2015/01/01', tz='UTC')
+        s = pd.Series([pd.NaT, pd.Timestamp('2015/01/01', tz='UTC')])
+        result = s.replace(to_replace, pd.Timestamp.min)
+        expected = pd.Series([pd.Timestamp.min, ts], dtype=object)
+        tm.assert_series_equal(expected, result)
