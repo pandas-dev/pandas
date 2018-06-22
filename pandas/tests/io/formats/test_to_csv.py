@@ -289,7 +289,8 @@ $1$,$2$
     @capture_stdout
     def test_to_csv_stdout_file(self):
         # GH 21561
-        df = pd.DataFrame([['foo', 'bar'], ['baz', 'qux']], columns=['name_1', 'name_2'])
+        df = pd.DataFrame([['foo', 'bar'], ['baz', 'qux']], 
+                          columns=['name_1', 'name_2'])
         expected_ascii = '''\
 ,name_1,name_2
 0,foo,bar
