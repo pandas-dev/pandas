@@ -304,6 +304,15 @@ class _BaseOffset(object):
     _day_opt = None
     _attributes = frozenset(['n', 'normalize'])
 
+    def __init__(self, n=1, normalize=False):
+        n = self._validate_n(n)
+        object.__setattr__(self, "n", n)
+        object.__setattr__(self, "normalize", normalize)
+        object.__setattr__(self, "_cache", {})
+
+    def __setattr__(self, name, value):
+        raise AttributeError("DateOffset objects are immutable.")
+
     @property
     def kwds(self):
         # for backwards-compatibility
@@ -395,13 +404,14 @@ class _BaseOffset(object):
             kwds = {key: odict[key] for key in odict if odict[key]}
             state.update(kwds)
 
-        self.__dict__ = state
+        self.__dict__.update(state)
+
         if 'weekmask' in state and 'holidays' in state:
             calendar, holidays = _get_calendar(weekmask=self.weekmask,
                                                holidays=self.holidays,
                                                calendar=None)
-            self.calendar = calendar
-            self.holidays = holidays
+            object.__setattr__(self, "calendar", calendar)
+            object.__setattr__(self, "holidays", holidays)
 
     def __getstate__(self):
         """Return a pickleable state"""

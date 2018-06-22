@@ -335,11 +335,11 @@ def str_contains(arr, pat, case=True, flags=0, na=np.nan, regex=True):
     4    False
     dtype: bool
 
-    Returning 'house' and 'parrot' within same string.
+    Returning 'house' or 'dog' when either expression occurs in a string.
 
-    >>> s1.str.contains('house|parrot', regex=True)
+    >>> s1.str.contains('house|dog', regex=True)
     0    False
-    1    False
+    1     True
     2     True
     3    False
     4      NaN
