@@ -1363,7 +1363,7 @@ def str_split(arr, pat=None, n=None):
 
 
 def str_rsplit(arr, pat=None, n=None):
-    
+
     if n is None or n == 0:
         n = -1
     f = lambda x: x.rsplit(pat, n)
@@ -2234,10 +2234,10 @@ class StringMethods(NoNewAttributesMixin):
     See Also
     --------
      Series.str.split : Split strings around given separator/delimiter.
-     Series.str.rsplit : Splits string around given separator/delimiter, 
+     Series.str.rsplit : Splits string around given separator/delimiter,
      starting from the right.
-     Series.str.join : Join lists contained as elements in the Series/Index 
-     with passed delimiter. 
+     Series.str.join : Join lists contained as elements in the Series/Index
+     with passed delimiter.
      str.split : Standard library version for split.
      str.rsplit : Standard library version for rsplit.
 
@@ -2255,7 +2255,7 @@ class StringMethods(NoNewAttributesMixin):
 
     Examples
     --------
-    >>> s = pd.Series(["this is a regular sentence", "https://docs.python.org/3/tutorial/index.html", np.nan]) 
+    >>> s = pd.Series(["this is a regular sentence", "https://docs.python.org/3/tutorial/index.html", np.nan])
 
     In the default setting, the string is split by whitespace.
 
@@ -2276,7 +2276,7 @@ class StringMethods(NoNewAttributesMixin):
     The `n` parameter can be used to limit the number of splits on the
     delimiter. The outputs of `split` and `rsplit` are different.
 
-    >>> s.str.split(n=2)     
+    >>> s.str.split(n=2)
     0                     [this, is, a regular sentence]
     1    [https://docs.python.org/3/tutorial/index.html]
     2                                                NaN
@@ -2288,7 +2288,7 @@ class StringMethods(NoNewAttributesMixin):
     2                                                NaN
     dtype: object
 
-    The `pat` parameter can be used to split by other characters. 
+    The `pat` parameter can be used to split by other characters.
 
     >>> s.str.split(pat = "/")
     0                         [this is a regular sentence]
@@ -2297,12 +2297,12 @@ class StringMethods(NoNewAttributesMixin):
     dtype: object
 
     When using ``expand=True``, the split elements will expand out into
-    separate columns. If NaN is present, it is propagated throughout 
+    separate columns. If NaN is present, it is propagated throughout
     the columns during the split.
 
     >>> s.str.split(expand=True)
                                                    0     1     2        3         4
-    0                                           this    is     a  regular  sentence 
+    0                                           this    is     a  regular  sentence
     1  https://docs.python.org/3/tutorial/index.html  None  None     None      None
     2                                            NaN   NaN   NaN      NaN       NaN
 
@@ -2318,16 +2318,14 @@ class StringMethods(NoNewAttributesMixin):
 
     @Appender(_shared_docs['str_split'] % {
         'side': 'beginning',
-        'method': 'split'
-        })
+        'method': 'split'})
     def split(self, pat=None, n=-1, expand=False):
         result = str_split(self._data, pat, n=n)
         return self._wrap_result(result, expand=expand)
 
     @Appender(_shared_docs['str_split'] % {
         'side': 'end',
-        'method': 'rsplit'
-        })        
+        'method': 'rsplit'})
     def rsplit(self, pat=None, n=-1, expand=False):
         result = str_rsplit(self._data, pat, n=n)
         return self._wrap_result(result, expand=expand)
