@@ -288,6 +288,7 @@ class DateOffset(BaseOffset):
         # if there were a canonical docstring for what isAnchored means.
         return (self.n == 1)
 
+    @cache_readonly
     def _params(self):
         all_paras = self.__dict__.copy()
         if 'holidays' in all_paras and not all_paras['holidays']:
@@ -322,8 +323,6 @@ class DateOffset(BaseOffset):
         return self.rule_code
 
     def __eq__(self, other):
-        if other is None:
-            return False
 
         if isinstance(other, compat.string_types):
             from pandas.tseries.frequencies import to_offset
@@ -333,13 +332,13 @@ class DateOffset(BaseOffset):
         if not isinstance(other, DateOffset):
             return False
 
-        return self._params() == other._params()
+        return self._params == other._params
 
     def __ne__(self, other):
         return not self == other
 
     def __hash__(self):
-        return hash(self._params())
+        return hash(self._params)
 
     def __add__(self, other):
         if isinstance(other, (ABCDatetimeIndex, ABCSeries)):
@@ -397,7 +396,7 @@ class DateOffset(BaseOffset):
     def rule_code(self):
         return self._prefix
 
-    @property
+    @cache_readonly
     def freqstr(self):
         try:
             code = self.rule_code
@@ -601,7 +600,7 @@ class BusinessHourMixin(BusinessMixin):
         else:
             return BusinessDay(n=nb_offset)
 
-    # TODO: Cache this once offsets are immutable
+    @cache_readonly
     def _get_daytime_flag(self):
         if self.start == self.end:
             raise ValueError('start and end must not be the same')
@@ -643,12 +642,12 @@ class BusinessHourMixin(BusinessMixin):
         return datetime(other.year, other.month, other.day,
                         self.start.hour, self.start.minute)
 
-    # TODO: cache this once offsets are immutable
+    @cache_readonly
     def _get_business_hours_by_sec(self):
         """
         Return business hours in a day by seconds.
         """
-        if self._get_daytime_flag():
+        if self._get_daytime_flag:
             # create dummy datetime to calculate businesshours in a day
             dtstart = datetime(2014, 4, 1, self.start.hour, self.start.minute)
             until = datetime(2014, 4, 1, self.end.hour, self.end.minute)
@@ -662,7 +661,7 @@ class BusinessHourMixin(BusinessMixin):
     def rollback(self, dt):
         """Roll provided date backward to next offset only if not on offset"""
         if not self.onOffset(dt):
-            businesshours = self._get_business_hours_by_sec()
+            businesshours = self._get_business_hours_by_sec
             if self.n >= 0:
                 dt = self._prev_opening_time(
                     dt) + timedelta(seconds=businesshours)
@@ -683,9 +682,8 @@ class BusinessHourMixin(BusinessMixin):
 
     @apply_wraps
     def apply(self, other):
-        # calculate here because offset is not immutable
-        daytime = self._get_daytime_flag()
-        businesshours = self._get_business_hours_by_sec()
+        daytime = self._get_daytime_flag
+        businesshours = self._get_business_hours_by_sec
         bhdelta = timedelta(seconds=businesshours)
 
         if isinstance(other, datetime):
@@ -766,7 +764,7 @@ class BusinessHourMixin(BusinessMixin):
                           dt.minute, dt.second, dt.microsecond)
         # Valid BH can be on the different BusinessDay during midnight
         # Distinguish by the time spent from previous opening time
-        businesshours = self._get_business_hours_by_sec()
+        businesshours = self._get_business_hours_by_sec
         return self._onOffset(dt, businesshours)
 
     def _onOffset(self, dt, businesshours):
@@ -2203,13 +2201,12 @@ class Tick(SingleConstructorOffset):
         if isinstance(other, Tick):
             return self.delta == other.delta
         else:
-            # TODO: Are there cases where this should raise TypeError?
             return False
 
     # This is identical to DateOffset.__hash__, but has to be redefined here
     # for Python 3, because we've redefined __eq__.
     def __hash__(self):
-        return hash(self._params())
+        return hash(self._params)
 
     def __ne__(self, other):
         if isinstance(other, compat.string_types):
@@ -2220,7 +2217,6 @@ class Tick(SingleConstructorOffset):
         if isinstance(other, Tick):
             return self.delta != other.delta
         else:
-            # TODO: Are there cases where this should raise TypeError?
             return True
 
     @property
