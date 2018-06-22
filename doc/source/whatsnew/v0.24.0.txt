@@ -67,6 +67,7 @@ Datetimelike API Changes
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - For :class:`DatetimeIndex` and :class:`TimedeltaIndex` with non-``None`` ``freq`` attribute, addition or subtraction of integer-dtyped array or ``Index`` will return an object of the same class (:issue:`19959`)
+- :class:`DateOffset` objects are now immutable. Attempting to alter one of these will now raise ``AttributeError`` (:issue:`21341`)
 - :class:`PeriodIndex` subtraction of another ``PeriodIndex`` will now return an object-dtype :class:`Index` of :class:`DateOffset` objects instead of raising a ``TypeErrorr`` (:issue:`20049`)
 
 .. _whatsnew_0240.api.other:
@@ -179,7 +180,6 @@ Offsets
 
 -
 -
--
 
 Numeric
 ^^^^^^^
@@ -198,7 +198,7 @@ Strings
 Indexing
 ^^^^^^^^
 
--
+- The traceback from a ``KeyError`` when asking ``.loc`` for a single missing label is now shorter and more clear (:issue:`21557`)
 -
 -
 
