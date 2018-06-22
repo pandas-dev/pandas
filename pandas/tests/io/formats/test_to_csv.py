@@ -6,7 +6,6 @@ import pandas as pd
 import pytest
 from pandas import DataFrame
 from pandas.util import testing as tm
-from pandas.compat import StringIO
 from pandas.util.testing import capture_stdout
 
 class TestToCSV(object):
