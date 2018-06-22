@@ -137,6 +137,14 @@ def nselect_method(request):
     return request.param
 
 
+@pytest.fixture(params=['left', 'right', 'both', 'neither'])
+def closed(request):
+    """
+    Fixture for trying all interval closed parameters
+    """
+    return request.param
+
+
 @pytest.fixture(params=[None, np.nan, pd.NaT, float('nan'), np.float('NaN')])
 def nulls_fixture(request):
     """
