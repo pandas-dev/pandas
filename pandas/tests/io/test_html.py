@@ -28,20 +28,15 @@ from pandas.util.testing import makeCustomDataframe as mkdf, network
 HERE = os.path.dirname(__file__)
 
 
-def pytest_generate_tests(metafunc):
-    # Defers evaluation of the fixture until after collection.
-    # https://docs.pytest.org/en/latest/example/parametrize.html\
-    # deferring-the-setup-of-parametrized-resources
-    if 'html_file' in metafunc.fixturenames:
-        paths = glob.glob(
-            os.path.join(HERE, 'data', 'html_encoding', '*.html')
-        )
-        metafunc.parametrize("html_file", paths, indirect=True)
-
-
-@pytest.fixture
-def html_file(request, datapath):
-    return datapath(request.param)
+@pytest.fixture(params=[
+    'chinese_utf-16.html',
+    'chinese_utf-32.html',
+    'chinese_utf-8.html',
+    'letz_latin1.html',
+])
+def html_encoding_file(request, datapath):
+    """Parametrized fixture for HTML encoding test filenames."""
+    return datapath('io', 'data', 'html_encoding', request.param)
 
 
 def assert_framelist_equal(list1, list2, *args, **kwargs):
@@ -854,22 +849,23 @@ class TestReadHtml(object):
         else:
             assert len(dfs) == 1  # Should not parse hidden table
 
-    def test_encode(self, html_file):
+    def test_encode(self, html_encoding_file):
         _, encoding = os.path.splitext(
-            os.path.basename(html_file)
+            os.path.basename(html_encoding_file)
         )[0].split('_')
 
         try:
-            with open(html_file, 'rb') as fobj:
+            with open(html_encoding_file, 'rb') as fobj:
                 from_string = self.read_html(fobj.read(), encoding=encoding,
                                              index_col=0).pop()
 
-            with open(html_file, 'rb') as fobj:
+            with open(html_encoding_file, 'rb') as fobj:
                 from_file_like = self.read_html(BytesIO(fobj.read()),
                                                 encoding=encoding,
                                                 index_col=0).pop()
 
-            from_filename = self.read_html(html_file, encoding=encoding,
+            from_filename = self.read_html(html_encoding_file,
+                                           encoding=encoding,
                                            index_col=0).pop()
             tm.assert_frame_equal(from_string, from_file_like)
             tm.assert_frame_equal(from_string, from_filename)
