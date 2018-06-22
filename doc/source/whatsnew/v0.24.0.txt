@@ -10,8 +10,6 @@ New features
 
 - ``ExcelWriter`` now accepts ``mode`` as a keyword argument, enabling append to existing workbooks when using the ``openpyxl`` engine (:issue:`3441`)
 
-.. _whatsnew_0240.enhancements.other:
-
 .. _whatsnew_0240.enhancements.extension_array_operators
 
 ``ExtensionArray`` operator support
@@ -50,6 +48,8 @@ your ``MyExtensionArray`` class, as follows:
 See the :ref:`ExtensionArray Operator Support
 <extending.extension.operator>` documentation section for details on both 
 ways of adding operator support.
+
+.. _whatsnew_0240.enhancements.other:
 
 Other Enhancements
 ^^^^^^^^^^^^^^^^^^

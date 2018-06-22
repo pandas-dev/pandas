@@ -682,9 +682,9 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
 
         Parameters
         ----------
-        op: function
+        op : function
             An operator that takes arguments op(a, b)
-        coerce_to_dtype:  bool
+        coerce_to_dtype :  bool
             boolean indicating whether to attempt to convert
             the result to the underlying ExtensionArray dtype
             (default True)
@@ -736,4 +736,4 @@ class ExtensionScalarOpsMixin(ExtensionOpsMixin):
 
     @classmethod
     def _create_comparison_method(cls, op):
-        return cls._create_method(op, False)
+        return cls._create_method(op, coerce_to_dtype=False)

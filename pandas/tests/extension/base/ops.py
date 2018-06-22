@@ -7,8 +7,7 @@ from .base import BaseExtensionTests
 
 
 class BaseOpsUtil(BaseExtensionTests):
-    def check_opname(self, s, op_name, other, exc=NotImplementedError):
-
+    def get_op_from_name(self, op_name):
         short_opname = op_name.strip('_')
         try:
             op = getattr(operator, short_opname)
@@ -16,6 +15,11 @@ class BaseOpsUtil(BaseExtensionTests):
             # Assume it is the reverse operator
             rop = getattr(operator, short_opname[1:])
             op = lambda x, y: rop(y, x)
+
+        return op
+
+    def check_opname(self, s, op_name, other, exc=NotImplementedError):
+        op = self.get_op_from_name(op_name)
 
         self._check_op(s, op, other, exc)
 
@@ -59,31 +63,32 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
 class BaseComparisonOpsTests(BaseOpsUtil):
     """Various Series and DataFrame comparison ops methods."""
 
-    def _compare_other(self, data, op_name, other):
-        s = pd.Series(data)
-
+    def _compare_other(self, s, data, op_name, other):
+        op = self.get_op_from_name(op_name)
         if op_name == '__eq__':
             assert getattr(data, op_name)(other) is NotImplemented
-            assert not getattr(s, op_name)(other).all()
+            assert not op(s, other).all()
         elif op_name == '__ne__':
             assert getattr(data, op_name)(other) is NotImplemented
-            assert getattr(s, op_name)(other).all()
+            assert op(s, other).all()
 
         else:
 
             # array
-            getattr(data, op_name)(other) is NotImplementedError
+            assert getattr(data, op_name)(other) is NotImplemented
 
             # series
             s = pd.Series(data)
             with pytest.raises(TypeError):
-                getattr(s, op_name)(other)
+                op(s, other)
 
     def test_compare_scalar(self, data, all_compare_operators):
         op_name = all_compare_operators
-        self._compare_other(data, op_name, 0)
+        s = pd.Series(data)
+        self._compare_other(s, data, op_name, 0)
 
     def test_compare_array(self, data, all_compare_operators):
         op_name = all_compare_operators
+        s = pd.Series(data)
         other = [0] * len(data)
-        self._compare_other(data, op_name, other)
+        self._compare_other(s, data, op_name, other)

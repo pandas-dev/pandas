@@ -235,19 +235,20 @@ class TestComparisonOps(BaseDecimal, base.BaseComparisonOpsTests):
         super(TestComparisonOps, self).check_opname(s, op_name,
                                                     other, exc=None)
 
-    def _compare_other(self, data, op_name, other):
-        s = pd.Series(data)
+    def _compare_other(self, s, data, op_name, other):
         self.check_opname(s, op_name, other)
 
     def test_compare_scalar(self, data, all_compare_operators):
         op_name = all_compare_operators
-        self._compare_other(data, op_name, 0.5)
+        s = pd.Series(data)
+        self._compare_other(s, data, op_name, 0.5)
 
     def test_compare_array(self, data, all_compare_operators):
         op_name = all_compare_operators
+        s = pd.Series(data)
 
         alter = np.random.choice([-1, 0, 1], len(data))
         # Randomly double, halve or keep same value
         other = pd.Series(data) * [decimal.Decimal(pow(2.0, i))
                                    for i in alter]
-        self._compare_other(data, op_name, other)
+        self._compare_other(s, data, op_name, other)

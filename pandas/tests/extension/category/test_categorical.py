@@ -198,14 +198,14 @@ class TestArithmeticOps(base.BaseArithmeticOpsTests):
 
 class TestComparisonOps(base.BaseComparisonOpsTests):
 
-    def _compare_other(self, data, op, other):
+    def _compare_other(self, s, data, op_name, other):
+        op = self.get_op_from_name(op_name)
+        if op_name == '__eq__':
+            assert not op(data, other).all()
 
-        if op == '__eq__':
-            assert not getattr(data, op)(other).all()
-
-        elif op == '__ne__':
-            assert getattr(data, op)(other).all()
+        elif op_name == '__ne__':
+            assert op(data, other).all()
 
         else:
             with pytest.raises(TypeError):
-                getattr(data, op)(other)
+                op(data, other)
