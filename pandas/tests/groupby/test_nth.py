@@ -1,11 +1,12 @@
 import numpy as np
 import pandas as pd
-from pandas import DataFrame, MultiIndex, Index, Series, isna
+from pandas import DataFrame, MultiIndex, Index, Series, isna, Timestamp
 from pandas.compat import lrange
 from pandas.util.testing import (
     assert_frame_equal,
     assert_produces_warning,
     assert_series_equal)
+import pytest
 
 
 def test_first_last_nth(df):
@@ -217,6 +218,64 @@ def test_nth_multi_index(three_group):
     result = grouped.nth(0)
     expected = grouped.first()
     assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize('data, expected_first, expected_last', [
+    ({'id': ['A'],
+      'time': Timestamp('2012-02-01 14:00:00',
+                        tz='US/Central'),
+      'foo': [1]},
+     {'id': ['A'],
+      'time': Timestamp('2012-02-01 14:00:00',
+                        tz='US/Central'),
+      'foo': [1]},
+     {'id': ['A'],
+      'time': Timestamp('2012-02-01 14:00:00',
+                        tz='US/Central'),
+      'foo': [1]}),
+    ({'id': ['A', 'B', 'A'],
+      'time': [Timestamp('2012-01-01 13:00:00',
+                         tz='America/New_York'),
+               Timestamp('2012-02-01 14:00:00',
+                         tz='US/Central'),
+               Timestamp('2012-03-01 12:00:00',
+                         tz='Europe/London')],
+      'foo': [1, 2, 3]},
+     {'id': ['A', 'B'],
+      'time': [Timestamp('2012-01-01 13:00:00',
+                         tz='America/New_York'),
+               Timestamp('2012-02-01 14:00:00',
+                         tz='US/Central')],
+      'foo': [1, 2]},
+     {'id': ['A', 'B'],
+      'time': [Timestamp('2012-03-01 12:00:00',
+                         tz='Europe/London'),
+               Timestamp('2012-02-01 14:00:00',
+                         tz='US/Central')],
+      'foo': [3, 2]})
+])
+def test_first_last_tz(data, expected_first, expected_last):
+    # GH15884
+    # Test that the timezone is retained when calling first
+    # or last on groupby with as_index=False
+
+    df = DataFrame(data)
+
+    result = df.groupby('id', as_index=False).first()
+    expected = DataFrame(expected_first)
+    cols = ['id', 'time', 'foo']
+    assert_frame_equal(result[cols], expected[cols])
+
+    result = df.groupby('id', as_index=False)['time'].first()
+    assert_frame_equal(result, expected[['id', 'time']])
+
+    result = df.groupby('id', as_index=False).last()
+    expected = DataFrame(expected_last)
+    cols = ['id', 'time', 'foo']
+    assert_frame_equal(result[cols], expected[cols])
+
+    result = df.groupby('id', as_index=False)['time'].last()
+    assert_frame_equal(result, expected[['id', 'time']])
 
 
 def test_nth_multi_index_as_expected():
