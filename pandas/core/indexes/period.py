@@ -35,7 +35,7 @@ from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs import resolution, period
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 
-from pandas.core.arrays.periods import PeriodArrayMixin
+from pandas.core.arrays.period import PeriodArrayMixin
 from pandas.core.base import _shared_docs
 from pandas.core.indexes.base import _index_shared_docs, _ensure_index
 
