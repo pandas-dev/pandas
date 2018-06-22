@@ -31,8 +31,8 @@ Backwards incompatible API changes
 Tick DateOffset Normalize Restrictions
 --------------------------------------
 
-Creating a ``Tick`` object (:class:``Day``, :class:``Hour``, :class:``Minute``,
-:class:``Second``, :class:``Milli``, :class:``Micro``, :class:``Nano``) with
+Creating a ``Tick`` object (:class:`Day`, :class:`Hour`, :class:`Minute`,
+:class:`Second`, :class:`Milli`, :class:`Micro`, :class:`Nano`) with
 `normalize=True` is no longer supported.  This prevents unexpected behavior
 where addition could fail to be monotone or associative.  (:issue:`21427`)
 
