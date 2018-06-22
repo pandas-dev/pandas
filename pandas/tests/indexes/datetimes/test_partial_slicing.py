@@ -13,6 +13,7 @@ from pandas.util import testing as tm
 
 from pandas.core.indexing import IndexingError
 
+
 class TestSlicing(object):
     def test_dti_slicing(self):
         dti = DatetimeIndex(start='1/1/2005', end='12/1/2005', freq='M')
