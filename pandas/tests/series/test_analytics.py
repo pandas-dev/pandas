@@ -849,14 +849,27 @@ class TestSeriesAnalytics(TestData):
         expected = np.dot(a.values, a.values)
         assert_almost_equal(result, expected)
 
-        # np.array @ Series (__rmatmul__)
+        # GH 21530
+        # vector (1D np.array) @ Series (__rmatmul__)
         result = operator.matmul(a.values, a)
         expected = np.dot(a.values, a.values)
         assert_almost_equal(result, expected)
 
         # GH 21530
-        # np.array (matrix) @ Series (__rmatmul__)
+        # vector (1D list) @ Series (__rmatmul__)
+        result = operator.matmul(a.tolist(), a)
+        expected = np.dot(a.values, a.values)
+        assert_almost_equal(result, expected)
+
+        # GH 21530
+        # matrix (2D np.array) @ Series (__rmatmul__)
         result = operator.matmul(b.T.values, a)
+        expected = np.dot(b.T.values, a.values)
+        assert_almost_equal(result, expected)
+
+        # GH 21530
+        # matrix (2D nested lists) @ Series (__rmatmul__)
+        result = operator.matmul(b.T.tolist(), a)
         expected = np.dot(b.T.values, a.values)
         assert_almost_equal(result, expected)
 
