@@ -147,20 +147,24 @@ class IntervalIndex(IntervalMixin, Index):
 
     Parameters
     ----------
-    data : array-like (1-dimensional)
+    data : array-Like (1-dimensional)
         Array-like containing Interval objects from which to build the
-        IntervalIndex
+        IntervalIndex.
     closed : {'left', 'right', 'both', 'neither'}, default 'right'
         Whether the intervals are closed on the left-side, right-side, both or
         neither.
+    dtype : dtype or None, default None
+        If None, dtype will be inferred.
+    copy : boolean, default False
+        Copy the meta-data.
     name : object, optional
         Name to be stored in the index.
-    copy : boolean, default False
-        Copy the meta-data
-    dtype : dtype or None, default None
-        If None, dtype will be inferred
-
-        ..versionadded:: 0.23.0
+    fastpath : boolean, default False
+        Create IntervalIndex without verifying integrity.
+    verify_integrity : boolean, default True
+        Verify that the IntervalIndex is valid.
+        
+        ..versionadded:: 0.23.0.
 
     Attributes
     ----------
@@ -205,11 +209,11 @@ class IntervalIndex(IntervalMixin, Index):
 
     See Also
     --------
-    Index : The base pandas Index type
-    Interval : A bounded slice-like interval; the elements of an IntervalIndex
-    interval_range : Function to create a fixed frequency IntervalIndex
-    cut, qcut : Convert arrays of continuous data into Categoricals/Series of
-                Intervals
+    Index : The base pandas Index type.
+    Interval : A bounded slice-like interval; the elements of an IntervalIndex.
+    qcut : Quantile-based discretization function.
+    cut : Return indices of half-open bins to which each value of x belongs.
+    interval_range : Function to create a fixed frequency IntervalIndex.
     """
     _typ = 'intervalindex'
     _comparables = ['name']
