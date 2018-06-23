@@ -23,8 +23,6 @@ from pandas._libs.sparse import BlockIndex, IntIndex
 from pandas.core.sparse.api import SparseSeries
 from pandas.tests.series.test_api import SharedWithSparse
 
-from itertools import product
-
 
 def _test_data1():
     # nan-based
@@ -985,16 +983,16 @@ class TestSparseSeries(SharedWithSparse):
         tm.assert_sp_series_equal(result, result2)
         tm.assert_sp_series_equal(result, expected)
 
-    @pytest.mark.parametrize('deep,fill_values', [([True, False],
-                                                   [0, 1, np.nan, None])])
-    def test_memory_usage_deep(self, deep, fill_values):
-        for deep, fill_value in product(deep, fill_values):
-            sparse_series = SparseSeries(fill_values, fill_value=fill_value)
-            dense_series = Series(fill_values)
-            sparse_usage = sparse_series.memory_usage(deep=deep)
-            dense_usage = dense_series.memory_usage(deep=deep)
+    @pytest.mark.parametrize('deep', [True, False])
+    @pytest.mark.parametrize('fill_value', [0, 1, np.nan, None])
+    def test_memory_usage_deep(self, deep, fill_value):
+        values = [0, 1, np.nan, None]
+        sparse_series = SparseSeries(values, fill_value=fill_value)
+        dense_series = Series(values)
+        sparse_usage = sparse_series.memory_usage(deep=deep)
+        dense_usage = dense_series.memory_usage(deep=deep)
 
-            assert sparse_usage < dense_usage
+        assert sparse_usage < dense_usage
 
 
 class TestSparseHandlingMultiIndexes(object):

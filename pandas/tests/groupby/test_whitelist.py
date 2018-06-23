@@ -8,7 +8,6 @@ from string import ascii_lowercase
 import numpy as np
 from pandas import DataFrame, Series, compat, date_range, Index, MultiIndex
 from pandas.util import testing as tm
-from pandas.compat import lrange, product
 
 AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
                  'mad', 'std', 'var', 'sem']
@@ -175,12 +174,11 @@ def raw_frame():
     return raw_frame
 
 
-@pytest.mark.parametrize(
-    "op, level, axis, skipna, sort",
-    product(AGG_FUNCTIONS,
-            lrange(2), lrange(2),
-            [True, False],
-            [True, False]))
+@pytest.mark.parametrize('op', AGG_FUNCTIONS)
+@pytest.mark.parametrize('level', [0, 1])
+@pytest.mark.parametrize('axis', [0, 1])
+@pytest.mark.parametrize('skipna', [True, False])
+@pytest.mark.parametrize('sort', [True, False])
 def test_regression_whitelist_methods(
         raw_frame, op, level,
         axis, skipna, sort):

@@ -778,9 +778,10 @@ def test_frame_describe_unstacked_format():
 # nunique
 # --------------------------------
 
-@pytest.mark.parametrize("n, m", cart_product(10 ** np.arange(2, 6),
-                                              (10, 100, 1000)))
-@pytest.mark.parametrize("sort, dropna", cart_product((False, True), repeat=2))
+@pytest.mark.parametrize('n', 10 ** np.arange(2, 6))
+@pytest.mark.parametrize('m', [10, 100, 1000])
+@pytest.mark.parametrize('sort', [False, True])
+@pytest.mark.parametrize('dropna', [False, True])
 def test_series_groupby_nunique(n, m, sort, dropna):
 
     def check_nunique(df, keys, as_index=True):

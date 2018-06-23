@@ -17,7 +17,7 @@ import pandas.util.testing as tm
 from pandas import (Series, DataFrame, Panel, Index, isna,
                     notna, Timestamp)
 
-from pandas.compat import range, lrange, zip, product, OrderedDict
+from pandas.compat import range, lrange, zip, OrderedDict
 from pandas.errors import UnsupportedFunctionCall
 from pandas.core.groupby.groupby import DataError
 import pandas.core.common as com
@@ -1951,30 +1951,32 @@ class TestDatetimeIndex(Base):
         assert_series_equal(results[0], results[2])
         assert_series_equal(results[0], results[3])
 
-    def test_resample_group_info(self):  # GH10914
-        for n, k in product((10000, 100000), (10, 100, 1000)):
-            dr = date_range(start='2015-08-27', periods=n // 10, freq='T')
-            ts = Series(np.random.randint(0, n // k, n).astype('int64'),
-                        index=np.random.choice(dr, n))
+    @pytest.mark.parametrize('n', [10000, 100000])
+    @pytest.mark.parametrize('k', [10, 100, 1000])
+    def test_resample_group_info(self, n, k):
+        # GH10914
+        dr = date_range(start='2015-08-27', periods=n // 10, freq='T')
+        ts = Series(np.random.randint(0, n // k, n).astype('int64'),
+                    index=np.random.choice(dr, n))
 
-            left = ts.resample('30T').nunique()
-            ix = date_range(start=ts.index.min(), end=ts.index.max(),
-                            freq='30T')
+        left = ts.resample('30T').nunique()
+        ix = date_range(start=ts.index.min(), end=ts.index.max(),
+                        freq='30T')
 
-            vals = ts.values
-            bins = np.searchsorted(ix.values, ts.index, side='right')
+        vals = ts.values
+        bins = np.searchsorted(ix.values, ts.index, side='right')
 
-            sorter = np.lexsort((vals, bins))
-            vals, bins = vals[sorter], bins[sorter]
+        sorter = np.lexsort((vals, bins))
+        vals, bins = vals[sorter], bins[sorter]
 
-            mask = np.r_[True, vals[1:] != vals[:-1]]
-            mask |= np.r_[True, bins[1:] != bins[:-1]]
+        mask = np.r_[True, vals[1:] != vals[:-1]]
+        mask |= np.r_[True, bins[1:] != bins[:-1]]
 
-            arr = np.bincount(bins[mask] - 1,
-                              minlength=len(ix)).astype('int64', copy=False)
-            right = Series(arr, index=ix)
+        arr = np.bincount(bins[mask] - 1,
+                          minlength=len(ix)).astype('int64', copy=False)
+        right = Series(arr, index=ix)
 
-            assert_series_equal(left, right)
+        assert_series_equal(left, right)
 
     def test_resample_size(self):
         n = 10000
@@ -2323,28 +2325,25 @@ class TestPeriodIndex(Base):
                                                        method='ffill')
         assert_series_equal(result, expected)
 
-    def test_quarterly_upsample(self):
-        targets = ['D', 'B', 'M']
+    @pytest.mark.parametrize('month', MONTHS)
+    @pytest.mark.parametrize('target', ['D', 'B', 'M'])
+    @pytest.mark.parametrize('convention', ['start', 'end'])
+    def test_quarterly_upsample(self, month, target, convention):
+        freq = 'Q-{month}'.format(month=month)
+        ts = _simple_pts('1/1/1990', '12/31/1995', freq=freq)
+        result = ts.resample(target, convention=convention).ffill()
+        expected = result.to_timestamp(target, how=convention)
+        expected = expected.asfreq(target, 'ffill').to_period()
+        assert_series_equal(result, expected)
 
-        for month in MONTHS:
-            ts = _simple_pts('1/1/1990', '12/31/1995', freq='Q-%s' % month)
-
-            for targ, conv in product(targets, ['start', 'end']):
-                result = ts.resample(targ, convention=conv).ffill()
-                expected = result.to_timestamp(targ, how=conv)
-                expected = expected.asfreq(targ, 'ffill').to_period()
-                assert_series_equal(result, expected)
-
-    def test_monthly_upsample(self):
-        targets = ['D', 'B']
-
+    @pytest.mark.parametrize('target', ['D', 'B'])
+    @pytest.mark.parametrize('convention', ['start', 'end'])
+    def test_monthly_upsample(self, target, convention):
         ts = _simple_pts('1/1/1990', '12/31/1995', freq='M')
-
-        for targ, conv in product(targets, ['start', 'end']):
-            result = ts.resample(targ, convention=conv).ffill()
-            expected = result.to_timestamp(targ, how=conv)
-            expected = expected.asfreq(targ, 'ffill').to_period()
-            assert_series_equal(result, expected)
+        result = ts.resample(target, convention=convention).ffill()
+        expected = result.to_timestamp(target, how=convention)
+        expected = expected.asfreq(target, 'ffill').to_period()
+        assert_series_equal(result, expected)
 
     def test_resample_basic(self):
         # GH3609
@@ -2455,17 +2454,16 @@ class TestPeriodIndex(Base):
         both = s.resample('M').ffill().resample('M').last().astype('int64')
         assert_series_equal(last, both)
 
-    def test_weekly_upsample(self):
-        targets = ['D', 'B']
-
-        for day in DAYS:
-            ts = _simple_pts('1/1/1990', '12/31/1995', freq='W-%s' % day)
-
-            for targ, conv in product(targets, ['start', 'end']):
-                result = ts.resample(targ, convention=conv).ffill()
-                expected = result.to_timestamp(targ, how=conv)
-                expected = expected.asfreq(targ, 'ffill').to_period()
-                assert_series_equal(result, expected)
+    @pytest.mark.parametrize('day', DAYS)
+    @pytest.mark.parametrize('target', ['D', 'B'])
+    @pytest.mark.parametrize('convention', ['start', 'end'])
+    def test_weekly_upsample(self, day, target, convention):
+        freq = 'W-{day}'.format(day=day)
+        ts = _simple_pts('1/1/1990', '12/31/1995', freq=freq)
+        result = ts.resample(target, convention=convention).ffill()
+        expected = result.to_timestamp(target, how=convention)
+        expected = expected.asfreq(target, 'ffill').to_period()
+        assert_series_equal(result, expected)
 
     def test_resample_to_timestamps(self):
         ts = _simple_pts('1/1/1990', '12/31/1995', freq='M')
