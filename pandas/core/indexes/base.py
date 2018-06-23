@@ -21,6 +21,7 @@ from pandas.core.dtypes.generic import (
     ABCPeriodIndex, ABCTimedeltaIndex,
     ABCDateOffset)
 from pandas.core.dtypes.missing import isna, array_equivalent
+from pandas.core.dtypes.cast import maybe_cast_to_integer_array
 from pandas.core.dtypes.common import (
     _ensure_int64,
     _ensure_object,
@@ -311,18 +312,15 @@ class Index(IndexOpsMixin, PandasObject):
                     if is_integer_dtype(dtype):
                         inferred = lib.infer_dtype(data)
                         if inferred == 'integer':
-                            try:
-                                data = np.array(data, copy=copy, dtype=dtype)
-                            except OverflowError:
-                                # gh-15823: a more user-friendly error message
-                                raise OverflowError(
-                                    "the elements provided in the data cannot "
-                                    "all be casted to the dtype {dtype}"
-                                    .format(dtype=dtype))
+                            data = maybe_cast_to_integer_array(data, dtype,
+                                                               copy=copy)
                         elif inferred in ['floating', 'mixed-integer-float']:
                             if isna(data).any():
                                 raise ValueError('cannot convert float '
                                                  'NaN to integer')
+
+                            if inferred == "mixed-integer-float":
+                                data = maybe_cast_to_integer_array(data, dtype)
 
                             # If we are actually all equal to integers,
                             # then coerce to integer.
@@ -352,7 +350,8 @@ class Index(IndexOpsMixin, PandasObject):
 
                 except (TypeError, ValueError) as e:
                     msg = str(e)
-                    if 'cannot convert float' in msg:
+                    if ("cannot convert float" in msg or
+                            "Trying to coerce float values to integer" in msg):
                         raise
 
             # maybe coerce to a sub-class
@@ -3148,17 +3147,22 @@ class Index(IndexOpsMixin, PandasObject):
 
             .. versionadded:: 0.21.0 (list-like tolerance)
 
-        Examples
-        --------
-        >>> indexer = index.get_indexer(new_index)
-        >>> new_values = cur_values.take(indexer)
-
         Returns
         -------
         indexer : ndarray of int
             Integers from 0 to n - 1 indicating that the index at these
             positions matches the corresponding target values. Missing values
             in the target are marked by -1.
+
+        Examples
+        --------
+        >>> index = pd.Index(['c', 'a', 'b'])
+        >>> index.get_indexer(['a', 'b', 'x'])
+        array([ 1,  2, -1])
+
+        Notice that the return value is an array of locations in ``index``
+        and ``x`` is marked by -1, as it is not in ``index``.
+
         """
 
     @Appender(_index_shared_docs['get_indexer'] % _index_doc_kwargs)
@@ -3629,7 +3633,7 @@ class Index(IndexOpsMixin, PandasObject):
             else:
 
                 # need to retake to have the same size as the indexer
-                indexer[~check] = 0
+                indexer[~check] = -1
 
                 # reset the new indexer to account for the new size
                 new_indexer = np.arange(len(self.take(indexer)))
@@ -4337,7 +4341,7 @@ class Index(IndexOpsMixin, PandasObject):
         Raises
         ------
         KeyError
-            If none of the labels are found in the selected axis
+            If not all of the labels are found in the selected axis
         """
         arr_dtype = 'object' if self.dtype == 'object' else None
         labels = com._index_labels_to_array(labels, dtype=arr_dtype)
@@ -4346,7 +4350,7 @@ class Index(IndexOpsMixin, PandasObject):
         if mask.any():
             if errors != 'ignore':
                 raise KeyError(
-                    'labels %s not contained in axis' % labels[mask])
+                    '{} not found in axis'.format(labels[mask]))
             indexer = indexer[~mask]
         return self.delete(indexer)
 
