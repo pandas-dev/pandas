@@ -1,6 +1,6 @@
 """ io on the clipboard """
 from pandas import compat, get_option, option_context, DataFrame
-from pandas.compat import StringIO, PY2
+from pandas.compat import StringIO
 import warnings
 
 
@@ -58,7 +58,7 @@ def read_clipboard(sep=r'\s+', **kwargs):  # pragma: no cover
     if len(lines) > 1 and len(counts) == 1 and counts.pop() != 0:
         sep = '\t'
 
-    # Edge case where sep is specified to be None
+    # Edge case where sep is specified to be None, return to default
     if sep is None and kwargs.get('delim_whitespace') is None:
         sep = r'\s+'
 
@@ -71,8 +71,8 @@ def read_clipboard(sep=r'\s+', **kwargs):  # pragma: no cover
                       ' properly with c engine')
 
     # In PY2, the c table reader first encodes text with UTF-8 but Python
-    # table reader uses the format of the passed string.
-    # For PY2, encode strings first so that output from python and c
+    # table reader uses the format of the passed string. For consistency,
+    # encode strings for python engine so that output from python and c
     # engines produce consistent results
     if kwargs.get('engine') == 'python' and compat.PY2:
         text = text.encode('utf-8')
@@ -121,7 +121,7 @@ def to_clipboard(obj, excel=True, sep=None, **kwargs):  # pragma: no cover
             # clipboard_set (pyperclip) expects unicode
             obj.to_csv(buf, sep=sep, encoding='utf-8', **kwargs)
             text = buf.getvalue()
-            if PY2:
+            if compat.PY2:
                 text = text.decode('utf-8')
             clipboard_set(text)
             return
@@ -129,6 +129,8 @@ def to_clipboard(obj, excel=True, sep=None, **kwargs):  # pragma: no cover
             warnings.warn('to_clipboard in excel mode requires a single '
                           'character separator. Set "excel=False" or change '
                           'the separator')
+    elif sep is not None:
+        warnings.warn('to_clipboard with excel=False ignores the sep argument')
 
     if isinstance(obj, DataFrame):
         # str(df) has various unhelpful defaults, like truncation
