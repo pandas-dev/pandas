@@ -165,12 +165,12 @@ class TestHashing(object):
         Series(tm.makePeriodIndex()),
         Series(pd.date_range('20130101', periods=3, tz='US/Eastern')),
         MultiIndex.from_product([range(5), ['foo', 'bar', 'baz'],
-                                pd.date_range('20130101', periods=2)]),
+                                 pd.date_range('20130101', periods=2)]),
         MultiIndex.from_product([pd.CategoricalIndex(list('aabc')), range(3)])
-        ])
+    ])
     def test_hash_pandas_object(self, obj):
-            self.check_equal(obj)
-            self.check_not_equal_with_index(obj)
+        self.check_equal(obj)
+        self.check_not_equal_with_index(obj)
 
     def test_hash_pandas_object2(self):
         for name, s in self.df.iteritems():
