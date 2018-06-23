@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 import numpy as np
+import pandas as pd
 import pandas.util.testing as tm
 import pytest
-from pandas import CategoricalIndex, MultiIndex, RangeIndex
+from pandas import CategoricalIndex, DataFrame, MultiIndex, RangeIndex
+from pandas.compat import lrange
+from pandas.errors import PerformanceWarning, UnsortedIndexError
 
 
 def test_sortlevel(idx):
@@ -86,3 +89,50 @@ def test_numpy_argsort(named_index):
             msg = "the 'order' parameter is not supported"
             tm.assert_raises_regex(ValueError, msg, np.argsort,
                                    ind, order=('a', 'b'))
+
+
+def test_unsortedindex():
+    # GH 11897
+    mi = pd.MultiIndex.from_tuples([('z', 'a'), ('x', 'a'), ('y', 'b'),
+                                    ('x', 'b'), ('y', 'a'), ('z', 'b')],
+                                   names=['one', 'two'])
+    df = pd.DataFrame([[i, 10 * i] for i in lrange(6)], index=mi,
+                      columns=['one', 'two'])
+
+    # GH 16734: not sorted, but no real slicing
+    result = df.loc(axis=0)['z', 'a']
+    expected = df.iloc[0]
+    tm.assert_series_equal(result, expected)
+
+    with pytest.raises(UnsortedIndexError):
+        df.loc(axis=0)['z', slice('a')]
+    df.sort_index(inplace=True)
+    assert len(df.loc(axis=0)['z', :]) == 2
+
+    with pytest.raises(KeyError):
+        df.loc(axis=0)['q', :]
+
+
+def test_unsortedindex_doc_examples():
+    # http://pandas.pydata.org/pandas-docs/stable/advanced.html#sorting-a-multiindex  # noqa
+    dfm = DataFrame({'jim': [0, 0, 1, 1],
+                     'joe': ['x', 'x', 'z', 'y'],
+                     'jolie': np.random.rand(4)})
+
+    dfm = dfm.set_index(['jim', 'joe'])
+    with tm.assert_produces_warning(PerformanceWarning):
+        dfm.loc[(1, 'z')]
+
+    with pytest.raises(UnsortedIndexError):
+        dfm.loc[(0, 'y'):(1, 'z')]
+
+    assert not dfm.index.is_lexsorted()
+    assert dfm.index.lexsort_depth == 1
+
+    # sort it
+    dfm = dfm.sort_index()
+    dfm.loc[(1, 'z')]
+    dfm.loc[(0, 'y'):(1, 'z')]
+
+    assert dfm.index.is_lexsorted()
+    assert dfm.index.lexsort_depth == 2

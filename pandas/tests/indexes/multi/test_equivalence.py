@@ -232,3 +232,21 @@ def test_nulls(named_index):
                 result = isna(index)
                 tm.assert_numpy_array_equal(index.isna(), result)
                 tm.assert_numpy_array_equal(index.notna(), ~result)
+
+
+def test_multiindex_compare():
+        # GH 21149
+        # Ensure comparison operations for MultiIndex with nlevels == 1
+        # behave consistently with those for MultiIndex with nlevels > 1
+
+    midx = pd.MultiIndex.from_product([[0, 1]])
+
+    # Equality self-test: MultiIndex object vs self
+    expected = pd.Series([True, True])
+    result = pd.Series(midx == midx)
+    tm.assert_series_equal(result, expected)
+
+    # Greater than comparison: MultiIndex object vs self
+    expected = pd.Series([False, False])
+    result = pd.Series(midx > midx)
+    tm.assert_series_equal(result, expected)
