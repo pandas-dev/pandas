@@ -2265,7 +2265,7 @@ class TestDataFrameIndexing(TestData):
     @pytest.mark.parametrize('idxer', ['var', ['var']])
     @pytest.mark.parametrize('tz', [None, 'UTC'])
     def test_setitem_datetimeindex_tz(self, idxer, tz):
-        #GH 11365
+        # GH 11365
         idx = date_range(start='2015-07-12', periods=3, freq='H', tz=tz)
         expected = DataFrame(1.2, index=idx, columns=['var'])
         result = DataFrame(index=idx, columns=['var'])

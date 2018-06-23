@@ -299,7 +299,7 @@ class TestDateRanges(TestData):
         expected = DatetimeIndex([Timestamp('2013-01-01 00:00:00+09:00'),
                                   Timestamp('2013-01-01 01:00:00+09:00'),
                                   Timestamp('2013-01-01 02:00:00+09:00')])
-        tm.assert_index_equal(result, expected) 
+        tm.assert_index_equal(result, expected)
 
 
 class TestGenRangeGeneration(object):

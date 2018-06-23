@@ -1185,3 +1185,11 @@ class TestSeriesConstructors(TestData):
         expected = Series([0, 1, 2, 3, 4], dtype=dtype or 'int64')
         result = Series(range(5), dtype=dtype)
         tm.assert_series_equal(result, expected)
+
+    def test_constructor_tz_aware_and_tz_naive_data(self):
+        # GH 13051
+        dt_list = [Timestamp('2016-05-01 02:03:37'),
+                   Timestamp('2016-04-30 19:03:37-0700', tz='US/Pacific')]
+        result = Series(dt_list)
+        expected = Series(dt_list, dtype=object)
+        tm.assert_series_equal(result, expected)

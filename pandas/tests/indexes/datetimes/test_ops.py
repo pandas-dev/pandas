@@ -450,12 +450,13 @@ class TestDatetimeIndexOps(Ops):
         with tm.assert_produces_warning(FutureWarning):
             idx.offset = BDay()
 
-    def test_ts_datetimeindex_compare_mismatched_tz(self):
+    def test_ts_datetimeindex_compare_mismatched_tz(self, comparison_fixture):
         # GH 12601
+        comparison = comparison_fixture
         idx = date_range('2016-01-01 12:00', periods=10,
                          freq='H', tz='Asia/Tokyo')
         with pytest.raises(TypeError):
-            idx > pd.Timestamp('2016-01-01 08:00')
+            comparison(idx, pd.Timestamp('2016-01-01 08:00'))
 
 
 class TestBusinessDatetimeIndex(object):
