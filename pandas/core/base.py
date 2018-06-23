@@ -788,6 +788,7 @@ class IndexOpsMixin(object):
 
     @property
     def _ndarray_values(self):
+        # type: () -> np.ndarray
         """The data as an ndarray, possibly losing information.
 
         The expectation is that this is cheap to compute, and is primarily
@@ -795,7 +796,6 @@ class IndexOpsMixin(object):
 
         - categorical -> codes
         """
-        # type: () -> np.ndarray
         if is_extension_array_dtype(self):
             return self.values._ndarray_values
         return self.values
