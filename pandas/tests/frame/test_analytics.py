@@ -2178,9 +2178,6 @@ class TestDataFrameAnalytics(TestData):
             result = original
         tm.assert_frame_equal(result, expected, check_exact=True)
 
-    @pytest.mark.xfail(
-        not _np_version_under1p15,
-        reason="failing under numpy-dev gh-19976")
     @pytest.mark.parametrize("axis", [0, 1, None])
     def test_clip_against_frame(self, axis):
         df = DataFrame(np.random.randn(1000, 2))
