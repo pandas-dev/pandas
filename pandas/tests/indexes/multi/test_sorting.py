@@ -64,31 +64,30 @@ def test_sort(indices):
     pytest.raises(TypeError, indices.sort)
 
 
-def test_numpy_argsort(named_index):
-    for k, ind in named_index.items():
-        result = np.argsort(ind)
-        expected = ind.argsort()
-        tm.assert_numpy_array_equal(result, expected)
+def test_numpy_argsort(idx):
+    result = np.argsort(idx)
+    expected = idx.argsort()
+    tm.assert_numpy_array_equal(result, expected)
 
-        # these are the only two types that perform
-        # pandas compatibility input validation - the
-        # rest already perform separate (or no) such
-        # validation via their 'values' attribute as
-        # defined in pandas.core.indexes/base.py - they
-        # cannot be changed at the moment due to
-        # backwards compatibility concerns
-        if isinstance(type(ind), (CategoricalIndex, RangeIndex)):
-            msg = "the 'axis' parameter is not supported"
-            tm.assert_raises_regex(ValueError, msg,
-                                   np.argsort, ind, axis=1)
+    # these are the only two types that perform
+    # pandas compatibility input validation - the
+    # rest already perform separate (or no) such
+    # validation via their 'values' attribute as
+    # defined in pandas.core.indexes/base.py - they
+    # cannot be changed at the moment due to
+    # backwards compatibility concerns
+    if isinstance(type(idx), (CategoricalIndex, RangeIndex)):
+        msg = "the 'axis' parameter is not supported"
+        tm.assert_raises_regex(ValueError, msg,
+                               np.argsort, idx, axis=1)
 
-            msg = "the 'kind' parameter is not supported"
-            tm.assert_raises_regex(ValueError, msg, np.argsort,
-                                   ind, kind='mergesort')
+        msg = "the 'kind' parameter is not supported"
+        tm.assert_raises_regex(ValueError, msg, np.argsort,
+                               idx, kind='mergesort')
 
-            msg = "the 'order' parameter is not supported"
-            tm.assert_raises_regex(ValueError, msg, np.argsort,
-                                   ind, order=('a', 'b'))
+        msg = "the 'order' parameter is not supported"
+        tm.assert_raises_regex(ValueError, msg, np.argsort,
+                               idx, order=('a', 'b'))
 
 
 def test_unsortedindex():

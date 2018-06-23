@@ -6,8 +6,7 @@ from datetime import timedelta
 import numpy as np
 import pandas.util.testing as tm
 import pytest
-from pandas import (Index, Int64Index, MultiIndex, PeriodIndex, RangeIndex,
-                    UInt64Index, compat)
+from pandas import Index, Int64Index, MultiIndex, PeriodIndex, UInt64Index
 from pandas.compat import lrange
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin, iNaT
 
@@ -141,47 +140,36 @@ def test_shift(idx):
     pytest.raises(NotImplementedError, idx.shift, 1, 2)
 
 
-def test_insert_base(named_index):
+def test_insert_base(idx):
 
-    for name, idx in compat.iteritems(named_index):
-        result = idx[1:4]
+    result = idx[1:4]
 
-        if not len(idx):
-            continue
-
-        # test 0th element
-        assert idx[0:4].equals(result.insert(0, idx[0]))
+    # test 0th element
+    assert idx[0:4].equals(result.insert(0, idx[0]))
 
 
-def test_delete_base(named_index):
+def test_delete_base(idx):
 
-    for name, idx in compat.iteritems(named_index):
+    expected = idx[1:]
+    result = idx.delete(0)
+    assert result.equals(expected)
+    assert result.name == expected.name
 
-        if not len(idx):
-            continue
+    expected = idx[:-1]
+    result = idx.delete(-1)
+    assert result.equals(expected)
+    assert result.name == expected.name
 
-        if isinstance(idx, RangeIndex):
-            # tested in class
-            continue
-
-        expected = idx[1:]
-        result = idx.delete(0)
-        assert result.equals(expected)
-        assert result.name == expected.name
-
-        expected = idx[:-1]
-        result = idx.delete(-1)
-        assert result.equals(expected)
-        assert result.name == expected.name
-
-        with pytest.raises((IndexError, ValueError)):
-            # either depending on numpy version
-            result = idx.delete(len(idx))
+    with pytest.raises((IndexError, ValueError)):
+        # either depending on numpy version
+        result = idx.delete(len(idx))
 
 
-def test_fillna(named_index):
+def test_fillna(idx):
     # GH 11343
-    for name, index in named_index.items():
+
+    # TODO: Remove or Refactor.  Not Implemented for MultiIndex
+    for name, index in [('idx', idx), ]:
         if len(index) == 0:
             pass
         elif isinstance(index, MultiIndex):

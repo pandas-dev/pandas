@@ -7,7 +7,7 @@ import pandas as pd
 import pandas.util.testing as tm
 import pytest
 from pandas import (DataFrame, IntervalIndex, MultiIndex,
-                    RangeIndex, compat, date_range)
+                    RangeIndex, date_range)
 from pandas.compat import lrange, range
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
@@ -378,26 +378,25 @@ def test_wrong_number_names(indices):
     tm.assert_raises_regex(ValueError, "^Length", testit, indices)
 
 
-def test_memory_usage(named_index):
-    for name, index in compat.iteritems(named_index):
-        result = index.memory_usage()
-        if len(index):
-            index.get_loc(index[0])
-            result2 = index.memory_usage()
-            result3 = index.memory_usage(deep=True)
+def test_memory_usage(idx):
+    result = idx.memory_usage()
+    if len(idx):
+        idx.get_loc(idx[0])
+        result2 = idx.memory_usage()
+        result3 = idx.memory_usage(deep=True)
 
-            # RangeIndex, IntervalIndex
-            # don't have engines
-            if not isinstance(index, (RangeIndex, IntervalIndex)):
-                assert result2 > result
+        # RangeIndex, IntervalIndex
+        # don't have engines
+        if not isinstance(idx, (RangeIndex, IntervalIndex)):
+            assert result2 > result
 
-            if index.inferred_type == 'object':
-                assert result3 > result2
+        if idx.inferred_type == 'object':
+            assert result3 > result2
 
-        else:
+    else:
 
-            # we report 0 for no-length
-            assert result == 0
+        # we report 0 for no-length
+        assert result == 0
 
 
 def test_nlevels(idx):

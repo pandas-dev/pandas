@@ -9,9 +9,9 @@ from pandas import (Index, MultiIndex, PeriodIndex, RangeIndex, Series, compat,
 from pandas.compat import lrange, lzip, range
 
 
-def test_equals(named_index):
-
-    for name, idx in compat.iteritems(named_index):
+def test_equals(idx):
+    # TODO: Remove or Refactor. MultiIndex not tested.
+    for name, idx in compat.iteritems({'idx': idx}):
         assert idx.equals(idx)
         assert idx.equals(idx.copy())
         assert idx.equals(idx.astype(object))
@@ -208,11 +208,12 @@ def test_is_numeric(idx):
     assert not idx.is_numeric()
 
 
-def test_nulls(named_index):
+def test_nulls(idx):
     # this is really a smoke test for the methods
     # as these are adequately tested for function elsewhere
 
-    for name, index in named_index.items():
+    # TODO: Remove or Refactor. MultiIndex not Implemeted.
+    for name, index in [('idx', idx), ]:
         if len(index) == 0:
             tm.assert_numpy_array_equal(
                 index.isna(), np.array([], dtype=bool))

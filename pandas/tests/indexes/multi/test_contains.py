@@ -4,9 +4,8 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 import pytest
-from pandas import Int64Index, MultiIndex, PeriodIndex, UInt64Index
+from pandas import MultiIndex
 from pandas.compat import PYPY
-from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin, iNaT
 
 
 def test_contains_top_level():
@@ -94,37 +93,37 @@ def test_isin_level_kwarg():
     pytest.raises(KeyError, idx.isin, vals_1, level='C')
 
 
-def test_hasnans_isnans(named_index):
+def test_hasnans_isnans(idx):
     # GH 11343, added tests for hasnans / isnans
-    for name, index in named_index.items():
-        if isinstance(index, MultiIndex):
-            pass
-        else:
-            idx = index.copy()
+    # TODO: remove or change test not valid for MultiIndex
+    if isinstance(idx, MultiIndex):
+        pass
+    # else:
+    #     _index = idx.copy()
 
-            # cases in indices doesn't include NaN
-            expected = np.array([False] * len(idx), dtype=bool)
-            tm.assert_numpy_array_equal(idx._isnan, expected)
-            assert not idx.hasnans
+    #     # cases in indices doesn't include NaN
+    #     expected = np.array([False] * len(_index), dtype=bool)
+    #     tm.assert_numpy_array_equal(_index._isnan, expected)
+    #     assert not _index.hasnans
 
-            idx = index.copy()
-            values = idx.values
+    #     _index = idx.copy()
+    #     values = _index.values
 
-            if len(index) == 0:
-                continue
-            elif isinstance(index, DatetimeIndexOpsMixin):
-                values[1] = iNaT
-            elif isinstance(index, (Int64Index, UInt64Index)):
-                continue
-            else:
-                values[1] = np.nan
+    #     if len(idx) == 0:
+    #         continue
+    #     elif isinstance(idx, DatetimeIndexOpsMixin):
+    #         values[1] = iNaT
+    #     elif isinstance(idx, (Int64Index, UInt64Index)):
+    #         continue
+    #     else:
+    #         values[1] = np.nan
 
-            if isinstance(index, PeriodIndex):
-                idx = index.__class__(values, freq=index.freq)
-            else:
-                idx = index.__class__(values)
+    #     if isinstance(idx, PeriodIndex):
+    #         _index = idx.__class__(values, freq=idx.freq)
+    #     else:
+    #         _index = idx.__class__(values)
 
-            expected = np.array([False] * len(idx), dtype=bool)
-            expected[1] = True
-            tm.assert_numpy_array_equal(idx._isnan, expected)
-            assert idx.hasnans
+    #     expected = np.array([False] * len(_index), dtype=bool)
+    #     expected[1] = True
+    #     tm.assert_numpy_array_equal(_index._isnan, expected)
+    #     assert _index.hasnans

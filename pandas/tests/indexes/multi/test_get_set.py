@@ -630,21 +630,20 @@ def test_get_unique_index(idx):
         tm.assert_index_equal(result, expected)
 
 
-def test_get_indexer_consistency(named_index):
+def test_get_indexer_consistency(idx):
     # See GH 16819
-    for name, index in named_index.items():
-        if isinstance(index, IntervalIndex):
-            continue
+    if isinstance(idx, IntervalIndex):
+        pass
 
-        if index.is_unique or isinstance(index, CategoricalIndex):
-            indexer = index.get_indexer(index[0:2])
-            assert isinstance(indexer, np.ndarray)
-            assert indexer.dtype == np.intp
-        else:
-            e = "Reindexing only valid with uniquely valued Index objects"
-            with tm.assert_raises_regex(InvalidIndexError, e):
-                indexer = index.get_indexer(index[0:2])
-
-        indexer, _ = index.get_indexer_non_unique(index[0:2])
+    if idx.is_unique or isinstance(idx, CategoricalIndex):
+        indexer = idx.get_indexer(idx[0:2])
         assert isinstance(indexer, np.ndarray)
         assert indexer.dtype == np.intp
+    else:
+        e = "Reindexing only valid with uniquely valued Index objects"
+        with tm.assert_raises_regex(InvalidIndexError, e):
+            indexer = idx.get_indexer(idx[0:2])
+
+    indexer, _ = idx.get_indexer_non_unique(idx[0:2])
+    assert isinstance(indexer, np.ndarray)
+    assert indexer.dtype == np.intp

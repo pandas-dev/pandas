@@ -23,11 +23,6 @@ def idx():
 
 
 @pytest.fixture
-def named_index(idx):
-    return {'index': idx}
-
-
-@pytest.fixture
 def index_names():
     return ['first', 'second']
 

@@ -40,11 +40,12 @@ def test_view(idx):
     assert_multiindex_copied(i_view, idx)
 
 
-def test_copy_name(named_index):
+def test_copy_name(idx):
     # gh-12309: Check that the "name" argument
     # passed at initialization is honored.
 
-    for name, index in compat.iteritems(named_index):
+    # TODO: Remove or refactor MultiIndex not tested.
+    for name, index in compat.iteritems({'idx': idx}):
         if isinstance(index, MultiIndex):
             continue
 
@@ -69,10 +70,12 @@ def test_copy_name(named_index):
             assert s3.index.name == 'mario'
 
 
-def test_ensure_copied_data(named_index):
+def test_ensure_copied_data(idx):
     # Check the "copy" argument of each Index.__new__ is honoured
     # GH12309
-    for name, index in compat.iteritems(named_index):
+    # TODO: REMOVE THIS TEST.  MultiIndex is tested seperately as noted below.
+
+    for name, index in compat.iteritems({'idx': idx}):
         init_kwargs = {}
         if isinstance(index, PeriodIndex):
             # Needs "freq" specification:

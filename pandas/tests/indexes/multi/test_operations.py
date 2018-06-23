@@ -6,7 +6,7 @@ import pandas.util.testing as tm
 import pytest
 from pandas import (DataFrame, DatetimeIndex, Float64Index, Index, Int64Index,
                     MultiIndex, PeriodIndex, TimedeltaIndex, UInt64Index,
-                    compat, date_range, period_range)
+                    date_range, period_range)
 from pandas.compat import lrange, range
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
@@ -283,23 +283,17 @@ def test_append_mixed_dtypes():
     tm.assert_index_equal(res, exp)
 
 
-def test_take(named_index):
+def test_take(idx):
     indexer = [4, 3, 0, 2]
-    for k, ind in named_index.items():
+    result = idx.take(indexer)
+    expected = idx[indexer]
+    assert result.equals(expected)
 
-        # separate
-        if k in ['boolIndex', 'tuples', 'empty']:
-            continue
-
-        result = ind.take(indexer)
-        expected = ind[indexer]
-        assert result.equals(expected)
-
-        if not isinstance(ind,
-                          (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
-            # GH 10791
-            with pytest.raises(AttributeError):
-                ind.freq
+    if not isinstance(idx,
+                      (DatetimeIndex, PeriodIndex, TimedeltaIndex)):
+        # GH 10791
+        with pytest.raises(AttributeError):
+            idx.freq
 
 
 def test_take_invalid_kwargs(idx):
@@ -444,55 +438,54 @@ def test_map_dictlike(idx, mapper):
     tm.assert_index_equal(result, expected)
 
 
-def test_numpy_ufuncs(named_index):
+def test_numpy_ufuncs(idx):
     # test ufuncs of numpy 1.9.2. see:
     # http://docs.scipy.org/doc/numpy/reference/ufuncs.html
 
     # some functions are skipped because it may return different result
     # for unicode input depending on numpy version
 
-    for name, idx in compat.iteritems(named_index):
-        for func in [np.exp, np.exp2, np.expm1, np.log, np.log2, np.log10,
-                     np.log1p, np.sqrt, np.sin, np.cos, np.tan, np.arcsin,
-                     np.arccos, np.arctan, np.sinh, np.cosh, np.tanh,
-                     np.arcsinh, np.arccosh, np.arctanh, np.deg2rad,
-                     np.rad2deg]:
-            if isinstance(idx, DatetimeIndexOpsMixin):
-                # raise TypeError or ValueError (PeriodIndex)
-                # PeriodIndex behavior should be changed in future version
+    for func in [np.exp, np.exp2, np.expm1, np.log, np.log2, np.log10,
+                 np.log1p, np.sqrt, np.sin, np.cos, np.tan, np.arcsin,
+                 np.arccos, np.arctan, np.sinh, np.cosh, np.tanh,
+                 np.arcsinh, np.arccosh, np.arctanh, np.deg2rad,
+                 np.rad2deg]:
+        if isinstance(idx, DatetimeIndexOpsMixin):
+            # raise TypeError or ValueError (PeriodIndex)
+            # PeriodIndex behavior should be changed in future version
+            with pytest.raises(Exception):
+                with np.errstate(all='ignore'):
+                    func(idx)
+        elif isinstance(idx, (Float64Index, Int64Index, UInt64Index)):
+            # coerces to float (e.g. np.sin)
+            with np.errstate(all='ignore'):
+                result = func(idx)
+                exp = Index(func(idx.values), name=idx.name)
+
+            tm.assert_index_equal(result, exp)
+            assert isinstance(result, pd.Float64Index)
+        else:
+            # raise AttributeError or TypeError
+            if len(idx) == 0:
+                continue
+            else:
                 with pytest.raises(Exception):
                     with np.errstate(all='ignore'):
                         func(idx)
-            elif isinstance(idx, (Float64Index, Int64Index, UInt64Index)):
-                # coerces to float (e.g. np.sin)
-                with np.errstate(all='ignore'):
-                    result = func(idx)
-                    exp = Index(func(idx.values), name=idx.name)
 
-                tm.assert_index_equal(result, exp)
-                assert isinstance(result, pd.Float64Index)
+    for func in [np.isfinite, np.isinf, np.isnan, np.signbit]:
+        if isinstance(idx, DatetimeIndexOpsMixin):
+            # raise TypeError or ValueError (PeriodIndex)
+            with pytest.raises(Exception):
+                func(idx)
+        elif isinstance(idx, (Float64Index, Int64Index, UInt64Index)):
+            # Results in bool array
+            result = func(idx)
+            assert isinstance(result, np.ndarray)
+            assert not isinstance(result, Index)
+        else:
+            if len(idx) == 0:
+                continue
             else:
-                # raise AttributeError or TypeError
-                if len(idx) == 0:
-                    continue
-                else:
-                    with pytest.raises(Exception):
-                        with np.errstate(all='ignore'):
-                            func(idx)
-
-        for func in [np.isfinite, np.isinf, np.isnan, np.signbit]:
-            if isinstance(idx, DatetimeIndexOpsMixin):
-                # raise TypeError or ValueError (PeriodIndex)
                 with pytest.raises(Exception):
                     func(idx)
-            elif isinstance(idx, (Float64Index, Int64Index, UInt64Index)):
-                # Results in bool array
-                result = func(idx)
-                assert isinstance(result, np.ndarray)
-                assert not isinstance(result, Index)
-            else:
-                if len(idx) == 0:
-                    continue
-                else:
-                    with pytest.raises(Exception):
-                        func(idx)
