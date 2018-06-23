@@ -76,7 +76,6 @@ def assert_level_reference(frame, levels, axis):
 
 # DataFrame
 # ---------
-@pytest.mark.parametrize('axis', [0, 1])
 def test_is_level_or_label_reference_df_simple(df_levels, axis):
 
     # Compute expected labels and levels
@@ -91,7 +90,6 @@ def test_is_level_or_label_reference_df_simple(df_levels, axis):
     assert_label_reference(df_levels, expected_labels, axis=axis)
 
 
-@pytest.mark.parametrize('axis', [0, 1])
 def test_is_level_reference_df_ambig(df_ambig, axis):
 
     # Transpose frame if axis == 1
@@ -165,7 +163,6 @@ def test_is_label_or_level_reference_panel_error(panel):
 
 # DataFrame
 # ---------
-@pytest.mark.parametrize('axis', [0, 1])
 def test_check_label_or_level_ambiguity_df(df_ambig, axis):
 
     # Transpose frame if axis == 1
@@ -264,7 +261,6 @@ def assert_level_values(frame, levels, axis):
 
 # DataFrame
 # ---------
-@pytest.mark.parametrize('axis', [0, 1])
 def test_get_label_or_level_values_df_simple(df_levels, axis):
 
     # Compute expected labels and levels
@@ -279,7 +275,6 @@ def test_get_label_or_level_values_df_simple(df_levels, axis):
     assert_level_values(df_levels, expected_levels, axis=axis)
 
 
-@pytest.mark.parametrize('axis', [0, 1])
 def test_get_label_or_level_values_df_ambig(df_ambig, axis):
 
     # Transpose frame if axis == 1
@@ -300,7 +295,6 @@ def test_get_label_or_level_values_df_ambig(df_ambig, axis):
         assert_label_values(df_ambig, ['L3'], axis=axis)
 
 
-@pytest.mark.parametrize('axis', [0, 1])
 def test_get_label_or_level_values_df_duplabels(df_duplabels, axis):
 
     # Transpose frame if axis == 1
@@ -383,7 +377,6 @@ def assert_levels_dropped(frame, levels, axis):
 
 # DataFrame
 # ---------
-@pytest.mark.parametrize('axis', [0, 1])
 def test_drop_labels_or_levels_df(df_levels, axis):
 
     # Compute expected labels and levels
