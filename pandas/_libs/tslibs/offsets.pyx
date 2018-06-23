@@ -313,6 +313,30 @@ class _BaseOffset(object):
     def __setattr__(self, name, value):
         raise AttributeError("DateOffset objects are immutable.")
 
+    def __eq__(self, other):
+        if is_string_object(other):
+            from pandas.tseries.frequencies import to_offset
+            other = to_offset(other)
+
+        try:
+            return self._params == other._params
+        except AttributeError:
+            # other is not a DateOffset object
+            return False
+
+        return self._params == other._params
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __hash__(self):
+        return hash(self._params)
+
+    @property
+    def _params(self):
+        from pandas.errors import AbstractMethodError
+        raise AbstractMethodError(self)
+
     @property
     def kwds(self):
         # for backwards-compatibility

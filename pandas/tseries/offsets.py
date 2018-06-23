@@ -322,24 +322,6 @@ class DateOffset(BaseOffset):
     def name(self):
         return self.rule_code
 
-    def __eq__(self, other):
-
-        if isinstance(other, compat.string_types):
-            from pandas.tseries.frequencies import to_offset
-
-            other = to_offset(other)
-
-        if not isinstance(other, DateOffset):
-            return False
-
-        return self._params == other._params
-
-    def __ne__(self, other):
-        return not self == other
-
-    def __hash__(self):
-        return hash(self._params)
-
     def __add__(self, other):
         if isinstance(other, (ABCDatetimeIndex, ABCSeries)):
             return other + self
