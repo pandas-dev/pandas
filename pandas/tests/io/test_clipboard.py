@@ -9,6 +9,7 @@ import pandas as pd
 from pandas import DataFrame
 from pandas import read_clipboard
 from pandas import get_option
+from pandas.compat import PY2
 from pandas.util import testing as tm
 from pandas.util.testing import makeCustomDataframe as mkdf
 from pandas.io.clipboard.exceptions import PyperclipException
@@ -63,7 +64,6 @@ def gen_df(data_type):
         return mkdf(5, 3, data_gen_f=lambda r, c: float(r) + 0.01,
                     c_idx_type='s', r_idx_type='i',
                     c_idx_names=[None], r_idx_names=[None])
-
     elif data_type == 'int':
         return mkdf(5, 3, data_gen_f=lambda *args: randint(2),
                     c_idx_type='s', r_idx_type='i',
@@ -88,15 +88,22 @@ class TestClipboard(object):
                                 encoding=encoding)
         tm.assert_frame_equal(data, result, check_dtype=False)
 
+    # Test that default arguments copy as tab delimited
+    # Fails because to_clipboard defaults to space delim.
+    # Issue in #21104, Fixed in #21111
     @pytest.mark.xfail
     def test_round_trip_frame(self, df):
         self.check_round_trip_frame(df)
 
-    def test_round_trip_frame_sep(self, df):
-        self.check_round_trip_frame(df, sep=',')
-        self.check_round_trip_frame(df, sep='|')
-        self.check_round_trip_frame(df, sep='\t')
+    # Test that explicit delimiters are respected
+    @pytest.mark.parametrize('sep', ['\t', ',', '|'])
+    def test_round_trip_frame_sep(self, df, sep):
+        self.check_round_trip_frame(df, sep=sep)
 
+    # Test white space separator
+    # Fails on 'delims' df because quote escapes aren't handled correctly
+    # in default c engine. Fixed in #21111 by defaulting to python engine
+    # for whitespace separator
     @pytest.mark.xfail
     def test_round_trip_frame_string(self, df):
         df.to_clipboard(excel=False, sep=None)
@@ -104,29 +111,44 @@ class TestClipboard(object):
         assert df.to_string() == result.to_string()
         assert df.shape == result.shape
 
+    # Two character separator is not supported in to_clipboard
+    # Test that multi-character separators are not silently passed
+    # Fails, Fixed in #21111
     @pytest.mark.xfail
     def test_excel_sep_warning(self):
         with tm.assert_produces_warning():
             gen_df('string').to_clipboard(excel=True, sep=r'\t')
 
+    # Separator is ignored when excel=False and should produce a warning
+    # Fails, Fixed in #21111
+    @pytest.mark.xfail
+    def test_copy_delim_warning(self):
+        with tm.assert_produces_warning():
+            gen_df('string').to_clipboard(excel=False, sep='\t')
+
+    # Tests that the default behavior of to_clipboard is tab
+    # delimited and excel="True"
+    # Fails because to_clipboard defaults to space delim.
+    # Issue in #21104, Fixed in #21111
     @pytest.mark.xfail
     @pytest.mark.parametrize('sep', ['\t', None, 'default'])
     @pytest.mark.parametrize('excel', [True, None, 'default'])
     def test_clipboard_copy_tabs_default(self, sep, excel, df):
         kwargs = build_kwargs(sep, excel)
         df.to_clipboard(**kwargs)
-        assert clipboard_get() == df.to_csv(sep='\t')
+        if PY2:
+            # to_clipboard copies unicode, to_csv produces bytes. This is 
+            # expected behavior
+            assert clipboard_get().encode('utf-8') == df.to_csv(sep='\t')
+        else:
+            assert clipboard_get() == df.to_csv(sep='\t')
 
+    # Tests reading of white space separated tables
+    # Fails on 'delims' df because quote escapes aren't handled correctly
+    # in default c engine. Fixed in #21111 by defaulting to python engine
+    # for whitespace separator
     @pytest.mark.xfail
-    @pytest.mark.parametrize('sep', [',', '|'])
-    @pytest.mark.parametrize('excel', [True])
-    def test_clipboard_copy_delim(self, sep, excel, df):
-        kwargs = build_kwargs(sep, excel)
-        df.to_clipboard(**kwargs)
-        assert clipboard_get() == df.to_csv(sep=sep)
-
-    @pytest.mark.xfail
-    @pytest.mark.parametrize('sep', ['\t', None, 'default'])
+    @pytest.mark.parametrize('sep', [None, 'default'])
     @pytest.mark.parametrize('excel', [False])
     def test_clipboard_copy_strings(self, sep, excel, df):
         kwargs = build_kwargs(sep, excel)
@@ -177,6 +199,8 @@ class TestClipboard(object):
         with pytest.raises(NotImplementedError):
             pd.read_clipboard(encoding='ascii')
 
+    # Fails because to_clipboard defaults to space delim.
+    # Issue in #21104, Fixed in #21111
     @pytest.mark.xfail
     @pytest.mark.parametrize('enc', ['UTF-8', 'utf-8', 'utf8'])
     def test_round_trip_valid_encodings(self, enc, df):
