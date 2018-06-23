@@ -129,6 +129,12 @@ class TestJSONNormalize(object):
         expected = DataFrame([[1], [2]], columns=['Prefix.0'])
         tm.assert_frame_equal(result, expected)
 
+    def test_value_array(self):
+        # GH 21608
+        result = json_normalize([1, 2])
+        expected = DataFrame([[1], [2]], columns=['0'])
+        tm.assert_frame_equal(result, expected)
+
     def test_more_deeply_nested(self, deep_nested):
 
         result = json_normalize(deep_nested, ['states', 'cities'],
