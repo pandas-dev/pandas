@@ -65,23 +65,15 @@ def round_ns(values, rounder, freq):
 
     Parameters
     ----------
-    values : np.array
+    values : :obj:`ndarray`
     rounder : function, eg. 'Ceil', 'Floor', 'round'
     freq : str, obj
 
     Returns
     -------
-    np.array
+    :obj:`ndarray`
     """
-    def _round_non_int_multiple(value):
-
-        from pandas.tseries.frequencies import to_offset
-        unit = to_offset(freq).nanos
-
-        # GH21262 If the Timestamp is multiple of the freq str
-        # don't apply any rounding
-        if value % unit == 0:
-            return value
+    def _round_non_int_multiple(value, unit):
 
         if unit < 1000:
             # for nano rounding, work with the last 6 digits separately
@@ -106,7 +98,19 @@ def round_ns(values, rounder, freq):
 
         return r
 
-    return np.fromiter((_round_non_int_multiple(item) for item in values), np.int64)
+    from pandas.tseries.frequencies import to_offset
+    unit = to_offset(freq).nanos
+
+    values = np.copy(values)
+
+    # GH21262 If the Timestamp is multiple of the freq str
+    # don't apply any rounding
+    mask = values % unit == 0
+    if mask.all():
+        return values
+    values[~mask] = _round_non_int_multiple(values[~mask], unit)
+
+    return values
 
 
 # This is PITA. Because we inherit from datetime, which has very specific
@@ -663,7 +667,7 @@ class Timestamp(_Timestamp):
         value = np.array([value], dtype=np.int64)
 
         # Will only ever contain 1 element for timestamp
-        r = round_ns(value, rounder, freq).item()
+        r = round_ns(value, rounder, freq)[0]
         result = Timestamp(r, unit='ns')
         if self.tz is not None:
             result = result.tz_localize(self.tz)
