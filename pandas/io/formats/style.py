@@ -993,12 +993,12 @@ class Styler(object):
         return self.applymap(f, subset=subset)
 
     @staticmethod
-    def _bar(s, align, colors, width=100):
+    def _bar(s, align, colors, width=100, vmin=None, vmax=None):
         """Draw bar chart in dataframe cells"""
 
         # Get input value range.
-        smin = s.values.min()
-        smax = s.values.max()
+        smin = s.values.min() if vmin is None else vmin
+        smax = s.values.max() if vmax is None else vmax
         if align == 'mid':
             smin = min(0, smin)
             smax = max(0, smax)
@@ -1020,7 +1020,7 @@ class Styler(object):
                         s=start, c=color
                     )
                 css += '{c} {e:.1f}%, transparent {e:.1f}%)'.format(
-                    e=end, c=color,
+                    e=min(end, width), c=color,
                 )
             return css
 
@@ -1039,7 +1039,7 @@ class Styler(object):
             )
 
     def bar(self, subset=None, axis=0, color='#d65f5f', width=100,
-            align='left'):
+            align='left', vmin=None, vmax=None):
         """
         Draw bar chart in the cell backgrounds.
 
@@ -1065,6 +1065,21 @@ class Styler(object):
 
               .. versionadded:: 0.20.0
 
+        vmin: float, optional
+            minimum bar value, defining the left hand limit
+            of the bar drawing range, lower values are clipped to ``vmin``.
+            When None (default): the minimum value of the data will be used.
+
+            .. versionadded:: 0.24.0
+
+        vmax: float, optional
+            maximum bar value, defining the right hand limit
+            of the bar drawing range, higher values are clipped to ``vmax``.
+            When None (default): the maximum value of the data will be used.
+
+            .. versionadded:: 0.24.0
+
+
         Returns
         -------
         self : Styler
@@ -1084,7 +1099,8 @@ class Styler(object):
         subset = _maybe_numeric_slice(self.data, subset)
         subset = _non_reducing_slice(subset)
         self.apply(self._bar, subset=subset, axis=axis,
-                   align=align, colors=color, width=width)
+                   align=align, colors=color, width=width,
+                   vmin=vmin, vmax=vmax)
 
         return self
 
