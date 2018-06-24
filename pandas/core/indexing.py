@@ -902,30 +902,45 @@ class _NDFrameIndexer(_NDFrameIndexerBase):
         return retval
 
     def _multi_take_opportunity(self, tup):
-        from pandas.core.generic import NDFrame
+        """
+        Check whether there is the possibility to use ``_multi_take``.
+        Currently the limit is that all axes being indexed must be indexed with
+        list-likes.
 
-        # ugly hack for GH #836
-        if not isinstance(self.obj, NDFrame):
-            return False
+        Parameters
+        ----------
+        tup : tuple
+            Tuple of indexers, one per axis
 
+        Returns
+        -------
+        boolean: Whether the current indexing can be passed through _multi_take
+        """
         if not all(is_list_like_indexer(x) for x in tup):
             return False
 
         # just too complicated
-        for indexer, ax in zip(tup, self.obj._data.axes):
-            if isinstance(ax, MultiIndex):
-                return False
-            elif com.is_bool_indexer(indexer):
-                return False
-            elif not ax.is_unique:
-                return False
+        if any(com.is_bool_indexer(x) for x in tup):
+            return False
 
         return True
 
     def _multi_take(self, tup):
-        """ create the reindex map for our objects, raise the _exception if we
-        can't create the indexer
         """
+        Create the indexers for the passed tuple of keys, and execute the take
+        operation. This allows the take operation to be executed all at once -
+        rather than once for each dimension - improving efficiency.
+
+        Parameters
+        ----------
+        tup : tuple
+            Tuple of indexers, one per axis
+
+        Returns
+        -------
+        values: same type as the object being indexed
+        """
+        # GH 836
         o = self.obj
         d = {axis: self._get_listlike_indexer(key, axis)
              for (key, axis) in zip(tup, o._AXIS_ORDERS)}
@@ -1807,8 +1822,6 @@ class _LocIndexer(_LocationIndexer):
 
             try:
                 key = self._convert_scalar_indexer(key, axis)
-                if not ax.contains(key):
-                    error()
             except TypeError as e:
 
                 # python 3 type errors should be raised
@@ -1816,6 +1829,9 @@ class _LocIndexer(_LocationIndexer):
                     error()
                 raise
             except:
+                error()
+
+            if not ax.contains(key):
                 error()
 
     def _is_scalar_access(self, key):
