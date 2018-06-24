@@ -1704,6 +1704,11 @@ class TestMultiIndex(Base):
         tm.assert_index_equal(result, expected)
         assert result.names == index.names
 
+        # Xref GH18262
+        # .to_hierarchical will be deprecated
+        with tm.assert_produces_warning(FutureWarning):
+            result = index.to_hierarchical(2)
+
     def test_bounds(self):
         self.index._bounds
 

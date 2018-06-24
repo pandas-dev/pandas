@@ -948,10 +948,13 @@ class Panel(NDFrame):
             data[item] = self[item].values.ravel()[selector]
 
         def construct_multi_parts(idx, n_repeat, n_shuffle=1):
-            axis_idx = idx.to_hierarchical(n_repeat, n_shuffle)
-            labels = [x[selector] for x in axis_idx.labels]
-            levels = axis_idx.levels
-            names = axis_idx.names
+            labels = [np.repeat(x, n_repeat) for x in idx.labels]
+            # Assumes that each label is divisible by n_shuffle
+            labels = [x.reshape(n_shuffle, -1).ravel(order='F')
+                      for x in labels]
+            labels = [x[selector] for x in labels]
+            levels = idx.levels
+            names = idx.names
             return labels, levels, names
 
         def construct_index_parts(idx, major=True):
