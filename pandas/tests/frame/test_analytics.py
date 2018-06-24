@@ -15,7 +15,7 @@ import numpy as np
 from pandas.compat import lrange, PY35
 from pandas import (compat, isna, notna, DataFrame, Series,
                     MultiIndex, date_range, Timestamp, Categorical,
-                    _np_version_under1p12, _np_version_under1p15,
+                    _np_version_under1p12,
                     to_datetime, to_timedelta)
 import pandas as pd
 import pandas.core.nanops as nanops
