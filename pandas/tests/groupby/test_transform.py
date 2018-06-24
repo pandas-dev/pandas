@@ -738,37 +738,20 @@ def test_pct_change(test_series, shuffle, periods, fill_method, limit):
         order = np.random.RandomState(seed=42).permutation(len(df))
         df = df.reindex(order).reset_index(drop=True)
 
-    manual_apply = []
-    for k in keys:
-        ind = df.loc[df.key == k, 'vals']
-        manual_apply.append(ind.pct_change(periods=periods,
-                                           fill_method=fill_method,
-                                           limit=limit))
-    exp_vals = pd.concat(manual_apply, ignore_index=True)
-    exp = pd.DataFrame(exp_vals.values, columns=['A'])
+    df = getattr(df.groupby('key'), fill_method)(limit=limit)
     grp = df.groupby('key')
-
-    def get_result(grp_obj):
-        return grp_obj.pct_change(periods=periods,
-                                  fill_method=fill_method,
-                                  limit=limit)
+    exp = grp['vals'].shift(0) / grp['vals'].shift(periods) - 1
+    exp = exp.to_frame('vals')
 
     if test_series:
-        exp = exp.loc[:, 'A']
-        grp = grp['vals']
-        result = get_result(grp)
-        df.insert(0, 'A', result)
-        result = df.sort_values(by='key')
-        result = result.loc[:, 'A']
-        result = result.reset_index(drop=True)
-        tm.assert_series_equal(result, exp)
+        result = grp['vals'].pct_change(periods=periods,
+                                        fill_method=fill_method,
+                                        limit=limit)
+        tm.assert_series_equal(result, exp.loc[:, 'vals'])
     else:
-        result = get_result(grp)
-        result = result.reset_index(drop=True)
-        df.insert(0, 'A', result)
-        result = df.sort_values(by='key')
-        result = result.loc[:, ['A']]
-        result = result.reset_index(drop=True)
+        result = grp.pct_change(periods=periods,
+                                fill_method=fill_method,
+                                limit=limit)
         tm.assert_frame_equal(result, exp)
 
 
