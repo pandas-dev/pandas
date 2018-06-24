@@ -2,8 +2,6 @@
 import re
 import pytest
 
-from itertools import product
-
 import numpy as np
 import pandas as pd
 from pandas import (
@@ -233,12 +231,14 @@ class TestDatetimeTZDtype(Base):
         assert is_datetimetz(s2)
         assert s1.dtype == s2.dtype
 
-    def test_parser(self):
+    @pytest.mark.parametrize('tz', ['UTC', 'US/Eastern'])
+    @pytest.mark.parametrize('constructor', ['M8', 'datetime64'])
+    def test_parser(self, tz, constructor):
         # pr #11245
-        for tz, constructor in product(('UTC', 'US/Eastern'),
-                                       ('M8', 'datetime64')):
-            assert (DatetimeTZDtype('%s[ns, %s]' % (constructor, tz)) ==
-                    DatetimeTZDtype('ns', tz))
+        dtz_str = '{con}[ns, {tz}]'.format(con=constructor, tz=tz)
+        result = DatetimeTZDtype(dtz_str)
+        expected = DatetimeTZDtype('ns', tz)
+        assert result == expected
 
     def test_empty(self):
         dt = DatetimeTZDtype()
