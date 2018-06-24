@@ -1383,7 +1383,7 @@ class TestSeriesAnalytics(TestData):
 
         s = Series([3, 5, np.nan, -3, 10])
 
-        # Xref GH18262
+        # GH21614
         with tm.assert_produces_warning(FutureWarning):
             s.ptp()
         # GH11163
