@@ -1182,7 +1182,7 @@ class MultiIndex(Index):
 
     def to_hierarchical(self, n_repeat, n_shuffle=1):
         """
-        DEPRECATED. to_hierarchical will be removed in a future version.
+        .. deprecated:: 0.24.0
 
         Return a MultiIndex reshaped to conform to the
         shapes given by n_repeat and n_shuffle.
