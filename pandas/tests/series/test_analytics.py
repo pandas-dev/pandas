@@ -1381,8 +1381,12 @@ class TestSeriesAnalytics(TestData):
         ser = Series(arr)
         assert np.ptp(ser) == np.ptp(arr)
 
-        # GH11163
         s = Series([3, 5, np.nan, -3, 10])
+
+        # Xref GH18262
+        with tm.assert_produces_warning(FutureWarning):
+            s.ptp()
+        # GH11163
         assert s.ptp() == 13
         assert pd.isna(s.ptp(skipna=False))
 

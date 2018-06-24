@@ -83,7 +83,7 @@ Deprecations
 ~~~~~~~~~~~~
 
 - :meth:`DataFrame.to_stata`, :meth:`read_stata`, :class:`StataReader` and :class:`StataWriter` have deprecated the ``encoding`` argument.  The encoding of a Stata dta file is determined by the file type and cannot be changed (:issue:`21244`).
--
+- :meth:`Series.ptp` is deprecated. Use numpy.ptp instead (:issue:`18262`)
 -
 
 .. _whatsnew_0240.prior_deprecations:

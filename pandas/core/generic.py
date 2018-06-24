@@ -8871,8 +8871,15 @@ class NDFrame(PandasObject, SelectionMixin):
         axis_descr, name, name2 = _doc_parms(cls)
 
         def nanptp(values, axis=0, skipna=True):
+            """
+            .. deprecated:: 0.24.0
+                Use numpy.ptp instead
+            """
             nmax = nanops.nanmax(values, axis, skipna)
             nmin = nanops.nanmin(values, axis, skipna)
+            warnings.warn("Method .ptp is deprecated and will be removed "
+                          "in a future version. Use numpy.ptp instead.",
+                          FutureWarning, stacklevel=2)
             return nmax - nmin
 
         cls.ptp = _make_stat_function(
