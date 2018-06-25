@@ -268,4 +268,4 @@ Other
 
 .. _whatsnew_0240.contributors:
 
-{{ contributors['v0.24.0'] }}
+.. contributors:: v0.23.0..HEAD
