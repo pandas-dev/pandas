@@ -46,6 +46,9 @@ Documentation Changes
 Bug Fixes
 ~~~~~~~~~
 
+- Bug in :func:`Dataframe.asof` that raised a ``TypeError`` when attempting to compare tz-naive and tz-aware timestamps (:issue:`21194`)
+
+
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 

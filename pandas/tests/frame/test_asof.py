@@ -1,5 +1,4 @@
 # coding=utf-8
-
 import numpy as np
 import pytest
 from pandas import (DataFrame, date_range, Timestamp, Series,
