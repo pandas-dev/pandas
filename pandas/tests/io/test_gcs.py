@@ -8,16 +8,6 @@ from pandas.util import _test_decorators as td
 from pandas.util.testing import assert_frame_equal
 
 
-@pytest.fixture
-def mock_patch():
-    try:
-        from unittest.mock import patch
-    except ImportError:
-        from mock import patch
-
-    return patch
-
-
 def test_is_gcs_url():
     assert is_gcs_url("gcs://pandas/somethingelse.com")
     assert is_gcs_url("gs://pandas/somethingelse.com")
@@ -25,10 +15,10 @@ def test_is_gcs_url():
 
 
 @td.skip_if_no('gcsfs')
-def test_read_csv_gcs(mock_patch):
+def test_read_csv_gcs(mock):
     df1 = DataFrame({'int': [1, 3], 'float': [2.0, np.nan], 'str': ['t', 's'],
                      'dt': date_range('2018-06-18', periods=2)})
-    with mock_patch('gcsfs.GCSFileSystem') as MockFileSystem:
+    with mock.patch('gcsfs.GCSFileSystem') as MockFileSystem:
         instance = MockFileSystem.return_value
         instance.open.return_value = StringIO(df1.to_csv(index=False))
         df2 = read_csv('gs://test/test.csv', parse_dates=['dt'])
@@ -37,10 +27,10 @@ def test_read_csv_gcs(mock_patch):
 
 
 @td.skip_if_no('gcsfs')
-def test_gcs_get_filepath_or_buffer(mock_patch):
+def test_gcs_get_filepath_or_buffer(mock):
     df1 = DataFrame({'int': [1, 3], 'float': [2.0, np.nan], 'str': ['t', 's'],
                      'dt': date_range('2018-06-18', periods=2)})
-    with mock_patch('pandas.io.gcs.get_filepath_or_buffer') as MockGetFilepath:
+    with mock.patch('pandas.io.gcs.get_filepath_or_buffer') as MockGetFilepath:
         MockGetFilepath.return_value = (StringIO(df1.to_csv(index=False)),
                                         None, None, False)
         df2 = read_csv('gs://test/test.csv', parse_dates=['dt'])
