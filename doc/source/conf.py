@@ -318,17 +318,72 @@ common_imports = """\
    options.display.max_rows = 15
 """
 
+import re
+import git
 
-def get_contributors(start, end):
+xpr = re.compile(r'^v(\d+)\.(\d+)\.(\d+)$')
+repo = git.Repo('..')
+tags = [x.name for x in repo.tags if xpr.match(str(x))]
+versions = sorted(zip(tags,
+                      [tuple(map(int, xpr.match(x).groups())) for x in tags]),
+                  key=lambda x: x[1])
 
-    return announce.build_string('{}..{}'.format(start, end), None)
+
+def get_prior(versions, k):
+    if 'k'.endswith('0'):
+        return 
 
 
 contributors = {
-    'v0.24.0': announce.build_string('v0.23.1..HEAD'),
-    'v0.23.2': announce.build_string('v0.23.1..HEAD'),
-    'v0.23.1': announce.build_string('v0.23.0..v0.23.1'),
+    'v0.4.0': announce.build_string('v0.3.0..v0.4.0'),
+    'v0.4.1': announce.build_string('v0.4.0..v0.4.1'),
+    'v0.4.2': announce.build_string('v0.4.1..v0.4.2'),
+    'v0.4.3': announce.build_string('v0.4.2..v0.4.3'),
+    'v0.5.0': announce.build_string('v0.4.0..v0.5.0'),
+    'v0.6.0': announce.build_string('v0.5.0..v0.6.0'),
+    'v0.6.1': announce.build_string('v0.6.0..v0.6.1'),
+    'v0.7.0': announce.build_string('v0.6.0..v0.7.0'),
+    'v0.7.1': announce.build_string('v0.7.0..v0.7.1'),
+    'v0.7.2': announce.build_string('v0.7.1..v0.7.2'),
+    'v0.7.3': announce.build_string('v0.7.2..v0.7.3'),
+    'v0.8.0': announce.build_string('v0.7.0..v0.8.0'),
+    'v0.8.1': announce.build_string('v0.8.0..v0.8.1'),
+    'v0.9.0': announce.build_string('v0.8.1..v0.9.0'),
+    'v0.9.1': announce.build_string('v0.9.0..v0.9.1'),
+    'v0.10.0': announce.build_string('v0.9.0..v0.10.0'),
+    'v0.10.1': announce.build_string('v0.10.0..v0.10.1'),
+    'v0.11.0': announce.build_string('v0.10.0..v0.11.0'),
+    'v0.12.0': announce.build_string('v0.11.0..v0.12.0'),
+    'v0.13.0': announce.build_string('v0.12.0..v0.13.0'),
+    'v0.13.1': announce.build_string('v0.13.0..v0.13.1'),
+    'v0.14.0': announce.build_string('v0.13.0..v0.14.0'),
+    'v0.14.1': announce.build_string('v0.14.0..v0.14.1'),
+    'v0.15.0': announce.build_string('v0.14.0..v0.15.0'),
+    'v0.15.1': announce.build_string('v0.15.0..v0.15.1'),
+    'v0.15.2': announce.build_string('v0.15.1..v0.15.2'),
+    'v0.16.0': announce.build_string('v0.15.0..v0.16.0'),
+    'v0.16.1': announce.build_string('v0.10.0..v0.16.1'),
+    'v0.16.2': announce.build_string('v0.16.1..v0.16.2'),
+    'v0.17.0': announce.build_string('v0.16.2..v0.17.0'),
+    'v0.17.1': announce.build_string('v0.17.0..v0.17.1'),
+    'v0.18.0': announce.build_string('v0.10.0..v0.18.0'),
+    'v0.18.1': announce.build_string('v0.10.0..v0.18.1'),
+    'v0.19.0': announce.build_string('v0.10.0..v0.19.0'),
+    'v0.19.1': announce.build_string('v0.10.0..v0.19.1'),
+    'v0.19.2': announce.build_string('v0.10.0..v0.19.2'),
+    'v0.20.0': announce.build_string('v0.10.0..v0.20.0'),
+    'v0.20.1': announce.build_string('v0.10.0..v0.20.1'),
+    'v0.20.2': announce.build_string('v0.10.0..v0.20.2'),
+    'v0.20.3': announce.build_string('v0.10.0..v0.20.3'),
+    'v0.21.0': announce.build_string('v0.10.0..v0.21.0'),
+    'v0.21.1': announce.build_string('v0.10.0..v0.21.1'),
+    'v0.22.0': announce.build_string('v0.10.0..v0.22.0'),
+    'v0.22.0': announce.build_string('v0.22.0..v0.23.0'),
     'v0.23.0': announce.build_string('v0.22.0..v0.23.0'),
+    'v0.23.1': announce.build_string('v0.23.0..v0.23.1'),
+    'v0.23.2': announce.build_string('v0.23.1..HEAD'),
+    'v0.24.0': announce.build_string('v0.23.1..HEAD'),
+
 }
 
 
