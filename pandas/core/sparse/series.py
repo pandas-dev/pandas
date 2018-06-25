@@ -398,7 +398,7 @@ class SparseSeries(Series):
 
         Returns
         -------
-        abs: type of caller
+        abs: same type as caller
         """
         return self._constructor(np.abs(self.values),
                                  index=self.index).__finalize__(self)

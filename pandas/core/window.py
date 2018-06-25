@@ -665,7 +665,7 @@ class Window(_Window):
 
         Returns
         -------
-        y : type of input argument
+        y : same type as input argument
 
         """
         window = self._prep_window(**kwargs)
@@ -2139,7 +2139,7 @@ class EWM(_Rolling):
 
         Returns
         -------
-        y : type of input argument
+        y : same type as input argument
 
         """
         blocks, obj, index = self._create_blocks()

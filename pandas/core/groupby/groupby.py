@@ -867,7 +867,7 @@ b  2""")
 
         Returns
         -------
-        group : type of obj
+        group : same type as obj
         """
         if obj is None:
             obj = self._selected_obj
