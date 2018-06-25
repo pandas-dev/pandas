@@ -230,7 +230,8 @@ class TestMultiIndexBasic(object):
         # corner column
         rs = mi_int.iloc[2, 2]
         with catch_warnings(record=True):
-            xp = mi_int.ix[:, 2].ix[2]
+            # First level is int - so use .loc rather than .ix (GH 21593)
+            xp = mi_int.loc[(8, 12), (4, 10)]
         assert rs == xp
 
         # this is basically regular indexing
@@ -277,6 +278,12 @@ class TestMultiIndexBasic(object):
         with catch_warnings(record=True):
             xp = mi_int.ix[4]
         tm.assert_frame_equal(rs, xp)
+
+        # missing label
+        pytest.raises(KeyError, lambda: mi_int.loc[2])
+        with catch_warnings(record=True):
+            # GH 21593
+            pytest.raises(KeyError, lambda: mi_int.ix[2])
 
     def test_getitem_partial_int(self):
         # GH 12416
