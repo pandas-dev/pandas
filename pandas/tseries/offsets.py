@@ -182,7 +182,7 @@ class DateOffset(BaseOffset):
 
     Since 0 is a bit weird, we suggest avoiding its use.
     """
-    _params = cache_readony(BaseOffset._params.fget)
+    _params = cache_readonly(BaseOffset._params.fget)
 
     _use_relativedelta = False
     _adjust_dst = False
