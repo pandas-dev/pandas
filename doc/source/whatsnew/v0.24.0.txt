@@ -8,6 +8,8 @@ v0.24.0
 New features
 ~~~~~~~~~~~~
 
+- ``ExcelWriter`` now accepts ``mode`` as a keyword argument, enabling append to existing workbooks when using the ``openpyxl`` engine (:issue:`3441`)
+
 .. _whatsnew_0240.enhancements.other:
 
 Other Enhancements
@@ -24,13 +26,13 @@ Other Enhancements
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. _whatsnew_0240.api.datetimelike.normalize
+.. _whatsnew_0240.api.datetimelike.normalize:
 
 Tick DateOffset Normalize Restrictions
 --------------------------------------
 
-Creating a ``Tick`` object (:class:``Day``, :class:``Hour``, :class:``Minute``,
-:class:``Second``, :class:``Milli``, :class:``Micro``, :class:``Nano``) with
+Creating a ``Tick`` object (:class:`Day`, :class:`Hour`, :class:`Minute`,
+:class:`Second`, :class:`Milli`, :class:`Micro`, :class:`Nano`) with
 `normalize=True` is no longer supported.  This prevents unexpected behavior
 where addition could fail to be monotone or associative.  (:issue:`21427`)
 
@@ -65,11 +67,38 @@ Datetimelike API Changes
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - For :class:`DatetimeIndex` and :class:`TimedeltaIndex` with non-``None`` ``freq`` attribute, addition or subtraction of integer-dtyped array or ``Index`` will return an object of the same class (:issue:`19959`)
+- :class:`DateOffset` objects are now immutable. Attempting to alter one of these will now raise ``AttributeError`` (:issue:`21341`)
 
 .. _whatsnew_0240.api.other:
 
 Other API Changes
 ^^^^^^^^^^^^^^^^^
+
+.. _whatsnew_0240.api.other.incompatibilities:
+
+Series and Index Data-Dtype Incompatibilities
+---------------------------------------------
+
+``Series`` and ``Index`` constructors now raise when the
+data is incompatible with a passed ``dtype=`` (:issue:`15832`)
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [4]: pd.Series([-1], dtype="uint64")
+    Out [4]:
+    0    18446744073709551615
+    dtype: uint64
+
+Current Behavior:
+
+.. code-block:: ipython
+
+    In [4]: pd.Series([-1], dtype="uint64")
+    Out [4]:
+    ...
+    OverflowError: Trying to coerce negative values to unsigned integers
 
 - :class:`DatetimeIndex` now accepts :class:`Int64Index` arguments as epoch timestamps (:issue:`20997`)
 -
@@ -101,6 +130,7 @@ Performance Improvements
 
 - Improved performance of :func:`Series.describe` in case of numeric dtpyes (:issue:`21274`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.rank` when dealing with tied rankings (:issue:`21237`)
+- Improved performance of :func:`DataFrame.set_index` with columns consisting of :class:`Period` objects (:issue:`21582`)
 -
 
 .. _whatsnew_0240.docs:
@@ -150,12 +180,11 @@ Offsets
 
 -
 -
--
 
 Numeric
 ^^^^^^^
 
--
+- Bug in :class:`Series` ``__rmatmul__`` doesn't support matrix vector multiplication (:issue:`21530`)
 -
 -
 
@@ -169,7 +198,7 @@ Strings
 Indexing
 ^^^^^^^^
 
--
+- The traceback from a ``KeyError`` when asking ``.loc`` for a single missing label is now shorter and more clear (:issue:`21557`)
 -
 -
 
@@ -197,7 +226,7 @@ Plotting
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
--
+- Bug in :func:`pandas.core.groupby.GroupBy.first` and :func:`pandas.core.groupby.GroupBy.last` with ``as_index=False`` leading to the loss of timezone information (:issue:`15884`)
 -
 -
 

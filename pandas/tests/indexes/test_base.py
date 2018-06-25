@@ -445,21 +445,24 @@ class TestIndex(Base):
         result = klass(list(values), dtype=dtype)
         tm.assert_index_equal(result, index)
 
-    def test_constructor_empty_gen(self):
-        skip_index_keys = ["repeats", "periodIndex", "rangeIndex",
-                           "tuples"]
-        for key, index in self.generate_index_types(skip_index_keys):
-            empty = index.__class__([])
-            assert isinstance(empty, index.__class__)
-            assert not len(empty)
+    @pytest.mark.parametrize("value", [[], iter([]), (x for x in [])])
+    @pytest.mark.parametrize("klass",
+                             [Index, Float64Index, Int64Index, UInt64Index,
+                              CategoricalIndex, DatetimeIndex, TimedeltaIndex])
+    def test_constructor_empty(self, value, klass):
+        empty = klass(value)
+        assert isinstance(empty, klass)
+        assert not len(empty)
 
     @pytest.mark.parametrize("empty,klass", [
         (PeriodIndex([], freq='B'), PeriodIndex),
+        (PeriodIndex(iter([]), freq='B'), PeriodIndex),
+        (PeriodIndex((x for x in []), freq='B'), PeriodIndex),
         (RangeIndex(step=1), pd.RangeIndex),
         (MultiIndex(levels=[[1, 2], ['blue', 'red']],
                     labels=[[], []]), MultiIndex)
     ])
-    def test_constructor_empty(self, empty, klass):
+    def test_constructor_empty_special(self, empty, klass):
         assert isinstance(empty, klass)
         assert not len(empty)
 
@@ -483,10 +486,17 @@ class TestIndex(Base):
 
     def test_constructor_overflow_int64(self):
         # see gh-15832
-        msg = ("the elements provided in the data cannot "
+        msg = ("The elements provided in the data cannot "
                "all be casted to the dtype int64")
         with tm.assert_raises_regex(OverflowError, msg):
             Index([np.iinfo(np.uint64).max - 1], dtype="int64")
+
+    @pytest.mark.xfail(reason="see gh-21311: Index "
+                              "doesn't enforce dtype argument")
+    def test_constructor_cast(self):
+        msg = "could not convert string to float"
+        with tm.assert_raises_regex(ValueError, msg):
+            Index(["a", "b", "c"], dtype=float)
 
     def test_view_with_args(self):
 
