@@ -800,7 +800,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        swapped : type of caller (new object)
+        swapped : same type as caller (new object)
 
         .. versionchanged:: 0.18.1
 
@@ -1073,7 +1073,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        renamed : type of caller or None if inplace=True
+        renamed : same type as caller or None if inplace=True
 
         See Also
         --------
@@ -2468,7 +2468,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        value : type of items contained in object
+        value : same type as items contained in object
         """
         try:
             return self[key]
@@ -2768,7 +2768,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        taken : type of caller
+        taken : same type as caller
             An array-like containing the elements taken from the object.
 
         See Also
@@ -2824,7 +2824,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        taken : type of caller
+        taken : same type as caller
             An array-like containing the elements taken from the object.
 
         See Also
@@ -3033,7 +3033,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        selection : type of caller
+        selection : same type as caller
         """
         warnings.warn("'select' is deprecated and will be removed in a "
                       "future release. You can use "
@@ -3924,7 +3924,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        obj_head : type of caller
+        obj_head : same type as caller
             The first `n` rows of the caller object.
 
         See Also
@@ -4447,7 +4447,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        consolidated : type of caller
+        consolidated : same type as caller
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if inplace:
@@ -4916,7 +4916,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        casted : type of caller
+        casted : same type as caller
 
         Examples
         --------
@@ -6691,7 +6691,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        converted : type of caller
+        converted : same type as caller
 
         Examples
         --------
@@ -6772,7 +6772,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        values_at_time : type of caller
+        values_at_time : same type as caller
 
         Examples
         --------
@@ -6826,7 +6826,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        values_between_time : type of caller
+        values_between_time : same type as caller
 
         Examples
         --------
@@ -7145,7 +7145,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        subset : type of caller
+        subset : same type as caller
 
         See Also
         --------
@@ -7209,7 +7209,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        subset : type of caller
+        subset : same type as caller
 
         See Also
         --------
