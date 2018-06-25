@@ -4,8 +4,6 @@ Template for each `dtype` helper function for hashtable
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
-from missing cimport is_null_datetimelike
-
 
 #----------------------------------------------------------------------
 # VectorData
