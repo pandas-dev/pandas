@@ -17,7 +17,7 @@ Other Enhancements
 - :func:`to_datetime` now supports the ``%Z`` and ``%z`` directive when passed into ``format`` (:issue:`13486`)
 - :func:`Series.mode` and :func:`DataFrame.mode` now support the ``dropna`` parameter which can be used to specify whether NaN/NaT values should be considered (:issue:`17534`)
 - :func:`to_csv` now supports ``compression`` keyword when a file handle is passed. (:issue:`21227`)
-- :meth:`Index.droplevel` is now implemented also for flat indexes, for compatibility with MultiIndex (:issue:`21115`)
+- :meth:`Index.droplevel` is now implemented also for flat indexes, for compatibility with :class:`MultiIndex` (:issue:`21115`)
 
 
 .. _whatsnew_0240.api_breaking:
@@ -199,6 +199,7 @@ Indexing
 ^^^^^^^^
 
 - The traceback from a ``KeyError`` when asking ``.loc`` for a single missing label is now shorter and more clear (:issue:`21557`)
+- When ``.ix`` is asked for a missing integer label in a :class:`MultiIndex` with a first level of integer type, it now raises a ``KeyError`` - consistently with the case of a flat :class:`Int64Index` - rather than falling back to positional indexing (:issue:`21593`)
 -
 -
 
