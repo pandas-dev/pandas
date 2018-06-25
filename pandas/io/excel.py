@@ -517,6 +517,7 @@ class ExcelFile(object):
                                       "is not implemented")
 
         if parse_dates is True and index_col is None:
+
             warn("The 'parse_dates=True' keyword of read_excel was provided"
                  " without an 'index_col' keyword value.")
 

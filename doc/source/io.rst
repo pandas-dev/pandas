@@ -2883,6 +2883,20 @@ use the ``parse_dates`` keyword to parse those strings to datetimes:
    read_excel('path_to_file.xls', 'Sheet1', parse_dates=['date_strings'])
 
 
+
+Parsing Dates
++++++++++++++
+
+Datetime-like values are normally automatically converted to the appropriate
+dtype when reading the excel file. But if you have a column of strings that
+*look* like dates (but are not actually formatted as dates in excel), you can
+use the `parse_dates` keyword to parse those strings to datetimes:
+
+.. code-block:: python
+
+   read_excel('path_to_file.xls', 'Sheet1', parse_dates=['date_strings'])
+
+
 Cell Converters
 +++++++++++++++
 
