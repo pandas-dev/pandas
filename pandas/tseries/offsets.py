@@ -182,6 +182,8 @@ class DateOffset(BaseOffset):
 
     Since 0 is a bit weird, we suggest avoiding its use.
     """
+    _params = cache_readony(BaseOffset._params.fget)
+
     _use_relativedelta = False
     _adjust_dst = False
     _attributes = frozenset(['n', 'normalize'] +
@@ -287,18 +289,6 @@ class DateOffset(BaseOffset):
         # TODO: Does this make sense for the general case?  It would help
         # if there were a canonical docstring for what isAnchored means.
         return (self.n == 1)
-
-    @cache_readonly
-    def _params(self):
-        all_paras = self.__dict__.copy()
-        if 'holidays' in all_paras and not all_paras['holidays']:
-            all_paras.pop('holidays')
-        exclude = ['kwds', 'name', 'calendar']
-        attrs = [(k, v) for k, v in all_paras.items()
-                 if (k not in exclude) and (k[0] != '_')]
-        attrs = sorted(set(attrs))
-        params = tuple([str(self.__class__)] + attrs)
-        return params
 
     # TODO: Combine this with BusinessMixin version by defining a whitelisted
     # set of attributes on each object rather than the existing behavior of
