@@ -1130,7 +1130,8 @@ class Index(IndexOpsMixin, PandasObject):
         """
 
         from pandas import DataFrame
-        result = DataFrame(self._shallow_copy(), columns=[self.name or 0])
+        name = self.name or 0
+        result = DataFrame({name: self.values.copy()})
 
         if index:
             result.index = self

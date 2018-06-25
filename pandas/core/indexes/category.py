@@ -85,11 +85,11 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             name = data.name
 
         if isinstance(data, ABCCategorical):
-            data = cls._create_categorical(cls, data, categories, ordered,
+            data = cls._create_categorical(data, categories, ordered,
                                            dtype)
         elif isinstance(data, CategoricalIndex):
             data = data._data
-            data = cls._create_categorical(cls, data, categories, ordered,
+            data = cls._create_categorical(data, categories, ordered,
                                            dtype)
         else:
 
@@ -99,7 +99,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                 if data is not None or categories is None:
                     cls._scalar_data_error(data)
                 data = []
-            data = cls._create_categorical(cls, data, categories, ordered,
+            data = cls._create_categorical(data, categories, ordered,
                                            dtype)
 
         if copy:
@@ -136,8 +136,8 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                                      ordered=self.ordered)
         return CategoricalIndex(cat, name=name)
 
-    @staticmethod
-    def _create_categorical(self, data, categories=None, ordered=None,
+    @classmethod
+    def _create_categorical(cls, data, categories=None, ordered=None,
                             dtype=None):
         """
         *this is an internal non-public method*
@@ -155,7 +155,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
         -------
         Categorical
         """
-        if (isinstance(data, (ABCSeries, type(self))) and
+        if (isinstance(data, (cls, ABCSeries)) and
                 is_categorical_dtype(data)):
             data = data.values
 
@@ -179,7 +179,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                     dtype=None, **kwargs):
         result = object.__new__(cls)
 
-        values = cls._create_categorical(cls, values, categories, ordered,
+        values = cls._create_categorical(values, categories, ordered,
                                          dtype=dtype)
         result._data = values
         result.name = name
@@ -236,7 +236,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
             if not is_list_like(values):
                 values = [values]
             other = CategoricalIndex(self._create_categorical(
-                self, other, categories=self.categories, ordered=self.ordered))
+                other, categories=self.categories, ordered=self.ordered))
             if not other.isin(values).all():
                 raise TypeError("cannot append a non-category item to a "
                                 "CategoricalIndex")
@@ -798,7 +798,7 @@ class CategoricalIndex(Index, accessor.PandasDelegate):
                     other = other._values
                 elif isinstance(other, Index):
                     other = self._create_categorical(
-                        self, other._values, categories=self.categories,
+                        other._values, categories=self.categories,
                         ordered=self.ordered)
 
                 if isinstance(other, (ABCCategorical, np.ndarray,
