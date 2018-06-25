@@ -7,9 +7,9 @@ from pandas._libs import algos, lib
 from pandas._libs.tslibs import conversion
 
 from pandas.core.dtypes.dtypes import (
-    CategoricalDtype, CategoricalDtypeType, DatetimeTZDtype,
+    registry, CategoricalDtype, CategoricalDtypeType, DatetimeTZDtype,
     DatetimeTZDtypeType, PeriodDtype, PeriodDtypeType, IntervalDtype,
-    IntervalDtypeType, ExtensionDtype, PandasExtensionDtype)
+    IntervalDtypeType, ExtensionDtype)
 from pandas.core.dtypes.generic import (
     ABCCategorical, ABCPeriodIndex, ABCDatetimeIndex, ABCSeries,
     ABCSparseArray, ABCSparseSeries, ABCCategoricalIndex, ABCIndexClass,
