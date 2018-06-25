@@ -2,7 +2,6 @@ import pytest
 from datetime import datetime
 import pytz
 import platform
-from time import sleep
 import os
 
 import numpy as np
@@ -48,16 +47,18 @@ def _in_travis_environment():
 def _get_project_id():
     if _in_travis_environment():
         return os.environ.get('GBQ_PROJECT_ID')
-    else:
-        return PROJECT_ID
+    return PROJECT_ID or os.environ.get('GBQ_PROJECT_ID')
 
 
 def _get_private_key_path():
     if _in_travis_environment():
         return os.path.join(*[os.environ.get('TRAVIS_BUILD_DIR'), 'ci',
                               'travis_gbq.json'])
-    else:
-        return PRIVATE_KEY_JSON_PATH
+
+    private_key_path = PRIVATE_KEY_JSON_PATH
+    if not private_key_path:
+        private_key_path = os.environ.get('GBQ_GOOGLE_APPLICATION_CREDENTIALS')
+    return private_key_path
 
 
 def clean_gbq_environment(private_key=None):
@@ -123,10 +124,8 @@ class TestToGBQIntegrationWithServiceAccountKeyPath(object):
         test_size = 20001
         df = make_mixed_dataframe_v2(test_size)
 
-        df.to_gbq(destination_table, _get_project_id(), chunksize=10000,
+        df.to_gbq(destination_table, _get_project_id(), chunksize=None,
                   private_key=_get_private_key_path())
-
-        sleep(30)  # <- Curses Google!!!
 
         result = pd.read_gbq("SELECT COUNT(*) AS num_rows FROM {0}"
                              .format(destination_table),
