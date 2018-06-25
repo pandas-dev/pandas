@@ -66,7 +66,7 @@ def round_ns(values, rounder, freq):
     Parameters
     ----------
     values : :obj:`ndarray`
-    rounder : function, eg. 'Ceil', 'Floor', 'round'
+    rounder : function, eg. 'ceil', 'floor', 'round'
     freq : str, obj
 
     Returns
