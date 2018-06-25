@@ -1381,33 +1381,37 @@ class TestSeriesAnalytics(TestData):
         ser = Series(arr)
         assert np.ptp(ser) == np.ptp(arr)
 
-        s = Series([3, 5, np.nan, -3, 10])
-
-        # GH21614
-        with tm.assert_produces_warning(FutureWarning):
-            s.ptp()
         # GH11163
-        assert s.ptp() == 13
-        assert pd.isna(s.ptp(skipna=False))
+        s = Series([3, 5, np.nan, -3, 10])
+        # GH21614
+        # Suppressed deprecation warnings in this original test for ptp
+        with tm.assert_produces_warning(FutureWarning):
+            assert s.ptp() == 13
+            assert pd.isna(s.ptp(skipna=False))
 
         mi = pd.MultiIndex.from_product([['a', 'b'], [1, 2, 3]])
         s = pd.Series([1, np.nan, 7, 3, 5, np.nan], index=mi)
 
         expected = pd.Series([6, 2], index=['a', 'b'], dtype=np.float64)
-        tm.assert_series_equal(s.ptp(level=0), expected)
+        with tm.assert_produces_warning(FutureWarning):
+            tm.assert_series_equal(s.ptp(level=0), expected)
 
         expected = pd.Series([np.nan, np.nan], index=['a', 'b'])
-        tm.assert_series_equal(s.ptp(level=0, skipna=False), expected)
+        with tm.assert_produces_warning(FutureWarning):
+            tm.assert_series_equal(s.ptp(level=0, skipna=False), expected)
 
         with pytest.raises(ValueError):
-            s.ptp(axis=1)
+            with tm.assert_produces_warning(FutureWarning):
+                s.ptp(axis=1)
 
         s = pd.Series(['a', 'b', 'c', 'd', 'e'])
         with pytest.raises(TypeError):
-            s.ptp()
+            with tm.assert_produces_warning(FutureWarning):
+                s.ptp()
 
         with pytest.raises(NotImplementedError):
-            s.ptp(numeric_only=True)
+            with tm.assert_produces_warning(FutureWarning):
+                s.ptp(numeric_only=True)
 
     def test_empty_timeseries_redections_return_nat(self):
         # covers #11245
