@@ -99,20 +99,28 @@ def get_pull_requests(repo, revision_range):
     return prs
 
 
-def build_string(revision_range, heading="Contributors"):
+def build_components(revision_range, heading="Contributors"):
     lst_release, cur_release = [r.strip() for r in revision_range.split('..')]
     authors = get_authors(revision_range)
-    uline = '=' * len(heading)
+
+    return {
+        'heading': heading,
+        'author_message': author_msg % len(authors),
+        'authors': authors,
+    }
+
+
+def build_string(revision_range, heading="Contributors"):
+    components = build_components(revision_range, heading=heading)
+    components['uline'] = '=' * len(components['heading'])
+    components['authors'] = "* " + "\n* ".join(components['authors'])
 
     tpl = textwrap.dedent("""\
     {heading}
     {uline}
 
     {author_message}
-    {authors}""").format(heading=heading,
-                         uline=uline,
-                         author_message=author_msg % len(authors),
-                         authors="* " + '\n* '.join(authors))
+    {authors}""").format(**components)
     return tpl
 
 
