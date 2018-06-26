@@ -88,6 +88,15 @@ for _d in DAYS:
 # ---------------------------------------------------------------------
 # Misc Helpers
 
+cdef to_offset(object obj):
+    """
+    Wrap pandas.tseries.frequencies.to_offset to keep centralize runtime
+    imports
+    """
+    from pandas.tseries.frequencies import to_offset
+    return to_offset(obj)
+
+
 def as_datetime(obj):
     f = getattr(obj, 'to_pydatetime', None)
     if f is not None:
@@ -312,6 +321,41 @@ class _BaseOffset(object):
 
     def __setattr__(self, name, value):
         raise AttributeError("DateOffset objects are immutable.")
+
+    def __eq__(self, other):
+        if is_string_object(other):
+            other = to_offset(other)
+
+        try:
+            return self._params == other._params
+        except AttributeError:
+            # other is not a DateOffset object
+            return False
+
+        return self._params == other._params
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __hash__(self):
+        return hash(self._params)
+
+    @property
+    def _params(self):
+        """
+        Returns a tuple containing all of the attributes needed to evaluate
+        equality between two DateOffset objects.
+        """
+        # NB: non-cython subclasses override property with cache_readonly
+        all_paras = self.__dict__.copy()
+        if 'holidays' in all_paras and not all_paras['holidays']:
+            all_paras.pop('holidays')
+        exclude = ['kwds', 'name', 'calendar']
+        attrs = [(k, v) for k, v in all_paras.items()
+                 if (k not in exclude) and (k[0] != '_')]
+        attrs = sorted(set(attrs))
+        params = tuple([str(self.__class__)] + attrs)
+        return params
 
     @property
     def kwds(self):
