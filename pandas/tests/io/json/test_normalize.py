@@ -131,8 +131,8 @@ class TestJSONNormalize(object):
 
     def test_list_record_path(self):
         # GH 21605
-        result = json_normalize({'A': {'B': [1, 2]}}, ['A', 'B'])
-        expected = DataFrame([[1], [2]], columns=['0'])
+        result = json_normalize({'A': {'B': [{'X': 1, 'Y': 2}, {'X': 3, 'Y': 4}]}}, ['A', 'B'])
+        expected = DataFrame([[1, 2], [3, 4]], columns=['X', 'Y'])
         tm.assert_frame_equal(result, expected)
 
     def test_more_deeply_nested(self, deep_nested):
