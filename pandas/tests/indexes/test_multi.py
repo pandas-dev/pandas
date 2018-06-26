@@ -1182,12 +1182,12 @@ class TestMultiIndex(Base):
                     ('baz', 'two'), ('qux', 'one'), ('qux', 'two')]
         assert result == expected
 
-    def test_legacy_pickle(self):
+    def test_legacy_pickle(self, datapath):
         if PY3:
             pytest.skip("testing for legacy pickles not "
                         "support on py3")
 
-        path = tm.get_data_path('multiindex_v1.pickle')
+        path = datapath('indexes', 'data', 'multiindex_v1.pickle')
         obj = pd.read_pickle(path)
 
         obj2 = MultiIndex.from_tuples(obj.values)
@@ -1203,10 +1203,10 @@ class TestMultiIndex(Base):
         assert_almost_equal(res, exp)
         assert_almost_equal(exp, exp2)
 
-    def test_legacy_v2_unpickle(self):
+    def test_legacy_v2_unpickle(self, datapath):
 
         # 0.7.3 -> 0.8.0 format manage
-        path = tm.get_data_path('mindex_073.pickle')
+        path = datapath('indexes', 'data', 'mindex_073.pickle')
         obj = pd.read_pickle(path)
 
         obj2 = MultiIndex.from_tuples(obj.values)
@@ -1673,9 +1673,11 @@ class TestMultiIndex(Base):
         tm.assert_frame_equal(result, expected)
 
     def test_to_hierarchical(self):
+        # GH21613
         index = MultiIndex.from_tuples([(1, 'one'), (1, 'two'), (2, 'one'), (
             2, 'two')])
-        result = index.to_hierarchical(3)
+        with tm.assert_produces_warning(FutureWarning):
+            result = index.to_hierarchical(3)
         expected = MultiIndex(levels=[[1, 2], ['one', 'two']],
                               labels=[[0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
                                       [0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1]])
@@ -1683,7 +1685,8 @@ class TestMultiIndex(Base):
         assert result.names == index.names
 
         # K > 1
-        result = index.to_hierarchical(3, 2)
+        with tm.assert_produces_warning(FutureWarning):
+            result = index.to_hierarchical(3, 2)
         expected = MultiIndex(levels=[[1, 2], ['one', 'two']],
                               labels=[[0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
                                       [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1]])
@@ -1694,8 +1697,8 @@ class TestMultiIndex(Base):
         index = MultiIndex.from_tuples([(2, 'c'), (1, 'b'),
                                         (2, 'a'), (2, 'b')],
                                        names=['N1', 'N2'])
-
-        result = index.to_hierarchical(2)
+        with tm.assert_produces_warning(FutureWarning):
+            result = index.to_hierarchical(2)
         expected = MultiIndex.from_tuples([(2, 'c'), (2, 'c'), (1, 'b'),
                                            (1, 'b'),
                                            (2, 'a'), (2, 'a'),

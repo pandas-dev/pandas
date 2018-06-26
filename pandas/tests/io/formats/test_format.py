@@ -916,8 +916,8 @@ class TestDataFrameFormatting(object):
         dm = DataFrame({u('c/\u03c3'): Series({'test': np.nan})})
         compat.text_type(dm.to_string())
 
-    def test_string_repr_encoding(self):
-        filepath = tm.get_data_path('unicode_series.csv')
+    def test_string_repr_encoding(self, datapath):
+        filepath = datapath('io', 'formats', 'data', 'unicode_series.csv')
         df = pd.read_csv(filepath, header=None, encoding='latin1')
         repr(df)
         repr(df[1])

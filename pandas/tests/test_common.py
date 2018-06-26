@@ -25,7 +25,6 @@ def test_mut_exclusive():
 
 
 def test_get_callable_name():
-    from functools import partial
     getname = com._get_callable_name
 
     def fn(x):
@@ -154,8 +153,7 @@ def test_random_state():
 
     # Check with random state object
     state2 = npr.RandomState(10)
-    assert (com._random_state(state2).uniform() ==
-            npr.RandomState(10).uniform())
+    assert com._random_state(state2).uniform() == npr.RandomState(10).uniform()
 
     # check with no arg random state
     assert com._random_state() is np.random
@@ -168,29 +166,15 @@ def test_random_state():
         com._random_state(5.5)
 
 
-def test_maybe_match_name():
-
-    matched = ops._maybe_match_name(
-        Series([1], name='x'), Series(
-            [2], name='x'))
-    assert (matched == 'x')
-
-    matched = ops._maybe_match_name(
-        Series([1], name='x'), Series(
-            [2], name='y'))
-    assert (matched is None)
-
-    matched = ops._maybe_match_name(Series([1]), Series([2], name='x'))
-    assert (matched is None)
-
-    matched = ops._maybe_match_name(Series([1], name='x'), Series([2]))
-    assert (matched is None)
-
-    matched = ops._maybe_match_name(Series([1], name='x'), [2])
-    assert (matched == 'x')
-
-    matched = ops._maybe_match_name([1], Series([2], name='y'))
-    assert (matched == 'y')
+@pytest.mark.parametrize('left, right, expected', [
+    (Series([1], name='x'), Series([2], name='x'), 'x'),
+    (Series([1], name='x'), Series([2], name='y'), None),
+    (Series([1]), Series([2], name='x'), None),
+    (Series([1], name='x'), Series([2]), None),
+    (Series([1], name='x'), [2], 'x'),
+    ([1], Series([2], name='y'), 'y')])
+def test_maybe_match_name(left, right, expected):
+    assert ops._maybe_match_name(left, right) == expected
 
 
 def test_dict_compat():
