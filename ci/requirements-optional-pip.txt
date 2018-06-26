@@ -5,6 +5,7 @@ blosc
 bottleneck
 fastparquet
 feather-format
+gcsfs
 html5lib
 ipython>=5.6.0
 ipykernel

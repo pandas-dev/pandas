@@ -8,6 +8,7 @@ dependencies:
   - dask
   - fastparquet
   - feather-format
+  - gcsfs
   - geopandas
   - html5lib
   - ipython

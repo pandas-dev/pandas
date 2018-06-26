@@ -5,6 +5,7 @@ import sys
 
 blacklist = {
     'bs4',
+    'gcsfs',
     'html5lib',
     'ipython',
     'jinja2'

@@ -1546,7 +1546,7 @@ j,-inF"""
                     assert not m.closed
                 m.close()
 
-    def test_invalid_file_buffer(self):
+    def test_invalid_file_buffer(self, mock):
         # see gh-15337
 
         class InvalidBuffer(object):
@@ -1577,11 +1577,8 @@ j,-inF"""
 
         tm.assert_frame_equal(result, expected)
 
-        if PY3:
-            from unittest import mock
-
-            with tm.assert_raises_regex(ValueError, msg):
-                self.read_csv(mock.Mock())
+        with tm.assert_raises_regex(ValueError, msg):
+            self.read_csv(mock.Mock())
 
     @tm.capture_stderr
     def test_skip_bad_lines(self):
