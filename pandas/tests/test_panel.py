@@ -2717,3 +2717,10 @@ def test_panel_index():
                                        np.repeat([1, 2, 3], 4)],
                                       names=['time', 'panel'])
     tm.assert_index_equal(index, expected)
+
+
+def test_panel_np_all():
+    with catch_warnings(record=True):
+        wp = Panel({"A": DataFrame({'b': [1, 2]})})
+    result = np.all(wp)
+    assert result == np.bool_(True)
