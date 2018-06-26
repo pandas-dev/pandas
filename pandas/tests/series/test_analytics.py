@@ -1376,6 +1376,7 @@ class TestSeriesAnalytics(TestData):
                                        s, out=data)
 
     def test_ptp(self):
+        # GH21614
         N = 1000
         arr = np.random.randn(N)
         ser = Series(arr)
@@ -1383,9 +1384,7 @@ class TestSeriesAnalytics(TestData):
 
         # GH11163
         s = Series([3, 5, np.nan, -3, 10])
-        # GH21614
-        # Suppressed deprecation warnings in this original test for ptp
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             assert s.ptp() == 13
             assert pd.isna(s.ptp(skipna=False))
 
@@ -1393,24 +1392,27 @@ class TestSeriesAnalytics(TestData):
         s = pd.Series([1, np.nan, 7, 3, 5, np.nan], index=mi)
 
         expected = pd.Series([6, 2], index=['a', 'b'], dtype=np.float64)
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             tm.assert_series_equal(s.ptp(level=0), expected)
 
         expected = pd.Series([np.nan, np.nan], index=['a', 'b'])
-        with tm.assert_produces_warning(FutureWarning):
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             tm.assert_series_equal(s.ptp(level=0, skipna=False), expected)
 
         with pytest.raises(ValueError):
-            with tm.assert_produces_warning(FutureWarning):
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
                 s.ptp(axis=1)
 
         s = pd.Series(['a', 'b', 'c', 'd', 'e'])
         with pytest.raises(TypeError):
-            with tm.assert_produces_warning(FutureWarning):
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
                 s.ptp()
 
         with pytest.raises(NotImplementedError):
-            with tm.assert_produces_warning(FutureWarning):
+            with tm.assert_produces_warning(FutureWarning,
+                                            check_stacklevel=False):
                 s.ptp(numeric_only=True)
 
     def test_empty_timeseries_redections_return_nat(self):
