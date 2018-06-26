@@ -39,8 +39,9 @@ _mixed_frame['foo'] = 'bar'
 @td.skip_if_no('xlrd', '0.9')
 class SharedItems(object):
 
-    def setup_method(self, method):
-        self.dirpath = tm.get_data_path()
+    @pytest.fixture(autouse=True)
+    def setup_method(self, datapath):
+        self.dirpath = datapath("io", "data")
         self.frame = _frame.copy()
         self.frame2 = _frame2.copy()
         self.tsframe = _tsframe.copy()
@@ -49,7 +50,6 @@ class SharedItems(object):
     def get_csv_refdf(self, basename):
         """
         Obtain the reference data from read_csv with the Python engine.
-        Test data path is defined by pandas.util.testing.get_data_path()
 
         Parameters
         ----------
@@ -68,8 +68,7 @@ class SharedItems(object):
 
     def get_excelfile(self, basename, ext):
         """
-        Return test data ExcelFile instance. Test data path is defined by
-        pandas.util.testing.get_data_path()
+        Return test data ExcelFile instance.
 
         Parameters
         ----------
@@ -86,8 +85,7 @@ class SharedItems(object):
 
     def get_exceldf(self, basename, ext, *args, **kwds):
         """
-        Return test data DataFrame. Test data path is defined by
-        pandas.util.testing.get_data_path()
+        Return test data DataFrame.
 
         Parameters
         ----------
