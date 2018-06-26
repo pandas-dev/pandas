@@ -6,6 +6,7 @@ import pytest
 
 import numpy as np
 import pandas as pd
+from pandas.compat import PY37
 from pandas import (Index, MultiIndex, CategoricalIndex,
                     DataFrame, Categorical, Series, qcut)
 from pandas.util.testing import assert_frame_equal, assert_series_equal
@@ -205,6 +206,7 @@ def test_level_get_group(observed):
     assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(PY37, reason="flaky on 3.7, xref gh-21636")
 @pytest.mark.parametrize('ordered', [True, False])
 def test_apply(ordered):
     # GH 10138
