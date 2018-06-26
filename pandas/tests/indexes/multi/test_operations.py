@@ -4,9 +4,9 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 import pytest
-from pandas import (DataFrame, DatetimeIndex, Float64Index, Index, Int64Index,
-                    MultiIndex, PeriodIndex, TimedeltaIndex, UInt64Index,
-                    date_range, period_range)
+from pandas import (DatetimeIndex, Float64Index, Index, Int64Index, MultiIndex,
+                    PeriodIndex, TimedeltaIndex, UInt64Index, date_range,
+                    period_range)
 from pandas.compat import lrange, range
 from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
@@ -188,34 +188,6 @@ def test_astype_category(idx, ordered):
             idx.astype('category')
 
 
-@pytest.mark.parametrize('first_type,second_type', [
-    ('int64', 'int64'),
-    ('datetime64[D]', 'str')])
-def test_remove_unused_levels_large(first_type, second_type):
-    # GH16556
-
-    # because tests should be deterministic (and this test in particular
-    # checks that levels are removed, which is not the case for every
-    # random input):
-    rng = np.random.RandomState(4)  # seed is arbitrary value that works
-
-    size = 1 << 16
-    df = DataFrame(dict(
-        first=rng.randint(0, 1 << 13, size).astype(first_type),
-        second=rng.randint(0, 1 << 10, size).astype(second_type),
-        third=rng.rand(size)))
-    df = df.groupby(['first', 'second']).sum()
-    df = df[df.third < 0.1]
-
-    result = df.index.remove_unused_levels()
-    assert len(result.levels[0]) < len(df.index.levels[0])
-    assert len(result.levels[1]) < len(df.index.levels[1])
-    assert result.equals(df.index)
-
-    expected = df.reset_index().set_index(['first', 'second']).index
-    tm.assert_index_equal(result, expected)
-
-
 def test_repeat():
     reps = 2
     numbers = [1, 2, 3]
@@ -380,21 +352,6 @@ def test_argsort(idx):
     result = idx.argsort()
     expected = idx.values.argsort()
     tm.assert_numpy_array_equal(result, expected)
-
-
-@pytest.mark.parametrize('level0', [['a', 'd', 'b'],
-                                    ['a', 'd', 'b', 'unused']])
-@pytest.mark.parametrize('level1', [['w', 'x', 'y', 'z'],
-                                    ['w', 'x', 'y', 'z', 'unused']])
-def test_remove_unused_nan(level0, level1):
-    # GH 18417
-    mi = pd.MultiIndex(levels=[level0, level1],
-                       labels=[[0, 2, -1, 1, -1], [0, 1, 2, 3, 2]])
-
-    result = mi.remove_unused_levels()
-    tm.assert_index_equal(result, mi)
-    for level in 0, 1:
-        assert('unused' not in result.levels[level])
 
 
 def test_map(idx):

@@ -6,8 +6,7 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 import pytest
-from pandas import (DataFrame, IntervalIndex, MultiIndex,
-                    RangeIndex, date_range)
+from pandas import IntervalIndex, MultiIndex, RangeIndex
 from pandas.compat import lrange, range
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
 
@@ -177,28 +176,6 @@ def test_large_multiindex_error():
         df_above_1000000.loc[(3, 0), 'dest']
 
 
-def test_nan_stays_float():
-
-    # GH 7031
-    idx0 = pd.MultiIndex(levels=[["A", "B"], []],
-                         labels=[[1, 0], [-1, -1]],
-                         names=[0, 1])
-    idx1 = pd.MultiIndex(levels=[["C"], ["D"]],
-                         labels=[[0], [0]],
-                         names=[0, 1])
-    idxm = idx0.join(idx1, how='outer')
-    assert pd.isna(idx0.get_level_values(1)).all()
-    # the following failed in 0.14.1
-    assert pd.isna(idxm.get_level_values(1)[:-1]).all()
-
-    df0 = pd.DataFrame([[1, 2]], index=idx0)
-    df1 = pd.DataFrame([[3, 4]], index=idx1)
-    dfm = df0 - df1
-    assert pd.isna(df0.index.get_level_values(1)).all()
-    # the following failed in 0.14.1
-    assert pd.isna(dfm.index.get_level_values(1)[:-1]).all()
-
-
 def test_million_record_attribute_error():
     # GH 18165
     r = list(range(1000000))
@@ -242,98 +219,6 @@ def test_level_setting_resets_attributes():
     ind.set_levels([['A', 'B'], [1, 3, 2]], inplace=True)
     # if this fails, probably didn't reset the cache correctly.
     assert not ind.is_monotonic
-
-
-def test_partial_string_timestamp_multiindex():
-    # GH10331
-    dr = pd.date_range('2016-01-01', '2016-01-03', freq='12H')
-    abc = ['a', 'b', 'c']
-    ix = pd.MultiIndex.from_product([dr, abc])
-    df = pd.DataFrame({'c1': range(0, 15)}, index=ix)
-    idx = pd.IndexSlice
-
-    #                        c1
-    # 2016-01-01 00:00:00 a   0
-    #                     b   1
-    #                     c   2
-    # 2016-01-01 12:00:00 a   3
-    #                     b   4
-    #                     c   5
-    # 2016-01-02 00:00:00 a   6
-    #                     b   7
-    #                     c   8
-    # 2016-01-02 12:00:00 a   9
-    #                     b  10
-    #                     c  11
-    # 2016-01-03 00:00:00 a  12
-    #                     b  13
-    #                     c  14
-
-    # partial string matching on a single index
-    for df_swap in (df.swaplevel(),
-                    df.swaplevel(0),
-                    df.swaplevel(0, 1)):
-        df_swap = df_swap.sort_index()
-        just_a = df_swap.loc['a']
-        result = just_a.loc['2016-01-01']
-        expected = df.loc[idx[:, 'a'], :].iloc[0:2]
-        expected.index = expected.index.droplevel(1)
-        tm.assert_frame_equal(result, expected)
-
-    # indexing with IndexSlice
-    result = df.loc[idx['2016-01-01':'2016-02-01', :], :]
-    expected = df
-    tm.assert_frame_equal(result, expected)
-
-    # match on secondary index
-    result = df_swap.loc[idx[:, '2016-01-01':'2016-01-01'], :]
-    expected = df_swap.iloc[[0, 1, 5, 6, 10, 11]]
-    tm.assert_frame_equal(result, expected)
-
-    # Even though this syntax works on a single index, this is somewhat
-    # ambiguous and we don't want to extend this behavior forward to work
-    # in multi-indexes. This would amount to selecting a scalar from a
-    # column.
-    with pytest.raises(KeyError):
-        df['2016-01-01']
-
-    # partial string match on year only
-    result = df.loc['2016']
-    expected = df
-    tm.assert_frame_equal(result, expected)
-
-    # partial string match on date
-    result = df.loc['2016-01-01']
-    expected = df.iloc[0:6]
-    tm.assert_frame_equal(result, expected)
-
-    # partial string match on date and hour, from middle
-    result = df.loc['2016-01-02 12']
-    expected = df.iloc[9:12]
-    tm.assert_frame_equal(result, expected)
-
-    # partial string match on secondary index
-    result = df_swap.loc[idx[:, '2016-01-02'], :]
-    expected = df_swap.iloc[[2, 3, 7, 8, 12, 13]]
-    tm.assert_frame_equal(result, expected)
-
-    # tuple selector with partial string match on date
-    result = df.loc[('2016-01-01', 'a'), :]
-    expected = df.iloc[[0, 3]]
-    tm.assert_frame_equal(result, expected)
-
-    # Slicing date on first level should break (of course)
-    with pytest.raises(KeyError):
-        df_swap.loc['2016-01-01']
-
-    # GH12685 (partial string with daily resolution or below)
-    dr = date_range('2013-01-01', periods=100, freq='D')
-    ix = MultiIndex.from_product([dr, ['a', 'b']])
-    df = DataFrame(np.random.randn(200, 1), columns=['A'], index=ix)
-
-    result = df.loc[idx['2013-03':'2013-03', :], :]
-    expected = df.iloc[118:180]
-    tm.assert_frame_equal(result, expected)
 
 
 def test_rangeindex_fallback_coercion_bug():

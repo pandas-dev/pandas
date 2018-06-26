@@ -4,8 +4,7 @@
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
-from pandas import (Index, MultiIndex, PeriodIndex, RangeIndex, Series, compat,
-                    isna)
+from pandas import Index, MultiIndex, RangeIndex, Series, compat
 from pandas.compat import lrange, lzip, range
 
 
@@ -33,8 +32,6 @@ def test_equals(idx):
 def test_equals_op(idx):
     # GH9947, GH10637
     index_a = idx
-    if isinstance(index_a, PeriodIndex):
-        return
 
     n = len(index_a)
     index_b = index_a[0:-1]
@@ -208,37 +205,10 @@ def test_is_numeric(idx):
     assert not idx.is_numeric()
 
 
-def test_nulls(idx):
-    # this is really a smoke test for the methods
-    # as these are adequately tested for function elsewhere
-
-    # TODO: Remove or Refactor. MultiIndex not Implemeted.
-    for name, index in [('idx', idx), ]:
-        if len(index) == 0:
-            tm.assert_numpy_array_equal(
-                index.isna(), np.array([], dtype=bool))
-        elif isinstance(index, MultiIndex):
-            idx = index.copy()
-            msg = "isna is not defined for MultiIndex"
-            with tm.assert_raises_regex(NotImplementedError, msg):
-                idx.isna()
-        else:
-
-            if not index.hasnans:
-                tm.assert_numpy_array_equal(
-                    index.isna(), np.zeros(len(index), dtype=bool))
-                tm.assert_numpy_array_equal(
-                    index.notna(), np.ones(len(index), dtype=bool))
-            else:
-                result = isna(index)
-                tm.assert_numpy_array_equal(index.isna(), result)
-                tm.assert_numpy_array_equal(index.notna(), ~result)
-
-
 def test_multiindex_compare():
-        # GH 21149
-        # Ensure comparison operations for MultiIndex with nlevels == 1
-        # behave consistently with those for MultiIndex with nlevels > 1
+    # GH 21149
+    # Ensure comparison operations for MultiIndex with nlevels == 1
+    # behave consistently with those for MultiIndex with nlevels > 1
 
     midx = pd.MultiIndex.from_product([[0, 1]])
 

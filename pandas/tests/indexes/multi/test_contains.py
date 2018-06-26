@@ -91,39 +91,3 @@ def test_isin_level_kwarg():
     tm.assert_numpy_array_equal(expected, idx.isin(vals_1, level='B'))
 
     pytest.raises(KeyError, idx.isin, vals_1, level='C')
-
-
-def test_hasnans_isnans(idx):
-    # GH 11343, added tests for hasnans / isnans
-    # TODO: remove or change test not valid for MultiIndex
-    if isinstance(idx, MultiIndex):
-        pass
-    # else:
-    #     _index = idx.copy()
-
-    #     # cases in indices doesn't include NaN
-    #     expected = np.array([False] * len(_index), dtype=bool)
-    #     tm.assert_numpy_array_equal(_index._isnan, expected)
-    #     assert not _index.hasnans
-
-    #     _index = idx.copy()
-    #     values = _index.values
-
-    #     if len(idx) == 0:
-    #         continue
-    #     elif isinstance(idx, DatetimeIndexOpsMixin):
-    #         values[1] = iNaT
-    #     elif isinstance(idx, (Int64Index, UInt64Index)):
-    #         continue
-    #     else:
-    #         values[1] = np.nan
-
-    #     if isinstance(idx, PeriodIndex):
-    #         _index = idx.__class__(values, freq=idx.freq)
-    #     else:
-    #         _index = idx.__class__(values)
-
-    #     expected = np.array([False] * len(_index), dtype=bool)
-    #     expected[1] = True
-    #     tm.assert_numpy_array_equal(_index._isnan, expected)
-    #     assert _index.hasnans

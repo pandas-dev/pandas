@@ -34,12 +34,8 @@ def test_logical_compat(idx):
 
 def test_boolean_context_compat(idx):
 
-    # boolean context compat
-    def f():
-        if idx:
-            pass
-
-    tm.assert_raises_regex(ValueError, 'The truth value of a', f)
+    with pytest.raises(ValueError):
+        bool(idx)
 
 
 def test_boolean_context_compat2():
@@ -50,11 +46,8 @@ def test_boolean_context_compat2():
     i2 = MultiIndex.from_tuples([('A', 1), ('A', 3)])
     common = i1.intersection(i2)
 
-    def f():
-        if common:
-            pass
-
-    tm.assert_raises_regex(ValueError, 'The truth value of a', f)
+    with pytest.raises(ValueError):
+        bool(common)
 
 
 def test_inplace_mutation_resets_values():
@@ -103,12 +96,12 @@ def test_inplace_mutation_resets_values():
     tm.assert_almost_equal(mi2.values, new_values)
 
 
-def test_ndarray_compat_properties(idx, _compat_props):
+def test_ndarray_compat_properties(idx, compat_props):
     assert idx.T.equals(idx)
     assert idx.transpose().equals(idx)
 
     values = idx.values
-    for prop in _compat_props:
+    for prop in compat_props:
         assert getattr(idx, prop) == getattr(values, prop)
 
     # test for validity
@@ -120,10 +113,10 @@ def test_compat(indices):
     assert indices.tolist() == list(indices)
 
 
-def test_pickle_compat_construction(_holder):
+def test_pickle_compat_construction(holder):
     # this is testing for pickle compat
-    if _holder is None:
+    if holder is None:
         return
 
     # need an object to create with
-    pytest.raises(TypeError, _holder)
+    pytest.raises(TypeError, holder)

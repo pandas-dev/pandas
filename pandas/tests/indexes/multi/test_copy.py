@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from copy import copy, deepcopy
 
 import pandas.util.testing as tm
 from pandas import (CategoricalIndex, IntervalIndex, MultiIndex, PeriodIndex,
@@ -111,7 +112,6 @@ def test_ensure_copied_data(idx):
 
 
 def test_copy_and_deepcopy(indices):
-    from copy import copy, deepcopy
 
     if isinstance(indices, MultiIndex):
         return

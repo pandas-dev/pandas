@@ -124,25 +124,3 @@ def test_drop_not_lexsorted():
     with tm.assert_produces_warning(PerformanceWarning):
         tm.assert_index_equal(lexsorted_mi.drop('a'),
                               not_lexsorted_mi.drop('a'))
-
-
-def test_dropna():
-    # GH 6194
-    idx = pd.MultiIndex.from_arrays([[1, np.nan, 3, np.nan, 5],
-                                     [1, 2, np.nan, np.nan, 5],
-                                     ['a', 'b', 'c', np.nan, 'e']])
-
-    exp = pd.MultiIndex.from_arrays([[1, 5],
-                                     [1, 5],
-                                     ['a', 'e']])
-    tm.assert_index_equal(idx.dropna(), exp)
-    tm.assert_index_equal(idx.dropna(how='any'), exp)
-
-    exp = pd.MultiIndex.from_arrays([[1, np.nan, 3, 5],
-                                     [1, 2, np.nan, 5],
-                                     ['a', 'b', 'c', 'e']])
-    tm.assert_index_equal(idx.dropna(how='all'), exp)
-
-    msg = "invalid how option: xxx"
-    with tm.assert_raises_regex(ValueError, msg):
-        idx.dropna(how='xxx')

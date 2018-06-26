@@ -89,22 +89,22 @@ def test_duplicate_multiindex_labels():
                        inplace=True)
 
 
-@pytest.mark.parametrize('names', [['a', 'b', 'a'], ['1', '1', '2'],
-                                   ['1', 'a', '1']])
+@pytest.mark.parametrize('names', [['a', 'b', 'a'], [1, 1, 2],
+                                   [1, 'a', 1]])
 def test_duplicate_level_names(names):
-    # GH18872
-    pytest.raises(ValueError, pd.MultiIndex.from_product,
-                  [[0, 1]] * 3, names=names)
+    # GH18872, GH19029
+    mi = pd.MultiIndex.from_product([[0, 1]] * 3, names=names)
+    assert mi.names == names
 
     # With .rename()
     mi = pd.MultiIndex.from_product([[0, 1]] * 3)
-    tm.assert_raises_regex(ValueError, "Duplicated level name:",
-                           mi.rename, names)
+    mi = mi.rename(names)
+    assert mi.names == names
 
     # With .rename(., level=)
-    mi.rename(names[0], level=1, inplace=True)
-    tm.assert_raises_regex(ValueError, "Duplicated level name:",
-                           mi.rename, names[:2], level=[0, 2])
+    mi.rename(names[1], level=1, inplace=True)
+    mi = mi.rename([names[0], names[2]], level=[0, 2])
+    assert mi.names == names
 
 
 def test_duplicate_meta_data():
@@ -234,3 +234,26 @@ def test_duplicates(idx):
 
             tm.assert_numpy_array_equal(mi.duplicated(), np.zeros(
                 len(mi), dtype='bool'))
+
+
+def test_get_unique_index(idx):
+    idx = idx[[0, 1, 0, 1, 1, 0, 0]]
+    expected = idx._shallow_copy(idx[[0, 1]])
+
+    for dropna in [False, True]:
+        result = idx._get_unique_index(dropna=dropna)
+        assert result.unique
+        tm.assert_index_equal(result, expected)
+
+
+def test_unique_na():
+    idx = pd.Index([2, np.nan, 2, 1], name='my_index')
+    expected = pd.Index([2, np.nan, 1], name='my_index')
+    result = idx.unique()
+    tm.assert_index_equal(result, expected)
+
+
+def test_duplicate_level_names_access_raises(idx):
+    idx.names = ['foo', 'foo']
+    tm.assert_raises_regex(KeyError, 'Level foo not found',
+                           idx._get_level_number, 'foo')

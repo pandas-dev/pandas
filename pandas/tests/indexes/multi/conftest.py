@@ -7,6 +7,8 @@ from pandas import Index, MultiIndex
 
 @pytest.fixture
 def idx():
+    # a MultiIndex used to test the general functionality of the
+    # general functionality of this object
     major_axis = Index(['foo', 'bar', 'baz', 'qux'])
     minor_axis = Index(['one', 'two'])
 
@@ -24,14 +26,18 @@ def idx():
 
 @pytest.fixture
 def index_names():
+    # names that match those in the idx fixture for testing equality of
+    # names assigned to the idx
     return ['first', 'second']
 
 
 @pytest.fixture
-def _holder():
+def holder():
+    # the MultiIndex constructor used to base compatibility with pickle
     return MultiIndex
 
 
 @pytest.fixture
-def _compat_props():
+def compat_props():
+    # a MultiIndex must have these properties associated with it
     return ['shape', 'ndim', 'size']

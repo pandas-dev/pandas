@@ -87,12 +87,10 @@ def test_to_hierarchical():
     assert result.names == index.names
 
 
-def test_legacy_pickle():
-    if PY3:
-        pytest.skip("testing for legacy pickles not "
-                    "support on py3")
+@pytest.mark.skipif(PY3, reason="testing legacy pickles not support on py3")
+def test_legacy_pickle(datapath):
 
-    path = tm.get_data_path('multiindex_v1.pickle')
+    path = datapath('indexes', 'multi', 'data', 'multiindex_v1.pickle')
     obj = pd.read_pickle(path)
 
     obj2 = MultiIndex.from_tuples(obj.values)
@@ -109,10 +107,10 @@ def test_legacy_pickle():
     assert_almost_equal(exp, exp2)
 
 
-def test_legacy_v2_unpickle():
+def test_legacy_v2_unpickle(datapath):
 
     # 0.7.3 -> 0.8.0 format manage
-    path = tm.get_data_path('mindex_073.pickle')
+    path = datapath('indexes', 'multi', 'data', 'mindex_073.pickle')
     obj = pd.read_pickle(path)
 
     obj2 = MultiIndex.from_tuples(obj.values)
@@ -148,3 +146,31 @@ def test_pickle(indices):
     unpickled = tm.round_trip_pickle(indices)
     assert indices.equals(unpickled)
     indices.name = original_name
+
+
+def test_to_series(idx):
+    # assert that we are creating a copy of the index
+
+    s = idx.to_series()
+    assert s.values is not idx.values
+    assert s.index is not idx
+    assert s.name == idx.name
+
+
+def test_to_series_with_arguments(idx):
+    # GH18699
+
+    # index kwarg
+    s = idx.to_series(index=idx)
+
+    assert s.values is not idx.values
+    assert s.index is idx
+    assert s.name == idx.name
+
+    # name kwarg
+    idx = idx
+    s = idx.to_series(name='__test')
+
+    assert s.values is not idx.values
+    assert s.index is not idx
+    assert s.name != idx.name
