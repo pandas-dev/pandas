@@ -14,11 +14,6 @@ import pandas.core.common as com
 import pandas.util.testing as tm
 
 
-@pytest.fixture(params=['left', 'right', 'both', 'neither'])
-def closed(request):
-    return request.param
-
-
 @pytest.fixture(params=[None, 'foo'])
 def name(request):
     return request.param

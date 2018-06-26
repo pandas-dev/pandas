@@ -41,7 +41,8 @@ from pandas.core.dtypes.cast import (
     maybe_cast_to_datetime, maybe_castable,
     construct_1d_arraylike_from_scalar,
     construct_1d_ndarray_preserving_na,
-    construct_1d_object_array_from_listlike)
+    construct_1d_object_array_from_listlike,
+    maybe_cast_to_integer_array)
 from pandas.core.dtypes.missing import (
     isna,
     notna,
@@ -2065,7 +2066,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def __rmatmul__(self, other):
         """ Matrix multiplication using binary `@` operator in Python>=3.5 """
-        return self.dot(other)
+        return self.dot(np.transpose(other))
 
     @Substitution(klass='Series')
     @Appender(base._shared_docs['searchsorted'])
@@ -3240,7 +3241,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         delegate = self._values
         if isinstance(delegate, np.ndarray):
             # Validate that 'axis' is consistent with Series's single axis.
-            self._get_axis_number(axis)
+            if axis is not None:
+                self._get_axis_number(axis)
             if numeric_only:
                 raise NotImplementedError('Series.{0} does not implement '
                                           'numeric_only.'.format(name))
@@ -4068,6 +4070,11 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 return arr
 
         try:
+            # gh-15832: Check if we are requesting a numeric dype and
+            # that we can convert the data to the requested dtype.
+            if is_float_dtype(dtype) or is_integer_dtype(dtype):
+                subarr = maybe_cast_to_integer_array(arr, dtype)
+
             subarr = maybe_cast_to_datetime(arr, dtype)
             # Take care in creating object arrays (but iterators are not
             # supported):
