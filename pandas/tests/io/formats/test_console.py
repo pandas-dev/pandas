@@ -13,10 +13,15 @@ def mock_raises_exception(error=Exception):
     ['stdout', 'stdin']
 ])
 def test_detect_console_encoding_from_stdout_stdin(monkeypatch, empty, filled):
-    # Ensure that when sys.stdout.encoding or sys.stdin.encoding is used when
+    # Ensures that when sys.stdout.encoding or sys.stdin.encoding is used when
     # they have values filled.
-    monkeypatch.setattr('sys.{}.encoding'.format(empty), '')
-    monkeypatch.setattr('sys.{}.encoding'.format(filled), filled)
+    class MockEncoding(object):
+        def __init__(self, encoding):
+            super(MockEncoding, self).__init__()
+            self.encoding = encoding
+
+    monkeypatch.setattr('sys.{}'.format(empty), MockEncoding(''))
+    monkeypatch.setattr('sys.{}'.format(filled), MockEncoding(filled))
     assert detect_console_encoding() == filled
 
 
