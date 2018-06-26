@@ -224,7 +224,7 @@ def json_normalize(data, record_path=None, meta=None,
         sep = str(sep)
     meta_keys = [sep.join(val) for val in meta]
 
-    def _recursive_extract_dict(obj, key, seen_meta, level):
+    def _extract(obj, key, seen_meta, level):
         recs = _pull_field(obj, key)
 
         # For repeating the metadata later
@@ -260,9 +260,9 @@ def json_normalize(data, record_path=None, meta=None,
                                    seen_meta, level=level + 1)
         elif isinstance(data, list):
             for obj in data:
-                _recursive_extract_dict(obj, path[0], seen_meta, level)
+                _extract(obj, path[0], seen_meta, level)
         else:
-            _recursive_extract_dict(data, path[0], seen_meta, level)
+            _extract(data, path[0], seen_meta, level)
 
     _recursive_extract(data, record_path, {}, level=0)
 
