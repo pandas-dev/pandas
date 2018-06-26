@@ -1,5 +1,3 @@
-import operator
-
 import pytest
 
 import numpy as np
@@ -253,14 +251,11 @@ def any_int_dtype(request):
     return request.param
 
 
-COMPARISON_OPERATORS = [operator.lt, operator.le, operator.eq, operator.ne,
-                        operator.ge, operator.gt]
-
-
-@pytest.fixture(params=COMPARISON_OPERATORS)
-def comparison_fixture(request):
+@pytest.fixture(params=['__eq__', '__ne__', '__le__',
+                        '__lt__', '__ge__', '__gt__'])
+def all_compare_operators(request):
     """
-    Parameterized fixture for comparison operators.
+    Fixture for dunder names for common compare operations
 
     * >=
     * >

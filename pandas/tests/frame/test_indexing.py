@@ -1688,20 +1688,6 @@ class TestDataFrameIndexing(TestData):
         expected = df.iloc[:, 2:]
         assert_frame_equal(result, expected)
 
-    def test_getitem_setitem_datetimeindex_tz(self):
-        # GH 11679
-        data = ['2016-06-28 08:30:00.123456789']
-        index = DatetimeIndex(data, dtype='datetime64[ns, America/Chicago]')
-        df = DataFrame({'a': [10]}, index=index)
-        result = df.loc[df.index[0]]
-        expected = Series(10, index=['a'], name=df.index[0])
-        tm.assert_series_equal(result, expected)
-
-        result = df.copy()
-        result.loc[df.index[0], 'a'] = -1
-        expected = DataFrame(-1, index=index, columns=['a'])
-        tm.assert_frame_equal(result, expected)
-
     def test_get_value(self):
         for idx in self.frame.index:
             for col in self.frame.columns:
@@ -2263,9 +2249,9 @@ class TestDataFrameIndexing(TestData):
         assert_series_equal(result, expected)
 
     @pytest.mark.parametrize('idxer', ['var', ['var']])
-    @pytest.mark.parametrize('tz', [None, 'UTC'])
-    def test_setitem_datetimeindex_tz(self, idxer, tz):
+    def test_setitem_datetimeindex_tz(self, idxer, tz_naive_fixture):
         # GH 11365
+        tz = tz_naive_fixture
         idx = date_range(start='2015-07-12', periods=3, freq='H', tz=tz)
         expected = DataFrame(1.2, index=idx, columns=['var'])
         result = DataFrame(index=idx, columns=['var'])

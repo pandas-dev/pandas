@@ -1186,7 +1186,7 @@ class TestSeriesConstructors(TestData):
         result = Series(range(5), dtype=dtype)
         tm.assert_series_equal(result, expected)
 
-    def test_constructor_tz_aware_and_tz_naive_data(self):
+    def test_constructor_tz_mixed_data(self):
         # GH 13051
         dt_list = [Timestamp('2016-05-01 02:03:37'),
                    Timestamp('2016-04-30 19:03:37-0700', tz='US/Pacific')]
