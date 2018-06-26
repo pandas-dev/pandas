@@ -189,7 +189,6 @@ class MultiIndex(Index):
     from_product
     set_levels
     set_labels
-    to_hierarchical
     to_frame
     is_lexsorted
     sortlevel
@@ -1182,6 +1181,8 @@ class MultiIndex(Index):
 
     def to_hierarchical(self, n_repeat, n_shuffle=1):
         """
+        .. deprecated:: 0.24.0
+
         Return a MultiIndex reshaped to conform to the
         shapes given by n_repeat and n_shuffle.
 
@@ -1216,6 +1217,9 @@ class MultiIndex(Index):
         # Assumes that each label is divisible by n_shuffle
         labels = [x.reshape(n_shuffle, -1).ravel(order='F') for x in labels]
         names = self.names
+        warnings.warn("Method .to_hierarchical is deprecated and will "
+                      "be removed in a future version",
+                      FutureWarning, stacklevel=2)
         return MultiIndex(levels=levels, labels=labels, names=names)
 
     @property

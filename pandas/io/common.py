@@ -88,7 +88,7 @@ def _is_url(url):
     """
     try:
         return parse_url(url).scheme in _VALID_URLS
-    except:
+    except Exception:
         return False
 
 
@@ -165,7 +165,15 @@ def is_s3_url(url):
     """Check for an s3, s3n, or s3a url"""
     try:
         return parse_url(url).scheme in ['s3', 's3n', 's3a']
-    except:  # noqa
+    except Exception:
+        return False
+
+
+def is_gcs_url(url):
+    """Check for a gcs url"""
+    try:
+        return parse_url(url).scheme in ['gcs', 'gs']
+    except Exception:
         return False
 
 
@@ -207,6 +215,13 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
                                          encoding=encoding,
                                          compression=compression,
                                          mode=mode)
+
+    if is_gcs_url(filepath_or_buffer):
+        from pandas.io import gcs
+        return gcs.get_filepath_or_buffer(filepath_or_buffer,
+                                          encoding=encoding,
+                                          compression=compression,
+                                          mode=mode)
 
     if isinstance(filepath_or_buffer, (compat.string_types,
                                        compat.binary_type,

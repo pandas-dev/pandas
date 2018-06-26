@@ -18,6 +18,7 @@ Other Enhancements
 - :func:`Series.mode` and :func:`DataFrame.mode` now support the ``dropna`` parameter which can be used to specify whether NaN/NaT values should be considered (:issue:`17534`)
 - :func:`to_csv` now supports ``compression`` keyword when a file handle is passed. (:issue:`21227`)
 - :meth:`Index.droplevel` is now implemented also for flat indexes, for compatibility with :class:`MultiIndex` (:issue:`21115`)
+- Added support for reading from Google Cloud Storage via the ``gcsfs`` library (:issue:`19454`)
 - New method :meth:`HDFStore.walk` will recursively walk the group hierarchy of an HDF5 file (:issue:`10932`)
 -
 
@@ -111,7 +112,7 @@ Deprecations
 ~~~~~~~~~~~~
 
 - :meth:`DataFrame.to_stata`, :meth:`read_stata`, :class:`StataReader` and :class:`StataWriter` have deprecated the ``encoding`` argument.  The encoding of a Stata dta file is determined by the file type and cannot be changed (:issue:`21244`).
--
+- :meth:`MultiIndex.to_hierarchical` is deprecated and will be removed in a future version  (:issue:`21613`)
 -
 
 .. _whatsnew_0240.prior_deprecations:

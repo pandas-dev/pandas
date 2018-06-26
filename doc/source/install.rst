@@ -276,6 +276,7 @@ Optional Dependencies
 * `Jinja2 <http://jinja.pocoo.org/>`__: Template engine for conditional HTML formatting.
 * `s3fs <http://s3fs.readthedocs.io/>`__: necessary for Amazon S3 access (s3fs >= 0.0.7).
 * `blosc <https://pypi.org/project/blosc>`__: for msgpack compression using ``blosc``
+* `gcsfs <http://gcsfs.readthedocs.io/>`__: necessary for Google Cloud Storage access (gcsfs >= 0.1.0).
 * One of
   `qtpy  <https://github.com/spyder-ide/qtpy>`__ (requires PyQt or PySide),
   `PyQt5 <https://www.riverbankcomputing.com/software/pyqt/download5>`__,
