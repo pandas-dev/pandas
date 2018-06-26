@@ -101,7 +101,7 @@ def round_ns(values, rounder, freq):
     from pandas.tseries.frequencies import to_offset
     unit = to_offset(freq).nanos
 
-    values = np.copy(values)
+    values = values.copy()
 
     # GH21262 If the Timestamp is multiple of the freq str
     # don't apply any rounding
