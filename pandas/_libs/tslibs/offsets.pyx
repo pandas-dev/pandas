@@ -332,8 +332,13 @@ class _BaseOffset(object):
     def __hash__(self):
         return hash(self._params)
 
-    @property  # NB: non-cython subclasses override with cache_readonly
+    @property
     def _params(self):
+        """
+        Returns a tuple containing all of the attributes needed to evaluate
+        equality between two DateOffset objects.
+        """
+        # NB: non-cython subclasses override property with cache_readonly
         all_paras = self.__dict__.copy()
         if 'holidays' in all_paras and not all_paras['holidays']:
             all_paras.pop('holidays')
