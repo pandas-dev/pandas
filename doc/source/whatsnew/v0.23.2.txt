@@ -70,6 +70,11 @@ Documentation Changes
 -
 -
 
+Build Changes
+-------------
+
+- The source and binary distributions no longer include test data files, resulting in smaller download sizes. Tests relying on these data files will be skipped when using ``pandas.test()``. (:issue:`19320`)
+
 .. _whatsnew_0232.bug_fixes:
 
 Bug Fixes

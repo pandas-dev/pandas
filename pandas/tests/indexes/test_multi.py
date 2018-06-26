@@ -1181,12 +1181,12 @@ class TestMultiIndex(Base):
                     ('baz', 'two'), ('qux', 'one'), ('qux', 'two')]
         assert result == expected
 
-    def test_legacy_pickle(self):
+    def test_legacy_pickle(self, datapath):
         if PY3:
             pytest.skip("testing for legacy pickles not "
                         "support on py3")
 
-        path = tm.get_data_path('multiindex_v1.pickle')
+        path = datapath('indexes', 'data', 'multiindex_v1.pickle')
         obj = pd.read_pickle(path)
 
         obj2 = MultiIndex.from_tuples(obj.values)
@@ -1202,10 +1202,10 @@ class TestMultiIndex(Base):
         assert_almost_equal(res, exp)
         assert_almost_equal(exp, exp2)
 
-    def test_legacy_v2_unpickle(self):
+    def test_legacy_v2_unpickle(self, datapath):
 
         # 0.7.3 -> 0.8.0 format manage
-        path = tm.get_data_path('mindex_073.pickle')
+        path = datapath('indexes', 'data', 'mindex_073.pickle')
         obj = pd.read_pickle(path)
 
         obj2 = MultiIndex.from_tuples(obj.values)

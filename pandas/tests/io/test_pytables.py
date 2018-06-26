@@ -4452,28 +4452,27 @@ class TestHDFStore(Base):
                 store.select('df')
             tm.assert_raises_regex(ClosedFileError, 'file is not open', f)
 
-    def test_pytables_native_read(self):
-
+    def test_pytables_native_read(self, datapath):
         with ensure_clean_store(
-                tm.get_data_path('legacy_hdf/pytables_native.h5'),
+                datapath('io', 'data', 'legacy_hdf/pytables_native.h5'),
                 mode='r') as store:
             d2 = store['detector/readout']
             assert isinstance(d2, DataFrame)
 
     @pytest.mark.skipif(PY35 and is_platform_windows(),
                         reason="native2 read fails oddly on windows / 3.5")
-    def test_pytables_native2_read(self):
+    def test_pytables_native2_read(self, datapath):
         with ensure_clean_store(
-                tm.get_data_path('legacy_hdf/pytables_native2.h5'),
+                datapath('io', 'data', 'legacy_hdf', 'pytables_native2.h5'),
                 mode='r') as store:
             str(store)
             d1 = store['detector']
             assert isinstance(d1, DataFrame)
 
-    def test_legacy_table_read(self):
+    def test_legacy_table_read(self, datapath):
         # legacy table types
         with ensure_clean_store(
-                tm.get_data_path('legacy_hdf/legacy_table.h5'),
+                datapath('io', 'data', 'legacy_hdf', 'legacy_table.h5'),
                 mode='r') as store:
 
             with catch_warnings(record=True):
@@ -5120,7 +5119,7 @@ class TestHDFStore(Base):
             with pd.HDFStore(path) as store:
                 assert os.fspath(store) == str(path)
 
-    def test_read_py2_hdf_file_in_py3(self):
+    def test_read_py2_hdf_file_in_py3(self, datapath):
         # GH 16781
 
         # tests reading a PeriodIndex DataFrame written in Python2 in Python3
@@ -5135,8 +5134,8 @@ class TestHDFStore(Base):
             ['2015-01-01', '2015-01-02', '2015-01-05'], freq='B'))
 
         with ensure_clean_store(
-                tm.get_data_path(
-                    'legacy_hdf/periodindex_0.20.1_x86_64_darwin_2.7.13.h5'),
+                datapath('io', 'data', 'legacy_hdf',
+                         'periodindex_0.20.1_x86_64_darwin_2.7.13.h5'),
                 mode='r') as store:
             result = store['p']
             assert_frame_equal(result, expected)
@@ -5533,14 +5532,14 @@ class TestTimezones(Base):
 
             assert_frame_equal(result, df)
 
-    def test_legacy_datetimetz_object(self):
+    def test_legacy_datetimetz_object(self, datapath):
         # legacy from < 0.17.0
         # 8260
         expected = DataFrame(dict(A=Timestamp('20130102', tz='US/Eastern'),
                                   B=Timestamp('20130603', tz='CET')),
                              index=range(5))
         with ensure_clean_store(
-                tm.get_data_path('legacy_hdf/datetimetz_object.h5'),
+                datapath('io', 'data', 'legacy_hdf', 'datetimetz_object.h5'),
                 mode='r') as store:
             result = store['df']
             assert_frame_equal(result, expected)

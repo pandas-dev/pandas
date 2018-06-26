@@ -6,7 +6,6 @@ import string
 import sys
 import tempfile
 import warnings
-import inspect
 import os
 import subprocess
 import locale
@@ -750,15 +749,6 @@ def ensure_clean(filename=None, return_filelike=False):
             except Exception as e:
                 print("Exception on removing file: {error}".format(error=e))
 
-
-def get_data_path(f=''):
-    """Return the path of a data file, these are relative to the current test
-    directory.
-    """
-    # get our callers file
-    _, filename, _, _, _, _ = inspect.getouterframes(inspect.currentframe())[1]
-    base_dir = os.path.abspath(os.path.dirname(filename))
-    return os.path.join(base_dir, 'data', f)
 
 # -----------------------------------------------------------------------------
 # Comparators
