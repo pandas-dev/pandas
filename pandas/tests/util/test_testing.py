@@ -852,5 +852,10 @@ def test_datapath_missing(datapath, request):
         datapath('not_a_file')
 
     result = datapath('data', 'iris.csv')
-    expected = os.path.join('pandas', 'tests', 'data', 'iris.csv')
+    expected = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)),
+        'data',
+        'iris.csv'
+    )
+
     assert result == expected
