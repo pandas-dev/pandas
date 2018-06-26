@@ -486,10 +486,17 @@ class TestIndex(Base):
 
     def test_constructor_overflow_int64(self):
         # see gh-15832
-        msg = ("the elements provided in the data cannot "
+        msg = ("The elements provided in the data cannot "
                "all be casted to the dtype int64")
         with tm.assert_raises_regex(OverflowError, msg):
             Index([np.iinfo(np.uint64).max - 1], dtype="int64")
+
+    @pytest.mark.xfail(reason="see gh-21311: Index "
+                              "doesn't enforce dtype argument")
+    def test_constructor_cast(self):
+        msg = "could not convert string to float"
+        with tm.assert_raises_regex(ValueError, msg):
+            Index(["a", "b", "c"], dtype=float)
 
     def test_view_with_args(self):
 
