@@ -103,7 +103,7 @@ def read_pickle(path, compression='infer'):
 
     Returns
     -------
-    unpickled : type of object stored in file
+    unpickled : same type as object stored in file
 
     See Also
     --------

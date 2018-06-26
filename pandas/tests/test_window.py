@@ -2105,10 +2105,9 @@ class TestMomentsConsistency(Base):
                                              (mean_x * mean_y))
 
     @pytest.mark.slow
-    @pytest.mark.parametrize(
-        'min_periods, adjust, ignore_na', product([0, 1, 2, 3, 4],
-                                                  [True, False],
-                                                  [False, True]))
+    @pytest.mark.parametrize('min_periods', [0, 1, 2, 3, 4])
+    @pytest.mark.parametrize('adjust', [True, False])
+    @pytest.mark.parametrize('ignore_na', [True, False])
     def test_ewm_consistency(self, min_periods, adjust, ignore_na):
         def _weights(s, com, adjust, ignore_na):
             if isinstance(s, DataFrame):

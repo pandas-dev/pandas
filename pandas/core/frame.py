@@ -1690,7 +1690,8 @@ class DataFrame(NDFrame):
             defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
         compression : string, optional
             A string representing the compression to use in the output file.
-            Allowed values are 'gzip', 'bz2', 'zip', 'xz'.
+            Allowed values are 'gzip', 'bz2', 'zip', 'xz'. This input is only
+            used when the first argument is a filename.
         line_terminator : string, default ``'\n'``
             The newline character or character sequence to use in the output
             file
@@ -2723,7 +2724,8 @@ class DataFrame(NDFrame):
             indexer = key.nonzero()[0]
             return self._take(indexer, axis=0)
         else:
-            indexer = self.loc._convert_to_indexer(key, axis=1)
+            indexer = self.loc._convert_to_indexer(key, axis=1,
+                                                   raise_missing=True)
             return self._take(indexer, axis=1)
 
     def _getitem_multilevel(self, key):
@@ -4673,7 +4675,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        swapped : type of caller (new object)
+        swapped : same type as caller (new object)
 
         .. versionchanged:: 0.18.1
 
@@ -6844,12 +6846,17 @@ class DataFrame(NDFrame):
 
     def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
                 filter_type=None, **kwds):
-        axis = self._get_axis_number(axis)
+        if axis is None and filter_type == 'bool':
+            labels = None
+            constructor = None
+        else:
+            # TODO: Make other agg func handle axis=None properly
+            axis = self._get_axis_number(axis)
+            labels = self._get_agg_axis(axis)
+            constructor = self._constructor
 
         def f(x):
             return op(x, axis=axis, skipna=skipna, **kwds)
-
-        labels = self._get_agg_axis(axis)
 
         # exclude timedelta/datetime unless we are uniform types
         if axis == 1 and self._is_mixed_type and self._is_datelike_mixed_type:
@@ -6859,6 +6866,13 @@ class DataFrame(NDFrame):
             try:
                 values = self.values
                 result = f(values)
+
+                if (filter_type == 'bool' and is_object_dtype(values) and
+                        axis is None):
+                    # work around https://github.com/numpy/numpy/issues/10489
+                    # TODO: combine with hasattr(result, 'dtype') further down
+                    # hard since we don't have `values` down there.
+                    result = np.bool_(result)
             except Exception as e:
 
                 # try by-column first
@@ -6925,7 +6939,9 @@ class DataFrame(NDFrame):
                 if axis == 0:
                     result = coerce_to_dtypes(result, self.dtypes)
 
-        return Series(result, index=labels)
+        if constructor is not None:
+            result = Series(result, index=labels)
+        return result
 
     def nunique(self, axis=0, dropna=True):
         """
@@ -7284,11 +7300,11 @@ class DataFrame(NDFrame):
         When ``values`` is a Series or DataFrame:
 
         >>> df = pd.DataFrame({'A': [1, 2, 3], 'B': ['a', 'b', 'f']})
-        >>> other = DataFrame({'A': [1, 3, 3, 2], 'B': ['e', 'f', 'f', 'e']})
-        >>> df.isin(other)
+        >>> df2 = pd.DataFrame({'A': [1, 3, 3, 2], 'B': ['e', 'f', 'f', 'e']})
+        >>> df.isin(df2)
                A      B
         0   True  False
-        1  False  False  # Column A in `other` has a 3, but not at index 1.
+        1  False  False  # Column A in `df2` has a 3, but not at index 1.
         2   True   True
         """
         if isinstance(values, dict):

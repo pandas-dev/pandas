@@ -217,6 +217,7 @@ CLASSIFIERS = [
     'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3.5',
     'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3.7',
     'Programming Language :: Cython',
     'Topic :: Scientific/Engineering']
 
@@ -603,6 +604,7 @@ ext_data = {
         'pyxfile': '_libs/tslibs/resolution',
         'pxdfiles': ['_libs/src/util',
                      '_libs/khash',
+                     '_libs/tslibs/ccalendar',
                      '_libs/tslibs/frequencies',
                      '_libs/tslibs/timezones'],
         'depends': tseries_depends,
