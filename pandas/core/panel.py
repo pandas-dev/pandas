@@ -948,6 +948,7 @@ class Panel(NDFrame):
             data[item] = self[item].values.ravel()[selector]
 
         def construct_multi_parts(idx, n_repeat, n_shuffle=1):
+            # Replicates and shuffles MultiIndex, returns individual attributes
             labels = [np.repeat(x, n_repeat) for x in idx.labels]
             # Assumes that each label is divisible by n_shuffle
             labels = [x.reshape(n_shuffle, -1).ravel(order='F')

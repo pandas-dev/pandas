@@ -1673,10 +1673,9 @@ class TestMultiIndex(Base):
         tm.assert_frame_equal(result, expected)
 
     def test_to_hierarchical(self):
+        # GH21613
         index = MultiIndex.from_tuples([(1, 'one'), (1, 'two'), (2, 'one'), (
             2, 'two')])
-        # GH21613
-        # Suppressed deprecation warnings in this original test
         with tm.assert_produces_warning(FutureWarning):
             result = index.to_hierarchical(3)
         expected = MultiIndex(levels=[[1, 2], ['one', 'two']],

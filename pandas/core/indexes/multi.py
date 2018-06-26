@@ -189,7 +189,6 @@ class MultiIndex(Index):
     from_product
     set_levels
     set_labels
-    to_hierarchical
     to_frame
     is_lexsorted
     sortlevel
