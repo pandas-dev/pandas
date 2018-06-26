@@ -73,44 +73,36 @@ def round_ns(values, rounder, freq):
     -------
     :obj:`ndarray`
     """
-    def _round_non_int_multiple(value, unit):
-
-        if unit < 1000:
-            # for nano rounding, work with the last 6 digits separately
-            # due to float precision
-            buff = 1000000
-            r = (buff * (value // buff) + unit *
-                 (rounder((value % buff) * (1 / float(unit)))).astype('i8'))
-        else:
-            if unit % 1000 != 0:
-                msg = 'Precision will be lost using frequency: {}'
-                warnings.warn(msg.format(freq))
-
-            # GH19206
-            # to deal with round-off when unit is large
-            if unit >= 1e9:
-                divisor = 10 ** int(np.log10(unit / 1e7))
-            else:
-                divisor = 10
-
-            r = (unit * rounder((value * (divisor / float(unit))) / divisor)
-                 .astype('i8'))
-
-        return r
 
     from pandas.tseries.frequencies import to_offset
     unit = to_offset(freq).nanos
-
-    values = values.copy()
 
     # GH21262 If the Timestamp is multiple of the freq str
     # don't apply any rounding
     mask = values % unit == 0
     if mask.all():
         return values
-    values[~mask] = _round_non_int_multiple(values[~mask], unit)
+    r = values.copy()
 
-    return values
+    if unit < 1000:
+        # for nano rounding, work with the last 6 digits separately
+        # due to float precision
+        buff = 1000000
+        r[~mask] = (buff * (values[~mask] // buff) + unit *
+             (rounder((values[~mask] % buff) * (1 / float(unit)))).astype('i8'))
+    else:
+        if unit % 1000 != 0:
+            msg = 'Precision will be lost using frequency: {}'
+            warnings.warn(msg.format(freq))
+        # GH19206
+        # to deal with round-off when unit is large
+        if unit >= 1e9:
+            divisor = 10 ** int(np.log10(unit / 1e7))
+        else:
+            divisor = 10
+        r[~mask] = (unit * rounder((values[~mask] * (divisor / float(unit))) / divisor)
+             .astype('i8'))
+    return r
 
 
 # This is PITA. Because we inherit from datetime, which has very specific
