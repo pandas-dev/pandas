@@ -268,4 +268,4 @@ Other
 
 .. _whatsnew_0240.contributors:
 
-.. contributors:: v0.23.0..HEAD
+.. contributors:: v0.23.1..HEAD
