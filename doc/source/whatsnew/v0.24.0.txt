@@ -19,6 +19,8 @@ Other Enhancements
 - :func:`to_csv` now supports ``compression`` keyword when a file handle is passed. (:issue:`21227`)
 - :meth:`Index.droplevel` is now implemented also for flat indexes, for compatibility with :class:`MultiIndex` (:issue:`21115`)
 - Added support for reading from Google Cloud Storage via the ``gcsfs`` library (:issue:`19454`)
+- New method :meth:`HDFStore.walk` will recursively walk the group hierarchy of an HDF5 file (:issue:`10932`)
+-
 
 .. _whatsnew_0240.api_breaking:
 
