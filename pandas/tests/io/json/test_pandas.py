@@ -37,8 +37,9 @@ _mixed_frame = _frame.copy()
 
 class TestPandasContainer(object):
 
-    def setup_method(self, method):
-        self.dirpath = tm.get_data_path()
+    @pytest.fixture(scope="function", autouse=True)
+    def setup(self, datapath):
+        self.dirpath = datapath("io", "json", "data")
 
         self.ts = tm.makeTimeSeries()
         self.ts.name = 'ts'
@@ -59,7 +60,8 @@ class TestPandasContainer(object):
         self.mixed_frame = _mixed_frame.copy()
         self.categorical = _cat_frame.copy()
 
-    def teardown_method(self, method):
+        yield
+
         del self.dirpath
 
         del self.ts

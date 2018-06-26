@@ -1,32 +1,23 @@
-import os
-
 import pytest
 from pandas.io.parsers import read_table
-from pandas.util import testing as tm
 
 
 @pytest.fixture
-def parser_data(request):
-    return os.path.join(tm.get_data_path(), '..', 'parser', 'data')
-
-
-@pytest.fixture
-def tips_file(parser_data):
+def tips_file(datapath):
     """Path to the tips dataset"""
-    return os.path.join(parser_data, 'tips.csv')
+    return datapath('io', 'parser', 'data', 'tips.csv')
 
 
 @pytest.fixture
-def jsonl_file(parser_data):
+def jsonl_file(datapath):
     """Path a JSONL dataset"""
-    return os.path.join(parser_data, 'items.jsonl')
+    return datapath('io', 'parser', 'data', 'items.jsonl')
 
 
 @pytest.fixture
-def salaries_table(parser_data):
+def salaries_table(datapath):
     """DataFrame with the salaries dataset"""
-    path = os.path.join(parser_data, 'salaries.csv')
-    return read_table(path)
+    return read_table(datapath('io', 'parser', 'data', 'salaries.csv'))
 
 
 @pytest.fixture

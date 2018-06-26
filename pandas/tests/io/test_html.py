@@ -1,6 +1,5 @@
 from __future__ import print_function
 
-import glob
 import os
 import re
 import threading
@@ -25,8 +24,18 @@ import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 from pandas.util.testing import makeCustomDataframe as mkdf, network
 
+HERE = os.path.dirname(__file__)
 
-DATA_PATH = tm.get_data_path()
+
+@pytest.fixture(params=[
+    'chinese_utf-16.html',
+    'chinese_utf-32.html',
+    'chinese_utf-8.html',
+    'letz_latin1.html',
+])
+def html_encoding_file(request, datapath):
+    """Parametrized fixture for HTML encoding test filenames."""
+    return datapath('io', 'data', 'html_encoding', request.param)
 
 
 def assert_framelist_equal(list1, list2, *args, **kwargs):
@@ -44,11 +53,11 @@ def assert_framelist_equal(list1, list2, *args, **kwargs):
 
 
 @td.skip_if_no('bs4')
-def test_bs4_version_fails(monkeypatch):
+def test_bs4_version_fails(monkeypatch, datapath):
     import bs4
     monkeypatch.setattr(bs4, '__version__', '4.2')
     with tm.assert_raises_regex(ValueError, "minimum version"):
-        read_html(os.path.join(DATA_PATH, "spam.html"), flavor='bs4')
+        read_html(datapath("io", "data", "spam.html"), flavor='bs4')
 
 
 def test_invalid_flavor():
@@ -59,8 +68,8 @@ def test_invalid_flavor():
 
 @td.skip_if_no('bs4')
 @td.skip_if_no('lxml')
-def test_same_ordering():
-    filename = os.path.join(DATA_PATH, 'valid_markup.html')
+def test_same_ordering(datapath):
+    filename = datapath('io', 'data', 'valid_markup.html')
     dfs_lxml = read_html(filename, index_col=0, flavor=['lxml'])
     dfs_bs4 = read_html(filename, index_col=0, flavor=['bs4'])
     assert_framelist_equal(dfs_lxml, dfs_bs4)
@@ -72,11 +81,14 @@ def test_same_ordering():
     pytest.param('lxml', marks=pytest.mark.skipif(
         not td.safe_import('lxml'), reason='No lxml'))], scope="class")
 class TestReadHtml(object):
-    spam_data = os.path.join(DATA_PATH, 'spam.html')
-    spam_data_kwargs = {}
-    if PY3:
-        spam_data_kwargs['encoding'] = 'UTF-8'
-    banklist_data = os.path.join(DATA_PATH, 'banklist.html')
+
+    @pytest.fixture(autouse=True)
+    def set_files(self, datapath):
+        self.spam_data = datapath('io', 'data', 'spam.html')
+        self.spam_data_kwargs = {}
+        if PY3:
+            self.spam_data_kwargs['encoding'] = 'UTF-8'
+        self.banklist_data = datapath("io", "data", "banklist.html")
 
     @pytest.fixture(autouse=True, scope="function")
     def set_defaults(self, flavor, request):
@@ -272,7 +284,8 @@ class TestReadHtml(object):
     @pytest.mark.slow
     def test_file_url(self):
         url = self.banklist_data
-        dfs = self.read_html(file_path_to_url(url), 'First',
+        dfs = self.read_html(file_path_to_url(os.path.abspath(url)),
+                             'First',
                              attrs={'id': 'table'})
         assert isinstance(dfs, list)
         for df in dfs:
@@ -326,7 +339,7 @@ class TestReadHtml(object):
     @pytest.mark.slow
     def test_regex_idempotency(self):
         url = self.banklist_data
-        dfs = self.read_html(file_path_to_url(url),
+        dfs = self.read_html(file_path_to_url(os.path.abspath(url)),
                              match=re.compile(re.compile('Florida')),
                              attrs={'id': 'table'})
         assert isinstance(dfs, list)
@@ -352,9 +365,9 @@ class TestReadHtml(object):
         assert sorted(zz) == sorted(['Repo', 'What'])
 
     @pytest.mark.slow
-    def test_thousands_macau_stats(self):
+    def test_thousands_macau_stats(self, datapath):
         all_non_nan_table_index = -2
-        macau_data = os.path.join(DATA_PATH, 'macau.html')
+        macau_data = datapath("io", "data", "macau.html")
         dfs = self.read_html(macau_data, index_col=0,
                              attrs={'class': 'style1'})
         df = dfs[all_non_nan_table_index]
@@ -362,9 +375,9 @@ class TestReadHtml(object):
         assert not any(s.isna().any() for _, s in df.iteritems())
 
     @pytest.mark.slow
-    def test_thousands_macau_index_col(self):
+    def test_thousands_macau_index_col(self, datapath):
         all_non_nan_table_index = -2
-        macau_data = os.path.join(DATA_PATH, 'macau.html')
+        macau_data = datapath('io', 'data', 'macau.html')
         dfs = self.read_html(macau_data, index_col=0, header=0)
         df = dfs[all_non_nan_table_index]
 
@@ -518,8 +531,8 @@ class TestReadHtml(object):
         res2 = self.read_html(data2, header=0)
         assert_framelist_equal(res1, res2)
 
-    def test_nyse_wsj_commas_table(self):
-        data = os.path.join(DATA_PATH, 'nyse_wsj.html')
+    def test_nyse_wsj_commas_table(self, datapath):
+        data = datapath('io', 'data', 'nyse_wsj.html')
         df = self.read_html(data, index_col=0, header=0,
                             attrs={'class': 'mdcTable'})[0]
 
@@ -530,7 +543,7 @@ class TestReadHtml(object):
         tm.assert_index_equal(df.columns, columns)
 
     @pytest.mark.slow
-    def test_banklist_header(self):
+    def test_banklist_header(self, datapath):
         from pandas.io.html import _remove_whitespace
 
         def try_remove_ws(x):
@@ -541,7 +554,7 @@ class TestReadHtml(object):
 
         df = self.read_html(self.banklist_data, 'Metcalf',
                             attrs={'id': 'table'})[0]
-        ground_truth = read_csv(os.path.join(DATA_PATH, 'banklist.csv'),
+        ground_truth = read_csv(datapath('io', 'data', 'banklist.csv'),
                                 converters={'Updated Date': Timestamp,
                                             'Closing Date': Timestamp})
         assert df.shape == ground_truth.shape
@@ -658,19 +671,19 @@ class TestReadHtml(object):
         newdf = DataFrame({'datetime': raw_dates})
         tm.assert_frame_equal(newdf, res[0])
 
-    def test_computer_sales_page(self):
-        data = os.path.join(DATA_PATH, 'computer_sales_page.html')
+    def test_computer_sales_page(self, datapath):
+        data = datapath('io', 'data', 'computer_sales_page.html')
         with tm.assert_raises_regex(ParserError,
                                     r"Passed header=\[0,1\] are "
                                     r"too many rows for this "
                                     r"multi_index of columns"):
             self.read_html(data, header=[0, 1])
 
-        data = os.path.join(DATA_PATH, 'computer_sales_page.html')
+        data = datapath('io', 'data', 'computer_sales_page.html')
         assert self.read_html(data, header=[1, 2])
 
-    def test_wikipedia_states_table(self):
-        data = os.path.join(DATA_PATH, 'wikipedia_states.html')
+    def test_wikipedia_states_table(self, datapath):
+        data = datapath('io', 'data', 'wikipedia_states.html')
         assert os.path.isfile(data), '%r is not a file' % data
         assert os.path.getsize(data), '%r is an empty file' % data
         result = self.read_html(data, 'Arizona', header=1)[0]
@@ -784,15 +797,15 @@ class TestReadHtml(object):
         html_df = read_html(html, )[0]
         tm.assert_frame_equal(expected_df, html_df)
 
-    def test_works_on_valid_markup(self):
-        filename = os.path.join(DATA_PATH, 'valid_markup.html')
+    def test_works_on_valid_markup(self, datapath):
+        filename = datapath('io', 'data', 'valid_markup.html')
         dfs = self.read_html(filename, index_col=0)
         assert isinstance(dfs, list)
         assert isinstance(dfs[0], DataFrame)
 
     @pytest.mark.slow
-    def test_fallback_success(self):
-        banklist_data = os.path.join(DATA_PATH, 'banklist.html')
+    def test_fallback_success(self, datapath):
+        banklist_data = datapath('io', 'data', 'banklist.html')
         self.read_html(banklist_data, '.*Water.*', flavor=['lxml', 'html5lib'])
 
     def test_to_html_timestamp(self):
@@ -835,22 +848,23 @@ class TestReadHtml(object):
         else:
             assert len(dfs) == 1  # Should not parse hidden table
 
-    @pytest.mark.parametrize("f", glob.glob(
-        os.path.join(DATA_PATH, 'html_encoding', '*.html')))
-    def test_encode(self, f):
-        _, encoding = os.path.splitext(os.path.basename(f))[0].split('_')
+    def test_encode(self, html_encoding_file):
+        _, encoding = os.path.splitext(
+            os.path.basename(html_encoding_file)
+        )[0].split('_')
 
         try:
-            with open(f, 'rb') as fobj:
+            with open(html_encoding_file, 'rb') as fobj:
                 from_string = self.read_html(fobj.read(), encoding=encoding,
                                              index_col=0).pop()
 
-            with open(f, 'rb') as fobj:
+            with open(html_encoding_file, 'rb') as fobj:
                 from_file_like = self.read_html(BytesIO(fobj.read()),
                                                 encoding=encoding,
                                                 index_col=0).pop()
 
-            from_filename = self.read_html(f, encoding=encoding,
+            from_filename = self.read_html(html_encoding_file,
+                                           encoding=encoding,
                                            index_col=0).pop()
             tm.assert_frame_equal(from_string, from_file_like)
             tm.assert_frame_equal(from_string, from_filename)
@@ -906,7 +920,7 @@ class TestReadHtml(object):
         assert self.read_html(bad)
 
     @pytest.mark.slow
-    def test_importcheck_thread_safety(self):
+    def test_importcheck_thread_safety(self, datapath):
         # see gh-16928
 
         class ErrorThread(threading.Thread):
@@ -921,7 +935,7 @@ class TestReadHtml(object):
         # force import check by reinitalising global vars in html.py
         reload(pandas.io.html)
 
-        filename = os.path.join(DATA_PATH, 'valid_markup.html')
+        filename = datapath('io', 'data', 'valid_markup.html')
         helper_thread1 = ErrorThread(target=self.read_html, args=(filename,))
         helper_thread2 = ErrorThread(target=self.read_html, args=(filename,))
 

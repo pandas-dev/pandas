@@ -25,8 +25,8 @@ from pandas.io.stata import (InvalidColumnName, PossiblePrecisionLoss,
 
 
 @pytest.fixture
-def dirpath():
-    return tm.get_data_path()
+def dirpath(datapath):
+    return datapath("io", "data")
 
 
 @pytest.fixture
@@ -39,8 +39,9 @@ def parsed_114(dirpath):
 
 class TestStata(object):
 
-    def setup_method(self, method):
-        self.dirpath = tm.get_data_path()
+    @pytest.fixture(autouse=True)
+    def setup_method(self, datapath):
+        self.dirpath = datapath("io", "data")
         self.dta1_114 = os.path.join(self.dirpath, 'stata1_114.dta')
         self.dta1_117 = os.path.join(self.dirpath, 'stata1_117.dta')
 

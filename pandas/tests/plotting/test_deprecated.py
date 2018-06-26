@@ -46,10 +46,9 @@ class TestDeprecatedNameSpace(TestPlotBase):
                              by='indic')
 
     @pytest.mark.slow
-    def test_radviz_deprecated(self):
-        df = self.iris
+    def test_radviz_deprecated(self, iris):
         with tm.assert_produces_warning(FutureWarning):
-            plotting.radviz(frame=df, class_column='Name')
+            plotting.radviz(frame=iris, class_column='Name')
 
     @pytest.mark.slow
     def test_plot_params(self):

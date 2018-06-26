@@ -1,4 +1,3 @@
-import os
 import pytest
 
 import pytz
@@ -13,8 +12,8 @@ from pandas.util.testing import assert_frame_equal
 
 class TestAsOfMerge(object):
 
-    def read_data(self, name, dedupe=False):
-        path = os.path.join(tm.get_data_path(), name)
+    def read_data(self, datapath, name, dedupe=False):
+        path = datapath('reshape', 'merge', 'data', name)
         x = read_csv(path)
         if dedupe:
             x = (x.drop_duplicates(['time', 'ticker'], keep='last')
@@ -23,15 +22,17 @@ class TestAsOfMerge(object):
         x.time = to_datetime(x.time)
         return x
 
-    def setup_method(self, method):
+    @pytest.fixture(autouse=True)
+    def setup_method(self, datapath):
 
-        self.trades = self.read_data('trades.csv')
-        self.quotes = self.read_data('quotes.csv', dedupe=True)
-        self.asof = self.read_data('asof.csv')
-        self.tolerance = self.read_data('tolerance.csv')
-        self.allow_exact_matches = self.read_data('allow_exact_matches.csv')
+        self.trades = self.read_data(datapath, 'trades.csv')
+        self.quotes = self.read_data(datapath, 'quotes.csv', dedupe=True)
+        self.asof = self.read_data(datapath, 'asof.csv')
+        self.tolerance = self.read_data(datapath, 'tolerance.csv')
+        self.allow_exact_matches = self.read_data(datapath,
+                                                  'allow_exact_matches.csv')
         self.allow_exact_matches_and_tolerance = self.read_data(
-            'allow_exact_matches_and_tolerance.csv')
+            datapath, 'allow_exact_matches_and_tolerance.csv')
 
     def test_examples1(self):
         """ doc-string examples """
@@ -423,11 +424,11 @@ class TestAsOfMerge(object):
             pd.merge_asof(left, right, left_index=True, right_index=True,
                           left_by=['k1', 'k2'], right_by=['k1'])
 
-    def test_basic2(self):
+    def test_basic2(self, datapath):
 
-        expected = self.read_data('asof2.csv')
-        trades = self.read_data('trades2.csv')
-        quotes = self.read_data('quotes2.csv', dedupe=True)
+        expected = self.read_data(datapath, 'asof2.csv')
+        trades = self.read_data(datapath, 'trades2.csv')
+        quotes = self.read_data(datapath, 'quotes2.csv', dedupe=True)
 
         result = merge_asof(trades, quotes,
                             on='time',
@@ -467,14 +468,14 @@ class TestAsOfMerge(object):
             merge_asof(trades, quotes,
                        by='ticker')
 
-    def test_with_duplicates(self):
+    def test_with_duplicates(self, datapath):
 
         q = pd.concat([self.quotes, self.quotes]).sort_values(
             ['time', 'ticker']).reset_index(drop=True)
         result = merge_asof(self.trades, q,
                             on='time',
                             by='ticker')
-        expected = self.read_data('asof.csv')
+        expected = self.read_data(datapath, 'asof.csv')
         assert_frame_equal(result, expected)
 
     def test_with_duplicates_no_on(self):

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 import pandas as pd
 import pytest
 import numpy as np
@@ -841,3 +842,15 @@ class TestLocale(object):
         # GH9744
         locales = tm.get_locales()
         assert len(locales) >= 1
+
+
+def test_datapath_missing(datapath, request):
+    if not request.config.getoption("--strict-data-files"):
+        pytest.skip("Need to set '--strict-data-files'")
+
+    with pytest.raises(ValueError):
+        datapath('not_a_file')
+
+    result = datapath('data', 'iris.csv')
+    expected = os.path.join('pandas', 'tests', 'data', 'iris.csv')
+    assert result == expected
