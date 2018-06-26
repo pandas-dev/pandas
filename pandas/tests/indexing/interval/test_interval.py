@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 
 from pandas import Series, DataFrame, IntervalIndex, Interval
-from pandas.compat import product
 import pandas.util.testing as tm
 
 
@@ -51,9 +50,7 @@ class TestIntervalIndex(object):
         tm.assert_series_equal(expected, s[s >= 2])
 
     # TODO: check this behavior is consistent with test_interval_new.py
-    @pytest.mark.parametrize('direction, closed',
-                             product(('increasing', 'decreasing'),
-                                     ('left', 'right', 'neither', 'both')))
+    @pytest.mark.parametrize('direction', ['increasing', 'decreasing'])
     def test_nonoverlapping_monotonic(self, direction, closed):
         tpls = [(0, 1), (2, 3), (4, 5)]
         if direction == 'decreasing':

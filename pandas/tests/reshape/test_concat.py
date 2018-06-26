@@ -1,5 +1,5 @@
 from warnings import catch_warnings
-from itertools import combinations, product
+from itertools import combinations
 
 import datetime as dt
 import dateutil
@@ -941,10 +941,11 @@ class TestAppend(ConcatenateBase):
                                 columns=combined_columns)
         assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        "index_can_append, index_cannot_append_with_other",
-        product(indexes_can_append, indexes_cannot_append_with_other),
-        ids=lambda x: x.__class__.__name__)
+    @pytest.mark.parametrize('index_can_append', indexes_can_append,
+                             ids=lambda x: x.__class__.__name__)
+    @pytest.mark.parametrize('index_cannot_append_with_other',
+                             indexes_cannot_append_with_other,
+                             ids=lambda x: x.__class__.__name__)
     def test_append_different_columns_types_raises(
             self, index_can_append, index_cannot_append_with_other):
         # GH18359

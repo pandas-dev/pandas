@@ -867,7 +867,7 @@ b  2""")
 
         Returns
         -------
-        group : type of obj
+        group : same type as obj
         """
         if obj is None:
             obj = self._selected_obj
@@ -4740,7 +4740,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
     def _wrap_agged_blocks(self, items, blocks):
         if not self.as_index:
-            index = np.arange(blocks[0].values.shape[1])
+            index = np.arange(blocks[0].values.shape[-1])
             mgr = BlockManager(blocks, [items, index])
             result = DataFrame(mgr)
 

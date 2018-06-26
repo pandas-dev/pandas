@@ -1,4 +1,5 @@
 import os
+import importlib
 
 import pytest
 
@@ -179,6 +180,14 @@ def nselect_method(request):
     return request.param
 
 
+@pytest.fixture(params=['left', 'right', 'both', 'neither'])
+def closed(request):
+    """
+    Fixture for trying all interval closed parameters
+    """
+    return request.param
+
+
 @pytest.fixture(params=[None, np.nan, pd.NaT, float('nan'), np.float('NaN')])
 def nulls_fixture(request):
     """
@@ -283,3 +292,17 @@ def any_int_dtype(request):
     """
 
     return request.param
+
+
+@pytest.fixture
+def mock():
+    """
+    Fixture providing the 'mock' module.
+
+    Uses 'unittest.mock' for Python 3. Attempts to import the 3rd party 'mock'
+    package for Python 2, skipping if not present.
+    """
+    if PY3:
+        return importlib.import_module("unittest.mock")
+    else:
+        return pytest.importorskip("mock")
