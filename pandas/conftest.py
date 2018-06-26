@@ -1,3 +1,5 @@
+import importlib
+
 import pytest
 
 import numpy as np
@@ -249,3 +251,17 @@ def any_int_dtype(request):
     """
 
     return request.param
+
+
+@pytest.fixture
+def mock():
+    """
+    Fixture providing the 'mock' module.
+
+    Uses 'unittest.mock' for Python 3. Attempts to import the 3rd party 'mock'
+    package for Python 2, skipping if not present.
+    """
+    if PY3:
+        return importlib.import_module("unittest.mock")
+    else:
+        return pytest.importorskip("mock")

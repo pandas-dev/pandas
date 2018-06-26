@@ -6,6 +6,7 @@ dependencies:
   - beautifulsoup4
   - bottleneck
   - dateutil
+  - gcsfs
   - html5lib
   - jinja2=2.8
   - lxml
