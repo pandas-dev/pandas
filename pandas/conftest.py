@@ -1,5 +1,9 @@
+import os
+import importlib
+
 import pytest
 
+import pandas
 import numpy as np
 import pandas as pd
 from pandas.compat import PY3
@@ -15,6 +19,8 @@ def pytest_addoption(parser):
                      help="run high memory tests")
     parser.addoption("--only-slow", action="store_true",
                      help="run only slow tests")
+    parser.addoption("--strict-data-files", action="store_true",
+                     help="Fail if a test is skipped for missing data file.")
 
 
 def pytest_runtest_setup(item):
@@ -129,10 +135,55 @@ def join_type(request):
     return request.param
 
 
+@pytest.fixture
+def datapath(request):
+    """Get the path to a data file.
+
+    Parameters
+    ----------
+    path : str
+        Path to the file, relative to ``pandas/tests/``
+
+    Returns
+    -------
+    path : path including ``pandas/tests``.
+
+    Raises
+    ------
+    ValueError
+        If the path doesn't exist and the --strict-data-files option is set.
+    """
+    def deco(*args):
+        path = os.path.join('pandas', 'tests', *args)
+        if not os.path.exists(path):
+            if request.config.getoption("--strict-data-files"):
+                msg = "Could not find file {} and --strict-data-files is set."
+                raise ValueError(msg.format(path))
+            else:
+                msg = "Could not find {}."
+                pytest.skip(msg.format(path))
+        return path
+    return deco
+
+
+@pytest.fixture
+def iris(datapath):
+    """The iris dataset as a DataFrame."""
+    return pandas.read_csv(datapath('data', 'iris.csv'))
+
+
 @pytest.fixture(params=['nlargest', 'nsmallest'])
 def nselect_method(request):
     """
     Fixture for trying all nselect methods
+    """
+    return request.param
+
+
+@pytest.fixture(params=['left', 'right', 'both', 'neither'])
+def closed(request):
+    """
+    Fixture for trying all interval closed parameters
     """
     return request.param
 
@@ -241,3 +292,17 @@ def any_int_dtype(request):
     """
 
     return request.param
+
+
+@pytest.fixture
+def mock():
+    """
+    Fixture providing the 'mock' module.
+
+    Uses 'unittest.mock' for Python 3. Attempts to import the 3rd party 'mock'
+    package for Python 2, skipping if not present.
+    """
+    if PY3:
+        return importlib.import_module("unittest.mock")
+    else:
+        return pytest.importorskip("mock")

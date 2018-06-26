@@ -100,6 +100,7 @@ HDFStore: PyTables (HDF5)
    HDFStore.select
    HDFStore.info
    HDFStore.keys
+   HDFStore.walk
 
 Feather
 ~~~~~~~

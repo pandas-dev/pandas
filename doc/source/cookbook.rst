@@ -132,7 +132,7 @@ Building Criteria
 
 .. ipython:: python
 
-   newseries = df.loc[(df['BBB'] > 25) | (df['CCC'] >= -40), 'AAA']; newseries;
+   newseries = df.loc[(df['BBB'] > 25) | (df['CCC'] >= -40), 'AAA']; newseries
 
 ...or (with assignment modifies the DataFrame.)
 
