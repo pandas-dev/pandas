@@ -32,7 +32,11 @@ def build_kwargs(sep, excel):
     return kwargs
 
 
-def gen_df(data_type):
+@pytest.fixture(params=['delims', 'utf8', 'string', 'long', 'nonascii',
+                        'colwidth', 'mixed', 'float', 'int'])
+def df(request):
+    data_type = request.param
+
     if data_type == 'delims':
         return pd.DataFrame({'a': ['"a,\t"b|c', 'd\tef´'],
                              'b': ['hi\'j', 'k\'\'lm']})
@@ -68,19 +72,14 @@ def gen_df(data_type):
         return mkdf(5, 3, data_gen_f=lambda *args: randint(2),
                     c_idx_type='s', r_idx_type='i',
                     c_idx_names=[None], r_idx_names=[None])
-
-
-@pytest.fixture(params=['delims', 'utf8', 'string', 'long', 'nonascii',
-                        'colwidth', 'mixed', 'float', 'int'])
-def df(request):
-    return gen_df(request.param)
+    else:
+        raise ValueError
 
 
 @pytest.mark.single
 @pytest.mark.skipif(not _DEPS_INSTALLED,
                     reason="clipboard primitives not installed")
 class TestClipboard(object):
-
     def check_round_trip_frame(self, data, excel=None, sep=None,
                                encoding=None):
         data.to_clipboard(excel=excel, sep=sep, encoding=encoding)
@@ -113,16 +112,15 @@ class TestClipboard(object):
     # Two character separator is not supported in to_clipboard
     # Test that multi-character separators are not silently passed
     @pytest.mark.xfail(reason="Not yet implemented.  Fixed in #21111")
-    def test_excel_sep_warning(self):
+    def test_excel_sep_warning(self, df):
         with tm.assert_produces_warning():
-            gen_df('string').to_clipboard(excel=True, sep=r'\t')
+            df.to_clipboard(excel=True, sep=r'\t')
 
     # Separator is ignored when excel=False and should produce a warning
-    # Fails, Fixed in #21111
-    @pytest.mark.xfail
-    def test_copy_delim_warning(self):
+    @pytest.mark.xfail(reason="Not yet implemented.  Fixed in #21111")
+    def test_copy_delim_warning(self, df):
         with tm.assert_produces_warning():
-            gen_df('string').to_clipboard(excel=False, sep='\t')
+            df.to_clipboard(excel=False, sep='\t')
 
     # Tests that the default behavior of to_clipboard is tab
     # delimited and excel="True"
@@ -188,9 +186,8 @@ class TestClipboard(object):
 
         tm.assert_frame_equal(res, exp)
 
-    def test_invalid_encoding(self):
+    def test_invalid_encoding(self, df):
         # test case for testing invalid encoding
-        df = gen_df('string')
         with pytest.raises(ValueError):
             df.to_clipboard(encoding='ascii')
         with pytest.raises(NotImplementedError):
