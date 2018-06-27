@@ -184,17 +184,20 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         """
         Rules for CDT equality:
         1) Any CDT is equal to the string 'category'
-        2) Any CDT is equal to a CDT with categories=None regardless of ordered
-        3) A CDT with ordered=True is only equal to another CDT with
+        2) Any CDT is equal to itself
+        3) Any CDT is equal to a CDT with categories=None regardless of ordered
+        4) A CDT with ordered=True is only equal to another CDT with
            ordered=True and identical categories in the same order
-        4) A CDT with ordered={False, None} is only equal to another CDT with
+        5) A CDT with ordered={False, None} is only equal to another CDT with
            ordered={False, None} and identical categories, but same order is
            not required. There is no distinction between False/None.
-        5) Any other comparison returns False
+        6) Any other comparison returns False
         """
         if isinstance(other, compat.string_types):
             return other == self.name
 
+        if other is self:
+            return True
         if not (hasattr(other, 'ordered') and hasattr(other, 'categories')):
             return False
         elif self.categories is None or other.categories is None:
@@ -348,6 +351,8 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
             msg = ('a CategoricalDtype must be passed to perform an update, '
                    'got {dtype!r}').format(dtype=dtype)
             raise ValueError(msg)
+        elif dtype.categories is not None and dtype.ordered is self.ordered:
+            return dtype
 
         # dtype is CDT: keep current categories/ordered if None
         new_categories = dtype.categories
