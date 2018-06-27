@@ -88,8 +88,9 @@ def round_ns(values, rounder, freq):
         # for nano rounding, work with the last 6 digits separately
         # due to float precision
         buff = 1000000
-        r[~mask] = (buff * (values[~mask] // buff) + unit *
-             (rounder((values[~mask] % buff) * (1 / float(unit)))).astype('i8'))
+        r[~mask] = (buff * (values[~mask] // buff) +
+                    unit * (rounder((values[~mask] % buff) *
+                            (1 / float(unit)))).astype('i8'))
     else:
         if unit % 1000 != 0:
             msg = 'Precision will be lost using frequency: {}'
@@ -100,8 +101,9 @@ def round_ns(values, rounder, freq):
             divisor = 10 ** int(np.log10(unit / 1e7))
         else:
             divisor = 10
-        r[~mask] = (unit * rounder((values[~mask] * (divisor / float(unit))) / divisor)
-             .astype('i8'))
+        r[~mask] = (unit * rounder((values[~mask] *
+                    (divisor / float(unit))) / divisor)
+                    .astype('i8'))
     return r
 
 
