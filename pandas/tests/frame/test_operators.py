@@ -318,6 +318,7 @@ class TestDataFrameOperators(TestData):
         assert_series_equal(+df['a'], df['a'])
 
     @pytest.mark.parametrize('df', [
+        pd.DataFrame({'a': ['a', 'b']}),
         pd.DataFrame({'a': np.array([-1, 2], dtype=object)}),
         pd.DataFrame({'a': [Decimal('-1.0'), Decimal('2.0')]}),
     ])
@@ -327,7 +328,6 @@ class TestDataFrameOperators(TestData):
         assert_series_equal(+df['a'], df['a'])
 
     @pytest.mark.parametrize('df', [
-        pd.DataFrame({'a': ['a', 'b']}),
         pd.DataFrame({'a': pd.to_datetime(['2017-01-22', '1970-01-01'])}),
     ])
     def test_pos_raises(self, df):
