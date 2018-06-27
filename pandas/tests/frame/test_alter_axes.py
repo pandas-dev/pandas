@@ -145,9 +145,12 @@ class TestDataFrameAlterAxes(TestData):
         result = df.set_index([level], append=True)
         tm.assert_index_equal(result.index, expected)
 
-        # Pass twice the same level name:
-        df.index.name = 'c'
-        # pytest.raises(ValueError, df.set_index, [level, level])
+        # Pass twice the same level name (only works with passing actual data)
+        if isinstance(level, pd.Series):
+            result = df.set_index([level, level])
+            expected = pd.MultiIndex.from_tuples(
+                [(0, 0), (2, 2), (4, 4), (6, 6)], names=['a', 'a'])
+            tm.assert_index_equal(result.index, expected)
 
     def test_set_index_nonuniq(self):
         df = DataFrame({'A': ['foo', 'foo', 'foo', 'bar', 'bar'],
@@ -620,6 +623,19 @@ class TestDataFrameAlterAxes(TestData):
                            names=['L1', 'L2', 'L0'])
         expected = DataFrame({'A': np.arange(6), 'B': np.arange(6)},
                              index=e_idx)
+        assert_frame_equal(result, expected)
+
+        result = df.reorder_levels([0, 0, 0])
+        e_idx = MultiIndex(levels=[['bar'], ['bar'], ['bar']],
+                           labels=[[0, 0, 0, 0, 0, 0],
+                                   [0, 0, 0, 0, 0, 0],
+                                   [0, 0, 0, 0, 0, 0]],
+                           names=['L0', 'L0', 'L0'])
+        expected = DataFrame({'A': np.arange(6), 'B': np.arange(6)},
+                             index=e_idx)
+        assert_frame_equal(result, expected)
+
+        result = df.reorder_levels(['L0', 'L0', 'L0'])
         assert_frame_equal(result, expected)
 
     def test_reset_index(self):
