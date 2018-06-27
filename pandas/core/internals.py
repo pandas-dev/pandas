@@ -1484,6 +1484,8 @@ class Block(PandasObject):
         if getattr(other, 'ndim', 0) >= 1:
             if values.ndim - 1 == other.ndim and axis == 1:
                 other = other.reshape(tuple(other.shape + (1, )))
+            elif transpose and values.ndim == self.ndim - 1:
+                cond = cond.T
 
         if not hasattr(cond, 'shape'):
             raise ValueError("where must have a condition that is ndarray "
@@ -1498,8 +1500,6 @@ class Block(PandasObject):
                 values, other)
 
             try:
-                if isinstance(self, DatetimeTZBlock):
-                    cond = cond.T
                 return self._try_coerce_result(expressions.where(
                     cond, values, other))
             except Exception as detail:
