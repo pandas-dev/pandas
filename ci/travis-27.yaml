@@ -9,6 +9,7 @@ dependencies:
   - fastparquet
   - feather-format
   - flake8=3.4.1
+  - gcsfs
   - html5lib
   - ipython
   - jemalloc=4.5.0.post

@@ -76,7 +76,7 @@ Numeric dtypes will propagate and can coexist in DataFrames. If a dtype is passe
    df1.dtypes
    df2 = DataFrame(dict( A = Series(randn(8),dtype='float16'),
                          B = Series(randn(8)),
-                         C = Series(randn(8),dtype='uint8') ))
+                         C = Series(range(8),dtype='uint8') ))
    df2
    df2.dtypes
 

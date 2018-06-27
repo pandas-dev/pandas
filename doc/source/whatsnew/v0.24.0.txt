@@ -17,8 +17,14 @@ Other Enhancements
 - :func:`to_datetime` now supports the ``%Z`` and ``%z`` directive when passed into ``format`` (:issue:`13486`)
 - :func:`Series.mode` and :func:`DataFrame.mode` now support the ``dropna`` parameter which can be used to specify whether NaN/NaT values should be considered (:issue:`17534`)
 - :func:`to_csv` now supports ``compression`` keyword when a file handle is passed. (:issue:`21227`)
-- :meth:`Index.droplevel` is now implemented also for flat indexes, for compatibility with MultiIndex (:issue:`21115`)
-
+- :meth:`Index.droplevel` is now implemented also for flat indexes, for compatibility with :class:`MultiIndex` (:issue:`21115`)
+- Added support for reading from Google Cloud Storage via the ``gcsfs`` library (:issue:`19454`)
+- :func:`to_gbq` and :func:`read_gbq` signature and documentation updated to
+  reflect changes from the `Pandas-GBQ library version 0.5.0
+  <https://pandas-gbq.readthedocs.io/en/latest/changelog.html#changelog-0-5-0>`__.
+  (:issue:`21627`)
+- New method :meth:`HDFStore.walk` will recursively walk the group hierarchy of an HDF5 file (:issue:`10932`)
+-
 
 .. _whatsnew_0240.api_breaking:
 
@@ -110,7 +116,7 @@ Deprecations
 ~~~~~~~~~~~~
 
 - :meth:`DataFrame.to_stata`, :meth:`read_stata`, :class:`StataReader` and :class:`StataWriter` have deprecated the ``encoding`` argument.  The encoding of a Stata dta file is determined by the file type and cannot be changed (:issue:`21244`).
--
+- :meth:`MultiIndex.to_hierarchical` is deprecated and will be removed in a future version  (:issue:`21613`)
 -
 
 .. _whatsnew_0240.prior_deprecations:
@@ -130,7 +136,7 @@ Performance Improvements
 
 - Improved performance of :func:`Series.describe` in case of numeric dtpyes (:issue:`21274`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.rank` when dealing with tied rankings (:issue:`21237`)
-- Improved performance of :func:`DataFrame.set_index` with columns consisting of :class:`Period` objects (:issue:`21582`)
+- Improved performance of :func:`DataFrame.set_index` with columns consisting of :class:`Period` objects (:issue:`21582`,:issue:`21606`)
 -
 
 .. _whatsnew_0240.docs:
@@ -159,7 +165,11 @@ Datetimelike
 
 - Fixed bug where two :class:`DateOffset` objects with different ``normalize`` attributes could evaluate as equal (:issue:`21404`)
 - Bug in :class:`Index` with ``datetime64[ns, tz]`` dtype that did not localize integer data correctly (:issue:`20964`)
--
+- Bug in :meth:`DatetimeIndex.shift` where an ``AssertionError`` would raise when shifting across DST (:issue:`8616`)
+- Bug in :class:`Timestamp` constructor where passing an invalid timezone offset designator (``Z``) would not raise a ``ValueError``(:issue:`8910`)
+- Bug in :meth:`Timestamp.replace` where replacing at a DST boundary would retain an incorrect offset (:issue:`7825`)
+- Bug in :meth:`DatetimeIndex.reindex` when reindexing a tz-naive and tz-aware :class:`DatetimeIndex` (:issue:`8306`)
+- Bug in :meth:`DatetimeIndex.resample` when downsampling across a DST boundary (:issue:`8531`)
 
 Timedelta
 ^^^^^^^^^
@@ -208,6 +218,7 @@ Indexing
 ^^^^^^^^
 
 - The traceback from a ``KeyError`` when asking ``.loc`` for a single missing label is now shorter and more clear (:issue:`21557`)
+- When ``.ix`` is asked for a missing integer label in a :class:`MultiIndex` with a first level of integer type, it now raises a ``KeyError`` - consistently with the case of a flat :class:`Int64Index` - rather than falling back to positional indexing (:issue:`21593`)
 -
 -
 
