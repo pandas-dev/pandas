@@ -314,7 +314,7 @@ class TestDataFrameFormatting(object):
         except ImportError:
             mock = pytest.importorskip("mock")
 
-        terminal_size = os.terminal_size((118, 96))
+        terminal_size = (118, 96)
         p1 = mock.patch('pandas.io.formats.console.get_terminal_size',
                         return_value=terminal_size)
         p2 = mock.patch('pandas.io.formats.format.get_terminal_size',
