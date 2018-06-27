@@ -282,10 +282,10 @@ class TestCut(object):
         result = tmod._round_frac(0.000123456, precision=2)
         assert result == 0.00012
 
-    def test_qcut_binning_issues(self):
+    def test_qcut_binning_issues(self, datapath):
         # #1978, 1979
-        path = os.path.join(tm.get_data_path(), 'cut_data.csv')
-        arr = np.loadtxt(path)
+        cut_file = datapath(os.path.join('reshape', 'data', 'cut_data.csv'))
+        arr = np.loadtxt(cut_file)
 
         result = qcut(arr, 20)
 

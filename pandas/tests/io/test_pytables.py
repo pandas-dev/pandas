@@ -635,6 +635,57 @@ class TestHDFStore(Base):
 
             pytest.raises(KeyError, store.get, 'b')
 
+    @pytest.mark.parametrize('where, expected', [
+        ('/', {
+            '': ({'first_group', 'second_group'}, set()),
+            '/first_group': (set(), {'df1', 'df2'}),
+            '/second_group': ({'third_group'}, {'df3', 's1'}),
+            '/second_group/third_group': (set(), {'df4'}),
+        }),
+        ('/second_group', {
+            '/second_group': ({'third_group'}, {'df3', 's1'}),
+            '/second_group/third_group': (set(), {'df4'}),
+        })
+    ])
+    def test_walk(self, where, expected):
+        # GH10143
+        objs = {
+            'df1': pd.DataFrame([1, 2, 3]),
+            'df2': pd.DataFrame([4, 5, 6]),
+            'df3': pd.DataFrame([6, 7, 8]),
+            'df4': pd.DataFrame([9, 10, 11]),
+            's1': pd.Series([10, 9, 8]),
+            # Next 3 items aren't pandas objects and should be ignored
+            'a1': np.array([[1, 2, 3], [4, 5, 6]]),
+            'tb1': np.array([(1, 2, 3), (4, 5, 6)], dtype='i,i,i'),
+            'tb2': np.array([(7, 8, 9), (10, 11, 12)], dtype='i,i,i')
+        }
+
+        with ensure_clean_store('walk_groups.hdf', mode='w') as store:
+            store.put('/first_group/df1', objs['df1'])
+            store.put('/first_group/df2', objs['df2'])
+            store.put('/second_group/df3', objs['df3'])
+            store.put('/second_group/s1', objs['s1'])
+            store.put('/second_group/third_group/df4', objs['df4'])
+            # Create non-pandas objects
+            store._handle.create_array('/first_group', 'a1', objs['a1'])
+            store._handle.create_table('/first_group', 'tb1', obj=objs['tb1'])
+            store._handle.create_table('/second_group', 'tb2', obj=objs['tb2'])
+
+            assert len(list(store.walk(where=where))) == len(expected)
+            for path, groups, leaves in store.walk(where=where):
+                assert path in expected
+                expected_groups, expected_frames = expected[path]
+                assert expected_groups == set(groups)
+                assert expected_frames == set(leaves)
+                for leaf in leaves:
+                    frame_path = '/'.join([path, leaf])
+                    obj = store.get(frame_path)
+                    if 'df' in leaf:
+                        tm.assert_frame_equal(obj, objs[leaf])
+                    else:
+                        tm.assert_series_equal(obj, objs[leaf])
+
     def test_getattr(self):
 
         with ensure_clean_store(self.path) as store:
@@ -2047,7 +2098,7 @@ class TestHDFStore(Base):
             assert df1.dtypes[0] == 'float32'
 
             # check with mixed dtypes
-            df1 = DataFrame(dict((c, Series(np.random.randn(5), dtype=c))
+            df1 = DataFrame(dict((c, Series(np.random.randint(5), dtype=c))
                                  for c in ['float32', 'float64', 'int32',
                                            'int64', 'int16', 'int8']))
             df1['string'] = 'foo'
@@ -4449,28 +4500,27 @@ class TestHDFStore(Base):
                 store.select('df')
             tm.assert_raises_regex(ClosedFileError, 'file is not open', f)
 
-    def test_pytables_native_read(self):
-
+    def test_pytables_native_read(self, datapath):
         with ensure_clean_store(
-                tm.get_data_path('legacy_hdf/pytables_native.h5'),
+                datapath('io', 'data', 'legacy_hdf/pytables_native.h5'),
                 mode='r') as store:
             d2 = store['detector/readout']
             assert isinstance(d2, DataFrame)
 
     @pytest.mark.skipif(PY35 and is_platform_windows(),
                         reason="native2 read fails oddly on windows / 3.5")
-    def test_pytables_native2_read(self):
+    def test_pytables_native2_read(self, datapath):
         with ensure_clean_store(
-                tm.get_data_path('legacy_hdf/pytables_native2.h5'),
+                datapath('io', 'data', 'legacy_hdf', 'pytables_native2.h5'),
                 mode='r') as store:
             str(store)
             d1 = store['detector']
             assert isinstance(d1, DataFrame)
 
-    def test_legacy_table_read(self):
+    def test_legacy_table_read(self, datapath):
         # legacy table types
         with ensure_clean_store(
-                tm.get_data_path('legacy_hdf/legacy_table.h5'),
+                datapath('io', 'data', 'legacy_hdf', 'legacy_table.h5'),
                 mode='r') as store:
 
             with catch_warnings(record=True):
@@ -5117,7 +5167,7 @@ class TestHDFStore(Base):
             with pd.HDFStore(path) as store:
                 assert os.fspath(store) == str(path)
 
-    def test_read_py2_hdf_file_in_py3(self):
+    def test_read_py2_hdf_file_in_py3(self, datapath):
         # GH 16781
 
         # tests reading a PeriodIndex DataFrame written in Python2 in Python3
@@ -5132,8 +5182,8 @@ class TestHDFStore(Base):
             ['2015-01-01', '2015-01-02', '2015-01-05'], freq='B'))
 
         with ensure_clean_store(
-                tm.get_data_path(
-                    'legacy_hdf/periodindex_0.20.1_x86_64_darwin_2.7.13.h5'),
+                datapath('io', 'data', 'legacy_hdf',
+                         'periodindex_0.20.1_x86_64_darwin_2.7.13.h5'),
                 mode='r') as store:
             result = store['p']
             assert_frame_equal(result, expected)
@@ -5530,14 +5580,14 @@ class TestTimezones(Base):
 
             assert_frame_equal(result, df)
 
-    def test_legacy_datetimetz_object(self):
+    def test_legacy_datetimetz_object(self, datapath):
         # legacy from < 0.17.0
         # 8260
         expected = DataFrame(dict(A=Timestamp('20130102', tz='US/Eastern'),
                                   B=Timestamp('20130603', tz='CET')),
                              index=range(5))
         with ensure_clean_store(
-                tm.get_data_path('legacy_hdf/datetimetz_object.h5'),
+                datapath('io', 'data', 'legacy_hdf', 'datetimetz_object.h5'),
                 mode='r') as store:
             result = store['df']
             assert_frame_equal(result, expected)

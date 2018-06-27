@@ -50,9 +50,8 @@ Attributes and the raw ndarray(s)
 
 pandas objects have a number of attributes enabling you to access the metadata
 
-  * **shape**: gives the axis dimensions of the object, consistent with ndarray
-  * Axis labels
-
+* **shape**: gives the axis dimensions of the object, consistent with ndarray
+* Axis labels
     * **Series**: *index* (only axis)
     * **DataFrame**: *index* (rows) and *columns*
     * **Panel**: *items*, *major_axis*, and *minor_axis*
@@ -131,9 +130,9 @@ Flexible binary operations
 With binary operations between pandas data structures, there are two key points
 of interest:
 
-  * Broadcasting behavior between higher- (e.g. DataFrame) and
-    lower-dimensional (e.g. Series) objects.
-  * Missing data in computations.
+* Broadcasting behavior between higher- (e.g. DataFrame) and
+  lower-dimensional (e.g. Series) objects.
+* Missing data in computations.
 
 We will demonstrate how to manage these issues independently, though they can
 be handled simultaneously.
@@ -462,10 +461,10 @@ produce an object of the same size. Generally speaking, these methods take an
 **axis** argument, just like *ndarray.{sum, std, ...}*, but the axis can be
 specified by name or integer:
 
-  - **Series**: no axis argument needed
-  - **DataFrame**: "index" (axis=0, default), "columns" (axis=1)
-  - **Panel**: "items" (axis=0), "major" (axis=1, default), "minor"
-    (axis=2)
+* **Series**: no axis argument needed
+* **DataFrame**: "index" (axis=0, default), "columns" (axis=1)
+* **Panel**: "items" (axis=0), "major" (axis=1, default), "minor"
+  (axis=2)
 
 For example:
 
@@ -1187,11 +1186,11 @@ It is used to implement nearly all other features relying on label-alignment
 functionality. To *reindex* means to conform the data to match a given set of
 labels along a particular axis. This accomplishes several things:
 
-  * Reorders the existing data to match a new set of labels
-  * Inserts missing value (NA) markers in label locations where no data for
-    that label existed
-  * If specified, **fill** data for missing labels using logic (highly relevant
-    to working with time series data)
+* Reorders the existing data to match a new set of labels
+* Inserts missing value (NA) markers in label locations where no data for
+  that label existed
+* If specified, **fill** data for missing labels using logic (highly relevant
+  to working with time series data)
 
 Here is a simple example:
 
@@ -1911,10 +1910,10 @@ the axis indexes, since they are immutable) and returns a new object. Note that
 **it is seldom necessary to copy objects**. For example, there are only a
 handful of ways to alter a DataFrame *in-place*:
 
-  * Inserting, deleting, or modifying a column.
-  * Assigning to the ``index`` or ``columns`` attributes.
-  * For homogeneous data, directly modifying the values via the ``values``
-    attribute or advanced indexing.
+* Inserting, deleting, or modifying a column.
+* Assigning to the ``index`` or ``columns`` attributes.
+* For homogeneous data, directly modifying the values via the ``values``
+  attribute or advanced indexing.
 
 To be clear, no pandas method has the side effect of modifying your data;
 almost every method returns a new object, leaving the original object
@@ -2112,14 +2111,14 @@ Because the data was transposed the original inference stored all columns as obj
 The following functions are available for one dimensional object arrays or scalars to perform
 hard conversion of objects to a specified type:
 
-- :meth:`~pandas.to_numeric` (conversion to numeric dtypes)
+* :meth:`~pandas.to_numeric` (conversion to numeric dtypes)
 
   .. ipython:: python
 
      m = ['1.1', 2, 3]
      pd.to_numeric(m)
 
-- :meth:`~pandas.to_datetime` (conversion to datetime objects)
+* :meth:`~pandas.to_datetime` (conversion to datetime objects)
 
   .. ipython:: python
 
@@ -2127,7 +2126,7 @@ hard conversion of objects to a specified type:
      m = ['2016-07-09', datetime.datetime(2016, 3, 2)]
      pd.to_datetime(m)
 
-- :meth:`~pandas.to_timedelta` (conversion to timedelta objects)
+* :meth:`~pandas.to_timedelta` (conversion to timedelta objects)
 
   .. ipython:: python
 

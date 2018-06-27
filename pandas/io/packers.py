@@ -178,7 +178,7 @@ def read_msgpack(path_or_buf, encoding='utf-8', iterator=False, **kwargs):
 
     Returns
     -------
-    obj : type of object stored in file
+    obj : same type as object stored in file
 
     """
     path_or_buf, _, _, should_close = get_filepath_or_buffer(path_or_buf)

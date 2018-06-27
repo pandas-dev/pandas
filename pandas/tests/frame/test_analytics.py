@@ -12,10 +12,10 @@ from numpy import nan
 from numpy.random import randn
 import numpy as np
 
-from pandas.compat import lrange, product, PY35
+from pandas.compat import lrange, PY35
 from pandas import (compat, isna, notna, DataFrame, Series,
                     MultiIndex, date_range, Timestamp, Categorical,
-                    _np_version_under1p12, _np_version_under1p15,
+                    _np_version_under1p12,
                     to_datetime, to_timedelta)
 import pandas as pd
 import pandas.core.nanops as nanops
@@ -1159,11 +1159,35 @@ class TestDataFrameAnalytics(TestData):
         self._check_bool_op('any', np.any, has_skipna=True, has_bool_only=True)
         self._check_bool_op('all', np.all, has_skipna=True, has_bool_only=True)
 
-        df = DataFrame(randn(10, 4)) > 0
-        df.any(1)
-        df.all(1)
-        df.any(1, bool_only=True)
-        df.all(1, bool_only=True)
+    def test_any_all_extra(self):
+        df = DataFrame({
+            'A': [True, False, False],
+            'B': [True, True, False],
+            'C': [True, True, True],
+        }, index=['a', 'b', 'c'])
+        result = df[['A', 'B']].any(1)
+        expected = Series([True, True, False], index=['a', 'b', 'c'])
+        tm.assert_series_equal(result, expected)
+
+        result = df[['A', 'B']].any(1, bool_only=True)
+        tm.assert_series_equal(result, expected)
+
+        result = df.all(1)
+        expected = Series([True, False, False], index=['a', 'b', 'c'])
+        tm.assert_series_equal(result, expected)
+
+        result = df.all(1, bool_only=True)
+        tm.assert_series_equal(result, expected)
+
+        # Axis is None
+        result = df.all(axis=None).item()
+        assert result is False
+
+        result = df.any(axis=None).item()
+        assert result is True
+
+        result = df[['C']].all(axis=None).item()
+        assert result is True
 
         # skip pathological failure cases
         # class CantNonzero(object):
@@ -1184,6 +1208,86 @@ class TestDataFrameAnalytics(TestData):
         # df.all(1)
         # df.any(1, bool_only=True)
         # df.all(1, bool_only=True)
+
+    @pytest.mark.parametrize('func, data, expected', [
+        (np.any, {}, False),
+        (np.all, {}, True),
+        (np.any, {'A': []}, False),
+        (np.all, {'A': []}, True),
+        (np.any, {'A': [False, False]}, False),
+        (np.all, {'A': [False, False]}, False),
+        (np.any, {'A': [True, False]}, True),
+        (np.all, {'A': [True, False]}, False),
+        (np.any, {'A': [True, True]}, True),
+        (np.all, {'A': [True, True]}, True),
+
+        (np.any, {'A': [False], 'B': [False]}, False),
+        (np.all, {'A': [False], 'B': [False]}, False),
+
+        (np.any, {'A': [False, False], 'B': [False, True]}, True),
+        (np.all, {'A': [False, False], 'B': [False, True]}, False),
+
+        # other types
+        (np.all, {'A': pd.Series([0.0, 1.0], dtype='float')}, False),
+        (np.any, {'A': pd.Series([0.0, 1.0], dtype='float')}, True),
+        (np.all, {'A': pd.Series([0, 1], dtype=int)}, False),
+        (np.any, {'A': pd.Series([0, 1], dtype=int)}, True),
+        pytest.param(np.all, {'A': pd.Series([0, 1], dtype='M8[ns]')}, False,
+                     marks=[td.skip_if_np_lt_115]),
+        pytest.param(np.any, {'A': pd.Series([0, 1], dtype='M8[ns]')}, True,
+                     marks=[td.skip_if_np_lt_115]),
+        pytest.param(np.all, {'A': pd.Series([1, 2], dtype='M8[ns]')}, True,
+                     marks=[td.skip_if_np_lt_115]),
+        pytest.param(np.any, {'A': pd.Series([1, 2], dtype='M8[ns]')}, True,
+                     marks=[td.skip_if_np_lt_115]),
+        pytest.param(np.all, {'A': pd.Series([0, 1], dtype='m8[ns]')}, False,
+                     marks=[td.skip_if_np_lt_115]),
+        pytest.param(np.any, {'A': pd.Series([0, 1], dtype='m8[ns]')}, True,
+                     marks=[td.skip_if_np_lt_115]),
+        pytest.param(np.all, {'A': pd.Series([1, 2], dtype='m8[ns]')}, True,
+                     marks=[td.skip_if_np_lt_115]),
+        pytest.param(np.any, {'A': pd.Series([1, 2], dtype='m8[ns]')}, True,
+                     marks=[td.skip_if_np_lt_115]),
+        (np.all, {'A': pd.Series([0, 1], dtype='category')}, False),
+        (np.any, {'A': pd.Series([0, 1], dtype='category')}, True),
+        (np.all, {'A': pd.Series([1, 2], dtype='category')}, True),
+        (np.any, {'A': pd.Series([1, 2], dtype='category')}, True),
+
+        # # Mix
+        # GH-21484
+        # (np.all, {'A': pd.Series([10, 20], dtype='M8[ns]'),
+        #           'B': pd.Series([10, 20], dtype='m8[ns]')}, True),
+    ])
+    def test_any_all_np_func(self, func, data, expected):
+        # https://github.com/pandas-dev/pandas/issues/19976
+        data = DataFrame(data)
+        result = func(data)
+        assert isinstance(result, np.bool_)
+        assert result.item() is expected
+
+        # method version
+        result = getattr(DataFrame(data), func.__name__)(axis=None)
+        assert isinstance(result, np.bool_)
+        assert result.item() is expected
+
+    def test_any_all_object(self):
+        # https://github.com/pandas-dev/pandas/issues/19976
+        result = np.all(DataFrame(columns=['a', 'b'])).item()
+        assert result is True
+
+        result = np.any(DataFrame(columns=['a', 'b'])).item()
+        assert result is False
+
+    @pytest.mark.parametrize('method', ['any', 'all'])
+    def test_any_all_level_axis_none_raises(self, method):
+        df = DataFrame(
+            {"A": 1},
+            index=MultiIndex.from_product([['A', 'B'], ['a', 'b']],
+                                          names=['out', 'in'])
+        )
+        xpr = "Must specify 'axis' when aggregating by level."
+        with tm.assert_raises_regex(ValueError, xpr):
+            getattr(df, method)(axis=None, level='out')
 
     def _check_bool_op(self, name, alternative, frame=None, has_skipna=True,
                        has_bool_only=False):
@@ -1526,6 +1630,23 @@ class TestDataFrameAnalytics(TestData):
 
         with pytest.raises(KeyError):
             df.drop_duplicates(subset)
+
+    @pytest.mark.slow
+    def test_duplicated_do_not_fail_on_wide_dataframes(self):
+        # gh-21524
+        # Given the wide dataframe with a lot of columns
+        # with different (important!) values
+        data = {'col_{0:02d}'.format(i): np.random.randint(0, 1000, 30000)
+                for i in range(100)}
+        df = pd.DataFrame(data).T
+        result = df.duplicated()
+
+        # Then duplicates produce the bool pd.Series as a result
+        # and don't fail during calculation.
+        # Actual values doesn't matter here, though usually
+        # it's all False in this case
+        assert isinstance(result, pd.Series)
+        assert result.dtype == np.bool
 
     def test_drop_duplicates_with_duplicate_column_names(self):
         # GH17836
@@ -2074,9 +2195,6 @@ class TestDataFrameAnalytics(TestData):
             result = original
         tm.assert_frame_equal(result, expected, check_exact=True)
 
-    @pytest.mark.xfail(
-        not _np_version_under1p15,
-        reason="failing under numpy-dev gh-19976")
     @pytest.mark.parametrize("axis", [0, 1, None])
     def test_clip_against_frame(self, axis):
         df = DataFrame(np.random.randn(1000, 2))
@@ -2260,54 +2378,49 @@ class TestNLargestNSmallest(object):
 
     # ----------------------------------------------------------------------
     # Top / bottom
-    @pytest.mark.parametrize(
-        'method, n, order',
-        product(['nsmallest', 'nlargest'], range(1, 11),
-                [['a'],
-                 ['c'],
-                 ['a', 'b'],
-                 ['a', 'c'],
-                 ['b', 'a'],
-                 ['b', 'c'],
-                 ['a', 'b', 'c'],
-                 ['c', 'a', 'b'],
-                 ['c', 'b', 'a'],
-                 ['b', 'c', 'a'],
-                 ['b', 'a', 'c'],
+    @pytest.mark.parametrize('order', [
+        ['a'],
+        ['c'],
+        ['a', 'b'],
+        ['a', 'c'],
+        ['b', 'a'],
+        ['b', 'c'],
+        ['a', 'b', 'c'],
+        ['c', 'a', 'b'],
+        ['c', 'b', 'a'],
+        ['b', 'c', 'a'],
+        ['b', 'a', 'c'],
 
-                 # dups!
-                 ['b', 'c', 'c'],
-
-                 ]))
-    def test_n(self, df_strings, method, n, order):
+        # dups!
+        ['b', 'c', 'c']])
+    @pytest.mark.parametrize('n', range(1, 11))
+    def test_n(self, df_strings, nselect_method, n, order):
         # GH10393
         df = df_strings
         if 'b' in order:
 
             error_msg = self.dtype_error_msg_template.format(
-                column='b', method=method, dtype='object')
+                column='b', method=nselect_method, dtype='object')
             with tm.assert_raises_regex(TypeError, error_msg):
-                getattr(df, method)(n, order)
+                getattr(df, nselect_method)(n, order)
         else:
-            ascending = method == 'nsmallest'
-            result = getattr(df, method)(n, order)
+            ascending = nselect_method == 'nsmallest'
+            result = getattr(df, nselect_method)(n, order)
             expected = df.sort_values(order, ascending=ascending).head(n)
             tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        'method, columns',
-        product(['nsmallest', 'nlargest'],
-                product(['group'], ['category_string', 'string'])
-                ))
-    def test_n_error(self, df_main_dtypes, method, columns):
+    @pytest.mark.parametrize('columns', [
+        ('group', 'category_string'), ('group', 'string')])
+    def test_n_error(self, df_main_dtypes, nselect_method, columns):
         df = df_main_dtypes
+        col = columns[1]
         error_msg = self.dtype_error_msg_template.format(
-            column=columns[1], method=method, dtype=df[columns[1]].dtype)
+            column=col, method=nselect_method, dtype=df[col].dtype)
         # escape some characters that may be in the repr
         error_msg = (error_msg.replace('(', '\\(').replace(")", "\\)")
                               .replace("[", "\\[").replace("]", "\\]"))
         with tm.assert_raises_regex(TypeError, error_msg):
-            getattr(df, method)(2, columns)
+            getattr(df, nselect_method)(2, columns)
 
     def test_n_all_dtypes(self, df_main_dtypes):
         df = df_main_dtypes
@@ -2328,15 +2441,14 @@ class TestNLargestNSmallest(object):
         expected = pd.DataFrame({'a': [1] * 3, 'b': [1, 2, 3]})
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        'n, order',
-        product([1, 2, 3, 4, 5],
-                [['a', 'b', 'c'],
-                 ['c', 'b', 'a'],
-                 ['a'],
-                 ['b'],
-                 ['a', 'b'],
-                 ['c', 'b']]))
+    @pytest.mark.parametrize('order', [
+        ['a', 'b', 'c'],
+        ['c', 'b', 'a'],
+        ['a'],
+        ['b'],
+        ['a', 'b'],
+        ['c', 'b']])
+    @pytest.mark.parametrize('n', range(1, 6))
     def test_n_duplicate_index(self, df_duplicates, n, order):
         # GH 13412
 

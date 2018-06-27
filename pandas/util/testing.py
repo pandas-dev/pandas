@@ -6,7 +6,6 @@ import string
 import sys
 import tempfile
 import warnings
-import inspect
 import os
 import subprocess
 import locale
@@ -224,9 +223,15 @@ def assert_almost_equal(left, right, check_exact=False,
     check_dtype: bool, default True
         check dtype if both a and b are the same type
     check_less_precise : bool or int, default False
-        Specify comparison precision. Only used when check_exact is False.
+        Specify comparison precision. Only used when `check_exact` is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
-        If int, then specify the digits to compare
+        If int, then specify the digits to compare.
+
+        When comparing two numbers, if the first number has magnitude less
+        than 1e-5, we compare the two numbers directly and check whether
+        they are equivalent within the specified precision. Otherwise, we
+        compare the **ratio** of the second number to the first number and
+        check whether it is equivalent to 1 within the specified precision.
     """
     if isinstance(left, pd.Index):
         return assert_index_equal(left, right, check_exact=check_exact,
@@ -553,6 +558,28 @@ def _valid_locales(locales, normalize):
 # Stdout / stderr decorators
 
 
+@contextmanager
+def set_defaultencoding(encoding):
+    """
+    Set default encoding (as given by sys.getdefaultencoding()) to the given
+    encoding; restore on exit.
+
+    Parameters
+    ----------
+    encoding : str
+    """
+    if not PY2:
+        raise ValueError("set_defaultencoding context is only available "
+                         "in Python 2.")
+    orig = sys.getdefaultencoding()
+    reload(sys)  # noqa:F821
+    sys.setdefaultencoding(encoding)
+    try:
+        yield
+    finally:
+        sys.setdefaultencoding(orig)
+
+
 def capture_stdout(f):
     """
     Decorator to capture stdout in a buffer so that it can be checked
@@ -728,15 +755,6 @@ def ensure_clean(filename=None, return_filelike=False):
             except Exception as e:
                 print("Exception on removing file: {error}".format(error=e))
 
-
-def get_data_path(f=''):
-    """Return the path of a data file, these are relative to the current test
-    directory.
-    """
-    # get our callers file
-    _, filename, _, _, _, _ = inspect.getouterframes(inspect.currentframe())[1]
-    base_dir = os.path.abspath(os.path.dirname(filename))
-    return os.path.join(base_dir, 'data', f)
 
 # -----------------------------------------------------------------------------
 # Comparators
@@ -2261,59 +2279,6 @@ def network(t, url="http://www.google.com",
 
 
 with_connectivity_check = network
-
-
-class SimpleMock(object):
-
-    """
-    Poor man's mocking object
-
-    Note: only works for new-style classes, assumes  __getattribute__ exists.
-
-    >>> a = type("Duck",(),{})
-    >>> a.attr1,a.attr2 ="fizz","buzz"
-    >>> b = SimpleMock(a,"attr1","bar")
-    >>> b.attr1 == "bar" and b.attr2 == "buzz"
-    True
-    >>> a.attr1 == "fizz" and a.attr2 == "buzz"
-    True
-    """
-
-    def __init__(self, obj, *args, **kwds):
-        assert(len(args) % 2 == 0)
-        attrs = kwds.get("attrs", {})
-        for k, v in zip(args[::2], args[1::2]):
-            # dict comprehensions break 2.6
-            attrs[k] = v
-        self.attrs = attrs
-        self.obj = obj
-
-    def __getattribute__(self, name):
-        attrs = object.__getattribute__(self, "attrs")
-        obj = object.__getattribute__(self, "obj")
-        return attrs.get(name, type(obj).__getattribute__(obj, name))
-
-
-@contextmanager
-def stdin_encoding(encoding=None):
-    """
-    Context manager for running bits of code while emulating an arbitrary
-    stdin encoding.
-
-    >>> import sys
-    >>> _encoding = sys.stdin.encoding
-    >>> with stdin_encoding('AES'): sys.stdin.encoding
-    'AES'
-    >>> sys.stdin.encoding==_encoding
-    True
-
-    """
-    import sys
-
-    _stdin = sys.stdin
-    sys.stdin = SimpleMock(sys.stdin, "encoding", encoding)
-    yield
-    sys.stdin = _stdin
 
 
 def assert_raises_regex(_exception, _regexp, _callable=None,
