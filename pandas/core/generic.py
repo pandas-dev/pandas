@@ -10,7 +10,7 @@ import json
 import numpy as np
 import pandas as pd
 
-from pandas._libs import tslib, properties
+from pandas._libs import tslib, properties, lib
 from pandas.core.dtypes.common import (
     _ensure_int64,
     _ensure_object,
@@ -27,6 +27,7 @@ from pandas.core.dtypes.common import (
     is_dict_like,
     is_re_compilable,
     is_period_arraylike,
+    is_object_dtype,
     pandas_dtype)
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.inference import is_hashable
@@ -1117,16 +1118,30 @@ class NDFrame(PandasObject, SelectionMixin):
         values = com._values_from_object(self)
         if is_bool_dtype(values):
             arr = operator.inv(values)
-        else:
+        elif is_numeric_dtype(values) or is_timedelta64_dtype(values):
             arr = operator.neg(values)
+        elif (is_object_dtype(values) and
+              lib.infer_dtype(values) not in ['string', 'bytes', 'unicode']):
+            # explicity allow object dtypes that are not strings, gh-21380
+            arr = operator.neg(values)
+        else:
+            raise TypeError("Unary negative expects numeric dtype, not {}"
+                            .format(values.dtype))
         return self.__array_wrap__(arr)
 
     def __pos__(self):
         values = com._values_from_object(self)
         if (is_bool_dtype(values) or is_period_arraylike(values)):
             arr = values
-        else:
+        elif is_numeric_dtype(values) or is_timedelta64_dtype(values):
             arr = operator.pos(values)
+        elif (is_object_dtype(values) and
+              lib.infer_dtype(values) not in ['string', 'bytes', 'unicode']):
+            # explicity allow object dtypes that are not strings, gh-21380
+            arr = operator.pos(values)
+        else:
+            raise TypeError("Unary plus expects numeric dtype, not {}"
+                            .format(values.dtype))
         return self.__array_wrap__(arr)
 
     def __invert__(self):
