@@ -335,11 +335,17 @@ cdef class Interval(IntervalMixin):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-cpdef intervals_to_interval_bounds(ndarray intervals):
+cpdef intervals_to_interval_bounds(ndarray intervals,
+                                   bint validate_closed=True):
     """
     Parameters
     ----------
-    intervals: ndarray object array of Intervals / nulls
+    intervals : ndarray
+        object array of Intervals / nulls
+
+    validate_closed: boolean, default True
+        boolean indicating if all intervals must be closed on the same side.
+        Mismatching closed will raise if True, else return None for closed.
 
     Returns
     -------
@@ -353,6 +359,7 @@ cpdef intervals_to_interval_bounds(ndarray intervals):
         object closed = None, interval
         int64_t n = len(intervals)
         ndarray left, right
+        bint seen_closed = False
 
     left = np.empty(n, dtype=intervals.dtype)
     right = np.empty(n, dtype=intervals.dtype)
@@ -370,10 +377,14 @@ cpdef intervals_to_interval_bounds(ndarray intervals):
 
         left[i] = interval.left
         right[i] = interval.right
-        if closed is None:
+        if not seen_closed:
+            seen_closed = True
             closed = interval.closed
         elif closed != interval.closed:
-            raise ValueError('intervals must all be closed on the same side')
+            closed = None
+            if validate_closed:
+                msg = 'intervals must all be closed on the same side'
+                raise ValueError(msg)
 
     return left, right, closed
 
