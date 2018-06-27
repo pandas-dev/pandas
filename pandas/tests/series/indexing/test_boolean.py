@@ -1,7 +1,6 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
-import datetime
 import pytest
 
 import pandas as pd
