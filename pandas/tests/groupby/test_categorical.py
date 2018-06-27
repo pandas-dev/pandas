@@ -854,3 +854,23 @@ def test_empty_prod():
     result = df.groupby("A", observed=False).B.prod(min_count=1)
     expected = pd.Series([2, 1, np.nan], expected_idx, name='B')
     tm.assert_series_equal(result, expected)
+
+
+def test_groupby_multiindex_categorical_datetime():
+    # https://github.com/pandas-dev/pandas/issues/21390
+
+    df = pd.DataFrame({
+        'key1': pd.Categorical(list('abcbabcba')),
+        'key2': pd.Categorical(
+            list(pd.date_range('2018-06-01 00', freq='1T', periods=3)) * 3),
+        'values': np.arange(9),
+    })
+    result = df.groupby(['key1', 'key2']).mean()
+
+    idx = pd.MultiIndex.from_product(
+        [pd.Categorical(['a', 'b', 'c']),
+         pd.Categorical(pd.date_range('2018-06-01 00', freq='1T', periods=3))],
+        names=['key1', 'key2'])
+    expected = pd.DataFrame(
+        {'values': [0, 4, 8, 3, 4, 5, 6, np.nan, 2]}, index=idx)
+    assert_frame_equal(result, expected)

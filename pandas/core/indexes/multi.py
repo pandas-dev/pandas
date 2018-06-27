@@ -819,11 +819,17 @@ class MultiIndex(Index):
             return self._tuples
 
         values = []
-        for lev, lab in zip(self.levels, self.labels):
+        for i, (lev, lab) in enumerate(zip(self.levels, self.labels)):
             # Need to box timestamps, etc.
             box = hasattr(lev, '_box_values')
+            if is_categorical_dtype(lev):
+                # TODO GH-21390
+                taken = self.get_level_values(i)._values.get_values()
+                if not isinstance(taken, np.ndarray):
+                    # Datetime/Period index
+                    taken = np.array(taken.astype(object))
             # Try to minimize boxing.
-            if box and len(lev) > len(lab):
+            elif box and len(lev) > len(lab):
                 taken = lev._box_values(algos.take_1d(lev._ndarray_values,
                                                       lab))
             elif box:
