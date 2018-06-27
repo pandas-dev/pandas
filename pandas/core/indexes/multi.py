@@ -2881,6 +2881,13 @@ class MultiIndex(Index):
             else:
                 return np.lib.arraysetops.in1d(labs, sought_labels)
 
+    def _reference_duplicate_name(self, name):
+        """
+        Returns True if the name refered to in self.names is duplicated.
+        """
+        # count the times name equals an element in self.names.
+        return sum(name == n for n in self.names) > 1
+
 
 MultiIndex._add_numeric_methods_disabled()
 MultiIndex._add_numeric_methods_add_sub_disabled()
