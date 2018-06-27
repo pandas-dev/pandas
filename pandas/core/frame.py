@@ -4186,6 +4186,7 @@ class DataFrame(NDFrame):
 
             .. deprecated:: 0.23.0
                 Pass tuple or list to drop on multiple axes.
+                Only a single axis is allowed.
 
         how : {'any', 'all'}, default 'any'
             Determine if row or column is removed from DataFrame, when we have
