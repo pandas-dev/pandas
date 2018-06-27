@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 
 from pandas import (CategoricalIndex, Categorical, DataFrame, Index,
-                     MultiIndex, compat, date_range, period_range)
+                    MultiIndex, compat, date_range, period_range)
 from pandas.compat import PY3, long, lrange, lzip, range, u, PYPY
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.core.dtypes.dtypes import CategoricalDtype
