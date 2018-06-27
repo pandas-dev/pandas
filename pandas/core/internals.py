@@ -1476,7 +1476,7 @@ class Block(PandasObject):
         if transpose:
             values = values.T
 
-        other = getattr(other, 'values', other)
+        other = getattr(other, '_values', getattr(other, 'values', other))
         cond = getattr(cond, 'values', cond)
 
         # If the default broadcasting would go in the wrong direction, then
@@ -1498,6 +1498,8 @@ class Block(PandasObject):
                 values, other)
 
             try:
+                if isinstance(self, DatetimeTZBlock):
+                    cond = cond.T
                 return self._try_coerce_result(expressions.where(
                     cond, values, other))
             except Exception as detail:
@@ -2888,8 +2890,8 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         elif isinstance(other, self._holder):
             if other.tz != self.values.tz:
                 raise ValueError("incompatible or non tz-aware value")
-            other = other.asi8
-            other_mask = isna(other)
+            other_mask = _block_shape(isna(other), ndim=self.ndim)
+            other = _block_shape(other.asi8, ndim=self.ndim)
         elif isinstance(other, (np.datetime64, datetime, date)):
             other = tslib.Timestamp(other)
             tz = getattr(other, 'tz', None)

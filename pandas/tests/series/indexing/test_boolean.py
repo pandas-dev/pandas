@@ -1,6 +1,7 @@
 # coding=utf-8
 # pylint: disable-msg=E1101,W0612
 
+import datetime
 import pytest
 
 import pandas as pd
@@ -549,6 +550,19 @@ def test_where_datetime_conversion():
     rs = s.where(Series([False, True]))
     expected = Series([pd.NaT, s[1]])
     assert_series_equal(rs, expected)
+
+
+def test_where_dt_tz_values():
+    dts1 = pd.date_range('20150101', '20150105', tz='America/New_York')
+    df1 = pd.DataFrame({'date': dts1})
+    dts2 = pd.date_range('20150103', '20150107', tz='America/New_York')
+    df2 = pd.DataFrame({'date': dts2})
+    result = df1.date.where(df1.date < df1.date[3], df2.date)
+    exp_vals = pd.DatetimeIndex(['20150101', '20150102', '20150103',
+                                 '20150106', '20150107'],
+                                tz='America/New_York')
+    exp = Series(exp_vals, name='date')
+    assert_series_equal(exp, result)
 
 
 def test_mask():
