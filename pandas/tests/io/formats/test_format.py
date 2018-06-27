@@ -305,7 +305,7 @@ class TestDataFrameFormatting(object):
             assert not has_truncated_repr(df)
             assert not has_expanded_repr(df)
 
-    def test_repr_multiindex(self):
+    def test_repr_truncates_terminal_size(self):
         # https://github.com/pandas-dev/pandas/issues/21180
         # TODO: use mock fixutre.
         # This is being backported, so doing it directly here.
@@ -328,11 +328,20 @@ class TestDataFrameFormatting(object):
         df = pd.DataFrame(1, index=index, columns=columns)
 
         with p1, p2:
-            result = repr(df.head())
+            result = repr(df)
 
-        # This assert will hopefully be replaced by something better in
-        # the future
-        assert result.split('\n')[0][-3:] == '...'
+        h1, h2 = result.split('\n')[:2]
+        assert 'long' in h1
+        assert 'loooooonger' in h1
+        assert 'cat' in h2
+        assert 'dog' in h2
+
+        # regular columns
+        df2 = pd.DataFrame({"A" * 41: [1, 2], 'B' * 41: [1, 2]})
+        with p1, p2:
+            result = repr(df2)
+
+        assert df2.columns[0] in result.split('\n')[0]
 
     def test_repr_max_columns_max_rows(self):
         term_width, term_height = get_terminal_size()

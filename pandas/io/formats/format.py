@@ -640,6 +640,8 @@ class DataFrameFormatter(TableFormatter):
                     col_lens = col_lens.drop(mid_ix)
                     n_cols = len(col_lens)
                 max_cols_adj = n_cols - self.index  # subtract index column
+                # GH-21180. Ensure that we print at least two.
+                max_cols_adj = max(max_cols_adj, 2)
                 self.max_cols_adj = max_cols_adj
 
                 # Call again _chk_truncate to cut frame appropriately
