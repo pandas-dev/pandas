@@ -305,3 +305,8 @@ See :ref:`V0.13.1 Bug Fixes<release.bug_fixes-0.13.1>` for an extensive list of 
 See the :ref:`full release notes
 <release>` or issue tracker
 on GitHub for a complete list of all API changes, Enhancements and Bug Fixes.
+
+
+.. _whatsnew_0.13.1.contributors:
+
+.. contributors:: v0.13.0..v0.13.1

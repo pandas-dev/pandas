@@ -1731,3 +1731,8 @@ Other
 - Compat for 32-bit platforms for ``.qcut/cut``; bins will now be ``int64`` dtype (:issue:`14866`)
 - Bug in interactions with ``Qt`` when a ``QtApplication`` already exists (:issue:`14372`)
 - Avoid use of ``np.finfo()`` during ``import pandas`` removed to mitigate deadlock on Python GIL misuse (:issue:`14641`)
+
+
+.. _whatsnew_0.20.0.contributors:
+
+.. contributors:: v0.19.2..v0.20.0

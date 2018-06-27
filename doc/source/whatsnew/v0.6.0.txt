@@ -54,3 +54,8 @@ Performance Enhancements
 - VBENCH Significantly improved performance of ``Series.order``, which also makes np.unique called on a Series faster (:issue:`327`)
 - VBENCH Vastly improved performance of GroupBy on axes with a MultiIndex (:issue:`299`)
 
+
+
+.. _whatsnew_0.6.0.contributors:
+
+.. contributors:: v0.5.0..v0.6.0

@@ -269,3 +269,8 @@ unique. In many cases it will no longer fail (some method like ``append`` still
 check for uniqueness unless disabled). However, all is not lost: you can
 inspect ``index.is_unique`` and raise an exception explicitly if it is
 ``False`` or go to a different code branch.
+
+
+.. _whatsnew_0.8.0.contributors:
+
+.. contributors:: v0.7.3..v0.8.0

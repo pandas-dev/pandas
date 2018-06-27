@@ -106,6 +106,6 @@ Bug Fixes
 
 -
 
-.. _whatsnew_0232.contributors:
+.. _whatsnew_0.23.2.contributors:
 
-{{ contributors['v0.23.2'] }}
+.. contributors:: v0.23.1..HEAD

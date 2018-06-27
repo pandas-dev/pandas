@@ -1420,6 +1420,6 @@ Other
 - Bug in accessing a :func:`pandas.get_option`, which raised ``KeyError`` rather than ``OptionError`` when looking up a non-existent option key in some cases (:issue:`19789`)
 - Bug in :func:`testing.assert_series_equal` and :func:`testing.assert_frame_equal` for Series or DataFrames with differing unicode data (:issue:`20503`)
 
-.. _whatsnew_0230.contributors:
+.. _whatsnew_0.23.0.contributors:
 
-{{ contributors["v0.23.0"] }}
+.. contributors:: v0.22.0..v0.23.0

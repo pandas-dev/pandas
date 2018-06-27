@@ -269,3 +269,8 @@ Bug Fixes
 - Bug in grouped `hist` doesn't handle `rot` kw and `sharex` kw properly (:issue:`7234`)
 - Bug in ``.loc`` performing fallback integer indexing with ``object`` dtype indices (:issue:`7496`)
 - Bug (regression) in ``PeriodIndex`` constructor when passed ``Series`` objects (:issue:`7701`).
+
+
+.. _whatsnew_0.14.1.contributors:
+
+.. contributors:: v0.14.0..v0.14.1

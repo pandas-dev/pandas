@@ -137,6 +137,6 @@ Bug Fixes
 - Tab completion on :class:`Index` in IPython no longer outputs deprecation warnings (:issue:`21125`)
 - Bug preventing pandas being used on Windows without C++ redistributable installed (:issue:`21106`)
 
-.. _whatsnew_0231.contributors:
+.. _whatsnew_0.23.1.contributors:
 
-{{ contributors['v0.22.0'] }}
+.. contributors:: v0.23.0..v0.23.1

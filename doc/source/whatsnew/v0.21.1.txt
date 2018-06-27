@@ -169,3 +169,8 @@ String
 ^^^^^^
 
 - :meth:`Series.str.split()` will now propagate ``NaN`` values across all expanded columns instead of ``None`` (:issue:`18450`)
+
+
+.. _whatsnew_0.21.1.contributors:
+
+.. contributors:: v0.21.0..v0.21.1

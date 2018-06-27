@@ -298,3 +298,8 @@ Performance improvements
   ``level`` parameter passed (:issue:`545`)
 - Ported skiplist data structure to C to speed up ``rolling_median`` by about
   5-10x in most typical use cases (:issue:`374`)
+
+
+.. _whatsnew_0.7.0.contributors:
+
+.. contributors:: v0.6.1..v0.7.0

@@ -59,3 +59,8 @@ Bug Fixes
 - Bug in ``df.groupby`` where ``TypeError`` raised when ``pd.Grouper(key=...)`` is passed in a list (:issue:`14334`)
 - Bug in ``pd.pivot_table`` may raise ``TypeError`` or ``ValueError`` when ``index`` or ``columns``
   is not scalar and ``values`` is not specified (:issue:`14380`)
+
+
+.. _whatsnew_0.19.1.contributors:
+
+.. contributors:: v0.19.0..v0.19.1

@@ -1167,3 +1167,8 @@ Bug Fixes
 - Bug in ``.groupby`` when number of keys to group by is same as length of index (:issue:`11185`)
 - Bug in ``convert_objects`` where converted values might not be returned if all null and ``coerce`` (:issue:`9589`)
 - Bug in ``convert_objects`` where ``copy`` keyword was not respected (:issue:`9589`)
+
+
+.. _whatsnew_0.17.0.contributors:
+
+.. contributors:: v0.16.2..v0.17.0

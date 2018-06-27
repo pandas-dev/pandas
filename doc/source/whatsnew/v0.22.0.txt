@@ -241,3 +241,8 @@ With conda, use
 Note that the inconsistency in the return value for all-*NA* series is still
 there for pandas 0.20.3 and earlier. Avoiding pandas 0.21 will only help with
 the empty case.
+
+
+.. _whatsnew_0.22.0.contributors:
+
+.. contributors:: v0.21.1..v0.22.0

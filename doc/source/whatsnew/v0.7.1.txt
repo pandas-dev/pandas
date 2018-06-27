@@ -28,3 +28,8 @@ Performance improvements
   - Improve performance and memory usage of fillna on DataFrame
   - Can concatenate a list of Series along axis=1 to obtain a DataFrame (:issue:`787`)
 
+
+
+.. _whatsnew_0.7.1.contributors:
+
+.. contributors:: v0.7.0..v0.7.1

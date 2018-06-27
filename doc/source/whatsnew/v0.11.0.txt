@@ -330,3 +330,8 @@ Enhancements
 See the :ref:`full release notes
 <release>` or issue tracker
 on GitHub for a complete list.
+
+
+.. _whatsnew_0.11.0.contributors:
+
+.. contributors:: v0.10.1..v0.11.0

@@ -165,3 +165,8 @@ Bug Fixes
 - Bug in ``read_hdf`` where open stores could not be used (:issue:`10330`).
 - Bug in adding empty ``DataFrames``, now results in a ``DataFrame`` that ``.equals`` an empty ``DataFrame`` (:issue:`10181`).
 - Bug in ``to_hdf`` and ``HDFStore`` which did not check that complib choices were valid (:issue:`4582`, :issue:`8874`).
+
+
+.. _whatsnew_0.16.2.contributors:
+
+.. contributors:: v0.16.1..v0.16.2

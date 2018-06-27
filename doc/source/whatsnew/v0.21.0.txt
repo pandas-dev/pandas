@@ -1176,3 +1176,8 @@ Other
 - Bug where some inplace operators were not being wrapped and produced a copy when invoked (:issue:`12962`)
 - Bug in :func:`eval` where the ``inplace`` parameter was being incorrectly handled (:issue:`16732`)
 
+
+
+.. _whatsnew_0.21.0.contributors:
+
+.. contributors:: v0.20.3..v0.21.0

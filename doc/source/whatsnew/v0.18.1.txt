@@ -692,3 +692,8 @@ Bug Fixes
 - Bug in ``pd.to_numeric()`` with ``Index`` returns ``np.ndarray``, rather than ``Index`` (:issue:`12777`)
 - Bug in ``pd.to_numeric()`` with datetime-like may raise ``TypeError`` (:issue:`12777`)
 - Bug in ``pd.to_numeric()`` with scalar raises ``ValueError`` (:issue:`12777`)
+
+
+.. _whatsnew_0.18.1.contributors:
+
+.. contributors:: v0.18.0..v0.18.1

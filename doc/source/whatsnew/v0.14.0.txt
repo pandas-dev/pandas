@@ -1047,3 +1047,8 @@ Bug Fixes
 - Bug in expressions evaluation with reversed ops, showing in series-dataframe ops (:issue:`7198`, :issue:`7192`)
 - Bug in multi-axis indexing with > 2 ndim and a MultiIndex (:issue:`7199`)
 - Fix a bug where invalid eval/query operations would blow the stack (:issue:`5198`)
+
+
+.. _whatsnew_0.14.0.contributors:
+
+.. contributors:: v0.13.1..v0.14.0

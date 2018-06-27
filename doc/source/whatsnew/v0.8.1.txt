@@ -34,3 +34,8 @@ Performance improvements
     Categorical types
   - Significant datetime parsing performance improvements
 
+
+
+.. _whatsnew_0.8.1.contributors:
+
+.. contributors:: v0.8.0..v0.8.1

@@ -125,3 +125,8 @@ Other
 ^^^^^
 
 - Bug in ``DataFrame.drop()`` with an empty-list with non-unique indices (:issue:`16270`)
+
+
+.. _whatsnew_0.20.2.contributors:
+
+.. contributors:: v0.20.0..v0.20.2

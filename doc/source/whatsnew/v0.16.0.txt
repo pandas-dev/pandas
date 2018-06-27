@@ -675,3 +675,8 @@ Bug Fixes
      df1 = DataFrame({'x': Series(['a','b','c']), 'y': Series(['d','e','f'])})
      df2 = df1[['x']]
      df2['y'] = ['g', 'h', 'i']
+
+
+.. _whatsnew_0.16.0.contributors:
+
+.. contributors:: v0.15.2..v0.16.0

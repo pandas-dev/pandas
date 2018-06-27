@@ -58,3 +58,8 @@ Categorical
 ^^^^^^^^^^^
 
 - Bug in ``DataFrame.sort_values`` not respecting the ``kind`` parameter with categorical data (:issue:`16793`)
+
+
+.. _whatsnew_0.20.3.contributors:
+
+.. contributors:: v0.20.2..v0.20.3

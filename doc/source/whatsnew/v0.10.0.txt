@@ -436,3 +436,8 @@ Here is a taste of what to expect.
 See the :ref:`full release notes
 <release>` or issue tracker
 on GitHub for a complete list.
+
+
+.. _whatsnew_0.10.0.contributors:
+
+.. contributors:: v0.9.0..v0.10.0

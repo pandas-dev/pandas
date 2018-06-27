@@ -504,3 +504,8 @@ Bug Fixes
 See the :ref:`full release notes
 <release>` or issue tracker
 on GitHub for a complete list.
+
+
+.. _whatsnew_0.12.0.contributors:
+
+.. contributors:: v0.11.0..v0.12.0

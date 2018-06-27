@@ -202,3 +202,8 @@ Bug Fixes
 - Bug in ``DataFrame.to_sparse()`` loses column names for MultiIndexes (:issue:`11600`)
 - Bug in ``DataFrame.round()`` with non-unique column index producing a Fatal Python error (:issue:`11611`)
 - Bug in ``DataFrame.round()`` with ``decimals`` being a non-unique indexed Series producing extra columns (:issue:`11618`)
+
+
+.. _whatsnew_0.17.1.contributors:
+
+.. contributors:: v0.17.0..v0.17.1

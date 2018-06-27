@@ -80,3 +80,8 @@ Bug Fixes
 - Explicit check in ``to_stata`` and ``StataWriter`` for out-of-range values when writing doubles (:issue:`14618`)
 - Bug in ``.plot(kind='kde')`` which did not drop missing values to generate the KDE Plot, instead generating an empty plot. (:issue:`14821`)
 - Bug in ``unstack()`` if called with a list of column(s) as an argument, regardless of the dtypes of all columns, they get coerced to ``object`` (:issue:`11847`)
+
+
+.. _whatsnew_0.19.2.contributors:
+
+.. contributors:: v0.19.1..v0.19.2

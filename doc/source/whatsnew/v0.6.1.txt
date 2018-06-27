@@ -48,3 +48,8 @@ Performance improvements
 - Column deletion in DataFrame copies no data (computes views on blocks) (GH
   #158)
 
+
+
+.. _whatsnew_0.6.1.contributors:
+
+.. contributors:: v0.6.0..v0.6.1
