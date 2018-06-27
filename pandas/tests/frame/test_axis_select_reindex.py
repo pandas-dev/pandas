@@ -10,7 +10,7 @@ from numpy import random
 import numpy as np
 
 from pandas.compat import lrange, lzip, u
-from pandas import (compat, DataFrame, Series, Index, MultiIndex,
+from pandas import (compat, DataFrame, Series, Index, MultiIndex, Categorical,
                     date_range, isna)
 import pandas as pd
 
@@ -1127,6 +1127,19 @@ class TestDataFrameSelectReindex(TestData):
         result = df.reindex(index=[0, 1], columns=['a', 'b'])
         expected = df.reindex([0, 1]).reindex(columns=['a', 'b'])
 
+        assert_frame_equal(result, expected)
+
+    def test_reindex_multi_categorical_time(self):
+        # https://github.com/pandas-dev/pandas/issues/21390
+        midx = pd.MultiIndex.from_product(
+            [Categorical(['a', 'b', 'c']),
+             Categorical(date_range("2012-01-01", periods=3, freq='H'))])
+        df = pd.DataFrame({'a': range(len(midx))}, index=midx)
+        df2 = df.iloc[[0, 1, 2, 3, 4, 5, 6, 8]]
+
+        result = df2.reindex(midx)
+        expected = pd.DataFrame(
+            {'a': [0, 1, 2, 3, 4, 5, 6, np.nan, 8]}, index=midx)
         assert_frame_equal(result, expected)
 
     data = [[1, 2, 3], [1, 2, 3]]
