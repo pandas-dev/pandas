@@ -160,7 +160,7 @@ class IntervalIndex(IntervalMixin, Index):
     dtype : dtype or None, default None
         If None, dtype will be inferred
 
-        ..versionadded:: 0.23.0
+        .. versionadded:: 0.23.0
 
     Attributes
     ----------
@@ -438,7 +438,7 @@ class IntervalIndex(IntervalMixin, Index):
         dtype : dtype or None, default None
             If None, dtype will be inferred
 
-            ..versionadded:: 0.23.0
+            .. versionadded:: 0.23.0
 
         Examples
         --------
@@ -568,7 +568,7 @@ class IntervalIndex(IntervalMixin, Index):
         dtype : dtype or None, default None
             If None, dtype will be inferred
 
-            ..versionadded:: 0.23.0
+            .. versionadded:: 0.23.0
 
         Examples
         --------
@@ -619,7 +619,7 @@ class IntervalIndex(IntervalMixin, Index):
         dtype : dtype or None, default None
             If None, dtype will be inferred
 
-            ..versionadded:: 0.23.0
+            .. versionadded:: 0.23.0
 
         Examples
         --------
@@ -671,7 +671,7 @@ class IntervalIndex(IntervalMixin, Index):
             Returns NA as a tuple if True, ``(nan, nan)``, or just as the NA
             value itself if False, ``nan``.
 
-            ..versionadded:: 0.23.0
+            .. versionadded:: 0.23.0
 
         Examples
         --------
