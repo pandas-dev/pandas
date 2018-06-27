@@ -182,6 +182,7 @@ class DateOffset(BaseOffset):
 
     Since 0 is a bit weird, we suggest avoiding its use.
     """
+    _params = cache_readonly(BaseOffset._params.fget)
     _use_relativedelta = False
     _adjust_dst = False
     _attributes = frozenset(['n', 'normalize'] +
@@ -288,18 +289,6 @@ class DateOffset(BaseOffset):
         # if there were a canonical docstring for what isAnchored means.
         return (self.n == 1)
 
-    @cache_readonly
-    def _params(self):
-        all_paras = self.__dict__.copy()
-        if 'holidays' in all_paras and not all_paras['holidays']:
-            all_paras.pop('holidays')
-        exclude = ['kwds', 'name', 'calendar']
-        attrs = [(k, v) for k, v in all_paras.items()
-                 if (k not in exclude) and (k[0] != '_')]
-        attrs = sorted(set(attrs))
-        params = tuple([str(self.__class__)] + attrs)
-        return params
-
     # TODO: Combine this with BusinessMixin version by defining a whitelisted
     # set of attributes on each object rather than the existing behavior of
     # iterating over internal ``__dict__``
@@ -321,24 +310,6 @@ class DateOffset(BaseOffset):
     @property
     def name(self):
         return self.rule_code
-
-    def __eq__(self, other):
-
-        if isinstance(other, compat.string_types):
-            from pandas.tseries.frequencies import to_offset
-
-            other = to_offset(other)
-
-        if not isinstance(other, DateOffset):
-            return False
-
-        return self._params == other._params
-
-    def __ne__(self, other):
-        return not self == other
-
-    def __hash__(self):
-        return hash(self._params)
 
     def __add__(self, other):
         if isinstance(other, (ABCDatetimeIndex, ABCSeries)):

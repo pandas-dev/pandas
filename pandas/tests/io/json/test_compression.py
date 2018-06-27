@@ -21,11 +21,11 @@ def test_compression_roundtrip(compression):
         assert_frame_equal(df, pd.read_json(result))
 
 
-def test_read_zipped_json():
-    uncompressed_path = tm.get_data_path("tsframe_v012.json")
+def test_read_zipped_json(datapath):
+    uncompressed_path = datapath("io", "json", "data", "tsframe_v012.json")
     uncompressed_df = pd.read_json(uncompressed_path)
 
-    compressed_path = tm.get_data_path("tsframe_v012.json.zip")
+    compressed_path = datapath("io", "json", "data", "tsframe_v012.json.zip")
     compressed_df = pd.read_json(compressed_path, compression='zip')
 
     assert_frame_equal(uncompressed_df, compressed_df)
