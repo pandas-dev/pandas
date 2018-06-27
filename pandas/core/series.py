@@ -29,13 +29,16 @@ from pandas.core.dtypes.common import (
     is_hashable,
     is_iterator,
     is_dict_like,
+    is_dtype_equal,
     is_scalar,
     _is_unorderable_exception,
     _ensure_platform_int,
-    pandas_dtype)
+    pandas_dtype,
+    needs_i8_conversion)
 from pandas.core.dtypes.generic import (
     ABCSparseArray, ABCDataFrame, ABCIndexClass)
 from pandas.core.dtypes.cast import (
+    find_common_type, maybe_downcast_to_dtype,
     maybe_upcast, infer_dtype_from_scalar,
     maybe_convert_platform,
     maybe_cast_to_datetime, maybe_castable,
@@ -2305,7 +2308,24 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         other = other.reindex(new_index, copy=False)
         # TODO: do we need name?
         name = ops.get_op_result_name(self, other)  # noqa
-        rs_vals = com._where_compat(isna(this), other._values, this._values)
+        if not is_dtype_equal(this.dtype, other.dtype):
+            new_dtype = find_common_type([this.dtype, other.dtype])
+            if not is_dtype_equal(this.dtype, new_dtype):
+                this = this.astype(new_dtype)
+            if not is_dtype_equal(other.dtype, new_dtype):
+                other = other.astype(new_dtype)
+
+        if needs_i8_conversion(this.dtype):
+            mask = isna(this)
+            this_values = this.values.view('i8')
+            other_values = other.values.view('i8')
+        else:
+            this_values = this.values
+            other_values = other.values
+            mask = isna(this_values)
+
+        rs_vals = np.where(mask, other_values, this_values)
+        rs_vals = maybe_downcast_to_dtype(rs_vals, this.dtype)
         return self._constructor(rs_vals, index=new_index).__finalize__(self)
 
     def update(self, other):
