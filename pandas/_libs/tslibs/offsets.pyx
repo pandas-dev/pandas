@@ -18,12 +18,12 @@ cnp.import_array()
 from util cimport is_string_object, is_integer_object
 
 from ccalendar import MONTHS, DAYS
+from ccalendar cimport get_days_in_month, dayofweek
 from conversion cimport tz_convert_single, pydt_to_i8
 from frequencies cimport get_freq_code
 from nattype cimport NPY_NAT
 from np_datetime cimport (pandas_datetimestruct,
-                          dtstruct_to_dt64, dt64_to_dtstruct,
-                          is_leapyear, days_per_month_table, dayofweek)
+                          dtstruct_to_dt64, dt64_to_dtstruct)
 
 # ---------------------------------------------------------------------
 # Constants
@@ -87,6 +87,15 @@ for _d in DAYS:
 
 # ---------------------------------------------------------------------
 # Misc Helpers
+
+cdef to_offset(object obj):
+    """
+    Wrap pandas.tseries.frequencies.to_offset to keep centralize runtime
+    imports
+    """
+    from pandas.tseries.frequencies import to_offset
+    return to_offset(obj)
+
 
 def as_datetime(obj):
     f = getattr(obj, 'to_pydatetime', None)
@@ -304,6 +313,50 @@ class _BaseOffset(object):
     _day_opt = None
     _attributes = frozenset(['n', 'normalize'])
 
+    def __init__(self, n=1, normalize=False):
+        n = self._validate_n(n)
+        object.__setattr__(self, "n", n)
+        object.__setattr__(self, "normalize", normalize)
+        object.__setattr__(self, "_cache", {})
+
+    def __setattr__(self, name, value):
+        raise AttributeError("DateOffset objects are immutable.")
+
+    def __eq__(self, other):
+        if is_string_object(other):
+            other = to_offset(other)
+
+        try:
+            return self._params == other._params
+        except AttributeError:
+            # other is not a DateOffset object
+            return False
+
+        return self._params == other._params
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __hash__(self):
+        return hash(self._params)
+
+    @property
+    def _params(self):
+        """
+        Returns a tuple containing all of the attributes needed to evaluate
+        equality between two DateOffset objects.
+        """
+        # NB: non-cython subclasses override property with cache_readonly
+        all_paras = self.__dict__.copy()
+        if 'holidays' in all_paras and not all_paras['holidays']:
+            all_paras.pop('holidays')
+        exclude = ['kwds', 'name', 'calendar']
+        attrs = [(k, v) for k, v in all_paras.items()
+                 if (k not in exclude) and (k[0] != '_')]
+        attrs = sorted(set(attrs))
+        params = tuple([str(self.__class__)] + attrs)
+        return params
+
     @property
     def kwds(self):
         # for backwards-compatibility
@@ -379,6 +432,49 @@ class _BaseOffset(object):
                              'got {n}'.format(n=n))
         return nint
 
+    def __setstate__(self, state):
+        """Reconstruct an instance from a pickled state"""
+        if 'offset' in state:
+            # Older (<0.22.0) versions have offset attribute instead of _offset
+            if '_offset' in state:  # pragma: no cover
+                raise AssertionError('Unexpected key `_offset`')
+            state['_offset'] = state.pop('offset')
+            state['kwds']['offset'] = state['_offset']
+
+        if '_offset' in state and not isinstance(state['_offset'], timedelta):
+            # relativedelta, we need to populate using its kwds
+            offset = state['_offset']
+            odict = offset.__dict__
+            kwds = {key: odict[key] for key in odict if odict[key]}
+            state.update(kwds)
+
+        if '_cache' not in state:
+            state['_cache'] = {}
+
+        self.__dict__.update(state)
+
+        if 'weekmask' in state and 'holidays' in state:
+            calendar, holidays = _get_calendar(weekmask=self.weekmask,
+                                               holidays=self.holidays,
+                                               calendar=None)
+            object.__setattr__(self, "calendar", calendar)
+            object.__setattr__(self, "holidays", holidays)
+
+    def __getstate__(self):
+        """Return a pickleable state"""
+        state = self.__dict__.copy()
+
+        # we don't want to actually pickle the calendar object
+        # as its a np.busyday; we recreate on deserilization
+        if 'calendar' in state:
+            del state['calendar']
+        try:
+            state['kwds'].pop('calendar')
+        except KeyError:
+            pass
+
+        return state
+
 
 class BaseOffset(_BaseOffset):
     # Here we add __rfoo__ methods that don't play well with cdef classes
@@ -397,12 +493,6 @@ class BaseOffset(_BaseOffset):
 
 # ----------------------------------------------------------------------
 # RelativeDelta Arithmetic
-
-@cython.wraparound(False)
-@cython.boundscheck(False)
-cdef inline int get_days_in_month(int year, int month) nogil:
-    return days_per_month_table[is_leapyear(year)][month - 1]
-
 
 cdef inline int year_add_months(pandas_datetimestruct dts, int months) nogil:
     """new year number after shifting pandas_datetimestruct number of months"""

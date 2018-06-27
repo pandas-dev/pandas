@@ -1,4 +1,3 @@
-import os
 from distutils.version import LooseVersion
 from datetime import date, datetime, timedelta
 
@@ -233,6 +232,14 @@ class TestCommon(Base):
                  'Micro': Timestamp('2011-01-01 09:00:00.000001'),
                  'Nano': Timestamp(np_datetime64_compat(
                                    '2011-01-01T09:00:00.000000001Z'))}
+
+    def test_immutable(self, offset_types):
+        # GH#21341 check that __setattr__ raises
+        offset = self._get_offset(offset_types)
+        with pytest.raises(AttributeError):
+            offset.normalize = True
+        with pytest.raises(AttributeError):
+            offset.n = 91
 
     def test_return_type(self, offset_types):
         offset = self._get_offset(offset_types)
@@ -510,14 +517,15 @@ class TestCommon(Base):
         assert isinstance(result, Timestamp)
         assert result == expected_localize
 
-    def test_pickle_v0_15_2(self):
+    def test_pickle_v0_15_2(self, datapath):
         offsets = {'DateOffset': DateOffset(years=1),
                    'MonthBegin': MonthBegin(1),
                    'Day': Day(1),
                    'YearBegin': YearBegin(1),
                    'Week': Week(1)}
-        pickle_path = os.path.join(tm.get_data_path(),
-                                   'dateoffset_0_15_2.pickle')
+
+        pickle_path = datapath('tseries', 'offsets', 'data',
+                               'dateoffset_0_15_2.pickle')
         # This code was executed once on v0.15.2 to generate the pickle:
         # with open(pickle_path, 'wb') as f: pickle.dump(offsets, f)
         #
@@ -583,7 +591,10 @@ class TestBusinessDay(Base):
         assert repr(self.offset) == '<BusinessDay>'
         assert repr(self.offset2) == '<2 * BusinessDays>'
 
-        expected = '<BusinessDay: offset=datetime.timedelta(1)>'
+        if compat.PY37:
+            expected = '<BusinessDay: offset=datetime.timedelta(days=1)>'
+        else:
+            expected = '<BusinessDay: offset=datetime.timedelta(1)>'
         assert repr(self.offset + timedelta(1)) == expected
 
     def test_with_offset(self):
@@ -1643,7 +1654,10 @@ class TestCustomBusinessDay(Base):
         assert repr(self.offset) == '<CustomBusinessDay>'
         assert repr(self.offset2) == '<2 * CustomBusinessDays>'
 
-        expected = '<BusinessDay: offset=datetime.timedelta(1)>'
+        if compat.PY37:
+            expected = '<BusinessDay: offset=datetime.timedelta(days=1)>'
+        else:
+            expected = '<BusinessDay: offset=datetime.timedelta(1)>'
         assert repr(self.offset + timedelta(1)) == expected
 
     def test_with_offset(self):
@@ -1824,12 +1838,10 @@ class TestCustomBusinessDay(Base):
         _check_roundtrip(self.offset2)
         _check_roundtrip(self.offset * 2)
 
-    def test_pickle_compat_0_14_1(self):
+    def test_pickle_compat_0_14_1(self, datapath):
         hdays = [datetime(2013, 1, 1) for ele in range(4)]
-
-        pth = tm.get_data_path()
-
-        cday0_14_1 = read_pickle(os.path.join(pth, 'cday-0.14.1.pickle'))
+        pth = datapath('tseries', 'offsets', 'data', 'cday-0.14.1.pickle')
+        cday0_14_1 = read_pickle(pth)
         cday = CDay(holidays=hdays)
         assert cday == cday0_14_1
 
