@@ -6,8 +6,6 @@ import warnings
 from datetime import timedelta
 from itertools import product
 
-import six
-
 import pytest
 
 import numpy as np
