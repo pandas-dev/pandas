@@ -463,7 +463,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        ndarray.ndim
+        ndarray.ndim : Number of array dimensions.
 
         Examples
         --------
@@ -487,7 +487,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        ndarray.size
+        ndarray.size : Number of elements in the array.
 
         Examples
         --------
@@ -800,7 +800,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        swapped : type of caller (new object)
+        swapped : same type as caller (new object)
 
         .. versionchanged:: 0.18.1
 
@@ -1073,7 +1073,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        renamed : type of caller or None if inplace=True
+        renamed : same type as caller or None if inplace=True
 
         See Also
         --------
@@ -2462,7 +2462,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        value : type of items contained in object
+        value : same type as items contained in object
         """
         try:
             return self[key]
@@ -2762,7 +2762,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        taken : type of caller
+        taken : same type as caller
             An array-like containing the elements taken from the object.
 
         See Also
@@ -2818,7 +2818,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        taken : type of caller
+        taken : same type as caller
             An array-like containing the elements taken from the object.
 
         See Also
@@ -3027,7 +3027,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        selection : type of caller
+        selection : same type as caller
         """
         warnings.warn("'select' is deprecated and will be removed in a "
                       "future release. You can use "
@@ -3918,7 +3918,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        obj_head : type of caller
+        obj_head : same type as caller
             The first `n` rows of the caller object.
 
         See Also
@@ -4441,7 +4441,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        consolidated : type of caller
+        consolidated : same type as caller
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if inplace:
@@ -4910,7 +4910,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        casted : type of caller
+        casted : same type as caller
 
         Examples
         --------
@@ -6685,7 +6685,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        converted : type of caller
+        converted : same type as caller
 
         Examples
         --------
@@ -6766,7 +6766,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        values_at_time : type of caller
+        values_at_time : same type as caller
 
         Examples
         --------
@@ -6820,7 +6820,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        values_between_time : type of caller
+        values_between_time : same type as caller
 
         Examples
         --------
@@ -7139,7 +7139,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        subset : type of caller
+        subset : same type as caller
 
         See Also
         --------
@@ -7203,7 +7203,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        subset : type of caller
+        subset : same type as caller
 
         See Also
         --------
@@ -8722,6 +8722,8 @@ class NDFrame(PandasObject, SelectionMixin):
         return rs
 
     def _agg_by_level(self, name, axis=0, level=0, skipna=True, **kwargs):
+        if axis is None:
+            raise ValueError("Must specify 'axis' when aggregating by level.")
         grouped = self.groupby(level=level, axis=axis, sort=False)
         if hasattr(grouped, name) and skipna:
             return getattr(grouped, name)(**kwargs)
@@ -9048,8 +9050,15 @@ _bool_doc = """
 
 Parameters
 ----------
-axis : int, default 0
-    Select the axis which can be 0 for indices and 1 for columns.
+axis : {0 or 'index', 1 or 'columns', None}, default 0
+    Indicate which axis or axes should be reduced.
+
+    * 0 / 'index' : reduce the index, return a Series whose index is the
+      original column labels.
+    * 1 / 'columns' : reduce the columns, return a Series whose index is the
+      original index.
+    * None : reduce all axes, return a scalar.
+
 skipna : boolean, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA.
@@ -9071,9 +9080,9 @@ Returns
 %(examples)s"""
 
 _all_doc = """\
-Return whether all elements are True over series or dataframe axis.
+Return whether all elements are True, potentially over an axis.
 
-Returns True if all elements within a series or along a dataframe
+Returns True if all elements within a series or along a Dataframe
 axis are non-zero, not-empty or not-False."""
 
 _all_examples = """\
@@ -9086,7 +9095,7 @@ True
 >>> pd.Series([True, False]).all()
 False
 
-Dataframes
+DataFrames
 
 Create a dataframe from a dictionary.
 
@@ -9103,12 +9112,17 @@ col1     True
 col2    False
 dtype: bool
 
-Adding axis=1 argument will check if row-wise values all return True.
+Specify ``axis='columns'`` to check if row-wise values all return True.
 
->>> df.all(axis=1)
+>>> df.all(axis='columns')
 0     True
 1    False
 dtype: bool
+
+Or ``axis=None`` for whether every value is True.
+
+>>> df.all(axis=None)
+False
 """
 
 _all_see_also = """\
@@ -9414,7 +9428,11 @@ use ``axis=1``
 _any_see_also = """\
 See Also
 --------
-pandas.DataFrame.all : Return whether all elements are True.
+numpy.any : Numpy version of this method.
+Series.any : Return whether any element is True.
+Series.all : Return whether all elements are True.
+DataFrame.any : Return whether any element is True over requested axis.
+DataFrame.all : Return whether all elements are True over requested axis.
 """
 
 _any_desc = """\
@@ -9473,6 +9491,11 @@ dtype: bool
 0    True
 1    False
 dtype: bool
+
+Aggregating over the entire DataFrame with ``axis=None``.
+
+>>> df.any(axis=None)
+True
 
 `any` for an empty DataFrame is an empty Series.
 
@@ -9644,22 +9667,17 @@ def _make_logical_function(cls, name, name1, name2, axis_descr, desc, f,
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
                   axis_descr=axis_descr, examples=examples, see_also=see_also)
     @Appender(_bool_doc)
-    def logical_func(self, axis=None, bool_only=None, skipna=None, level=None,
+    def logical_func(self, axis=0, bool_only=None, skipna=True, level=None,
                      **kwargs):
         nv.validate_logical_func(tuple(), kwargs, fname=name)
-        if skipna is None:
-            skipna = True
-        if axis is None:
-            axis = self._stat_axis_number
         if level is not None:
             if bool_only is not None:
                 raise NotImplementedError("Option bool_only is not "
                                           "implemented with option level.")
             return self._agg_by_level(name, axis=axis, level=level,
                                       skipna=skipna)
-        return self._reduce(f, axis=axis, skipna=skipna,
-                            numeric_only=bool_only, filter_type='bool',
-                            name=name)
+        return self._reduce(f, name, axis=axis, skipna=skipna,
+                            numeric_only=bool_only, filter_type='bool')
 
     return set_function_name(logical_func, name, cls)
 
