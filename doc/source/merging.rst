@@ -494,7 +494,7 @@ You can also pass a list of dicts or Series:
 
    dicts = [{'A': 1, 'B': 2, 'C': 3, 'X': 4},
             {'A': 5, 'B': 6, 'C': 7, 'Y': 8}]
-   result = df1.append(dicts, ignore_index=True)
+   result = df1.append(dicts, ignore_index=True, sort=False)
 
 .. ipython:: python
    :suppress:
