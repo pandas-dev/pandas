@@ -214,6 +214,13 @@ Strings
 -
 -
 
+Interval
+^^^^^^^^
+
+- Bug in the :class:`IntervalIndex` constructor where the ``closed`` parameter did not always override the inferred ``closed`` (:issue:`19370`)
+-
+-
+
 Indexing
 ^^^^^^^^
 
