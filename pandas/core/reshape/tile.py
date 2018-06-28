@@ -313,6 +313,7 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
 def _bins_to_cuts(x, bins, right=True, labels=None,
                   precision=3, include_lowest=False,
                   dtype=None, duplicates='raise'):
+
     if duplicates not in ['raise', 'drop']:
         raise ValueError("invalid value for 'duplicates' parameter, "
                          "valid options are: raise, drop")
