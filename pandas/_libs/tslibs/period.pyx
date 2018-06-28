@@ -45,9 +45,8 @@ from timezones cimport is_utc, is_tzlocal, get_utcoffset, get_dst_info
 from timedeltas cimport delta_to_nanoseconds
 
 cimport ccalendar
-from ccalendar cimport dayofweek, get_day_of_year
+from ccalendar cimport dayofweek, get_day_of_year, is_leapyear
 from ccalendar import MONTH_NUMBERS
-from ccalendar cimport is_leapyear
 from conversion cimport tz_convert_utc_to_tzlocal
 from frequencies cimport (get_freq_code, get_base_alias,
                           get_to_timestamp_base, get_freq_str,

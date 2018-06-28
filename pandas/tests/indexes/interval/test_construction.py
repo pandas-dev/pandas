@@ -14,11 +14,6 @@ import pandas.core.common as com
 import pandas.util.testing as tm
 
 
-@pytest.fixture(params=['left', 'right', 'both', 'neither'])
-def closed(request):
-    return request.param
-
-
 @pytest.fixture(params=[None, 'foo'])
 def name(request):
     return request.param
@@ -317,13 +312,7 @@ class TestClassConstructors(Base):
         pass
 
     def test_constructor_errors(self, constructor):
-        # mismatched closed inferred from intervals vs constructor.
-        ivs = [Interval(0, 1, closed='both'), Interval(1, 2, closed='both')]
-        msg = 'conflicting values for closed'
-        with tm.assert_raises_regex(ValueError, msg):
-            constructor(ivs, closed='neither')
-
-        # mismatched closed within intervals
+        # mismatched closed within intervals with no constructor override
         ivs = [Interval(0, 1, closed='right'), Interval(2, 3, closed='left')]
         msg = 'intervals must all be closed on the same side'
         with tm.assert_raises_regex(ValueError, msg):
@@ -340,6 +329,24 @@ class TestClassConstructors(Base):
                "is not an interval")
         with tm.assert_raises_regex(TypeError, msg):
             constructor([0, 1])
+
+    @pytest.mark.parametrize('data, closed', [
+        ([], 'both'),
+        ([np.nan, np.nan], 'neither'),
+        ([Interval(0, 3, closed='neither'),
+          Interval(2, 5, closed='neither')], 'left'),
+        ([Interval(0, 3, closed='left'),
+          Interval(2, 5, closed='right')], 'neither'),
+        (IntervalIndex.from_breaks(range(5), closed='both'), 'right')])
+    def test_override_inferred_closed(self, constructor, data, closed):
+        # GH 19370
+        if isinstance(data, IntervalIndex):
+            tuples = data.to_tuples()
+        else:
+            tuples = [(iv.left, iv.right) if notna(iv) else iv for iv in data]
+        expected = IntervalIndex.from_tuples(tuples, closed=closed)
+        result = constructor(data, closed=closed)
+        tm.assert_index_equal(result, expected)
 
 
 class TestFromIntervals(TestClassConstructors):

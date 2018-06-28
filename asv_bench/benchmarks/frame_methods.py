@@ -501,7 +501,7 @@ class GetDtypeCounts(object):
 class NSort(object):
 
     goal_time = 0.2
-    params = ['first', 'last']
+    params = ['first', 'last', 'all']
     param_names = ['keep']
 
     def setup(self, keep):
