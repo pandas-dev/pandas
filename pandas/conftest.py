@@ -245,6 +245,18 @@ def float_dtype(request):
     return request.param
 
 
+@pytest.fixture(params=["complex64", "complex128"])
+def complex_dtype(request):
+    """
+    Parameterized fixture for complex dtypes.
+
+    * complex64
+    * complex128
+    """
+
+    return request.param
+
+
 UNSIGNED_INT_DTYPES = ["uint8", "uint16", "uint32", "uint64"]
 SIGNED_INT_DTYPES = ["int8", "int16", "int32", "int64"]
 ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES
@@ -308,3 +320,20 @@ def mock():
         return importlib.import_module("unittest.mock")
     else:
         return pytest.importorskip("mock")
+
+
+@pytest.fixture(params=['__eq__', '__ne__', '__le__',
+                        '__lt__', '__ge__', '__gt__'])
+def all_compare_operators(request):
+    """
+    Fixture for dunder names for common compare operations
+
+    * >=
+    * >
+    * ==
+    * !=
+    * <
+    * <=
+    """
+
+    return request.param
