@@ -32,8 +32,8 @@ upgrade instructions, see :ref:`install`.
 .. toctree::
    :maxdepth: 2
 
-   whatsnew/v0.21.0.txt
-   whatsnew/v0.21.1.txt
+   whatsnew/v0.21.0
+   whatsnew/v0.21.1
 
 0.20 release
 ------------
@@ -41,9 +41,9 @@ upgrade instructions, see :ref:`install`.
 .. toctree::
    :maxdepth: 2
 
-   whatsnew/v0.20.0.txt
-   whatsnew/v0.20.2.txt
-   whatsnew/v0.20.3.txt
+   whatsnew/v0.20.0
+   whatsnew/v0.20.2
+   whatsnew/v0.20.3
 
 0.19 release
 ------------
@@ -51,9 +51,9 @@ upgrade instructions, see :ref:`install`.
 .. toctree::
    :maxdepth: 2
 
-   whatsnew/v0.19.0.txt
-   whatsnew/v0.19.1.txt
-   whatsnew/v0.19.2.txt
+   whatsnew/v0.19.0
+   whatsnew/v0.19.1
+   whatsnew/v0.19.2
 
 0.18 release
 ------------
@@ -61,8 +61,8 @@ upgrade instructions, see :ref:`install`.
 .. toctree::
    :maxdepth: 2
 
-   whatsnew/v0.18.0.txt
-   whatsnew/v0.18.1.txt
+   whatsnew/v0.18.0
+   whatsnew/v0.18.1
 
 0.17 release
 ------------
@@ -70,8 +70,8 @@ upgrade instructions, see :ref:`install`.
 .. toctree::
    :maxdepth: 2
 
-   whatsnew/v0.17.0.txt
-   whatsnew/v0.17.1.txt
+   whatsnew/v0.17.0
+   whatsnew/v0.17.1
 
 0.16 release
 ------------
@@ -79,9 +79,9 @@ upgrade instructions, see :ref:`install`.
 .. toctree::
    :maxdepth: 2
 
-   whatsnew/v0.16.0.txt
-   whatsnew/v0.16.1.txt
-   whatsnew/v0.16.2.txt
+   whatsnew/v0.16.0
+   whatsnew/v0.16.1
+   whatsnew/v0.16.2
 
 0.15 release
 ------------
@@ -89,9 +89,9 @@ upgrade instructions, see :ref:`install`.
 .. toctree::
    :maxdepth: 2
 
-   whatsnew/v0.15.0.txt
-   whatsnew/v0.15.1.txt
-   whatsnew/v0.15.2.txt
+   whatsnew/v0.15.0
+   whatsnew/v0.15.1
+   whatsnew/v0.15.2
 
 0.14 release
 ------------
@@ -99,8 +99,8 @@ upgrade instructions, see :ref:`install`.
 .. toctree::
    :maxdepth: 2
 
-   whatsnew/v0.14.0.txt
-   whatsnew/v0.14.1.txt
+   whatsnew/v0.14.0
+   whatsnew/v0.14.1
 
 0.13 release
 ------------
@@ -108,8 +108,8 @@ upgrade instructions, see :ref:`install`.
 .. toctree::
    :maxdepth: 2
 
-   whatsnew/v0.13.0.txt
-   whatsnew/v0.13.1.txt
+   whatsnew/v0.13.0
+   whatsnew/v0.13.1
 
 0.12 release
 ------------
@@ -117,7 +117,7 @@ upgrade instructions, see :ref:`install`.
 .. toctree::
    :maxdepth: 2
 
-   whatsnew/v0.12.0.txt
+   whatsnew/v0.12.0
 
 0.11 release
 ------------
@@ -125,7 +125,7 @@ upgrade instructions, see :ref:`install`.
 .. toctree::
    :maxdepth: 2
 
-   whatsnew/v0.11.0.txt
+   whatsnew/v0.11.0
 
 0.10 release
 ------------
@@ -133,8 +133,8 @@ upgrade instructions, see :ref:`install`.
 .. toctree::
    :maxdepth: 2
 
-   whatsnew/v0.10.0.txt
-   whatsnew/v0.10.1.txt
+   whatsnew/v0.10.0
+   whatsnew/v0.10.1
 
 0.9 release
 ------------
@@ -142,8 +142,8 @@ upgrade instructions, see :ref:`install`.
 .. toctree::
    :maxdepth: 2
 
-   whatsnew/v0.9.0.txt
-   whatsnew/v0.9.1.txt
+   whatsnew/v0.9.0
+   whatsnew/v0.9.1
 
 0.8 release
 ------------
@@ -151,8 +151,8 @@ upgrade instructions, see :ref:`install`.
 .. toctree::
    :maxdepth: 2
 
-   whatsnew/v0.8.0.txt
-   whatsnew/v0.8.1.txt
+   whatsnew/v0.8.0
+   whatsnew/v0.8.1
 
 0.7 release
 ------------
@@ -160,10 +160,10 @@ upgrade instructions, see :ref:`install`.
 .. toctree::
    :maxdepth: 2
 
-   whatsnew/v0.7.0.txt
-   whatsnew/v0.7.1.txt
-   whatsnew/v0.7.2.txt
-   whatsnew/v0.7.3.txt
+   whatsnew/v0.7.0
+   whatsnew/v0.7.1
+   whatsnew/v0.7.2
+   whatsnew/v0.7.3
 
 0.6 release
 ------------
@@ -172,8 +172,8 @@ upgrade instructions, see :ref:`install`.
    :maxdepth: 2
 
 
-   whatsnew/v0.6.0.txt
-   whatsnew/v0.6.1.txt
+   whatsnew/v0.6.0
+   whatsnew/v0.6.1
 
 0.5 release
 ------------
@@ -182,7 +182,7 @@ upgrade instructions, see :ref:`install`.
    :maxdepth: 2
 
 
-   whatsnew/v0.5.0.txt
+   whatsnew/v0.5.0
 
 0.4 release
 ------------
@@ -190,4 +190,4 @@ upgrade instructions, see :ref:`install`.
 .. toctree::
    :maxdepth: 2
 
-   whatsnew/v0.4.x.txt
+   whatsnew/v0.4.x
