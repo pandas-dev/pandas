@@ -320,3 +320,20 @@ def mock():
         return importlib.import_module("unittest.mock")
     else:
         return pytest.importorskip("mock")
+
+
+@pytest.fixture(params=['__eq__', '__ne__', '__le__',
+                        '__lt__', '__ge__', '__gt__'])
+def all_compare_operators(request):
+    """
+    Fixture for dunder names for common compare operations
+
+    * >=
+    * >
+    * ==
+    * !=
+    * <
+    * <=
+    """
+
+    return request.param
