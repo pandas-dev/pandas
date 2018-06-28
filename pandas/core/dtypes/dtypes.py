@@ -195,10 +195,9 @@ class CategoricalDtype(PandasExtensionDtype, ExtensionDtype):
         """
         if isinstance(other, compat.string_types):
             return other == self.name
-
-        if other is self:
+        elif other is self:
             return True
-        if not (hasattr(other, 'ordered') and hasattr(other, 'categories')):
+        elif not (hasattr(other, 'ordered') and hasattr(other, 'categories')):
             return False
         elif self.categories is None or other.categories is None:
             # We're forced into a suboptimal corner thanks to math and
