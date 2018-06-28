@@ -14,7 +14,7 @@ from pandas import compat
 from pandas.compat import long, zip, iteritems, PY36, OrderedDict
 from pandas.core.config import get_option
 from pandas.core.dtypes.generic import ABCSeries, ABCIndex
-from pandas.core.dtypes.common import _NS_DTYPE, is_integer
+from pandas.core.dtypes.common import is_integer
 from pandas.core.dtypes.inference import _iterable_not_string
 from pandas.core.dtypes.missing import isna, isnull, notnull  # noqa
 from pandas.core.dtypes.cast import construct_1d_object_array_from_listlike
