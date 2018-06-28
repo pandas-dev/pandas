@@ -1735,4 +1735,7 @@ Other
 
 .. _whatsnew_0.20.0.contributors:
 
+Contributors
+~~~~~~~~~~~~
+
 .. contributors:: v0.19.2..v0.20.0

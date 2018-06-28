@@ -108,4 +108,7 @@ Bug Fixes
 
 .. _whatsnew_0.23.2.contributors:
 
+Contributors
+~~~~~~~~~~~~
+
 .. contributors:: v0.23.1..HEAD

@@ -98,4 +98,7 @@ Series, to be more consistent with the ``groupby`` behavior with DataFrame:
 
 .. _whatsnew_0.7.3.contributors:
 
+Contributors
+~~~~~~~~~~~~
+
 .. contributors:: v0.7.2..v0.7.3

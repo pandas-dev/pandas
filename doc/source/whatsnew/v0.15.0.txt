@@ -1220,4 +1220,7 @@ Bug Fixes
 
 .. _whatsnew_0.15.0.contributors:
 
+Contributors
+~~~~~~~~~~~~
+
 .. contributors:: v0.14.1..v0.15.0

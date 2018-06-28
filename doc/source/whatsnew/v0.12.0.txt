@@ -508,4 +508,7 @@ on GitHub for a complete list.
 
 .. _whatsnew_0.12.0.contributors:
 
+Contributors
+~~~~~~~~~~~~
+
 .. contributors:: v0.11.0..v0.12.0

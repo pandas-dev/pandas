@@ -1422,4 +1422,7 @@ Other
 
 .. _whatsnew_0.23.0.contributors:
 
+Contributors
+~~~~~~~~~~~~
+
 .. contributors:: v0.22.0..v0.23.0

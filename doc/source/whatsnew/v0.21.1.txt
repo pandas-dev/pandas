@@ -173,4 +173,7 @@ String
 
 .. _whatsnew_0.21.1.contributors:
 
+Contributors
+~~~~~~~~~~~~
+
 .. contributors:: v0.21.0..v0.21.1

@@ -273,4 +273,7 @@ inspect ``index.is_unique`` and raise an exception explicitly if it is
 
 .. _whatsnew_0.8.0.contributors:
 
+Contributors
+~~~~~~~~~~~~
+
 .. contributors:: v0.7.3..v0.8.0

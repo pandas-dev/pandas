@@ -1180,4 +1180,7 @@ Other
 
 .. _whatsnew_0.21.0.contributors:
 
+Contributors
+~~~~~~~~~~~~
+
 .. contributors:: v0.20.3..v0.21.0

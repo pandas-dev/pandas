@@ -129,4 +129,7 @@ Other
 
 .. _whatsnew_0.20.2.contributors:
 
+Contributors
+~~~~~~~~~~~~
+
 .. contributors:: v0.20.0..v0.20.2

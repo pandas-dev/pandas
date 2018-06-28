@@ -440,4 +440,7 @@ on GitHub for a complete list.
 
 .. _whatsnew_0.10.0.contributors:
 
+Contributors
+~~~~~~~~~~~~
+
 .. contributors:: v0.9.0..v0.10.0

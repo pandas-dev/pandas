@@ -58,4 +58,7 @@ Performance Enhancements
 
 .. _whatsnew_0.6.0.contributors:
 
+Contributors
+~~~~~~~~~~~~
+
 .. contributors:: v0.5.0..v0.6.0

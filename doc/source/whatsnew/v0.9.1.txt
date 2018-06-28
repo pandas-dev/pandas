@@ -162,4 +162,7 @@ on GitHub for a complete list.
 
 .. _whatsnew_0.9.1.contributors:
 
+Contributors
+~~~~~~~~~~~~
+
 .. contributors:: v0.9.0..v0.9.1

@@ -84,4 +84,7 @@ Bug Fixes
 
 .. _whatsnew_0.19.2.contributors:
 
+Contributors
+~~~~~~~~~~~~
+
 .. contributors:: v0.19.1..v0.19.2

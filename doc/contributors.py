@@ -10,8 +10,6 @@ class ContributorsDirective(Directive):
 
     def run(self):
         components = build_components(self.arguments[0])
-        title = nodes.title()
-        title += nodes.Text(components['heading'])
 
         message = nodes.paragraph()
         message += nodes.Text(components['author_message'])
@@ -23,7 +21,7 @@ class ContributorsDirective(Directive):
             para += nodes.Text(author)
             listnode += nodes.list_item('', para)
 
-        return [title, message, listnode]
+        return [message, listnode]
 
 
 def setup(app):

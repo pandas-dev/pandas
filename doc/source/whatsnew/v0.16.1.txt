@@ -469,4 +469,7 @@ Bug Fixes
 
 .. _whatsnew_0.16.1.contributors:
 
+Contributors
+~~~~~~~~~~~~
+
 .. contributors:: v0.16.0..v0.16.1

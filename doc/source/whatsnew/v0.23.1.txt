@@ -139,4 +139,7 @@ Bug Fixes
 
 .. _whatsnew_0.23.1.contributors:
 
+Contributors
+~~~~~~~~~~~~
+
 .. contributors:: v0.23.0..v0.23.1

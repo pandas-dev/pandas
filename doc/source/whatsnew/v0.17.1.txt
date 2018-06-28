@@ -206,4 +206,7 @@ Bug Fixes
 
 .. _whatsnew_0.17.1.contributors:
 
+Contributors
+~~~~~~~~~~~~
+
 .. contributors:: v0.17.0..v0.17.1

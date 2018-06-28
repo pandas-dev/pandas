@@ -38,4 +38,7 @@ Performance improvements
 
 .. _whatsnew_0.8.1.contributors:
 
+Contributors
+~~~~~~~~~~~~
+
 .. contributors:: v0.8.0..v0.8.1

@@ -245,4 +245,7 @@ the empty case.
 
 .. _whatsnew_0.22.0.contributors:
 
+Contributors
+~~~~~~~~~~~~
+
 .. contributors:: v0.21.1..v0.22.0

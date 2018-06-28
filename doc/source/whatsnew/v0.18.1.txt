@@ -696,4 +696,7 @@ Bug Fixes
 
 .. _whatsnew_0.18.1.contributors:
 
+Contributors
+~~~~~~~~~~~~
+
 .. contributors:: v0.18.0..v0.18.1

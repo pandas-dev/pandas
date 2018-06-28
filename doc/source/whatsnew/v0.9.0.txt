@@ -99,4 +99,7 @@ on GitHub for a complete list.
 
 .. _whatsnew_0.9.0.contributors:
 
+Contributors
+~~~~~~~~~~~~
+
 .. contributors:: v0.8.1..v0.9.0

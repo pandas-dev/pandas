@@ -62,4 +62,7 @@ Categorical
 
 .. _whatsnew_0.20.3.contributors:
 
+Contributors
+~~~~~~~~~~~~
+
 .. contributors:: v0.20.2..v0.20.3

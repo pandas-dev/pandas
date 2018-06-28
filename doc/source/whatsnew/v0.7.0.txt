@@ -302,4 +302,7 @@ Performance improvements
 
 .. _whatsnew_0.7.0.contributors:
 
+Contributors
+~~~~~~~~~~~~
+
 .. contributors:: v0.6.1..v0.7.0

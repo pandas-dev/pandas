@@ -212,4 +212,7 @@ on GitHub for a complete list.
 
 .. _whatsnew_0.10.1.contributors:
 
+Contributors
+~~~~~~~~~~~~
+
 .. contributors:: v0.10.0..v0.10.1

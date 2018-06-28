@@ -268,4 +268,7 @@ Other
 
 .. _whatsnew_0.24.0.contributors:
 
+Contributors
+============
+
 .. contributors:: v0.23.1..HEAD

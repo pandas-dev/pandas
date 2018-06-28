@@ -1171,4 +1171,7 @@ Bug Fixes
 
 .. _whatsnew_0.17.0.contributors:
 
+Contributors
+~~~~~~~~~~~~
+
 .. contributors:: v0.16.2..v0.17.0
