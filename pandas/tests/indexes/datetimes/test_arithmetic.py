@@ -276,6 +276,10 @@ class TestDatetimeIndexComparisons(object):
         with pytest.raises(TypeError):
             op(dz, ts)
 
+        # GH 12601: Check comparison against Timestamps and DatetimeIndex
+        with pytest.raises(TypeError):
+            op(ts, dz)
+
     @pytest.mark.parametrize('op', [operator.eq, operator.ne,
                                     operator.gt, operator.ge,
                                     operator.lt, operator.le])

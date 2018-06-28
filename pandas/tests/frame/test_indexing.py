@@ -2248,6 +2248,16 @@ class TestDataFrameIndexing(TestData):
                           index=list('ABCDEFGH'))
         assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize('idxer', ['var', ['var']])
+    def test_setitem_datetimeindex_tz(self, idxer, tz_naive_fixture):
+        # GH 11365
+        tz = tz_naive_fixture
+        idx = date_range(start='2015-07-12', periods=3, freq='H', tz=tz)
+        expected = DataFrame(1.2, index=idx, columns=['var'])
+        result = DataFrame(index=idx, columns=['var'])
+        result.loc[:, idxer] = expected
+        tm.assert_frame_equal(result, expected)
+
     def test_at_time_between_time_datetimeindex(self):
         index = date_range("2012-01-01", "2012-01-05", freq='30min')
         df = DataFrame(randn(len(index), 5), index=index)

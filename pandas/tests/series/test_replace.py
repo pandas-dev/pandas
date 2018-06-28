@@ -108,6 +108,13 @@ class TestSeriesReplace(TestData):
                              pd.Timestamp('20120101'))
         tm.assert_series_equal(result, expected)
 
+        # GH 11792: Test with replacing NaT in a list with tz data
+        ts = pd.Timestamp('2015/01/01', tz='UTC')
+        s = pd.Series([pd.NaT, pd.Timestamp('2015/01/01', tz='UTC')])
+        result = s.replace([np.nan, pd.NaT], pd.Timestamp.min)
+        expected = pd.Series([pd.Timestamp.min, ts], dtype=object)
+        tm.assert_series_equal(expected, result)
+
     def test_replace_with_single_list(self):
         ser = pd.Series([0, 1, 2, 3, 4])
         result = ser.replace([1, 2, 3])
