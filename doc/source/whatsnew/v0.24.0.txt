@@ -24,6 +24,7 @@ Other Enhancements
   <https://pandas-gbq.readthedocs.io/en/latest/changelog.html#changelog-0-5-0>`__.
   (:issue:`21627`)
 - New method :meth:`HDFStore.walk` will recursively walk the group hierarchy of an HDF5 file (:issue:`10932`)
+- :meth:`Series.nlargest`, :meth:`Series.nsmallest`, :meth:`DataFrame.nlargest`, and :meth:`DataFrame.nsmallest` now accept the value ``"all"`` for the ``keep` argument. This keeps all ties for the nth largest/smallest value (:issue:`16818`)
 -
 
 .. _whatsnew_0240.api_breaking:
