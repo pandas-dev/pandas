@@ -19,7 +19,8 @@ from pandas.compat import PY2
 
 cimport cython
 
-from cpython.datetime cimport PyDateTime_Check, PyDateTime_IMPORT
+from cpython.datetime cimport (PyDateTime_Check, PyDelta_Check,
+                               PyDateTime_IMPORT)
 # import datetime C API
 PyDateTime_IMPORT
 
@@ -44,9 +45,8 @@ from timezones cimport is_utc, is_tzlocal, get_utcoffset, get_dst_info
 from timedeltas cimport delta_to_nanoseconds
 
 cimport ccalendar
-from ccalendar cimport dayofweek, get_day_of_year
+from ccalendar cimport dayofweek, get_day_of_year, is_leapyear
 from ccalendar import MONTH_NUMBERS
-from ccalendar cimport is_leapyear
 from conversion cimport tz_convert_utc_to_tzlocal
 from frequencies cimport (get_freq_code, get_base_alias,
                           get_to_timestamp_base, get_freq_str,
@@ -1058,18 +1058,21 @@ cdef class _Period(object):
         return hash((self.ordinal, self.freqstr))
 
     def _add_delta(self, other):
-        if isinstance(other, (timedelta, np.timedelta64, offsets.Tick)):
+        cdef:
+            int64_t nanos, offset_nanos
+
+        if (PyDelta_Check(other) or util.is_timedelta64_object(other) or
+                isinstance(other, offsets.Tick)):
             offset = frequencies.to_offset(self.freq.rule_code)
             if isinstance(offset, offsets.Tick):
                 nanos = delta_to_nanoseconds(other)
                 offset_nanos = delta_to_nanoseconds(offset)
-
                 if nanos % offset_nanos == 0:
                     ordinal = self.ordinal + (nanos // offset_nanos)
                     return Period(ordinal=ordinal, freq=self.freq)
             msg = 'Input cannot be converted to Period(freq={0})'
             raise IncompatibleFrequency(msg.format(self.freqstr))
-        elif isinstance(other, offsets.DateOffset):
+        elif util.is_offset_object(other):
             freqstr = other.rule_code
             base = get_base_alias(freqstr)
             if base == self.freq.rule_code:
@@ -1082,8 +1085,8 @@ cdef class _Period(object):
 
     def __add__(self, other):
         if is_period_object(self):
-            if isinstance(other, (timedelta, np.timedelta64,
-                                  offsets.DateOffset)):
+            if (PyDelta_Check(other) or util.is_timedelta64_object(other) or
+                    util.is_offset_object(other)):
                 return self._add_delta(other)
             elif other is NaT:
                 return NaT
@@ -1109,8 +1112,8 @@ cdef class _Period(object):
 
     def __sub__(self, other):
         if is_period_object(self):
-            if isinstance(other, (timedelta, np.timedelta64,
-                                  offsets.DateOffset)):
+            if (PyDelta_Check(other) or util.is_timedelta64_object(other) or
+                    util.is_offset_object(other)):
                 neg_other = -other
                 return self + neg_other
             elif util.is_integer_object(other):

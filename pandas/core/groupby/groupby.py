@@ -867,7 +867,7 @@ b  2""")
 
         Returns
         -------
-        group : type of obj
+        group : same type as obj
         """
         if obj is None:
             obj = self._selected_obj
@@ -2069,7 +2069,7 @@ class GroupBy(_GroupBy):
     @Appender(_doc_template)
     def pct_change(self, periods=1, fill_method='pad', limit=None, freq=None,
                    axis=0):
-        """Calcuate pct_change of each value to previous entry in group"""
+        """Calculate pct_change of each value to previous entry in group"""
         if freq is not None or axis != 0:
             return self.apply(lambda x: x.pct_change(periods=periods,
                                                      fill_method=fill_method,
@@ -4740,7 +4740,7 @@ class DataFrameGroupBy(NDFrameGroupBy):
 
     def _wrap_agged_blocks(self, items, blocks):
         if not self.as_index:
-            index = np.arange(blocks[0].values.shape[1])
+            index = np.arange(blocks[0].values.shape[-1])
             mgr = BlockManager(blocks, [items, index])
             result = DataFrame(mgr)
 

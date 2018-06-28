@@ -1,3 +1,4 @@
+import pytest
 import pandas as pd
 import pandas.util.testing as tm
 from pandas.io.sas.sasreader import read_sas
@@ -18,8 +19,9 @@ def numeric_as_float(data):
 
 class TestXport(object):
 
-    def setup_method(self, method):
-        self.dirpath = tm.get_data_path()
+    @pytest.fixture(autouse=True)
+    def setup_method(self, datapath):
+        self.dirpath = datapath("io", "sas", "data")
         self.file01 = os.path.join(self.dirpath, "DEMO_G.xpt")
         self.file02 = os.path.join(self.dirpath, "SSHSV1_A.xpt")
         self.file03 = os.path.join(self.dirpath, "DRXFCD_G.xpt")

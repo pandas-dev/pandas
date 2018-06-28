@@ -138,11 +138,11 @@ steps; you only need to install the compiler.
 
 For Windows developers, the following links may be helpful.
 
-- https://blogs.msdn.microsoft.com/pythonengineering/2016/04/11/unable-to-find-vcvarsall-bat/
-- https://github.com/conda/conda-recipes/wiki/Building-from-Source-on-Windows-32-bit-and-64-bit
-- https://cowboyprogrammer.org/building-python-wheels-for-windows/
-- https://blog.ionelmc.ro/2014/12/21/compiling-python-extensions-on-windows/
-- https://support.enthought.com/hc/en-us/articles/204469260-Building-Python-extensions-with-Canopy
+* https://blogs.msdn.microsoft.com/pythonengineering/2016/04/11/unable-to-find-vcvarsall-bat/
+* https://github.com/conda/conda-recipes/wiki/Building-from-Source-on-Windows-32-bit-and-64-bit
+* https://cowboyprogrammer.org/building-python-wheels-for-windows/
+* https://blog.ionelmc.ro/2014/12/21/compiling-python-extensions-on-windows/
+* https://support.enthought.com/hc/en-us/articles/204469260-Building-Python-extensions-with-Canopy
 
 Let us know if you have any difficulties by opening an issue or reaching out on
 `Gitter`_.
@@ -155,11 +155,11 @@ Creating a Python Environment
 Now that you have a C compiler, create an isolated pandas development
 environment:
 
-- Install either `Anaconda <https://www.anaconda.com/download/>`_ or `miniconda
+* Install either `Anaconda <https://www.anaconda.com/download/>`_ or `miniconda
   <https://conda.io/miniconda.html>`_
-- Make sure your conda is up to date (``conda update conda``)
-- Make sure that you have :ref:`cloned the repository <contributing.forking>`
-- ``cd`` to the *pandas* source directory
+* Make sure your conda is up to date (``conda update conda``)
+* Make sure that you have :ref:`cloned the repository <contributing.forking>`
+* ``cd`` to the *pandas* source directory
 
 We'll now kick off a three-step process:
 
@@ -286,7 +286,7 @@ complex changes to the documentation as well.
 
 Some other important things to know about the docs:
 
-- The *pandas* documentation consists of two parts: the docstrings in the code
+* The *pandas* documentation consists of two parts: the docstrings in the code
   itself and the docs in this folder ``pandas/doc/``.
 
   The docstrings provide a clear explanation of the usage of the individual
@@ -294,7 +294,7 @@ Some other important things to know about the docs:
   overviews per topic together with some other information (what's new,
   installation, etc).
 
-- The docstrings follow a pandas convention, based on the **Numpy Docstring
+* The docstrings follow a pandas convention, based on the **Numpy Docstring
   Standard**. Follow the :ref:`pandas docstring guide <docstring>` for detailed
   instructions on how to write a correct docstring.
 
@@ -303,7 +303,7 @@ Some other important things to know about the docs:
 
      contributing_docstring.rst
 
-- The tutorials make heavy use of the `ipython directive
+* The tutorials make heavy use of the `ipython directive
   <http://matplotlib.org/sampledoc/ipython_directive.html>`_ sphinx extension.
   This directive lets you put code in the documentation which will be run
   during the doc build. For example::
@@ -324,7 +324,7 @@ Some other important things to know about the docs:
   doc build. This approach means that code examples will always be up to date,
   but it does make the doc building a bit more complex.
 
-- Our API documentation in ``doc/source/api.rst`` houses the auto-generated
+* Our API documentation in ``doc/source/api.rst`` houses the auto-generated
   documentation from the docstrings. For classes, there are a few subtleties
   around controlling which methods and attributes have pages auto-generated.
 
@@ -436,6 +436,25 @@ the documentation are also built by Travis-CI. These docs are then hosted `here
 <http://pandas-docs.github.io/pandas-docs-travis>`__, see also
 the :ref:`Continuous Integration <contributing.ci>` section.
 
+Spell checking documentation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When contributing to documentation to **pandas** it's good to check if your work
+contains any spelling errors. Sphinx provides an easy way to spell check documentation
+and docstrings.
+
+Running the spell check is easy. Just navigate to your local ``pandas/doc/`` directory and run::
+
+    python make.py spellcheck
+
+The spellcheck will take a few minutes to run (between 1 to 6 minutes). Sphinx will alert you
+with warnings and misspelt words - these misspelt words will be added to a file called
+``output.txt`` and you can find it on your local directory ``pandas/doc/build/spelling/``.
+
+The Sphinx spelling extension uses an EN-US dictionary to correct words, what means that in
+some cases you might need to add a word to this dictionary. You can do so by adding the word to
+the bag-of-words file named ``spelling_wordlist.txt`` located in the folder ``pandas/doc/``.
+
 .. _contributing.code:
 
 Contributing to the code base
@@ -469,8 +488,8 @@ standard. Google provides an open source style checker called ``cpplint``, but w
 use a fork of it that can be found `here <https://github.com/cpplint/cpplint>`__.
 Here are *some* of the more common ``cpplint`` issues:
 
-  - we restrict line-length to 80 characters to promote readability
-  - every header file must include a header guard to avoid name collisions if re-included
+* we restrict line-length to 80 characters to promote readability
+* every header file must include a header guard to avoid name collisions if re-included
 
 :ref:`Continuous Integration <contributing.ci>` will run the
 `cpplint <https://pypi.org/project/cpplint>`_ tool
@@ -517,8 +536,8 @@ Python (PEP8)
 There are several tools to ensure you abide by this standard. Here are *some* of
 the more common ``PEP8`` issues:
 
-  - we restrict line-length to 79 characters to promote readability
-  - passing arguments should have spaces after commas, e.g. ``foo(arg1, arg2, kw1='bar')``
+* we restrict line-length to 79 characters to promote readability
+* passing arguments should have spaces after commas, e.g. ``foo(arg1, arg2, kw1='bar')``
 
 :ref:`Continuous Integration <contributing.ci>` will run
 the `flake8 <https://pypi.org/project/flake8>`_ tool
@@ -696,14 +715,14 @@ Using ``pytest``
 
 Here is an example of a self-contained set of tests that illustrate multiple features that we like to use.
 
-- functional style: tests are like ``test_*`` and *only* take arguments that are either fixtures or parameters
-- ``pytest.mark`` can be used to set metadata on test functions, e.g. ``skip`` or ``xfail``.
-- using ``parametrize``: allow testing of multiple cases
-- to set a mark on a parameter, ``pytest.param(..., marks=...)`` syntax should be used
-- ``fixture``, code for object construction, on a per-test basis
-- using bare ``assert`` for scalars and truth-testing
-- ``tm.assert_series_equal`` (and its counter part ``tm.assert_frame_equal``), for pandas object comparisons.
-- the typical pattern of constructing an ``expected`` and comparing versus the ``result``
+* functional style: tests are like ``test_*`` and *only* take arguments that are either fixtures or parameters
+* ``pytest.mark`` can be used to set metadata on test functions, e.g. ``skip`` or ``xfail``.
+* using ``parametrize``: allow testing of multiple cases
+* to set a mark on a parameter, ``pytest.param(..., marks=...)`` syntax should be used
+* ``fixture``, code for object construction, on a per-test basis
+* using bare ``assert`` for scalars and truth-testing
+* ``tm.assert_series_equal`` (and its counter part ``tm.assert_frame_equal``), for pandas object comparisons.
+* the typical pattern of constructing an ``expected`` and comparing versus the ``result``
 
 We would name this file ``test_cool_feature.py`` and put in an appropriate place in the ``pandas/tests/`` structure.
 
@@ -950,21 +969,21 @@ Finally, commit your changes to your local repository with an explanatory messag
 uses a convention for commit message prefixes and layout.  Here are
 some common prefixes along with general guidelines for when to use them:
 
-    * ENH: Enhancement, new functionality
-    * BUG: Bug fix
-    * DOC: Additions/updates to documentation
-    * TST: Additions/updates to tests
-    * BLD: Updates to the build process/scripts
-    * PERF: Performance improvement
-    * CLN: Code cleanup
+* ENH: Enhancement, new functionality
+* BUG: Bug fix
+* DOC: Additions/updates to documentation
+* TST: Additions/updates to tests
+* BLD: Updates to the build process/scripts
+* PERF: Performance improvement
+* CLN: Code cleanup
 
 The following defines how a commit message should be structured.  Please reference the
 relevant GitHub issues in your commit message using GH1234 or #1234.  Either style
 is fine, but the former is generally preferred:
 
-    * a subject line with `< 80` chars.
-    * One blank line.
-    * Optionally, a commit message body.
+* a subject line with `< 80` chars.
+* One blank line.
+* Optionally, a commit message body.
 
 Now you can commit your changes in your local repository::
 

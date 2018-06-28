@@ -32,7 +32,7 @@ Cython (Writing C extensions for pandas)
 ----------------------------------------
 
 For many use cases writing pandas in pure Python and NumPy is sufficient. In some
-computationally heavy applications however, it can be possible to achieve sizeable
+computationally heavy applications however, it can be possible to achieve sizable
 speed-ups by offloading work to `cython <http://cython.org/>`__.
 
 This tutorial assumes you have refactored as much as possible in Python, for example
@@ -461,15 +461,15 @@ Supported Syntax
 
 These operations are supported by :func:`pandas.eval`:
 
-- Arithmetic operations except for the left shift (``<<``) and right shift
+* Arithmetic operations except for the left shift (``<<``) and right shift
   (``>>``) operators, e.g., ``df + 2 * pi / s ** 4 % 42 - the_golden_ratio``
-- Comparison operations, including chained comparisons, e.g., ``2 < df < df2``
-- Boolean operations, e.g., ``df < df2 and df3 < df4 or not df_bool``
-- ``list`` and ``tuple`` literals, e.g., ``[1, 2]`` or ``(1, 2)``
-- Attribute access, e.g., ``df.a``
-- Subscript expressions, e.g., ``df[0]``
-- Simple variable evaluation, e.g., ``pd.eval('df')`` (this is not very useful)
-- Math functions: `sin`, `cos`, `exp`, `log`, `expm1`, `log1p`,
+* Comparison operations, including chained comparisons, e.g., ``2 < df < df2``
+* Boolean operations, e.g., ``df < df2 and df3 < df4 or not df_bool``
+* ``list`` and ``tuple`` literals, e.g., ``[1, 2]`` or ``(1, 2)``
+* Attribute access, e.g., ``df.a``
+* Subscript expressions, e.g., ``df[0]``
+* Simple variable evaluation, e.g., ``pd.eval('df')`` (this is not very useful)
+* Math functions: `sin`, `cos`, `exp`, `log`, `expm1`, `log1p`,
   `sqrt`, `sinh`, `cosh`, `tanh`, `arcsin`, `arccos`, `arctan`, `arccosh`,
   `arcsinh`, `arctanh`, `abs` and `arctan2`.
 
@@ -477,22 +477,22 @@ This Python syntax is **not** allowed:
 
 * Expressions
 
-  - Function calls other than math functions.
-  - ``is``/``is not`` operations
-  - ``if`` expressions
-  - ``lambda`` expressions
-  - ``list``/``set``/``dict`` comprehensions
-  - Literal ``dict`` and ``set`` expressions
-  - ``yield`` expressions
-  - Generator expressions
-  - Boolean expressions consisting of only scalar values
+    * Function calls other than math functions.
+    * ``is``/``is not`` operations
+    * ``if`` expressions
+    * ``lambda`` expressions
+    * ``list``/``set``/``dict`` comprehensions
+    * Literal ``dict`` and ``set`` expressions
+    * ``yield`` expressions
+    * Generator expressions
+    * Boolean expressions consisting of only scalar values
 
 * Statements
 
-  - Neither `simple <https://docs.python.org/3/reference/simple_stmts.html>`__
-    nor `compound <https://docs.python.org/3/reference/compound_stmts.html>`__
-    statements are allowed. This includes things like ``for``, ``while``, and
-    ``if``.
+    * Neither `simple <https://docs.python.org/3/reference/simple_stmts.html>`__
+      nor `compound <https://docs.python.org/3/reference/compound_stmts.html>`__
+      statements are allowed. This includes things like ``for``, ``while``, and
+      ``if``.
 
 
 
@@ -806,7 +806,7 @@ truncate any strings that are more than 60 characters in length. Second, we
 can't pass ``object`` arrays to ``numexpr`` thus string comparisons must be
 evaluated in Python space.
 
-The upshot is that this *only* applies to object-dtype'd expressions. So, if
+The upshot is that this *only* applies to object-dtype expressions. So, if
 you have an expression--for example
 
 .. ipython:: python

@@ -187,6 +187,14 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
         super(TestMethods, self).test_sort_values_missing(
             data_missing_for_sorting, ascending)
 
+    @pytest.mark.skip(reason="combine for JSONArray not supported")
+    def test_combine_le(self, data_repeated):
+        pass
+
+    @pytest.mark.skip(reason="combine for JSONArray not supported")
+    def test_combine_add(self, data_repeated):
+        pass
+
 
 class TestCasting(BaseJSON, base.BaseCastingTests):
     @pytest.mark.xfail

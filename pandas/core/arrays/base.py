@@ -195,13 +195,13 @@ class ExtensionArray(object):
         )
 
     def __len__(self):
+        # type: () -> int
         """Length of this array
 
         Returns
         -------
         length : int
         """
-        # type: () -> int
         raise AbstractMethodError(self)
 
     def __iter__(self):
@@ -491,7 +491,7 @@ class ExtensionArray(object):
             `fill_value`: a user-facing "boxed" scalar, and a low-level
             physical NA value. `fill_value` should be the user-facing version,
             and the implementation should handle translating that to the
-            physical version for processing the take if nescessary.
+            physical version for processing the take if necessary.
 
         Returns
         -------
@@ -510,7 +510,7 @@ class ExtensionArray(object):
         ExtensionArray.take is called by ``Series.__getitem__``, ``.loc``,
         ``iloc``, when `indices` is a sequence of values. Additionally,
         it's called by :meth:`Series.reindex`, or any other method
-        that causes realignemnt, with a `fill_value`.
+        that causes realignment, with a `fill_value`.
 
         See Also
         --------

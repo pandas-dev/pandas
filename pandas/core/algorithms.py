@@ -513,7 +513,7 @@ _shared_docs['factorize'] = """
     See Also
     --------
     pandas.cut : Discretize continuous-valued array.
-    pandas.unique : Find the unique valuse in an array.
+    pandas.unique : Find the unique value in an array.
 
     Examples
     --------
@@ -558,7 +558,7 @@ _shared_docs['factorize'] = """
     [a, c]
     Categories (3, object): [a, b, c]
 
-    Notice that ``'b'`` is in ``uniques.categories``, desipite not being
+    Notice that ``'b'`` is in ``uniques.categories``, despite not being
     present in ``cat.values``.
 
     For all other pandas objects, an Index of the appropriate type is
@@ -576,8 +576,8 @@ _shared_docs['factorize'] = """
 @Substitution(
     values=dedent("""\
     values : sequence
-        A 1-D seqeunce. Sequences that aren't pandas objects are
-        coereced to ndarrays before factorization.
+        A 1-D sequence. Sequences that aren't pandas objects are
+        coerced to ndarrays before factorization.
     """),
     order=dedent("""\
     order
@@ -1076,8 +1076,8 @@ class SelectN(object):
         self.n = n
         self.keep = keep
 
-        if self.keep not in ('first', 'last'):
-            raise ValueError('keep must be either "first", "last"')
+        if self.keep not in ('first', 'last', 'all'):
+            raise ValueError('keep must be either "first", "last" or "all"')
 
     def nlargest(self):
         return self.compute('nlargest')
@@ -1133,9 +1133,12 @@ class SelectNSeries(SelectN):
             return dropped[slc].sort_values(ascending=ascending).head(n)
 
         # fast method
-        arr, _, _ = _ensure_data(dropped.values)
+        arr, pandas_dtype, _ = _ensure_data(dropped.values)
         if method == 'nlargest':
             arr = -arr
+            if is_integer_dtype(pandas_dtype):
+                # GH 21426: ensure reverse ordering at boundaries
+                arr -= 1
 
         if self.keep == 'last':
             arr = arr[::-1]
@@ -1145,7 +1148,11 @@ class SelectNSeries(SelectN):
 
         kth_val = algos.kth_smallest(arr.copy(), n - 1)
         ns, = np.nonzero(arr <= kth_val)
-        inds = ns[arr[ns].argsort(kind='mergesort')][:n]
+        inds = ns[arr[ns].argsort(kind='mergesort')]
+
+        if self.keep != 'all':
+            inds = inds[:n]
+
         if self.keep == 'last':
             # reverse indices
             inds = narr - 1 - inds
@@ -1459,7 +1466,7 @@ def take(arr, indices, axis=0, allow_fill=False, fill_value=None):
     Parameters
     ----------
     arr : sequence
-        Non array-likes (sequences without a dtype) are coereced
+        Non array-likes (sequences without a dtype) are coerced
         to an ndarray.
     indices : sequence of integers
         Indices to be taken.
