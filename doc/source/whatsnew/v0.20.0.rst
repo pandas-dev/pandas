@@ -383,7 +383,7 @@ For example, after running the following, ``styled.xlsx`` renders as below:
        highlight_max()
    styled.to_excel('styled.xlsx', engine='openpyxl')
 
-.. image:: _static/style-excel.png
+.. image:: ../_static/style-excel.png
 
 .. ipython:: python
    :suppress:

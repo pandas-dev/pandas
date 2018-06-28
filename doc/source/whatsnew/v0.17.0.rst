@@ -162,7 +162,7 @@ To alleviate this issue, we have added a new, optional plotting interface, which
 
     In [14]: df.plot.bar()
 
-.. image:: _static/whatsnew_plot_submethods.png
+.. image:: ../_static/whatsnew_plot_submethods.png
 
 As a result of this change, these methods are now all discoverable via tab-completion:
 
@@ -315,11 +315,11 @@ has been changed to make this keyword unnecessary - the change is shown below.
 
 **Old**
 
-.. image:: _static/old-excel-index.png
+.. image:: ../_static/old-excel-index.png
 
 **New**
 
-.. image:: _static/new-excel-index.png
+.. image:: ../_static/new-excel-index.png
 
 .. warning::
 
@@ -356,14 +356,14 @@ Some East Asian countries use Unicode characters its width is corresponding to 2
    df = pd.DataFrame({u'国籍': ['UK', u'日本'], u'名前': ['Alice', u'しのぶ']})
    df;
 
-.. image:: _static/option_unicode01.png
+.. image:: ../_static/option_unicode01.png
 
 .. ipython:: python
 
    pd.set_option('display.unicode.east_asian_width', True)
    df;
 
-.. image:: _static/option_unicode02.png
+.. image:: ../_static/option_unicode02.png
 
 For further details, see :ref:`here <options.east_asian_width>`
 

@@ -251,13 +251,13 @@ Display Changes
   constraints were reached and an ellipse (...) signaled that part of
   the data was cut off.
 
-  .. image:: _static/trunc_before.png
+  .. image:: ../_static/trunc_before.png
       :alt: The previous look of truncate.
 
   In the current version, large DataFrames are centrally truncated,
   showing a preview of head and tail in both dimensions.
 
-  .. image:: _static/trunc_after.png
+  .. image:: ../_static/trunc_after.png
      :alt: The new look.
 
 - allow option ``'truncate'`` for ``display.show_dimensions`` to only show the dimensions if the

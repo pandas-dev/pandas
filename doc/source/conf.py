@@ -124,7 +124,6 @@ templates_path = ['../_templates']
 # The suffix of source filenames.
 source_suffix = [
     '.rst',
-    '.txt',
 ]
 
 # The encoding of source files.

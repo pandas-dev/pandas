@@ -427,7 +427,7 @@ than switching to the short info view (:issue:`4886`, :issue:`5550`).
 This makes the representation more consistent as small DataFrames get
 larger.
 
-.. image:: _static/df_repr_truncated.png
+.. image:: ../_static/df_repr_truncated.png
    :alt: Truncated HTML representation of a DataFrame
 
 To get the info view, call :meth:`DataFrame.info`. If you prefer the
@@ -978,15 +978,304 @@ to unify methods and behaviors. Series formerly subclassed directly from
      s.a = 5
      s
 
+.. _release.bug_fixes-0.13.0:
+
 Bug Fixes
 ~~~~~~~~~
 
-See :ref:`V0.13.0 Bug Fixes<release.bug_fixes-0.13.0>` for an extensive list of bugs that have been fixed in 0.13.0.
+- ``HDFStore``
 
-See the :ref:`full release notes
-<release>` or issue tracker
-on GitHub for a complete list of all API changes, Enhancements and Bug Fixes.
-
+  - raising an invalid ``TypeError`` rather than ``ValueError`` when
+    appending with a different block ordering (:issue:`4096`)
+  - ``read_hdf`` was not respecting as passed ``mode`` (:issue:`4504`)
+  - appending a 0-len table will work correctly (:issue:`4273`)
+  - ``to_hdf`` was raising when passing both arguments ``append`` and
+    ``table`` (:issue:`4584`)
+  - reading from a store with duplicate columns across dtypes would raise
+    (:issue:`4767`)
+  - Fixed a bug where ``ValueError`` wasn't correctly raised when column
+    names weren't strings (:issue:`4956`)
+  - A zero length series written in Fixed format not deserializing properly.
+    (:issue:`4708`)
+  - Fixed decoding perf issue on pyt3 (:issue:`5441`)
+  - Validate levels in a MultiIndex before storing (:issue:`5527`)
+  - Correctly handle ``data_columns`` with a Panel (:issue:`5717`)
+- Fixed bug in tslib.tz_convert(vals, tz1, tz2): it could raise IndexError
+  exception while trying to access trans[pos + 1] (:issue:`4496`)
+- The ``by`` argument now works correctly with the ``layout`` argument
+  (:issue:`4102`, :issue:`4014`) in ``*.hist`` plotting methods
+- Fixed bug in ``PeriodIndex.map`` where using ``str`` would return the str
+  representation of the index (:issue:`4136`)
+- Fixed test failure ``test_time_series_plot_color_with_empty_kwargs`` when
+  using custom matplotlib default colors (:issue:`4345`)
+- Fix running of stata IO tests. Now uses temporary files to write
+  (:issue:`4353`)
+- Fixed an issue where ``DataFrame.sum`` was slower than ``DataFrame.mean``
+  for integer valued frames (:issue:`4365`)
+- ``read_html`` tests now work with Python 2.6 (:issue:`4351`)
+- Fixed bug where ``network`` testing was throwing ``NameError`` because a
+  local variable was undefined (:issue:`4381`)
+- In ``to_json``, raise if a passed ``orient`` would cause loss of data
+  because of a duplicate index (:issue:`4359`)
+- In ``to_json``, fix date handling so milliseconds are the default timestamp
+  as the docstring says (:issue:`4362`).
+- ``as_index`` is no longer ignored when doing groupby apply (:issue:`4648`,
+  :issue:`3417`)
+- JSON NaT handling fixed, NaTs are now serialized to `null` (:issue:`4498`)
+- Fixed JSON handling of escapable characters in JSON object keys
+  (:issue:`4593`)
+- Fixed passing ``keep_default_na=False`` when ``na_values=None``
+  (:issue:`4318`)
+- Fixed bug with ``values`` raising an error on a DataFrame with duplicate
+  columns and mixed dtypes, surfaced in (:issue:`4377`)
+- Fixed bug with duplicate columns and type conversion in ``read_json`` when
+  ``orient='split'`` (:issue:`4377`)
+- Fixed JSON bug where locales with decimal separators other than '.' threw
+  exceptions when encoding / decoding certain values. (:issue:`4918`)
+- Fix ``.iat`` indexing with a ``PeriodIndex`` (:issue:`4390`)
+- Fixed an issue where ``PeriodIndex`` joining with self was returning a new
+  instance rather than the same instance (:issue:`4379`); also adds a test
+  for this for the other index types
+- Fixed a bug with all the dtypes being converted to object when using the
+  CSV cparser with the usecols parameter (:issue:`3192`)
+- Fix an issue in merging blocks where the resulting DataFrame had partially
+  set _ref_locs (:issue:`4403`)
+- Fixed an issue where hist subplots were being overwritten when they were
+  called using the top level matplotlib API (:issue:`4408`)
+- Fixed a bug where calling ``Series.astype(str)`` would truncate the string
+  (:issue:`4405`, :issue:`4437`)
+- Fixed a py3 compat issue where bytes were being repr'd as tuples
+  (:issue:`4455`)
+- Fixed Panel attribute naming conflict if item is named 'a'
+  (:issue:`3440`)
+- Fixed an issue where duplicate indexes were raising when plotting
+  (:issue:`4486`)
+- Fixed an issue where cumsum and cumprod didn't work with bool dtypes
+  (:issue:`4170`, :issue:`4440`)
+- Fixed Panel slicing issued in ``xs`` that was returning an incorrect dimmed
+  object (:issue:`4016`)
+- Fix resampling bug where custom reduce function not used if only one group
+  (:issue:`3849`, :issue:`4494`)
+- Fixed Panel assignment with a transposed frame (:issue:`3830`)
+- Raise on set indexing with a Panel and a Panel as a value which needs
+  alignment (:issue:`3777`)
+- frozenset objects now raise in the ``Series`` constructor (:issue:`4482`,
+  :issue:`4480`)
+- Fixed issue with sorting a duplicate MultiIndex that has multiple dtypes
+  (:issue:`4516`)
+- Fixed bug in ``DataFrame.set_values`` which was causing name attributes to
+  be lost when expanding the index. (:issue:`3742`, :issue:`4039`)
+- Fixed issue where individual ``names``, ``levels`` and ``labels`` could be
+  set on ``MultiIndex`` without validation (:issue:`3714`, :issue:`4039`)
+- Fixed (:issue:`3334`) in pivot_table. Margins did not compute if values is
+  the index.
+- Fix bug in having a rhs of ``np.timedelta64`` or ``np.offsets.DateOffset``
+  when operating with datetimes (:issue:`4532`)
+- Fix arithmetic with series/datetimeindex and ``np.timedelta64`` not working
+  the same (:issue:`4134`) and buggy timedelta in NumPy 1.6 (:issue:`4135`)
+- Fix bug in ``pd.read_clipboard`` on windows with PY3 (:issue:`4561`); not
+  decoding properly
+- ``tslib.get_period_field()`` and ``tslib.get_period_field_arr()`` now raise
+  if code argument out of range (:issue:`4519`, :issue:`4520`)
+- Fix boolean indexing on an empty series loses index names (:issue:`4235`),
+  infer_dtype works with empty arrays.
+- Fix reindexing with multiple axes; if an axes match was not replacing the
+  current axes, leading to a possible lazy frequency inference issue
+  (:issue:`3317`)
+- Fixed issue where ``DataFrame.apply`` was reraising exceptions incorrectly
+  (causing the original stack trace to be truncated).
+- Fix selection with ``ix/loc`` and non_unique selectors (:issue:`4619`)
+- Fix assignment with iloc/loc involving a dtype change in an existing column
+  (:issue:`4312`, :issue:`5702`) have internal setitem_with_indexer in core/indexing
+  to use Block.setitem
+- Fixed bug where thousands operator was not handled correctly for floating
+  point numbers in csv_import (:issue:`4322`)
+- Fix an issue with CacheableOffset not properly being used by many
+  DateOffset; this prevented the DateOffset from being cached (:issue:`4609`)
+- Fix boolean comparison with a DataFrame on the lhs, and a list/tuple on the
+  rhs (:issue:`4576`)
+- Fix error/dtype conversion with setitem of ``None`` on ``Series/DataFrame``
+  (:issue:`4667`)
+- Fix decoding based on a passed in non-default encoding in ``pd.read_stata``
+  (:issue:`4626`)
+- Fix ``DataFrame.from_records`` with a plain-vanilla ``ndarray``.
+  (:issue:`4727`)
+- Fix some inconsistencies with ``Index.rename`` and ``MultiIndex.rename``,
+  etc. (:issue:`4718`, :issue:`4628`)
+- Bug in using ``iloc/loc`` with a cross-sectional and duplicate indices
+  (:issue:`4726`)
+- Bug with using ``QUOTE_NONE`` with ``to_csv`` causing ``Exception``.
+  (:issue:`4328`)
+- Bug with Series indexing not raising an error when the right-hand-side has
+  an incorrect length (:issue:`2702`)
+- Bug in MultiIndexing with a partial string selection as one part of a
+  MultIndex (:issue:`4758`)
+- Bug with reindexing on the index with a non-unique index will now raise
+  ``ValueError`` (:issue:`4746`)
+- Bug in setting with ``loc/ix`` a single indexer with a MultiIndex axis and
+  a NumPy array, related to (:issue:`3777`)
+- Bug in concatenation with duplicate columns across dtypes not merging with
+  axis=0 (:issue:`4771`, :issue:`4975`)
+- Bug in ``iloc`` with a slice index failing (:issue:`4771`)
+- Incorrect error message with no colspecs or width in ``read_fwf``.
+  (:issue:`4774`)
+- Fix bugs in indexing in a Series with a duplicate index (:issue:`4548`,
+  :issue:`4550`)
+- Fixed bug with reading compressed files with ``read_fwf`` in Python 3.
+  (:issue:`3963`)
+- Fixed an issue with a duplicate index and assignment with a dtype change
+  (:issue:`4686`)
+- Fixed bug with reading compressed files in as ``bytes`` rather than ``str``
+  in Python 3. Simplifies bytes-producing file-handling in Python 3
+  (:issue:`3963`, :issue:`4785`).
+- Fixed an issue related to ticklocs/ticklabels with log scale bar plots
+  across different versions of matplotlib (:issue:`4789`)
+- Suppressed DeprecationWarning associated with internal calls issued by
+  repr() (:issue:`4391`)
+- Fixed an issue with a duplicate index and duplicate selector with ``.loc``
+  (:issue:`4825`)
+- Fixed an issue with ``DataFrame.sort_index`` where, when sorting by a
+  single column and passing a list for ``ascending``, the argument for
+  ``ascending`` was being interpreted as ``True`` (:issue:`4839`,
+  :issue:`4846`)
+- Fixed ``Panel.tshift`` not working. Added `freq` support to ``Panel.shift``
+  (:issue:`4853`)
+- Fix an issue in TextFileReader w/ Python engine (i.e. PythonParser)
+  with thousands != "," (:issue:`4596`)
+- Bug in getitem with a duplicate index when using where (:issue:`4879`)
+- Fix Type inference code coerces float column into datetime (:issue:`4601`)
+- Fixed ``_ensure_numeric`` does not check for complex numbers
+  (:issue:`4902`)
+- Fixed a bug in ``Series.hist`` where two figures were being created when
+  the ``by`` argument was passed (:issue:`4112`, :issue:`4113`).
+- Fixed a bug in ``convert_objects`` for > 2 ndims (:issue:`4937`)
+- Fixed a bug in DataFrame/Panel cache insertion and subsequent indexing
+  (:issue:`4939`, :issue:`5424`)
+- Fixed string methods for ``FrozenNDArray`` and ``FrozenList``
+  (:issue:`4929`)
+- Fixed a bug with setting invalid or out-of-range values in indexing
+  enlargement scenarios (:issue:`4940`)
+- Tests for fillna on empty Series (:issue:`4346`), thanks @immerrr
+- Fixed ``copy()`` to shallow copy axes/indices as well and thereby keep
+  separate metadata. (:issue:`4202`, :issue:`4830`)
+- Fixed skiprows option in Python parser for read_csv (:issue:`4382`)
+- Fixed bug preventing ``cut`` from working with ``np.inf`` levels without
+  explicitly passing labels (:issue:`3415`)
+- Fixed wrong check for overlapping in ``DatetimeIndex.union``
+  (:issue:`4564`)
+- Fixed conflict between thousands separator and date parser in csv_parser
+  (:issue:`4678`)
+- Fix appending when dtypes are not the same (error showing mixing
+  float/np.datetime64) (:issue:`4993`)
+- Fix repr for DateOffset. No longer show duplicate entries in kwds.
+  Removed unused offset fields. (:issue:`4638`)
+- Fixed wrong index name during read_csv if using usecols. Applies to c
+  parser only. (:issue:`4201`)
+- ``Timestamp`` objects can now appear in the left hand side of a comparison
+  operation with a ``Series`` or ``DataFrame`` object (:issue:`4982`).
+- Fix a bug when indexing with ``np.nan`` via ``iloc/loc`` (:issue:`5016`)
+- Fixed a bug where low memory c parser could create different types in
+  different chunks of the same file. Now coerces to numerical type or raises
+  warning. (:issue:`3866`)
+- Fix a bug where reshaping a ``Series`` to its own shape raised
+  ``TypeError`` (:issue:`4554`) and other reshaping issues.
+- Bug in setting with ``ix/loc`` and a mixed int/string index (:issue:`4544`)
+- Make sure series-series boolean comparisons are label based (:issue:`4947`)
+- Bug in multi-level indexing with a Timestamp partial indexer
+  (:issue:`4294`)
+- Tests/fix for MultiIndex construction of an all-nan frame (:issue:`4078`)
+- Fixed a bug where :func:`~pandas.read_html` wasn't correctly inferring
+  values of tables with commas (:issue:`5029`)
+- Fixed a bug where :func:`~pandas.read_html` wasn't providing a stable
+  ordering of returned tables (:issue:`4770`, :issue:`5029`).
+- Fixed a bug where :func:`~pandas.read_html` was incorrectly parsing when
+  passed ``index_col=0`` (:issue:`5066`).
+- Fixed a bug where :func:`~pandas.read_html` was incorrectly inferring the
+  type of headers (:issue:`5048`).
+- Fixed a bug where ``DatetimeIndex`` joins with ``PeriodIndex`` caused a
+  stack overflow (:issue:`3899`).
+- Fixed a bug where ``groupby`` objects didn't allow plots (:issue:`5102`).
+- Fixed a bug where ``groupby`` objects weren't tab-completing column names
+  (:issue:`5102`).
+- Fixed a bug where ``groupby.plot()`` and friends were duplicating figures
+  multiple times (:issue:`5102`).
+- Provide automatic conversion of ``object`` dtypes on fillna, related
+  (:issue:`5103`)
+- Fixed a bug where default options were being overwritten in the option
+  parser cleaning (:issue:`5121`).
+- Treat a list/ndarray identically for ``iloc`` indexing with list-like
+  (:issue:`5006`)
+- Fix ``MultiIndex.get_level_values()`` with missing values (:issue:`5074`)
+- Fix bound checking for Timestamp() with datetime64 input (:issue:`4065`)
+- Fix a bug where ``TestReadHtml`` wasn't calling the correct ``read_html()``
+  function (:issue:`5150`).
+- Fix a bug with ``NDFrame.replace()`` which made replacement appear as
+  though it was (incorrectly) using regular expressions (:issue:`5143`).
+- Fix better error message for to_datetime (:issue:`4928`)
+- Made sure different locales are tested on travis-ci (:issue:`4918`). Also
+  adds a couple of utilities for getting locales and setting locales with a
+  context manager.
+- Fixed segfault on ``isnull(MultiIndex)`` (now raises an error instead)
+  (:issue:`5123`, :issue:`5125`)
+- Allow duplicate indices when performing operations that align
+  (:issue:`5185`, :issue:`5639`)
+- Compound dtypes in a constructor raise ``NotImplementedError``
+  (:issue:`5191`)
+- Bug in comparing duplicate frames (:issue:`4421`) related
+- Bug in describe on duplicate frames
+- Bug in ``to_datetime`` with a format and ``coerce=True`` not raising
+  (:issue:`5195`)
+- Bug in ``loc`` setting with multiple indexers and a rhs of a Series that
+  needs broadcasting (:issue:`5206`)
+- Fixed bug where inplace setting of levels or labels on ``MultiIndex`` would
+  not clear cached ``values`` property and therefore return wrong ``values``.
+  (:issue:`5215`)
+- Fixed bug where filtering a grouped DataFrame or Series did not maintain
+  the original ordering (:issue:`4621`).
+- Fixed ``Period`` with a business date freq to always roll-forward if on a
+  non-business date. (:issue:`5203`)
+- Fixed bug in Excel writers where frames with duplicate column names weren't
+  written correctly. (:issue:`5235`)
+- Fixed issue with ``drop`` and a non-unique index on Series (:issue:`5248`)
+- Fixed segfault in C parser caused by passing more names than columns in
+  the file. (:issue:`5156`)
+- Fix ``Series.isin`` with date/time-like dtypes (:issue:`5021`)
+- C and Python Parser can now handle the more common MultiIndex column
+  format which doesn't have a row for index names (:issue:`4702`)
+- Bug when trying to use an out-of-bounds date as an object dtype
+  (:issue:`5312`)
+- Bug when trying to display an embedded PandasObject (:issue:`5324`)
+- Allows operating of Timestamps to return a datetime if the result is out-of-bounds
+  related (:issue:`5312`)
+- Fix return value/type signature of ``initObjToJSON()`` to be compatible
+  with numpy's ``import_array()`` (:issue:`5334`, :issue:`5326`)
+- Bug when renaming then set_index on a DataFrame (:issue:`5344`)
+- Test suite no longer leaves around temporary files when testing graphics. (:issue:`5347`)
+  (thanks for catching this @yarikoptic!)
+- Fixed html tests on win32. (:issue:`4580`)
+- Make sure that ``head/tail`` are ``iloc`` based, (:issue:`5370`)
+- Fixed bug for ``PeriodIndex`` string representation if there are 1 or 2
+  elements. (:issue:`5372`)
+- The GroupBy methods ``transform`` and ``filter`` can be used on Series
+  and DataFrames that have repeated (non-unique) indices. (:issue:`4620`)
+- Fix empty series not printing name in repr (:issue:`4651`)
+- Make tests create temp files in temp directory by default. (:issue:`5419`)
+- ``pd.to_timedelta`` of a scalar returns a scalar (:issue:`5410`)
+- ``pd.to_timedelta`` accepts ``NaN`` and ``NaT``, returning ``NaT`` instead of raising (:issue:`5437`)
+- performance improvements in ``isnull`` on larger size pandas objects
+- Fixed various setitem with 1d ndarray that does not have a matching
+  length to the indexer (:issue:`5508`)
+- Bug in getitem with a MultiIndex and ``iloc`` (:issue:`5528`)
+- Bug in delitem on a Series (:issue:`5542`)
+- Bug fix in apply when using custom function and objects are not mutated (:issue:`5545`)
+- Bug in selecting from a non-unique index with ``loc`` (:issue:`5553`)
+- Bug in groupby returning non-consistent types when user function returns a ``None``, (:issue:`5592`)
+- Work around regression in numpy 1.7.0 which erroneously raises IndexError from ``ndarray.item`` (:issue:`5666`)
+- Bug in repeated indexing of object with resultant non-unique index (:issue:`5678`)
+- Bug in fillna with Series and a passed series/dict (:issue:`5703`)
+- Bug in groupby transform with a datetime-like grouper (:issue:`5712`)
+- Bug in MultiIndex selection in PY3 when using certain keys (:issue:`5725`)
+- Row-wise concat of differing dtypes failing in certain cases (:issue:`5754`)
 
 .. _whatsnew_0.13.0.contributors:
 

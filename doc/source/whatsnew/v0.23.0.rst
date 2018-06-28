@@ -914,7 +914,7 @@ frames would not fit within the terminal width, and pandas would introduce line
 breaks to display these 20 columns. This resulted in an output that was
 relatively difficult to read:
 
-.. image:: _static/print_df_old.png
+.. image:: ../_static/print_df_old.png
 
 If Python runs in a terminal, the maximum number of columns is now determined
 automatically so that the printed data frame fits within the current terminal
@@ -924,7 +924,7 @@ well as in many IDEs), this value cannot be inferred automatically and is thus
 set to `20` as in previous versions. In a terminal, this results in a much
 nicer output:
 
-.. image:: _static/print_df_new.png
+.. image:: ../_static/print_df_new.png
 
 Note that if you don't like the new default, you can always set this option
 yourself. To revert to the old setting, you can run this line:
