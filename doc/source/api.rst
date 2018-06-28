@@ -434,7 +434,6 @@ Computations / Descriptive Stats
    Series.value_counts
    Series.compound
    Series.nonzero
-   Series.ptp
 
 
 Reindexing / Selection / Label manipulation
