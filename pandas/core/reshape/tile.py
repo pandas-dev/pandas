@@ -11,6 +11,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_timedelta64_dtype,
     is_datetime64tz_dtype,
+    is_datetime_or_timedelta_dtype,
     _ensure_int64)
 
 import pandas.core.algorithms as algos
@@ -312,7 +313,6 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
 def _bins_to_cuts(x, bins, right=True, labels=None,
                   precision=3, include_lowest=False,
                   dtype=None, duplicates='raise'):
-
     if duplicates not in ['raise', 'drop']:
         raise ValueError("invalid value for 'duplicates' parameter, "
                          "valid options are: raise, drop")
@@ -445,11 +445,8 @@ def _convert_bin_to_datelike_type(bins, dtype):
     bins : Array-like of bins, DatetimeIndex or TimedeltaIndex if dtype is
            datelike
     """
-    # Can be simplified once GH 20964 is fixed.
-    if is_datetime64tz_dtype(dtype):
-        bins = to_datetime(bins, utc=True).tz_convert(dtype.tz)
-    elif is_datetime64_dtype(dtype) or is_timedelta64_dtype(dtype):
-        bins = Index(bins, dtype=dtype)
+    if is_datetime64tz_dtype(dtype) or is_datetime_or_timedelta_dtype(dtype):
+        bins = Index(bins.astype(np.int64), dtype=dtype)
     return bins
 
 
