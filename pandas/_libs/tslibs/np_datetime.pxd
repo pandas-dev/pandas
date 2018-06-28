@@ -54,10 +54,6 @@ cdef extern from "../src/datetime/np_datetime.h":
                                            PANDAS_DATETIMEUNIT fr,
                                            pandas_datetimestruct *result) nogil
 
-    int days_per_month_table[2][12]
-    int dayofweek(int y, int m, int d) nogil
-    int is_leapyear(int64_t year) nogil
-
 
 cdef int reverse_ops[6]
 

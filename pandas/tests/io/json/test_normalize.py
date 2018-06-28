@@ -123,6 +123,12 @@ class TestJSONNormalize(object):
                           'country', 'states_name']).sort_values()
         assert result.columns.sort_values().equals(expected)
 
+    def test_value_array_record_prefix(self):
+        # GH 21536
+        result = json_normalize({'A': [1, 2]}, 'A', record_prefix='Prefix.')
+        expected = DataFrame([[1], [2]], columns=['Prefix.0'])
+        tm.assert_frame_equal(result, expected)
+
     def test_more_deeply_nested(self, deep_nested):
 
         result = json_normalize(deep_nested, ['states', 'cities'],
