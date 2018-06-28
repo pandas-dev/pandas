@@ -7834,6 +7834,28 @@ class NDFrame(PandasObject, SelectionMixin):
 
         For the groups compute the difference between current `myvalue` and
         `myvalue` shifted forward by 1 day
+        If the dataframe is shifted without passing a freq argument than the
+        values simply move down
+
+        >>> data[data.group=='A'].myvalue.shift(1)
+        mydate
+        2016-06-06    NaN
+        2016-06-08    1.0
+        2016-06-09    2.0
+        Name: myvalue, dtype: float64
+
+        What we want however, is to shift myvalue forward by one day in order
+        to compute the difference.
+
+        >>> data[data.group=='A'].myvalue.shift(1, freq=pd.Timedelta('1 days'))
+        mydate
+        2016-06-07    1
+        2016-06-09    2
+        2016-06-10    3
+        Name: myvalue, dtype: int64
+
+        After considering the grouping we can calculate the difference
+        as follows
 
         >>> result = data.groupby('group').myvalue.apply(
         ...             lambda x: x - x.shift(1, pd.Timedelta('1 days')))
