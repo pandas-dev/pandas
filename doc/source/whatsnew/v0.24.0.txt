@@ -16,6 +16,14 @@ Other Enhancements
 - :func:`Series.mode` and :func:`DataFrame.mode` now support the ``dropna`` parameter which can be used to specify whether NaN/NaT values should be considered (:issue:`17534`)
 - :func:`to_csv` now supports ``compression`` keyword when a file handle is passed. (:issue:`21227`)
 - :meth:`Index.droplevel` is now implemented also for flat indexes, for compatibility with MultiIndex (:issue:`21115`)
+- :meth:`Index.droplevel` is now implemented also for flat indexes, for compatibility with :class:`MultiIndex` (:issue:`21115`)
+- Added support for reading from Google Cloud Storage via the ``gcsfs`` library (:issue:`19454`)
+- :func:`to_gbq` and :func:`read_gbq` signature and documentation updated to
+  reflect changes from the `Pandas-GBQ library version 0.5.0
+  <https://pandas-gbq.readthedocs.io/en/latest/changelog.html#changelog-0-5-0>`__.
+  (:issue:`21627`)
+- New method :meth:`HDFStore.walk` will recursively walk the group hierarchy of an HDF5 file (:issue:`10932`)
+- :meth:`Series.nlargest`, :meth:`Series.nsmallest`, :meth:`DataFrame.nlargest`, and :meth:`DataFrame.nsmallest` now accept the value ``"all"`` for the ``keep` argument. This keeps all ties for the nth largest/smallest value (:issue:`16818`)
 - :func:'Dataframe.pivot' now supports multiple columns as an index. (:issue:'21425')
 
 
