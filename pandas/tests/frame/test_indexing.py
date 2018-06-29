@@ -36,7 +36,6 @@ from pandas.core.indexing import IndexingError
 import pandas.util.testing as tm
 
 from pandas.tests.frame.common import TestData
-from pandas.conftest import tz_naive_fixture
 
 
 class TestDataFrameIndexing(TestData):

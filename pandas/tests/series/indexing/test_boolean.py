@@ -15,7 +15,6 @@ from pandas.tseries.offsets import BDay
 
 from pandas.util.testing import (assert_series_equal)
 import pandas.util.testing as tm
-from pandas.conftest import tz_naive_fixture
 
 
 def test_getitem_boolean(test_data):
