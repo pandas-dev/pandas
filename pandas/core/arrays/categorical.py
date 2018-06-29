@@ -2009,8 +2009,7 @@ class Categorical(ExtensionArray, PandasObject):
                 return self.categories[i]
         else:
             return self._constructor(values=self._codes[key],
-                                     categories=self.categories,
-                                     ordered=self.ordered, fastpath=True)
+                                     dtype=self.dtype, fastpath=True)
 
     def __setitem__(self, key, value):
         """ Item assignment.

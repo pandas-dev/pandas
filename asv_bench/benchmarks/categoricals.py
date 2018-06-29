@@ -210,3 +210,38 @@ class Contains(object):
 
     def time_categorical_contains(self):
         self.key in self.c
+
+
+class CategoricalSlicing(object):
+
+    goal_time = 0.2
+    params = ['monotonic_incr', 'monotonic_decr', 'non_monotonic']
+    param_names = ['index']
+
+    def setup(self, index):
+        N = 10**6
+        values = list('a' * N + 'b' * N + 'c' * N)
+        indices = {
+            'monotonic_incr': pd.Categorical(values),
+            'monotonic_decr': pd.Categorical(reversed(values)),
+            'non_monotonic': pd.Categorical(list('abc' * N))}
+        self.data = indices[index]
+
+        self.scalar = 10000
+        self.list = list(range(10000))
+        self.cat_scalar = 'b'
+
+    def time_getitem_scalar(self, index):
+        self.data[self.scalar]
+
+    def time_getitem_slice(self, index):
+        self.data[:self.scalar]
+
+    def time_getitem_list_like(self, index):
+        self.data[[self.scalar]]
+
+    def time_getitem_list(self, index):
+        self.data[self.list]
+
+    def time_getitem_bool_array(self, index):
+        self.data[self.data == self.cat_scalar]
