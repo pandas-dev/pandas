@@ -1750,8 +1750,67 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     weekofyear = _field_accessor('weekofyear', 'woy',
                                  "The week ordinal of the year")
     week = weekofyear
-    dayofweek = _field_accessor('dayofweek', 'dow',
-                                "The day of the week with Monday=0, Sunday=6")
+    _dayofweek_doc = """
+    The day of the week with Monday=0, Sunday=6.
+
+    Return the day of the week. It is assumed the week starts on
+    Monday, which is denoted by 0 and ends on Sunday which is denoted
+    by 6. This method is available on both Series with datetime
+    values or DatetimeIndex
+
+    See Also
+    --------
+    pandas.Series.dt.dayofweek : Identical method.
+    pandas.Series.dt.weekday : Identical method.
+
+    Returns
+    -------
+    ndarray
+        Containing integers indicating the day number.
+
+    Examples
+    --------
+    >>> dates = pd.date_range("2016-12-31", "2017-01-08", freq="D")
+    >>> s = pd.Series(dates)
+    >>> day_name = s.dt.strftime("%A")
+    >>> pd.DataFrame({'dt': s, 'num': s.dt.weekday, 'day': day_name})
+              dt  num        day
+    0 2016-12-31    5   Saturday
+    1 2017-01-01    6     Sunday
+    2 2017-01-02    0     Monday
+    3 2017-01-03    1    Tuesday
+    4 2017-01-04    2  Wednesday
+    5 2017-01-05    3   Thursday
+    6 2017-01-06    4     Friday
+    7 2017-01-07    5   Saturday
+    8 2017-01-08    6     Sunday
+
+    Note: `pandas.Series.dt.dayofweek`/`pandas.Series.dt.weekday` are the same.
+
+    >>> s.dt.dayofweek
+    0    5
+    1    6
+    2    0
+    3    1
+    4    2
+    5    3
+    6    4
+    7    5
+    8    6
+    dtype: int64
+    >>> s.dt.weekday
+    0    5
+    1    6
+    2    0
+    3    1
+    4    2
+    5    3
+    6    4
+    7    5
+    8    6
+    dtype: int64
+    """
+    dayofweek = _field_accessor('dayofweek', 'dow', _dayofweek_doc)
     weekday = dayofweek
 
     weekday_name = _field_accessor(
