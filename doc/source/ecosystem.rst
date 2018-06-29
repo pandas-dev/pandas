@@ -159,14 +159,14 @@ See more in the  `pandas-datareader docs <https://pandas-datareader.readthedocs.
 
 The following data feeds are available:
 
-  * Yahoo! Finance
-  * Google Finance
-  * FRED
-  * Fama/French
-  * World Bank
-  * OECD
-  * Eurostat
-  * EDGAR Index
+* Yahoo! Finance
+* Google Finance
+* FRED
+* Fama/French
+* World Bank
+* OECD
+* Eurostat
+* EDGAR Index
 
 `quandl/Python <https://github.com/quandl/Python>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

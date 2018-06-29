@@ -33,6 +33,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_list_like,
     is_scalar,
+    is_extension_array_dtype,
     _ensure_object)
 from pandas.core.dtypes.cast import (
     maybe_upcast_putmask, find_common_type,
@@ -993,6 +994,26 @@ def _construct_divmod_result(left, result, index, name, dtype):
     )
 
 
+def dispatch_to_extension_op(op, left, right):
+    """
+    Assume that left or right is a Series backed by an ExtensionArray,
+    apply the operator defined by op.
+    """
+
+    # The op calls will raise TypeError if the op is not defined
+    # on the ExtensionArray
+    if is_extension_array_dtype(left):
+        res_values = op(left.values, right)
+    else:
+        # We know that left is not ExtensionArray and is Series and right is
+        # ExtensionArray.  Want to force ExtensionArray op to get called
+        res_values = op(list(left.values), right.values)
+
+    res_name = get_op_result_name(left, right)
+    return left._constructor(res_values, index=left.index,
+                             name=res_name)
+
+
 def _arith_method_SERIES(cls, op, special):
     """
     Wrapper function for Series arithmetic operations, to avoid
@@ -1060,6 +1081,11 @@ def _arith_method_SERIES(cls, op, special):
         elif is_categorical_dtype(left):
             raise TypeError("{typ} cannot perform the operation "
                             "{op}".format(typ=type(left).__name__, op=str_rep))
+
+        elif (is_extension_array_dtype(left) or
+              (is_extension_array_dtype(right) and
+               not is_categorical_dtype(right))):
+            return dispatch_to_extension_op(op, left, right)
 
         lvalues = left.values
         rvalues = right
@@ -1237,6 +1263,11 @@ def _comp_method_SERIES(cls, op, special):
                                               pd.TimedeltaIndex)
             return self._constructor(res_values, index=self.index,
                                      name=res_name)
+
+        elif (is_extension_array_dtype(self) or
+              (is_extension_array_dtype(other) and
+               not is_categorical_dtype(other))):
+            return dispatch_to_extension_op(op, self, other)
 
         elif isinstance(other, ABCSeries):
             # By this point we have checked that self._indexed_same(other)

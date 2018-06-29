@@ -189,7 +189,6 @@ class MultiIndex(Index):
     from_product
     set_levels
     set_labels
-    to_hierarchical
     to_frame
     is_lexsorted
     sortlevel
@@ -672,30 +671,18 @@ class MultiIndex(Index):
 
         if level is None:
             level = range(self.nlevels)
-            used = {}
         else:
             level = [self._get_level_number(l) for l in level]
-            used = {self.levels[l].name: l
-                    for l in set(range(self.nlevels)) - set(level)}
 
         # set the name
         for l, name in zip(level, names):
             if name is not None:
-
                 # GH 20527
                 # All items in 'names' need to be hashable:
                 if not is_hashable(name):
                     raise TypeError('{}.name must be a hashable type'
                                     .format(self.__class__.__name__))
-
-                if name in used:
-                    raise ValueError(
-                        'Duplicated level name: "{}", assigned to '
-                        'level {}, is already used for level '
-                        '{}.'.format(name, l, used[name]))
-
             self.levels[l].rename(name, inplace=True)
-            used[name] = l
 
     names = property(fset=_set_names, fget=_get_names,
                      doc="Names of levels in MultiIndex")
@@ -853,14 +840,6 @@ class MultiIndex(Index):
         return True
 
     @cache_readonly
-    def is_monotonic(self):
-        """
-        return if the index is monotonic increasing (only equal or
-        increasing) values.
-        """
-        return self.is_monotonic_increasing
-
-    @cache_readonly
     def is_monotonic_increasing(self):
         """
         return if the index is monotonic increasing (only equal or
@@ -886,10 +865,6 @@ class MultiIndex(Index):
         """
         # monotonic decreasing if and only if reverse is monotonic increasing
         return self[::-1].is_monotonic_increasing
-
-    @cache_readonly
-    def is_unique(self):
-        return not self.duplicated().any()
 
     @cache_readonly
     def _have_mixed_levels(self):
@@ -1194,6 +1169,8 @@ class MultiIndex(Index):
 
     def to_hierarchical(self, n_repeat, n_shuffle=1):
         """
+        .. deprecated:: 0.24.0
+
         Return a MultiIndex reshaped to conform to the
         shapes given by n_repeat and n_shuffle.
 
@@ -1228,6 +1205,9 @@ class MultiIndex(Index):
         # Assumes that each label is divisible by n_shuffle
         labels = [x.reshape(n_shuffle, -1).ravel(order='F') for x in labels]
         names = self.names
+        warnings.warn("Method .to_hierarchical is deprecated and will "
+                      "be removed in a future version",
+                      FutureWarning, stacklevel=2)
         return MultiIndex(levels=levels, labels=labels, names=names)
 
     @property
@@ -1719,7 +1699,6 @@ class MultiIndex(Index):
                 if errors != 'ignore':
                     raise ValueError('labels %s not contained in axis' %
                                      labels[mask])
-                indexer = indexer[~mask]
         except Exception:
             pass
 
@@ -2901,6 +2880,13 @@ class MultiIndex(Index):
                 return np.zeros(len(labs), dtype=np.bool_)
             else:
                 return np.lib.arraysetops.in1d(labs, sought_labels)
+
+    def _reference_duplicate_name(self, name):
+        """
+        Returns True if the name refered to in self.names is duplicated.
+        """
+        # count the times name equals an element in self.names.
+        return sum(name == n for n in self.names) > 1
 
 
 MultiIndex._add_numeric_methods_disabled()

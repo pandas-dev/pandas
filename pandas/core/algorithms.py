@@ -1076,8 +1076,8 @@ class SelectN(object):
         self.n = n
         self.keep = keep
 
-        if self.keep not in ('first', 'last'):
-            raise ValueError('keep must be either "first", "last"')
+        if self.keep not in ('first', 'last', 'all'):
+            raise ValueError('keep must be either "first", "last" or "all"')
 
     def nlargest(self):
         return self.compute('nlargest')
@@ -1133,9 +1133,12 @@ class SelectNSeries(SelectN):
             return dropped[slc].sort_values(ascending=ascending).head(n)
 
         # fast method
-        arr, _, _ = _ensure_data(dropped.values)
+        arr, pandas_dtype, _ = _ensure_data(dropped.values)
         if method == 'nlargest':
             arr = -arr
+            if is_integer_dtype(pandas_dtype):
+                # GH 21426: ensure reverse ordering at boundaries
+                arr -= 1
 
         if self.keep == 'last':
             arr = arr[::-1]
@@ -1145,7 +1148,11 @@ class SelectNSeries(SelectN):
 
         kth_val = algos.kth_smallest(arr.copy(), n - 1)
         ns, = np.nonzero(arr <= kth_val)
-        inds = ns[arr[ns].argsort(kind='mergesort')][:n]
+        inds = ns[arr[ns].argsort(kind='mergesort')]
+
+        if self.keep != 'all':
+            inds = inds[:n]
+
         if self.keep == 'last':
             # reverse indices
             inds = narr - 1 - inds

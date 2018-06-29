@@ -1102,37 +1102,27 @@ class DataFrame(NDFrame):
         else:
             raise ValueError("orient '{o}' not understood".format(o=orient))
 
-    def to_gbq(self, destination_table, project_id, chunksize=None,
-               verbose=None, reauth=False, if_exists='fail', private_key=None,
-               auth_local_webserver=False, table_schema=None):
+    def to_gbq(self, destination_table, project_id=None, chunksize=None,
+               reauth=False, if_exists='fail', private_key=None,
+               auth_local_webserver=False, table_schema=None, location=None,
+               progress_bar=True, verbose=None):
         """
         Write a DataFrame to a Google BigQuery table.
 
         This function requires the `pandas-gbq package
         <https://pandas-gbq.readthedocs.io>`__.
 
-        Authentication to the Google BigQuery service is via OAuth 2.0.
-
-        - If ``private_key`` is provided, the library loads the JSON service
-          account credentials and uses those to authenticate.
-
-        - If no ``private_key`` is provided, the library tries `application
-          default credentials`_.
-
-          .. _application default credentials:
-              https://cloud.google.com/docs/authentication/production#providing_credentials_to_your_application
-
-        - If application default credentials are not found or cannot be used
-          with BigQuery, the library authenticates with user account
-          credentials. In this case, you will be asked to grant permissions
-          for product name 'pandas GBQ'.
+        See the `How to authenticate with Google BigQuery
+        <https://pandas-gbq.readthedocs.io/en/latest/howto/authentication.html>`__
+        guide for authentication instructions.
 
         Parameters
         ----------
         destination_table : str
-            Name of table to be written, in the form 'dataset.tablename'.
-        project_id : str
-            Google BigQuery Account project ID.
+            Name of table to be written, in the form ``dataset.tablename``.
+        project_id : str, optional
+            Google BigQuery Account project ID. Optional when available from
+            the environment.
         chunksize : int, optional
             Number of rows to be inserted in each chunk from the dataframe.
             Set to ``None`` to load the whole dataframe at once.
@@ -1170,8 +1160,21 @@ class DataFrame(NDFrame):
             BigQuery API documentation on available names of a field.
 
             *New in version 0.3.1 of pandas-gbq*.
-        verbose : boolean, deprecated
-            *Deprecated in Pandas-GBQ 0.4.0.* Use the `logging module
+        location : str, optional
+            Location where the load job should run. See the `BigQuery locations
+            documentation
+            <https://cloud.google.com/bigquery/docs/dataset-locations>`__ for a
+            list of available locations. The location must match that of the
+            target dataset.
+
+            *New in version 0.5.0 of pandas-gbq*.
+        progress_bar : bool, default True
+            Use the library `tqdm` to show the progress bar for the upload,
+            chunk by chunk.
+
+            *New in version 0.5.0 of pandas-gbq*.
+        verbose : bool, deprecated
+            Deprecated in Pandas-GBQ 0.4.0. Use the `logging module
             to adjust verbosity instead
             <https://pandas-gbq.readthedocs.io/en/latest/intro.html#logging>`__.
 
@@ -1182,10 +1185,12 @@ class DataFrame(NDFrame):
         """
         from pandas.io import gbq
         return gbq.to_gbq(
-            self, destination_table, project_id, chunksize=chunksize,
-            verbose=verbose, reauth=reauth, if_exists=if_exists,
-            private_key=private_key, auth_local_webserver=auth_local_webserver,
-            table_schema=table_schema)
+            self, destination_table, project_id=project_id,
+            chunksize=chunksize, reauth=reauth,
+            if_exists=if_exists, private_key=private_key,
+            auth_local_webserver=auth_local_webserver,
+            table_schema=table_schema, location=location,
+            progress_bar=progress_bar, verbose=verbose)
 
     @classmethod
     def from_records(cls, data, index=None, exclude=None, columns=None,
@@ -1690,7 +1695,8 @@ class DataFrame(NDFrame):
             defaults to 'ascii' on Python 2 and 'utf-8' on Python 3.
         compression : string, optional
             A string representing the compression to use in the output file.
-            Allowed values are 'gzip', 'bz2', 'zip', 'xz'.
+            Allowed values are 'gzip', 'bz2', 'zip', 'xz'. This input is only
+            used when the first argument is a filename.
         line_terminator : string, default ``'\n'``
             The newline character or character sequence to use in the output
             file
@@ -2723,7 +2729,8 @@ class DataFrame(NDFrame):
             indexer = key.nonzero()[0]
             return self._take(indexer, axis=0)
         else:
-            indexer = self.loc._convert_to_indexer(key, axis=1)
+            indexer = self.loc._convert_to_indexer(key, axis=1,
+                                                   raise_missing=True)
             return self._take(indexer, axis=1)
 
     def _getitem_multilevel(self, key):
@@ -4179,6 +4186,7 @@ class DataFrame(NDFrame):
 
             .. deprecated:: 0.23.0
                 Pass tuple or list to drop on multiple axes.
+                Only a single axis is allowed.
 
         how : {'any', 'all'}, default 'any'
             Determine if row or column is removed from DataFrame, when we have
@@ -4551,11 +4559,15 @@ class DataFrame(NDFrame):
             Number of rows to return.
         columns : label or list of labels
             Column label(s) to order by.
-        keep : {'first', 'last'}, default 'first'
+        keep : {'first', 'last', 'all'}, default 'first'
             Where there are duplicate values:
 
             - `first` : prioritize the first occurrence(s)
             - `last` : prioritize the last occurrence(s)
+            - ``all`` : do not drop any duplicates, even it means
+                        selecting more than `n` items.
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -4578,47 +4590,58 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'a': [1, 10, 8, 10, -1],
-        ...                    'b': list('abdce'),
-        ...                    'c': [1.0, 2.0, np.nan, 3.0, 4.0]})
+        >>> df = pd.DataFrame({'a': [1, 10, 8, 11, 8, 2],
+        ...                    'b': list('abdcef'),
+        ...                    'c': [1.0, 2.0, np.nan, 3.0, 4.0, 9.0]})
         >>> df
             a  b    c
         0   1  a  1.0
         1  10  b  2.0
         2   8  d  NaN
-        3  10  c  3.0
-        4  -1  e  4.0
+        3  11  c  3.0
+        4   8  e  4.0
+        5   2  f  9.0
 
         In the following example, we will use ``nlargest`` to select the three
         rows having the largest values in column "a".
 
         >>> df.nlargest(3, 'a')
             a  b    c
+        3  11  c  3.0
         1  10  b  2.0
-        3  10  c  3.0
         2   8  d  NaN
 
         When using ``keep='last'``, ties are resolved in reverse order:
 
         >>> df.nlargest(3, 'a', keep='last')
             a  b    c
-        3  10  c  3.0
+        3  11  c  3.0
+        1  10  b  2.0
+        4   8  e  4.0
+
+        When using ``keep='all'``, all duplicate items are maintained:
+
+        >>> df.nlargest(3, 'a', keep='all')
+            a  b    c
+        3  11  c  3.0
         1  10  b  2.0
         2   8  d  NaN
+        4   8  e  4.0
 
         To order by the largest values in column "a" and then "c", we can
         specify multiple columns like in the next example.
 
         >>> df.nlargest(3, ['a', 'c'])
             a  b    c
-        3  10  c  3.0
+        4   8  e  4.0
+        3  11  c  3.0
         1  10  b  2.0
-        2   8  d  NaN
 
         Attempting to use ``nlargest`` on non-numeric dtypes will raise a
         ``TypeError``:
 
         >>> df.nlargest(3, 'b')
+
         Traceback (most recent call last):
         TypeError: Column 'b' has dtype object, cannot use method 'nlargest'
         """
@@ -4637,10 +4660,14 @@ class DataFrame(NDFrame):
             Number of items to retrieve
         columns : list or str
             Column name or names to order by
-        keep : {'first', 'last'}, default 'first'
+        keep : {'first', 'last', 'all'}, default 'first'
             Where there are duplicate values:
             - ``first`` : take the first occurrence.
             - ``last`` : take the last occurrence.
+            - ``all`` : do not drop any duplicates, even it means
+                        selecting more than `n` items.
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -4648,14 +4675,60 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df = pd.DataFrame({'a': [1, 10, 8, 11, -1],
-        ...                    'b': list('abdce'),
-        ...                    'c': [1.0, 2.0, np.nan, 3.0, 4.0]})
+        >>> df = pd.DataFrame({'a': [1, 10, 8, 11, 8, 2],
+        ...                    'b': list('abdcef'),
+        ...                    'c': [1.0, 2.0, np.nan, 3.0, 4.0, 9.0]})
+        >>> df
+            a  b    c
+        0   1  a  1.0
+        1  10  b  2.0
+        2   8  d  NaN
+        3  11  c  3.0
+        4   8  e  4.0
+        5   2  f  9.0
+
+        In the following example, we will use ``nsmallest`` to select the
+        three rows having the smallest values in column "a".
+
         >>> df.nsmallest(3, 'a')
-           a  b   c
-        4 -1  e   4
-        0  1  a   1
-        2  8  d NaN
+           a  b    c
+        0  1  a  1.0
+        5  2  f  9.0
+        2  8  d  NaN
+
+        When using ``keep='last'``, ties are resolved in reverse order:
+
+        >>> df.nsmallest(3, 'a', keep='last')
+           a  b    c
+        0  1  a  1.0
+        5  2  f  9.0
+        4  8  e  4.0
+
+        When using ``keep='all'``, all duplicate items are maintained:
+
+        >>> df.nsmallest(3, 'a', keep='all')
+           a  b    c
+        0  1  a  1.0
+        5  2  f  9.0
+        2  8  d  NaN
+        4  8  e  4.0
+
+        To order by the largest values in column "a" and then "c", we can
+        specify multiple columns like in the next example.
+
+        >>> df.nsmallest(3, ['a', 'c'])
+           a  b    c
+        0  1  a  1.0
+        5  2  f  9.0
+        4  8  e  4.0
+
+        Attempting to use ``nsmallest`` on non-numeric dtypes will raise a
+        ``TypeError``:
+
+        >>> df.nsmallest(3, 'b')
+
+        Traceback (most recent call last):
+        TypeError: Column 'b' has dtype object, cannot use method 'nsmallest'
         """
         return algorithms.SelectNFrame(self,
                                        n=n,
@@ -4673,7 +4746,7 @@ class DataFrame(NDFrame):
 
         Returns
         -------
-        swapped : type of caller (new object)
+        swapped : same type as caller (new object)
 
         .. versionchanged:: 0.18.1
 
@@ -6844,12 +6917,17 @@ class DataFrame(NDFrame):
 
     def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
                 filter_type=None, **kwds):
-        axis = self._get_axis_number(axis)
+        if axis is None and filter_type == 'bool':
+            labels = None
+            constructor = None
+        else:
+            # TODO: Make other agg func handle axis=None properly
+            axis = self._get_axis_number(axis)
+            labels = self._get_agg_axis(axis)
+            constructor = self._constructor
 
         def f(x):
             return op(x, axis=axis, skipna=skipna, **kwds)
-
-        labels = self._get_agg_axis(axis)
 
         # exclude timedelta/datetime unless we are uniform types
         if axis == 1 and self._is_mixed_type and self._is_datelike_mixed_type:
@@ -6859,6 +6937,13 @@ class DataFrame(NDFrame):
             try:
                 values = self.values
                 result = f(values)
+
+                if (filter_type == 'bool' and is_object_dtype(values) and
+                        axis is None):
+                    # work around https://github.com/numpy/numpy/issues/10489
+                    # TODO: combine with hasattr(result, 'dtype') further down
+                    # hard since we don't have `values` down there.
+                    result = np.bool_(result)
             except Exception as e:
 
                 # try by-column first
@@ -6925,7 +7010,9 @@ class DataFrame(NDFrame):
                 if axis == 0:
                     result = coerce_to_dtypes(result, self.dtypes)
 
-        return Series(result, index=labels)
+        if constructor is not None:
+            result = Series(result, index=labels)
+        return result
 
     def nunique(self, axis=0, dropna=True):
         """

@@ -6,6 +6,7 @@ import pytest
 
 import numpy as np
 import pandas as pd
+from pandas.compat import PY37
 from pandas import (Index, MultiIndex, CategoricalIndex,
                     DataFrame, Categorical, Series, qcut)
 from pandas.util.testing import assert_frame_equal, assert_series_equal
@@ -205,6 +206,7 @@ def test_level_get_group(observed):
     assert_frame_equal(result, expected)
 
 
+@pytest.mark.xfail(PY37, reason="flaky on 3.7, xref gh-21636")
 @pytest.mark.parametrize('ordered', [True, False])
 def test_apply(ordered):
     # GH 10138
@@ -553,14 +555,10 @@ def test_as_index():
         columns=['cat', 'A', 'B'])
     tm.assert_frame_equal(result, expected)
 
-    # another not in-axis grouper
-    s = Series(['a', 'b', 'b'], name='cat2')
+    # another not in-axis grouper (conflicting names in index)
+    s = Series(['a', 'b', 'b'], name='cat')
     result = df.groupby(['cat', s], as_index=False, observed=True).sum()
     tm.assert_frame_equal(result, expected)
-
-    # GH18872: conflicting names in desired index
-    with pytest.raises(ValueError):
-        df.groupby(['cat', s.rename('cat')], observed=True).sum()
 
     # is original index dropped?
     group_columns = ['cat', 'A']
