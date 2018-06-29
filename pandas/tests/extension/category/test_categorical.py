@@ -183,3 +183,29 @@ class TestMethods(base.BaseMethodsTests):
 
 class TestCasting(base.BaseCastingTests):
     pass
+
+
+class TestArithmeticOps(base.BaseArithmeticOpsTests):
+
+    def test_arith_scalar(self, data, all_arithmetic_operators):
+
+        op_name = all_arithmetic_operators
+        if op_name != '__rmod__':
+            super(TestArithmeticOps, self).test_arith_scalar(data, op_name)
+        else:
+            pytest.skip('rmod never called when string is first argument')
+
+
+class TestComparisonOps(base.BaseComparisonOpsTests):
+
+    def _compare_other(self, s, data, op_name, other):
+        op = self.get_op_from_name(op_name)
+        if op_name == '__eq__':
+            assert not op(data, other).all()
+
+        elif op_name == '__ne__':
+            assert op(data, other).all()
+
+        else:
+            with pytest.raises(TypeError):
+                op(data, other)
