@@ -10,6 +10,22 @@ New features
 
 - ``ExcelWriter`` now accepts ``mode`` as a keyword argument, enabling append to existing workbooks when using the ``openpyxl`` engine (:issue:`3441`)
 
+.. _whatsnew_0240.enhancements.extension_array_operators
+
+``ExtensionArray`` operator support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A ``Series`` based on an ``ExtensionArray`` now supports arithmetic and comparison
+operators. (:issue:`19577`). There are two approaches for providing operator support for an ``ExtensionArray``:
+
+1. Define each of the operators on your ``ExtensionArray`` subclass.
+2. Use an operator implementation from pandas that depends on operators that are already defined
+   on the underlying elements (scalars) of the ``ExtensionArray``.
+
+See the :ref:`ExtensionArray Operator Support
+<extending.extension.operator>` documentation section for details on both
+ways of adding operator support.
+
 .. _whatsnew_0240.enhancements.other:
 
 Other Enhancements
