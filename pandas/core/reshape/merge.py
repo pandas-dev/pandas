@@ -31,6 +31,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_list_like,
     is_datetimelike,
+    is_object_dtype,
     _ensure_int64,
     _ensure_float64,
     _ensure_object,
@@ -946,11 +947,14 @@ class _MergeOperation(object):
                    "you should use pd.concat".format(lk_dtype=lk.dtype,
                                                      rk_dtype=rk.dtype))
 
+            coerce_to_object = False
+            if is_object_dtype(lk) or is_object_dtype(rk):
+                coerce_to_object = True
             # if we are numeric, then allow differing
             # kinds to proceed, eg. int64 and int8, int and float
             # further if we are object, but we infer to
             # the same, then proceed
-            if is_numeric_dtype(lk) and is_numeric_dtype(rk):
+            elif is_numeric_dtype(lk) and is_numeric_dtype(rk):
                 if lk.dtype.kind == rk.dtype.kind:
                     pass
 
@@ -1001,6 +1005,9 @@ class _MergeOperation(object):
             # columns, and end up trying to merge
             # incompatible dtypes. See GH 16900.
             else:
+                coerce_to_object = True
+
+            if coerce_to_object:
                 if name in self.left.columns:
                     typ = lk.categories.dtype if lk_is_cat else object
                     self.left = self.left.assign(
