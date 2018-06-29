@@ -15,6 +15,7 @@ from pandas.tseries.offsets import BDay
 
 from pandas.util.testing import (assert_series_equal)
 import pandas.util.testing as tm
+from pandas.conftest import tz_naive_fixture
 
 
 def test_getitem_boolean(test_data):
@@ -551,16 +552,15 @@ def test_where_datetime_conversion():
     assert_series_equal(rs, expected)
 
 
-def test_where_dt_tz_values():
-    dts1 = pd.date_range('20150101', '20150105', tz='America/New_York')
-    df1 = pd.DataFrame({'date': dts1})
-    dts2 = pd.date_range('20150103', '20150107', tz='America/New_York')
-    df2 = pd.DataFrame({'date': dts2})
-    result = df1.date.where(df1.date < df1.date[3], df2.date)
-    exp_vals = pd.DatetimeIndex(['20150101', '20150102', '20150103',
-                                 '20150106', '20150107'],
-                                tz='America/New_York')
-    exp = Series(exp_vals, name='date')
+def test_where_dt_tz_values(tz_naive_fixture):
+    ser1 = pd.Series(pd.DatetimeIndex(['20150101', '20150102', '20150103'],
+                                      tz=tz_naive_fixture))
+    ser2 = pd.Series(pd.DatetimeIndex(['20160514', '20160515', '20160516'],
+                                      tz=tz_naive_fixture))
+    mask = pd.Series([True, True, False])
+    result = ser1.where(mask, ser2)
+    exp = pd.Series(pd.DatetimeIndex(['20150101', '20150102', '20160516'],
+                                     tz=tz_naive_fixture))
     assert_series_equal(exp, result)
 
 

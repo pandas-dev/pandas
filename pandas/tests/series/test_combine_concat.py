@@ -170,17 +170,18 @@ class TestSeriesCombine(TestData):
                                     ]).dtype
                 assert result.kind == expected
 
-    def test_combine_first_dt_tz_values(self):
-        dts1 = pd.date_range('20150101', '20150105', tz='America/New_York')
-        df1 = pd.DataFrame({'date': dts1})
-        dts2 = pd.date_range('20160514', '20160518', tz='America/New_York')
-        df2 = pd.DataFrame({'date': dts2}, index=range(3, 8))
-        result = df1.date.combine_first(df2.date)
+    def test_combine_first_dt_tz_values(self, tz_naive_fixture):
+        ser1 = pd.Series(pd.DatetimeIndex(['20150101', '20150102', '20150103'],
+                                          tz=tz_naive_fixture),
+                         name='ser1')
+        ser2 = pd.Series(pd.DatetimeIndex(['20160514', '20160515', '20160516'],
+                                          tz=tz_naive_fixture),
+                         index=[2, 3, 4], name='ser2')
+        result = ser1.combine_first(ser2)
         exp_vals = pd.DatetimeIndex(['20150101', '20150102', '20150103',
-                                     '20150104', '20150105', '20160516',
-                                     '20160517', '20160518'],
-                                    tz='America/New_York')
-        exp = pd.Series(exp_vals, name='date')
+                                     '20160515', '20160516'],
+                                    tz=tz_naive_fixture)
+        exp = pd.Series(exp_vals, name='ser1')
         assert_series_equal(exp, result)
 
     def test_concat_empty_series_dtypes(self):

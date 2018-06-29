@@ -36,6 +36,7 @@ from pandas.core.indexing import IndexingError
 import pandas.util.testing as tm
 
 from pandas.tests.frame.common import TestData
+from pandas.conftest import tz_naive_fixture
 
 
 class TestDataFrameIndexing(TestData):
@@ -2936,18 +2937,18 @@ class TestDataFrameIndexing(TestData):
         tm.assert_frame_equal(result,
                               (df + 2).where((df + 2) > 8, (df + 2) + 10))
 
-    def test_where_tz_values(self):
-        dts1 = date_range('20150101', '20150105', tz='America/New_York')
-        df1 = DataFrame({'date': dts1})
-        dts2 = date_range('20150103', '20150107', tz='America/New_York')
-        df2 = DataFrame({'date': dts2})
-        mask = DataFrame(True, index=df1.index, columns=df2.columns)
-        mask.iloc[3:] = False
+    def test_where_tz_values(self, tz_naive_fixture):
+        df1 = DataFrame(DatetimeIndex(['20150101', '20150102', '20150103'],
+                                      tz=tz_naive_fixture),
+                        columns=['date'])
+        df2 = DataFrame(DatetimeIndex(['20150103', '20150104', '20150105'],
+                                      tz=tz_naive_fixture),
+                        columns=['date'])
+        mask = DataFrame([True, True, False], columns=['date'])
+        exp = DataFrame(DatetimeIndex(['20150101', '20150102', '20150105'],
+                                      tz=tz_naive_fixture),
+                        columns=['date'])
         result = df1.where(mask, df2)
-        dts3 = DatetimeIndex(['20150101', '20150102', '20150103',
-                              '20150106', '20150107'],
-                             tz='America/New_York')
-        exp = DataFrame({'date': dts3})
         assert_frame_equal(exp, result)
 
     def test_mask(self):
