@@ -899,7 +899,9 @@ class DatetimeIndexOpsMixin(object):
                 raise TypeError("cannot add {dtype}-dtype to {cls}"
                                 .format(dtype=other.dtype,
                                         cls=type(self).__name__))
-
+            elif is_categorical_dtype(other):
+                # Categorical op will raise; defer explicitly
+                return NotImplemented
             else:  # pragma: no cover
                 return NotImplemented
 
@@ -964,6 +966,9 @@ class DatetimeIndexOpsMixin(object):
                 raise TypeError("cannot subtract {dtype}-dtype from {cls}"
                                 .format(dtype=other.dtype,
                                         cls=type(self).__name__))
+            elif is_categorical_dtype(other):
+                # Categorical op will raise; defer explicitly
+                return NotImplemented
             else:  # pragma: no cover
                 return NotImplemented
 

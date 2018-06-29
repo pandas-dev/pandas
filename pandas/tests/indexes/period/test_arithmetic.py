@@ -730,11 +730,12 @@ class TestPeriodIndexSeriesMethods(object):
 
         self._check(idx + 2, lambda x: x - 2, idx)
         result = idx - Period('2011-01', freq='M')
-        exp = pd.Index([0, 1, 2, 3], name='idx')
+        off = idx.freq
+        exp = pd.Index([0 * off, 1 * off, 2 * off, 3 * off], name='idx')
         tm.assert_index_equal(result, exp)
 
         result = Period('2011-01', freq='M') - idx
-        exp = pd.Index([0, -1, -2, -3], name='idx')
+        exp = pd.Index([0 * off, -1 * off, -2 * off, -3 * off], name='idx')
         tm.assert_index_equal(result, exp)
 
     @pytest.mark.parametrize('ng', ["str", 1.5])
@@ -864,14 +865,15 @@ class TestPeriodIndexSeriesMethods(object):
                           freq='M', name='idx')
 
         result = idx - pd.Period('2012-01', freq='M')
-        exp = pd.Index([-12, -11, -10, -9], name='idx')
+        off = idx.freq
+        exp = pd.Index([-12 * off, -11 * off, -10 * off, -9 * off], name='idx')
         tm.assert_index_equal(result, exp)
 
         result = np.subtract(idx, pd.Period('2012-01', freq='M'))
         tm.assert_index_equal(result, exp)
 
         result = pd.Period('2012-01', freq='M') - idx
-        exp = pd.Index([12, 11, 10, 9], name='idx')
+        exp = pd.Index([12 * off, 11 * off, 10 * off, 9 * off], name='idx')
         tm.assert_index_equal(result, exp)
 
         result = np.subtract(pd.Period('2012-01', freq='M'), idx)
@@ -898,11 +900,12 @@ class TestPeriodIndexSeriesMethods(object):
                           freq='M', name='idx')
 
         result = idx - pd.Period('2012-01', freq='M')
-        exp = pd.Index([-12, np.nan, -10, -9], name='idx')
+        off = idx.freq
+        exp = pd.Index([-12 * off, pd.NaT, -10 * off, -9 * off], name='idx')
         tm.assert_index_equal(result, exp)
 
         result = pd.Period('2012-01', freq='M') - idx
-        exp = pd.Index([12, np.nan, 10, 9], name='idx')
+        exp = pd.Index([12 * off, pd.NaT, 10 * off, 9 * off], name='idx')
         tm.assert_index_equal(result, exp)
 
         exp = pd.TimedeltaIndex([np.nan, np.nan, np.nan, np.nan], name='idx')

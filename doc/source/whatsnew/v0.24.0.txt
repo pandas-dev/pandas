@@ -70,6 +70,49 @@ Current Behavior:
 
 .. _whatsnew_0240.api.datetimelike:
 
+
+.. _whatsnew_0240.api.period_subtraction:
+
+Period Subtraction
+^^^^^^^^^^^^^^^^^^
+
+Subtraction of a ``Period`` from another ``Period`` will give a ``DateOffset``.
+instead of an integer (:issue:`21314`)
+
+.. ipython:: python
+
+    june = pd.Period('June 2018')
+    april = pd.Period('April 2018')
+    june - april
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [2]: june = pd.Period('June 2018')
+
+    In [3]: april = pd.Period('April 2018')
+
+    In [4]: june - april
+    Out [4]: 2
+
+Similarly, subtraction of a ``Period`` from a ``PeriodIndex`` will now return
+an ``Index`` of ``DateOffset`` objects instead of an ``Int64Index``
+
+.. ipython:: python
+
+    pi = pd.period_range('June 2018', freq='M', periods=3)
+    pi - pi[0]
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [2]: pi = pd.period_range('June 2018', freq='M', periods=3)
+
+    In [3]: pi - pi[0]
+    Out[3]: Int64Index([0, 1, 2], dtype='int64')
+
 Datetimelike API Changes
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
