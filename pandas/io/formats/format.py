@@ -636,10 +636,12 @@ class DataFrameFormatter(TableFormatter):
                     mid = int(round(n_cols / 2.))
                     mid_ix = col_lens.index[mid]
                     col_len = col_lens[mid_ix]
-                    adj_dif -= (col_len + 1)  # adjoin adds one
+                    # adjoin adds one
+                    adj_dif -= (col_len + 1)
                     col_lens = col_lens.drop(mid_ix)
                     n_cols = len(col_lens)
-                max_cols_adj = n_cols - self.index  # subtract index column
+                # subtract index column
+                max_cols_adj = n_cols - self.index
                 # GH-21180. Ensure that we print at least two.
                 max_cols_adj = max(max_cols_adj, 2)
                 self.max_cols_adj = max_cols_adj
