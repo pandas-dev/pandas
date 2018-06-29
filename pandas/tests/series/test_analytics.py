@@ -849,9 +849,28 @@ class TestSeriesAnalytics(TestData):
         expected = np.dot(a.values, a.values)
         assert_almost_equal(result, expected)
 
-        # np.array @ Series (__rmatmul__)
+        # GH 21530
+        # vector (1D np.array) @ Series (__rmatmul__)
         result = operator.matmul(a.values, a)
         expected = np.dot(a.values, a.values)
+        assert_almost_equal(result, expected)
+
+        # GH 21530
+        # vector (1D list) @ Series (__rmatmul__)
+        result = operator.matmul(a.values.tolist(), a)
+        expected = np.dot(a.values, a.values)
+        assert_almost_equal(result, expected)
+
+        # GH 21530
+        # matrix (2D np.array) @ Series (__rmatmul__)
+        result = operator.matmul(b.T.values, a)
+        expected = np.dot(b.T.values, a.values)
+        assert_almost_equal(result, expected)
+
+        # GH 21530
+        # matrix (2D nested lists) @ Series (__rmatmul__)
+        result = operator.matmul(b.T.values.tolist(), a)
+        expected = np.dot(b.T.values, a.values)
         assert_almost_equal(result, expected)
 
         # mixed dtype DataFrame @ Series
@@ -2062,6 +2081,17 @@ class TestNLargestNSmallest(object):
         min_val, max_val = dtype_info.min, dtype_info.max
         vals = [min_val + 1, min_val + 2, max_val - 1, max_val, min_val]
         assert_check_nselect_boundary(vals, dtype, nselect_method)
+
+    def test_duplicate_keep_all_ties(self):
+        # see gh-16818
+        s = Series([10, 9, 8, 7, 7, 7, 7, 6])
+        result = s.nlargest(4, keep='all')
+        expected = Series([10, 9, 8, 7, 7, 7, 7])
+        assert_series_equal(result, expected)
+
+        result = s.nsmallest(2, keep='all')
+        expected = Series([6, 7, 7, 7, 7], index=[7, 3, 4, 5, 6])
+        assert_series_equal(result, expected)
 
 
 class TestCategoricalSeriesAnalytics(object):

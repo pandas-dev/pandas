@@ -56,8 +56,15 @@ Other Enhancements
 - :func:`to_datetime` now supports the ``%Z`` and ``%z`` directive when passed into ``format`` (:issue:`13486`)
 - :func:`Series.mode` and :func:`DataFrame.mode` now support the ``dropna`` parameter which can be used to specify whether NaN/NaT values should be considered (:issue:`17534`)
 - :func:`to_csv` now supports ``compression`` keyword when a file handle is passed. (:issue:`21227`)
-- :meth:`Index.droplevel` is now implemented also for flat indexes, for compatibility with MultiIndex (:issue:`21115`)
-
+- :meth:`Index.droplevel` is now implemented also for flat indexes, for compatibility with :class:`MultiIndex` (:issue:`21115`)
+- Added support for reading from Google Cloud Storage via the ``gcsfs`` library (:issue:`19454`)
+- :func:`to_gbq` and :func:`read_gbq` signature and documentation updated to
+  reflect changes from the `Pandas-GBQ library version 0.5.0
+  <https://pandas-gbq.readthedocs.io/en/latest/changelog.html#changelog-0-5-0>`__.
+  (:issue:`21627`)
+- New method :meth:`HDFStore.walk` will recursively walk the group hierarchy of an HDF5 file (:issue:`10932`)
+- :meth:`Series.nlargest`, :meth:`Series.nsmallest`, :meth:`DataFrame.nlargest`, and :meth:`DataFrame.nsmallest` now accept the value ``"all"`` for the ``keep` argument. This keeps all ties for the nth largest/smallest value (:issue:`16818`)
+-
 
 .. _whatsnew_0240.api_breaking:
 
@@ -70,8 +77,8 @@ Backwards incompatible API changes
 Tick DateOffset Normalize Restrictions
 --------------------------------------
 
-Creating a ``Tick`` object (:class:``Day``, :class:``Hour``, :class:``Minute``,
-:class:``Second``, :class:``Milli``, :class:``Micro``, :class:``Nano``) with
+Creating a ``Tick`` object (:class:`Day`, :class:`Hour`, :class:`Minute`,
+:class:`Second`, :class:`Milli`, :class:`Micro`, :class:`Nano`) with
 `normalize=True` is no longer supported.  This prevents unexpected behavior
 where addition could fail to be monotone or associative.  (:issue:`21427`)
 
@@ -149,7 +156,7 @@ Deprecations
 ~~~~~~~~~~~~
 
 - :meth:`DataFrame.to_stata`, :meth:`read_stata`, :class:`StataReader` and :class:`StataWriter` have deprecated the ``encoding`` argument.  The encoding of a Stata dta file is determined by the file type and cannot be changed (:issue:`21244`).
--
+- :meth:`MultiIndex.to_hierarchical` is deprecated and will be removed in a future version  (:issue:`21613`)
 -
 
 .. _whatsnew_0240.prior_deprecations:
@@ -169,6 +176,7 @@ Performance Improvements
 
 - Improved performance of :func:`Series.describe` in case of numeric dtpyes (:issue:`21274`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.rank` when dealing with tied rankings (:issue:`21237`)
+- Improved performance of :func:`DataFrame.set_index` with columns consisting of :class:`Period` objects (:issue:`21582`,:issue:`21606`)
 -
 
 .. _whatsnew_0240.docs:
@@ -196,8 +204,6 @@ Datetimelike
 ^^^^^^^^^^^^
 
 - Fixed bug where two :class:`DateOffset` objects with different ``normalize`` attributes could evaluate as equal (:issue:`21404`)
-- Bug in :class:`Index` with ``datetime64[ns, tz]`` dtype that did not localize integer data correctly (:issue:`20964`)
--
 
 Timedelta
 ^^^^^^^^^
@@ -209,9 +215,15 @@ Timedelta
 Timezones
 ^^^^^^^^^
 
--
--
--
+- Bug in :meth:`DatetimeIndex.shift` where an ``AssertionError`` would raise when shifting across DST (:issue:`8616`)
+- Bug in :class:`Timestamp` constructor where passing an invalid timezone offset designator (``Z``) would not raise a ``ValueError``(:issue:`8910`)
+- Bug in :meth:`Timestamp.replace` where replacing at a DST boundary would retain an incorrect offset (:issue:`7825`)
+- Bug in :meth:`Series.replace` with ``datetime64[ns, tz]`` data when replacing ``NaT`` (:issue:`11792`)
+- Bug in :class:`Timestamp` when passing different string date formats with a timezone offset would produce different timezone offsets (:issue:`12064`)
+- Bug when comparing a tz-naive :class:`Timestamp` to a tz-aware :class:`DatetimeIndex` which would coerce the :class:`DatetimeIndex` to tz-naive (:issue:`12601`)
+- Bug in :meth:`Series.truncate` with a tz-aware :class:`DatetimeIndex` which would cause a core dump (:issue:`9243`)
+- Bug in :class:`Series` constructor which would coerce tz-aware and tz-naive :class:`Timestamp`s to tz-aware (:issue:`13051`)
+- Bug in :class:`Index` with ``datetime64[ns, tz]`` dtype that did not localize integer data correctly (:issue:`20964`)
 
 Offsets
 ^^^^^^^
@@ -222,7 +234,7 @@ Offsets
 Numeric
 ^^^^^^^
 
--
+- Bug in :class:`Series` ``__rmatmul__`` doesn't support matrix vector multiplication (:issue:`21530`)
 -
 -
 
@@ -233,11 +245,22 @@ Strings
 -
 -
 
+Interval
+^^^^^^^^
+
+- Bug in the :class:`IntervalIndex` constructor where the ``closed`` parameter did not always override the inferred ``closed`` (:issue:`19370`)
+-
+-
+
 Indexing
 ^^^^^^^^
 
 - The traceback from a ``KeyError`` when asking ``.loc`` for a single missing label is now shorter and more clear (:issue:`21557`)
--
+- When ``.ix`` is asked for a missing integer label in a :class:`MultiIndex` with a first level of integer type, it now raises a ``KeyError`` - consistently with the case of a flat :class:`Int64Index` - rather than falling back to positional indexing (:issue:`21593`)
+- Bug in :meth:`DatetimeIndex.reindex` when reindexing a tz-naive and tz-aware :class:`DatetimeIndex` (:issue:`8306`)
+- Bug in :class:`DataFrame` when setting values with ``.loc`` and a timezone aware :class:`DatetimeIndex` (:issue:`11365`)
+- Bug when indexing :class:`DatetimeIndex` with nanosecond resolution dates and timezones (:issue:`11679`)
+
 -
 
 MultiIndex
@@ -264,7 +287,8 @@ Plotting
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
--
+- Bug in :func:`pandas.core.groupby.GroupBy.first` and :func:`pandas.core.groupby.GroupBy.last` with ``as_index=False`` leading to the loss of timezone information (:issue:`15884`)
+- Bug in :meth:`DatetimeIndex.resample` when downsampling across a DST boundary (:issue:`8531`)
 -
 -
 
