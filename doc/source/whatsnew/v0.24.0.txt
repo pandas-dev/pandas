@@ -10,6 +10,22 @@ New features
 
 - ``ExcelWriter`` now accepts ``mode`` as a keyword argument, enabling append to existing workbooks when using the ``openpyxl`` engine (:issue:`3441`)
 
+.. _whatsnew_0240.enhancements.extension_array_operators
+
+``ExtensionArray`` operator support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A ``Series`` based on an ``ExtensionArray`` now supports arithmetic and comparison
+operators. (:issue:`19577`). There are two approaches for providing operator support for an ``ExtensionArray``:
+
+1. Define each of the operators on your ``ExtensionArray`` subclass.
+2. Use an operator implementation from pandas that depends on operators that are already defined
+   on the underlying elements (scalars) of the ``ExtensionArray``.
+
+See the :ref:`ExtensionArray Operator Support
+<extending.extension.operator>` documentation section for details on both
+ways of adding operator support.
+
 .. _whatsnew_0240.enhancements.other:
 
 Other Enhancements
@@ -70,11 +86,55 @@ Current Behavior:
 
 .. _whatsnew_0240.api.datetimelike:
 
+
+.. _whatsnew_0240.api.period_subtraction:
+
+Period Subtraction
+^^^^^^^^^^^^^^^^^^
+
+Subtraction of a ``Period`` from another ``Period`` will give a ``DateOffset``.
+instead of an integer (:issue:`21314`)
+
+.. ipython:: python
+
+    june = pd.Period('June 2018')
+    april = pd.Period('April 2018')
+    june - april
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [2]: june = pd.Period('June 2018')
+
+    In [3]: april = pd.Period('April 2018')
+
+    In [4]: june - april
+    Out [4]: 2
+
+Similarly, subtraction of a ``Period`` from a ``PeriodIndex`` will now return
+an ``Index`` of ``DateOffset`` objects instead of an ``Int64Index``
+
+.. ipython:: python
+
+    pi = pd.period_range('June 2018', freq='M', periods=3)
+    pi - pi[0]
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [2]: pi = pd.period_range('June 2018', freq='M', periods=3)
+
+    In [3]: pi - pi[0]
+    Out[3]: Int64Index([0, 1, 2], dtype='int64')
+
 Datetimelike API Changes
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - For :class:`DatetimeIndex` and :class:`TimedeltaIndex` with non-``None`` ``freq`` attribute, addition or subtraction of integer-dtyped array or ``Index`` will return an object of the same class (:issue:`19959`)
 - :class:`DateOffset` objects are now immutable. Attempting to alter one of these will now raise ``AttributeError`` (:issue:`21341`)
+- :class:`PeriodIndex` subtraction of another ``PeriodIndex`` will now return an object-dtype :class:`Index` of :class:`DateOffset` objects instead of raising a ``TypeError`` (:issue:`20049`)
 
 .. _whatsnew_0240.api.other:
 
@@ -135,6 +195,9 @@ Removal of prior version deprecations/changes
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+- Very large improvement in performance of slicing when the index is a :class:`CategoricalIndex`,
+  both when indexing by label (using .loc) and position(.iloc).
+  Likewise, slicing a ``CategoricalIndex`` itself (i.e. ``ci[100:200]``) shows similar speed improvements (:issue:`21659`)
 - Improved performance of :func:`Series.describe` in case of numeric dtpyes (:issue:`21274`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.rank` when dealing with tied rankings (:issue:`21237`)
 - Improved performance of :func:`DataFrame.set_index` with columns consisting of :class:`Period` objects (:issue:`21582`,:issue:`21606`)
@@ -270,6 +333,7 @@ Reshaping
 ExtensionArray
 ^^^^^^^^^^^^^^
 
+- Bug in :meth:`Series.get` for ``Series`` using ``ExtensionArray`` and integer index (:issue:`21257`)
 - :meth:`Series.combine()` works correctly with :class:`~pandas.api.extensions.ExtensionArray` inside of :class:`Series` (:issue:`20825`)
 - :meth:`Series.combine()` with scalar argument now works for any function type (:issue:`21248`)
 -
