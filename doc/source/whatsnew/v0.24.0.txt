@@ -10,6 +10,22 @@ New features
 
 - ``ExcelWriter`` now accepts ``mode`` as a keyword argument, enabling append to existing workbooks when using the ``openpyxl`` engine (:issue:`3441`)
 
+.. _whatsnew_0240.enhancements.extension_array_operators
+
+``ExtensionArray`` operator support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A ``Series`` based on an ``ExtensionArray`` now supports arithmetic and comparison
+operators. (:issue:`19577`). There are two approaches for providing operator support for an ``ExtensionArray``:
+
+1. Define each of the operators on your ``ExtensionArray`` subclass.
+2. Use an operator implementation from pandas that depends on operators that are already defined
+   on the underlying elements (scalars) of the ``ExtensionArray``.
+
+See the :ref:`ExtensionArray Operator Support
+<extending.extension.operator>` documentation section for details on both
+ways of adding operator support.
+
 .. _whatsnew_0240.enhancements.other:
 
 Other Enhancements
@@ -24,6 +40,7 @@ Other Enhancements
   <https://pandas-gbq.readthedocs.io/en/latest/changelog.html#changelog-0-5-0>`__.
   (:issue:`21627`)
 - New method :meth:`HDFStore.walk` will recursively walk the group hierarchy of an HDF5 file (:issue:`10932`)
+- :meth:`Series.nlargest`, :meth:`Series.nsmallest`, :meth:`DataFrame.nlargest`, and :meth:`DataFrame.nsmallest` now accept the value ``"all"`` for the ``keep` argument. This keeps all ties for the nth largest/smallest value (:issue:`16818`)
 -
 
 .. _whatsnew_0240.api_breaking:
@@ -69,11 +86,55 @@ Current Behavior:
 
 .. _whatsnew_0240.api.datetimelike:
 
+
+.. _whatsnew_0240.api.period_subtraction:
+
+Period Subtraction
+^^^^^^^^^^^^^^^^^^
+
+Subtraction of a ``Period`` from another ``Period`` will give a ``DateOffset``.
+instead of an integer (:issue:`21314`)
+
+.. ipython:: python
+
+    june = pd.Period('June 2018')
+    april = pd.Period('April 2018')
+    june - april
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [2]: june = pd.Period('June 2018')
+
+    In [3]: april = pd.Period('April 2018')
+
+    In [4]: june - april
+    Out [4]: 2
+
+Similarly, subtraction of a ``Period`` from a ``PeriodIndex`` will now return
+an ``Index`` of ``DateOffset`` objects instead of an ``Int64Index``
+
+.. ipython:: python
+
+    pi = pd.period_range('June 2018', freq='M', periods=3)
+    pi - pi[0]
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [2]: pi = pd.period_range('June 2018', freq='M', periods=3)
+
+    In [3]: pi - pi[0]
+    Out[3]: Int64Index([0, 1, 2], dtype='int64')
+
 Datetimelike API Changes
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - For :class:`DatetimeIndex` and :class:`TimedeltaIndex` with non-``None`` ``freq`` attribute, addition or subtraction of integer-dtyped array or ``Index`` will return an object of the same class (:issue:`19959`)
 - :class:`DateOffset` objects are now immutable. Attempting to alter one of these will now raise ``AttributeError`` (:issue:`21341`)
+- :class:`PeriodIndex` subtraction of another ``PeriodIndex`` will now return an object-dtype :class:`Index` of :class:`DateOffset` objects instead of raising a ``TypeError`` (:issue:`20049`)
 
 .. _whatsnew_0240.api.other:
 
@@ -134,6 +195,9 @@ Removal of prior version deprecations/changes
 Performance Improvements
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+- Very large improvement in performance of slicing when the index is a :class:`CategoricalIndex`,
+  both when indexing by label (using .loc) and position(.iloc).
+  Likewise, slicing a ``CategoricalIndex`` itself (i.e. ``ci[100:200]``) shows similar speed improvements (:issue:`21659`)
 - Improved performance of :func:`Series.describe` in case of numeric dtpyes (:issue:`21274`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.rank` when dealing with tied rankings (:issue:`21237`)
 - Improved performance of :func:`DataFrame.set_index` with columns consisting of :class:`Period` objects (:issue:`21582`,:issue:`21606`)
@@ -164,12 +228,6 @@ Datetimelike
 ^^^^^^^^^^^^
 
 - Fixed bug where two :class:`DateOffset` objects with different ``normalize`` attributes could evaluate as equal (:issue:`21404`)
-- Bug in :class:`Index` with ``datetime64[ns, tz]`` dtype that did not localize integer data correctly (:issue:`20964`)
-- Bug in :meth:`DatetimeIndex.shift` where an ``AssertionError`` would raise when shifting across DST (:issue:`8616`)
-- Bug in :class:`Timestamp` constructor where passing an invalid timezone offset designator (``Z``) would not raise a ``ValueError``(:issue:`8910`)
-- Bug in :meth:`Timestamp.replace` where replacing at a DST boundary would retain an incorrect offset (:issue:`7825`)
-- Bug in :meth:`DatetimeIndex.reindex` when reindexing a tz-naive and tz-aware :class:`DatetimeIndex` (:issue:`8306`)
-- Bug in :meth:`DatetimeIndex.resample` when downsampling across a DST boundary (:issue:`8531`)
 
 Timedelta
 ^^^^^^^^^
@@ -181,9 +239,15 @@ Timedelta
 Timezones
 ^^^^^^^^^
 
--
--
--
+- Bug in :meth:`DatetimeIndex.shift` where an ``AssertionError`` would raise when shifting across DST (:issue:`8616`)
+- Bug in :class:`Timestamp` constructor where passing an invalid timezone offset designator (``Z``) would not raise a ``ValueError``(:issue:`8910`)
+- Bug in :meth:`Timestamp.replace` where replacing at a DST boundary would retain an incorrect offset (:issue:`7825`)
+- Bug in :meth:`Series.replace` with ``datetime64[ns, tz]`` data when replacing ``NaT`` (:issue:`11792`)
+- Bug in :class:`Timestamp` when passing different string date formats with a timezone offset would produce different timezone offsets (:issue:`12064`)
+- Bug when comparing a tz-naive :class:`Timestamp` to a tz-aware :class:`DatetimeIndex` which would coerce the :class:`DatetimeIndex` to tz-naive (:issue:`12601`)
+- Bug in :meth:`Series.truncate` with a tz-aware :class:`DatetimeIndex` which would cause a core dump (:issue:`9243`)
+- Bug in :class:`Series` constructor which would coerce tz-aware and tz-naive :class:`Timestamp`s to tz-aware (:issue:`13051`)
+- Bug in :class:`Index` with ``datetime64[ns, tz]`` dtype that did not localize integer data correctly (:issue:`20964`)
 
 Offsets
 ^^^^^^^
@@ -205,12 +269,22 @@ Strings
 -
 -
 
+Interval
+^^^^^^^^
+
+- Bug in the :class:`IntervalIndex` constructor where the ``closed`` parameter did not always override the inferred ``closed`` (:issue:`19370`)
+-
+-
+
 Indexing
 ^^^^^^^^
 
 - The traceback from a ``KeyError`` when asking ``.loc`` for a single missing label is now shorter and more clear (:issue:`21557`)
 - When ``.ix`` is asked for a missing integer label in a :class:`MultiIndex` with a first level of integer type, it now raises a ``KeyError`` - consistently with the case of a flat :class:`Int64Index` - rather than falling back to positional indexing (:issue:`21593`)
--
+- Bug in :meth:`DatetimeIndex.reindex` when reindexing a tz-naive and tz-aware :class:`DatetimeIndex` (:issue:`8306`)
+- Bug in :class:`DataFrame` when setting values with ``.loc`` and a timezone aware :class:`DatetimeIndex` (:issue:`11365`)
+- Bug when indexing :class:`DatetimeIndex` with nanosecond resolution dates and timezones (:issue:`11679`)
+
 -
 
 MultiIndex
@@ -238,6 +312,7 @@ Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in :func:`pandas.core.groupby.GroupBy.first` and :func:`pandas.core.groupby.GroupBy.last` with ``as_index=False`` leading to the loss of timezone information (:issue:`15884`)
+- Bug in :meth:`DatetimeIndex.resample` when downsampling across a DST boundary (:issue:`8531`)
 -
 -
 
@@ -258,6 +333,7 @@ Reshaping
 ExtensionArray
 ^^^^^^^^^^^^^^
 
+- Bug in :meth:`Series.get` for ``Series`` using ``ExtensionArray`` and integer index (:issue:`21257`)
 - :meth:`Series.combine()` works correctly with :class:`~pandas.api.extensions.ExtensionArray` inside of :class:`Series` (:issue:`20825`)
 - :meth:`Series.combine()` with scalar argument now works for any function type (:issue:`21248`)
 -

@@ -53,8 +53,11 @@ Fixed Regressions
 ~~~~~~~~~~~~~~~~~
 
 - Fixed regression in :meth:`to_csv` when handling file-like object incorrectly (:issue:`21471`)
+- Re-allowed duplicate level names of a ``MultiIndex``. Accessing a level that has a duplicate name by name still raises an error (:issue:`19029`).
 - Bug in both :meth:`DataFrame.first_valid_index` and :meth:`Series.first_valid_index` raised for a row index having duplicate values (:issue:`21441`)
 - Fixed printing of DataFrames with hierarchical columns with long names (:issue:`21180`)
+- Fixed regression in unary negative operations with object dtype (:issue:`21380`)
+- Bug in :meth:`Timestamp.ceil` and :meth:`Timestamp.floor` when timestamp is a multiple of the rounding frequency (:issue:`21262`)
 
 .. _whatsnew_0232.performance:
 

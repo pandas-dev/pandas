@@ -1893,6 +1893,12 @@ class TestHDFStore(Base):
                            'a', 'b'], index=make_index(['date', 'a', 't']))
             pytest.raises(ValueError, store.append, 'df', df)
 
+            # dup within level
+            _maybe_remove(store, 'df')
+            df = DataFrame(np.zeros((12, 2)), columns=['a', 'b'],
+                           index=make_index(['date', 'date', 'date']))
+            pytest.raises(ValueError, store.append, 'df', df)
+
             # fully names
             _maybe_remove(store, 'df')
             df = DataFrame(np.zeros((12, 2)), columns=[
