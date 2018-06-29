@@ -13,7 +13,8 @@ from pandas.core.tools.timedeltas import to_timedelta
 import numpy as np
 
 from pandas._libs import lib, iNaT, NaT, Timedelta
-from pandas._libs.tslibs.period import Period
+from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
+                                        _DIFFERENT_FREQ_INDEX)
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 from pandas._libs.tslibs.timestamps import round_ns
 
@@ -784,6 +785,41 @@ class DatetimeIndexOpsMixin(object):
     def _sub_period(self, other):
         return NotImplemented
 
+    def _sub_period_array(self, other):
+        """
+        Subtract one PeriodIndex from another.  This is only valid if they
+        have the same frequency.
+
+        Parameters
+        ----------
+        other : PeriodIndex
+
+        Returns
+        -------
+        result : np.ndarray[object]
+            Array of DateOffset objects; nulls represented by NaT
+        """
+        if not is_period_dtype(self):
+            raise TypeError("cannot subtract {dtype}-dtype to {cls}"
+                            .format(dtype=other.dtype,
+                                    cls=type(self).__name__))
+
+        if not len(self) == len(other):
+            raise ValueError("cannot subtract indices of unequal length")
+        if self.freq != other.freq:
+            msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
+            raise IncompatibleFrequency(msg)
+
+        new_values = checked_add_with_arr(self.asi8, -other.asi8,
+                                          arr_mask=self._isnan,
+                                          b_mask=other._isnan)
+
+        new_values = np.array([self.freq * x for x in new_values])
+        if self.hasnans or other.hasnans:
+            mask = (self._isnan) | (other._isnan)
+            new_values[mask] = NaT
+        return new_values
+
     def _add_offset(self, offset):
         raise com.AbstractMethodError(self)
 
@@ -894,7 +930,7 @@ class DatetimeIndexOpsMixin(object):
                 return self._add_datelike(other)
             elif is_integer_dtype(other):
                 result = self._addsub_int_array(other, operator.add)
-            elif is_float_dtype(other):
+            elif is_float_dtype(other) or is_period_dtype(other):
                 # Explicitly catch invalid dtypes
                 raise TypeError("cannot add {dtype}-dtype to {cls}"
                                 .format(dtype=other.dtype,
@@ -955,6 +991,9 @@ class DatetimeIndexOpsMixin(object):
             elif is_datetime64_dtype(other) or is_datetime64tz_dtype(other):
                 # DatetimeIndex, ndarray[datetime64]
                 result = self._sub_datelike(other)
+            elif is_period_dtype(other):
+                # PeriodIndex
+                result = self._sub_period_array(other)
             elif is_integer_dtype(other):
                 result = self._addsub_int_array(other, operator.sub)
             elif isinstance(other, Index):

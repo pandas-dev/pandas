@@ -258,6 +258,57 @@ class TestPeriodIndexComparisons(object):
 
 
 class TestPeriodIndexArithmetic(object):
+    # ---------------------------------------------------------------
+    # __add__/__sub__ with PeriodIndex
+    # PeriodIndex + other is defined for integers and timedelta-like others
+    # PeriodIndex - other is defined for integers, timedelta-like others,
+    #   and PeriodIndex (with matching freq)
+
+    def test_pi_add_iadd_pi_raises(self):
+        rng = pd.period_range('1/1/2000', freq='D', periods=5)
+        other = pd.period_range('1/6/2000', freq='D', periods=5)
+
+        # An earlier implementation of PeriodIndex addition performed
+        # a set operation (union).  This has since been changed to
+        # raise a TypeError. See GH#14164 and GH#13077 for historical
+        # reference.
+        with pytest.raises(TypeError):
+            rng + other
+
+        with pytest.raises(TypeError):
+            rng += other
+
+    def test_pi_sub_isub_pi(self):
+        # GH#20049
+        # For historical reference see GH#14164, GH#13077.
+        # PeriodIndex subtraction originally performed set difference,
+        # then changed to raise TypeError before being implemented in GH#20049
+        rng = pd.period_range('1/1/2000', freq='D', periods=5)
+        other = pd.period_range('1/6/2000', freq='D', periods=5)
+
+        off = rng.freq
+        expected = pd.Index([-5 * off] * 5)
+        result = rng - other
+        tm.assert_index_equal(result, expected)
+
+        rng -= other
+        tm.assert_index_equal(rng, expected)
+
+    def test_pi_sub_pi_with_nat(self):
+        rng = pd.period_range('1/1/2000', freq='D', periods=5)
+        other = rng[1:].insert(0, pd.NaT)
+        assert other[1:].equals(rng[1:])
+
+        result = rng - other
+        off = rng.freq
+        expected = pd.Index([pd.NaT, 0 * off, 0 * off, 0 * off, 0 * off])
+        tm.assert_index_equal(result, expected)
+
+    def test_pi_sub_pi_mismatched_freq(self):
+        rng = pd.period_range('1/1/2000', freq='D', periods=5)
+        other = pd.period_range('1/6/2000', freq='H', periods=5)
+        with pytest.raises(period.IncompatibleFrequency):
+            rng - other
 
     # -------------------------------------------------------------
     # Invalid Operations
@@ -379,17 +430,6 @@ class TestPeriodIndexArithmetic(object):
             with tm.assert_produces_warning(PerformanceWarning):
                 anchored - pi
 
-    def test_pi_add_iadd_pi_raises(self):
-        rng = pd.period_range('1/1/2000', freq='D', periods=5)
-        other = pd.period_range('1/6/2000', freq='D', periods=5)
-
-        # previously performed setop union, now raises TypeError (GH14164)
-        with pytest.raises(TypeError):
-            rng + other
-
-        with pytest.raises(TypeError):
-            rng += other
-
     def test_pi_add_iadd_int(self, one):
         # Variants of `one` for #19012
         rng = pd.period_range('2000-01-01 09:00', freq='H', periods=10)
@@ -418,18 +458,6 @@ class TestPeriodIndexArithmetic(object):
         result = rng - five
         exp = rng + (-five)
         tm.assert_index_equal(result, exp)
-
-    def test_pi_sub_isub_pi_raises(self):
-        # previously performed setop, now raises TypeError (GH14164)
-        # TODO needs to wait on #13077 for decision on result type
-        rng = pd.period_range('1/1/2000', freq='D', periods=5)
-        other = pd.period_range('1/6/2000', freq='D', periods=5)
-
-        with pytest.raises(TypeError):
-            rng - other
-
-        with pytest.raises(TypeError):
-            rng -= other
 
     def test_pi_sub_isub_offset(self):
         # offset
