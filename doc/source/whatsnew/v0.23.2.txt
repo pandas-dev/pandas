@@ -54,7 +54,7 @@ Fixed Regressions
 
 - Fixed regression in :meth:`to_csv` when handling file-like object incorrectly (:issue:`21471`)
 - Bug in both :meth:`DataFrame.first_valid_index` and :meth:`Series.first_valid_index` raised for a row index having duplicate values (:issue:`21441`)
--
+- Bug in :meth:`Timestamp.ceil` and :meth:`Timestamp.floor` when timestamp is a multiple of the rounding frequency (:issue:`21262`)
 
 .. _whatsnew_0232.performance:
 
