@@ -3,6 +3,7 @@
 from __future__ import print_function
 from collections import deque
 from datetime import datetime
+from decimal import Decimal
 import operator
 
 import pytest
@@ -282,6 +283,17 @@ class TestDataFrameOperators(TestData):
         assert_frame_equal(-df, expected)
         assert_series_equal(-df['a'], expected['a'])
 
+    @pytest.mark.parametrize('df, expected', [
+        (np.array([1, 2], dtype=object), np.array([-1, -2], dtype=object)),
+        ([Decimal('1.0'), Decimal('2.0')], [Decimal('-1.0'), Decimal('-2.0')]),
+    ])
+    def test_neg_object(self, df, expected):
+        # GH 21380
+        df = pd.DataFrame({'a': df})
+        expected = pd.DataFrame({'a': expected})
+        assert_frame_equal(-df, expected)
+        assert_series_equal(-df['a'], expected['a'])
+
     @pytest.mark.parametrize('df', [
         pd.DataFrame({'a': ['a', 'b']}),
         pd.DataFrame({'a': pd.to_datetime(['2017-01-22', '1970-01-01'])}),
@@ -307,6 +319,15 @@ class TestDataFrameOperators(TestData):
 
     @pytest.mark.parametrize('df', [
         pd.DataFrame({'a': ['a', 'b']}),
+        pd.DataFrame({'a': np.array([-1, 2], dtype=object)}),
+        pd.DataFrame({'a': [Decimal('-1.0'), Decimal('2.0')]}),
+    ])
+    def test_pos_object(self, df):
+        # GH 21380
+        assert_frame_equal(+df, df)
+        assert_series_equal(+df['a'], df['a'])
+
+    @pytest.mark.parametrize('df', [
         pd.DataFrame({'a': pd.to_datetime(['2017-01-22', '1970-01-01'])}),
     ])
     def test_pos_raises(self, df):
