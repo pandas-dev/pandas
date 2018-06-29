@@ -379,7 +379,7 @@ cdef class {{name}}HashTable(HashTable):
                 self.table.vals[k] = i
 
     @cython.boundscheck(False)
-    def lookup(self, {{dtype}}_t[:] values):
+    def lookup(self, const {{dtype}}_t[:] values):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
