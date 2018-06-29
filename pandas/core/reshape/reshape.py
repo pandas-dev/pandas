@@ -397,7 +397,7 @@ def pivot(self, index=None, columns=None, values=None):
         if index is None:
             index = self.index
             index = MultiIndex.from_arrays([index, self[columns]])
-        elif isinstance(index, list):
+        elif is_list_like(index):
             # Iterating through the list of multiple columns of an index
             indexes = [self[column] for column in index]
             indexes.append(self[columns])
