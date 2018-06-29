@@ -59,42 +59,51 @@ cdef inline object create_timestamp_from_ts(int64_t value,
 
 
 def round_ns(values, rounder, freq):
+
     """
     Applies rounding function at given frequency
 
     Parameters
     ----------
-    values : int, :obj:`ndarray`
-    rounder : function
+    values : :obj:`ndarray`
+    rounder : function, eg. 'ceil', 'floor', 'round'
     freq : str, obj
 
     Returns
     -------
-    int or :obj:`ndarray`
+    :obj:`ndarray`
     """
+
     from pandas.tseries.frequencies import to_offset
     unit = to_offset(freq).nanos
+
+    # GH21262 If the Timestamp is multiple of the freq str
+    # don't apply any rounding
+    mask = values % unit == 0
+    if mask.all():
+        return values
+    r = values.copy()
+
     if unit < 1000:
         # for nano rounding, work with the last 6 digits separately
         # due to float precision
         buff = 1000000
-        r = (buff * (values // buff) + unit *
-             (rounder((values % buff) * (1 / float(unit)))).astype('i8'))
+        r[~mask] = (buff * (values[~mask] // buff) +
+                    unit * (rounder((values[~mask] % buff) *
+                            (1 / float(unit)))).astype('i8'))
     else:
         if unit % 1000 != 0:
             msg = 'Precision will be lost using frequency: {}'
             warnings.warn(msg.format(freq))
-
         # GH19206
         # to deal with round-off when unit is large
         if unit >= 1e9:
             divisor = 10 ** int(np.log10(unit / 1e7))
         else:
             divisor = 10
-
-        r = (unit * rounder((values * (divisor / float(unit))) / divisor)
-             .astype('i8'))
-
+        r[~mask] = (unit * rounder((values[~mask] *
+                    (divisor / float(unit))) / divisor)
+                    .astype('i8'))
     return r
 
 
@@ -649,7 +658,10 @@ class Timestamp(_Timestamp):
         else:
             value = self.value
 
-        r = round_ns(value, rounder, freq)
+        value = np.array([value], dtype=np.int64)
+
+        # Will only ever contain 1 element for timestamp
+        r = round_ns(value, rounder, freq)[0]
         result = Timestamp(r, unit='ns')
         if self.tz is not None:
             result = result.tz_localize(self.tz)

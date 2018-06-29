@@ -656,22 +656,27 @@ class TestMultiIndex(Base):
         # With .set_names()
         tm.assert_raises_regex(TypeError, message, mi.set_names, names=renamed)
 
-    @pytest.mark.parametrize('names', [['a', 'b', 'a'], ['1', '1', '2'],
-                                       ['1', 'a', '1']])
+    @pytest.mark.parametrize('names', [['a', 'b', 'a'], [1, 1, 2],
+                                       [1, 'a', 1]])
     def test_duplicate_level_names(self, names):
-        # GH18872
-        pytest.raises(ValueError, pd.MultiIndex.from_product,
-                      [[0, 1]] * 3, names=names)
+        # GH18872, GH19029
+        mi = pd.MultiIndex.from_product([[0, 1]] * 3, names=names)
+        assert mi.names == names
 
         # With .rename()
         mi = pd.MultiIndex.from_product([[0, 1]] * 3)
-        tm.assert_raises_regex(ValueError, "Duplicated level name:",
-                               mi.rename, names)
+        mi = mi.rename(names)
+        assert mi.names == names
 
         # With .rename(., level=)
-        mi.rename(names[0], level=1, inplace=True)
-        tm.assert_raises_regex(ValueError, "Duplicated level name:",
-                               mi.rename, names[:2], level=[0, 2])
+        mi.rename(names[1], level=1, inplace=True)
+        mi = mi.rename([names[0], names[2]], level=[0, 2])
+        assert mi.names == names
+
+    def test_duplicate_level_names_access_raises(self):
+        self.index.names = ['foo', 'foo']
+        tm.assert_raises_regex(KeyError, 'Level foo not found',
+                               self.index._get_level_number, 'foo')
 
     def assert_multiindex_copied(self, copy, original):
         # Levels should be (at least, shallow copied)

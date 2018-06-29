@@ -276,6 +276,10 @@ class TestDatetimeIndexComparisons(object):
         with pytest.raises(TypeError):
             op(dz, ts)
 
+        # GH 12601: Check comparison against Timestamps and DatetimeIndex
+        with pytest.raises(TypeError):
+            op(ts, dz)
+
     @pytest.mark.parametrize('op', [operator.eq, operator.ne,
                                     operator.gt, operator.ge,
                                     operator.lt, operator.le])
@@ -761,6 +765,17 @@ class TestDatetimeIndexArithmetic(object):
 
         with pytest.raises(TypeError):
             p - idx
+
+    @pytest.mark.parametrize('op', [operator.add, ops.radd,
+                                    operator.sub, ops.rsub])
+    @pytest.mark.parametrize('pi_freq', ['D', 'W', 'Q', 'H'])
+    @pytest.mark.parametrize('dti_freq', [None, 'D'])
+    def test_dti_sub_pi(self, dti_freq, pi_freq, op):
+        # GH#20049 subtracting PeriodIndex should raise TypeError
+        dti = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq=dti_freq)
+        pi = dti.to_period(pi_freq)
+        with pytest.raises(TypeError):
+            op(dti, pi)
 
     def test_ufunc_coercions(self):
         idx = date_range('2011-01-01', periods=3, freq='2D', name='x')
