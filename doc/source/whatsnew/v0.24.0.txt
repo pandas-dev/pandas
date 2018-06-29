@@ -16,34 +16,11 @@ New features
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A ``Series`` based on an ``ExtensionArray`` now supports arithmetic and comparison
-operators. There are two approaches for providing operator support for an ExtensionArray:
+operators. (:issue:`19577`). There are two approaches for providing operator support for an ``ExtensionArray``:
 
 1. Define each of the operators on your ``ExtensionArray`` subclass.
 2. Use an operator implementation from pandas that depends on operators that are already defined
    on the underlying elements (scalars) of the ``ExtensionArray``.
-
-To use the first approach, where you define your own implementation of the operators,
-you define each operator such as `__add__`, __le__`, etc. on your ``ExtensionArray``
-subclass.
-
-For the second approach, which is appropriate if your ``ExtensionArray`` contains
-elements that already have the operators
-defined on a per-element basis, pandas provides a mixin,
-:class:`ExtensionScalarOpsMixin` that you can use to
-define the operators on your ExtensionArray subclass.
-If developing an ``ExtensionArray`` subclass, for example ``MyExtensionArray``,
- an simply include ``ExtensionScalarOpsMixin``, as a parent class of ``MyExtensionArray``
-and then call the methods :meth:`~MyExtensionArray._add_arithmetic_ops` and/or
-:meth:`~MyExtensionArray._add_comparison_ops` to hook the operators into
-your ``MyExtensionArray`` class, as follows:
-
-.. code-block:: python
-
-    class MyExtensionArray(ExtensionArray, ExtensionScalarOpsMixin):
-        pass
-
-    MyExtensionArray._add_arithmetic_ops()
-    MyExtensionArray._add_comparison_ops()
 
 See the :ref:`ExtensionArray Operator Support
 <extending.extension.operator>` documentation section for details on both
