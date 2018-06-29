@@ -755,26 +755,27 @@ class MultiIndex(Index):
         return MultiIndex(levels, labels, names, sortorder=sortorder)
 
     def _get_level_number(self, level):
-        try:
+        if not isinstance(level, int):
             count = self.names.count(level)
             if count > 1:
                 raise ValueError('The name %s occurs multiple times, use a '
-                                 'level number' % level)
-            level = self.names.index(level)
-        except ValueError:
-            if not isinstance(level, int):
+                                'level number' % level)
+            try:
+                level = self.names.index(level)
+            except ValueError:
                 raise KeyError('Level %s not found' % str(level))
-            elif level < 0:
-                level += self.nlevels
-                if level < 0:
-                    orig_level = level - self.nlevels
-                    raise IndexError('Too many levels: Index has only %d '
-                                     'levels, %d is not a valid level number' %
-                                     (self.nlevels, orig_level))
-            # Note: levels are zero-based
-            elif level >= self.nlevels:
-                raise IndexError('Too many levels: Index has only %d levels, '
-                                 'not %d' % (self.nlevels, level + 1))
+
+        if level < 0:
+            level += self.nlevels
+            if level < 0:
+                orig_level = level - self.nlevels
+                raise IndexError('Too many levels: Index has only %d '
+                                    'levels, %d is not a valid level number' %
+                                    (self.nlevels, orig_level))
+        # Note: levels are zero-based
+        elif level >= self.nlevels:
+            raise IndexError('Too many levels: Index has only %d levels, '
+                                'not %d' % (self.nlevels, level + 1))
         return level
 
     _tuples = None
@@ -2880,13 +2881,6 @@ class MultiIndex(Index):
                 return np.zeros(len(labs), dtype=np.bool_)
             else:
                 return np.lib.arraysetops.in1d(labs, sought_labels)
-
-    def _reference_duplicate_name(self, name):
-        """
-        Returns True if the name refered to in self.names is duplicated.
-        """
-        # count the times name equals an element in self.names.
-        return sum(name == n for n in self.names) > 1
 
 
 MultiIndex._add_numeric_methods_disabled()

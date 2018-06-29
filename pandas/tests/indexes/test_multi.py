@@ -675,7 +675,7 @@ class TestMultiIndex(Base):
 
     def test_duplicate_level_names_access_raises(self):
         self.index.names = ['foo', 'foo']
-        tm.assert_raises_regex(KeyError, 'Level foo not found',
+        tm.assert_raises_regex(ValueError, 'name foo occurs multiple times',
                                self.index._get_level_number, 'foo')
 
     def assert_multiindex_copied(self, copy, original):
