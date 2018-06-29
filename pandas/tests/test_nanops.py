@@ -3,17 +3,24 @@ from __future__ import division, print_function
 
 from functools import partial
 
+import pytest
+import warnings
 import numpy as np
-from pandas import Series
-from pandas.core.common import isnull, is_integer_dtype
+
+import pandas as pd
+from pandas import Series, isna
+from pandas.core.dtypes.common import is_integer_dtype
 import pandas.core.nanops as nanops
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
+from pandas.compat.numpy import _np_version_under1p13
 
 use_bn = nanops._USE_BOTTLENECK
 
-class TestnanopsDataFrame(tm.TestCase):
 
-    def setUp(self):
+class TestnanopsDataFrame(object):
+
+    def setup_method(self, method):
         np.random.seed(11235)
         nanops._USE_BOTTLENECK = False
 
@@ -21,7 +28,7 @@ class TestnanopsDataFrame(tm.TestCase):
 
         self.arr_float = np.random.randn(*self.arr_shape)
         self.arr_float1 = np.random.randn(*self.arr_shape)
-        self.arr_complex = self.arr_float + self.arr_float1*1j
+        self.arr_complex = self.arr_float + self.arr_float1 * 1j
         self.arr_int = np.random.randint(-10, 10, self.arr_shape)
         self.arr_bool = np.random.randint(0, 2, self.arr_shape) == 0
         self.arr_str = np.abs(self.arr_float).astype('S')
@@ -37,37 +44,33 @@ class TestnanopsDataFrame(tm.TestCase):
         self.arr_nan_float1 = np.vstack([self.arr_nan, self.arr_float1])
         self.arr_nan_nan = np.vstack([self.arr_nan, self.arr_nan])
 
-        self.arr_inf = self.arr_float*np.inf
+        self.arr_inf = self.arr_float * np.inf
         self.arr_float_inf = np.vstack([self.arr_float, self.arr_inf])
         self.arr_float1_inf = np.vstack([self.arr_float1, self.arr_inf])
         self.arr_inf_float1 = np.vstack([self.arr_inf, self.arr_float1])
         self.arr_inf_inf = np.vstack([self.arr_inf, self.arr_inf])
 
         self.arr_nan_inf = np.vstack([self.arr_nan, self.arr_inf])
-        self.arr_float_nan_inf = np.vstack([self.arr_float,
-                                            self.arr_nan,
+        self.arr_float_nan_inf = np.vstack([self.arr_float, self.arr_nan,
                                             self.arr_inf])
-        self.arr_nan_float1_inf = np.vstack([self.arr_float,
-                                             self.arr_inf,
+        self.arr_nan_float1_inf = np.vstack([self.arr_float, self.arr_inf,
                                              self.arr_nan])
-        self.arr_nan_nan_inf = np.vstack([self.arr_nan,
-                                          self.arr_nan,
+        self.arr_nan_nan_inf = np.vstack([self.arr_nan, self.arr_nan,
                                           self.arr_inf])
-        self.arr_obj = np.vstack([self.arr_float.astype('O'),
-                                  self.arr_int.astype('O'),
-                                  self.arr_bool.astype('O'),
-                                  self.arr_complex.astype('O'),
-                                  self.arr_str.astype('O'),
-                                  self.arr_utf.astype('O'),
-                                  self.arr_date.astype('O'),
-                                  self.arr_tdelta.astype('O')])
+        self.arr_obj = np.vstack([self.arr_float.astype(
+            'O'), self.arr_int.astype('O'), self.arr_bool.astype(
+                'O'), self.arr_complex.astype('O'), self.arr_str.astype(
+                    'O'), self.arr_utf.astype('O'), self.arr_date.astype('O'),
+            self.arr_tdelta.astype('O')])
 
-        self.arr_nan_nanj = self.arr_nan + self.arr_nan*1j
-        self.arr_complex_nan = np.vstack([self.arr_complex, self.arr_nan_nanj])
+        with np.errstate(invalid='ignore'):
+            self.arr_nan_nanj = self.arr_nan + self.arr_nan * 1j
+            self.arr_complex_nan = np.vstack([self.arr_complex,
+                                              self.arr_nan_nanj])
 
-        self.arr_nan_infj = self.arr_inf*1j
-        self.arr_complex_nan_infj = np.vstack([self.arr_complex,
-                                              self.arr_nan_infj])
+            self.arr_nan_infj = self.arr_inf * 1j
+            self.arr_complex_nan_infj = np.vstack([self.arr_complex,
+                                                   self.arr_nan_infj])
 
         self.arr_float_2d = self.arr_float[:, :, 0]
         self.arr_float1_2d = self.arr_float1[:, :, 0]
@@ -117,16 +120,16 @@ class TestnanopsDataFrame(tm.TestCase):
         self.arr_float_nan_inf_1d = self.arr_float_nan_inf[:, 0, 0]
         self.arr_nan_nan_inf_1d = self.arr_nan_nan_inf[:, 0, 0]
 
-    def tearDown(self):
+    def teardown_method(self, method):
         nanops._USE_BOTTLENECK = use_bn
 
-    def check_results(self, targ, res, axis):
+    def check_results(self, targ, res, axis, check_dtype=True):
         res = getattr(res, 'asm8', res)
         res = getattr(res, 'values', res)
 
         # timedeltas are a beast here
         def _coerce_tds(targ, res):
-            if targ.dtype == 'm8[ns]':
+            if hasattr(targ, 'dtype') and targ.dtype == 'm8[ns]':
                 if len(targ) == 1:
                     targ = targ[0].item()
                     res = res.item()
@@ -135,18 +138,20 @@ class TestnanopsDataFrame(tm.TestCase):
             return targ, res
 
         try:
-            if axis != 0 and hasattr(targ, 'shape') and targ.ndim:
+            if axis != 0 and hasattr(
+                    targ, 'shape') and targ.ndim and targ.shape != res.shape:
                 res = np.split(res, [targ.shape[0]], axis=0)[0]
         except:
             targ, res = _coerce_tds(targ, res)
 
         try:
-            tm.assert_almost_equal(targ, res)
+            tm.assert_almost_equal(targ, res, check_dtype=check_dtype)
         except:
 
-            if targ.dtype == 'm8[ns]':
+            # handle timedelta dtypes
+            if hasattr(targ, 'dtype') and targ.dtype == 'm8[ns]':
                 targ, res = _coerce_tds(targ, res)
-                tm.assert_almost_equal(targ, res)
+                tm.assert_almost_equal(targ, res, check_dtype=check_dtype)
                 return
 
             # There are sometimes rounding errors with
@@ -172,32 +177,42 @@ class TestnanopsDataFrame(tm.TestCase):
             # but nanops doesn't, so make that an exception
             elif targ.dtype.kind == 'O':
                 raise
-            tm.assert_almost_equal(targ.real, res.real)
-            tm.assert_almost_equal(targ.imag, res.imag)
+            tm.assert_almost_equal(targ.real, res.real,
+                                   check_dtype=check_dtype)
+            tm.assert_almost_equal(targ.imag, res.imag,
+                                   check_dtype=check_dtype)
 
-    def check_fun_data(self, testfunc, targfunc,
-                       testarval, targarval, targarnanval, **kwargs):
-        for axis in list(range(targarval.ndim))+[None]:
+    def check_fun_data(self, testfunc, targfunc, testarval, targarval,
+                       targarnanval, check_dtype=True, empty_targfunc=None,
+                       **kwargs):
+        for axis in list(range(targarval.ndim)) + [None]:
             for skipna in [False, True]:
                 targartempval = targarval if skipna else targarnanval
-                try:
+                if skipna and empty_targfunc and isna(targartempval).all():
+                    targ = empty_targfunc(targartempval, axis=axis, **kwargs)
+                else:
                     targ = targfunc(targartempval, axis=axis, **kwargs)
+
+                try:
                     res = testfunc(testarval, axis=axis, skipna=skipna,
                                    **kwargs)
-                    self.check_results(targ, res, axis)
+                    self.check_results(targ, res, axis,
+                                       check_dtype=check_dtype)
                     if skipna:
                         res = testfunc(testarval, axis=axis, **kwargs)
-                        self.check_results(targ, res, axis)
+                        self.check_results(targ, res, axis,
+                                           check_dtype=check_dtype)
                     if axis is None:
                         res = testfunc(testarval, skipna=skipna, **kwargs)
-                        self.check_results(targ, res, axis)
+                        self.check_results(targ, res, axis,
+                                           check_dtype=check_dtype)
                     if skipna and axis is None:
                         res = testfunc(testarval, **kwargs)
-                        self.check_results(targ, res, axis)
+                        self.check_results(targ, res, axis,
+                                           check_dtype=check_dtype)
                 except BaseException as exc:
-                    exc.args += ('axis: %s of %s' % (axis, testarval.ndim-1),
-                                 'skipna: %s' % skipna,
-                                 'kwargs: %s' % kwargs)
+                    exc.args += ('axis: %s of %s' % (axis, testarval.ndim - 1),
+                                 'skipna: %s' % skipna, 'kwargs: %s' % kwargs)
                     raise
 
         if testarval.ndim <= 1:
@@ -209,13 +224,12 @@ class TestnanopsDataFrame(tm.TestCase):
             targarnanval2 = np.take(targarnanval, 0, axis=-1)
         except ValueError:
             return
-        self.check_fun_data(testfunc, targfunc,
-                            testarval2, targarval2, targarnanval2,
-                            **kwargs)
+        self.check_fun_data(testfunc, targfunc, testarval2, targarval2,
+                            targarnanval2, check_dtype=check_dtype,
+                            empty_targfunc=empty_targfunc, **kwargs)
 
-    def check_fun(self, testfunc, targfunc,
-                  testar, targar=None, targarnan=None,
-                  **kwargs):
+    def check_fun(self, testfunc, targfunc, testar, targar=None,
+                  targarnan=None, empty_targfunc=None, **kwargs):
         if targar is None:
             targar = testar
         if targarnan is None:
@@ -224,25 +238,23 @@ class TestnanopsDataFrame(tm.TestCase):
         targarval = getattr(self, targar)
         targarnanval = getattr(self, targarnan)
         try:
-            self.check_fun_data(testfunc, targfunc,
-                                testarval, targarval, targarnanval, **kwargs)
+            self.check_fun_data(testfunc, targfunc, testarval, targarval,
+                                targarnanval, empty_targfunc=empty_targfunc,
+                                **kwargs)
         except BaseException as exc:
-            exc.args += ('testar: %s' % testar,
-                         'targar: %s' % targar,
+            exc.args += ('testar: %s' % testar, 'targar: %s' % targar,
                          'targarnan: %s' % targarnan)
             raise
 
-    def check_funs(self, testfunc, targfunc,
-                   allow_complex=True, allow_all_nan=True, allow_str=True,
-                   allow_date=True, allow_tdelta=True, allow_obj=True,
-                   **kwargs):
+    def check_funs(self, testfunc, targfunc, allow_complex=True,
+                   allow_all_nan=True, allow_str=True, allow_date=True,
+                   allow_tdelta=True, allow_obj=True, **kwargs):
         self.check_fun(testfunc, targfunc, 'arr_float', **kwargs)
         self.check_fun(testfunc, targfunc, 'arr_float_nan', 'arr_float',
                        **kwargs)
         self.check_fun(testfunc, targfunc, 'arr_int', **kwargs)
         self.check_fun(testfunc, targfunc, 'arr_bool', **kwargs)
-        objs = [self.arr_float.astype('O'),
-                self.arr_int.astype('O'),
+        objs = [self.arr_float.astype('O'), self.arr_int.astype('O'),
                 self.arr_bool.astype('O')]
 
         if allow_all_nan:
@@ -250,8 +262,8 @@ class TestnanopsDataFrame(tm.TestCase):
 
         if allow_complex:
             self.check_fun(testfunc, targfunc, 'arr_complex', **kwargs)
-            self.check_fun(testfunc, targfunc,
-                           'arr_complex_nan', 'arr_complex', **kwargs)
+            self.check_fun(testfunc, targfunc, 'arr_complex_nan',
+                           'arr_complex', **kwargs)
             if allow_all_nan:
                 self.check_fun(testfunc, targfunc, 'arr_nan_nanj', **kwargs)
             objs += [self.arr_complex.astype('O')]
@@ -259,8 +271,7 @@ class TestnanopsDataFrame(tm.TestCase):
         if allow_str:
             self.check_fun(testfunc, targfunc, 'arr_str', **kwargs)
             self.check_fun(testfunc, targfunc, 'arr_utf', **kwargs)
-            objs += [self.arr_str.astype('O'),
-                     self.arr_utf.astype('O')]
+            objs += [self.arr_str.astype('O'), self.arr_utf.astype('O')]
 
         if allow_date:
             try:
@@ -286,22 +297,9 @@ class TestnanopsDataFrame(tm.TestCase):
             # counterparts, so the numpy functions need to be given something
             # else
             if allow_obj == 'convert':
-                targfunc = partial(self._badobj_wrap,
-                                   func=targfunc, allow_complex=allow_complex)
+                targfunc = partial(self._badobj_wrap, func=targfunc,
+                                   allow_complex=allow_complex)
             self.check_fun(testfunc, targfunc, 'arr_obj', **kwargs)
-
-    def check_funs_ddof(self, testfunc, targfunc,
-                        allow_complex=True, allow_all_nan=True, allow_str=True,
-                        allow_date=False, allow_tdelta=False, allow_obj=True,):
-        for ddof in range(3):
-            try:
-                self.check_funs(testfunc, targfunc,
-                                allow_complex, allow_all_nan, allow_str,
-                                allow_date, allow_tdelta, allow_obj,
-                                ddof=ddof)
-            except BaseException as exc:
-                exc.args += ('ddof %s' % ddof,)
-                raise
 
     def _badobj_wrap(self, value, func, allow_complex=True, **kwargs):
         if value.dtype.kind == 'O':
@@ -312,42 +310,40 @@ class TestnanopsDataFrame(tm.TestCase):
         return func(value, **kwargs)
 
     def test_nanany(self):
-        self.check_funs(nanops.nanany, np.any,
-                        allow_all_nan=False, allow_str=False, allow_date=False, allow_tdelta=False)
+        self.check_funs(nanops.nanany, np.any, allow_all_nan=False,
+                        allow_str=False, allow_date=False, allow_tdelta=False)
 
     def test_nanall(self):
-        self.check_funs(nanops.nanall, np.all,
-                        allow_all_nan=False, allow_str=False, allow_date=False, allow_tdelta=False)
+        self.check_funs(nanops.nanall, np.all, allow_all_nan=False,
+                        allow_str=False, allow_date=False, allow_tdelta=False)
 
     def test_nansum(self):
-        self.check_funs(nanops.nansum, np.sum,
-                        allow_str=False, allow_date=False, allow_tdelta=True)
+        self.check_funs(nanops.nansum, np.sum, allow_str=False,
+                        allow_date=False, allow_tdelta=True, check_dtype=False,
+                        empty_targfunc=np.nansum)
 
     def test_nanmean(self):
-        self.check_funs(nanops.nanmean, np.mean,
-                        allow_complex=False, allow_obj=False,
-                        allow_str=False, allow_date=False, allow_tdelta=True)
+        self.check_funs(nanops.nanmean, np.mean, allow_complex=False,
+                        allow_obj=False, allow_str=False, allow_date=False,
+                        allow_tdelta=True)
 
     def test_nanmean_overflow(self):
         # GH 10155
         # In the previous implementation mean can overflow for int dtypes, it
         # is now consistent with numpy
 
-        # numpy < 1.9.0 is not computing this correctly
-        from distutils.version import LooseVersion
-        if LooseVersion(np.__version__) >= '1.9.0':
-            for a in [2 ** 55, -2 ** 55, 20150515061816532]:
-                s = Series(a, index=range(500), dtype=np.int64)
-                result = s.mean()
-                np_result = s.values.mean()
-                self.assertEqual(result, a)
-                self.assertEqual(result, np_result)
-                self.assertTrue(result.dtype == np.float64)
+        for a in [2 ** 55, -2 ** 55, 20150515061816532]:
+            s = Series(a, index=range(500), dtype=np.int64)
+            result = s.mean()
+            np_result = s.values.mean()
+            assert result == a
+            assert result == np_result
+            assert result.dtype == np.float64
 
     def test_returned_dtype(self):
 
         dtypes = [np.int16, np.int32, np.int64, np.float32, np.float64]
-        if hasattr(np,'float128'):
+        if hasattr(np, 'float128'):
             dtypes.append(np.float128)
 
         for dtype in dtypes:
@@ -357,64 +353,61 @@ class TestnanopsDataFrame(tm.TestCase):
             for method in group_a + group_b:
                 result = getattr(s, method)()
                 if is_integer_dtype(dtype) and method in group_a:
-                    self.assertTrue(result.dtype == np.float64,
-                                    "return dtype expected from %s is np.float64, got %s instead" % (method, result.dtype))
+                    assert result.dtype == np.float64
                 else:
-                    self.assertTrue(result.dtype == dtype,
-                                    "return dtype expected from %s is %s, got %s instead" % (method, dtype, result.dtype))
+                    assert result.dtype == dtype
 
     def test_nanmedian(self):
-        self.check_funs(nanops.nanmedian, np.median,
-                        allow_complex=False, allow_str=False, allow_date=False,
-                        allow_tdelta=True,
-                        allow_obj='convert')
+        with warnings.catch_warnings(record=True):
+            self.check_funs(nanops.nanmedian, np.median, allow_complex=False,
+                            allow_str=False, allow_date=False,
+                            allow_tdelta=True, allow_obj='convert')
 
-    def test_nanvar(self):
-        self.check_funs_ddof(nanops.nanvar, np.var,
-                             allow_complex=False,
-                             allow_str=False,
-                             allow_date=False,
-                             allow_tdelta=True,
-                             allow_obj='convert')
+    @pytest.mark.parametrize('ddof', range(3))
+    def test_nanvar(self, ddof):
+        self.check_funs(nanops.nanvar, np.var, allow_complex=False,
+                        allow_str=False, allow_date=False,
+                        allow_tdelta=True, allow_obj='convert', ddof=ddof)
 
-    def test_nanstd(self):
-        self.check_funs_ddof(nanops.nanstd, np.std,
-                             allow_complex=False,
-                             allow_str=False,
-                             allow_date=False,
-                             allow_tdelta=True,
-                             allow_obj='convert')
+    @pytest.mark.parametrize('ddof', range(3))
+    def test_nanstd(self, ddof):
+        self.check_funs(nanops.nanstd, np.std, allow_complex=False,
+                        allow_str=False, allow_date=False,
+                        allow_tdelta=True, allow_obj='convert', ddof=ddof)
 
-    def test_nansem(self):
-        tm.skip_if_no_package('scipy.stats')
+    @td.skip_if_no('scipy', min_version='0.17.0')
+    @pytest.mark.parametrize('ddof', range(3))
+    def test_nansem(self, ddof):
         from scipy.stats import sem
-        self.check_funs_ddof(nanops.nansem, sem,
-                             allow_complex=False,
-                             allow_str=False,
-                             allow_date=False,
-                             allow_tdelta=True,
-                             allow_obj='convert')
+        with np.errstate(invalid='ignore'):
+            self.check_funs(nanops.nansem, sem, allow_complex=False,
+                            allow_str=False, allow_date=False,
+                            allow_tdelta=False, allow_obj='convert', ddof=ddof)
 
     def _minmax_wrap(self, value, axis=None, func=None):
+
+        # numpy warns if all nan
         res = func(value, axis)
         if res.dtype.kind == 'm':
             res = np.atleast_1d(res)
         return res
 
     def test_nanmin(self):
-        func = partial(self._minmax_wrap, func=np.min)
-        self.check_funs(nanops.nanmin, func,
-                        allow_str=False, allow_obj=False)
+        with warnings.catch_warnings(record=True):
+            func = partial(self._minmax_wrap, func=np.min)
+            self.check_funs(nanops.nanmin, func,
+                            allow_str=False, allow_obj=False)
 
     def test_nanmax(self):
-        func = partial(self._minmax_wrap, func=np.max)
-        self.check_funs(nanops.nanmax, func,
-                        allow_str=False, allow_obj=False)
+        with warnings.catch_warnings(record=True):
+            func = partial(self._minmax_wrap, func=np.max)
+            self.check_funs(nanops.nanmax, func,
+                            allow_str=False, allow_obj=False)
 
     def _argminmax_wrap(self, value, axis=None, func=None):
         res = func(value, axis)
         nans = np.min(value, axis)
-        nullnan = isnull(nans)
+        nullnan = isna(nans)
         if res.ndim:
             res[nullnan] = -1
         elif (hasattr(nullnan, 'all') and nullnan.all() or
@@ -423,22 +416,17 @@ class TestnanopsDataFrame(tm.TestCase):
         return res
 
     def test_nanargmax(self):
-        func = partial(self._argminmax_wrap, func=np.argmax)
-        self.check_funs(nanops.nanargmax, func,
-                        allow_str=False, allow_obj=False,
-                        allow_date=True,
-                        allow_tdelta=True)
+        with warnings.catch_warnings(record=True):
+            func = partial(self._argminmax_wrap, func=np.argmax)
+            self.check_funs(nanops.nanargmax, func,
+                            allow_str=False, allow_obj=False,
+                            allow_date=True, allow_tdelta=True)
 
     def test_nanargmin(self):
-        func = partial(self._argminmax_wrap, func=np.argmin)
-        if tm.sys.version_info[0:2] == (2, 6):
-            self.check_funs(nanops.nanargmin, func,
-                            allow_date=True,
-                            allow_tdelta=True,
-                            allow_str=False, allow_obj=False)
-        else:
-            self.check_funs(nanops.nanargmin, func,
-                            allow_str=False, allow_obj=False)
+        with warnings.catch_warnings(record=True):
+            func = partial(self._argminmax_wrap, func=np.argmin)
+            self.check_funs(nanops.nanargmin, func, allow_str=False,
+                            allow_obj=False)
 
     def _skew_kurt_wrap(self, values, axis=None, func=None):
         if not isinstance(values.dtype.type, np.floating):
@@ -452,57 +440,55 @@ class TestnanopsDataFrame(tm.TestCase):
             return 0.
         return result
 
+    @td.skip_if_no('scipy', min_version='0.17.0')
     def test_nanskew(self):
-        tm.skip_if_no_package('scipy.stats')
         from scipy.stats import skew
         func = partial(self._skew_kurt_wrap, func=skew)
-        self.check_funs(nanops.nanskew, func,
-                        allow_complex=False, allow_str=False, allow_date=False, allow_tdelta=False)
+        with np.errstate(invalid='ignore'):
+            self.check_funs(nanops.nanskew, func, allow_complex=False,
+                            allow_str=False, allow_date=False,
+                            allow_tdelta=False)
 
+    @td.skip_if_no('scipy', min_version='0.17.0')
     def test_nankurt(self):
-        tm.skip_if_no_package('scipy.stats')
         from scipy.stats import kurtosis
         func1 = partial(kurtosis, fisher=True)
         func = partial(self._skew_kurt_wrap, func=func1)
-        self.check_funs(nanops.nankurt, func,
-                        allow_complex=False, allow_str=False, allow_date=False, allow_tdelta=False)
+        with np.errstate(invalid='ignore'):
+            self.check_funs(nanops.nankurt, func, allow_complex=False,
+                            allow_str=False, allow_date=False,
+                            allow_tdelta=False)
 
+    @td.skip_if_no("numpy", min_version="1.10.0")
     def test_nanprod(self):
-        self.check_funs(nanops.nanprod, np.prod,
-                        allow_str=False, allow_date=False, allow_tdelta=False)
+        self.check_funs(nanops.nanprod, np.prod, allow_str=False,
+                        allow_date=False, allow_tdelta=False,
+                        empty_targfunc=np.nanprod)
 
     def check_nancorr_nancov_2d(self, checkfun, targ0, targ1, **kwargs):
-        res00 = checkfun(self.arr_float_2d, self.arr_float1_2d,
-                         **kwargs)
+        res00 = checkfun(self.arr_float_2d, self.arr_float1_2d, **kwargs)
         res01 = checkfun(self.arr_float_2d, self.arr_float1_2d,
-                         min_periods=len(self.arr_float_2d)-1,
-                         **kwargs)
+                         min_periods=len(self.arr_float_2d) - 1, **kwargs)
         tm.assert_almost_equal(targ0, res00)
         tm.assert_almost_equal(targ0, res01)
 
         res10 = checkfun(self.arr_float_nan_2d, self.arr_float1_nan_2d,
                          **kwargs)
         res11 = checkfun(self.arr_float_nan_2d, self.arr_float1_nan_2d,
-                         min_periods=len(self.arr_float_2d)-1,
-                         **kwargs)
+                         min_periods=len(self.arr_float_2d) - 1, **kwargs)
         tm.assert_almost_equal(targ1, res10)
         tm.assert_almost_equal(targ1, res11)
 
         targ2 = np.nan
-        res20 = checkfun(self.arr_nan_2d, self.arr_float1_2d,
-                         **kwargs)
-        res21 = checkfun(self.arr_float_2d, self.arr_nan_2d,
-                         **kwargs)
-        res22 = checkfun(self.arr_nan_2d, self.arr_nan_2d,
-                         **kwargs)
+        res20 = checkfun(self.arr_nan_2d, self.arr_float1_2d, **kwargs)
+        res21 = checkfun(self.arr_float_2d, self.arr_nan_2d, **kwargs)
+        res22 = checkfun(self.arr_nan_2d, self.arr_nan_2d, **kwargs)
         res23 = checkfun(self.arr_float_nan_2d, self.arr_nan_float1_2d,
                          **kwargs)
         res24 = checkfun(self.arr_float_nan_2d, self.arr_nan_float1_2d,
-                         min_periods=len(self.arr_float_2d)-1,
-                         **kwargs)
+                         min_periods=len(self.arr_float_2d) - 1, **kwargs)
         res25 = checkfun(self.arr_float_2d, self.arr_float1_2d,
-                         min_periods=len(self.arr_float_2d)+1,
-                         **kwargs)
+                         min_periods=len(self.arr_float_2d) + 1, **kwargs)
         tm.assert_almost_equal(targ2, res20)
         tm.assert_almost_equal(targ2, res21)
         tm.assert_almost_equal(targ2, res22)
@@ -511,42 +497,29 @@ class TestnanopsDataFrame(tm.TestCase):
         tm.assert_almost_equal(targ2, res25)
 
     def check_nancorr_nancov_1d(self, checkfun, targ0, targ1, **kwargs):
-        res00 = checkfun(self.arr_float_1d, self.arr_float1_1d,
-                         **kwargs)
+        res00 = checkfun(self.arr_float_1d, self.arr_float1_1d, **kwargs)
         res01 = checkfun(self.arr_float_1d, self.arr_float1_1d,
-                         min_periods=len(self.arr_float_1d)-1,
-                         **kwargs)
+                         min_periods=len(self.arr_float_1d) - 1, **kwargs)
         tm.assert_almost_equal(targ0, res00)
         tm.assert_almost_equal(targ0, res01)
 
-        res10 = checkfun(self.arr_float_nan_1d,
-                         self.arr_float1_nan_1d,
+        res10 = checkfun(self.arr_float_nan_1d, self.arr_float1_nan_1d,
                          **kwargs)
-        res11 = checkfun(self.arr_float_nan_1d,
-                         self.arr_float1_nan_1d,
-                         min_periods=len(self.arr_float_1d)-1,
-                         **kwargs)
+        res11 = checkfun(self.arr_float_nan_1d, self.arr_float1_nan_1d,
+                         min_periods=len(self.arr_float_1d) - 1, **kwargs)
         tm.assert_almost_equal(targ1, res10)
         tm.assert_almost_equal(targ1, res11)
 
         targ2 = np.nan
-        res20 = checkfun(self.arr_nan_1d, self.arr_float1_1d,
+        res20 = checkfun(self.arr_nan_1d, self.arr_float1_1d, **kwargs)
+        res21 = checkfun(self.arr_float_1d, self.arr_nan_1d, **kwargs)
+        res22 = checkfun(self.arr_nan_1d, self.arr_nan_1d, **kwargs)
+        res23 = checkfun(self.arr_float_nan_1d, self.arr_nan_float1_1d,
                          **kwargs)
-        res21 = checkfun(self.arr_float_1d, self.arr_nan_1d,
-                         **kwargs)
-        res22 = checkfun(self.arr_nan_1d, self.arr_nan_1d,
-                         **kwargs)
-        res23 = checkfun(self.arr_float_nan_1d,
-                         self.arr_nan_float1_1d,
-                         **kwargs)
-        res24 = checkfun(self.arr_float_nan_1d,
-                         self.arr_nan_float1_1d,
-                         min_periods=len(self.arr_float_1d)-1,
-                         **kwargs)
-        res25 = checkfun(self.arr_float_1d,
-                         self.arr_float1_1d,
-                         min_periods=len(self.arr_float_1d)+1,
-                         **kwargs)
+        res24 = checkfun(self.arr_float_nan_1d, self.arr_nan_float1_1d,
+                         min_periods=len(self.arr_float_1d) - 1, **kwargs)
+        res25 = checkfun(self.arr_float_1d, self.arr_float1_1d,
+                         min_periods=len(self.arr_float_1d) + 1, **kwargs)
         tm.assert_almost_equal(targ2, res20)
         tm.assert_almost_equal(targ2, res21)
         tm.assert_almost_equal(targ2, res22)
@@ -577,8 +550,8 @@ class TestnanopsDataFrame(tm.TestCase):
         self.check_nancorr_nancov_1d(nanops.nancorr, targ0, targ1,
                                      method='pearson')
 
+    @td.skip_if_no_scipy
     def test_nancorr_kendall(self):
-        tm.skip_if_no_package('scipy.stats')
         from scipy.stats import kendalltau
         targ0 = kendalltau(self.arr_float_2d, self.arr_float1_2d)[0]
         targ1 = kendalltau(self.arr_float_2d.flat, self.arr_float1_2d.flat)[0]
@@ -589,8 +562,8 @@ class TestnanopsDataFrame(tm.TestCase):
         self.check_nancorr_nancov_1d(nanops.nancorr, targ0, targ1,
                                      method='kendall')
 
+    @td.skip_if_no_scipy
     def test_nancorr_spearman(self):
-        tm.skip_if_no_package('scipy.stats')
         from scipy.stats import spearmanr
         targ0 = spearmanr(self.arr_float_2d, self.arr_float1_2d)[0]
         targ1 = spearmanr(self.arr_float_2d.flat, self.arr_float1_2d.flat)[0]
@@ -628,13 +601,13 @@ class TestnanopsDataFrame(tm.TestCase):
                 else:
                     targ1 = np.hstack([targ0, arr_nan])
                 res1 = checkfun(arr_float_nan, arr_float1_nan)
-                tm.assert_almost_equal(targ1, res1)
+                tm.assert_numpy_array_equal(targ1, res1, check_dtype=False)
 
                 targ2 = arr_nan_nan
                 res2 = checkfun(arr_float_nan, arr_nan_float1)
-                tm.assert_almost_equal(targ2, res2)
+                tm.assert_numpy_array_equal(targ2, res2, check_dtype=False)
             except Exception as exc:
-                exc.args += ('ndim: %s' % arr_float.ndim,)
+                exc.args += ('ndim: %s' % arr_float.ndim, )
                 raise
 
             try:
@@ -678,11 +651,11 @@ class TestnanopsDataFrame(tm.TestCase):
             try:
                 res0 = func(value, *args, **kwargs)
                 if correct:
-                    self.assertTrue(res0)
+                    assert res0
                 else:
-                    self.assertFalse(res0)
+                    assert not res0
             except BaseException as exc:
-                exc.args += ('dim: %s' % getattr(value, 'ndim', value),)
+                exc.args += ('dim: %s' % getattr(value, 'ndim', value), )
                 raise
             if not hasattr(value, 'ndim'):
                 break
@@ -692,26 +665,15 @@ class TestnanopsDataFrame(tm.TestCase):
                 break
 
     def test__has_infs(self):
-        pairs = [('arr_complex', False),
-                 ('arr_int', False),
-                 ('arr_bool', False),
-                 ('arr_str', False),
-                 ('arr_utf', False),
-                 ('arr_complex', False),
-                 ('arr_complex_nan', False),
-
-                 ('arr_nan_nanj', False),
-                 ('arr_nan_infj', True),
+        pairs = [('arr_complex', False), ('arr_int', False),
+                 ('arr_bool', False), ('arr_str', False), ('arr_utf', False),
+                 ('arr_complex', False), ('arr_complex_nan', False),
+                 ('arr_nan_nanj', False), ('arr_nan_infj', True),
                  ('arr_complex_nan_infj', True)]
-        pairs_float = [('arr_float', False),
-                       ('arr_nan', False),
-                       ('arr_float_nan', False),
-                       ('arr_nan_nan', False),
-
-                       ('arr_float_inf', True),
-                       ('arr_inf', True),
-                       ('arr_nan_inf', True),
-                       ('arr_float_nan_inf', True),
+        pairs_float = [('arr_float', False), ('arr_nan', False),
+                       ('arr_float_nan', False), ('arr_nan_nan', False),
+                       ('arr_float_inf', True), ('arr_inf', True),
+                       ('arr_nan_inf', True), ('arr_float_nan_inf', True),
                        ('arr_nan_nan_inf', True)]
 
         for arr, correct in pairs:
@@ -719,7 +681,7 @@ class TestnanopsDataFrame(tm.TestCase):
             try:
                 self.check_bool(nanops._has_infs, val, correct)
             except BaseException as exc:
-                exc.args += (arr,)
+                exc.args += (arr, )
                 raise
 
         for arr, correct in pairs_float:
@@ -729,40 +691,32 @@ class TestnanopsDataFrame(tm.TestCase):
                 self.check_bool(nanops._has_infs, val.astype('f4'), correct)
                 self.check_bool(nanops._has_infs, val.astype('f2'), correct)
             except BaseException as exc:
-                exc.args += (arr,)
+                exc.args += (arr, )
                 raise
 
     def test__isfinite(self):
-        pairs = [('arr_complex', False),
-                 ('arr_int', False),
-                 ('arr_bool', False),
-                 ('arr_str', False),
-                 ('arr_utf', False),
-                 ('arr_complex', False),
-                 ('arr_complex_nan', True),
-
-                 ('arr_nan_nanj', True),
-                 ('arr_nan_infj', True),
+        pairs = [('arr_complex', False), ('arr_int', False),
+                 ('arr_bool', False), ('arr_str', False), ('arr_utf', False),
+                 ('arr_complex', False), ('arr_complex_nan', True),
+                 ('arr_nan_nanj', True), ('arr_nan_infj', True),
                  ('arr_complex_nan_infj', True)]
-        pairs_float = [('arr_float', False),
-                       ('arr_nan', True),
-                       ('arr_float_nan', True),
-                       ('arr_nan_nan', True),
-
-                       ('arr_float_inf', True),
-                       ('arr_inf', True),
-                       ('arr_nan_inf', True),
-                       ('arr_float_nan_inf', True),
+        pairs_float = [('arr_float', False), ('arr_nan', True),
+                       ('arr_float_nan', True), ('arr_nan_nan', True),
+                       ('arr_float_inf', True), ('arr_inf', True),
+                       ('arr_nan_inf', True), ('arr_float_nan_inf', True),
                        ('arr_nan_nan_inf', True)]
 
         func1 = lambda x: np.any(nanops._isfinite(x).ravel())
-        func2 = lambda x: np.any(nanops._isfinite(x).values.ravel())
+
+        # TODO: unused?
+        # func2 = lambda x: np.any(nanops._isfinite(x).values.ravel())
+
         for arr, correct in pairs:
             val = getattr(self, arr)
             try:
                 self.check_bool(func1, val, correct)
             except BaseException as exc:
-                exc.args += (arr,)
+                exc.args += (arr, )
                 raise
 
         for arr, correct in pairs_float:
@@ -772,74 +726,66 @@ class TestnanopsDataFrame(tm.TestCase):
                 self.check_bool(func1, val.astype('f4'), correct)
                 self.check_bool(func1, val.astype('f2'), correct)
             except BaseException as exc:
-                exc.args += (arr,)
+                exc.args += (arr, )
                 raise
 
     def test__bn_ok_dtype(self):
-        self.assertTrue(nanops._bn_ok_dtype(self.arr_float.dtype, 'test'))
-        self.assertTrue(nanops._bn_ok_dtype(self.arr_complex.dtype, 'test'))
-        self.assertTrue(nanops._bn_ok_dtype(self.arr_int.dtype, 'test'))
-        self.assertTrue(nanops._bn_ok_dtype(self.arr_bool.dtype, 'test'))
-        self.assertTrue(nanops._bn_ok_dtype(self.arr_str.dtype, 'test'))
-        self.assertTrue(nanops._bn_ok_dtype(self.arr_utf.dtype, 'test'))
-        self.assertFalse(nanops._bn_ok_dtype(self.arr_date.dtype, 'test'))
-        self.assertFalse(nanops._bn_ok_dtype(self.arr_tdelta.dtype, 'test'))
-        self.assertFalse(nanops._bn_ok_dtype(self.arr_obj.dtype, 'test'))
+        assert nanops._bn_ok_dtype(self.arr_float.dtype, 'test')
+        assert nanops._bn_ok_dtype(self.arr_complex.dtype, 'test')
+        assert nanops._bn_ok_dtype(self.arr_int.dtype, 'test')
+        assert nanops._bn_ok_dtype(self.arr_bool.dtype, 'test')
+        assert nanops._bn_ok_dtype(self.arr_str.dtype, 'test')
+        assert nanops._bn_ok_dtype(self.arr_utf.dtype, 'test')
+        assert not nanops._bn_ok_dtype(self.arr_date.dtype, 'test')
+        assert not nanops._bn_ok_dtype(self.arr_tdelta.dtype, 'test')
+        assert not nanops._bn_ok_dtype(self.arr_obj.dtype, 'test')
 
 
-class TestEnsureNumeric(tm.TestCase):
+class TestEnsureNumeric(object):
+
     def test_numeric_values(self):
         # Test integer
-        self.assertEqual(nanops._ensure_numeric(1), 1, 'Failed for int')
+        assert nanops._ensure_numeric(1) == 1
+
         # Test float
-        self.assertEqual(nanops._ensure_numeric(1.1), 1.1, 'Failed for float')
+        assert nanops._ensure_numeric(1.1) == 1.1
+
         # Test complex
-        self.assertEqual(nanops._ensure_numeric(1 + 2j), 1 + 2j,
-                         'Failed for complex')
+        assert nanops._ensure_numeric(1 + 2j) == 1 + 2j
 
     def test_ndarray(self):
         # Test numeric ndarray
         values = np.array([1, 2, 3])
-        self.assertTrue(np.allclose(nanops._ensure_numeric(values), values),
-                        'Failed for numeric ndarray')
+        assert np.allclose(nanops._ensure_numeric(values), values)
 
         # Test object ndarray
         o_values = values.astype(object)
-        self.assertTrue(np.allclose(nanops._ensure_numeric(o_values), values),
-                        'Failed for object ndarray')
+        assert np.allclose(nanops._ensure_numeric(o_values), values)
 
         # Test convertible string ndarray
         s_values = np.array(['1', '2', '3'], dtype=object)
-        self.assertTrue(np.allclose(nanops._ensure_numeric(s_values), values),
-                        'Failed for convertible string ndarray')
+        assert np.allclose(nanops._ensure_numeric(s_values), values)
 
         # Test non-convertible string ndarray
         s_values = np.array(['foo', 'bar', 'baz'], dtype=object)
-        self.assertRaises(ValueError,
-                          lambda: nanops._ensure_numeric(s_values))
+        pytest.raises(ValueError, lambda: nanops._ensure_numeric(s_values))
 
     def test_convertable_values(self):
-        self.assertTrue(np.allclose(nanops._ensure_numeric('1'), 1.0),
-                        'Failed for convertible integer string')
-        self.assertTrue(np.allclose(nanops._ensure_numeric('1.1'), 1.1),
-                        'Failed for convertible float string')
-        self.assertTrue(np.allclose(nanops._ensure_numeric('1+1j'), 1 + 1j),
-                        'Failed for convertible complex string')
+        assert np.allclose(nanops._ensure_numeric('1'), 1.0)
+        assert np.allclose(nanops._ensure_numeric('1.1'), 1.1)
+        assert np.allclose(nanops._ensure_numeric('1+1j'), 1 + 1j)
 
     def test_non_convertable_values(self):
-        self.assertRaises(TypeError,
-                          lambda: nanops._ensure_numeric('foo'))
-        self.assertRaises(TypeError,
-                          lambda: nanops._ensure_numeric({}))
-        self.assertRaises(TypeError,
-                          lambda: nanops._ensure_numeric([]))
+        pytest.raises(TypeError, lambda: nanops._ensure_numeric('foo'))
+        pytest.raises(TypeError, lambda: nanops._ensure_numeric({}))
+        pytest.raises(TypeError, lambda: nanops._ensure_numeric([]))
 
 
-class TestNanvarFixedValues(tm.TestCase):
+class TestNanvarFixedValues(object):
 
     # xref GH10242
 
-    def setUp(self):
+    def setup_method(self, method):
         # Samples from a normal distribution.
         self.variance = variance = 3.0
         self.samples = self.prng.normal(scale=variance ** 0.5, size=100000)
@@ -847,32 +793,31 @@ class TestNanvarFixedValues(tm.TestCase):
     def test_nanvar_all_finite(self):
         samples = self.samples
         actual_variance = nanops.nanvar(samples)
-        np.testing.assert_almost_equal(
-            actual_variance, self.variance, decimal=2)
+        tm.assert_almost_equal(actual_variance, self.variance,
+                               check_less_precise=2)
 
     def test_nanvar_nans(self):
         samples = np.nan * np.ones(2 * self.samples.shape[0])
         samples[::2] = self.samples
 
         actual_variance = nanops.nanvar(samples, skipna=True)
-        np.testing.assert_almost_equal(
-            actual_variance, self.variance, decimal=2)
+        tm.assert_almost_equal(actual_variance, self.variance,
+                               check_less_precise=2)
 
         actual_variance = nanops.nanvar(samples, skipna=False)
-        np.testing.assert_almost_equal(
-            actual_variance, np.nan, decimal=2)
+        tm.assert_almost_equal(actual_variance, np.nan, check_less_precise=2)
 
     def test_nanstd_nans(self):
         samples = np.nan * np.ones(2 * self.samples.shape[0])
         samples[::2] = self.samples
 
         actual_std = nanops.nanstd(samples, skipna=True)
-        np.testing.assert_almost_equal(
-            actual_std, self.variance ** 0.5, decimal=2)
+        tm.assert_almost_equal(actual_std, self.variance ** 0.5,
+                               check_less_precise=2)
 
         actual_std = nanops.nanvar(samples, skipna=False)
-        np.testing.assert_almost_equal(
-            actual_std, np.nan, decimal=2)
+        tm.assert_almost_equal(actual_std, np.nan,
+                               check_less_precise=2)
 
     def test_nanvar_axis(self):
         # Generate some sample data.
@@ -881,12 +826,12 @@ class TestNanvarFixedValues(tm.TestCase):
         samples = np.vstack([samples_norm, samples_unif])
 
         actual_variance = nanops.nanvar(samples, axis=1)
-        np.testing.assert_array_almost_equal(
-            actual_variance, np.array([self.variance, 1.0 / 12]), decimal=2)
+        tm.assert_almost_equal(actual_variance, np.array(
+            [self.variance, 1.0 / 12]), check_less_precise=2)
 
     def test_nanvar_ddof(self):
         n = 5
-        samples = self.prng.uniform(size=(10000, n+1))
+        samples = self.prng.uniform(size=(10000, n + 1))
         samples[:, -1] = np.nan  # Force use of our own algorithm.
 
         variance_0 = nanops.nanvar(samples, axis=1, skipna=True, ddof=0).mean()
@@ -895,49 +840,46 @@ class TestNanvarFixedValues(tm.TestCase):
 
         # The unbiased estimate.
         var = 1.0 / 12
-        np.testing.assert_almost_equal(variance_1, var, decimal=2)
+        tm.assert_almost_equal(variance_1, var,
+                               check_less_precise=2)
+
         # The underestimated variance.
-        np.testing.assert_almost_equal(
-            variance_0,  (n - 1.0) / n * var, decimal=2)
+        tm.assert_almost_equal(variance_0, (n - 1.0) / n * var,
+                               check_less_precise=2)
+
         # The overestimated variance.
-        np.testing.assert_almost_equal(
-            variance_2,  (n - 1.0) / (n - 2.0) * var, decimal=2)
+        tm.assert_almost_equal(variance_2, (n - 1.0) / (n - 2.0) * var,
+                               check_less_precise=2)
 
     def test_ground_truth(self):
         # Test against values that were precomputed with Numpy.
         samples = np.empty((4, 4))
-        samples[:3, :3] = np.array([[0.97303362, 0.21869576, 0.55560287],
-                                    [0.72980153, 0.03109364, 0.99155171],
+        samples[:3, :3] = np.array([[0.97303362, 0.21869576, 0.55560287
+                                     ], [0.72980153, 0.03109364, 0.99155171],
                                     [0.09317602, 0.60078248, 0.15871292]])
         samples[3] = samples[:, 3] = np.nan
 
         # Actual variances along axis=0, 1 for ddof=0, 1, 2
-        variance = np.array(
-            [[[0.13762259, 0.05619224, 0.11568816],
-              [0.20643388, 0.08428837, 0.17353224],
-              [0.41286776, 0.16857673, 0.34706449]],
-             [[0.09519783, 0.16435395, 0.05082054],
-              [0.14279674, 0.24653093, 0.07623082],
-              [0.28559348, 0.49306186, 0.15246163]]]
-        )
+        variance = np.array([[[0.13762259, 0.05619224, 0.11568816
+                               ], [0.20643388, 0.08428837, 0.17353224],
+                              [0.41286776, 0.16857673, 0.34706449]],
+                             [[0.09519783, 0.16435395, 0.05082054
+                               ], [0.14279674, 0.24653093, 0.07623082],
+                              [0.28559348, 0.49306186, 0.15246163]]])
 
         # Test nanvar.
         for axis in range(2):
             for ddof in range(3):
                 var = nanops.nanvar(samples, skipna=True, axis=axis, ddof=ddof)
-                np.testing.assert_array_almost_equal(
-                    var[:3], variance[axis, ddof]
-                )
-                np.testing.assert_equal(var[3], np.nan)
+                tm.assert_almost_equal(var[:3], variance[axis, ddof])
+                assert np.isnan(var[3])
 
         # Test nanstd.
         for axis in range(2):
             for ddof in range(3):
                 std = nanops.nanstd(samples, skipna=True, axis=axis, ddof=ddof)
-                np.testing.assert_array_almost_equal(
-                    std[:3], variance[axis, ddof] ** 0.5
-                )
-                np.testing.assert_equal(std[3], np.nan)
+                tm.assert_almost_equal(std[:3], variance[axis, ddof] ** 0.5)
+                assert np.isnan(std[3])
 
     def test_nanstd_roundoff(self):
         # Regression test for GH 10242 (test data taken from GH 10489). Ensure
@@ -945,14 +887,152 @@ class TestNanvarFixedValues(tm.TestCase):
         data = Series(766897346 * np.ones(10))
         for ddof in range(3):
             result = data.std(ddof=ddof)
-            self.assertEqual(result, 0.0)
+            assert result == 0.0
 
     @property
     def prng(self):
         return np.random.RandomState(1234)
 
 
-if __name__ == '__main__':
-    import nose
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure',
-                         '-s'], exit=False)
+class TestNanskewFixedValues(object):
+
+    # xref GH 11974
+
+    def setup_method(self, method):
+        # Test data + skewness value (computed with scipy.stats.skew)
+        self.samples = np.sin(np.linspace(0, 1, 200))
+        self.actual_skew = -0.1875895205961754
+
+    def test_constant_series(self):
+        # xref GH 11974
+        for val in [3075.2, 3075.3, 3075.5]:
+            data = val * np.ones(300)
+            skew = nanops.nanskew(data)
+            assert skew == 0.0
+
+    def test_all_finite(self):
+        alpha, beta = 0.3, 0.1
+        left_tailed = self.prng.beta(alpha, beta, size=100)
+        assert nanops.nanskew(left_tailed) < 0
+
+        alpha, beta = 0.1, 0.3
+        right_tailed = self.prng.beta(alpha, beta, size=100)
+        assert nanops.nanskew(right_tailed) > 0
+
+    def test_ground_truth(self):
+        skew = nanops.nanskew(self.samples)
+        tm.assert_almost_equal(skew, self.actual_skew)
+
+    def test_axis(self):
+        samples = np.vstack([self.samples,
+                             np.nan * np.ones(len(self.samples))])
+        skew = nanops.nanskew(samples, axis=1)
+        tm.assert_almost_equal(skew, np.array([self.actual_skew, np.nan]))
+
+    def test_nans(self):
+        samples = np.hstack([self.samples, np.nan])
+        skew = nanops.nanskew(samples, skipna=False)
+        assert np.isnan(skew)
+
+    def test_nans_skipna(self):
+        samples = np.hstack([self.samples, np.nan])
+        skew = nanops.nanskew(samples, skipna=True)
+        tm.assert_almost_equal(skew, self.actual_skew)
+
+    @property
+    def prng(self):
+        return np.random.RandomState(1234)
+
+
+class TestNankurtFixedValues(object):
+
+    # xref GH 11974
+
+    def setup_method(self, method):
+        # Test data + kurtosis value (computed with scipy.stats.kurtosis)
+        self.samples = np.sin(np.linspace(0, 1, 200))
+        self.actual_kurt = -1.2058303433799713
+
+    def test_constant_series(self):
+        # xref GH 11974
+        for val in [3075.2, 3075.3, 3075.5]:
+            data = val * np.ones(300)
+            kurt = nanops.nankurt(data)
+            assert kurt == 0.0
+
+    def test_all_finite(self):
+        alpha, beta = 0.3, 0.1
+        left_tailed = self.prng.beta(alpha, beta, size=100)
+        assert nanops.nankurt(left_tailed) < 0
+
+        alpha, beta = 0.1, 0.3
+        right_tailed = self.prng.beta(alpha, beta, size=100)
+        assert nanops.nankurt(right_tailed) > 0
+
+    def test_ground_truth(self):
+        kurt = nanops.nankurt(self.samples)
+        tm.assert_almost_equal(kurt, self.actual_kurt)
+
+    def test_axis(self):
+        samples = np.vstack([self.samples,
+                             np.nan * np.ones(len(self.samples))])
+        kurt = nanops.nankurt(samples, axis=1)
+        tm.assert_almost_equal(kurt, np.array([self.actual_kurt, np.nan]))
+
+    def test_nans(self):
+        samples = np.hstack([self.samples, np.nan])
+        kurt = nanops.nankurt(samples, skipna=False)
+        assert np.isnan(kurt)
+
+    def test_nans_skipna(self):
+        samples = np.hstack([self.samples, np.nan])
+        kurt = nanops.nankurt(samples, skipna=True)
+        tm.assert_almost_equal(kurt, self.actual_kurt)
+
+    @property
+    def prng(self):
+        return np.random.RandomState(1234)
+
+
+def test_use_bottleneck():
+
+    if nanops._BOTTLENECK_INSTALLED:
+
+        pd.set_option('use_bottleneck', True)
+        assert pd.get_option('use_bottleneck')
+
+        pd.set_option('use_bottleneck', False)
+        assert not pd.get_option('use_bottleneck')
+
+        pd.set_option('use_bottleneck', use_bn)
+
+
+@pytest.mark.parametrize("numpy_op, expected", [
+    (np.sum, 10),
+    (np.nansum, 10),
+    (np.mean, 2.5),
+    (np.nanmean, 2.5),
+    (np.median, 2.5),
+    (np.nanmedian, 2.5),
+    (np.min, 1),
+    (np.max, 4),
+])
+def test_numpy_ops(numpy_op, expected):
+    # GH8383
+    result = numpy_op(pd.Series([1, 2, 3, 4]))
+    assert result == expected
+
+
+@pytest.mark.parametrize("numpy_op, expected", [
+    (np.nanmin, 1),
+    (np.nanmax, 4),
+])
+def test_numpy_ops_np_version_under1p13(numpy_op, expected):
+    # GH8383
+    result = numpy_op(pd.Series([1, 2, 3, 4]))
+    if _np_version_under1p13:
+        # bug for numpy < 1.13, where result is a series, should be a scalar
+        with pytest.raises(ValueError):
+            assert result == expected
+    else:
+        assert result == expected

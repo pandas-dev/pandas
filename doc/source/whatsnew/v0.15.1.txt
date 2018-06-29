@@ -26,7 +26,7 @@ API changes
 
   previous behavior:
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [6]: s.dt.hour
      Out[6]:
@@ -57,7 +57,7 @@ API changes
 
   previous behavior:
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [4]: df.groupby(ts, as_index=False).max()
      Out[4]:
@@ -72,7 +72,7 @@ API changes
 
     df.groupby(ts, as_index=False).max()
 
-- ``groupby`` will not erroneously exclude columns if the column name conflics
+- ``groupby`` will not erroneously exclude columns if the column name conflicts
   with the grouper name (:issue:`8112`):
 
   .. ipython:: python
@@ -83,7 +83,7 @@ API changes
 
   previous behavior (excludes 1st column from output):
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [4]: gr.apply(sum)
      Out[4]:
@@ -108,21 +108,20 @@ API changes
 
   previous behavior:
 
-  .. code-block:: python
+  .. code-block:: ipython
 
-    In [8]: s.loc[3.5:1.5]
-    KeyError: 3.5
+     In [8]: s.loc[3.5:1.5]
+     KeyError: 3.5
 
   current behavior:
 
   .. ipython:: python
 
-    s.loc[3.5:1.5]
-
+     s.loc[3.5:1.5]
 
 - ``io.data.Options`` has been fixed for a change in the format of the Yahoo Options page (:issue:`8612`), (:issue:`8741`)
 
-  .. note:: 
+  .. note::
 
     As a result of a change in Yahoo's option page layout, when an expiry date is given,
     ``Options`` methods now return data for a single expiry date.  Previously, methods returned all
@@ -145,15 +144,46 @@ API changes
 
   Current behavior:
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     from pandas.io.data import Options
-     aapl = Options('aapl','yahoo')
-     aapl.get_call_data().iloc[0:5,0:1]
-     aapl.expiry_dates
-     aapl.get_near_stock_price(expiry=aapl.expiry_dates[0:3]).iloc[0:5,0:1]
+      In [17]: from pandas.io.data import Options
 
-  See the Options documentation in :ref:`Remote Data  <remote_data.yahoo_options>`
+      In [18]: aapl = Options('aapl','yahoo')
+
+      In [19]: aapl.get_call_data().iloc[0:5,0:1]
+      Out[19]:
+                                                   Last
+      Strike Expiry     Type Symbol
+      80     2014-11-14 call AAPL141114C00080000  29.05
+      84     2014-11-14 call AAPL141114C00084000  24.80
+      85     2014-11-14 call AAPL141114C00085000  24.05
+      86     2014-11-14 call AAPL141114C00086000  22.76
+      87     2014-11-14 call AAPL141114C00087000  21.74
+
+      In [20]: aapl.expiry_dates
+      Out[20]:
+      [datetime.date(2014, 11, 14),
+       datetime.date(2014, 11, 22),
+       datetime.date(2014, 11, 28),
+       datetime.date(2014, 12, 5),
+       datetime.date(2014, 12, 12),
+       datetime.date(2014, 12, 20),
+       datetime.date(2015, 1, 17),
+       datetime.date(2015, 2, 20),
+       datetime.date(2015, 4, 17),
+       datetime.date(2015, 7, 17),
+       datetime.date(2016, 1, 15),
+       datetime.date(2017, 1, 20)]
+
+      In [21]: aapl.get_near_stock_price(expiry=aapl.expiry_dates[0:3]).iloc[0:5,0:1]
+      Out[21]:
+                                                  Last
+      Strike Expiry     Type Symbol
+      109    2014-11-22 call AAPL141122C00109000  1.48
+             2014-11-28 call AAPL141128C00109000  1.79
+      110    2014-11-14 call AAPL141114C00110000  0.55
+             2014-11-22 call AAPL141122C00110000  1.02
+             2014-11-28 call AAPL141128C00110000  1.32
 
 .. _whatsnew_0151.datetime64_plotting:
 
@@ -180,7 +210,7 @@ Enhancements
 
   previous behavior:
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [7]: pd.concat(deque((df1, df2)))
      TypeError: first argument must be a list-like of pandas objects, you passed an object of type "deque"
@@ -199,7 +229,7 @@ Enhancements
 
   previous behavior:
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      # this was underreported in prior versions
      In [1]: dfi.memory_usage(index=True)
@@ -225,7 +255,7 @@ Enhancements
 
 - Added support for 3-character ISO and non-standard country codes in :func:`io.wb.download()` (:issue:`8482`)
 
-- :ref:`World Bank data requests <remote_data.wb>` now will warn/raise based
+- World Bank data requests now will warn/raise based
   on an ``errors`` argument, as well as a list of hard-coded country codes and
   the World Bank's JSON response.  In prior versions, the error messages
   didn't look at the World Bank's JSON response.  Problem-inducing input were
@@ -244,7 +274,7 @@ Enhancements
 Bug Fixes
 ~~~~~~~~~
 
-- Bug in unpickling  of a ``CustomBusinessDay`` object (:issue:`8591`)
+- Bug in unpickling of a ``CustomBusinessDay`` object (:issue:`8591`)
 - Bug in coercing ``Categorical`` to a records array, e.g. ``df.to_records()`` (:issue:`8626`)
 - Bug in ``Categorical`` not created properly with ``Series.to_frame()`` (:issue:`8626`)
 - Bug in coercing in astype of a ``Categorical`` of a passed ``pd.Categorical`` (this now raises ``TypeError`` correctly), (:issue:`8626`)
@@ -257,8 +287,8 @@ Bug Fixes
 - Bug in ``Categorical`` reflected comparison operator raising if the first argument was a numpy array scalar (e.g. np.int64) (:issue:`8658`)
 - Bug in Panel indexing with a list-like (:issue:`8710`)
 - Compat issue is ``DataFrame.dtypes`` when ``options.mode.use_inf_as_null`` is True (:issue:`8722`)
-- Bug in ``read_csv``, ``dialect`` parameter would not take a string (:issue: `8703`)
-- Bug in slicing a multi-index level with an empty-list (:issue:`8737`)
+- Bug in ``read_csv``, ``dialect`` parameter would not take a string (:issue:`8703`)
+- Bug in slicing a MultiIndex level with an empty-list (:issue:`8737`)
 - Bug in numeric index operations of add/sub with Float/Index Index with numpy arrays (:issue:`8608`)
 - Bug in setitem with empty indexer and unwanted coercion of dtypes (:issue:`8669`)
 - Bug in ix/loc block splitting on setitem (manifests with integer-like dtypes, e.g. datetime64) (:issue:`8607`)
@@ -274,4 +304,3 @@ Bug Fixes
 - Bug in Setting by indexer to a scalar value with a mixed-dtype `Panel4d` was failing (:issue:`8702`)
 - Bug where ``DataReader``'s would fail if one of the symbols passed was invalid.  Now returns data for valid symbols and np.nan for invalid (:issue:`8494`)
 - Bug in ``get_quote_yahoo`` that wouldn't allow non-float return values (:issue:`5229`).
-

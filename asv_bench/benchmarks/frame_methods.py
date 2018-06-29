@@ -1,277 +1,319 @@
-from .pandas_vb_common import *
+import string
+import warnings
+
+import numpy as np
+import pandas.util.testing as tm
+from pandas import (DataFrame, Series, MultiIndex, date_range, period_range,
+                    isnull, NaT)
+
+from .pandas_vb_common import setup  # noqa
 
 
-class frame_apply_axis_1(object):
+class GetNumericData(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        self.df = DataFrame(np.random.randn(10000, 25))
+        self.df['foo'] = 'bar'
+        self.df['bar'] = 'baz'
+        with warnings.catch_warnings(record=True):
+            self.df = self.df.consolidate()
+
+    def time_frame_get_numeric_data(self):
+        self.df._get_numeric_data()
+
+
+class Lookup(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        self.df = DataFrame(np.random.randn(10000, 8),
+                            columns=list('abcdefgh'))
+        self.df['foo'] = 'bar'
+        self.row_labels = list(self.df.index[::10])[:900]
+        self.col_labels = list(self.df.columns) * 100
+        self.row_labels_all = np.array(
+            list(self.df.index) * len(self.df.columns), dtype='object')
+        self.col_labels_all = np.array(
+            list(self.df.columns) * len(self.df.index), dtype='object')
+
+    def time_frame_fancy_lookup(self):
+        self.df.lookup(self.row_labels, self.col_labels)
+
+    def time_frame_fancy_lookup_all(self):
+        self.df.lookup(self.row_labels_all, self.col_labels_all)
+
+
+class Reindex(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        N = 10**3
+        self.df = DataFrame(np.random.randn(N * 10, N))
+        self.idx = np.arange(4 * N, 7 * N)
+        self.df2 = DataFrame(
+            {c: {0: np.random.randint(0, 2, N).astype(np.bool_),
+                 1: np.random.randint(0, N, N).astype(np.int16),
+                 2: np.random.randint(0, N, N).astype(np.int32),
+                 3: np.random.randint(0, N, N).astype(np.int64)}
+                [np.random.randint(0, 4)] for c in range(N)})
+
+    def time_reindex_axis0(self):
+        self.df.reindex(self.idx)
+
+    def time_reindex_axis1(self):
+        self.df.reindex(columns=self.idx)
+
+    def time_reindex_both_axes(self):
+        self.df.reindex(index=self.idx, columns=self.idx)
+
+    def time_reindex_both_axes_ix(self):
+        self.df.ix[self.idx, self.idx]
+
+    def time_reindex_upcast(self):
+        self.df2.reindex(np.random.permutation(range(1200)))
+
+
+class Iteration(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        N = 1000
+        self.df = DataFrame(np.random.randn(N * 10, N))
+        self.df2 = DataFrame(np.random.randn(N * 50, 10))
+        self.df3 = DataFrame(np.random.randn(N, 5 * N),
+                             columns=['C' + str(c) for c in range(N * 5)])
+
+    def time_iteritems(self):
+        # (monitor no-copying behaviour)
+        if hasattr(self.df, '_item_cache'):
+            self.df._item_cache.clear()
+        for name, col in self.df.iteritems():
+            pass
+
+    def time_iteritems_cached(self):
+        for name, col in self.df.iteritems():
+            pass
+
+    def time_iteritems_indexing(self):
+        for col in self.df3:
+            self.df3[col]
+
+    def time_itertuples(self):
+        for row in self.df2.itertuples():
+            pass
+
+    def time_iterrows(self):
+        for row in self.df.iterrows():
+            pass
+
+
+class ToString(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        self.df = DataFrame(np.random.randn(100, 10))
+
+    def time_to_string_floats(self):
+        self.df.to_string()
+
+
+class ToHTML(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        nrows = 500
+        self.df2 = DataFrame(np.random.randn(nrows, 10))
+        self.df2[0] = period_range('2000', periods=nrows)
+        self.df2[1] = range(nrows)
+
+    def time_to_html_mixed(self):
+        self.df2.to_html()
+
+
+class Repr(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        nrows = 10000
+        data = np.random.randn(nrows, 10)
+        arrays = np.tile(np.random.randn(3, int(nrows / 100)), 100)
+        idx = MultiIndex.from_arrays(arrays)
+        self.df3 = DataFrame(data, index=idx)
+        self.df4 = DataFrame(data, index=np.random.randn(nrows))
+        self.df_tall = DataFrame(np.random.randn(nrows, 10))
+        self.df_wide = DataFrame(np.random.randn(10, nrows))
+
+    def time_html_repr_trunc_mi(self):
+        self.df3._repr_html_()
+
+    def time_html_repr_trunc_si(self):
+        self.df4._repr_html_()
+
+    def time_repr_tall(self):
+        repr(self.df_tall)
+
+    def time_frame_repr_wide(self):
+        repr(self.df_wide)
+
+
+class MaskBool(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        data = np.random.randn(1000, 500)
+        df = DataFrame(data)
+        df = df.where(df > 0)
+        self.bools = df > 0
+        self.mask = isnull(df)
+
+    def time_frame_mask_bools(self):
+        self.bools.mask(self.mask)
+
+    def time_frame_mask_floats(self):
+        self.bools.astype(float).mask(self.mask)
+
+
+class Isnull(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        N = 10**3
+        self.df_no_null = DataFrame(np.random.randn(N, N))
+
+        sample = np.array([np.nan, 1.0])
+        data = np.random.choice(sample, (N, N))
+        self.df = DataFrame(data)
+
+        sample = np.array(list(string.ascii_letters + string.whitespace))
+        data = np.random.choice(sample, (N, N))
+        self.df_strings = DataFrame(data)
+
+        sample = np.array([NaT, np.nan, None, np.datetime64('NaT'),
+                           np.timedelta64('NaT'), 0, 1, 2.0, '', 'abcd'])
+        data = np.random.choice(sample, (N, N))
+        self.df_obj = DataFrame(data)
+
+    def time_isnull_floats_no_null(self):
+        isnull(self.df_no_null)
+
+    def time_isnull(self):
+        isnull(self.df)
+
+    def time_isnull_strngs(self):
+        isnull(self.df_strings)
+
+    def time_isnull_obj(self):
+        isnull(self.df_obj)
+
+
+class Fillna(object):
+
+    goal_time = 0.2
+    params = ([True, False], ['pad', 'bfill'])
+    param_names = ['inplace', 'method']
+
+    def setup(self, inplace, method):
+        values = np.random.randn(10000, 100)
+        values[::2] = np.nan
+        self.df = DataFrame(values)
+
+    def time_frame_fillna(self, inplace, method):
+        self.df.fillna(inplace=inplace, method=method)
+
+
+class Dropna(object):
+
+    goal_time = 0.2
+    params = (['all', 'any'], [0, 1])
+    param_names = ['how', 'axis']
+
+    def setup(self, how, axis):
+        self.df = DataFrame(np.random.randn(10000, 1000))
+        self.df.ix[50:1000, 20:50] = np.nan
+        self.df.ix[2000:3000] = np.nan
+        self.df.ix[:, 60:70] = np.nan
+        self.df_mixed = self.df.copy()
+        self.df_mixed['foo'] = 'bar'
+
+    def time_dropna(self, how, axis):
+        self.df.dropna(how=how, axis=axis)
+
+    def time_dropna_axis_mixed_dtypes(self, how, axis):
+        self.df_mixed.dropna(how=how, axis=axis)
+
+
+class Count(object):
+
+    goal_time = 0.2
+
+    params = [0, 1]
+    param_names = ['axis']
+
+    def setup(self, axis):
+        self.df = DataFrame(np.random.randn(10000, 1000))
+        self.df.ix[50:1000, 20:50] = np.nan
+        self.df.ix[2000:3000] = np.nan
+        self.df.ix[:, 60:70] = np.nan
+        self.df_mixed = self.df.copy()
+        self.df_mixed['foo'] = 'bar'
+
+        self.df.index = MultiIndex.from_arrays([self.df.index, self.df.index])
+        self.df.columns = MultiIndex.from_arrays([self.df.columns,
+                                                  self.df.columns])
+        self.df_mixed.index = MultiIndex.from_arrays([self.df_mixed.index,
+                                                      self.df_mixed.index])
+        self.df_mixed.columns = MultiIndex.from_arrays([self.df_mixed.columns,
+                                                        self.df_mixed.columns])
+
+    def time_count_level_multi(self, axis):
+        self.df.count(axis=axis, level=1)
+
+    def time_count_level_mixed_dtypes_multi(self, axis):
+        self.df_mixed.count(axis=axis, level=1)
+
+
+class Apply(object):
+
     goal_time = 0.2
 
     def setup(self):
         self.df = DataFrame(np.random.randn(1000, 100))
 
-    def time_frame_apply_axis_1(self):
-        self.df.apply((lambda x: (x + 1)), axis=1)
+        self.s = Series(np.arange(1028.0))
+        self.df2 = DataFrame({i: self.s for i in range(1028)})
+        self.df3 = DataFrame(np.random.randn(1000, 3), columns=list('ABC'))
 
+    def time_apply_user_func(self):
+        self.df2.apply(lambda x: np.corrcoef(x, self.s)[(0, 1)])
 
-class frame_apply_lambda_mean(object):
-    goal_time = 0.2
+    def time_apply_axis_1(self):
+        self.df.apply(lambda x: x + 1, axis=1)
 
-    def setup(self):
-        self.df = DataFrame(np.random.randn(1000, 100))
+    def time_apply_lambda_mean(self):
+        self.df.apply(lambda x: x.mean())
 
-    def time_frame_apply_lambda_mean(self):
-        self.df.apply((lambda x: x.sum()))
-
-
-class frame_apply_np_mean(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(np.random.randn(1000, 100))
-
-    def time_frame_apply_np_mean(self):
+    def time_apply_np_mean(self):
         self.df.apply(np.mean)
 
+    def time_apply_pass_thru(self):
+        self.df.apply(lambda x: x)
 
-class frame_apply_pass_thru(object):
-    goal_time = 0.2
+    def time_apply_ref_by_name(self):
+        self.df3.apply(lambda x: x['A'] + x['B'], axis=1)
 
-    def setup(self):
-        self.df = DataFrame(np.random.randn(1000, 100))
 
-    def time_frame_apply_pass_thru(self):
-        self.df.apply((lambda x: x))
+class Dtypes(object):
 
-
-class frame_apply_ref_by_name(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(np.random.randn(1000, 3), columns=list('ABC'))
-
-    def time_frame_apply_ref_by_name(self):
-        self.df.apply((lambda x: (x['A'] + x['B'])), axis=1)
-
-
-class frame_apply_user_func(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.s = Series(np.arange(1028.0))
-        self.df = DataFrame({i: self.s for i in range(1028)})
-
-    def time_frame_apply_user_func(self):
-        self.df.apply((lambda x: np.corrcoef(x, self.s)[(0, 1)]))
-
-
-class frame_assign_timeseries_index(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.idx = date_range('1/1/2000', periods=100000, freq='D')
-        self.df = DataFrame(randn(100000, 1), columns=['A'], index=self.idx)
-
-    def time_frame_assign_timeseries_index(self):
-        self.f(self.df)
-
-    def f(self, df):
-        self.x = self.df.copy()
-        self.x['date'] = self.x.index
-
-
-class frame_boolean_row_select(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(randn(10000, 100))
-        self.bool_arr = np.zeros(10000, dtype=bool)
-        self.bool_arr[:1000] = True
-
-    def time_frame_boolean_row_select(self):
-        self.df[self.bool_arr]
-
-
-class frame_count_level_axis0_mixed_dtypes_multi(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.data = np.random.randn(10000, 1000)
-        self.df = DataFrame(self.data)
-        self.df.ix[50:1000, 20:50] = np.nan
-        self.df.ix[2000:3000] = np.nan
-        self.df.ix[:, 60:70] = np.nan
-        self.df['foo'] = 'bar'
-        self.df.index = MultiIndex.from_tuples(self.df.index.map((lambda x: (x, x))))
-        self.df.columns = MultiIndex.from_tuples(self.df.columns.map((lambda x: (x, x))))
-
-    def time_frame_count_level_axis0_mixed_dtypes_multi(self):
-        self.df.count(axis=0, level=1)
-
-
-class frame_count_level_axis0_multi(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.data = np.random.randn(10000, 1000)
-        self.df = DataFrame(self.data)
-        self.df.ix[50:1000, 20:50] = np.nan
-        self.df.ix[2000:3000] = np.nan
-        self.df.ix[:, 60:70] = np.nan
-        self.df.index = MultiIndex.from_tuples(self.df.index.map((lambda x: (x, x))))
-        self.df.columns = MultiIndex.from_tuples(self.df.columns.map((lambda x: (x, x))))
-
-    def time_frame_count_level_axis0_multi(self):
-        self.df.count(axis=0, level=1)
-
-
-class frame_count_level_axis1_mixed_dtypes_multi(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.data = np.random.randn(10000, 1000)
-        self.df = DataFrame(self.data)
-        self.df.ix[50:1000, 20:50] = np.nan
-        self.df.ix[2000:3000] = np.nan
-        self.df.ix[:, 60:70] = np.nan
-        self.df['foo'] = 'bar'
-        self.df.index = MultiIndex.from_tuples(self.df.index.map((lambda x: (x, x))))
-        self.df.columns = MultiIndex.from_tuples(self.df.columns.map((lambda x: (x, x))))
-
-    def time_frame_count_level_axis1_mixed_dtypes_multi(self):
-        self.df.count(axis=1, level=1)
-
-
-class frame_count_level_axis1_multi(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.data = np.random.randn(10000, 1000)
-        self.df = DataFrame(self.data)
-        self.df.ix[50:1000, 20:50] = np.nan
-        self.df.ix[2000:3000] = np.nan
-        self.df.ix[:, 60:70] = np.nan
-        self.df.index = MultiIndex.from_tuples(self.df.index.map((lambda x: (x, x))))
-        self.df.columns = MultiIndex.from_tuples(self.df.columns.map((lambda x: (x, x))))
-
-    def time_frame_count_level_axis1_multi(self):
-        self.df.count(axis=1, level=1)
-
-
-class frame_dropna_axis0_all(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.data = np.random.randn(10000, 1000)
-        self.df = DataFrame(self.data)
-        self.df.ix[50:1000, 20:50] = np.nan
-        self.df.ix[2000:3000] = np.nan
-        self.df.ix[:, 60:70] = np.nan
-
-    def time_frame_dropna_axis0_all(self):
-        self.df.dropna(how='all', axis=0)
-
-
-class frame_dropna_axis0_all_mixed_dtypes(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.data = np.random.randn(10000, 1000)
-        self.df = DataFrame(self.data)
-        self.df.ix[50:1000, 20:50] = np.nan
-        self.df.ix[2000:3000] = np.nan
-        self.df.ix[:, 60:70] = np.nan
-        self.df['foo'] = 'bar'
-
-    def time_frame_dropna_axis0_all_mixed_dtypes(self):
-        self.df.dropna(how='all', axis=0)
-
-
-class frame_dropna_axis0_any(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.data = np.random.randn(10000, 1000)
-        self.df = DataFrame(self.data)
-        self.df.ix[50:1000, 20:50] = np.nan
-        self.df.ix[2000:3000] = np.nan
-        self.df.ix[:, 60:70] = np.nan
-
-    def time_frame_dropna_axis0_any(self):
-        self.df.dropna(how='any', axis=0)
-
-
-class frame_dropna_axis0_any_mixed_dtypes(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.data = np.random.randn(10000, 1000)
-        self.df = DataFrame(self.data)
-        self.df.ix[50:1000, 20:50] = np.nan
-        self.df.ix[2000:3000] = np.nan
-        self.df.ix[:, 60:70] = np.nan
-        self.df['foo'] = 'bar'
-
-    def time_frame_dropna_axis0_any_mixed_dtypes(self):
-        self.df.dropna(how='any', axis=0)
-
-
-class frame_dropna_axis1_all(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.data = np.random.randn(10000, 1000)
-        self.df = DataFrame(self.data)
-        self.df.ix[50:1000, 20:50] = np.nan
-        self.df.ix[2000:3000] = np.nan
-        self.df.ix[:, 60:70] = np.nan
-
-    def time_frame_dropna_axis1_all(self):
-        self.df.dropna(how='all', axis=1)
-
-
-class frame_dropna_axis1_all_mixed_dtypes(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.data = np.random.randn(10000, 1000)
-        self.df = DataFrame(self.data)
-        self.df.ix[50:1000, 20:50] = np.nan
-        self.df.ix[2000:3000] = np.nan
-        self.df.ix[:, 60:70] = np.nan
-        self.df['foo'] = 'bar'
-
-    def time_frame_dropna_axis1_all_mixed_dtypes(self):
-        self.df.dropna(how='all', axis=1)
-
-
-class frame_dropna_axis1_any(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.data = np.random.randn(10000, 1000)
-        self.df = DataFrame(self.data)
-        self.df.ix[50:1000, 20:50] = np.nan
-        self.df.ix[2000:3000] = np.nan
-        self.df.ix[:, 60:70] = np.nan
-
-    def time_frame_dropna_axis1_any(self):
-        self.df.dropna(how='any', axis=1)
-
-
-class frame_dropna_axis1_any_mixed_dtypes(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.data = np.random.randn(10000, 1000)
-        self.df = DataFrame(self.data)
-        self.df.ix[50:1000, 20:50] = np.nan
-        self.df.ix[2000:3000] = np.nan
-        self.df.ix[:, 60:70] = np.nan
-        self.df['foo'] = 'bar'
-
-    def time_frame_dropna_axis1_any_mixed_dtypes(self):
-        self.df.dropna(how='any', axis=1)
-
-
-class frame_dtypes(object):
     goal_time = 0.2
 
     def setup(self):
@@ -281,670 +323,210 @@ class frame_dtypes(object):
         self.df.dtypes
 
 
-class frame_duplicated(object):
+class Equals(object):
+
     goal_time = 0.2
 
     def setup(self):
-        self.n = (1 << 20)
-        self.t = date_range('2015-01-01', freq='S', periods=(self.n // 64))
-        self.xs = np.random.randn((self.n // 64)).round(2)
-        self.df = DataFrame({'a': np.random.randint(((-1) << 8), (1 << 8), self.n), 'b': np.random.choice(self.t, self.n), 'c': np.random.choice(self.xs, self.n), })
+        N = 10**3
+        self.float_df = DataFrame(np.random.randn(N, N))
+        self.float_df_nan = self.float_df.copy()
+        self.float_df_nan.iloc[-1, -1] = np.nan
+
+        self.object_df = DataFrame('foo', index=range(N), columns=range(N))
+        self.object_df_nan = self.object_df.copy()
+        self.object_df_nan.iloc[-1, -1] = np.nan
+
+        self.nonunique_cols = self.object_df.copy()
+        self.nonunique_cols.columns = ['A'] * len(self.nonunique_cols.columns)
+        self.nonunique_cols_nan = self.nonunique_cols.copy()
+        self.nonunique_cols_nan.iloc[-1, -1] = np.nan
+
+    def time_frame_float_equal(self):
+        self.float_df.equals(self.float_df)
+
+    def time_frame_float_unequal(self):
+        self.float_df.equals(self.float_df_nan)
+
+    def time_frame_nonunique_equal(self):
+        self.nonunique_cols.equals(self.nonunique_cols)
+
+    def time_frame_nonunique_unequal(self):
+        self.nonunique_cols.equals(self.nonunique_cols_nan)
+
+    def time_frame_object_equal(self):
+        self.object_df.equals(self.object_df)
+
+    def time_frame_object_unequal(self):
+        self.object_df.equals(self.object_df_nan)
+
+
+class Interpolate(object):
+
+    goal_time = 0.2
+    params = [None, 'infer']
+    param_names = ['downcast']
+
+    def setup(self, downcast):
+        N = 10000
+        # this is the worst case, where every column has NaNs.
+        self.df = DataFrame(np.random.randn(N, 100))
+        self.df.values[::2] = np.nan
+
+        self.df2 = DataFrame({'A': np.arange(0, N),
+                              'B': np.random.randint(0, 100, N),
+                              'C': np.random.randn(N),
+                              'D': np.random.randn(N)})
+        self.df2.loc[1::5, 'A'] = np.nan
+        self.df2.loc[1::5, 'C'] = np.nan
+
+    def time_interpolate(self, downcast):
+        self.df.interpolate(downcast=downcast)
+
+    def time_interpolate_some_good(self, downcast):
+        self.df2.interpolate(downcast=downcast)
+
+
+class Shift(object):
+    # frame shift speedup issue-5609
+    goal_time = 0.2
+    params = [0, 1]
+    param_names = ['axis']
+
+    def setup(self, axis):
+        self.df = DataFrame(np.random.rand(10000, 500))
+
+    def time_shift(self, axis):
+        self.df.shift(1, axis=axis)
+
+
+class Nunique(object):
+
+    def setup(self):
+        self.df = DataFrame(np.random.randn(10000, 1000))
+
+    def time_frame_nunique(self):
+        self.df.nunique()
+
+
+class Duplicated(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        n = (1 << 20)
+        t = date_range('2015-01-01', freq='S', periods=(n // 64))
+        xs = np.random.randn(n // 64).round(2)
+        self.df = DataFrame({'a': np.random.randint(-1 << 8, 1 << 8, n),
+                             'b': np.random.choice(t, n),
+                             'c': np.random.choice(xs, n)})
+        self.df2 = DataFrame(np.random.randn(1000, 100).astype(str)).T
 
     def time_frame_duplicated(self):
         self.df.duplicated()
 
-class frame_duplicated_wide(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(np.random.randn(1000, 100).astype(str))
-
     def time_frame_duplicated_wide(self):
-        self.df.T.duplicated()
+        self.df2.duplicated()
 
-class frame_fancy_lookup(object):
+
+class XS(object):
+
+    goal_time = 0.2
+    params = [0, 1]
+    param_names = ['axis']
+
+    def setup(self, axis):
+        self.N = 10**4
+        self.df = DataFrame(np.random.randn(self.N, self.N))
+
+    def time_frame_xs(self, axis):
+        self.df.xs(self.N / 2, axis=axis)
+
+
+class SortValues(object):
+
+    goal_time = 0.2
+    params = [True, False]
+    param_names = ['ascending']
+
+    def setup(self, ascending):
+        self.df = DataFrame(np.random.randn(1000000, 2), columns=list('AB'))
+
+    def time_frame_sort_values(self, ascending):
+        self.df.sort_values(by='A', ascending=ascending)
+
+
+class SortIndexByColumns(object):
+
     goal_time = 0.2
 
     def setup(self):
-        self.df = DataFrame(np.random.randn(10000, 8), columns=list('abcdefgh'))
-        self.df['foo'] = 'bar'
-        self.row_labels = list(self.df.index[::10])[:900]
-        self.col_labels = (list(self.df.columns) * 100)
-        self.row_labels_all = np.array((list(self.df.index) * len(self.df.columns)), dtype='object')
-        self.col_labels_all = np.array((list(self.df.columns) * len(self.df.index)), dtype='object')
+        N = 10000
+        K = 10
+        self.df = DataFrame({'key1': tm.makeStringIndex(N).values.repeat(K),
+                             'key2': tm.makeStringIndex(N).values.repeat(K),
+                             'value': np.random.randn(N * K)})
 
-    def time_frame_fancy_lookup(self):
-        self.df.lookup(self.row_labels, self.col_labels)
+    def time_frame_sort_values_by_columns(self):
+        self.df.sort_values(by=['key1', 'key2'])
 
 
-class frame_fancy_lookup_all(object):
+class Quantile(object):
+
+    goal_time = 0.2
+    params = [0, 1]
+    param_names = ['axis']
+
+    def setup(self, axis):
+        self.df = DataFrame(np.random.randn(1000, 3), columns=list('ABC'))
+
+    def time_frame_quantile(self, axis):
+        self.df.quantile([0.1, 0.5], axis=axis)
+
+
+class GetDtypeCounts(object):
+    # 2807
     goal_time = 0.2
 
     def setup(self):
-        self.df = DataFrame(np.random.randn(10000, 8), columns=list('abcdefgh'))
-        self.df['foo'] = 'bar'
-        self.row_labels = list(self.df.index[::10])[:900]
-        self.col_labels = (list(self.df.columns) * 100)
-        self.row_labels_all = np.array((list(self.df.index) * len(self.df.columns)), dtype='object')
-        self.col_labels_all = np.array((list(self.df.columns) * len(self.df.index)), dtype='object')
-
-    def time_frame_fancy_lookup_all(self):
-        self.df.lookup(self.row_labels_all, self.col_labels_all)
-
-
-class frame_fillna_inplace(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(randn(10000, 100))
-        self.df.values[::2] = np.nan
-
-    def time_frame_fillna_inplace(self):
-        self.df.fillna(0, inplace=True)
-
-
-class frame_float_equal(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.float_df = DataFrame(np.random.randn(1000, 1000))
-        self.object_df = DataFrame(([(['foo'] * 1000)] * 1000))
-        self.nonunique_cols = self.object_df.copy()
-        self.nonunique_cols.columns = (['A'] * len(self.nonunique_cols.columns))
-        self.pairs = dict([(name, self.make_pair(frame)) for (name, frame) in (('float_df', self.float_df), ('object_df', self.object_df), ('nonunique_cols', self.nonunique_cols))])
-
-    def time_frame_float_equal(self):
-        self.test_equal('float_df')
-
-    def make_pair(self, frame):
-        self.df = frame
-        self.df2 = self.df.copy()
-        self.df2.ix[((-1), (-1))] = np.nan
-        return (self.df, self.df2)
-
-    def test_equal(self, name):
-        (self.df, self.df2) = self.pairs[name]
-        return self.df.equals(self.df)
-
-    def test_unequal(self, name):
-        (self.df, self.df2) = self.pairs[name]
-        return self.df.equals(self.df2)
-
-
-class frame_float_unequal(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.float_df = DataFrame(np.random.randn(1000, 1000))
-        self.object_df = DataFrame(([(['foo'] * 1000)] * 1000))
-        self.nonunique_cols = self.object_df.copy()
-        self.nonunique_cols.columns = (['A'] * len(self.nonunique_cols.columns))
-        self.pairs = dict([(name, self.make_pair(frame)) for (name, frame) in (('float_df', self.float_df), ('object_df', self.object_df), ('nonunique_cols', self.nonunique_cols))])
-
-    def time_frame_float_unequal(self):
-        self.test_unequal('float_df')
-
-    def make_pair(self, frame):
-        self.df = frame
-        self.df2 = self.df.copy()
-        self.df2.ix[((-1), (-1))] = np.nan
-        return (self.df, self.df2)
-
-    def test_equal(self, name):
-        (self.df, self.df2) = self.pairs[name]
-        return self.df.equals(self.df)
-
-    def test_unequal(self, name):
-        (self.df, self.df2) = self.pairs[name]
-        return self.df.equals(self.df2)
-
-
-class frame_from_records_generator(object):
-    goal_time = 0.2
-
-    def time_frame_from_records_generator(self):
-        self.df = DataFrame.from_records(self.get_data())
-
-    def get_data(self, n=100000):
-        return ((x, (x * 20), (x * 100)) for x in range(n))
-
-
-class frame_from_records_generator_nrows(object):
-    goal_time = 0.2
-
-    def time_frame_from_records_generator_nrows(self):
-        self.df = DataFrame.from_records(self.get_data(), nrows=1000)
-
-    def get_data(self, n=100000):
-        return ((x, (x * 20), (x * 100)) for x in range(n))
-
-
-class frame_get_dtype_counts(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = pandas.DataFrame(np.random.randn(10, 10000))
+        self.df = DataFrame(np.random.randn(10, 10000))
 
     def time_frame_get_dtype_counts(self):
         self.df.get_dtype_counts()
 
+    def time_info(self):
+        self.df.info()
 
-class frame_getitem_single_column(object):
+
+class NSort(object):
+
+    goal_time = 0.2
+    params = ['first', 'last', 'all']
+    param_names = ['keep']
+
+    def setup(self, keep):
+        self.df = DataFrame(np.random.randn(1000, 3), columns=list('ABC'))
+
+    def time_nlargest(self, keep):
+        self.df.nlargest(100, 'A', keep=keep)
+
+    def time_nsmallest(self, keep):
+        self.df.nsmallest(100, 'A', keep=keep)
+
+
+class Describe(object):
+
     goal_time = 0.2
 
     def setup(self):
-        self.df = DataFrame(randn(10000, 1000))
-        self.df2 = DataFrame(randn(3000, 1), columns=['A'])
-        self.df3 = DataFrame(randn(3000, 1))
-
-    def time_frame_getitem_single_column(self):
-        self.h()
-
-    def f(self):
-        if hasattr(self.df, '_item_cache'):
-            self.df._item_cache.clear()
-        for (name, col) in self.df.iteritems():
-            pass
-
-    def g(self):
-        for (name, col) in self.df.iteritems():
-            pass
-
-    def h(self):
-        for i in range(10000):
-            self.df2['A']
-
-    def j(self):
-        for i in range(10000):
-            self.df3[0]
-
-
-class frame_getitem_single_column2(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(randn(10000, 1000))
-        self.df2 = DataFrame(randn(3000, 1), columns=['A'])
-        self.df3 = DataFrame(randn(3000, 1))
-
-    def time_frame_getitem_single_column2(self):
-        self.j()
-
-    def f(self):
-        if hasattr(self.df, '_item_cache'):
-            self.df._item_cache.clear()
-        for (name, col) in self.df.iteritems():
-            pass
-
-    def g(self):
-        for (name, col) in self.df.iteritems():
-            pass
-
-    def h(self):
-        for i in range(10000):
-            self.df2['A']
-
-    def j(self):
-        for i in range(10000):
-            self.df3[0]
-
-
-class frame_html_repr_trunc_mi(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.nrows = 10000
-        self.data = randn(self.nrows, 10)
-        self.idx = MultiIndex.from_arrays(np.tile(randn(3, (self.nrows / 100)), 100))
-        self.df = DataFrame(self.data, index=self.idx)
-
-    def time_frame_html_repr_trunc_mi(self):
-        self.df._repr_html_()
-
-
-class frame_html_repr_trunc_si(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.nrows = 10000
-        self.data = randn(self.nrows, 10)
-        self.idx = randn(self.nrows)
-        self.df = DataFrame(self.data, index=self.idx)
-
-    def time_frame_html_repr_trunc_si(self):
-        self.df._repr_html_()
-
-
-class frame_insert_100_columns_begin(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.N = 1000
-
-    def time_frame_insert_100_columns_begin(self):
-        self.f()
-
-    def f(self, K=100):
-        self.df = DataFrame(index=range(self.N))
-        self.new_col = np.random.randn(self.N)
-        for i in range(K):
-            self.df.insert(0, i, self.new_col)
-
-
-class frame_insert_500_columns_end(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.N = 1000
-
-    def time_frame_insert_500_columns_end(self):
-        self.f()
-
-    def f(self, K=500):
-        self.df = DataFrame(index=range(self.N))
-        self.new_col = np.random.randn(self.N)
-        for i in range(K):
-            self.df[i] = self.new_col
-
-
-class frame_interpolate(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(randn(10000, 100))
-        self.df.values[::2] = np.nan
-
-    def time_frame_interpolate(self):
-        self.df.interpolate()
-
-
-class frame_interpolate_some_good(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame({'A': np.arange(0, 10000), 'B': np.random.randint(0, 100, 10000), 'C': randn(10000), 'D': randn(10000), })
-        self.df.loc[1::5, 'A'] = np.nan
-        self.df.loc[1::5, 'C'] = np.nan
-
-    def time_frame_interpolate_some_good(self):
-        self.df.interpolate()
-
-
-class frame_interpolate_some_good_infer(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame({'A': np.arange(0, 10000), 'B': np.random.randint(0, 100, 10000), 'C': randn(10000), 'D': randn(10000), })
-        self.df.loc[1::5, 'A'] = np.nan
-        self.df.loc[1::5, 'C'] = np.nan
-
-    def time_frame_interpolate_some_good_infer(self):
-        self.df.interpolate(downcast='infer')
-
-
-class frame_isnull(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.data = np.random.randn(1000, 1000)
-        self.df = DataFrame(self.data)
-
-    def time_frame_isnull(self):
-        isnull(self.df)
-
-
-class frame_iteritems(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(randn(10000, 1000))
-        self.df2 = DataFrame(randn(3000, 1), columns=['A'])
-        self.df3 = DataFrame(randn(3000, 1))
-
-    def time_frame_iteritems(self):
-        self.f()
-
-    def f(self):
-        if hasattr(self.df, '_item_cache'):
-            self.df._item_cache.clear()
-        for (name, col) in self.df.iteritems():
-            pass
-
-    def g(self):
-        for (name, col) in self.df.iteritems():
-            pass
-
-    def h(self):
-        for i in range(10000):
-            self.df2['A']
-
-    def j(self):
-        for i in range(10000):
-            self.df3[0]
-
-
-class frame_iteritems_cached(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(randn(10000, 1000))
-        self.df2 = DataFrame(randn(3000, 1), columns=['A'])
-        self.df3 = DataFrame(randn(3000, 1))
-
-    def time_frame_iteritems_cached(self):
-        self.g()
-
-    def f(self):
-        if hasattr(self.df, '_item_cache'):
-            self.df._item_cache.clear()
-        for (name, col) in self.df.iteritems():
-            pass
-
-    def g(self):
-        for (name, col) in self.df.iteritems():
-            pass
-
-    def h(self):
-        for i in range(10000):
-            self.df2['A']
-
-    def j(self):
-        for i in range(10000):
-            self.df3[0]
-
-
-class frame_mask_bools(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.data = np.random.randn(1000, 500)
-        self.df = DataFrame(self.data)
-        self.df = self.df.where((self.df > 0))
-        self.bools = (self.df > 0)
-        self.mask = isnull(self.df)
-
-    def time_frame_mask_bools(self):
-        self.bools.mask(self.mask)
-
-
-class frame_mask_floats(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.data = np.random.randn(1000, 500)
-        self.df = DataFrame(self.data)
-        self.df = self.df.where((self.df > 0))
-        self.bools = (self.df > 0)
-        self.mask = isnull(self.df)
-
-    def time_frame_mask_floats(self):
-        self.bools.astype(float).mask(self.mask)
-
-
-class frame_nonunique_equal(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.float_df = DataFrame(np.random.randn(1000, 1000))
-        self.object_df = DataFrame(([(['foo'] * 1000)] * 1000))
-        self.nonunique_cols = self.object_df.copy()
-        self.nonunique_cols.columns = (['A'] * len(self.nonunique_cols.columns))
-        self.pairs = dict([(name, self.make_pair(frame)) for (name, frame) in (('float_df', self.float_df), ('object_df', self.object_df), ('nonunique_cols', self.nonunique_cols))])
-
-    def time_frame_nonunique_equal(self):
-        self.test_equal('nonunique_cols')
-
-    def make_pair(self, frame):
-        self.df = frame
-        self.df2 = self.df.copy()
-        self.df2.ix[((-1), (-1))] = np.nan
-        return (self.df, self.df2)
-
-    def test_equal(self, name):
-        (self.df, self.df2) = self.pairs[name]
-        return self.df.equals(self.df)
-
-    def test_unequal(self, name):
-        (self.df, self.df2) = self.pairs[name]
-        return self.df.equals(self.df2)
-
-
-class frame_nonunique_unequal(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.float_df = DataFrame(np.random.randn(1000, 1000))
-        self.object_df = DataFrame(([(['foo'] * 1000)] * 1000))
-        self.nonunique_cols = self.object_df.copy()
-        self.nonunique_cols.columns = (['A'] * len(self.nonunique_cols.columns))
-        self.pairs = dict([(name, self.make_pair(frame)) for (name, frame) in (('float_df', self.float_df), ('object_df', self.object_df), ('nonunique_cols', self.nonunique_cols))])
-
-    def time_frame_nonunique_unequal(self):
-        self.test_unequal('nonunique_cols')
-
-    def make_pair(self, frame):
-        self.df = frame
-        self.df2 = self.df.copy()
-        self.df2.ix[((-1), (-1))] = np.nan
-        return (self.df, self.df2)
-
-    def test_equal(self, name):
-        (self.df, self.df2) = self.pairs[name]
-        return self.df.equals(self.df)
-
-    def test_unequal(self, name):
-        (self.df, self.df2) = self.pairs[name]
-        return self.df.equals(self.df2)
-
-
-class frame_object_equal(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.float_df = DataFrame(np.random.randn(1000, 1000))
-        self.object_df = DataFrame(([(['foo'] * 1000)] * 1000))
-        self.nonunique_cols = self.object_df.copy()
-        self.nonunique_cols.columns = (['A'] * len(self.nonunique_cols.columns))
-        self.pairs = dict([(name, self.make_pair(frame)) for (name, frame) in (('float_df', self.float_df), ('object_df', self.object_df), ('nonunique_cols', self.nonunique_cols))])
-
-    def time_frame_object_equal(self):
-        self.test_equal('object_df')
-
-    def make_pair(self, frame):
-        self.df = frame
-        self.df2 = self.df.copy()
-        self.df2.ix[((-1), (-1))] = np.nan
-        return (self.df, self.df2)
-
-    def test_equal(self, name):
-        (self.df, self.df2) = self.pairs[name]
-        return self.df.equals(self.df)
-
-    def test_unequal(self, name):
-        (self.df, self.df2) = self.pairs[name]
-        return self.df.equals(self.df2)
-
-
-class frame_object_unequal(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.float_df = DataFrame(np.random.randn(1000, 1000))
-        self.object_df = DataFrame(([(['foo'] * 1000)] * 1000))
-        self.nonunique_cols = self.object_df.copy()
-        self.nonunique_cols.columns = (['A'] * len(self.nonunique_cols.columns))
-        self.pairs = dict([(name, self.make_pair(frame)) for (name, frame) in (('float_df', self.float_df), ('object_df', self.object_df), ('nonunique_cols', self.nonunique_cols))])
-
-    def time_frame_object_unequal(self):
-        self.test_unequal('object_df')
-
-    def make_pair(self, frame):
-        self.df = frame
-        self.df2 = self.df.copy()
-        self.df2.ix[((-1), (-1))] = np.nan
-        return (self.df, self.df2)
-
-    def test_equal(self, name):
-        (self.df, self.df2) = self.pairs[name]
-        return self.df.equals(self.df)
-
-    def test_unequal(self, name):
-        (self.df, self.df2) = self.pairs[name]
-        return self.df.equals(self.df2)
-
-
-class frame_reindex_axis0(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(randn(10000, 10000))
-        self.idx = np.arange(4000, 7000)
-
-    def time_frame_reindex_axis0(self):
-        self.df.reindex(self.idx)
-
-
-class frame_reindex_axis1(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(randn(10000, 10000))
-        self.idx = np.arange(4000, 7000)
-
-    def time_frame_reindex_axis1(self):
-        self.df.reindex(columns=self.idx)
-
-
-class frame_reindex_both_axes(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(randn(10000, 10000))
-        self.idx = np.arange(4000, 7000)
-
-    def time_frame_reindex_both_axes(self):
-        self.df.reindex(index=self.idx, columns=self.idx)
-
-
-class frame_reindex_both_axes_ix(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(randn(10000, 10000))
-        self.idx = np.arange(4000, 7000)
-
-    def time_frame_reindex_both_axes_ix(self):
-        self.df.ix[(self.idx, self.idx)]
-
-
-class frame_reindex_upcast(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(dict([(c, {0: randint(0, 2, 1000).astype(np.bool_), 1: randint(0, 1000, 1000).astype(np.int16), 2: randint(0, 1000, 1000).astype(np.int32), 3: randint(0, 1000, 1000).astype(np.int64), }[randint(0, 4)]) for c in range(1000)]))
-
-    def time_frame_reindex_upcast(self):
-        self.df.reindex(permutation(range(1200)))
-
-
-class frame_repr_tall(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = pandas.DataFrame(np.random.randn(10000, 10))
-
-    def time_frame_repr_tall(self):
-        repr(self.df)
-
-
-class frame_repr_wide(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = pandas.DataFrame(np.random.randn(10, 10000))
-
-    def time_frame_repr_wide(self):
-        repr(self.df)
-
-
-class frame_shift_axis0(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(np.random.rand(10000, 500))
-
-    def time_frame_shift_axis0(self):
-        self.df.shift(1, axis=0)
-
-
-class frame_shift_axis_1(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(np.random.rand(10000, 500))
-
-    def time_frame_shift_axis_1(self):
-        self.df.shift(1, axis=1)
-
-
-class frame_to_html_mixed(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.nrows = 500
-        self.df = DataFrame(randn(self.nrows, 10))
-        self.df[0] = period_range('2000', '2010', self.nrows)
-        self.df[1] = range(self.nrows)
-
-    def time_frame_to_html_mixed(self):
-        self.df.to_html()
-
-
-class frame_to_string_floats(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(randn(100, 10))
-
-    def time_frame_to_string_floats(self):
-        self.df.to_string()
-
-
-class frame_xs_col(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(randn(1, 100000))
-
-    def time_frame_xs_col(self):
-        self.df.xs(50000, axis=1)
-
-
-class frame_xs_row(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(randn(100000, 1))
-
-    def time_frame_xs_row(self):
-        self.df.xs(50000)
-
-
-class frame_sort_index(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.df = DataFrame(randn(1000000, 2), columns=list('AB'))
-
-    def time_frame_sort_index(self):
-        self.df.sort_index()
-
-
-class series_string_vector_slice(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.s = Series((['abcdefg', np.nan] * 500000))
-
-    def time_series_string_vector_slice(self):
-        self.s.str[:5]
+        self.df = DataFrame({
+            'a': np.random.randint(0, 100, int(1e6)),
+            'b': np.random.randint(0, 100, int(1e6)),
+            'c': np.random.randint(0, 100, int(1e6))
+        })
+
+    def time_series_describe(self):
+        self.df['a'].describe()
+
+    def time_dataframe_describe(self):
+        self.df.describe()

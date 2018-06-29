@@ -1,0 +1,127 @@
+.. _whatsnew_0202:
+
+v0.20.2 (June 4, 2017)
+----------------------
+
+This is a minor bug-fix release in the 0.20.x series and includes some small regression fixes,
+bug fixes and performance improvements.
+We recommend that all users upgrade to this version.
+
+.. contents:: What's new in v0.20.2
+    :local:
+    :backlinks: none
+
+
+.. _whatsnew_0202.enhancements:
+
+Enhancements
+~~~~~~~~~~~~
+
+- Unblocked access to additional compression types supported in pytables: 'blosc:blosclz, 'blosc:lz4', 'blosc:lz4hc', 'blosc:snappy', 'blosc:zlib', 'blosc:zstd' (:issue:`14478`)
+- ``Series`` provides a ``to_latex`` method (:issue:`16180`)
+
+- A new groupby method :meth:`~pandas.core.groupby.GroupBy.ngroup`,
+  parallel to the existing :meth:`~pandas.core.groupby.GroupBy.cumcount`,
+  has been added to return the group order (:issue:`11642`); see
+  :ref:`here <groupby.ngroup>`.
+
+.. _whatsnew_0202.performance:
+
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Performance regression fix when indexing with a list-like (:issue:`16285`)
+- Performance regression fix for MultiIndexes (:issue:`16319`, :issue:`16346`)
+- Improved performance of ``.clip()`` with scalar arguments (:issue:`15400`)
+- Improved performance of groupby with categorical groupers (:issue:`16413`)
+- Improved performance of ``MultiIndex.remove_unused_levels()`` (:issue:`16556`)
+
+.. _whatsnew_0202.bug_fixes:
+
+Bug Fixes
+~~~~~~~~~
+
+- Silenced a warning on some Windows environments about "tput: terminal attributes: No such device or address" when
+  detecting the terminal size. This fix only applies to python 3 (:issue:`16496`)
+- Bug in using ``pathlib.Path`` or ``py.path.local`` objects with io functions (:issue:`16291`)
+- Bug in ``Index.symmetric_difference()`` on two equal MultiIndex's, results in a ``TypeError`` (:issue:`13490`)
+- Bug in ``DataFrame.update()`` with ``overwrite=False`` and ``NaN values`` (:issue:`15593`)
+- Passing an invalid engine to :func:`read_csv` now raises an informative
+  ``ValueError`` rather than ``UnboundLocalError``. (:issue:`16511`)
+- Bug in :func:`unique` on an array of tuples (:issue:`16519`)
+- Bug in :func:`cut` when ``labels`` are set, resulting in incorrect label ordering (:issue:`16459`)
+- Fixed a compatibility issue with IPython 6.0's tab completion showing deprecation warnings on ``Categoricals`` (:issue:`16409`)
+
+Conversion
+^^^^^^^^^^
+
+- Bug in :func:`to_numeric` in which empty data inputs were causing a segfault of the interpreter (:issue:`16302`)
+- Silence numpy warnings when broadcasting ``DataFrame`` to ``Series`` with comparison ops (:issue:`16378`, :issue:`16306`)
+
+
+Indexing
+^^^^^^^^
+
+- Bug in ``DataFrame.reset_index(level=)`` with single level index (:issue:`16263`)
+- Bug in partial string indexing with a monotonic, but not strictly-monotonic, index incorrectly reversing the slice bounds (:issue:`16515`)
+- Bug in ``MultiIndex.remove_unused_levels()`` that would not return a ``MultiIndex`` equal to the original. (:issue:`16556`)
+
+I/O
+^^^
+
+- Bug in :func:`read_csv` when ``comment`` is passed in a space delimited text file (:issue:`16472`)
+- Bug in :func:`read_csv` not raising an exception with nonexistent columns in ``usecols`` when it had the correct length (:issue:`14671`)
+- Bug that would force importing of the clipboard routines unnecessarily, potentially causing an import error on startup (:issue:`16288`)
+- Bug that raised ``IndexError`` when HTML-rendering an empty ``DataFrame`` (:issue:`15953`)
+- Bug in :func:`read_csv` in which tarfile object inputs were raising an error in Python 2.x for the C engine (:issue:`16530`)
+- Bug where ``DataFrame.to_html()`` ignored the ``index_names`` parameter (:issue:`16493`)
+- Bug where ``pd.read_hdf()`` returns numpy strings for index names (:issue:`13492`)
+
+- Bug in ``HDFStore.select_as_multiple()`` where start/stop arguments were not respected (:issue:`16209`)
+
+Plotting
+^^^^^^^^
+
+- Bug in ``DataFrame.plot`` with a single column and a list-like ``color`` (:issue:`3486`)
+- Bug in ``plot`` where ``NaT`` in ``DatetimeIndex`` results in ``Timestamp.min`` (:issue:`12405`)
+- Bug in ``DataFrame.boxplot`` where ``figsize`` keyword was not respected for non-grouped boxplots (:issue:`11959`)
+
+
+
+
+Groupby/Resample/Rolling
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+- Bug in creating a time-based rolling window on an empty ``DataFrame`` (:issue:`15819`)
+- Bug in ``rolling.cov()`` with offset window (:issue:`16058`)
+- Bug in ``.resample()`` and ``.groupby()`` when aggregating on integers (:issue:`16361`)
+
+
+Sparse
+^^^^^^
+
+- Bug in construction of ``SparseDataFrame`` from ``scipy.sparse.dok_matrix`` (:issue:`16179`)
+
+Reshaping
+^^^^^^^^^
+
+- Bug in ``DataFrame.stack`` with unsorted levels in ``MultiIndex`` columns (:issue:`16323`)
+- Bug in ``pd.wide_to_long()`` where no error was raised when ``i`` was not a unique identifier (:issue:`16382`)
+- Bug in ``Series.isin(..)`` with a list of tuples (:issue:`16394`)
+- Bug in construction of a ``DataFrame`` with mixed dtypes including an all-NaT column. (:issue:`16395`)
+- Bug in ``DataFrame.agg()`` and ``Series.agg()`` with aggregating on non-callable attributes (:issue:`16405`)
+
+
+Numeric
+^^^^^^^
+- Bug in ``.interpolate()``, where ``limit_direction`` was not respected when ``limit=None`` (default) was passed (:issue:`16282`)
+
+Categorical
+^^^^^^^^^^^
+
+- Fixed comparison operations considering the order of the categories when both categoricals are unordered (:issue:`16014`)
+
+Other
+^^^^^
+
+- Bug in ``DataFrame.drop()`` with an empty-list with non-unique indices (:issue:`16270`)

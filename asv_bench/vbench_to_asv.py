@@ -69,7 +69,7 @@ class AssignToSelf(ast.NodeTransformer):
         return node
 
     def visit_TryExcept(self, node):
-        if any([isinstance(x, (ast.Import, ast.ImportFrom)) for x in node.body]):
+        if any(isinstance(x, (ast.Import, ast.ImportFrom)) for x in node.body):
             self.imports.append(node)
         else:
             self.generic_visit(node)
@@ -114,7 +114,7 @@ def translate_module(target_module):
     l_vars = {}
     exec('import ' + target_module) in g_vars
 
-    print target_module
+    print(target_module)
     module = eval(target_module, g_vars)
 
     benchmarks = []
@@ -157,7 +157,7 @@ if __name__ == '__main__':
         mod = os.path.basename(module)
         if mod in ['make.py', 'measure_memory_consumption.py', 'perf_HEAD.py', 'run_suite.py', 'test_perf.py', 'generate_rst_files.py', 'test.py', 'suite.py']:
             continue
-        print
-        print mod
+        print('')
+        print(mod)
 
         translate_module(mod.replace('.py', ''))

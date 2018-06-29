@@ -169,16 +169,30 @@ API tweaks regarding label-based slicing
 Label-based slicing using ``ix`` now requires that the index be sorted
 (monotonic) **unless** both the start and endpoint are contained in the index:
 
-.. ipython:: python
+.. code-block:: python
 
-   s = Series(randn(6), index=list('gmkaec'))
-   s
+   In [1]: s = Series(randn(6), index=list('gmkaec'))
+
+   In [2]: s
+   Out[2]:
+   g   -1.182230
+   m   -0.276183
+   k   -0.243550
+   a    1.628992
+   e    0.073308
+   c   -0.539890
+   dtype: float64
 
 Then this is OK:
 
-.. ipython:: python
+.. code-block:: python
 
-   s.ix['k':'e']
+   In [3]: s.ix['k':'e']
+   Out[3]:
+   k   -0.243550
+   a    1.628992
+   e    0.073308
+   dtype: float64
 
 But this is not:
 
@@ -189,11 +203,26 @@ But this is not:
 
 If the index had been sorted, the "range selection" would have been possible:
 
-.. ipython:: python
+.. code-block:: python
 
-   s2 = s.sort_index()
-   s2
-   s2.ix['b':'h']
+   In [4]: s2 = s.sort_index()
+
+   In [5]: s2
+   Out[5]:
+   a    1.628992
+   c   -0.539890
+   e    0.073308
+   g   -1.182230
+   k   -0.243550
+   m   -0.276183
+   dtype: float64
+
+   In [6]: s2.ix['b':'h']
+   Out[6]:
+   c   -0.539890
+   e    0.073308
+   g   -1.182230
+   dtype: float64
 
 Changes to Series ``[]`` operator
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -269,4 +298,3 @@ Performance improvements
   ``level`` parameter passed (:issue:`545`)
 - Ported skiplist data structure to C to speed up ``rolling_median`` by about
   5-10x in most typical use cases (:issue:`374`)
-

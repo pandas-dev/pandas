@@ -80,7 +80,7 @@ API changes
 
   Integer division
 
-  .. code-block:: python
+  .. code-block:: ipython
 
       In [3]: arr = np.array([1, 2, 3, 4])
 
@@ -99,7 +99,7 @@ API changes
 
   True Division
 
-  .. code-block:: python
+  .. code-block:: ipython
 
       In [7]: pd.Series(arr) / pd.Series(arr2) # no future import required
       Out[7]:
@@ -274,7 +274,6 @@ Float64Index API Change
   .. ipython:: python
 
      s[3]
-     s.ix[3]
      s.loc[3]
 
   The only positional indexing is via ``iloc``
@@ -290,7 +289,6 @@ Float64Index API Change
   .. ipython:: python
 
      s[2:4]
-     s.ix[2:4]
      s.loc[2:4]
      s.iloc[2:4]
 
@@ -304,7 +302,7 @@ Float64Index API Change
 - Indexing on other index types are preserved (and positional fallback for ``[],ix``), with the exception, that floating point slicing
   on indexes on non ``Float64Index`` will now raise a ``TypeError``.
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [1]: Series(range(5))[3.5]
      TypeError: the label [3.5] is not a proper indexer for this index type (Int64Index)
@@ -314,7 +312,7 @@ Float64Index API Change
 
   Using a scalar float indexer will be deprecated in a future version, but is allowed for now.
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [3]: Series(range(5))[3.0]
      Out[3]: 3
@@ -359,11 +357,11 @@ HDFStore API Changes
   .. ipython:: python
 
      path = 'test.h5'
-     df = DataFrame(randn(10,2))
+     df = pd.DataFrame(np.random.randn(10,2))
      df.to_hdf(path,'df_table',format='table')
      df.to_hdf(path,'df_table2',append=True)
      df.to_hdf(path,'df_fixed')
-     with get_store(path) as store:
+     with pd.HDFStore(path) as store:
         print(store)
 
   .. ipython:: python
@@ -416,7 +414,7 @@ HDFStore API Changes
 - add the keyword ``dropna=True`` to ``append`` to change whether ALL nan rows are not written
   to the store (default is ``True``, ALL nan rows are NOT written), also settable
   via the option ``io.hdf.dropna_table`` (:issue:`4625`)
-- pass thru store creation arguments; can be used to support in-memory stores
+- pass through store creation arguments; can be used to support in-memory stores
 
 DataFrame repr Changes
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -445,7 +443,7 @@ Enhancements
 - Clipboard functionality now works with PySide (:issue:`4282`)
 - Added a more informative error message when plot arguments contain
   overlapping color and style arguments (:issue:`4402`)
-- ``to_dict`` now takes ``records`` as a possible outtype.  Returns an array
+- ``to_dict`` now takes ``records`` as a possible out type.  Returns an array
   of column-keyed dictionaries. (:issue:`4936`)
 
 - ``NaN`` handing in get_dummies (:issue:`4446`) with `dummy_na`
@@ -536,6 +534,7 @@ Enhancements
   matches more conveniently.
 
   .. ipython:: python
+     :okwarning:
 
      Series(['a1', 'b2', 'c3']).str.extract('[ab](\d)')
 
@@ -544,6 +543,7 @@ Enhancements
 
 
   .. ipython:: python
+     :okwarning:
 
      Series(['a1', 'b2', 'c3']).str.extract('([ab])(\d)')
 
@@ -555,6 +555,7 @@ Enhancements
   Named groups like
 
   .. ipython:: python
+     :okwarning:
 
      Series(['a1', 'b2', 'c3']).str.extract(
              '(?P<letter>[ab])(?P<digit>\d)')
@@ -562,6 +563,7 @@ Enhancements
   and optional groups can also be used.
 
   .. ipython:: python
+     :okwarning:
 
       Series(['a1', 'b2', '3']).str.extract(
               '(?P<letter>[ab])?(?P<digit>\d)')
@@ -596,7 +598,7 @@ Enhancements
   .. ipython:: python
 
      t = Timestamp('20130101 09:01:02')
-     t + pd.datetools.Nano(123)
+     t + pd.tseries.offsets.Nano(123)
 
 - A new method, ``isin`` for DataFrames, which plays nicely with boolean indexing. The argument to ``isin``, what we're comparing the DataFrame to, can be a DataFrame, Series, dict, or array of values. See :ref:`the docs<indexing.basics.indexing_isin>` for more.
 
@@ -649,7 +651,7 @@ Enhancements
 
   Additionally, the ``method`` argument to ``interpolate`` has been expanded
   to include ``'nearest', 'zero', 'slinear', 'quadratic', 'cubic',
-  'barycentric', 'krogh', 'piecewise_polynomial', 'pchip', `polynomial`, 'spline'``
+  'barycentric', 'krogh', 'piecewise_polynomial', 'pchip', 'polynomial', 'spline'``
   The new methods require scipy_. Consult the Scipy reference guide_ and documentation_ for more information
   about when the various methods are appropriate. See :ref:`the docs<missing_data.interpolate>`.
 
@@ -788,7 +790,7 @@ Experimental
   .. ipython:: python
 
      for o in pd.read_msgpack('foo.msg',iterator=True):
-        print o
+        print(o)
 
   .. ipython:: python
      :suppress:
@@ -821,7 +823,7 @@ Experimental
 
      # Your Google BigQuery Project ID
      # To find this, see your dashboard:
-     # https://code.google.com/apis/console/b/0/?noredirect
+     # https://console.developers.google.com/iam-admin/projects?authuser=0
      projectid = xxxxxxxxx;
 
      df = gbq.read_gbq(query, project_id = projectid)

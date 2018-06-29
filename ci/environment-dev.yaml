@@ -1,0 +1,16 @@
+name: pandas-dev
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - Cython
+  - NumPy
+  - flake8
+  - moto
+  - pytest>=3.1
+  - python-dateutil>=2.5.0
+  - python=3
+  - pytz
+  - setuptools>=24.2.0
+  - sphinx
+  - sphinxcontrib-spelling

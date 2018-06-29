@@ -1,52 +1,66 @@
-from .pandas_vb_common import *
+import numpy as np
+import pandas.util.testing as tm
+from pandas import Series, Index, DatetimeIndex, Timestamp, MultiIndex
+
+from .pandas_vb_common import setup  # noqa
 
 
-class frame_constructor_ndarray(object):
+class SeriesConstructors(object):
+
     goal_time = 0.2
 
-    def setup(self):
-        self.arr = np.random.randn(100, 100)
+    param_names = ["data_fmt", "with_index"]
+    params = [[lambda x: x,
+               list,
+               lambda arr: list(arr.astype(str)),
+               lambda arr: dict(zip(range(len(arr)), arr)),
+               lambda arr: [(i, -i) for i in arr],
+               lambda arr: [[i, -i] for i in arr],
+               lambda arr: ([(i, -i) for i in arr][:-1] + [None]),
+               lambda arr: ([[i, -i] for i in arr][:-1] + [None])],
+              [False, True]]
 
-    def time_frame_constructor_ndarray(self):
-        DataFrame(self.arr)
+    def setup(self, data_fmt, with_index):
+        N = 10**4
+        arr = np.random.randn(N)
+        self.data = data_fmt(arr)
+        self.index = np.arange(N) if with_index else None
 
-
-class ctor_index_array_string(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.data = np.array(['foo', 'bar', 'baz'], dtype=object)
-
-    def time_ctor_index_array_string(self):
-        Index(self.data)
-
-
-class series_constructor_ndarray(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.data = np.random.randn(100)
-        self.index = Index(np.arange(100))
-
-    def time_series_constructor_ndarray(self):
+    def time_series_constructor(self, data_fmt, with_index):
         Series(self.data, index=self.index)
 
 
-class dtindex_from_series_ctor(object):
+class SeriesDtypesConstructors(object):
+
     goal_time = 0.2
 
     def setup(self):
-        self.s = Series(([Timestamp('20110101'), Timestamp('20120101'), Timestamp('20130101')] * 1000))
+        N = 10**4
+        self.arr = np.random.randn(N, N)
+        self.arr_str = np.array(['foo', 'bar', 'baz'], dtype=object)
+        self.s = Series([Timestamp('20110101'), Timestamp('20120101'),
+                         Timestamp('20130101')] * N * 10)
 
-    def time_dtindex_from_series_ctor(self):
+    def time_index_from_array_string(self):
+        Index(self.arr_str)
+
+    def time_index_from_array_floats(self):
+        Index(self.arr)
+
+    def time_dtindex_from_series(self):
         DatetimeIndex(self.s)
 
+    def time_dtindex_from_index_with_series(self):
+        Index(self.s)
 
-class index_from_series_ctor(object):
+
+class MultiIndexConstructor(object):
+
     goal_time = 0.2
 
     def setup(self):
-        self.s = Series(([Timestamp('20110101'), Timestamp('20120101'), Timestamp('20130101')] * 1000))
+        N = 10**4
+        self.iterables = [tm.makeStringIndex(N), range(20)]
 
-    def time_index_from_series_ctor(self):
-        Index(self.s)
+    def time_multiindex_from_iterables(self):
+        MultiIndex.from_product(self.iterables)

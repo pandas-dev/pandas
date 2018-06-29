@@ -1,292 +1,194 @@
-from .pandas_vb_common import *
+import numpy as np
+import pandas.util.testing as tm
+from pandas import (Series, date_range, DatetimeIndex, Index, RangeIndex,
+                    Float64Index)
+
+from .pandas_vb_common import setup  # noqa
 
 
-class datetime_index_intersection(object):
+class SetOperations(object):
+
+    goal_time = 0.2
+    params = (['datetime', 'date_string', 'int', 'strings'],
+              ['intersection', 'union', 'symmetric_difference'])
+    param_names = ['dtype', 'method']
+
+    def setup(self, dtype, method):
+        N = 10**5
+        dates_left = date_range('1/1/2000', periods=N, freq='T')
+        fmt = '%Y-%m-%d %H:%M:%S'
+        date_str_left = Index(dates_left.strftime(fmt))
+        int_left = Index(np.arange(N))
+        str_left = tm.makeStringIndex(N)
+        data = {'datetime': {'left': dates_left, 'right': dates_left[:-1]},
+                'date_string': {'left': date_str_left,
+                                'right': date_str_left[:-1]},
+                'int': {'left': int_left, 'right': int_left[:-1]},
+                'strings': {'left': str_left, 'right': str_left[:-1]}}
+        self.left = data[dtype]['left']
+        self.right = data[dtype]['right']
+
+    def time_operation(self, dtype, method):
+        getattr(self.left, method)(self.right)
+
+
+class SetDisjoint(object):
+
     goal_time = 0.2
 
     def setup(self):
-        self.rng = date_range('1/1/2000', periods=10000, freq='T')
-        self.rng2 = self.rng[:(-1)]
+        N = 10**5
+        B = N + 20000
+        self.datetime_left = DatetimeIndex(range(N))
+        self.datetime_right = DatetimeIndex(range(N, B))
 
-    def time_datetime_index_intersection(self):
-        self.rng.intersection(self.rng2)
+    def time_datetime_difference_disjoint(self):
+        self.datetime_left.difference(self.datetime_right)
 
 
-class datetime_index_repr(object):
+class Datetime(object):
+
     goal_time = 0.2
 
     def setup(self):
-        self.dr = pd.date_range('20000101', freq='D', periods=100000)
+        self.dr = date_range('20000101', freq='D', periods=10000)
 
-    def time_datetime_index_repr(self):
+    def time_is_dates_only(self):
         self.dr._is_dates_only
 
 
-class datetime_index_union(object):
+class Ops(object):
+
+    sample_time = 0.2
+    params = ['float', 'int']
+    param_names = ['dtype']
+
+    def setup(self, dtype):
+        N = 10**6
+        indexes = {'int': 'makeIntIndex', 'float': 'makeFloatIndex'}
+        self.index = getattr(tm, indexes[dtype])(N)
+
+    def time_add(self, dtype):
+        self.index + 2
+
+    def time_subtract(self, dtype):
+        self.index - 2
+
+    def time_multiply(self, dtype):
+        self.index * 2
+
+    def time_divide(self, dtype):
+        self.index / 2
+
+    def time_modulo(self, dtype):
+        self.index % 2
+
+
+class Range(object):
+
     goal_time = 0.2
 
     def setup(self):
-        self.rng = date_range('1/1/2000', periods=10000, freq='T')
-        self.rng2 = self.rng[:(-1)]
+        self.idx_inc = RangeIndex(start=0, stop=10**7, step=3)
+        self.idx_dec = RangeIndex(start=10**7, stop=-1, step=-3)
 
-    def time_datetime_index_union(self):
-        self.rng.union(self.rng2)
+    def time_max(self):
+        self.idx_inc.max()
+
+    def time_max_trivial(self):
+        self.idx_dec.max()
+
+    def time_min(self):
+        self.idx_dec.min()
+
+    def time_min_trivial(self):
+        self.idx_inc.min()
 
 
-class index_datetime_intersection(object):
+class IndexAppend(object):
+
     goal_time = 0.2
 
     def setup(self):
-        self.rng = DatetimeIndex(start='1/1/2000', periods=10000, freq=datetools.Minute())
-        if (self.rng.dtype == object):
-            self.rng = self.rng.view(Index)
-        else:
-            self.rng = self.rng.asobject
-        self.rng2 = self.rng[:(-1)]
 
-    def time_index_datetime_intersection(self):
-        self.rng.intersection(self.rng2)
+        N = 10000
+        self.range_idx = RangeIndex(0, 100)
+        self.int_idx = self.range_idx.astype(int)
+        self.obj_idx = self.int_idx.astype(str)
+        self.range_idxs = []
+        self.int_idxs = []
+        self.object_idxs = []
+        for i in range(1, N):
+            r_idx = RangeIndex(i * 100, (i + 1) * 100)
+            self.range_idxs.append(r_idx)
+            i_idx = r_idx.astype(int)
+            self.int_idxs.append(i_idx)
+            o_idx = i_idx.astype(str)
+            self.object_idxs.append(o_idx)
+
+    def time_append_range_list(self):
+        self.range_idx.append(self.range_idxs)
+
+    def time_append_int_list(self):
+        self.int_idx.append(self.int_idxs)
+
+    def time_append_obj_list(self):
+        self.obj_idx.append(self.object_idxs)
 
 
-class index_datetime_union(object):
+class Indexing(object):
+
     goal_time = 0.2
+    params = ['String', 'Float', 'Int']
+    param_names = ['dtype']
 
-    def setup(self):
-        self.rng = DatetimeIndex(start='1/1/2000', periods=10000, freq=datetools.Minute())
-        if (self.rng.dtype == object):
-            self.rng = self.rng.view(Index)
-        else:
-            self.rng = self.rng.asobject
-        self.rng2 = self.rng[:(-1)]
+    def setup(self, dtype):
+        N = 10**6
+        self.idx = getattr(tm, 'make{}Index'.format(dtype))(N)
+        self.array_mask = (np.arange(N) % 3) == 0
+        self.series_mask = Series(self.array_mask)
+        self.sorted = self.idx.sort_values()
+        half = N // 2
+        self.non_unique = self.idx[:half].append(self.idx[:half])
+        self.non_unique_sorted = self.sorted[:half].append(self.sorted[:half])
+        self.key = self.sorted[N // 4]
 
-    def time_index_datetime_union(self):
-        self.rng.union(self.rng2)
+    def time_boolean_array(self, dtype):
+        self.idx[self.array_mask]
 
-
-class index_float64_boolean_indexer(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.idx = tm.makeFloatIndex(1000000)
-        self.mask = ((np.arange(self.idx.size) % 3) == 0)
-        self.series_mask = Series(self.mask)
-
-    def time_index_float64_boolean_indexer(self):
-        self.idx[self.mask]
-
-
-class index_float64_boolean_series_indexer(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.idx = tm.makeFloatIndex(1000000)
-        self.mask = ((np.arange(self.idx.size) % 3) == 0)
-        self.series_mask = Series(self.mask)
-
-    def time_index_float64_boolean_series_indexer(self):
+    def time_boolean_series(self, dtype):
         self.idx[self.series_mask]
 
-
-class index_float64_construct(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.baseidx = np.arange(1000000.0)
-
-    def time_index_float64_construct(self):
-        Index(self.baseidx)
-
-
-class index_float64_div(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.idx = tm.makeFloatIndex(1000000)
-        self.mask = ((np.arange(self.idx.size) % 3) == 0)
-        self.series_mask = Series(self.mask)
-
-    def time_index_float64_div(self):
-        (self.idx / 2)
-
-
-class index_float64_get(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.idx = tm.makeFloatIndex(1000000)
-        self.mask = ((np.arange(self.idx.size) % 3) == 0)
-        self.series_mask = Series(self.mask)
-
-    def time_index_float64_get(self):
+    def time_get(self, dtype):
         self.idx[1]
 
+    def time_slice(self, dtype):
+        self.idx[:-1]
 
-class index_float64_mul(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.idx = tm.makeFloatIndex(1000000)
-        self.mask = ((np.arange(self.idx.size) % 3) == 0)
-        self.series_mask = Series(self.mask)
-
-    def time_index_float64_mul(self):
-        (self.idx * 2)
-
-
-class index_float64_slice_indexer_basic(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.idx = tm.makeFloatIndex(1000000)
-        self.mask = ((np.arange(self.idx.size) % 3) == 0)
-        self.series_mask = Series(self.mask)
-
-    def time_index_float64_slice_indexer_basic(self):
-        self.idx[:(-1)]
-
-
-class index_float64_slice_indexer_even(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.idx = tm.makeFloatIndex(1000000)
-        self.mask = ((np.arange(self.idx.size) % 3) == 0)
-        self.series_mask = Series(self.mask)
-
-    def time_index_float64_slice_indexer_even(self):
+    def time_slice_step(self, dtype):
         self.idx[::2]
 
+    def time_get_loc(self, dtype):
+        self.idx.get_loc(self.key)
 
-class index_int64_intersection(object):
+    def time_get_loc_sorted(self, dtype):
+        self.sorted.get_loc(self.key)
+
+    def time_get_loc_non_unique(self, dtype):
+        self.non_unique.get_loc(self.key)
+
+    def time_get_loc_non_unique_sorted(self, dtype):
+        self.non_unique_sorted.get_loc(self.key)
+
+
+class Float64IndexMethod(object):
+    # GH 13166
     goal_time = 0.2
 
     def setup(self):
-        self.N = 1000000
-        self.options = np.arange(self.N)
-        self.left = Index(self.options.take(np.random.permutation(self.N)[:(self.N // 2)]))
-        self.right = Index(self.options.take(np.random.permutation(self.N)[:(self.N // 2)]))
+        N = 100000
+        a = np.arange(N)
+        self.ind = Float64Index(a * 4.8000000418824129e-08)
 
-    def time_index_int64_intersection(self):
-        self.left.intersection(self.right)
-
-
-class index_int64_union(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.N = 1000000
-        self.options = np.arange(self.N)
-        self.left = Index(self.options.take(np.random.permutation(self.N)[:(self.N // 2)]))
-        self.right = Index(self.options.take(np.random.permutation(self.N)[:(self.N // 2)]))
-
-    def time_index_int64_union(self):
-        self.left.union(self.right)
-
-
-class index_str_boolean_indexer(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.idx = tm.makeStringIndex(1000000)
-        self.mask = ((np.arange(1000000) % 3) == 0)
-        self.series_mask = Series(self.mask)
-
-    def time_index_str_boolean_indexer(self):
-        self.idx[self.mask]
-
-
-class index_str_boolean_series_indexer(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.idx = tm.makeStringIndex(1000000)
-        self.mask = ((np.arange(1000000) % 3) == 0)
-        self.series_mask = Series(self.mask)
-
-    def time_index_str_boolean_series_indexer(self):
-        self.idx[self.series_mask]
-
-
-class index_str_slice_indexer_basic(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.idx = tm.makeStringIndex(1000000)
-        self.mask = ((np.arange(1000000) % 3) == 0)
-        self.series_mask = Series(self.mask)
-
-    def time_index_str_slice_indexer_basic(self):
-        self.idx[:(-1)]
-
-
-class index_str_slice_indexer_even(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.idx = tm.makeStringIndex(1000000)
-        self.mask = ((np.arange(1000000) % 3) == 0)
-        self.series_mask = Series(self.mask)
-
-    def time_index_str_slice_indexer_even(self):
-        self.idx[::2]
-
-
-class multiindex_duplicated(object):
-    goal_time = 0.2
-
-    def setup(self):
-        (n, k) = (200, 5000)
-        self.levels = [np.arange(n), tm.makeStringIndex(n).values, (1000 + np.arange(n))]
-        self.labels = [np.random.choice(n, (k * n)) for lev in self.levels]
-        self.mi = MultiIndex(levels=self.levels, labels=self.labels)
-
-    def time_multiindex_duplicated(self):
-        self.mi.duplicated()
-
-
-class multiindex_from_product(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.iterables = [tm.makeStringIndex(10000), range(20)]
-
-    def time_multiindex_from_product(self):
-        MultiIndex.from_product(self.iterables)
-
-
-class multiindex_sortlevel_int64(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.n = ((((3 * 5) * 7) * 11) * (1 << 10))
-        (low, high) = (((-1) << 12), (1 << 12))
-        self.f = (lambda k: np.repeat(np.random.randint(low, high, (self.n // k)), k))
-        self.i = np.random.permutation(self.n)
-        self.mi = MultiIndex.from_arrays([self.f(11), self.f(7), self.f(5), self.f(3), self.f(1)])[self.i]
-
-    def time_multiindex_sortlevel_int64(self):
-        self.mi.sortlevel()
-
-
-class multiindex_with_datetime_level_full(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.level1 = range(1000)
-        self.level2 = date_range(start='1/1/2012', periods=100)
-        self.mi = MultiIndex.from_product([self.level1, self.level2])
-
-    def time_multiindex_with_datetime_level_full(self):
-        self.mi.copy().values
-
-
-class multiindex_with_datetime_level_sliced(object):
-    goal_time = 0.2
-
-    def setup(self):
-        self.level1 = range(1000)
-        self.level2 = date_range(start='1/1/2012', periods=100)
-        self.mi = MultiIndex.from_product([self.level1, self.level2])
-
-    def time_multiindex_with_datetime_level_sliced(self):
-        self.mi[:10].values
+    def time_get_loc(self):
+        self.ind.get_loc(0)

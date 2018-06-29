@@ -1,8 +1,20 @@
-"""A collection of random tools for dealing with dates in Python"""
+"""A collection of random tools for dealing with dates in Python.
 
-from pandas.tseries.tools import *
+.. deprecated:: 0.19.0
+    Use pandas.tseries module instead.
+"""
+
+# flake8: noqa
+
+import warnings
+
+from pandas.core.tools.datetimes import *
 from pandas.tseries.offsets import *
 from pandas.tseries.frequencies import *
+
+warnings.warn("The pandas.core.datetools module is deprecated and will be "
+              "removed in a future version. Please use the pandas.tseries "
+              "module instead.", FutureWarning, stacklevel=2)
 
 day = DateOffset()
 bday = BDay()

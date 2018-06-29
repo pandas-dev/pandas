@@ -1,0 +1,83 @@
+"""
+Template for functions of IndexEngine subclasses.
+
+WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
+"""
+
+#----------------------------------------------------------------------
+# IndexEngine Subclass Methods
+#----------------------------------------------------------------------
+
+{{py:
+
+# name, dtype, ctype
+dtypes = [('Float64', 'float64', 'float64_t'),
+          ('UInt64', 'uint64', 'uint64_t'),
+          ('Int64', 'int64', 'int64_t'),
+          ('Object', 'object', 'object')]
+}}
+
+{{for name, dtype, ctype in dtypes}}
+
+
+cdef class {{name}}Engine(IndexEngine):
+
+    def _call_monotonic(self, values):
+        return algos.is_monotonic_{{dtype}}(values, timelike=False)
+
+    def get_backfill_indexer(self, other, limit=None):
+        return algos.backfill_{{dtype}}(self._get_index_values(),
+                                        other, limit=limit)
+
+    def get_pad_indexer(self, other, limit=None):
+        return algos.pad_{{dtype}}(self._get_index_values(),
+                                   other, limit=limit)
+
+    cdef _make_hash_table(self, n):
+        {{if name == 'Object'}}
+        return _hash.PyObjectHashTable(n)
+        {{else}}
+        return _hash.{{name}}HashTable(n)
+        {{endif}}
+
+    {{if name != 'Float64' and name != 'Object'}}
+    cdef _check_type(self, object val):
+        hash(val)
+        if util.is_bool_object(val):
+            raise KeyError(val)
+        elif util.is_float_object(val):
+            raise KeyError(val)
+    {{endif}}
+
+    {{if name != 'Object'}}
+    cdef _get_index_values(self):
+        return algos.ensure_{{dtype}}(self.vgetter())
+
+    cdef _maybe_get_bool_indexer(self, object val):
+        cdef:
+            ndarray[uint8_t, ndim=1, cast=True] indexer
+            ndarray[intp_t, ndim=1] found
+            ndarray[{{ctype}}] values
+            int count = 0
+
+        {{if name != 'Float64'}}
+        if not util.is_integer_object(val):
+            raise KeyError(val)
+        {{endif}}
+
+        # A view is needed for some subclasses, such as PeriodEngine:
+        values = self._get_index_values().view('{{dtype}}')
+        indexer = values == val
+        found = np.where(indexer)[0]
+        count = len(found)
+
+        if count > 1:
+            return indexer
+        if count == 1:
+            return int(found[0])
+
+        raise KeyError(val)
+
+    {{endif}}
+
+{{endfor}}

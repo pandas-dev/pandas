@@ -1,3 +1,3 @@
 :: test on windows
 
-nosetests --exe -A "not slow and not network and not disabled" pandas %*
+pytest --skip-slow --skip-network pandas -n 2 -r sxX --strict %*

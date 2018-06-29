@@ -22,7 +22,7 @@ users upgrade to this version.
   - ``read_csv`` will now by default ignore blank lines when parsing, see :ref:`here <whatsnew_0150.blanklines>`
   - API change in using Indexes in set operations, see :ref:`here <whatsnew_0150.index_set_ops>`
   - Enhancements in the handling of timezones, see :ref:`here <whatsnew_0150.tz>`
-  - A lot of improvements to the rolling and expanding moment funtions, see :ref:`here <whatsnew_0150.roll>`
+  - A lot of improvements to the rolling and expanding moment functions, see :ref:`here <whatsnew_0150.roll>`
   - Internal refactoring of the ``Index`` class to no longer sub-class ``ndarray``, see :ref:`Internal Refactoring <whatsnew_0150.refactoring>`
   - dropping support for ``PyTables`` less than version 3.0.0, and ``numexpr`` less than version 2.1 (:issue:`7990`)
   - Split indexing documentation into :ref:`Indexing and Selecting Data <indexing>` and :ref:`MultiIndex / Advanced Indexing <advanced>`
@@ -44,7 +44,7 @@ users upgrade to this version.
 
 .. warning::
 
-   The refactorings in :class:`~pandas.Categorical` changed the two argument constructor from
+   The refactoring in :class:`~pandas.Categorical` changed the two argument constructor from
    "codes/labels and levels" to "values and levels (now called 'categories')". This can lead to subtle bugs. If you use
    :class:`~pandas.Categorical` directly, please audit your code before updating to this pandas
    version and change it to use the :meth:`~pandas.Categorical.from_codes` constructor. See more on ``Categorical`` :ref:`here <whatsnew_0150.cat>`
@@ -68,7 +68,7 @@ For full docs, see the :ref:`categorical introduction <categorical>` and the
 
 .. ipython:: python
     :okwarning:
-    
+
     df = DataFrame({"id":[1,2,3,4,5,6], "raw_grade":['a', 'b', 'b', 'a', 'a', 'e']})
 
     df["grade"] = df["raw_grade"].astype("category")
@@ -80,7 +80,7 @@ For full docs, see the :ref:`categorical introduction <categorical>` and the
     # Reorder the categories and simultaneously add the missing categories
     df["grade"] = df["grade"].cat.set_categories(["very bad", "bad", "medium", "good", "very good"])
     df["grade"]
-    df.sort("grade")
+    df.sort_values("grade")
     df.groupby("grade").size()
 
 - ``pandas.core.group_agg`` and ``pandas.core.factor_agg`` were removed. As an alternative, construct
@@ -112,7 +112,7 @@ This type is very similar to how ``Timestamp`` works for ``datetimes``. It is a 
 
    ``Timedelta`` scalars (and ``TimedeltaIndex``) component fields are *not the same* as the component fields on a ``datetime.timedelta`` object. For example, ``.seconds`` on a ``datetime.timedelta`` object returns the total number of seconds combined between ``hours``, ``minutes`` and ``seconds``. In contrast, the pandas ``Timedelta`` breaks out hours, minutes, microseconds and nanoseconds separately.
 
-   .. code-block:: python
+   .. code-block:: ipython
 
       # Timedelta accessor
       In [9]: tds = Timedelta('31 days 5 min 3 sec')
@@ -139,7 +139,7 @@ This type is very similar to how ``Timestamp`` works for ``datetimes``. It is a 
 
        The arguments to ``pd.to_timedelta`` are now ``(arg,unit='ns',box=True,coerce=False)``, previously were ``(arg,box=True,unit='ns')`` as these are more logical.
 
-Consruct a scalar
+Construct a scalar
 
 .. ipython:: python
 
@@ -326,7 +326,7 @@ Timezone handling improvements
 
 - ``Timestamp.tz_localize`` and ``Timestamp.tz_convert`` now raise ``TypeError`` in error cases, rather than ``Exception`` (:issue:`8025`)
 
-- a  timeseries/index localized to UTC when inserted into a Series/DataFrame will preserve the UTC timezone (rather than being a naive ``datetime64[ns]``) as ``object`` dtype (:issue:`8411`)
+- a timeseries/index localized to UTC when inserted into a Series/DataFrame will preserve the UTC timezone (rather than being a naive ``datetime64[ns]``) as ``object`` dtype (:issue:`8411`)
 
 - ``Timestamp.__repr__`` displays ``dateutil.tz.tzoffset`` info (:issue:`7907`)
 
@@ -346,16 +346,22 @@ Rolling/Expanding Moments improvements
 
      s = Series([10, 11, 12, 13])
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [15]: rolling_min(s, window=10, min_periods=5)
      ValueError: min_periods (5) must be <= window (4)
 
   New behavior
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     rolling_min(s, window=10, min_periods=5)
+     In [4]: pd.rolling_min(s, window=10, min_periods=5)
+     Out[4]:
+     0   NaN
+     1   NaN
+     2   NaN
+     3   NaN
+     dtype: float64
 
 - :func:`rolling_max`, :func:`rolling_min`, :func:`rolling_sum`, :func:`rolling_mean`, :func:`rolling_median`,
   :func:`rolling_std`, :func:`rolling_var`, :func:`rolling_skew`, :func:`rolling_kurt`, :func:`rolling_quantile`,
@@ -369,7 +375,7 @@ Rolling/Expanding Moments improvements
 
   Prior behavior (note final value is ``NaN``):
 
-  .. code-block:: python
+  .. code-block:: ipython
 
     In [7]: rolling_sum(Series(range(4)), window=3, min_periods=0, center=True)
     Out[7]:
@@ -381,9 +387,15 @@ Rolling/Expanding Moments improvements
 
   New behavior (note final value is ``5 = sum([2, 3, NaN])``):
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-    rolling_sum(Series(range(4)), window=3, min_periods=0, center=True)
+     In [7]: rolling_sum(Series(range(4)), window=3, min_periods=0, center=True)
+     Out[7]:
+     0    1
+     1    3
+     2    6
+     3    5
+     dtype: float64
 
 - :func:`rolling_window` now normalizes the weights properly in rolling mean mode (`mean=True`) so that
   the calculated weighted means (e.g. 'triang', 'gaussian') are distributed about the same means as those
@@ -395,22 +407,29 @@ Rolling/Expanding Moments improvements
 
   Behavior prior to 0.15.0:
 
-  .. code-block:: python
+  .. code-block:: ipython
 
-    In [39]: rolling_window(s, window=3, win_type='triang', center=True)
-    Out[39]:
-    0         NaN
-    1    6.583333
-    2    6.883333
-    3    6.683333
-    4         NaN
-    dtype: float64
+     In [39]: rolling_window(s, window=3, win_type='triang', center=True)
+     Out[39]:
+     0         NaN
+     1    6.583333
+     2    6.883333
+     3    6.683333
+     4         NaN
+     dtype: float64
 
   New behavior
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-    rolling_window(s, window=3, win_type='triang', center=True)
+     In [10]: pd.rolling_window(s, window=3, win_type='triang', center=True)
+     Out[10]:
+     0       NaN
+     1     9.875
+     2    10.325
+     3    10.025
+     4       NaN
+     dtype: float64
 
 - Removed ``center`` argument from all :func:`expanding_ <expanding_apply>` functions (see :ref:`list <api.functions_expanding>`),
   as the results produced when ``center=True`` did not make much sense. (:issue:`7925`)
@@ -435,7 +454,7 @@ Rolling/Expanding Moments improvements
 
     s  = Series([1, None, None, None, 2, 3])
 
-  .. code-block:: python
+  .. code-block:: ipython
 
 	In [51]: ewma(s, com=3., min_periods=2)
 	Out[51]:
@@ -449,9 +468,17 @@ Rolling/Expanding Moments improvements
 
   New behavior (note values start at index ``4``, the location of the 2nd (since ``min_periods=2``) non-empty value):
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-    ewma(s, com=3., min_periods=2)
+     In [2]: pd.ewma(s, com=3., min_periods=2)
+     Out[2]:
+     0         NaN
+     1         NaN
+     2         NaN
+     3         NaN
+     4    1.759644
+     5    2.383784
+     dtype: float64
 
 - :func:`ewmstd`, :func:`ewmvol`, :func:`ewmvar`, :func:`ewmcov`, and :func:`ewmcorr`
   now have an optional ``adjust`` argument, just like :func:`ewma` does,
@@ -465,11 +492,28 @@ Rolling/Expanding Moments improvements
   When ``ignore_na=True`` (which reproduces the pre-0.15.0 behavior), missing values are ignored in the weights calculation.
   (:issue:`7543`)
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     ewma(Series([None, 1., 8.]), com=2.)
-     ewma(Series([1., None, 8.]), com=2., ignore_na=True)  # pre-0.15.0 behavior
-     ewma(Series([1., None, 8.]), com=2., ignore_na=False)  # new default
+     In [7]: pd.ewma(Series([None, 1., 8.]), com=2.)
+     Out[7]:
+     0    NaN
+     1    1.0
+     2    5.2
+     dtype: float64
+
+     In [8]: pd.ewma(Series([1., None, 8.]), com=2., ignore_na=True)  # pre-0.15.0 behavior
+     Out[8]:
+     0    1.0
+     1    1.0
+     2    5.2
+     dtype: float64
+
+     In [9]: pd.ewma(Series([1., None, 8.]), com=2., ignore_na=False)  # new default
+     Out[9]:
+     0    1.000000
+     1    1.000000
+     2    5.846154
+     dtype: float64
 
   .. warning::
 
@@ -503,7 +547,7 @@ Rolling/Expanding Moments improvements
 
      s = Series([1., 2., 0., 4.])
 
-  .. code-block:: python
+  .. code-block:: ipython
 
 	 In [89]: ewmvar(s, com=2., bias=False)
 	 Out[89]:
@@ -525,10 +569,23 @@ Rolling/Expanding Moments improvements
   By comparison, the following 0.15.0 results have a ``NaN`` for entry ``0``,
   and the debiasing factors are decreasing (towards 1.25):
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     ewmvar(s, com=2., bias=False)
-     ewmvar(s, com=2., bias=False) / ewmvar(s, com=2., bias=True)
+     In [14]: pd.ewmvar(s, com=2., bias=False)
+     Out[14]:
+     0         NaN
+     1    0.500000
+     2    1.210526
+     3    4.089069
+     dtype: float64
+
+     In [15]: pd.ewmvar(s, com=2., bias=False) / pd.ewmvar(s, com=2., bias=True)
+     Out[15]:
+     0         NaN
+     1    2.083333
+     2    1.583333
+     3    1.425439
+     dtype: float64
 
   See :ref:`Exponentially weighted moment functions <stats.moments.exponentially_weighted>` for details. (:issue:`7912`)
 
@@ -580,7 +637,7 @@ for more details):
 
   will have to adapted to the following to keep the same behaviour:
 
-  .. code-block:: python
+  .. code-block:: ipython
 
     In [2]: pd.Categorical.from_codes([0,1,0,2,1], categories=['a', 'b', 'c'])
     Out[2]:
@@ -619,10 +676,19 @@ Other notable API changes:
 
   Both will now return a frame reindex by [1,3]. E.g.
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     df.loc[[1,3]]
-     df.loc[[1,3],:]
+     In [3]: df.loc[[1,3]]
+     Out[3]:
+          0
+     1    a
+     3  NaN
+
+     In [4]: df.loc[[1,3],:]
+     Out[4]:
+          0
+     1    a
+     3  NaN
 
   This can also be seen in multi-axis indexing with a ``Panel``.
 
@@ -636,11 +702,16 @@ Other notable API changes:
 
   The following would raise ``KeyError`` prior to 0.15.0:
 
-  .. ipython:: python
+  .. code-block:: ipython
 
-     p.loc[['ItemA','ItemD'],:,'D']
+     In [5]:
+     Out[5]:
+        ItemA  ItemD
+     1      3    NaN
+     2      7    NaN
+     3     11    NaN
 
-  Furthermore, ``.loc`` will raise If no values are found in a multi-index with a list-like indexer:
+  Furthermore, ``.loc`` will raise If no values are found in a MultiIndex with a list-like indexer:
 
   .. ipython:: python
      :okexcept:
@@ -648,7 +719,7 @@ Other notable API changes:
      s = Series(np.arange(3,dtype='int64'),
                 index=MultiIndex.from_product([['A'],['foo','bar','baz']],
                                               names=['one','two'])
-               ).sortlevel()
+               ).sort_index()
      s
      try:
         s.loc[['D']]
@@ -690,7 +761,7 @@ Other notable API changes:
 
   Behavior prior to v0.15.0
 
-  .. code-block:: python
+  .. code-block:: ipython
 
 
      # the original object
@@ -723,7 +794,7 @@ Other notable API changes:
 .. _whatsnew_0150.blanklines:
 
 - Made both the C-based and Python engines for `read_csv` and `read_table` ignore empty lines in input as well as
-  whitespace-filled lines, as long as ``sep`` is not whitespace. This is an API change
+  white space-filled lines, as long as ``sep`` is not white space. This is an API change
   that can be controlled by the keyword parameter ``skip_blank_lines``.  See :ref:`the docs <io.skiplines>` (:issue:`4466`)
 
 - A timeseries/index localized to UTC when inserted into a Series/DataFrame will preserve the UTC timezone
@@ -766,7 +837,7 @@ Other notable API changes:
      A value is trying to be set on a copy of a slice from a DataFrame.
      Try using .loc[row_indexer,col_indexer] = value instead
 
-     See the the caveats in the documentation: http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy
+     See the caveats in the documentation: http://pandas.pydata.org/pandas-docs/stable/indexing.html#indexing-view-versus-copy
 
 - ``merge``, ``DataFrame.merge``, and ``ordered_merge`` now return the same type
   as the ``left`` argument (:issue:`7737`).
@@ -807,7 +878,7 @@ a transparent change with only very limited API implications (:issue:`5080`, :is
 
 - you may need to unpickle pandas version < 0.15.0 pickles using ``pd.read_pickle`` rather than ``pickle.load``. See :ref:`pickle docs <io.pickle>`
 - when plotting with a ``PeriodIndex``, the matplotlib internal axes will now be arrays of ``Period`` rather than a ``PeriodIndex`` (this is similar to how a ``DatetimeIndex`` passes arrays of ``datetimes`` now)
-- MultiIndexes will now raise similary to other pandas objects w.r.t. truth testing, see :ref:`here <gotchas.truth>` (:issue:`7897`).
+- MultiIndexes will now raise similarly to other pandas objects w.r.t. truth testing, see :ref:`here <gotchas.truth>` (:issue:`7897`).
 - When plotting a DatetimeIndex directly with matplotlib's `plot` function,
   the axis labels will no longer be formatted as dates but as integers (the
   internal representation of a ``datetime64``). **UPDATE** This is fixed
@@ -869,7 +940,7 @@ Enhancements
 
 Enhancements in the importing/exporting of Stata files:
 
-- Added support for bool, uint8, uint16 and uint32 datatypes in ``to_stata`` (:issue:`7097`, :issue:`7365`)
+- Added support for bool, uint8, uint16 and uint32 data types in ``to_stata`` (:issue:`7097`, :issue:`7365`)
 - Added conversion option when importing Stata files (:issue:`8527`)
 - ``DataFrame.to_stata`` and ``StataWriter`` check string length for
   compatibility with limitations imposed in dta files where fixed-width
@@ -912,12 +983,12 @@ Other:
 
     df.describe(include='all')
 
-  Without those arguments, 'describe` will behave as before, including only numerical columns or, if none are, only categorical columns. See also the :ref:`docs <basics.describe>`
+  Without those arguments, ``describe`` will behave as before, including only numerical columns or, if none are, only categorical columns. See also the :ref:`docs <basics.describe>`
 
 - Added ``split`` as an option to the ``orient`` argument in ``pd.DataFrame.to_dict``. (:issue:`7840`)
 
 - The ``get_dummies`` method can now be used on DataFrames. By default only
-  catagorical columns are encoded as 0's and 1's, while other columns are
+  categorical columns are encoded as 0's and 1's, while other columns are
   left untouched.
 
   .. ipython:: python
@@ -973,14 +1044,14 @@ Other:
 
       idx = MultiIndex.from_product([['a'], range(3), list("pqr")], names=['foo', 'bar', 'baz'])
       idx.set_names('qux', level=0)
-      idx.set_names(['qux','baz'], level=[0,1])
+      idx.set_names(['qux','corge'], level=[0,1])
       idx.set_levels(['a','b','c'], level='bar')
       idx.set_levels([['a','b','c'],[1,2,3]], level=[1,2])
 
 - ``Index.isin`` now supports a ``level`` argument to specify which index level
   to use for membership tests (:issue:`7892`, :issue:`7890`)
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [1]: idx = MultiIndex.from_product([[0, 1], ['a', 'b', 'c']])
 
@@ -999,7 +1070,7 @@ Other:
      idx.duplicated()
      idx.drop_duplicates()
 
-- add ``copy=True`` argument to ``pd.concat`` to enable pass thru of complete blocks (:issue:`8252`)
+- add ``copy=True`` argument to ``pd.concat`` to enable pass through of complete blocks (:issue:`8252`)
 
 - Added support for numpy 1.8+ data types (``bool_``, ``int_``, ``float_``, ``string_``) for conversion to R dataframe  (:issue:`8400`)
 
@@ -1043,11 +1114,11 @@ Bug Fixes
 - Bug in ``DatetimeIndex`` and ``PeriodIndex`` in-place addition and subtraction cause different result from normal one (:issue:`6527`)
 - Bug in adding and subtracting ``PeriodIndex`` with ``PeriodIndex`` raise ``TypeError`` (:issue:`7741`)
 - Bug in ``combine_first`` with ``PeriodIndex`` data raises ``TypeError`` (:issue:`3367`)
-- Bug in multi-index slicing with missing indexers (:issue:`7866`)
-- Bug in multi-index slicing with various edge cases (:issue:`8132`)
-- Regression in multi-index indexing with a non-scalar type object (:issue:`7914`)
+- Bug in MultiIndex slicing with missing indexers (:issue:`7866`)
+- Bug in MultiIndex slicing with various edge cases (:issue:`8132`)
+- Regression in MultiIndex indexing with a non-scalar type object (:issue:`7914`)
 - Bug in ``Timestamp`` comparisons with ``==`` and ``int64`` dtype (:issue:`8058`)
-- Bug in pickles contains ``DateOffset`` may raise ``AttributeError`` when ``normalize`` attribute is reffered internally (:issue:`7748`)
+- Bug in pickles contains ``DateOffset`` may raise ``AttributeError`` when ``normalize`` attribute is referred internally (:issue:`7748`)
 - Bug in ``Panel`` when using ``major_xs`` and ``copy=False`` is passed (deprecation warning fails because of missing ``warnings``) (:issue:`8152`).
 - Bug in pickle deserialization that failed for pre-0.14.1 containers with dup items trying to avoid ambiguity
   when matching block and manager items, when there's only one block there's no ambiguity (:issue:`7794`)
@@ -1059,7 +1130,7 @@ Bug Fixes
 - Bug in ``get`` where an ``IndexError`` would not cause the default value to be returned (:issue:`7725`)
 - Bug in ``offsets.apply``, ``rollforward`` and ``rollback`` may reset nanosecond (:issue:`7697`)
 - Bug in ``offsets.apply``, ``rollforward`` and ``rollback`` may raise ``AttributeError`` if ``Timestamp`` has ``dateutil`` tzinfo (:issue:`7697`)
-- Bug in sorting a multi-index frame with a ``Float64Index`` (:issue:`8017`)
+- Bug in sorting a MultiIndex frame with a ``Float64Index`` (:issue:`8017`)
 - Bug in inconsistent panel setitem with a rhs of a ``DataFrame`` for alignment (:issue:`7763`)
 - Bug in ``is_superperiod`` and ``is_subperiod`` cannot handle higher frequencies than ``S`` (:issue:`7760`, :issue:`7772`, :issue:`7803`)
 - Bug in 32-bit platforms with ``Series.shift`` (:issue:`8129`)
@@ -1141,7 +1212,7 @@ Bug Fixes
 - Bug in ``NDFrame.loc`` indexing when row/column names were lost when target was a list/ndarray (:issue:`6552`)
 - Regression in ``NDFrame.loc`` indexing when rows/columns were converted to Float64Index if target was an empty list/ndarray (:issue:`7774`)
 - Bug in ``Series`` that allows it to be indexed by a ``DataFrame`` which has unexpected results.  Such indexing is no longer permitted (:issue:`8444`)
-- Bug in item assignment of a ``DataFrame`` with multi-index columns where right-hand-side columns were not aligned (:issue:`7655`)
+- Bug in item assignment of a ``DataFrame`` with MultiIndex columns where right-hand-side columns were not aligned (:issue:`7655`)
 - Suppress FutureWarning generated by NumPy when comparing object arrays containing NaN for equality (:issue:`7065`)
 - Bug in ``DataFrame.eval()`` where the dtype of the ``not`` operator (``~``)
   was not correctly inferred as ``bool``.

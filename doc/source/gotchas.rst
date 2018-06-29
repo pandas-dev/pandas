@@ -1,35 +1,108 @@
 .. currentmodule:: pandas
 .. _gotchas:
 
+********************************
+Frequently Asked Questions (FAQ)
+********************************
+
 .. ipython:: python
    :suppress:
 
    import numpy as np
+   np.random.seed(123456)
    np.set_printoptions(precision=4, suppress=True)
    import pandas as pd
-   pd.options.display.max_rows=15
+   pd.options.display.max_rows = 15
+   import matplotlib
+   # matplotlib.style.use('default')
+   import matplotlib.pyplot as plt
+   plt.close('all')
 
+.. _df-memory-usage:
 
-*******************
-Caveats and Gotchas
-*******************
+DataFrame memory usage
+----------------------
+The memory usage of a ``DataFrame`` (including the index) is shown when calling
+the :meth:`~DataFrame.info`. A configuration option, ``display.memory_usage`` 
+(see :ref:`the list of options <options.available>`), specifies if the 
+``DataFrame``'s memory usage will be displayed when invoking the ``df.info()`` 
+method.
+
+For example, the memory usage of the ``DataFrame`` below is shown
+when calling :meth:`~DataFrame.info`:
+
+.. ipython:: python
+
+    dtypes = ['int64', 'float64', 'datetime64[ns]', 'timedelta64[ns]',
+              'complex128', 'object', 'bool']
+    n = 5000
+    data = dict([(t, np.random.randint(100, size=n).astype(t))
+                  for t in dtypes])
+    df = pd.DataFrame(data)
+    df['categorical'] = df['object'].astype('category')
+
+    df.info()
+
+The ``+`` symbol indicates that the true memory usage could be higher, because
+pandas does not count the memory used by values in columns with
+``dtype=object``.
+
+Passing ``memory_usage='deep'`` will enable a more accurate memory usage report,
+accounting for the full usage of the contained objects. This is optional
+as it can be expensive to do this deeper introspection.
+
+.. ipython:: python
+
+   df.info(memory_usage='deep')
+
+By default the display option is set to ``True`` but can be explicitly
+overridden by passing the ``memory_usage`` argument when invoking ``df.info()``.
+
+The memory usage of each column can be found by calling the 
+:meth:`~DataFrame.memory_usage` method. This returns a ``Series`` with an index 
+represented by column names and memory usage of each column shown in bytes. For 
+the ``DataFrame`` above, the memory usage of each column and the total memory 
+usage can be found with the ``memory_usage`` method:
+
+.. ipython:: python
+
+    df.memory_usage()
+
+    # total memory usage of dataframe
+    df.memory_usage().sum()
+
+By default the memory usage of the ``DataFrame``'s index is shown in the
+returned ``Series``, the memory usage of the index can be suppressed by passing
+the ``index=False`` argument:
+
+.. ipython:: python
+
+    df.memory_usage(index=False)
+
+The memory usage displayed by the :meth:`~DataFrame.info` method utilizes the
+:meth:`~DataFrame.memory_usage` method to determine the memory usage of a 
+``DataFrame`` while also formatting the output in human-readable units (base-2
+representation; i.e. 1KB = 1024 bytes).
+
+See also :ref:`Categorical Memory Usage <categorical.memory>`.
 
 .. _gotchas.truth:
 
 Using If/Truth Statements with pandas
 -------------------------------------
 
-pandas follows the numpy convention of raising an error when you try to convert something to a ``bool``.
-This happens in a ``if`` or when using the boolean operations, ``and``, ``or``, or ``not``.  It is not clear
-what the result of
+pandas follows the NumPy convention of raising an error when you try to convert 
+something to a ``bool``. This happens in an ``if``-statement or when using the 
+boolean operations: ``and``, ``or``, and ``not``. It is not clear what the result
+of the following code should be:
 
 .. code-block:: python
 
     >>> if pd.Series([False, True, False]):
          ...
 
-should be. Should it be ``True`` because it's not zero-length? ``False`` because there are ``False`` values?
-It is unclear, so instead, pandas raises a ``ValueError``:
+Should it be ``True`` because it's not zero-length, or ``False`` because there 
+are ``False`` values? It is unclear, so instead, pandas raises a ``ValueError``:
 
 .. code-block:: python
 
@@ -39,9 +112,9 @@ It is unclear, so instead, pandas raises a ``ValueError``:
         ...
     ValueError: The truth value of an array is ambiguous. Use a.empty, a.any() or a.all().
 
-
-If you see that, you need to explicitly choose what you want to do with it (e.g., use `any()`, `all()` or `empty`).
-or, you might want to compare if the pandas object is ``None``
+You need to explicitly choose what you want to do with the ``DataFrame``, e.g.
+use :meth:`~DataFrame.any`, :meth:`~DataFrame.all` or :meth:`~DataFrame.empty`.
+Alternatively, you might want to compare if the pandas object is ``None``:
 
 .. code-block:: python
 
@@ -50,7 +123,7 @@ or, you might want to compare if the pandas object is ``None``
     >>> I was not None
 
 
-or return if ``any`` value is ``True``.
+Below is how to check if any of the values are ``True``:
 
 .. code-block:: python
 
@@ -58,7 +131,8 @@ or return if ``any`` value is ``True``.
            print("I am any")
     >>> I am any
 
-To evaluate single-element pandas objects in a boolean context, use the method ``.bool()``:
+To evaluate single-element pandas objects in a boolean context, use the method 
+:meth:`~DataFrame.bool`:
 
 .. ipython:: python
 
@@ -70,7 +144,7 @@ To evaluate single-element pandas objects in a boolean context, use the method `
 Bitwise boolean
 ~~~~~~~~~~~~~~~
 
-Bitwise boolean operators like ``==`` and ``!=`` will return a boolean ``Series``,
+Bitwise boolean operators like ``==`` and ``!=`` return a boolean ``Series``,
 which is almost always what you want anyways.
 
 .. code-block:: python
@@ -89,25 +163,25 @@ See :ref:`boolean comparisons<basics.compare>` for more examples.
 Using the ``in`` operator
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Using the Python ``in`` operator on a Series tests for membership in the
+Using the Python ``in`` operator on a ``Series`` tests for membership in the
 index, not membership among the values.
 
-.. ipython::
+.. ipython:: python
 
     s = pd.Series(range(5), index=list('abcde'))
     2 in s
     'b' in s
 
 If this behavior is surprising, keep in mind that using ``in`` on a Python
-dictionary tests keys, not values, and Series are dict-like.
-To test for membership in the values, use the method :func:`~pandas.Series.isin`:
+dictionary tests keys, not values, and ``Series`` are dict-like.
+To test for membership in the values, use the method :meth:`~pandas.Series.isin`:
 
-.. ipython::
+.. ipython:: python
 
     s.isin([2])
     s.isin([2]).any()
 
-For DataFrames, likewise, ``in`` applies to the column axis,
+For ``DataFrames``, likewise, ``in`` applies to the column axis,
 testing for membership in the list of column names.
 
 ``NaN``, Integer ``NA`` values and ``NA`` type promotions
@@ -117,18 +191,18 @@ Choice of ``NA`` representation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 For lack of ``NA`` (missing) support from the ground up in NumPy and Python in
-general, we were given the difficult choice between either
+general, we were given the difficult choice between either:
 
-- A *masked array* solution: an array of data and an array of boolean values
-  indicating whether a value
-- Using a special sentinel value, bit pattern, or set of sentinel values to
-  denote ``NA`` across the dtypes
+* A *masked array* solution: an array of data and an array of boolean values
+  indicating whether a value is there or is missing.
+* Using a special sentinel value, bit pattern, or set of sentinel values to
+  denote ``NA`` across the dtypes.
 
 For many reasons we chose the latter. After years of production use it has
 proven, at least in my opinion, to be the best decision given the state of
 affairs in NumPy and Python in general. The special value ``NaN``
 (Not-A-Number) is used everywhere as the ``NA`` value, and there are API
-functions ``isnull`` and ``notnull`` which can be used across the dtypes to
+functions ``isna`` and ``notna`` which can be used across the dtypes to
 detect NA values.
 
 However, it comes with it a couple of trade-offs which I most certainly have
@@ -154,15 +228,16 @@ arrays. For example:
    s2.dtype
 
 This trade-off is made largely for memory and performance reasons, and also so
-that the resulting Series continues to be "numeric". One possibility is to use
-``dtype=object`` arrays instead.
+that the resulting ``Series`` continues to be "numeric". One possibility is to 
+use ``dtype=object`` arrays instead.
 
 ``NA`` type promotions
 ~~~~~~~~~~~~~~~~~~~~~~
 
-When introducing NAs into an existing Series or DataFrame via ``reindex`` or
-some other means, boolean and integer types will be promoted to a different
-dtype in order to store the NAs. These are summarized by this table:
+When introducing NAs into an existing ``Series`` or ``DataFrame`` via 
+:meth:`~Series.reindex` or some other means, boolean and integer types will be 
+promoted to a different dtype in order to store the NAs. The promotions are 
+summarized in this table:
 
 .. csv-table::
    :header: "Typeclass","Promotion dtype for storing NAs"
@@ -173,16 +248,16 @@ dtype in order to store the NAs. These are summarized by this table:
    ``integer``, cast to ``float64``
    ``boolean``, cast to ``object``
 
-While this may seem like a heavy trade-off, in practice I have found very few
-cases where this is an issue in practice. Some explanation for the motivation
-here in the next section.
+While this may seem like a heavy trade-off, I have found very few cases where
+this is an issue in practice i.e. storing values greater than 2**53. Some
+explanation for the motivation is in the next section.
 
 Why not make NumPy like R?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Many people have suggested that NumPy should simply emulate the ``NA`` support
 present in the more domain-specific statistical programming language `R
-<http://r-project.org>`__. Part of the reason is the NumPy type hierarchy:
+<https://r-project.org>`__. Part of the reason is the NumPy type hierarchy:
 
 .. csv-table::
    :header: "Typeclass","Dtypes"
@@ -214,344 +289,32 @@ and traded integer ``NA`` capability for a much simpler approach of using a
 special value in float and object arrays to denote ``NA``, and promoting
 integer arrays to floating when NAs must be introduced.
 
-Integer indexing
-----------------
-
-Label-based indexing with integer axis labels is a thorny topic. It has been
-discussed heavily on mailing lists and among various members of the scientific
-Python community. In pandas, our general viewpoint is that labels matter more
-than integer locations. Therefore, with an integer axis index *only*
-label-based indexing is possible with the standard tools like ``.ix``. The
-following code will generate exceptions:
-
-.. code-block:: python
-
-   s = pd.Series(range(5))
-   s[-1]
-   df = pd.DataFrame(np.random.randn(5, 4))
-   df
-   df.ix[-2:]
-
-This deliberate decision was made to prevent ambiguities and subtle bugs (many
-users reported finding bugs when the API change was made to stop "falling back"
-on position-based indexing).
-
-Label-based slicing conventions
--------------------------------
-
-Non-monotonic indexes require exact matches
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Endpoints are inclusive
-~~~~~~~~~~~~~~~~~~~~~~~
-
-Compared with standard Python sequence slicing in which the slice endpoint is
-not inclusive, label-based slicing in pandas **is inclusive**. The primary
-reason for this is that it is often not possible to easily determine the
-"successor" or next element after a particular label in an index. For example,
-consider the following Series:
-
-.. ipython:: python
-
-   s = pd.Series(np.random.randn(6), index=list('abcdef'))
-   s
-
-Suppose we wished to slice from ``c`` to ``e``, using integers this would be
-
-.. ipython:: python
-
-   s[2:5]
-
-However, if you only had ``c`` and ``e``, determining the next element in the
-index can be somewhat complicated. For example, the following does not work:
-
-::
-
-    s.ix['c':'e'+1]
-
-A very common use case is to limit a time series to start and end at two
-specific dates. To enable this, we made the design design to make label-based
-slicing include both endpoints:
-
-.. ipython:: python
-
-    s.ix['c':'e']
-
-This is most definitely a "practicality beats purity" sort of thing, but it is
-something to watch out for if you expect label-based slicing to behave exactly
-in the way that standard Python integer slicing works.
-
-Miscellaneous indexing gotchas
-------------------------------
-
-Reindex versus ix gotchas
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Many users will find themselves using the ``ix`` indexing capabilities as a
-concise means of selecting data from a pandas object:
-
-.. ipython:: python
-
-   df = pd.DataFrame(np.random.randn(6, 4), columns=['one', 'two', 'three', 'four'],
-                     index=list('abcdef'))
-   df
-   df.ix[['b', 'c', 'e']]
-
-This is, of course, completely equivalent *in this case* to using the
-``reindex`` method:
-
-.. ipython:: python
-
-   df.reindex(['b', 'c', 'e'])
-
-Some might conclude that ``ix`` and ``reindex`` are 100% equivalent based on
-this. This is indeed true **except in the case of integer indexing**. For
-example, the above operation could alternately have been expressed as:
-
-.. ipython:: python
-
-   df.ix[[1, 2, 4]]
-
-If you pass ``[1, 2, 4]`` to ``reindex`` you will get another thing entirely:
-
-.. ipython:: python
-
-   df.reindex([1, 2, 4])
-
-So it's important to remember that ``reindex`` is **strict label indexing
-only**. This can lead to some potentially surprising results in pathological
-cases where an index contains, say, both integers and strings:
-
-.. ipython:: python
-
-   s = pd.Series([1, 2, 3], index=['a', 0, 1])
-   s
-   s.ix[[0, 1]]
-   s.reindex([0, 1])
-
-Because the index in this case does not contain solely integers, ``ix`` falls
-back on integer indexing. By contrast, ``reindex`` only looks for the values
-passed in the index, thus finding the integers ``0`` and ``1``. While it would
-be possible to insert some logic to check whether a passed sequence is all
-contained in the index, that logic would exact a very high cost in large data
-sets.
-
-Reindex potentially changes underlying Series dtype
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-The use of ``reindex_like`` can potentially change the dtype of a ``Series``.
-
-.. ipython:: python
-
-   series = pd.Series([1, 2, 3])
-   x = pd.Series([True])
-   x.dtype
-   x = pd.Series([True]).reindex_like(series)
-   x.dtype
-
-This is because ``reindex_like`` silently inserts ``NaNs`` and the ``dtype``
-changes accordingly.  This can cause some issues when using ``numpy`` ``ufuncs``
-such as ``numpy.logical_and``.
-
-See the `this old issue <https://github.com/pydata/pandas/issues/2388>`__ for a more
-detailed discussion.
-
-.. _gotchas.timestamp-limits:
-
-Timestamp limitations
----------------------
-
-Minimum and maximum timestamps
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Since pandas represents timestamps in nanosecond resolution, the timespan that
-can be represented using a 64-bit integer is limited to approximately 584 years:
-
-.. ipython:: python
-
-   begin = pd.Timestamp.min
-   begin
-
-   end = pd.Timestamp.max
-   end
-
-See :ref:`here <timeseries.oob>` for ways to represent data outside these bound.
-
-Parsing Dates from Text Files
------------------------------
-
-When parsing multiple text file columns into a single date column, the new date
-column is prepended to the data and then `index_col` specification is indexed off
-of the new set of columns rather than the original ones:
-
-.. ipython:: python
-   :suppress:
-
-   data =  ("KORD,19990127, 19:00:00, 18:56:00, 0.8100\n"
-            "KORD,19990127, 20:00:00, 19:56:00, 0.0100\n"
-            "KORD,19990127, 21:00:00, 20:56:00, -0.5900\n"
-            "KORD,19990127, 21:00:00, 21:18:00, -0.9900\n"
-            "KORD,19990127, 22:00:00, 21:56:00, -0.5900\n"
-            "KORD,19990127, 23:00:00, 22:56:00, -0.5900")
-
-   with open('tmp.csv', 'w') as fh:
-       fh.write(data)
-
-.. ipython:: python
-
-   print(open('tmp.csv').read())
-
-   date_spec = {'nominal': [1, 2], 'actual': [1, 3]}
-   df = pd.read_csv('tmp.csv', header=None,
-                    parse_dates=date_spec,
-                    keep_date_col=True,
-                    index_col=0)
-
-   # index_col=0 refers to the combined column "nominal" and not the original
-   # first column of 'KORD' strings
-
-   df
-
-.. ipython:: python
-   :suppress:
-
-   import os
-   os.remove('tmp.csv')
-
 
 Differences with NumPy
 ----------------------
-For Series and DataFrame objects, ``var`` normalizes by ``N-1`` to produce
-unbiased estimates of the sample variance, while NumPy's ``var`` normalizes
-by N, which measures the variance of the sample. Note that ``cov``
-normalizes by ``N-1`` in both pandas and NumPy.
+For ``Series`` and ``DataFrame`` objects, :meth:`~DataFrame.var` normalizes by 
+``N-1`` to produce unbiased estimates of the sample variance, while NumPy's 
+``var`` normalizes by N, which measures the variance of the sample. Note that 
+:meth:`~DataFrame.cov` normalizes by ``N-1`` in both pandas and NumPy.
 
 
 Thread-safety
 -------------
 
 As of pandas 0.11, pandas is not 100% thread safe. The known issues relate to
-the ``DataFrame.copy`` method. If you are doing a lot of copying of DataFrame
-objects shared among threads, we recommend holding locks inside the threads
-where the data copying occurs.
+the :meth:`~DataFrame.copy` method. If you are doing a lot of copying of 
+``DataFrame`` objects shared among threads, we recommend holding locks inside 
+the threads where the data copying occurs.
 
-See `this link <http://stackoverflow.com/questions/13592618/python-pandas-dataframe-thread-safe>`__
+See `this link <https://stackoverflow.com/questions/13592618/python-pandas-dataframe-thread-safe>`__
 for more information.
-
-.. _html-gotchas:
-
-HTML Table Parsing
-------------------
-There are some versioning issues surrounding the libraries that are used to
-parse HTML tables in the top-level pandas io function ``read_html``.
-
-**Issues with** |lxml|_
-
-   * Benefits
-
-     * |lxml|_ is very fast
-
-     * |lxml|_ requires Cython to install correctly.
-
-   * Drawbacks
-
-     * |lxml|_ does *not* make any guarantees about the results of its parse
-       *unless* it is given |svm|_.
-
-     * In light of the above, we have chosen to allow you, the user, to use the
-       |lxml|_ backend, but **this backend will use** |html5lib|_ if |lxml|_
-       fails to parse
-
-     * It is therefore *highly recommended* that you install both
-       |BeautifulSoup4|_ and |html5lib|_, so that you will still get a valid
-       result (provided everything else is valid) even if |lxml|_ fails.
-
-**Issues with** |BeautifulSoup4|_ **using** |lxml|_ **as a backend**
-
-   * The above issues hold here as well since |BeautifulSoup4|_ is essentially
-     just a wrapper around a parser backend.
-
-**Issues with** |BeautifulSoup4|_ **using** |html5lib|_ **as a backend**
-
-   * Benefits
-
-     * |html5lib|_ is far more lenient than |lxml|_ and consequently deals
-       with *real-life markup* in a much saner way rather than just, e.g.,
-       dropping an element without notifying you.
-
-     * |html5lib|_ *generates valid HTML5 markup from invalid markup
-       automatically*. This is extremely important for parsing HTML tables,
-       since it guarantees a valid document. However, that does NOT mean that
-       it is "correct", since the process of fixing markup does not have a
-       single definition.
-
-     * |html5lib|_ is pure Python and requires no additional build steps beyond
-       its own installation.
-
-   * Drawbacks
-
-     * The biggest drawback to using |html5lib|_ is that it is slow as
-       molasses.  However consider the fact that many tables on the web are not
-       big enough for the parsing algorithm runtime to matter. It is more
-       likely that the bottleneck will be in the process of reading the raw
-       text from the URL over the web, i.e., IO (input-output). For very large
-       tables, this might not be true.
-
-**Issues with using** |Anaconda|_
-
-   * `Anaconda`_ ships with `lxml`_ version 3.2.0; the following workaround for
-     `Anaconda`_ was successfully used to deal with the versioning issues
-     surrounding `lxml`_ and `BeautifulSoup4`_.
-
-   .. note::
-
-      Unless you have *both*:
-
-         * A strong restriction on the upper bound of the runtime of some code
-           that incorporates :func:`~pandas.io.html.read_html`
-         * Complete knowledge that the HTML you will be parsing will be 100%
-           valid at all times
-
-      then you should install `html5lib`_ and things will work swimmingly
-      without you having to muck around with `conda`. If you want the best of
-      both worlds then install both `html5lib`_ and `lxml`_. If you do install
-      `lxml`_ then you need to perform the following commands to ensure that
-      lxml will work correctly:
-
-      .. code-block:: sh
-
-         # remove the included version
-         conda remove lxml
-
-         # install the latest version of lxml
-         pip install 'git+git://github.com/lxml/lxml.git'
-
-         # install the latest version of beautifulsoup4
-         pip install 'bzr+lp:beautifulsoup'
-
-      Note that you need `bzr <http://bazaar.canonical.com/en>`__ and `git
-      <http://git-scm.com>`__ installed to perform the last two operations.
-
-.. |svm| replace:: **strictly valid markup**
-.. _svm: http://validator.w3.org/docs/help.html#validation_basics
-
-.. |html5lib| replace:: **html5lib**
-.. _html5lib: https://github.com/html5lib/html5lib-python
-
-.. |BeautifulSoup4| replace:: **BeautifulSoup4**
-.. _BeautifulSoup4: http://www.crummy.com/software/BeautifulSoup
-
-.. |lxml| replace:: **lxml**
-.. _lxml: http://lxml.de
-
-.. |Anaconda| replace:: **Anaconda**
-.. _Anaconda: https://store.continuum.io/cshop/anaconda
 
 
 Byte-Ordering Issues
 --------------------
 Occasionally you may have to deal with data that were created on a machine with
-a different byte order than the one on which you are running Python. A common symptom of this issue is an error like
+a different byte order than the one on which you are running Python. A common 
+symptom of this issue is an error like:
 
 .. code-block:: python
 
@@ -561,8 +324,8 @@ a different byte order than the one on which you are running Python. A common sy
 
 To deal
 with this issue you should convert the underlying NumPy array to the native
-system byte order *before* passing it to Series/DataFrame/Panel constructors
-using something similar to the following:
+system byte order *before* passing it to ``Series`` or ``DataFrame`` 
+constructors using something similar to the following:
 
 .. ipython:: python
 
@@ -571,5 +334,5 @@ using something similar to the following:
    s = pd.Series(newx)
 
 See `the NumPy documentation on byte order
-<http://docs.scipy.org/doc/numpy/user/basics.byteswapping.html>`__ for more
+<https://docs.scipy.org/doc/numpy/user/basics.byteswapping.html>`__ for more
 details.

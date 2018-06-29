@@ -12,11 +12,11 @@ pandas: powerful Python data analysis toolkit
 
 **Date**: |today| **Version**: |version|
 
-**Binary Installers:** http://pypi.python.org/pypi/pandas
+**Binary Installers:** https://pypi.org/project/pandas
 
-**Source Repository:** http://github.com/pydata/pandas
+**Source Repository:** http://github.com/pandas-dev/pandas
 
-**Issues & Ideas:** https://github.com/pydata/pandas/issues
+**Issues & Ideas:** https://github.com/pandas-dev/pandas/issues
 
 **Q&A Support:** http://stackoverflow.com/questions/tagged/pandas
 
@@ -92,7 +92,7 @@ Some other notes
    specialized tool.
 
  - pandas is a dependency of `statsmodels
-   <http://statsmodels.sourceforge.net>`__, making it an important part of the
+   <http://www.statsmodels.org/stable/index.html>`__, making it an important part of the
    statistical computing ecosystem in Python.
 
  - pandas has been used extensively in production in financial applications.
@@ -106,17 +106,21 @@ Some other notes
 See the package overview for more detail about what's in the library.
 
 
+{% if single_doc_type == 'docstring' -%}
+.. autosummary::
+    :toctree: generated_single/
+{% else -%}
 .. toctree::
     :maxdepth: 4
+{% endif %}
 
-    {% if single -%}
-    {{ single }}
+    {% if single_doc -%}
+    {{ single_doc }}
     {% endif -%}
-    {%if not single -%}
+    {% if not single_doc -%}
     whatsnew
     install
     contributing
-    faq
     overview
     10min
     tutorials
@@ -136,8 +140,8 @@ See the package overview for more detail about what's in the library.
     timedeltas
     categorical
     visualization
+    style
     io
-    remote_data
     enhancingperf
     sparse
     gotchas
@@ -146,11 +150,14 @@ See the package overview for more detail about what's in the library.
     comparison_with_r
     comparison_with_sql
     comparison_with_sas
+    comparison_with_stata
     {% endif -%}
-    {% if api -%}
+    {% if include_api -%}
     api
     {% endif -%}
-    {%if not single -%}
+    {% if not single_doc -%}
+    developer
     internals
+    extending
     release
     {% endif -%}

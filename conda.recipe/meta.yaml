@@ -1,9 +1,11 @@
 package:
     name: pandas
-    version: {{ environ.get('GIT_DESCRIBE_TAG', '').replace('.dev', 'dev') }}
+    version: {{ environ.get('GIT_DESCRIBE_TAG','').replace('v', '', 1) }}
 
 build:
     number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
+    {% if GIT_DESCRIBE_NUMBER|int == 0 %}string: np{{ CONDA_NPY }}py{{ CONDA_PY }}_0
+    {% else %}string: np{{ CONDA_NPY }}py{{ CONDA_PY }}_{{ GIT_BUILD_STR }}{% endif %}
 
 source:
     git_url: ../
@@ -12,27 +14,20 @@ requirements:
   build:
     - python
     - cython
-    - numpy
-    - libpython # [py2k and win]
-    - setuptools
+    - numpy 1.11.*
+    - setuptools >=3.3
+    - python-dateutil >=2.5.0
     - pytz
-    - python-dateutil
 
   run:
     - python
-    - numpy
-    - python-dateutil
+    - numpy >=1.11.*
+    - python-dateutil >=2.5.0
     - pytz
 
 test:
   imports:
     - pandas
-
-  #requires:
-  #  - nose
-
-  #commands:
-  #  - nosetests --exe -A "not slow and not network and not disabled" pandas
 
 about:
   home: http://pandas.pydata.org

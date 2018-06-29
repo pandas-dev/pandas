@@ -70,30 +70,103 @@ nfrequencies are unaffected. The prior defaults were causing a great deal of
 confusion for users, especially resampling data to daily frequency (which
 labeled the aggregated group with the end of the interval: the next day).
 
-Note:
+.. code-block:: ipython
 
-.. ipython:: python
+   In [1]: dates = pd.date_range('1/1/2000', '1/5/2000', freq='4h')
 
-    dates = pd.date_range('1/1/2000', '1/5/2000', freq='4h')
-    series = Series(np.arange(len(dates)), index=dates)
-    series
-    series.resample('D', how='sum')
-    # old behavior
-    series.resample('D', how='sum', closed='right', label='right')
+   In [2]: series = Series(np.arange(len(dates)), index=dates)
+
+   In [3]: series
+   Out[3]:
+   2000-01-01 00:00:00     0
+   2000-01-01 04:00:00     1
+   2000-01-01 08:00:00     2
+   2000-01-01 12:00:00     3
+   2000-01-01 16:00:00     4
+   2000-01-01 20:00:00     5
+   2000-01-02 00:00:00     6
+   2000-01-02 04:00:00     7
+   2000-01-02 08:00:00     8
+   2000-01-02 12:00:00     9
+   2000-01-02 16:00:00    10
+   2000-01-02 20:00:00    11
+   2000-01-03 00:00:00    12
+   2000-01-03 04:00:00    13
+   2000-01-03 08:00:00    14
+   2000-01-03 12:00:00    15
+   2000-01-03 16:00:00    16
+   2000-01-03 20:00:00    17
+   2000-01-04 00:00:00    18
+   2000-01-04 04:00:00    19
+   2000-01-04 08:00:00    20
+   2000-01-04 12:00:00    21
+   2000-01-04 16:00:00    22
+   2000-01-04 20:00:00    23
+   2000-01-05 00:00:00    24
+   Freq: 4H, dtype: int64
+
+   In [4]: series.resample('D', how='sum')
+   Out[4]:
+   2000-01-01     15
+   2000-01-02     51
+   2000-01-03     87
+   2000-01-04    123
+   2000-01-05     24
+   Freq: D, dtype: int64
+
+   In [5]: # old behavior
+   In [6]: series.resample('D', how='sum', closed='right', label='right')
+   Out[6]:
+   2000-01-01      0
+   2000-01-02     21
+   2000-01-03     57
+   2000-01-04     93
+   2000-01-05    129
+   Freq: D, dtype: int64
 
 - Infinity and negative infinity are no longer treated as NA by ``isnull`` and
-  ``notnull``. That they every were was a relic of early pandas. This behavior
+  ``notnull``. That they ever were was a relic of early pandas. This behavior
   can be re-enabled globally by the ``mode.use_inf_as_null`` option:
 
-.. ipython:: python
+.. code-block:: ipython
 
-    s = pd.Series([1.5, np.inf, 3.4, -np.inf])
-	pd.isnull(s)
-    s.fillna(0)
-    pd.set_option('use_inf_as_null', True)
-	pd.isnull(s)
-    s.fillna(0)
-	pd.reset_option('use_inf_as_null')
+    In [6]: s = pd.Series([1.5, np.inf, 3.4, -np.inf])
+
+    In [7]: pd.isnull(s)
+    Out[7]:
+    0    False
+    1    False
+    2    False
+    3    False
+    Length: 4, dtype: bool
+
+    In [8]: s.fillna(0)
+    Out[8]:
+    0    1.500000
+    1         inf
+    2    3.400000
+    3        -inf
+    Length: 4, dtype: float64
+
+    In [9]: pd.set_option('use_inf_as_null', True)
+
+    In [10]: pd.isnull(s)
+    Out[10]:
+    0    False
+    1     True
+    2    False
+    3     True
+    Length: 4, dtype: bool
+
+    In [11]: s.fillna(0)
+    Out[11]:
+    0    1.5
+    1    0.0
+    2    3.4
+    3    0.0
+    Length: 4, dtype: float64
+
+    In [12]: pd.reset_option('use_inf_as_null')
 
 - Methods with the ``inplace`` option now all return ``None`` instead of the
   calling object. E.g. code written like ``df = df.fillna(0, inplace=True)``
@@ -249,6 +322,7 @@ Updated PyTables Support
    store.select('df')
 
 .. ipython:: python
+   :okwarning:
 
    wp = Panel(randn(2, 5, 4), items=['Item1', 'Item2'],
           major_axis=date_range('1/1/2000', periods=5),
@@ -259,11 +333,10 @@ Updated PyTables Support
    store.append('wp',wp)
 
    # selecting via A QUERY
-   store.select('wp',
-     [ Term('major_axis>20000102'), Term('minor_axis', '=', ['A','B']) ])
+   store.select('wp', "major_axis>20000102 and minor_axis=['A','B']")
 
    # removing data from tables
-   store.remove('wp', Term('major_axis>20000103'))
+   store.remove('wp', "major_axis>20000103")
    store.select('wp')
 
    # deleting a store
@@ -296,8 +369,8 @@ Updated PyTables Support
       df1
       df1.get_dtype_counts()
 
-- performance improvments on table writing
-- support for arbitrarily indexed dimensions
+- performance improvements on table writing
+- support for arbitrarly indexed dimensions
 - ``SparseSeries`` now has a ``density`` property (:issue:`2384`)
 - enable ``Series.str.strip/lstrip/rstrip`` methods to take an input argument
   to strip arbitrary characters (:issue:`2411`)
@@ -336,16 +409,25 @@ N Dimensional Panels (Experimental)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Adding experimental support for Panel4D and factory functions to create n-dimensional named panels.
-:ref:`Docs <dsintro.panel4d>` for NDim. Here is a taste of what to expect.
+Here is a taste of what to expect.
 
-     .. ipython:: python
+.. code-block:: ipython
 
-        p4d = Panel4D(randn(2, 2, 5, 4),
-              labels=['Label1','Label2'],
-              items=['Item1', 'Item2'],
-              major_axis=date_range('1/1/2000', periods=5),
-              minor_axis=['A', 'B', 'C', 'D'])
-        p4d
+  In [58]: p4d = Panel4D(randn(2, 2, 5, 4),
+    ....:       labels=['Label1','Label2'],
+    ....:       items=['Item1', 'Item2'],
+    ....:       major_axis=date_range('1/1/2000', periods=5),
+    ....:       minor_axis=['A', 'B', 'C', 'D'])
+    ....:
+
+  In [59]: p4d
+  Out[59]:
+  <class 'pandas.core.panelnd.Panel4D'>
+  Dimensions: 2 (labels) x 2 (items) x 5 (major_axis) x 4 (minor_axis)
+  Labels axis: Label1 to Label2
+  Items axis: Item1 to Item2
+  Major_axis axis: 2000-01-01 00:00:00 to 2000-01-05 00:00:00
+  Minor_axis axis: A to D
 
 
 
@@ -354,4 +436,3 @@ Adding experimental support for Panel4D and factory functions to create n-dimens
 See the :ref:`full release notes
 <release>` or issue tracker
 on GitHub for a complete list.
-

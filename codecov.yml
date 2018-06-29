@@ -1,0 +1,13 @@
+codecov:
+  branch: master
+
+coverage:
+  status:
+    project:
+      default:
+        enabled: no
+        target: '82'
+    patch:
+      default:
+        enabled: no
+        target: '50'

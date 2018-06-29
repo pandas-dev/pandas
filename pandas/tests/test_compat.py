@@ -3,25 +3,28 @@
 Testing that functions from compat work as expected
 """
 
-from pandas.compat import (
-    range, zip, map, filter,
-    lrange, lzip, lmap, lfilter,
-    builtins
-)
-import unittest
-import nose
-import pandas.util.testing as tm
+import pytest
+import re
+from pandas.compat import (range, zip, map, filter, lrange, lzip, lmap,
+                           lfilter, builtins, iterkeys, itervalues, iteritems,
+                           next, get_range_parameters, PY2, re_type)
 
-class TestBuiltinIterators(tm.TestCase):
-    def check_result(self, actual, expected, lengths):
-        for (iter_res, list_res), exp, length in zip(actual, expected, lengths):
-            self.assertNotIsInstance(iter_res, list)
-            tm.assertIsInstance(list_res, list)
+
+class TestBuiltinIterators(object):
+
+    @classmethod
+    def check_result(cls, actual, expected, lengths):
+        for (iter_res, list_res), exp, length in zip(actual, expected,
+                                                     lengths):
+            assert not isinstance(iter_res, list)
+            assert isinstance(list_res, list)
+
             iter_res = list(iter_res)
-            self.assertEqual(len(list_res), length)
-            self.assertEqual(len(iter_res), length)
-            self.assertEqual(iter_res, exp)
-            self.assertEqual(list_res, exp)
+
+            assert len(list_res) == length
+            assert len(iter_res) == length
+            assert iter_res == exp
+            assert list_res == exp
 
     def test_range(self):
         actual1 = range(10)
@@ -47,7 +50,6 @@ class TestBuiltinIterators(tm.TestCase):
         lengths = 10,
         self.check_result(actual, expected, lengths)
 
-
     def test_filter(self):
         func = lambda x: x
         lst = list(builtins.range(10))
@@ -65,7 +67,30 @@ class TestBuiltinIterators(tm.TestCase):
         lengths = 10,
         self.check_result(actual, expected, lengths)
 
-if __name__ == '__main__':
-    nose.runmodule(argv=[__file__, '-vvs', '-x', '--pdb', '--pdb-failure'],
-                   # '--with-coverage', '--cover-package=pandas.core'],
-                   exit=False)
+    def test_dict_iterators(self):
+        assert next(itervalues({1: 2})) == 2
+        assert next(iterkeys({1: 2})) == 1
+        assert next(iteritems({1: 2})) == (1, 2)
+
+
+class TestCompatFunctions(object):
+
+    @pytest.mark.parametrize(
+        'start,stop,step', [(0, 10, 2), (11, -2, -1), (0, -5, 1), (2, 4, 8)])
+    def test_get_range_parameters(self, start, stop, step):
+        rng = range(start, stop, step)
+        if PY2 and len(rng) == 0:
+            start_expected, stop_expected, step_expected = 0, 0, 1
+        elif PY2 and len(rng) == 1:
+            start_expected, stop_expected, step_expected = start, start + 1, 1
+        else:
+            start_expected, stop_expected, step_expected = start, stop, step
+
+        start_result, stop_result, step_result = get_range_parameters(rng)
+        assert start_result == start_expected
+        assert stop_result == stop_expected
+        assert step_result == step_expected
+
+
+def test_re_type():
+    assert isinstance(re.compile(''), re_type)

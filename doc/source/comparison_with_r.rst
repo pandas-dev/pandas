@@ -18,11 +18,11 @@ was started to provide a more detailed look at the `R language
 party libraries as they relate to ``pandas``. In comparisons with R and CRAN
 libraries, we care about the following things:
 
-  - **Functionality / flexibility**: what can/cannot be done with each tool
-  - **Performance**: how fast are operations. Hard numbers/benchmarks are
-    preferable
-  - **Ease-of-use**: Is one tool easier/harder to use (you may have to be
-    the judge of this, given side-by-side code comparisons)
+* **Functionality / flexibility**: what can/cannot be done with each tool
+* **Performance**: how fast are operations. Hard numbers/benchmarks are
+  preferable
+* **Ease-of-use**: Is one tool easier/harder to use (you may have to be
+  the judge of this, given side-by-side code comparisons)
 
 This page is also here to offer a bit of a translation guide for users of these
 R packages.
@@ -30,6 +30,79 @@ R packages.
 For transfer of ``DataFrame`` objects from ``pandas`` to R, one option is to
 use HDF5 files, see :ref:`io.external_compatibility` for an
 example.
+
+
+Quick Reference
+---------------
+
+We'll start off with a quick reference guide pairing some common R
+operations using `dplyr
+<http://cran.r-project.org/web/packages/dplyr/index.html>`__ with
+pandas equivalents.
+
+
+Querying, Filtering, Sampling
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+===========================================  ===========================================
+R                                            pandas
+===========================================  ===========================================
+``dim(df)``                                  ``df.shape``
+``head(df)``                                 ``df.head()``
+``slice(df, 1:10)``                          ``df.iloc[:9]``
+``filter(df, col1 == 1, col2 == 1)``         ``df.query('col1 == 1 & col2 == 1')``
+``df[df$col1 == 1 & df$col2 == 1,]``         ``df[(df.col1 == 1) & (df.col2 == 1)]``
+``select(df, col1, col2)``                   ``df[['col1', 'col2']]``
+``select(df, col1:col3)``                    ``df.loc[:, 'col1':'col3']``
+``select(df, -(col1:col3))``                 ``df.drop(cols_to_drop, axis=1)`` but see [#select_range]_
+``distinct(select(df, col1))``               ``df[['col1']].drop_duplicates()``
+``distinct(select(df, col1, col2))``         ``df[['col1', 'col2']].drop_duplicates()``
+``sample_n(df, 10)``                         ``df.sample(n=10)``
+``sample_frac(df, 0.01)``                    ``df.sample(frac=0.01)``
+===========================================  ===========================================
+
+.. [#select_range] R's shorthand for a subrange of columns
+                   (``select(df, col1:col3)``) can be approached
+                   cleanly in pandas, if you have the list of columns,
+                   for example ``df[cols[1:3]]`` or
+                   ``df.drop(cols[1:3])``, but doing this by column
+                   name is a bit messy.
+
+
+Sorting
+~~~~~~~
+
+===========================================  ===========================================
+R                                            pandas
+===========================================  ===========================================
+``arrange(df, col1, col2)``                  ``df.sort_values(['col1', 'col2'])``
+``arrange(df, desc(col1))``                  ``df.sort_values('col1', ascending=False)``
+===========================================  ===========================================
+
+Transforming
+~~~~~~~~~~~~
+
+===========================================  ===========================================
+R                                            pandas
+===========================================  ===========================================
+``select(df, col_one = col1)``               ``df.rename(columns={'col1': 'col_one'})['col_one']``
+``rename(df, col_one = col1)``               ``df.rename(columns={'col1': 'col_one'})``
+``mutate(df, c=a-b)``                        ``df.assign(c=df.a-df.b)``
+===========================================  ===========================================
+
+
+Grouping and Summarizing
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+==============================================  ===========================================
+R                                               pandas
+==============================================  ===========================================
+``summary(df)``                                 ``df.describe()``
+``gdf <- group_by(df, col1)``                   ``gdf = df.groupby('col1')``
+``summarise(gdf, avg=mean(col1, na.rm=TRUE))``  ``df.groupby('col1').agg({'col1': 'mean'})``
+``summarise(gdf, total=sum(col1))``             ``df.groupby('col1').sum()``
+==============================================  ===========================================
+
 
 Base R
 ------
@@ -133,14 +206,6 @@ of its first argument in its second:
    s <- 0:4
    match(s, c(2,4))
 
-The :meth:`~pandas.core.groupby.GroupBy.apply` method can be used to replicate
-this:
-
-.. ipython:: python
-
-   s = pd.Series(np.arange(5),dtype=np.float32)
-   pd.Series(pd.match(s,[2,4],np.nan))
-
 For more details and examples see :ref:`the reshaping documentation
 <indexing.basics.indexing_isin>`.
 
@@ -182,8 +247,6 @@ For more details and examples see :ref:`the reshaping documentation
 |subset|_
 ~~~~~~~~~~
 
-.. versionadded:: 0.13
-
 The :meth:`~pandas.DataFrame.query` method is similar to the base R ``subset``
 function. In R you might want to get the rows of a ``data.frame`` where one
 column's values are less than another column's values:
@@ -212,8 +275,6 @@ For more details and examples see :ref:`the query documentation
 |with|_
 ~~~~~~~~
 
-.. versionadded:: 0.13
-
 An expression using a data.frame called ``df`` in R with the columns ``a`` and
 ``b`` would be evaluated using ``with`` like so:
 
@@ -235,12 +296,6 @@ In ``pandas`` the equivalent expression, using the
 In certain cases :meth:`~pandas.DataFrame.eval` will be much faster than
 evaluation in pure Python. For more details and examples see :ref:`the eval
 documentation <enhancingperf.eval>`.
-
-zoo
----
-
-xts
----
 
 plyr
 ----
@@ -295,7 +350,7 @@ In ``pandas`` the equivalent expression, using the
    })
 
    grouped = df.groupby(['month','week'])
-   print grouped['x'].agg([np.mean, np.std])
+   grouped['x'].agg([np.mean, np.std])
 
 
 For more details and examples see :ref:`the groupby documentation
@@ -342,7 +397,7 @@ In Python, this list would be a list of tuples, so
    pd.DataFrame(a)
 
 For more details and examples see :ref:`the Into to Data Structures
-documentation <basics.dataframe.from_items>`.
+documentation <dsintro>`.
 
 |meltdf|_
 ~~~~~~~~~~~~~~~~
@@ -449,8 +504,6 @@ For more details and examples see :ref:`the reshaping documentation
 
 |factor|_
 ~~~~~~~~~
-
-.. versionadded:: 0.15
 
 pandas has a data type for categorical data.
 

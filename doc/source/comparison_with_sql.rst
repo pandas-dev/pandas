@@ -10,7 +10,7 @@ various SQL operations would be performed using pandas.
 If you're new to pandas, you might want to first read through :ref:`10 Minutes to pandas<10min>`
 to familiarize yourself with the library.
 
-As is customary, we import pandas and numpy as follows:
+As is customary, we import pandas and NumPy as follows:
 
 .. ipython:: python
 
@@ -23,7 +23,7 @@ structure.
 
 .. ipython:: python
 
-    url = 'https://raw.github.com/pydata/pandas/master/pandas/tests/data/tips.csv'
+    url = 'https://raw.github.com/pandas-dev/pandas/master/pandas/tests/data/tips.csv'
     tips = pd.read_csv(url)
     tips.head()
 
@@ -101,7 +101,7 @@ Just like SQL's OR and AND, multiple conditions can be passed to a DataFrame usi
     # tips by parties of at least 5 diners OR bill total was more than $45
     tips[(tips['size'] >= 5) | (tips['total_bill'] > 45)]
 
-NULL checking is done using the :meth:`~pandas.Series.notnull` and :meth:`~pandas.Series.isnull`
+NULL checking is done using the :meth:`~pandas.Series.notna` and :meth:`~pandas.Series.isna`
 methods.
 
 .. ipython:: python
@@ -121,9 +121,9 @@ where ``col2`` IS NULL with the following query:
 
 .. ipython:: python
 
-    frame[frame['col2'].isnull()]
+    frame[frame['col2'].isna()]
 
-Getting items where ``col1`` IS NOT NULL can be done with :meth:`~pandas.Series.notnull`.
+Getting items where ``col1`` IS NOT NULL can be done with :meth:`~pandas.Series.notna`.
 
 .. code-block:: sql
 
@@ -133,12 +133,12 @@ Getting items where ``col1`` IS NOT NULL can be done with :meth:`~pandas.Series.
 
 .. ipython:: python
 
-    frame[frame['col1'].notnull()]
+    frame[frame['col1'].notna()]
 
 
 GROUP BY
 --------
-In pandas, SQL's GROUP BY operations performed using the similarly named
+In pandas, SQL's GROUP BY operations are performed using the similarly named
 :meth:`~pandas.DataFrame.groupby` method. :meth:`~pandas.DataFrame.groupby` typically refers to a
 process where we'd like to split a dataset into groups, apply some function (typically aggregation)
 , and then combine the groups together.
@@ -163,23 +163,24 @@ The pandas equivalent would be:
 
     tips.groupby('sex').size()
 
-Notice that in the pandas code we used :meth:`~pandas.DataFrameGroupBy.size` and not
-:meth:`~pandas.DataFrameGroupBy.count`. This is because :meth:`~pandas.DataFrameGroupBy.count`
-applies the function to each column, returning the number of ``not null`` records within each.
+Notice that in the pandas code we used :meth:`~pandas.core.groupby.DataFrameGroupBy.size` and not
+:meth:`~pandas.core.groupby.DataFrameGroupBy.count`. This is because
+:meth:`~pandas.core.groupby.DataFrameGroupBy.count` applies the function to each column, returning
+the number of ``not null`` records within each.
 
 .. ipython:: python
 
     tips.groupby('sex').count()
 
-Alternatively, we could have applied the :meth:`~pandas.DataFrameGroupBy.count` method to an
-individual column:
+Alternatively, we could have applied the :meth:`~pandas.core.groupby.DataFrameGroupBy.count` method
+to an individual column:
 
 .. ipython:: python
 
     tips.groupby('sex')['total_bill'].count()
 
 Multiple functions can also be applied at once. For instance, say we'd like to see how tip amount
-differs by day of the week - :meth:`~pandas.DataFrameGroupBy.agg` allows you to pass a dictionary
+differs by day of the week - :meth:`~pandas.core.groupby.DataFrameGroupBy.agg` allows you to pass a dictionary
 to your grouped DataFrame, indicating which functions to apply to specific columns.
 
 .. code-block:: sql
@@ -371,10 +372,109 @@ In pandas, you can use :meth:`~pandas.concat` in conjunction with
 
     pd.concat([df1, df2]).drop_duplicates()
 
+Pandas equivalents for some SQL analytic and aggregate functions
+----------------------------------------------------------------
+
+Top N rows with offset
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: sql
+
+    -- MySQL
+    SELECT * FROM tips
+    ORDER BY tip DESC
+    LIMIT 10 OFFSET 5;
+
+.. ipython:: python
+
+    tips.nlargest(10+5, columns='tip').tail(10)
+
+Top N rows per group
+~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: sql
+
+    -- Oracle's ROW_NUMBER() analytic function
+    SELECT * FROM (
+      SELECT
+        t.*,
+        ROW_NUMBER() OVER(PARTITION BY day ORDER BY total_bill DESC) AS rn
+      FROM tips t
+    )
+    WHERE rn < 3
+    ORDER BY day, rn;
+
+
+.. ipython:: python
+
+    (tips.assign(rn=tips.sort_values(['total_bill'], ascending=False)
+                        .groupby(['day'])
+                        .cumcount() + 1)
+         .query('rn < 3')
+         .sort_values(['day','rn'])
+    )
+
+the same using `rank(method='first')` function
+
+.. ipython:: python
+
+    (tips.assign(rnk=tips.groupby(['day'])['total_bill']
+                         .rank(method='first', ascending=False))
+         .query('rnk < 3')
+         .sort_values(['day','rnk'])
+    )
+
+.. code-block:: sql
+
+    -- Oracle's RANK() analytic function
+    SELECT * FROM (
+      SELECT
+        t.*,
+        RANK() OVER(PARTITION BY sex ORDER BY tip) AS rnk
+      FROM tips t
+      WHERE tip < 2
+    )
+    WHERE rnk < 3
+    ORDER BY sex, rnk;
+
+Let's find tips with (rank < 3) per gender group for (tips < 2).
+Notice that when using ``rank(method='min')`` function
+`rnk_min` remains the same for the same `tip`
+(as Oracle's RANK() function)
+
+.. ipython:: python
+
+    (tips[tips['tip'] < 2]
+         .assign(rnk_min=tips.groupby(['sex'])['tip']
+                             .rank(method='min'))
+         .query('rnk_min < 3')
+         .sort_values(['sex','rnk_min'])
+    )
+
 
 UPDATE
 ------
 
+.. code-block:: sql
+
+    UPDATE tips
+    SET tip = tip*2
+    WHERE tip < 2;
+
+.. ipython:: python
+
+    tips.loc[tips['tip'] < 2, 'tip'] *= 2
 
 DELETE
 ------
+
+.. code-block:: sql
+
+    DELETE FROM tips
+    WHERE tip > 9;
+
+In pandas we select the rows that should remain, instead of deleting them
+
+.. ipython:: python
+
+    tips = tips.loc[tips['tip'] <= 9]

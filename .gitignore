@@ -7,6 +7,7 @@
 *$
 *.bak
 *flymake*
+*.iml
 *.kdev4
 *.log
 *.swp
@@ -18,6 +19,9 @@
 .vagrant
 .noseids
 .ipynb_checkpoints
+.tags
+.cache/
+.vscode/
 
 # Compiled source #
 ###################
@@ -26,6 +30,7 @@
 *.class
 *.dll
 *.exe
+*.pxi
 *.o
 *.py[ocd]
 *.so
@@ -43,6 +48,7 @@ dist
 # Egg metadata
 *.egg-info
 .eggs
+.pypirc
 
 # tox testing tool
 .tox
@@ -53,6 +59,9 @@ dist
 **/wheelhouse/*
 # coverage
 .coverage
+coverage.xml
+coverage_html_report
+*.pytest_cache
 
 # OS generated files #
 ######################
@@ -66,6 +75,7 @@ Thumbs.db
 # Data files #
 ##############
 *.dta
+*.xpt
 *.h5
 pandas/io/*.dat
 pandas/io/*.json
@@ -79,9 +89,12 @@ scikits
 *.c
 *.cpp
 
-# Performance Testing #
-#######################
-asv_bench/
+# Unit / Performance Testing #
+##############################
+asv_bench/env/
+asv_bench/html/
+asv_bench/results/
+asv_bench/pandas/
 
 # Documentation generated files #
 #################################
@@ -93,3 +106,7 @@ doc/source/index.rst
 doc/build/html/index.html
 # Windows specific leftover:
 doc/tmp.sv
+doc/source/styled.xlsx
+doc/source/templates/
+env/
+doc/source/savefig/

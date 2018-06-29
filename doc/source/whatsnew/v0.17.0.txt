@@ -102,7 +102,7 @@ This uses a new-dtype representation as well, that is very similar in look-and-f
 
    Previous Behavior:
 
-   .. code-block:: python
+   .. code-block:: ipython
 
       In [1]: pd.date_range('20130101',periods=3,tz='US/Eastern')
       Out[1]: DatetimeIndex(['2013-01-01 00:00:00-05:00', '2013-01-02 00:00:00-05:00',
@@ -141,7 +141,7 @@ as well as the ``.sum()`` operation.
 
 Releasing of the GIL could benefit an application that uses threads for user interactions (e.g. QT_), or performing multi-threaded computations. A nice example of a library that can handle these types of computation-in-parallel is the dask_ library.
 
-.. _dask: https://dask.readthedocs.org/en/latest/
+.. _dask: https://dask.readthedocs.io/en/latest/
 .. _QT: https://wiki.python.org/moin/PyQt
 
 .. _whatsnew_0170.plot:
@@ -308,7 +308,7 @@ See the :ref:`documentation <io.excel>` for more details.
    os.remove('test.xlsx')
 
 Previously, it was necessary to specify the ``has_index_names`` argument in ``read_excel``,
-if the serialized data had index names.  For version 0.17.0 the ouptput format of ``to_excel``
+if the serialized data had index names.  For version 0.17.0 the output format of ``to_excel``
 has been changed to make this keyword unnecessary - the change is shown below.
 
 **Old**
@@ -329,7 +329,7 @@ has been changed to make this keyword unnecessary - the change is shown below.
 Google BigQuery Enhancements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - Added ability to automatically create a table/dataset using the :func:`pandas.io.gbq.to_gbq` function if the destination table/dataset does not exist. (:issue:`8325`, :issue:`11121`).
-- Added ability to replace an existing table and schema when calling the :func:`pandas.io.gbq.to_gbq` function via the ``if_exists`` argument. See the :ref:`docs <io.bigquery_writer>` for more details (:issue:`8325`).
+- Added ability to replace an existing table and schema when calling the :func:`pandas.io.gbq.to_gbq` function via the ``if_exists`` argument. See the `docs <https://pandas-gbq.readthedocs.io/en/latest/writing.html>`__ for more details (:issue:`8325`).
 - ``InvalidColumnOrder`` and ``InvalidPageToken`` in the gbq module will raise ``ValueError`` instead of ``IOError``.
 - The ``generate_bq_schema()`` function is now deprecated and will be removed in a future version (:issue:`11121`)
 - The gbq module will now support Python 3 (:issue:`11094`).
@@ -410,7 +410,7 @@ Other enhancements
 
   Previous Behavior:
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [1] pd.concat([foo, bar, baz], 1)
      Out[1]:
@@ -527,6 +527,7 @@ Other enhancements
 
 - ``pd.read_csv`` is now able to infer compression type for files read from AWS S3 storage (:issue:`11070`, :issue:`11074`).
 
+
 .. _whatsnew_0170.api:
 
 .. _whatsnew_0170.api_breaking:
@@ -606,14 +607,14 @@ will raise rather that return the original input as in previous versions. (:issu
 
 Previous Behavior:
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [2]: pd.to_datetime(['2009-07-31', 'asd'])
    Out[2]: array(['2009-07-31', 'asd'], dtype=object)
 
 New Behavior:
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [3]: pd.to_datetime(['2009-07-31', 'asd'])
    ValueError: Unknown string format
@@ -647,7 +648,7 @@ can parse, such as a quarterly string.
 
 Previous Behavior:
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [1]: Timestamp('2012Q2')
    Traceback
@@ -688,7 +689,7 @@ a ``ValueError``. This is to be consistent with the behavior of ``Series``.
 
 Previous Behavior:
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [2]: pd.Index([1, 2, 3]) == pd.Index([1, 4, 5])
    Out[2]: array([ True, False, False], dtype=bool)
@@ -701,7 +702,7 @@ Previous Behavior:
 
 New Behavior:
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [8]: pd.Index([1, 2, 3]) == pd.Index([1, 4, 5])
    Out[8]: array([ True, False, False], dtype=bool)
@@ -722,6 +723,7 @@ be broadcast:
 or it can return False if broadcasting can not be done:
 
 .. ipython:: python
+   :okwarning:
 
    np.array([1, 2, 3]) == np.array([1, 2])
 
@@ -738,7 +740,7 @@ Boolean comparisons of a ``Series`` vs ``None`` will now be equivalent to compar
 
 Previous Behavior:
 
-.. code-block:: python
+.. code-block:: ipython
 
    In [5]: s==None
    TypeError: Could not compare <type 'NoneType'> type with Series
@@ -782,15 +784,15 @@ Previous Behavior:
    df_with_missing
 
 
-.. code-block:: python
+.. code-block:: ipython
 
-   In [28]:
+   In [27]:
    df_with_missing.to_hdf('file.h5',
                           'df_with_missing',
                           format='table',
                           mode='w')
 
-   pd.read_hdf('file.h5', 'df_with_missing')
+   In [28]: pd.read_hdf('file.h5', 'df_with_missing')
 
    Out [28]:
          col1  col2
@@ -831,7 +833,7 @@ The ``display.precision`` option has been clarified to refer to decimal places (
 Earlier versions of pandas would format floating point numbers to have one less decimal place than the value in
 ``display.precision``.
 
-.. code-block:: python
+.. code-block:: ipython
 
   In [1]: pd.set_option('display.precision', 2)
 
@@ -963,7 +965,7 @@ Deprecations
 - ``TimeSeries`` deprecated in favor of ``Series`` (note that this has been an alias since 0.13.0), (:issue:`10890`)
 - ``SparsePanel`` deprecated and will be removed in a future version (:issue:`11157`).
 - ``Series.is_time_series`` deprecated in favor of ``Series.index.is_all_dates`` (:issue:`11135`)
-- Legacy offsets (like ``'A@JAN'``) listed in :ref:`here <timeseries.legacyaliases>` are deprecated (note that this has been alias since 0.8.0), (:issue:`10878`)
+- Legacy offsets (like ``'A@JAN'``) are deprecated (note that this has been alias since 0.8.0) (:issue:`10878`)
 - ``WidePanel`` deprecated in favor of ``Panel``, ``LongPanel`` in favor of ``DataFrame`` (note these have been aliases since < 0.11.0), (:issue:`10892`)
 - ``DataFrame.convert_objects`` has been deprecated in favor of type-specific functions ``pd.to_datetime``, ``pd.to_timestamp`` and ``pd.to_numeric`` (new in 0.17.0) (:issue:`11133`).
 
@@ -985,7 +987,7 @@ Removal of prior version deprecations/changes
 
   Previously
 
-  .. code-block:: python
+  .. code-block:: ipython
 
      In [3]: df + df.A
      FutureWarning: TimeSeries broadcasting along DataFrame index by default is deprecated.
@@ -1040,8 +1042,8 @@ Performance Improvements
 Bug Fixes
 ~~~~~~~~~
 
-- Bug in incorrection computation of ``.mean()`` on ``timedelta64[ns]`` because of overflow (:issue:`9442`)
-- Bug in  ``.isin`` on older numpies (:issue: `11232`)
+- Bug in incorrect computation of ``.mean()`` on ``timedelta64[ns]`` because of overflow (:issue:`9442`)
+- Bug in  ``.isin`` on older numpies (:issue:`11232`)
 - Bug in ``DataFrame.to_html(index=False)`` renders unnecessary ``name`` row (:issue:`10344`)
 - Bug in ``DataFrame.to_latex()`` the ``column_format`` argument could not be passed (:issue:`9402`)
 - Bug in ``DatetimeIndex`` when localizing with ``NaT`` (:issue:`10477`)
@@ -1067,7 +1069,7 @@ Bug Fixes
 - Bug in ``offsets.generate_range`` where ``start`` and ``end`` have finer precision than ``offset`` (:issue:`9907`)
 - Bug in ``pd.rolling_*`` where ``Series.name`` would be lost in the output (:issue:`10565`)
 - Bug in ``stack`` when index or columns are not unique. (:issue:`10417`)
-- Bug in setting a ``Panel`` when an axis has a multi-index (:issue:`10360`)
+- Bug in setting a ``Panel`` when an axis has a MultiIndex (:issue:`10360`)
 - Bug in ``USFederalHolidayCalendar`` where ``USMemorialDay`` and ``USMartinLutherKingJr`` were incorrect (:issue:`10278` and :issue:`9760` )
 - Bug in ``.sample()`` where returned object, if set, gives unnecessary ``SettingWithCopyWarning`` (:issue:`10738`)
 - Bug in ``.sample()`` where weights passed as ``Series`` were not aligned along axis before being treated positionally, potentially causing problems if weight indices were not aligned with sampled object. (:issue:`10738`)
@@ -1092,7 +1094,7 @@ Bug Fixes
 
 
 - Bug in ``to_datetime`` and ``to_timedelta`` causing ``Index`` name to be lost (:issue:`10875`)
-- Bug in ``len(DataFrame.groupby)`` causing ``IndexError`` when there's a column containing only NaNs (:issue: `11016`)
+- Bug in ``len(DataFrame.groupby)`` causing ``IndexError`` when there's a column containing only NaNs (:issue:`11016`)
 
 - Bug that caused segfault when resampling an empty Series (:issue:`10228`)
 - Bug in ``DatetimeIndex`` and ``PeriodIndex.value_counts`` resets name from its result, but retains in result's ``Index``. (:issue:`10150`)
@@ -1155,7 +1157,7 @@ Bug Fixes
 - Bug in ``.var()`` causing roundoff errors for highly similar values (:issue:`10242`)
 - Bug in ``DataFrame.plot(subplots=True)`` with duplicated columns outputs incorrect result (:issue:`10962`)
 - Bug in ``Index`` arithmetic may result in incorrect class (:issue:`10638`)
-- Bug in ``date_range`` results in empty if freq is negative annualy, quarterly and monthly (:issue:`11018`)
+- Bug in ``date_range`` results in empty if freq is negative annually, quarterly and monthly (:issue:`11018`)
 - Bug in ``DatetimeIndex`` cannot infer negative freq (:issue:`11018`)
 - Remove use of some deprecated numpy comparison operations, mainly in tests. (:issue:`10569`)
 - Bug in ``Index`` dtype may not applied properly (:issue:`11017`)
