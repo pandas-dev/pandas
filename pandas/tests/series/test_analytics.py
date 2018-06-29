@@ -2082,6 +2082,17 @@ class TestNLargestNSmallest(object):
         vals = [min_val + 1, min_val + 2, max_val - 1, max_val, min_val]
         assert_check_nselect_boundary(vals, dtype, nselect_method)
 
+    def test_duplicate_keep_all_ties(self):
+        # see gh-16818
+        s = Series([10, 9, 8, 7, 7, 7, 7, 6])
+        result = s.nlargest(4, keep='all')
+        expected = Series([10, 9, 8, 7, 7, 7, 7])
+        assert_series_equal(result, expected)
+
+        result = s.nsmallest(2, keep='all')
+        expected = Series([6, 7, 7, 7, 7], index=[7, 3, 4, 5, 6])
+        assert_series_equal(result, expected)
+
 
 class TestCategoricalSeriesAnalytics(object):
 
