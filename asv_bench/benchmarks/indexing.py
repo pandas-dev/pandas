@@ -3,7 +3,8 @@ import warnings
 import numpy as np
 import pandas.util.testing as tm
 from pandas import (Series, DataFrame, MultiIndex, Int64Index, Float64Index,
-                    IntervalIndex, IndexSlice, concat, date_range)
+                    IntervalIndex, CategoricalIndex,
+                    IndexSlice, concat, date_range)
 from .pandas_vb_common import setup, Panel  # noqa
 
 
@@ -228,6 +229,49 @@ class IntervalIndexing(object):
 
     def time_loc_list(self, monotonic):
         monotonic.loc[80000:]
+
+
+class CategoricalIndexIndexing(object):
+
+    goal_time = 0.2
+    params = ['monotonic_incr', 'monotonic_decr', 'non_monotonic']
+    param_names = ['index']
+
+    def setup(self, index):
+        N = 10**5
+        values = list('a' * N + 'b' * N + 'c' * N)
+        indices = {
+            'monotonic_incr': CategoricalIndex(values),
+            'monotonic_decr': CategoricalIndex(reversed(values)),
+            'non_monotonic': CategoricalIndex(list('abc' * N))}
+        self.data = indices[index]
+
+        self.int_scalar = 10000
+        self.int_list = list(range(10000))
+
+        self.cat_scalar = 'b'
+        self.cat_list = ['a', 'c']
+
+    def time_getitem_scalar(self, index):
+        self.data[self.int_scalar]
+
+    def time_getitem_slice(self, index):
+        self.data[:self.int_scalar]
+
+    def time_getitem_list_like(self, index):
+        self.data[[self.int_scalar]]
+
+    def time_getitem_list(self, index):
+        self.data[self.int_list]
+
+    def time_getitem_bool_array(self, index):
+        self.data[self.data == self.cat_scalar]
+
+    def time_get_loc_scalar(self, index):
+        self.data.get_loc(self.cat_scalar)
+
+    def time_get_indexer_list(self, index):
+        self.data.get_indexer(self.cat_list)
 
 
 class PanelIndexing(object):
