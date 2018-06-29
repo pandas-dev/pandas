@@ -493,6 +493,8 @@ _shared_docs['factorize'] = """
     %(values)s%(sort)s%(order)s
     na_sentinel : int, default -1
         Value to mark "not found".
+    factor_nas : boolean, default False
+        If true, treat NaNs as a factorizable value
     %(size_hint)s\
 
     Returns
@@ -597,7 +599,8 @@ _shared_docs['factorize'] = """
 )
 @Appender(_shared_docs['factorize'])
 @deprecate_kwarg(old_arg_name='order', new_arg_name=None)
-def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
+def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None,
+              factor_nas=False):
     # Implementation notes: This method is responsible for 3 things
     # 1.) coercing data to array-like (ndarray, Index, extension array)
     # 2.) factorizing labels and uniques
@@ -641,6 +644,13 @@ def factorize(values, sort=False, order=None, na_sentinel=-1, size_hint=None):
             uniques, labels = safe_sort(uniques, labels,
                                         na_sentinel=na_sentinel,
                                         assume_unique=True)
+
+    if factor_nas and (labels == na_sentinel).any():
+        new_na_sentinel = len(uniques)
+        # Append the np.nan
+        uniques = np.resize(uniques, len(uniques) + 1)
+        uniques[-1] = np.nan
+        labels = np.where(labels == na_sentinel, new_na_sentinel, labels)
 
     uniques = _reconstruct_data(uniques, dtype, original)
 

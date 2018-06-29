@@ -9,6 +9,7 @@ New features
 ~~~~~~~~~~~~
 
 - ``ExcelWriter`` now accepts ``mode`` as a keyword argument, enabling append to existing workbooks when using the ``openpyxl`` engine (:issue:`3441`)
+- ``groupby`` now accepts ``group_nas`` as a keyword argument, enabling the `np.nan` as a grouping label (:issue:`3729`)
 
 .. _whatsnew_0240.enhancements.other:
 

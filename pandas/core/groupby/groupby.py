@@ -567,7 +567,7 @@ class _GroupBy(PandasObject, SelectionMixin):
     def __init__(self, obj, keys=None, axis=0, level=None,
                  grouper=None, exclusions=None, selection=None, as_index=True,
                  sort=True, group_keys=True, squeeze=False,
-                 observed=False, **kwargs):
+                 observed=False, group_nas=False, **kwargs):
 
         self._selection = selection
 
@@ -588,6 +588,7 @@ class _GroupBy(PandasObject, SelectionMixin):
         self.group_keys = group_keys
         self.squeeze = squeeze
         self.observed = observed
+        self.group_nas = group_nas
         self.mutated = kwargs.pop('mutated', False)
 
         if grouper is None:
@@ -596,6 +597,7 @@ class _GroupBy(PandasObject, SelectionMixin):
                                                     level=level,
                                                     sort=sort,
                                                     observed=observed,
+                                                    group_nas=group_nas,
                                                     mutated=self.mutated)
 
         self.obj = obj
@@ -2922,6 +2924,8 @@ class Grouping(object):
     level :
     observed : boolean, default False
         If we are a Categorical, use the observed values
+    group_nas : boolean, default False
+        Should NaNs be grouped as another value
     in_axis : if the Grouping is a column in self.obj and hence among
         Groupby.exclusions list
 
@@ -2937,7 +2941,7 @@ class Grouping(object):
     """
 
     def __init__(self, index, grouper=None, obj=None, name=None, level=None,
-                 sort=True, observed=False, in_axis=False):
+                 sort=True, observed=False, group_nas=False, in_axis=False):
 
         self.name = name
         self.level = level
@@ -2947,6 +2951,7 @@ class Grouping(object):
         self.sort = sort
         self.obj = obj
         self.observed = observed
+        self.group_nas = group_nas
         self.in_axis = in_axis
 
         # right place for this?
@@ -3100,7 +3105,7 @@ class Grouping(object):
                 uniques = self.grouper.result_index
             else:
                 labels, uniques = algorithms.factorize(
-                    self.grouper, sort=self.sort)
+                    self.grouper, sort=self.sort, factor_nas=self.group_nas)
                 uniques = Index(uniques, name=self.name)
             self._labels = labels
             self._group_index = uniques
@@ -3112,7 +3117,8 @@ class Grouping(object):
 
 
 def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
-                 observed=False, mutated=False, validate=True):
+                 observed=False, group_nas=False, mutated=False,
+                 validate=True):
     """
     create and return a BaseGrouper, which is an internal
     mapping of how to create the grouper indexers.
@@ -3311,6 +3317,7 @@ def _get_grouper(obj, key=None, axis=0, level=None, sort=True,
                         level=level,
                         sort=sort,
                         observed=observed,
+                        group_nas=group_nas,
                         in_axis=in_axis) \
             if not isinstance(gpr, Grouping) else gpr
 
@@ -3752,7 +3759,9 @@ class SeriesGroupBy(GroupBy):
         except TypeError:  # catches object dtypes
             assert val.dtype == object, \
                 'val.dtype must be object, got %s' % val.dtype
-            val, _ = algorithms.factorize(val, sort=False)
+            val, _ = algorithms.factorize(
+                val, sort=False, factor_nas=self.group_nas
+            )
             sorter = np.lexsort((val, ids))
             _isna = lambda a: a == -1
         else:

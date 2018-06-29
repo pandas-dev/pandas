@@ -276,6 +276,12 @@ def test_with_na_groups(dtype):
 
     assert_series_equal(agged, expected, check_dtype=False)
 
+    grouped_na = values.groupby(labels, group_nas=True)
+    agged_na = grouped_na.agg(len)
+    expected_na = Series([4, 2, 4], index=['bar', 'foo', np.nan])
+
+    assert_series_equal(agged_na, expected_na, check_dtype=False)
+
     # assert issubclass(agged.dtype.type, np.integer)
 
     # explicitly return a float from my function
@@ -287,6 +293,28 @@ def test_with_na_groups(dtype):
 
     assert_series_equal(agged, expected, check_dtype=False)
     assert issubclass(agged.dtype.type, np.dtype(dtype).type)
+
+    agged_na = grouped_na.agg(f)
+    expected_na = Series([4, 2, 4], index=['bar', 'foo', np.nan])
+
+    assert_series_equal(agged_na, expected_na, check_dtype=False)
+    assert issubclass(agged_na.dtype.type, np.dtype(dtype).type)
+
+    # Check the data frame groupby interface also handles NaNs correctly
+    df = pd.DataFrame({"Vals": values, "Labs": labels})
+
+    agged = df.groupby("Labs")["Vals"].sum()
+    expected = Series(
+        [4, 2], index=Index(['bar', 'foo'], name='Labs'), name='Vals'
+    )
+    assert_series_equal(agged, expected, check_dtype=False)
+
+    agged_na = df.groupby("Labs", group_nas=True)["Vals"].sum()
+    expected_na = Series(
+        [4, 2, 4], index=Index(['bar', 'foo', np.nan], name='Labs'),
+        name='Vals'
+    )
+    assert_series_equal(agged_na, expected_na, check_dtype=False)
 
 
 def test_indices_concatenation_order():
