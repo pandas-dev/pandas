@@ -551,13 +551,14 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
     @property
     def is_full(self):
         """
-        Returns True if there are any missing periods from start to end
+        Returns True if this PeriodIndex is range-like in that all Periods
+        between start and end are present, in order.
         """
         if len(self) == 0:
             return True
         if not self.is_monotonic:
             raise ValueError('Index is not monotonic')
-        values = self.values
+        values = self.asi8
         return ((values[1:] - values[:-1]) < 2).all()
 
     @property
@@ -761,17 +762,19 @@ class PeriodIndex(DatelikeOps, DatetimeIndexOpsMixin, Int64Index):
         return NotImplemented
 
     def _sub_period(self, other):
+        # If the operation is well-defined, we return an object-Index
+        # of DateOffsets.  Null entries are filled with pd.NaT
         if self.freq != other.freq:
             msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
 
         asi8 = self.asi8
         new_data = asi8 - other.ordinal
+        new_data = np.array([self.freq * x for x in new_data])
 
         if self.hasnans:
-            new_data = new_data.astype(np.float64)
-            new_data[self._isnan] = np.nan
-        # result must be Int64Index or Float64Index
+            new_data[self._isnan] = tslib.NaT
+
         return Index(new_data)
 
     def shift(self, n):

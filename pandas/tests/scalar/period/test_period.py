@@ -572,7 +572,7 @@ class TestPeriodProperties(object):
     def test_sub_delta(self):
         left, right = Period('2011', freq='A'), Period('2007', freq='A')
         result = left - right
-        assert result == 4
+        assert result == 4 * right.freq
 
         with pytest.raises(period.IncompatibleFrequency):
             left - Period('2007-01', freq='M')
@@ -1064,8 +1064,9 @@ class TestMethods(object):
         dt1 = Period('2011-01-01', freq='D')
         dt2 = Period('2011-01-15', freq='D')
 
-        assert dt1 - dt2 == -14
-        assert dt2 - dt1 == 14
+        off = dt1.freq
+        assert dt1 - dt2 == -14 * off
+        assert dt2 - dt1 == 14 * off
 
         msg = r"Input has different freq=M from Period\(freq=D\)"
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
