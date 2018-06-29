@@ -15,7 +15,6 @@ import numpy as np
 from pandas._libs import lib, iNaT, NaT, Timedelta
 from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
                                         _DIFFERENT_FREQ_INDEX)
-from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 from pandas._libs.tslibs.timestamps import round_ns
 
 from pandas.core.dtypes.common import (
