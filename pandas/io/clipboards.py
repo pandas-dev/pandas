@@ -1,6 +1,6 @@
 """ io on the clipboard """
 from pandas import compat, get_option, option_context, DataFrame
-from pandas.compat import StringIO
+from pandas.compat import StringIO, PY2, PY3
 import warnings
 
 
@@ -33,7 +33,7 @@ def read_clipboard(sep=r'\s+', **kwargs):  # pragma: no cover
 
     # try to decode (if needed on PY3)
     # Strange. linux py33 doesn't complain, win py33 does
-    if compat.PY3:
+    if PY3:
         try:
             text = compat.bytes_to_str(
                 text, encoding=(kwargs.get('encoding') or
@@ -67,14 +67,14 @@ def read_clipboard(sep=r'\s+', **kwargs):  # pragma: no cover
     if len(sep) > 1 and kwargs.get('engine') is None:
         kwargs['engine'] = 'python'
     elif len(sep) > 1 and kwargs.get('engine') == 'c':
-        warnings.warn('from_clipboard with regex separator does not work'
+        warnings.warn('read_clipboard with regex separator does not work'
                       ' properly with c engine')
 
     # In PY2, the c table reader first encodes text with UTF-8 but Python
     # table reader uses the format of the passed string. For consistency,
     # encode strings for python engine so that output from python and c
     # engines produce consistent results
-    if kwargs.get('engine') == 'python' and compat.PY2:
+    if kwargs.get('engine') == 'python' and PY2:
         text = text.encode('utf-8')
 
     return read_table(StringIO(text), sep=sep, **kwargs)
@@ -121,14 +121,13 @@ def to_clipboard(obj, excel=True, sep=None, **kwargs):  # pragma: no cover
             # clipboard_set (pyperclip) expects unicode
             obj.to_csv(buf, sep=sep, encoding='utf-8', **kwargs)
             text = buf.getvalue()
-            if compat.PY2:
+            if PY2:
                 text = text.decode('utf-8')
             clipboard_set(text)
             return
         except TypeError:
             warnings.warn('to_clipboard in excel mode requires a single '
-                          'character separator. Set "excel=False" or change '
-                          'the separator')
+                          'character separator.')
     elif sep is not None:
         warnings.warn('to_clipboard with excel=False ignores the sep argument')
 

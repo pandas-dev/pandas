@@ -57,6 +57,7 @@ Fixed Regressions
 - Bug in both :meth:`DataFrame.first_valid_index` and :meth:`Series.first_valid_index` raised for a row index having duplicate values (:issue:`21441`)
 - Fixed regression in unary negative operations with object dtype (:issue:`21380`)
 - Bug in :meth:`Timestamp.ceil` and :meth:`Timestamp.floor` when timestamp is a multiple of the rounding frequency (:issue:`21262`)
+- Fixed regression in :func:`to_clipboard` that defaulted to copying dataframes with space delimited instead of tab delimited (:issue:`21104`)
 
 .. _whatsnew_0232.performance:
 
@@ -115,7 +116,6 @@ Bug Fixes
 
 - Bug in :func:`read_csv` that caused it to incorrectly raise an error when ``nrows=0``, ``low_memory=True``, and ``index_col`` was not ``None`` (:issue:`21141`)
 - Bug in :func:`json_normalize` when formatting the ``record_prefix`` with integer columns (:issue:`21536`)
-- Bug in :func:`to_clipboard` that defaulted to copying dataframes with space delimited instead of tab delimited (:issue:`21104`)
 -
 
 **Plotting**
