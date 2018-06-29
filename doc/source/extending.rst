@@ -118,41 +118,43 @@ and comments contain guidance for properly implementing the interface.
 :class:`~pandas.api.extensions.ExtensionArray` Operator Support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+.. versionadded:: 0.24.0
+
 By default, there are no operators defined for the class :class:`~pandas.api.extensions.ExtensionArray`.
 There are two approaches for providing operator support for your ExtensionArray:
 
-1. Define each of the operators on your ExtensionArray subclass. 
+1. Define each of the operators on your ``ExtensionArray`` subclass.
 2. Use an operator implementation from pandas that depends on operators that are already defined
    on the underlying elements (scalars) of the ExtensionArray.
-    
-For the first approach, you define selected operators, e.g., ``_add__``, ``__le__``, etc. that
-you want your ExtensionArray subclass to support.
 
-The second approach assumes that the underlying elements (i.e., scalar type) of the ExtensionArray 
-have the individual operators already defined.  In other words, if your ExtensionArray
-named ``MyExtensionArray`` is implemented so that each element is an instance 
-of the class ``MyExtensionElement``, then if the operators are defined 
+For the first approach, you define selected operators, e.g., ``__add__``, ``__le__``, etc. that
+you want your ``ExtensionArray`` subclass to support.
+
+The second approach assumes that the underlying elements (i.e., scalar type) of the ``ExtensionArray``
+have the individual operators already defined.  In other words, if your ``ExtensionArray``
+named ``MyExtensionArray`` is implemented so that each element is an instance
+of the class ``MyExtensionElement``, then if the operators are defined
 for ``MyExtensionElement``, the second approach will automatically
 define the operators for ``MyExtensionArray``.
 
 A mixin class, :class:`~pandas.api.extensions.ExtensionScalarOpsMixin` supports this second
 approach.  If developing an ``ExtensionArray`` subclass, for example ``MyExtensionArray``,
-simply include ``ExtensionScalarOpsMixin`` as a parent class of ``MyExtensionArray``
+can simply include ``ExtensionScalarOpsMixin`` as a parent class of ``MyExtensionArray``,
 and then call the methods :meth:`~MyExtensionArray._add_arithmetic_ops` and/or
-:meth:`~MyExtensionArray._add_comparison_ops` to hook the operators into 
+:meth:`~MyExtensionArray._add_comparison_ops` to hook the operators into
 your ``MyExtensionArray`` class, as follows:
 
 .. code-block:: python
 
     class MyExtensionArray(ExtensionArray, ExtensionScalarOpsMixin):
         pass
-    
+
     MyExtensionArray._add_arithmetic_ops()
     MyExtensionArray._add_comparison_ops()
 
 Note that since ``pandas`` automatically calls the underlying operator on each
 element one-by-one, this might not be as performant as implementing your own
-version of the associated operators directly on the ExtensionArray.
+version of the associated operators directly on the ``ExtensionArray``.
 
 .. _extending.extension.testing:
 
@@ -220,11 +222,11 @@ There are 3 constructor properties to be defined:
 Following table shows how ``pandas`` data structures define constructor properties by default.
 
 ===========================  ======================= =============
-Property Attributes          ``Series``              ``DataFrame``      
+Property Attributes          ``Series``              ``DataFrame``
 ===========================  ======================= =============
-``_constructor``             ``Series``              ``DataFrame``      
-``_constructor_sliced``      ``NotImplementedError`` ``Series``         
-``_constructor_expanddim``   ``DataFrame``           ``Panel``          
+``_constructor``             ``Series``              ``DataFrame``
+``_constructor_sliced``      ``NotImplementedError`` ``Series``
+``_constructor_expanddim``   ``DataFrame``           ``Panel``
 ===========================  ======================= =============
 
 Below example shows how to define ``SubclassedSeries`` and ``SubclassedDataFrame`` overriding constructor properties.
