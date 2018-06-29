@@ -2308,8 +2308,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         if is_datetimelike(this) and not is_datetimelike(other):
             other = to_datetime(other)
 
-        # TODO: do we need name?
-        name = ops.get_op_result_name(self, other)  # noqa
         return this.where(notna(this), other)
 
     def update(self, other):
