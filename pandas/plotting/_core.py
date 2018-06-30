@@ -837,8 +837,8 @@ class PlanePlot(MPLPlot):
         # In IPython inline backend the colorbar axis height
         # tends to not exactly match the parent axis height.
         # The difference is due to small fractional differences
-        # in floating points with similar representation. 
-        # To deal with this, this method forces the colorbar 
+        # in floating points with similar representation.
+        # To deal with this, this method forces the colorbar
         # height to take the height of the parent axes.
         ax = kws['ax']
         img = ax.collections[0]
@@ -849,7 +849,8 @@ class PlanePlot(MPLPlot):
                               points[0, 1],
                               cbar_points[1, 0] - cbar_points[0, 0],
                               points[1, 1] - points[0, 1]])
-        
+
+
 class ScatterPlot(PlanePlot):
     _kind = 'scatter'
 
