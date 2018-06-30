@@ -120,7 +120,7 @@ cdef class {{name}}Vector:
 
         append_data_{{dtype}}(self.data, x)
 
-    cdef extend(self, {{arg}}[:] x):
+    cdef extend(self, const {{arg}}[:] x):
         for i in range(len(x)):
             self.append(x[i])
 
@@ -351,7 +351,7 @@ cdef class {{name}}HashTable(HashTable):
             raise KeyError(key)
 
     @cython.boundscheck(False)
-    def map(self, {{dtype}}_t[:] keys, int64_t[:] values):
+    def map(self, const {{dtype}}_t[:] keys, const int64_t[:] values):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
@@ -404,7 +404,7 @@ cdef class {{name}}HashTable(HashTable):
         return uniques.to_array(), labels
 
     @cython.boundscheck(False)
-    def get_labels(self, {{dtype}}_t[:] values, {{name}}Vector uniques,
+    def get_labels(self, const {{dtype}}_t[:] values, {{name}}Vector uniques,
                    Py_ssize_t count_prior, Py_ssize_t na_sentinel,
                    object na_value=None):
         cdef:
@@ -461,7 +461,7 @@ cdef class {{name}}HashTable(HashTable):
         return np.asarray(labels)
 
     @cython.boundscheck(False)
-    def get_labels_groupby(self, {{dtype}}_t[:] values):
+    def get_labels_groupby(self, const {{dtype}}_t[:] values):
         cdef:
             Py_ssize_t i, n = len(values)
             int64_t[:] labels
@@ -518,7 +518,7 @@ cdef class {{name}}HashTable(HashTable):
 {{unique_template}}
 
     @cython.boundscheck(False)
-    def unique_memview(self, {{dtype}}_t[:] values):
+    def unique_memview(self, const {{dtype}}_t[:] values):
 {{unique_template}}
 
 {{endfor}}
