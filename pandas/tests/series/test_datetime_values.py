@@ -308,7 +308,8 @@ class TestSeriesDatetimeValues(TestData):
 
         s = Series(DatetimeIndex(freq='M', start='2012', end='2013'))
         result = s.dt.month_name(locale=time_locale)
-        expected = Series([month.capitalize() for month in expected_months])
+        expected = Series([month.capitalize() for month in expected_months])\
+            .astype('category', ordered=True, categories=expected_months)
         tm.assert_series_equal(result, expected)
         for s_date, expected in zip(s, expected_months):
             result = s_date.month_name(locale=time_locale)

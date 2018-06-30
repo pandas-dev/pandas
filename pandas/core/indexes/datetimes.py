@@ -42,6 +42,7 @@ import pandas.compat as compat
 from pandas.tseries.frequencies import to_offset, get_period_alias, Resolution
 from pandas.core.indexes.datetimelike import (
     DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin)
+from pandas.core.indexes.category import CategoricalIndex
 from pandas.tseries.offsets import (
     DateOffset, generate_range, Tick, CDay, prefix_mapping)
 
@@ -55,8 +56,7 @@ import pandas.core.tools.datetimes as tools
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           join as libjoin, Timestamp)
 from pandas._libs.tslibs import (timezones, conversion, fields, parsing,
-                                 ccalendar,
-                                 resolution as libresolution)
+                                 resolution as libresolution, ccalendar)
 
 # -------- some conversion wrapper functions
 
@@ -2514,7 +2514,9 @@ default 'raise'
         result = fields.get_date_name_field(values, 'month_name',
                                             locale=locale)
         result = self._maybe_mask_results(result)
-        return Index(result, name=self.name)
+        return CategoricalIndex(result, ordered=True,
+                                categories=ccalendar.MONTHS_FULL[1:],
+                                name=self.name)
 
     def day_name(self, locale=None):
         """
@@ -2540,7 +2542,8 @@ default 'raise'
         result = fields.get_date_name_field(values, 'day_name',
                                             locale=locale)
         result = self._maybe_mask_results(result)
-        return Index(result, name=self.name)
+        return CategoricalIndex(result, ordered=True, name=self.name,
+                                categories=ccalendar.DAYS_FULL)
 
 
 DatetimeIndex._add_comparison_methods()
