@@ -1079,6 +1079,8 @@ class TestHashTable(object):
 
     def test_lookup_nan(self):
         xs = np.array([2.718, 3.14, np.nan, -7, 5, 2, 3])
+        # GH 21688 ensure we can deal with readonly memory views
+        xs.setflags(write=False)
         m = ht.Float64HashTable()
         m.map_locations(xs)
         tm.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs),
@@ -1086,6 +1088,8 @@ class TestHashTable(object):
 
     def test_lookup_overflow(self):
         xs = np.array([1, 2, 2**63], dtype=np.uint64)
+        # GH 21688 ensure we can deal with readonly memory views
+        xs.setflags(write=False)
         m = ht.UInt64HashTable()
         m.map_locations(xs)
         tm.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs),
@@ -1102,6 +1106,8 @@ class TestHashTable(object):
 
         def _test_vector_resize(htable, uniques, dtype, nvals, safely_resizes):
             vals = np.array(np.random.randn(1000), dtype=dtype)
+            # GH 21688 ensure we can deal with readonly memory views
+            vals.setflags(write=False)
             # get_labels may append to uniques
             htable.get_labels(vals[:nvals], uniques, 0, -1)
             # to_array() set an external_view_exists flag on uniques.
