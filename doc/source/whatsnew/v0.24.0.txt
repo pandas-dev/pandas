@@ -304,7 +304,7 @@ I/O
 Plotting
 ^^^^^^^^
 
--
+-- Bug in :func:'DataFrame.plot.scatter' and :func:'DataFrame.plot.hexbin' caused x-axis label and ticklabels to disappear when colorbar was on in IPython inline backend (:issue:`10611` and :issue:`10678`)
 -
 -
 
