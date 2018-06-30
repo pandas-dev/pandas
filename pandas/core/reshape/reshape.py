@@ -395,7 +395,14 @@ def pivot(self, index=None, columns=None, values=None):
     See DataFrame.pivot
     """
     if values is None:
-        cols = [columns] if index is None else [index, columns]
+        if index is None:
+            cols = [columns]
+        else:
+            if is_list_like(index):
+                cols = [column for column in index]
+            else:
+                cols =[index]
+            cols.append(columns)
         append = index is None
         indexed = self.set_index(cols, append=append)
 
