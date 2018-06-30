@@ -898,7 +898,7 @@ class ScatterPlot(PlanePlot):
             if self.mpl_ge_1_3_1():
                 kws['label'] = c if c_is_column else ''
             self._plot_colorbar(kws)
-        
+
         if label is not None:
             self._add_legend_handle(scatter, label)
         else:
@@ -940,7 +940,7 @@ class HexBinPlot(PlanePlot):
         if cb:
             kws = dict(ax=ax)
             self._plot_colorbar(kws)
-            
+
     def _make_legend(self):
         pass
 
