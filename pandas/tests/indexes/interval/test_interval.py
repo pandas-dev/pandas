@@ -12,11 +12,6 @@ import pandas.util.testing as tm
 import pandas as pd
 
 
-@pytest.fixture(scope='class', params=['left', 'right', 'both', 'neither'])
-def closed(request):
-    return request.param
-
-
 @pytest.fixture(scope='class', params=[None, 'foo'])
 def name(request):
     return request.param
@@ -497,6 +492,14 @@ class TestIntervalIndex(Base):
         pytest.raises(KeyError, self.index.get_loc,
                       Interval(-1, 0, 'left'))
 
+    # Make consistent with test_interval_new.py (see #16316, #16386)
+    @pytest.mark.parametrize('item', [3, Interval(1, 4)])
+    def test_get_loc_length_one(self, item, closed):
+        # GH 20921
+        index = IntervalIndex.from_tuples([(0, 5)], closed=closed)
+        result = index.get_loc(item)
+        assert result == 0
+
     # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_get_indexer(self):
         actual = self.index.get_indexer([-1, 0, 0.5, 1, 1.5, 2, 3])
@@ -543,6 +546,16 @@ class TestIntervalIndex(Base):
         actual = self.index.get_indexer(target)
         expected = np.array([0, 0, 0], dtype='intp')
         tm.assert_numpy_array_equal(actual, expected)
+
+    # Make consistent with test_interval_new.py (see #16316, #16386)
+    @pytest.mark.parametrize('item', [
+        [3], np.arange(1, 5), [Interval(1, 4)], interval_range(1, 4)])
+    def test_get_indexer_length_one(self, item, closed):
+        # GH 17284
+        index = IntervalIndex.from_tuples([(0, 5)], closed=closed)
+        result = index.get_indexer(item)
+        expected = np.array([0] * len(item), dtype='intp')
+        tm.assert_numpy_array_equal(result, expected)
 
     # To be removed, replaced by test_interval_new.py (see #16316, #16386)
     def test_contains(self):

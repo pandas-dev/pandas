@@ -134,7 +134,7 @@ class build_ext(_build_ext):
         _build_ext.build_extensions(self)
 
 
-DESCRIPTION = ("Powerful data structures for data analysis, time series,"
+DESCRIPTION = ("Powerful data structures for data analysis, time series, "
                "and statistics")
 LONG_DESCRIPTION = """
 **pandas** is a Python package providing fast, flexible, and expressive data
@@ -217,6 +217,7 @@ CLASSIFIERS = [
     'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3.5',
     'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3.7',
     'Programming Language :: Cython',
     'Topic :: Scientific/Engineering']
 
@@ -450,13 +451,13 @@ common_include = ['pandas/_libs/src/klib', 'pandas/_libs/src']
 
 
 def pxd(name):
-    return os.path.abspath(pjoin('pandas', name + '.pxd'))
+    return pjoin('pandas', name + '.pxd')
 
 
-# args to ignore warnings
 if is_platform_windows():
     extra_compile_args = []
 else:
+    # args to ignore warnings
     extra_compile_args = ['-Wno-unused-function']
 
 lib_depends = lib_depends + ['pandas/_libs/src/numpy_helper.h',
@@ -591,6 +592,7 @@ ext_data = {
     '_libs.tslibs.offsets': {
         'pyxfile': '_libs/tslibs/offsets',
         'pxdfiles': ['_libs/src/util',
+                     '_libs/tslibs/ccalendar',
                      '_libs/tslibs/conversion',
                      '_libs/tslibs/frequencies',
                      '_libs/tslibs/nattype'],
@@ -603,6 +605,7 @@ ext_data = {
         'pyxfile': '_libs/tslibs/resolution',
         'pxdfiles': ['_libs/src/util',
                      '_libs/khash',
+                     '_libs/tslibs/ccalendar',
                      '_libs/tslibs/frequencies',
                      '_libs/tslibs/timezones'],
         'depends': tseries_depends,
@@ -733,11 +736,7 @@ setup(name=DISTNAME,
       maintainer=AUTHOR,
       version=versioneer.get_version(),
       packages=find_packages(include=['pandas', 'pandas.*']),
-      package_data={'': ['data/*', 'templates/*'],
-                    'pandas.tests.io': ['data/legacy_hdf/*.h5',
-                                        'data/legacy_pickle/*/*.pickle',
-                                        'data/legacy_msgpack/*/*.msgpack',
-                                        'data/html_encoding/*.html']},
+      package_data={'': ['templates/*', '_libs/*.dll']},
       ext_modules=extensions,
       maintainer_email=EMAIL,
       description=DESCRIPTION,

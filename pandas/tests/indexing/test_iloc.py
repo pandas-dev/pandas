@@ -391,13 +391,13 @@ class TestiLoc(Base):
             expected = df.ix[[0, 2, 6], [0, 2]]
         tm.assert_frame_equal(result, expected)
 
-        # neg indicies
+        # neg indices
         result = df.iloc[[-1, 1, 3], [-1, 1]]
         with catch_warnings(record=True):
             expected = df.ix[[18, 2, 6], [6, 2]]
         tm.assert_frame_equal(result, expected)
 
-        # dups indicies
+        # dups indices
         result = df.iloc[[-1, -1, 1, 3], [-1, 1]]
         with catch_warnings(record=True):
             expected = df.ix[[18, 18, 2, 6], [6, 2]]
@@ -629,7 +629,8 @@ class TestiLoc(Base):
             new_list.append(s * 3)
 
         expected = DataFrame(new_list)
-        expected = concat([expected, DataFrame(index=idx[idx > sidx.max()])])
+        expected = concat([expected, DataFrame(index=idx[idx > sidx.max()])],
+                          sort=True)
         with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
             result = df2.loc[idx]
         tm.assert_frame_equal(result, expected, check_index_type=False)

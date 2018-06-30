@@ -6,14 +6,15 @@ import sys
 import numpy as np
 
 import pandas as pd
-from pandas.core.arrays import ExtensionArray
+from pandas.core.arrays import (ExtensionArray,
+                                ExtensionScalarOpsMixin)
 from pandas.core.dtypes.base import ExtensionDtype
-from pandas.core.dtypes.common import _ensure_platform_int
 
 
 class DecimalDtype(ExtensionDtype):
     type = decimal.Decimal
     name = 'decimal'
+    na_value = decimal.Decimal('NaN')
 
     @classmethod
     def construct_from_string(cls, string):
@@ -24,10 +25,14 @@ class DecimalDtype(ExtensionDtype):
                             "'{}'".format(cls, string))
 
 
-class DecimalArray(ExtensionArray):
+class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     dtype = DecimalDtype()
 
     def __init__(self, values):
+        for val in values:
+            if not isinstance(val, self.dtype.type):
+                raise TypeError("All values must be of type " +
+                                str(self.dtype.type))
         values = np.asarray(values, dtype=object)
 
         self._data = values
@@ -51,6 +56,17 @@ class DecimalArray(ExtensionArray):
             return self._data[item]
         else:
             return type(self)(self._data[item])
+
+    def take(self, indexer, allow_fill=False, fill_value=None):
+        from pandas.api.extensions import take
+
+        data = self._data
+        if allow_fill and fill_value is None:
+            fill_value = self.dtype.na_value
+
+        result = take(data, indexer, fill_value=fill_value,
+                      allow_fill=allow_fill)
+        return self._from_sequence(result)
 
     def copy(self, deep=False):
         if deep:
@@ -78,21 +94,7 @@ class DecimalArray(ExtensionArray):
         return 0
 
     def isna(self):
-        return np.array([x.is_nan() for x in self._data])
-
-    def take(self, indexer, allow_fill=True, fill_value=None):
-        indexer = np.asarray(indexer)
-        mask = indexer == -1
-
-        # take on empty array not handled as desired by numpy in case of -1
-        if not len(self) and mask.all():
-            return type(self)([self._na_value] * len(indexer))
-
-        indexer = _ensure_platform_int(indexer)
-        out = self._data.take(indexer)
-        out[mask] = self._na_value
-
-        return type(self)(out)
+        return np.array([x.is_nan() for x in self._data], dtype=bool)
 
     @property
     def _na_value(self):
@@ -101,6 +103,10 @@ class DecimalArray(ExtensionArray):
     @classmethod
     def _concat_same_type(cls, to_concat):
         return cls(np.concatenate([x._data for x in to_concat]))
+
+
+DecimalArray._add_arithmetic_ops()
+DecimalArray._add_comparison_ops()
 
 
 def make_data():

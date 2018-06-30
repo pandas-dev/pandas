@@ -811,7 +811,7 @@ class PlanePlot(MPLPlot):
     def __init__(self, data, x, y, **kwargs):
         MPLPlot.__init__(self, data, **kwargs)
         if x is None or y is None:
-            raise ValueError(self._kind + ' requires and x and y column')
+            raise ValueError(self._kind + ' requires an x and y column')
         if is_integer(x) and not self.data.columns.holds_integer():
             x = self.data.columns[x]
         if is_integer(y) and not self.data.columns.holds_integer():
@@ -1405,7 +1405,7 @@ _kde_docstring = """
         In statistics, `kernel density estimation`_ (KDE) is a non-parametric
         way to estimate the probability density function (PDF) of a random
         variable. This function uses Gaussian kernels and includes automatic
-        bandwith determination.
+        bandwidth determination.
 
         .. _kernel density estimation:
             https://en.wikipedia.org/wiki/Kernel_density_estimation
@@ -2042,7 +2042,7 @@ _shared_docs['boxplot'] = """
         Tick label font size in points or as a string (e.g., `large`).
     rot : int or float, default 0
         The rotation angle of labels (in degrees)
-        with respect to the screen coordinate sytem.
+        with respect to the screen coordinate system.
     grid : boolean, default True
         Setting this to True will show the grid.
     figsize : A tuple (width, height) in inches
@@ -2074,7 +2074,7 @@ _shared_docs['boxplot'] = """
 
         * 'axes' : object of class matplotlib.axes.Axes
         * 'dict' : dict of matplotlib.lines.Line2D objects
-        * 'both' : a nametuple with strucure (ax, lines)
+        * 'both' : a namedtuple with structure (ax, lines)
 
         For data grouped with ``by``:
 
@@ -2559,7 +2559,7 @@ def grouped_hist(data, column=None, by=None, ax=None, bins=50, figsize=None,
 
 def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
                           rot=0, grid=True, ax=None, figsize=None,
-                          layout=None, **kwds):
+                          layout=None, sharex=False, sharey=True, **kwds):
     """
     Make box plots from DataFrameGroupBy data.
 
@@ -2578,6 +2578,14 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     figsize : A tuple (width, height) in inches
     layout : tuple (optional)
         (rows, columns) for the layout of the plot
+    sharex : bool, default False
+        Whether x-axes will be shared among subplots
+
+        .. versionadded:: 0.23.1
+    sharey : bool, default True
+        Whether y-axes will be shared among subplots
+
+        .. versionadded:: 0.23.1
     `**kwds` : Keyword Arguments
         All other plotting keyword arguments to be passed to
         matplotlib's boxplot function
@@ -2609,7 +2617,7 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
     if subplots is True:
         naxes = len(grouped)
         fig, axes = _subplots(naxes=naxes, squeeze=False,
-                              ax=ax, sharex=False, sharey=True,
+                              ax=ax, sharex=sharex, sharey=sharey,
                               figsize=figsize, layout=layout)
         axes = _flatten(axes)
 
@@ -2859,8 +2867,8 @@ class SeriesPlotMethods(BasePlotMethods):
             >>> ax = s.plot.kde()
 
         A scalar bandwidth can be specified. Using a small bandwidth value can
-        lead to overfitting, while using a large bandwidth value may result
-        in underfitting:
+        lead to over-fitting, while using a large bandwidth value may result
+        in under-fitting:
 
         .. plot::
             :context: close-figs
@@ -3295,8 +3303,8 @@ class FramePlotMethods(BasePlotMethods):
             >>> ax = df.plot.kde()
 
         A scalar bandwidth can be specified. Using a small bandwidth value can
-        lead to overfitting, while using a large bandwidth value may result
-        in underfitting:
+        lead to over-fitting, while using a large bandwidth value may result
+        in under-fitting:
 
         .. plot::
             :context: close-figs
@@ -3426,7 +3434,7 @@ class FramePlotMethods(BasePlotMethods):
 
             - A sequence of color strings referred to by name, RGB or RGBA
               code, which will be used for each point's color recursively. For
-              intance ['green','yellow'] all points will be filled in green or
+              instance ['green','yellow'] all points will be filled in green or
               yellow, alternatively.
 
             - A column name or position whose values will be used to color the

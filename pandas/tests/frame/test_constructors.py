@@ -151,6 +151,17 @@ class TestDataFrameConstructors(TestData):
         assert a.dtype == df.a.dtype
         assert b.dtype == df.b.dtype
 
+    def test_constructor_dtype_str_na_values(self, string_dtype):
+        # https://github.com/pandas-dev/pandas/issues/21083
+        df = DataFrame({'A': ['x', None]}, dtype=string_dtype)
+        result = df.isna()
+        expected = DataFrame({"A": [False, True]})
+        tm.assert_frame_equal(result, expected)
+        assert df.iloc[1, 0] is None
+
+        df = DataFrame({'A': ['x', np.nan]}, dtype=string_dtype)
+        assert np.isnan(df.iloc[1, 0])
+
     def test_constructor_rec(self):
         rec = self.frame.to_records(index=False)
 
@@ -1071,6 +1082,17 @@ class TestDataFrameConstructors(TestData):
         expected = DataFrame.from_dict(sdict, orient='index')
         tm.assert_frame_equal(result, expected)
 
+    def test_constructor_list_of_series_aligned_index(self):
+        series = [pd.Series(i, index=['b', 'a', 'c'], name=str(i))
+                  for i in range(3)]
+        result = pd.DataFrame(series)
+        expected = pd.DataFrame({'b': [0, 1, 2],
+                                 'a': [0, 1, 2],
+                                 'c': [0, 1, 2]},
+                                columns=['b', 'a', 'c'],
+                                index=['0', '1', '2'])
+        tm.assert_frame_equal(result, expected)
+
     def test_constructor_list_of_derived_dicts(self):
         class CustomDict(dict):
             pass
@@ -1627,7 +1649,7 @@ class TestDataFrameConstructors(TestData):
 
     def test_constructor_with_nas(self):
         # GH 5016
-        # na's in indicies
+        # na's in indices
 
         def check(df):
             for i in range(len(df.columns)):

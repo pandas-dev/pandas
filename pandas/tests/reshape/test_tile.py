@@ -4,6 +4,7 @@ import pytest
 import numpy as np
 from pandas.compat import zip
 
+import pandas as pd
 from pandas import (DataFrame, Series, isna, to_datetime, DatetimeIndex, Index,
                     Timestamp, Interval, IntervalIndex, Categorical,
                     cut, qcut, date_range, NaT, TimedeltaIndex)
@@ -281,10 +282,10 @@ class TestCut(object):
         result = tmod._round_frac(0.000123456, precision=2)
         assert result == 0.00012
 
-    def test_qcut_binning_issues(self):
+    def test_qcut_binning_issues(self, datapath):
         # #1978, 1979
-        path = os.path.join(tm.get_data_path(), 'cut_data.csv')
-        arr = np.loadtxt(path)
+        cut_file = datapath(os.path.join('reshape', 'data', 'cut_data.csv'))
+        arr = np.loadtxt(cut_file)
 
         result = qcut(arr, 20)
 
@@ -336,6 +337,21 @@ class TestCut(object):
             [-0.001, 1.5, 3], closed='right').repeat(2)).astype(
             CDT(ordered=True))
         tm.assert_series_equal(result, expected)
+
+    def test_cut_duplicates_bin(self):
+        # issue 20947
+        values = Series(np.array([1, 3, 5, 7, 9]),
+                        index=["a", "b", "c", "d", "e"])
+        bins = [0, 2, 4, 6, 10, 10]
+        result = cut(values, bins, duplicates='drop')
+        expected = cut(values, pd.unique(bins))
+        tm.assert_series_equal(result, expected)
+
+        pytest.raises(ValueError, cut, values, bins)
+        pytest.raises(ValueError, cut, values, bins, duplicates='raise')
+
+        # invalid
+        pytest.raises(ValueError, cut, values, bins, duplicates='foo')
 
     def test_qcut_duplicates_bin(self):
         # GH 7751

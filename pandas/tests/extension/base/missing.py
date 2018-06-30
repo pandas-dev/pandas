@@ -9,16 +9,18 @@ from .base import BaseExtensionTests
 
 class BaseMissingTests(BaseExtensionTests):
     def test_isna(self, data_missing):
-        if data_missing._can_hold_na:
-            expected = np.array([True, False])
-        else:
-            expected = np.array([False, False])
+        expected = np.array([True, False])
 
         result = pd.isna(data_missing)
         tm.assert_numpy_array_equal(result, expected)
 
         result = pd.Series(data_missing).isna()
         expected = pd.Series(expected)
+        self.assert_series_equal(result, expected)
+
+        # GH 21189
+        result = pd.Series(data_missing).drop([0, 1]).isna()
+        expected = pd.Series([], dtype=bool)
         self.assert_series_equal(result, expected)
 
     def test_dropna_series(self, data_missing):

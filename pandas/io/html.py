@@ -324,7 +324,7 @@ class _HtmlFrameParser(object):
         raise com.AbstractMethodError(self)
 
     def _parse_tbody(self, table):
-        """Return the body of the table.
+        """Return the list of tbody elements from the parsed table element.
 
         Parameters
         ----------
@@ -333,8 +333,8 @@ class _HtmlFrameParser(object):
 
         Returns
         -------
-        tbody : node-like
-            A <tbody>...</tbody> element.
+        tbodys : list of node-like
+            A list of <tbody>...</tbody> elements
         """
         raise com.AbstractMethodError(self)
 
@@ -388,13 +388,17 @@ class _HtmlFrameParser(object):
             np.array(res).squeeze()) if res and len(res) == 1 else res
 
     def _parse_raw_tbody(self, table):
-        tbody = self._parse_tbody(table)
+        tbodies = self._parse_tbody(table)
 
-        try:
-            res = self._parse_tr(tbody[0])
-        except IndexError:
-            res = self._parse_tr(table)
-        return self._parse_raw_data(res)
+        raw_data = []
+
+        if tbodies:
+            for tbody in tbodies:
+                raw_data.extend(self._parse_tr(tbody))
+        else:
+            raw_data.extend(self._parse_tr(table))
+
+        return self._parse_raw_data(raw_data)
 
     def _handle_hidden_tables(self, tbl_list, attr_name):
         """Returns list of tables, potentially removing hidden elements
