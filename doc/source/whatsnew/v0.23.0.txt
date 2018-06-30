@@ -1344,7 +1344,7 @@ Plotting
 - :meth:`Series.plot.kde` has exposed the args ``ind`` and ``bw_method`` in the docstring (:issue:`18461`). The argument ``ind`` may now also be an integer (number of sample points).
 - :func:`DataFrame.plot` now supports multiple columns to the ``y`` argument (:issue:`19699`)
 
--
+
 Groupby/Resample/Rolling
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
