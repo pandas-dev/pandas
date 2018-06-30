@@ -833,13 +833,14 @@ class PlanePlot(MPLPlot):
         ax.set_ylabel(pprint_thing(y))
         ax.set_xlabel(pprint_thing(x))
 
-    def _plot_colorbar(ax, kws):
+    def _plot_colorbar(self, kws):
         # In IPython inline backend the colorbar axis height
         # tends to not exactly match the parent axis height.
         # The difference is due to small fractional differences
         # in floating points with similar representation. 
         # To deal with this, this method forces the colorbar 
         # height to take the height of the parent axes.
+        ax = kws['ax']
         img = ax.collections[0]
         cbar = self.fig.colorbar(img, **kws)
         points = ax.get_position().get_points()
@@ -848,7 +849,6 @@ class PlanePlot(MPLPlot):
                               points[0, 1],
                               cbar_points[1, 0] - cbar_points[0, 0],
                               points[1, 1] - points[0, 1]])
-        print('testing colorbar...')
         
 class ScatterPlot(PlanePlot):
     _kind = 'scatter'
@@ -893,12 +893,11 @@ class ScatterPlot(PlanePlot):
             label = None
         scatter = ax.scatter(data[x].values, data[y].values, c=c_values,
                              label=label, cmap=cmap, **self.kwds)
-        print('hello')
         if cb:
             kws = dict(ax=ax)
             if self.mpl_ge_1_3_1():
                 kws['label'] = c if c_is_column else ''
-            self._plot_colorbar(ax, kws)
+            self._plot_colorbar(kws)
         
         if label is not None:
             self._add_legend_handle(scatter, label)
@@ -939,7 +938,8 @@ class HexBinPlot(PlanePlot):
         ax.hexbin(data[x].values, data[y].values, C=c_values, cmap=cmap,
                   **self.kwds)
         if cb:
-            self._plot_colorbar(ax, kws)
+            kws = dict(ax=ax)
+            self._plot_colorbar(kws)
             
     def _make_legend(self):
         pass
