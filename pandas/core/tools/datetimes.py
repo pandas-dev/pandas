@@ -1,4 +1,4 @@
-import partial
+from functools import partial
 from datetime import datetime, timedelta, time
 from collections import MutableMapping
 
@@ -142,7 +142,7 @@ def _return_parsed_timezone_results(result, timezones, box, tz):
 def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
                                 unit=None, errors=None,
                                 infer_datetime_format=None, dayfirst=None,
-                                yearfirst=None):
+                                yearfirst=None, exact=None):
     """
     Helper function for to_datetime. Performs the conversions of 1D listlike
     of dates
@@ -167,7 +167,9 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
         dayfirst parsing behavior from to_datetime
     yearfirst : boolean
         yearfirst parsing behavior from to_datetime
-        
+    exact : boolean
+        exact format matching behavior from to_datetime
+
     Returns
     -------
     ndarray of parsed dates
@@ -176,6 +178,7 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
         - Index-like if box=True
         - ndarray of Timestamps if box=False
     """
+    from pandas import DatetimeIndex
     if isinstance(arg, (list, tuple)):
         arg = np.array(arg, dtype='O')
 
@@ -521,8 +524,6 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
     pandas.DataFrame.astype : Cast argument to a specified dtype.
     pandas.to_timedelta : Convert argument to timedelta.
     """
-    from pandas.core.indexes.datetimes import DatetimeIndex
-
     if arg is None:
         return None
 
@@ -530,8 +531,10 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
         arg = _adjust_to_origin(arg, origin, unit)
 
     tz = 'utc' if utc else None
-    convert_listlike = partial(_convert_listlike_datetimes, name=name, tz=tz,
-                               unit=unit, error=errors)
+    convert_listlike = partial(_convert_listlike_datetimes, tz=tz, unit=unit,
+                               dayfirst=dayfirst, yearfirst=dayfirst,
+                               errors=errors, exact=exact,
+                               infer_datetime_format=infer_datetime_format)
 
     if isinstance(arg, tslib.Timestamp):
         result = arg
