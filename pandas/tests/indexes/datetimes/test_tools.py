@@ -1516,18 +1516,6 @@ class TestDatetimeParsingWrappers(object):
             assert dt_string_repr == repr(converted_time)
 
 
-def test_normalize_date():
-    value = date(2012, 9, 7)
-
-    result = tslib.normalize_date(value)
-    assert (result == datetime(2012, 9, 7))
-
-    value = datetime(2012, 9, 7, 12)
-
-    result = tslib.normalize_date(value)
-    assert (result == datetime(2012, 9, 7))
-
-
 @pytest.fixture(params=['D', 's', 'ms', 'us', 'ns'])
 def units(request):
     return request.param
