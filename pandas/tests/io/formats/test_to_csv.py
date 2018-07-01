@@ -300,3 +300,18 @@ $1$,$2$
         output = sys.stdout.getvalue()
         assert output == expected_ascii
         assert not sys.stdout.closed
+
+    def test_to_csv_write_to_open_file(self):
+        df = pd.DataFrame({'a': ['x', 'y', 'z']})
+        expected = '''\
+manual header
+x
+y
+z
+'''
+        with tm.ensure_clean('test.txt') as path:
+            with open(path, 'w') as f:
+                f.write('manual header\n')
+                df.to_csv(f, header=None, index=None)
+            with open(path, 'r') as f:
+                assert f.read() == expected
