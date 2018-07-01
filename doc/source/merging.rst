@@ -81,33 +81,33 @@ some configurable handling of "what to do with the other axes":
               keys=None, levels=None, names=None, verify_integrity=False,
               copy=True)
 
-- ``objs`` : a sequence or mapping of Series, DataFrame, or Panel objects. If a
+* ``objs`` : a sequence or mapping of Series, DataFrame, or Panel objects. If a
   dict is passed, the sorted keys will be used as the `keys` argument, unless
   it is passed, in which case the values will be selected (see below). Any None
   objects will be dropped silently unless they are all None in which case a
   ValueError will be raised.
-- ``axis`` : {0, 1, ...}, default 0. The axis to concatenate along.
-- ``join`` : {'inner', 'outer'}, default 'outer'. How to handle indexes on
+* ``axis`` : {0, 1, ...}, default 0. The axis to concatenate along.
+* ``join`` : {'inner', 'outer'}, default 'outer'. How to handle indexes on
   other axis(es). Outer for union and inner for intersection.
-- ``ignore_index`` : boolean, default False. If True, do not use the index
+* ``ignore_index`` : boolean, default False. If True, do not use the index
   values on the concatenation axis. The resulting axis will be labeled 0, ...,
   n - 1. This is useful if you are concatenating objects where the
   concatenation axis does not have meaningful indexing information. Note
   the index values on the other axes are still respected in the join.
-- ``join_axes`` : list of Index objects. Specific indexes to use for the other
+* ``join_axes`` : list of Index objects. Specific indexes to use for the other
   n - 1 axes instead of performing inner/outer set logic.
-- ``keys`` : sequence, default None. Construct hierarchical index using the
+* ``keys`` : sequence, default None. Construct hierarchical index using the
   passed keys as the outermost level. If multiple levels passed, should
   contain tuples.
-- ``levels`` : list of sequences, default None. Specific levels (unique values)
+* ``levels`` : list of sequences, default None. Specific levels (unique values)
   to use for constructing a MultiIndex. Otherwise they will be inferred from the
   keys.
-- ``names`` : list, default None. Names for the levels in the resulting
+* ``names`` : list, default None. Names for the levels in the resulting
   hierarchical index.
-- ``verify_integrity`` : boolean, default False. Check whether the new
+* ``verify_integrity`` : boolean, default False. Check whether the new
   concatenated axis contains duplicates. This can be very expensive relative
   to the actual data concatenation.
-- ``copy`` : boolean, default True. If False, do not copy data unnecessarily.
+* ``copy`` : boolean, default True. If False, do not copy data unnecessarily.
 
 Without a little bit of context many of these arguments don't make much sense. 
 Let's revisit the above example. Suppose we wanted to associate specific keys 
@@ -156,10 +156,10 @@ When gluing together multiple DataFrames, you have a choice of how to handle
 the other axes (other than the one being concatenated). This can be done in
 the following three ways:
 
-- Take the union of them all, ``join='outer'``. This is the default
+* Take the union of them all, ``join='outer'``. This is the default
   option as it results in zero information loss.
-- Take the intersection, ``join='inner'``.
-- Use a specific index, as passed to the ``join_axes`` argument.
+* Take the intersection, ``join='inner'``.
+* Use a specific index, as passed to the ``join_axes`` argument.
 
 Here is an example of each of these methods. First, the default ``join='outer'``
 behavior:
@@ -279,9 +279,9 @@ need to be:
 
 Ignoring indexes on the concatenation axis
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-For ``DataFrame``s which don't have a meaningful index, you may wish to append
-them and ignore the fact that they may have overlapping indexes. To do this, use
-the ``ignore_index`` argument:
+For ``DataFrame`` objects which don't have a meaningful index, you may wish
+to append them and ignore the fact that they may have overlapping indexes. To
+do this, use the ``ignore_index`` argument:
 
 .. ipython:: python
 
@@ -314,7 +314,7 @@ This is also a valid argument to :meth:`DataFrame.append`:
 Concatenating with mixed ndims
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can concatenate a mix of ``Series`` and ``DataFrame``s. The
+You can concatenate a mix of ``Series`` and ``DataFrame`` objects. The
 ``Series`` will be transformed to ``DataFrame`` with the column name as
 the name of the ``Series``.
 
@@ -531,52 +531,52 @@ all standard database join operations between ``DataFrame`` objects:
              suffixes=('_x', '_y'), copy=True, indicator=False,
              validate=None)
 
-- ``left``: A DataFrame object.
-- ``right``: Another DataFrame object.
-- ``on``: Column or index level names to join on. Must be found in both the left
+* ``left``: A DataFrame object.
+* ``right``: Another DataFrame object.
+* ``on``: Column or index level names to join on. Must be found in both the left
   and right DataFrame objects. If not passed and ``left_index`` and
   ``right_index`` are ``False``, the intersection of the columns in the
   DataFrames will be inferred to be the join keys.
-- ``left_on``: Columns or index levels from the left DataFrame to use as
+* ``left_on``: Columns or index levels from the left DataFrame to use as
   keys. Can either be column names, index level names, or arrays with length
   equal to the length of the DataFrame.
-- ``right_on``: Columns or index levels from the right DataFrame to use as
+* ``right_on``: Columns or index levels from the right DataFrame to use as
   keys. Can either be column names, index level names, or arrays with length
   equal to the length of the DataFrame.
-- ``left_index``: If ``True``, use the index (row labels) from the left
+* ``left_index``: If ``True``, use the index (row labels) from the left
   DataFrame as its join key(s). In the case of a DataFrame with a MultiIndex
   (hierarchical), the number of levels must match the number of join keys
   from the right DataFrame.
-- ``right_index``: Same usage as ``left_index`` for the right DataFrame
-- ``how``: One of ``'left'``, ``'right'``, ``'outer'``, ``'inner'``. Defaults
+* ``right_index``: Same usage as ``left_index`` for the right DataFrame
+* ``how``: One of ``'left'``, ``'right'``, ``'outer'``, ``'inner'``. Defaults
   to ``inner``. See below for more detailed description of each method.
-- ``sort``: Sort the result DataFrame by the join keys in lexicographical
+* ``sort``: Sort the result DataFrame by the join keys in lexicographical
   order. Defaults to ``True``, setting to ``False`` will improve performance
   substantially in many cases.
-- ``suffixes``: A tuple of string suffixes to apply to overlapping
+* ``suffixes``: A tuple of string suffixes to apply to overlapping
   columns. Defaults to ``('_x', '_y')``.
-- ``copy``: Always copy data (default ``True``) from the passed DataFrame
+* ``copy``: Always copy data (default ``True``) from the passed DataFrame
   objects, even when reindexing is not necessary. Cannot be avoided in many
   cases but may improve performance / memory usage. The cases where copying
   can be avoided are somewhat pathological but this option is provided
   nonetheless.
-- ``indicator``: Add a column to the output DataFrame called ``_merge``
+* ``indicator``: Add a column to the output DataFrame called ``_merge``
   with information on the source of each row. ``_merge`` is Categorical-type
   and takes on a value of ``left_only`` for observations whose merge key
   only appears in ``'left'`` DataFrame, ``right_only`` for observations whose
   merge key only appears in ``'right'`` DataFrame, and ``both`` if the
   observation's merge key is found in both.
 
-- ``validate`` : string, default None.
+* ``validate`` : string, default None.
   If specified, checks if merge is of specified type.
 
-  * "one_to_one" or "1:1": checks if merge keys are unique in both
-    left and right datasets.
-  * "one_to_many" or "1:m": checks if merge keys are unique in left
-    dataset.
-  * "many_to_one" or "m:1": checks if merge keys are unique in right
-    dataset.
-  * "many_to_many" or "m:m": allowed, but does not result in checks.
+    * "one_to_one" or "1:1": checks if merge keys are unique in both
+      left and right datasets.
+    * "one_to_many" or "1:m": checks if merge keys are unique in left
+      dataset.
+    * "many_to_one" or "m:1": checks if merge keys are unique in right
+      dataset.
+    * "many_to_many" or "m:m": allowed, but does not result in checks.
 
   .. versionadded:: 0.21.0
 
@@ -605,11 +605,11 @@ terminology used to describe join operations between two SQL-table like
 structures (``DataFrame`` objects). There are several cases to consider which 
 are very important to understand:
 
-- **one-to-one** joins: for example when joining two ``DataFrame`` objects on
+* **one-to-one** joins: for example when joining two ``DataFrame`` objects on
   their indexes (which must contain unique values).
-- **many-to-one** joins: for example when joining an index (unique) to one or
+* **many-to-one** joins: for example when joining an index (unique) to one or
   more columns in a different ``DataFrame``.
-- **many-to-many** joins: joining columns on columns.
+* **many-to-many** joins: joining columns on columns.
 
 .. note::
 
@@ -1085,12 +1085,12 @@ As you can see, this drops any rows where there was no match.
 
 .. _merging.join_on_mi:
 
-Joining a single Index to a Multi-index
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Joining a single Index to a MultiIndex
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-You can join a singly-indexed ``DataFrame`` with a level of a multi-indexed ``DataFrame``.
+You can join a singly-indexed ``DataFrame`` with a level of a MultiIndexed ``DataFrame``.
 The level will match on the name of the index of the singly-indexed frame against
-a level name of the multi-indexed frame.
+a level name of the MultiIndexed frame.
 
 ..  ipython:: python
 
@@ -1130,8 +1130,8 @@ This is equivalent but less verbose and more memory efficient / faster than this
           labels=['left', 'right'], vertical=False);
    plt.close('all');
 
-Joining with two multi-indexes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Joining with two MultiIndexes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This is not implemented via ``join`` at-the-moment, however it can be done using
 the following code.

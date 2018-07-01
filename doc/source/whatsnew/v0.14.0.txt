@@ -13,7 +13,7 @@ users upgrade to this version.
   - SQL interfaces updated to use ``sqlalchemy``, See :ref:`Here<whatsnew_0140.sql>`.
   - Display interface changes, See :ref:`Here<whatsnew_0140.display>`
   - MultiIndexing Using Slicers, See :ref:`Here<whatsnew_0140.slicers>`.
-  - Ability to join a singly-indexed DataFrame with a multi-indexed DataFrame, see :ref:`Here <merging.join_on_mi>`
+  - Ability to join a singly-indexed DataFrame with a MultiIndexed DataFrame, see :ref:`Here <merging.join_on_mi>`
   - More consistency in groupby results and more flexible groupby specifications, See :ref:`Here<whatsnew_0140.groupby>`
   - Holiday calendars are now supported in ``CustomBusinessDay``, see :ref:`Here <timeseries.holiday>`
   - Several improvements in plotting functions, including: hexbin, area and pie plots, see :ref:`Here<whatsnew_0140.plotting>`.
@@ -466,8 +466,8 @@ Some other enhancements to the sql functions include:
 MultiIndexing Using Slicers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In 0.14.0 we added a new way to slice multi-indexed objects.
-You can slice a multi-index by providing multiple indexers.
+In 0.14.0 we added a new way to slice MultiIndexed objects.
+You can slice a MultiIndex by providing multiple indexers.
 
 You can provide any of the selectors as if you are indexing by label, see :ref:`Selection by Label <indexing.label>`,
 including slices, lists of labels, labels, and boolean indexers.
@@ -519,7 +519,7 @@ See also issues (:issue:`6134`, :issue:`4036`, :issue:`3057`, :issue:`2598`, :is
                   columns=columns).sort_index().sort_index(axis=1)
    df
 
-Basic multi-index slicing using slices, lists, and labels.
+Basic MultiIndex slicing using slices, lists, and labels.
 
 .. ipython:: python
 
@@ -748,9 +748,9 @@ Enhancements
 - Add option to turn off escaping in ``DataFrame.to_latex`` (:issue:`6472`)
 - ``pd.read_clipboard`` will, if the keyword ``sep`` is unspecified, try to detect data copied from a spreadsheet
   and parse accordingly. (:issue:`6223`)
-- Joining a singly-indexed DataFrame with a multi-indexed DataFrame (:issue:`3662`)
+- Joining a singly-indexed DataFrame with a MultiIndexed DataFrame (:issue:`3662`)
 
-  See :ref:`the docs<merging.join_on_mi>`. Joining multi-index DataFrames on both the left and right is not yet supported ATM.
+  See :ref:`the docs<merging.join_on_mi>`. Joining MultiIndex DataFrames on both the left and right is not yet supported ATM.
 
   .. ipython:: python
 
@@ -781,7 +781,7 @@ Enhancements
   noon, January 1, 4713 BC.  Because nanoseconds are used to define the time
   in pandas the actual range of dates that you can use is 1678 AD to 2262 AD. (:issue:`4041`)
 - ``DataFrame.to_stata`` will now check data for compatibility with Stata data types
-  and will upcast when needed.  When it is not possible to lossless upcast, a warning
+  and will upcast when needed.  When it is not possible to losslessly upcast, a warning
   is issued (:issue:`6327`)
 - ``DataFrame.to_stata`` and ``StataWriter`` will accept keyword arguments time_stamp
   and data_label which allow the time stamp and dataset label to be set when creating a
@@ -852,7 +852,7 @@ Performance
 - Performance improvement when converting ``DatetimeIndex`` to floating ordinals
   using ``DatetimeConverter`` (:issue:`6636`)
 - Performance improvement for  ``DataFrame.shift`` (:issue:`5609`)
-- Performance improvement in indexing into a multi-indexed Series (:issue:`5567`)
+- Performance improvement in indexing into a MultiIndexed Series (:issue:`5567`)
 - Performance improvements in single-dtyped indexing (:issue:`6484`)
 - Improve performance of DataFrame construction with certain offsets, by removing faulty caching
   (e.g. MonthEnd,BusinessMonthEnd), (:issue:`6479`)
@@ -896,7 +896,7 @@ Bug Fixes
 - Issue with groupby ``agg`` with a single function and a a mixed-type frame (:issue:`6337`)
 - Bug in ``DataFrame.replace()`` when passing a non- ``bool``
   ``to_replace`` argument (:issue:`6332`)
-- Raise when trying to align on different levels of a multi-index assignment (:issue:`3738`)
+- Raise when trying to align on different levels of a MultiIndex assignment (:issue:`3738`)
 - Bug in setting complex dtypes via boolean indexing (:issue:`6345`)
 - Bug in TimeGrouper/resample when presented with a non-monotonic DatetimeIndex that would return invalid results. (:issue:`4161`)
 - Bug in index name propagation in TimeGrouper/resample (:issue:`4161`)
@@ -996,7 +996,7 @@ Bug Fixes
 - accept ``TextFileReader`` in ``concat``, which was affecting a common user idiom (:issue:`6583`)
 - Bug in C parser with leading white space (:issue:`3374`)
 - Bug in C parser with ``delim_whitespace=True`` and ``\r``-delimited lines
-- Bug in python parser with explicit multi-index in row following column header (:issue:`6893`)
+- Bug in python parser with explicit MultiIndex in row following column header (:issue:`6893`)
 - Bug in ``Series.rank`` and ``DataFrame.rank`` that caused small floats (<1e-13) to all receive the same rank (:issue:`6886`)
 - Bug in ``DataFrame.apply`` with functions that used ``*args`` or ``**kwargs`` and returned
   an empty result (:issue:`6952`)
@@ -1043,7 +1043,7 @@ Bug Fixes
 - Bug in ``query``/``eval`` where global constants were not looked up correctly
   (:issue:`7178`)
 - Bug in recognizing out-of-bounds positional list indexers with ``iloc`` and a multi-axis tuple indexer (:issue:`7189`)
-- Bug in setitem with a single value, multi-index and integer indices (:issue:`7190`, :issue:`7218`)
+- Bug in setitem with a single value, MultiIndex and integer indices (:issue:`7190`, :issue:`7218`)
 - Bug in expressions evaluation with reversed ops, showing in series-dataframe ops (:issue:`7198`, :issue:`7192`)
-- Bug in multi-axis indexing with > 2 ndim and a multi-index (:issue:`7199`)
+- Bug in multi-axis indexing with > 2 ndim and a MultiIndex (:issue:`7199`)
 - Fix a bug where invalid eval/query operations would blow the stack (:issue:`5198`)

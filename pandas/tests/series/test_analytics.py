@@ -849,9 +849,28 @@ class TestSeriesAnalytics(TestData):
         expected = np.dot(a.values, a.values)
         assert_almost_equal(result, expected)
 
-        # np.array @ Series (__rmatmul__)
+        # GH 21530
+        # vector (1D np.array) @ Series (__rmatmul__)
         result = operator.matmul(a.values, a)
         expected = np.dot(a.values, a.values)
+        assert_almost_equal(result, expected)
+
+        # GH 21530
+        # vector (1D list) @ Series (__rmatmul__)
+        result = operator.matmul(a.values.tolist(), a)
+        expected = np.dot(a.values, a.values)
+        assert_almost_equal(result, expected)
+
+        # GH 21530
+        # matrix (2D np.array) @ Series (__rmatmul__)
+        result = operator.matmul(b.T.values, a)
+        expected = np.dot(b.T.values, a.values)
+        assert_almost_equal(result, expected)
+
+        # GH 21530
+        # matrix (2D nested lists) @ Series (__rmatmul__)
+        result = operator.matmul(b.T.values.tolist(), a)
+        expected = np.dot(b.T.values, a.values)
         assert_almost_equal(result, expected)
 
         # mixed dtype DataFrame @ Series
@@ -1829,7 +1848,7 @@ class TestMode(object):
 
         data = ['foo', 'bar', 'bar', np.nan, np.nan, np.nan]
 
-        s = Series(data, dtype=str)
+        s = Series(data, dtype=object).astype(str)
         result = s.mode(dropna)
         expected3 = Series(expected3, dtype=str)
         tm.assert_series_equal(result, expected3)
@@ -1944,6 +1963,15 @@ class TestMode(object):
         tm.assert_series_equal(result, expected)
 
 
+def assert_check_nselect_boundary(vals, dtype, method):
+    # helper function for 'test_boundary_{dtype}' tests
+    s = Series(vals, dtype=dtype)
+    result = getattr(s, method)(3)
+    expected_idxr = [0, 1, 2] if method == 'nsmallest' else [3, 2, 1]
+    expected = s.loc[expected_idxr]
+    tm.assert_series_equal(result, expected)
+
+
 class TestNLargestNSmallest(object):
 
     @pytest.mark.parametrize(
@@ -2026,6 +2054,43 @@ class TestNLargestNSmallest(object):
 
         result = s.nsmallest(n)
         expected = s.sort_values().head(n)
+        assert_series_equal(result, expected)
+
+    def test_boundary_integer(self, nselect_method, any_int_dtype):
+        # GH 21426
+        dtype_info = np.iinfo(any_int_dtype)
+        min_val, max_val = dtype_info.min, dtype_info.max
+        vals = [min_val, min_val + 1, max_val - 1, max_val]
+        assert_check_nselect_boundary(vals, any_int_dtype, nselect_method)
+
+    def test_boundary_float(self, nselect_method, float_dtype):
+        # GH 21426
+        dtype_info = np.finfo(float_dtype)
+        min_val, max_val = dtype_info.min, dtype_info.max
+        min_2nd, max_2nd = np.nextafter(
+            [min_val, max_val], 0, dtype=float_dtype)
+        vals = [min_val, min_2nd, max_2nd, max_val]
+        assert_check_nselect_boundary(vals, float_dtype, nselect_method)
+
+    @pytest.mark.parametrize('dtype', ['datetime64[ns]', 'timedelta64[ns]'])
+    def test_boundary_datetimelike(self, nselect_method, dtype):
+        # GH 21426
+        # use int64 bounds and +1 to min_val since true minimum is NaT
+        # (include min_val/NaT at end to maintain same expected_idxr)
+        dtype_info = np.iinfo('int64')
+        min_val, max_val = dtype_info.min, dtype_info.max
+        vals = [min_val + 1, min_val + 2, max_val - 1, max_val, min_val]
+        assert_check_nselect_boundary(vals, dtype, nselect_method)
+
+    def test_duplicate_keep_all_ties(self):
+        # see gh-16818
+        s = Series([10, 9, 8, 7, 7, 7, 7, 6])
+        result = s.nlargest(4, keep='all')
+        expected = Series([10, 9, 8, 7, 7, 7, 7])
+        assert_series_equal(result, expected)
+
+        result = s.nsmallest(2, keep='all')
+        expected = Series([6, 7, 7, 7, 7], index=[7, 3, 4, 5, 6])
         assert_series_equal(result, expected)
 
 

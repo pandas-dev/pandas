@@ -656,22 +656,27 @@ class TestMultiIndex(Base):
         # With .set_names()
         tm.assert_raises_regex(TypeError, message, mi.set_names, names=renamed)
 
-    @pytest.mark.parametrize('names', [['a', 'b', 'a'], ['1', '1', '2'],
-                                       ['1', 'a', '1']])
+    @pytest.mark.parametrize('names', [['a', 'b', 'a'], [1, 1, 2],
+                                       [1, 'a', 1]])
     def test_duplicate_level_names(self, names):
-        # GH18872
-        pytest.raises(ValueError, pd.MultiIndex.from_product,
-                      [[0, 1]] * 3, names=names)
+        # GH18872, GH19029
+        mi = pd.MultiIndex.from_product([[0, 1]] * 3, names=names)
+        assert mi.names == names
 
         # With .rename()
         mi = pd.MultiIndex.from_product([[0, 1]] * 3)
-        tm.assert_raises_regex(ValueError, "Duplicated level name:",
-                               mi.rename, names)
+        mi = mi.rename(names)
+        assert mi.names == names
 
         # With .rename(., level=)
-        mi.rename(names[0], level=1, inplace=True)
-        tm.assert_raises_regex(ValueError, "Duplicated level name:",
-                               mi.rename, names[:2], level=[0, 2])
+        mi.rename(names[1], level=1, inplace=True)
+        mi = mi.rename([names[0], names[2]], level=[0, 2])
+        assert mi.names == names
+
+    def test_duplicate_level_names_access_raises(self):
+        self.index.names = ['foo', 'foo']
+        tm.assert_raises_regex(KeyError, 'Level foo not found',
+                               self.index._get_level_number, 'foo')
 
     def assert_multiindex_copied(self, copy, original):
         # Levels should be (at least, shallow copied)
@@ -1182,12 +1187,12 @@ class TestMultiIndex(Base):
                     ('baz', 'two'), ('qux', 'one'), ('qux', 'two')]
         assert result == expected
 
-    def test_legacy_pickle(self):
+    def test_legacy_pickle(self, datapath):
         if PY3:
             pytest.skip("testing for legacy pickles not "
                         "support on py3")
 
-        path = tm.get_data_path('multiindex_v1.pickle')
+        path = datapath('indexes', 'data', 'multiindex_v1.pickle')
         obj = pd.read_pickle(path)
 
         obj2 = MultiIndex.from_tuples(obj.values)
@@ -1203,10 +1208,10 @@ class TestMultiIndex(Base):
         assert_almost_equal(res, exp)
         assert_almost_equal(exp, exp2)
 
-    def test_legacy_v2_unpickle(self):
+    def test_legacy_v2_unpickle(self, datapath):
 
         # 0.7.3 -> 0.8.0 format manage
-        path = tm.get_data_path('mindex_073.pickle')
+        path = datapath('indexes', 'data', 'mindex_073.pickle')
         obj = pd.read_pickle(path)
 
         obj2 = MultiIndex.from_tuples(obj.values)
@@ -1673,9 +1678,11 @@ class TestMultiIndex(Base):
         tm.assert_frame_equal(result, expected)
 
     def test_to_hierarchical(self):
+        # GH21613
         index = MultiIndex.from_tuples([(1, 'one'), (1, 'two'), (2, 'one'), (
             2, 'two')])
-        result = index.to_hierarchical(3)
+        with tm.assert_produces_warning(FutureWarning):
+            result = index.to_hierarchical(3)
         expected = MultiIndex(levels=[[1, 2], ['one', 'two']],
                               labels=[[0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
                                       [0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1]])
@@ -1683,7 +1690,8 @@ class TestMultiIndex(Base):
         assert result.names == index.names
 
         # K > 1
-        result = index.to_hierarchical(3, 2)
+        with tm.assert_produces_warning(FutureWarning):
+            result = index.to_hierarchical(3, 2)
         expected = MultiIndex(levels=[[1, 2], ['one', 'two']],
                               labels=[[0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
                                       [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1]])
@@ -1694,8 +1702,8 @@ class TestMultiIndex(Base):
         index = MultiIndex.from_tuples([(2, 'c'), (1, 'b'),
                                         (2, 'a'), (2, 'b')],
                                        names=['N1', 'N2'])
-
-        result = index.to_hierarchical(2)
+        with tm.assert_produces_warning(FutureWarning):
+            result = index.to_hierarchical(2)
         expected = MultiIndex.from_tuples([(2, 'c'), (2, 'c'), (1, 'b'),
                                            (1, 'b'),
                                            (2, 'a'), (2, 'a'),
@@ -3307,3 +3315,20 @@ class TestMultiIndex(Base):
         with pytest.raises(ValueError):
             ind.set_levels([['A', 'B', 'A', 'A', 'B'], [2, 1, 3, -2, 5]],
                            inplace=True)
+
+    def test_multiindex_compare(self):
+        # GH 21149
+        # Ensure comparison operations for MultiIndex with nlevels == 1
+        # behave consistently with those for MultiIndex with nlevels > 1
+
+        midx = pd.MultiIndex.from_product([[0, 1]])
+
+        # Equality self-test: MultiIndex object vs self
+        expected = pd.Series([True, True])
+        result = pd.Series(midx == midx)
+        tm.assert_series_equal(result, expected)
+
+        # Greater than comparison: MultiIndex object vs self
+        expected = pd.Series([False, False])
+        result = pd.Series(midx > midx)
+        tm.assert_series_equal(result, expected)
