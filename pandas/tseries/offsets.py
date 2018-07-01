@@ -311,25 +311,6 @@ class DateOffset(BaseOffset):
     def name(self):
         return self.rule_code
 
-    def __add__(self, other):
-        if isinstance(other, (ABCDatetimeIndex, ABCSeries)):
-            return other + self
-        elif isinstance(other, ABCPeriod):
-            return other + self
-        try:
-            return self.apply(other)
-        except ApplyTypeError:
-            return NotImplemented
-
-    def __sub__(self, other):
-        if isinstance(other, datetime):
-            raise TypeError('Cannot subtract datetime from offset.')
-        elif type(other) == type(self):
-            return self.__class__(self.n - other.n, normalize=self.normalize,
-                                  **self.kwds)
-        else:  # pragma: no cover
-            return NotImplemented
-
     def rollback(self, dt):
         """Roll provided date backward to next offset only if not on offset"""
         dt = as_timestamp(dt)
@@ -2129,7 +2110,7 @@ def _tick_comp(op):
     return f
 
 
-class Tick(SingleConstructorOffset):
+class Tick(liboffsets._Tick, SingleConstructorOffset):
     _inc = Timedelta(microseconds=1000)
     _prefix = 'undefined'
     _attributes = frozenset(['n', 'normalize'])
