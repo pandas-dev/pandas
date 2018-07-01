@@ -332,7 +332,6 @@ cdef inline bint _parse_today_now(str val, int64_t* iresult):
     return False
 
 
-
 cpdef array_with_unit_to_datetime(ndarray values, unit, errors='coerce'):
     """
     convert the ndarray according to the unit
