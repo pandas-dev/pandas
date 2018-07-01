@@ -265,6 +265,7 @@ def test_compression_warning(compression_only):
             with f:
                 df.to_csv(f, compression=compression_only)
 
+
 # GH 21295
 def test_git_version():
     git_version = pd.__git_version__
