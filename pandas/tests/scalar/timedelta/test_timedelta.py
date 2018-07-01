@@ -106,7 +106,7 @@ class TestTimedeltaComparison(object):
         expected = np.array([False, False])
         tm.assert_numpy_array_equal(result, expected)
 
-    def test_custom_comparison_object(self):
+    def test_compare_custom_object(self):
         # GH20829
         class CustomClass(object):
 
@@ -142,7 +142,7 @@ class TestTimedeltaComparison(object):
                                comparisons of different types")
     @pytest.mark.parametrize("val", [
         "string", 1])
-    def test_raise_comparisons_unknown_types(self, val):
+    def test_compare_unknown_type(self, val):
         # GH20829
         t = Timedelta('1s')
         with pytest.raises(TypeError):
