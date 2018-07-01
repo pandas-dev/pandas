@@ -88,8 +88,6 @@ class TestClipboard(object):
         tm.assert_frame_equal(data, result, check_dtype=False)
 
     # Test that default arguments copy as tab delimited
-    @pytest.mark.xfail(reason='to_clipboard defaults to space delim. '
-                       'Issue in #21104, Fixed in #21111')
     def test_round_trip_frame(self, df):
         self.check_round_trip_frame(df)
 
@@ -99,10 +97,6 @@ class TestClipboard(object):
         self.check_round_trip_frame(df, sep=sep)
 
     # Test white space separator
-    @pytest.mark.xfail(reason="Fails on 'delims' df because quote escapes "
-                       "aren't handled correctly in default c engine. Fixed "
-                       "in #21111 by defaulting to python engine for "
-                       "whitespace separator")
     def test_round_trip_frame_string(self, df):
         df.to_clipboard(excel=False, sep=None)
         result = read_clipboard()
@@ -111,21 +105,17 @@ class TestClipboard(object):
 
     # Two character separator is not supported in to_clipboard
     # Test that multi-character separators are not silently passed
-    @pytest.mark.xfail(reason="Not yet implemented.  Fixed in #21111")
     def test_excel_sep_warning(self, df):
         with tm.assert_produces_warning():
             df.to_clipboard(excel=True, sep=r'\t')
 
     # Separator is ignored when excel=False and should produce a warning
-    @pytest.mark.xfail(reason="Not yet implemented.  Fixed in #21111")
     def test_copy_delim_warning(self, df):
         with tm.assert_produces_warning():
             df.to_clipboard(excel=False, sep='\t')
 
     # Tests that the default behavior of to_clipboard is tab
     # delimited and excel="True"
-    @pytest.mark.xfail(reason="to_clipboard defaults to space delim. Issue in "
-                       "#21104, Fixed in #21111")
     @pytest.mark.parametrize('sep', ['\t', None, 'default'])
     @pytest.mark.parametrize('excel', [True, None, 'default'])
     def test_clipboard_copy_tabs_default(self, sep, excel, df):
@@ -139,10 +129,6 @@ class TestClipboard(object):
             assert clipboard_get() == df.to_csv(sep='\t')
 
     # Tests reading of white space separated tables
-    @pytest.mark.xfail(reason="Fails on 'delims' df because quote escapes "
-                       "aren't handled correctly. in default c engine. Fixed "
-                       "in #21111 by defaulting to python engine for "
-                       "whitespace separator")
     @pytest.mark.parametrize('sep', [None, 'default'])
     @pytest.mark.parametrize('excel', [False])
     def test_clipboard_copy_strings(self, sep, excel, df):
@@ -193,8 +179,6 @@ class TestClipboard(object):
         with pytest.raises(NotImplementedError):
             pd.read_clipboard(encoding='ascii')
 
-    @pytest.mark.xfail(reason='to_clipboard defaults to space delim. '
-                       'Issue in #21104, Fixed in #21111')
     @pytest.mark.parametrize('enc', ['UTF-8', 'utf-8', 'utf8'])
     def test_round_trip_valid_encodings(self, enc, df):
         self.check_round_trip_frame(df, encoding=enc)
