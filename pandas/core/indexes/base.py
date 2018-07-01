@@ -3085,6 +3085,10 @@ class Index(IndexOpsMixin, PandasObject):
         -------
         loc : int if unique index, slice if monotonic index, else mask
 
+        Raises
+        ------
+        KeyError : If key is not in self
+
         Examples
         ---------
         >>> unique_index = pd.Index(list('abc'))
