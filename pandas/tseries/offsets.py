@@ -7,7 +7,7 @@ from pandas.compat import range
 from pandas import compat
 import numpy as np
 
-from pandas.core.dtypes.generic import ABCSeries, ABCDatetimeIndex, ABCPeriod
+from pandas.core.dtypes.generic import ABCPeriod
 from pandas.core.tools.datetimes import to_datetime
 import pandas.core.common as com
 
