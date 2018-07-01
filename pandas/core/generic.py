@@ -7836,7 +7836,8 @@ class NDFrame(PandasObject, SelectionMixin):
         2016-06-13        6     B
 
         For the groups compute the difference between current `myvalue` and
-        `myvalue` shifted forward by 1 day
+        `myvalue` shifted forward by 1 day.
+
         If the dataframe is shifted without passing a freq argument than the
         values simply move down
 
