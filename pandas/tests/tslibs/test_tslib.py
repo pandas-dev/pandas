@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Tests for functions from pandas._libs.tslibs"""
 
-from datetime import datetime, datetime
+from datetime import datetime, date
 
 from pandas._libs import tslib
 
