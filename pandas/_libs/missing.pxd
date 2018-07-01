@@ -2,7 +2,6 @@
 # cython: profile=False
 
 from tslibs.nattype cimport is_null_datetimelike
-# pass-through so other modules can cimport is_null_datetimelike from  here
 
 cpdef bint checknull(object val)
 cpdef bint checknull_old(object val)
