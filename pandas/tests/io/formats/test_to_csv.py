@@ -302,6 +302,7 @@ $1$,$2$
         assert not sys.stdout.closed
 
     def test_to_csv_write_to_open_file(self):
+        # GH 21696
         df = pd.DataFrame({'a': ['x', 'y', 'z']})
         expected = '''\
 manual header
