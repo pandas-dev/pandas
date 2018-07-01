@@ -511,8 +511,10 @@ class BaseOffset(_BaseOffset):
 
 
 class _Tick(object):
-    # dummy class to mix into tseries.Tick so that in tslibs.period we can
-    # do isinstance checks on _Tick and avoid importing tseries.offsets
+    """
+    dummy class to mix into tseries.offsets.Tick so that in tslibs.period we
+    can do isinstance checks on _Tick and avoid importing tseries.offsets
+    """
     pass
 
 
