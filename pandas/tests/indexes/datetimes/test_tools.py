@@ -7,7 +7,7 @@ import calendar
 import dateutil
 import numpy as np
 from dateutil.parser import parse
-from datetime import datetime, date, time
+from datetime import datetime, time
 from distutils.version import LooseVersion
 
 import pandas as pd
@@ -1286,8 +1286,7 @@ class TestDatetimeParsingWrappers(object):
         '2005-11-09 08H': datetime(2005, 11, 9, 8, 0),
         '2005/11/09 10:15': datetime(2005, 11, 9, 10, 15),
         '2005/11/09 08H': datetime(2005, 11, 9, 8, 0),
-        "Thu Sep 25 10:36:28 2003": datetime(2003, 9, 25, 10,
-                                                      36, 28),
+        "Thu Sep 25 10:36:28 2003": datetime(2003, 9, 25, 10, 36, 28),
         "Thu Sep 25 2003": datetime(2003, 9, 25),
         "Sep 25 2003": datetime(2003, 9, 25),
         "January 1 2014": datetime(2014, 1, 1),
@@ -1300,8 +1299,7 @@ class TestDatetimeParsingWrappers(object):
 
         '20010101 12': datetime(2001, 1, 1, 12),
         '20010101 1234': datetime(2001, 1, 1, 12, 34),
-        '20010101 123456': datetime(2001, 1, 1, 12, 34, 56),
-        }.items()))
+        '20010101 123456': datetime(2001, 1, 1, 12, 34, 56)}.items()))
     @pytest.mark.parametrize('cache', [True, False])
     def test_parsers(self, date_str, expected, cache):
 
