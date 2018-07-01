@@ -401,7 +401,7 @@ def pivot(self, index=None, columns=None, values=None):
             if is_list_like(index):
                 cols = [column for column in index]
             else:
-                cols =[index]
+                cols = [index]
             cols.append(columns)
         append = index is None
         indexed = self.set_index(cols, append=append)
