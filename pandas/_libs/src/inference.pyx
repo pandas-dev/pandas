@@ -28,7 +28,7 @@ cdef extern from "numpy/arrayobject.h":
         cdef object fields
         cdef tuple names
 
-from missing cimport is_null_datetime64,is_null_timedelta64, is_null_period
+from missing cimport is_null_datetime64, is_null_timedelta64, is_null_period
 
 from util cimport UINT8_MAX, UINT64_MAX, INT64_MAX, INT64_MIN
 
