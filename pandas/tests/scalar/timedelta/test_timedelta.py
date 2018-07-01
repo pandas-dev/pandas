@@ -44,7 +44,7 @@ class TestTimedeltaArithmetic(object):
                 left + right
 
             # GH 20829: python 2 comparison naturally does not raise TypeError
-            if sys.version_info >= (3, 0):
+            if compat.PY3:
                 with pytest.raises(TypeError):
                     left > right
 
@@ -137,22 +137,22 @@ class TestTimedeltaComparison(object):
 
         assert t == CustomClass(cmp_result=True)
 
+    @pytest.mark.skipif(compat.PY2,
+                        reason="python 2 does not raise TypeError for \
+                               comparisons of different types")
     @pytest.mark.parametrize("val", [
         "string", 1])
     def test_raise_comparisons_unknown_types(self, val):
         # GH20829
         t = Timedelta('1s')
-        if sys.version_info >= (3, 0):
-            # python 2 does not raises TypeError for comparisons
-            # of different types
-            with pytest.raises(TypeError):
-                t >= val
-            with pytest.raises(TypeError):
-                t > val
-            with pytest.raises(TypeError):
-                t <= val
-            with pytest.raises(TypeError):
-                t < val
+        with pytest.raises(TypeError):
+            t >= val
+        with pytest.raises(TypeError):
+            t > val
+        with pytest.raises(TypeError):
+            t <= val
+        with pytest.raises(TypeError):
+            t < val
 
 
 class TestTimedeltas(object):
