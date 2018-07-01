@@ -368,6 +368,7 @@ class _BaseOffset(object):
         if getattr(other, "_typ", None) in ["datetimeindex",
                                             "series", "period"]:
             # defer to the other class's implementation
+            return other + self
         try:
             return self.apply(other)
         except ApplyTypeError:
