@@ -242,7 +242,7 @@ class TestTimestampUnaryOps(object):
         # GH#18319 check that 1) timezone is correctly normalized and
         # 2) that hour is not incorrectly changed by this normalization
         ts_naive = Timestamp('2017-12-03 16:03:30')
-        ts_aware = tslib._localize_pydatetime(ts_naive, tz)
+        ts_aware = tslib.localize_pydatetime(ts_naive, tz)
 
         # Preliminary sanity-check
         assert ts_aware == normalize(ts_aware)

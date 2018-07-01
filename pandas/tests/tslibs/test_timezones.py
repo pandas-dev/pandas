@@ -51,17 +51,17 @@ def test_infer_tz(eastern, localize):
     end = localize(eastern, end_naive)
 
     assert (timezones.infer_tzinfo(start, end) is
-            tslib._localize_pydatetime(start_naive, eastern).tzinfo)
+            tslib.localize_pydatetime(start_naive, eastern).tzinfo)
     assert (timezones.infer_tzinfo(start, None) is
-            tslib._localize_pydatetime(start_naive, eastern).tzinfo)
+            tslib.localize_pydatetime(start_naive, eastern).tzinfo)
     assert (timezones.infer_tzinfo(None, end) is
-            tslib._localize_pydatetime(end_naive, eastern).tzinfo)
+            tslib.localize_pydatetime(end_naive, eastern).tzinfo)
 
     start = utc.localize(start_naive)
     end = utc.localize(end_naive)
     assert timezones.infer_tzinfo(start, end) is utc
 
-    end = tslib._localize_pydatetime(end_naive, eastern)
+    end = tslib.localize_pydatetime(end_naive, eastern)
     with pytest.raises(Exception):
         timezones.infer_tzinfo(start, end)
     with pytest.raises(Exception):

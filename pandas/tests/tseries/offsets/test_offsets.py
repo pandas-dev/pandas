@@ -319,7 +319,7 @@ class TestCommon(Base):
         for tz in self.timezones:
             expected_localize = expected.tz_localize(tz)
             tz_obj = timezones.maybe_get_tz(tz)
-            dt_tz = tslib._localize_pydatetime(dt, tz_obj)
+            dt_tz = tslib.localize_pydatetime(dt, tz_obj)
 
             result = func(dt_tz)
             assert isinstance(result, Timestamp)

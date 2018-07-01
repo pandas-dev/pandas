@@ -56,10 +56,7 @@ class TestDatetimeIndexComparisons(object):
             if isinstance(other, np.datetime64):
                 # no tzaware version available
                 return
-            elif isinstance(other, Timestamp):
-                other = other.tz_localize(dti.tzinfo)
-            else:
-                other = tslib._localize_pydatetime(other, dti.tzinfo)
+            other = tslib.localize_pydatetime(other, dti.tzinfo)
 
         result = dti == other
         expected = np.array([True, False])

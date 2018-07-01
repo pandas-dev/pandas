@@ -54,6 +54,7 @@ from tslibs.nattype cimport checknull_with_nat, NPY_NAT
 from tslibs.timestamps cimport (create_timestamp_from_ts,
                                 _NS_UPPER_BOUND, _NS_LOWER_BOUND)
 from tslibs.timestamps import Timestamp
+from tslibs.offsets import localize_pydatetime  # noqa:F841
 
 cdef bint PY2 = str == bytes
 
@@ -232,23 +233,6 @@ def _test_parse_iso8601(object ts):
         return Timestamp(obj.value, tz=obj.tzinfo)
     else:
         return Timestamp(obj.value)
-
-
-cpdef inline object _localize_pydatetime(object dt, object tz):
-    """
-    Take a datetime/Timestamp in UTC and localizes to timezone tz.
-    """
-    if tz is None:
-        return dt
-    elif isinstance(dt, Timestamp):
-        return dt.tz_localize(tz)
-    elif tz == 'UTC' or tz is UTC:
-        return UTC.localize(dt)
-    try:
-        # datetime.replace with pytz may be incorrect result
-        return tz.localize(dt)
-    except AttributeError:
-        return dt.replace(tzinfo=tz)
 
 
 def format_array_from_datetime(ndarray[int64_t] values, object tz=None,

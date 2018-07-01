@@ -911,12 +911,12 @@ class TestDatetimeIndexTimezones(object):
         central = dr.tz_convert(tz)
         assert central.tz is tz
         naive = central[0].to_pydatetime().replace(tzinfo=None)
-        comp = tslib._localize_pydatetime(naive, tz).tzinfo
+        comp = tslib.localize_pydatetime(naive, tz).tzinfo
         assert central[0].tz is comp
 
         # compare vs a localized tz
         naive = dr[0].to_pydatetime().replace(tzinfo=None)
-        comp = tslib._localize_pydatetime(naive, tz).tzinfo
+        comp = tslib.localize_pydatetime(naive, tz).tzinfo
         assert central[0].tz is comp
 
         # datetimes with tzinfo set
@@ -946,7 +946,7 @@ class TestDatetimeIndexTimezones(object):
         dates = [datetime(2000, 1, 1), datetime(2000, 1, 2),
                  datetime(2000, 1, 3)]
 
-        dates_aware = [tslib._localize_pydatetime(x, tz) for x in dates]
+        dates_aware = [tslib.localize_pydatetime(x, tz) for x in dates]
         result = DatetimeIndex(dates_aware)
         assert timezones.tz_compare(result.tz, tz)
 
