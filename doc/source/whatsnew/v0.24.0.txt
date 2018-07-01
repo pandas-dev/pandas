@@ -41,6 +41,7 @@ Other Enhancements
   (:issue:`21627`)
 - New method :meth:`HDFStore.walk` will recursively walk the group hierarchy of an HDF5 file (:issue:`10932`)
 - :meth:`Series.nlargest`, :meth:`Series.nsmallest`, :meth:`DataFrame.nlargest`, and :meth:`DataFrame.nsmallest` now accept the value ``"all"`` for the ``keep` argument. This keeps all ties for the nth largest/smallest value (:issue:`16818`)
+- New method :meth:`__git_version__` will return git commit sha of current build
 -
 
 .. _whatsnew_0240.api_breaking:
