@@ -45,14 +45,13 @@ Other Enhancements
 
 .. _whatsnew_0240.api_breaking:
 
-
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. _whatsnew_0240.api.datetimelike.normalize:
 
 Tick DateOffset Normalize Restrictions
---------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Creating a ``Tick`` object (:class:`Day`, :class:`Hour`, :class:`Minute`,
 :class:`Second`, :class:`Milli`, :class:`Micro`, :class:`Nano`) with
@@ -129,13 +128,6 @@ Previous Behavior:
     In [3]: pi - pi[0]
     Out[3]: Int64Index([0, 1, 2], dtype='int64')
 
-Datetimelike API Changes
-^^^^^^^^^^^^^^^^^^^^^^^^
-
-- For :class:`DatetimeIndex` and :class:`TimedeltaIndex` with non-``None`` ``freq`` attribute, addition or subtraction of integer-dtyped array or ``Index`` will return an object of the same class (:issue:`19959`)
-- :class:`DateOffset` objects are now immutable. Attempting to alter one of these will now raise ``AttributeError`` (:issue:`21341`)
-- :class:`PeriodIndex` subtraction of another ``PeriodIndex`` will now return an object-dtype :class:`Index` of :class:`DateOffset` objects instead of raising a ``TypeError`` (:issue:`20049`)
-
 .. _whatsnew_0240.api.extension:
 
 ExtensionType Changes
@@ -154,10 +146,10 @@ ExtensionType Changes
 Other API Changes
 ^^^^^^^^^^^^^^^^^
 
-.. _whatsnew_0240.api.other.incompatibilities:
+.. _whatsnew_0240.api.incompatibilities:
 
 Series and Index Data-Dtype Incompatibilities
----------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``Series`` and ``Index`` constructors now raise when the
 data is incompatible with a passed ``dtype=`` (:issue:`15832`)
@@ -179,6 +171,18 @@ Current Behavior:
     Out [4]:
     ...
     OverflowError: Trying to coerce negative values to unsigned integers
+
+Datetimelike API Changes
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+- For :class:`DatetimeIndex` and :class:`TimedeltaIndex` with non-``None`` ``freq`` attribute, addition or subtraction of integer-dtyped array or ``Index`` will return an object of the same class (:issue:`19959`)
+- :class:`DateOffset` objects are now immutable. Attempting to alter one of these will now raise ``AttributeError`` (:issue:`21341`)
+- :class:`PeriodIndex` subtraction of another ``PeriodIndex`` will now return an object-dtype :class:`Index` of :class:`DateOffset` objects instead of raising a ``TypeError`` (:issue:`20049`)
+
+.. _whatsnew_0240.api.other:
+
+Other API Changes
+^^^^^^^^^^^^^^^^^
 
 - :class:`DatetimeIndex` now accepts :class:`Int64Index` arguments as epoch timestamps (:issue:`20997`)
 - Invalid construction of ``IntervalDtype`` will now always raise a ``TypeError`` rather than a ``ValueError`` if the subdtype is invalid (:issue:`21185`)
