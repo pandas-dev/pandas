@@ -10,7 +10,6 @@ import numpy as np
 from dateutil.tz import tzoffset
 
 import pandas.util.testing as tm
-from pandas._libs import tslib
 from pandas._libs.tslibs import timezones, conversion
 from pandas.compat import lrange
 from pandas.core.indexes.datetimes import date_range
