@@ -17,6 +17,7 @@ from pandas.core.dtypes.common import (
     is_categorical_dtype,
     is_object_dtype,
     is_hashable,
+    is_integer,
     is_iterator,
     is_list_like,
     pandas_dtype,
@@ -756,13 +757,13 @@ class MultiIndex(Index):
 
     def _get_level_number(self, level):
         count = self.names.count(level)
-        if (count > 1) and not isinstance(level, int):
+        if (count > 1) and not is_integer(level):
             raise ValueError('The name %s occurs multiple times, use a '
                              'level number' % level)
         try:
             level = self.names.index(level)
         except ValueError:
-            if not isinstance(level, int):
+            if not is_integer(level):
                 raise KeyError('Level %s not found' % str(level))
             elif level < 0:
                 level += self.nlevels
