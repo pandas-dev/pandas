@@ -244,3 +244,12 @@ class TestGroupby(BaseJSON, base.BaseGroupbyTests):
         super(TestGroupby, self).test_groupby_extension_agg(
             as_index, data_for_grouping
         )
+
+
+class TestArithmeticOps(BaseJSON, base.BaseArithmeticOpsTests):
+    def test_error(self, data, all_arithmetic_operators):
+        pass
+
+
+class TestComparisonOps(BaseJSON, base.BaseComparisonOpsTests):
+    pass

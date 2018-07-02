@@ -10,6 +10,22 @@ New features
 
 - ``ExcelWriter`` now accepts ``mode`` as a keyword argument, enabling append to existing workbooks when using the ``openpyxl`` engine (:issue:`3441`)
 
+.. _whatsnew_0240.enhancements.extension_array_operators
+
+``ExtensionArray`` operator support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+A ``Series`` based on an ``ExtensionArray`` now supports arithmetic and comparison
+operators. (:issue:`19577`). There are two approaches for providing operator support for an ``ExtensionArray``:
+
+1. Define each of the operators on your ``ExtensionArray`` subclass.
+2. Use an operator implementation from pandas that depends on operators that are already defined
+   on the underlying elements (scalars) of the ``ExtensionArray``.
+
+See the :ref:`ExtensionArray Operator Support
+<extending.extension.operator>` documentation section for details on both
+ways of adding operator support.
+
 .. _whatsnew_0240.enhancements.other:
 
 Other Enhancements
@@ -118,6 +134,7 @@ Datetimelike API Changes
 
 - For :class:`DatetimeIndex` and :class:`TimedeltaIndex` with non-``None`` ``freq`` attribute, addition or subtraction of integer-dtyped array or ``Index`` will return an object of the same class (:issue:`19959`)
 - :class:`DateOffset` objects are now immutable. Attempting to alter one of these will now raise ``AttributeError`` (:issue:`21341`)
+- :class:`PeriodIndex` subtraction of another ``PeriodIndex`` will now return an object-dtype :class:`Index` of :class:`DateOffset` objects instead of raising a ``TypeError`` (:issue:`20049`)
 
 .. _whatsnew_0240.api.extension:
 
@@ -127,6 +144,7 @@ ExtensionType Changes
 - ``ExtensionDtype`` has gained the ability to instantiate from string dtypes, e.g. ``decimal`` would instantiate a registered ``DecimalDtype``; furthermore
   the ``ExtensionDtype`` has gained the method ``construct_array_type`` (:issue:`21185`)
 - The ``ExtensionArray`` constructor, ``_from_sequence`` now take the keyword arg ``copy=False`` (:issue:`21185`)
+- Bug in :meth:`Series.get` for ``Series`` using ``ExtensionArray`` and integer index (:issue:`21257`)
 - :meth:`Series.combine()` works correctly with :class:`~pandas.api.extensions.ExtensionArray` inside of :class:`Series` (:issue:`20825`)
 - :meth:`Series.combine()` with scalar argument now works for any function type (:issue:`21248`)
 -

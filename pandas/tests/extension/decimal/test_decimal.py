@@ -201,3 +201,64 @@ def test_dataframe_constructor_with_different_dtype_raises():
     xpr = "Cannot coerce extension array to dtype 'int64'. "
     with tm.assert_raises_regex(ValueError, xpr):
         pd.DataFrame({"A": arr}, dtype='int64')
+
+
+class TestArithmeticOps(BaseDecimal, base.BaseArithmeticOpsTests):
+
+    def check_opname(self, s, op_name, other, exc=None):
+        super(TestArithmeticOps, self).check_opname(s, op_name,
+                                                    other, exc=None)
+
+    def test_arith_array(self, data, all_arithmetic_operators):
+        op_name = all_arithmetic_operators
+        s = pd.Series(data)
+
+        context = decimal.getcontext()
+        divbyzerotrap = context.traps[decimal.DivisionByZero]
+        invalidoptrap = context.traps[decimal.InvalidOperation]
+        context.traps[decimal.DivisionByZero] = 0
+        context.traps[decimal.InvalidOperation] = 0
+
+        # Decimal supports ops with int, but not float
+        other = pd.Series([int(d * 100) for d in data])
+        self.check_opname(s, op_name, other)
+
+        if "mod" not in op_name:
+            self.check_opname(s, op_name, s * 2)
+
+        self.check_opname(s, op_name, 0)
+        self.check_opname(s, op_name, 5)
+        context.traps[decimal.DivisionByZero] = divbyzerotrap
+        context.traps[decimal.InvalidOperation] = invalidoptrap
+
+    @pytest.mark.skip(reason="divmod not appropriate for decimal")
+    def test_divmod(self, data):
+        pass
+
+    def test_error(self):
+        pass
+
+
+class TestComparisonOps(BaseDecimal, base.BaseComparisonOpsTests):
+
+    def check_opname(self, s, op_name, other, exc=None):
+        super(TestComparisonOps, self).check_opname(s, op_name,
+                                                    other, exc=None)
+
+    def _compare_other(self, s, data, op_name, other):
+        self.check_opname(s, op_name, other)
+
+    def test_compare_scalar(self, data, all_compare_operators):
+        op_name = all_compare_operators
+        s = pd.Series(data)
+        self._compare_other(s, data, op_name, 0.5)
+
+    def test_compare_array(self, data, all_compare_operators):
+        op_name = all_compare_operators
+        s = pd.Series(data)
+
+        alter = np.random.choice([-1, 0, 1], len(data))
+        # Randomly double, halve or keep same value
+        other = pd.Series(data) * [decimal.Decimal(pow(2.0, i))
+                                   for i in alter]
+        self._compare_other(s, data, op_name, other)

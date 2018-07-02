@@ -61,7 +61,7 @@ Extension Types
 
 .. warning::
 
-   The :class:`pandas.api.extension.ExtensionDtype` and :class:`pandas.api.extension.ExtensionArray` APIs are new and
+   The :class:`pandas.api.extensions.ExtensionDtype` and :class:`pandas.api.extensions.ExtensionArray` APIs are new and
    experimental. They may change between versions without warning.
 
 Pandas defines an interface for implementing data types and arrays that *extend*
@@ -79,10 +79,10 @@ on :ref:`ecosystem.extensions`.
 
 The interface consists of two classes.
 
-:class:`~pandas.api.extension.ExtensionDtype`
+:class:`~pandas.api.extensions.ExtensionDtype`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A :class:`pandas.api.extension.ExtensionDtype` is similar to a ``numpy.dtype`` object. It describes the
+A :class:`pandas.api.extensions.ExtensionDtype` is similar to a ``numpy.dtype`` object. It describes the
 data type. Implementors are responsible for a few unique items like the name.
 
 One particularly important item is the ``type`` property. This should be the
@@ -99,9 +99,8 @@ example ``'category'`` is a registered string accessor for the ``CategoricalDtyp
 
 See the `extension dtype dtypes`_ for more on how to register dtypes.
 
-
-:class:`~pandas.api.extension.ExtensionArray`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+:class:`~pandas.api.extensions.ExtensionArray`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This class provides all the array-like functionality. ExtensionArrays are
 limited to 1 dimension. An ExtensionArray is linked to an ExtensionDtype via the
@@ -121,6 +120,54 @@ by some other storage type, like Python lists.
 
 See the `extension array source`_ for the interface definition. The docstrings
 and comments contain guidance for properly implementing the interface.
+
+.. _extending.extension.operator:
+
+:class:`~pandas.api.extensions.ExtensionArray` Operator Support
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. versionadded:: 0.24.0
+
+By default, there are no operators defined for the class :class:`~pandas.api.extensions.ExtensionArray`.
+There are two approaches for providing operator support for your ExtensionArray:
+
+1. Define each of the operators on your ``ExtensionArray`` subclass.
+2. Use an operator implementation from pandas that depends on operators that are already defined
+   on the underlying elements (scalars) of the ExtensionArray.
+
+For the first approach, you define selected operators, e.g., ``__add__``, ``__le__``, etc. that
+you want your ``ExtensionArray`` subclass to support.
+
+The second approach assumes that the underlying elements (i.e., scalar type) of the ``ExtensionArray``
+have the individual operators already defined.  In other words, if your ``ExtensionArray``
+named ``MyExtensionArray`` is implemented so that each element is an instance
+of the class ``MyExtensionElement``, then if the operators are defined
+for ``MyExtensionElement``, the second approach will automatically
+define the operators for ``MyExtensionArray``.
+
+A mixin class, :class:`~pandas.api.extensions.ExtensionScalarOpsMixin` supports this second
+approach.  If developing an ``ExtensionArray`` subclass, for example ``MyExtensionArray``,
+can simply include ``ExtensionScalarOpsMixin`` as a parent class of ``MyExtensionArray``,
+and then call the methods :meth:`~MyExtensionArray._add_arithmetic_ops` and/or
+:meth:`~MyExtensionArray._add_comparison_ops` to hook the operators into
+your ``MyExtensionArray`` class, as follows:
+
+.. code-block:: python
+
+    class MyExtensionArray(ExtensionArray, ExtensionScalarOpsMixin):
+        pass
+
+    MyExtensionArray._add_arithmetic_ops()
+    MyExtensionArray._add_comparison_ops()
+
+Note that since ``pandas`` automatically calls the underlying operator on each
+element one-by-one, this might not be as performant as implementing your own
+version of the associated operators directly on the ``ExtensionArray``.
+
+.. _extending.extension.testing:
+
+Testing Extension Arrays
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 We provide a test suite for ensuring that your extension arrays satisfy the expected
 behavior. To use the test suite, you must provide several pytest fixtures and inherit
