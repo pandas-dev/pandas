@@ -5,9 +5,13 @@ cimport cython
 from cython cimport Py_ssize_t
 
 import time
-from cpython.datetime cimport datetime, timedelta, time as dt_time
+from cpython.datetime cimport (PyDateTime_IMPORT, PyDateTime_CheckExact,
+                               datetime, timedelta,
+                               time as dt_time)
+PyDateTime_IMPORT
 
 from dateutil.relativedelta import relativedelta
+from pytz import UTC
 
 import numpy as np
 cimport numpy as cnp
@@ -19,7 +23,7 @@ from util cimport is_string_object, is_integer_object
 
 from ccalendar import MONTHS, DAYS
 from ccalendar cimport get_days_in_month, dayofweek
-from conversion cimport tz_convert_single, pydt_to_i8
+from conversion cimport tz_convert_single, pydt_to_i8, localize_pydatetime
 from frequencies cimport get_freq_code
 from nattype cimport NPY_NAT
 from np_datetime cimport (pandas_datetimestruct,
@@ -520,6 +524,31 @@ class _Tick(object):
 
 # ----------------------------------------------------------------------
 # RelativeDelta Arithmetic
+
+cpdef datetime shift_day(datetime other, int days):
+    """
+    Increment the datetime `other` by the given number of days, retaining
+    the time-portion of the datetime.  For tz-naive datetimes this is
+    equivalent to adding a timedelta.  For tz-aware datetimes it is similar to
+    dateutil's relativedelta.__add__, but handles pytz tzinfo objects.
+
+    Parameters
+    ----------
+    other : datetime or Timestamp
+    days : int
+
+    Returns
+    -------
+    shifted: datetime or Timestamp
+    """
+    if other.tzinfo is None:
+        return other + timedelta(days=days)
+
+    tz = other.tzinfo
+    naive = other.replace(tzinfo=None)
+    shifted = naive + timedelta(days=days)
+    return localize_pydatetime(shifted, tz)
+
 
 cdef inline int year_add_months(pandas_datetimestruct dts, int months) nogil:
     """new year number after shifting pandas_datetimestruct number of months"""

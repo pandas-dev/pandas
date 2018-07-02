@@ -36,8 +36,6 @@ cdef extern from "../src/datetime/np_datetime.h":
 cimport util
 from util cimport is_period_object, is_string_object, INT32_MIN
 
-from pandas._libs.missing cimport is_null_datetimelike
-
 from timestamps import Timestamp
 from timezones cimport is_utc, is_tzlocal, get_utcoffset, get_dst_info
 from timedeltas cimport delta_to_nanoseconds
@@ -52,7 +50,7 @@ from frequencies cimport (get_freq_code, get_base_alias,
 from parsing import parse_time_string, NAT_SENTINEL
 from resolution import Resolution
 from nattype import nat_strings, NaT, iNaT
-from nattype cimport _nat_scalar_rules, NPY_NAT
+from nattype cimport _nat_scalar_rules, NPY_NAT, is_null_datetimelike
 from offsets cimport to_offset
 from offsets import _Tick
 

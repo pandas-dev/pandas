@@ -235,23 +235,6 @@ def _test_parse_iso8601(object ts):
         return Timestamp(obj.value)
 
 
-cpdef inline object _localize_pydatetime(object dt, object tz):
-    """
-    Take a datetime/Timestamp in UTC and localizes to timezone tz.
-    """
-    if tz is None:
-        return dt
-    elif isinstance(dt, Timestamp):
-        return dt.tz_localize(tz)
-    elif tz == 'UTC' or tz is UTC:
-        return UTC.localize(dt)
-    try:
-        # datetime.replace with pytz may be incorrect result
-        return tz.localize(dt)
-    except AttributeError:
-        return dt.replace(tzinfo=tz)
-
-
 def format_array_from_datetime(ndarray[int64_t] values, object tz=None,
                                object format=None, object na_rep=None):
     """
