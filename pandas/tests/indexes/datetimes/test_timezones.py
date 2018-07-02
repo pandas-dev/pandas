@@ -15,8 +15,7 @@ import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 
 import pandas as pd
-from pandas._libs import tslib
-from pandas._libs.tslibs import timezones
+from pandas._libs.tslibs import timezones, conversion
 from pandas.compat import lrange, zip, PY3
 from pandas import (DatetimeIndex, date_range, bdate_range,
                     Timestamp, isna, to_datetime, Index)
@@ -911,12 +910,12 @@ class TestDatetimeIndexTimezones(object):
         central = dr.tz_convert(tz)
         assert central.tz is tz
         naive = central[0].to_pydatetime().replace(tzinfo=None)
-        comp = tslib._localize_pydatetime(naive, tz).tzinfo
+        comp = conversion.localize_pydatetime(naive, tz).tzinfo
         assert central[0].tz is comp
 
         # compare vs a localized tz
         naive = dr[0].to_pydatetime().replace(tzinfo=None)
-        comp = tslib._localize_pydatetime(naive, tz).tzinfo
+        comp = conversion.localize_pydatetime(naive, tz).tzinfo
         assert central[0].tz is comp
 
         # datetimes with tzinfo set
@@ -946,7 +945,7 @@ class TestDatetimeIndexTimezones(object):
         dates = [datetime(2000, 1, 1), datetime(2000, 1, 2),
                  datetime(2000, 1, 3)]
 
-        dates_aware = [tslib._localize_pydatetime(x, tz) for x in dates]
+        dates_aware = [conversion.localize_pydatetime(x, tz) for x in dates]
         result = DatetimeIndex(dates_aware)
         assert timezones.tz_compare(result.tz, tz)
 
