@@ -550,7 +550,8 @@ ext_data = {
                      '_libs/tslibs/timedeltas',
                      '_libs/tslibs/timestamps',
                      '_libs/tslibs/timezones',
-                     '_libs/tslibs/nattype'],
+                     '_libs/tslibs/nattype',
+                     '_libs/tslibs/offsets'],
         'depends': tseries_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.ccalendar': {
@@ -597,7 +598,8 @@ ext_data = {
                      '_libs/tslibs/ccalendar',
                      '_libs/tslibs/timedeltas',
                      '_libs/tslibs/timezones',
-                     '_libs/tslibs/nattype'],
+                     '_libs/tslibs/nattype',
+                     '_libs/tslibs/offsets'],
         'depends': tseries_depends + ['pandas/_libs/src/period_helper.h'],
         'sources': np_datetime_sources + ['pandas/_libs/src/period_helper.c']},
     '_libs.tslibs.resolution': {
@@ -618,7 +620,8 @@ ext_data = {
     '_libs.tslibs.timedeltas': {
         'pyxfile': '_libs/tslibs/timedeltas',
         'pxdfiles': ['_libs/src/util',
-                     '_libs/tslibs/nattype'],
+                     '_libs/tslibs/nattype',
+                     '_libs/tslibs/offsets'],
         'depends': np_datetime_headers,
         'sources': np_datetime_sources},
     '_libs.tslibs.timestamps': {
@@ -627,6 +630,7 @@ ext_data = {
                      '_libs/tslibs/ccalendar',
                      '_libs/tslibs/conversion',
                      '_libs/tslibs/nattype',
+                     '_libs/tslibs/offsets',
                      '_libs/tslibs/timedeltas',
                      '_libs/tslibs/timezones'],
         'depends': tseries_depends,
