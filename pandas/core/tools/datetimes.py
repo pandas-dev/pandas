@@ -289,6 +289,7 @@ def _convert_listlike_datetimes(arg, box, format, name=None, tz=None,
 
 def _adjust_to_origin(arg, origin, unit):
     """
+    Helper function for to_datetime.
     Adjust input argument to the specified origin
 
     Parameters
@@ -532,7 +533,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
 
     tz = 'utc' if utc else None
     convert_listlike = partial(_convert_listlike_datetimes, tz=tz, unit=unit,
-                               dayfirst=dayfirst, yearfirst=dayfirst,
+                               dayfirst=dayfirst, yearfirst=yearfirst,
                                errors=errors, exact=exact,
                                infer_datetime_format=infer_datetime_format)
 
