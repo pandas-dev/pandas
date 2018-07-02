@@ -12,8 +12,8 @@ import numpy as np
 
 import pandas as pd
 
-from pandas import (CategoricalIndex, DataFrame, Index, MultiIndex,
-                    compat, date_range, period_range)
+from pandas import (CategoricalIndex, Categorical, DataFrame, Index,
+                    MultiIndex, compat, date_range, period_range)
 from pandas.compat import PY3, long, lrange, lzip, range, u, PYPY
 from pandas.errors import PerformanceWarning, UnsortedIndexError
 from pandas.core.dtypes.dtypes import CategoricalDtype
@@ -1595,6 +1595,14 @@ class TestMultiIndex(Base):
             midx.get_indexer(['a'], method='nearest')
         with pytest.raises(NotImplementedError):
             midx.get_indexer(['a'], method='pad', tolerance=2)
+
+    def test_get_indexer_categorical_time(self):
+        # https://github.com/pandas-dev/pandas/issues/21390
+        midx = MultiIndex.from_product(
+            [Categorical(['a', 'b', 'c']),
+             Categorical(date_range("2012-01-01", periods=3, freq='H'))])
+        result = midx.get_indexer(midx)
+        tm.assert_numpy_array_equal(result, np.arange(9, dtype=np.intp))
 
     def test_hash_collisions(self):
         # non-smoke test that we don't get hash collisions
