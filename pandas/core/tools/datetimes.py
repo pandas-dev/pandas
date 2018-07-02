@@ -99,9 +99,9 @@ def _convert_and_box_cache(arg, cache_array, box, errors, name=None):
     result = Series(arg).map(cache_array)
     if box:
         if errors == 'ignore':
-            return Index(result, **name)
+            return Index(result, {name : name})
         else:
-            return DatetimeIndex(result, **name)
+            return DatetimeIndex(result, {name : name})
     return result.values
 
 
