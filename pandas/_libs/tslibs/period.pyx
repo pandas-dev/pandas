@@ -15,8 +15,6 @@ from libc.stdlib cimport free, malloc
 from libc.time cimport strftime, tm
 from libc.string cimport strlen, memset
 
-from pandas.compat import PY2
-
 cimport cython
 
 from cpython.datetime cimport (PyDateTime_Check, PyDelta_Check,
@@ -55,9 +53,11 @@ from parsing import parse_time_string, NAT_SENTINEL
 from resolution import Resolution
 from nattype import nat_strings, NaT, iNaT
 from nattype cimport _nat_scalar_rules, NPY_NAT
+from offsets cimport to_offset
 
 from pandas.tseries import offsets
-from pandas.tseries import frequencies
+
+cdef bint PY2 = str == bytes
 
 
 cdef extern from "period_helper.h":
@@ -1015,7 +1015,7 @@ cdef class _Period(object):
             code, stride = get_freq_code(freq)
             freq = get_freq_str(code, stride)
 
-        freq = frequencies.to_offset(freq)
+        freq = to_offset(freq)
 
         if freq.n <= 0:
             raise ValueError('Frequency must be positive, because it'
@@ -1063,7 +1063,7 @@ cdef class _Period(object):
 
         if (PyDelta_Check(other) or util.is_timedelta64_object(other) or
                 isinstance(other, offsets.Tick)):
-            offset = frequencies.to_offset(self.freq.rule_code)
+            offset = to_offset(self.freq.rule_code)
             if isinstance(offset, offsets.Tick):
                 nanos = delta_to_nanoseconds(other)
                 offset_nanos = delta_to_nanoseconds(offset)
@@ -1123,9 +1123,12 @@ cdef class _Period(object):
                 if other.freq != self.freq:
                     msg = _DIFFERENT_FREQ.format(self.freqstr, other.freqstr)
                     raise IncompatibleFrequency(msg)
-                return self.ordinal - other.ordinal
+                return (self.ordinal - other.ordinal) * self.freq
             elif getattr(other, '_typ', None) == 'periodindex':
-                return -other.__sub__(self)
+                # GH#21314 PeriodIndex - Period returns an object-index
+                # of DateOffset objects, for which we cannot use __neg__
+                # directly, so we have to apply it pointwise
+                return other.__sub__(self).map(lambda x: -x)
             else:  # pragma: no cover
                 return NotImplemented
         elif is_period_object(other):
