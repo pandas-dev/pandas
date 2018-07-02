@@ -15,7 +15,7 @@ from pandas import (Timestamp, Timedelta, Series,
                     DatetimeIndex, TimedeltaIndex,
                     date_range)
 from pandas.core import ops
-from pandas._libs import tslib
+from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.offsets import shift_months
 
 
@@ -56,7 +56,7 @@ class TestDatetimeIndexComparisons(object):
             if isinstance(other, np.datetime64):
                 # no tzaware version available
                 return
-            other = tslib.localize_pydatetime(other, dti.tzinfo)
+            other = localize_pydatetime(other, dti.tzinfo)
 
         result = dti == other
         expected = np.array([True, False])

@@ -10,7 +10,7 @@ import pandas.util.testing as tm
 import pandas.util._test_decorators as td
 
 from pandas.compat import PY3
-from pandas._libs import tslib
+from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.frequencies import _INVALID_FREQ_ERROR
 from pandas import Timestamp, NaT
 
@@ -242,7 +242,7 @@ class TestTimestampUnaryOps(object):
         # GH#18319 check that 1) timezone is correctly normalized and
         # 2) that hour is not incorrectly changed by this normalization
         ts_naive = Timestamp('2017-12-03 16:03:30')
-        ts_aware = tslib.localize_pydatetime(ts_naive, tz)
+        ts_aware = conversion.localize_pydatetime(ts_naive, tz)
 
         # Preliminary sanity-check
         assert ts_aware == normalize(ts_aware)

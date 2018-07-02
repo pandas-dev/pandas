@@ -56,7 +56,6 @@ from tslibs.offsets cimport to_offset
 from tslibs.timestamps cimport (create_timestamp_from_ts,
                                 _NS_UPPER_BOUND, _NS_LOWER_BOUND)
 from tslibs.timestamps import Timestamp
-from tslibs.offsets import localize_pydatetime  # noqa:F841
 
 cdef bint PY2 = str == bytes
 

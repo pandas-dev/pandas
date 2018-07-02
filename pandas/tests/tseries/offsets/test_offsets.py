@@ -10,6 +10,7 @@ import numpy as np
 from pandas.compat.numpy import np_datetime64_compat
 
 from pandas.core.series import Series
+from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.frequencies import (get_freq_code, get_freq_str,
                                              _INVALID_FREQ_ERROR)
 from pandas.tseries.frequencies import _offset_map, get_offset
@@ -319,7 +320,7 @@ class TestCommon(Base):
         for tz in self.timezones:
             expected_localize = expected.tz_localize(tz)
             tz_obj = timezones.maybe_get_tz(tz)
-            dt_tz = tslib.localize_pydatetime(dt, tz_obj)
+            dt_tz = conversion.localize_pydatetime(dt, tz_obj)
 
             result = func(dt_tz)
             assert isinstance(result, Timestamp)

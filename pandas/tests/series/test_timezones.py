@@ -11,7 +11,7 @@ from dateutil.tz import tzoffset
 
 import pandas.util.testing as tm
 from pandas._libs import tslib
-from pandas._libs.tslibs import timezones
+from pandas._libs.tslibs import timezones, conversion
 from pandas.compat import lrange
 from pandas.core.indexes.datetimes import date_range
 from pandas import Series, Timestamp, DatetimeIndex, Index
@@ -298,7 +298,7 @@ class TestSeriesTimezones(object):
         time_pandas = Timestamp('2012-12-24 17:00', tz=tzstr)
 
         dt = datetime(2012, 12, 24, 17, 0)
-        time_datetime = tslib.localize_pydatetime(dt, tz)
+        time_datetime = conversion.localize_pydatetime(dt, tz)
         assert ts[time_pandas] == ts[time_datetime]
 
     def test_series_truncate_datetimeindex_tz(self):

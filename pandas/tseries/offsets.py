@@ -16,7 +16,9 @@ from dateutil.easter import easter
 from pandas._libs import tslib, Timestamp, OutOfBoundsDatetime, Timedelta
 from pandas.util._decorators import cache_readonly
 
-from pandas._libs.tslibs import ccalendar, frequencies as libfrequencies
+from pandas._libs.tslibs import (
+    ccalendar, conversion,
+    frequencies as libfrequencies)
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 import pandas._libs.tslibs.offsets as liboffsets
 from pandas._libs.tslibs.offsets import (
@@ -76,7 +78,7 @@ def apply_wraps(func):
             result = func(self, other)
 
             if self._adjust_dst:
-                result = liboffsets.localize_pydatetime(result, tz)
+                result = conversion.localize_pydatetime(result, tz)
 
             result = Timestamp(result)
             if self.normalize:
@@ -94,7 +96,7 @@ def apply_wraps(func):
                     result = Timestamp(value + nano)
 
             if tz is not None and result.tzinfo is None:
-                result = liboffsets.localize_pydatetime(result, tz)
+                result = conversion.localize_pydatetime(result, tz)
 
         except OutOfBoundsDatetime:
             result = func(self, as_datetime(other))
@@ -104,7 +106,7 @@ def apply_wraps(func):
                 result = tslib.normalize_date(result)
 
             if tz is not None and result.tzinfo is None:
-                result = liboffsets.localize_pydatetime(result, tz)
+                result = conversion.localize_pydatetime(result, tz)
 
         return result
     return wrapper
@@ -196,7 +198,7 @@ class DateOffset(BaseOffset):
 
             if tzinfo is not None and self._use_relativedelta:
                 # bring tz back from UTC calculation
-                other = liboffsets.localize_pydatetime(other, tzinfo)
+                other = conversion.localize_pydatetime(other, tzinfo)
 
             return as_timestamp(other)
         else:
@@ -1756,9 +1758,9 @@ class FY5253(DateOffset):
         next_year = self.get_year_end(
             datetime(other.year + 1, self.startingMonth, 1))
 
-        prev_year = liboffsets.localize_pydatetime(prev_year, other.tzinfo)
-        cur_year = liboffsets.localize_pydatetime(cur_year, other.tzinfo)
-        next_year = liboffsets.localize_pydatetime(next_year, other.tzinfo)
+        prev_year = conversion.localize_pydatetime(prev_year, other.tzinfo)
+        cur_year = conversion.localize_pydatetime(cur_year, other.tzinfo)
+        next_year = conversion.localize_pydatetime(next_year, other.tzinfo)
 
         # Note: next_year.year == other.year + 1, so we will always
         # have other < next_year
@@ -2071,7 +2073,7 @@ class Easter(DateOffset):
         current_easter = easter(other.year)
         current_easter = datetime(current_easter.year,
                                   current_easter.month, current_easter.day)
-        current_easter = liboffsets.localize_pydatetime(current_easter,
+        current_easter = conversion.localize_pydatetime(current_easter,
                                                         other.tzinfo)
 
         n = self.n
