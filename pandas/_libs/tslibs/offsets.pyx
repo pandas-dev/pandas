@@ -378,8 +378,8 @@ class _BaseOffset(object):
         if isinstance(other, datetime):
             raise TypeError('Cannot subtract datetime from offset.')
         elif type(other) == type(self):
-            return self.__class__(self.n - other.n, normalize=self.normalize,
-                                  **self.kwds)
+            return type(self)(self.n - other.n, normalize=self.normalize,
+                              **self.kwds)
         else:  # pragma: no cover
             return NotImplemented
 
@@ -387,8 +387,8 @@ class _BaseOffset(object):
         return self.apply(other)
 
     def __mul__(self, other):
-        return self.__class__(n=other * self.n, normalize=self.normalize,
-                              **self.kwds)
+        return type(self)(n=other * self.n, normalize=self.normalize,
+                          **self.kwds)
 
     def __neg__(self):
         # Note: we are defering directly to __mul__ instead of __rmul__, as
