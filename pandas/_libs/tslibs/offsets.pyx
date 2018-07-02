@@ -23,7 +23,7 @@ from util cimport is_string_object, is_integer_object
 
 from ccalendar import MONTHS, DAYS
 from ccalendar cimport get_days_in_month, dayofweek
-from conversion cimport tz_convert_single, pydt_to_i8
+from conversion cimport tz_convert_single, pydt_to_i8, localize_pydatetime
 from frequencies cimport get_freq_code
 from nattype cimport NPY_NAT
 from np_datetime cimport (pandas_datetimestruct,
@@ -497,33 +497,6 @@ class BaseOffset(_BaseOffset):
 
 # ----------------------------------------------------------------------
 # RelativeDelta Arithmetic
-
-cpdef inline datetime localize_pydatetime(datetime dt, object tz):
-    """
-    Take a datetime/Timestamp in UTC and localizes to timezone tz.
-
-    Parameters
-    ----------
-    dt : datetime or Timestamp
-    tz : tzinfo, "UTC", or None
-
-    Returns
-    -------
-    localized : datetime or Timestamp
-    """
-    if tz is None:
-        return dt
-    elif not PyDateTime_CheckExact(dt):
-        # i.e. is a Timestamp
-        return dt.tz_localize(tz)
-    elif tz == 'UTC' or tz is UTC:
-        return UTC.localize(dt)
-    try:
-        # datetime.replace with pytz may be incorrect result
-        return tz.localize(dt)
-    except AttributeError:
-        return dt.replace(tzinfo=tz)
-
 
 cpdef datetime shift_day(datetime other, int days):
     """
