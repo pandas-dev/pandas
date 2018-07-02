@@ -300,6 +300,17 @@ class TestDataFrameMissingData(TestData):
                                   pd.Timestamp('2012-11-11 00:00:00+01:00')]})
         assert_frame_equal(df.fillna(method='bfill'), exp)
 
+        # with timezone in another column
+        # GH 15522
+        df = pd.DataFrame({'A': pd.date_range('20130101', periods=4,
+                                              tz='US/Eastern'),
+                           'B': [1, 2, np.nan, np.nan]})
+        result = df.fillna(method='pad')
+        expected = pd.DataFrame({'A': pd.date_range('20130101', periods=4,
+                                                    tz='US/Eastern'),
+                                 'B': [1., 2., 2., 2.]})
+        assert_frame_equal(result, expected)
+
     def test_na_actions_categorical(self):
 
         cat = Categorical([1, 2, 3, np.nan], categories=[1, 2, 3])
