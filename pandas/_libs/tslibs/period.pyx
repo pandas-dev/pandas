@@ -15,8 +15,6 @@ from libc.stdlib cimport free, malloc
 from libc.time cimport strftime, tm
 from libc.string cimport strlen, memset
 
-from pandas.compat import PY2
-
 cimport cython
 
 from cpython.datetime cimport (PyDateTime_Check, PyDelta_Check,
@@ -58,6 +56,8 @@ from nattype cimport _nat_scalar_rules, NPY_NAT
 from offsets cimport to_offset
 
 from pandas.tseries import offsets
+
+cdef bint PY2 = str == bytes
 
 
 cdef extern from "period_helper.h":
