@@ -565,7 +565,7 @@ cdef inline datetime _localize_pydatetime(datetime dt, tzinfo tz):
     """
     Take a datetime/Timestamp in UTC and localizes to timezone tz.
 
-    NB: Unlike the version in tslib, this treats datetime and Timestamp objects
+    NB: Unlike the public version, this treats datetime and Timestamp objects
         identically, i.e. discards nanos from Timestamps.
         It also assumes that the `tz` input is not None.
     """
@@ -579,6 +579,33 @@ cdef inline datetime _localize_pydatetime(datetime dt, tzinfo tz):
 
 # ----------------------------------------------------------------------
 # Timezone Conversion
+
+cpdef inline datetime localize_pydatetime(datetime dt, object tz):
+    """
+    Take a datetime/Timestamp in UTC and localizes to timezone tz.
+
+    Parameters
+    ----------
+    dt : datetime or Timestamp
+    tz : tzinfo, "UTC", or None
+
+    Returns
+    -------
+    localized : datetime or Timestamp
+    """
+    if tz is None:
+        return dt
+    elif not PyDateTime_CheckExact(dt):
+        # i.e. is a Timestamp
+        return dt.tz_localize(tz)
+    elif tz == 'UTC' or tz is UTC:
+        return UTC.localize(dt)
+    try:
+        # datetime.replace with pytz may be incorrect result
+        return tz.localize(dt)
+    except AttributeError:
+        return dt.replace(tzinfo=tz)
+
 
 cdef inline int64_t tz_convert_tzlocal_to_utc(int64_t val, tzinfo tz):
     """
@@ -1002,7 +1029,7 @@ cdef inline bisect_right_i8(int64_t *data, int64_t val, Py_ssize_t n):
 
 cdef inline str _render_tstamp(int64_t val):
     """ Helper function to render exception messages"""
-    from pandas._libs.tslib import Timestamp
+    from timestamps import Timestamp
     return str(Timestamp(val))
 
 
