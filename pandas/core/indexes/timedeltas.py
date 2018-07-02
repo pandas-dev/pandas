@@ -17,6 +17,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.generic import ABCSeries
 
+from pandas.core.arrays.timedelta import TimedeltaArrayMixin
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.numeric import Int64Index
 import pandas.compat as compat
@@ -96,7 +97,8 @@ def _td_index_cmp(opname, cls):
     return compat.set_function_name(wrapper, opname, cls)
 
 
-class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
+class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
+                     TimelikeOps, Int64Index):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
     which can be boxed to timedelta objects
@@ -310,10 +312,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             index = index[:-1]
 
         return index
-
-    @property
-    def _box_func(self):
-        return lambda x: Timedelta(x, unit='ns')
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, **kwargs):
@@ -905,10 +903,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     @property
     def inferred_type(self):
         return 'timedelta64'
-
-    @property
-    def dtype(self):
-        return _TD_DTYPE
 
     @property
     def is_all_dates(self):
