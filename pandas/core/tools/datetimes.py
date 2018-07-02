@@ -99,7 +99,7 @@ def _convert_and_box_cache(arg, cache_array, box, errors, name=None):
     result = Series(arg).map(cache_array)
     if box:
         if errors == 'ignore':
-            return Index(result)
+            return Index(result, name=name)
         else:
             return DatetimeIndex(result, name=name)
     return result.values
@@ -136,7 +136,7 @@ def _return_parsed_timezone_results(result, timezones, box, tz):
                            in zip(result, timezones)])
     if box:
         from pandas import Index
-        return Index(tz_results)
+        return Index(tz_results, name=name)
     return tz_results
 
 
@@ -341,7 +341,7 @@ def to_datetime(arg, errors='raise', dayfirst=False, yearfirst=False,
             if box:
                 if errors == 'ignore':
                     from pandas import Index
-                    return Index(result)
+                    return Index(result, name=name)
 
                 return DatetimeIndex(result, tz=tz, name=name)
             return result
