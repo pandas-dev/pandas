@@ -1225,7 +1225,7 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         ndarray[int64_t] idatetimes
         ndarray[int64_t] itimedeltas
         Seen seen = Seen()
-        object val, onan
+        object val
         float64_t fval, fnan
 
     n = len(objects)
@@ -1244,7 +1244,6 @@ def maybe_convert_objects(ndarray[object] objects, bint try_float=0,
         timedeltas = np.empty(n, dtype='m8[ns]')
         itimedeltas = timedeltas.view(np.int64)
 
-    onan = np.nan
     fnan = np.nan
 
     for i from 0 <= i < n:
