@@ -59,19 +59,6 @@ Fixed Regressions
 - Bug in :meth:`Timestamp.ceil` and :meth:`Timestamp.floor` when timestamp is a multiple of the rounding frequency (:issue:`21262`)
 - Fixed regression in :func:`to_clipboard` that defaulted to copying dataframes with space delimited instead of tab delimited (:issue:`21104`)
 
-.. _whatsnew_0232.performance:
-
-Performance Improvements
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-- Improved performance of membership checks in :class:`Categorical` and :class:`CategoricalIndex`
-  (i.e. ``x in cat``-style checks are much faster). :meth:`CategoricalIndex.contains`
-  is likewise much faster (:issue:`21369`, :issue:`21508`)
-- Improved performance of :meth:`HDFStore.groups` (and dependent functions like
-  :meth:`~HDFStore.keys`.  (i.e. ``x in store`` checks are much faster)
-  (:issue:`21372`)
-- Improved performance of :meth:`MultiIndex.is_unique` (:issue:`21522`)
--
 
 Documentation Changes
 ~~~~~~~~~~~~~~~~~~~~~
