@@ -51,6 +51,8 @@ from tslibs.conversion import tz_convert_single
 from tslibs.nattype import NaT, nat_strings, iNaT
 from tslibs.nattype cimport checknull_with_nat, NPY_NAT
 
+from tslibs.offsets cimport to_offset
+
 from tslibs.timestamps cimport (create_timestamp_from_ts,
                                 _NS_UPPER_BOUND, _NS_LOWER_BOUND)
 from tslibs.timestamps import Timestamp
@@ -118,7 +120,6 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
         func_create = create_timestamp_from_ts
 
         if is_string_object(freq):
-            from pandas.tseries.frequencies import to_offset
             freq = to_offset(freq)
     elif box == "time":
         func_create = create_time_from_ts

@@ -30,6 +30,7 @@ from nattype cimport NPY_NAT
 from np_datetime import OutOfBoundsDatetime
 from np_datetime cimport (reverse_ops, cmp_scalar, check_dts_bounds,
                           pandas_datetimestruct, dt64_to_dtstruct)
+from offsets cimport to_offset
 from timedeltas import Timedelta
 from timedeltas cimport delta_to_nanoseconds
 from timezones cimport (
@@ -59,7 +60,6 @@ cdef inline object create_timestamp_from_ts(int64_t value,
 
 
 def round_ns(values, rounder, freq):
-
     """
     Applies rounding function at given frequency
 
@@ -73,8 +73,6 @@ def round_ns(values, rounder, freq):
     -------
     :obj:`ndarray`
     """
-
-    from pandas.tseries.frequencies import to_offset
     unit = to_offset(freq).nanos
 
     # GH21262 If the Timestamp is multiple of the freq str
