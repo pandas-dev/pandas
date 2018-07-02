@@ -687,6 +687,36 @@ strings and apply several methods to it. These can be accessed like
        Series.dt
        Index.str
 
+Set handling
+~~~~~~~~~~~~~~~
+``Series.set`` can be used to access the values of the series as
+sets and apply several methods to it. These can be accessed like
+``Series.set.<function/property>``.
+
+.. autosummary::
+   :toctree: generated/
+   :template: autosummary/accessor_method.rst
+
+   Series.set.union
+   Series.set.intersect
+   Series.set.xor
+   Series.set.diff
+   Series.set.len
+
+..
+    The following is needed to ensure the generated pages are created with the
+    correct template (otherwise they would be created in the Series/Index class page)
+
+..
+    .. autosummary::
+       :toctree: generated/
+       :template: autosummary/accessor.rst
+
+       Series.str
+       Series.cat
+       Series.dt
+       Series.set
+
 .. _api.categorical:
 
 Categorical
