@@ -201,6 +201,12 @@ Performance Improvements
 - Improved performance of :func:`Series.describe` in case of numeric dtpyes (:issue:`21274`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.rank` when dealing with tied rankings (:issue:`21237`)
 - Improved performance of :func:`DataFrame.set_index` with columns consisting of :class:`Period` objects (:issue:`21582`,:issue:`21606`)
+- Improved performance of membership checks in :class:`Categorical` and :class:`CategoricalIndex`
+  (i.e. ``x in cat``-style checks are much faster). :meth:`CategoricalIndex.contains`
+  is likewise much faster (:issue:`21369`, :issue:`21508`)
+- Improved performance of :meth:`HDFStore.groups` (and dependent functions like
+  :meth:`~HDFStore.keys`.  (i.e. ``x in store`` checks are much faster)
+  (:issue:`21372`)
 -
 
 .. _whatsnew_0240.docs:
