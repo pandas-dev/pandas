@@ -895,7 +895,7 @@ def extract_ordinals(ndarray[object] values, freq):
                 ordinals[i] = p.ordinal
 
                 if p.freqstr != freqstr:
-                    msg = _DIFFERENT_FREQ_INDEX.format(freqstr, p.freqstr)
+                    msg = DIFFERENT_FREQ_INDEX.format(freqstr, p.freqstr)
                     raise IncompatibleFrequency(msg)
 
             except AttributeError:
@@ -985,8 +985,8 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
 
 
 _DIFFERENT_FREQ = "Input has different freq={1} from Period(freq={0})"
-_DIFFERENT_FREQ_INDEX = ("Input has different freq={1} "
-                         "from PeriodIndex(freq={0})")
+DIFFERENT_FREQ_INDEX = ("Input has different freq={1} "
+                        "from PeriodIndex(freq={0})")
 
 
 class IncompatibleFrequency(ValueError):

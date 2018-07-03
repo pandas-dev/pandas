@@ -142,7 +142,7 @@ def to_offset(freq):
                     else:
                         delta = delta + offset
         except Exception:
-            raise ValueError(libfreqs._INVALID_FREQ_ERROR.format(freq))
+            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
 
     else:
         delta = None
@@ -173,10 +173,10 @@ def to_offset(freq):
                 else:
                     delta = delta + offset
         except Exception:
-            raise ValueError(libfreqs._INVALID_FREQ_ERROR.format(freq))
+            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
 
     if delta is None:
-        raise ValueError(libfreqs._INVALID_FREQ_ERROR.format(freq))
+        raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(freq))
 
     return delta
 
@@ -205,7 +205,7 @@ def get_offset(name):
             offset = klass._from_name(*split[1:])
         except (ValueError, TypeError, KeyError):
             # bad prefix or suffix
-            raise ValueError(libfreqs._INVALID_FREQ_ERROR.format(name))
+            raise ValueError(libfreqs.INVALID_FREQ_ERR_MSG.format(name))
         # cache
         _offset_map[name] = offset
     # do not return cache because it's mutable
