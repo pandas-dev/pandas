@@ -12,7 +12,7 @@ from pandas.compat.numpy import np_datetime64_compat
 from pandas.core.series import Series
 from pandas._libs.tslibs import conversion
 from pandas._libs.tslibs.frequencies import (get_freq_code, get_freq_str,
-                                             _INVALID_FREQ_ERROR)
+                                             INVALID_FREQ_ERR_MSG)
 from pandas.tseries.frequencies import _offset_map, get_offset
 from pandas.core.indexes.datetimes import (
     _to_m8, DatetimeIndex, _daterange_cache)
@@ -2748,9 +2748,9 @@ class TestOffsetNames(object):
 
 
 def test_get_offset():
-    with pytest.raises(ValueError, match=_INVALID_FREQ_ERROR):
+    with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
         get_offset('gibberish')
-    with pytest.raises(ValueError, match=_INVALID_FREQ_ERROR):
+    with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
         get_offset('QS-JAN-B')
 
     pairs = [
@@ -2768,7 +2768,7 @@ def test_get_offset():
 def test_get_offset_legacy():
     pairs = [('w@Sat', Week(weekday=5))]
     for name, expected in pairs:
-        with pytest.raises(ValueError, match=_INVALID_FREQ_ERROR):
+        with pytest.raises(ValueError, match=INVALID_FREQ_ERR_MSG):
             get_offset(name)
 
 
