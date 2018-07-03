@@ -7,7 +7,6 @@ from pandas.core.dtypes.common import (
     _TD_DTYPE,
     is_integer,
     is_float,
-    is_bool_dtype,
     is_list_like,
     is_scalar,
     is_timedelta64_dtype,

@@ -22,7 +22,6 @@ from pandas.core.dtypes.common import (
     is_integer_dtype,
     is_datetime64_ns_dtype, is_datetimelike,
     is_period_dtype,
-    is_bool_dtype,
     is_string_like,
     is_list_like,
     is_scalar,
