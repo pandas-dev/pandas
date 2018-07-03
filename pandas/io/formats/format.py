@@ -514,7 +514,6 @@ class DataFrameFormatter(TableFormatter):
         Render a DataFrame to a list of columns (as lists of strings).
         """
         frame = self.tr_frame
-
         # may include levels names also
 
         str_index = self._get_formatted_index(frame)

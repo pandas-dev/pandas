@@ -1,3 +1,4 @@
+import pytest
 import numpy as np
 import pandas as pd
 
@@ -46,3 +47,10 @@ class BaseDtypeTests(BaseExtensionTests):
 
     def test_eq_with_numpy_object(self, dtype):
         assert dtype != np.dtype('object')
+
+    def test_array_type(self, data, dtype):
+        assert dtype.construct_array_type() is type(data)
+
+    def test_array_type_with_arg(self, data, dtype):
+        with pytest.raises(NotImplementedError):
+            dtype.construct_array_type('foo')

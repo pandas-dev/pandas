@@ -128,6 +128,23 @@ Previous Behavior:
     In [3]: pi - pi[0]
     Out[3]: Int64Index([0, 1, 2], dtype='int64')
 
+.. _whatsnew_0240.api.extension:
+
+ExtensionType Changes
+^^^^^^^^^^^^^^^^^^^^^
+
+- ``ExtensionDtype`` has gained the ability to instantiate from string dtypes, e.g. ``decimal`` would instantiate a registered ``DecimalDtype``; furthermore
+  the ``ExtensionDtype`` has gained the method ``construct_array_type`` (:issue:`21185`)
+- The ``ExtensionArray`` constructor, ``_from_sequence`` now take the keyword arg ``copy=False`` (:issue:`21185`)
+- Bug in :meth:`Series.get` for ``Series`` using ``ExtensionArray`` and integer index (:issue:`21257`)
+- :meth:`Series.combine()` works correctly with :class:`~pandas.api.extensions.ExtensionArray` inside of :class:`Series` (:issue:`20825`)
+- :meth:`Series.combine()` with scalar argument now works for any function type (:issue:`21248`)
+-
+
+.. _whatsnew_0240.api.other:
+
+Other API Changes
+^^^^^^^^^^^^^^^^^
 
 .. _whatsnew_0240.api.incompatibilities:
 
@@ -168,6 +185,7 @@ Other API Changes
 ^^^^^^^^^^^^^^^^^
 
 - :class:`DatetimeIndex` now accepts :class:`Int64Index` arguments as epoch timestamps (:issue:`20997`)
+- Invalid construction of ``IntervalDtype`` will now always raise a ``TypeError`` rather than a ``ValueError`` if the subdtype is invalid (:issue:`21185`)
 -
 -
 
@@ -344,13 +362,6 @@ Reshaping
 -
 -
 
-ExtensionArray
-^^^^^^^^^^^^^^
-
-- Bug in :meth:`Series.get` for ``Series`` using ``ExtensionArray`` and integer index (:issue:`21257`)
-- :meth:`Series.combine()` works correctly with :class:`~pandas.api.extensions.ExtensionArray` inside of :class:`Series` (:issue:`20825`)
-- :meth:`Series.combine()` with scalar argument now works for any function type (:issue:`21248`)
--
 -
 
 Other

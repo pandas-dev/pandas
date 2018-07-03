@@ -40,6 +40,16 @@ class BaseInterfaceTests(BaseExtensionTests):
         df = pd.DataFrame({"A": data})
         repr(df)
 
+    def test_repr_array(self, data):
+        # some arrays may be able to assert
+        # attributes in the repr
+        repr(data)
+
+    def test_repr_array_long(self, data):
+        # some arrays may be able to assert a ... in the repr
+        with pd.option_context('display.max_seq_items', 1):
+            repr(data)
+
     def test_dtype_name_in_info(self, data):
         buf = StringIO()
         pd.DataFrame({"A": data}).info(buf=buf)

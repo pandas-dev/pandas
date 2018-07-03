@@ -17,6 +17,16 @@ class DecimalDtype(ExtensionDtype):
     na_value = decimal.Decimal('NaN')
 
     @classmethod
+    def construct_array_type(cls):
+        """Return the array type associated with this dtype
+
+        Returns
+        -------
+        type
+        """
+        return DecimalArray
+
+    @classmethod
     def construct_from_string(cls, string):
         if string == cls.name:
             return cls()
@@ -28,7 +38,7 @@ class DecimalDtype(ExtensionDtype):
 class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
     dtype = DecimalDtype()
 
-    def __init__(self, values):
+    def __init__(self, values, copy=False):
         for val in values:
             if not isinstance(val, self.dtype.type):
                 raise TypeError("All values must be of type " +
@@ -44,7 +54,7 @@ class DecimalArray(ExtensionArray, ExtensionScalarOpsMixin):
         # self._values = self.values = self.data
 
     @classmethod
-    def _from_sequence(cls, scalars):
+    def _from_sequence(cls, scalars, copy=False):
         return cls(scalars)
 
     @classmethod
