@@ -482,7 +482,7 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
 cdef inline check_overflows(_TSObject obj):
     """
     Check that we haven't silently overflowed in timezone conversion
-    
+
     Parameters
     ----------
     obj : _TSObject
@@ -682,10 +682,8 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
 
     Returns
     -------
-    int64 converted
-
+    converted: int64
     """
-
     cdef:
         ndarray[int64_t] trans, deltas
         Py_ssize_t pos
@@ -840,9 +838,17 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
     Localize tzinfo-naive i8 to given time zone (using pytz). If
     there are ambiguities in the values, raise AmbiguousTimeError.
 
+    Parameters
+    ----------
+    vals : ndarray[int64_t]
+    tz : tzinfo or None
+    ambiguous : str, bool, or arraylike
+        If arraylike, must have the same length as vals
+    errors : {"raise", "coerce"}, default "raise"
+
     Returns
     -------
-    localized : DatetimeIndex
+    localized : ndarray[int64_t]
     """
     cdef:
         ndarray[int64_t] trans, deltas, idx_shifted
