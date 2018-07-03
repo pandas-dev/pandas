@@ -11,6 +11,7 @@ from pandas.core.dtypes.common import (
     is_datetime64_dtype,
     is_timedelta64_dtype,
     is_datetime64tz_dtype,
+    is_datetime_or_timedelta_dtype,
     _ensure_int64)
 
 import pandas.core.algorithms as algos
@@ -18,7 +19,7 @@ import pandas.core.nanops as nanops
 from pandas._libs.lib import infer_dtype
 from pandas import (to_timedelta, to_datetime,
                     Categorical, Timestamp, Timedelta,
-                    Series, Interval, IntervalIndex)
+                    Series, Index, Interval, IntervalIndex)
 
 import numpy as np
 
@@ -364,6 +365,8 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
             result = result.astype(np.float64)
             np.putmask(result, na_mask, np.nan)
 
+    bins = _convert_bin_to_datelike_type(bins, dtype)
+
     return result, bins
 
 
@@ -425,6 +428,26 @@ def _convert_bin_to_numeric_type(bins, dtype):
         else:
             raise ValueError("bins must be of datetime64 dtype")
 
+    return bins
+
+
+def _convert_bin_to_datelike_type(bins, dtype):
+    """
+    Convert bins to a DatetimeIndex or TimedeltaIndex if the orginal dtype is
+    datelike
+
+    Parameters
+    ----------
+    bins : list-like of bins
+    dtype : dtype of data
+
+    Returns
+    -------
+    bins : Array-like of bins, DatetimeIndex or TimedeltaIndex if dtype is
+           datelike
+    """
+    if is_datetime64tz_dtype(dtype) or is_datetime_or_timedelta_dtype(dtype):
+        bins = Index(bins.astype(np.int64), dtype=dtype)
     return bins
 
 
