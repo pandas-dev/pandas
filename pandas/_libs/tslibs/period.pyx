@@ -52,8 +52,7 @@ from resolution import Resolution
 from nattype import nat_strings, NaT, iNaT
 from nattype cimport _nat_scalar_rules, NPY_NAT, is_null_datetimelike
 from offsets cimport to_offset
-
-from pandas.tseries import offsets
+from offsets import _Tick
 
 cdef bint PY2 = str == bytes
 
@@ -1060,9 +1059,9 @@ cdef class _Period(object):
             int64_t nanos, offset_nanos
 
         if (PyDelta_Check(other) or util.is_timedelta64_object(other) or
-                isinstance(other, offsets.Tick)):
+                isinstance(other, _Tick)):
             offset = to_offset(self.freq.rule_code)
-            if isinstance(offset, offsets.Tick):
+            if isinstance(offset, _Tick):
                 nanos = delta_to_nanoseconds(other)
                 offset_nanos = delta_to_nanoseconds(offset)
                 if nanos % offset_nanos == 0:
