@@ -379,6 +379,14 @@ class _HtmlFrameParser(object):
         """
         Given a table, return parsed header, body, and foot.
 
+        Parameters
+        ----------
+        table_html : node-like
+
+        Returns
+        -------
+        tuple of (header, body, footer), each a list of list-of-text rows.
+
         Notes
         -----
         Header and body are lists-of-lists. Top level list is a list of
@@ -391,14 +399,6 @@ class _HtmlFrameParser(object):
                  all elements inside row are <th>
                - Move rows from bottom of body to footer only if
                  all elements inside row are <th>
-
-        Parameters
-        ----------
-        table_html : node-like
-
-        Returns
-        -------
-        tuple of (header, body, footer), each a list of list-of-text rows.
         """
 
         header_rows = self._parse_thead_tr(table_html)
@@ -426,11 +426,6 @@ class _HtmlFrameParser(object):
         """
         Given a list of <tr>s, return a list of text rows.
 
-        Notes
-        -----
-        Any cell with ``rowspan`` or ``colspan`` will have its contents copied
-        to subsequent cells.
-
         Parameters
         ----------
         rows : list of node-like
@@ -440,6 +435,11 @@ class _HtmlFrameParser(object):
         -------
         list of list
             Each returned row is a list of str text.
+
+        Notes
+        -----
+        Any cell with ``rowspan`` or ``colspan`` will have its contents copied
+        to subsequent cells.
         """
 
         all_texts = []  # list of rows, each a list of str
