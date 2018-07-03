@@ -745,10 +745,6 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         ordinal_delta = self._maybe_convert_timedelta(other)
         return self.shift(ordinal_delta)
 
-    def _sub_datelike(self, other):
-        assert other is not tslib.NaT
-        return NotImplemented
-
     def _sub_period(self, other):
         # If the operation is well-defined, we return an object-Index
         # of DateOffsets.  Null entries are filled with pd.NaT

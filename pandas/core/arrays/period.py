@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from pandas._libs.tslib import NaT
 from pandas._libs.tslibs.period import Period
 
 from pandas.util._decorators import cache_readonly
@@ -26,3 +27,10 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
     @property
     def asi8(self):
         return self._ndarray_values.view('i8')
+
+    # ------------------------------------------------------------------
+    # Arithmetic Methods
+
+    def _sub_datelike(self, other):
+        assert other is not NaT
+        return NotImplemented
