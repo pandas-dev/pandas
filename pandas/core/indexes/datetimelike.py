@@ -314,13 +314,9 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         mask = (self._isnan) | (other._isnan)
         if is_bool_dtype(result):
             result[mask] = False
-            return result
-
-        result[mask] = iNaT
-        try:
-            return Index(result)
-        except TypeError:
-            return result
+        else:
+            result[mask] = iNaT
+        return maybe_wrap_in_index(result, strict=False)
 
     def _ensure_localized(self, result):
         """
@@ -1137,3 +1133,29 @@ def _ensure_datetimelike_to_i8(other):
             # period array cannot be coerces to int
             other = Index(other).asi8
     return other
+
+
+def maybe_wrap_in_index(result, name=None, strict=True):
+    """
+    After dispatching to a DatetimelikeArrayMixin method we get an ndarray
+    back.  If possible, wrap this array in an Index.  The Index constructor
+    will find the appropriate Index subclass.
+
+    Parameters
+    ----------
+    result : ndarray
+    name : object, default None
+    strict : bool, default True
+
+    Returns
+    -------
+    out : ndarray or Index
+    """
+    if is_bool_dtype(result):
+        return result
+    try:
+        return Index(result, name=name)
+    except TypeError:
+        if not strict:
+            return result
+        raise

@@ -42,7 +42,7 @@ from pandas.core.indexes.numeric import Int64Index, Float64Index
 import pandas.compat as compat
 from pandas.tseries.frequencies import to_offset, get_period_alias, Resolution
 from pandas.core.indexes.datetimelike import (
-    DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin)
+    DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin, maybe_wrap_in_index)
 from pandas.tseries.offsets import (
     DateOffset, generate_range, Tick, CDay, prefix_mapping)
 
@@ -95,7 +95,7 @@ def _field_accessor(name, field, docstring=None):
             result = fields.get_date_field(values, field)
             result = self._maybe_mask_results(result, convert='float64')
 
-        return Index(result, name=self.name)
+        return maybe_wrap_in_index(result, name=self.name)
 
     f.__name__ = name
     f.__doc__ = docstring
@@ -149,10 +149,7 @@ def _dt_index_cmp(opname, cls):
         if self.hasnans:
             result[self._isnan] = nat_result
 
-        # support of bool dtype indexers
-        if is_bool_dtype(result):
-            return result
-        return Index(result)
+        return maybe_wrap_in_index(result)
 
     return compat.set_function_name(wrapper, opname, cls)
 
@@ -603,14 +600,8 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         if self.is_monotonic:
             return conversion.tz_convert(self.asi8, utc, self.tz)
         else:
-            values = self.asi8
-            indexer = values.argsort()
-            result = conversion.tz_convert(values.take(indexer), utc, self.tz)
-
-            n = len(indexer)
-            reverse = np.empty(n, dtype=np.int_)
-            reverse.put(indexer, np.arange(n))
-            return result.take(reverse)
+            # fall back to non-optimized implementation
+            return DatetimeArrayMixin._local_timestamps(self)
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, tz=None,
@@ -2438,7 +2429,7 @@ default 'raise'
         result = fields.get_date_name_field(values, 'month_name',
                                             locale=locale)
         result = self._maybe_mask_results(result)
-        return Index(result, name=self.name)
+        return maybe_wrap_in_index(result, name=self.name)
 
     def day_name(self, locale=None):
         """
@@ -2464,7 +2455,7 @@ default 'raise'
         result = fields.get_date_name_field(values, 'day_name',
                                             locale=locale)
         result = self._maybe_mask_results(result)
-        return Index(result, name=self.name)
+        return maybe_wrap_in_index(result, name=self.name)
 
 
 DatetimeIndex._add_comparison_methods()
