@@ -11,7 +11,7 @@ import pandas.util._test_decorators as td
 
 from pandas.compat import PY3
 from pandas._libs.tslibs import conversion
-from pandas._libs.tslibs.frequencies import _INVALID_FREQ_ERROR
+from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
 from pandas import Timestamp, NaT
 
 
@@ -82,7 +82,7 @@ class TestTimestampUnaryOps(object):
 
     def test_round_invalid_arg(self):
         stamp = Timestamp('2000-01-05 05:09:15.13')
-        with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
+        with tm.assert_raises_regex(ValueError, INVALID_FREQ_ERR_MSG):
             stamp.round('foo')
 
     @pytest.mark.parametrize('freq, expected', [
