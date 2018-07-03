@@ -577,8 +577,6 @@ cdef inline datetime _localize_pydatetime(datetime dt, tzinfo tz):
     except AttributeError:
         return dt.replace(tzinfo=tz)
 
-# ----------------------------------------------------------------------
-# Timezone Conversion
 
 cpdef inline datetime localize_pydatetime(datetime dt, object tz):
     """
@@ -606,6 +604,9 @@ cpdef inline datetime localize_pydatetime(datetime dt, object tz):
     except AttributeError:
         return dt.replace(tzinfo=tz)
 
+
+# ----------------------------------------------------------------------
+# Timezone Conversion
 
 cdef inline int64_t tz_convert_tzlocal_to_utc(int64_t val, tzinfo tz):
     """
