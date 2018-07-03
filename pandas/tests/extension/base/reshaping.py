@@ -84,6 +84,7 @@ class BaseReshapingTests(BaseExtensionTests):
         expected = pd.DataFrame({
             'A': data._from_sequence(list(data[:3]) + [na_value]),
             'B': [np.nan, 1, 2, 3]})
+
         result = pd.concat([df1, df2], axis=1)
         self.assert_frame_equal(result, expected)
         result = pd.concat([df1['A'], df2['B']], axis=1)
