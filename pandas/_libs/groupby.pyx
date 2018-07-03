@@ -243,7 +243,7 @@ def group_shift_indexer(ndarray[int64_t] out, ndarray[int64_t] labels,
         label_indexer = np.zeros((ngroups, periods), dtype=np.int64)
         with nogil:
             for i in range(N):
-                ## reverse iterator if shifting backwards
+                # reverse iterator if shifting backwards
                 ii = offset + sign * i
                 lab = labels[ii]
 
