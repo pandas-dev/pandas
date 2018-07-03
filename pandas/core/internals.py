@@ -1476,7 +1476,7 @@ class Block(PandasObject):
         if transpose:
             values = values.T
 
-        other = getattr(other, 'values', other)
+        other = getattr(other, '_values', getattr(other, 'values', other))
         cond = getattr(cond, 'values', cond)
 
         # If the default broadcasting would go in the wrong direction, then
@@ -1484,6 +1484,8 @@ class Block(PandasObject):
         if getattr(other, 'ndim', 0) >= 1:
             if values.ndim - 1 == other.ndim and axis == 1:
                 other = other.reshape(tuple(other.shape + (1, )))
+            elif transpose and values.ndim == self.ndim - 1:
+                cond = cond.T
 
         if not hasattr(cond, 'shape'):
             raise ValueError("where must have a condition that is ndarray "
@@ -2888,8 +2890,8 @@ class DatetimeTZBlock(NonConsolidatableMixIn, DatetimeBlock):
         elif isinstance(other, self._holder):
             if other.tz != self.values.tz:
                 raise ValueError("incompatible or non tz-aware value")
-            other = other.asi8
-            other_mask = isna(other)
+            other_mask = _block_shape(isna(other), ndim=self.ndim)
+            other = _block_shape(other.asi8, ndim=self.ndim)
         elif isinstance(other, (np.datetime64, datetime, date)):
             other = tslib.Timestamp(other)
             tz = getattr(other, 'tz', None)
