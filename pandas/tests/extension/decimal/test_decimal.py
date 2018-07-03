@@ -1,5 +1,6 @@
 import decimal
 
+import random
 import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
@@ -7,7 +8,12 @@ import pytest
 
 from pandas.tests.extension import base
 
-from .array import DecimalDtype, DecimalArray, make_data
+from .array import DecimalDtype, DecimalArray
+
+
+@pytest.fixture
+def make_data():
+    return [decimal.Decimal(random.random()) for _ in range(100)]
 
 
 @pytest.fixture

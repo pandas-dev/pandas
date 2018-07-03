@@ -3,10 +3,12 @@ import pytest
 import operator
 
 import pandas as pd
+from pandas.core import ops
 from .base import BaseExtensionTests
 
 
 class BaseOpsUtil(BaseExtensionTests):
+
     def get_op_from_name(self, op_name):
         short_opname = op_name.strip('_')
         try:
@@ -32,6 +34,20 @@ class BaseOpsUtil(BaseExtensionTests):
             with pytest.raises(exc):
                 op(s, other)
 
+    def _check_divmod_op(self, s, op, other, exc=NotImplementedError):
+        # divmod has multiple return values, so check separatly
+        if exc is None:
+            result_div, result_mod = op(s, other)
+            if op is divmod:
+                expected_div, expected_mod = s // other, s % other
+            else:
+                expected_div, expected_mod = other // s, other % s
+            self.assert_series_equal(result_div, expected_div)
+            self.assert_series_equal(result_mod, expected_mod)
+        else:
+            with pytest.raises(exc):
+                divmod(s, other)
+
 
 class BaseArithmeticOpsTests(BaseOpsUtil):
     """Various Series and DataFrame arithmetic ops methods."""
@@ -50,8 +66,8 @@ class BaseArithmeticOpsTests(BaseOpsUtil):
 
     def test_divmod(self, data):
         s = pd.Series(data)
-        self._check_op(s, divmod, 1, exc=TypeError)
-        self._check_op(1, divmod, s, exc=TypeError)
+        self._check_divmod_op(s, divmod, 1, exc=TypeError)
+        self._check_divmod_op(1, ops.rdivmod, s, exc=TypeError)
 
     def test_error(self, data, all_arithmetic_operators):
         # invalid ops
