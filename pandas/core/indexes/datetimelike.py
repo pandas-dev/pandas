@@ -707,9 +707,6 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         result = self._nat_new(box=False)
         return result.view('timedelta64[ns]')
 
-    def _sub_period(self, other):
-        return NotImplemented
-
     def _sub_period_array(self, other):
         """
         Subtract one PeriodIndex from another.  This is only valid if they
@@ -744,9 +741,6 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = NaT
         return new_values
-
-    def _add_offset(self, offset):
-        raise com.AbstractMethodError(self)
 
     def _addsub_offset_array(self, other, op):
         """
