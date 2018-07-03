@@ -602,4 +602,3 @@ class TestSparseOperators(object):
         sparse_op = getattr(splib, 'sparse_%s_float64' % opname)
         python_op = getattr(operator, opname)
         self._op_tests(sparse_op, python_op)
-
