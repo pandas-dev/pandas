@@ -2442,19 +2442,34 @@ default 'raise'
 
     def day_name(self, locale=None):
         """
-        Return the day names of the DateTimeIndex with specified locale.
+        Return the day names.
+        
+        Provides day names of the DateTimeIndex for the dataframe which consists of the time and date data with specified locale.
 
         Parameters
         ----------
         locale : string, default None (English locale)
-            locale determining the language in which to return the day name
-
+            The locale determines the language in which the day name should be returned.
+         
         Returns
         -------
-        month_names : Index
-            Index of day names
-
-        .. versionadded:: 0.23.0
+        day_names : Index
+            Index (instance) of day names
+            
+        See Also
+        --------
+        month_name : Return the month names
+        
+        Examples
+        --------
+        #From the time stamps data based on it the day_name is returned. 
+        # 1.) First data is changed to asi8(int64) format.
+        # 2.) Then it is checked whether the timestamp is null.
+        # 3.) If yes then it is checked whether the timestamp is utc(Universal Time Coordinated).
+        # 4.) If yes then it is sent to local_timestamps method where the local timestamp is calculated and converted to asi8 if no the loop breaks.
+        # 5.) Then it calls the get_date_name_field function where it passes the data the object to be retrieved(day_name) and the locale and stores it in result .
+        # 6.) Next it deals with the null values using _maybe_mask_result function.
+        # 7.) Then it returns the instance of the the result.
         """
         values = self.asi8
         if self.tz is not None:
