@@ -300,9 +300,10 @@ def _adjust_to_origin(arg, origin, unit):
         origin offset for the arg
     unit : string
         passed unit from to_datetime, must be 'D'
+
     Returns
     -------
-    ndarray of adjusted dates
+    ndarray or scalar of adjusted date(s)
     """
     if origin == 'julian':
         original = arg
