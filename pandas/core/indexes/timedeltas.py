@@ -7,7 +7,6 @@ from pandas.core.dtypes.common import (
     _TD_DTYPE,
     is_integer,
     is_float,
-    is_bool_dtype,
     is_list_like,
     is_scalar,
     is_timedelta64_dtype,
@@ -30,7 +29,7 @@ import pandas.core.common as com
 import pandas.core.dtypes.concat as _concat
 from pandas.util._decorators import Appender, Substitution, deprecate_kwarg
 from pandas.core.indexes.datetimelike import (
-    TimelikeOps, DatetimeIndexOpsMixin)
+    TimelikeOps, DatetimeIndexOpsMixin, maybe_wrap_in_index)
 from pandas.core.tools.timedeltas import (
     to_timedelta, _coerce_scalar_to_timedelta_type)
 from pandas.tseries.offsets import Tick, DateOffset
@@ -47,7 +46,7 @@ def _field_accessor(name, alias, docstring=None):
         if self.hasnans:
             result = self._maybe_mask_results(result, convert='float64')
 
-        return Index(result, name=self.name)
+        return maybe_wrap_in_index(result, name=self.name)
 
     f.__name__ = name
     f.__doc__ = docstring
@@ -89,10 +88,7 @@ def _td_index_cmp(opname, cls):
         if self.hasnans:
             result[self._isnan] = nat_result
 
-        # support of bool dtype indexers
-        if is_bool_dtype(result):
-            return result
-        return Index(result)
+        return maybe_wrap_in_index(result)
 
     return compat.set_function_name(wrapper, opname, cls)
 
@@ -409,7 +405,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                 else:
                     result = op(left, np.float64(right))
                 result = self._maybe_mask_results(result, convert='float64')
-                return Index(result, name=self.name, copy=False)
+                return maybe_wrap_in_index(result, name=self.name)
 
         return NotImplemented
 
@@ -549,8 +545,8 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         Float64Index([0.0, 86400.0, 172800.0, 259200.00000000003, 345600.0],
                      dtype='float64')
         """
-        return Index(self._maybe_mask_results(1e-9 * self.asi8),
-                     name=self.name)
+        result = self._maybe_mask_results(1e-9 * self.asi8)
+        return maybe_wrap_in_index(result, name=self.name)
 
     def to_pytimedelta(self):
         """

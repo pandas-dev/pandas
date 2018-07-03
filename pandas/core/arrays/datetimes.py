@@ -2,9 +2,10 @@
 import warnings
 
 import numpy as np
+from pytz import utc
 
 from pandas._libs.tslib import Timestamp, NaT, iNaT
-from pandas._libs.tslibs import timezones
+from pandas._libs.tslibs import timezones, conversion
 
 from pandas.util._decorators import cache_readonly
 
@@ -108,3 +109,16 @@ class DatetimeArrayMixin(DatetimeLikeArrayMixin):
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = iNaT
         return new_values.view('timedelta64[ns]')
+
+    # -----------------------------------------------------------------
+    # Timezone Conversion and Localization Methods
+
+    def _local_timestamps(self):
+        values = self.asi8
+        indexer = values.argsort()
+        result = conversion.tz_convert(values.take(indexer), utc, self.tz)
+
+        n = len(indexer)
+        reverse = np.empty(n, dtype=np.int_)
+        reverse.put(indexer, np.arange(n))
+        return result.take(reverse)

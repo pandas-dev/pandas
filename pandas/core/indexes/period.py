@@ -23,7 +23,8 @@ from pandas.tseries.frequencies import get_freq_code as _gfc
 from pandas.tseries.offsets import Tick, DateOffset
 
 from pandas.core.indexes.datetimes import DatetimeIndex, Int64Index, Index
-from pandas.core.indexes.datetimelike import DatelikeOps, DatetimeIndexOpsMixin
+from pandas.core.indexes.datetimelike import (
+    DatelikeOps, DatetimeIndexOpsMixin, maybe_wrap_in_index)
 from pandas.core.tools.datetimes import parse_time_string
 
 from pandas._libs.lib import infer_dtype
@@ -55,7 +56,8 @@ def _field_accessor(name, alias, docstring=None):
     def f(self):
         base, mult = _gfc(self.freq)
         result = get_period_field_arr(alias, self._ndarray_values, base)
-        return Index(result, name=self.name)
+        return maybe_wrap_in_index(result, name=self.name)
+
     f.__name__ = name
     f.__doc__ = docstring
     return property(f)
@@ -761,7 +763,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         if self.hasnans:
             new_data[self._isnan] = tslib.NaT
 
-        return Index(new_data)
+        return maybe_wrap_in_index(new_data)
 
     def shift(self, n):
         """
