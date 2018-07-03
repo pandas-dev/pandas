@@ -52,8 +52,7 @@ from resolution import Resolution
 from nattype import nat_strings, NaT, iNaT
 from nattype cimport _nat_scalar_rules, NPY_NAT, is_null_datetimelike
 from offsets cimport to_offset
-
-from pandas.tseries import offsets
+from offsets import _Tick
 
 cdef bint PY2 = str == bytes
 
@@ -896,7 +895,7 @@ def extract_ordinals(ndarray[object] values, freq):
                 ordinals[i] = p.ordinal
 
                 if p.freqstr != freqstr:
-                    msg = _DIFFERENT_FREQ_INDEX.format(freqstr, p.freqstr)
+                    msg = DIFFERENT_FREQ_INDEX.format(freqstr, p.freqstr)
                     raise IncompatibleFrequency(msg)
 
             except AttributeError:
@@ -986,8 +985,8 @@ cdef ndarray[int64_t] localize_dt64arr_to_period(ndarray[int64_t] stamps,
 
 
 _DIFFERENT_FREQ = "Input has different freq={1} from Period(freq={0})"
-_DIFFERENT_FREQ_INDEX = ("Input has different freq={1} "
-                         "from PeriodIndex(freq={0})")
+DIFFERENT_FREQ_INDEX = ("Input has different freq={1} "
+                        "from PeriodIndex(freq={0})")
 
 
 class IncompatibleFrequency(ValueError):
@@ -1060,9 +1059,9 @@ cdef class _Period(object):
             int64_t nanos, offset_nanos
 
         if (PyDelta_Check(other) or util.is_timedelta64_object(other) or
-                isinstance(other, offsets.Tick)):
+                isinstance(other, _Tick)):
             offset = to_offset(self.freq.rule_code)
-            if isinstance(offset, offsets.Tick):
+            if isinstance(offset, _Tick):
                 nanos = delta_to_nanoseconds(other)
                 offset_nanos = delta_to_nanoseconds(offset)
                 if nanos % offset_nanos == 0:

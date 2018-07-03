@@ -368,12 +368,31 @@ class _BaseOffset(object):
                 if name not in ['n', 'normalize']}
         return {name: kwds[name] for name in kwds if kwds[name] is not None}
 
+    def __add__(self, other):
+        if getattr(other, "_typ", None) in ["datetimeindex",
+                                            "series", "period"]:
+            # defer to the other class's implementation
+            return other + self
+        try:
+            return self.apply(other)
+        except ApplyTypeError:
+            return NotImplemented
+
+    def __sub__(self, other):
+        if isinstance(other, datetime):
+            raise TypeError('Cannot subtract datetime from offset.')
+        elif type(other) == type(self):
+            return type(self)(self.n - other.n, normalize=self.normalize,
+                              **self.kwds)
+        else:  # pragma: no cover
+            return NotImplemented
+
     def __call__(self, other):
         return self.apply(other)
 
     def __mul__(self, other):
-        return self.__class__(n=other * self.n, normalize=self.normalize,
-                              **self.kwds)
+        return type(self)(n=other * self.n, normalize=self.normalize,
+                          **self.kwds)
 
     def __neg__(self):
         # Note: we are defering directly to __mul__ instead of __rmul__, as
@@ -493,6 +512,14 @@ class BaseOffset(_BaseOffset):
             # i.e. isinstance(other, (ABCDatetimeIndex, ABCSeries))
             return other - self
         return -self + other
+
+
+class _Tick(object):
+    """
+    dummy class to mix into tseries.offsets.Tick so that in tslibs.period we
+    can do isinstance checks on _Tick and avoid importing tseries.offsets
+    """
+    pass
 
 
 # ----------------------------------------------------------------------

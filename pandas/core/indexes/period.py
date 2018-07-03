@@ -31,6 +31,7 @@ from pandas._libs.lib import infer_dtype
 from pandas._libs import tslib, index as libindex
 from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
                                         get_period_field_arr,
+                                        DIFFERENT_FREQ_INDEX,
                                         _validate_end_alias, _quarter_to_myear)
 from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs import resolution, period
@@ -73,9 +74,6 @@ def dt64arr_to_periodarr(data, freq, tz):
 # --- Period index sketch
 
 
-_DIFFERENT_FREQ_INDEX = period._DIFFERENT_FREQ_INDEX
-
-
 def _period_index_cmp(opname, cls):
     """
     Wrap comparison operations to convert Period-like to PeriodDtype
@@ -86,13 +84,13 @@ def _period_index_cmp(opname, cls):
         op = getattr(self._ndarray_values, opname)
         if isinstance(other, Period):
             if other.freq != self.freq:
-                msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
+                msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
                 raise IncompatibleFrequency(msg)
 
             result = op(other.ordinal)
         elif isinstance(other, PeriodIndex):
             if other.freq != self.freq:
-                msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
+                msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
                 raise IncompatibleFrequency(msg)
 
             result = op(other._ndarray_values)
@@ -525,7 +523,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
     def searchsorted(self, value, side='left', sorter=None):
         if isinstance(value, Period):
             if value.freq != self.freq:
-                msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, value.freqstr)
+                msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, value.freqstr)
                 raise IncompatibleFrequency(msg)
             value = value.ordinal
         elif isinstance(value, compat.string_types):
@@ -708,7 +706,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
             base = frequencies.get_base_alias(freqstr)
             if base == self.freq.rule_code:
                 return other.n
-            msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
+            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
         elif is_integer(other):
             # integer is passed to .shift via
@@ -723,7 +721,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         assert not isinstance(other, Tick)
         base = frequencies.get_base_alias(other.rule_code)
         if base != self.freq.rule_code:
-            msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
+            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
         return self.shift(other.n)
 
@@ -755,7 +753,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         # If the operation is well-defined, we return an object-Index
         # of DateOffsets.  Null entries are filled with pd.NaT
         if self.freq != other.freq:
-            msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
+            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
 
         asi8 = self.asi8
@@ -839,7 +837,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         target = _ensure_index(target)
 
         if hasattr(target, 'freq') and target.freq != self.freq:
-            msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, target.freqstr)
+            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, target.freqstr)
             raise IncompatibleFrequency(msg)
 
         if isinstance(target, PeriodIndex):
@@ -1012,7 +1010,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
             raise ValueError('can only call with other PeriodIndex-ed objects')
 
         if self.freq != other.freq:
-            msg = _DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
+            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)
 
     def _wrap_union_result(self, other, result):
