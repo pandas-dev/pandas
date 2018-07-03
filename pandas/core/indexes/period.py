@@ -763,6 +763,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         if self.hasnans:
             new_data[self._isnan] = tslib.NaT
 
+        # TODO: Should name=self.name be passed here?
         return Index(new_data)
 
     def shift(self, n):
