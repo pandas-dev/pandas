@@ -349,12 +349,6 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
             attrs['freq'] = 'infer'
         return attrs
 
-    def _add_offset(self, other):
-        assert not isinstance(other, Tick)
-        raise TypeError("cannot add the type {typ} to a {cls}"
-                        .format(typ=type(other).__name__,
-                                cls=type(self).__name__))
-
     def _add_delta(self, delta):
         """
         Add a timedelta-like, Tick, or TimedeltaIndex-like object
@@ -429,11 +423,6 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                                           arr_mask=self._isnan)
             result = self._maybe_mask_results(result, fill_value=iNaT)
             return DatetimeIndex(result)
-
-    def _sub_datelike(self, other):
-        assert other is not NaT
-        raise TypeError("cannot subtract a datelike from a {cls}"
-                        .format(cls=type(self).__name__))
 
     def _addsub_offset_array(self, other, op):
         # Add or subtract Array-like of DateOffset objects
