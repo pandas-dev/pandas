@@ -663,6 +663,11 @@ cdef inline int64_t[:] _tz_convert_dst(ndarray[int64_t] values, tzinfo tz,
 cdef inline int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz,
                                             bint to_utc=True):
     """
+    Convert the i8 representation of a datetime from a tzlocal timezone to
+    UTC, or vice-versa.
+
+    Private, not intended for use outside of tslibs.conversion
+
     Parameters
     ----------
     val : int64_t
