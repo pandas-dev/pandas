@@ -681,32 +681,32 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
         return val
 
     # Convert to UTC
-    if is_tzlocal(tz1):
+    if get_timezone(tz1) == 'UTC':
+        utc_date = val
+    elif is_tzlocal(tz1):
         utc_date = _tz_convert_tzlocal_utc(val, tz1, to_utc=True)
-    elif get_timezone(tz1) != 'UTC':
+    else:
         trans, deltas, typ = get_dst_info(tz1)
         pos = trans.searchsorted(val, side='right') - 1
         if pos < 0:
             raise ValueError('First time before start of DST info')
         offset = deltas[pos]
         utc_date = val - offset
-    else:
-        utc_date = val
 
     if get_timezone(tz2) == 'UTC':
         return utc_date
     elif is_tzlocal(tz2):
         return _tz_convert_tzlocal_utc(utc_date, tz2, to_utc=False)
+    else:
+        # Convert UTC to other timezone
+        trans, deltas, typ = get_dst_info(tz2)
 
-    # Convert UTC to other timezone
-    trans, deltas, typ = get_dst_info(tz2)
+        pos = trans.searchsorted(utc_date, side='right') - 1
+        if pos < 0:
+            raise ValueError('First time before start of DST info')
 
-    pos = trans.searchsorted(utc_date, side='right') - 1
-    if pos < 0:
-        raise ValueError('First time before start of DST info')
-
-    offset = deltas[pos]
-    return utc_date + offset
+        offset = deltas[pos]
+        return utc_date + offset
 
 
 @cython.boundscheck(False)
