@@ -45,7 +45,7 @@ from tslibs.conversion cimport (tz_convert_single, _TSObject,
                                 convert_datetime_to_tsobject,
                                 get_datetime64_nanos,
                                 tz_convert_utc_to_tzlocal)
-from tslibs.conversion import tz_convert_single
+from tslibs.conversion import tz_convert_single, normalize_date  # noqa:F841
 
 from tslibs.nattype import NaT, nat_strings, iNaT
 from tslibs.nattype cimport checknull_with_nat, NPY_NAT
