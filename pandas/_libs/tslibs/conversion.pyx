@@ -791,7 +791,7 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
         return result
 
     # if all NaT, return all NaT
-    tt = utc_dates[utc_dates!=NPY_NAT]
+    tt = utc_dates[utc_dates != NPY_NAT]
     if not len(tt):
         return utc_dates
 
