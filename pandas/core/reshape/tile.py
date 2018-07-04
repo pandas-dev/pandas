@@ -235,7 +235,7 @@ def cut(x, bins, right=True, labels=None, retbins=False, precision=3,
                               duplicates=duplicates)
 
     return _postprocess_for_cut(fac, bins, retbins, x_is_series,
-                                series_index, name)
+                                series_index, name, dtype)
 
 
 def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
@@ -307,7 +307,7 @@ def qcut(x, q, labels=None, retbins=False, precision=3, duplicates='raise'):
                               dtype=dtype, duplicates=duplicates)
 
     return _postprocess_for_cut(fac, bins, retbins, x_is_series,
-                                series_index, name)
+                                series_index, name, dtype)
 
 
 def _bins_to_cuts(x, bins, right=True, labels=None,
@@ -364,8 +364,6 @@ def _bins_to_cuts(x, bins, right=True, labels=None,
         if has_nas:
             result = result.astype(np.float64)
             np.putmask(result, na_mask, np.nan)
-
-    bins = _convert_bin_to_datelike_type(bins, dtype)
 
     return result, bins
 
@@ -511,7 +509,7 @@ def _preprocess_for_cut(x):
 
 
 def _postprocess_for_cut(fac, bins, retbins, x_is_series,
-                         series_index, name):
+                         series_index, name, dtype):
     """
     handles post processing for the cut method where
     we combine the index information if the originally passed
@@ -522,6 +520,8 @@ def _postprocess_for_cut(fac, bins, retbins, x_is_series,
 
     if not retbins:
         return fac
+
+    bins = _convert_bin_to_datelike_type(bins, dtype)
 
     return fac, bins
 
