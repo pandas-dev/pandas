@@ -174,119 +174,43 @@ Current Behavior:
     ...
     OverflowError: Trying to coerce negative values to unsigned integers
 
-read_html Incompatibilities
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+read_html Enhancements
+^^^^^^^^^^^^^^^^^^^^^^
 
 :func:`read_html` previously ignored ``colspan`` and ``rowspan`` attributes.
-Now it understands them, treating them as a sequence of cells with the same
+Now it understands them, treating them as sequences of cells with the same
 value. (:issue:`17054`)
 
+.. ipython:: python
+
+    result = pd.read_html("""
+      <table>
+        <thead>
+          <tr>
+            <th>A</th><th>B</th><th>C</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="2">1</td><td>2</td>
+          </tr>
+        </tbody>
+      </table>""")
+
 Previous Behavior:
 
 .. code-block:: ipython
 
-    In [1]: pd.read_html("""
-          <table>
-            <thead>
-              <tr>
-                <th>A</th><th>B</th><th>C</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td colspan="2">1</td><td>2</td>
-              </tr>
-            </tbody>
-          </table>
-        """)
-    Out [1]:
+    In [13]: result
+    Out [13]:
     [   A  B   C
-    0  1  2 NaN]
+     0  1  2 NaN]
 
 Current Behavior:
 
-.. code-block:: ipython
+.. ipython:: python
 
-    In [1]: pd.read_html("""
-          <table>
-            <thead>
-              <tr>
-                <th>A</th><th>B</th><th>C</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td colspan="2">1</td><td>2</td>
-              </tr>
-            </tbody>
-          </table>
-        """)
-    Out [1]:
-    [   A  B  C
-    0  1  2  2]
-
-Calls that relied on the previous behavior will need to be changed.
-
-Also, :func:`read_html` previously ignored some ``<tr>`` elements when called
-with ``header=`` or ``skiprows=`` on some unusual HTML tables.
-(:issue:`21641`)
-
-Previous Behavior:
-
-.. code-block:: ipython
-
-    In [1]: pd.read_html("""
-          <table>
-            <thead>
-              <tr>
-                <!-- empty header row, was ignored -->
-                <th></th><th></th><th></th>
-              </tr>
-              <tr>
-                <th>A</th><th>B</th><th>C</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>1</td><td>2</td><td>3</td>
-              </tr>
-            </tbody>
-          </table>
-        """, header=2)
-    Out [1]:
-    [Empty DataFrame
-    Columns: [1, 2, 3]
-    Index: []]
-
-Current Behavior:
-
-.. code-block:: ipython
-
-    In [1]: pd.read_html("""
-          <table>
-            <thead>
-              <tr>
-                <!-- empty header row, was ignored -->
-                <th></th><th></th><th></th>
-              </tr>
-              <tr>
-                <th>A</th><th>B</th><th>C</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>1</td><td>2</td><td>3</td>
-              </tr>
-            </tbody>
-          </table>
-        """, header=2)
-    Out [1]:
-    [   A  B  C
-    0  1  2  3]
-
-Previously, the workaround was to write ``header=0`` instead of ``header=1``
-for this example table. Now, that workaround must be removed. This should not
-affect many users, since most HTML tables do not have empty header rows.
+    result
 
 Datetimelike API Changes
 ^^^^^^^^^^^^^^^^^^^^^^^^
