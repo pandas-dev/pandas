@@ -737,7 +737,9 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
         return np.array([], dtype=np.int64)
 
     # Convert to UTC
-    if get_timezone(tz1) != 'UTC':
+    if get_timezone(tz2) == 'UTC':
+        utc_dates = vals
+    else:
         utc_dates = np.empty(n, dtype=np.int64)
         if is_tzlocal(tz1):
             for i in range(n):
@@ -767,8 +769,6 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
                         raise ValueError('First time before start of DST info')
                     offset = deltas[pos]
                     utc_dates[i] = v - offset
-    else:
-        utc_dates = vals
 
     if get_timezone(tz2) == 'UTC':
         return utc_dates
@@ -782,35 +782,35 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
             else:
                 result[i] = _tz_convert_tzlocal_utc(v, tz2, to_utc=False)
         return result
+    else:
+        # Convert UTC to other timezone
+        trans, deltas, typ = get_dst_info(tz2)
 
-    # Convert UTC to other timezone
-    trans, deltas, typ = get_dst_info(tz2)
+        # use first non-NaT element
+        # if all-NaT, return all-NaT
+        if (result == NPY_NAT).all():
+            return result
 
-    # use first non-NaT element
-    # if all-NaT, return all-NaT
-    if (result == NPY_NAT).all():
+        # if all NaT, return all NaT
+        tt = utc_dates[utc_dates!=NPY_NAT]
+        if not len(tt):
+            return utc_dates
+
+        posn = trans.searchsorted(tt, side='right')
+
+        j = 0
+        for i in range(n):
+            v = utc_dates[i]
+            if vals[i] == NPY_NAT:
+                result[i] = vals[i]
+            else:
+                pos = posn[j] - 1
+                j = j + 1
+                if pos < 0:
+                    raise ValueError('First time before start of DST info')
+                offset = deltas[pos]
+                result[i] = v + offset
         return result
-
-    # if all NaT, return all NaT
-    tt = utc_dates[utc_dates!=NPY_NAT]
-    if not len(tt):
-        return utc_dates
-
-    posn = trans.searchsorted(tt, side='right')
-
-    j = 0
-    for i in range(n):
-        v = utc_dates[i]
-        if vals[i] == NPY_NAT:
-            result[i] = vals[i]
-        else:
-            pos = posn[j] - 1
-            j = j + 1
-            if pos < 0:
-                raise ValueError('First time before start of DST info')
-            offset = deltas[pos]
-            result[i] = v + offset
-    return result
 
 
 # TODO: cdef scalar version to call from convert_str_to_tsobject
