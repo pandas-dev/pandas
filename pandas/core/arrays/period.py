@@ -48,7 +48,7 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
         msg = ('Setting {cls}.freq has been deprecated and will be '
                'removed in a future version; use PeriodIndex.asfreq instead. '
                'The {cls}.freq setter is not guaranteed to work.')
-        warnings.warn(msg.format(cls=type(self).__name__,
+        warnings.warn(msg.format(cls=type(self).__name__),
                       FutureWarning, stacklevel=2)
         self._freq = value
 
