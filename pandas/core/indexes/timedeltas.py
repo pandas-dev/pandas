@@ -17,6 +17,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.generic import ABCSeries
 
+from pandas.core.arrays.timedelta import TimedeltaArrayMixin
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.numeric import Int64Index
 import pandas.compat as compat
@@ -96,7 +97,8 @@ def _td_index_cmp(opname, cls):
     return compat.set_function_name(wrapper, opname, cls)
 
 
-class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
+class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
+                     TimelikeOps, Int64Index):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
     which can be boxed to timedelta objects
@@ -311,10 +313,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
         return index
 
-    @property
-    def _box_func(self):
-        return lambda x: Timedelta(x, unit='ns')
-
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, **kwargs):
         values = np.array(values, copy=False)
@@ -350,12 +348,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             # no need to infer if freq is None
             attrs['freq'] = 'infer'
         return attrs
-
-    def _add_offset(self, other):
-        assert not isinstance(other, Tick)
-        raise TypeError("cannot add the type {typ} to a {cls}"
-                        .format(typ=type(other).__name__,
-                                cls=type(self).__name__))
 
     def _add_delta(self, delta):
         """
@@ -431,11 +423,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                                           arr_mask=self._isnan)
             result = self._maybe_mask_results(result, fill_value=iNaT)
             return DatetimeIndex(result)
-
-    def _sub_datelike(self, other):
-        assert other is not NaT
-        raise TypeError("cannot subtract a datelike from a {cls}"
-                        .format(cls=type(self).__name__))
 
     def _addsub_offset_array(self, other, op):
         # Add or subtract Array-like of DateOffset objects
@@ -905,10 +892,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     @property
     def inferred_type(self):
         return 'timedelta64'
-
-    @property
-    def dtype(self):
-        return _TD_DTYPE
 
     @property
     def is_all_dates(self):
