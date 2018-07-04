@@ -2,11 +2,14 @@
 
 import numpy as np
 
-from pandas._libs import iNaT
+from pandas._libs import iNaT, NaT
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
+from pandas._libs.tslibs.period import (
+    DIFFERENT_FREQ_INDEX, IncompatibleFrequency)
 
 from pandas.tseries import frequencies
 
+from pandas.core.dtypes.common import is_period_dtype
 import pandas.core.common as com
 from pandas.core.algorithms import checked_add_with_arr
 
@@ -179,3 +182,38 @@ class DatetimeLikeArrayMixin(object):
         result = np.zeros(len(self), dtype=np.int64)
         result.fill(iNaT)
         return result.view('timedelta64[ns]')
+
+    def _sub_period_array(self, other):
+        """
+        Subtract one PeriodIndex from another.  This is only valid if they
+        have the same frequency.
+
+        Parameters
+        ----------
+        other : PeriodIndex
+
+        Returns
+        -------
+        result : np.ndarray[object]
+            Array of DateOffset objects; nulls represented by NaT
+        """
+        if not is_period_dtype(self):
+            raise TypeError("cannot subtract {dtype}-dtype to {cls}"
+                            .format(dtype=other.dtype,
+                                    cls=type(self).__name__))
+
+        if not len(self) == len(other):
+            raise ValueError("cannot subtract indices of unequal length")
+        if self.freq != other.freq:
+            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
+            raise IncompatibleFrequency(msg)
+
+        new_values = checked_add_with_arr(self.asi8, -other.asi8,
+                                          arr_mask=self._isnan,
+                                          b_mask=other._isnan)
+
+        new_values = np.array([self.freq * x for x in new_values])
+        if self.hasnans or other.hasnans:
+            mask = (self._isnan) | (other._isnan)
+            new_values[mask] = NaT
+        return new_values
