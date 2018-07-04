@@ -603,7 +603,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         if self.is_monotonic:
             return conversion.tz_convert(self.asi8, utc, self.tz)
         else:
-            # fall back to non-optimized implementation
             return DatetimeArrayMixin._local_timestamps(self)
 
     @classmethod

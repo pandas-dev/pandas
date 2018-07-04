@@ -114,6 +114,12 @@ class DatetimeArrayMixin(DatetimeLikeArrayMixin):
     # Timezone Conversion and Localization Methods
 
     def _local_timestamps(self):
+        """
+        Convert to an i8 (unix-like nanosecond timestamp) representation
+        while keeping the local timezone and not using UTC.
+        This is used to calculate time-of-day information as if the timestamps
+        were timezone-naive.
+        """
         values = self.asi8
         indexer = values.argsort()
         result = conversion.tz_convert(values.take(indexer), utc, self.tz)
