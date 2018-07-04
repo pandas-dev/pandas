@@ -607,24 +607,6 @@ cpdef inline datetime localize_pydatetime(datetime dt, object tz):
         return dt.replace(tzinfo=tz)
 
 
-cdef inline int64_t tz_convert_tzlocal_to_utc(int64_t val, tzinfo tz):
-    """
-    Parameters
-    ----------
-    val : int64_t
-    tz : tzinfo
-
-    Returns
-    -------
-    utc_date : int64_t
-
-    See Also
-    --------
-    tz_convert_utc_to_tzlocal
-    """
-    return _tz_convert_tzlocal_utc(val, tz, to_utc=True)
-
-
 cdef inline int64_t tz_convert_utc_to_tzlocal(int64_t utc_val, tzinfo tz):
     """
     Parameters
@@ -635,10 +617,6 @@ cdef inline int64_t tz_convert_utc_to_tzlocal(int64_t utc_val, tzinfo tz):
     Returns
     -------
     local_val : int64_t
-
-    See Also
-    --------
-    tz_convert_tzlocal_to_utc
     """
     return _tz_convert_tzlocal_utc(utc_val, tz, to_utc=False)
 
@@ -871,7 +849,7 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
     if is_tzlocal(tz):
         for i in range(n):
             v = vals[i]
-            result[i] = tz_convert_tzlocal_to_utc(v, tz)
+            result[i] = _tz_convert_tzlocal_utc(v, tz, to_utc=True)
         return result
 
     if is_string_object(ambiguous):
@@ -1202,7 +1180,6 @@ def is_date_array_normalized(ndarray[int64_t] stamps, tz=None):
         for i in range(n):
             # Adjust datetime64 timestamp, recompute datetimestruct
             pos = trans.searchsorted(stamps[i]) - 1
-            inf = tz._transition_info[pos]
 
             dt64_to_dtstruct(stamps[i] + deltas[pos], &dts)
             if (dts.hour + dts.min + dts.sec + dts.us) > 0:
