@@ -185,12 +185,13 @@ class DatetimeLikeArrayMixin(object):
 
     def _sub_period_array(self, other):
         """
-        Subtract one PeriodIndex from another.  This is only valid if they
+        Subtract a Period Array/Index from self.  This is only valid if self
+        is itself a Period Array/Index, raises otherwise.  Both objects must
         have the same frequency.
 
         Parameters
         ----------
-        other : PeriodIndex
+        other : PeriodIndex or PeriodArray
 
         Returns
         -------
@@ -203,7 +204,8 @@ class DatetimeLikeArrayMixin(object):
                                     cls=type(self).__name__))
 
         if not len(self) == len(other):
-            raise ValueError("cannot subtract indices of unequal length")
+            raise ValueError("cannot subtract arrays/indices of "
+                             "unequal length")
         if self.freq != other.freq:
             msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
             raise IncompatibleFrequency(msg)

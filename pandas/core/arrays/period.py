@@ -45,10 +45,11 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
 
     @freq.setter
     def freq(self, value):
-        msg = ('Setting PeriodIndex.freq has been deprecated and will be '
+        msg = ('Setting {cls}.freq has been deprecated and will be '
                'removed in a future version; use PeriodIndex.asfreq instead. '
-               'The PeriodIndex.freq setter is not guaranteed to work.')
-        warnings.warn(msg, FutureWarning, stacklevel=2)
+               'The {cls}.freq setter is not guaranteed to work.')
+        warnings.warn(msg.format(cls=type(self).__name__,
+                      FutureWarning, stacklevel=2)
         self._freq = value
 
     # ------------------------------------------------------------------
@@ -85,5 +86,6 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
             return other
 
         # raise when input doesn't have freq
-        msg = "Input has different freq from PeriodIndex(freq={0})"
-        raise IncompatibleFrequency(msg.format(self.freqstr))
+        msg = "Input has different freq from {cls}(freq={freqstr})"
+        raise IncompatibleFrequency(msg.format(cls=type(self).__name__,
+                                               freqstr=self.freqstr))
