@@ -60,6 +60,22 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
         return NotImplemented
 
     def _maybe_convert_timedelta(self, other):
+        """
+        Convert timedelta-like input to an integer multiple of self.freq
+
+        Parameters
+        ----------
+        other : timedelta, np.timedelta64, DateOffset, int, np.ndarray
+
+        Returns
+        -------
+        converted : int, np.ndarray[int64]
+
+        Raises
+        ------
+        IncompatibleFrequency : if the input cannot be written as a multiple
+            of self.freq.  Note IncompatibleFrequency subclasses ValueError.
+        """
         if isinstance(
                 other, (timedelta, np.timedelta64, Tick, np.ndarray)):
             offset = frequencies.to_offset(self.freq.rule_code)
