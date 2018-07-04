@@ -106,6 +106,7 @@ Bug Fixes
 
 - Bug in :func:`read_csv` that caused it to incorrectly raise an error when ``nrows=0``, ``low_memory=True``, and ``index_col`` was not ``None`` (:issue:`21141`)
 - Bug in :func:`json_normalize` when formatting the ``record_prefix`` with integer columns (:issue:`21536`)
+- Bug in :func:`json_normalize` when flattening an array of values (:issue:`21608`)
 -
 
 **Plotting**

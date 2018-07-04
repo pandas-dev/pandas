@@ -186,8 +186,12 @@ def json_normalize(data, record_path=None, meta=None,
 
         return result
 
-    if isinstance(data, list) and not data:
-        return DataFrame()
+    if isinstance(data, list):
+        if not data:
+            return DataFrame()
+        elif any([not isinstance(x, list) and not isinstance(x, dict)
+                  for x in data]):
+            return DataFrame(data, columns=['0'])
 
     # A bit of a hackjob
     if isinstance(data, dict):
