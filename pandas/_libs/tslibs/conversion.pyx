@@ -643,17 +643,16 @@ cdef inline int64_t[:] _tz_convert_dst(ndarray[int64_t] values, tzinfo tz,
         # if all NaT, return all NaT
         return values
 
-    #posn = trans.searchsorted(tt, side='right')
+    posn = trans.searchsorted(tt, side='right')
 
-    #j = 0
+    j = 0
     for i in range(n):
         v = values[i]
         if v == NPY_NAT:
             result[i] = v
         else:
-            pos = trans.searchsorted(v) - 1
-            # pos = posn[j] - 1
-            #j += 1
+            pos = posn[j] - 1
+            j += 1
             if pos < 0:
                 raise ValueError('First time before start of DST info')
             result[i] = v - deltas[pos]
