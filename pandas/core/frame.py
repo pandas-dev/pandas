@@ -2839,9 +2839,9 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> from numpy.random import randn
-        >>> from pandas import DataFrame
-        >>> df = pd.DataFrame(randn(10, 2), columns=list('ab'))
+        >>> import numpy as np
+        >>> import pandas as pd
+        >>> df = pd.DataFrame(np.random.randn(10, 2), columns=list('ab'))
         >>> df.query('a > b')
         >>> df[df.a > df.b]  # same result as the previous expression
         """
