@@ -496,6 +496,13 @@ class TestDatetimeIndex(object):
         expected = klass([ts])
         assert result == expected
 
+    def test_construction_int_rountrip(self, tz_naive_fixture):
+        # GH 12619
+        tz = tz_naive_fixture
+        result = 1293858000000000000
+        expected = DatetimeIndex([1293858000000000000], tz=tz).asi8[0]
+        assert result == expected
+
 
 class TestTimeSeries(object):
 

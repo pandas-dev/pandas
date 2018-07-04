@@ -180,6 +180,7 @@ class IntervalIndex(IntervalMixin, Index):
     from_tuples
     get_indexer
     get_loc
+    set_closed
 
     Examples
     ---------
@@ -708,6 +709,41 @@ class IntervalIndex(IntervalMixin, Index):
         """
         return self._closed
 
+    def set_closed(self, closed):
+        """
+        Return an IntervalIndex identical to the current one, but closed on the
+        specified side
+
+        .. versionadded:: 0.24.0
+
+        Parameters
+        ----------
+        closed : {'left', 'right', 'both', 'neither'}
+            Whether the intervals are closed on the left-side, right-side, both
+            or neither.
+
+        Returns
+        -------
+        new_index : IntervalIndex
+
+        Examples
+        --------
+        >>>  index = pd.interval_range(0, 3)
+        >>>  index
+        IntervalIndex([(0, 1], (1, 2], (2, 3]]
+              closed='right',
+              dtype='interval[int64]')
+        >>>  index.set_closed('both')
+        IntervalIndex([[0, 1], [1, 2], [2, 3]]
+              closed='both',
+              dtype='interval[int64]')
+        """
+        if closed not in _VALID_CLOSED:
+            msg = "invalid option for 'closed': {closed}"
+            raise ValueError(msg.format(closed=closed))
+
+        return self._shallow_copy(closed=closed)
+
     @property
     def length(self):
         """
@@ -796,7 +832,7 @@ class IntervalIndex(IntervalMixin, Index):
     @cache_readonly
     def dtype(self):
         """Return the dtype object of the underlying data"""
-        return IntervalDtype.construct_from_string(str(self.left.dtype))
+        return IntervalDtype(self.left.dtype.name)
 
     @property
     def inferred_type(self):
