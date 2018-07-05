@@ -55,6 +55,7 @@ class _DtypeOpsMixin(object):
 
     @property
     def names(self):
+        # type: () -> Optional[List[str]]
         """Ordered list of field names, or None if there are no fields.
 
         This is for compatibility with NumPy arrays, and may be removed in the
@@ -132,6 +133,7 @@ class ExtensionDtype(_DtypeOpsMixin):
 
     @property
     def type(self):
+        # type: () -> type
         """The scalar type for the array, e.g. ``int``
 
         It's expected ``ExtensionArray[item]`` returns an instance
@@ -141,6 +143,7 @@ class ExtensionDtype(_DtypeOpsMixin):
 
     @property
     def kind(self):
+        # type: () -> str
         """A character code (one of 'biufcmMOSUV'), default 'O'
 
         This should match the NumPy dtype used when the array is
@@ -156,6 +159,7 @@ class ExtensionDtype(_DtypeOpsMixin):
 
     @property
     def name(self):
+        # type: () -> str
         """A string identifying the data type.
 
         Will be used for display in, e.g. ``Series.dtype``
