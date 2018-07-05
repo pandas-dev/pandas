@@ -7156,7 +7156,6 @@ class NDFrame(PandasObject, SelectionMixin):
         at_time : Select values at a particular time of the day
         between_time : Select values between particular times of the day
         """
-        from pandas.tseries.frequencies import to_offset
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError("'first' only supports a DatetimeIndex index")
 
@@ -7220,7 +7219,6 @@ class NDFrame(PandasObject, SelectionMixin):
         at_time : Select values at a particular time of the day
         between_time : Select values between particular times of the day
         """
-        from pandas.tseries.frequencies import to_offset
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError("'last' only supports a DatetimeIndex index")
 

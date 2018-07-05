@@ -980,16 +980,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
 
         return self.values.copy()
 
-    def to_pydatetime(self):
-        """
-        Return DatetimeIndex as object ndarray of datetime.datetime objects
-
-        Returns
-        -------
-        datetimes : ndarray
-        """
-        return libts.ints_to_pydatetime(self.asi8, tz=self.tz)
-
     def to_period(self, freq=None):
         """
         Cast to PeriodIndex at a particular frequency.

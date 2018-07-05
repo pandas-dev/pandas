@@ -34,7 +34,7 @@ from pandas.core.indexes.datetimelike import (
 from pandas.core.tools.timedeltas import (
     to_timedelta, _coerce_scalar_to_timedelta_type)
 from pandas.tseries.offsets import Tick, DateOffset
-from pandas._libs import (lib, index as libindex, tslib as libts,
+from pandas._libs import (lib, index as libindex,
                           join as libjoin, Timedelta, NaT, iNaT)
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas._libs.tslibs.fields import get_timedelta_field
@@ -540,16 +540,6 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         """
         return Index(self._maybe_mask_results(1e-9 * self.asi8),
                      name=self.name)
-
-    def to_pytimedelta(self):
-        """
-        Return TimedeltaIndex as object ndarray of datetime.timedelta objects
-
-        Returns
-        -------
-        datetimes : ndarray
-        """
-        return libts.ints_to_pytimedelta(self.asi8)
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
