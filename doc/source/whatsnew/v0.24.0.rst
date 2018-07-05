@@ -1,8 +1,7 @@
 .. _whatsnew_0240:
 
-********************
-What's New in 0.24.0
-********************
+v0.24.0
+-------
 
 {{ common_imports }}
 
@@ -11,8 +10,8 @@ including other versions of pandas.
 
 .. _whatsnew_0240.enhancements:
 
-Highlights
-==========
+New features
+~~~~~~~~~~~~
 
 - ``ExcelWriter`` now accepts ``mode`` as a keyword argument, enabling append to existing workbooks when using the ``openpyxl`` engine (:issue:`3441`)
 
@@ -35,7 +34,7 @@ ways of adding operator support.
 .. _whatsnew_0240.enhancements.other:
 
 Other Enhancements
-------------------
+^^^^^^^^^^^^^^^^^^
 
 - :func:`to_datetime` now supports the ``%Z`` and ``%z`` directive when passed into ``format`` (:issue:`13486`)
 - :func:`Series.mode` and :func:`DataFrame.mode` now support the ``dropna`` parameter which can be used to specify whether NaN/NaT values should be considered (:issue:`17534`)
@@ -54,7 +53,7 @@ Other Enhancements
 .. _whatsnew_0240.api_breaking:
 
 Backwards incompatible API changes
-==================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. _whatsnew_0240.api.datetimelike.normalize:
 
@@ -152,7 +151,7 @@ ExtensionType Changes
 .. _whatsnew_0240.api.other:
 
 Other API Changes
-=================
+^^^^^^^^^^^^^^^^^
 
 .. _whatsnew_0240.api.incompatibilities:
 
@@ -201,7 +200,7 @@ Other API Changes
 .. _whatsnew_0240.deprecations:
 
 Deprecations
-============
+~~~~~~~~~~~~
 
 - :meth:`DataFrame.to_stata`, :meth:`read_stata`, :class:`StataReader` and :class:`StataWriter` have deprecated the ``encoding`` argument.  The encoding of a Stata dta file is determined by the file type and cannot be changed (:issue:`21244`).
 - :meth:`MultiIndex.to_hierarchical` is deprecated and will be removed in a future version  (:issue:`21613`)
@@ -210,7 +209,7 @@ Deprecations
 .. _whatsnew_0240.prior_deprecations:
 
 Removal of prior version deprecations/changes
-=============================================
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - The ``LongPanel`` and ``WidePanel`` classes have been removed (:issue:`10892`)
 -
@@ -220,7 +219,7 @@ Removal of prior version deprecations/changes
 .. _whatsnew_0240.performance:
 
 Performance Improvements
-========================
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 - Very large improvement in performance of slicing when the index is a :class:`CategoricalIndex`,
   both when indexing by label (using .loc) and position(.iloc).
@@ -239,7 +238,7 @@ Performance Improvements
 .. _whatsnew_0240.docs:
 
 Documentation Changes
-=====================
+~~~~~~~~~~~~~~~~~~~~~
 
 - Added sphinx spelling extension, updated documentation on how to use the spell check (:issue:`21079`)
 -
@@ -248,29 +247,29 @@ Documentation Changes
 .. _whatsnew_0240.bug_fixes:
 
 Bug Fixes
-=========
+~~~~~~~~~
 
 Categorical
------------
+^^^^^^^^^^^
 
 -
 -
 -
 
 Datetimelike
-------------
+^^^^^^^^^^^^
 
 - Fixed bug where two :class:`DateOffset` objects with different ``normalize`` attributes could evaluate as equal (:issue:`21404`)
 
 Timedelta
----------
+^^^^^^^^^
 
 -
 -
 -
 
 Timezones
----------
+^^^^^^^^^
 
 - Bug in :meth:`DatetimeIndex.shift` where an ``AssertionError`` would raise when shifting across DST (:issue:`8616`)
 - Bug in :class:`Timestamp` constructor where passing an invalid timezone offset designator (``Z``) would not raise a ``ValueError`` (:issue:`8910`)
@@ -284,20 +283,20 @@ Timezones
 - Bug in :class:`DatetimeIndex` where constructing with an integer and tz would not localize correctly (:issue:`12619`)
 
 Offsets
--------
+^^^^^^^
 
 -
 -
 
 Numeric
--------
+^^^^^^^
 
 - Bug in :class:`Series` ``__rmatmul__`` doesn't support matrix vector multiplication (:issue:`21530`)
 -
 -
 
 Strings
--------
+^^^^^^^
 
 -
 -
@@ -311,7 +310,7 @@ Interval
 -
 
 Indexing
---------
+^^^^^^^^
 
 - The traceback from a ``KeyError`` when asking ``.loc`` for a single missing label is now shorter and more clear (:issue:`21557`)
 - When ``.ix`` is asked for a missing integer label in a :class:`MultiIndex` with a first level of integer type, it now raises a ``KeyError``, consistently with the case of a flat :class:`Int64Index, rather than falling back to positional indexing (:issue:`21593`)
@@ -327,28 +326,28 @@ Missing
 - Bug in :func:`DataFrame.fillna` where a ``ValueError`` would raise when one column contained a ``datetime64[ns, tz]`` dtype (:issue:`15522`)
 
 MultiIndex
-----------
+^^^^^^^^^^
 
 -
 -
 -
 
 I/O
----
+^^^
 
 -
 -
 -
 
 Plotting
---------
+^^^^^^^^
 
 -
 -
 -
 
 Groupby/Resample/Rolling
-------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Bug in :func:`pandas.core.groupby.GroupBy.first` and :func:`pandas.core.groupby.GroupBy.last` with ``as_index=False`` leading to the loss of timezone information (:issue:`15884`)
 - Bug in :meth:`DatetimeIndex.resample` when downsampling across a DST boundary (:issue:`8531`)
@@ -356,14 +355,14 @@ Groupby/Resample/Rolling
 -
 
 Sparse
-------
+^^^^^^
 
 -
 -
 -
 
 Reshaping
----------
+^^^^^^^^^
 
 - Bug in :func:`pandas.concat` when joining resampled DataFrames with timezone aware index (:issue:`13783`)
 - Bug in :meth:`Series.combine_first` with ``datetime64[ns, tz]`` dtype which would return tz-naive result (:issue:`21469`)
@@ -371,8 +370,10 @@ Reshaping
 -
 -
 
+-
+
 Other
------
+^^^^^
 
 - :meth:`~pandas.io.formats.style.Styler.background_gradient` now takes a ``text_color_threshold`` parameter to automatically lighten the text color based on the luminance of the background color. This improves readability with dark background colors without the need to limit the background colormap range. (:issue:`21258`)
 -
@@ -382,6 +383,6 @@ Other
 .. _whatsnew_0.24.0.contributors:
 
 Contributors
-============
+~~~~~~~~~~~~
 
 .. contributors:: v0.23.1..HEAD
