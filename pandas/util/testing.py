@@ -221,8 +221,10 @@ def assert_almost_equal(left, right, check_exact=False,
     right : object
     check_exact : bool, default False
         Whether to compare number exactly.
-    check_dtype: bool, default True
-        check dtype if both a and b are the same type
+    check_dtype : bool / string {'equiv'}, default False
+        Check dtype if both a and b are the same type. If 'equiv' is passed in,
+        then `RangeIndex` and `Int64Index` are also considered equivalent
+        when doing type checking.
     check_less_precise : bool or int, default False
         Specify comparison precision. Only used when `check_exact` is False.
         5 digits (False) or 3 digits (True) after decimal points are compared.
@@ -235,19 +237,22 @@ def assert_almost_equal(left, right, check_exact=False,
         check whether it is equivalent to 1 within the specified precision.
     """
     if isinstance(left, pd.Index):
-        return assert_index_equal(left, right, check_exact=check_exact,
+        return assert_index_equal(left, right,
+                                  check_exact=check_exact,
                                   exact=check_dtype,
                                   check_less_precise=check_less_precise,
                                   **kwargs)
 
     elif isinstance(left, pd.Series):
-        return assert_series_equal(left, right, check_exact=check_exact,
+        return assert_series_equal(left, right,
+                                   check_exact=check_exact,
                                    check_dtype=check_dtype,
                                    check_less_precise=check_less_precise,
                                    **kwargs)
 
     elif isinstance(left, pd.DataFrame):
-        return assert_frame_equal(left, right, check_exact=check_exact,
+        return assert_frame_equal(left, right,
+                                  check_exact=check_exact,
                                   check_dtype=check_dtype,
                                   check_less_precise=check_less_precise,
                                   **kwargs)
