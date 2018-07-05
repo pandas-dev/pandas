@@ -466,7 +466,7 @@ class TestLocaleUtils(object):
         enc = codecs.lookup(enc).name
         new_locale = lang, enc
 
-        if not tm._can_set_locale(new_locale):
+        if not tm.can_set_locale(new_locale):
             with pytest.raises(locale.Error):
                 with tm.set_locale(new_locale):
                     pass
