@@ -370,15 +370,6 @@ Reshaping
 - Bug in :meth:`Series.where` and :meth:`DataFrame.where` with ``datetime64[ns, tz]`` dtype (:issue:`21546`)
 -
 -
-<<<<<<< HEAD:doc/source/whatsnew/v0.24.0.rst
--
-
-ExtensionArray
---------------
-=======
->>>>>>> master:doc/source/whatsnew/v0.24.0.txt
-
--
 
 Other
 -----
