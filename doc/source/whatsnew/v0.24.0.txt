@@ -10,7 +10,7 @@ New features
 
 - ``ExcelWriter`` now accepts ``mode`` as a keyword argument, enabling append to existing workbooks when using the ``openpyxl`` engine (:issue:`3441`)
 
-.. _whatsnew_0240.enhancements.extension_array_operators
+.. _whatsnew_0240.enhancements.extension_array_operators:
 
 ``ExtensionArray`` operator support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -25,6 +25,46 @@ operators. (:issue:`19577`). There are two approaches for providing operator sup
 See the :ref:`ExtensionArray Operator Support
 <extending.extension.operator>` documentation section for details on both
 ways of adding operator support.
+
+.. _whatsnew_0240.enhancements.read_html:
+
+``read_html`` Enhancements
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`read_html` previously ignored ``colspan`` and ``rowspan`` attributes.
+Now it understands them, treating them as sequences of cells with the same
+value. (:issue:`17054`)
+
+.. ipython:: python
+
+    result = pd.read_html("""
+      <table>
+        <thead>
+          <tr>
+            <th>A</th><th>B</th><th>C</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="2">1</td><td>2</td>
+          </tr>
+        </tbody>
+      </table>""")
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [13]: result
+    Out [13]:
+    [   A  B   C
+     0  1  2 NaN]
+
+Current Behavior:
+
+.. ipython:: python
+
+    result
 
 .. _whatsnew_0240.enhancements.other:
 
@@ -173,44 +213,6 @@ Current Behavior:
     Out [4]:
     ...
     OverflowError: Trying to coerce negative values to unsigned integers
-
-read_html Enhancements
-^^^^^^^^^^^^^^^^^^^^^^
-
-:func:`read_html` previously ignored ``colspan`` and ``rowspan`` attributes.
-Now it understands them, treating them as sequences of cells with the same
-value. (:issue:`17054`)
-
-.. ipython:: python
-
-    result = pd.read_html("""
-      <table>
-        <thead>
-          <tr>
-            <th>A</th><th>B</th><th>C</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td colspan="2">1</td><td>2</td>
-          </tr>
-        </tbody>
-      </table>""")
-
-Previous Behavior:
-
-.. code-block:: ipython
-
-    In [13]: result
-    Out [13]:
-    [   A  B   C
-     0  1  2 NaN]
-
-Current Behavior:
-
-.. ipython:: python
-
-    result
 
 Datetimelike API Changes
 ^^^^^^^^^^^^^^^^^^^^^^^^
