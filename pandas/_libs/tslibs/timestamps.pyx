@@ -645,7 +645,6 @@ class Timestamp(_Timestamp):
             return NaT
 
         if is_string_object(freq):
-            from pandas.tseries.frequencies import to_offset
             freq = to_offset(freq)
 
         return create_timestamp_from_ts(ts.value, ts.dts, ts.tzinfo, freq)
