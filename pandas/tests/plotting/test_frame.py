@@ -1149,8 +1149,8 @@ class TestDataFramePlots(TestPlotBase):
         axes_x_coords = points[:, :, 0]
         parent_distance = axes_x_coords[1, :] - axes_x_coords[0, :]
         colorbar_distance = axes_x_coords[3, :] - axes_x_coords[2, :]
-        np.testing.assert_almost_equal(
-            parent_distance, colorbar_distance, decimal=7)
+        assert np.isclose(parent_distance,
+                          colorbar_distance, atol=1e-7).all()
 
     @pytest.mark.slow
     def test_plot_scatter_with_categorical_data(self):
