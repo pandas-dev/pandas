@@ -513,7 +513,7 @@ Missing
 MultiIndex
 ^^^^^^^^^^
 
--
+- Removed compatibility for MultiIndex pickles prior to version 0.8.0; compatibility with MultiIndex pickles from version 0.13 forward is maintained (:issue:`21654`)
 -
 -
 
