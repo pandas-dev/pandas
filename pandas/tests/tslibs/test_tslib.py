@@ -16,3 +16,8 @@ def test_normalize_date():
 
     result = tslib.normalize_date(value)
     assert (result == datetime(2012, 9, 7))
+
+    value = datetime(2007, 10, 1, 1, 12, 5, 10)
+
+    actual = tslib.normalize_date(value)
+    assert actual == datetime(2007, 10, 1)

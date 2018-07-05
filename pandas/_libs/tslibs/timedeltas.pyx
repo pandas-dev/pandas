@@ -79,6 +79,44 @@ cdef dict timedelta_abbrevs = { 'D': 'd',
 
 _no_input = object()
 
+
+# ----------------------------------------------------------------------
+# API
+
+def ints_to_pytimedelta(ndarray[int64_t] arr, box=False):
+    """
+    convert an i8 repr to an ndarray of timedelta or Timedelta (if box ==
+    True)
+
+    Parameters
+    ----------
+    arr : ndarray[int64_t]
+    box : bool, default False
+
+    Returns
+    -------
+    result : ndarray[object]
+        array of Timedelta or timedeltas objects
+    """
+    cdef:
+        Py_ssize_t i, n = len(arr)
+        int64_t value
+        ndarray[object] result = np.empty(n, dtype=object)
+
+    for i in range(n):
+
+        value = arr[i]
+        if value == NPY_NAT:
+            result[i] = NaT
+        else:
+            if box:
+                result[i] = Timedelta(value)
+            else:
+                result[i] = timedelta(microseconds=int(value) / 1000)
+
+    return result
+
+
 # ----------------------------------------------------------------------
 
 cpdef int64_t delta_to_nanoseconds(delta) except? -1:

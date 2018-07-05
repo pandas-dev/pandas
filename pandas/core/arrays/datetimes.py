@@ -2,9 +2,11 @@
 import warnings
 
 import numpy as np
+from pytz import utc
 
+from pandas._libs import tslib
 from pandas._libs.tslib import Timestamp, NaT, iNaT
-from pandas._libs.tslibs import timezones
+from pandas._libs.tslibs import conversion, timezones
 
 from pandas.util._decorators import cache_readonly
 
@@ -108,3 +110,36 @@ class DatetimeArrayMixin(DatetimeLikeArrayMixin):
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = iNaT
         return new_values.view('timedelta64[ns]')
+
+    # -----------------------------------------------------------------
+    # Timezone Conversion and Localization Methods
+
+    def _local_timestamps(self):
+        """
+        Convert to an i8 (unix-like nanosecond timestamp) representation
+        while keeping the local timezone and not using UTC.
+        This is used to calculate time-of-day information as if the timestamps
+        were timezone-naive.
+        """
+        values = self.asi8
+        indexer = values.argsort()
+        result = conversion.tz_convert(values.take(indexer), utc, self.tz)
+
+        n = len(indexer)
+        reverse = np.empty(n, dtype=np.int_)
+        reverse.put(indexer, np.arange(n))
+        return result.take(reverse)
+
+    # ----------------------------------------------------------------
+    # Conversion Methods - Vectorized analogues of Timedelta methods
+
+    def to_pydatetime(self):
+        """
+        Return Datetime Array/Index as object ndarray of datetime.datetime
+        objects
+
+        Returns
+        -------
+        datetimes : ndarray
+        """
+        return tslib.ints_to_pydatetime(self.asi8, tz=self.tz)

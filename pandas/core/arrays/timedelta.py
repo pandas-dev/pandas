@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from pandas._libs import tslib
 from pandas._libs.tslib import Timedelta, NaT
 
 from pandas.core.dtypes.common import _TD_DTYPE
@@ -31,3 +32,17 @@ class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
         assert other is not NaT
         raise TypeError("cannot subtract a datelike from a {cls}"
                         .format(cls=type(self).__name__))
+
+    # ----------------------------------------------------------------
+    # Conversion Methods - Vectorized analogues of Timedelta methods
+
+    def to_pytimedelta(self):
+        """
+        Return Timedelta Array/Index as object ndarray of datetime.timedelta
+        objects
+
+        Returns
+        -------
+        datetimes : ndarray
+        """
+        return tslib.ints_to_pytimedelta(self.asi8)
