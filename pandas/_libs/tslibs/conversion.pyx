@@ -1025,6 +1025,35 @@ cdef inline str _render_tstamp(int64_t val):
 # ----------------------------------------------------------------------
 # Normalization
 
+
+def normalize_date(object dt):
+    """
+    Normalize datetime.datetime value to midnight. Returns datetime.date as a
+    datetime.datetime at midnight
+
+    Parameters
+    ----------
+    dt : date, datetime, or Timestamp
+
+    Returns
+    -------
+    normalized : datetime.datetime or Timestamp
+    """
+    if PyDateTime_Check(dt):
+        if not PyDateTime_CheckExact(dt):
+            # i.e. a Timestamp object
+            return dt.replace(hour=0, minute=0, second=0, microsecond=0,
+                              nanosecond=0)
+        else:
+            # regular datetime object
+            return dt.replace(hour=0, minute=0, second=0, microsecond=0)
+            # TODO: Make sure DST crossing is handled correctly here
+    elif PyDate_Check(dt):
+        return datetime(dt.year, dt.month, dt.day)
+    else:
+        raise TypeError('Unrecognized type: %s' % type(dt))
+
+
 @cython.wraparound(False)
 @cython.boundscheck(False)
 def date_normalize(ndarray[int64_t] stamps, tz=None):
