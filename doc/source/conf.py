@@ -40,8 +40,6 @@ sys.setrecursionlimit(5000)
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 # sys.path.append(os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('../sphinxext'))
-sys.path.insert(0, os.path.abspath('../'))
-
 sys.path.extend([
 
     # numpy standard doc extensions
@@ -76,7 +74,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.ifconfig',
               'sphinx.ext.linkcode',
               'nbsphinx',
-              'contributors',
+              'contributors',  # custom pandas extension
               ]
 
 try:

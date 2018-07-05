@@ -1,3 +1,13 @@
+"""Sphinx extension for listing code contributors to a release.
+
+Usage::
+
+   .. contributors:: v0.23.0..v0.23.1
+
+This will be replaced with a message indicating the number of
+code contributors and commits, and then list each contributor
+individually.
+"""
 from docutils import nodes
 from docutils.parsers.rst import Directive
 
