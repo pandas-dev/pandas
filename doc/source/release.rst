@@ -37,6 +37,40 @@ analysis / manipulation tool available in any language.
 * Binary installers on PyPI: https://pypi.org/project/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.23.2
+-------------
+
+**Release date**: July 5, 2018
+
+This is a minor bug-fix release in the 0.23.x series and includes some small regression fixes
+and bug fixes.
+
+See the :ref:`full whatsnew <whatsnew_0232>` for a list of all the changes.
+
+Thanks
+~~~~~~
+
+A total of 17 people contributed to this release.  People with a "+" by their
+names contributed a patch for the first time.
+
+* David Krych
+* Jacopo Rota +
+* Jeff Reback
+* Jeremy Schendel
+* Joris Van den Bossche
+* Kalyan Gokhale
+* Matthew Roeschke
+* Michael Odintsov +
+* Ming Li
+* Pietro Battiston
+* Tom Augspurger
+* Uddeshya Singh
+* Vu Le +
+* alimcmaster1 +
+* david-liu-brattle-1 +
+* gfyoung
+* jbrockmendel
+
 pandas 0.23.1
 -------------
 
