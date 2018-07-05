@@ -48,10 +48,10 @@ Other Enhancements
   (:issue:`21627`)
 - New method :meth:`HDFStore.walk` will recursively walk the group hierarchy of an HDF5 file (:issue:`10932`)
 - :meth:`Series.nlargest`, :meth:`Series.nsmallest`, :meth:`DataFrame.nlargest`, and :meth:`DataFrame.nsmallest` now accept the value ``"all"`` for the ``keep` argument. This keeps all ties for the nth largest/smallest value (:issue:`16818`)
+- :class:`IntervalIndex` has gained the :meth:`~IntervalIndex.set_closed` method to change the existing ``closed`` value (:issue:`21670`)
 -
 
 .. _whatsnew_0240.api_breaking:
-
 
 Backwards incompatible API changes
 ==================================
@@ -59,7 +59,7 @@ Backwards incompatible API changes
 .. _whatsnew_0240.api.datetimelike.normalize:
 
 Tick DateOffset Normalize Restrictions
---------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Creating a ``Tick`` object (:class:`Day`, :class:`Hour`, :class:`Minute`,
 :class:`Second`, :class:`Milli`, :class:`Micro`, :class:`Nano`) with
@@ -136,22 +136,28 @@ Previous Behavior:
     In [3]: pi - pi[0]
     Out[3]: Int64Index([0, 1, 2], dtype='int64')
 
-Datetimelike API Changes
-------------------------
+.. _whatsnew_0240.api.extension:
 
-- For :class:`DatetimeIndex` and :class:`TimedeltaIndex` with non-``None`` ``freq`` attribute, addition or subtraction of integer-dtyped array or ``Index`` will return an object of the same class (:issue:`19959`)
-- :class:`DateOffset` objects are now immutable. Attempting to alter one of these will now raise ``AttributeError`` (:issue:`21341`)
-- :class:`PeriodIndex` subtraction of another ``PeriodIndex`` will now return an object-dtype :class:`Index` of :class:`DateOffset` objects instead of raising a ``TypeError`` (:issue:`20049`)
+ExtensionType Changes
+^^^^^^^^^^^^^^^^^^^^^
+
+- ``ExtensionDtype`` has gained the ability to instantiate from string dtypes, e.g. ``decimal`` would instantiate a registered ``DecimalDtype``; furthermore
+  the ``ExtensionDtype`` has gained the method ``construct_array_type`` (:issue:`21185`)
+- The ``ExtensionArray`` constructor, ``_from_sequence`` now take the keyword arg ``copy=False`` (:issue:`21185`)
+- Bug in :meth:`Series.get` for ``Series`` using ``ExtensionArray`` and integer index (:issue:`21257`)
+- :meth:`Series.combine()` works correctly with :class:`~pandas.api.extensions.ExtensionArray` inside of :class:`Series` (:issue:`20825`)
+- :meth:`Series.combine()` with scalar argument now works for any function type (:issue:`21248`)
+-
 
 .. _whatsnew_0240.api.other:
 
 Other API Changes
 =================
 
-.. _whatsnew_0240.api.other.incompatibilities:
+.. _whatsnew_0240.api.incompatibilities:
 
 Series and Index Data-Dtype Incompatibilities
----------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``Series`` and ``Index`` constructors now raise when the
 data is incompatible with a passed ``dtype=`` (:issue:`15832`)
@@ -174,7 +180,21 @@ Current Behavior:
     ...
     OverflowError: Trying to coerce negative values to unsigned integers
 
+Datetimelike API Changes
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+- For :class:`DatetimeIndex` and :class:`TimedeltaIndex` with non-``None`` ``freq`` attribute, addition or subtraction of integer-dtyped array or ``Index`` will return an object of the same class (:issue:`19959`)
+- :class:`DateOffset` objects are now immutable. Attempting to alter one of these will now raise ``AttributeError`` (:issue:`21341`)
+- :class:`PeriodIndex` subtraction of another ``PeriodIndex`` will now return an object-dtype :class:`Index` of :class:`DateOffset` objects instead of raising a ``TypeError`` (:issue:`20049`)
+- :func:`cut` and :func:`qcut` now returns a :class:`DatetimeIndex` or :class:`TimedeltaIndex` bins when the input is datetime or timedelta dtype respectively and ``retbins=True`` (:issue:`19891`)
+
+.. _whatsnew_0240.api.other:
+
+Other API Changes
+^^^^^^^^^^^^^^^^^
+
 - :class:`DatetimeIndex` now accepts :class:`Int64Index` arguments as epoch timestamps (:issue:`20997`)
+- Invalid construction of ``IntervalDtype`` will now always raise a ``TypeError`` rather than a ``ValueError`` if the subdtype is invalid (:issue:`21185`)
 -
 -
 
@@ -208,6 +228,12 @@ Performance Improvements
 - Improved performance of :func:`Series.describe` in case of numeric dtpyes (:issue:`21274`)
 - Improved performance of :func:`pandas.core.groupby.GroupBy.rank` when dealing with tied rankings (:issue:`21237`)
 - Improved performance of :func:`DataFrame.set_index` with columns consisting of :class:`Period` objects (:issue:`21582`,:issue:`21606`)
+- Improved performance of membership checks in :class:`Categorical` and :class:`CategoricalIndex`
+  (i.e. ``x in cat``-style checks are much faster). :meth:`CategoricalIndex.contains`
+  is likewise much faster (:issue:`21369`, :issue:`21508`)
+- Improved performance of :meth:`HDFStore.groups` (and dependent functions like
+  :meth:`~HDFStore.keys`.  (i.e. ``x in store`` checks are much faster)
+  (:issue:`21372`)
 -
 
 .. _whatsnew_0240.docs:
@@ -255,6 +281,7 @@ Timezones
 - Bug in :meth:`Series.truncate` with a tz-aware :class:`DatetimeIndex` which would cause a core dump (:issue:`9243`)
 - Bug in :class:`Series` constructor which would coerce tz-aware and tz-naive :class:`Timestamp`s to tz-aware (:issue:`13051`)
 - Bug in :class:`Index` with ``datetime64[ns, tz]`` dtype that did not localize integer data correctly (:issue:`20964`)
+- Bug in :class:`DatetimeIndex` where constructing with an integer and tz would not localize correctly (:issue:`12619`)
 
 Offsets
 -------
@@ -287,12 +314,17 @@ Indexing
 --------
 
 - The traceback from a ``KeyError`` when asking ``.loc`` for a single missing label is now shorter and more clear (:issue:`21557`)
-- When ``.ix`` is asked for a missing integer label in a :class:`MultiIndex` with a first level of integer type, it now raises a ``KeyError`` - consistently with the case of a flat :class:`Int64Index` - rather than falling back to positional indexing (:issue:`21593`)
+- When ``.ix`` is asked for a missing integer label in a :class:`MultiIndex` with a first level of integer type, it now raises a ``KeyError``, consistently with the case of a flat :class:`Int64Index, rather than falling back to positional indexing (:issue:`21593`)
 - Bug in :meth:`DatetimeIndex.reindex` when reindexing a tz-naive and tz-aware :class:`DatetimeIndex` (:issue:`8306`)
 - Bug in :class:`DataFrame` when setting values with ``.loc`` and a timezone aware :class:`DatetimeIndex` (:issue:`11365`)
 - Bug when indexing :class:`DatetimeIndex` with nanosecond resolution dates and timezones (:issue:`11679`)
 
 -
+
+Missing
+^^^^^^^
+
+- Bug in :func:`DataFrame.fillna` where a ``ValueError`` would raise when one column contained a ``datetime64[ns, tz]`` dtype (:issue:`15522`)
 
 MultiIndex
 ----------
@@ -333,17 +365,19 @@ Sparse
 Reshaping
 ---------
 
+- Bug in :func:`pandas.concat` when joining resampled DataFrames with timezone aware index (:issue:`13783`)
+- Bug in :meth:`Series.combine_first` with ``datetime64[ns, tz]`` dtype which would return tz-naive result (:issue:`21469`)
+- Bug in :meth:`Series.where` and :meth:`DataFrame.where` with ``datetime64[ns, tz]`` dtype (:issue:`21546`)
 -
 -
+<<<<<<< HEAD:doc/source/whatsnew/v0.24.0.rst
 -
 
 ExtensionArray
 --------------
+=======
+>>>>>>> master:doc/source/whatsnew/v0.24.0.txt
 
-- Bug in :meth:`Series.get` for ``Series`` using ``ExtensionArray`` and integer index (:issue:`21257`)
-- :meth:`Series.combine()` works correctly with :class:`~pandas.api.extensions.ExtensionArray` inside of :class:`Series` (:issue:`20825`)
-- :meth:`Series.combine()` with scalar argument now works for any function type (:issue:`21248`)
--
 -
 
 Other

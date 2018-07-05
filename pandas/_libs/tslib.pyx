@@ -51,6 +51,8 @@ from tslibs.conversion import tz_convert_single
 from tslibs.nattype import NaT, nat_strings, iNaT
 from tslibs.nattype cimport checknull_with_nat, NPY_NAT
 
+from tslibs.offsets cimport to_offset
+
 from tslibs.timestamps cimport (create_timestamp_from_ts,
                                 _NS_UPPER_BOUND, _NS_LOWER_BOUND)
 from tslibs.timestamps import Timestamp
@@ -118,7 +120,6 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
         func_create = create_timestamp_from_ts
 
         if is_string_object(freq):
-            from pandas.tseries.frequencies import to_offset
             freq = to_offset(freq)
     elif box == "time":
         func_create = create_time_from_ts
@@ -232,23 +233,6 @@ def _test_parse_iso8601(object ts):
         return Timestamp(obj.value, tz=obj.tzinfo)
     else:
         return Timestamp(obj.value)
-
-
-cpdef inline object _localize_pydatetime(object dt, object tz):
-    """
-    Take a datetime/Timestamp in UTC and localizes to timezone tz.
-    """
-    if tz is None:
-        return dt
-    elif isinstance(dt, Timestamp):
-        return dt.tz_localize(tz)
-    elif tz == 'UTC' or tz is UTC:
-        return UTC.localize(dt)
-    try:
-        # datetime.replace with pytz may be incorrect result
-        return tz.localize(dt)
-    except AttributeError:
-        return dt.replace(tzinfo=tz)
 
 
 def format_array_from_datetime(ndarray[int64_t] values, object tz=None,

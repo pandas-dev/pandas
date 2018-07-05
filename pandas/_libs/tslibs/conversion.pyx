@@ -482,7 +482,7 @@ cdef _TSObject convert_str_to_tsobject(object ts, object tz, object unit,
 cdef inline check_overflows(_TSObject obj):
     """
     Check that we haven't silently overflowed in timezone conversion
-    
+
     Parameters
     ----------
     obj : _TSObject
@@ -565,7 +565,7 @@ cdef inline datetime _localize_pydatetime(datetime dt, tzinfo tz):
     """
     Take a datetime/Timestamp in UTC and localizes to timezone tz.
 
-    NB: Unlike the version in tslib, this treats datetime and Timestamp objects
+    NB: Unlike the public version, this treats datetime and Timestamp objects
         identically, i.e. discards nanos from Timestamps.
         It also assumes that the `tz` input is not None.
     """
@@ -576,6 +576,34 @@ cdef inline datetime _localize_pydatetime(datetime dt, tzinfo tz):
         return tz.localize(dt)
     except AttributeError:
         return dt.replace(tzinfo=tz)
+
+
+cpdef inline datetime localize_pydatetime(datetime dt, object tz):
+    """
+    Take a datetime/Timestamp in UTC and localizes to timezone tz.
+
+    Parameters
+    ----------
+    dt : datetime or Timestamp
+    tz : tzinfo, "UTC", or None
+
+    Returns
+    -------
+    localized : datetime or Timestamp
+    """
+    if tz is None:
+        return dt
+    elif not PyDateTime_CheckExact(dt):
+        # i.e. is a Timestamp
+        return dt.tz_localize(tz)
+    elif tz == 'UTC' or tz is UTC:
+        return UTC.localize(dt)
+    try:
+        # datetime.replace with pytz may be incorrect result
+        return tz.localize(dt)
+    except AttributeError:
+        return dt.replace(tzinfo=tz)
+
 
 # ----------------------------------------------------------------------
 # Timezone Conversion
@@ -655,10 +683,8 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
 
     Returns
     -------
-    int64 converted
-
+    converted: int64
     """
-
     cdef:
         ndarray[int64_t] trans, deltas
         Py_ssize_t pos
@@ -813,9 +839,17 @@ def tz_localize_to_utc(ndarray[int64_t] vals, object tz, object ambiguous=None,
     Localize tzinfo-naive i8 to given time zone (using pytz). If
     there are ambiguities in the values, raise AmbiguousTimeError.
 
+    Parameters
+    ----------
+    vals : ndarray[int64_t]
+    tz : tzinfo or None
+    ambiguous : str, bool, or arraylike
+        If arraylike, must have the same length as vals
+    errors : {"raise", "coerce"}, default "raise"
+
     Returns
     -------
-    localized : DatetimeIndex
+    localized : ndarray[int64_t]
     """
     cdef:
         ndarray[int64_t] trans, deltas, idx_shifted
@@ -1002,7 +1036,7 @@ cdef inline bisect_right_i8(int64_t *data, int64_t val, Py_ssize_t n):
 
 cdef inline str _render_tstamp(int64_t val):
     """ Helper function to render exception messages"""
-    from pandas._libs.tslib import Timestamp
+    from timestamps import Timestamp
     return str(Timestamp(val))
 
 

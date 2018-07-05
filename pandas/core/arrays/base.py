@@ -54,6 +54,7 @@ class ExtensionArray(object):
     methods:
 
     * fillna
+    * dropna
     * unique
     * factorize / _values_for_factorize
     * argsort / _values_for_argsort
@@ -87,7 +88,7 @@ class ExtensionArray(object):
     # Constructors
     # ------------------------------------------------------------------------
     @classmethod
-    def _from_sequence(cls, scalars):
+    def _from_sequence(cls, scalars, copy=False):
         """Construct a new ExtensionArray from a sequence of scalars.
 
         Parameters
@@ -95,6 +96,8 @@ class ExtensionArray(object):
         scalars : Sequence
             Each element will be an instance of the scalar type for this
             array, ``cls.dtype.type``.
+        copy : boolean, default False
+            if True, copy the underlying data
         Returns
         -------
         ExtensionArray
@@ -383,6 +386,16 @@ class ExtensionArray(object):
         else:
             new_values = self.copy()
         return new_values
+
+    def dropna(self):
+        """ Return ExtensionArray without NA values
+
+        Returns
+        -------
+        valid : ExtensionArray
+        """
+
+        return self[~self.isna()]
 
     def unique(self):
         """Compute the ExtensionArray of unique values.

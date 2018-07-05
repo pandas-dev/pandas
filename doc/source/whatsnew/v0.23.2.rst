@@ -58,23 +58,13 @@ Fixed Regressions
 - Fixed regression in :meth:`to_csv` when handling file-like object incorrectly (:issue:`21471`)
 - Re-allowed duplicate level names of a ``MultiIndex``. Accessing a level that has a duplicate name by name still raises an error (:issue:`19029`).
 - Bug in both :meth:`DataFrame.first_valid_index` and :meth:`Series.first_valid_index` raised for a row index having duplicate values (:issue:`21441`)
+- Fixed printing of DataFrames with hierarchical columns with long names (:issue:`21180`)
+- Fixed regression in :meth:`~DataFrame.reindex` and :meth:`~DataFrame.groupby`
+  with a MultiIndex or multiple keys that contains categorical datetime-like values (:issue:`21390`).
 - Fixed regression in unary negative operations with object dtype (:issue:`21380`)
 - Bug in :meth:`Timestamp.ceil` and :meth:`Timestamp.floor` when timestamp is a multiple of the rounding frequency (:issue:`21262`)
 - Fixed regression in :func:`to_clipboard` that defaulted to copying dataframes with space delimited instead of tab delimited (:issue:`21104`)
 
-.. _whatsnew_0232.performance:
-
-Performance Improvements
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-- Improved performance of membership checks in :class:`Categorical` and :class:`CategoricalIndex`
-  (i.e. ``x in cat``-style checks are much faster). :meth:`CategoricalIndex.contains`
-  is likewise much faster (:issue:`21369`, :issue:`21508`)
-- Improved performance of :meth:`HDFStore.groups` (and dependent functions like
-  :meth:`~HDFStore.keys`.  (i.e. ``x in store`` checks are much faster)
-  (:issue:`21372`)
-- Improved performance of :meth:`MultiIndex.is_unique` (:issue:`21522`)
--
 
 Documentation Changes
 ~~~~~~~~~~~~~~~~~~~~~
