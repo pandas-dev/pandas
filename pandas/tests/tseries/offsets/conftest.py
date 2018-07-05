@@ -27,13 +27,3 @@ def tick_classes(request):
     Fixture for Tick based datetime offsets available for a time series.
     """
     return request.param
-
-
-@pytest.fixture(params=[None, 'UTC', 'Asia/Tokyo', 'US/Eastern',
-                        'dateutil/Asia/Tokyo', 'dateutil/US/Pacific'])
-def tz(request):
-    """
-    Fixture for different timezones strings.
-    # TODO: repeated fixture
-    """
-    return request.param

@@ -40,7 +40,6 @@ from pandas.tseries.holiday import USFederalHolidayCalendar
 
 from .common import assert_offset_equal, assert_onOffset
 
-
 ####
 # Misc function tests
 ####
@@ -112,7 +111,8 @@ class Base(object):
                 klass = klass(normalize=normalize)
         return klass
 
-    def test_apply_out_of_range(self, tz):
+    def test_apply_out_of_range(self, tz_naive_fixture):
+        tz = tz_naive_fixture
         if self._offset is None:
             return
 
@@ -476,7 +476,8 @@ class TestCommon(Base):
         date = datetime(dt.year, dt.month, dt.day)
         assert offset_n.onOffset(date)
 
-    def test_add(self, offset_types, tz):
+    def test_add(self, offset_types, tz_naive_fixture):
+        tz = tz_naive_fixture
         dt = datetime(2011, 1, 1, 9, 0)
 
         offset_s = self._get_offset(offset_types)
