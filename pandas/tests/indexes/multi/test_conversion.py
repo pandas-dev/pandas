@@ -57,7 +57,9 @@ def test_to_frame():
 def test_to_hierarchical():
     index = MultiIndex.from_tuples([(1, 'one'), (1, 'two'), (2, 'one'), (
         2, 'two')])
-    result = index.to_hierarchical(3)
+    with tm.assert_produces_warning(FutureWarning,
+                                    check_stacklevel=False):
+        result = index.to_hierarchical(3)
     expected = MultiIndex(levels=[[1, 2], ['one', 'two']],
                           labels=[[0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
                                   [0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1]])
@@ -65,7 +67,9 @@ def test_to_hierarchical():
     assert result.names == index.names
 
     # K > 1
-    result = index.to_hierarchical(3, 2)
+    with tm.assert_produces_warning(FutureWarning,
+                                    check_stacklevel=False):
+        result = index.to_hierarchical(3, 2)
     expected = MultiIndex(levels=[[1, 2], ['one', 'two']],
                           labels=[[0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
                                   [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1]])
@@ -77,7 +81,9 @@ def test_to_hierarchical():
                                     (2, 'a'), (2, 'b')],
                                    names=['N1', 'N2'])
 
-    result = index.to_hierarchical(2)
+    with tm.assert_produces_warning(FutureWarning,
+                                    check_stacklevel=False):
+        result = index.to_hierarchical(2)
     expected = MultiIndex.from_tuples([(2, 'c'), (2, 'c'), (1, 'b'),
                                        (1, 'b'),
                                        (2, 'a'), (2, 'a'),
