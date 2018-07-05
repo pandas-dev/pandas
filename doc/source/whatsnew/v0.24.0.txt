@@ -10,7 +10,7 @@ New features
 
 - ``ExcelWriter`` now accepts ``mode`` as a keyword argument, enabling append to existing workbooks when using the ``openpyxl`` engine (:issue:`3441`)
 
-.. _whatsnew_0240.enhancements.extension_array_operators
+.. _whatsnew_0240.enhancements.extension_array_operators:
 
 ``ExtensionArray`` operator support
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -26,6 +26,46 @@ See the :ref:`ExtensionArray Operator Support
 <extending.extension.operator>` documentation section for details on both
 ways of adding operator support.
 
+.. _whatsnew_0240.enhancements.read_html:
+
+``read_html`` Enhancements
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+:func:`read_html` previously ignored ``colspan`` and ``rowspan`` attributes.
+Now it understands them, treating them as sequences of cells with the same
+value. (:issue:`17054`)
+
+.. ipython:: python
+
+    result = pd.read_html("""
+      <table>
+        <thead>
+          <tr>
+            <th>A</th><th>B</th><th>C</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td colspan="2">1</td><td>2</td>
+          </tr>
+        </tbody>
+      </table>""")
+
+Previous Behavior:
+
+.. code-block:: ipython
+
+    In [13]: result
+    Out [13]:
+    [   A  B   C
+     0  1  2 NaN]
+
+Current Behavior:
+
+.. ipython:: python
+
+    result
+
 .. _whatsnew_0240.enhancements.other:
 
 Other Enhancements
@@ -40,6 +80,7 @@ Other Enhancements
   <https://pandas-gbq.readthedocs.io/en/latest/changelog.html#changelog-0-5-0>`__.
   (:issue:`21627`)
 - New method :meth:`HDFStore.walk` will recursively walk the group hierarchy of an HDF5 file (:issue:`10932`)
+- :func:`read_html` copies cell data across ``colspan``s and ``rowspan``s, and it treats all-``th`` table rows as headers if ``header`` kwarg is not given and there is no ``thead`` (:issue:`17054`)
 - :meth:`Series.nlargest`, :meth:`Series.nsmallest`, :meth:`DataFrame.nlargest`, and :meth:`DataFrame.nsmallest` now accept the value ``"all"`` for the ``keep` argument. This keeps all ties for the nth largest/smallest value (:issue:`16818`)
 - :class:`IntervalIndex` has gained the :meth:`~IntervalIndex.set_closed` method to change the existing ``closed`` value (:issue:`21670`)
 -
@@ -329,7 +370,7 @@ MultiIndex
 I/O
 ^^^
 
--
+- :func:`read_html()` no longer ignores all-whitespace ``<tr>`` within ``<thead>`` when considering the ``skiprows`` and ``header`` arguments. Previously, users had to decrease their ``header`` and ``skiprows`` values on such tables to work around the issue. (:issue:`21641`)
 -
 -
 
