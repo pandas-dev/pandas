@@ -13,8 +13,7 @@ from pandas.core.tools.timedeltas import to_timedelta
 import numpy as np
 
 from pandas._libs import lib, iNaT, NaT, Timedelta
-from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
-                                        DIFFERENT_FREQ_INDEX)
+from pandas._libs.tslibs.period import Period
 from pandas._libs.tslibs.timestamps import round_ns
 
 from pandas.core.dtypes.common import (
@@ -695,41 +694,6 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
         # GH#19124 pd.NaT is treated like a timedelta for both timedelta
         # and datetime dtypes
         return self._nat_new(box=True)
-
-    def _sub_period_array(self, other):
-        """
-        Subtract one PeriodIndex from another.  This is only valid if they
-        have the same frequency.
-
-        Parameters
-        ----------
-        other : PeriodIndex
-
-        Returns
-        -------
-        result : np.ndarray[object]
-            Array of DateOffset objects; nulls represented by NaT
-        """
-        if not is_period_dtype(self):
-            raise TypeError("cannot subtract {dtype}-dtype to {cls}"
-                            .format(dtype=other.dtype,
-                                    cls=type(self).__name__))
-
-        if not len(self) == len(other):
-            raise ValueError("cannot subtract indices of unequal length")
-        if self.freq != other.freq:
-            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
-            raise IncompatibleFrequency(msg)
-
-        new_values = checked_add_with_arr(self.asi8, -other.asi8,
-                                          arr_mask=self._isnan,
-                                          b_mask=other._isnan)
-
-        new_values = np.array([self.freq * x for x in new_values])
-        if self.hasnans or other.hasnans:
-            mask = (self._isnan) | (other._isnan)
-            new_values[mask] = NaT
-        return new_values
 
     def _addsub_offset_array(self, other, op):
         """

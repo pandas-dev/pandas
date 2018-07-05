@@ -20,7 +20,7 @@ from pandas.core.dtypes.generic import ABCSeries
 
 import pandas.tseries.frequencies as frequencies
 from pandas.tseries.frequencies import get_freq_code as _gfc
-from pandas.tseries.offsets import Tick, DateOffset
+from pandas.tseries.offsets import Tick
 
 from pandas.core.indexes.datetimes import DatetimeIndex, Int64Index, Index
 from pandas.core.indexes.datetimelike import DatelikeOps, DatetimeIndexOpsMixin
@@ -547,19 +547,6 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
         values = self.asi8
         return ((values[1:] - values[:-1]) < 2).all()
 
-    @property
-    def freq(self):
-        """Return the frequency object if it is set, otherwise None"""
-        return self._freq
-
-    @freq.setter
-    def freq(self, value):
-        msg = ('Setting PeriodIndex.freq has been deprecated and will be '
-               'removed in a future version; use PeriodIndex.asfreq instead. '
-               'The PeriodIndex.freq setter is not guaranteed to work.')
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-        self._freq = value
-
     def asfreq(self, freq=None, how='E'):
         """
         Convert the PeriodIndex to the specified frequency `freq`.
@@ -685,35 +672,6 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
 
         new_data = period.periodarr_to_dt64arr(new_data._ndarray_values, base)
         return DatetimeIndex(new_data, freq='infer', name=self.name)
-
-    def _maybe_convert_timedelta(self, other):
-        if isinstance(
-                other, (timedelta, np.timedelta64, Tick, np.ndarray)):
-            offset = frequencies.to_offset(self.freq.rule_code)
-            if isinstance(offset, Tick):
-                if isinstance(other, np.ndarray):
-                    nanos = np.vectorize(delta_to_nanoseconds)(other)
-                else:
-                    nanos = delta_to_nanoseconds(other)
-                offset_nanos = delta_to_nanoseconds(offset)
-                check = np.all(nanos % offset_nanos == 0)
-                if check:
-                    return nanos // offset_nanos
-        elif isinstance(other, DateOffset):
-            freqstr = other.rule_code
-            base = frequencies.get_base_alias(freqstr)
-            if base == self.freq.rule_code:
-                return other.n
-            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
-            raise IncompatibleFrequency(msg)
-        elif is_integer(other):
-            # integer is passed to .shift via
-            # _add_datetimelike_methods basically
-            # but ufunc may pass integer to _add_delta
-            return other
-        # raise when input doesn't have freq
-        msg = "Input has different freq from PeriodIndex(freq={0})"
-        raise IncompatibleFrequency(msg.format(self.freqstr))
 
     def _add_offset(self, other):
         assert not isinstance(other, Tick)

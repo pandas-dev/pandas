@@ -3,6 +3,7 @@ import warnings
 
 import numpy as np
 
+from pandas._libs import tslib
 from pandas._libs.tslib import Timestamp, NaT, iNaT
 from pandas._libs.tslibs import timezones
 
@@ -108,3 +109,17 @@ class DatetimeArrayMixin(DatetimeLikeArrayMixin):
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = iNaT
         return new_values.view('timedelta64[ns]')
+
+    # ----------------------------------------------------------------
+    # Conversion Methods - Vectorized analogues of Timedelta methods
+
+    def to_pydatetime(self):
+        """
+        Return Datetime Array/Index as object ndarray of datetime.datetime
+        objects
+
+        Returns
+        -------
+        datetimes : ndarray
+        """
+        return tslib.ints_to_pydatetime(self.asi8, tz=self.tz)
