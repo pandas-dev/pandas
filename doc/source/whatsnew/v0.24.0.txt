@@ -317,6 +317,7 @@ Timezones
 - Bug in :class:`Series` constructor which would coerce tz-aware and tz-naive :class:`Timestamp`s to tz-aware (:issue:`13051`)
 - Bug in :class:`Index` with ``datetime64[ns, tz]`` dtype that did not localize integer data correctly (:issue:`20964`)
 - Bug in :class:`DatetimeIndex` where constructing with an integer and tz would not localize correctly (:issue:`12619`)
+- Fixed bug where :meth:`DataFrame.describe` and :meth:`Series.describe` on tz-aware datetimes did not show `first` and `last` result (:issue:`21328`)
 
 Offsets
 ^^^^^^^

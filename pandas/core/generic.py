@@ -20,7 +20,7 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
     is_numeric_dtype,
-    is_datetime64_dtype,
+    is_datetime64_any_dtype,
     is_timedelta64_dtype,
     is_datetime64tz_dtype,
     is_list_like,
@@ -8531,12 +8531,13 @@ class NDFrame(PandasObject, SelectionMixin):
             if result[1] > 0:
                 top, freq = objcounts.index[0], objcounts.iloc[0]
 
-                if is_datetime64_dtype(data):
+                if is_datetime64_any_dtype(data):
+                    tz = data.dt.tz
                     asint = data.dropna().values.view('i8')
                     names += ['top', 'freq', 'first', 'last']
-                    result += [tslib.Timestamp(top), freq,
-                               tslib.Timestamp(asint.min()),
-                               tslib.Timestamp(asint.max())]
+                    result += [tslib.Timestamp(top, tz=tz), freq,
+                               tslib.Timestamp(asint.min(), tz=tz),
+                               tslib.Timestamp(asint.max(), tz=tz)]
                 else:
                     names += ['top', 'freq']
                     result += [top, freq]

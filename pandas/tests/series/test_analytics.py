@@ -336,6 +336,23 @@ class TestSeriesAnalytics(TestData):
                           index=['count', 'unique', 'top', 'freq'])
         tm.assert_series_equal(result, expected)
 
+    def test_describe_with_tz(self, tz_naive_fixture):
+        # GH 21332
+        tz = tz_naive_fixture
+        name = tz_naive_fixture
+        start = Timestamp(2018, 1, 1)
+        end = Timestamp(2018, 1, 5)
+        s = Series(date_range(start, end, tz=tz), name=name)
+        result = s.describe()
+        expected = Series(
+            [5, 5, s.value_counts().index[0], 1, start.tz_localize(tz),
+             end.tz_localize(tz)
+             ],
+            name=name,
+            index=['count', 'unique', 'top', 'freq', 'first', 'last']
+        )
+        tm.assert_series_equal(result, expected)
+
     def test_argsort(self):
         self._check_accum_op('argsort', check_dtype=False)
         argsorted = self.ts.argsort()
