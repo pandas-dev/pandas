@@ -128,8 +128,9 @@ class TestDatetimeIndexOps(object):
             ts = '2016-10-17 12:00:00.001501031'
             DatetimeIndex([ts]).round('1010ns')
 
-    def test_no_rounding_occurs(self, tz):
+    def test_no_rounding_occurs(self, tz_naive_fixture):
         # GH 21262
+        tz = tz_naive_fixture
         rng = date_range(start='2016-01-01', periods=5,
                          freq='2Min', tz=tz)
 
