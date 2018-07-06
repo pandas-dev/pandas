@@ -263,7 +263,8 @@ class TestDatetimeIndexOps(Ops):
          [pd.NaT, pd.NaT, '2011-01-02', '2011-01-03',
           '2011-01-05'])
     ])
-    def test_order_without_freq(self, index_dates, expected_dates, tz_naive_fixture):
+    def test_order_without_freq(self, index_dates, expected_dates,
+                                tz_naive_fixture):
         tz = tz_naive_fixture
 
         # without freq
