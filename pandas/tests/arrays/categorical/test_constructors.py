@@ -472,8 +472,7 @@ class TestCategoricalConstructors(object):
         # GH21767
         codes = [1, 2, np.nan]
         categories = ['a', 'b', 'c']
-        with pytest.raises(ValueError,
-                           match='nan is not a valid code. Use -1'):
+        with pytest.raises(ValueError):
             Categorical.from_codes(codes, categories)
 
     @pytest.mark.parametrize('dtype', [None, 'category'])
