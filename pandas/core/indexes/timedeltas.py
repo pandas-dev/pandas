@@ -37,20 +37,17 @@ from pandas.tseries.offsets import Tick, DateOffset
 from pandas._libs import (lib, index as libindex,
                           join as libjoin, Timedelta, NaT, iNaT)
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
-from pandas._libs.tslibs.fields import get_timedelta_field
 
 
-def _field_accessor(name, alias, docstring=None):
+def _wrap_field_accessor(name):
+    fget = getattr(TimedeltaArrayMixin, name).fget
+
     def f(self):
-        values = self.asi8
-        result = get_timedelta_field(values, alias)
-        if self.hasnans:
-            result = self._maybe_mask_results(result, convert='float64')
-
+        result = fget(self)
         return Index(result, name=self.name)
 
     f.__name__ = name
-    f.__doc__ = docstring
+    f.__doc__ = fget.__doc__
     return property(f)
 
 
@@ -442,17 +439,10 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                                     nat_rep=na_rep,
                                     justify='all').get_result()
 
-    days = _field_accessor("days", "days",
-                           " Number of days for each element. ")
-    seconds = _field_accessor("seconds", "seconds",
-                              " Number of seconds (>= 0 and less than 1 day) "
-                              "for each element. ")
-    microseconds = _field_accessor("microseconds", "microseconds",
-                                   "\nNumber of microseconds (>= 0 and less "
-                                   "than 1 second) for each\nelement. ")
-    nanoseconds = _field_accessor("nanoseconds", "nanoseconds",
-                                  "\nNumber of nanoseconds (>= 0 and less "
-                                  "than 1 microsecond) for each\nelement.\n")
+    days = _wrap_field_accessor("days")
+    seconds = _wrap_field_accessor("seconds")
+    microseconds = _wrap_field_accessor("microseconds")
+    nanoseconds = _wrap_field_accessor("nanoseconds")
 
     @property
     def components(self):
