@@ -629,6 +629,8 @@ class Categorical(ExtensionArray, PandasObject):
             categorical. If not given, the resulting categorical will be
             unordered.
         """
+        if isna(codes).any():
+            raise ValueError("nan is not a valid code. Use -1")
         try:
             codes = coerce_indexer_dtype(np.asarray(codes), categories)
         except (ValueError, TypeError):

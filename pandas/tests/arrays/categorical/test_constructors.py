@@ -468,6 +468,14 @@ class TestCategoricalConstructors(object):
         with pytest.raises(ValueError):
             Categorical.from_codes([0, 1], Categorical(['a', 'b', 'a']))
 
+    def test_from_codes_with_nan_code(self):
+        # GH21767
+        codes = [1, 2, np.nan]
+        categories = ['a', 'b', 'c']
+        with pytest.raises(ValueError,
+                           match='nan is not a valid code. Use -1'):
+            Categorical.from_codes(codes, categories)
+
     @pytest.mark.parametrize('dtype', [None, 'category'])
     def test_from_inferred_categories(self, dtype):
         cats = ['a', 'b']
