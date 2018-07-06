@@ -64,6 +64,7 @@ from pandas._libs.tslibs import (timezones, conversion, fields, parsing,
 
 def _wrap_field_accessor(name):
     fget = getattr(DatetimeArrayMixin, name).fget
+
     def f(self):
         result = fget(self)
         if is_bool_dtype(result):
@@ -2077,7 +2078,6 @@ default 'raise'
 
     month_name = _wrap_in_index("month_name")
     day_name = _wrap_in_index("day_name")
-
 
 
 DatetimeIndex._add_comparison_methods()
