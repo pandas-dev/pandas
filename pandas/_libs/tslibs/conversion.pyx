@@ -608,9 +608,66 @@ cpdef inline datetime localize_pydatetime(datetime dt, object tz):
 # ----------------------------------------------------------------------
 # Timezone Conversion
 
+cdef inline int64_t[:] _tz_convert_dst(ndarray[int64_t] values, tzinfo tz,
+                                       bint to_utc=True):
+    """
+    tz_convert for non-UTC non-tzlocal cases where we have to check
+    DST transitions pointwise.
+
+    Parameters
+    ----------
+    values : ndarray[int64_t]
+    tz : tzinfo
+    to_utc : bool
+        True if converting _to_ UTC, False if converting _from_ utc
+
+    Returns
+    -------
+    result : ndarray[int64_t]
+    """
+    cdef:
+        Py_ssize_t n = len(values)
+        Py_ssize_t i, j, pos
+        ndarray[int64_t] result = np.empty(n, dtype=np.int64)
+        ndarray[int64_t] tt, trans, deltas
+        ndarray[Py_ssize_t] posn
+        int64_t v
+
+    trans, deltas, typ = get_dst_info(tz)
+    if not to_utc:
+        # We add `offset` below instead of subtracting it
+        deltas = -1 * deltas
+
+    tt = values[values != NPY_NAT]
+    if not len(tt):
+        # if all NaT, return all NaT
+        return values
+
+    posn = trans.searchsorted(tt, side='right')
+
+    j = 0
+    for i in range(n):
+        v = values[i]
+        if v == NPY_NAT:
+            result[i] = v
+        else:
+            pos = posn[j] - 1
+            j += 1
+            if pos < 0:
+                raise ValueError('First time before start of DST info')
+            result[i] = v - deltas[pos]
+
+    return result
+
+
 cdef inline int64_t _tz_convert_tzlocal_utc(int64_t val, tzinfo tz,
                                             bint to_utc=True):
     """
+    Convert the i8 representation of a datetime from a tzlocal timezone to
+    UTC, or vice-versa.
+
+    Private, not intended for use outside of tslibs.conversion
+
     Parameters
     ----------
     val : int64_t
@@ -672,6 +729,7 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
         Py_ssize_t pos
         int64_t v, offset, utc_date
         pandas_datetimestruct dts
+        ndarray[int64_t] arr  # TODO: Is there a lighter-weight way to do this?
 
     # See GH#17734 We should always be converting either from UTC or to UTC
     assert (is_utc(tz1) or tz1 == 'UTC') or (is_utc(tz2) or tz2 == 'UTC')
@@ -683,12 +741,8 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
     if is_tzlocal(tz1):
         utc_date = _tz_convert_tzlocal_utc(val, tz1, to_utc=True)
     elif get_timezone(tz1) != 'UTC':
-        trans, deltas, typ = get_dst_info(tz1)
-        pos = trans.searchsorted(val, side='right') - 1
-        if pos < 0:
-            raise ValueError('First time before start of DST info')
-        offset = deltas[pos]
-        utc_date = val - offset
+        arr = np.array([val])
+        utc_date = _tz_convert_dst(arr, tz1, to_utc=True)[0]
     else:
         utc_date = val
 
@@ -696,16 +750,14 @@ cpdef int64_t tz_convert_single(int64_t val, object tz1, object tz2):
         return utc_date
     elif is_tzlocal(tz2):
         return _tz_convert_tzlocal_utc(utc_date, tz2, to_utc=False)
-
-    # Convert UTC to other timezone
-    trans, deltas, typ = get_dst_info(tz2)
-
-    pos = trans.searchsorted(utc_date, side='right') - 1
-    if pos < 0:
-        raise ValueError('First time before start of DST info')
-
-    offset = deltas[pos]
-    return utc_date + offset
+    else:
+        # Convert UTC to other timezone
+        arr = np.array([utc_date])
+        # Note: at least with cython 0.28.3, doing a looking `[0]` in the next
+        # line is sensitive to the declared return type of _tz_convert_dst;
+        # if it is declared as returning ndarray[int64_t], a compile-time error
+        # is raised.
+        return _tz_convert_dst(arr, tz2, to_utc=False)[0]
 
 
 @cython.boundscheck(False)
@@ -746,34 +798,15 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
                 else:
                     utc_dates[i] = _tz_convert_tzlocal_utc(v, tz1, to_utc=True)
         else:
-            trans, deltas, typ = get_dst_info(tz1)
-
-            # all-NaT
-            tt = vals[vals != NPY_NAT]
-            if not len(tt):
-                return vals
-
-            posn = trans.searchsorted(tt, side='right')
-            j = 0
-            for i in range(n):
-                v = vals[i]
-                if v == NPY_NAT:
-                    utc_dates[i] = NPY_NAT
-                else:
-                    pos = posn[j] - 1
-                    j = j + 1
-                    if pos < 0:
-                        raise ValueError('First time before start of DST info')
-                    offset = deltas[pos]
-                    utc_dates[i] = v - offset
+            utc_dates = np.array(_tz_convert_dst(vals, tz1, to_utc=True))
     else:
         utc_dates = vals
 
     if get_timezone(tz2) == 'UTC':
         return utc_dates
 
-    result = np.zeros(n, dtype=np.int64)
-    if is_tzlocal(tz2):
+    elif is_tzlocal(tz2):
+        result = np.zeros(n, dtype=np.int64)
         for i in range(n):
             v = utc_dates[i]
             if v == NPY_NAT:
@@ -781,35 +814,9 @@ def tz_convert(ndarray[int64_t] vals, object tz1, object tz2):
             else:
                 result[i] = _tz_convert_tzlocal_utc(v, tz2, to_utc=False)
         return result
-
-    # Convert UTC to other timezone
-    trans, deltas, typ = get_dst_info(tz2)
-
-    # use first non-NaT element
-    # if all-NaT, return all-NaT
-    if (result == NPY_NAT).all():
-        return result
-
-    # if all NaT, return all NaT
-    tt = utc_dates[utc_dates != NPY_NAT]
-    if not len(tt):
-        return utc_dates
-
-    posn = trans.searchsorted(tt, side='right')
-
-    j = 0
-    for i in range(n):
-        v = utc_dates[i]
-        if vals[i] == NPY_NAT:
-            result[i] = vals[i]
-        else:
-            pos = posn[j] - 1
-            j = j + 1
-            if pos < 0:
-                raise ValueError('First time before start of DST info')
-            offset = deltas[pos]
-            result[i] = v + offset
-    return result
+    else:
+        # Convert UTC to other timezone
+        return np.array(_tz_convert_dst(utc_dates, tz2, to_utc=False))
 
 
 # TODO: cdef scalar version to call from convert_str_to_tsobject
