@@ -337,6 +337,7 @@ class TestSeriesAnalytics(TestData):
         tm.assert_series_equal(result, expected)
 
     def test_describe_with_tz(self, tz_naive_fixture):
+        # GH 21332
         tz = tz_naive_fixture
         name = tz_naive_fixture
         start = Timestamp(2018, 1, 1)

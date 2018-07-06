@@ -418,6 +418,7 @@ class TestDataFrameAnalytics(TestData):
         assert repr(res) == exp_repr
 
     def test_describe_tz_values(self, tz_naive_fixture):
+        # GH 21332
         tz = tz_naive_fixture
         s1 = Series(range(5))
         start = Timestamp(2018, 1, 1)
