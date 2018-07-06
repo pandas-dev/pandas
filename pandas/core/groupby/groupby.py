@@ -2994,9 +2994,9 @@ class Grouping(object):
             # a passed Categorical
             elif is_categorical_dtype(self.grouper):
 
-                self.all_grouper = self.grouper
-                self.grouper = self.grouper._codes_for_groupby(
-                    self.sort, observed)
+                from pandas.core.groupby.categorical import recode_for_groupby
+                self.grouper, self.all_grouper = recode_for_groupby(
+                    self.grouper, self.sort, observed)
                 categories = self.grouper.categories
 
                 # we make a CategoricalIndex out of the cat grouper
@@ -3073,17 +3073,9 @@ class Grouping(object):
     @cache_readonly
     def result_index(self):
         if self.all_grouper is not None:
-            all_categories = self.all_grouper.categories
-
-            # we re-order to the original category orderings
-            if self.sort:
-                return self.group_index.set_categories(all_categories)
-
-            # we are not sorting, so add unobserved to the end
-            categories = self.group_index.categories
-            return self.group_index.add_categories(
-                all_categories[~all_categories.isin(categories)])
-
+            from pandas.core.groupby.categorical import recode_from_groupby
+            return recode_from_groupby(self.all_grouper,
+                                       self.sort, self.group_index)
         return self.group_index
 
     @property
