@@ -486,9 +486,7 @@ Bug Fixes
 Categorical
 ^^^^^^^^^^^
 
--
--
--
+- Bug in :meth:`Categorical.from_codes` where `NaN` values in `codes` were silently converted to `0` (:issue:`21767`)
 
 Datetimelike
 ^^^^^^^^^^^^
