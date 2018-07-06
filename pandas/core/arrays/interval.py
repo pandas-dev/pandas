@@ -3,7 +3,7 @@ import numpy as np
 
 from pandas._libs.interval import (Interval, IntervalMixin,
                                    intervals_to_interval_bounds)
-from pandas.compat import add_metaclass, _WritableDoc
+from pandas.compat import add_metaclass
 from pandas.compat.numpy import function as nv
 import pandas.core.common as com
 from pandas.core.config import get_option
@@ -22,6 +22,7 @@ from pandas.core.dtypes.generic import (ABCDatetimeIndex, ABCPeriodIndex,
 from pandas.core.dtypes.missing import isna, notna
 from pandas.core.indexes.base import Index, _ensure_index
 from pandas.util._decorators import Appender
+from pandas.util._doctools import _WritableDoc
 
 from . import ExtensionArray, Categorical
 
@@ -56,7 +57,7 @@ copy : boolean, default False
 dtype : dtype or None, default None
     If None, dtype will be inferred
 
-    .. versoinadded:: 0.23.0
+    .. versionadded:: 0.23.0
 
 Attributes
 ----------
@@ -96,7 +97,7 @@ cut, qcut : Convert arrays of continuous data into Categoricals/Series of
 @Appender(_interval_shared_docs['class'] % dict(
     klass="IntervalArray",
     summary="Pandas array for interval data that are closed on the same side",
-    versionadded="0.23.0",
+    versionadded="0.24.0",
     name='', extra_methods='', examples='',
 ))
 @add_metaclass(_WritableDoc)
@@ -116,6 +117,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
         if isinstance(data, ABCSeries) and is_interval_dtype(data):
             data = data.values
+
         if isinstance(data, (cls, ABCIntervalIndex)):
             left = data.left
             right = data.right
@@ -128,6 +130,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                        " {} was passed")
                 raise TypeError(msg.format(cls.__name__, data))
 
+            # might need to convert empty or purely na data
             data = maybe_convert_platform_interval(data)
             left, right, infer_closed = intervals_to_interval_bounds(data)
 
@@ -387,6 +390,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if len(data):
             left, right = [], []
         else:
+            # ensure that empty data keeps input dtype
             left = right = data
 
         for d in data:
@@ -599,6 +603,15 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self.left.nbytes + self.right.nbytes
 
     @property
+    def size(self):
+        # Avoid materializing self.values
+        return self.left.size
+
+    @property
+    def shape(self):
+        return self.left.shape
+
+    @property
     def itemsize(self):
         return self.left.itemsize + self.right.itemsize
 
@@ -730,15 +743,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         except TypeError:
             # datetime safe version
             return self.left + 0.5 * self.length
-
-    @property
-    def size(self):
-        # Avoid materializing self.values
-        return self.left.size
-
-    @property
-    def shape(self):
-        return self.left.shape
 
     @property
     def is_non_overlapping_monotonic(self):

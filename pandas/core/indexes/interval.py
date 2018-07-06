@@ -4,7 +4,7 @@ import warnings
 
 import numpy as np
 
-from pandas.compat import add_metaclass, _WritableDoc
+from pandas.compat import add_metaclass
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.cast import find_common_type
 from pandas.core.dtypes.common import (
@@ -34,6 +34,7 @@ from pandas.core.indexes.timedeltas import timedelta_range
 from pandas.core.indexes.multi import MultiIndex
 import pandas.core.common as com
 from pandas.util._decorators import cache_readonly, Appender
+from pandas.util._doctools import _WritableDoc
 from pandas.util.exceptions import rewrite_exception
 from pandas.core.config import get_option
 from pandas.tseries.frequencies import to_offset
