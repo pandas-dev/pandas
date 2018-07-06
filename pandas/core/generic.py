@@ -6025,11 +6025,11 @@ class NDFrame(PandasObject, SelectionMixin):
                                       "has not been implemented. Try filling "
                                       "those NaNs before interpolating.")
 
-        if not np.issubdtype(index.dtype, np.number):
-            raise TypeError("Index column must be numeric when using any "
+        if not is_numeric_dtype(index):
+            raise ValueError("Index column must be numeric when using any "
                             "interpolation method other than linear. Try "
                             "setting a numeric index column before "
-                            "interpolating")
+                            "interpolating.")
 
         data = _maybe_transposed_self._data
         new_data = data.interpolate(method=method, axis=ax, index=index,

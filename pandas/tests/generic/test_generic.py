@@ -1010,6 +1010,7 @@ class TestNDFrame(object):
                 result = wp.pipe((f, 'y'), x=1, y=1)
 
     def test_interpolate(self):
+        # GH 21662
         # Using a numeric index column
         df = DataFrame([0, 1, np.nan, 3], index=[1, 2, 3, 4])
         series = Series(df[0])
@@ -1019,5 +1020,8 @@ class TestNDFrame(object):
         # Using a non-numeric index column
         df = DataFrame([0, 1, np.nan, 3], index=["A", "B", "C", "D"])
         series = Series(df[0])
-        with pytest.raises(TypeError):
+        with pytest.raises(ValueError, match="Index column must be numeric "
+            "when using any interpolation method other than linear. Try "
+            "setting a numeric index column before interpolating."):
+
             result = series.interpolate(method="quadratic")
