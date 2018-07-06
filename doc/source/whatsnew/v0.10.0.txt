@@ -281,16 +281,11 @@ The old behavior of printing out summary information can be achieved via the
 
 The width of each line can be changed via 'line_width' (80 by default):
 
-.. ipython:: python
+.. code-block:: python
 
    pd.set_option('line_width', 40)
 
    wide_frame
-
-.. ipython:: python
-   :suppress:
-
-   pd.reset_option('line_width')
 
 
 Updated PyTables Support

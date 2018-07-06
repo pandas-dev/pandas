@@ -1441,7 +1441,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Always returns Series even if only one value is returned.
 
         Parameters
-        -------
+        ----------
         dropna : boolean, default True
             Don't consider counts of NaN/NaT.
 
