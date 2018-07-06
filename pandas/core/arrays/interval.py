@@ -813,6 +813,37 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             tuples = np.where(~self.isna(), tuples, np.nan)
         return tuples
 
+    def repeat(self, repeats, **kwargs):
+        """
+        Repeat elements of an IntervalArray.
+
+        Returns a new IntervalArray where each element of the current
+        IntervalArray is repeated consecutively a given number of times.
+
+        Parameters
+        ----------
+        repeats : int
+            The number of repetitions for each element.
+
+        **kwargs
+            Additional keywords have no effect but might be accepted for
+            compatibility with numpy.
+
+        Returns
+        -------
+        IntervalArray
+            Newly created IntervalArray with repeated elements.
+
+        See Also
+        --------
+        Index.repeat : Equivalent function for Index
+        Series.repeat : Equivalent function for Series
+        numpy.repeat : Underlying implementation
+        """
+        left_repeat = self.left.repeat(repeats, **kwargs)
+        right_repeat = self.right.repeat(repeats, **kwargs)
+        return self._shallow_copy(left=left_repeat, right=right_repeat)
+
 
 def maybe_convert_platform_interval(values):
     """

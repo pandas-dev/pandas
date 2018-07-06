@@ -84,7 +84,26 @@ class TestInterface(BaseInterval, base.BaseInterfaceTests):
 
 
 class TestMethods(BaseInterval, base.BaseMethodsTests):
-    pass
+    @pytest.mark.parametrize('repeats', [0, 1, 5])
+    @pytest.mark.parametrize('left, right', [
+        (np.arange(3.0), np.arange(1.0, 4.0)),
+        ([0, 2, 4], [1, 3, 5]),
+        (timedelta_range('0 days', periods=3),
+         timedelta_range('1 day', periods=3)),
+        (date_range('20170101', periods=3), date_range('20170102', periods=3)),
+        pytest.param(date_range('20170101', periods=3, tz='US/Eastern'),
+                     date_range('20170102', periods=3, tz='US/Eastern'),
+                     marks=pytest.mark.xfail(reason='fixed after rebase?'))])
+    def test_repeats(self, left, right, repeats):
+        array = IntervalArray.from_arrays(left, right)
+        result = array.repeat(repeats)
+
+        left_reps = [x for x in left for _ in range(repeats)]
+        right_reps = [x for x in right for _ in range(repeats)]
+        expected = IntervalArray.from_arrays(
+            left_reps, right_reps, dtype=array.dtype)
+
+        tm.assert_extension_array_equal(result, expected)
 
 
 class TestMissing(BaseInterval, base.BaseMissingTests):
