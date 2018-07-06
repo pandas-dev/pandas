@@ -8885,9 +8885,13 @@ class NDFrame(PandasObject, SelectionMixin):
             """
             .. deprecated:: 0.24.0
                 Use numpy.ptp instead
+
             Returns the difference between the maximum value and the
             minimum value in the object. This is the equivalent of the
             ``numpy.ndarray`` method ``ptp``.
+
+            .. deprecated:: 0.24.0
+                Use numpy.ptp instead
             """,
             nanptp)
 
