@@ -1045,6 +1045,10 @@ def normalize_date(object dt):
     Returns
     -------
     normalized : datetime.datetime or Timestamp
+
+    Raises
+    ------
+    TypeError : if input is not datetime.date, datetime.datetime, or Timestamp
     """
     if PyDateTime_Check(dt):
         if not PyDateTime_CheckExact(dt):
@@ -1063,7 +1067,7 @@ def normalize_date(object dt):
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
-def date_normalize(ndarray[int64_t] stamps, tz=None):
+def normalize_i8_timestamps(ndarray[int64_t] stamps, tz=None):
     """
     Normalize each of the (nanosecond) timestamps in the given array by
     rounding down to the beginning of the day (i.e. midnight).  If `tz`
