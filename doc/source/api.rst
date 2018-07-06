@@ -100,6 +100,7 @@ HDFStore: PyTables (HDF5)
    HDFStore.select
    HDFStore.info
    HDFStore.keys
+   HDFStore.walk
 
 Feather
 ~~~~~~~
@@ -1200,9 +1201,9 @@ Attributes and underlying data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 **Axes**
 
-  * **items**: axis 0; each item corresponds to a DataFrame contained inside
-  * **major_axis**: axis 1; the index (rows) of each of the DataFrames
-  * **minor_axis**: axis 2; the columns of each of the DataFrames
+* **items**: axis 0; each item corresponds to a DataFrame contained inside
+* **major_axis**: axis 1; the index (rows) of each of the DataFrames
+* **minor_axis**: axis 2; the columns of each of the DataFrames
 
 .. autosummary::
    :toctree: generated/
@@ -1641,6 +1642,7 @@ IntervalIndex Components
    IntervalIndex.is_non_overlapping_monotonic
    IntervalIndex.get_loc
    IntervalIndex.get_indexer
+   IntervalIndex.set_closed
 
 
 .. _api.multiindex:

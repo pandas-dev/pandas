@@ -22,6 +22,7 @@ from pandas.core.dtypes.common import (
     is_float_dtype,
     is_extension_type,
     is_extension_array_dtype,
+    is_datetimelike,
     is_datetime64tz_dtype,
     is_timedelta64_dtype,
     is_object_dtype,
@@ -41,7 +42,8 @@ from pandas.core.dtypes.cast import (
     maybe_cast_to_datetime, maybe_castable,
     construct_1d_arraylike_from_scalar,
     construct_1d_ndarray_preserving_na,
-    construct_1d_object_array_from_listlike)
+    construct_1d_object_array_from_listlike,
+    maybe_cast_to_integer_array)
 from pandas.core.dtypes.missing import (
     isna,
     notna,
@@ -77,6 +79,7 @@ from pandas.util._validators import validate_bool_kwarg
 from pandas._libs import index as libindex, tslib as libts, lib, iNaT
 from pandas.core.config import get_option
 from pandas.core.strings import StringMethods
+from pandas.core.tools.datetimes import to_datetime
 
 import pandas.plotting._core as gfx
 
@@ -2065,7 +2068,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
     def __rmatmul__(self, other):
         """ Matrix multiplication using binary `@` operator in Python>=3.5 """
-        return self.dot(other)
+        return self.dot(np.transpose(other))
 
     @Substitution(klass='Series')
     @Appender(base._shared_docs['searchsorted'])
@@ -2302,10 +2305,10 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         new_index = self.index.union(other.index)
         this = self.reindex(new_index, copy=False)
         other = other.reindex(new_index, copy=False)
-        # TODO: do we need name?
-        name = ops.get_op_result_name(self, other)  # noqa
-        rs_vals = com._where_compat(isna(this), other._values, this._values)
-        return self._constructor(rs_vals, index=new_index).__finalize__(self)
+        if is_datetimelike(this) and not is_datetimelike(other):
+            other = to_datetime(other)
+
+        return this.where(notna(this), other)
 
     def update(self, other):
         """
@@ -3240,7 +3243,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         delegate = self._values
         if isinstance(delegate, np.ndarray):
             # Validate that 'axis' is consistent with Series's single axis.
-            self._get_axis_number(axis)
+            if axis is not None:
+                self._get_axis_number(axis)
             if numeric_only:
                 raise NotImplementedError('Series.{0} does not implement '
                                           'numeric_only.'.format(name))
@@ -3790,7 +3794,8 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             non-ascii, for python versions prior to 3
         compression : string, optional
             A string representing the compression to use in the output file.
-            Allowed values are 'gzip', 'bz2', 'zip', 'xz'.
+            Allowed values are 'gzip', 'bz2', 'zip', 'xz'. This input is only
+            used when the first argument is a filename.
         date_format: string, default None
             Format string for datetime objects.
         decimal: string, default '.'
@@ -4067,6 +4072,11 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 return arr
 
         try:
+            # gh-15832: Check if we are requesting a numeric dype and
+            # that we can convert the data to the requested dtype.
+            if is_float_dtype(dtype) or is_integer_dtype(dtype):
+                subarr = maybe_cast_to_integer_array(arr, dtype)
+
             subarr = maybe_cast_to_datetime(arr, dtype)
             # Take care in creating object arrays (but iterators are not
             # supported):
@@ -4084,11 +4094,9 @@ def _sanitize_array(data, index, dtype=None, copy=False,
                 subarr = Categorical(arr, dtype.categories,
                                      ordered=dtype.ordered)
             elif is_extension_array_dtype(dtype):
-                # We don't allow casting to third party dtypes, since we don't
-                # know what array belongs to which type.
-                msg = ("Cannot cast data to extension dtype '{}'. "
-                       "Pass the extension array directly.".format(dtype))
-                raise ValueError(msg)
+                # create an extension array from its dtype
+                array_type = dtype.construct_array_type()
+                subarr = array_type(subarr, copy=copy)
 
             elif dtype is not None and raise_cast_failure:
                 raise

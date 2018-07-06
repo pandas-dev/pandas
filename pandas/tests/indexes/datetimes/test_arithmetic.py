@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 import operator
 
 import pytest
-
+import pytz
 import numpy as np
 
 import pandas as pd
@@ -15,7 +15,7 @@ from pandas import (Timestamp, Timedelta, Series,
                     DatetimeIndex, TimedeltaIndex,
                     date_range)
 from pandas.core import ops
-from pandas._libs import tslib
+from pandas._libs.tslibs.conversion import localize_pydatetime
 from pandas._libs.tslibs.offsets import shift_months
 
 
@@ -50,10 +50,7 @@ class TestDatetimeIndexComparisons(object):
             if isinstance(other, np.datetime64):
                 # no tzaware version available
                 return
-            elif isinstance(other, Timestamp):
-                other = other.tz_localize(dti.tzinfo)
-            else:
-                other = tslib._localize_pydatetime(other, dti.tzinfo)
+            other = localize_pydatetime(other, dti.tzinfo)
 
         result = dti == other
         expected = np.array([True, False])
@@ -274,6 +271,10 @@ class TestDatetimeIndexComparisons(object):
         with pytest.raises(TypeError):
             op(dz, ts)
 
+        # GH 12601: Check comparison against Timestamps and DatetimeIndex
+        with pytest.raises(TypeError):
+            op(ts, dz)
+
     @pytest.mark.parametrize('op', [operator.eq, operator.ne,
                                     operator.gt, operator.ge,
                                     operator.lt, operator.le])
@@ -478,6 +479,28 @@ class TestDatetimeIndexArithmetic(object):
 
         result = dr_tz.shift(1, '10T')
         assert result.tz == dr_tz.tz
+
+    def test_dti_shift_across_dst(self):
+        # GH 8616
+        idx = date_range('2013-11-03', tz='America/Chicago',
+                         periods=7, freq='H')
+        s = Series(index=idx[:-1])
+        result = s.shift(freq='H')
+        expected = Series(index=idx[1:])
+        tm.assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('shift, result_time', [
+        [0, '2014-11-14 00:00:00'],
+        [-1, '2014-11-13 23:00:00'],
+        [1, '2014-11-14 01:00:00']])
+    def test_dti_shift_near_midnight(self, shift, result_time):
+        # GH 8616
+        dt = datetime(2014, 11, 14, 0)
+        dt_est = pytz.timezone('EST').localize(dt)
+        s = Series(data=[1], index=[dt_est])
+        result = s.shift(shift, freq='H')
+        expected = Series(1, index=DatetimeIndex([result_time], tz='EST'))
+        tm.assert_series_equal(result, expected)
 
     # -------------------------------------------------------------
     # Binary operations DatetimeIndex and timedelta-like
@@ -754,6 +777,17 @@ class TestDatetimeIndexArithmetic(object):
 
         with pytest.raises(TypeError):
             p - idx
+
+    @pytest.mark.parametrize('op', [operator.add, ops.radd,
+                                    operator.sub, ops.rsub])
+    @pytest.mark.parametrize('pi_freq', ['D', 'W', 'Q', 'H'])
+    @pytest.mark.parametrize('dti_freq', [None, 'D'])
+    def test_dti_sub_pi(self, dti_freq, pi_freq, op):
+        # GH#20049 subtracting PeriodIndex should raise TypeError
+        dti = pd.DatetimeIndex(['2011-01-01', '2011-01-02'], freq=dti_freq)
+        pi = dti.to_period(pi_freq)
+        with pytest.raises(TypeError):
+            op(dti, pi)
 
     def test_ufunc_coercions(self):
         idx = date_range('2011-01-01', periods=3, freq='2D', name='x')

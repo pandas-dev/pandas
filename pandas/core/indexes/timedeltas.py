@@ -17,6 +17,7 @@ from pandas.core.dtypes.common import (
 from pandas.core.dtypes.missing import isna
 from pandas.core.dtypes.generic import ABCSeries
 
+from pandas.core.arrays.timedelta import TimedeltaArrayMixin
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.numeric import Int64Index
 import pandas.compat as compat
@@ -33,7 +34,7 @@ from pandas.core.indexes.datetimelike import (
 from pandas.core.tools.timedeltas import (
     to_timedelta, _coerce_scalar_to_timedelta_type)
 from pandas.tseries.offsets import Tick, DateOffset
-from pandas._libs import (lib, index as libindex, tslib as libts,
+from pandas._libs import (lib, index as libindex,
                           join as libjoin, Timedelta, NaT, iNaT)
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
 from pandas._libs.tslibs.fields import get_timedelta_field
@@ -96,7 +97,8 @@ def _td_index_cmp(opname, cls):
     return compat.set_function_name(wrapper, opname, cls)
 
 
-class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
+class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
+                     TimelikeOps, Int64Index):
     """
     Immutable ndarray of timedelta64 data, represented internally as int64, and
     which can be boxed to timedelta objects
@@ -107,7 +109,10 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         Optional timedelta-like data to construct index with
     unit: unit of the arg (D,h,m,s,ms,us,ns) denote the unit, optional
         which is an integer/float number
-    freq: a frequency for the index, optional
+    freq : string or pandas offset object, optional
+        One of pandas date offset strings or corresponding objects. The string
+        'infer' can be passed in order to set the frequency of the index as the
+        inferred frequency upon creation
     copy  : bool
         Make a copy of input ndarray
     start : starting value, timedelta-like, optional
@@ -308,10 +313,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
 
         return index
 
-    @property
-    def _box_func(self):
-        return lambda x: Timedelta(x, unit='ns')
-
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, **kwargs):
         values = np.array(values, copy=False)
@@ -347,12 +348,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
             # no need to infer if freq is None
             attrs['freq'] = 'infer'
         return attrs
-
-    def _add_offset(self, other):
-        assert not isinstance(other, Tick)
-        raise TypeError("cannot add the type {typ} to a {cls}"
-                        .format(typ=type(other).__name__,
-                                cls=type(self).__name__))
 
     def _add_delta(self, delta):
         """
@@ -428,11 +423,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
                                           arr_mask=self._isnan)
             result = self._maybe_mask_results(result, fill_value=iNaT)
             return DatetimeIndex(result)
-
-    def _sub_datelike(self, other):
-        assert other is not NaT
-        raise TypeError("cannot subtract a datelike from a {cls}"
-                        .format(cls=type(self).__name__))
 
     def _addsub_offset_array(self, other, op):
         # Add or subtract Array-like of DateOffset objects
@@ -550,16 +540,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
         """
         return Index(self._maybe_mask_results(1e-9 * self.asi8),
                      name=self.name)
-
-    def to_pytimedelta(self):
-        """
-        Return TimedeltaIndex as object ndarray of datetime.timedelta objects
-
-        Returns
-        -------
-        datetimes : ndarray
-        """
-        return libts.ints_to_pytimedelta(self.asi8)
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):
@@ -902,10 +882,6 @@ class TimedeltaIndex(DatetimeIndexOpsMixin, TimelikeOps, Int64Index):
     @property
     def inferred_type(self):
         return 'timedelta64'
-
-    @property
-    def dtype(self):
-        return _TD_DTYPE
 
     @property
     def is_all_dates(self):

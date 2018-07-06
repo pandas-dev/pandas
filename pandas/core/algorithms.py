@@ -154,7 +154,7 @@ def _reconstruct_data(values, dtype, original):
     """
     from pandas import Index
     if is_extension_array_dtype(dtype):
-        pass
+        values = dtype.construct_array_type()._from_sequence(values)
     elif is_datetime64tz_dtype(dtype) or is_period_dtype(dtype):
         values = Index(original)._shallow_copy(values, name=None)
     elif is_bool_dtype(dtype):
@@ -705,7 +705,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
 
     else:
 
-        if is_categorical_dtype(values) or is_sparse(values):
+        if is_extension_array_dtype(values) or is_sparse(values):
 
             # handle Categorical and sparse,
             result = Series(values)._values.value_counts(dropna=dropna)
@@ -1076,8 +1076,8 @@ class SelectN(object):
         self.n = n
         self.keep = keep
 
-        if self.keep not in ('first', 'last'):
-            raise ValueError('keep must be either "first", "last"')
+        if self.keep not in ('first', 'last', 'all'):
+            raise ValueError('keep must be either "first", "last" or "all"')
 
     def nlargest(self):
         return self.compute('nlargest')
@@ -1133,9 +1133,12 @@ class SelectNSeries(SelectN):
             return dropped[slc].sort_values(ascending=ascending).head(n)
 
         # fast method
-        arr, _, _ = _ensure_data(dropped.values)
+        arr, pandas_dtype, _ = _ensure_data(dropped.values)
         if method == 'nlargest':
             arr = -arr
+            if is_integer_dtype(pandas_dtype):
+                # GH 21426: ensure reverse ordering at boundaries
+                arr -= 1
 
         if self.keep == 'last':
             arr = arr[::-1]
@@ -1145,7 +1148,11 @@ class SelectNSeries(SelectN):
 
         kth_val = algos.kth_smallest(arr.copy(), n - 1)
         ns, = np.nonzero(arr <= kth_val)
-        inds = ns[arr[ns].argsort(kind='mergesort')][:n]
+        inds = ns[arr[ns].argsort(kind='mergesort')]
+
+        if self.keep != 'all':
+            inds = inds[:n]
+
         if self.keep == 'last':
             # reverse indices
             inds = narr - 1 - inds

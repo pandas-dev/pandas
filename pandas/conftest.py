@@ -1,5 +1,9 @@
+import os
+import importlib
+
 import pytest
 
+import pandas
 import numpy as np
 import pandas as pd
 from pandas.compat import PY3
@@ -15,6 +19,8 @@ def pytest_addoption(parser):
                      help="run high memory tests")
     parser.addoption("--only-slow", action="store_true",
                      help="run only slow tests")
+    parser.addoption("--strict-data-files", action="store_true",
+                     help="Fail if a test is skipped for missing data file.")
 
 
 def pytest_runtest_setup(item):
@@ -83,7 +89,8 @@ _all_arithmetic_operators = ['__add__', '__radd__',
                              '__mul__', '__rmul__',
                              '__floordiv__', '__rfloordiv__',
                              '__truediv__', '__rtruediv__',
-                             '__pow__', '__rpow__']
+                             '__pow__', '__rpow__',
+                             '__mod__', '__rmod__']
 if not PY3:
     _all_arithmetic_operators.extend(['__div__', '__rdiv__'])
 
@@ -92,6 +99,22 @@ if not PY3:
 def all_arithmetic_operators(request):
     """
     Fixture for dunder names for common arithmetic operations
+    """
+    return request.param
+
+
+@pytest.fixture(params=['__eq__', '__ne__', '__le__',
+                        '__lt__', '__ge__', '__gt__'])
+def all_compare_operators(request):
+    """
+    Fixture for dunder names for common compare operations
+
+    * >=
+    * >
+    * ==
+    * !=
+    * <
+    * <=
     """
     return request.param
 
@@ -125,6 +148,61 @@ def datetime_tz_utc():
 def join_type(request):
     """
     Fixture for trying all types of join operations
+    """
+    return request.param
+
+
+@pytest.fixture
+def datapath(request):
+    """Get the path to a data file.
+
+    Parameters
+    ----------
+    path : str
+        Path to the file, relative to ``pandas/tests/``
+
+    Returns
+    -------
+    path : path including ``pandas/tests``.
+
+    Raises
+    ------
+    ValueError
+        If the path doesn't exist and the --strict-data-files option is set.
+    """
+    BASE_PATH = os.path.join(os.path.dirname(__file__), 'tests')
+
+    def deco(*args):
+        path = os.path.join(BASE_PATH, *args)
+        if not os.path.exists(path):
+            if request.config.getoption("--strict-data-files"):
+                msg = "Could not find file {} and --strict-data-files is set."
+                raise ValueError(msg.format(path))
+            else:
+                msg = "Could not find {}."
+                pytest.skip(msg.format(path))
+        return path
+    return deco
+
+
+@pytest.fixture
+def iris(datapath):
+    """The iris dataset as a DataFrame."""
+    return pandas.read_csv(datapath('data', 'iris.csv'))
+
+
+@pytest.fixture(params=['nlargest', 'nsmallest'])
+def nselect_method(request):
+    """
+    Fixture for trying all nselect methods
+    """
+    return request.param
+
+
+@pytest.fixture(params=['left', 'right', 'both', 'neither'])
+def closed(request):
+    """
+    Fixture for trying all interval closed parameters
     """
     return request.param
 
@@ -170,3 +248,92 @@ def string_dtype(request):
     * 'U'
     """
     return request.param
+
+
+@pytest.fixture(params=[float, "float32", "float64"])
+def float_dtype(request):
+    """
+    Parameterized fixture for float dtypes.
+
+    * float32
+    * float64
+    """
+
+    return request.param
+
+
+@pytest.fixture(params=[complex, "complex64", "complex128"])
+def complex_dtype(request):
+    """
+    Parameterized fixture for complex dtypes.
+
+    * complex64
+    * complex128
+    """
+
+    return request.param
+
+
+UNSIGNED_INT_DTYPES = ["uint8", "uint16", "uint32", "uint64"]
+SIGNED_INT_DTYPES = [int, "int8", "int16", "int32", "int64"]
+ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES
+
+
+@pytest.fixture(params=SIGNED_INT_DTYPES)
+def sint_dtype(request):
+    """
+    Parameterized fixture for signed integer dtypes.
+
+    * int8
+    * int16
+    * int32
+    * int64
+    """
+
+    return request.param
+
+
+@pytest.fixture(params=UNSIGNED_INT_DTYPES)
+def uint_dtype(request):
+    """
+    Parameterized fixture for unsigned integer dtypes.
+
+    * uint8
+    * uint16
+    * uint32
+    * uint64
+    """
+
+    return request.param
+
+
+@pytest.fixture(params=ALL_INT_DTYPES)
+def any_int_dtype(request):
+    """
+    Parameterized fixture for any integer dtypes.
+
+    * int8
+    * uint8
+    * int16
+    * uint16
+    * int32
+    * uint32
+    * int64
+    * uint64
+    """
+
+    return request.param
+
+
+@pytest.fixture
+def mock():
+    """
+    Fixture providing the 'mock' module.
+
+    Uses 'unittest.mock' for Python 3. Attempts to import the 3rd party 'mock'
+    package for Python 2, skipping if not present.
+    """
+    if PY3:
+        return importlib.import_module("unittest.mock")
+    else:
+        return pytest.importorskip("mock")

@@ -33,6 +33,7 @@ from np_datetime cimport (cmp_scalar, reverse_ops, td64_to_tdstruct,
 
 from nattype import nat_strings, NaT
 from nattype cimport checknull_with_nat, NPY_NAT
+from offsets cimport to_offset
 
 # ----------------------------------------------------------------------
 # Constants
@@ -77,6 +78,44 @@ cdef dict timedelta_abbrevs = { 'D': 'd',
                                 'nanosecond': 'ns'}
 
 _no_input = object()
+
+
+# ----------------------------------------------------------------------
+# API
+
+def ints_to_pytimedelta(ndarray[int64_t] arr, box=False):
+    """
+    convert an i8 repr to an ndarray of timedelta or Timedelta (if box ==
+    True)
+
+    Parameters
+    ----------
+    arr : ndarray[int64_t]
+    box : bool, default False
+
+    Returns
+    -------
+    result : ndarray[object]
+        array of Timedelta or timedeltas objects
+    """
+    cdef:
+        Py_ssize_t i, n = len(arr)
+        int64_t value
+        ndarray[object] result = np.empty(n, dtype=object)
+
+    for i in range(n):
+
+        value = arr[i]
+        if value == NPY_NAT:
+            result[i] = NaT
+        else:
+            if box:
+                result[i] = Timedelta(value)
+            else:
+                result[i] = timedelta(microseconds=int(value) / 1000)
+
+    return result
+
 
 # ----------------------------------------------------------------------
 
@@ -899,6 +938,9 @@ cdef class _Timedelta(timedelta):
     def __str__(self):
         return self._repr_base(format='long')
 
+    def __bool__(self):
+        return self.value != 0
+
     def isoformat(self):
         """
         Format Timedelta as ISO 8601 Duration like
@@ -1047,7 +1089,6 @@ class Timedelta(_Timedelta):
         cdef:
             int64_t result, unit
 
-        from pandas.tseries.frequencies import to_offset
         unit = to_offset(freq).nanos
         result = unit * rounder(self.value / float(unit))
         return Timedelta(result, unit='ns')

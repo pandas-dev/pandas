@@ -35,21 +35,22 @@ from cython cimport Py_ssize_t
 
 
 import pytz
-UTC = pytz.utc
 
 
 from tslibs.timedeltas cimport cast_from_unit
-from tslibs.timedeltas import Timedelta
+from tslibs.timedeltas import Timedelta, ints_to_pytimedelta  # noqa:F841
 from tslibs.timezones cimport (is_utc, is_tzlocal, is_fixed_offset,
                                treat_tz_as_pytz, get_dst_info)
 from tslibs.conversion cimport (tz_convert_single, _TSObject,
                                 convert_datetime_to_tsobject,
                                 get_datetime64_nanos,
                                 tz_convert_utc_to_tzlocal)
-from tslibs.conversion import tz_convert_single
+from tslibs.conversion import tz_convert_single, normalize_date  # noqa:F841
 
 from tslibs.nattype import NaT, nat_strings, iNaT
 from tslibs.nattype cimport checknull_with_nat, NPY_NAT
+
+from tslibs.offsets cimport to_offset
 
 from tslibs.timestamps cimport (create_timestamp_from_ts,
                                 _NS_UPPER_BOUND, _NS_LOWER_BOUND)
@@ -118,14 +119,13 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
         func_create = create_timestamp_from_ts
 
         if is_string_object(freq):
-            from pandas.tseries.frequencies import to_offset
             freq = to_offset(freq)
     elif box == "time":
         func_create = create_time_from_ts
     elif box == "datetime":
         func_create = create_datetime_from_ts
     else:
-        raise ValueError("box must be one of 'datetime', 'date', 'time' or" +
+        raise ValueError("box must be one of 'datetime', 'date', 'time' or"
                          " 'timestamp'")
 
     if tz is not None:
@@ -184,29 +184,6 @@ def ints_to_pydatetime(ndarray[int64_t] arr, tz=None, freq=None,
     return result
 
 
-def ints_to_pytimedelta(ndarray[int64_t] arr, box=False):
-    # convert an i8 repr to an ndarray of timedelta or Timedelta (if box ==
-    # True)
-
-    cdef:
-        Py_ssize_t i, n = len(arr)
-        int64_t value
-        ndarray[object] result = np.empty(n, dtype=object)
-
-    for i in range(n):
-
-        value = arr[i]
-        if value == NPY_NAT:
-            result[i] = NaT
-        else:
-            if box:
-                result[i] = Timedelta(value)
-            else:
-                result[i] = timedelta(microseconds=int(value) / 1000)
-
-    return result
-
-
 def _test_parse_iso8601(object ts):
     """
     TESTING ONLY: Parse string into Timestamp using iso8601 parser. Used
@@ -232,23 +209,6 @@ def _test_parse_iso8601(object ts):
         return Timestamp(obj.value, tz=obj.tzinfo)
     else:
         return Timestamp(obj.value)
-
-
-cpdef inline object _localize_pydatetime(object dt, object tz):
-    """
-    Take a datetime/Timestamp in UTC and localizes to timezone tz.
-    """
-    if tz is None:
-        return dt
-    elif isinstance(dt, Timestamp):
-        return dt.tz_localize(tz)
-    elif tz == 'UTC' or tz is UTC:
-        return UTC.localize(dt)
-    try:
-        # datetime.replace with pytz may be incorrect result
-        return tz.localize(dt)
-    except AttributeError:
-        return dt.replace(tzinfo=tz)
 
 
 def format_array_from_datetime(ndarray[int64_t] values, object tz=None,
@@ -756,30 +716,3 @@ cdef inline bint _parse_today_now(str val, int64_t* iresult):
         iresult[0] = Timestamp.today().value
         return True
     return False
-
-# ----------------------------------------------------------------------
-# Some general helper functions
-
-
-cpdef normalize_date(object dt):
-    """
-    Normalize datetime.datetime value to midnight. Returns datetime.date as a
-    datetime.datetime at midnight
-
-    Returns
-    -------
-    normalized : datetime.datetime or Timestamp
-    """
-    if PyDateTime_Check(dt):
-        if not PyDateTime_CheckExact(dt):
-            # i.e. a Timestamp object
-            return dt.replace(hour=0, minute=0, second=0, microsecond=0,
-                              nanosecond=0)
-        else:
-            # regular datetime object
-            return dt.replace(hour=0, minute=0, second=0, microsecond=0)
-            # TODO: Make sure DST crossing is handled correctly here
-    elif PyDate_Check(dt):
-        return datetime(dt.year, dt.month, dt.day)
-    else:
-        raise TypeError('Unrecognized type: %s' % type(dt))

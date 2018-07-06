@@ -109,6 +109,11 @@ class ExtensionDtype(_DtypeOpsMixin):
     * name
     * construct_from_string
 
+    Optionally one can override construct_array_type for construction
+    with the name of this dtype via the Registry
+
+    * construct_array_type
+
     The `na_value` class attribute can be used to set the default NA value
     for this type. :attr:`numpy.nan` is used by default.
 
@@ -155,6 +160,16 @@ class ExtensionDtype(_DtypeOpsMixin):
         Will be used for display in, e.g. ``Series.dtype``
         """
         raise AbstractMethodError(self)
+
+    @classmethod
+    def construct_array_type(cls):
+        """Return the array type associated with this dtype
+
+        Returns
+        -------
+        type
+        """
+        raise NotImplementedError
 
     @classmethod
     def construct_from_string(cls, string):

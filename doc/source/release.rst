@@ -37,6 +37,40 @@ analysis / manipulation tool available in any language.
 * Binary installers on PyPI: https://pypi.org/project/pandas
 * Documentation: http://pandas.pydata.org
 
+pandas 0.23.2
+-------------
+
+**Release date**: July 5, 2018
+
+This is a minor bug-fix release in the 0.23.x series and includes some small regression fixes
+and bug fixes.
+
+See the :ref:`full whatsnew <whatsnew_0232>` for a list of all the changes.
+
+Thanks
+~~~~~~
+
+A total of 17 people contributed to this release.  People with a "+" by their
+names contributed a patch for the first time.
+
+* David Krych
+* Jacopo Rota +
+* Jeff Reback
+* Jeremy Schendel
+* Joris Van den Bossche
+* Kalyan Gokhale
+* Matthew Roeschke
+* Michael Odintsov +
+* Ming Li
+* Pietro Battiston
+* Tom Augspurger
+* Uddeshya Singh
+* Vu Le +
+* alimcmaster1 +
+* david-liu-brattle-1 +
+* gfyoung
+* jbrockmendel
+
 pandas 0.23.1
 -------------
 
@@ -2641,7 +2675,7 @@ Improvements to existing features
   option it is no longer possible to round trip Excel files with merged
   MultiIndex and Hierarchical Rows. Set the ``merge_cells`` to ``False`` to
   restore the previous behaviour.  (:issue:`5254`)
-- The FRED DataReader now accepts multiple series (:issue`3413`)
+- The FRED DataReader now accepts multiple series (:issue:`3413`)
 - StataWriter adjusts variable names to Stata's limitations (:issue:`5709`)
 
 API Changes
@@ -2837,7 +2871,7 @@ API Changes
   copy through chained assignment is detected, settable via option ``mode.chained_assignment``
 - test the list of ``NA`` values in the csv parser. add ``N/A``, ``#NA`` as independent default
   na values (:issue:`5521`)
-- The refactoring involving``Series`` deriving from ``NDFrame`` breaks ``rpy2<=2.3.8``. an Issue
+- The refactoring involving ``Series`` deriving from ``NDFrame`` breaks ``rpy2<=2.3.8``. an Issue
   has been opened against rpy2 and a workaround is detailed in :issue:`5698`. Thanks @JanSchulz.
 - ``Series.argmin`` and ``Series.argmax`` are now aliased to ``Series.idxmin`` and ``Series.idxmax``.
   These return the *index* of the min or max element respectively. Prior to 0.13.0 these would return
