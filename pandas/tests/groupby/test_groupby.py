@@ -1676,7 +1676,7 @@ def test_tuple_correct_keyerror():
         df.groupby((7, 8)).mean()
 
 
-def test_groupby_ohlc_agg():
+def test_groupby_agg_ohlc_non_first():
     df = pd.DataFrame([[1], [1]], columns=['foo'],
                       index=pd.date_range('2018-01-01', periods=2, freq='D'))
 
@@ -1686,7 +1686,7 @@ def test_groupby_ohlc_agg():
     ], columns=pd.MultiIndex.from_tuples((
         ('foo', 'ohlc', 'open'), ('foo', 'ohlc', 'high'),
         ('foo', 'ohlc', 'low'), ('foo', 'ohlc', 'close'),
-        ('foo', 'sum', 0))), index=pd.date_range(
+        ('foo', 'sum', 'foo'))), index=pd.date_range(
             '2018-01-01', periods=2, freq='D'))
 
     result = df.groupby(pd.Grouper(freq='D')).agg(['sum', 'ohlc'])
