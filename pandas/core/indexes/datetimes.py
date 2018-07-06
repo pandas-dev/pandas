@@ -2002,7 +2002,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                        '2014-08-01 00:00:00+05:30'],
                        dtype='datetime64[ns, Asia/Calcutta]', freq=None)
         """
-        new_values = conversion.date_normalize(self.asi8, self.tz)
+        new_values = conversion.normalize_i8_timestamps(self.asi8, self.tz)
         return DatetimeIndex(new_values,
                              freq='infer',
                              name=self.name).tz_localize(self.tz)
