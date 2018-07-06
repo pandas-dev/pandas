@@ -209,26 +209,26 @@ def decompress_file(path, compression):
     f.close()
 
 
-def assert_almost_equal(left, right, check_exact=False,
-                        check_dtype='equiv', check_less_precise=False,
-                        **kwargs):
+def assert_almost_equal(left, right, check_dtype="equiv",
+                        check_less_precise=False, **kwargs):
     """
     Check that the left and right objects are approximately equal.
+
+    By approximately equal, we refer to objects that are numbers or that
+    contain numbers which may be equivalent to specific levels of precision.
 
     Parameters
     ----------
     left : object
     right : object
-    check_exact : bool, default False
-        Whether to compare number exactly.
     check_dtype : bool / string {'equiv'}, default False
         Check dtype if both a and b are the same type. If 'equiv' is passed in,
         then `RangeIndex` and `Int64Index` are also considered equivalent
         when doing type checking.
     check_less_precise : bool or int, default False
-        Specify comparison precision. Only used when `check_exact` is False.
-        5 digits (False) or 3 digits (True) after decimal points are compared.
-        If int, then specify the digits to compare.
+        Specify comparison precision. 5 digits (False) or 3 digits (True)
+        after decimal points are compared. If int, then specify the number
+        of digits to compare.
 
         When comparing two numbers, if the first number has magnitude less
         than 1e-5, we compare the two numbers directly and check whether
@@ -236,42 +236,43 @@ def assert_almost_equal(left, right, check_exact=False,
         compare the **ratio** of the second number to the first number and
         check whether it is equivalent to 1 within the specified precision.
     """
+
     if isinstance(left, pd.Index):
         return assert_index_equal(left, right,
-                                  check_exact=check_exact,
+                                  check_exact=False,
                                   exact=check_dtype,
                                   check_less_precise=check_less_precise,
                                   **kwargs)
 
     elif isinstance(left, pd.Series):
         return assert_series_equal(left, right,
-                                   check_exact=check_exact,
+                                   check_exact=False,
                                    check_dtype=check_dtype,
                                    check_less_precise=check_less_precise,
                                    **kwargs)
 
     elif isinstance(left, pd.DataFrame):
         return assert_frame_equal(left, right,
-                                  check_exact=check_exact,
+                                  check_exact=False,
                                   check_dtype=check_dtype,
                                   check_less_precise=check_less_precise,
                                   **kwargs)
 
     else:
-        # other sequences
+        # Other sequences.
         if check_dtype:
             if is_number(left) and is_number(right):
-                # do not compare numeric classes, like np.float64 and float
+                # Do not compare numeric classes, like np.float64 and float.
                 pass
             elif is_bool(left) and is_bool(right):
-                # do not compare bool classes, like np.bool_ and bool
+                # Do not compare bool classes, like np.bool_ and bool.
                 pass
             else:
                 if (isinstance(left, np.ndarray) or
                         isinstance(right, np.ndarray)):
-                    obj = 'numpy array'
+                    obj = "numpy array"
                 else:
-                    obj = 'Input'
+                    obj = "Input"
                 assert_class_equal(left, right, obj=obj)
         return _testing.assert_almost_equal(
             left, right,
@@ -1309,7 +1310,12 @@ def assert_frame_equal(left, right, check_dtype=True,
         5 digits (False) or 3 digits (True) after decimal points are compared.
         If int, then specify the digits to compare
     check_names : bool, default True
-        Whether to check the Index names attribute.
+        Whether to check that the `names` attribute for both the `index`
+        and `column` attributes of the DataFrame is identical, i.e.
+
+        * left.index.names == right.index.names
+        * left.columns.names == right.columns.names
+
     by_blocks : bool, default False
         Specify how to compare internal data. If False, compare by columns.
         If True, compare by blocks.
