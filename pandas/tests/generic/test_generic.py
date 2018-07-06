@@ -1010,13 +1010,13 @@ class TestNDFrame(object):
                 result = wp.pipe((f, 'y'), x=1, y=1)
 
     def test_interpolate(self):
-        #Using a numeric index column
+        # Using a numeric index column
         df = DataFrame([0, 1, np.nan, 3], index=[1, 2, 3, 4])
         series = Series(df[0])
         assert series.interpolate(
             method="quadratic").equals(series.interpolate(method="linear"))
-        
-        #Using a non-numeric index column
+
+        # Using a non-numeric index column
         df = DataFrame([0, 1, np.nan, 3], index=["A", "B", "C", "D"])
         series = Series(df[0])
         with pytest.raises(TypeError):
