@@ -454,9 +454,9 @@ class HDFStore(StringMixin):
 
     Examples
     --------
-    >>> from pandas import DataFrame
-    >>> from numpy.random import randn
-    >>> bar = DataFrame(randn(10, 4))
+    >>> import numpy as np
+    >>> import pandas as pd
+    >>> bar = pd.DataFrame(np.random.randn(10, 4))
     >>> store = HDFStore('test.h5')
     >>> store['foo'] = bar   # write to HDF5
     >>> bar = store['foo']   # retrieve

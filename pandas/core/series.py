@@ -3048,7 +3048,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
     Examples
     --------
 
-    >>> s = Series(np.random.randn(10))
+    >>> s = pd.Series(np.random.randn(10))
 
     >>> s.agg('min')
     -1.3018049988556679

@@ -2609,14 +2609,14 @@ def boxplot_frame_groupby(grouped, subplots=True, column=None, fontsize=None,
 
     Examples
     --------
-    >>> import pandas
+    >>> import pandas as pd
     >>> import numpy as np
     >>> import itertools
     >>>
     >>> tuples = [t for t in itertools.product(range(1000), range(4))]
-    >>> index = pandas.MultiIndex.from_tuples(tuples, names=['lvl0', 'lvl1'])
+    >>> index = pd.MultiIndex.from_tuples(tuples, names=['lvl0', 'lvl1'])
     >>> data = np.random.randn(len(index),4)
-    >>> df = pandas.DataFrame(data, columns=list('ABCD'), index=index)
+    >>> df = pd.DataFrame(data, columns=list('ABCD'), index=index)
     >>>
     >>> grouped = df.groupby(level='lvl1')
     >>> boxplot_frame_groupby(grouped)
