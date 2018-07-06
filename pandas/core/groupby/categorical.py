@@ -2,7 +2,6 @@ import numpy as np
 from pandas.core.algorithms import unique1d
 from pandas.core.arrays.categorical import (
     _recode_for_categories, CategoricalDtype, Categorical)
-from pandas import CategoricalIndex, Series
 
 
 def recode_for_groupby(c, sort, observed):
