@@ -1,7 +1,7 @@
 .. _whatsnew_0240:
 
-v0.24.0
--------
+v0.24.0 (Month XX, 2018)
+------------------------
 
 .. _whatsnew_0240.enhancements:
 
