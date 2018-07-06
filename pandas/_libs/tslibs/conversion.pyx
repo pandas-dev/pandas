@@ -1038,6 +1038,10 @@ def normalize_date(object dt):
     Returns
     -------
     normalized : datetime.datetime or Timestamp
+
+    Raises
+    ------
+    TypeError : if input is not datetime.date, datetime.datetime, or Timestamp
     """
     if PyDateTime_Check(dt):
         if not PyDateTime_CheckExact(dt):
