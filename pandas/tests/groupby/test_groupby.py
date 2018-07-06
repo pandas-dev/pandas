@@ -1677,6 +1677,7 @@ def test_tuple_correct_keyerror():
 
 
 def test_groupby_agg_ohlc_non_first():
+    # GH 21716
     df = pd.DataFrame([[1], [1]], columns=['foo'],
                       index=pd.date_range('2018-01-01', periods=2, freq='D'))
 
