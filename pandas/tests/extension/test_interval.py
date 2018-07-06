@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from pandas import Interval, IntervalIndex
+from pandas import Interval, IntervalIndex, date_range, timedelta_range
 from pandas.core.arrays import IntervalArray
 from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.tests.extension import base
@@ -119,7 +119,24 @@ class TestReshaping(BaseInterval, base.BaseReshapingTests):
 
 
 class TestSetitem(BaseInterval, base.BaseSetitemTests):
-    pass
+
+    @pytest.mark.parametrize('left, right', [
+        (np.arange(3.0), np.arange(1.0, 4.0)),
+        ([0, 2, 4], [1, 3, 5]),
+        (timedelta_range('0 days', periods=3),
+         timedelta_range('1 day', periods=3)),
+        (date_range('20170101', periods=3), date_range('20170102', periods=3)),
+        pytest.param(date_range('20170101', periods=3, tz='US/Eastern'),
+                     date_range('20170102', periods=3, tz='US/Eastern'),
+                     marks=pytest.mark.xfail(reason='fixed after rebase?'))])
+    def test_set_na(self, left, right):
+        result = IntervalArray.from_arrays(left, right)
+        result[0] = np.nan
+
+        expected = IntervalArray.from_arrays(
+            [np.nan] + list(left[1:]), [np.nan] + list(right[1:]))
+
+        self.assert_extension_array_equal(result, expected)
 
 
 def test_repr_matches():

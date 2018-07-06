@@ -12,6 +12,8 @@ from pandas.core.dtypes.common import (_ensure_platform_int,
                                        is_categorical_dtype, is_float_dtype,
                                        is_integer_dtype, is_interval_dtype,
                                        is_scalar, is_string_dtype,
+                                       is_datetime64_any_dtype,
+                                       is_timedelta64_dtype,
                                        pandas_dtype)
 from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.core.dtypes.generic import (ABCDatetimeIndex, ABCPeriodIndex,
@@ -457,23 +459,41 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self._shallow_copy(left, right)
 
     def __setitem__(self, key, value):
-        if not (is_interval_dtype(value) or isinstance(value, ABCInterval)):
+        # need special casing to set directly on numpy arrays
+        _needs_float_conversion = False
+        if is_scalar(value) and isna(value):
+            if is_integer_dtype(self.dtype.subtype):
+                # can't set NaN on a numpy integer array
+                _needs_float_conversion = True
+            elif is_datetime64_any_dtype(self.dtype.subtype):
+                # need proper NaT to set directly on the numpy array
+                value = np.datetime64('NaT')
+            elif is_timedelta64_dtype(self.dtype.subtype):
+                # need proper NaT to set directly on the numpy array
+                value = np.timedelta64('NaT')
+            value_left, value_right = value, value
+        elif is_interval_dtype(value) or isinstance(value, ABCInterval):
+            if value.closed != self.closed:
+                msg = "'value.closed' ({}) does not match {}."
+                raise ValueError(msg.format(value.closed, self.closed))
+            value_left, value_right = value.left, value.right
+        else:
+            # wrong type: not interval or NA
             msg = "'value' should be an interval type, got {} instead."
             raise TypeError(msg.format(type(value)))
-
-        if value.closed != self.closed:
-            msg = "'value.closed' ({}) does not match {}."
-            raise ValueError(value.closed, self.closed)
 
         # Need to ensure that left and right are updated atomically, so we're
         # forced to copy, update the copy, and swap in the new values.
         left = self.left.copy(deep=True)
-        right = self.right.copy(deep=True)
-
-        left.values[key] = value.left
-        right.values[key] = value.right
-
+        if _needs_float_conversion:
+            left = left.astype('float')
+        left.values[key] = value_left
         self._left = left
+
+        right = self.right.copy(deep=True)
+        if _needs_float_conversion:
+            right = right.astype('float')
+        right.values[key] = value_right
         self._right = right
 
     def fillna(self, value=None, method=None, limit=None):
