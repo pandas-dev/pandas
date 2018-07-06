@@ -1,3 +1,4 @@
+from collections import OrderedDict
 from warnings import catch_warnings
 from itertools import combinations
 
@@ -1294,6 +1295,17 @@ class TestConcatenate(ConcatenateBase):
 
         tm.assert_frame_equal(result, exp)
         assert result.index.names == exp.index.names
+
+    def test_concat_with_ordered_dict(self):
+        # GH 21510
+        result = pd.concat(OrderedDict([('First', pd.Series(range(3))),
+                                        ('Another', pd.Series(range(4)))]))
+        index = MultiIndex(levels=[['First', 'Another'], [0, 1, 2, 3]],
+                           labels=[[0, 0, 0, 1, 1, 1, 1],
+                                   [0, 1, 2, 0, 1, 2, 3]])
+        data = list(range(3)) + list(range(4))
+        expected = pd.Series(data, index=index)
+        tm.assert_series_equal(result, expected)
 
     def test_crossed_dtypes_weird_corner(self):
         columns = ['A', 'B', 'C', 'D']

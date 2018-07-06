@@ -1,7 +1,7 @@
 """
 concat routines
 """
-
+from collections import OrderedDict
 import numpy as np
 from pandas import compat, DataFrame, Series, Index, MultiIndex
 from pandas.core.index import (_get_objs_combined_axis,
@@ -250,7 +250,10 @@ class _Concatenator(object):
 
         if isinstance(objs, dict):
             if keys is None:
-                keys = sorted(objs)
+                if not isinstance(objs, OrderedDict):
+                    keys = sorted(objs)
+                else:
+                    keys = objs
             objs = [objs[k] for k in keys]
         else:
             objs = list(objs)
