@@ -1310,7 +1310,12 @@ def assert_frame_equal(left, right, check_dtype=True,
         5 digits (False) or 3 digits (True) after decimal points are compared.
         If int, then specify the digits to compare
     check_names : bool, default True
-        Whether to check the Index names attribute.
+        Whether to check that the `names` attribute for both the `index`
+        and `column` attributes of the DataFrame is identical, i.e.
+
+        * left.index.names == right.index.names
+        * left.columns.names == right.columns.names
+
     by_blocks : bool, default False
         Specify how to compare internal data. If False, compare by columns.
         If True, compare by blocks.
