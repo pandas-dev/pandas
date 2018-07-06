@@ -308,7 +308,7 @@ Timezones
 ^^^^^^^^^
 
 - Bug in :meth:`DatetimeIndex.shift` where an ``AssertionError`` would raise when shifting across DST (:issue:`8616`)
-- Bug in :class:`Timestamp` constructor where passing an invalid timezone offset designator (``Z``) would not raise a ``ValueError``(:issue:`8910`)
+- Bug in :class:`Timestamp` constructor where passing an invalid timezone offset designator (``Z``) would not raise a ``ValueError`` (:issue:`8910`)
 - Bug in :meth:`Timestamp.replace` where replacing at a DST boundary would retain an incorrect offset (:issue:`7825`)
 - Bug in :meth:`Series.replace` with ``datetime64[ns, tz]`` data when replacing ``NaT`` (:issue:`11792`)
 - Bug in :class:`Timestamp` when passing different string date formats with a timezone offset would produce different timezone offsets (:issue:`12064`)
