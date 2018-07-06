@@ -7,7 +7,8 @@ import numpy as np
 from pandas._libs import lib
 from pandas._libs.tslib import NaT
 from pandas._libs.tslibs.period import (
-    Period, IncompatibleFrequency, DIFFERENT_FREQ_INDEX)
+    Period, IncompatibleFrequency, DIFFERENT_FREQ_INDEX,
+    get_period_field_arr)
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 
 from pandas.util._decorators import cache_readonly
@@ -18,6 +19,17 @@ from pandas.tseries import frequencies
 from pandas.tseries.offsets import Tick, DateOffset
 
 from .datetimelike import DatetimeLikeArrayMixin
+
+
+def _field_accessor(name, alias, docstring=None):
+    def f(self):
+        base, mult = frequencies.get_freq_code(self.freq)
+        result = get_period_field_arr(alias, self._ndarray_values, base)
+        return result
+
+    f.__name__ = name
+    f.__doc__ = docstring
+    return property(f)
 
 
 class PeriodArrayMixin(DatetimeLikeArrayMixin):
@@ -51,6 +63,28 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
         warnings.warn(msg.format(cls=type(self).__name__),
                       FutureWarning, stacklevel=2)
         self._freq = value
+
+    # --------------------------------------------------------------------
+    # Vectorized analogues of Period properties
+
+    year = _field_accessor('year', 0, "The year of the period")
+    month = _field_accessor('month', 3, "The month as January=1, December=12")
+    day = _field_accessor('day', 4, "The days of the period")
+    hour = _field_accessor('hour', 5, "The hour of the period")
+    minute = _field_accessor('minute', 6, "The minute of the period")
+    second = _field_accessor('second', 7, "The second of the period")
+    weekofyear = _field_accessor('week', 8, "The week ordinal of the year")
+    week = weekofyear
+    dayofweek = _field_accessor('dayofweek', 10,
+                                "The day of the week with Monday=0, Sunday=6")
+    weekday = dayofweek
+    dayofyear = day_of_year = _field_accessor('dayofyear', 9,
+                                              "The ordinal day of the year")
+    quarter = _field_accessor('quarter', 2, "The quarter of the date")
+    qyear = _field_accessor('qyear', 1)
+    days_in_month = _field_accessor('days_in_month', 11,
+                                    "The number of days in the month")
+    daysinmonth = days_in_month
 
     # ------------------------------------------------------------------
     # Arithmetic Methods
