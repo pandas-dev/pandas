@@ -525,6 +525,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                                           freq=freq, name=name)
             else:
                 index = _generate_regular_range(start, end, periods, freq)
+
         else:
 
             if tz is not None:
@@ -548,6 +549,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                                               freq=freq, name=name)
                 else:
                     index = _generate_regular_range(start, end, periods, freq)
+
                 if tz is not None and getattr(index, 'tz', None) is None:
                     arr = conversion.tz_localize_to_utc(_ensure_int64(index),
                                                         tz,
@@ -607,6 +609,8 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                 return cls(values, name=name, freq=freq, tz=tz,
                            dtype=dtype, **kwargs)
             values = np.array(values, copy=False)
+
+        assert isinstance(values, np.ndarray)
 
         if is_object_dtype(values):
             return cls(values, name=name, freq=freq, tz=tz,
@@ -1002,7 +1006,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         else:
             naive = self
         result = super(DatetimeIndex, naive).unique(level=level)
-        return self._simple_new(result, name=self.name, tz=self.tz,
+        return self._simple_new(result.values, name=self.name, tz=self.tz,
                                 freq=self.freq)
 
     def union(self, other):

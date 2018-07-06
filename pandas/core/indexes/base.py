@@ -506,6 +506,9 @@ class Index(IndexOpsMixin, PandasObject):
         attributes.update(kwargs)
         if not len(values) and 'dtype' not in kwargs:
             attributes['dtype'] = self.dtype
+        from pandas import DatetimeIndex
+        if isinstance(values, DatetimeIndex):
+            values = values.values
         return self._simple_new(values, **attributes)
 
     def _shallow_copy_with_infer(self, values=None, **kwargs):
