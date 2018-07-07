@@ -3872,7 +3872,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.DataFrame.loc : Label-based indexer.
+        pandas.DataFrame.loc
 
         Notes
         -----
