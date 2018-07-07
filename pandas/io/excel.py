@@ -308,9 +308,7 @@ def read_excel(io,
         warnings.warn("The `sheetname` keyword is deprecated, use "
                       "`sheet_name` instead", FutureWarning, stacklevel=2)
         sheet_name = kwds.pop("sheetname")
-    elif 'sheetname' in kwds:
-        raise TypeError("Cannot specify both `sheet_name` and `sheetname`. "
-                        "Use just `sheet_name`")
+
     if 'sheet' in kwds:
         raise TypeError("read_excel() got an unexpected keyword argument "
                         "`sheet`")
