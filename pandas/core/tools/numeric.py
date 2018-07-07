@@ -58,7 +58,6 @@ def to_numeric(arg, errors='raise', downcast=None):
     --------
     Take separate series and convert to numeric, coercing when told to
 
-    >>> import pandas as pd
     >>> s = pd.Series(['1.0', '2', -3])
     >>> pd.to_numeric(s)
     0    1.0
