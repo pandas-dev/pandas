@@ -367,42 +367,41 @@ class SelectionMixin(object):
             if any(issubclass(type(x), dict) for x in compat.itervalues(arg)):
                 # deprecation of renaming keys
                 # GH 15931
-                keys = list(compat.iterkeys(arg))
                 nested_renaming_depr()
+
             # normalize all non-scalars be list-likes
-            else:
-                new_arg = compat.OrderedDict()
-                for k, v in compat.iteritems(arg):
-                    if not isinstance(v, (tuple, list, dict)):
-                        new_arg[k] = [v]
-                    else:
-                        new_arg[k] = v
+            new_arg = compat.OrderedDict()
+            for k, v in compat.iteritems(arg):
+                if not isinstance(v, (tuple, list, dict)):
+                    new_arg[k] = [v]
+                else:
+                    new_arg[k] = v
 
-                    # the keys must be in the columns
-                    # for ndim=2, or renamers for ndim=1
+                # the keys must be in the columns
+                # for ndim=2, or renamers for ndim=1
 
-                    # ok for now, but deprecated
-                    # {'A': { 'ra': 'mean' }}
-                    # {'A': { 'ra': ['mean'] }}
-                    # {'ra': ['mean']}
+                # ok for now, but deprecated
+                # {'A': { 'ra': 'mean' }}
+                # {'A': { 'ra': ['mean'] }}
+                # {'ra': ['mean']}
 
-                    # not ok
-                    # {'ra' : { 'A' : 'mean' }}
-                    if isinstance(v, dict):
-                        is_nested_renamer = True
+                # not ok
+                # {'ra' : { 'A' : 'mean' }}
+                if isinstance(v, dict):
+                    is_nested_renamer = True
 
-                        if k not in obj.columns:
-                            msg = ('cannot perform renaming for {key} with a '
-                                   'nested dictionary').format(key=k)
-                            raise SpecificationError(msg)
-                        nested_renaming_depr(4 + (_level or 0))
+                    if k not in obj.columns:
+                        msg = ('cannot perform renaming for {key} with a '
+                               'nested dictionary').format(key=k)
+                        raise SpecificationError(msg)
+                    nested_renaming_depr(4 + (_level or 0))
 
-                    elif isinstance(obj, ABCSeries):
-                        nested_renaming_depr()
-                    elif isinstance(obj, ABCDataFrame) and \
-                            k not in obj.columns:
-                        raise KeyError(
-                            "Column '{col}' does not exist!".format(col=k))
+                elif isinstance(obj, ABCSeries):
+                    nested_renaming_depr()
+                elif isinstance(obj, ABCDataFrame) and \
+                        k not in obj.columns:
+                    raise KeyError(
+                        "Column '{col}' does not exist!".format(col=k))
 
                 arg = new_arg
 

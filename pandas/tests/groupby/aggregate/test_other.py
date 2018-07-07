@@ -275,7 +275,6 @@ def test_agg_compat():
     tm.assert_frame_equal(result, expected, check_like=True)
 
 
-@pytest.mark.xfail
 def test_agg_nested_dicts():
     # API change for disallowing these types of nested dicts
     df = DataFrame({'A': ['foo', 'bar', 'foo', 'bar',
@@ -310,7 +309,8 @@ def test_agg_nested_dicts_raises():
 
     g = df.groupby(['A', 'B'])
 
-    with pytest.raises(KeyError):
+    msg = r'cannot perform renaming for r[1-2] with a nested dictionary'
+    with tm.assert_raises_regex(SpecificationError, msg):
         g.aggregate({'r1': {'C': ['mean', 'sum']},
                      'r2': {'D': ['mean', 'sum']}})
 

@@ -269,12 +269,6 @@ def test_more_flexible_frame_mult_function_warns(df):
     d = OrderedDict([['C', [np.mean]], ['D', [foo, bar]]])
     expected = grouped.aggregate(d)
 
-    # HACK - though naming through dicts is deprecated it still impacts
-    # the outcome of aggregation, so we need to change our expectation
-    # accordingly
-    expected.columns = pd.MultiIndex.from_arrays([
-        ['C', 'D', 'D'], ['C', 'foo', 'bar']])
-
     tm.assert_frame_equal(result, expected)
 
 
@@ -302,11 +296,5 @@ def test_multi_function_flexible_mix(df):
     # this uses column selection & renaming
     with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
         result = grouped.aggregate(d)
-
-    # HACK - though naming through dicts is deprecated it still impacts
-    # the outcome of aggregation, so we need to change our expectation
-    # accordingly
-    expected.columns = pd.MultiIndex.from_arrays([
-        ['C', 'C', 'D'], ['foo', 'bar', 'D']])
 
     tm.assert_frame_equal(result, expected)
