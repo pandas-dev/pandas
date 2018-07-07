@@ -3,7 +3,6 @@
 import numpy as np
 from warnings import warn
 import textwrap
-import types
 
 from pandas import compat
 from pandas.compat import u, lzip
@@ -12,6 +11,7 @@ from pandas._libs import lib, algos as libalgos
 from pandas.core.dtypes.generic import (
     ABCSeries, ABCIndexClass, ABCCategoricalIndex)
 from pandas.core.dtypes.missing import isna, notna
+from pandas.core.dtypes.inference import is_hashable
 from pandas.core.dtypes.cast import (
     maybe_infer_to_datetimelike,
     coerce_indexer_dtype)
@@ -27,7 +27,7 @@ from pandas.core.dtypes.common import (
     is_categorical,
     is_categorical_dtype,
     is_list_like, is_sequence,
-    is_scalar,
+    is_scalar, is_iterator,
     is_dict_like)
 
 from pandas.core.algorithms import factorize, take_1d, unique1d, take
@@ -51,7 +51,7 @@ from .base import ExtensionArray
 
 _take_msg = textwrap.dedent("""\
     Interpreting negative values in 'indexer' as missing values.
-    In the future, this will change to meaning positional indicies
+    In the future, this will change to meaning positional indices
     from the right.
 
     Use 'allow_fill=True' to retain the previous behavior and silence this
@@ -155,6 +155,57 @@ def _maybe_to_categorical(array):
     elif isinstance(array, np.ndarray):
         return Categorical(array)
     return array
+
+
+def contains(cat, key, container):
+    """
+    Helper for membership check for ``key`` in ``cat``.
+
+    This is a helper method for :method:`__contains__`
+    and :class:`CategoricalIndex.__contains__`.
+
+    Returns True if ``key`` is in ``cat.categories`` and the
+    location of ``key`` in ``categories`` is in ``container``.
+
+    Parameters
+    ----------
+    cat : :class:`Categorical`or :class:`categoricalIndex`
+    key : a hashable object
+        The key to check membership for.
+    container : Container (e.g. list-like or mapping)
+        The container to check for membership in.
+
+    Returns
+    -------
+    is_in : bool
+        True if ``key`` is in ``self.categories`` and location of
+        ``key`` in ``categories`` is in ``container``, else False.
+
+    Notes
+    -----
+    This method does not check for NaN values. Do that separately
+    before calling this method.
+    """
+    hash(key)
+
+    # get location of key in categories.
+    # If a KeyError, the key isn't in categories, so logically
+    #  can't be in container either.
+    try:
+        loc = cat.categories.get_loc(key)
+    except KeyError:
+        return False
+
+    # loc is the location of key in categories, but also the *value*
+    # for key in container. So, `key` may be in categories,
+    # but still not in `container`. Example ('b' in categories,
+    # but not in values):
+    # 'b' in Categorical(['a'], categories=['a', 'b'])  # False
+    if is_scalar(loc):
+        return loc in container
+    else:
+        # if categories is an IntervalIndex, loc is an array.
+        return any(loc_ in container for loc_ in loc)
 
 
 _codes_doc = """The category codes of this categorical.
@@ -646,73 +697,6 @@ class Categorical(ExtensionArray, PandasObject):
                              "items than the old categories!")
 
         self._dtype = new_dtype
-
-    def _codes_for_groupby(self, sort, observed):
-        """
-        Code the categories to ensure we can groupby for categoricals.
-
-        If observed=True, we return a new Categorical with the observed
-        categories only.
-
-        If sort=False, return a copy of self, coded with categories as
-        returned by .unique(), followed by any categories not appearing in
-        the data. If sort=True, return self.
-
-        This method is needed solely to ensure the categorical index of the
-        GroupBy result has categories in the order of appearance in the data
-        (GH-8868).
-
-        Parameters
-        ----------
-        sort : boolean
-            The value of the sort parameter groupby was called with.
-        observed : boolean
-            Account only for the observed values
-
-        Returns
-        -------
-        Categorical
-            If sort=False, the new categories are set to the order of
-            appearance in codes (unless ordered=True, in which case the
-            original order is preserved), followed by any unrepresented
-            categories in the original order.
-        """
-
-        # we only care about observed values
-        if observed:
-            unique_codes = unique1d(self.codes)
-            cat = self.copy()
-
-            take_codes = unique_codes[unique_codes != -1]
-            if self.ordered:
-                take_codes = np.sort(take_codes)
-
-            # we recode according to the uniques
-            categories = self.categories.take(take_codes)
-            codes = _recode_for_categories(self.codes,
-                                           self.categories,
-                                           categories)
-
-            # return a new categorical that maps our new codes
-            # and categories
-            dtype = CategoricalDtype(categories, ordered=self.ordered)
-            return type(self)(codes, dtype=dtype, fastpath=True)
-
-        # Already sorted according to self.categories; all is fine
-        if sort:
-            return self
-
-        # sort=False should order groups in as-encountered order (GH-8868)
-        cat = self.unique()
-
-        # But for groupby to work, all categories should be present,
-        # including those missing from the data (GH-13179), which .unique()
-        # above dropped
-        cat.add_categories(
-            self.categories[~self.categories.isin(cat.categories)],
-            inplace=True)
-
-        return self.reorder_categories(cat.categories)
 
     def _set_dtype(self, dtype):
         """Internal method for directly updating the CategoricalDtype
@@ -1478,7 +1462,7 @@ class Categorical(ExtensionArray, PandasObject):
         # TODO(PY2): use correct signature
         # We have to do *args, **kwargs to avoid a a py2-only signature
         # issue since np.argsort differs from argsort.
-        """Return the indicies that would sort the Categorical.
+        """Return the indices that would sort the Categorical.
 
         Parameters
         ----------
@@ -1751,7 +1735,7 @@ class Categorical(ExtensionArray, PandasObject):
                 values[indexer] = values_codes[values_codes != -1]
 
             # If value is not a dict or Series it should be a scalar
-            elif is_scalar(value):
+            elif is_hashable(value):
                 if not isna(value) and value not in self.categories:
                     raise ValueError("fill value must be in categories")
 
@@ -1845,6 +1829,14 @@ class Categorical(ExtensionArray, PandasObject):
     def __iter__(self):
         """Returns an Iterator over the values of this Categorical."""
         return iter(self.get_values().tolist())
+
+    def __contains__(self, key):
+        """Returns True if `key` is in this Categorical."""
+        # if key is a NaN, check if any NaN is in self.
+        if isna(key):
+            return self.isna().any()
+
+        return contains(self, key, container=self._codes)
 
     def _tidy_repr(self, max_vals=10, footer=True):
         """ a short repr displaying only max_vals and an optional (but default
@@ -1950,8 +1942,7 @@ class Categorical(ExtensionArray, PandasObject):
                 return self.categories[i]
         else:
             return self._constructor(values=self._codes[key],
-                                     categories=self.categories,
-                                     ordered=self.ordered, fastpath=True)
+                                     dtype=self.dtype, fastpath=True)
 
     def __setitem__(self, key, value):
         """ Item assignment.
@@ -2117,11 +2108,18 @@ class Categorical(ExtensionArray, PandasObject):
         else:
             return self.categories[pointer]
 
-    def mode(self):
+    def mode(self, dropna=True):
         """
         Returns the mode(s) of the Categorical.
 
         Always returns `Categorical` even if only one value.
+
+        Parameters
+        ----------
+        dropna : boolean, default True
+            Don't consider counts of NaN/NaT.
+
+            .. versionadded:: 0.24.0
 
         Returns
         -------
@@ -2129,8 +2127,11 @@ class Categorical(ExtensionArray, PandasObject):
         """
 
         import pandas._libs.hashtable as htable
-        good = self._codes != -1
-        values = sorted(htable.mode_int64(_ensure_int64(self._codes[good])))
+        values = self._codes
+        if dropna:
+            good = self._codes != -1
+            values = self._codes[good]
+        values = sorted(htable.mode_int64(_ensure_int64(values), dropna))
         result = self._constructor(values=values, categories=self.categories,
                                    ordered=self.ordered, fastpath=True)
         return result
@@ -2472,7 +2473,7 @@ def _convert_to_list_like(list_like):
     if isinstance(list_like, list):
         return list_like
     if (is_sequence(list_like) or isinstance(list_like, tuple) or
-            isinstance(list_like, types.GeneratorType)):
+            is_iterator(list_like)):
         return list(list_like)
     elif is_scalar(list_like):
         return [list_like]

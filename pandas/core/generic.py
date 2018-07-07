@@ -20,13 +20,14 @@ from pandas.core.dtypes.common import (
     is_bool_dtype,
     is_categorical_dtype,
     is_numeric_dtype,
-    is_datetime64_dtype,
+    is_datetime64_any_dtype,
     is_timedelta64_dtype,
     is_datetime64tz_dtype,
     is_list_like,
     is_dict_like,
     is_re_compilable,
     is_period_arraylike,
+    is_object_dtype,
     pandas_dtype)
 from pandas.core.dtypes.cast import maybe_promote, maybe_upcast_putmask
 from pandas.core.dtypes.inference import is_hashable
@@ -463,7 +464,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        ndarray.ndim
+        ndarray.ndim : Number of array dimensions.
 
         Examples
         --------
@@ -487,7 +488,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        ndarray.size
+        ndarray.size : Number of elements in the array.
 
         Examples
         --------
@@ -800,7 +801,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        swapped : type of caller (new object)
+        swapped : same type as caller (new object)
 
         .. versionchanged:: 0.18.1
 
@@ -1073,7 +1074,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        renamed : type of caller or None if inplace=True
+        renamed : same type as caller or None if inplace=True
 
         See Also
         --------
@@ -1117,7 +1118,8 @@ class NDFrame(PandasObject, SelectionMixin):
         values = com._values_from_object(self)
         if is_bool_dtype(values):
             arr = operator.inv(values)
-        elif (is_numeric_dtype(values) or is_timedelta64_dtype(values)):
+        elif (is_numeric_dtype(values) or is_timedelta64_dtype(values)
+                or is_object_dtype(values)):
             arr = operator.neg(values)
         else:
             raise TypeError("Unary negative expects numeric dtype, not {}"
@@ -1128,7 +1130,8 @@ class NDFrame(PandasObject, SelectionMixin):
         values = com._values_from_object(self)
         if (is_bool_dtype(values) or is_period_arraylike(values)):
             arr = values
-        elif (is_numeric_dtype(values) or is_timedelta64_dtype(values)):
+        elif (is_numeric_dtype(values) or is_timedelta64_dtype(values)
+                or is_object_dtype(values)):
             arr = operator.pos(values)
         else:
             raise TypeError("Unary plus expects numeric dtype, not {}"
@@ -2468,7 +2471,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        value : type of items contained in object
+        value : same type as items contained in object
         """
         try:
             return self[key]
@@ -2768,7 +2771,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        taken : type of caller
+        taken : same type as caller
             An array-like containing the elements taken from the object.
 
         See Also
@@ -2824,7 +2827,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        taken : type of caller
+        taken : same type as caller
             An array-like containing the elements taken from the object.
 
         See Also
@@ -3033,7 +3036,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        selection : type of caller
+        selection : same type as caller
         """
         warnings.warn("'select' is deprecated and will be removed in a "
                       "future release. You can use "
@@ -3129,7 +3132,7 @@ class NDFrame(PandasObject, SelectionMixin):
         """
         axis = self._get_axis_number(axis)
         axis_name = self._get_axis_name(axis)
-        axis, axis_ = self._get_axis(axis), axis
+        axis = self._get_axis(axis)
 
         if axis.is_unique:
             if level is not None:
@@ -3138,24 +3141,25 @@ class NDFrame(PandasObject, SelectionMixin):
                 new_axis = axis.drop(labels, level=level, errors=errors)
             else:
                 new_axis = axis.drop(labels, errors=errors)
-            dropped = self.reindex(**{axis_name: new_axis})
-            try:
-                dropped.axes[axis_].set_names(axis.names, inplace=True)
-            except AttributeError:
-                pass
-            result = dropped
+            result = self.reindex(**{axis_name: new_axis})
 
+        # Case for non-unique axis
         else:
             labels = _ensure_object(com._index_labels_to_array(labels))
             if level is not None:
                 if not isinstance(axis, MultiIndex):
                     raise AssertionError('axis must be a MultiIndex')
                 indexer = ~axis.get_level_values(level).isin(labels)
+
+                # GH 18561 MultiIndex.drop should raise if label is absent
+                if errors == 'raise' and indexer.all():
+                    raise KeyError('{} not found in axis'.format(labels))
             else:
                 indexer = ~axis.isin(labels)
-
-            if errors == 'raise' and indexer.all():
-                raise KeyError('{} not found in axis'.format(labels))
+                # Check if label doesn't exist along axis
+                labels_missing = (axis.get_indexer_for(labels) == -1).any()
+                if errors == 'raise' and labels_missing:
+                    raise KeyError('{} not found in axis'.format(labels))
 
             slicer = [slice(None)] * self.ndim
             slicer[self._get_axis_number(axis_name)] = indexer
@@ -3607,7 +3611,7 @@ class NDFrame(PandasObject, SelectionMixin):
         If desired, we can fill in the missing values using one of several
         options.
 
-        For example, to backpropagate the last valid value to fill the ``NaN``
+        For example, to back-propagate the last valid value to fill the ``NaN``
         values, pass ``bfill`` as an argument to the ``method`` keyword.
 
         >>> df2.reindex(date_index2, method='bfill')
@@ -3923,7 +3927,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        obj_head : type of caller
+        obj_head : same type as caller
             The first `n` rows of the caller object.
 
         See Also
@@ -4446,7 +4450,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        consolidated : type of caller
+        consolidated : same type as caller
         """
         inplace = validate_bool_kwarg(inplace, 'inplace')
         if inplace:
@@ -4541,7 +4545,7 @@ class NDFrame(PandasObject, SelectionMixin):
         e.g. If the dtypes are float16 and float32, dtype will be upcast to
         float32.  If dtypes are int32 and uint8, dtype will be upcase to
         int32. By numpy.find_common_type convention, mixing int64 and uint64
-        will result in a flot64 dtype.
+        will result in a float64 dtype.
 
         This method is provided for backwards compatibility. Generally,
         it is recommended to use '.values'.
@@ -4622,7 +4626,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         See Also
         --------
-        pandas.DataFrame.index : Retrievie the index labels
+        pandas.DataFrame.index : Retrieve the index labels
         pandas.DataFrame.columns : Retrieving the column names
         """
         self._consolidate_inplace()
@@ -4915,7 +4919,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        casted : type of caller
+        casted : same type as caller
 
         Examples
         --------
@@ -5175,8 +5179,7 @@ class NDFrame(PandasObject, SelectionMixin):
         --------
         pandas.to_datetime : Convert argument to datetime.
         pandas.to_timedelta : Convert argument to timedelta.
-        pandas.to_numeric : Return a fixed frequency timedelta index,
-            with day as the default.
+        pandas.to_numeric : Convert argument to numeric type.
 
         Returns
         -------
@@ -5210,7 +5213,7 @@ class NDFrame(PandasObject, SelectionMixin):
         --------
         pandas.to_datetime : Convert argument to datetime.
         pandas.to_timedelta : Convert argument to timedelta.
-        pandas.to_numeric : Convert argument to numeric typeR
+        pandas.to_numeric : Convert argument to numeric type.
 
         Returns
         -------
@@ -5702,7 +5705,7 @@ class NDFrame(PandasObject, SelectionMixin):
         the correct type for replacement.
 
         Compare the behavior of ``s.replace({'a': None})`` and
-        ``s.replace('a', None)`` to understand the pecularities
+        ``s.replace('a', None)`` to understand the peculiarities
         of the `to_replace` parameter:
 
         >>> s = pd.Series([10, 'a', 'a', 'b', 'a'])
@@ -6691,7 +6694,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        converted : type of caller
+        converted : same type as caller
 
         Examples
         --------
@@ -6772,7 +6775,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        values_at_time : type of caller
+        values_at_time : same type as caller
 
         Examples
         --------
@@ -6826,7 +6829,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        values_between_time : type of caller
+        values_between_time : same type as caller
 
         Examples
         --------
@@ -7145,7 +7148,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        subset : type of caller
+        subset : same type as caller
 
         See Also
         --------
@@ -7153,7 +7156,6 @@ class NDFrame(PandasObject, SelectionMixin):
         at_time : Select values at a particular time of the day
         between_time : Select values between particular times of the day
         """
-        from pandas.tseries.frequencies import to_offset
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError("'first' only supports a DatetimeIndex index")
 
@@ -7209,7 +7211,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Returns
         -------
-        subset : type of caller
+        subset : same type as caller
 
         See Also
         --------
@@ -7217,7 +7219,6 @@ class NDFrame(PandasObject, SelectionMixin):
         at_time : Select values at a particular time of the day
         between_time : Select values between particular times of the day
         """
-        from pandas.tseries.frequencies import to_offset
         if not isinstance(self.index, DatetimeIndex):
             raise TypeError("'last' only supports a DatetimeIndex index")
 
@@ -8519,7 +8520,7 @@ class NDFrame(PandasObject, SelectionMixin):
             stat_index = (['count', 'mean', 'std', 'min'] +
                           formatted_percentiles + ['max'])
             d = ([series.count(), series.mean(), series.std(), series.min()] +
-                 [series.quantile(x) for x in percentiles] + [series.max()])
+                 series.quantile(percentiles).tolist() + [series.max()])
             return pd.Series(d, index=stat_index, name=series.name)
 
         def describe_categorical_1d(data):
@@ -8530,12 +8531,13 @@ class NDFrame(PandasObject, SelectionMixin):
             if result[1] > 0:
                 top, freq = objcounts.index[0], objcounts.iloc[0]
 
-                if is_datetime64_dtype(data):
+                if is_datetime64_any_dtype(data):
+                    tz = data.dt.tz
                     asint = data.dropna().values.view('i8')
                     names += ['top', 'freq', 'first', 'last']
-                    result += [tslib.Timestamp(top), freq,
-                               tslib.Timestamp(asint.min()),
-                               tslib.Timestamp(asint.max())]
+                    result += [tslib.Timestamp(top, tz=tz), freq,
+                               tslib.Timestamp(asint.min(), tz=tz),
+                               tslib.Timestamp(asint.max(), tz=tz)]
                 else:
                     names += ['top', 'freq']
                     result += [top, freq]
@@ -8728,6 +8730,8 @@ class NDFrame(PandasObject, SelectionMixin):
         return rs
 
     def _agg_by_level(self, name, axis=0, level=0, skipna=True, **kwargs):
+        if axis is None:
+            raise ValueError("Must specify 'axis' when aggregating by level.")
         grouped = self.groupby(level=level, axis=axis, sort=False)
         if hasattr(grouped, name) and skipna:
             return getattr(grouped, name)(**kwargs)
@@ -8873,13 +8877,21 @@ class NDFrame(PandasObject, SelectionMixin):
         def nanptp(values, axis=0, skipna=True):
             nmax = nanops.nanmax(values, axis, skipna)
             nmin = nanops.nanmin(values, axis, skipna)
+            warnings.warn("Method .ptp is deprecated and will be removed "
+                          "in a future version. Use numpy.ptp instead.",
+                          FutureWarning, stacklevel=4)
             return nmax - nmin
 
         cls.ptp = _make_stat_function(
             cls, 'ptp', name, name2, axis_descr,
-            """Returns the difference between the maximum value and the
+            """
+            Returns the difference between the maximum value and the
             minimum value in the object. This is the equivalent of the
-            ``numpy.ndarray`` method ``ptp``.""",
+            ``numpy.ndarray`` method ``ptp``.
+
+            .. deprecated:: 0.24.0
+                Use numpy.ptp instead
+            """,
             nanptp)
 
     @classmethod
@@ -8969,18 +8981,17 @@ class NDFrame(PandasObject, SelectionMixin):
             is_valid = is_valid.any(1)  # reduce axis 1
 
         if how == 'first':
-            # First valid value case
-            i = is_valid.idxmax()
-            if not is_valid[i]:
-                return None
-            return i
+            idxpos = is_valid.values[::].argmax()
 
-        elif how == 'last':
-            # Last valid value case
-            i = is_valid.values[::-1].argmax()
-            if not is_valid.iat[len(self) - i - 1]:
-                return None
-            return self.index[len(self) - i - 1]
+        if how == 'last':
+            idxpos = len(self) - 1 - is_valid.values[::-1].argmax()
+
+        chk_notna = is_valid.iat[idxpos]
+        idx = self.index[idxpos]
+
+        if not chk_notna:
+            return None
+        return idx
 
     @Appender(_shared_docs['valid_index'] % {'position': 'first',
                                              'klass': 'NDFrame'})
@@ -9055,8 +9066,15 @@ _bool_doc = """
 
 Parameters
 ----------
-axis : int, default 0
-    Select the axis which can be 0 for indices and 1 for columns.
+axis : {0 or 'index', 1 or 'columns', None}, default 0
+    Indicate which axis or axes should be reduced.
+
+    * 0 / 'index' : reduce the index, return a Series whose index is the
+      original column labels.
+    * 1 / 'columns' : reduce the columns, return a Series whose index is the
+      original index.
+    * None : reduce all axes, return a scalar.
+
 skipna : boolean, default True
     Exclude NA/null values. If an entire row/column is NA, the result
     will be NA.
@@ -9078,9 +9096,9 @@ Returns
 %(examples)s"""
 
 _all_doc = """\
-Return whether all elements are True over series or dataframe axis.
+Return whether all elements are True, potentially over an axis.
 
-Returns True if all elements within a series or along a dataframe
+Returns True if all elements within a series or along a Dataframe
 axis are non-zero, not-empty or not-False."""
 
 _all_examples = """\
@@ -9093,7 +9111,7 @@ True
 >>> pd.Series([True, False]).all()
 False
 
-Dataframes
+DataFrames
 
 Create a dataframe from a dictionary.
 
@@ -9110,12 +9128,17 @@ col1     True
 col2    False
 dtype: bool
 
-Adding axis=1 argument will check if row-wise values all return True.
+Specify ``axis='columns'`` to check if row-wise values all return True.
 
->>> df.all(axis=1)
+>>> df.all(axis='columns')
 0     True
 1    False
 dtype: bool
+
+Or ``axis=None`` for whether every value is True.
+
+>>> df.all(axis=None)
+False
 """
 
 _all_see_also = """\
@@ -9421,7 +9444,11 @@ use ``axis=1``
 _any_see_also = """\
 See Also
 --------
-pandas.DataFrame.all : Return whether all elements are True.
+numpy.any : Numpy version of this method.
+Series.any : Return whether any element is True.
+Series.all : Return whether all elements are True.
+DataFrame.any : Return whether any element is True over requested axis.
+DataFrame.all : Return whether all elements are True over requested axis.
 """
 
 _any_desc = """\
@@ -9480,6 +9507,11 @@ dtype: bool
 0    True
 1    False
 dtype: bool
+
+Aggregating over the entire DataFrame with ``axis=None``.
+
+>>> df.any(axis=None)
+True
 
 `any` for an empty DataFrame is an empty Series.
 
@@ -9651,22 +9683,17 @@ def _make_logical_function(cls, name, name1, name2, axis_descr, desc, f,
     @Substitution(outname=name, desc=desc, name1=name1, name2=name2,
                   axis_descr=axis_descr, examples=examples, see_also=see_also)
     @Appender(_bool_doc)
-    def logical_func(self, axis=None, bool_only=None, skipna=None, level=None,
+    def logical_func(self, axis=0, bool_only=None, skipna=True, level=None,
                      **kwargs):
         nv.validate_logical_func(tuple(), kwargs, fname=name)
-        if skipna is None:
-            skipna = True
-        if axis is None:
-            axis = self._stat_axis_number
         if level is not None:
             if bool_only is not None:
                 raise NotImplementedError("Option bool_only is not "
                                           "implemented with option level.")
             return self._agg_by_level(name, axis=axis, level=level,
                                       skipna=skipna)
-        return self._reduce(f, axis=axis, skipna=skipna,
-                            numeric_only=bool_only, filter_type='bool',
-                            name=name)
+        return self._reduce(f, name, axis=axis, skipna=skipna,
+                            numeric_only=bool_only, filter_type='bool')
 
     return set_function_name(logical_func, name, cls)
 

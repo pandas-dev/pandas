@@ -106,6 +106,16 @@ class TestTimedeltaComparison(object):
 
 class TestTimedeltas(object):
 
+    @pytest.mark.parametrize("unit, value, expected", [
+        ('us', 9.999, 9999), ('ms', 9.999999, 9999999),
+        ('s', 9.999999999, 9999999999)])
+    def test_rounding_on_int_unit_construction(self, unit, value, expected):
+        # GH 12690
+        result = Timedelta(value, unit=unit)
+        assert result.value == expected
+        result = Timedelta(str(value) + unit)
+        assert result.value == expected
+
     def test_total_seconds_scalar(self):
         # see gh-10939
         rng = Timedelta('1 days, 10:11:12.100123456')
@@ -578,3 +588,17 @@ class TestTimedeltas(object):
         result = s.dt.components
         assert not result.iloc[0].isna().all()
         assert result.iloc[1].isna().all()
+
+
+@pytest.mark.parametrize('value, expected', [
+    (Timedelta('10S'), True),
+    (Timedelta('-10S'), True),
+    (Timedelta(10, unit='ns'), True),
+    (Timedelta(0, unit='ns'), False),
+    (Timedelta(-10, unit='ns'), True),
+    (Timedelta(None), True),
+    (pd.NaT, True),
+])
+def test_truthiness(value, expected):
+    # https://github.com/pandas-dev/pandas/issues/21484
+    assert bool(value) is expected

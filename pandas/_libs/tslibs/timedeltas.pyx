@@ -33,6 +33,7 @@ from np_datetime cimport (cmp_scalar, reverse_ops, td64_to_tdstruct,
 
 from nattype import nat_strings, NaT
 from nattype cimport checknull_with_nat, NPY_NAT
+from offsets cimport to_offset
 
 # ----------------------------------------------------------------------
 # Constants
@@ -77,6 +78,44 @@ cdef dict timedelta_abbrevs = { 'D': 'd',
                                 'nanosecond': 'ns'}
 
 _no_input = object()
+
+
+# ----------------------------------------------------------------------
+# API
+
+def ints_to_pytimedelta(ndarray[int64_t] arr, box=False):
+    """
+    convert an i8 repr to an ndarray of timedelta or Timedelta (if box ==
+    True)
+
+    Parameters
+    ----------
+    arr : ndarray[int64_t]
+    box : bool, default False
+
+    Returns
+    -------
+    result : ndarray[object]
+        array of Timedelta or timedeltas objects
+    """
+    cdef:
+        Py_ssize_t i, n = len(arr)
+        int64_t value
+        ndarray[object] result = np.empty(n, dtype=object)
+
+    for i in range(n):
+
+        value = arr[i]
+        if value == NPY_NAT:
+            result[i] = NaT
+        else:
+            if box:
+                result[i] = Timedelta(value)
+            else:
+                result[i] = timedelta(microseconds=int(value) / 1000)
+
+    return result
+
 
 # ----------------------------------------------------------------------
 
@@ -202,22 +241,22 @@ cpdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
 
     if unit == 'D' or unit == 'd':
         m = 1000000000L * 86400
-        p = 6
+        p = 9
     elif unit == 'h':
         m = 1000000000L * 3600
-        p = 6
+        p = 9
     elif unit == 'm':
         m = 1000000000L * 60
-        p = 6
+        p = 9
     elif unit == 's':
         m = 1000000000L
-        p = 6
+        p = 9
     elif unit == 'ms':
         m = 1000000L
-        p = 3
+        p = 6
     elif unit == 'us':
         m = 1000L
-        p = 0
+        p = 3
     elif unit == 'ns' or unit is None:
         m = 1L
         p = 0
@@ -231,10 +270,10 @@ cpdef inline int64_t cast_from_unit(object ts, object unit) except? -1:
     # cast the unit, multiply base/frace separately
     # to avoid precision issues from float -> int
     base = <int64_t> ts
-    frac = ts -base
+    frac = ts - base
     if p:
         frac = round(frac, p)
-    return <int64_t> (base *m) + <int64_t> (frac *m)
+    return <int64_t> (base * m) + <int64_t> (frac * m)
 
 
 cdef inline _decode_if_necessary(object ts):
@@ -760,7 +799,32 @@ cdef class _Timedelta(timedelta):
 
     @property
     def delta(self):
-        """ return out delta in ns (for internal compat) """
+        """
+        Return the timedelta in nanoseconds (ns), for internal compatibility.
+
+        Returns
+        -------
+        int
+            Timedelta in nanoseconds.
+
+        Examples
+        --------
+        >>> td = pd.Timedelta('1 days 42 ns')
+        >>> td.delta
+        86400000000042
+
+        >>> td = pd.Timedelta('3 s')
+        >>> td.delta
+        3000000000
+
+        >>> td = pd.Timedelta('3 ms 5 us')
+        >>> td.delta
+        3005000
+
+        >>> td = pd.Timedelta(42, unit='ns')
+        >>> td.delta
+        42
+        """
         return self.value
 
     @property
@@ -913,6 +977,9 @@ cdef class _Timedelta(timedelta):
     def __str__(self):
         return self._repr_base(format='long')
 
+    def __bool__(self):
+        return self.value != 0
+
     def isoformat(self):
         """
         Format Timedelta as ISO 8601 Duration like
@@ -982,7 +1049,7 @@ class Timedelta(_Timedelta):
     days, seconds, microseconds,
     milliseconds, minutes, hours, weeks : numeric, optional
         Values for construction in compat with datetime.timedelta.
-        np ints and floats will be coereced to python ints and floats.
+        np ints and floats will be coerced to python ints and floats.
 
     Notes
     -----
@@ -1061,7 +1128,6 @@ class Timedelta(_Timedelta):
         cdef:
             int64_t result, unit
 
-        from pandas.tseries.frequencies import to_offset
         unit = to_offset(freq).nanos
         result = unit * rounder(self.value / float(unit))
         return Timedelta(result, unit='ns')
@@ -1260,7 +1326,7 @@ class Timedelta(_Timedelta):
                 deprecated. Use 'array // timedelta.value' instead.
                 If you want to obtain epochs from an array of timestamps,
                 you can rather use
-                'array - pd.Timestamp("1970-01-01")) // pd.Timedelta("1s")'.
+                '(array - pd.Timestamp("1970-01-01")) // pd.Timedelta("1s")'.
                 """)
                 warnings.warn(msg, FutureWarning)
                 return other // self.value

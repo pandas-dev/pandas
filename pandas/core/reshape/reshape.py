@@ -115,6 +115,12 @@ class _Unstacker(object):
 
         self.index = index.remove_unused_levels()
 
+        if isinstance(self.index, MultiIndex):
+            if index._reference_duplicate_name(level):
+                msg = ("Ambiguous reference to {level}. The index "
+                       "names are not unique.".format(level=level))
+                raise ValueError(msg)
+
         self.level = self.index._get_level_number(level)
 
         # when index includes `nan`, need to lift levels/strides by 1
@@ -528,6 +534,12 @@ def stack(frame, level=-1, dropna=True):
 
     N, K = frame.shape
 
+    if isinstance(frame.columns, MultiIndex):
+        if frame.columns._reference_duplicate_name(level):
+            msg = ("Ambiguous reference to {level}. The column "
+                   "names are not unique.".format(level=level))
+            raise ValueError(msg)
+
     # Will also convert negative level numbers and check if out of bounds.
     level_num = frame.columns._get_level_number(level)
 
@@ -725,7 +737,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     ----------
     data : array-like, Series, or DataFrame
     prefix : string, list of strings, or dict of strings, default None
-        String to append DataFrame column names
+        String to append DataFrame column names.
         Pass a list with length equal to the number of columns
         when calling get_dummies on a DataFrame. Alternatively, `prefix`
         can be a dictionary mapping column names to prefixes.

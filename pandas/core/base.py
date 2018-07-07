@@ -114,7 +114,7 @@ class PandasObject(StringMixin, DirNamesMixin):
 
     def __sizeof__(self):
         """
-        Generates the total memory usage for a object that returns
+        Generates the total memory usage for an object that returns
         either a value or Series of values
         """
         if hasattr(self, 'memory_usage'):
@@ -788,6 +788,7 @@ class IndexOpsMixin(object):
 
     @property
     def _ndarray_values(self):
+        # type: () -> np.ndarray
         """The data as an ndarray, possibly losing information.
 
         The expectation is that this is cheap to compute, and is primarily
@@ -795,7 +796,6 @@ class IndexOpsMixin(object):
 
         - categorical -> codes
         """
-        # type: () -> np.ndarray
         if is_extension_array_dtype(self):
             return self.values._ndarray_values
         return self.values

@@ -11,11 +11,6 @@ from pandas.tseries.offsets import Day
 import pandas.util.testing as tm
 
 
-@pytest.fixture(scope='class', params=['left', 'right', 'both', 'neither'])
-def closed(request):
-    return request.param
-
-
 @pytest.fixture(scope='class', params=[None, 'foo'])
 def name(request):
     return request.param
@@ -110,6 +105,8 @@ class TestIntervalRange(object):
 
     @pytest.mark.parametrize('start, end, freq, expected_endpoint', [
         (0, 10, 3, 9),
+        (0, 10, 1.5, 9),
+        (0.5, 10, 3, 9.5),
         (Timedelta('0D'), Timedelta('10D'), '2D4H', Timedelta('8D16H')),
         (Timestamp('2018-01-01'),
          Timestamp('2018-02-09'),
@@ -124,6 +121,22 @@ class TestIntervalRange(object):
         result = interval_range(start=start, end=end, freq=freq)
         result_endpoint = result.right[-1]
         assert result_endpoint == expected_endpoint
+
+    @pytest.mark.parametrize('start, end, freq', [
+        (0.5, None, None),
+        (None, 4.5, None),
+        (0.5, None, 1.5),
+        (None, 6.5, 1.5)])
+    def test_no_invalid_float_truncation(self, start, end, freq):
+        # GH 21161
+        if freq is None:
+            breaks = [0.5, 1.5, 2.5, 3.5, 4.5]
+        else:
+            breaks = [0.5, 2.0, 3.5, 5.0, 6.5]
+        expected = IntervalIndex.from_breaks(breaks)
+
+        result = interval_range(start=start, end=end, periods=4, freq=freq)
+        tm.assert_index_equal(result, expected)
 
     @pytest.mark.parametrize('start, mid, end', [
         (Timestamp('2018-03-10', tz='US/Eastern'),

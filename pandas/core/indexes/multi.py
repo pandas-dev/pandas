@@ -11,6 +11,8 @@ from pandas.compat import range, zip, lrange, lzip, map
 from pandas.compat.numpy import function as nv
 from pandas import compat
 
+from pandas.core.dtypes.dtypes import (
+    ExtensionDtype, PandasExtensionDtype)
 from pandas.core.dtypes.common import (
     _ensure_int64,
     _ensure_platform_int,
@@ -189,7 +191,6 @@ class MultiIndex(Index):
     from_product
     set_levels
     set_labels
-    to_hierarchical
     to_frame
     is_lexsorted
     sortlevel
@@ -672,30 +673,18 @@ class MultiIndex(Index):
 
         if level is None:
             level = range(self.nlevels)
-            used = {}
         else:
             level = [self._get_level_number(l) for l in level]
-            used = {self.levels[l].name: l
-                    for l in set(range(self.nlevels)) - set(level)}
 
         # set the name
         for l, name in zip(level, names):
             if name is not None:
-
                 # GH 20527
                 # All items in 'names' need to be hashable:
                 if not is_hashable(name):
                     raise TypeError('{}.name must be a hashable type'
                                     .format(self.__class__.__name__))
-
-                if name in used:
-                    raise ValueError(
-                        'Duplicated level name: "{}", assigned to '
-                        'level {}, is already used for level '
-                        '{}.'.format(name, l, used[name]))
-
             self.levels[l].rename(name, inplace=True)
-            used[name] = l
 
     names = property(fset=_set_names, fget=_get_names,
                      doc="Names of levels in MultiIndex")
@@ -820,20 +809,16 @@ class MultiIndex(Index):
             return self._tuples
 
         values = []
-        for lev, lab in zip(self.levels, self.labels):
-            # Need to box timestamps, etc.
-            box = hasattr(lev, '_box_values')
-            # Try to minimize boxing.
-            if box and len(lev) > len(lab):
-                taken = lev._box_values(algos.take_1d(lev._ndarray_values,
-                                                      lab))
-            elif box:
-                taken = algos.take_1d(lev._box_values(lev._ndarray_values),
-                                      lab,
-                                      fill_value=lev._na_value)
-            else:
-                taken = algos.take_1d(np.asarray(lev._values), lab)
-            values.append(taken)
+
+        for i in range(self.nlevels):
+            vals = self._get_level_values(i)
+            if is_categorical_dtype(vals):
+                vals = vals.get_values()
+            if (isinstance(vals.dtype, (PandasExtensionDtype, ExtensionDtype))
+                    or hasattr(vals, '_box_values')):
+                vals = vals.astype(object)
+            vals = np.array(vals, copy=False)
+            values.append(vals)
 
         self._tuples = lib.fast_zip(values)
         return self._tuples
@@ -851,14 +836,6 @@ class MultiIndex(Index):
     def _has_complex_internals(self):
         # to disable groupby tricks
         return True
-
-    @cache_readonly
-    def is_monotonic(self):
-        """
-        return if the index is monotonic increasing (only equal or
-        increasing) values.
-        """
-        return self.is_monotonic_increasing
 
     @cache_readonly
     def is_monotonic_increasing(self):
@@ -886,10 +863,6 @@ class MultiIndex(Index):
         """
         # monotonic decreasing if and only if reverse is monotonic increasing
         return self[::-1].is_monotonic_increasing
-
-    @cache_readonly
-    def is_unique(self):
-        return not self.duplicated().any()
 
     @cache_readonly
     def _have_mixed_levels(self):
@@ -1194,6 +1167,8 @@ class MultiIndex(Index):
 
     def to_hierarchical(self, n_repeat, n_shuffle=1):
         """
+        .. deprecated:: 0.24.0
+
         Return a MultiIndex reshaped to conform to the
         shapes given by n_repeat and n_shuffle.
 
@@ -1228,6 +1203,9 @@ class MultiIndex(Index):
         # Assumes that each label is divisible by n_shuffle
         labels = [x.reshape(n_shuffle, -1).ravel(order='F') for x in labels]
         names = self.names
+        warnings.warn("Method .to_hierarchical is deprecated and will "
+                      "be removed in a future version",
+                      FutureWarning, stacklevel=2)
         return MultiIndex(levels=levels, labels=labels, names=names)
 
     @property
@@ -1407,7 +1385,7 @@ class MultiIndex(Index):
 
         This is an *internal* function.
 
-        create a new MultiIndex from the current to monotonically sorted
+        Create a new MultiIndex from the current to monotonically sorted
         items IN the levels. This does not actually make the entire MultiIndex
         monotonic, JUST the levels.
 
@@ -1465,8 +1443,8 @@ class MultiIndex(Index):
 
     def remove_unused_levels(self):
         """
-        create a new MultiIndex from the current that removing
-        unused levels, meaning that they are not expressed in the labels
+        Create a new MultiIndex from the current that removes
+        unused levels, meaning that they are not expressed in the labels.
 
         The resulting MultiIndex will have the same outward
         appearance, meaning the same .values and ordering. It will also
@@ -1719,7 +1697,6 @@ class MultiIndex(Index):
                 if errors != 'ignore':
                     raise ValueError('labels %s not contained in axis' %
                                      labels[mask])
-                indexer = indexer[~mask]
         except Exception:
             pass
 
@@ -1760,52 +1737,6 @@ class MultiIndex(Index):
         mask = ~algos.isin(self.labels[i], values)
 
         return self[mask]
-
-    def droplevel(self, level=0):
-        """
-        Return Index with requested level removed. If MultiIndex has only 2
-        levels, the result will be of Index type not MultiIndex.
-
-        Parameters
-        ----------
-        level : int/level name or list thereof
-
-        Notes
-        -----
-        Does not check if result index is unique or not
-
-        Returns
-        -------
-        index : Index or MultiIndex
-        """
-        levels = level
-        if not isinstance(levels, (tuple, list)):
-            levels = [level]
-
-        new_levels = list(self.levels)
-        new_labels = list(self.labels)
-        new_names = list(self.names)
-
-        levnums = sorted(self._get_level_number(lev) for lev in levels)[::-1]
-
-        for i in levnums:
-            new_levels.pop(i)
-            new_labels.pop(i)
-            new_names.pop(i)
-
-        if len(new_levels) == 1:
-
-            # set nan if needed
-            mask = new_labels[0] == -1
-            result = new_levels[0].take(new_labels[0])
-            if mask.any():
-                result = result.putmask(mask, np.nan)
-
-            result.name = new_names[0]
-            return result
-        else:
-            return MultiIndex(levels=new_levels, labels=new_labels,
-                              names=new_names, verify_integrity=False)
 
     def swaplevel(self, i=-2, j=-1):
         """
@@ -2141,7 +2072,7 @@ class MultiIndex(Index):
 
         Notes
         -----
-        This method only works if the MultiIndex is properly lex-sorted. So,
+        This method only works if the MultiIndex is properly lexsorted. So,
         if only the first 2 levels of a 3-level MultiIndex are lexsorted,
         you can only pass two levels to ``.slice_locs``.
 
@@ -2947,6 +2878,13 @@ class MultiIndex(Index):
                 return np.zeros(len(labs), dtype=np.bool_)
             else:
                 return np.lib.arraysetops.in1d(labs, sought_labels)
+
+    def _reference_duplicate_name(self, name):
+        """
+        Returns True if the name refered to in self.names is duplicated.
+        """
+        # count the times name equals an element in self.names.
+        return sum(name == n for n in self.names) > 1
 
 
 MultiIndex._add_numeric_methods_disabled()

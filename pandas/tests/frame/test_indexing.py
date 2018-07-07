@@ -397,11 +397,13 @@ class TestDataFrameIndexing(TestData):
 
         df = DataFrame(np.random.randn(8, 4))
         # ix does label-based indexing when having an integer index
-        with pytest.raises(KeyError):
-            df.ix[[-1]]
+        with catch_warnings(record=True):
+            with pytest.raises(KeyError):
+                df.ix[[-1]]
 
-        with pytest.raises(KeyError):
-            df.ix[:, [-1]]
+        with catch_warnings(record=True):
+            with pytest.raises(KeyError):
+                df.ix[:, [-1]]
 
         # #1942
         a = DataFrame(randn(20, 2), index=[chr(x + 65) for x in range(20)])
@@ -1548,6 +1550,25 @@ class TestDataFrameIndexing(TestData):
         # pytest.raises(
         #    Exception, df.loc.__setitem__, ('d', 'timestamp'), [nan])
 
+    def test_setitem_mixed_datetime(self):
+        # GH 9336
+        expected = DataFrame({'a': [0, 0, 0, 0, 13, 14],
+                              'b': [pd.datetime(2012, 1, 1),
+                                    1,
+                                    'x',
+                                    'y',
+                                    pd.datetime(2013, 1, 1),
+                                    pd.datetime(2014, 1, 1)]})
+        df = pd.DataFrame(0, columns=list('ab'), index=range(6))
+        df['b'] = pd.NaT
+        df.loc[0, 'b'] = pd.datetime(2012, 1, 1)
+        df.loc[1, 'b'] = 1
+        df.loc[[2, 3], 'b'] = 'x', 'y'
+        A = np.array([[13, np.datetime64('2013-01-01T00:00:00')],
+                      [14, np.datetime64('2014-01-01T00:00:00')]])
+        df.loc[[4, 5], ['a', 'b']] = A
+        assert_frame_equal(df, expected)
+
     def test_setitem_frame(self):
         piece = self.frame.loc[self.frame.index[:2], ['A', 'B']]
         self.frame.loc[self.frame.index[-2]:, ['A', 'B']] = piece.values
@@ -2227,6 +2248,16 @@ class TestDataFrameIndexing(TestData):
                           index=list('ABCDEFGH'))
         assert_series_equal(result, expected)
 
+    @pytest.mark.parametrize('idxer', ['var', ['var']])
+    def test_setitem_datetimeindex_tz(self, idxer, tz_naive_fixture):
+        # GH 11365
+        tz = tz_naive_fixture
+        idx = date_range(start='2015-07-12', periods=3, freq='H', tz=tz)
+        expected = DataFrame(1.2, index=idx, columns=['var'])
+        result = DataFrame(index=idx, columns=['var'])
+        result.loc[:, idxer] = expected
+        tm.assert_frame_equal(result, expected)
+
     def test_at_time_between_time_datetimeindex(self):
         index = date_range("2012-01-01", "2012-01-05", freq='30min')
         df = DataFrame(randn(len(index), 5), index=index)
@@ -2904,6 +2935,20 @@ class TestDataFrameIndexing(TestData):
         tm.assert_frame_equal(result, exp)
         tm.assert_frame_equal(result,
                               (df + 2).where((df + 2) > 8, (df + 2) + 10))
+
+    def test_where_tz_values(self, tz_naive_fixture):
+        df1 = DataFrame(DatetimeIndex(['20150101', '20150102', '20150103'],
+                                      tz=tz_naive_fixture),
+                        columns=['date'])
+        df2 = DataFrame(DatetimeIndex(['20150103', '20150104', '20150105'],
+                                      tz=tz_naive_fixture),
+                        columns=['date'])
+        mask = DataFrame([True, True, False], columns=['date'])
+        exp = DataFrame(DatetimeIndex(['20150101', '20150102', '20150105'],
+                                      tz=tz_naive_fixture),
+                        columns=['date'])
+        result = df1.where(mask, df2)
+        assert_frame_equal(exp, result)
 
     def test_mask(self):
         df = DataFrame(np.random.randn(5, 3))

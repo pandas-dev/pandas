@@ -13,7 +13,7 @@ from pandas.core.dtypes.common import (
     _INT64_DTYPE,
     _NS_DTYPE,
     is_object_dtype,
-    is_datetime64_dtype, is_datetime64tz_dtype,
+    is_datetime64_dtype,
     is_datetimetz,
     is_dtype_equal,
     is_timedelta64_dtype,
@@ -35,6 +35,7 @@ from pandas.core.dtypes.missing import isna
 import pandas.core.dtypes.concat as _concat
 from pandas.errors import PerformanceWarning
 from pandas.core.algorithms import checked_add_with_arr
+from pandas.core.arrays.datetimes import DatetimeArrayMixin
 
 from pandas.core.indexes.base import Index, _index_shared_docs
 from pandas.core.indexes.numeric import Int64Index, Float64Index
@@ -55,49 +56,36 @@ import pandas.core.tools.datetimes as tools
 from pandas._libs import (lib, index as libindex, tslib as libts,
                           join as libjoin, Timestamp)
 from pandas._libs.tslibs import (timezones, conversion, fields, parsing,
+                                 ccalendar,
                                  resolution as libresolution)
 
 # -------- some conversion wrapper functions
 
 
-def _field_accessor(name, field, docstring=None):
+def _wrap_field_accessor(name):
+    fget = getattr(DatetimeArrayMixin, name).fget
+
     def f(self):
-        values = self.asi8
-        if self.tz is not None:
-            if self.tz is not utc:
-                values = self._local_timestamps()
-
-        if field in self._bool_ops:
-            if field in ['is_month_start', 'is_month_end',
-                         'is_quarter_start', 'is_quarter_end',
-                         'is_year_start', 'is_year_end']:
-                freq = self.freq
-                month_kw = 12
-                if freq:
-                    kwds = freq.kwds
-                    month_kw = kwds.get('startingMonth', kwds.get('month', 12))
-
-                result = fields.get_start_end_field(values, field,
-                                                    self.freqstr, month_kw)
-            else:
-                result = fields.get_date_field(values, field)
-
-            # these return a boolean by-definition
+        result = fget(self)
+        if is_bool_dtype(result):
             return result
-
-        if field in self._object_ops:
-            result = fields.get_date_name_field(values, field)
-            result = self._maybe_mask_results(result)
-
-        else:
-            result = fields.get_date_field(values, field)
-            result = self._maybe_mask_results(result, convert='float64')
-
         return Index(result, name=self.name)
 
     f.__name__ = name
-    f.__doc__ = docstring
+    f.__doc__ = fget.__doc__
     return property(f)
+
+
+def _wrap_in_index(name):
+    meth = getattr(DatetimeArrayMixin, name)
+
+    def func(self, *args, **kwargs):
+        result = meth(self, *args, **kwargs)
+        return Index(result, name=self.name)
+
+    func.__doc__ = meth.__doc__
+    func.__name__ = name
+    return func
 
 
 def _dt_index_cmp(opname, cls):
@@ -172,8 +160,8 @@ def _new_DatetimeIndex(cls, d):
     return result
 
 
-class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
-                    Int64Index):
+class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
+                    DatetimeIndexOpsMixin, Int64Index):
     """
     Immutable ndarray of datetime64 data, represented internally as int64, and
     which can be boxed to Timestamp objects that are subclasses of datetime and
@@ -186,7 +174,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
     copy  : bool
         Make a copy of input ndarray
     freq : string or pandas offset object, optional
-        One of pandas date offset strings or corresponding objects
+        One of pandas date offset strings or corresponding objects. The string
+        'infer' can be passed in order to set the frequency of the index as the
+        inferred frequency upon creation
+
     start : starting value, datetime-like, optional
         If data is None, start is used as the start point in generating regular
         timestamp data.
@@ -325,6 +316,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     _is_numeric_dtype = False
     _infer_as_myclass = True
+    _timezone = cache_readonly(DatetimeArrayMixin._timezone.fget)
 
     def __new__(cls, data=None,
                 freq=None, start=None, end=None, periods=None, tz=None,
@@ -394,56 +386,42 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
         # data must be Index or np.ndarray here
         if not (is_datetime64_dtype(data) or is_datetimetz(data) or
-                is_integer_dtype(data)):
+                is_integer_dtype(data) or lib.infer_dtype(data) == 'integer'):
             data = tools.to_datetime(data, dayfirst=dayfirst,
                                      yearfirst=yearfirst)
 
-        if issubclass(data.dtype.type, np.datetime64) or is_datetimetz(data):
-
-            if isinstance(data, DatetimeIndex):
-                if tz is None:
-                    tz = data.tz
-                elif data.tz is None:
-                    data = data.tz_localize(tz, ambiguous=ambiguous)
-                else:
-                    # the tz's must match
-                    if str(tz) != str(data.tz):
-                        msg = ('data is already tz-aware {0}, unable to '
-                               'set specified tz: {1}')
-                        raise TypeError(msg.format(data.tz, tz))
-
-                subarr = data.values
-
-                if freq is None:
-                    freq = data.freq
-                    verify_integrity = False
+        if isinstance(data, DatetimeIndex):
+            if tz is None:
+                tz = data.tz
+            elif data.tz is None:
+                data = data.tz_localize(tz, ambiguous=ambiguous)
             else:
-                if data.dtype != _NS_DTYPE:
-                    subarr = conversion.ensure_datetime64ns(data)
-                else:
-                    subarr = data
+                # the tz's must match
+                if str(tz) != str(data.tz):
+                    msg = ('data is already tz-aware {0}, unable to '
+                           'set specified tz: {1}')
+                    raise TypeError(msg.format(data.tz, tz))
+
+            subarr = data.values
+
+            if freq is None:
+                freq = data.freq
+                verify_integrity = False
+        elif issubclass(data.dtype.type, np.datetime64):
+            if data.dtype != _NS_DTYPE:
+                data = conversion.ensure_datetime64ns(data)
+            if tz is not None:
+                # Convert tz-naive to UTC
+                tz = timezones.maybe_get_tz(tz)
+                data = conversion.tz_localize_to_utc(data.view('i8'), tz,
+                                                     ambiguous=ambiguous)
+            subarr = data.view(_NS_DTYPE)
         else:
             # must be integer dtype otherwise
-            if isinstance(data, Int64Index):
-                raise TypeError('cannot convert Int64Index->DatetimeIndex')
+            # assume this data are epoch timestamps
             if data.dtype != _INT64_DTYPE:
-                data = data.astype(np.int64)
+                data = data.astype(np.int64, copy=False)
             subarr = data.view(_NS_DTYPE)
-
-        if isinstance(subarr, DatetimeIndex):
-            if tz is None:
-                tz = subarr.tz
-        else:
-            if tz is not None:
-                tz = timezones.maybe_get_tz(tz)
-
-                if (not isinstance(data, DatetimeIndex) or
-                        getattr(data, 'tz', None) is None):
-                    # Convert tz-naive to UTC
-                    ints = subarr.view('i8')
-                    subarr = conversion.tz_localize_to_utc(ints, tz,
-                                                           ambiguous=ambiguous)
-                subarr = subarr.view(_NS_DTYPE)
 
         subarr = cls._simple_new(subarr, name=name, freq=freq, tz=tz)
         if dtype is not None:
@@ -601,10 +579,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         index = cls._simple_new(index, name=name, freq=freq, tz=tz)
         return index
 
-    @property
-    def _box_func(self):
-        return lambda x: Timestamp(x, freq=self.freq, tz=self.tz)
-
     def _convert_for_op(self, value):
         """ Convert value to be insertable to ndarray """
         if self._has_same_tz(value):
@@ -615,14 +589,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         if self.is_monotonic:
             return conversion.tz_convert(self.asi8, utc, self.tz)
         else:
-            values = self.asi8
-            indexer = values.argsort()
-            result = conversion.tz_convert(values.take(indexer), utc, self.tz)
-
-            n = len(indexer)
-            reverse = np.empty(n, dtype=np.int_)
-            reverse.put(indexer, np.arange(n))
-            return result.take(reverse)
+            return DatetimeArrayMixin._local_timestamps(self)
 
     @classmethod
     def _simple_new(cls, values, name=None, freq=None, tz=None,
@@ -655,23 +622,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         result._reset_identity()
         return result
 
-    def _assert_tzawareness_compat(self, other):
-        # adapted from _Timestamp._assert_tzawareness_compat
-        other_tz = getattr(other, 'tzinfo', None)
-        if is_datetime64tz_dtype(other):
-            # Get tzinfo from Series dtype
-            other_tz = other.dtype.tz
-        if other is libts.NaT:
-            # pd.NaT quacks both aware and naive
-            pass
-        elif self.tz is None:
-            if other_tz is not None:
-                raise TypeError('Cannot compare tz-naive and tz-aware '
-                                'datetime-like objects.')
-        elif other_tz is None:
-            raise TypeError('Cannot compare tz-naive and tz-aware '
-                            'datetime-like objects')
-
     @property
     def _values(self):
         # tz-naive -> ndarray
@@ -693,13 +643,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                              "or tz_convert() as appropriate")
 
     @property
-    def tzinfo(self):
-        """
-        Alias for tz attribute
-        """
-        return self.tz
-
-    @property
     def size(self):
         # TODO: Remove this when we have a DatetimeTZArray
         # Necessary to avoid recursion error since DTI._values is a DTI
@@ -719,21 +662,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         # Necessary to avoid recursion error since DTI._values is a DTI
         # for TZ-aware
         return self._ndarray_values.nbytes
-
-    @cache_readonly
-    def _timezone(self):
-        """ Comparable timezone both for pytz / dateutil"""
-        return timezones.get_timezone(self.tzinfo)
-
-    def _has_same_tz(self, other):
-        zzone = self._timezone
-
-        # vzone sholdn't be None if value is non-datetime like
-        if isinstance(other, np.datetime64):
-            # convert to Timestamp as np.datetime64 doesn't have tz attr
-            other = Timestamp(other)
-        vzone = timezones.get_timezone(getattr(other, 'tzinfo', '__no_tz__'))
-        return zzone == vzone
 
     @classmethod
     def _cached_range(cls, start=None, end=None, periods=None, freq=None,
@@ -806,8 +734,9 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
 
     @cache_readonly
     def _is_dates_only(self):
+        """Return a boolean if we are only dates (and don't have a timezone)"""
         from pandas.io.formats.format import _is_dates_only
-        return _is_dates_only(self.values)
+        return _is_dates_only(self.values) and self.tz is None
 
     @property
     def _formatter_func(self):
@@ -888,19 +817,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                             .format(cls=type(self).__name__,
                                     typ=type(other).__name__))
         return result.view('timedelta64[ns]')
-
-    def _sub_datelike_dti(self, other):
-        """subtraction of two DatetimeIndexes"""
-        if not len(self) == len(other):
-            raise ValueError("cannot add indices of unequal length")
-
-        self_i8 = self.asi8
-        other_i8 = other.asi8
-        new_values = self_i8 - other_i8
-        if self.hasnans or other.hasnans:
-            mask = (self._isnan) | (other._isnan)
-            new_values[mask] = libts.iNaT
-        return new_values.view('timedelta64[ns]')
 
     def _maybe_update_attributes(self, attrs):
         """ Update Index attributes (e.g. freq) depending on op """
@@ -1049,16 +965,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             return self.copy(deep=True)
 
         return self.values.copy()
-
-    def to_pydatetime(self):
-        """
-        Return DatetimeIndex as object ndarray of datetime.datetime objects
-
-        Returns
-        -------
-        datetimes : ndarray
-        """
-        return libts.ints_to_pydatetime(self.asi8, tz=self.tz)
 
     def to_period(self, freq=None):
         """
@@ -1243,7 +1149,7 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         See Index.join
         """
         if (not isinstance(other, DatetimeIndex) and len(other) > 0 and
-            other.inferred_type not in ('floating', 'mixed-integer',
+            other.inferred_type not in ('floating', 'integer', 'mixed-integer',
                                         'mixed-integer-float', 'mixed')):
             try:
                 other = DatetimeIndex(other)
@@ -1451,14 +1357,14 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                     Timestamp(datetime(parsed.year, 12, 31, 23,
                                        59, 59, 999999), tz=self.tz))
         elif reso == 'month':
-            d = libts.monthrange(parsed.year, parsed.month)[1]
+            d = ccalendar.get_days_in_month(parsed.year, parsed.month)
             return (Timestamp(datetime(parsed.year, parsed.month, 1),
                               tz=self.tz),
                     Timestamp(datetime(parsed.year, parsed.month, d, 23,
                                        59, 59, 999999), tz=self.tz))
         elif reso == 'quarter':
             qe = (((parsed.month - 1) + 2) % 12) + 1  # two months ahead
-            d = libts.monthrange(parsed.year, qe)[1]   # at end of month
+            d = ccalendar.get_days_in_month(parsed.year, qe)  # at end of month
             return (Timestamp(datetime(parsed.year, parsed.month, 1),
                               tz=self.tz),
                     Timestamp(datetime(parsed.year, qe, d, 23, 59,
@@ -1729,324 +1635,38 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
             else:
                 raise
 
-    @property
-    def offset(self):
-        """get/set the frequency of the Index"""
-        msg = ('DatetimeIndex.offset has been deprecated and will be removed '
-               'in a future version; use DatetimeIndex.freq instead.')
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-        return self.freq
-
-    @offset.setter
-    def offset(self, value):
-        """get/set the frequency of the Index"""
-        msg = ('DatetimeIndex.offset has been deprecated and will be removed '
-               'in a future version; use DatetimeIndex.freq instead.')
-        warnings.warn(msg, FutureWarning, stacklevel=2)
-        self.freq = value
-
-    year = _field_accessor('year', 'Y', "The year of the datetime")
-    month = _field_accessor('month', 'M',
-                            "The month as January=1, December=12")
-    day = _field_accessor('day', 'D', "The days of the datetime")
-    hour = _field_accessor('hour', 'h', "The hours of the datetime")
-    minute = _field_accessor('minute', 'm', "The minutes of the datetime")
-    second = _field_accessor('second', 's', "The seconds of the datetime")
-    microsecond = _field_accessor('microsecond', 'us',
-                                  "The microseconds of the datetime")
-    nanosecond = _field_accessor('nanosecond', 'ns',
-                                 "The nanoseconds of the datetime")
-    weekofyear = _field_accessor('weekofyear', 'woy',
-                                 "The week ordinal of the year")
+    year = _wrap_field_accessor('year')
+    month = _wrap_field_accessor('month')
+    day = _wrap_field_accessor('day')
+    hour = _wrap_field_accessor('hour')
+    minute = _wrap_field_accessor('minute')
+    second = _wrap_field_accessor('second')
+    microsecond = _wrap_field_accessor('microsecond')
+    nanosecond = _wrap_field_accessor('nanosecond')
+    weekofyear = _wrap_field_accessor('weekofyear')
     week = weekofyear
-    dayofweek = _field_accessor('dayofweek', 'dow',
-                                "The day of the week with Monday=0, Sunday=6")
+    dayofweek = _wrap_field_accessor('dayofweek')
     weekday = dayofweek
 
-    weekday_name = _field_accessor(
-        'weekday_name',
-        'weekday_name',
-        "The name of day in a week (ex: Friday)\n\n.. deprecated:: 0.23.0")
+    weekday_name = _wrap_field_accessor('weekday_name')
 
-    dayofyear = _field_accessor('dayofyear', 'doy',
-                                "The ordinal day of the year")
-    quarter = _field_accessor('quarter', 'q', "The quarter of the date")
-    days_in_month = _field_accessor(
-        'days_in_month',
-        'dim',
-        "The number of days in the month")
+    dayofyear = _wrap_field_accessor('dayofyear')
+    quarter = _wrap_field_accessor('quarter')
+    days_in_month = _wrap_field_accessor('days_in_month')
     daysinmonth = days_in_month
-    is_month_start = _field_accessor(
-        'is_month_start',
-        'is_month_start',
-        "Logical indicating if first day of month (defined by frequency)")
-    is_month_end = _field_accessor(
-        'is_month_end',
-        'is_month_end',
-        """
-        Indicator for whether the date is the last day of the month.
-
-        Returns
-        -------
-        Series or array
-            For Series, returns a Series with boolean values. For
-            DatetimeIndex, returns a boolean array.
-
-        See Also
-        --------
-        is_month_start : Indicator for whether the date is the first day
-            of the month.
-
-        Examples
-        --------
-        This method is available on Series with datetime values under
-        the ``.dt`` accessor, and directly on DatetimeIndex.
-
-        >>> dates = pd.Series(pd.date_range("2018-02-27", periods=3))
-        >>> dates
-        0   2018-02-27
-        1   2018-02-28
-        2   2018-03-01
-        dtype: datetime64[ns]
-        >>> dates.dt.is_month_end
-        0    False
-        1    True
-        2    False
-        dtype: bool
-
-        >>> idx = pd.date_range("2018-02-27", periods=3)
-        >>> idx.is_month_end
-        array([False,  True, False], dtype=bool)
-        """)
-    is_quarter_start = _field_accessor(
-        'is_quarter_start',
-        'is_quarter_start',
-        """
-        Indicator for whether the date is the first day of a quarter.
-
-        Returns
-        -------
-        is_quarter_start : Series or DatetimeIndex
-            The same type as the original data with boolean values. Series will
-            have the same name and index. DatetimeIndex will have the same
-            name.
-
-        See Also
-        --------
-        quarter : Return the quarter of the date.
-        is_quarter_end : Similar property for indicating the quarter start.
-
-        Examples
-        --------
-        This method is available on Series with datetime values under
-        the ``.dt`` accessor, and directly on DatetimeIndex.
-
-        >>> df = pd.DataFrame({'dates': pd.date_range("2017-03-30",
-        ...                   periods=4)})
-        >>> df.assign(quarter=df.dates.dt.quarter,
-        ...           is_quarter_start=df.dates.dt.is_quarter_start)
-               dates  quarter  is_quarter_start
-        0 2017-03-30        1             False
-        1 2017-03-31        1             False
-        2 2017-04-01        2              True
-        3 2017-04-02        2             False
-
-        >>> idx = pd.date_range('2017-03-30', periods=4)
-        >>> idx
-        DatetimeIndex(['2017-03-30', '2017-03-31', '2017-04-01', '2017-04-02'],
-                      dtype='datetime64[ns]', freq='D')
-
-        >>> idx.is_quarter_start
-        array([False, False,  True, False])
-        """)
-    is_quarter_end = _field_accessor(
-        'is_quarter_end',
-        'is_quarter_end',
-        """
-        Indicator for whether the date is the last day of a quarter.
-
-        Returns
-        -------
-        is_quarter_end : Series or DatetimeIndex
-            The same type as the original data with boolean values. Series will
-            have the same name and index. DatetimeIndex will have the same
-            name.
-
-        See Also
-        --------
-        quarter : Return the quarter of the date.
-        is_quarter_start : Similar property indicating the quarter start.
-
-        Examples
-        --------
-        This method is available on Series with datetime values under
-        the ``.dt`` accessor, and directly on DatetimeIndex.
-
-        >>> df = pd.DataFrame({'dates': pd.date_range("2017-03-30",
-        ...                    periods=4)})
-        >>> df.assign(quarter=df.dates.dt.quarter,
-        ...           is_quarter_end=df.dates.dt.is_quarter_end)
-               dates  quarter    is_quarter_end
-        0 2017-03-30        1             False
-        1 2017-03-31        1              True
-        2 2017-04-01        2             False
-        3 2017-04-02        2             False
-
-        >>> idx = pd.date_range('2017-03-30', periods=4)
-        >>> idx
-        DatetimeIndex(['2017-03-30', '2017-03-31', '2017-04-01', '2017-04-02'],
-                      dtype='datetime64[ns]', freq='D')
-
-        >>> idx.is_quarter_end
-        array([False,  True, False, False])
-        """)
-    is_year_start = _field_accessor(
-        'is_year_start',
-        'is_year_start',
-        """
-        Indicate whether the date is the first day of a year.
-
-        Returns
-        -------
-        Series or DatetimeIndex
-            The same type as the original data with boolean values. Series will
-            have the same name and index. DatetimeIndex will have the same
-            name.
-
-        See Also
-        --------
-        is_year_end : Similar property indicating the last day of the year.
-
-        Examples
-        --------
-        This method is available on Series with datetime values under
-        the ``.dt`` accessor, and directly on DatetimeIndex.
-
-        >>> dates = pd.Series(pd.date_range("2017-12-30", periods=3))
-        >>> dates
-        0   2017-12-30
-        1   2017-12-31
-        2   2018-01-01
-        dtype: datetime64[ns]
-
-        >>> dates.dt.is_year_start
-        0    False
-        1    False
-        2    True
-        dtype: bool
-
-        >>> idx = pd.date_range("2017-12-30", periods=3)
-        >>> idx
-        DatetimeIndex(['2017-12-30', '2017-12-31', '2018-01-01'],
-                      dtype='datetime64[ns]', freq='D')
-
-        >>> idx.is_year_start
-        array([False, False,  True])
-        """)
-    is_year_end = _field_accessor(
-        'is_year_end',
-        'is_year_end',
-        """
-        Indicate whether the date is the last day of the year.
-
-        Returns
-        -------
-        Series or DatetimeIndex
-            The same type as the original data with boolean values. Series will
-            have the same name and index. DatetimeIndex will have the same
-            name.
-
-        See Also
-        --------
-        is_year_start : Similar property indicating the start of the year.
-
-        Examples
-        --------
-        This method is available on Series with datetime values under
-        the ``.dt`` accessor, and directly on DatetimeIndex.
-
-        >>> dates = pd.Series(pd.date_range("2017-12-30", periods=3))
-        >>> dates
-        0   2017-12-30
-        1   2017-12-31
-        2   2018-01-01
-        dtype: datetime64[ns]
-
-        >>> dates.dt.is_year_end
-        0    False
-        1     True
-        2    False
-        dtype: bool
-
-        >>> idx = pd.date_range("2017-12-30", periods=3)
-        >>> idx
-        DatetimeIndex(['2017-12-30', '2017-12-31', '2018-01-01'],
-                      dtype='datetime64[ns]', freq='D')
-
-        >>> idx.is_year_end
-        array([False,  True, False])
-        """)
-    is_leap_year = _field_accessor(
-        'is_leap_year',
-        'is_leap_year',
-        """
-        Boolean indicator if the date belongs to a leap year.
-
-        A leap year is a year, which has 366 days (instead of 365) including
-        29th of February as an intercalary day.
-        Leap years are years which are multiples of four with the exception
-        of years divisible by 100 but not by 400.
-
-        Returns
-        -------
-        Series or ndarray
-             Booleans indicating if dates belong to a leap year.
-
-        Examples
-        --------
-        This method is available on Series with datetime values under
-        the ``.dt`` accessor, and directly on DatetimeIndex.
-
-        >>> idx = pd.date_range("2012-01-01", "2015-01-01", freq="Y")
-        >>> idx
-        DatetimeIndex(['2012-12-31', '2013-12-31', '2014-12-31'],
-                      dtype='datetime64[ns]', freq='A-DEC')
-        >>> idx.is_leap_year
-        array([ True, False, False], dtype=bool)
-
-        >>> dates = pd.Series(idx)
-        >>> dates_series
-        0   2012-12-31
-        1   2013-12-31
-        2   2014-12-31
-        dtype: datetime64[ns]
-        >>> dates_series.dt.is_leap_year
-        0     True
-        1    False
-        2    False
-        dtype: bool
-        """)
-
-    @property
-    def time(self):
-        """
-        Returns numpy array of datetime.time. The time part of the Timestamps.
-        """
-        return libts.ints_to_pydatetime(self.asi8, self.tz, box="time")
-
-    @property
-    def date(self):
-        """
-        Returns numpy array of python datetime.date objects (namely, the date
-        part of Timestamps without timezone information).
-        """
-        return libts.ints_to_pydatetime(self.normalize().asi8, box="date")
+    is_month_start = _wrap_field_accessor('is_month_start')
+    is_month_end = _wrap_field_accessor('is_month_end')
+    is_quarter_start = _wrap_field_accessor('is_quarter_start')
+    is_quarter_end = _wrap_field_accessor('is_quarter_end')
+    is_year_start = _wrap_field_accessor('is_year_start')
+    is_year_end = _wrap_field_accessor('is_year_end')
+    is_leap_year = _wrap_field_accessor('is_leap_year')
 
     def normalize(self):
         """
         Convert times to midnight.
 
-        The time component of the date-timeise converted to midnight i.e.
+        The time component of the date-time is converted to midnight i.e.
         00:00:00. This is useful in cases, when the time does not matter.
         Length is unaltered. The timezones are unaffected.
 
@@ -2080,9 +1700,10 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                        '2014-08-01 00:00:00+05:30'],
                        dtype='datetime64[ns, Asia/Calcutta]', freq=None)
         """
-        new_values = conversion.date_normalize(self.asi8, self.tz)
-        return DatetimeIndex(new_values, freq='infer', name=self.name,
-                             tz=self.tz)
+        new_values = conversion.normalize_i8_timestamps(self.asi8, self.tz)
+        return DatetimeIndex(new_values,
+                             freq='infer',
+                             name=self.name).tz_localize(self.tz)
 
     @Substitution(klass='DatetimeIndex')
     @Appender(_shared_docs['searchsorted'])
@@ -2103,12 +1724,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         # b/c datetime is represented as microseconds since the epoch, make
         # sure we can't have ambiguous indexing
         return 'datetime64'
-
-    @cache_readonly
-    def dtype(self):
-        if self.tz is None:
-            return _NS_DTYPE
-        return DatetimeTZDtype('ns', self.tz)
 
     @property
     def is_all_dates(self):
@@ -2163,8 +1778,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
         try:
             new_dates = np.concatenate((self[:loc].asi8, [item.view(np.int64)],
                                         self[loc:].asi8))
-            if self.tz is not None:
-                new_dates = conversion.tz_convert(new_dates, 'UTC', self.tz)
             return DatetimeIndex(new_dates, name=self.name, freq=freq,
                                  tz=self.tz)
         except (AttributeError, TypeError):
@@ -2202,8 +1815,6 @@ class DatetimeIndex(DatelikeOps, TimelikeOps, DatetimeIndexOpsMixin,
                 if (loc.start in (0, None) or loc.stop in (len(self), None)):
                     freq = self.freq
 
-        if self.tz is not None:
-            new_dates = conversion.tz_convert(new_dates, 'UTC', self.tz)
         return DatetimeIndex(new_dates, name=self.name, freq=freq, tz=self.tz)
 
     def tz_convert(self, tz):
@@ -2462,79 +2073,11 @@ default 'raise'
         0 Julian date is noon January 1, 4713 BC.
         http://en.wikipedia.org/wiki/Julian_day
         """
+        result = DatetimeArrayMixin.to_julian_date(self)
+        return Float64Index(result)
 
-        # http://mysite.verizon.net/aesir_research/date/jdalg2.htm
-        year = np.asarray(self.year)
-        month = np.asarray(self.month)
-        day = np.asarray(self.day)
-        testarr = month < 3
-        year[testarr] -= 1
-        month[testarr] += 12
-        return Float64Index(day +
-                            np.fix((153 * month - 457) / 5) +
-                            365 * year +
-                            np.floor(year / 4) -
-                            np.floor(year / 100) +
-                            np.floor(year / 400) +
-                            1721118.5 +
-                            (self.hour +
-                             self.minute / 60.0 +
-                             self.second / 3600.0 +
-                             self.microsecond / 3600.0 / 1e+6 +
-                             self.nanosecond / 3600.0 / 1e+9
-                             ) / 24.0)
-
-    def month_name(self, locale=None):
-        """
-        Return the month names of the DateTimeIndex with specified locale.
-
-        Parameters
-        ----------
-        locale : string, default None (English locale)
-            locale determining the language in which to return the month name
-
-        Returns
-        -------
-        month_names : Index
-            Index of month names
-
-        .. versionadded:: 0.23.0
-        """
-        values = self.asi8
-        if self.tz is not None:
-            if self.tz is not utc:
-                values = self._local_timestamps()
-
-        result = fields.get_date_name_field(values, 'month_name',
-                                            locale=locale)
-        result = self._maybe_mask_results(result)
-        return Index(result, name=self.name)
-
-    def day_name(self, locale=None):
-        """
-        Return the day names of the DateTimeIndex with specified locale.
-
-        Parameters
-        ----------
-        locale : string, default None (English locale)
-            locale determining the language in which to return the day name
-
-        Returns
-        -------
-        month_names : Index
-            Index of day names
-
-        .. versionadded:: 0.23.0
-        """
-        values = self.asi8
-        if self.tz is not None:
-            if self.tz is not utc:
-                values = self._local_timestamps()
-
-        result = fields.get_date_name_field(values, 'day_name',
-                                            locale=locale)
-        result = self._maybe_mask_results(result)
-        return Index(result, name=self.name)
+    month_name = _wrap_in_index("month_name")
+    day_name = _wrap_in_index("day_name")
 
 
 DatetimeIndex._add_comparison_methods()
