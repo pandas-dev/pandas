@@ -344,12 +344,6 @@ class DatetimeIndexOpsMixin(DatetimeLikeArrayMixin):
             result = result.tz_localize(self.tz)
         return result
 
-    def _box_values(self, values):
-        """
-        apply box func to passed values
-        """
-        return lib.map_infer(values, self._box_func)
-
     def _box_values_as_index(self):
         """
         return object Index which contains boxed values

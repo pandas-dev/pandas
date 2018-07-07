@@ -120,7 +120,7 @@ cdef class {{name}}Vector:
 
         append_data_{{dtype}}(self.data, x)
 
-    cdef extend(self, {{arg}}[:] x):
+    cdef extend(self, const {{arg}}[:] x):
         for i in range(len(x)):
             self.append(x[i])
 
@@ -253,56 +253,10 @@ dtypes = [('Float64', 'float64', True, 'nan'),
           ('UInt64', 'uint64', False, 0),
           ('Int64', 'int64', False, 'iNaT')]
 
-def get_dispatch(dtypes):
-  for (name, dtype, float_group, default_na_value) in dtypes:
-    unique_template = """\
-        cdef:
-           Py_ssize_t i, n = len(values)
-           int ret = 0
-           {dtype}_t val
-           khiter_t k
-           bint seen_na = 0
-           {name}Vector uniques = {name}Vector()
-           {name}VectorData *ud
-
-        ud = uniques.data
-
-        with nogil:
-            for i in range(n):
-                val = values[i]
-                IF {float_group}:
-                  if val == val:
-                      k = kh_get_{dtype}(self.table, val)
-                      if k == self.table.n_buckets:
-                          kh_put_{dtype}(self.table, val, &ret)
-                          if needs_resize(ud):
-                              with gil:
-                                  uniques.resize()
-                          append_data_{dtype}(ud, val)
-                  elif not seen_na:
-                      seen_na = 1
-                      if needs_resize(ud):
-                          with gil:
-                              uniques.resize()
-                      append_data_{dtype}(ud, NAN)
-                ELSE:
-                  k = kh_get_{dtype}(self.table, val)
-                  if k == self.table.n_buckets:
-                      kh_put_{dtype}(self.table, val, &ret)
-                      if needs_resize(ud):
-                          with gil:
-                              uniques.resize()
-                      append_data_{dtype}(ud, val)
-        return uniques.to_array()
-      """
-
-    unique_template = unique_template.format(name=name, dtype=dtype, float_group=float_group)
-
-    yield (name, dtype, float_group, default_na_value, unique_template)
 }}
 
 
-{{for name, dtype, float_group, default_na_value, unique_template in get_dispatch(dtypes)}}
+{{for name, dtype, float_group, default_na_value in dtypes}}
 
 cdef class {{name}}HashTable(HashTable):
 
@@ -351,7 +305,7 @@ cdef class {{name}}HashTable(HashTable):
             raise KeyError(key)
 
     @cython.boundscheck(False)
-    def map(self, {{dtype}}_t[:] keys, int64_t[:] values):
+    def map(self, const {{dtype}}_t[:] keys, const int64_t[:] values):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
@@ -379,7 +333,7 @@ cdef class {{name}}HashTable(HashTable):
                 self.table.vals[k] = i
 
     @cython.boundscheck(False)
-    def lookup(self, {{dtype}}_t[:] values):
+    def lookup(self, const {{dtype}}_t[:] values):
         cdef:
             Py_ssize_t i, n = len(values)
             int ret = 0
@@ -404,7 +358,7 @@ cdef class {{name}}HashTable(HashTable):
         return uniques.to_array(), labels
 
     @cython.boundscheck(False)
-    def get_labels(self, {{dtype}}_t[:] values, {{name}}Vector uniques,
+    def get_labels(self, const {{dtype}}_t[:] values, {{name}}Vector uniques,
                    Py_ssize_t count_prior, Py_ssize_t na_sentinel,
                    object na_value=None):
         cdef:
@@ -461,7 +415,7 @@ cdef class {{name}}HashTable(HashTable):
         return np.asarray(labels)
 
     @cython.boundscheck(False)
-    def get_labels_groupby(self, {{dtype}}_t[:] values):
+    def get_labels_groupby(self, const {{dtype}}_t[:] values):
         cdef:
             Py_ssize_t i, n = len(values)
             int64_t[:] labels
@@ -506,20 +460,46 @@ cdef class {{name}}HashTable(HashTable):
         return np.asarray(labels), arr_uniques
 
     @cython.boundscheck(False)
-    def unique(self, ndarray[{{dtype}}_t, ndim=1] values):
-        if values.flags.writeable:
-          # If the value is writeable (mutable) then use memview
-          return self.unique_memview(values)
+    def unique(self, const {{dtype}}_t[:] values):
+        cdef:
+           Py_ssize_t i, n = len(values)
+           int ret = 0
+           {{dtype}}_t val
+           khiter_t k
+           bint seen_na = 0
+           {{name}}Vector uniques = {{name}}Vector()
+           {{name}}VectorData *ud
 
-        # We cannot use the memoryview version on readonly-buffers due to
-        # a limitation of Cython's typed memoryviews. Instead we can use
-        # the slightly slower Cython ndarray type directly.
-        # see https://github.com/cython/cython/issues/1605
-{{unique_template}}
+        ud = uniques.data
 
-    @cython.boundscheck(False)
-    def unique_memview(self, {{dtype}}_t[:] values):
-{{unique_template}}
+        with nogil:
+            for i in range(n):
+                val = values[i]
+                {{if float_group}}
+                if val == val:
+                    k = kh_get_{{dtype}}(self.table, val)
+                    if k == self.table.n_buckets:
+                        kh_put_{{dtype}}(self.table, val, &ret)
+                        if needs_resize(ud):
+                            with gil:
+                                uniques.resize()
+                        append_data_{{dtype}}(ud, val)
+                elif not seen_na:
+                    seen_na = 1
+                    if needs_resize(ud):
+                        with gil:
+                            uniques.resize()
+                    append_data_{{dtype}}(ud, NAN)
+                {{else}}
+                k = kh_get_{{dtype}}(self.table, val)
+                if k == self.table.n_buckets:
+                    kh_put_{{dtype}}(self.table, val, &ret)
+                    if needs_resize(ud):
+                        with gil:
+                            uniques.resize()
+                    append_data_{{dtype}}(ud, val)
+                {{endif}}
+        return uniques.to_array()
 
 {{endfor}}
 

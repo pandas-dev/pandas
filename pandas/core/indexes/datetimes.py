@@ -1251,29 +1251,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                               end=max(left_end, right_end),
                               freq=left.freq)
 
-    def __iter__(self):
-        """
-        Return an iterator over the boxed values
-
-        Returns
-        -------
-        Timestamps : ndarray
-        """
-
-        # convert in chunks of 10k for efficiency
-        data = self.asi8
-        length = len(self)
-        chunksize = 10000
-        chunks = int(length / chunksize) + 1
-        for i in range(chunks):
-            start_i = i * chunksize
-            end_i = min((i + 1) * chunksize, length)
-            converted = libts.ints_to_pydatetime(data[start_i:end_i],
-                                                 tz=self.tz, freq=self.freq,
-                                                 box="timestamp")
-            for v in converted:
-                yield v
-
     def _wrap_union_result(self, other, result):
         name = self.name if self.name == other.name else None
         if not timezones.tz_compare(self.tz, other.tz):
@@ -1906,8 +1883,8 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
         tz : string, pytz.timezone, dateutil.tz.tzfile or None
             Time zone to convert timestamps to. Passing ``None`` will
             remove the time zone information preserving local time.
-        ambiguous : str {'infer', 'NaT', 'raise'} or bool array, \
-default 'raise'
+        ambiguous : str {'infer', 'NaT', 'raise'} or bool array,
+            default 'raise'
             - 'infer' will attempt to infer fall dst-transition hours based on
               order
             - bool-ndarray where True signifies a DST time, False signifies a

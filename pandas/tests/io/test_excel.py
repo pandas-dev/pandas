@@ -219,6 +219,16 @@ class ReadingTestsBase(SharedItems):
                              columns=['Test'])
         tm.assert_frame_equal(parsed, expected)
 
+    def test_deprecated_sheetname(self, ext):
+        # gh-17964
+        excel = self.get_excelfile('test1', ext)
+
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            read_excel(excel, sheetname='Sheet1')
+
+        with pytest.raises(TypeError):
+            read_excel(excel, sheet='Sheet1')
+
     def test_excel_table_sheet_by_index(self, ext):
 
         excel = self.get_excelfile('test1', ext)

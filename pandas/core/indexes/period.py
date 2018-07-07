@@ -31,7 +31,6 @@ from pandas._libs import tslib, index as libindex
 from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
                                         DIFFERENT_FREQ_INDEX,
                                         _validate_end_alias, _quarter_to_myear)
-from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs import resolution, period
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 
@@ -626,11 +625,6 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
     daysinmonth = days_in_month
 
     @property
-    def is_leap_year(self):
-        """ Logical indicating if the date belongs to a leap year """
-        return isleapyear_arr(np.asarray(self.year))
-
-    @property
     def start_time(self):
         return self.to_timestamp(how='start')
 
@@ -702,16 +696,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
     def _sub_period(self, other):
         # If the operation is well-defined, we return an object-Index
         # of DateOffsets.  Null entries are filled with pd.NaT
-        if self.freq != other.freq:
-            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
-            raise IncompatibleFrequency(msg)
-
-        asi8 = self.asi8
-        new_data = asi8 - other.ordinal
-        new_data = np.array([self.freq * x for x in new_data])
-
-        if self.hasnans:
-            new_data[self._isnan] = tslib.NaT
+        new_data = PeriodArrayMixin._sub_period(self, other)
 
         # TODO: Should name=self.name be passed here?
         return Index(new_data)

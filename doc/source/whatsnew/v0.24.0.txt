@@ -377,7 +377,7 @@ I/O
 ^^^
 
 - :func:`read_html()` no longer ignores all-whitespace ``<tr>`` within ``<thead>`` when considering the ``skiprows`` and ``header`` arguments. Previously, users had to decrease their ``header`` and ``skiprows`` values on such tables to work around the issue. (:issue:`21641`)
--
+- :func:`read_excel()` will correctly show the deprecation warning for previously deprecated ``sheetname`` (:issue:`17994`)
 -
 
 Plotting
@@ -410,12 +410,17 @@ Reshaping
 -
 -
 
+Build Changes
+^^^^^^^^^^^^^
+
+- Building pandas for development now requires ``cython >= 0.28.2`` (:issue:`21688`)
 -
 
 Other
 ^^^^^
 
 - :meth: `~pandas.io.formats.style.Styler.background_gradient` now takes a ``text_color_threshold`` parameter to automatically lighten the text color based on the luminance of the background color. This improves readability with dark background colors without the need to limit the background colormap range. (:issue:`21258`)
+- Require at least 0.28.2 version of ``cython`` to support read-only memoryviews (:issue:`21688`)
 -
 -
 -
