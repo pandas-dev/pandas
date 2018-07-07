@@ -781,7 +781,7 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Parameters
         ----------
-        axis : axis : {0 or ‘index’, 1 or ‘columns’, None}, default None
+        axis : {0 or 'index', 1 or 'columns', None}, default None
             A specific axis to squeeze. By default, all length-1 axes are
             squeezed.
 
