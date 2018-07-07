@@ -296,9 +296,9 @@ class TestArithmeticOps(BaseInteger, base.BaseArithmeticOpsTests):
                 ops(pd.Series(pd.date_range('20180101', periods=len(s))))
 
         # 2d
-        with pytest.raises(TypeError):
+        with pytest.raises(NotImplementedError):
             opa(pd.DataFrame({'A': s}))
-        with pytest.raises(TypeError):
+        with pytest.raises(NotImplementedError):
             opa(np.arange(len(s)).reshape(-1, len(s)))
 
 

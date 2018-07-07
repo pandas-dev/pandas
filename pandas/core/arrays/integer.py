@@ -311,7 +311,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         return cls(data, mask=mask, dtype=to_concat[0].dtype)
 
     def astype(self, dtype, copy=True):
-        """Cast to a NumPy array with 'dtype'.
+        """Cast to a NumPy array or IntegerArray with 'dtype'.
 
         Parameters
         ----------
@@ -324,8 +324,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         Returns
         -------
-        array : ndarray
-            NumPy ndarray with 'dtype' for its dtype.
+        array : ndarray or IntegerArray
+            NumPy ndarray or IntergerArray with 'dtype' for its dtype.
 
         Raises
         ------
@@ -502,7 +502,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             if isinstance(other, IntegerArray):
                 other, mask = other.data, other.mask
             elif getattr(other, 'ndim', 0) > 1:
-                raise TypeError("can only perform ops with 1-d structures")
+                raise NotImplementedError(
+                    "can only perform ops with 1-d structures")
             elif is_list_like(other):
                 other = np.asarray(other)
                 if not other.ndim:
