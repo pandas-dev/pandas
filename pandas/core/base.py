@@ -1008,7 +1008,7 @@ class IndexOpsMixin(object):
     def value_counts(self, normalize=False, sort=True, ascending=False,
                      bins=None, dropna=True):
         """
-        Return object containing counts of unique values.
+        Return a Series containing counts of unique values.
 
         The resulting object will be in descending order so that the
         first element is the most frequently-occurring element.
@@ -1025,13 +1025,18 @@ class IndexOpsMixin(object):
             Sort in ascending order.
         bins : integer, optional
             Rather than count values, group them into half-open bins,
-            a convenience for pd.cut, only works with numeric data.
+            a convenience for ``pd.cut``, only works with numeric data.
         dropna : boolean, default True
             Don't include counts of NaN.
 
         Returns
         -------
         counts : Series
+
+        See Also
+        --------
+        Series.count: number of non-NA elements in a Series
+        DataFrame.count: number of non-NA elements in a DataFrame
 
         Examples
         --------
@@ -1073,7 +1078,7 @@ class IndexOpsMixin(object):
 
         >>> s.value_counts(dropna=False)
         3.0    2
-        NaN     1
+        NaN    1
         4.0    1
         2.0    1
         1.0    1
