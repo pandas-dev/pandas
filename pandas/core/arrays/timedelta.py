@@ -98,7 +98,7 @@ class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
 
         Returns
         -------
-        seconds : ndarray, Float64Index, or Series
+        seconds : [ndarray, Float64Index, Series]
             When the calling object is a TimedeltaArray, the return type
             is ndarray.  When the calling object is a TimedeltaIndex,
             the return type is a Float64Index. When the calling object
