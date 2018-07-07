@@ -477,9 +477,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                 value = np.timedelta64('NaT')
             value_left, value_right = value, value
         elif is_interval_dtype(value) or isinstance(value, ABCInterval):
-            if value.closed != self.closed:
-                msg = "'value.closed' ({}) does not match {}."
-                raise ValueError(msg.format(value.closed, self.closed))
+            self._check_closed_matches(value, name="value")
             value_left, value_right = value.left, value.right
         else:
             # wrong type: not interval or NA
@@ -508,8 +506,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             raise TypeError('limit is not supported for IntervalArray.')
 
         if not isinstance(value, ABCInterval):
-            msg = ("'Interval.fillna' only supports filling with a scalar "
-                   "'pandas.Interval'. Got a '{}' instead."
+            msg = ("'IntervalArray.fillna' only supports filling with a "
+                   "'scalar pandas.Interval'. Got a '{}' instead."
                    .format(type(value).__name__))
             raise TypeError(msg)
 
@@ -525,8 +523,30 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return IntervalDtype.construct_from_string(str(self.left.dtype))
 
     def astype(self, dtype, copy=True):
+        """
+        Cast to an ExtensionArray or NumPy array with dtype 'dtype'.
+
+        Parameters
+        ----------
+        dtype : str or dtype
+            Typecode or data-type to which the array is cast.
+
+        copy : bool, default True
+            Whether to copy the data, even if not necessary. If False,
+            a copy is made only if the old dtype does not match the
+            new dtype.
+
+        Returns
+        -------
+        array : ExtensionArray or ndarray
+            ExtensionArray or NumPy ndarray with 'dtype' for its dtype.
+        """
         dtype = pandas_dtype(dtype)
-        if is_interval_dtype(dtype) and dtype != self.dtype:
+        if is_interval_dtype(dtype):
+            if dtype == self.dtype:
+                return self.copy() if copy else self
+
+            # need to cast to different subtype
             try:
                 new_left = self.left.astype(dtype.subtype)
                 new_right = self.right.astype(dtype.subtype)
@@ -535,11 +555,6 @@ class IntervalArray(IntervalMixin, ExtensionArray):
                        'incompatible')
                 raise TypeError(msg.format(dtype=self.dtype, new_dtype=dtype))
             return self._shallow_copy(new_left, new_right)
-        elif is_interval_dtype(dtype):
-            if copy:
-                return self.copy()
-            else:
-                return self
         elif is_categorical_dtype(dtype):
             return Categorical(np.asarray(self))
         # TODO: This try/except will be repeated.
@@ -551,6 +566,17 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     @classmethod
     def _concat_same_type(cls, to_concat):
+        """
+        Concatenate multiple IntervalArray
+
+        Parameters
+        ----------
+        to_concat : sequence of IntervalArray
+
+        Returns
+        -------
+        IntervalArray
+        """
         closed = set(interval.closed for interval in to_concat)
         if len(closed) != 1:
             raise ValueError("Intervals must all be closed on the same side.")
@@ -584,8 +610,19 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         return self._simple_new(left, right, closed=self.closed,
                                 verify_integrity=False)
 
-    # TODO: doc
     def copy(self, deep=False):
+        """
+        Return a copy of the array.
+
+        Parameters
+        ----------
+        deep : bool, default False
+            Also copy the underlying data backing this array.
+
+        Returns
+        -------
+        IntervalArray
+        """
         left = self.left.copy(deep=True) if deep else self.left
         right = self.right.copy(deep=True) if deep else self.right
         closed = self.closed
@@ -617,6 +654,26 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     def take(self, indices, axis=0, allow_fill=True, fill_value=None,
              **kwargs):
+        """
+        Take elements from the IntervalArray.
+
+        Parameters
+        ----------
+        indexer : sequence of integers
+            indices to be taken. -1 is used to indicate values
+            that are missing.
+        allow_fill : bool, default True
+            If False, indexer is assumed to contain no -1 values so no filling
+            will be done. This short-circuits computation of a mask. Result is
+            undefined if allow_fill == False and -1 is present in indexer.
+        fill_value : any, default None
+            Fill value to replace -1 values with. If applicable, this should
+            use the sentinel missing value for this type.
+
+        Returns
+        -------
+        IntervalArray
+        """
         nv.validate_take(tuple(), kwargs)
         indices = _ensure_platform_int(indices)
         left, right = self.left, self.right
