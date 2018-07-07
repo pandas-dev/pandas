@@ -271,6 +271,16 @@ class TestArithmeticOps(BaseInteger, base.BaseArithmeticOpsTests):
         other = 0.01
         self._check_op(s, op, other)
 
+    @pytest.mark.parametrize("other", [1., 1.0, np.array(1.), np.array([1.])])
+    def test_arithmetic_conversion(self, all_arithmetic_operators, other):
+        # if we have a float operand we should have a float result
+        # if if that is equal to an integer
+        op = self.get_op_from_name(all_arithmetic_operators)
+
+        s = pd.Series([1, 2, 3], dtype='Int64')
+        result = op(s, other)
+        assert result.dtype is np.dtype('float')
+
     def test_error(self, data, all_arithmetic_operators):
         # invalid ops
 

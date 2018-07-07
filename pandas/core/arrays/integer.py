@@ -16,7 +16,6 @@ from pandas.core.arrays import ExtensionArray, ExtensionOpsMixin
 from pandas.core.dtypes.base import ExtensionDtype
 from pandas.core.dtypes.dtypes import registry
 from pandas.core.dtypes.missing import isna, notna
-from pandas.core.dtypes.cast import maybe_downcast_to_dtype
 
 from pandas.io.formats.printing import (
     format_object_summary, format_object_attrs, default_pprint)
@@ -487,26 +486,13 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         if is_float_dtype(result):
             mask |= (result == np.inf) | (result == -np.inf)
 
-        # floor div can be a float or an integer dependending
-        # on the operands
-        if (op_name in ['rfloordiv', 'floordiv'] and
-                (is_float_dtype(other) or is_float(other))):
+        # if we have a float operand we are by-definition
+        # a float result
+        # or our op is a divide
+        if ((is_float_dtype(other) or is_float(other)) or
+                (op_name in ['rtruediv', 'truediv', 'rdiv', 'div'])):
             result[mask] = np.nan
             return result
-
-        # by definition a float result
-        elif op_name in ['rtruediv', 'truediv', 'rdiv', 'div']:
-            result[mask] = np.nan
-            return result
-
-        elif is_float_dtype(result):
-            # if our float result, try to downcast if possible
-            # if remains float, then mask and return as float
-            nonans = result[notna(result)]
-            maybe = maybe_downcast_to_dtype(nonans, self.dtype.numpy_dtype)
-            if not is_integer_dtype(maybe):
-                result[mask] = np.nan
-                return result
 
         return type(self)(result, mask=mask, dtype=self.dtype, copy=False)
 

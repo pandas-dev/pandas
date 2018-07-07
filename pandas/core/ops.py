@@ -13,7 +13,7 @@ import warnings
 import numpy as np
 import pandas as pd
 
-from pandas._libs import algos as libalgos, ops as libops
+from pandas._libs import lib, algos as libalgos, ops as libops
 
 from pandas import compat
 from pandas.util._decorators import Appender
@@ -1062,10 +1062,16 @@ def dispatch_to_extension_op(op, left, right):
     if is_extension_array_dtype(left):
 
         new_left = left.values
-        if (isinstance(right, np.ndarray) or
-                (is_extension_array_dtype(right) and
-                 type(left) != type(right))):
-            new_right = list(right)
+        if isinstance(right, np.ndarray):
+
+            # handle numpy scalars, this is a PITA
+            # TODO(jreback)
+            new_right = lib.item_from_zerodim(right)
+            if is_scalar(new_right):
+                new_right = [new_right]
+            new_right = list(new_right)
+        elif is_extension_array_dtype(right) and type(left) != type(right):
+            new_right = list(new_right)
         else:
             new_right = right
 
