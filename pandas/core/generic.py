@@ -4914,7 +4914,6 @@ class NDFrame(PandasObject, SelectionMixin):
 
         Examples
         --------
-        >>> import numpy as np
         >>> arr = np.random.RandomState(0).randn(100, 4)
         >>> arr[arr < .8] = np.nan
         >>> pd.DataFrame(arr).ftypes

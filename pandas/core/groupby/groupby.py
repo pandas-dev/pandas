@@ -3694,7 +3694,6 @@ class SeriesGroupBy(GroupBy):
 
         Examples
         --------
-        >>> import pandas as pd
         >>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
         ...                           'foo', 'bar'],
         ...                    'B' : [1, 2, 3, 4, 5, 6],
@@ -4528,7 +4527,6 @@ class NDFrameGroupBy(GroupBy):
 
         Examples
         --------
-        >>> import pandas as pd
         >>> df = pd.DataFrame({'A' : ['foo', 'bar', 'foo', 'bar',
         ...                           'foo', 'bar'],
         ...                    'B' : [1, 2, 3, 4, 5, 6],

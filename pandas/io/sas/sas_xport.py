@@ -68,11 +68,11 @@ Examples
 --------
 Read a SAS Xport file:
 
->>> df = pandas.read_sas('filename.XPT')
+>>> df = pd.read_sas('filename.XPT')
 
 Read a Xport file in 10,000 line chunks:
 
->>> itr = pandas.read_sas('filename.XPT', chunksize=10000)
+>>> itr = pd.read_sas('filename.XPT', chunksize=10000)
 >>> for chunk in itr:
 >>>     do_something(chunk)
 
