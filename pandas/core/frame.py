@@ -4932,8 +4932,8 @@ class DataFrame(NDFrame):
 
         Example using a true element-wise combine function.
 
-        >>> df1 = DataFrame({'A': [5, 0], 'B': [2, 4]})
-        >>> df2 = DataFrame({'A': [1, 1], 'B': [3, 3]})
+        >>> df1 = pd.DataFrame({'A': [5, 0], 'B': [2, 4]})
+        >>> df2 = pd.DataFrame({'A': [1, 1], 'B': [3, 3]})
         >>> df1.combine(df2, np.minimum)
            A  B
         0  1  2
@@ -4942,7 +4942,7 @@ class DataFrame(NDFrame):
         Using `fill_value` fills Nones prior to passing the column to the
         merge function.
 
-        >>> df1 = DataFrame({'A': [0, 0], 'B': [None, 4]})
+        >>> df1 = pd.DataFrame({'A': [0, 0], 'B': [None, 4]})
         >>> df2 = DataFrame({'A': [1, 1], 'B': [3, 3]})
         >>> df1.combine(df2, take_smaller, fill_value=-5)
            A    B
@@ -4952,8 +4952,8 @@ class DataFrame(NDFrame):
         However, if the same element in both dataframes is None, that None
         is preserved
 
-        >>> df1 = DataFrame({'A': [0, 0], 'B': [None, 4]})
-        >>> df2 = DataFrame({'A': [1, 1], 'B': [None, 3]})
+        >>> df1 = pd.DataFrame({'A': [0, 0], 'B': [None, 4]})
+        >>> df2 = pd.DataFrame({'A': [1, 1], 'B': [None, 3]})
         >>> df1.combine(df2, take_smaller, fill_value=-5)
            A    B
         0  0  NaN
@@ -4962,8 +4962,8 @@ class DataFrame(NDFrame):
         Example that demonstrates the use of `overwrite` and behavior when
         the axis differ between the dataframes.
 
-        >>> df1 = DataFrame({'A': [0, 0], 'B': [4, 4]})
-        >>> df2 = DataFrame({'B': [3, 3], 'C': [-10, 1],}, index=[1, 2])
+        >>> df1 = pd.DataFrame({'A': [0, 0], 'B': [4, 4]})
+        >>> df2 = pd.DataFrame({'B': [3, 3], 'C': [-10, 1],}, index=[1, 2])
         >>> df1.combine(df2, take_smaller)
              A    B     C
         0  NaN  NaN   NaN
@@ -4978,7 +4978,7 @@ class DataFrame(NDFrame):
 
         Demonstrating the preference of the passed in dataframe.
 
-        >>> df2 = DataFrame({'B': [3, 3], 'C': [1, 1],}, index=[1, 2])
+        >>> df2 = pd.DataFrame({'B': [3, 3], 'C': [1, 1],}, index=[1, 2])
         >>> df2.combine(df1, take_smaller)
            A    B   C
         0  0.0  NaN NaN
