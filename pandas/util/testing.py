@@ -2523,7 +2523,10 @@ def assert_produces_warning(expected_warning=Warning, filter_level="always",
                                     message=actual_warning.message)
                     assert actual_warning.filename == caller.filename, msg
             else:
-                extra_warnings.append(actual_warning.category.__name__)
+                extra_warnings.append((actual_warning.category.__name__,
+                                       actual_warning.message,
+                                       actual_warning.filename,
+                                       actual_warning.lineno))
         if expected_warning:
             msg = "Did not see expected warning of class {name!r}.".format(
                 name=expected_warning.__name__)
