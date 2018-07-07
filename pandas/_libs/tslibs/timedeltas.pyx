@@ -770,24 +770,22 @@ cdef class _Timedelta(timedelta):
 
     @property
     def resolution(self):
-        """
+        """ 
         Return a string representing the lowest timedelta resolution.
 
         Each timedelta has a defined resolution that represents the lowest OR
         most granular level of precision. Each level of resolution is
         represented by a short string as defined below:
 
-        ============ ============
-        Resolution   Return value
-        ============ ============
-        Days         'D'
-        Hours        'H'
-        Minutes      'T'
-        Seconds      'S'
-        Milliseconds 'L'
-        Microseconds 'U'
-        Nanoseconds  'N'
-        ============ ============
+        Resolution:     Return value
+
+        * Days:         'D'
+        * Hours:        'H'
+        * Minutes:      'T'
+        * Seconds:      'S'
+        * Milliseconds: 'L'
+        * Microseconds: 'U'
+        * Nanoseconds:  'N'
 
         Returns
         -------
