@@ -840,7 +840,7 @@ def _str_extract_frame(arr, pat, flags=0):
 
 def str_extract(arr, pat, flags=0, expand=True):
     r"""
-    Return the match object corresponding to regex `pat`.
+    Extract capture groups in the regex `pat` as columns in a DataFrame.
 
     For each subject string in the Series, extract groups from the
     first match of regular expression `pat`.
@@ -851,10 +851,13 @@ def str_extract(arr, pat, flags=0, expand=True):
         Regular expression pattern with capturing groups.
     flags : int, default 0 (no flags)
         ``re`` module flags, e.g. ``re.IGNORECASE``.
+        See :mod:`re`
     expand : bool, default True
-        If True, return DataFrame, else return Series/Index/DataFrame.
+        If True, return DataFrame with one column per capture group.
+        If False, return a Series/Index if there is one capture group
+        or DataFrame if there are multiple capture groups.
 
-        .. versionadded:: 0.18.0.
+        .. versionadded:: 0.18.0
 
     Returns
     -------
