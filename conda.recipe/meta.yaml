@@ -12,18 +12,37 @@ source:
 
 requirements:
   build:
+    - {{ compiler('c') }}
+    - {{ compiler('cxx') }}
+  host:
     - python
+    - pip
     - cython
-    - numpy 1.11.*
+    - numpy
     - setuptools >=3.3
     - python-dateutil >=2.5.0
     - pytz
-
   run:
     - python
-    - numpy >=1.11.*
+    - {{ pin_compatible('numpy') }}
     - python-dateutil >=2.5.0
     - pytz
+
+outputs:
+  - name: pandas
+    type: conda
+  - type: wheel
+    build:
+      activate_in_script: true
+    requirements:
+      build:
+        - python
+        - pip
+        - cython
+        - numpy
+        - setuptools >=3.3
+        - python-dateutil >=2.5.0
+        - pytz
 
 test:
   imports:
