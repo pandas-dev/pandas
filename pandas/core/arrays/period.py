@@ -10,6 +10,7 @@ from pandas._libs.tslibs.period import (
     Period, IncompatibleFrequency, DIFFERENT_FREQ_INDEX,
     get_period_field_arr)
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
+from pandas._libs.tslibs.fields import isleapyear_arr
 
 from pandas.util._decorators import cache_readonly
 
@@ -86,12 +87,33 @@ class PeriodArrayMixin(DatetimeLikeArrayMixin):
                                     "The number of days in the month")
     daysinmonth = days_in_month
 
+    @property
+    def is_leap_year(self):
+        """ Logical indicating if the date belongs to a leap year """
+        return isleapyear_arr(np.asarray(self.year))
+
     # ------------------------------------------------------------------
     # Arithmetic Methods
 
     def _sub_datelike(self, other):
         assert other is not NaT
         return NotImplemented
+
+    def _sub_period(self, other):
+        # If the operation is well-defined, we return an object-Index
+        # of DateOffsets.  Null entries are filled with pd.NaT
+        if self.freq != other.freq:
+            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
+            raise IncompatibleFrequency(msg)
+
+        asi8 = self.asi8
+        new_data = asi8 - other.ordinal
+        new_data = np.array([self.freq * x for x in new_data])
+
+        if self.hasnans:
+            new_data[self._isnan] = NaT
+
+        return new_data
 
     def _maybe_convert_timedelta(self, other):
         """

@@ -1,14 +1,26 @@
 # -*- coding: utf-8 -*-
+from datetime import timedelta
+
+import numpy as np
 
 from pandas._libs import tslib
 from pandas._libs.tslib import Timedelta, NaT
 from pandas._libs.tslibs.fields import get_timedelta_field
 
+from pandas import compat
+
 from pandas.core.dtypes.common import _TD_DTYPE
+from pandas.core.dtypes.generic import ABCSeries
+from pandas.core.dtypes.missing import isna
 
 from pandas.tseries.offsets import Tick
 
 from .datetimelike import DatetimeLikeArrayMixin
+
+
+def _is_convertible_to_td(key):
+    return isinstance(key, (Tick, timedelta,
+                            np.timedelta64, compat.string_types))
 
 
 def _field_accessor(name, alias, docstring=None):
@@ -48,8 +60,52 @@ class TimedeltaArrayMixin(DatetimeLikeArrayMixin):
         raise TypeError("cannot subtract a datelike from a {cls}"
                         .format(cls=type(self).__name__))
 
+    def _evaluate_with_timedelta_like(self, other, op):
+        if isinstance(other, ABCSeries):
+            # GH#19042
+            return NotImplemented
+
+        opstr = '__{opname}__'.format(opname=op.__name__).replace('__r', '__')
+        # allow division by a timedelta
+        if opstr in ['__div__', '__truediv__', '__floordiv__']:
+            if _is_convertible_to_td(other):
+                other = Timedelta(other)
+                if isna(other):
+                    raise NotImplementedError(
+                        "division by pd.NaT not implemented")
+
+                i8 = self.asi8
+                left, right = i8, other.value
+
+                if opstr in ['__floordiv__']:
+                    result = op(left, right)
+                else:
+                    result = op(left, np.float64(right))
+                result = self._maybe_mask_results(result, convert='float64')
+                return result
+
+        return NotImplemented
+
     # ----------------------------------------------------------------
     # Conversion Methods - Vectorized analogues of Timedelta methods
+
+    def total_seconds(self):
+        """
+        Return total duration of each element expressed in seconds.
+
+        This method is available directly on TimedeltaArray, TimedeltaIndex
+        and on Series containing timedelta values under the ``.dt`` namespace.
+
+        Returns
+        -------
+        seconds : ndarray, Float64Index, or Series
+            When the calling object is a TimedeltaArray, the return type
+            is ndarray.  When the calling object is a TimedeltaIndex,
+            the return type is a Float64Index. When the calling object
+            is a Series, the return type is Series of type `float64` whose
+            index is the same as the original.
+        """
+        return self._maybe_mask_results(1e-9 * self.asi8)
 
     def to_pytimedelta(self):
         """

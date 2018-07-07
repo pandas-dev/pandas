@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from pandas._libs import iNaT, NaT
+from pandas._libs import lib, iNaT, NaT
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ_INDEX, IncompatibleFrequency)
@@ -33,6 +33,12 @@ class DatetimeLikeArrayMixin(object):
         """
         raise com.AbstractMethodError(self)
 
+    def _box_values(self, values):
+        """
+        apply box func to passed values
+        """
+        return lib.map_infer(values, self._box_func)
+
     def __iter__(self):
         return (self._box_func(v) for v in self.asi8)
 
@@ -45,6 +51,9 @@ class DatetimeLikeArrayMixin(object):
     def asi8(self):
         # do not cache or you'll create a memory leak
         return self.values.view('i8')
+
+    def __len__(self):
+        return len(self._data)
 
     # ------------------------------------------------------------------
     # Null Handling
