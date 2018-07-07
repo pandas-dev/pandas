@@ -406,8 +406,6 @@ def bootstrap_plot(series, fig=None, size=50, samples=500, **kwds):
     .. plot::
             :context: close-figs
 
-            >>> import numpy as np
-            >>> import pandas as pd
             >>> s = pd.Series(np.random.uniform(size=100))
             >>> fig = pd.plotting.bootstrap_plot(s)
     """
@@ -499,7 +497,6 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
 
     Examples
     --------
-    >>> import pandas as pd
     >>> from matplotlib import pyplot as plt
     >>> df = pd.read_csv('https://raw.github.com/pandas-dev/pandas/master'
                         '/pandas/tests/data/iris.csv')

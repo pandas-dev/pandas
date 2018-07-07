@@ -142,7 +142,6 @@ class Holiday(object):
 
         Examples
         --------
-        >>> import pandas as pd
         >>> from pandas.tseries.holiday import Holiday, nearest_workday
         >>> from dateutil.relativedelta import MO
         >>> USMemorialDay = Holiday('MemorialDay', month=5, day=24,

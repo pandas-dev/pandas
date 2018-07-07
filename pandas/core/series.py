@@ -2749,8 +2749,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Examples
         --------
-        >>> import pandas as pd
-        >>> import numpy as np
         >>> s = pd.Series(np.random.randn(10**6))
         >>> s.nlargest(10)  # only sorts up to the N requested
         219921    4.644710
@@ -2796,8 +2794,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Examples
         --------
-        >>> import pandas as pd
-        >>> import numpy as np
         >>> s = pd.Series(np.random.randn(10**6))
         >>> s.nsmallest(10)  # only sorts up to the N requested
         288532   -4.954580
@@ -3127,8 +3123,6 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
 
         Create a series with typical summer temperatures for each city.
 
-        >>> import pandas as pd
-        >>> import numpy as np
         >>> series = pd.Series([20, 21, 12], index=['London',
         ... 'New York','Helsinki'])
         >>> series

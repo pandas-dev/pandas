@@ -736,8 +736,6 @@ class SparseSeries(Series):
 
         Examples
         --------
-        >>> import numpy as np
-        >>> import pandas as pd
         >>> s = pd.Series([3.0, np.nan, 1.0, 3.0, np.nan, np.nan])
         >>> s.index = pd.MultiIndex.from_tuples([(1, 2, 'a', 0),
                                                 (1, 2, 'a', 1),
