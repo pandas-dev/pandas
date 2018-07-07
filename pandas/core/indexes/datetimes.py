@@ -317,6 +317,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
     _is_numeric_dtype = False
     _infer_as_myclass = True
     _timezone = cache_readonly(DatetimeArrayMixin._timezone.fget)
+    is_normalized = cache_readonly(DatetimeArrayMixin.is_normalized.fget)
 
     def __new__(cls, data=None,
                 freq=None, start=None, end=None, periods=None, tz=None,
@@ -1705,13 +1706,6 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
     @property
     def is_all_dates(self):
         return True
-
-    @cache_readonly
-    def is_normalized(self):
-        """
-        Returns True if all of the dates are at midnight ("no time")
-        """
-        return conversion.is_date_array_normalized(self.asi8, self.tz)
 
     @cache_readonly
     def _resolution(self):

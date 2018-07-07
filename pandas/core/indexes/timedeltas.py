@@ -21,7 +21,7 @@ from pandas.core.arrays.timedelta import TimedeltaArrayMixin
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.numeric import Int64Index
 import pandas.compat as compat
-from pandas.compat import u
+
 from pandas.tseries.frequencies import to_offset
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.base import _shared_docs
@@ -413,8 +413,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
             raise TypeError("Cannot add/subtract non-tick DateOffset to {cls}"
                             .format(cls=type(self).__name__))
 
-    def _format_native_types(self, na_rep=u('NaT'),
-                             date_format=None, **kwargs):
+    def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
         from pandas.io.formats.format import Timedelta64Formatter
         return Timedelta64Formatter(values=self,
                                     nat_rep=na_rep,
