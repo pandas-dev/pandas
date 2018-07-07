@@ -364,10 +364,15 @@ class SelectionMixin(object):
                      "version"),
                     FutureWarning, stacklevel=level)
 
-            # if we have a dict of any non-scalars
-            # eg. {'A' : ['mean']}, normalize all to
-            # be list-likes
-            if any(is_aggregator(x) for x in compat.itervalues(arg)):
+            if any(isinstance(x, dict) for x in compat.itervalues(arg)):
+                # deprecation of renaming keys
+                # GH 15931
+                keys = list(compat.iterkeys(arg))
+                if (isinstance(obj, ABCDataFrame) and
+                        len(obj.columns.intersection(keys)) != len(keys)):
+                    nested_renaming_depr()
+            # normalize all non-scalars be list-likes
+            else:
                 new_arg = compat.OrderedDict()
                 for k, v in compat.iteritems(arg):
                     if not isinstance(v, (tuple, list, dict)):
@@ -402,14 +407,6 @@ class SelectionMixin(object):
                             "Column '{col}' does not exist!".format(col=k))
 
                 arg = new_arg
-
-            else:
-                # deprecation of renaming keys
-                # GH 15931
-                keys = list(compat.iterkeys(arg))
-                if (isinstance(obj, ABCDataFrame) and
-                        len(obj.columns.intersection(keys)) != len(keys)):
-                    nested_renaming_depr()
 
             from pandas.core.reshape.concat import concat
 
@@ -455,11 +452,6 @@ class SelectionMixin(object):
                     for r in results:
                         result.update(r)
                     keys = list(compat.iterkeys(result))
-
-                else:
-
-                    if self._selection is not None:
-                        keys = None
 
             # some selection on the object
             elif self._selection is not None:

@@ -1697,8 +1697,9 @@ def test_groupby_agg_ohlc_non_first():
 
 @pytest.mark.parametrize("select_columns", [True, False])
 @pytest.mark.parametrize("agg_argument", [
-    {'B': 'sum', 'C': 'min'},
-    {'B': ['sum'], 'C': ['min']},
+    {'B': 'sum', 'C': 'min'},  # Scalar result
+    {'B': 'sum', 'C': ['min']},  # Scalar and list
+    {'B': ['sum'], 'C': ['min']},  # Lists
     {'B': {'sum': 'sum'}, 'C': {'min': 'min'}}  # deprecated call
 ])
 def test_agg_dict_naming_consistency(select_columns, agg_argument):
