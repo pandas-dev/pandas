@@ -4894,19 +4894,26 @@ class DataFrame(NDFrame):
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """
-        Add two DataFrame objects and do not propagate NaN values, so if for a
-        (column, time) one frame is missing a value, it will default to the
-        other frame's value (which might be NaN as well)
+        Perform column-wise combine with another DataFrame based on a
+        passed function.
+
+        Combines a DataFrame with `other` DataFrame using `func`
+        to element-wise combine columns. The row and column indexes of the
+        resulting DataFrame will be the union of the two.
 
         Parameters
         ----------
         other : DataFrame
+            The DataFrame to merge column-wise.
         func : function
             Function that takes two series as inputs and return a Series or a
-            scalar
-        fill_value : scalar value
+            scalar. Used to merge the two dataframes column by columns.
+        fill_value : scalar value, default None
+            The value to fill NaNs with prior to passing any column to the
+            merge func.
         overwrite : boolean, default True
-            If True then overwrite values for common keys in the calling frame
+            If True, columns in `self` that do not exist in `other` will be
+            overwritten with NaNs.
 
         Returns
         -------
@@ -4914,12 +4921,76 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df1 = DataFrame({'A': [0, 0], 'B': [4, 4]})
-        >>> df2 = DataFrame({'A': [1, 1], 'B': [3, 3]})
-        >>> df1.combine(df2, lambda s1, s2: s1 if s1.sum() < s2.sum() else s2)
+        Combine using a simple function that chooses the smaller column.
+
+        >>> df1 = pd.DataFrame({'A': [0, 0], 'B': [4, 4]})
+        >>> df2 = pd.DataFrame({'A': [1, 1], 'B': [3, 3]})
+        >>> take_smaller = lambda s1, s2: s1 if s1.sum() < s2.sum() else s2
+        >>> df1.combine(df2, take_smaller)
            A  B
         0  0  3
         1  0  3
+
+        Example using a true element-wise combine function.
+
+        >>> df1 = pd.DataFrame({'A': [5, 0], 'B': [2, 4]})
+        >>> df2 = pd.DataFrame({'A': [1, 1], 'B': [3, 3]})
+        >>> df1.combine(df2, np.minimum)
+           A  B
+        0  1  2
+        1  0  3
+
+        Using `fill_value` fills Nones prior to passing the column to the
+        merge function.
+
+        >>> df1 = pd.DataFrame({'A': [0, 0], 'B': [None, 4]})
+        >>> df2 = pd.DataFrame({'A': [1, 1], 'B': [3, 3]})
+        >>> df1.combine(df2, take_smaller, fill_value=-5)
+           A    B
+        0  0 -5.0
+        1  0  4.0
+
+        However, if the same element in both dataframes is None, that None
+        is preserved
+
+        >>> df1 = pd.DataFrame({'A': [0, 0], 'B': [None, 4]})
+        >>> df2 = pd.DataFrame({'A': [1, 1], 'B': [None, 3]})
+        >>> df1.combine(df2, take_smaller, fill_value=-5)
+           A    B
+        0  0  NaN
+        1  0  3.0
+
+        Example that demonstrates the use of `overwrite` and behavior when
+        the axis differ between the dataframes.
+
+        >>> df1 = pd.DataFrame({'A': [0, 0], 'B': [4, 4]})
+        >>> df2 = pd.DataFrame({'B': [3, 3], 'C': [-10, 1],}, index=[1, 2])
+        >>> df1.combine(df2, take_smaller)
+             A    B     C
+        0  NaN  NaN   NaN
+        1  NaN  3.0 -10.0
+        2  NaN  3.0   1.0
+
+        >>> df1.combine(df2, take_smaller, overwrite=False)
+             A    B     C
+        0  0.0  NaN   NaN
+        1  0.0  3.0 -10.0
+        2  NaN  3.0   1.0
+
+        Demonstrating the preference of the passed in dataframe.
+
+        >>> df2 = pd.DataFrame({'B': [3, 3], 'C': [1, 1],}, index=[1, 2])
+        >>> df2.combine(df1, take_smaller)
+           A    B   C
+        0  0.0  NaN NaN
+        1  0.0  3.0 NaN
+        2  NaN  3.0 NaN
+
+        >>> df2.combine(df1, take_smaller, overwrite=False)
+             A    B   C
+        0  0.0  NaN NaN
+        1  0.0  3.0 1.0
+        2  NaN  3.0 1.0
 
         See Also
         --------
@@ -4940,7 +5011,6 @@ class DataFrame(NDFrame):
         # sorts if possible
         new_columns = this.columns.union(other.columns)
         do_fill = fill_value is not None
-
         result = {}
         for col in new_columns:
             series = this[col]
@@ -4992,13 +5062,16 @@ class DataFrame(NDFrame):
 
     def combine_first(self, other):
         """
-        Combine two DataFrame objects and default to non-null values in frame
-        calling the method. Result index columns will be the union of the
-        respective indexes and columns
+        Update null elements with value in the same location in `other`.
+
+        Combine two DataFrame objects by filling null values in one DataFrame
+        with non-null values from other DataFrame. The row and column indexes
+        of the resulting DataFrame will be the union of the two.
 
         Parameters
         ----------
         other : DataFrame
+            Provided DataFrame to use to fill null values.
 
         Returns
         -------
@@ -5006,13 +5079,24 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        df1's values prioritized, use values from df2 to fill holes:
 
-        >>> df1 = pd.DataFrame([[1, np.nan]])
-        >>> df2 = pd.DataFrame([[3, 4]])
+        >>> df1 = pd.DataFrame({'A': [None, 0], 'B': [None, 4]})
+        >>> df2 = pd.DataFrame({'A': [1, 1], 'B': [3, 3]})
         >>> df1.combine_first(df2)
-           0    1
-        0  1  4.0
+             A    B
+        0  1.0  3.0
+        1  0.0  4.0
+
+        Null values still persist if the location of that null value
+        does not exist in `other`
+
+        >>> df1 = pd.DataFrame({'A': [None, 0], 'B': [4, None]})
+        >>> df2 = pd.DataFrame({'B': [3, 3], 'C': [1, 1]}, index=[1, 2])
+        >>> df1.combine_first(df2)
+             A    B    C
+        0  NaN  4.0  NaN
+        1  0.0  3.0  1.0
+        2  NaN  3.0  1.0
 
         See Also
         --------
@@ -5655,7 +5739,6 @@ class DataFrame(NDFrame):
 
     Examples
     --------
-    >>> import pandas as pd
     >>> df = pd.DataFrame({'A': {0: 'a', 1: 'b', 2: 'c'},
     ...                    'B': {0: 1, 1: 3, 2: 5},
     ...                    'C': {0: 2, 1: 4, 2: 6}})
