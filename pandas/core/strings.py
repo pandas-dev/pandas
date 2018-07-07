@@ -840,19 +840,22 @@ def _str_extract_frame(arr, pat, flags=0):
 
 def str_extract(arr, pat, flags=0, expand=True):
     r"""
+    Extract capture groups in the regex `pat` as columns in a DataFrame.
+
     For each subject string in the Series, extract groups from the
-    first match of regular expression pat.
+    first match of regular expression `pat`.
 
     Parameters
     ----------
     pat : string
-        Regular expression pattern with capturing groups
+        Regular expression pattern with capturing groups.
     flags : int, default 0 (no flags)
-        re module flags, e.g. re.IGNORECASE
-
+        ``re`` module flags, e.g. ``re.IGNORECASE``.
+        See :mod:`re`
     expand : bool, default True
-        * If True, return DataFrame.
-        * If False, return Series/Index/DataFrame.
+        If True, return DataFrame with one column per capture group.
+        If False, return a Series/Index if there is one capture group
+        or DataFrame if there are multiple capture groups.
 
         .. versionadded:: 0.18.0
 
@@ -875,7 +878,7 @@ def str_extract(arr, pat, flags=0, expand=True):
     A pattern with two groups will return a DataFrame with two columns.
     Non-matches will be NaN.
 
-    >>> s = Series(['a1', 'b2', 'c3'])
+    >>> s = pd.Series(['a1', 'b2', 'c3'])
     >>> s.str.extract(r'([ab])(\d)')
          0    1
     0    a    1
@@ -914,7 +917,6 @@ def str_extract(arr, pat, flags=0, expand=True):
     1      2
     2    NaN
     dtype: object
-
     """
     if not isinstance(expand, bool):
         raise ValueError("expand must be True or False")
