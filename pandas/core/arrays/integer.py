@@ -22,7 +22,16 @@ from pandas.io.formats.printing import (
     format_object_summary, format_object_attrs, default_pprint)
 
 
-class IntegerDtype(ExtensionDtype):
+class _IntegerDtype(ExtensionDtype):
+    """
+    An ExtensionDtype to hold a single size & kind of integer dtype.
+
+    These specific implementations are subclasses of the non-public
+    _IntegerDtype. For example we have Int8Dtype to represnt signed int 8s.
+
+    The attributes name & type are set when these subclasses are created.
+    """
+    name = None
     type = None
     na_value = np.nan
 
@@ -177,8 +186,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             values, dtype=dtype, mask=mask, copy=copy)
 
     @classmethod
-    def _from_sequence(cls, scalars, mask=None, dtype=None, copy=False):
-        return cls(scalars, mask=mask, dtype=dtype, copy=copy)
+    def _from_sequence(cls, scalars, dtype=None, copy=False):
+        return cls(scalars, dtype=dtype, copy=copy)
 
     @classmethod
     def _from_factorized(cls, values, original):
@@ -335,7 +344,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         """
 
         # if we are astyping to an existing IntegerDtype we can fastpath
-        if isinstance(dtype, IntegerDtype):
+        if isinstance(dtype, _IntegerDtype):
             result = self.data.astype(dtype.numpy_dtype,
                                       casting='same_kind', copy=False)
             return type(self)(result, mask=self.mask,
@@ -556,7 +565,7 @@ for dtype in ['int8', 'int16', 'int32', 'int64',
     classname = "{}Dtype".format(name)
     attributes_dict = {'type': getattr(np, dtype),
                        'name': name}
-    dtype_type = type(classname, (IntegerDtype, ), attributes_dict)
+    dtype_type = type(classname, (_IntegerDtype, ), attributes_dict)
     setattr(module, classname, dtype_type)
 
     # register
