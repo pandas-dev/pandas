@@ -5,7 +5,7 @@ channels:
 dependencies:
   - beautifulsoup4
   - bottleneck
-  - cython=0.28
+  - cython=0.28.2
   - fastparquet
   - feather-format
   - flake8=3.4.1
