@@ -303,6 +303,16 @@ def read_excel(io,
                convert_float=True,
                **kwds):
 
+    # Can't use _deprecate_kwarg since sheetname=None has a special meaning
+    if is_integer(sheet_name) and sheet_name == 0 and 'sheetname' in kwds:
+        warnings.warn("The `sheetname` keyword is deprecated, use "
+                      "`sheet_name` instead", FutureWarning, stacklevel=2)
+        sheet_name = kwds.pop("sheetname")
+
+    if 'sheet' in kwds:
+        raise TypeError("read_excel() got an unexpected keyword argument "
+                        "`sheet`")
+
     if not isinstance(io, ExcelFile):
         io = ExcelFile(io, engine=engine)
 
