@@ -640,6 +640,22 @@ class TestDataFrameTimeSeriesMethods(TestData):
         with pytest.raises(TypeError):  # index is not a DatetimeIndex
             df.at_time('00:00')
 
+    def test_at_time_axis(self):
+        rng = date_range('1/1/2000', '1/5/2000', freq='5min')
+        ts = DataFrame(np.random.randn(len(rng), len(rng)))
+
+        indices = rng[(rng.hour == 9) & (rng.minute == 30) & (rng.second == 0)]
+
+        ts.index = rng
+        expected = ts.loc[indices]
+        result = ts.at_time('9:30', axis=0)
+        assert_frame_equal(result, expected)
+
+        ts.columns = rng
+        expected = ts.loc[:,indices]
+        result = ts.at_time('9:30', axis=1)
+        assert_frame_equal(result, expected)
+
     def test_between_time(self):
         rng = date_range('1/1/2000', '1/5/2000', freq='5min')
         ts = DataFrame(np.random.randn(len(rng), 2), index=rng)
@@ -705,6 +721,40 @@ class TestDataFrameTimeSeriesMethods(TestData):
         df = pd.DataFrame([[1, 2, 3], [4, 5, 6]])
         with pytest.raises(TypeError):  # index is not a DatetimeIndex
             df.between_time(start_time='00:00', end_time='12:00')
+
+    def test_between_time_axis(self):
+        rng = date_range('1/1/2000', periods=100, freq='10min')
+        blank = np.arange(0,len(rng))
+        stime, etime = ('08:00:00', '09:00:00')
+        dimn = (len(rng), len(rng))
+        exp_len = 7
+        
+        for time_index, time_col in product([True, False], [True, False]):
+            if time_index:
+                index = rng
+            else:
+                index = blank
+            if time_col:
+                col = rng
+            else:
+                col = blank
+
+            ts = DataFrame(np.random.randn(*dimn), index=index, columns=col)
+
+            if time_index:
+                assert len(ts.between_time(stime, etime)) == exp_len
+                assert len(ts.between_time(stime, etime, axis=0)) == exp_len
+            else:
+                pytest.raises(TypeError, ts.between_time, stime, etime)
+                pytest.raises(TypeError, ts.between_time, stime, etime, 
+                                                                  axis=0)
+
+            if time_col:
+                selected = ts.between_time(stime, etime, axis=1).columns
+                assert len(selected) == exp_len
+            else:
+                pytest.raises(TypeError, ts.between_time, stime, etime, 
+                                                                  axis=1)
 
     def test_operation_on_NaT(self):
         # Both NaT and Timestamp are in DataFrame.

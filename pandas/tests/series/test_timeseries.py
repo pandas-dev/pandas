@@ -825,6 +825,16 @@ class TestTimeSeries(TestData):
         for time_string in strings:
             assert len(ts.between_time(*time_string)) == expected_length
 
+    def test_between_time_axis(self):
+        rng = date_range('1/1/2000', periods=100, freq='10min')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+        stime, etime = ('08:00:00', '09:00:00')
+        expected_length = 7
+
+        assert len(ts.between_time(stime, etime)) == expected_length
+        assert len(ts.between_time(stime, etime, axis=0)) == expected_length
+        pytest.raises(ValueError, ts.between_time, stime, etime, axis=1)
+
     def test_to_period(self):
         from pandas.core.indexes.period import period_range
 

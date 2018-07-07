@@ -7013,7 +7013,7 @@ class NDFrame(PandasObject, SelectionMixin):
         return asfreq(self, freq, method=method, how=how, normalize=normalize,
                       fill_value=fill_value)
 
-    def at_time(self, time, asof=False):
+    def at_time(self, time, asof=False, axis=None):
         """
         Select values at particular time of day (e.g. 9:30AM).
 
@@ -7025,6 +7025,7 @@ class NDFrame(PandasObject, SelectionMixin):
         Parameters
         ----------
         time : datetime.time or string
+        axis : int or string axis name, optional
 
         Returns
         -------
@@ -7054,14 +7055,19 @@ class NDFrame(PandasObject, SelectionMixin):
         DatetimeIndex.indexer_at_time : Get just the index locations for
             values at particular time of the day
         """
+        if axis is None:
+            axis = self._stat_axis_number
+        axis = self._get_axis_number(axis)
+
         try:
-            indexer = self.index.indexer_at_time(time, asof=asof)
-            return self._take(indexer)
+            index = self._get_axis(axis)
+            indexer = index.indexer_at_time(time, asof=asof)
+            return self._take(indexer, axis=axis)
         except AttributeError:
             raise TypeError('Index must be DatetimeIndex')
 
     def between_time(self, start_time, end_time, include_start=True,
-                     include_end=True):
+                     include_end=True, axis=None):
         """
         Select values between particular times of the day (e.g., 9:00-9:30 AM).
 
@@ -7079,6 +7085,7 @@ class NDFrame(PandasObject, SelectionMixin):
         end_time : datetime.time or string
         include_start : boolean, default True
         include_end : boolean, default True
+        axis : int or string axis name, optional
 
         Returns
         -------
@@ -7116,11 +7123,16 @@ class NDFrame(PandasObject, SelectionMixin):
         DatetimeIndex.indexer_between_time : Get just the index locations for
             values between particular times of the day
         """
+        if axis is None:
+            axis = self._stat_axis_number
+        axis = self._get_axis_number(axis)
+
         try:
-            indexer = self.index.indexer_between_time(
+            index = self._get_axis(axis)
+            indexer = index.indexer_between_time(
                 start_time, end_time, include_start=include_start,
                 include_end=include_end)
-            return self._take(indexer)
+            return self._take(indexer, axis=axis)
         except AttributeError:
             raise TypeError('Index must be DatetimeIndex')
 
