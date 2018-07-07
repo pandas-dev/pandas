@@ -38,7 +38,10 @@ Statsmodels leverages pandas objects as the underlying data container for comput
 Use pandas DataFrames in your `scikit-learn <http://scikit-learn.org/>`__
 ML pipeline.
 
+`Featuretools <https://github.com/featuretools/featuretools/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Featuretools is a Python library for automated feature engineering built on top of pandas. It excels at transforming temporal and relational datasets into feature matrices for machine learning using reusable feature engineering "primitives". Users can contribute their own primitives in Python and share them with the rest of the community. 
 
 .. _ecosystem.visualization:
 
@@ -156,14 +159,14 @@ See more in the  `pandas-datareader docs <https://pandas-datareader.readthedocs.
 
 The following data feeds are available:
 
-  * Yahoo! Finance
-  * Google Finance
-  * FRED
-  * Fama/French
-  * World Bank
-  * OECD
-  * Eurostat
-  * EDGAR Index
+* Yahoo! Finance
+* Google Finance
+* FRED
+* Fama/French
+* World Bank
+* OECD
+* Eurostat
+* EDGAR Index
 
 `quandl/Python <https://github.com/quandl/Python>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -184,9 +187,9 @@ and metadata disseminated in
 `SDMX <http://www.sdmx.org>`_ 2.1, an ISO-standard
 widely used by institutions such as statistics offices, central banks,   
 and international organisations. pandaSDMX can expose datasets and related 
-structural metadata including dataflows, code-lists, 
-and datastructure definitions as pandas Series 
-or multi-indexed DataFrames.  
+structural metadata including data flows, code-lists,
+and data structure definitions as pandas Series
+or MultiIndexed DataFrames.
    
 `fredapi <https://github.com/mortada/fredapi>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -260,7 +263,7 @@ Data validation
 `Engarde <http://engarde.readthedocs.io/en/latest/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Engarde is a lightweight library used to explicitly state your assumptions abour your datasets
+Engarde is a lightweight library used to explicitly state your assumptions about your datasets
 and check that they're *actually* true.
 
 .. _ecosystem.extensions:
