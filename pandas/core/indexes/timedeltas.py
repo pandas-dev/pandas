@@ -21,7 +21,7 @@ from pandas.core.arrays.timedelta import TimedeltaArrayMixin
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.numeric import Int64Index
 import pandas.compat as compat
-from pandas.compat import u
+
 from pandas.tseries.frequencies import to_offset
 from pandas.core.algorithms import checked_add_with_arr
 from pandas.core.base import _shared_docs
@@ -379,30 +379,11 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         return TimedeltaIndex(new_values, freq='infer')
 
     def _evaluate_with_timedelta_like(self, other, op):
-        if isinstance(other, ABCSeries):
-            # GH#19042
+        result = TimedeltaArrayMixin._evaluate_with_timedelta_like(self, other,
+                                                                   op)
+        if result is NotImplemented:
             return NotImplemented
-
-        opstr = '__{opname}__'.format(opname=op.__name__).replace('__r', '__')
-        # allow division by a timedelta
-        if opstr in ['__div__', '__truediv__', '__floordiv__']:
-            if _is_convertible_to_td(other):
-                other = Timedelta(other)
-                if isna(other):
-                    raise NotImplementedError(
-                        "division by pd.NaT not implemented")
-
-                i8 = self.asi8
-                left, right = i8, other.value
-
-                if opstr in ['__floordiv__']:
-                    result = op(left, right)
-                else:
-                    result = op(left, np.float64(right))
-                result = self._maybe_mask_results(result, convert='float64')
-                return Index(result, name=self.name, copy=False)
-
-        return NotImplemented
+        return Index(result, name=self.name, copy=False)
 
     def _add_datelike(self, other):
         # adding a timedeltaindex to a datetimelike
@@ -432,8 +413,7 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
             raise TypeError("Cannot add/subtract non-tick DateOffset to {cls}"
                             .format(cls=type(self).__name__))
 
-    def _format_native_types(self, na_rep=u('NaT'),
-                             date_format=None, **kwargs):
+    def _format_native_types(self, na_rep=u'NaT', date_format=None, **kwargs):
         from pandas.io.formats.format import Timedelta64Formatter
         return Timedelta64Formatter(values=self,
                                     nat_rep=na_rep,
@@ -528,8 +508,8 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         Float64Index([0.0, 86400.0, 172800.0, 259200.00000000003, 345600.0],
                      dtype='float64')
         """
-        return Index(self._maybe_mask_results(1e-9 * self.asi8),
-                     name=self.name)
+        result = TimedeltaArrayMixin.total_seconds(self)
+        return Index(result, name=self.name)
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):

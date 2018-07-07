@@ -253,7 +253,7 @@ Optional Dependencies
 ~~~~~~~~~~~~~~~~~~~~~
 
 * `Cython <http://www.cython.org>`__: Only necessary to build development
-  version. Version 0.24 or higher.
+  version. Version 0.28.2 or higher.
 * `SciPy <http://www.scipy.org>`__: miscellaneous statistical functions, Version 0.14.0 or higher
 * `xarray <http://xarray.pydata.org>`__: pandas like handling for > 2 dims, needed for converting Panels to xarray objects. Version 0.7.0 or higher is recommended.
 * `PyTables <http://www.pytables.org>`__: necessary for HDF5-based storage. Version 3.0.0 or higher required, Version 3.2.1 or higher highly recommended.

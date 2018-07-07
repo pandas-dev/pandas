@@ -94,18 +94,53 @@ class DatetimeArrayMixin(DatetimeLikeArrayMixin):
     @property
     def offset(self):
         """get/set the frequency of the instance"""
-        msg = ('DatetimeIndex.offset has been deprecated and will be removed '
-               'in a future version; use DatetimeIndex.freq instead.')
+        msg = ('{cls}.offset has been deprecated and will be removed '
+               'in a future version; use {cls}.freq instead.'
+               .format(cls=type(self).__name__))
         warnings.warn(msg, FutureWarning, stacklevel=2)
         return self.freq
 
     @offset.setter
     def offset(self, value):
         """get/set the frequency of the instance"""
-        msg = ('DatetimeIndex.offset has been deprecated and will be removed '
-               'in a future version; use DatetimeIndex.freq instead.')
+        msg = ('{cls}.offset has been deprecated and will be removed '
+               'in a future version; use {cls}.freq instead.'
+               .format(cls=type(self).__name__))
         warnings.warn(msg, FutureWarning, stacklevel=2)
         self.freq = value
+
+    @property  # NB: override with cache_readonly in immutable subclasses
+    def is_normalized(self):
+        """
+        Returns True if all of the dates are at midnight ("no time")
+        """
+        return conversion.is_date_array_normalized(self.asi8, self.tz)
+
+    # ----------------------------------------------------------------
+    # Array-like Methods
+
+    def __iter__(self):
+        """
+        Return an iterator over the boxed values
+
+        Yields
+        -------
+        tstamp : Timestamp
+        """
+
+        # convert in chunks of 10k for efficiency
+        data = self.asi8
+        length = len(self)
+        chunksize = 10000
+        chunks = int(length / chunksize) + 1
+        for i in range(chunks):
+            start_i = i * chunksize
+            end_i = min((i + 1) * chunksize, length)
+            converted = tslib.ints_to_pydatetime(data[start_i:end_i],
+                                                 tz=self.tz, freq=self.freq,
+                                                 box="timestamp")
+            for v in converted:
+                yield v
 
     # -----------------------------------------------------------------
     # Comparison Methods
@@ -556,7 +591,7 @@ class DatetimeArrayMixin(DatetimeLikeArrayMixin):
 
     def to_julian_date(self):
         """
-        Convert DatetimeIndex to float64 ndarray of Julian Dates.
+        Convert Datetime Array to float64 ndarray of Julian Dates.
         0 Julian date is noon January 1, 4713 BC.
         http://en.wikipedia.org/wiki/Julian_day
         """

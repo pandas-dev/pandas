@@ -80,7 +80,7 @@ on :ref:`ecosystem.extensions`.
 The interface consists of two classes.
 
 :class:`~pandas.api.extensions.ExtensionDtype`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 A :class:`pandas.api.extensions.ExtensionDtype` is similar to a ``numpy.dtype`` object. It describes the
 data type. Implementors are responsible for a few unique items like the name.
@@ -124,7 +124,7 @@ and comments contain guidance for properly implementing the interface.
 .. _extending.extension.operator:
 
 :class:`~pandas.api.extensions.ExtensionArray` Operator Support
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. versionadded:: 0.24.0
 

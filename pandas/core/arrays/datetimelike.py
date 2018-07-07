@@ -1,15 +1,19 @@
 # -*- coding: utf-8 -*-
+import operator
 
 import numpy as np
 
-from pandas._libs import iNaT, NaT
-from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
+from pandas._libs import lib, iNaT, NaT
+from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds, Timedelta
 from pandas._libs.tslibs.period import (
     DIFFERENT_FREQ_INDEX, IncompatibleFrequency)
 
-from pandas.tseries import frequencies
+from pandas.errors import NullFrequencyError
 
-from pandas.core.dtypes.common import is_period_dtype
+from pandas.tseries import frequencies
+from pandas.tseries.offsets import Tick
+
+from pandas.core.dtypes.common import is_period_dtype, is_timedelta64_dtype
 import pandas.core.common as com
 from pandas.core.algorithms import checked_add_with_arr
 
@@ -33,6 +37,12 @@ class DatetimeLikeArrayMixin(object):
         """
         raise com.AbstractMethodError(self)
 
+    def _box_values(self, values):
+        """
+        apply box func to passed values
+        """
+        return lib.map_infer(values, self._box_func)
+
     def __iter__(self):
         return (self._box_func(v) for v in self.asi8)
 
@@ -45,6 +55,9 @@ class DatetimeLikeArrayMixin(object):
     def asi8(self):
         # do not cache or you'll create a memory leak
         return self.values.view('i8')
+
+    def __len__(self):
+        return len(self._data)
 
     # ------------------------------------------------------------------
     # Null Handling
@@ -120,6 +133,17 @@ class DatetimeLikeArrayMixin(object):
             return frequencies.infer_freq(self)
         except ValueError:
             return None
+
+    @property  # NB: override with cache_readonly in immutable subclasses
+    def _resolution(self):
+        return frequencies.Resolution.get_reso_from_freq(self.freqstr)
+
+    @property  # NB: override with cache_readonly in immutable subclasses
+    def resolution(self):
+        """
+        Returns day, hour, minute, second, millisecond or microsecond
+        """
+        return frequencies.Resolution.get_str(self._resolution)
 
     # ------------------------------------------------------------------
     # Arithmetic Methods
@@ -219,3 +243,43 @@ class DatetimeLikeArrayMixin(object):
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = NaT
         return new_values
+
+    def _addsub_int_array(self, other, op):
+        """
+        Add or subtract array-like of integers equivalent to applying
+        `shift` pointwise.
+
+        Parameters
+        ----------
+        other : Index, ExtensionArray, np.ndarray
+            integer-dtype
+        op : {operator.add, operator.sub}
+
+        Returns
+        -------
+        result : same class as self
+        """
+        assert op in [operator.add, operator.sub]
+        if is_period_dtype(self):
+            # easy case for PeriodIndex
+            if op is operator.sub:
+                other = -other
+            res_values = checked_add_with_arr(self.asi8, other,
+                                              arr_mask=self._isnan)
+            res_values = res_values.view('i8')
+            res_values[self._isnan] = iNaT
+            return self._from_ordinals(res_values, freq=self.freq)
+
+        elif self.freq is None:
+            # GH#19123
+            raise NullFrequencyError("Cannot shift with no freq")
+
+        elif isinstance(self.freq, Tick):
+            # easy case where we can convert to timedelta64 operation
+            td = Timedelta(self.freq)
+            return op(self, td * other)
+
+        # We should only get here with DatetimeIndex; dispatch
+        # to _addsub_offset_array
+        assert not is_timedelta64_dtype(self)
+        return op(self, np.array(other) * self.freq)
