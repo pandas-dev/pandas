@@ -253,56 +253,10 @@ dtypes = [('Float64', 'float64', True, 'nan'),
           ('UInt64', 'uint64', False, 0),
           ('Int64', 'int64', False, 'iNaT')]
 
-def get_dispatch(dtypes):
-  for (name, dtype, float_group, default_na_value) in dtypes:
-    unique_template = """\
-        cdef:
-           Py_ssize_t i, n = len(values)
-           int ret = 0
-           {dtype}_t val
-           khiter_t k
-           bint seen_na = 0
-           {name}Vector uniques = {name}Vector()
-           {name}VectorData *ud
-
-        ud = uniques.data
-
-        with nogil:
-            for i in range(n):
-                val = values[i]
-                IF {float_group}:
-                  if val == val:
-                      k = kh_get_{dtype}(self.table, val)
-                      if k == self.table.n_buckets:
-                          kh_put_{dtype}(self.table, val, &ret)
-                          if needs_resize(ud):
-                              with gil:
-                                  uniques.resize()
-                          append_data_{dtype}(ud, val)
-                  elif not seen_na:
-                      seen_na = 1
-                      if needs_resize(ud):
-                          with gil:
-                              uniques.resize()
-                      append_data_{dtype}(ud, NAN)
-                ELSE:
-                  k = kh_get_{dtype}(self.table, val)
-                  if k == self.table.n_buckets:
-                      kh_put_{dtype}(self.table, val, &ret)
-                      if needs_resize(ud):
-                          with gil:
-                              uniques.resize()
-                      append_data_{dtype}(ud, val)
-        return uniques.to_array()
-      """
-
-    unique_template = unique_template.format(name=name, dtype=dtype, float_group=float_group)
-
-    yield (name, dtype, float_group, default_na_value, unique_template)
 }}
 
 
-{{for name, dtype, float_group, default_na_value, unique_template in get_dispatch(dtypes)}}
+{{for name, dtype, float_group, default_na_value in dtypes}}
 
 cdef class {{name}}HashTable(HashTable):
 
@@ -506,20 +460,46 @@ cdef class {{name}}HashTable(HashTable):
         return np.asarray(labels), arr_uniques
 
     @cython.boundscheck(False)
-    def unique(self, ndarray[{{dtype}}_t, ndim=1] values):
-        if values.flags.writeable:
-          # If the value is writeable (mutable) then use memview
-          return self.unique_memview(values)
+    def unique(self, const {{dtype}}_t[:] values):
+        cdef:
+           Py_ssize_t i, n = len(values)
+           int ret = 0
+           {{dtype}}_t val
+           khiter_t k
+           bint seen_na = 0
+           {{name}}Vector uniques = {{name}}Vector()
+           {{name}}VectorData *ud
 
-        # We cannot use the memoryview version on readonly-buffers due to
-        # a limitation of Cython's typed memoryviews. Instead we can use
-        # the slightly slower Cython ndarray type directly.
-        # see https://github.com/cython/cython/issues/1605
-{{unique_template}}
+        ud = uniques.data
 
-    @cython.boundscheck(False)
-    def unique_memview(self, const {{dtype}}_t[:] values):
-{{unique_template}}
+        with nogil:
+            for i in range(n):
+                val = values[i]
+                {{if float_group}}
+                if val == val:
+                    k = kh_get_{{dtype}}(self.table, val)
+                    if k == self.table.n_buckets:
+                        kh_put_{{dtype}}(self.table, val, &ret)
+                        if needs_resize(ud):
+                            with gil:
+                                uniques.resize()
+                        append_data_{{dtype}}(ud, val)
+                elif not seen_na:
+                    seen_na = 1
+                    if needs_resize(ud):
+                        with gil:
+                            uniques.resize()
+                    append_data_{{dtype}}(ud, NAN)
+                {{else}}
+                k = kh_get_{{dtype}}(self.table, val)
+                if k == self.table.n_buckets:
+                    kh_put_{{dtype}}(self.table, val, &ret)
+                    if needs_resize(ud):
+                        with gil:
+                            uniques.resize()
+                    append_data_{{dtype}}(ud, val)
+                {{endif}}
+        return uniques.to_array()
 
 {{endfor}}
 
