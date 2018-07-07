@@ -59,6 +59,10 @@ class ExtensionArray(object):
     * factorize / _values_for_factorize
     * argsort / _values_for_argsort
 
+    One can implement methods to handle array reductions.
+
+    * _reduce
+
     The remaining methods implemented on this class should be performant,
     as they only compose abstract methods. Still, a more efficient
     implementation may be available, and these methods can be overridden.
@@ -712,6 +716,31 @@ class ExtensionOpsMixin(object):
         cls.__gt__ = cls._create_comparison_method(operator.gt)
         cls.__le__ = cls._create_comparison_method(operator.le)
         cls.__ge__ = cls._create_comparison_method(operator.ge)
+
+    def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
+                filter_type=None, **kwargs):
+        """Return a scalar result of performing the op
+
+        Parameters
+        ----------
+        op : callable
+            function to apply to the array
+        name : str
+            name of the function
+        axis : int, default 0
+            axis over which to apply, defined as 0 currently
+        skipna : bool, default True
+            if True, skip NaN values
+        numeric_only : bool, optional
+            if True, only perform numeric ops
+        filter_type : str, optional
+        kwargs : dict
+
+        Returns
+        -------
+        scalar
+        """
+        raise AbstractMethodError(self)
 
 
 class ExtensionScalarOpsMixin(ExtensionOpsMixin):

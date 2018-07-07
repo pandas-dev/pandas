@@ -587,15 +587,18 @@ def test_cross_type_arithmetic():
     tm.assert_series_equal(result, expected)
 
 
-def test_groupby_mean_included():
+@pytest.mark.parametrize('op', ['sum', 'min', 'max'])
+def test_preserve_groupby_dtypes(op):
+    # TODO(#22346): preserve Int64 dtype
+    # for ops that enable (mean would actually work here
+    # but generally it is a float return value)
     df = pd.DataFrame({
         "A": ['a', 'b', 'b'],
         "B": [1, None, 3],
         "C": integer_array([1, None, 3], dtype='Int64'),
     })
 
-    result = df.groupby("A").sum()
-    # TODO(#22346): preserve Int64 dtype
+    result = getattr(df.groupby("A"), op)()
     expected = pd.DataFrame({
         "B": np.array([1.0, 3.0]),
         "C": np.array([1, 3], dtype="int64")

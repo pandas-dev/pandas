@@ -529,6 +529,55 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         name = '__{name}__'.format(name=op.__name__)
         return set_function_name(cmp_method, name, cls)
 
+    def _reduce(self, op, name, axis=0, skipna=True, numeric_only=None,
+                filter_type=None, **kwds):
+        """Return a scalar result of performing the op
+
+        Parameters
+        ----------
+        op : callable
+            function to apply to the array
+        name : str
+            name of the function
+        axis : int, default 0
+            axis over which to apply, defined as 0 currently
+        skipna : bool, default True
+            if True, skip NaN values
+        numeric_only : bool, optional
+            if True, only perform numeric ops
+        filter_type : str, optional
+        kwds : dict
+
+        Returns
+        -------
+        scalar
+        """
+
+        data = self._data
+        mask = self._mask
+
+        # coerce to a nan-aware float if needed
+        if mask.any():
+            data = self._data.astype('float64')
+            data[mask] = self._na_value
+
+        result = op(data, axis=axis, skipna=skipna)
+
+        # if we have a boolean op, provide coercion back to a bool
+        # type if possible
+        if name in ['any', 'all']:
+            if is_integer(result) or is_float(result):
+                result = bool(int(result))
+
+        # if we have a numeric op, provide coercion back to an integer
+        # type if possible
+        elif not isna(result):
+            int_result = int(result)
+            if int_result == result:
+                result = int_result
+
+        return result
+
     def _maybe_mask_result(self, result, mask, other, op_name):
         """
         Parameters
