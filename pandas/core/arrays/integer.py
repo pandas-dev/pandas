@@ -148,10 +148,6 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
     if not mask.ndim == 1:
         raise TypeError("mask must be a 1D list-like")
 
-    # avoid float->int numpy conversion issues
-    if is_object_dtype(values):
-        mask |= isna(values)
-
     # infer dtype if needed
     if dtype is None:
         if is_integer_dtype(values):
@@ -270,7 +266,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             result[fill_mask] = fill_value
             mask = mask ^ fill_mask
 
-        return type(self)(result, mask=mask, dtype=self.dtype)
+        return type(self)(result, mask=mask, dtype=self.dtype, copy=False)
 
     def copy(self, deep=False):
         data, mask = self._data, self._mask

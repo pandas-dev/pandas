@@ -290,7 +290,7 @@ class Index(IndexOpsMixin, PandasObject):
 
             # coerce to the object dtype
             data = data.astype(object)
-            return Index(data, dtype=object, copy=True, name=name,
+            return Index(data, dtype=object, copy=copy, name=name,
                          **kwargs)
 
         # index-like
