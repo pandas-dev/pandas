@@ -118,38 +118,6 @@ class ReadUint64Integers(object):
                  na_values=self.na_values)
 
 
-class S3(object):
-    # Make sure that we can read part of a file from S3 without
-    # needing to download the entire thing. Use the timeit.default_timer
-    # to measure wall time instead of CPU time -- we want to see
-    # how long it takes to download the data.
-    timer = timeit.default_timer
-    params = ([None, "gzip", "bz2"], ["python", "c"])
-    param_names = ["compression", "engine"]
-
-    def setup(self, compression, engine):
-        if compression == "bz2" and engine == "c" and PY2:
-            # The Python 2 C parser can't read bz2 from open files.
-            raise NotImplementedError
-        try:
-            import s3fs  # noqa
-        except ImportError:
-            # Skip these benchmarks if `boto` is not installed.
-            raise NotImplementedError
-
-        ext = ""
-        if compression == "gzip":
-            ext = ".gz"
-        elif compression == "bz2":
-            ext = ".bz2"
-        self.big_fname = "s3://pandas-test/large_random.csv" + ext
-
-    def time_read_csv_10_rows(self, compression, engine):
-        # Read a small number of rows from a huge (100,000 x 50) table.
-        read_csv(self.big_fname, nrows=10, compression=compression,
-                 engine=engine)
-
-
 class ReadCSVThousands(BaseIO):
 
     goal_time = 0.2

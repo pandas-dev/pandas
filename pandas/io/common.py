@@ -5,6 +5,7 @@ import csv
 import codecs
 import mmap
 from contextlib import contextmanager, closing
+import zipfile
 
 from pandas.compat import StringIO, BytesIO, string_types, text_type
 from pandas import compat
@@ -87,7 +88,7 @@ def _is_url(url):
     """
     try:
         return parse_url(url).scheme in _VALID_URLS
-    except:
+    except Exception:
         return False
 
 
@@ -164,7 +165,15 @@ def is_s3_url(url):
     """Check for an s3, s3n, or s3a url"""
     try:
         return parse_url(url).scheme in ['s3', 's3n', 's3a']
-    except:  # noqa
+    except Exception:
+        return False
+
+
+def is_gcs_url(url):
+    """Check for a gcs url"""
+    try:
+        return parse_url(url).scheme in ['gcs', 'gs']
+    except Exception:
         return False
 
 
@@ -206,6 +215,13 @@ def get_filepath_or_buffer(filepath_or_buffer, encoding=None,
                                          encoding=encoding,
                                          compression=compression,
                                          mode=mode)
+
+    if is_gcs_url(filepath_or_buffer):
+        from pandas.io import gcs
+        return gcs.get_filepath_or_buffer(filepath_or_buffer,
+                                          encoding=encoding,
+                                          compression=compression,
+                                          mode=mode)
 
     if isinstance(filepath_or_buffer, (compat.string_types,
                                        compat.binary_type,
@@ -363,18 +379,20 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
 
         # ZIP Compression
         elif compression == 'zip':
-            import zipfile
-            zip_file = zipfile.ZipFile(path_or_buf)
-            zip_names = zip_file.namelist()
-            if len(zip_names) == 1:
-                f = zip_file.open(zip_names.pop())
-            elif len(zip_names) == 0:
-                raise ValueError('Zero files found in ZIP file {}'
-                                 .format(path_or_buf))
-            else:
-                raise ValueError('Multiple files found in ZIP file.'
-                                 ' Only one file per ZIP: {}'
-                                 .format(zip_names))
+            zf = BytesZipFile(path_or_buf, mode)
+            if zf.mode == 'w':
+                f = zf
+            elif zf.mode == 'r':
+                zip_names = zf.namelist()
+                if len(zip_names) == 1:
+                    f = zf.open(zip_names.pop())
+                elif len(zip_names) == 0:
+                    raise ValueError('Zero files found in ZIP file {}'
+                                     .format(path_or_buf))
+                else:
+                    raise ValueError('Multiple files found in ZIP file.'
+                                     ' Only one file per ZIP: {}'
+                                     .format(zip_names))
 
         # XZ Compression
         elif compression == 'xz':
@@ -423,6 +441,28 @@ def _get_handle(path_or_buf, mode, encoding=None, compression=None,
             pass
 
     return f, handles
+
+
+class BytesZipFile(zipfile.ZipFile, BytesIO):
+    """
+    Wrapper for standard library class ZipFile and allow the returned file-like
+    handle to accept byte strings via `write` method.
+
+    BytesIO provides attributes of file-like object and ZipFile.writestr writes
+    bytes strings into a member of the archive.
+    """
+    # GH 17778
+    def __init__(self, file, mode, compression=zipfile.ZIP_DEFLATED, **kwargs):
+        if mode in ['wb', 'rb']:
+            mode = mode.replace('b', '')
+        super(BytesZipFile, self).__init__(file, mode, compression, **kwargs)
+
+    def write(self, data):
+        super(BytesZipFile, self).writestr(self.filename, data)
+
+    @property
+    def closed(self):
+        return self.fp is None
 
 
 class MMapWrapper(BaseIterator):
@@ -513,7 +553,7 @@ else:
             row = next(self.reader)
             return [compat.text_type(s, "utf-8") for s in row]
 
-    class UnicodeWriter:
+    class UnicodeWriter(object):
 
         """
         A CSV writer which will write rows to CSV file "f",

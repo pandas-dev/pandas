@@ -11,6 +11,8 @@ from pandas import (DatetimeIndex, Series, DataFrame,
                     date_range, Index, Timedelta, Timestamp)
 from pandas.util import testing as tm
 
+from pandas.core.indexing import IndexingError
+
 
 class TestSlicing(object):
     def test_dti_slicing(self):
@@ -90,6 +92,27 @@ class TestSlicing(object):
         result = idx._maybe_cast_slice_bound('2017-01-01', 'left', 'loc')
         expected = Timestamp('2017-01-01')
         assert result == expected
+
+    def test_monotone_DTI_indexing_bug(self):
+        # GH 19362
+        # Testing accessing the first element in a montononic descending
+        # partial string indexing.
+
+        df = pd.DataFrame(list(range(5)))
+        date_list = ['2018-01-02', '2017-02-10', '2016-03-10',
+                     '2015-03-15', '2014-03-16']
+        date_index = pd.to_datetime(date_list)
+        df['date'] = date_index
+        expected = pd.DataFrame({0: list(range(5)), 'date': date_index})
+        tm.assert_frame_equal(df, expected)
+
+        df = pd.DataFrame({'A': [1, 2, 3]},
+                          index=pd.date_range('20170101',
+                                              periods=3)[::-1])
+        expected = pd.DataFrame({'A': 1},
+                                index=pd.date_range('20170103',
+                                                    periods=1))
+        tm.assert_frame_equal(df.loc['2017-01-03'], expected)
 
     def test_slice_year(self):
         dti = DatetimeIndex(freq='B', start=datetime(2005, 1, 1), periods=500)
@@ -292,12 +315,12 @@ class TestSlicing(object):
         result = df_multi.loc[('2013-06-19 09:30:00', 'ACCT1', 'ABC')]
         tm.assert_series_equal(result, expected)
 
-        # this is a KeyError as we don't do partial string selection on
-        # multi-levels
+        # this is an IndexingError as we don't do partial string selection on
+        # multi-levels.
         def f():
             df_multi.loc[('2013-06-19', 'ACCT1', 'ABC')]
 
-        pytest.raises(KeyError, f)
+        pytest.raises(IndexingError, f)
 
         # GH 4294
         # partial slice on a series mi

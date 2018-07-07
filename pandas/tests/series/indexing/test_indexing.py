@@ -187,6 +187,49 @@ def test_getitem_box_float64(test_data):
     assert isinstance(value, np.float64)
 
 
+@pytest.mark.parametrize(
+    'arr',
+    [
+        np.random.randn(10),
+        tm.makeDateIndex(10, name='a').tz_localize(
+            tz='US/Eastern'),
+    ])
+def test_get(arr):
+    # GH 21260
+    s = Series(arr, index=[2 * i for i in range(len(arr))])
+    assert s.get(4) == s.iloc[2]
+
+    result = s.get([4, 6])
+    expected = s.iloc[[2, 3]]
+    tm.assert_series_equal(result, expected)
+
+    result = s.get(slice(2))
+    expected = s.iloc[[0, 1]]
+    tm.assert_series_equal(result, expected)
+
+    assert s.get(-1) is None
+    assert s.get(s.index.max() + 1) is None
+
+    s = Series(arr[:6], index=list('abcdef'))
+    assert s.get('c') == s.iloc[2]
+
+    result = s.get(slice('b', 'd'))
+    expected = s.iloc[[1, 2, 3]]
+    tm.assert_series_equal(result, expected)
+
+    result = s.get('Z')
+    assert result is None
+
+    assert s.get(4) == s.iloc[4]
+    assert s.get(-1) == s.iloc[-1]
+    assert s.get(len(s)) is None
+
+    # GH 21257
+    s = pd.Series(arr)
+    s2 = s[::2]
+    assert s2.get(1) is None
+
+
 def test_series_box_timestamp():
     rng = pd.date_range('20090415', '20090519', freq='B')
     ser = Series(rng)
@@ -751,6 +794,16 @@ def test_take():
 
     with tm.assert_produces_warning(FutureWarning):
         s.take([-1, 3, 4], convert=False)
+
+
+def test_take_categorical():
+    # https://github.com/pandas-dev/pandas/issues/20664
+    s = Series(pd.Categorical(['a', 'b', 'c']))
+    result = s.take([-2, -2, 0])
+    expected = Series(pd.Categorical(['b', 'b', 'a'],
+                      categories=['a', 'b', 'c']),
+                      index=[1, 1, 0])
+    assert_series_equal(result, expected)
 
 
 def test_head_tail(test_data):

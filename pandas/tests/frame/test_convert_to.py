@@ -5,6 +5,7 @@ from datetime import datetime
 import pytest
 import pytz
 import collections
+from collections import OrderedDict, defaultdict
 import numpy as np
 
 from pandas import compat
@@ -78,10 +79,23 @@ class TestDataFrameConvertTo(TestData):
         df = DataFrame([["one", "two", "three"],
                         ["four", "five", "six"]],
                        index=date_range("2012-01-01", "2012-01-02"))
-        assert df.to_records()['index'][0] == df.index[0]
 
-        rs = df.to_records(convert_datetime64=False)
-        assert rs['index'][0] == df.index.values[0]
+        # convert_datetime64 defaults to None
+        expected = df.index.values[0]
+        result = df.to_records()['index'][0]
+        assert expected == result
+
+        # check for FutureWarning if convert_datetime64=False is passed
+        with tm.assert_produces_warning(FutureWarning):
+            expected = df.index.values[0]
+            result = df.to_records(convert_datetime64=False)['index'][0]
+            assert expected == result
+
+        # check for FutureWarning if convert_datetime64=True is passed
+        with tm.assert_produces_warning(FutureWarning):
+            expected = df.index[0]
+            result = df.to_records(convert_datetime64=True)['index'][0]
+            assert expected == result
 
     def test_to_records_with_multindex(self):
         # GH3189
@@ -147,7 +161,7 @@ class TestDataFrameConvertTo(TestData):
         expected = np.rec.array(
             [(0, 1.0)],
             dtype={"names": ["index", u"accented_name_é"],
-                   "formats": ['<i8', '<f8']}
+                   "formats": ['=i8', '=f8']}
         )
         tm.assert_almost_equal(result, expected)
 
@@ -288,3 +302,29 @@ class TestDataFrameConvertTo(TestData):
         ]
         tm.assert_dict_equal(result[0], expected[0])
         tm.assert_dict_equal(result[1], expected[1])
+
+    @pytest.mark.parametrize('into, expected', [
+        (dict, {0: {'int_col': 1, 'float_col': 1.0},
+                1: {'int_col': 2, 'float_col': 2.0},
+                2: {'int_col': 3, 'float_col': 3.0}}),
+        (OrderedDict, OrderedDict([(0, {'int_col': 1, 'float_col': 1.0}),
+                                   (1, {'int_col': 2, 'float_col': 2.0}),
+                                   (2, {'int_col': 3, 'float_col': 3.0})])),
+        (defaultdict(list), defaultdict(list,
+                                        {0: {'int_col': 1, 'float_col': 1.0},
+                                         1: {'int_col': 2, 'float_col': 2.0},
+                                         2: {'int_col': 3, 'float_col': 3.0}}))
+    ])
+    def test_to_dict_index_dtypes(self, into, expected):
+        # GH 18580
+        # When using to_dict(orient='index') on a dataframe with int
+        # and float columns only the int columns were cast to float
+
+        df = DataFrame({'int_col': [1, 2, 3],
+                        'float_col': [1.0, 2.0, 3.0]})
+
+        result = df.to_dict(orient='index', into=into)
+        cols = ['int_col', 'float_col']
+        result = DataFrame.from_dict(result, orient='index')[cols]
+        expected = DataFrame.from_dict(expected, orient='index')[cols]
+        tm.assert_frame_equal(result, expected)
