@@ -35,7 +35,7 @@ from pandas.core.indexes.multi import MultiIndex
 import pandas.core.common as com
 from pandas.util._decorators import cache_readonly, Appender
 from pandas.util._doctools import _WritableDoc
-from pandas.util.exceptions import rewrite_exception
+from pandas.util._exceptions import rewrite_exception
 from pandas.core.config import get_option
 from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import DateOffset
