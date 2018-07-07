@@ -21,7 +21,7 @@ from util cimport (is_datetime64_object, is_timedelta64_object,
                    INT64_MAX)
 
 cimport ccalendar
-from conversion import tz_localize_to_utc, date_normalize
+from conversion import tz_localize_to_utc, normalize_i8_timestamps
 from conversion cimport (tz_convert_single, _TSObject,
                          convert_to_tsobject, convert_datetime_to_tsobject)
 from fields import get_start_end_field, get_date_name_field
@@ -1083,7 +1083,7 @@ class Timestamp(_Timestamp):
         Normalize Timestamp to midnight, preserving
         tz information.
         """
-        normalized_value = date_normalize(
+        normalized_value = normalize_i8_timestamps(
             np.array([self.value], dtype='i8'), tz=self.tz)[0]
         return Timestamp(normalized_value).tz_localize(self.tz)
 

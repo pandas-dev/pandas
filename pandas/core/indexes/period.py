@@ -29,10 +29,8 @@ from pandas.core.tools.datetimes import parse_time_string
 from pandas._libs.lib import infer_dtype
 from pandas._libs import tslib, index as libindex
 from pandas._libs.tslibs.period import (Period, IncompatibleFrequency,
-                                        get_period_field_arr,
                                         DIFFERENT_FREQ_INDEX,
                                         _validate_end_alias, _quarter_to_myear)
-from pandas._libs.tslibs.fields import isleapyear_arr
 from pandas._libs.tslibs import resolution, period
 from pandas._libs.tslibs.timedeltas import delta_to_nanoseconds
 
@@ -51,13 +49,15 @@ _index_doc_kwargs.update(
     dict(target_klass='PeriodIndex or list of Periods'))
 
 
-def _field_accessor(name, alias, docstring=None):
+def _wrap_field_accessor(name):
+    fget = getattr(PeriodArrayMixin, name).fget
+
     def f(self):
-        base, mult = _gfc(self.freq)
-        result = get_period_field_arr(alias, self._ndarray_values, base)
+        result = fget(self)
         return Index(result, name=self.name)
+
     f.__name__ = name
-    f.__doc__ = docstring
+    f.__doc__ = fget.__doc__
     return property(f)
 
 
@@ -608,29 +608,21 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
 
         return self._simple_new(new_data, self.name, freq=freq)
 
-    year = _field_accessor('year', 0, "The year of the period")
-    month = _field_accessor('month', 3, "The month as January=1, December=12")
-    day = _field_accessor('day', 4, "The days of the period")
-    hour = _field_accessor('hour', 5, "The hour of the period")
-    minute = _field_accessor('minute', 6, "The minute of the period")
-    second = _field_accessor('second', 7, "The second of the period")
-    weekofyear = _field_accessor('week', 8, "The week ordinal of the year")
+    year = _wrap_field_accessor('year')
+    month = _wrap_field_accessor('month')
+    day = _wrap_field_accessor('day')
+    hour = _wrap_field_accessor('hour')
+    minute = _wrap_field_accessor('minute')
+    second = _wrap_field_accessor('second')
+    weekofyear = _wrap_field_accessor('week')
     week = weekofyear
-    dayofweek = _field_accessor('dayofweek', 10,
-                                "The day of the week with Monday=0, Sunday=6")
+    dayofweek = _wrap_field_accessor('dayofweek')
     weekday = dayofweek
-    dayofyear = day_of_year = _field_accessor('dayofyear', 9,
-                                              "The ordinal day of the year")
-    quarter = _field_accessor('quarter', 2, "The quarter of the date")
-    qyear = _field_accessor('qyear', 1)
-    days_in_month = _field_accessor('days_in_month', 11,
-                                    "The number of days in the month")
+    dayofyear = day_of_year = _wrap_field_accessor('dayofyear')
+    quarter = _wrap_field_accessor('quarter')
+    qyear = _wrap_field_accessor('qyear')
+    days_in_month = _wrap_field_accessor('days_in_month')
     daysinmonth = days_in_month
-
-    @property
-    def is_leap_year(self):
-        """ Logical indicating if the date belongs to a leap year """
-        return isleapyear_arr(np.asarray(self.year))
 
     @property
     def start_time(self):
@@ -704,16 +696,7 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
     def _sub_period(self, other):
         # If the operation is well-defined, we return an object-Index
         # of DateOffsets.  Null entries are filled with pd.NaT
-        if self.freq != other.freq:
-            msg = DIFFERENT_FREQ_INDEX.format(self.freqstr, other.freqstr)
-            raise IncompatibleFrequency(msg)
-
-        asi8 = self.asi8
-        new_data = asi8 - other.ordinal
-        new_data = np.array([self.freq * x for x in new_data])
-
-        if self.hasnans:
-            new_data[self._isnan] = tslib.NaT
+        new_data = PeriodArrayMixin._sub_period(self, other)
 
         # TODO: Should name=self.name be passed here?
         return Index(new_data)

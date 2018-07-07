@@ -138,6 +138,14 @@ def compression_only(request):
     return request.param
 
 
+@pytest.fixture(params=[True, False])
+def writable(request):
+    """
+    Fixture that an array is writable
+    """
+    return request.param
+
+
 @pytest.fixture(scope='module')
 def datetime_tz_utc():
     from datetime import timezone
@@ -250,7 +258,7 @@ def string_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=["float32", "float64"])
+@pytest.fixture(params=[float, "float32", "float64"])
 def float_dtype(request):
     """
     Parameterized fixture for float dtypes.
@@ -262,7 +270,7 @@ def float_dtype(request):
     return request.param
 
 
-@pytest.fixture(params=["complex64", "complex128"])
+@pytest.fixture(params=[complex, "complex64", "complex128"])
 def complex_dtype(request):
     """
     Parameterized fixture for complex dtypes.
@@ -275,7 +283,7 @@ def complex_dtype(request):
 
 
 UNSIGNED_INT_DTYPES = ["uint8", "uint16", "uint32", "uint64"]
-SIGNED_INT_DTYPES = ["int8", "int16", "int32", "int64"]
+SIGNED_INT_DTYPES = [int, "int8", "int16", "int32", "int64"]
 ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES
 
 

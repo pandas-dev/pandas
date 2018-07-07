@@ -37,20 +37,17 @@ from pandas.tseries.offsets import Tick, DateOffset
 from pandas._libs import (lib, index as libindex,
                           join as libjoin, Timedelta, NaT, iNaT)
 from pandas._libs.tslibs.timedeltas import array_to_timedelta64
-from pandas._libs.tslibs.fields import get_timedelta_field
 
 
-def _field_accessor(name, alias, docstring=None):
+def _wrap_field_accessor(name):
+    fget = getattr(TimedeltaArrayMixin, name).fget
+
     def f(self):
-        values = self.asi8
-        result = get_timedelta_field(values, alias)
-        if self.hasnans:
-            result = self._maybe_mask_results(result, convert='float64')
-
+        result = fget(self)
         return Index(result, name=self.name)
 
     f.__name__ = name
-    f.__doc__ = docstring
+    f.__doc__ = fget.__doc__
     return property(f)
 
 
@@ -382,30 +379,11 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         return TimedeltaIndex(new_values, freq='infer')
 
     def _evaluate_with_timedelta_like(self, other, op):
-        if isinstance(other, ABCSeries):
-            # GH#19042
+        result = TimedeltaArrayMixin._evaluate_with_timedelta_like(self, other,
+                                                                   op)
+        if result is NotImplemented:
             return NotImplemented
-
-        opstr = '__{opname}__'.format(opname=op.__name__).replace('__r', '__')
-        # allow division by a timedelta
-        if opstr in ['__div__', '__truediv__', '__floordiv__']:
-            if _is_convertible_to_td(other):
-                other = Timedelta(other)
-                if isna(other):
-                    raise NotImplementedError(
-                        "division by pd.NaT not implemented")
-
-                i8 = self.asi8
-                left, right = i8, other.value
-
-                if opstr in ['__floordiv__']:
-                    result = op(left, right)
-                else:
-                    result = op(left, np.float64(right))
-                result = self._maybe_mask_results(result, convert='float64')
-                return Index(result, name=self.name, copy=False)
-
-        return NotImplemented
+        return Index(result, name=self.name, copy=False)
 
     def _add_datelike(self, other):
         # adding a timedeltaindex to a datetimelike
@@ -442,17 +420,10 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
                                     nat_rep=na_rep,
                                     justify='all').get_result()
 
-    days = _field_accessor("days", "days",
-                           " Number of days for each element. ")
-    seconds = _field_accessor("seconds", "seconds",
-                              " Number of seconds (>= 0 and less than 1 day) "
-                              "for each element. ")
-    microseconds = _field_accessor("microseconds", "microseconds",
-                                   "\nNumber of microseconds (>= 0 and less "
-                                   "than 1 second) for each\nelement. ")
-    nanoseconds = _field_accessor("nanoseconds", "nanoseconds",
-                                  "\nNumber of nanoseconds (>= 0 and less "
-                                  "than 1 microsecond) for each\nelement.\n")
+    days = _wrap_field_accessor("days")
+    seconds = _wrap_field_accessor("seconds")
+    microseconds = _wrap_field_accessor("microseconds")
+    nanoseconds = _wrap_field_accessor("nanoseconds")
 
     @property
     def components(self):
@@ -538,8 +509,8 @@ class TimedeltaIndex(TimedeltaArrayMixin, DatetimeIndexOpsMixin,
         Float64Index([0.0, 86400.0, 172800.0, 259200.00000000003, 345600.0],
                      dtype='float64')
         """
-        return Index(self._maybe_mask_results(1e-9 * self.asi8),
-                     name=self.name)
+        result = TimedeltaArrayMixin.total_seconds(self)
+        return Index(result, name=self.name)
 
     @Appender(_index_shared_docs['astype'])
     def astype(self, dtype, copy=True):

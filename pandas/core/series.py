@@ -1441,7 +1441,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         Always returns Series even if only one value is returned.
 
         Parameters
-        -------
+        ----------
         dropna : boolean, default True
             Don't consider counts of NaN/NaT.
 
@@ -1657,7 +1657,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         """
         return super(Series, self).duplicated(keep=keep)
 
-    def idxmin(self, axis=None, skipna=True, *args, **kwargs):
+    def idxmin(self, axis=0, skipna=True, *args, **kwargs):
         """
         Return the row label of the minimum value.
 
@@ -1673,7 +1673,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             For compatibility with DataFrame.idxmin. Redundant for application
             on Series.
         *args, **kwargs
-            Additional keywors have no effect but might be accepted
+            Additional keywords have no effect but might be accepted
             for compatibility with NumPy.
 
         Returns
@@ -1742,7 +1742,7 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
             For compatibility with DataFrame.idxmax. Redundant for application
             on Series.
         *args, **kwargs
-            Additional keywors have no effect but might be accepted
+            Additional keywords have no effect but might be accepted
             for compatibility with NumPy.
 
         Returns
@@ -1802,14 +1802,14 @@ class Series(base.IndexOpsMixin, generic.NDFrame):
         msg=dedent("""\
         'argmin' is deprecated, use 'idxmin' instead. The behavior of 'argmin'
         will be corrected to return the positional minimum in the future.
-        Use 'series.values.argmin' to get the position of the minimum now.""")
+        Use 'series.values.argmin' to get the position of the minimum row.""")
     )
     argmax = deprecate(
         'argmax', idxmax, '0.21.0',
         msg=dedent("""\
         'argmax' is deprecated, use 'idxmax' instead. The behavior of 'argmax'
         will be corrected to return the positional maximum in the future.
-        Use 'series.values.argmax' to get the position of the maximum now.""")
+        Use 'series.values.argmax' to get the position of the maximum row.""")
     )
 
     def round(self, decimals=0, *args, **kwargs):
