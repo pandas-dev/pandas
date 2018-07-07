@@ -182,6 +182,18 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         return _dtypes[str(self.data.dtype)]
 
     def __init__(self, values, mask=None, dtype=None, copy=False):
+        """
+        Parameters
+        ----------
+        values : 1D list-like / IntegerArray
+        mask : 1D list-like, optional
+        dtype : subclass of _IntegerDtype, optional
+        copy : bool, default False
+
+        Returns
+        -------
+        IntegerArray
+        """
         self.data, self.mask = coerce_to_array(
             values, dtype=dtype, mask=mask, copy=copy)
 

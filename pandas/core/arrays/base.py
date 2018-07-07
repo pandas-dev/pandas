@@ -97,7 +97,8 @@ class ExtensionArray(object):
             Each element will be an instance of the scalar type for this
             array, ``cls.dtype.type``.
         dtype : Dtype, optional
-            consruct for this particular dtype
+            construct for this particular dtype. This should be a Dtype
+            compatible with the ExtensionArray.
         copy : boolean, default False
             if True, copy the underlying data
         Returns
