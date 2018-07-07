@@ -138,6 +138,14 @@ def compression_only(request):
     return request.param
 
 
+@pytest.fixture(params=[True, False])
+def writable(request):
+    """
+    Fixture that an array is writable
+    """
+    return request.param
+
+
 @pytest.fixture(scope='module')
 def datetime_tz_utc():
     from datetime import timezone
