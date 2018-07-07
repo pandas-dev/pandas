@@ -398,7 +398,7 @@ class SparseSeries(Series):
 
         Returns
         -------
-        abs: type of caller
+        abs: same type as caller
         """
         return self._constructor(np.abs(self.values),
                                  index=self.index).__finalize__(self)
@@ -736,15 +736,14 @@ class SparseSeries(Series):
 
         Examples
         --------
-        >>> from numpy import nan
-        >>> s = Series([3.0, nan, 1.0, 3.0, nan, nan])
-        >>> s.index = MultiIndex.from_tuples([(1, 2, 'a', 0),
-                                              (1, 2, 'a', 1),
-                                              (1, 1, 'b', 0),
-                                              (1, 1, 'b', 1),
-                                              (2, 1, 'b', 0),
-                                              (2, 1, 'b', 1)],
-                                              names=['A', 'B', 'C', 'D'])
+        >>> s = pd.Series([3.0, np.nan, 1.0, 3.0, np.nan, np.nan])
+        >>> s.index = pd.MultiIndex.from_tuples([(1, 2, 'a', 0),
+                                                (1, 2, 'a', 1),
+                                                (1, 1, 'b', 0),
+                                                (1, 1, 'b', 1),
+                                                (2, 1, 'b', 0),
+                                                (2, 1, 'b', 1)],
+                                                names=['A', 'B', 'C', 'D'])
         >>> ss = s.to_sparse()
         >>> A, rows, columns = ss.to_coo(row_levels=['A', 'B'],
                                          column_levels=['C', 'D'],

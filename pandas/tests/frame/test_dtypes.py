@@ -287,6 +287,23 @@ class TestDataFrameDataTypes(TestData):
         ei = df[['b', 'c', 'f', 'k']]
         assert_frame_equal(ri, ei)
 
+    def test_select_dtypes_duplicate_columns(self):
+        # GH20839
+        odict = compat.OrderedDict
+        df = DataFrame(odict([('a', list('abc')),
+                              ('b', list(range(1, 4))),
+                              ('c', np.arange(3, 6).astype('u1')),
+                              ('d', np.arange(4.0, 7.0, dtype='float64')),
+                              ('e', [True, False, True]),
+                              ('f', pd.date_range('now', periods=3).values)]))
+        df.columns = ['a', 'a', 'b', 'b', 'b', 'c']
+
+        expected = DataFrame({'a': list(range(1, 4)),
+                              'b': np.arange(3, 6).astype('u1')})
+
+        result = df.select_dtypes(include=[np.number], exclude=['floating'])
+        assert_frame_equal(result, expected)
+
     def test_select_dtypes_not_an_attr_but_still_valid_dtype(self):
         df = DataFrame({'a': list('abc'),
                         'b': list(range(1, 4)),
@@ -777,22 +794,26 @@ class TestDataFrameDataTypes(TestData):
 
     @pytest.mark.parametrize('input_vals', [
         ([1, 2]),
-        ([1.0, 2.0, np.nan]),
         (['1', '2']),
         (list(pd.date_range('1/1/2011', periods=2, freq='H'))),
         (list(pd.date_range('1/1/2011', periods=2, freq='H',
                             tz='US/Eastern'))),
         ([pd.Interval(left=0, right=5)]),
     ])
-    def test_constructor_list_str(self, input_vals):
+    def test_constructor_list_str(self, input_vals, string_dtype):
         # GH 16605
         # Ensure that data elements are converted to strings when
         # dtype is str, 'str', or 'U'
 
-        for dtype in ['str', str, 'U']:
-            result = DataFrame({'A': input_vals}, dtype=dtype)
-            expected = DataFrame({'A': input_vals}).astype({'A': dtype})
-            assert_frame_equal(result, expected)
+        result = DataFrame({'A': input_vals}, dtype=string_dtype)
+        expected = DataFrame({'A': input_vals}).astype({'A': string_dtype})
+        assert_frame_equal(result, expected)
+
+    def test_constructor_list_str_na(self, string_dtype):
+
+        result = DataFrame({"A": [1.0, 2.0, None]}, dtype=string_dtype)
+        expected = DataFrame({"A": ['1.0', '2.0', None]}, dtype=object)
+        assert_frame_equal(result, expected)
 
 
 class TestDataFrameDatetimeWithTZ(TestData):
@@ -875,10 +896,11 @@ class TestDataFrameDatetimeWithTZ(TestData):
                              columns=self.tzframe.columns)
         tm.assert_frame_equal(result, expected)
 
-        result = str(self.tzframe)
-        assert ('0 2013-01-01 2013-01-01 00:00:00-05:00 '
-                '2013-01-01 00:00:00+01:00') in result
-        assert ('1 2013-01-02                       '
-                'NaT                       NaT') in result
-        assert ('2 2013-01-03 2013-01-03 00:00:00-05:00 '
-                '2013-01-03 00:00:00+01:00') in result
+        with option_context('display.max_columns', 20):
+            result = str(self.tzframe)
+            assert ('0 2013-01-01 2013-01-01 00:00:00-05:00 '
+                    '2013-01-01 00:00:00+01:00') in result
+            assert ('1 2013-01-02                       '
+                    'NaT                       NaT') in result
+            assert ('2 2013-01-03 2013-01-03 00:00:00-05:00 '
+                    '2013-01-03 00:00:00+01:00') in result
