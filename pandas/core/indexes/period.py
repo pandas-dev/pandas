@@ -190,9 +190,9 @@ class PeriodIndex(PeriodArrayMixin, DatelikeOps, DatetimeIndexOpsMixin,
 
     Examples
     --------
-    >>> idx = PeriodIndex(year=year_arr, quarter=q_arr)
+    >>> idx = pd.PeriodIndex(year=year_arr, quarter=q_arr)
 
-    >>> idx2 = PeriodIndex(start='2000', end='2010', freq='A')
+    >>> idx2 = pd.PeriodIndex(start='2000', end='2010', freq='A')
 
     See Also
     ---------

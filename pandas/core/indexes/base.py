@@ -1272,11 +1272,11 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> Index([1, 2, 3, 4]).set_names('foo')
+        >>> pd.Index([1, 2, 3, 4]).set_names('foo')
         Int64Index([1, 2, 3, 4], dtype='int64', name='foo')
-        >>> Index([1, 2, 3, 4]).set_names(['foo'])
+        >>> pd.Index([1, 2, 3, 4]).set_names(['foo'])
         Int64Index([1, 2, 3, 4], dtype='int64', name='foo')
-        >>> idx = MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
+        >>> idx = pd.MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
                                           (2, u'one'), (2, u'two')],
                                           names=['foo', 'bar'])
         >>> idx.set_names(['baz', 'quz'])
@@ -2844,8 +2844,8 @@ class Index(IndexOpsMixin, PandasObject):
 
         Examples
         --------
-        >>> idx1 = Index([1, 2, 3, 4])
-        >>> idx2 = Index([2, 3, 4, 5])
+        >>> idx1 = pd.Index([1, 2, 3, 4])
+        >>> idx2 = pd.Index([2, 3, 4, 5])
         >>> idx1.symmetric_difference(idx2)
         Int64Index([1, 5], dtype='int64')
 

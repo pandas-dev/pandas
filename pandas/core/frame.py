@@ -2841,9 +2841,7 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> from numpy.random import randn
-        >>> from pandas import DataFrame
-        >>> df = pd.DataFrame(randn(10, 2), columns=list('ab'))
+        >>> df = pd.DataFrame(np.random.randn(10, 2), columns=list('ab'))
         >>> df.query('a > b')
         >>> df[df.a > df.b]  # same result as the previous expression
         """
@@ -4902,8 +4900,8 @@ class DataFrame(NDFrame):
 
         Examples
         --------
-        >>> df1 = DataFrame({'A': [0, 0], 'B': [4, 4]})
-        >>> df2 = DataFrame({'A': [1, 1], 'B': [3, 3]})
+        >>> df1 = pd.DataFrame({'A': [0, 0], 'B': [4, 4]})
+        >>> df2 = pd.DataFrame({'A': [1, 1], 'B': [3, 3]})
         >>> df1.combine(df2, lambda s1, s2: s1 if s1.sum() < s2.sum() else s2)
            A  B
         0  0  3

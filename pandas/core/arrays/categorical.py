@@ -675,7 +675,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         Examples
         --------
-        >>> c = Categorical(['a', 'b'])
+        >>> c = pd.Categorical(['a', 'b'])
         >>> c
         [a, b]
         Categories (2, object): [a, b]
@@ -950,7 +950,7 @@ class Categorical(ExtensionArray, PandasObject):
 
         Examples
         --------
-        >>> c = Categorical(['a', 'a', 'b'])
+        >>> c = pd.Categorical(['a', 'a', 'b'])
         >>> c.rename_categories([0, 1])
         [0, 0, 1]
         Categories (2, int64): [0, 1]

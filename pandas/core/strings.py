@@ -875,7 +875,7 @@ def str_extract(arr, pat, flags=0, expand=True):
     A pattern with two groups will return a DataFrame with two columns.
     Non-matches will be NaN.
 
-    >>> s = Series(['a1', 'b2', 'c3'])
+    >>> s = pd.Series(['a1', 'b2', 'c3'])
     >>> s.str.extract(r'([ab])(\d)')
          0    1
     0    a    1
@@ -959,7 +959,7 @@ def str_extractall(arr, pat, flags=0):
     A pattern with one group will return a DataFrame with one column.
     Indices with no matches will not appear in the result.
 
-    >>> s = Series(["a1a2", "b1", "c1"], index=["A", "B", "C"])
+    >>> s = pd.Series(["a1a2", "b1", "c1"], index=["A", "B", "C"])
     >>> s.str.extractall(r"[ab](\d)")
              0
       match
@@ -1051,13 +1051,13 @@ def str_get_dummies(arr, sep='|'):
 
     Examples
     --------
-    >>> Series(['a|b', 'a', 'a|c']).str.get_dummies()
+    >>> pd.Series(['a|b', 'a', 'a|c']).str.get_dummies()
        a  b  c
     0  1  1  0
     1  1  0  0
     2  1  0  1
 
-    >>> Series(['a|b', np.nan, 'a|c']).str.get_dummies()
+    >>> pd.Series(['a|b', np.nan, 'a|c']).str.get_dummies()
        a  b  c
     0  1  1  0
     1  0  0  0
@@ -2362,7 +2362,7 @@ class StringMethods(NoNewAttributesMixin):
     Examples
     --------
 
-    >>> s = Series(['A_B_C', 'D_E_F', 'X'])
+    >>> s = pd.Series(['A_B_C', 'D_E_F', 'X'])
     0    A_B_C
     1    D_E_F
     2        X

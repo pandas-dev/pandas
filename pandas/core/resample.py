@@ -188,9 +188,8 @@ one pass, you can do
 
     Examples
     --------
-    >>> s = Series([1,2,3,4,5],
-                    index=pd.date_range('20130101',
-                                        periods=5,freq='s'))
+    >>> s = pd.Series([1,2,3,4,5],
+                      index=pd.date_range('20130101', periods=5,freq='s'))
     2013-01-01 00:00:00    1
     2013-01-01 00:00:01    2
     2013-01-01 00:00:02    3

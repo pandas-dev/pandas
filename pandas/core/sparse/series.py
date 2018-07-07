@@ -795,7 +795,7 @@ class SparseSeries(Series):
         matrix([[ 0.,  0.,  1.,  2.],
                 [ 3.,  0.,  0.,  0.],
                 [ 0.,  0.,  0.,  0.]])
-        >>> ss = SparseSeries.from_coo(A)
+        >>> ss = pd.SparseSeries.from_coo(A)
         >>> ss
         0  2    1
            3    2

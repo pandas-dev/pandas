@@ -345,7 +345,7 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
+        >>> idx = pd.MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
                                           (2, u'one'), (2, u'two')],
                                           names=['foo', 'bar'])
         >>> idx.set_levels([['a','b'], [1,2]])
@@ -441,7 +441,7 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
+        >>> idx = pd.MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
                                           (2, u'one'), (2, u'two')],
                                           names=['foo', 'bar'])
         >>> idx.set_labels([[1,0,1,0], [0,0,1,1]])
@@ -1191,7 +1191,7 @@ class MultiIndex(Index):
 
         Examples
         --------
-        >>> idx = MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
+        >>> idx = pd.MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
                                           (2, u'one'), (2, u'two')])
         >>> idx.to_hierarchical(3)
         MultiIndex(levels=[[1, 2], [u'one', u'two']],
@@ -1254,7 +1254,7 @@ class MultiIndex(Index):
         Examples
         --------
         >>> arrays = [[1, 1, 2, 2], ['red', 'blue', 'red', 'blue']]
-        >>> MultiIndex.from_arrays(arrays, names=('number', 'color'))
+        >>> pd.MultiIndex.from_arrays(arrays, names=('number', 'color'))
 
         See Also
         --------
@@ -1303,7 +1303,7 @@ class MultiIndex(Index):
         --------
         >>> tuples = [(1, u'red'), (1, u'blue'),
                       (2, u'red'), (2, u'blue')]
-        >>> MultiIndex.from_tuples(tuples, names=('number', 'color'))
+        >>> pd.MultiIndex.from_tuples(tuples, names=('number', 'color'))
 
         See Also
         --------
@@ -1356,7 +1356,7 @@ class MultiIndex(Index):
         --------
         >>> numbers = [0, 1, 2]
         >>> colors = [u'green', u'purple']
-        >>> MultiIndex.from_product([numbers, colors],
+        >>> pd.MultiIndex.from_product([numbers, colors],
                                      names=['number', 'color'])
         MultiIndex(levels=[[0, 1, 2], [u'green', u'purple']],
                    labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
