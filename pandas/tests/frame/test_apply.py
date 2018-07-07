@@ -1056,3 +1056,18 @@ class TestDataFrameAggregate(TestData):
         expected = df.size
 
         assert result == expected
+
+    def test_frame_row_and_column_aggregates(self):
+        df = DataFrame({'B': [4, 5, 6, 7, 8],
+                        'C': [7, 8, 9, 10, 11]},
+                       index=[1, 2, 3, 4, 5])
+
+        assert_series_equal(df.agg('min', axis=1),
+                            Series({1: 4,
+                                    2: 5,
+                                    3: 6,
+                                    4: 7,
+                                    5: 8}))
+
+        assert_series_equal(df.agg('min', axis=1),
+                            df.T.agg('min').T)

@@ -5991,11 +5991,21 @@ class DataFrame(NDFrame):
     def aggregate(self, func, axis=0, *args, **kwargs):
         axis = self._get_axis_number(axis)
 
-        # TODO: flipped axis
         result = None
+
         if axis == 0:
             try:
-                result, how = self._aggregate(func, axis=0, *args, **kwargs)
+                result, how = self._aggregate(func,
+                                              _axis=0,
+                                              *args, **kwargs)
+            except TypeError:
+                pass
+        elif axis == 1:
+            try:
+                result, how = self.T._aggregate(func,
+                                                _axis=0,
+                                                *args, **kwargs)
+                result = result.T
             except TypeError:
                 pass
         if result is None:
