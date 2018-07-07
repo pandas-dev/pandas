@@ -18,91 +18,71 @@ from pandas.compat import lrange, range
 from pandas.util.testing import (assert_series_equal)
 import pandas.util.testing as tm
 
-JOIN_TYPES = ['inner', 'outer', 'left', 'right']
+
+@pytest.mark.parametrize(
+    'first_slice,second_slice', [
+        [[2, None], [None, -5]],
+        [[None, 0], [None, -5]],
+        [[None, -5], [None, 0]],
+        [[None, 0], [None, 0]]
+    ])
+@pytest.mark.parametrize('fill', [None, -1])
+def test_align(test_data, first_slice, second_slice, join_type, fill):
+    a = test_data.ts[slice(*first_slice)]
+    b = test_data.ts[slice(*second_slice)]
+
+    aa, ab = a.align(b, join=join_type, fill_value=fill)
+
+    join_index = a.index.join(b.index, how=join_type)
+    if fill is not None:
+        diff_a = aa.index.difference(join_index)
+        diff_b = ab.index.difference(join_index)
+        if len(diff_a) > 0:
+            assert (aa.reindex(diff_a) == fill).all()
+        if len(diff_b) > 0:
+            assert (ab.reindex(diff_b) == fill).all()
+
+    ea = a.reindex(join_index)
+    eb = b.reindex(join_index)
+
+    if fill is not None:
+        ea = ea.fillna(fill)
+        eb = eb.fillna(fill)
+
+    assert_series_equal(aa, ea)
+    assert_series_equal(ab, eb)
+    assert aa.name == 'ts'
+    assert ea.name == 'ts'
+    assert ab.name == 'ts'
+    assert eb.name == 'ts'
 
 
-def test_align(test_data):
-    def _check_align(a, b, how='left', fill=None):
-        aa, ab = a.align(b, join=how, fill_value=fill)
+@pytest.mark.parametrize(
+    'first_slice,second_slice', [
+        [[2, None], [None, -5]],
+        [[None, 0], [None, -5]],
+        [[None, -5], [None, 0]],
+        [[None, 0], [None, 0]]
+    ])
+@pytest.mark.parametrize('method', ['pad', 'bfill'])
+@pytest.mark.parametrize('limit', [None, 1])
+def test_align_fill_method(test_data,
+                           first_slice, second_slice,
+                           join_type, method, limit):
+    a = test_data.ts[slice(*first_slice)]
+    b = test_data.ts[slice(*second_slice)]
 
-        join_index = a.index.join(b.index, how=how)
-        if fill is not None:
-            diff_a = aa.index.difference(join_index)
-            diff_b = ab.index.difference(join_index)
-            if len(diff_a) > 0:
-                assert (aa.reindex(diff_a) == fill).all()
-            if len(diff_b) > 0:
-                assert (ab.reindex(diff_b) == fill).all()
+    aa, ab = a.align(b, join=join_type, method=method, limit=limit)
 
-        ea = a.reindex(join_index)
-        eb = b.reindex(join_index)
+    join_index = a.index.join(b.index, how=join_type)
+    ea = a.reindex(join_index)
+    eb = b.reindex(join_index)
 
-        if fill is not None:
-            ea = ea.fillna(fill)
-            eb = eb.fillna(fill)
+    ea = ea.fillna(method=method, limit=limit)
+    eb = eb.fillna(method=method, limit=limit)
 
-        assert_series_equal(aa, ea)
-        assert_series_equal(ab, eb)
-        assert aa.name == 'ts'
-        assert ea.name == 'ts'
-        assert ab.name == 'ts'
-        assert eb.name == 'ts'
-
-    for kind in JOIN_TYPES:
-        _check_align(test_data.ts[2:], test_data.ts[:-5], how=kind)
-        _check_align(test_data.ts[2:], test_data.ts[:-5], how=kind, fill=-1)
-
-        # empty left
-        _check_align(test_data.ts[:0], test_data.ts[:-5], how=kind)
-        _check_align(test_data.ts[:0], test_data.ts[:-5], how=kind, fill=-1)
-
-        # empty right
-        _check_align(test_data.ts[:-5], test_data.ts[:0], how=kind)
-        _check_align(test_data.ts[:-5], test_data.ts[:0], how=kind, fill=-1)
-
-        # both empty
-        _check_align(test_data.ts[:0], test_data.ts[:0], how=kind)
-        _check_align(test_data.ts[:0], test_data.ts[:0], how=kind, fill=-1)
-
-
-def test_align_fill_method(test_data):
-    def _check_align(a, b, how='left', method='pad', limit=None):
-        aa, ab = a.align(b, join=how, method=method, limit=limit)
-
-        join_index = a.index.join(b.index, how=how)
-        ea = a.reindex(join_index)
-        eb = b.reindex(join_index)
-
-        ea = ea.fillna(method=method, limit=limit)
-        eb = eb.fillna(method=method, limit=limit)
-
-        assert_series_equal(aa, ea)
-        assert_series_equal(ab, eb)
-
-    for kind in JOIN_TYPES:
-        for meth in ['pad', 'bfill']:
-            _check_align(test_data.ts[2:], test_data.ts[:-5],
-                         how=kind, method=meth)
-            _check_align(test_data.ts[2:], test_data.ts[:-5],
-                         how=kind, method=meth, limit=1)
-
-            # empty left
-            _check_align(test_data.ts[:0], test_data.ts[:-5],
-                         how=kind, method=meth)
-            _check_align(test_data.ts[:0], test_data.ts[:-5],
-                         how=kind, method=meth, limit=1)
-
-            # empty right
-            _check_align(test_data.ts[:-5], test_data.ts[:0],
-                         how=kind, method=meth)
-            _check_align(test_data.ts[:-5], test_data.ts[:0],
-                         how=kind, method=meth, limit=1)
-
-            # both empty
-            _check_align(test_data.ts[:0], test_data.ts[:0],
-                         how=kind, method=meth)
-            _check_align(test_data.ts[:0], test_data.ts[:0],
-                         how=kind, method=meth, limit=1)
+    assert_series_equal(aa, ea)
+    assert_series_equal(ab, eb)
 
 
 def test_align_nocopy(test_data):
@@ -473,6 +453,15 @@ def test_reindex_fill_value():
     assert_series_equal(result, expected)
 
 
+def test_reindex_datetimeindexes_tz_naive_and_aware():
+    # GH 8306
+    idx = date_range('20131101', tz='America/Chicago', periods=7)
+    newidx = date_range('20131103', periods=10, freq='H')
+    s = Series(range(7), index=idx)
+    with pytest.raises(TypeError):
+        s.reindex(newidx, method='ffill')
+
+
 def test_rename():
     # GH 17407
     s = Series(range(1, 6), index=pd.Index(range(2, 7), name='IntIndex'))
@@ -481,3 +470,88 @@ def test_rename():
     assert_series_equal(result, expected)
 
     assert result.name == expected.name
+
+
+@pytest.mark.parametrize(
+    'data, index, drop_labels,'
+    ' axis, expected_data, expected_index',
+    [
+        # Unique Index
+        ([1, 2], ['one', 'two'], ['two'],
+         0, [1], ['one']),
+        ([1, 2], ['one', 'two'], ['two'],
+         'rows', [1], ['one']),
+        ([1, 1, 2], ['one', 'two', 'one'], ['two'],
+         0, [1, 2], ['one', 'one']),
+
+        # GH 5248 Non-Unique Index
+        ([1, 1, 2], ['one', 'two', 'one'], 'two',
+         0, [1, 2], ['one', 'one']),
+        ([1, 1, 2], ['one', 'two', 'one'], ['one'],
+         0, [1], ['two']),
+        ([1, 1, 2], ['one', 'two', 'one'], 'one',
+         0, [1], ['two'])])
+def test_drop_unique_and_non_unique_index(data, index, axis, drop_labels,
+                                          expected_data, expected_index):
+
+    s = Series(data=data, index=index)
+    result = s.drop(drop_labels, axis=axis)
+    expected = Series(data=expected_data, index=expected_index)
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    'data, index, drop_labels,'
+    ' axis, error_type, error_desc',
+    [
+        # single string/tuple-like
+        (range(3), list('abc'), 'bc',
+         0, KeyError, 'not found in axis'),
+
+        # bad axis
+        (range(3), list('abc'), ('a',),
+         0, KeyError, 'not found in axis'),
+        (range(3), list('abc'), 'one',
+         'columns', ValueError, 'No axis named columns')])
+def test_drop_exception_raised(data, index, drop_labels,
+                               axis, error_type, error_desc):
+
+    with tm.assert_raises_regex(error_type, error_desc):
+        Series(data, index=index).drop(drop_labels, axis=axis)
+
+
+def test_drop_with_ignore_errors():
+    # errors='ignore'
+    s = Series(range(3), index=list('abc'))
+    result = s.drop('bc', errors='ignore')
+    tm.assert_series_equal(result, s)
+    result = s.drop(['a', 'd'], errors='ignore')
+    expected = s.iloc[1:]
+    tm.assert_series_equal(result, expected)
+
+    # GH 8522
+    s = Series([2, 3], index=[True, False])
+    assert s.index.is_object()
+    result = s.drop(True)
+    expected = Series([3], index=[False])
+    tm.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize('index', [[1, 2, 3], [1, 1, 3]])
+@pytest.mark.parametrize('drop_labels', [[], [1], [3]])
+def test_drop_empty_list(index, drop_labels):
+    # GH 21494
+    expected_index = [i for i in index if i not in drop_labels]
+    series = pd.Series(index=index).drop(drop_labels)
+    tm.assert_series_equal(series, pd.Series(index=expected_index))
+
+
+@pytest.mark.parametrize('data, index, drop_labels', [
+    (None, [1, 2, 3], [1, 4]),
+    (None, [1, 2, 2], [1, 4]),
+    ([2, 3], [0, 1], [False, True])
+])
+def test_drop_non_empty_list(data, index, drop_labels):
+    # GH 21494 and GH 16877
+    with tm.assert_raises_regex(KeyError, 'not found in axis'):
+        pd.Series(data=data, index=index).drop(drop_labels)

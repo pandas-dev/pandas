@@ -6,16 +6,12 @@ from functools import partial
 
 from pandas import (
     Interval, IntervalIndex, Index, Int64Index, Float64Index, Categorical,
-    date_range, timedelta_range, period_range, notna)
+    CategoricalIndex, date_range, timedelta_range, period_range, notna)
 from pandas.compat import lzip
+from pandas.core.dtypes.common import is_categorical_dtype
 from pandas.core.dtypes.dtypes import IntervalDtype
 import pandas.core.common as com
 import pandas.util.testing as tm
-
-
-@pytest.fixture(params=['left', 'right', 'both', 'neither'])
-def closed(request):
-    return request.param
 
 
 @pytest.fixture(params=[None, 'foo'])
@@ -110,6 +106,22 @@ class Base(object):
                'for IntervalIndex')
         with tm.assert_raises_regex(TypeError, msg):
             constructor(**self.get_kwargs_from_breaks(breaks))
+
+    @pytest.mark.parametrize('cat_constructor', [
+        Categorical, CategoricalIndex])
+    def test_constructor_categorical_valid(self, constructor, cat_constructor):
+        # GH 21243/21253
+        if isinstance(constructor, partial) and constructor.func is Index:
+            # Index is defined to create CategoricalIndex from categorical data
+            pytest.skip()
+
+        breaks = np.arange(10, dtype='int64')
+        expected = IntervalIndex.from_breaks(breaks)
+
+        cat_breaks = cat_constructor(breaks)
+        result_kwargs = self.get_kwargs_from_breaks(cat_breaks)
+        result = constructor(**result_kwargs)
+        tm.assert_index_equal(result, expected)
 
     def test_generic_errors(self, constructor):
         # filler input data to be used when supplying invalid kwargs
@@ -238,6 +250,8 @@ class TestFromTuples(Base):
         tuples = lzip(breaks[:-1], breaks[1:])
         if isinstance(breaks, (list, tuple)):
             return {'data': tuples}
+        elif is_categorical_dtype(breaks):
+            return {'data': breaks._constructor(tuples)}
         return {'data': com._asarray_tuplesafe(tuples)}
 
     def test_constructor_errors(self):
@@ -286,6 +300,8 @@ class TestClassConstructors(Base):
 
         if isinstance(breaks, list):
             return {'data': ivs}
+        elif is_categorical_dtype(breaks):
+            return {'data': breaks._constructor(ivs)}
         return {'data': np.array(ivs, dtype=object)}
 
     def test_generic_errors(self, constructor):
@@ -296,13 +312,7 @@ class TestClassConstructors(Base):
         pass
 
     def test_constructor_errors(self, constructor):
-        # mismatched closed inferred from intervals vs constructor.
-        ivs = [Interval(0, 1, closed='both'), Interval(1, 2, closed='both')]
-        msg = 'conflicting values for closed'
-        with tm.assert_raises_regex(ValueError, msg):
-            constructor(ivs, closed='neither')
-
-        # mismatched closed within intervals
+        # mismatched closed within intervals with no constructor override
         ivs = [Interval(0, 1, closed='right'), Interval(2, 3, closed='left')]
         msg = 'intervals must all be closed on the same side'
         with tm.assert_raises_regex(ValueError, msg):
@@ -319,6 +329,24 @@ class TestClassConstructors(Base):
                "is not an interval")
         with tm.assert_raises_regex(TypeError, msg):
             constructor([0, 1])
+
+    @pytest.mark.parametrize('data, closed', [
+        ([], 'both'),
+        ([np.nan, np.nan], 'neither'),
+        ([Interval(0, 3, closed='neither'),
+          Interval(2, 5, closed='neither')], 'left'),
+        ([Interval(0, 3, closed='left'),
+          Interval(2, 5, closed='right')], 'neither'),
+        (IntervalIndex.from_breaks(range(5), closed='both'), 'right')])
+    def test_override_inferred_closed(self, constructor, data, closed):
+        # GH 19370
+        if isinstance(data, IntervalIndex):
+            tuples = data.to_tuples()
+        else:
+            tuples = [(iv.left, iv.right) if notna(iv) else iv for iv in data]
+        expected = IntervalIndex.from_tuples(tuples, closed=closed)
+        result = constructor(data, closed=closed)
+        tm.assert_index_equal(result, expected)
 
 
 class TestFromIntervals(TestClassConstructors):
