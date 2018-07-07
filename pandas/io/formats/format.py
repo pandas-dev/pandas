@@ -45,54 +45,55 @@ import numpy as np
 from functools import partial
 
 common_docstring = """
-    Parameters
-    ----------
-    buf : StringIO-like, optional
-        Buffer to write to.
-    columns : sequence, optional, default None
-        The subset of columns to write. The default None writes all columns.
-    col_space : int, optional
-        The minimum width of each column.
-    header : bool, optional
-        %(header)s.
-    index : bool, optional, default True
-        Whether to print index (row) labels.
-    na_rep : str, optional, default 'NaN'
-        String representation of NAN to use.
-    formatters : list or dict of one-param. functions, optional, default None
-        Formatter functions to apply to columns' elements by position or name.
-        The result of each function must be a unicode string.
-        List must be of length equal to the number of columns.
-    float_format : one-parameter function, optional, default None
-        Formatter function to apply to columns' elements if they are floats.
-        The result of this function must be a unicode string.
-    sparsify : bool, optional, default True
-        Set to False for a DataFrame with a hierarchical index to print every
-        multiindex key at each row.
-    index_names : bool, optional, default True
-        Prints the names of the indexes.
-    justify : str, default None
-        How to justify the column labels. If None uses the option from
-        the print configuration (controlled by set_option), 'right' out
-        of the box. Valid values are
+        Parameters
+        ----------
+        buf : StringIO-like, optional
+            Buffer to write to.
+        columns : sequence, optional, default None
+            The subset of columns to write. Writes all columns by default.
+        col_space : int, optional
+            The minimum width of each column.
+        header : bool, optional
+            %(header)s.
+        index : bool, optional, default True
+            Whether to print index (row) labels.
+        na_rep : str, optional, default 'NaN'
+            String representation of NAN to use.
+        formatters : list or dict of one-param. functions, optional
+            Formatter functions to apply to columns' elements by position or
+            name.
+            The result of each function must be a unicode string.
+            List must be of length equal to the number of columns.
+        float_format : one-parameter function, optional, default None
+            Formatter function to apply to columns' elements if they are
+            floats. The result of this function must be a unicode string.
+        sparsify : bool, optional, default True
+            Set to False for a DataFrame with a hierarchical index to print
+            every multiindex key at each row.
+        index_names : bool, optional, default True
+            Prints the names of the indexes.
+        justify : str, default None
+            How to justify the column labels. If None uses the option from
+            the print configuration (controlled by set_option), 'right' out
+            of the box. Valid values are
 
-        * left
-        * right
-        * center
-        * justify
-        * justify-all
-        * start
-        * end
-        * inherit
-        * match-parent
-        * initial
-        * unset.
-    max_rows : int, optional
-        Maximum number of rows to display in the console.
-    max_cols : int, optional
-        Maximum number of columns to display in the console.
-    show_dimensions : bool, default False
-        Display dataframe's dimensions (number of rows by number of columns).
+            * left
+            * right
+            * center
+            * justify
+            * justify-all
+            * start
+            * end
+            * inherit
+            * match-parent
+            * initial
+            * unset.
+        max_rows : int, optional
+            Maximum number of rows to display in the console.
+        max_cols : int, optional
+            Maximum number of columns to display in the console.
+        show_dimensions : bool, default False
+            Display DataFrame dimensions (number of rows by number of columns).
     """
 
 _VALID_JUSTIFY_PARAMETERS = ("left", "right", "center", "justify",
@@ -100,10 +101,10 @@ _VALID_JUSTIFY_PARAMETERS = ("left", "right", "center", "justify",
                              "match-parent", "initial", "unset")
 
 return_docstring = """
-    Returns
-    -------
-    str (or unicode, depending on data and options)
-        String representation of the dataframe.
+        Returns
+        -------
+        str (or unicode, depending on data and options)
+            String representation of the dataframe.
     """
 
 docstring_to_string = common_docstring + return_docstring

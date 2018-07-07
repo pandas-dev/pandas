@@ -18,7 +18,7 @@ import itertools
 import sys
 import types
 import warnings
-from textwrap import dedent, indent
+from textwrap import dedent
 
 import numpy as np
 import numpy.ma as ma
@@ -1955,8 +1955,8 @@ class DataFrame(NDFrame):
     @Substitution(header='Write out the column names. If a list of strings '
                          'is given, it is assumed to be aliases for the '
                          'column names')
-    @Substitution(shared_params=indent(fmt.common_docstring, "    "),
-                  returns=indent(fmt.return_docstring, "    "))
+    @Substitution(shared_params=fmt.common_docstring,
+                  returns=fmt.return_docstring)
     def to_string(self, buf=None, columns=None, col_space=None, header=True,
                   index=True, na_rep='NaN', formatters=None, float_format=None,
                   sparsify=None, index_names=True, justify=None,
@@ -1966,7 +1966,7 @@ class DataFrame(NDFrame):
         Render a DataFrame to a console-friendly tabular output.
 
         %(shared_params)s
-        line_width : int, optional, default no wrap
+        line_width : int, optional
             Width to wrap a line in characters.
 
         %(returns)s
@@ -2004,8 +2004,8 @@ class DataFrame(NDFrame):
             return result
 
     @Substitution(header='whether to print column labels, default True')
-    @Substitution(shared_params=indent(fmt.common_docstring, "    "),
-                  returns=indent(fmt.return_docstring, "    "))
+    @Substitution(shared_params=fmt.common_docstring,
+                  returns=fmt.return_docstring)
     def to_html(self, buf=None, columns=None, col_space=None, header=True,
                 index=True, na_rep='NaN', formatters=None, float_format=None,
                 sparsify=None, index_names=True, justify=None, bold_rows=True,
