@@ -4894,9 +4894,10 @@ class DataFrame(NDFrame):
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """
-        Perform column-wise combine with another DataFrame based on a passed function.
+        Perform column-wise combine with another DataFrame based on a
+        passed function.
 
-        Combines `self` DataFrame with `other` DataFrame using `func`
+        Combines a DataFrame with `other` DataFrame using `func`
         to element-wise combine columns. The row and column indexes of the
         resulting DataFrame will be the union of the two.
 
@@ -4943,7 +4944,7 @@ class DataFrame(NDFrame):
         merge function.
 
         >>> df1 = pd.DataFrame({'A': [0, 0], 'B': [None, 4]})
-        >>> df2 = DataFrame({'A': [1, 1], 'B': [3, 3]})
+        >>> df2 = pd.DataFrame({'A': [1, 1], 'B': [3, 3]})
         >>> df1.combine(df2, take_smaller, fill_value=-5)
            A    B
         0  0 -5.0
@@ -5063,7 +5064,7 @@ class DataFrame(NDFrame):
         """
         Update null elements with value in the same location in `other`.
 
-        Combine two DataFrame objects by filling null values in self DataFrame
+        Combine two DataFrame objects by filling null values in one DataFrame
         with non-null values from other DataFrame. The row and column indexes
         of the resulting DataFrame will be the union of the two.
 
@@ -5079,20 +5080,18 @@ class DataFrame(NDFrame):
         Examples
         --------
 
-        df1's values prioritized, use values from df2 to fill holes:
-
-        >>> from pandas import DataFrame
-        >>> df1 = DataFrame({'A': [None, 0], 'B': [None, 4]})
-        >>> df2 = DataFrame({'A': [1, 1], 'B': [3, 3]})
+        >>> df1 = pd.DataFrame({'A': [None, 0], 'B': [None, 4]})
+        >>> df2 = pd.DataFrame({'A': [1, 1], 'B': [3, 3]})
         >>> df1.combine_first(df2)
              A    B
         0  1.0  3.0
         1  0.0  4.0
 
-        Illustrate the behavior when the axis differ between the dataframes.
+        Null values still persist if the location of that null value
+        does not exist in `other`
 
-        >>> df1 = DataFrame({'A': [None, 0], 'B': [4, None]})
-        >>> df2 = DataFrame({'B': [3, 3], 'C': [1, 1],}, index=[1, 2])
+        >>> df1 = pd.DataFrame({'A': [None, 0], 'B': [4, None]})
+        >>> df2 = pd.DataFrame({'B': [3, 3], 'C': [1, 1]}, index=[1, 2])
         >>> df1.combine_first(df2)
              A    B    C
         0  NaN  4.0  NaN
