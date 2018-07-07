@@ -71,21 +71,6 @@ common_docstring = """
         multiindex key at each row.
     index_names : bool, optional, default True
         Prints the names of the indexes.
-    line_width : int, optional, default no wrap
-        Width to wrap a line in characters.
-    max_rows : int, optional
-        Maximum number of rows to display in the console.
-    max_cols : int, optional
-        Maximum number of columns to display in the console.
-    show_dimensions : bool, default False
-        Display dataframe's dimensions (number of rows by number of columns).
-    """
-
-_VALID_JUSTIFY_PARAMETERS = ("left", "right", "center", "justify",
-                             "justify-all", "start", "end", "inherit",
-                             "match-parent", "initial", "unset")
-
-justify_docstring = """
     justify : str, default None
         How to justify the column labels. If None uses the option from
         the print configuration (controlled by set_option), 'right' out
@@ -102,7 +87,17 @@ justify_docstring = """
         * match-parent
         * initial
         * unset.
-"""
+    max_rows : int, optional
+        Maximum number of rows to display in the console.
+    max_cols : int, optional
+        Maximum number of columns to display in the console.
+    show_dimensions : bool, default False
+        Display dataframe's dimensions (number of rows by number of columns).
+    """
+
+_VALID_JUSTIFY_PARAMETERS = ("left", "right", "center", "justify",
+                             "justify-all", "start", "end", "inherit",
+                             "match-parent", "initial", "unset")
 
 return_docstring = """
     Returns
@@ -111,7 +106,7 @@ return_docstring = """
         String representation of the dataframe.
     """
 
-docstring_to_string = common_docstring + justify_docstring + return_docstring
+docstring_to_string = common_docstring + return_docstring
 
 
 class CategoricalFormatter(object):
@@ -385,7 +380,7 @@ class DataFrameFormatter(TableFormatter):
     """
 
     __doc__ = __doc__ if __doc__ else ''
-    __doc__ += common_docstring + justify_docstring + return_docstring
+    __doc__ += common_docstring + return_docstring
 
     def __init__(self, frame, buf=None, columns=None, col_space=None,
                  header=True, index=True, na_rep='NaN', formatters=None,

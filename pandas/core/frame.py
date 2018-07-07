@@ -18,7 +18,7 @@ import itertools
 import sys
 import types
 import warnings
-from textwrap import dedent
+from textwrap import dedent, indent
 
 import numpy as np
 import numpy.ma as ma
@@ -1955,7 +1955,8 @@ class DataFrame(NDFrame):
     @Substitution(header='Write out the column names. If a list of strings '
                          'is given, it is assumed to be aliases for the '
                          'column names')
-    @Substitution(shared_docstring=fmt.docstring_to_string)
+    @Substitution(shared_params=indent(fmt.common_docstring, "    "),
+                  returns=indent(fmt.return_docstring, "    "))
     def to_string(self, buf=None, columns=None, col_space=None, header=True,
                   index=True, na_rep='NaN', formatters=None, float_format=None,
                   sparsify=None, index_names=True, justify=None,
@@ -1964,14 +1965,15 @@ class DataFrame(NDFrame):
         """
         Render a DataFrame to a console-friendly tabular output.
 
-        Convert DataFrame object into a string (or unicode) representation
-        which can be shown in command line interface.
+        %(shared_params)s
+        line_width : int, optional, default no wrap
+            Width to wrap a line in characters.
 
-        %(shared_docstring)s
+        %(returns)s
 
         See Also
         --------
-        to_html : Convert dataframe to a html file.
+        to_html : Convert DataFrame to HTML.
 
         Examples
         --------
@@ -2002,7 +2004,8 @@ class DataFrame(NDFrame):
             return result
 
     @Substitution(header='whether to print column labels, default True')
-    @Appender(fmt.docstring_to_string, indents=1)
+    @Substitution(shared_params=indent(fmt.common_docstring, "    "),
+                  returns=indent(fmt.return_docstring, "    "))
     def to_html(self, buf=None, columns=None, col_space=None, header=True,
                 index=True, na_rep='NaN', formatters=None, float_format=None,
                 sparsify=None, index_names=True, justify=None, bold_rows=True,
@@ -2012,20 +2015,15 @@ class DataFrame(NDFrame):
         """
         Render a DataFrame as an HTML table.
 
-        `to_html`-specific options:
-
+        %(shared_params)s
         bold_rows : boolean, default True
             Make the row labels bold in the output
         classes : str or list or tuple, default None
             CSS class(es) to apply to the resulting html table
         escape : boolean, default True
             Convert the characters <, >, and & to HTML-safe sequences.
-        max_rows : int, optional
-            Maximum number of rows to show before truncating. If None, show
-            all.
-        max_cols : int, optional
-            Maximum number of columns to show before truncating. If None, show
-            all.
+        notebook : {True, False}, default False
+            Whether the generated HTML is for IPython Notebook.
         decimal : string, default '.'
             Character recognized as decimal separator, e.g. ',' in Europe
 
@@ -2042,6 +2040,11 @@ class DataFrame(NDFrame):
 
             .. versionadded:: 0.23.0
 
+        %(returns)s
+
+        See Also
+        --------
+        to_string : Convert DataFrame to a string.
         """
 
         if (justify is not None and
