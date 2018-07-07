@@ -1718,21 +1718,23 @@ class DataFrame(NDFrame):
     @Substitution(header='Write out the column names. If a list of strings '
                          'is given, it is assumed to be aliases for the '
                          'column names')
-    @Appender(fmt.docstring_to_string, indents=1)
+    @Substitution(shared_docstring=fmt.docstring_to_string)
     def to_string(self, buf=None, columns=None, col_space=None, header=True,
                   index=True, na_rep='NaN', formatters=None, float_format=None,
-                  sparsify=None, index_names=True,
+                  sparsify=None, index_names=True, justify=None,
                   line_width=None, max_rows=None, max_cols=None,
-                  show_dimensions=False, justify=None):
+                  show_dimensions=False):
         """
         Render a DataFrame to a console-friendly tabular output.
 
         Convert DataFrame object into a string (or unicode) representation
         which can be shown in command line interface.
 
+        %(shared_docstring)s
+
         See Also
         --------
-        pandas.DataFrame.to_html : Convert dataframe to a html file.
+        to_html : Convert dataframe to a html file.
 
         Examples
         --------
