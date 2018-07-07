@@ -2,7 +2,7 @@ name: pandas
 channels:
   - defaults
 dependencies:
-  - cython
+  - cython>=0.28.2
   - nomkl
   - numpy
   - python-dateutil
