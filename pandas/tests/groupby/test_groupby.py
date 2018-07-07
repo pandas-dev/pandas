@@ -1693,3 +1693,24 @@ def test_groupby_agg_ohlc_non_first():
     result = df.groupby(pd.Grouper(freq='D')).agg(['sum', 'ohlc'])
 
     tm.assert_frame_equal(result, expected)
+
+
+@pytest.mark.parametrize("select_columns", [True, False])
+@pytest.mark.parametrize("agg_argument", [
+    {'B': 'sum', 'C': 'min'},
+    {'B': ['sum'], 'C': ['min']},
+    {'B': {'sum': 'sum'}, 'C': {'min': 'min'}}  # deprecated call
+])
+def test_agg_dict_naming_consistency(select_columns, agg_argument):
+    df = pd.DataFrame([['foo', 1, 1], ['bar', 1, 1]], columns=['A', 'B', 'C'])
+    expected = pd.DataFrame([[1, 1], [1, 1]], index=pd.Index(
+        ['bar', 'foo'], name='A'), columns=pd.MultiIndex.from_tuples(
+            (('B', 'sum'), ('C', 'min'))))
+
+    with catch_warnings(record=True):
+        if select_columns:
+            result = df.groupby('A')[['B', 'C']].agg(agg_argument)
+        else:
+            result = df.groupby('A').agg(agg_argument)
+
+    tm.assert_frame_equal(result, expected)
