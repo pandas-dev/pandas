@@ -1958,8 +1958,8 @@ class MultiIndex(Index):
                                                           tolerance=tolerance)
 
         if not self.is_unique:
-            raise Exception('Reindexing only valid with uniquely valued Index '
-                            'objects')
+            raise ValueError('Reindexing only valid with uniquely valued '
+                             'Index objects')
 
         if method == 'pad' or method == 'backfill':
             if tolerance is not None:
@@ -2023,7 +2023,7 @@ class MultiIndex(Index):
                                                limit=limit,
                                                tolerance=tolerance)
                 else:
-                    raise Exception("cannot handle a non-unique multi-index!")
+                    raise ValueError("cannot handle a non-unique multi-index!")
 
         if not isinstance(target, MultiIndex):
             if indexer is None:
