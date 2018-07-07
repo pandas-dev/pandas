@@ -4894,7 +4894,7 @@ class DataFrame(NDFrame):
 
     def combine(self, other, func, fill_value=None, overwrite=True):
         """
-        Perform series-wise combine with `other` DataFrame using given `func`.
+        Perform column-wise combine with another DataFrame based on a passed function.
 
         Combines `self` DataFrame with `other` DataFrame using `func`
         to element-wise combine columns. The row and column indexes of the
@@ -4906,7 +4906,7 @@ class DataFrame(NDFrame):
             The DataFrame to merge column-wise.
         func : function
             Function that takes two series as inputs and return a Series or a
-            scalar, used to merge the two dataframes column by columns.
+            scalar. Used to merge the two dataframes column by columns.
         fill_value : scalar value, default None
             The value to fill NaNs with prior to passing any column to the
             merge func.
@@ -4922,19 +4922,16 @@ class DataFrame(NDFrame):
         --------
         Combine using a simple function that chooses the smaller column.
 
-        >>> from pandas import DataFrame
-        >>> import numpy as np
-        >>> df1 = DataFrame({'A': [0, 0], 'B': [4, 4]})
-        >>> df2 = DataFrame({'A': [1, 1], 'B': [3, 3]})
+        >>> df1 = pd.DataFrame({'A': [0, 0], 'B': [4, 4]})
+        >>> df2 = pd.DataFrame({'A': [1, 1], 'B': [3, 3]})
         >>> take_smaller = lambda s1, s2: s1 if s1.sum() < s2.sum() else s2
         >>> df1.combine(df2, take_smaller)
            A  B
         0  0  3
         1  0  3
 
-        Example  using a true element-wise combine function.
+        Example using a true element-wise combine function.
 
-        >>> import numpy as np
         >>> df1 = DataFrame({'A': [5, 0], 'B': [2, 4]})
         >>> df2 = DataFrame({'A': [1, 1], 'B': [3, 3]})
         >>> df1.combine(df2, np.minimum)
