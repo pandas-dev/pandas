@@ -23,7 +23,8 @@ requirements:
     - python-dateutil >=2.5.0
     - pytz
   run:
-    - python
+    - python {{ python }}
+    - {{ pin_compatible('numpy') }}
     - {{ pin_compatible('numpy') }}
     - python-dateutil >=2.5.0
     - pytz
