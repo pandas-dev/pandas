@@ -610,6 +610,7 @@ class DatetimeIndex(DatetimeArrayMixin, DatelikeOps, TimelikeOps,
                            dtype=dtype, **kwargs)
             values = np.array(values, copy=False)
 
+        # values should be a numpy array
         assert isinstance(values, np.ndarray)
 
         if is_object_dtype(values):
