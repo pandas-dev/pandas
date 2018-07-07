@@ -355,6 +355,7 @@ class DatetimeArrayMixin(DatetimeLikeArrayMixin):
             remove the time zone information preserving local time.
         ambiguous : str {'infer', 'NaT', 'raise'} or bool array,
             default 'raise'
+
             - 'infer' will attempt to infer fall dst-transition hours based on
               order
             - bool-ndarray where True signifies a DST time, False signifies a
@@ -363,10 +364,12 @@ class DatetimeArrayMixin(DatetimeLikeArrayMixin):
             - 'NaT' will return NaT where there are ambiguous times
             - 'raise' will raise an AmbiguousTimeError if there are ambiguous
               times
+
         errors : {'raise', 'coerce'}, default 'raise'
+
             - 'raise' will raise a NonExistentTimeError if a timestamp is not
-               valid in the specified time zone (e.g. due to a transition from
-               or to DST time)
+              valid in the specified time zone (e.g. due to a transition from
+              or to DST time)
             - 'coerce' will return NaT if the timestamp can not be converted
               to the specified time zone
 
