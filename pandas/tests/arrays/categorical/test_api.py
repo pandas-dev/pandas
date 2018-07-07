@@ -8,7 +8,7 @@ import pandas.util.testing as tm
 from pandas import Categorical, CategoricalIndex, Index, Series, DataFrame
 
 from pandas.core.arrays.categorical import _recode_for_categories
-from pandas.tests.categorical.common import TestCategorical
+from pandas.tests.arrays.categorical.common import TestCategorical
 
 
 class TestCategoricalAPI(object):
