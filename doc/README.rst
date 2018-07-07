@@ -42,7 +42,7 @@ Some other important things to know about the docs:
 - The docstrings follow the **Numpy Docstring Standard** which is used widely
   in the Scientific Python community. This standard specifies the format of
   the different sections of the docstring. See `this document
-  <https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt>`_
+  <https://numpydoc.readthedocs.io/en/latest/>`_
   for a detailed explanation, or look at some of the existing functions to
   extend it in a similar manner.
 
