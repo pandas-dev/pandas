@@ -346,8 +346,8 @@ class MultiIndex(Index):
         Examples
         --------
         >>> idx = pd.MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
-                                          (2, u'one'), (2, u'two')],
-                                          names=['foo', 'bar'])
+                                            (2, u'one'), (2, u'two')],
+                                            names=['foo', 'bar'])
         >>> idx.set_levels([['a','b'], [1,2]])
         MultiIndex(levels=[[u'a', u'b'], [1, 2]],
                    labels=[[0, 0, 1, 1], [0, 1, 0, 1]],
@@ -442,8 +442,8 @@ class MultiIndex(Index):
         Examples
         --------
         >>> idx = pd.MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
-                                          (2, u'one'), (2, u'two')],
-                                          names=['foo', 'bar'])
+                                            (2, u'one'), (2, u'two')],
+                                            names=['foo', 'bar'])
         >>> idx.set_labels([[1,0,1,0], [0,0,1,1]])
         MultiIndex(levels=[[1, 2], [u'one', u'two']],
                    labels=[[1, 0, 1, 0], [0, 0, 1, 1]],
@@ -1192,7 +1192,7 @@ class MultiIndex(Index):
         Examples
         --------
         >>> idx = pd.MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
-                                          (2, u'one'), (2, u'two')])
+                                            (2, u'one'), (2, u'two')])
         >>> idx.to_hierarchical(3)
         MultiIndex(levels=[[1, 2], [u'one', u'two']],
                    labels=[[0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
@@ -1357,7 +1357,7 @@ class MultiIndex(Index):
         >>> numbers = [0, 1, 2]
         >>> colors = [u'green', u'purple']
         >>> pd.MultiIndex.from_product([numbers, colors],
-                                     names=['number', 'color'])
+                                       names=['number', 'color'])
         MultiIndex(levels=[[0, 1, 2], [u'green', u'purple']],
                    labels=[[0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1]],
                    names=[u'number', u'color'])

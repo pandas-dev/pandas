@@ -1277,8 +1277,8 @@ class Index(IndexOpsMixin, PandasObject):
         >>> pd.Index([1, 2, 3, 4]).set_names(['foo'])
         Int64Index([1, 2, 3, 4], dtype='int64', name='foo')
         >>> idx = pd.MultiIndex.from_tuples([(1, u'one'), (1, u'two'),
-                                          (2, u'one'), (2, u'two')],
-                                          names=['foo', 'bar'])
+                                            (2, u'one'), (2, u'two')],
+                                            names=['foo', 'bar'])
         >>> idx.set_names(['baz', 'quz'])
         MultiIndex(levels=[[1, 2], [u'one', u'two']],
                    labels=[[0, 0, 1, 1], [0, 1, 0, 1]],

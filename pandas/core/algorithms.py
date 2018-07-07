@@ -307,7 +307,7 @@ def unique(values):
     array([2, 1])
 
     >>> pd.unique(pd.Series([pd.Timestamp('20160101'),
-    ...                   pd.Timestamp('20160101')]))
+    ...                     pd.Timestamp('20160101')]))
     array(['2016-01-01T00:00:00.000000000'], dtype='datetime64[ns]')
 
     >>> pd.unique(pd.Series([pd.Timestamp('20160101', tz='US/Eastern'),
@@ -331,15 +331,15 @@ def unique(values):
     Categories (3, object): [b, a, c]
 
     >>> pd.unique(pd.Series(pd.Categorical(list('baabc'),
-    ...                                 categories=list('abc'))))
+    ...                                    categories=list('abc'))))
     [b, a, c]
     Categories (3, object): [b, a, c]
 
     An ordered Categorical preserves the category ordering.
 
     >>> pd.unique(pd.Series(pd.Categorical(list('baabc'),
-    ...                                 categories=list('abc'),
-    ...                                 ordered=True)))
+    ...                                    categories=list('abc'),
+    ...                                    ordered=True)))
     [b, a, c]
     Categories (3, object): [a < b < c]
 
