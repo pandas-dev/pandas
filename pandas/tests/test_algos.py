@@ -1077,7 +1077,6 @@ class TestGroupVarFloat32(GroupVarTestMixin):
 
 class TestHashTable(object):
 
-    @pytest.mark.parametrize('writable', [True, False])
     def test_lookup_nan(self, writable):
         xs = np.array([2.718, 3.14, np.nan, -7, 5, 2, 3])
         # GH 21688 ensure we can deal with readonly memory views
@@ -1087,7 +1086,6 @@ class TestHashTable(object):
         tm.assert_numpy_array_equal(m.lookup(xs), np.arange(len(xs),
                                                             dtype=np.int64))
 
-    @pytest.mark.parametrize('writable', [True, False])
     def test_lookup_overflow(self, writable):
         xs = np.array([1, 2, 2**63], dtype=np.uint64)
         # GH 21688 ensure we can deal with readonly memory views
@@ -1102,7 +1100,6 @@ class TestHashTable(object):
         exp = np.array([1, 2, 2**63], dtype=np.uint64)
         tm.assert_numpy_array_equal(s.unique(), exp)
 
-    @pytest.mark.parametrize('writable', [True, False])
     def test_vector_resize(self, writable):
         # Test for memory errors after internal vector
         # reallocations (pull request #7157)
