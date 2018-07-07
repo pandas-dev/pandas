@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
-# cython: linetrace=False
-# distutils: define_macros=CYTHON_TRACE=0
-# distutils: define_macros=CYTHON_TRACE_NOGIL=0
 """
 Parsing functions for datetime and datetime-like strings.
 """
@@ -21,9 +18,9 @@ from datetime import datetime
 import time
 
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 from numpy cimport int64_t, ndarray
-np.import_array()
+cnp.import_array()
 
 # Avoid import from outside _libs
 if sys.version_info.major == 2:
@@ -44,6 +41,9 @@ from dateutil.relativedelta import relativedelta
 from dateutil.parser import DEFAULTPARSER
 from dateutil.parser import parse as du_parse
 
+from ccalendar import MONTH_NUMBERS
+from nattype import nat_strings
+
 # ----------------------------------------------------------------------
 # Constants
 
@@ -52,18 +52,12 @@ class DateParseError(ValueError):
     pass
 
 
-_nat_strings = set(['NaT', 'nat', 'NAT', 'nan', 'NaN', 'NAN'])
-
 _DEFAULT_DATETIME = datetime(1, 1, 1).replace(hour=0, minute=0,
                                               second=0, microsecond=0)
-_MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
-           'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-_MONTH_NUMBERS = {k: i for i, k in enumerate(_MONTHS)}
-_MONTH_ALIASES = {(k + 1): v for k, v in enumerate(_MONTHS)}
 
 cdef object _TIMEPAT = re.compile(r'^([01]?[0-9]|2[0-3]):([0-5][0-9])')
 
-cdef set _not_datelike_strings = set(['a', 'A', 'm', 'M', 'p', 'P', 't', 'T'])
+cdef set _not_datelike_strings = {'a', 'A', 'm', 'M', 'p', 'P', 't', 'T'}
 
 NAT_SENTINEL = object()
 # This allows us to reference NaT without having to import it
@@ -216,7 +210,7 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
     # len(date_string) == 0
     # should be NaT???
 
-    if date_string in _nat_strings:
+    if date_string in nat_strings:
         return NAT_SENTINEL, NAT_SENTINEL, ''
 
     date_string = date_string.upper()
@@ -270,7 +264,7 @@ cdef inline object _parse_dateabbr_string(object date_string, object default,
             if freq is not None:
                 # hack attack, #1228
                 try:
-                    mnum = _MONTH_NUMBERS[_get_rule_month(freq)] + 1
+                    mnum = MONTH_NUMBERS[_get_rule_month(freq)] + 1
                 except (KeyError, ValueError):
                     msg = ('Unable to retrieve month information from given '
                            'freq: {0}').format(freq)
@@ -657,7 +651,7 @@ def _guess_datetime_format(dt_str, dayfirst=False, dt_str_parse=du_parse,
                     break
 
     # Only consider it a valid guess if we have a year, month and day
-    if len(set(['year', 'month', 'day']) & found_attrs) != 3:
+    if len({'year', 'month', 'day'} & found_attrs) != 3:
         return None
 
     output_format = []

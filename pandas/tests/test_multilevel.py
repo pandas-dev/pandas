@@ -20,6 +20,9 @@ from pandas.compat import (range, lrange, StringIO, lzip, u, product as
 import pandas as pd
 import pandas._libs.index as _index
 
+AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew', 'mad',
+                 'std', 'var', 'sem']
+
 
 class Base(object):
 
@@ -1389,60 +1392,57 @@ Thur,Lunch,Yes,51.51,17"""
         pytest.raises(KeyError, series.count, 'x')
         pytest.raises(KeyError, frame.count, level='x')
 
-    AGG_FUNCTIONS = ['sum', 'prod', 'min', 'max', 'median', 'mean', 'skew',
-                     'mad', 'std', 'var', 'sem']
-
+    @pytest.mark.parametrize('op', AGG_FUNCTIONS)
+    @pytest.mark.parametrize('level', [0, 1])
+    @pytest.mark.parametrize('skipna', [True, False])
     @pytest.mark.parametrize('sort', [True, False])
-    def test_series_group_min_max(self, sort):
+    def test_series_group_min_max(self, op, level, skipna, sort):
         # GH 17537
-        for op, level, skipna in cart_product(self.AGG_FUNCTIONS, lrange(2),
-                                              [False, True]):
-            grouped = self.series.groupby(level=level, sort=sort)
-            aggf = lambda x: getattr(x, op)(skipna=skipna)
-            # skipna=True
-            leftside = grouped.agg(aggf)
-            rightside = getattr(self.series, op)(level=level, skipna=skipna)
-            if sort:
-                rightside = rightside.sort_index(level=level)
-            tm.assert_series_equal(leftside, rightside)
+        grouped = self.series.groupby(level=level, sort=sort)
+        # skipna=True
+        leftside = grouped.agg(lambda x: getattr(x, op)(skipna=skipna))
+        rightside = getattr(self.series, op)(level=level, skipna=skipna)
+        if sort:
+            rightside = rightside.sort_index(level=level)
+        tm.assert_series_equal(leftside, rightside)
 
+    @pytest.mark.parametrize('op', AGG_FUNCTIONS)
+    @pytest.mark.parametrize('level', [0, 1])
+    @pytest.mark.parametrize('axis', [0, 1])
+    @pytest.mark.parametrize('skipna', [True, False])
     @pytest.mark.parametrize('sort', [True, False])
-    def test_frame_group_ops(self, sort):
+    def test_frame_group_ops(self, op, level, axis, skipna, sort):
         # GH 17537
         self.frame.iloc[1, [1, 2]] = np.nan
         self.frame.iloc[7, [0, 1]] = np.nan
 
-        for op, level, axis, skipna in cart_product(self.AGG_FUNCTIONS,
-                                                    lrange(2), lrange(2),
-                                                    [False, True]):
+        if axis == 0:
+            frame = self.frame
+        else:
+            frame = self.frame.T
 
-            if axis == 0:
-                frame = self.frame
-            else:
-                frame = self.frame.T
+        grouped = frame.groupby(level=level, axis=axis, sort=sort)
 
-            grouped = frame.groupby(level=level, axis=axis, sort=sort)
+        pieces = []
 
-            pieces = []
+        def aggf(x):
+            pieces.append(x)
+            return getattr(x, op)(skipna=skipna, axis=axis)
 
-            def aggf(x):
-                pieces.append(x)
-                return getattr(x, op)(skipna=skipna, axis=axis)
+        leftside = grouped.agg(aggf)
+        rightside = getattr(frame, op)(level=level, axis=axis,
+                                       skipna=skipna)
+        if sort:
+            rightside = rightside.sort_index(level=level, axis=axis)
+            frame = frame.sort_index(level=level, axis=axis)
 
-            leftside = grouped.agg(aggf)
-            rightside = getattr(frame, op)(level=level, axis=axis,
-                                           skipna=skipna)
-            if sort:
-                rightside = rightside.sort_index(level=level, axis=axis)
-                frame = frame.sort_index(level=level, axis=axis)
+        # for good measure, groupby detail
+        level_index = frame._get_axis(axis).levels[level]
 
-            # for good measure, groupby detail
-            level_index = frame._get_axis(axis).levels[level]
+        tm.assert_index_equal(leftside._get_axis(axis), level_index)
+        tm.assert_index_equal(rightside._get_axis(axis), level_index)
 
-            tm.assert_index_equal(leftside._get_axis(axis), level_index)
-            tm.assert_index_equal(rightside._get_axis(axis), level_index)
-
-            tm.assert_frame_equal(leftside, rightside)
+        tm.assert_frame_equal(leftside, rightside)
 
     def test_stat_op_corner(self):
         obj = Series([10.0], index=MultiIndex.from_tuples([(2, 3)]))
@@ -1589,6 +1589,38 @@ Thur,Lunch,Yes,51.51,17"""
         s = Series(np.arange(1000), index=index)
         result = s.unstack(4)
         assert result.shape == (500, 2)
+
+    def test_pyint_engine(self):
+        # GH 18519 : when combinations of codes cannot be represented in 64
+        # bits, the index underlying the MultiIndex engine works with Python
+        # integers, rather than uint64.
+        N = 5
+        keys = [tuple(l) for l in [[0] * 10 * N,
+                                   [1] * 10 * N,
+                                   [2] * 10 * N,
+                                   [np.nan] * N + [2] * 9 * N,
+                                   [0] * N + [2] * 9 * N,
+                                   [np.nan] * N + [2] * 8 * N + [0] * N]]
+        # Each level contains 4 elements (including NaN), so it is represented
+        # in 2 bits, for a total of 2*N*10 = 100 > 64 bits. If we were using a
+        # 64 bit engine and truncating the first levels, the fourth and fifth
+        # keys would collide; if truncating the last levels, the fifth and
+        # sixth; if rotating bits rather than shifting, the third and fifth.
+
+        for idx in range(len(keys)):
+            index = MultiIndex.from_tuples(keys)
+            assert index.get_loc(keys[idx]) == idx
+
+            expected = np.arange(idx + 1, dtype=np.intp)
+            result = index.get_indexer([keys[i] for i in expected])
+            tm.assert_numpy_array_equal(result, expected)
+
+        # With missing key:
+        idces = range(len(keys))
+        expected = np.array([-1] + list(idces), dtype=np.intp)
+        missing = tuple([0, 1] * 5 * N)
+        result = index.get_indexer([missing] + [keys[i] for i in idces])
+        tm.assert_numpy_array_equal(result, expected)
 
     def test_getitem_lowerdim_corner(self):
         pytest.raises(KeyError, self.frame.loc.__getitem__,
@@ -2289,7 +2321,7 @@ Thur,Lunch,Yes,51.51,17"""
 
         # gh-16120: already existing column
         with tm.assert_raises_regex(ValueError,
-                                    ("cannot insert \('A', ''\), "
+                                    (r"cannot insert \('A', ''\), "
                                      "already exists")):
             df.rename_axis('A').reset_index()
 
@@ -2323,7 +2355,7 @@ Thur,Lunch,Yes,51.51,17"""
         # ... which is incompatible with col_fill=None
         with tm.assert_raises_regex(ValueError,
                                     ("col_fill=None is incompatible with "
-                                     "incomplete column name \('C', 'c'\)")):
+                                     r"incomplete column name \('C', 'c'\)")):
             df2.rename_axis([('C', 'c')]).reset_index(col_fill=None)
 
         # with col_level != 0
@@ -2383,7 +2415,7 @@ Thur,Lunch,Yes,51.51,17"""
 
 
 class TestSorted(Base):
-    """ everthing you wanted to test about sorting """
+    """ everything you wanted to test about sorting """
 
     def test_sort_index_preserve_levels(self):
         result = self.frame.sort_index()

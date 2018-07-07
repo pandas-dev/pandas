@@ -4,31 +4,31 @@
 from cython cimport Py_ssize_t
 
 import numpy as np
-cimport numpy as np
-from numpy cimport ndarray, int64_t
-np.import_array()
+cimport numpy as cnp
+from numpy cimport ndarray, int64_t, int32_t
+cnp.import_array()
 
 from util cimport is_string_object, get_nat
 
-from pandas._libs.khash cimport (
-    khiter_t,
-    kh_destroy_int64, kh_put_int64,
-    kh_init_int64, kh_int64_t,
-    kh_resize_int64, kh_get_int64)
+from pandas._libs.khash cimport (khiter_t,
+                                 kh_destroy_int64, kh_put_int64,
+                                 kh_init_int64, kh_int64_t,
+                                 kh_resize_int64, kh_get_int64)
 
 from cpython.datetime cimport datetime
 
-from np_datetime cimport (pandas_datetimestruct,
-                          dtstruct_to_dt64, dt64_to_dtstruct)
+from np_datetime cimport pandas_datetimestruct, dt64_to_dtstruct
 from frequencies cimport get_freq_code
-from timezones cimport (
-    is_utc, is_tzlocal,
-    maybe_get_tz, get_dst_info, get_utcoffset)
+from timezones cimport (is_utc, is_tzlocal,
+                        maybe_get_tz, get_dst_info, get_utcoffset)
 from fields import build_field_sarray
 from conversion import tz_convert
+from conversion cimport tz_convert_utc_to_tzlocal
+from ccalendar import MONTH_ALIASES, int_to_weekday
+from ccalendar cimport get_days_in_month
+from timestamps import Timestamp
 
 from pandas._libs.properties import cache_readonly
-from pandas._libs.tslib import Timestamp
 
 from pandas.core.algorithms import unique  # TODO: Avoid this non-cython import
 
@@ -45,19 +45,12 @@ cdef int RESO_MIN = 4
 cdef int RESO_HR = 5
 cdef int RESO_DAY = 6
 
-_ONE_MICRO = 1000L
-_ONE_MILLI = _ONE_MICRO * 1000
-_ONE_SECOND = _ONE_MILLI * 1000
-_ONE_MINUTE = 60 * _ONE_SECOND
-_ONE_HOUR = 60 * _ONE_MINUTE
-_ONE_DAY = 24 * _ONE_HOUR
-
-DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']
-_weekday_rule_aliases = {k: v for k, v in enumerate(DAYS)}
-
-_MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
-           'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-_MONTH_ALIASES = {(k + 1): v for k, v in enumerate(_MONTHS)}
+_ONE_MICRO = <int64_t>1000L
+_ONE_MILLI = <int64_t>(_ONE_MICRO * 1000)
+_ONE_SECOND = <int64_t>(_ONE_MILLI * 1000)
+_ONE_MINUTE = <int64_t>(60 * _ONE_SECOND)
+_ONE_HOUR = <int64_t>(60 * _ONE_MINUTE)
+_ONE_DAY = <int64_t>(24 * _ONE_HOUR)
 
 # ----------------------------------------------------------------------
 
@@ -87,6 +80,7 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
         int reso = RESO_DAY, curr_reso
         ndarray[int64_t] trans, deltas, pos
         pandas_datetimestruct dts
+        int64_t local_val
 
     if is_utc(tz):
         for i in range(n):
@@ -100,11 +94,8 @@ cdef _reso_local(ndarray[int64_t] stamps, object tz):
         for i in range(n):
             if stamps[i] == NPY_NAT:
                 continue
-            dt64_to_dtstruct(stamps[i], &dts)
-            dt = datetime(dts.year, dts.month, dts.day, dts.hour,
-                          dts.min, dts.sec, dts.us, tz)
-            delta = int(get_utcoffset(tz, dt).total_seconds()) * 1000000000
-            dt64_to_dtstruct(stamps[i] + delta, &dts)
+            local_val = tz_convert_utc_to_tzlocal(stamps[i], tz)
+            dt64_to_dtstruct(local_val, &dts)
             curr_reso = _reso_stamp(&dts)
             if curr_reso < reso:
                 reso = curr_reso
@@ -356,10 +347,10 @@ class Resolution(object):
 # Frequency Inference
 
 
-# TODO: this is non performiant logic here (and duplicative) and this
+# TODO: this is non performant logic here (and duplicative) and this
 # simply should call unique_1d directly
 # plus no reason to depend on khash directly
-cdef unique_deltas(ndarray[int64_t] arr):
+cdef ndarray[int64_t, ndim=1] unique_deltas(ndarray[int64_t] arr):
     cdef:
         Py_ssize_t i, n = len(arr)
         int64_t val
@@ -383,21 +374,27 @@ cdef unique_deltas(ndarray[int64_t] arr):
     return result
 
 
-def _is_multiple(us, mult):
+cdef inline bint _is_multiple(int64_t us, int64_t mult):
     return us % mult == 0
 
 
-def _maybe_add_count(base, count):
+cdef inline str _maybe_add_count(str base, int64_t count):
     if count != 1:
-        return '{count}{base}'.format(count=int(count), base=base)
+        return '{count}{base}'.format(count=count, base=base)
     else:
         return base
 
 
-class _FrequencyInferer(object):
+cdef class _FrequencyInferer(object):
     """
     Not sure if I can avoid the state machine here
     """
+    cdef public:
+        object index
+        object values
+        bint warn
+        bint is_monotonic
+        dict _cache
 
     def __init__(self, index, warn=True):
         self.index = index
@@ -485,19 +482,25 @@ class _FrequencyInferer(object):
     def rep_stamp(self):
         return Timestamp(self.values[0])
 
-    def month_position_check(self):
+    cdef month_position_check(self):
         # TODO: cythonize this, very slow
-        calendar_end = True
-        business_end = True
-        calendar_start = True
-        business_start = True
+        cdef:
+            int32_t daysinmonth, y, m, d
+            bint calendar_end = True
+            bint business_end = True
+            bint calendar_start = True
+            bint business_start = True
+            bint cal
+            int32_t[:] years
+            int32_t[:] months
+            int32_t[:] days
 
-        years = self.fields['Y']
-        months = self.fields['M']
-        days = self.fields['D']
+        fields = self.fields
+        years = fields['Y']
+        months = fields['M']
+        days = fields['D']
         weekdays = self.index.dayofweek
 
-        from calendar import monthrange
         for y, m, d, wd in zip(years, months, days, weekdays):
 
             if calendar_start:
@@ -506,7 +509,7 @@ class _FrequencyInferer(object):
                 business_start &= d == 1 or (d <= 3 and wd == 0)
 
             if calendar_end or business_end:
-                _, daysinmonth = monthrange(y, m)
+                daysinmonth = get_days_in_month(y, m)
                 cal = d == daysinmonth
                 if calendar_end:
                     calendar_end &= cal
@@ -535,11 +538,11 @@ class _FrequencyInferer(object):
     def ydiffs(self):
         return unique_deltas(self.fields['Y'].astype('i8'))
 
-    def _infer_daily_rule(self):
+    cdef _infer_daily_rule(self):
         annual_rule = self._get_annual_rule()
         if annual_rule:
             nyears = self.ydiffs[0]
-            month = _MONTH_ALIASES[self.rep_stamp.month]
+            month = MONTH_ALIASES[self.rep_stamp.month]
             alias = '{prefix}-{month}'.format(prefix=annual_rule, month=month)
             return _maybe_add_count(alias, nyears)
 
@@ -547,7 +550,7 @@ class _FrequencyInferer(object):
         if quarterly_rule:
             nquarters = self.mdiffs[0] / 3
             mod_dict = {0: 12, 2: 11, 1: 10}
-            month = _MONTH_ALIASES[mod_dict[self.rep_stamp.month % 3]]
+            month = MONTH_ALIASES[mod_dict[self.rep_stamp.month % 3]]
             alias = '{prefix}-{month}'.format(prefix=quarterly_rule,
                                               month=month)
             return _maybe_add_count(alias, nquarters)
@@ -560,7 +563,7 @@ class _FrequencyInferer(object):
             days = self.deltas[0] / _ONE_DAY
             if days % 7 == 0:
                 # Weekly
-                day = _weekday_rule_aliases[self.rep_stamp.weekday()]
+                day = int_to_weekday[self.rep_stamp.weekday()]
                 return _maybe_add_count('W-{day}'.format(day=day), days / 7)
             else:
                 return _maybe_add_count('D', days)
@@ -572,7 +575,7 @@ class _FrequencyInferer(object):
         if wom_rule:
             return wom_rule
 
-    def _get_annual_rule(self):
+    cdef _get_annual_rule(self):
         if len(self.ydiffs) > 1:
             return None
 
@@ -583,7 +586,7 @@ class _FrequencyInferer(object):
         return {'cs': 'AS', 'bs': 'BAS',
                 'ce': 'A', 'be': 'BA'}.get(pos_check)
 
-    def _get_quarterly_rule(self):
+    cdef _get_quarterly_rule(self):
         if len(self.mdiffs) > 1:
             return None
 
@@ -594,14 +597,14 @@ class _FrequencyInferer(object):
         return {'cs': 'QS', 'bs': 'BQS',
                 'ce': 'Q', 'be': 'BQ'}.get(pos_check)
 
-    def _get_monthly_rule(self):
+    cdef _get_monthly_rule(self):
         if len(self.mdiffs) > 1:
             return None
         pos_check = self.month_position_check()
         return {'cs': 'MS', 'bs': 'BMS',
                 'ce': 'M', 'be': 'BM'}.get(pos_check)
 
-    def _is_business_daily(self):
+    cdef bint _is_business_daily(self):
         # quick check: cannot be business daily
         if self.day_deltas != [1, 3]:
             return False
@@ -614,7 +617,7 @@ class _FrequencyInferer(object):
         return np.all(((weekdays == 0) & (shifts == 3)) |
                       ((weekdays > 0) & (weekdays <= 4) & (shifts == 1)))
 
-    def _get_wom_rule(self):
+    cdef _get_wom_rule(self):
         #         wdiffs = unique(np.diff(self.index.week))
         # We also need -47, -49, -48 to catch index spanning year boundary
         #     if not lib.ismember(wdiffs, set([4, 5, -47, -49, -48])).all():
@@ -632,19 +635,19 @@ class _FrequencyInferer(object):
 
         # get which week
         week = week_of_months[0] + 1
-        wd = _weekday_rule_aliases[weekdays[0]]
+        wd = int_to_weekday[weekdays[0]]
 
         return 'WOM-{week}{weekday}'.format(week=week, weekday=wd)
 
 
-class _TimedeltaFrequencyInferer(_FrequencyInferer):
+cdef class _TimedeltaFrequencyInferer(_FrequencyInferer):
 
-    def _infer_daily_rule(self):
+    cdef _infer_daily_rule(self):
         if self.is_unique:
             days = self.deltas[0] / _ONE_DAY
             if days % 7 == 0:
                 # Weekly
-                wd = _weekday_rule_aliases[self.rep_stamp.weekday()]
+                wd = int_to_weekday[self.rep_stamp.weekday()]
                 alias = 'W-{weekday}'.format(weekday=wd)
                 return _maybe_add_count(alias, days / 7)
             else:

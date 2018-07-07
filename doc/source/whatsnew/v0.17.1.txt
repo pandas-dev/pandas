@@ -5,7 +5,7 @@ v0.17.1 (November 21, 2015)
 
 .. note::
 
-   We are proud to announce that *pandas* has become a sponsored project of the (`NUMFocus organization`_). This will help ensure the success of development of *pandas* as a world-class open-source project.
+   We are proud to announce that *pandas* has become a sponsored project of the (`NumFOCUS organization`_). This will help ensure the success of development of *pandas* as a world-class open-source project.
 
 .. _numfocus organization: http://www.numfocus.org/blog/numfocus-announces-new-fiscally-sponsored-project-pandas
 
@@ -41,7 +41,7 @@ Conditional HTML Formatting
 We've added *experimental* support for conditional HTML formatting:
 the visual styling of a DataFrame based on the data.
 The styling is accomplished with HTML and CSS.
-Acesses the styler class with the :attr:`pandas.DataFrame.style`, attribute,
+Accesses the styler class with the :attr:`pandas.DataFrame.style`, attribute,
 an instance of :class:`~pandas.core.style.Styler` with your data attached.
 
 Here's a quick example:
@@ -58,7 +58,7 @@ We can render the HTML to get the following table.
    :file: whatsnew_0171_html_table.html
 
 :class:`~pandas.core.style.Styler` interacts nicely with the Jupyter Notebook.
-See the :ref:`documentation <style.ipynb>` for more.
+See the :ref:`documentation </style.ipynb>` for more.
 
 .. _whatsnew_0171.enhancements:
 
@@ -157,11 +157,11 @@ Bug Fixes
 - ``Series.sort_index()`` now correctly handles the ``inplace`` option (:issue:`11402`)
 - Incorrectly distributed .c file in the build on ``PyPi`` when reading a csv of floats and passing ``na_values=<a scalar>`` would show an exception (:issue:`11374`)
 - Bug in ``.to_latex()`` output broken when the index has a name (:issue:`10660`)
-- Bug in ``HDFStore.append`` with strings whose encoded length exceded the max unencoded length (:issue:`11234`)
+- Bug in ``HDFStore.append`` with strings whose encoded length exceeded the max unencoded length (:issue:`11234`)
 - Bug in merging ``datetime64[ns, tz]`` dtypes (:issue:`11405`)
 - Bug in ``HDFStore.select`` when comparing with a numpy scalar in a where clause (:issue:`11283`)
-- Bug in using ``DataFrame.ix`` with a multi-index indexer (:issue:`11372`)
-- Bug in ``date_range`` with ambigous endpoints (:issue:`11626`)
+- Bug in using ``DataFrame.ix`` with a MultiIndex indexer (:issue:`11372`)
+- Bug in ``date_range`` with ambiguous endpoints (:issue:`11626`)
 - Prevent adding new attributes to the accessors ``.str``, ``.dt`` and ``.cat``. Retrieving such
   a value was not possible, so error out on setting it. (:issue:`10673`)
 - Bug in tz-conversions with an ambiguous time and ``.dt`` accessors (:issue:`11295`)
@@ -189,7 +189,7 @@ Bug Fixes
 - Bug in ``pandas.json`` when file to load is big (:issue:`11344`)
 - Bugs in ``to_excel`` with duplicate columns (:issue:`11007`, :issue:`10982`, :issue:`10970`)
 - Fixed a bug that prevented the construction of an empty series of dtype ``datetime64[ns, tz]`` (:issue:`11245`).
-- Bug in ``read_excel`` with multi-index containing integers (:issue:`11317`)
+- Bug in ``read_excel`` with MultiIndex containing integers (:issue:`11317`)
 - Bug in ``to_excel`` with openpyxl 2.2+ and merging (:issue:`11408`)
 - Bug in ``DataFrame.to_dict()`` produces a ``np.datetime64`` object instead of ``Timestamp`` when only datetime is present in data (:issue:`11327`)
 - Bug in ``DataFrame.corr()`` raises exception when computes Kendall correlation for DataFrames with boolean and not boolean columns (:issue:`11560`)

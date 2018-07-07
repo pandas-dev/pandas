@@ -1,241 +1,139 @@
-from .pandas_vb_common import *
-
+import numpy as np
+import pandas.util.testing as tm
+from pandas import DataFrame, Series, read_csv, factorize, date_range
 from pandas.core.algorithms import take_1d
-
 try:
-    from cStringIO import StringIO
+    from pandas import (rolling_median, rolling_mean, rolling_min, rolling_max,
+                        rolling_var, rolling_skew, rolling_kurt, rolling_std)
+    have_rolling_methods = True
 except ImportError:
-    from io import StringIO
-
+    have_rolling_methods = False
 try:
     from pandas._libs import algos
 except ImportError:
     from pandas import algos
-
 try:
     from pandas.util.testing import test_parallel
-
     have_real_test_parallel = True
 except ImportError:
     have_real_test_parallel = False
 
-
     def test_parallel(num_threads=1):
-
         def wrapper(fname):
             return fname
-
         return wrapper
 
+from .pandas_vb_common import BaseIO, setup  # noqa
 
-class NoGilGroupby(object):
+
+class ParallelGroupbyMethods(object):
+
     goal_time = 0.2
+    params = ([2, 4, 8], ['count', 'last', 'max', 'mean', 'min', 'prod',
+                          'sum', 'var'])
+    param_names = ['threads', 'method']
 
-    def setup(self):
-        self.N = 1000000
-        self.ngroups = 1000
-        np.random.seed(1234)
-        self.df = DataFrame({'key': np.random.randint(0, self.ngroups, size=self.N), 'data': np.random.randn(self.N), })
-
-        np.random.seed(1234)
-        self.size = 2 ** 22
-        self.ngroups = 100
-        self.data = Series(np.random.randint(0, self.ngroups, size=self.size))
-
-        if (not have_real_test_parallel):
+    def setup(self, threads, method):
+        if not have_real_test_parallel:
             raise NotImplementedError
+        N = 10**6
+        ngroups = 10**3
+        df = DataFrame({'key': np.random.randint(0, ngroups, size=N),
+                        'data': np.random.randn(N)})
 
-    @test_parallel(num_threads=2)
-    def _pg2_count(self):
-        self.df.groupby('key')['data'].count()
+        @test_parallel(num_threads=threads)
+        def parallel():
+            getattr(df.groupby('key')['data'], method)()
+        self.parallel = parallel
 
-    def time_count_2(self):
-        self._pg2_count()
+        def loop():
+            getattr(df.groupby('key')['data'], method)()
+        self.loop = loop
 
-    @test_parallel(num_threads=2)
-    def _pg2_last(self):
-        self.df.groupby('key')['data'].last()
+    def time_parallel(self, threads, method):
+        self.parallel()
 
-    def time_last_2(self):
-        self._pg2_last()
-
-    @test_parallel(num_threads=2)
-    def _pg2_max(self):
-        self.df.groupby('key')['data'].max()
-
-    def time_max_2(self):
-        self._pg2_max()
-
-    @test_parallel(num_threads=2)
-    def _pg2_mean(self):
-        self.df.groupby('key')['data'].mean()
-
-    def time_mean_2(self):
-        self._pg2_mean()
-
-    @test_parallel(num_threads=2)
-    def _pg2_min(self):
-        self.df.groupby('key')['data'].min()
-
-    def time_min_2(self):
-        self._pg2_min()
-
-    @test_parallel(num_threads=2)
-    def _pg2_prod(self):
-        self.df.groupby('key')['data'].prod()
-
-    def time_prod_2(self):
-        self._pg2_prod()
-
-    @test_parallel(num_threads=2)
-    def _pg2_sum(self):
-        self.df.groupby('key')['data'].sum()
-
-    def time_sum_2(self):
-        self._pg2_sum()
-
-    @test_parallel(num_threads=4)
-    def _pg4_sum(self):
-        self.df.groupby('key')['data'].sum()
-
-    def time_sum_4(self):
-        self._pg4_sum()
-
-    def time_sum_4_notp(self):
-        for i in range(4):
-            self.df.groupby('key')['data'].sum()
-
-    def _f_sum(self):
-        self.df.groupby('key')['data'].sum()
-
-    @test_parallel(num_threads=8)
-    def _pg8_sum(self):
-        self._f_sum()
-
-    def time_sum_8(self):
-        self._pg8_sum()
-
-    def time_sum_8_notp(self):
-        for i in range(8):
-            self._f_sum()
-
-    @test_parallel(num_threads=2)
-    def _pg2_var(self):
-        self.df.groupby('key')['data'].var()
-
-    def time_var_2(self):
-        self._pg2_var()
-
-    # get groups
-
-    def _groups(self):
-        self.data.groupby(self.data).groups
-
-    @test_parallel(num_threads=2)
-    def _pg2_groups(self):
-        self._groups()
-
-    def time_groups_2(self):
-        self._pg2_groups()
-
-    @test_parallel(num_threads=4)
-    def _pg4_groups(self):
-        self._groups()
-
-    def time_groups_4(self):
-        self._pg4_groups()
-
-    @test_parallel(num_threads=8)
-    def _pg8_groups(self):
-        self._groups()
-
-    def time_groups_8(self):
-        self._pg8_groups()
+    def time_loop(self, threads, method):
+        for i in range(threads):
+            self.loop()
 
 
+class ParallelGroups(object):
 
-class nogil_take1d_float64(object):
     goal_time = 0.2
+    params = [2, 4, 8]
+    param_names = ['threads']
 
-    def setup(self):
-        self.N = 1000000
-        self.ngroups = 1000
-        np.random.seed(1234)
-        self.df = DataFrame({'key': np.random.randint(0, self.ngroups, size=self.N), 'data': np.random.randn(self.N), })
-        if (not have_real_test_parallel):
+    def setup(self, threads):
+        if not have_real_test_parallel:
             raise NotImplementedError
-        self.N = 10000000.0
-        self.df = DataFrame({'int64': np.arange(self.N, dtype='int64'), 'float64': np.arange(self.N, dtype='float64'), })
-        self.indexer = np.arange(100, (len(self.df) - 100))
+        size = 2**22
+        ngroups = 10**3
+        data = Series(np.random.randint(0, ngroups, size=size))
 
-    def time_nogil_take1d_float64(self):
-        self.take_1d_pg2_int64()
+        @test_parallel(num_threads=threads)
+        def get_groups():
+            data.groupby(data).groups
+        self.get_groups = get_groups
 
-    @test_parallel(num_threads=2)
-    def take_1d_pg2_int64(self):
-        take_1d(self.df.int64.values, self.indexer)
-
-    @test_parallel(num_threads=2)
-    def take_1d_pg2_float64(self):
-        take_1d(self.df.float64.values, self.indexer)
+    def time_get_groups(self, threads):
+        self.get_groups()
 
 
-class nogil_take1d_int64(object):
+class ParallelTake1D(object):
+
     goal_time = 0.2
+    params = ['int64', 'float64']
+    param_names = ['dtype']
 
-    def setup(self):
-        self.N = 1000000
-        self.ngroups = 1000
-        np.random.seed(1234)
-        self.df = DataFrame({'key': np.random.randint(0, self.ngroups, size=self.N), 'data': np.random.randn(self.N), })
-        if (not have_real_test_parallel):
+    def setup(self, dtype):
+        if not have_real_test_parallel:
             raise NotImplementedError
-        self.N = 10000000.0
-        self.df = DataFrame({'int64': np.arange(self.N, dtype='int64'), 'float64': np.arange(self.N, dtype='float64'), })
-        self.indexer = np.arange(100, (len(self.df) - 100))
+        N = 10**6
+        df = DataFrame({'col': np.arange(N, dtype=dtype)})
+        indexer = np.arange(100, len(df) - 100)
 
-    def time_nogil_take1d_int64(self):
-        self.take_1d_pg2_float64()
+        @test_parallel(num_threads=2)
+        def parallel_take1d():
+            take_1d(df['col'].values, indexer)
+        self.parallel_take1d = parallel_take1d
 
-    @test_parallel(num_threads=2)
-    def take_1d_pg2_int64(self):
-        take_1d(self.df.int64.values, self.indexer)
-
-    @test_parallel(num_threads=2)
-    def take_1d_pg2_float64(self):
-        take_1d(self.df.float64.values, self.indexer)
+    def time_take1d(self, dtype):
+        self.parallel_take1d()
 
 
-class nogil_kth_smallest(object):
+class ParallelKth(object):
+
     number = 1
     repeat = 5
 
     def setup(self):
-        if (not have_real_test_parallel):
+        if not have_real_test_parallel:
             raise NotImplementedError
-        np.random.seed(1234)
-        self.N = 10000000
-        self.k = 500000
-        self.a = np.random.randn(self.N)
-        self.b = self.a.copy()
-        self.kwargs_list = [{'arr': self.a}, {'arr': self.b}]
+        N = 10**7
+        k = 5 * 10**5
+        kwargs_list = [{'arr': np.random.randn(N)},
+                       {'arr': np.random.randn(N)}]
 
-    def time_nogil_kth_smallest(self):
-        @test_parallel(num_threads=2, kwargs_list=self.kwargs_list)
-        def run(arr):
-            algos.kth_smallest(arr, self.k)
-        run()
+        @test_parallel(num_threads=2, kwargs_list=kwargs_list)
+        def parallel_kth_smallest(arr):
+            algos.kth_smallest(arr, k)
+        self.parallel_kth_smallest = parallel_kth_smallest
+
+    def time_kth_smallest(self):
+        self.parallel_kth_smallest()
 
 
-class nogil_datetime_fields(object):
+class ParallelDatetimeFields(object):
+
     goal_time = 0.2
 
     def setup(self):
-        self.N = 100000000
-        self.dti = pd.date_range('1900-01-01', periods=self.N, freq='T')
-        self.period = self.dti.to_period('D')
-        if (not have_real_test_parallel):
+        if not have_real_test_parallel:
             raise NotImplementedError
+        N = 10**6
+        self.dti = date_range('1900-01-01', periods=N, freq='T')
+        self.period = self.dti.to_period('D')
 
     def time_datetime_field_year(self):
         @test_parallel(num_threads=2)
@@ -274,149 +172,104 @@ class nogil_datetime_fields(object):
         run(self.period)
 
 
-class nogil_rolling_algos_slow(object):
-    goal_time = 0.2
+class ParallelRolling(object):
 
-    def setup(self):
-        self.win = 100
-        np.random.seed(1234)
-        self.arr = np.random.rand(100000)
-        if (not have_real_test_parallel):
+    goal_time = 0.2
+    params = ['median', 'mean', 'min', 'max', 'var', 'skew', 'kurt', 'std']
+    param_names = ['method']
+
+    def setup(self, method):
+        if not have_real_test_parallel:
+            raise NotImplementedError
+        win = 100
+        arr = np.random.rand(100000)
+        if hasattr(DataFrame, 'rolling'):
+            df = DataFrame(arr).rolling(win)
+
+            @test_parallel(num_threads=2)
+            def parallel_rolling():
+                getattr(df, method)()
+            self.parallel_rolling = parallel_rolling
+        elif have_rolling_methods:
+            rolling = {'median': rolling_median,
+                       'mean': rolling_mean,
+                       'min': rolling_min,
+                       'max': rolling_max,
+                       'var': rolling_var,
+                       'skew': rolling_skew,
+                       'kurt': rolling_kurt,
+                       'std': rolling_std}
+
+            @test_parallel(num_threads=2)
+            def parallel_rolling():
+                rolling[method](arr, win)
+            self.parallel_rolling = parallel_rolling
+        else:
             raise NotImplementedError
 
-    def time_nogil_rolling_median(self):
-        @test_parallel(num_threads=2)
-        def run(arr, win):
-            rolling_median(arr, win)
-        run(self.arr, self.win)
+    def time_rolling(self, method):
+        self.parallel_rolling()
 
 
-class nogil_rolling_algos_fast(object):
-    goal_time = 0.2
+class ParallelReadCSV(BaseIO):
 
-    def setup(self):
-        self.win = 100
-        np.random.seed(1234)
-        self.arr = np.random.rand(1000000)
-        if (not have_real_test_parallel):
-            raise NotImplementedError
-
-    def time_nogil_rolling_mean(self):
-        @test_parallel(num_threads=2)
-        def run(arr, win):
-            rolling_mean(arr, win)
-        run(self.arr, self.win)
-
-    def time_nogil_rolling_min(self):
-        @test_parallel(num_threads=2)
-        def run(arr, win):
-            rolling_min(arr, win)
-        run(self.arr, self.win)
-
-    def time_nogil_rolling_max(self):
-        @test_parallel(num_threads=2)
-        def run(arr, win):
-            rolling_max(arr, win)
-        run(self.arr, self.win)
-
-    def time_nogil_rolling_var(self):
-        @test_parallel(num_threads=2)
-        def run(arr, win):
-            rolling_var(arr, win)
-        run(self.arr, self.win)
-
-    def time_nogil_rolling_skew(self):
-        @test_parallel(num_threads=2)
-        def run(arr, win):
-            rolling_skew(arr, win)
-        run(self.arr, self.win)
-
-    def time_nogil_rolling_kurt(self):
-        @test_parallel(num_threads=2)
-        def run(arr, win):
-            rolling_kurt(arr, win)
-        run(self.arr, self.win)
-
-    def time_nogil_rolling_std(self):
-        @test_parallel(num_threads=2)
-        def run(arr, win):
-            rolling_std(arr, win)
-        run(self.arr, self.win)
-
-
-class nogil_read_csv(object):
     number = 1
     repeat = 5
+    params = ['float', 'object', 'datetime']
+    param_names = ['dtype']
 
-    def setup(self):
-        if (not have_real_test_parallel):
+    def setup(self, dtype):
+        if not have_real_test_parallel:
             raise NotImplementedError
-        # Using the values
-        self.df = DataFrame(np.random.randn(10000, 50))
-        self.df.to_csv('__test__.csv')
+        rows = 10000
+        cols = 50
+        data = {'float': DataFrame(np.random.randn(rows, cols)),
+                'datetime': DataFrame(np.random.randn(rows, cols),
+                                      index=date_range('1/1/2000',
+                                                       periods=rows)),
+                'object': DataFrame('foo',
+                                    index=range(rows),
+                                    columns=['object%03d'.format(i)
+                                             for i in range(5)])}
 
-        self.rng = date_range('1/1/2000', periods=10000)
-        self.df_date_time = DataFrame(np.random.randn(10000, 50), index=self.rng)
-        self.df_date_time.to_csv('__test_datetime__.csv')
+        self.fname = '__test_{}__.csv'.format(dtype)
+        df = data[dtype]
+        df.to_csv(self.fname)
 
-        self.df_object = DataFrame('foo', index=self.df.index, columns=self.create_cols('object'))
-        self.df_object.to_csv('__test_object__.csv')
+        @test_parallel(num_threads=2)
+        def parallel_read_csv():
+            read_csv(self.fname)
+        self.parallel_read_csv = parallel_read_csv
 
-    def create_cols(self, name):
-        return [('%s%03d' % (name, i)) for i in range(5)]
-
-    @test_parallel(num_threads=2)
-    def pg_read_csv(self):
-        read_csv('__test__.csv', sep=',', header=None, float_precision=None)
-
-    def time_read_csv(self):
-        self.pg_read_csv()
-
-    @test_parallel(num_threads=2)
-    def pg_read_csv_object(self):
-        read_csv('__test_object__.csv', sep=',')
-
-    def time_read_csv_object(self):
-        self.pg_read_csv_object()
-
-    @test_parallel(num_threads=2)
-    def pg_read_csv_datetime(self):
-        read_csv('__test_datetime__.csv', sep=',', header=None)
-
-    def time_read_csv_datetime(self):
-        self.pg_read_csv_datetime()
+    def time_read_csv(self, dtype):
+        self.parallel_read_csv()
 
 
-class nogil_factorize(object):
+class ParallelFactorize(object):
+
     number = 1
     repeat = 5
+    params = [2, 4, 8]
+    param_names = ['threads']
 
-    def setup(self):
-        if (not have_real_test_parallel):
+    def setup(self, threads):
+        if not have_real_test_parallel:
             raise NotImplementedError
 
-        np.random.seed(1234)
-        self.strings = tm.makeStringIndex(100000)
+        strings = tm.makeStringIndex(100000)
 
-    def factorize_strings(self):
-        pd.factorize(self.strings)
+        @test_parallel(num_threads=threads)
+        def parallel():
+            factorize(strings)
+        self.parallel = parallel
 
-    @test_parallel(num_threads=4)
-    def _pg_factorize_strings_4(self):
-        self.factorize_strings()
+        def loop():
+            factorize(strings)
+        self.loop = loop
 
-    def time_factorize_strings_4(self):
-        for i in range(2):
-            self._pg_factorize_strings_4()
+    def time_parallel(self, threads):
+        self.parallel()
 
-    @test_parallel(num_threads=2)
-    def _pg_factorize_strings_2(self):
-        self.factorize_strings()
-
-    def time_factorize_strings_2(self):
-        for i in range(4):
-            self._pg_factorize_strings_2()
-
-    def time_factorize_strings(self):
-        for i in range(8):
-            self.factorize_strings()
+    def time_loop(self, threads):
+        for i in range(threads):
+            self.loop()

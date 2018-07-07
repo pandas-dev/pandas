@@ -50,9 +50,9 @@ cdef extern from "../src/datetime/np_datetime.h":
         PANDAS_FR_fs
         PANDAS_FR_as
 
-    int days_per_month_table[2][12]
-    int dayofweek(int y, int m, int d) nogil
-    int is_leapyear(int64_t year) nogil
+    void pandas_datetime_to_datetimestruct(npy_datetime val,
+                                           PANDAS_DATETIMEUNIT fr,
+                                           pandas_datetimestruct *result) nogil
 
 
 cdef int reverse_ops[6]
@@ -71,3 +71,6 @@ cdef int64_t pydate_to_dt64(date val, pandas_datetimestruct *dts)
 cdef npy_datetime get_datetime64_value(object obj) nogil
 cdef npy_timedelta get_timedelta64_value(object obj) nogil
 cdef PANDAS_DATETIMEUNIT get_datetime64_unit(object obj) nogil
+
+cdef int _string_to_dts(object val, pandas_datetimestruct* dts,
+                        int* out_local, int* out_tzoffset) except? -1

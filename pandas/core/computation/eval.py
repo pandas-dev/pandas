@@ -169,9 +169,9 @@ def eval(expr, parser='pandas', engine=None, truediv=True,
     expr : str or unicode
         The expression to evaluate. This string cannot contain any Python
         `statements
-        <http://docs.python.org/2/reference/simple_stmts.html#simple-statements>`__,
+        <https://docs.python.org/3/reference/simple_stmts.html#simple-statements>`__,
         only Python `expressions
-        <http://docs.python.org/2/reference/simple_stmts.html#expression-statements>`__.
+        <https://docs.python.org/3/reference/simple_stmts.html#expression-statements>`__.
     parser : string, default 'pandas', {'pandas', 'python'}
         The parser to use to construct the syntax tree from the expression. The
         default of ``'pandas'`` parses code slightly different than standard

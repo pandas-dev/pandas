@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as tm
 import pandas.core.indexes.period as period
-from pandas import Series, period_range, DataFrame, Period
+from pandas import Series, period_range, DataFrame
 
 
 def _permute(obj):
@@ -63,17 +63,6 @@ class TestSeriesPeriod(object):
         tm.assert_series_equal(s.dropna(),
                                Series([pd.Period('2011-01', freq='M')]))
 
-    def test_series_comparison_scalars(self):
-        val = pd.Period('2000-01-04', freq='D')
-        result = self.series > val
-        expected = pd.Series([x > val for x in self.series])
-        tm.assert_series_equal(result, expected)
-
-        val = self.series[5]
-        result = self.series > val
-        expected = pd.Series([x > val for x in self.series])
-        tm.assert_series_equal(result, expected)
-
     def test_between(self):
         left, right = self.series[[2, 7]]
         result = self.series.between(left, right)
@@ -128,110 +117,7 @@ class TestSeriesPeriod(object):
         result = df.values.squeeze()
         assert (result[:, 0] == expected.values).all()
 
-    def test_comp_series_period_scalar(self):
-        # GH 13200
-        for freq in ['M', '2M', '3M']:
-            base = Series([Period(x, freq=freq) for x in
-                           ['2011-01', '2011-02', '2011-03', '2011-04']])
-            p = Period('2011-02', freq=freq)
-
-            exp = pd.Series([False, True, False, False])
-            tm.assert_series_equal(base == p, exp)
-            tm.assert_series_equal(p == base, exp)
-
-            exp = pd.Series([True, False, True, True])
-            tm.assert_series_equal(base != p, exp)
-            tm.assert_series_equal(p != base, exp)
-
-            exp = pd.Series([False, False, True, True])
-            tm.assert_series_equal(base > p, exp)
-            tm.assert_series_equal(p < base, exp)
-
-            exp = pd.Series([True, False, False, False])
-            tm.assert_series_equal(base < p, exp)
-            tm.assert_series_equal(p > base, exp)
-
-            exp = pd.Series([False, True, True, True])
-            tm.assert_series_equal(base >= p, exp)
-            tm.assert_series_equal(p <= base, exp)
-
-            exp = pd.Series([True, True, False, False])
-            tm.assert_series_equal(base <= p, exp)
-            tm.assert_series_equal(p >= base, exp)
-
-            # different base freq
-            msg = "Input has different freq=A-DEC from Period"
-            with tm.assert_raises_regex(
-                    period.IncompatibleFrequency, msg):
-                base <= Period('2011', freq='A')
-
-            with tm.assert_raises_regex(
-                    period.IncompatibleFrequency, msg):
-                Period('2011', freq='A') >= base
-
-    def test_comp_series_period_series(self):
-        # GH 13200
-        for freq in ['M', '2M', '3M']:
-            base = Series([Period(x, freq=freq) for x in
-                           ['2011-01', '2011-02', '2011-03', '2011-04']])
-
-            s = Series([Period(x, freq=freq) for x in
-                        ['2011-02', '2011-01', '2011-03', '2011-05']])
-
-            exp = Series([False, False, True, False])
-            tm.assert_series_equal(base == s, exp)
-
-            exp = Series([True, True, False, True])
-            tm.assert_series_equal(base != s, exp)
-
-            exp = Series([False, True, False, False])
-            tm.assert_series_equal(base > s, exp)
-
-            exp = Series([True, False, False, True])
-            tm.assert_series_equal(base < s, exp)
-
-            exp = Series([False, True, True, False])
-            tm.assert_series_equal(base >= s, exp)
-
-            exp = Series([True, False, True, True])
-            tm.assert_series_equal(base <= s, exp)
-
-            s2 = Series([Period(x, freq='A') for x in
-                         ['2011', '2011', '2011', '2011']])
-
-            # different base freq
-            msg = "Input has different freq=A-DEC from Period"
-            with tm.assert_raises_regex(
-                    period.IncompatibleFrequency, msg):
-                base <= s2
-
-    def test_comp_series_period_object(self):
-        # GH 13200
-        base = Series([Period('2011', freq='A'), Period('2011-02', freq='M'),
-                       Period('2013', freq='A'), Period('2011-04', freq='M')])
-
-        s = Series([Period('2012', freq='A'), Period('2011-01', freq='M'),
-                    Period('2013', freq='A'), Period('2011-05', freq='M')])
-
-        exp = Series([False, False, True, False])
-        tm.assert_series_equal(base == s, exp)
-
-        exp = Series([True, True, False, True])
-        tm.assert_series_equal(base != s, exp)
-
-        exp = Series([False, True, False, False])
-        tm.assert_series_equal(base > s, exp)
-
-        exp = Series([True, False, False, True])
-        tm.assert_series_equal(base < s, exp)
-
-        exp = Series([False, True, True, False])
-        tm.assert_series_equal(base >= s, exp)
-
-        exp = Series([True, False, True, True])
-        tm.assert_series_equal(base <= s, exp)
-
-    def test_align_series(self):
+    def test_add_series(self):
         rng = period_range('1/1/2000', '1/1/2010', freq='A')
         ts = Series(np.random.randn(len(rng)), index=rng)
 
@@ -243,12 +129,15 @@ class TestSeriesPeriod(object):
         result = ts + _permute(ts[::2])
         tm.assert_series_equal(result, expected)
 
-        # it works!
-        for kind in ['inner', 'outer', 'left', 'right']:
-            ts.align(ts[::2], join=kind)
         msg = "Input has different freq=D from PeriodIndex\\(freq=A-DEC\\)"
         with tm.assert_raises_regex(period.IncompatibleFrequency, msg):
             ts + ts.asfreq('D', how="end")
+
+    def test_align_series(self, join_type):
+        rng = period_range('1/1/2000', '1/1/2010', freq='A')
+        ts = Series(np.random.randn(len(rng)), index=rng)
+
+        ts.align(ts[::2], join=join_type)
 
     def test_truncate(self):
         # GH 17717

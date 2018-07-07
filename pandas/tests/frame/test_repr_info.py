@@ -5,12 +5,14 @@ from __future__ import print_function
 from datetime import datetime, timedelta
 import re
 import sys
+import textwrap
 
 from numpy import nan
 import numpy as np
 import pytest
 
-from pandas import (DataFrame, compat, option_context)
+from pandas import (DataFrame, Series, compat, option_context,
+                    date_range, period_range, Categorical)
 from pandas.compat import StringIO, lrange, u, PYPY
 import pandas.io.formats.format as fmt
 import pandas as pd
@@ -171,8 +173,8 @@ class TestDataFrameReprInfoEtc(TestData):
                                       'the CSV file externally. I want to Call'
                                       ' the File through the code..')})
 
-        result = repr(df)
-        assert 'StringCol' in result
+        with option_context('display.max_columns', 20):
+            assert 'StringCol' in repr(df)
 
     def test_latex_repr(self):
         result = r"""\begin{tabular}{llll}
@@ -202,6 +204,25 @@ class TestDataFrameReprInfoEtc(TestData):
 
         frame.info()
         frame.info(verbose=False)
+
+    def test_info_memory(self):
+        # https://github.com/pandas-dev/pandas/issues/21056
+        df = pd.DataFrame({'a': pd.Series([1, 2], dtype='i8')})
+        buf = StringIO()
+        df.info(buf=buf)
+        result = buf.getvalue()
+        bytes = float(df.memory_usage().sum())
+
+        expected = textwrap.dedent("""\
+        <class 'pandas.core.frame.DataFrame'>
+        RangeIndex: 2 entries, 0 to 1
+        Data columns (total 1 columns):
+        a    2 non-null int64
+        dtypes: int64(1)
+        memory usage: {} bytes
+        """.format(bytes))
+
+        assert result == expected
 
     def test_info_wide(self):
         from pandas import set_option, reset_option
@@ -306,7 +327,7 @@ class TestDataFrameReprInfoEtc(TestData):
         res = buf.getvalue().splitlines()
         assert "memory usage: " in res[-1]
 
-        # do not display memory usage cas
+        # do not display memory usage case
         df.info(buf=buf, memory_usage=False)
         res = buf.getvalue().splitlines()
         assert "memory usage: " not in res[-1]
@@ -471,3 +492,34 @@ class TestDataFrameReprInfoEtc(TestData):
 
         buf = StringIO()
         df.info(buf=buf)
+
+    def test_info_categorical_column(self):
+
+        # make sure it works
+        n = 2500
+        df = DataFrame({'int64': np.random.randint(100, size=n)})
+        df['category'] = Series(np.array(list('abcdefghij')).take(
+            np.random.randint(0, 10, size=n))).astype('category')
+        df.isna()
+        buf = StringIO()
+        df.info(buf=buf)
+
+        df2 = df[df['category'] == 'd']
+        buf = compat.StringIO()
+        df2.info(buf=buf)
+
+    def test_repr_categorical_dates_periods(self):
+        # normal DataFrame
+        dt = date_range('2011-01-01 09:00', freq='H', periods=5,
+                        tz='US/Eastern')
+        p = period_range('2011-01', freq='M', periods=5)
+        df = DataFrame({'dt': dt, 'p': p})
+        exp = """                         dt       p
+0 2011-01-01 09:00:00-05:00 2011-01
+1 2011-01-01 10:00:00-05:00 2011-02
+2 2011-01-01 11:00:00-05:00 2011-03
+3 2011-01-01 12:00:00-05:00 2011-04
+4 2011-01-01 13:00:00-05:00 2011-05"""
+
+        df = DataFrame({'dt': Categorical(dt), 'p': Categorical(p)})
+        assert repr(df) == exp

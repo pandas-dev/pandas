@@ -27,7 +27,7 @@ Statistics and Machine Learning
 `Statsmodels <http://www.statsmodels.org/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Statsmodels is the prominent python "statistics and econometrics library" and it has
+Statsmodels is the prominent Python "statistics and econometrics library" and it has
 a long-standing special relationship with pandas. Statsmodels provides powerful statistics,
 econometrics, analysis and modeling functionality that is out of pandas' scope.
 Statsmodels leverages pandas objects as the underlying data container for computation.
@@ -38,7 +38,10 @@ Statsmodels leverages pandas objects as the underlying data container for comput
 Use pandas DataFrames in your `scikit-learn <http://scikit-learn.org/>`__
 ML pipeline.
 
+`Featuretools <https://github.com/featuretools/featuretools/>`__
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Featuretools is a Python library for automated feature engineering built on top of pandas. It excels at transforming temporal and relational datasets into feature matrices for machine learning using reusable feature engineering "primitives". Users can contribute their own primitives in Python and share them with the rest of the community. 
 
 .. _ecosystem.visualization:
 
@@ -72,7 +75,7 @@ Hadley Wickham's `ggplot2 <http://ggplot2.org/>`__ is a foundational exploratory
 Based on `"The Grammar of Graphics" <http://www.cs.uic.edu/~wilkinson/TheGrammarOfGraphics/GOG.html>`__ it
 provides a powerful, declarative and extremely general way to generate bespoke plots of any kind of data.
 It's really quite incredible. Various implementations to other languages are available,
-but a faithful implementation for python users has long been missing. Although still young
+but a faithful implementation for Python users has long been missing. Although still young
 (as of Jan-2014), the `yhat/ggplot <https://github.com/yhat/ggplot>`__ project has been
 progressing quickly in that direction.
 
@@ -156,14 +159,14 @@ See more in the  `pandas-datareader docs <https://pandas-datareader.readthedocs.
 
 The following data feeds are available:
 
-  * Yahoo! Finance
-  * Google Finance
-  * FRED
-  * Fama/French
-  * World Bank
-  * OECD
-  * Eurostat
-  * EDGAR Index
+* Yahoo! Finance
+* Google Finance
+* FRED
+* Fama/French
+* World Bank
+* OECD
+* Eurostat
+* EDGAR Index
 
 `quandl/Python <https://github.com/quandl/Python>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -184,15 +187,15 @@ and metadata disseminated in
 `SDMX <http://www.sdmx.org>`_ 2.1, an ISO-standard
 widely used by institutions such as statistics offices, central banks,   
 and international organisations. pandaSDMX can expose datasets and related 
-structural metadata including dataflows, code-lists, 
-and datastructure definitions as pandas Series 
-or multi-indexed DataFrames.  
+structural metadata including data flows, code-lists,
+and data structure definitions as pandas Series
+or MultiIndexed DataFrames.
    
 `fredapi <https://github.com/mortada/fredapi>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 fredapi is a Python interface to the `Federal Reserve Economic Data (FRED) <http://research.stlouisfed.org/fred2/>`__
 provided by the Federal Reserve Bank of St. Louis. It works with both the FRED database and ALFRED database that
-contains point-in-time data (i.e. historic data revisions). fredapi provides a wrapper in python to the FRED
+contains point-in-time data (i.e. historic data revisions). fredapi provides a wrapper in Python to the FRED
 HTTP API, and also provides several convenient methods for parsing and analyzing point-in-time data from ALFRED.
 fredapi makes use of pandas and returns data in a Series or DataFrame. This module requires a FRED API key that
 you can obtain for free on the FRED website.
@@ -260,5 +263,40 @@ Data validation
 `Engarde <http://engarde.readthedocs.io/en/latest/>`__
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Engarde is a lightweight library used to explicitly state your assumptions abour your datasets
+Engarde is a lightweight library used to explicitly state your assumptions about your datasets
 and check that they're *actually* true.
+
+.. _ecosystem.extensions:
+
+Extension Data Types
+--------------------
+
+Pandas provides an interface for defining
+:ref:`extension types <extending.extension-types>` to extend NumPy's type
+system. The following libraries implement that interface to provide types not
+found in NumPy or pandas, which work well with pandas' data containers.
+
+`cyberpandas`_
+~~~~~~~~~~~~~~
+
+Cyberpandas provides an extension type for storing arrays of IP Addresses. These
+arrays can be stored inside pandas' Series and DataFrame.
+
+.. _ecosystem.accessors:
+
+Accessors
+---------
+
+A directory of projects providing
+:ref:`extension accessors <extending.register-accessors>`. This is for users to
+discover new accessors and for library authors to coordinate on the namespace.
+
+============== ========== =========================
+Library        Accessor   Classes
+============== ========== =========================
+`cyberpandas`_ ``ip``     ``Series``
+`pdvega`_      ``vgplot`` ``Series``, ``DataFrame``
+============== ========== =========================
+
+.. _cyberpandas: https://cyberpandas.readthedocs.io/en/latest
+.. _pdvega: https://jakevdp.github.io/pdvega/

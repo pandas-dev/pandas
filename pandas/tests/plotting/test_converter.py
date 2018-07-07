@@ -1,18 +1,143 @@
+import subprocess
+import sys
 import pytest
 from datetime import datetime, date
 
 import numpy as np
-from pandas import Timestamp, Period, Index
+from pandas import Timestamp, Period, Index, date_range, Series
 from pandas.compat import u
+import pandas.core.config as cf
 import pandas.util.testing as tm
 from pandas.tseries.offsets import Second, Milli, Micro, Day
 from pandas.compat.numpy import np_datetime64_compat
 
 converter = pytest.importorskip('pandas.plotting._converter')
+from pandas.plotting import (register_matplotlib_converters,
+                             deregister_matplotlib_converters)
 
 
 def test_timtetonum_accepts_unicode():
     assert (converter.time2num("00:01") == converter.time2num(u("00:01")))
+
+
+class TestRegistration(object):
+
+    def test_register_by_default(self):
+        # Run in subprocess to ensure a clean state
+        code = ("'import matplotlib.units; "
+                "import pandas as pd; "
+                "units = dict(matplotlib.units.registry); "
+                "assert pd.Timestamp in units)'")
+        call = [sys.executable, '-c', code]
+        assert subprocess.check_call(call) == 0
+
+    def test_warns(self):
+        plt = pytest.importorskip("matplotlib.pyplot")
+        s = Series(range(12), index=date_range('2017', periods=12))
+        _, ax = plt.subplots()
+
+        # Set to the "warning" state, in case this isn't the first test run
+        converter._WARN = True
+        with tm.assert_produces_warning(FutureWarning,
+                                        check_stacklevel=False) as w:
+            ax.plot(s.index, s.values)
+            plt.close()
+
+        assert len(w) == 1
+        assert "Using an implicitly registered datetime converter" in str(w[0])
+
+    def test_registering_no_warning(self):
+        plt = pytest.importorskip("matplotlib.pyplot")
+        s = Series(range(12), index=date_range('2017', periods=12))
+        _, ax = plt.subplots()
+
+        # Set to the "warn" state, in case this isn't the first test run
+        converter._WARN = True
+        register_matplotlib_converters()
+        with tm.assert_produces_warning(None) as w:
+            ax.plot(s.index, s.values)
+
+        assert len(w) == 0
+
+    def test_pandas_plots_register(self):
+        pytest.importorskip("matplotlib.pyplot")
+        s = Series(range(12), index=date_range('2017', periods=12))
+        # Set to the "warn" state, in case this isn't the first test run
+        converter._WARN = True
+        with tm.assert_produces_warning(None) as w:
+            s.plot()
+
+        assert len(w) == 0
+
+    def test_matplotlib_formatters(self):
+        units = pytest.importorskip("matplotlib.units")
+        assert Timestamp in units.registry
+
+        ctx = cf.option_context("plotting.matplotlib.register_converters",
+                                False)
+        with ctx:
+            assert Timestamp not in units.registry
+
+        assert Timestamp in units.registry
+
+    def test_option_no_warning(self):
+        pytest.importorskip("matplotlib.pyplot")
+        ctx = cf.option_context("plotting.matplotlib.register_converters",
+                                False)
+        plt = pytest.importorskip("matplotlib.pyplot")
+        s = Series(range(12), index=date_range('2017', periods=12))
+        _, ax = plt.subplots()
+
+        converter._WARN = True
+        # Test without registering first, no warning
+        with ctx:
+            with tm.assert_produces_warning(None) as w:
+                ax.plot(s.index, s.values)
+
+        assert len(w) == 0
+
+        # Now test with registering
+        converter._WARN = True
+        register_matplotlib_converters()
+        with ctx:
+            with tm.assert_produces_warning(None) as w:
+                ax.plot(s.index, s.values)
+
+        assert len(w) == 0
+
+    def test_registry_resets(self):
+        units = pytest.importorskip("matplotlib.units")
+        dates = pytest.importorskip("matplotlib.dates")
+
+        # make a copy, to reset to
+        original = dict(units.registry)
+
+        try:
+            # get to a known state
+            units.registry.clear()
+            date_converter = dates.DateConverter()
+            units.registry[datetime] = date_converter
+            units.registry[date] = date_converter
+
+            register_matplotlib_converters()
+            assert units.registry[date] is not date_converter
+            deregister_matplotlib_converters()
+            assert units.registry[date] is date_converter
+
+        finally:
+            # restore original stater
+            units.registry.clear()
+            for k, v in original.items():
+                units.registry[k] = v
+
+    def test_old_import_warns(self):
+        with tm.assert_produces_warning(FutureWarning) as w:
+            from pandas.tseries import converter
+            converter.register()
+
+        assert len(w)
+        assert ('pandas.plotting.register_matplotlib_converters' in
+                str(w[0].message))
 
 
 class TestDateTimeConverter(object):
@@ -112,7 +237,28 @@ class TestDateTimeConverter(object):
         assert rs == xp
 
     def test_time_formatter(self):
-        self.tc(90000)
+        # issue 18478
+
+        # time2num(datetime.time.min)
+        rs = self.tc(0)
+        xp = '00:00'
+        assert rs == xp
+
+        # time2num(datetime.time.max)
+        rs = self.tc(86399.999999)
+        xp = '23:59:59.999999'
+        assert rs == xp
+
+        # some other times
+        rs = self.tc(90000)
+        xp = '01:00'
+        assert rs == xp
+        rs = self.tc(3723)
+        xp = '01:02:03'
+        assert rs == xp
+        rs = self.tc(39723.2)
+        xp = '11:02:03.200'
+        assert rs == xp
 
     def test_dateindex_conversion(self):
         decimals = 9
@@ -182,21 +328,19 @@ class TestPeriodConverter(object):
         rs = self.pc.convert(Timestamp('2012-1-1'), None, self.axis)
         assert rs == xp
 
-        # FIXME
-        # rs = self.pc.convert(
-        #        np_datetime64_compat('2012-01-01'), None, self.axis)
-        # assert rs == xp
-        #
-        # rs = self.pc.convert(
-        #        np_datetime64_compat('2012-01-01 00:00:00+0000'),
-        #                      None, self.axis)
-        # assert rs == xp
-        #
-        # rs = self.pc.convert(np.array([
-        #     np_datetime64_compat('2012-01-01 00:00:00+0000'),
-        #     np_datetime64_compat('2012-01-02 00:00:00+0000')]),
-        #                          None, self.axis)
-        # assert rs[0] == xp
+        rs = self.pc.convert(
+            np_datetime64_compat('2012-01-01'), None, self.axis)
+        assert rs == xp
+
+        rs = self.pc.convert(
+            np_datetime64_compat('2012-01-01 00:00:00+0000'), None, self.axis)
+        assert rs == xp
+
+        rs = self.pc.convert(np.array([
+            np_datetime64_compat('2012-01-01 00:00:00+0000'),
+            np_datetime64_compat('2012-01-02 00:00:00+0000')]),
+            None, self.axis)
+        assert rs[0] == xp
 
     def test_integer_passthrough(self):
         # GH9012

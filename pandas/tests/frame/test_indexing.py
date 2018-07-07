@@ -17,7 +17,9 @@ import numpy as np
 import pandas.core.common as com
 from pandas import (DataFrame, Index, Series, notna, isna,
                     MultiIndex, DatetimeIndex, Timestamp,
-                    date_range)
+                    date_range, Categorical)
+from pandas.core.dtypes.dtypes import CategoricalDtype
+
 import pandas as pd
 
 from pandas._libs.tslib import iNaT
@@ -90,45 +92,46 @@ class TestDataFrameIndexing(TestData):
             result = df.get(None)
             assert result is None
 
-    def test_getitem_iterator(self):
+    def test_loc_iterable(self):
         idx = iter(['A', 'B', 'C'])
         result = self.frame.loc[:, idx]
         expected = self.frame.loc[:, ['A', 'B', 'C']]
         assert_frame_equal(result, expected)
 
-        idx = iter(['A', 'B', 'C'])
-        result = self.frame.loc[:, idx]
-        expected = self.frame.loc[:, ['A', 'B', 'C']]
+    @pytest.mark.parametrize(
+        "idx_type",
+        [list, iter, Index, set,
+         lambda l: dict(zip(l, range(len(l)))),
+         lambda l: dict(zip(l, range(len(l)))).keys()],
+        ids=["list", "iter", "Index", "set", "dict", "dict_keys"])
+    @pytest.mark.parametrize("levels", [1, 2])
+    def test_getitem_listlike(self, idx_type, levels):
+        # GH 21294
+
+        if levels == 1:
+            frame, missing = self.frame, 'food'
+        else:
+            # MultiIndex columns
+            frame = DataFrame(randn(8, 3),
+                              columns=Index([('foo', 'bar'), ('baz', 'qux'),
+                                             ('peek', 'aboo')],
+                                            name=('sth', 'sth2')))
+            missing = ('good', 'food')
+
+        keys = [frame.columns[1], frame.columns[0]]
+        idx = idx_type(keys)
+        idx_check = list(idx_type(keys))
+
+        result = frame[idx]
+
+        expected = frame.loc[:, idx_check]
+        expected.columns.names = frame.columns.names
+
         assert_frame_equal(result, expected)
 
-    def test_getitem_list(self):
-        self.frame.columns.name = 'foo'
-
-        result = self.frame[['B', 'A']]
-        result2 = self.frame[Index(['B', 'A'])]
-
-        expected = self.frame.loc[:, ['B', 'A']]
-        expected.columns.name = 'foo'
-
-        assert_frame_equal(result, expected)
-        assert_frame_equal(result2, expected)
-
-        assert result.columns.name == 'foo'
-
+        idx = idx_type(keys + [missing])
         with tm.assert_raises_regex(KeyError, 'not in index'):
-            self.frame[['B', 'A', 'food']]
-        with tm.assert_raises_regex(KeyError, 'not in index'):
-            self.frame[Index(['B', 'A', 'foo'])]
-
-        # tuples
-        df = DataFrame(randn(8, 3),
-                       columns=Index([('foo', 'bar'), ('baz', 'qux'),
-                                      ('peek', 'aboo')], name=['sth', 'sth2']))
-
-        result = df[[('foo', 'bar'), ('baz', 'qux')]]
-        expected = df.iloc[:, :2]
-        assert_frame_equal(result, expected)
-        assert result.columns.names == ['sth', 'sth2']
+            frame[idx]
 
     def test_getitem_callable(self):
         # GH 12533
@@ -221,7 +224,8 @@ class TestDataFrameIndexing(TestData):
 
     def test_setitem_other_callable(self):
         # GH 13299
-        inc = lambda x: x + 1
+        def inc(x):
+            return x + 1
 
         df = pd.DataFrame([[-1, 1], [1, -1]])
         df[df > 0] = inc
@@ -394,8 +398,14 @@ class TestDataFrameIndexing(TestData):
         assert (self.frame['D'] == 0).all()
 
         df = DataFrame(np.random.randn(8, 4))
+        # ix does label-based indexing when having an integer index
         with catch_warnings(record=True):
-            assert isna(df.ix[:, [-1]].values).all()
+            with pytest.raises(KeyError):
+                df.ix[[-1]]
+
+        with catch_warnings(record=True):
+            with pytest.raises(KeyError):
+                df.ix[:, [-1]]
 
         # #1942
         a = DataFrame(randn(20, 2), index=[chr(x + 65) for x in range(20)])
@@ -522,9 +532,8 @@ class TestDataFrameIndexing(TestData):
         values[values == 2] = 3
         assert_almost_equal(df.values, values)
 
-        with tm.assert_raises_regex(TypeError, 'Must pass '
-                                    'DataFrame with '
-                                    'boolean values only'):
+        msg = "Must pass DataFrame or 2-d ndarray with boolean values only"
+        with tm.assert_raises_regex(TypeError, msg):
             df[df * 0] = 2
 
         # index with DataFrame
@@ -539,6 +548,25 @@ class TestDataFrameIndexing(TestData):
         df[df > np.abs(df)] = df * 2
         np.putmask(expected.values, mask.values, df.values * 2)
         assert_frame_equal(df, expected)
+
+    @pytest.mark.parametrize(
+        "mask_type",
+        [lambda df: df > np.abs(df) / 2,
+         lambda df: (df > np.abs(df) / 2).values],
+        ids=['dataframe', 'array'])
+    def test_setitem_boolean_mask(self, mask_type):
+
+        # Test for issue #18582
+        df = self.frame.copy()
+        mask = mask_type(df)
+
+        # index with boolean mask
+        result = df.copy()
+        result[mask] = np.nan
+
+        expected = df.copy()
+        expected.values[np.array(mask)] = np.nan
+        assert_frame_equal(result, expected)
 
     def test_setitem_cast(self):
         self.frame['D'] = self.frame['D'].astype('i8')
@@ -1524,6 +1552,25 @@ class TestDataFrameIndexing(TestData):
         # pytest.raises(
         #    Exception, df.loc.__setitem__, ('d', 'timestamp'), [nan])
 
+    def test_setitem_mixed_datetime(self):
+        # GH 9336
+        expected = DataFrame({'a': [0, 0, 0, 0, 13, 14],
+                              'b': [pd.datetime(2012, 1, 1),
+                                    1,
+                                    'x',
+                                    'y',
+                                    pd.datetime(2013, 1, 1),
+                                    pd.datetime(2014, 1, 1)]})
+        df = pd.DataFrame(0, columns=list('ab'), index=range(6))
+        df['b'] = pd.NaT
+        df.loc[0, 'b'] = pd.datetime(2012, 1, 1)
+        df.loc[1, 'b'] = 1
+        df.loc[[2, 3], 'b'] = 'x', 'y'
+        A = np.array([[13, np.datetime64('2013-01-01T00:00:00')],
+                      [14, np.datetime64('2014-01-01T00:00:00')]])
+        df.loc[[4, 5], ['a', 'b']] = A
+        assert_frame_equal(df, expected)
+
     def test_setitem_frame(self):
         piece = self.frame.loc[self.frame.index[:2], ['A', 'B']]
         self.frame.loc[self.frame.index[-2]:, ['A', 'B']] = piece.values
@@ -1905,6 +1952,32 @@ class TestDataFrameIndexing(TestData):
         expected = df.take([0], axis=1)
         assert_frame_equal(result, expected)
 
+    def test_loc_duplicates(self):
+        # gh-17105
+
+        # insert a duplicate element to the index
+        trange = pd.date_range(start=pd.Timestamp(year=2017, month=1, day=1),
+                               end=pd.Timestamp(year=2017, month=1, day=5))
+
+        trange = trange.insert(loc=5,
+                               item=pd.Timestamp(year=2017, month=1, day=5))
+
+        df = pd.DataFrame(0, index=trange, columns=["A", "B"])
+        bool_idx = np.array([False, False, False, False, False, True])
+
+        # assignment
+        df.loc[trange[bool_idx], "A"] = 6
+
+        expected = pd.DataFrame({'A': [0, 0, 0, 0, 6, 6],
+                                 'B': [0, 0, 0, 0, 0, 0]},
+                                index=trange)
+        tm.assert_frame_equal(df, expected)
+
+        # in-place
+        df = pd.DataFrame(0, index=trange, columns=["A", "B"])
+        df.loc[trange[bool_idx], "A"] += 6
+        tm.assert_frame_equal(df, expected)
+
     def test_iloc_sparse_propegate_fill_value(self):
         from pandas.core.sparse.api import SparseDataFrame
         df = SparseDataFrame({'A': [999, 1]}, default_fill_value=999)
@@ -2011,7 +2084,8 @@ class TestDataFrameIndexing(TestData):
         icol = ['jim', 'joe', 'jolie']
 
         def verify_first_level(df, level, idx, check_index_type=True):
-            f = lambda val: np.nonzero(df[level] == val)[0]
+            def f(val):
+                return np.nonzero(df[level] == val)[0]
             i = np.concatenate(list(map(f, idx)))
             left = df.set_index(icol).reindex(idx, level=level)
             right = df.iloc[i].set_index(icol)
@@ -2176,6 +2250,16 @@ class TestDataFrameIndexing(TestData):
                           [np.dtype('datetime64[ns]')] * 2,
                           index=list('ABCDEFGH'))
         assert_series_equal(result, expected)
+
+    @pytest.mark.parametrize('idxer', ['var', ['var']])
+    def test_setitem_datetimeindex_tz(self, idxer, tz_naive_fixture):
+        # GH 11365
+        tz = tz_naive_fixture
+        idx = date_range(start='2015-07-12', periods=3, freq='H', tz=tz)
+        expected = DataFrame(1.2, index=idx, columns=['var'])
+        result = DataFrame(index=idx, columns=['var'])
+        result.loc[:, idxer] = expected
+        tm.assert_frame_equal(result, expected)
 
     def test_at_time_between_time_datetimeindex(self):
         index = date_range("2012-01-01", "2012-01-05", freq='30min')
@@ -2410,8 +2494,8 @@ class TestDataFrameIndexing(TestData):
 
         # upcasting case (GH # 2794)
         df = DataFrame(dict((c, Series([1] * 3, dtype=c))
-                            for c in ['int64', 'int32',
-                                      'float32', 'float64']))
+                            for c in ['float32', 'float64',
+                                      'int32', 'int64']))
         df.iloc[1, :] = 0
         result = df.where(df >= 0).get_dtype_counts()
 
@@ -2855,6 +2939,20 @@ class TestDataFrameIndexing(TestData):
         tm.assert_frame_equal(result,
                               (df + 2).where((df + 2) > 8, (df + 2) + 10))
 
+    def test_where_tz_values(self, tz_naive_fixture):
+        df1 = DataFrame(DatetimeIndex(['20150101', '20150102', '20150103'],
+                                      tz=tz_naive_fixture),
+                        columns=['date'])
+        df2 = DataFrame(DatetimeIndex(['20150103', '20150104', '20150105'],
+                                      tz=tz_naive_fixture),
+                        columns=['date'])
+        mask = DataFrame([True, True, False], columns=['date'])
+        exp = DataFrame(DatetimeIndex(['20150101', '20150102', '20150105'],
+                                      tz=tz_naive_fixture),
+                        columns=['date'])
+        result = df1.where(mask, df2)
+        assert_frame_equal(exp, result)
+
     def test_mask(self):
         df = DataFrame(np.random.randn(5, 3))
         cond = df > 0
@@ -3075,3 +3173,372 @@ class TestDataFrameIndexingUInt64(TestData):
         expected = DataFrame(self.df.values.T)
         expected.index = ['A', 'B']
         assert_frame_equal(result, expected)
+
+
+class TestDataFrameIndexingCategorical(object):
+
+    def test_assignment(self):
+        # assignment
+        df = DataFrame({'value': np.array(
+            np.random.randint(0, 10000, 100), dtype='int32')})
+        labels = Categorical(["{0} - {1}".format(i, i + 499)
+                              for i in range(0, 10000, 500)])
+
+        df = df.sort_values(by=['value'], ascending=True)
+        s = pd.cut(df.value, range(0, 10500, 500), right=False, labels=labels)
+        d = s.values
+        df['D'] = d
+        str(df)
+
+        result = df.dtypes
+        expected = Series(
+            [np.dtype('int32'), CategoricalDtype(categories=labels,
+                                                 ordered=False)],
+            index=['value', 'D'])
+        tm.assert_series_equal(result, expected)
+
+        df['E'] = s
+        str(df)
+
+        result = df.dtypes
+        expected = Series([np.dtype('int32'),
+                           CategoricalDtype(categories=labels, ordered=False),
+                           CategoricalDtype(categories=labels, ordered=False)],
+                          index=['value', 'D', 'E'])
+        tm.assert_series_equal(result, expected)
+
+        result1 = df['D']
+        result2 = df['E']
+        tm.assert_categorical_equal(result1._data._block.values, d)
+
+        # sorting
+        s.name = 'E'
+        tm.assert_series_equal(result2.sort_index(), s.sort_index())
+
+        cat = Categorical([1, 2, 3, 10], categories=[1, 2, 3, 4, 10])
+        df = DataFrame(Series(cat))
+
+    def test_assigning_ops(self):
+        # systematically test the assigning operations:
+        # for all slicing ops:
+        #  for value in categories and value not in categories:
+
+        #   - assign a single value -> exp_single_cats_value
+
+        #   - assign a complete row (mixed values) -> exp_single_row
+
+        # assign multiple rows (mixed values) (-> array) -> exp_multi_row
+
+        # assign a part of a column with dtype == categorical ->
+        # exp_parts_cats_col
+
+        # assign a part of a column with dtype != categorical ->
+        # exp_parts_cats_col
+
+        cats = Categorical(["a", "a", "a", "a", "a", "a", "a"],
+                           categories=["a", "b"])
+        idx = Index(["h", "i", "j", "k", "l", "m", "n"])
+        values = [1, 1, 1, 1, 1, 1, 1]
+        orig = DataFrame({"cats": cats, "values": values}, index=idx)
+
+        # the expected values
+        # changed single row
+        cats1 = Categorical(["a", "a", "b", "a", "a", "a", "a"],
+                            categories=["a", "b"])
+        idx1 = Index(["h", "i", "j", "k", "l", "m", "n"])
+        values1 = [1, 1, 2, 1, 1, 1, 1]
+        exp_single_row = DataFrame({"cats": cats1,
+                                    "values": values1}, index=idx1)
+
+        # changed multiple rows
+        cats2 = Categorical(["a", "a", "b", "b", "a", "a", "a"],
+                            categories=["a", "b"])
+        idx2 = Index(["h", "i", "j", "k", "l", "m", "n"])
+        values2 = [1, 1, 2, 2, 1, 1, 1]
+        exp_multi_row = DataFrame({"cats": cats2,
+                                   "values": values2}, index=idx2)
+
+        # changed part of the cats column
+        cats3 = Categorical(
+            ["a", "a", "b", "b", "a", "a", "a"], categories=["a", "b"])
+        idx3 = Index(["h", "i", "j", "k", "l", "m", "n"])
+        values3 = [1, 1, 1, 1, 1, 1, 1]
+        exp_parts_cats_col = DataFrame({"cats": cats3,
+                                        "values": values3}, index=idx3)
+
+        # changed single value in cats col
+        cats4 = Categorical(
+            ["a", "a", "b", "a", "a", "a", "a"], categories=["a", "b"])
+        idx4 = Index(["h", "i", "j", "k", "l", "m", "n"])
+        values4 = [1, 1, 1, 1, 1, 1, 1]
+        exp_single_cats_value = DataFrame({"cats": cats4,
+                                           "values": values4}, index=idx4)
+
+        #  iloc
+        # ###############
+        #   - assign a single value -> exp_single_cats_value
+        df = orig.copy()
+        df.iloc[2, 0] = "b"
+        tm.assert_frame_equal(df, exp_single_cats_value)
+
+        df = orig.copy()
+        df.iloc[df.index == "j", 0] = "b"
+        tm.assert_frame_equal(df, exp_single_cats_value)
+
+        #   - assign a single value not in the current categories set
+        def f():
+            df = orig.copy()
+            df.iloc[2, 0] = "c"
+
+        pytest.raises(ValueError, f)
+
+        #   - assign a complete row (mixed values) -> exp_single_row
+        df = orig.copy()
+        df.iloc[2, :] = ["b", 2]
+        tm.assert_frame_equal(df, exp_single_row)
+
+        #   - assign a complete row (mixed values) not in categories set
+        def f():
+            df = orig.copy()
+            df.iloc[2, :] = ["c", 2]
+
+        pytest.raises(ValueError, f)
+
+        #   - assign multiple rows (mixed values) -> exp_multi_row
+        df = orig.copy()
+        df.iloc[2:4, :] = [["b", 2], ["b", 2]]
+        tm.assert_frame_equal(df, exp_multi_row)
+
+        def f():
+            df = orig.copy()
+            df.iloc[2:4, :] = [["c", 2], ["c", 2]]
+
+        pytest.raises(ValueError, f)
+
+        # assign a part of a column with dtype == categorical ->
+        # exp_parts_cats_col
+        df = orig.copy()
+        df.iloc[2:4, 0] = Categorical(["b", "b"], categories=["a", "b"])
+        tm.assert_frame_equal(df, exp_parts_cats_col)
+
+        with pytest.raises(ValueError):
+            # different categories -> not sure if this should fail or pass
+            df = orig.copy()
+            df.iloc[2:4, 0] = Categorical(list('bb'), categories=list('abc'))
+
+        with pytest.raises(ValueError):
+            # different values
+            df = orig.copy()
+            df.iloc[2:4, 0] = Categorical(list('cc'), categories=list('abc'))
+
+        # assign a part of a column with dtype != categorical ->
+        # exp_parts_cats_col
+        df = orig.copy()
+        df.iloc[2:4, 0] = ["b", "b"]
+        tm.assert_frame_equal(df, exp_parts_cats_col)
+
+        with pytest.raises(ValueError):
+            df.iloc[2:4, 0] = ["c", "c"]
+
+        #  loc
+        # ##############
+        #   - assign a single value -> exp_single_cats_value
+        df = orig.copy()
+        df.loc["j", "cats"] = "b"
+        tm.assert_frame_equal(df, exp_single_cats_value)
+
+        df = orig.copy()
+        df.loc[df.index == "j", "cats"] = "b"
+        tm.assert_frame_equal(df, exp_single_cats_value)
+
+        #   - assign a single value not in the current categories set
+        def f():
+            df = orig.copy()
+            df.loc["j", "cats"] = "c"
+
+        pytest.raises(ValueError, f)
+
+        #   - assign a complete row (mixed values) -> exp_single_row
+        df = orig.copy()
+        df.loc["j", :] = ["b", 2]
+        tm.assert_frame_equal(df, exp_single_row)
+
+        #   - assign a complete row (mixed values) not in categories set
+        def f():
+            df = orig.copy()
+            df.loc["j", :] = ["c", 2]
+
+        pytest.raises(ValueError, f)
+
+        #   - assign multiple rows (mixed values) -> exp_multi_row
+        df = orig.copy()
+        df.loc["j":"k", :] = [["b", 2], ["b", 2]]
+        tm.assert_frame_equal(df, exp_multi_row)
+
+        def f():
+            df = orig.copy()
+            df.loc["j":"k", :] = [["c", 2], ["c", 2]]
+
+        pytest.raises(ValueError, f)
+
+        # assign a part of a column with dtype == categorical ->
+        # exp_parts_cats_col
+        df = orig.copy()
+        df.loc["j":"k", "cats"] = Categorical(
+            ["b", "b"], categories=["a", "b"])
+        tm.assert_frame_equal(df, exp_parts_cats_col)
+
+        with pytest.raises(ValueError):
+            # different categories -> not sure if this should fail or pass
+            df = orig.copy()
+            df.loc["j":"k", "cats"] = Categorical(
+                ["b", "b"], categories=["a", "b", "c"])
+
+        with pytest.raises(ValueError):
+            # different values
+            df = orig.copy()
+            df.loc["j":"k", "cats"] = Categorical(
+                ["c", "c"], categories=["a", "b", "c"])
+
+        # assign a part of a column with dtype != categorical ->
+        # exp_parts_cats_col
+        df = orig.copy()
+        df.loc["j":"k", "cats"] = ["b", "b"]
+        tm.assert_frame_equal(df, exp_parts_cats_col)
+
+        with pytest.raises(ValueError):
+            df.loc["j":"k", "cats"] = ["c", "c"]
+
+        #  loc
+        # ##############
+        #   - assign a single value -> exp_single_cats_value
+        df = orig.copy()
+        df.loc["j", df.columns[0]] = "b"
+        tm.assert_frame_equal(df, exp_single_cats_value)
+
+        df = orig.copy()
+        df.loc[df.index == "j", df.columns[0]] = "b"
+        tm.assert_frame_equal(df, exp_single_cats_value)
+
+        #   - assign a single value not in the current categories set
+        def f():
+            df = orig.copy()
+            df.loc["j", df.columns[0]] = "c"
+
+        pytest.raises(ValueError, f)
+
+        #   - assign a complete row (mixed values) -> exp_single_row
+        df = orig.copy()
+        df.loc["j", :] = ["b", 2]
+        tm.assert_frame_equal(df, exp_single_row)
+
+        #   - assign a complete row (mixed values) not in categories set
+        def f():
+            df = orig.copy()
+            df.loc["j", :] = ["c", 2]
+
+        pytest.raises(ValueError, f)
+
+        #   - assign multiple rows (mixed values) -> exp_multi_row
+        df = orig.copy()
+        df.loc["j":"k", :] = [["b", 2], ["b", 2]]
+        tm.assert_frame_equal(df, exp_multi_row)
+
+        def f():
+            df = orig.copy()
+            df.loc["j":"k", :] = [["c", 2], ["c", 2]]
+
+        pytest.raises(ValueError, f)
+
+        # assign a part of a column with dtype == categorical ->
+        # exp_parts_cats_col
+        df = orig.copy()
+        df.loc["j":"k", df.columns[0]] = Categorical(
+            ["b", "b"], categories=["a", "b"])
+        tm.assert_frame_equal(df, exp_parts_cats_col)
+
+        with pytest.raises(ValueError):
+            # different categories -> not sure if this should fail or pass
+            df = orig.copy()
+            df.loc["j":"k", df.columns[0]] = Categorical(
+                ["b", "b"], categories=["a", "b", "c"])
+
+        with pytest.raises(ValueError):
+            # different values
+            df = orig.copy()
+            df.loc["j":"k", df.columns[0]] = Categorical(
+                ["c", "c"], categories=["a", "b", "c"])
+
+        # assign a part of a column with dtype != categorical ->
+        # exp_parts_cats_col
+        df = orig.copy()
+        df.loc["j":"k", df.columns[0]] = ["b", "b"]
+        tm.assert_frame_equal(df, exp_parts_cats_col)
+
+        with pytest.raises(ValueError):
+            df.loc["j":"k", df.columns[0]] = ["c", "c"]
+
+        # iat
+        df = orig.copy()
+        df.iat[2, 0] = "b"
+        tm.assert_frame_equal(df, exp_single_cats_value)
+
+        #   - assign a single value not in the current categories set
+        def f():
+            df = orig.copy()
+            df.iat[2, 0] = "c"
+
+        pytest.raises(ValueError, f)
+
+        # at
+        #   - assign a single value -> exp_single_cats_value
+        df = orig.copy()
+        df.at["j", "cats"] = "b"
+        tm.assert_frame_equal(df, exp_single_cats_value)
+
+        #   - assign a single value not in the current categories set
+        def f():
+            df = orig.copy()
+            df.at["j", "cats"] = "c"
+
+        pytest.raises(ValueError, f)
+
+        # fancy indexing
+        catsf = Categorical(["a", "a", "c", "c", "a", "a", "a"],
+                            categories=["a", "b", "c"])
+        idxf = Index(["h", "i", "j", "k", "l", "m", "n"])
+        valuesf = [1, 1, 3, 3, 1, 1, 1]
+        df = DataFrame({"cats": catsf, "values": valuesf}, index=idxf)
+
+        exp_fancy = exp_multi_row.copy()
+        exp_fancy["cats"].cat.set_categories(["a", "b", "c"], inplace=True)
+
+        df[df["cats"] == "c"] = ["b", 2]
+        # category c is kept in .categories
+        tm.assert_frame_equal(df, exp_fancy)
+
+        # set_value
+        df = orig.copy()
+        df.at["j", "cats"] = "b"
+        tm.assert_frame_equal(df, exp_single_cats_value)
+
+        def f():
+            df = orig.copy()
+            df.at["j", "cats"] = "c"
+
+        pytest.raises(ValueError, f)
+
+        # Assigning a Category to parts of a int/... column uses the values of
+        # the Catgorical
+        df = DataFrame({"a": [1, 1, 1, 1, 1], "b": list("aaaaa")})
+        exp = DataFrame({"a": [1, "b", "b", 1, 1], "b": list("aabba")})
+        df.loc[1:2, "a"] = Categorical(["b", "b"], categories=["a", "b"])
+        df.loc[2:3, "b"] = Categorical(["b", "b"], categories=["a", "b"])
+        tm.assert_frame_equal(df, exp)
+
+    def test_functions_no_warnings(self):
+        df = DataFrame({'value': np.random.randint(0, 100, 20)})
+        labels = ["{0} - {1}".format(i, i + 9) for i in range(0, 100, 10)]
+        with tm.assert_produces_warning(False):
+            df['group'] = pd.cut(df.value, range(0, 105, 10), right=False,
+                                 labels=labels)

@@ -9,6 +9,7 @@ from pandas import (Series, DataFrame, DatetimeIndex, Timestamp,
                     read_json, compat)
 from datetime import timedelta
 import pandas as pd
+import json
 
 from pandas.util.testing import (assert_almost_equal, assert_frame_equal,
                                  assert_series_equal, network,
@@ -36,8 +37,9 @@ _mixed_frame = _frame.copy()
 
 class TestPandasContainer(object):
 
-    def setup_method(self, method):
-        self.dirpath = tm.get_data_path()
+    @pytest.fixture(scope="function", autouse=True)
+    def setup(self, datapath):
+        self.dirpath = datapath("io", "json", "data")
 
         self.ts = tm.makeTimeSeries()
         self.ts.name = 'ts'
@@ -58,7 +60,8 @@ class TestPandasContainer(object):
         self.mixed_frame = _mixed_frame.copy()
         self.categorical = _cat_frame.copy()
 
-    def teardown_method(self, method):
+        yield
+
         del self.dirpath
 
         del self.ts
@@ -552,7 +555,7 @@ class TestPandasContainer(object):
 
     def test_label_overflow(self):
         # GH14256: buffer length not checked when writing label
-        df = pd.DataFrame({'foo': [1337], 'bar' * 100000: [1]})
+        df = pd.DataFrame({'bar' * 100000: [1], 'foo': [1337]})
         assert df.to_json() == \
             '{{"{bar}":{{"0":1}},"foo":{{"0":1337}}}}'.format(
                 bar=('bar' * 100000))
@@ -1038,7 +1041,6 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         assert_frame_equal(result, expected)
 
     def test_read_s3_jsonl(self, s3_resource):
-        pytest.importorskip('s3fs')
         # GH17200
 
         result = read_json('s3n://pandas-test/items.jsonl', lines=True)
@@ -1071,6 +1073,20 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         result = read_json(json, lines=True)
         expected = DataFrame([[u"foo\u201d", "bar"], ["foo", "bar"]],
                              columns=['a', 'b'])
+        assert_frame_equal(result, expected)
+
+    def test_read_json_large_numbers(self):
+        # GH18842
+        json = '{"articleId": "1404366058080022500245"}'
+        json = StringIO(json)
+        result = read_json(json, typ="series")
+        expected = Series(1.404366e+21, index=['articleId'])
+        assert_series_equal(result, expected)
+
+        json = '{"0": {"articleId": "1404366058080022500245"}}'
+        json = StringIO(json)
+        result = read_json(json)
+        expected = DataFrame(1.404366e+21, index=['articleId'], columns=[0])
         assert_frame_equal(result, expected)
 
     def test_to_jsonl(self):
@@ -1147,3 +1163,64 @@ DataFrame\\.index values are different \\(100\\.0 %\\)
         size_after = df.memory_usage(index=True, deep=True).sum()
 
         assert size_before == size_after
+
+    @pytest.mark.parametrize('data, expected', [
+        (DataFrame([[1, 2], [4, 5]], columns=['a', 'b']),
+            {'columns': ['a', 'b'], 'data': [[1, 2], [4, 5]]}),
+        (DataFrame([[1, 2], [4, 5]], columns=['a', 'b']).rename_axis('foo'),
+            {'columns': ['a', 'b'], 'data': [[1, 2], [4, 5]]}),
+        (DataFrame([[1, 2], [4, 5]], columns=['a', 'b'],
+                   index=[['a', 'b'], ['c', 'd']]),
+            {'columns': ['a', 'b'], 'data': [[1, 2], [4, 5]]}),
+        (Series([1, 2, 3], name='A'),
+            {'name': 'A', 'data': [1, 2, 3]}),
+        (Series([1, 2, 3], name='A').rename_axis('foo'),
+            {'name': 'A', 'data': [1, 2, 3]}),
+        (Series([1, 2], name='A', index=[['a', 'b'], ['c', 'd']]),
+            {'name': 'A', 'data': [1, 2]}),
+    ])
+    def test_index_false_to_json_split(self, data, expected):
+        # GH 17394
+        # Testing index=False in to_json with orient='split'
+
+        result = data.to_json(orient='split', index=False)
+        result = json.loads(result)
+
+        assert result == expected
+
+    @pytest.mark.parametrize('data', [
+        (DataFrame([[1, 2], [4, 5]], columns=['a', 'b'])),
+        (DataFrame([[1, 2], [4, 5]], columns=['a', 'b']).rename_axis('foo')),
+        (DataFrame([[1, 2], [4, 5]], columns=['a', 'b'],
+                   index=[['a', 'b'], ['c', 'd']])),
+        (Series([1, 2, 3], name='A')),
+        (Series([1, 2, 3], name='A').rename_axis('foo')),
+        (Series([1, 2], name='A', index=[['a', 'b'], ['c', 'd']])),
+    ])
+    def test_index_false_to_json_table(self, data):
+        # GH 17394
+        # Testing index=False in to_json with orient='table'
+
+        result = data.to_json(orient='table', index=False)
+        result = json.loads(result)
+
+        expected = {
+            'schema': pd.io.json.build_table_schema(data, index=False),
+            'data': DataFrame(data).to_dict(orient='records')
+        }
+
+        assert result == expected
+
+    @pytest.mark.parametrize('orient', [
+        'records', 'index', 'columns', 'values'
+    ])
+    def test_index_false_error_to_json(self, orient):
+        # GH 17394
+        # Testing error message from to_json with index=False
+
+        df = pd.DataFrame([[1, 2], [4, 5]], columns=['a', 'b'])
+
+        with tm.assert_raises_regex(ValueError, "'index=False' is only "
+                                                "valid when 'orient' is "
+                                                "'split' or 'table'"):
+            df.to_json(orient=orient, index=False)

@@ -318,26 +318,19 @@ int cmp_pandas_datetimestruct(const pandas_datetimestruct *a,
 /*
  *
  * Tests for and converts a Python datetime.datetime or datetime.date
- * object into a NumPy pandas_datetimestruct.
+ * object into a NumPy pandas_datetimestruct.  Uses tzinfo (if present)
+ * to convert to UTC time.
  *
  * While the C API has PyDate_* and PyDateTime_* functions, the following
  * implementation just asks for attributes, and thus supports
  * datetime duck typing. The tzinfo time zone conversion would require
  * this style of access anyway.
  *
- * 'out_bestunit' gives a suggested unit based on whether the object
- *      was a datetime.date or datetime.datetime object.
- *
- * If 'apply_tzinfo' is 1, this function uses the tzinfo to convert
- * to UTC time, otherwise it returns the struct with the local time.
- *
  * Returns -1 on error, 0 on success, and 1 (with no error set)
- * if obj doesn't have the neeeded date or datetime attributes.
+ * if obj doesn't have the needed date or datetime attributes.
  */
 int convert_pydatetime_to_datetimestruct(PyObject *obj,
-                                         pandas_datetimestruct *out,
-                                         PANDAS_DATETIMEUNIT *out_bestunit,
-                                         int apply_tzinfo) {
+                                         pandas_datetimestruct *out) {
     PyObject *tmp;
     int isleap;
 
@@ -404,10 +397,6 @@ int convert_pydatetime_to_datetimestruct(PyObject *obj,
         !PyObject_HasAttrString(obj, "minute") ||
         !PyObject_HasAttrString(obj, "second") ||
         !PyObject_HasAttrString(obj, "microsecond")) {
-        /* The best unit for date is 'D' */
-        if (out_bestunit != NULL) {
-            *out_bestunit = PANDAS_FR_D;
-        }
         return 0;
     }
 
@@ -465,7 +454,7 @@ int convert_pydatetime_to_datetimestruct(PyObject *obj,
     }
 
     /* Apply the time zone offset if it exists */
-    if (apply_tzinfo && PyObject_HasAttrString(obj, "tzinfo")) {
+    if (PyObject_HasAttrString(obj, "tzinfo")) {
         tmp = PyObject_GetAttrString(obj, "tzinfo");
         if (tmp == NULL) {
             return -1;
@@ -506,11 +495,6 @@ int convert_pydatetime_to_datetimestruct(PyObject *obj,
         }
     }
 
-    /* The resolution of Python's datetime is 'us' */
-    if (out_bestunit != NULL) {
-        *out_bestunit = PANDAS_FR_us;
-    }
-
     return 0;
 
 invalid_date:
@@ -529,51 +513,34 @@ invalid_time:
 
 npy_datetime pandas_datetimestruct_to_datetime(PANDAS_DATETIMEUNIT fr,
                                                pandas_datetimestruct *d) {
-    pandas_datetime_metadata meta;
     npy_datetime result = PANDAS_DATETIME_NAT;
 
-    meta.base = fr;
-    meta.num = 1;
-
-    convert_datetimestruct_to_datetime(&meta, d, &result);
+    convert_datetimestruct_to_datetime(fr, d, &result);
     return result;
 }
 
 void pandas_datetime_to_datetimestruct(npy_datetime val, PANDAS_DATETIMEUNIT fr,
                                        pandas_datetimestruct *result) {
-    pandas_datetime_metadata meta;
-
-    meta.base = fr;
-    meta.num = 1;
-
-    convert_datetime_to_datetimestruct(&meta, val, result);
+    convert_datetime_to_datetimestruct(fr, val, result);
 }
 
 void pandas_timedelta_to_timedeltastruct(npy_timedelta val,
                                          PANDAS_DATETIMEUNIT fr,
                                          pandas_timedeltastruct *result) {
-  pandas_datetime_metadata meta;
-
-  meta.base = fr;
-  meta.num = 1;
-
-  convert_timedelta_to_timedeltastruct(&meta, val, result);
+    convert_timedelta_to_timedeltastruct(fr, val, result);
 }
 
 
 /*
  * Converts a datetime from a datetimestruct to a datetime based
- * on some metadata. The date is assumed to be valid.
- *
- * TODO: If meta->num is really big, there could be overflow
+ * on a metadata unit. The date is assumed to be valid.
  *
  * Returns 0 on success, -1 on failure.
  */
-int convert_datetimestruct_to_datetime(pandas_datetime_metadata *meta,
+int convert_datetimestruct_to_datetime(PANDAS_DATETIMEUNIT base,
                                        const pandas_datetimestruct *dts,
                                        npy_datetime *out) {
     npy_datetime ret;
-    PANDAS_DATETIMEUNIT base = meta->base;
 
     if (base == PANDAS_FR_Y) {
         /* Truncate to the year */
@@ -665,15 +632,6 @@ int convert_datetimestruct_to_datetime(pandas_datetime_metadata *meta,
         }
     }
 
-    /* Divide by the multiplier */
-    if (meta->num > 1) {
-        if (ret >= 0) {
-            ret /= meta->num;
-        } else {
-            ret = (ret - meta->num + 1) / meta->num;
-        }
-    }
-
     *out = ret;
 
     return 0;
@@ -682,7 +640,7 @@ int convert_datetimestruct_to_datetime(pandas_datetime_metadata *meta,
 /*
  * Converts a datetime based on the given metadata into a datetimestruct
  */
-int convert_datetime_to_datetimestruct(pandas_datetime_metadata *meta,
+int convert_datetime_to_datetimestruct(PANDAS_DATETIMEUNIT base,
                                        npy_datetime dt,
                                        pandas_datetimestruct *out) {
     npy_int64 perday;
@@ -693,14 +651,11 @@ int convert_datetime_to_datetimestruct(pandas_datetime_metadata *meta,
     out->month = 1;
     out->day = 1;
 
-    /* TODO: Change to a mechanism that avoids the potential overflow */
-    dt *= meta->num;
-
     /*
      * Note that care must be taken with the / and % operators
      * for negative values.
      */
-    switch (meta->base) {
+    switch (base) {
         case PANDAS_FR_Y:
             out->year = 1970 + dt;
             break;
@@ -902,11 +857,11 @@ int convert_datetime_to_datetimestruct(pandas_datetime_metadata *meta,
 
 /*
  * Converts a timedelta from a timedeltastruct to a timedelta based
- * on some metadata. The timedelta is assumed to be valid.
+ * on a metadata unit. The timedelta is assumed to be valid.
  *
  * Returns 0 on success, -1 on failure.
  */
-int convert_timedelta_to_timedeltastruct(pandas_timedelta_metadata *meta,
+int convert_timedelta_to_timedeltastruct(PANDAS_DATETIMEUNIT base,
                                          npy_timedelta td,
                                          pandas_timedeltastruct *out) {
     npy_int64 frac;
@@ -918,7 +873,7 @@ int convert_timedelta_to_timedeltastruct(pandas_timedelta_metadata *meta,
     /* Initialize the output to all zeros */
     memset(out, 0, sizeof(pandas_timedeltastruct));
 
-    switch (meta->base) {
+    switch (base) {
         case PANDAS_FR_ns:
 
         // put frac in seconds

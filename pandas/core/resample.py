@@ -5,17 +5,19 @@ import copy
 from textwrap import dedent
 
 import pandas as pd
-from pandas.core.base import AbstractMethodError, GroupByMixin
+from pandas.core.base import GroupByMixin
 
-from pandas.core.groupby import (BinGrouper, Grouper, _GroupBy, GroupBy,
-                                 SeriesGroupBy, groupby, PanelGroupBy)
+from pandas.core.groupby.groupby import (
+    BinGrouper, Grouper, _GroupBy, GroupBy, SeriesGroupBy, groupby,
+    PanelGroupBy, _pipe_template
+)
 
 from pandas.tseries.frequencies import to_offset, is_subperiod, is_superperiod
 from pandas.core.indexes.datetimes import DatetimeIndex, date_range
 from pandas.core.indexes.timedeltas import TimedeltaIndex
 from pandas.tseries.offsets import DateOffset, Tick, Day, delta_to_nanoseconds
 from pandas.core.indexes.period import PeriodIndex
-import pandas.core.common as com
+from pandas.errors import AbstractMethodError
 import pandas.core.algorithms as algos
 from pandas.core.dtypes.generic import ABCDataFrame, ABCSeries
 
@@ -23,10 +25,10 @@ import pandas.compat as compat
 from pandas.compat.numpy import function as nv
 
 from pandas._libs import lib, tslib
-from pandas._libs.lib import Timestamp
-from pandas._libs.period import IncompatibleFrequency
+from pandas._libs.tslib import Timestamp
+from pandas._libs.tslibs.period import IncompatibleFrequency
 
-from pandas.util._decorators import Appender
+from pandas.util._decorators import Appender, Substitution
 from pandas.core.generic import _shared_docs
 _shared_docs_kwargs = dict()
 
@@ -60,20 +62,6 @@ class Resampler(_GroupBy):
     _attributes = ['freq', 'axis', 'closed', 'label', 'convention',
                    'loffset', 'base', 'kind']
 
-    # API compat of allowed attributes
-    _deprecated_valids = _attributes + ['__doc__', '_cache', '_attributes',
-                                        'binner', 'grouper', 'groupby',
-                                        'sort', 'kind', 'squeeze', 'keys',
-                                        'group_keys', 'as_index', 'exclusions',
-                                        '_groupby']
-
-    # don't raise deprecation warning on attributes starting with these
-    # patterns - prevents warnings caused by IPython introspection
-    _deprecated_valid_patterns = ['_ipython', '_repr']
-
-    # API compat of disallowed attributes
-    _deprecated_invalids = ['iloc', 'loc', 'ix', 'iat', 'at']
-
     def __init__(self, obj, groupby=None, axis=0, kind=None, **kwargs):
         self.groupby = groupby
         self.keys = None
@@ -98,6 +86,16 @@ class Resampler(_GroupBy):
         return "{klass} [{attrs}]".format(klass=self.__class__.__name__,
                                           attrs=', '.join(attrs))
 
+    def __getattr__(self, attr):
+        if attr in self._internal_names_set:
+            return object.__getattribute__(self, attr)
+        if attr in self._attributes:
+            return getattr(self.groupby, attr)
+        if attr in self.obj:
+            return self[attr]
+
+        return object.__getattribute__(self, attr)
+
     @property
     def obj(self):
         return self.groupby.obj
@@ -121,100 +119,6 @@ class Resampler(_GroupBy):
         return (self.groupby is not None and
                 (self.groupby.key is not None or
                  self.groupby.level is not None))
-
-    def _deprecated(self, op):
-        warnings.warn(("\n.resample() is now a deferred operation\n"
-                       "You called {op}(...) on this deferred object "
-                       "which materialized it into a {klass}\nby implicitly "
-                       "taking the mean.  Use .resample(...).mean() "
-                       "instead").format(op=op, klass=self._typ),
-                      FutureWarning, stacklevel=3)
-        return self.mean()
-
-    def _make_deprecated_binop(op):
-        # op is a string
-
-        def _evaluate_numeric_binop(self, other):
-            result = self._deprecated(op)
-            return getattr(result, op)(other)
-        return _evaluate_numeric_binop
-
-    def _make_deprecated_unary(op, name):
-        # op is a callable
-
-        def _evaluate_numeric_unary(self):
-            result = self._deprecated(name)
-            return op(result)
-        return _evaluate_numeric_unary
-
-    def __array__(self):
-        return self._deprecated('__array__').__array__()
-
-    __gt__ = _make_deprecated_binop('__gt__')
-    __ge__ = _make_deprecated_binop('__ge__')
-    __lt__ = _make_deprecated_binop('__lt__')
-    __le__ = _make_deprecated_binop('__le__')
-    __eq__ = _make_deprecated_binop('__eq__')
-    __ne__ = _make_deprecated_binop('__ne__')
-
-    __add__ = __radd__ = _make_deprecated_binop('__add__')
-    __sub__ = __rsub__ = _make_deprecated_binop('__sub__')
-    __mul__ = __rmul__ = _make_deprecated_binop('__mul__')
-    __floordiv__ = __rfloordiv__ = _make_deprecated_binop('__floordiv__')
-    __truediv__ = __rtruediv__ = _make_deprecated_binop('__truediv__')
-    if not compat.PY3:
-        __div__ = __rdiv__ = _make_deprecated_binop('__div__')
-    __neg__ = _make_deprecated_unary(lambda x: -x, '__neg__')
-    __pos__ = _make_deprecated_unary(lambda x: x, '__pos__')
-    __abs__ = _make_deprecated_unary(lambda x: np.abs(x), '__abs__')
-    __inv__ = _make_deprecated_unary(lambda x: -x, '__inv__')
-
-    def __getattr__(self, attr):
-        if attr in self._internal_names_set:
-            return object.__getattribute__(self, attr)
-        if attr in self._attributes:
-            return getattr(self.groupby, attr)
-        if attr in self.obj:
-            return self[attr]
-
-        if attr in self._deprecated_invalids:
-            raise ValueError(".resample() is now a deferred operation\n"
-                             "\tuse .resample(...).mean() instead of "
-                             ".resample(...)")
-
-        matches_pattern = any(attr.startswith(x) for x
-                              in self._deprecated_valid_patterns)
-        if not matches_pattern and attr not in self._deprecated_valids:
-            # avoid the warning, if it's just going to be an exception
-            # anyway.
-            if not hasattr(self.obj, attr):
-                raise AttributeError("'{}' has no attribute '{}'".format(
-                    type(self.obj).__name__, attr
-                ))
-            self = self._deprecated(attr)
-
-        return object.__getattribute__(self, attr)
-
-    def __setattr__(self, attr, value):
-        if attr not in self._deprecated_valids:
-            raise ValueError("cannot set values on {0}".format(
-                self.__class__.__name__))
-        object.__setattr__(self, attr, value)
-
-    def __getitem__(self, key):
-        try:
-            return super(Resampler, self).__getitem__(key)
-        except (KeyError, com.AbstractMethodError):
-
-            # compat for deprecated
-            if isinstance(self.obj, com.ABCSeries):
-                return self._deprecated('__getitem__')[key]
-
-            raise
-
-    def __setitem__(self, attr, value):
-        raise ValueError("cannot set items on {0}".format(
-            self.__class__.__name__))
 
     def _convert_obj(self, obj):
         """
@@ -257,10 +161,28 @@ class Resampler(_GroupBy):
         """ make sure that we are creating our binner & grouper """
         self._set_binner()
 
-    def plot(self, *args, **kwargs):
-        # for compat with prior versions, we want to
-        # have the warnings shown here and just have this work
-        return self._deprecated('plot').plot(*args, **kwargs)
+    @Substitution(klass='Resampler',
+                  versionadded='.. versionadded:: 0.23.0',
+                  examples="""
+>>> df = pd.DataFrame({'A': [1, 2, 3, 4]},
+...                   index=pd.date_range('2012-08-02', periods=4))
+>>> df
+            A
+2012-08-02  1
+2012-08-03  2
+2012-08-04  3
+2012-08-05  4
+
+To get the difference between each 2-day period's maximum and minimum value in
+one pass, you can do
+
+>>> df.resample('2D').pipe(lambda x: x.max() - x.min())
+            A
+2012-08-02  1
+2012-08-04  1""")
+    @Appender(_pipe_template)
+    def pipe(self, func, *args, **kwargs):
+        return super(Resampler, self).pipe(func, *args, **kwargs)
 
     _agg_doc = dedent("""
 
@@ -310,7 +232,8 @@ class Resampler(_GroupBy):
     @Appender(_agg_doc)
     @Appender(_shared_docs['aggregate'] % dict(
         klass='DataFrame',
-        versionadded=''))
+        versionadded='',
+        axis=''))
     def aggregate(self, arg, *args, **kwargs):
 
         self._set_binner()
@@ -440,7 +363,7 @@ class Resampler(_GroupBy):
 
     def _wrap_result(self, result):
         """ potentially wrap any results """
-        if isinstance(result, com.ABCSeries) and self._selection is not None:
+        if isinstance(result, ABCSeries) and self._selection is not None:
             result.name = self._selection
 
         if isinstance(result, ABCSeries) and result.empty:
@@ -495,45 +418,272 @@ class Resampler(_GroupBy):
 
     def backfill(self, limit=None):
         """
-        Backward fill the values
+        Backward fill the new missing values in the resampled data.
+
+        In statistics, imputation is the process of replacing missing data with
+        substituted values [1]_. When resampling data, missing values may
+        appear (e.g., when the resampling frequency is higher than the original
+        frequency). The backward fill will replace NaN values that appeared in
+        the resampled data with the next value in the original sequence.
+        Missing values that existed in the original data will not be modified.
 
         Parameters
         ----------
         limit : integer, optional
-            limit of how many values to fill
+            Limit of how many values to fill.
 
         Returns
         -------
-        an upsampled Series
+        Series, DataFrame
+            An upsampled Series or DataFrame with backward filled NaN values.
 
         See Also
         --------
-        Series.fillna
-        DataFrame.fillna
+        bfill : Alias of backfill.
+        fillna : Fill NaN values using the specified method, which can be
+            'backfill'.
+        nearest : Fill NaN values with nearest neighbor starting from center.
+        pad : Forward fill NaN values.
+        pandas.Series.fillna : Fill NaN values in the Series using the
+            specified method, which can be 'backfill'.
+        pandas.DataFrame.fillna : Fill NaN values in the DataFrame using the
+            specified method, which can be 'backfill'.
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Imputation_(statistics)
+
+        Examples
+        --------
+
+        Resampling a Series:
+
+        >>> s = pd.Series([1, 2, 3],
+        ...               index=pd.date_range('20180101', periods=3, freq='h'))
+        >>> s
+        2018-01-01 00:00:00    1
+        2018-01-01 01:00:00    2
+        2018-01-01 02:00:00    3
+        Freq: H, dtype: int64
+
+        >>> s.resample('30min').backfill()
+        2018-01-01 00:00:00    1
+        2018-01-01 00:30:00    2
+        2018-01-01 01:00:00    2
+        2018-01-01 01:30:00    3
+        2018-01-01 02:00:00    3
+        Freq: 30T, dtype: int64
+
+        >>> s.resample('15min').backfill(limit=2)
+        2018-01-01 00:00:00    1.0
+        2018-01-01 00:15:00    NaN
+        2018-01-01 00:30:00    2.0
+        2018-01-01 00:45:00    2.0
+        2018-01-01 01:00:00    2.0
+        2018-01-01 01:15:00    NaN
+        2018-01-01 01:30:00    3.0
+        2018-01-01 01:45:00    3.0
+        2018-01-01 02:00:00    3.0
+        Freq: 15T, dtype: float64
+
+        Resampling a DataFrame that has missing values:
+
+        >>> df = pd.DataFrame({'a': [2, np.nan, 6], 'b': [1, 3, 5]},
+        ...                   index=pd.date_range('20180101', periods=3,
+        ...                                       freq='h'))
+        >>> df
+                               a  b
+        2018-01-01 00:00:00  2.0  1
+        2018-01-01 01:00:00  NaN  3
+        2018-01-01 02:00:00  6.0  5
+
+        >>> df.resample('30min').backfill()
+                               a  b
+        2018-01-01 00:00:00  2.0  1
+        2018-01-01 00:30:00  NaN  3
+        2018-01-01 01:00:00  NaN  3
+        2018-01-01 01:30:00  6.0  5
+        2018-01-01 02:00:00  6.0  5
+
+        >>> df.resample('15min').backfill(limit=2)
+                               a    b
+        2018-01-01 00:00:00  2.0  1.0
+        2018-01-01 00:15:00  NaN  NaN
+        2018-01-01 00:30:00  NaN  3.0
+        2018-01-01 00:45:00  NaN  3.0
+        2018-01-01 01:00:00  NaN  3.0
+        2018-01-01 01:15:00  NaN  NaN
+        2018-01-01 01:30:00  6.0  5.0
+        2018-01-01 01:45:00  6.0  5.0
+        2018-01-01 02:00:00  6.0  5.0
         """
         return self._upsample('backfill', limit=limit)
     bfill = backfill
 
     def fillna(self, method, limit=None):
         """
-        Fill missing values
+        Fill missing values introduced by upsampling.
+
+        In statistics, imputation is the process of replacing missing data with
+        substituted values [1]_. When resampling data, missing values may
+        appear (e.g., when the resampling frequency is higher than the original
+        frequency).
+
+        Missing values that existed in the original data will
+        not be modified.
 
         Parameters
         ----------
-        method : str, method of resampling ('ffill', 'bfill')
+        method : {'pad', 'backfill', 'ffill', 'bfill', 'nearest'}
+            Method to use for filling holes in resampled data
+
+            * 'pad' or 'ffill': use previous valid observation to fill gap
+              (forward fill).
+            * 'backfill' or 'bfill': use next valid observation to fill gap.
+            * 'nearest': use nearest valid observation to fill gap.
+
         limit : integer, optional
-            limit of how many values to fill
+            Limit of how many consecutive missing values to fill.
+
+        Returns
+        -------
+        Series or DataFrame
+            An upsampled Series or DataFrame with missing values filled.
 
         See Also
         --------
-        Series.fillna
-        DataFrame.fillna
+        backfill : Backward fill NaN values in the resampled data.
+        pad : Forward fill NaN values in the resampled data.
+        nearest : Fill NaN values in the resampled data
+            with nearest neighbor starting from center.
+        interpolate : Fill NaN values using interpolation.
+        pandas.Series.fillna : Fill NaN values in the Series using the
+            specified method, which can be 'bfill' and 'ffill'.
+        pandas.DataFrame.fillna : Fill NaN values in the DataFrame using the
+            specified method, which can be 'bfill' and 'ffill'.
+
+        Examples
+        --------
+        Resampling a Series:
+
+        >>> s = pd.Series([1, 2, 3],
+        ...               index=pd.date_range('20180101', periods=3, freq='h'))
+        >>> s
+        2018-01-01 00:00:00    1
+        2018-01-01 01:00:00    2
+        2018-01-01 02:00:00    3
+        Freq: H, dtype: int64
+
+        Without filling the missing values you get:
+
+        >>> s.resample("30min").asfreq()
+        2018-01-01 00:00:00    1.0
+        2018-01-01 00:30:00    NaN
+        2018-01-01 01:00:00    2.0
+        2018-01-01 01:30:00    NaN
+        2018-01-01 02:00:00    3.0
+        Freq: 30T, dtype: float64
+
+        >>> s.resample('30min').fillna("backfill")
+        2018-01-01 00:00:00    1
+        2018-01-01 00:30:00    2
+        2018-01-01 01:00:00    2
+        2018-01-01 01:30:00    3
+        2018-01-01 02:00:00    3
+        Freq: 30T, dtype: int64
+
+        >>> s.resample('15min').fillna("backfill", limit=2)
+        2018-01-01 00:00:00    1.0
+        2018-01-01 00:15:00    NaN
+        2018-01-01 00:30:00    2.0
+        2018-01-01 00:45:00    2.0
+        2018-01-01 01:00:00    2.0
+        2018-01-01 01:15:00    NaN
+        2018-01-01 01:30:00    3.0
+        2018-01-01 01:45:00    3.0
+        2018-01-01 02:00:00    3.0
+        Freq: 15T, dtype: float64
+
+        >>> s.resample('30min').fillna("pad")
+        2018-01-01 00:00:00    1
+        2018-01-01 00:30:00    1
+        2018-01-01 01:00:00    2
+        2018-01-01 01:30:00    2
+        2018-01-01 02:00:00    3
+        Freq: 30T, dtype: int64
+
+        >>> s.resample('30min').fillna("nearest")
+        2018-01-01 00:00:00    1
+        2018-01-01 00:30:00    2
+        2018-01-01 01:00:00    2
+        2018-01-01 01:30:00    3
+        2018-01-01 02:00:00    3
+        Freq: 30T, dtype: int64
+
+        Missing values present before the upsampling are not affected.
+
+        >>> sm = pd.Series([1, None, 3],
+        ...               index=pd.date_range('20180101', periods=3, freq='h'))
+        >>> sm
+        2018-01-01 00:00:00    1.0
+        2018-01-01 01:00:00    NaN
+        2018-01-01 02:00:00    3.0
+        Freq: H, dtype: float64
+
+        >>> sm.resample('30min').fillna('backfill')
+        2018-01-01 00:00:00    1.0
+        2018-01-01 00:30:00    NaN
+        2018-01-01 01:00:00    NaN
+        2018-01-01 01:30:00    3.0
+        2018-01-01 02:00:00    3.0
+        Freq: 30T, dtype: float64
+
+        >>> sm.resample('30min').fillna('pad')
+        2018-01-01 00:00:00    1.0
+        2018-01-01 00:30:00    1.0
+        2018-01-01 01:00:00    NaN
+        2018-01-01 01:30:00    NaN
+        2018-01-01 02:00:00    3.0
+        Freq: 30T, dtype: float64
+
+        >>> sm.resample('30min').fillna('nearest')
+        2018-01-01 00:00:00    1.0
+        2018-01-01 00:30:00    NaN
+        2018-01-01 01:00:00    NaN
+        2018-01-01 01:30:00    3.0
+        2018-01-01 02:00:00    3.0
+        Freq: 30T, dtype: float64
+
+        DataFrame resampling is done column-wise. All the same options are
+        available.
+
+        >>> df = pd.DataFrame({'a': [2, np.nan, 6], 'b': [1, 3, 5]},
+        ...                   index=pd.date_range('20180101', periods=3,
+        ...                                       freq='h'))
+        >>> df
+                               a  b
+        2018-01-01 00:00:00  2.0  1
+        2018-01-01 01:00:00  NaN  3
+        2018-01-01 02:00:00  6.0  5
+
+        >>> df.resample('30min').fillna("bfill")
+                               a  b
+        2018-01-01 00:00:00  2.0  1
+        2018-01-01 00:30:00  NaN  3
+        2018-01-01 01:00:00  NaN  3
+        2018-01-01 01:30:00  6.0  5
+        2018-01-01 02:00:00  6.0  5
+
+        References
+        ----------
+        .. [1] https://en.wikipedia.org/wiki/Imputation_(statistics)
         """
         return self._upsample(method, limit=limit)
 
     @Appender(_shared_docs['interpolate'] % _shared_docs_kwargs)
     def interpolate(self, method='linear', axis=0, limit=None, inplace=False,
-                    limit_direction='forward', downcast=None, **kwargs):
+                    limit_direction='forward', limit_area=None,
+                    downcast=None, **kwargs):
         """
         Interpolate values according to different methods.
 
@@ -543,6 +693,7 @@ class Resampler(_GroupBy):
         return result.interpolate(method=method, axis=axis, limit=limit,
                                   inplace=inplace,
                                   limit_direction=limit_direction,
+                                  limit_area=limit_area,
                                   downcast=downcast, **kwargs)
 
     def asfreq(self, fill_value=None):
@@ -599,11 +750,19 @@ class Resampler(_GroupBy):
         return result
 
 
-Resampler._deprecated_valids += dir(Resampler)
+# downsample methods
+for method in ['sum', 'prod']:
+
+    def f(self, _method=method, min_count=0, *args, **kwargs):
+        nv.validate_resampler_func(_method, args, kwargs)
+        return self._downsample(_method, min_count=min_count)
+    f.__doc__ = getattr(GroupBy, method).__doc__
+    setattr(Resampler, method, f)
+
 
 # downsample methods
-for method in ['min', 'max', 'first', 'last', 'sum', 'mean', 'sem',
-               'median', 'prod', 'ohlc']:
+for method in ['min', 'max', 'first', 'last', 'mean', 'sem',
+               'median', 'ohlc']:
 
     def f(self, _method=method, *args, **kwargs):
         nv.validate_resampler_func(_method, args, kwargs)
@@ -808,6 +967,7 @@ class DatetimeIndexResampler(Resampler):
             result = obj.reindex(res_index, method=method,
                                  limit=limit, fill_value=fill_value)
 
+        result = self._apply_loffset(result)
         return self._wrap_result(result)
 
     def _wrap_result(self, result):
@@ -1026,6 +1186,17 @@ class TimeGrouper(Grouper):
     def __init__(self, freq='Min', closed=None, label=None, how='mean',
                  axis=0, fill_method=None, limit=None, loffset=None,
                  kind=None, convention=None, base=0, **kwargs):
+        # Check for correctness of the keyword arguments which would
+        # otherwise silently use the default if misspelled
+        if label not in {None, 'left', 'right'}:
+            raise ValueError('Unsupported value {} for `label`'.format(label))
+        if closed not in {None, 'left', 'right'}:
+            raise ValueError('Unsupported value {} for `closed`'.format(
+                closed))
+        if convention not in {None, 'start', 'end', 'e', 's'}:
+            raise ValueError('Unsupported value {} for `convention`'
+                             .format(convention))
+
         freq = to_offset(freq)
 
         end_types = set(['M', 'A', 'Q', 'BM', 'BA', 'BQ', 'W'])

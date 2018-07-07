@@ -44,7 +44,6 @@ http://www.opensource.apple.com/source/tcl/tcl-14/tcl/license.terms
 #include <numpy/arrayobject.h>    // NOLINT(build/include_order)
 #include <numpy/arrayscalars.h>   // NOLINT(build/include_order)
 #include <numpy/npy_math.h>       // NOLINT(build/include_order)
-#include <numpy_helper.h>         // NOLINT(build/include_order)
 #include <stdio.h>                // NOLINT(build/include_order)
 #include <ultrajson.h>            // NOLINT(build/include_order)
 #include <np_datetime.h>          // NOLINT(build/include_order)
@@ -59,6 +58,8 @@ static PyTypeObject *cls_dataframe;
 static PyTypeObject *cls_series;
 static PyTypeObject *cls_index;
 static PyTypeObject *cls_nat;
+
+npy_int64 get_nat(void) { return NPY_MIN_INT64; }
 
 typedef void *(*PFN_PyTypeToJSON)(JSOBJ obj, JSONTypeContext *ti,
                                   void *outValue, size_t *_outLen);
@@ -455,8 +456,7 @@ static void *PandasDateTimeStructToJSON(pandas_datetimestruct *dts,
             return NULL;
         }
 
-        if (!make_iso_8601_datetime(dts, GET_TC(tc)->cStr, *_outLen, 0, base,
-                                    -1)) {
+        if (!make_iso_8601_datetime(dts, GET_TC(tc)->cStr, *_outLen, base)) {
             PRINTMARK();
             *_outLen = strlen(GET_TC(tc)->cStr);
             return GET_TC(tc)->cStr;
@@ -493,7 +493,7 @@ static void *PyDateTimeToJSON(JSOBJ _obj, JSONTypeContext *tc, void *outValue,
 
     PRINTMARK();
 
-    if (!convert_pydatetime_to_datetimestruct(obj, &dts, NULL, 1)) {
+    if (!convert_pydatetime_to_datetimestruct(obj, &dts)) {
         PRINTMARK();
         return PandasDateTimeStructToJSON(&dts, tc, outValue, _outLen);
     } else {

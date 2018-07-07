@@ -8,7 +8,7 @@
 v0.9.1 (November 14, 2012)
 --------------------------
 
-This is a bugfix release from 0.9.0 and includes several new features and
+This is a bug fix release from 0.9.0 and includes several new features and
 enhancements along with a large number of bug fixes. The new features include
 by-column sort order for DataFrame and Series, improved NA handling for the rank
 method, masking functions for DataFrame, and intraday time-series filtering for
@@ -80,7 +80,7 @@ New features
 	   df.where(df>0,-df)
 
 	Furthermore, `where` now aligns the input boolean condition (ndarray or DataFrame), such that partial selection
-	with setting is possible. This is analagous to partial setting via `.ix` (but on the contents rather than the axis labels)
+	with setting is possible. This is analogous to partial setting via `.ix` (but on the contents rather than the axis labels)
 
 	.. ipython:: python
 

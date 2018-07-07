@@ -1,22 +1,23 @@
-from numpy cimport (ndarray, uint8_t, int64_t, int32_t, int16_t, int8_t,
-                    float64_t, float32_t)
-cimport numpy as np
+# -*- coding: utf-8 -*-
+import operator
+import sys
 
 cimport cython
 
 import numpy as np
-import operator
-import sys
+cimport numpy as cnp
+from numpy cimport (ndarray, uint8_t, int64_t, int32_t, int16_t, int8_t,
+                    float64_t, float32_t)
+cnp.import_array()
+
 
 from distutils.version import LooseVersion
 
 # numpy versioning
 _np_version = np.version.short_version
-_np_version_under1p10 = LooseVersion(_np_version) < '1.10'
-_np_version_under1p11 = LooseVersion(_np_version) < '1.11'
+_np_version_under1p10 = LooseVersion(_np_version) < LooseVersion('1.10')
+_np_version_under1p11 = LooseVersion(_np_version) < LooseVersion('1.11')
 
-np.import_array()
-np.import_ufunc()
 
 # -----------------------------------------------------------------------------
 # Preamble stuff

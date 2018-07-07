@@ -7,7 +7,7 @@ This is a major release from 0.11.0 and includes several new features and
 enhancements along with a large number of bug fixes.
 
 Highlights include a consistent I/O API naming scheme, routines to read html,
-write multi-indexes to csv files, read & write STATA data files, read & write JSON format
+write MultiIndexes to csv files, read & write STATA data files, read & write JSON format
 files, Python 3 support for ``HDFStore``, filtering of groupby expressions via ``filter``, and a
 revamped ``replace`` routine that accepts regular expressions.
 
@@ -38,7 +38,7 @@ API changes
     * ``to_clipboard``
 
 
-  - Fix modulo and integer division on Series,DataFrames to act similary to ``float`` dtypes to return
+  - Fix modulo and integer division on Series,DataFrames to act similarly to ``float`` dtypes to return
     ``np.nan`` or ``np.inf`` as appropriate (:issue:`3590`). This correct a numpy bug that treats ``integer``
     and ``float`` dtypes differently.
 
@@ -73,7 +73,7 @@ API changes
     e.g. a boolean Series, even with integer labels, will raise. Since ``iloc``
     is purely positional based, the labels on the Series are not alignable (:issue:`3631`)
 
-    This case is rarely used, and there are plently of alternatives. This preserves the
+    This case is rarely used, and there are plenty of alternatives. This preserves the
     ``iloc`` API to be *purely* positional based.
 
     .. ipython:: python
@@ -154,7 +154,7 @@ API changes
 
   - The behavior of ``datetime64`` dtypes has changed with respect to certain
     so-called reduction operations (:issue:`3726`). The following operations now
-    raise a ``TypeError`` when perfomed on a ``Series`` and return an *empty*
+    raise a ``TypeError`` when performed on a ``Series`` and return an *empty*
     ``Series`` when performed on a ``DataFrame`` similar to performing these
     operations on, for example, a ``DataFrame`` of ``slice`` objects:
 
@@ -166,7 +166,7 @@ API changes
 
   - The internal ``pandas`` class hierarchy has changed (slightly). The
     previous ``PandasObject`` now is called ``PandasContainer`` and a new
-    ``PandasObject`` has become the baseclass for ``PandasContainer`` as well
+    ``PandasObject`` has become the base class for ``PandasContainer`` as well
     as ``Index``, ``Categorical``, ``GroupBy``, ``SparseList``, and
     ``SparseArray`` (+ their base classes). Currently, ``PandasObject``
     provides string methods (from ``StringMixin``). (:issue:`4090`, :issue:`4092`)
@@ -206,11 +206,11 @@ I/O Enhancements
       :ref:`See the installation docs<install.optional_dependencies>`
 
   - Added module for reading and writing Stata files: ``pandas.io.stata`` (:issue:`1512`)
-    accessable via ``read_stata`` top-level function for reading,
+    accessible via ``read_stata`` top-level function for reading,
     and ``to_stata`` DataFrame method for writing, :ref:`See the docs<io.stata>`
 
   - Added module for reading and writing json format files: ``pandas.io.json``
-    accessable via ``read_json`` top-level function for reading,
+    accessible via ``read_json`` top-level function for reading,
     and ``to_json`` DataFrame method for writing, :ref:`See the docs<io.json>`
     various issues (:issue:`1226`, :issue:`3804`, :issue:`3876`, :issue:`3867`, :issue:`1305`)
 
@@ -220,7 +220,7 @@ I/O Enhancements
       list of the rows from which to read the index.
 
     - The option, ``tupleize_cols`` can now be specified in both ``to_csv`` and
-      ``read_csv``, to provide compatiblity for the pre 0.12 behavior of
+      ``read_csv``, to provide compatibility for the pre 0.12 behavior of
       writing and reading ``MultIndex`` columns via a list of tuples. The default in
       0.12 is to write lists of tuples and *not* interpret list of tuples as a
       ``MultiIndex`` column.
@@ -296,7 +296,7 @@ Other Enhancements
         df.replace(regex=r'\s*\.\s*', value=np.nan)
 
     to replace all occurrences of the string ``'.'`` with zero or more
-    instances of surrounding whitespace with ``NaN``.
+    instances of surrounding white space with ``NaN``.
 
     Regular string replacement still works as expected. For example, you can do
 
@@ -403,7 +403,7 @@ Bug Fixes
     :issue:`3572`, :issue:`3911`, :issue:`3912`), but they will try to convert object arrays to
     numeric arrays if possible so that you can still plot, for example, an
     object array with floats. This happens before any drawing takes place which
-    elimnates any spurious plots from showing up.
+    eliminates any spurious plots from showing up.
 
   - ``fillna`` methods now raise a ``TypeError`` if the ``value`` parameter is
     a list or tuple.

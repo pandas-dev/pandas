@@ -1,248 +1,243 @@
 .. _whatsnew_0220:
 
-v0.22.0
--------
+v0.22.0 (December 29, 2017)
+---------------------------
 
-This is a major release from 0.21.1 and includes a number of API changes,
-deprecations, new features, enhancements, and performance improvements along
-with a large number of bug fixes. We recommend that all users upgrade to this
-version.
-
-.. _whatsnew_0220.enhancements:
-
-New features
-~~~~~~~~~~~~
-
--
--
--
-
-
-.. _whatsnew_0210.enhancements.get_dummies_dtype:
-
-``get_dummies`` now supports ``dtype`` argument
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The :func:`get_dummies` now accepts a ``dtype`` argument, which specifies a dtype for the new columns. The default remains uint8. (:issue:`18330`)
-
-.. ipython:: python
-
-   df = pd.DataFrame({'a': [1, 2], 'b': [3, 4], 'c': [5, 6]})
-   pd.get_dummies(df, columns=['c']).dtypes
-   pd.get_dummies(df, columns=['c'], dtype=bool).dtypes
-
-
-.. _whatsnew_0220.enhancements.merge_on_columns_and_levels:
-
-Merging on a combination of columns and index levels
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Strings passed to :meth:`DataFrame.merge` as the ``on``, ``left_on``, and ``right_on``
-parameters may now refer to either column names or index level names.
-This enables merging ``DataFrame`` instances on a combination of index levels
-and columns without resetting indexes. See the :ref:`Merge on columns and
-levels <merging.merge_on_columns_and_levels>` documentation section.
-(:issue:`14355`)
-
-.. ipython:: python
-
-   left_index = pd.Index(['K0', 'K0', 'K1', 'K2'], name='key1')
-
-   left = pd.DataFrame({'A': ['A0', 'A1', 'A2', 'A3'],
-                        'B': ['B0', 'B1', 'B2', 'B3'],
-                        'key2': ['K0', 'K1', 'K0', 'K1']},
-                       index=left_index)
-
-   right_index = pd.Index(['K0', 'K1', 'K2', 'K2'], name='key1')
-
-   right = pd.DataFrame({'C': ['C0', 'C1', 'C2', 'C3'],
-                         'D': ['D0', 'D1', 'D2', 'D3'],
-                         'key2': ['K0', 'K0', 'K0', 'K1']},
-                        index=right_index)
-
-   left.merge(right, on=['key1', 'key2'])
-
-
-.. _whatsnew_0220.enhancements.other:
-
-Other Enhancements
-^^^^^^^^^^^^^^^^^^
-
-- Better support for :func:`Dataframe.style.to_excel` output with the ``xlsxwriter`` engine. (:issue:`16149`)
-- :func:`pandas.tseries.frequencies.to_offset` now accepts leading '+' signs e.g. '+1h'. (:issue:`18171`)
-- :func:`MultiIndex.unique` now supports the ``level=`` argument, to get unique values from a specific index level (:issue:`17896`)
-- :class:`pandas.io.formats.style.Styler` now has method ``hide_index()`` to determine whether the index will be rendered in ouptut (:issue:`14194`)
-- :class:`pandas.io.formats.style.Styler` now has method ``hide_columns()`` to determine whether columns will be hidden in output (:issue:`14194`)
-- Improved wording of ``ValueError`` raised in :func:`to_datetime` when ``unit=`` is passed with a non-convertible value (:issue:`14350`)
-- :func:`Series.fillna` now accepts a Series or a dict as a ``value`` for a categorical dtype (:issue:`17033`)
-- :func:`pandas.read_clipboard` updated to use qtpy, falling back to PyQt5 and then PyQt4, adding compatibility with Python3 and multiple python-qt bindings (:issue:`17722`)
+This is a major release from 0.21.1 and includes a single, API-breaking change.
+We recommend that all users upgrade to this version after carefully reading the
+release note (singular!).
 
 .. _whatsnew_0220.api_breaking:
 
 Backwards incompatible API changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- :func:`Series.fillna` now raises a ``TypeError`` instead of a ``ValueError`` when passed a list, tuple or DataFrame as a ``value`` (:issue:`18293`)
-- :func:`pandas.DataFrame.merge` no longer casts a ``float`` column to ``object`` when merging on ``int`` and ``float`` columns (:issue:`16572`)
-- The default NA value for :class:`UInt64Index` has changed from 0 to ``NaN``, which impacts methods that mask with NA, such as ``UInt64Index.where()`` (:issue:`18398`)
--
+Pandas 0.22.0 changes the handling of empty and all-*NA* sums and products. The
+summary is that
 
+* The sum of an empty or all-*NA* ``Series`` is now ``0``
+* The product of an empty or all-*NA* ``Series`` is now ``1``
+* We've added a ``min_count`` parameter to ``.sum()`` and ``.prod()`` controlling
+  the minimum number of valid values for the result to be valid. If fewer than
+  ``min_count`` non-*NA* values are present, the result is *NA*. The default is
+  ``0``. To return ``NaN``, the 0.21 behavior, use ``min_count=1``.
 
+Some background: In pandas 0.21, we fixed a long-standing inconsistency
+in the return value of all-*NA* series depending on whether or not bottleneck
+was installed. See :ref:`whatsnew_0210.api_breaking.bottleneck`. At the same
+time, we changed the sum and prod of an empty ``Series`` to also be ``NaN``.
 
+Based on feedback, we've partially reverted those changes.
 
+Arithmetic Operations
+^^^^^^^^^^^^^^^^^^^^^
 
+The default sum for empty or all-*NA* ``Series`` is now ``0``.
 
-.. _whatsnew_0220.api:
+*pandas 0.21.x*
 
-Other API Changes
-^^^^^^^^^^^^^^^^^
+.. code-block:: ipython
 
-- :func:`Series.astype` and :func:`Index.astype` with an incompatible dtype will now raise a ``TypeError`` rather than a ``ValueError`` (:issue:`18231`)
-- ``Series`` construction with an ``object`` dtyped tz-aware datetime and ``dtype=object`` specified, will now return an ``object`` dtyped ``Series``, previously this would infer the datetime dtype (:issue:`18231`)
-- A :class:`Series` of ``dtype=category`` constructed from an empty ``dict`` will now have categories of ``dtype=object`` rather than ``dtype=float64``, consistently with the case in which an empty list is passed (:issue:`18515`)
-- ``NaT`` division with :class:`datetime.timedelta` will now return ``NaN`` instead of raising (:issue:`17876`)
-- All-NaN levels in a ``MultiIndex`` are now assigned ``float`` rather than ``object`` dtype, promoting consistency with ``Index`` (:issue:`17929`).
-- :class:`Timestamp` will no longer silently ignore unused or invalid ``tz`` or ``tzinfo`` keyword arguments (:issue:`17690`)
-- :class:`Timestamp` will no longer silently ignore invalid ``freq`` arguments (:issue:`5168`)
-- :class:`CacheableOffset` and :class:`WeekDay` are no longer available in the ``pandas.tseries.offsets`` module (:issue:`17830`)
-- `tseries.frequencies.get_freq_group()` and `tseries.frequencies.DAYS` are removed from the public API (:issue:`18034`)
-- :func:`Series.truncate` and :func:`DataFrame.truncate` will raise a ``ValueError`` if the index is not sorted instead of an unhelpful ``KeyError`` (:issue:`17935`)
-- :func:`Index.map` can now accept ``Series`` and dictionary input objects (:issue:`12756`, :issue:`18482`, :issue:`18509`).
-- :func:`Dataframe.unstack` will now default to filling with ``np.nan`` for ``object`` columns. (:issue:`12815`)
-- :class:`IntervalIndex` constructor will raise if the ``closed`` parameter conflicts with how the input data is inferred to be closed (:issue:`18421`)
-- Inserting missing values into indexes will work for all types of indexes and automatically insert the correct type of missing value (``NaN``, ``NaT``, etc.) regardless of the type passed in (:issue:`18295`)
-- Restricted ``DateOffset`` keyword arguments. Previously, ``DateOffset`` subclasses allowed arbitrary keyword arguments which could lead to unexpected behavior. Now, only valid arguments will be accepted. (:issue:`17176`, :issue:`18226`).
-- :func:`DataFrame.from_items` provides a more informative error message when passed scalar values (:issue:`17312`)
+   In [1]: pd.Series([]).sum()
+   Out[1]: nan
 
-.. _whatsnew_0220.deprecations:
+   In [2]: pd.Series([np.nan]).sum()
+   Out[2]: nan
 
-Deprecations
-~~~~~~~~~~~~
+*pandas 0.22.0*
 
-- ``Series.from_array`` and ``SparseSeries.from_array`` are deprecated. Use the normal constructor ``Series(..)`` and ``SparseSeries(..)`` instead (:issue:`18213`).
-- ``DataFrame.as_matrix`` is deprecated. Use ``DataFrame.values`` instead (:issue:`18458`).
--
+.. ipython:: python
 
-.. _whatsnew_0220.prior_deprecations:
+   pd.Series([]).sum()
+   pd.Series([np.nan]).sum()
 
-Removal of prior version deprecations/changes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The default behavior is the same as pandas 0.20.3 with bottleneck installed. It
+also matches the behavior of NumPy's ``np.nansum`` on empty and all-*NA* arrays.
 
-- Warnings against the obsolete usage ``Categorical(codes, categories)``, which were emitted for instance when the first two arguments to ``Categorical()`` had different dtypes, and recommended the use of ``Categorical.from_codes``, have now been removed (:issue:`8074`)
-- The ``levels`` and ``labels`` attributes of a ``MultiIndex`` can no longer be set directly (:issue:`4039`).
-- ``pd.tseries.util.pivot_annual`` has been  removed (deprecated since v0.19). Use ``pivot_table`` instead (:issue:`18370`)
-- ``pd.tseries.util.isleapyear`` has been removed (deprecated since v0.19). Use ``.is_leap_year`` property in Datetime-likes instead (:issue:`18370`)
-- ``pd.ordered_merge`` has been removed (deprecated since v0.19). Use ``pd.merge_ordered`` instead (:issue:`18459`)
+To have the sum of an empty series return ``NaN`` (the default behavior of
+pandas 0.20.3 without bottleneck, or pandas 0.21.x), use the ``min_count``
+keyword.
 
-.. _whatsnew_0220.performance:
+.. ipython:: python
 
-Performance Improvements
-~~~~~~~~~~~~~~~~~~~~~~~~
+   pd.Series([]).sum(min_count=1)
 
-- Indexers on ``Series`` or ``DataFrame`` no longer create a reference cycle (:issue:`17956`)
-- Added a keyword argument, ``cache``, to :func:`to_datetime` that improved the performance of converting duplicate datetime arguments (:issue:`11665`)
-- :class`DateOffset` arithmetic performance is improved (:issue:`18218`)
-- Converting a ``Series`` of ``Timedelta`` objects to days, seconds, etc... sped up through vectorization of underlying methods (:issue:`18092`)
-- Improved performance of ``.map()`` with a ``Series/dict`` input (:issue:`15081`)
-- The overriden ``Timedelta`` properties of days, seconds and microseconds have been removed, leveraging their built-in Python versions instead (:issue:`18242`)
-- ``Series`` construction will reduce the number of copies made of the input data in certain cases (:issue:`17449`)
-- Improved performance of :func:`Series.dt.date` and :func:`DatetimeIndex.date` (:issue:`18058`)
-- Improved performance of ``IntervalIndex.symmetric_difference()`` (:issue:`18475`)
-- Improved performance of ``DatetimeIndex`` and ``Series`` arithmetic operations with Business-Month and Business-Quarter frequencies (:issue:`18489`)
+Thanks to the ``skipna`` parameter, the ``.sum`` on an all-*NA*
+series is conceptually the same as the ``.sum`` of an empty one with
+``skipna=True`` (the default).
 
-.. _whatsnew_0220.docs:
+.. ipython:: python
 
-Documentation Changes
-~~~~~~~~~~~~~~~~~~~~~
+   pd.Series([np.nan]).sum(min_count=1)  # skipna=True by default
 
--
--
--
+The ``min_count`` parameter refers to the minimum number of *non-null* values
+required for a non-NA sum or product.
 
-.. _whatsnew_0220.bug_fixes:
+:meth:`Series.prod` has been updated to behave the same as :meth:`Series.sum`,
+returning ``1`` instead.
 
-Bug Fixes
-~~~~~~~~~
+.. ipython:: python
 
+   pd.Series([]).prod()
+   pd.Series([np.nan]).prod()
+   pd.Series([]).prod(min_count=1)
 
-Conversion
-^^^^^^^^^^
+These changes affect :meth:`DataFrame.sum` and :meth:`DataFrame.prod` as well.
+Finally, a few less obvious places in pandas are affected by this change.
 
-- Bug in :class:`Index` constructor with `dtype='uint64'` where int-like floats were not coerced to :class:`UInt64Index` (:issue:`18400`)
--
--
+Grouping by a Categorical
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Indexing
+Grouping by a ``Categorical`` and summing now returns ``0`` instead of
+``NaN`` for categories with no observations. The product now returns ``1``
+instead of ``NaN``.
+
+*pandas 0.21.x*
+
+.. code-block:: ipython
+
+   In [8]: grouper = pd.Categorical(['a', 'a'], categories=['a', 'b'])
+
+   In [9]: pd.Series([1, 2]).groupby(grouper).sum()
+   Out[9]:
+   a    3.0
+   b    NaN
+   dtype: float64
+
+*pandas 0.22*
+
+.. ipython:: python
+
+   grouper = pd.Categorical(['a', 'a'], categories=['a', 'b'])
+   pd.Series([1, 2]).groupby(grouper).sum()
+
+To restore the 0.21 behavior of returning ``NaN`` for unobserved groups,
+use ``min_count>=1``.
+
+.. ipython:: python
+
+   pd.Series([1, 2]).groupby(grouper).sum(min_count=1)
+
+Resample
 ^^^^^^^^
 
-- Bug in :func:`Series.truncate` which raises ``TypeError`` with a monotonic ``PeriodIndex`` (:issue:`17717`)
-- Bug in :func:`DataFrame.groupby` where tuples were interpreted as lists of keys rather than as keys (:issue:`17979`, :issue:`18249`)
-- Bug in :func:`MultiIndex.remove_unused_levels`` which would fill nan values (:issue:`18417`)
-- Bug in :func:`MultiIndex.from_tuples`` which would fail to take zipped tuples in python3 (:issue:`18434`)
-- Bug in :class:`Index`` construction from list of mixed type tuples (:issue:`18505`)
-- Bug in :class:`IntervalIndex` where empty and purely NA data was constructed inconsistently depending on the construction method (:issue:`18421`)
-- Bug in ``IntervalIndex.symmetric_difference()`` where the symmetric difference with a non-``IntervalIndex`` did not raise (:issue:`18475`)
-- Bug in indexing a datetimelike ``Index`` that raised ``ValueError`` instead of ``IndexError`` (:issue:`18386`).
+The sum and product of all-*NA* bins has changed from ``NaN`` to ``0`` for
+sum and ``1`` for product.
 
+*pandas 0.21.x*
 
-I/O
-^^^
+.. code-block:: ipython
 
-- :func:`read_html` now rewinds seekable IO objects after parse failure, before attempting to parse with a new parser. If a parser errors and the object is non-seekable, an informative error is raised suggesting the use of a different parser (:issue:`17975`)
-- Bug in :func:`read_msgpack` with a non existent file is passed in Python 2 (:issue:`15296`)
-- Bug in :func:`read_csv` where a ``MultiIndex`` with duplicate columns was not being mangled appropriately (:issue:`18062`)
-- Bug in :func:`read_sas` where a file with 0 variables gave an ``AttributeError`` incorrectly. Now it gives an ``EmptyDataError`` (:issue:`18184`)
--
--
+   In [11]: s = pd.Series([1, 1, np.nan, np.nan],
+      ...:                index=pd.date_range('2017', periods=4))
+      ...:  s
+   Out[11]:
+   2017-01-01    1.0
+   2017-01-02    1.0
+   2017-01-03    NaN
+   2017-01-04    NaN
+   Freq: D, dtype: float64
 
-Plotting
-^^^^^^^^
+   In [12]: s.resample('2d').sum()
+   Out[12]:
+   2017-01-01    2.0
+   2017-01-03    NaN
+   Freq: 2D, dtype: float64
 
--
--
--
+*pandas 0.22.0*
 
-Groupby/Resample/Rolling
-^^^^^^^^^^^^^^^^^^^^^^^^
+.. ipython:: python
 
-- Bug when grouping by a single column and aggregating with a class like ``list`` or ``tuple`` (:issue:`18079`)
--
--
+   s = pd.Series([1, 1, np.nan, np.nan],
+                 index=pd.date_range('2017', periods=4))
+   s.resample('2d').sum()
 
-Sparse
-^^^^^^
+To restore the 0.21 behavior of returning ``NaN``, use ``min_count>=1``.
 
--
--
--
+.. ipython:: python
 
-Reshaping
-^^^^^^^^^
+   s.resample('2d').sum(min_count=1)
 
-- Bug in :func:`DataFrame.stack` which fails trying to sort mixed type levels under Python 3 (:issue:`18310`)
+In particular, upsampling and taking the sum or product is affected, as
+upsampling introduces missing values even if the original series was
+entirely valid.
 
--
--
+*pandas 0.21.x*
 
-Numeric
-^^^^^^^
+.. code-block:: ipython
 
--
--
--
+   In [14]: idx = pd.DatetimeIndex(['2017-01-01', '2017-01-02'])
 
-Categorical
-^^^^^^^^^^^
+   In [15]: pd.Series([1, 2], index=idx).resample('12H').sum()
+   Out[15]:
+   2017-01-01 00:00:00    1.0
+   2017-01-01 12:00:00    NaN
+   2017-01-02 00:00:00    2.0
+   Freq: 12H, dtype: float64
 
--
--
--
+*pandas 0.22.0*
 
-Other
-^^^^^
+.. ipython:: python
 
-- Improved error message when attempting to use a Python keyword as an identifier in a numexpr query (:issue:`18221`)
-- Fixed a bug where creating a Series from an array that contains both tz-naive and tz-aware values will result in a Series whose dtype is tz-aware instead of object (:issue:`16406`)
-- Fixed construction of a :class:`Series` from a ``dict`` containing ``NaN`` as key (:issue:`18480`)
-- Adding a ``Period`` object to a ``datetime`` or ``Timestamp`` object will now correctly raise a ``TypeError`` (:issue:`17983`)
--
+   idx = pd.DatetimeIndex(['2017-01-01', '2017-01-02'])
+   pd.Series([1, 2], index=idx).resample("12H").sum()
+
+Once again, the ``min_count`` keyword is available to restore the 0.21 behavior.
+
+.. ipython:: python
+
+   pd.Series([1, 2], index=idx).resample("12H").sum(min_count=1)
+
+Rolling and Expanding
+^^^^^^^^^^^^^^^^^^^^^
+
+Rolling and expanding already have a ``min_periods`` keyword that behaves
+similar to ``min_count``. The only case that changes is when doing a rolling
+or expanding sum with ``min_periods=0``. Previously this returned ``NaN``,
+when fewer than ``min_periods`` non-*NA* values were in the window. Now it
+returns ``0``.
+
+*pandas 0.21.1*
+
+.. code-block:: ipython
+
+   In [17]: s = pd.Series([np.nan, np.nan])
+
+   In [18]: s.rolling(2, min_periods=0).sum()
+   Out[18]:
+   0   NaN
+   1   NaN
+   dtype: float64
+
+*pandas 0.22.0*
+
+.. ipython:: python
+
+   s = pd.Series([np.nan, np.nan])
+   s.rolling(2, min_periods=0).sum()
+
+The default behavior of ``min_periods=None``, implying that ``min_periods``
+equals the window size, is unchanged.
+
+Compatibility
+~~~~~~~~~~~~~
+
+If you maintain a library that should work across pandas versions, it
+may be easiest to exclude pandas 0.21 from your requirements. Otherwise, all your
+``sum()`` calls would need to check if the ``Series`` is empty before summing.
+
+With setuptools, in your ``setup.py`` use::
+
+    install_requires=['pandas!=0.21.*', ...]
+
+With conda, use
+
+.. code-block:: yaml
+
+    requirements:
+      run:
+        - pandas !=0.21.0,!=0.21.1
+
+Note that the inconsistency in the return value for all-*NA* series is still
+there for pandas 0.20.3 and earlier. Avoiding pandas 0.21 will only help with
+the empty case.

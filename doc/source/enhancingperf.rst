@@ -19,30 +19,37 @@
 Enhancing Performance
 *********************
 
+In this part of the tutorial, we will investigate how to speed up certain
+functions operating on pandas ``DataFrames`` using three different techniques: 
+Cython, Numba and :func:`pandas.eval`. We will see a speed improvement of ~200 
+when we use Cython and Numba on a test function operating row-wise on the 
+``DataFrame``. Using :func:`pandas.eval` we will speed up a sum by an order of 
+~2.
+
 .. _enhancingperf.cython:
 
 Cython (Writing C extensions for pandas)
 ----------------------------------------
 
-For many use cases writing pandas in pure python and numpy is sufficient. In some
-computationally heavy applications however, it can be possible to achieve sizeable
+For many use cases writing pandas in pure Python and NumPy is sufficient. In some
+computationally heavy applications however, it can be possible to achieve sizable
 speed-ups by offloading work to `cython <http://cython.org/>`__.
 
-This tutorial assumes you have refactored as much as possible in python, for example
-trying to remove for loops and making use of numpy vectorization, it's always worth
-optimising in python first.
+This tutorial assumes you have refactored as much as possible in Python, for example
+by trying to remove for-loops and making use of NumPy vectorization. It's always worth
+optimising in Python first.
 
 This tutorial walks through a "typical" process of cythonizing a slow computation.
-We use an `example from the cython documentation <http://docs.cython.org/src/quickstart/cythonize.html>`__
+We use an `example from the Cython documentation <http://docs.cython.org/src/quickstart/cythonize.html>`__
 but in the context of pandas. Our final cythonized solution is around 100 times
-faster than the pure python.
+faster than the pure Python solution.
 
 .. _enhancingperf.pure:
 
 Pure python
 ~~~~~~~~~~~
 
-We have a DataFrame to which we want to apply a function row-wise.
+We have a ``DataFrame`` to which we want to apply a function row-wise.
 
 .. ipython:: python
 
@@ -52,7 +59,7 @@ We have a DataFrame to which we want to apply a function row-wise.
                       'x': 'x'})
    df
 
-Here's the function in pure python:
+Here's the function in pure Python:
 
 .. ipython:: python
 
@@ -86,16 +93,15 @@ hence we'll concentrate our efforts cythonizing these two functions.
 
 .. note::
 
-  In python 2 replacing the ``range`` with its generator counterpart (``xrange``)
-  would mean the ``range`` line would vanish. In python 3 ``range`` is already a generator.
+  In Python 2 replacing the ``range`` with its generator counterpart (``xrange``)
+  would mean the ``range`` line would vanish. In Python 3 ``range`` is already a generator.
 
 .. _enhancingperf.plain:
 
-Plain cython
+Plain Cython
 ~~~~~~~~~~~~
 
-First we're going to need to import the cython magic function to ipython (for
-cython versions  < 0.21 you can use ``%load_ext cythonmagic``):
+First we're going to need to import the Cython magic function to ipython:
 
 .. ipython:: python
    :okwarning:
@@ -103,7 +109,7 @@ cython versions  < 0.21 you can use ``%load_ext cythonmagic``):
    %load_ext Cython
 
 
-Now, let's simply copy our functions over to cython as is (the suffix
+Now, let's simply copy our functions over to Cython as is (the suffix
 is here to distinguish between function versions):
 
 .. ipython::
@@ -174,12 +180,12 @@ Using ndarray
 
 It's calling series... a lot! It's creating a Series from each row, and get-ting from both
 the index and the series (three times for each row). Function calls are expensive
-in python, so maybe we could minimise these by cythonizing the apply part.
+in Python, so maybe we could minimize these by cythonizing the apply part.
 
 .. note::
 
-  We are now passing ndarrays into the cython function, fortunately cython plays
-  very nicely with numpy.
+  We are now passing ndarrays into the Cython function, fortunately Cython plays
+  very nicely with NumPy.
 
 .. ipython::
 
@@ -214,9 +220,9 @@ the rows, applying our ``integrate_f_typed``, and putting this in the zeros arra
 .. warning::
 
    You can **not pass** a ``Series`` directly as a ``ndarray`` typed parameter
-   to a cython function. Instead pass the actual ``ndarray`` using the
-   ``.values`` attribute of the Series. The reason is that the cython
-   definition is specific to an ndarray and not the passed Series.
+   to a Cython function. Instead pass the actual ``ndarray`` using the
+   ``.values`` attribute of the ``Series``. The reason is that the Cython
+   definition is specific to an ndarray and not the passed ``Series``.
 
    So, do not do this:
 
@@ -224,7 +230,7 @@ the rows, applying our ``integrate_f_typed``, and putting this in the zeros arra
 
         apply_integrate_f(df['a'], df['b'], df['N'])
 
-   But rather, use ``.values`` to get the underlying ``ndarray``
+   But rather, use ``.values`` to get the underlying ``ndarray``:
 
    .. code-block:: python
 
@@ -232,8 +238,8 @@ the rows, applying our ``integrate_f_typed``, and putting this in the zeros arra
 
 .. note::
 
-    Loops like this would be *extremely* slow in python, but in Cython looping
-    over numpy arrays is *fast*.
+    Loops like this would be *extremely* slow in Python, but in Cython looping
+    over NumPy arrays is *fast*.
 
 .. code-block:: ipython
 
@@ -256,7 +262,7 @@ More advanced techniques
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 There is still hope for improvement. Here's an example of using some more
-advanced cython techniques:
+advanced Cython techniques:
 
 .. ipython::
 
@@ -290,16 +296,17 @@ advanced cython techniques:
    In [4]: %timeit apply_integrate_f_wrap(df['a'].values, df['b'].values, df['N'].values)
    1000 loops, best of 3: 987 us per loop
 
-Even faster, with the caveat that a bug in our cython code (an off-by-one error,
+Even faster, with the caveat that a bug in our Cython code (an off-by-one error,
 for example) might cause a segfault because memory access isn't checked.
-
+For more about ``boundscheck`` and ``wraparound``, see the Cython docs on 
+`compiler directives <http://cython.readthedocs.io/en/latest/src/reference/compilation.html?highlight=wraparound#compiler-directives>`__.
 
 .. _enhancingperf.numba:
 
-Using numba
+Using Numba
 -----------
 
-A recent alternative to statically compiling cython code, is to use a *dynamic jit-compiler*, ``numba``.
+A recent alternative to statically compiling Cython code, is to use a *dynamic jit-compiler*, Numba.
 
 Numba gives you the power to speed up your applications with high performance functions written directly in Python. With a few annotations, array-oriented and math-heavy Python code can be just-in-time compiled to native machine instructions, similar in performance to C, C++ and Fortran, without having to switch languages or Python interpreters.
 
@@ -307,16 +314,17 @@ Numba works by generating optimized machine code using the LLVM compiler infrast
 
 .. note::
 
-    You will need to install ``numba``. This is easy with ``conda``, by using: ``conda install numba``, see :ref:`installing using miniconda<install.miniconda>`.
+    You will need to install Numba. This is easy with ``conda``, by using: ``conda install numba``, see :ref:`installing using miniconda<install.miniconda>`.
 
 .. note::
 
-    As of ``numba`` version 0.20, pandas objects cannot be passed directly to numba-compiled functions. Instead, one must pass the ``numpy`` array underlying the ``pandas`` object to the numba-compiled function as demonstrated below.
+    As of Numba version 0.20, pandas objects cannot be passed directly to Numba-compiled functions. Instead, one must pass the NumPy array underlying the pandas object to the Numba-compiled function as demonstrated below.
 
 Jit
 ~~~
 
-Using ``numba`` to just-in-time compile your code. We simply take the plain python code from above and annotate with the ``@jit`` decorator.
+We demonstrate how to use Numba to just-in-time compile our code. We simply 
+take the plain Python code from above and annotate with the ``@jit`` decorator.
 
 .. code-block:: python
 
@@ -347,17 +355,19 @@ Using ``numba`` to just-in-time compile your code. We simply take the plain pyth
        result = apply_integrate_f_numba(df['a'].values, df['b'].values, df['N'].values)
        return pd.Series(result, index=df.index, name='result')
 
-Note that we directly pass ``numpy`` arrays to the numba function. ``compute_numba`` is just a wrapper that provides a nicer interface by passing/returning pandas objects.
+Note that we directly pass NumPy arrays to the Numba function. ``compute_numba`` is just a wrapper that provides a nicer interface by passing/returning pandas objects.
 
 .. code-block:: ipython
 
     In [4]: %timeit compute_numba(df)
     1000 loops, best of 3: 798 us per loop
 
+In this example, using Numba was faster than Cython.
+
 Vectorize
 ~~~~~~~~~
 
-``numba`` can also be used to write vectorized functions that do not require the user to explicitly
+Numba can also be used to write vectorized functions that do not require the user to explicitly
 loop over the observations of a vector; a vectorized function will be applied to each row automatically.
 Consider the following toy example of doubling each observation:
 
@@ -390,13 +400,23 @@ Caveats
 
 .. note::
 
-    ``numba`` will execute on any function, but can only accelerate certain classes of functions.
+    Numba will execute on any function, but can only accelerate certain classes of functions.
 
-``numba`` is best at accelerating functions that apply numerical functions to numpy arrays. When passed a function that only uses operations it knows how to accelerate, it will execute in ``nopython`` mode.
+Numba is best at accelerating functions that apply numerical functions to NumPy 
+arrays. When passed a function that only uses operations it knows how to 
+accelerate, it will execute in ``nopython`` mode.
 
-If ``numba`` is passed a function that includes something it doesn't know how to work with -- a category that currently includes sets, lists, dictionaries, or string functions -- it will revert to ``object mode``. In ``object mode``, numba will execute but your code will not speed up significantly. If you would prefer that ``numba`` throw an error if it cannot compile a function in a way that speeds up your code, pass numba the argument ``nopython=True`` (e.g.  ``@numba.jit(nopython=True)``). For more on troubleshooting ``numba`` modes, see the `numba troubleshooting page <http://numba.pydata.org/numba-doc/0.20.0/user/troubleshoot.html#the-compiled-code-is-too-slow>`__.
+If Numba is passed a function that includes something it doesn't know how to 
+work with -- a category that currently includes sets, lists, dictionaries, or 
+string functions -- it will revert to ``object mode``. In ``object mode``, 
+Numba will execute but your code will not speed up significantly. If you would 
+prefer that Numba throw an error if it cannot compile a function in a way that 
+speeds up your code, pass Numba the argument 
+``nopython=True`` (e.g.  ``@numba.jit(nopython=True)``). For more on 
+troubleshooting Numba modes, see the `Numba troubleshooting page 
+<http://numba.pydata.org/numba-doc/latest/user/troubleshoot.html#the-compiled-code-is-too-slow>`__.
 
-Read more in the `numba docs <http://numba.pydata.org/>`__.
+Read more in the `Numba docs <http://numba.pydata.org/>`__.
 
 .. _enhancingperf.eval:
 
@@ -441,15 +461,15 @@ Supported Syntax
 
 These operations are supported by :func:`pandas.eval`:
 
-- Arithmetic operations except for the left shift (``<<``) and right shift
+* Arithmetic operations except for the left shift (``<<``) and right shift
   (``>>``) operators, e.g., ``df + 2 * pi / s ** 4 % 42 - the_golden_ratio``
-- Comparison operations, including chained comparisons, e.g., ``2 < df < df2``
-- Boolean operations, e.g., ``df < df2 and df3 < df4 or not df_bool``
-- ``list`` and ``tuple`` literals, e.g., ``[1, 2]`` or ``(1, 2)``
-- Attribute access, e.g., ``df.a``
-- Subscript expressions, e.g., ``df[0]``
-- Simple variable evaluation, e.g., ``pd.eval('df')`` (this is not very useful)
-- Math functions, `sin`, `cos`, `exp`, `log`, `expm1`, `log1p`,
+* Comparison operations, including chained comparisons, e.g., ``2 < df < df2``
+* Boolean operations, e.g., ``df < df2 and df3 < df4 or not df_bool``
+* ``list`` and ``tuple`` literals, e.g., ``[1, 2]`` or ``(1, 2)``
+* Attribute access, e.g., ``df.a``
+* Subscript expressions, e.g., ``df[0]``
+* Simple variable evaluation, e.g., ``pd.eval('df')`` (this is not very useful)
+* Math functions: `sin`, `cos`, `exp`, `log`, `expm1`, `log1p`,
   `sqrt`, `sinh`, `cosh`, `tanh`, `arcsin`, `arccos`, `arctan`, `arccosh`,
   `arcsinh`, `arctanh`, `abs` and `arctan2`.
 
@@ -457,22 +477,22 @@ This Python syntax is **not** allowed:
 
 * Expressions
 
-  - Function calls other than math functions.
-  - ``is``/``is not`` operations
-  - ``if`` expressions
-  - ``lambda`` expressions
-  - ``list``/``set``/``dict`` comprehensions
-  - Literal ``dict`` and ``set`` expressions
-  - ``yield`` expressions
-  - Generator expressions
-  - Boolean expressions consisting of only scalar values
+    * Function calls other than math functions.
+    * ``is``/``is not`` operations
+    * ``if`` expressions
+    * ``lambda`` expressions
+    * ``list``/``set``/``dict`` comprehensions
+    * Literal ``dict`` and ``set`` expressions
+    * ``yield`` expressions
+    * Generator expressions
+    * Boolean expressions consisting of only scalar values
 
 * Statements
 
-  - Neither `simple <http://docs.python.org/2/reference/simple_stmts.html>`__
-    nor `compound <http://docs.python.org/2/reference/compound_stmts.html>`__
-    statements are allowed. This includes things like ``for``, ``while``, and
-    ``if``.
+    * Neither `simple <https://docs.python.org/3/reference/simple_stmts.html>`__
+      nor `compound <https://docs.python.org/3/reference/compound_stmts.html>`__
+      statements are allowed. This includes things like ``for``, ``while``, and
+      ``if``.
 
 
 
@@ -579,10 +599,10 @@ on the original ``DataFrame`` or return a copy with the new column.
 
 .. warning::
 
-   For backwards compatability, ``inplace`` defaults to ``True`` if not
+   For backwards compatibility, ``inplace`` defaults to ``True`` if not
    specified. This will change in a future version of pandas - if your
    code depends on an inplace assignment you should update to explicitly
-   set ``inplace=True``
+   set ``inplace=True``.
 
 .. ipython:: python
 
@@ -780,13 +800,13 @@ Technical Minutia Regarding Expression Evaluation
 
 Expressions that would result in an object dtype or involve datetime operations
 (because of ``NaT``) must be evaluated in Python space. The main reason for
-this behavior is to maintain backwards compatibility with versions of numpy <
-1.7. In those versions of ``numpy`` a call to ``ndarray.astype(str)`` will
+this behavior is to maintain backwards compatibility with versions of NumPy <
+1.7. In those versions of NumPy a call to ``ndarray.astype(str)`` will
 truncate any strings that are more than 60 characters in length. Second, we
 can't pass ``object`` arrays to ``numexpr`` thus string comparisons must be
 evaluated in Python space.
 
-The upshot is that this *only* applies to object-dtype'd expressions. So, if
+The upshot is that this *only* applies to object-dtype expressions. So, if
 you have an expression--for example
 
 .. ipython:: python

@@ -212,6 +212,27 @@ class TestMelt(object):
         res = self.df1.melt()
         assert res.columns.tolist() == ['CAP', 'low', 'value']
 
+    @pytest.mark.parametrize("col", [
+        pd.Series(pd.date_range('2010', periods=5, tz='US/Pacific')),
+        pd.Series(["a", "b", "c", "a", "d"], dtype="category"),
+        pd.Series([0, 1, 0, 0, 0])])
+    def test_pandas_dtypes(self, col):
+        # GH 15785
+        df = DataFrame({'klass': range(5),
+                        'col': col,
+                        'attr1': [1, 0, 0, 0, 0],
+                        'attr2': col})
+        expected_value = pd.concat([pd.Series([1, 0, 0, 0, 0]), col],
+                                   ignore_index=True)
+        result = melt(df, id_vars=['klass', 'col'], var_name='attribute',
+                      value_name='value')
+        expected = DataFrame({0: list(range(5)) * 2,
+                              1: pd.concat([col] * 2, ignore_index=True),
+                              2: ['attr1'] * 5 + ['attr2'] * 5,
+                              3: expected_value})
+        expected.columns = ['klass', 'col', 'attribute', 'value']
+        tm.assert_frame_equal(result, expected)
+
 
 class TestLreshape(object):
 
@@ -308,12 +329,12 @@ class TestWideToLong(object):
         exp_data = {"X": x.tolist() + x.tolist(),
                     "A": ['a', 'b', 'c', 'd', 'e', 'f'],
                     "B": [2.5, 1.2, 0.7, 3.2, 1.3, 0.1],
-                    "year": ['1970', '1970', '1970', '1980', '1980', '1980'],
+                    "year": [1970, 1970, 1970, 1980, 1980, 1980],
                     "id": [0, 1, 2, 0, 1, 2]}
-        exp_frame = DataFrame(exp_data)
-        exp_frame = exp_frame.set_index(['id', 'year'])[["X", "A", "B"]]
-        long_frame = wide_to_long(df, ["A", "B"], i="id", j="year")
-        tm.assert_frame_equal(long_frame, exp_frame)
+        expected = DataFrame(exp_data)
+        expected = expected.set_index(['id', 'year'])[["X", "A", "B"]]
+        result = wide_to_long(df, ["A", "B"], i="id", j="year")
+        tm.assert_frame_equal(result, expected)
 
     def test_stubs(self):
         # GH9204
@@ -348,12 +369,12 @@ class TestWideToLong(object):
         exp_data = {"X": x.tolist() + x.tolist(),
                     "A": ['a', 'b', 'c', 'd', 'e', 'f'],
                     "B": [2.5, 1.2, 0.7, 3.2, 1.3, 0.1],
-                    "year": ['1970', '1970', '1970', '1980', '1980', '1980'],
+                    "year": [1970, 1970, 1970, 1980, 1980, 1980],
                     "id": [0, 1, 2, 0, 1, 2]}
-        exp_frame = DataFrame(exp_data)
-        exp_frame = exp_frame.set_index(['id', 'year'])[["X", "A", "B"]]
-        long_frame = wide_to_long(df, ["A", "B"], i="id", j="year", sep=".")
-        tm.assert_frame_equal(long_frame, exp_frame)
+        expected = DataFrame(exp_data)
+        expected = expected.set_index(['id', 'year'])[["X", "A", "B"]]
+        result = wide_to_long(df, ["A", "B"], i="id", j="year", sep=".")
+        tm.assert_frame_equal(result, expected)
 
     def test_escapable_characters(self):
         np.random.seed(123)
@@ -376,14 +397,14 @@ class TestWideToLong(object):
         exp_data = {"X": x.tolist() + x.tolist(),
                     "A(quarterly)": ['a', 'b', 'c', 'd', 'e', 'f'],
                     "B(quarterly)": [2.5, 1.2, 0.7, 3.2, 1.3, 0.1],
-                    "year": ['1970', '1970', '1970', '1980', '1980', '1980'],
+                    "year": [1970, 1970, 1970, 1980, 1980, 1980],
                     "id": [0, 1, 2, 0, 1, 2]}
-        exp_frame = DataFrame(exp_data)
-        exp_frame = exp_frame.set_index(
+        expected = DataFrame(exp_data)
+        expected = expected.set_index(
             ['id', 'year'])[["X", "A(quarterly)", "B(quarterly)"]]
-        long_frame = wide_to_long(df, ["A(quarterly)", "B(quarterly)"],
-                                  i="id", j="year")
-        tm.assert_frame_equal(long_frame, exp_frame)
+        result = wide_to_long(df, ["A(quarterly)", "B(quarterly)"],
+                              i="id", j="year")
+        tm.assert_frame_equal(result, expected)
 
     def test_unbalanced(self):
         # test that we can have a varying amount of time variables
@@ -396,11 +417,11 @@ class TestWideToLong(object):
                     'A': [1.0, 3.0, 2.0, 4.0],
                     'B': [5.0, np.nan, 6.0, np.nan],
                     'id': [0, 0, 1, 1],
-                    'year': ['2010', '2011', '2010', '2011']}
-        exp_frame = pd.DataFrame(exp_data)
-        exp_frame = exp_frame.set_index(['id', 'year'])[["X", "A", "B"]]
-        long_frame = wide_to_long(df, ['A', 'B'], i='id', j='year')
-        tm.assert_frame_equal(long_frame, exp_frame)
+                    'year': [2010, 2011, 2010, 2011]}
+        expected = pd.DataFrame(exp_data)
+        expected = expected.set_index(['id', 'year'])[["X", "A", "B"]]
+        result = wide_to_long(df, ['A', 'B'], i='id', j='year')
+        tm.assert_frame_equal(result, expected)
 
     def test_character_overlap(self):
         # Test we handle overlapping characters in both id_vars and value_vars
@@ -415,19 +436,19 @@ class TestWideToLong(object):
             'BBBZ': [91, 92, 93]
         })
         df['id'] = df.index
-        exp_frame = pd.DataFrame({
+        expected = pd.DataFrame({
             'BBBX': [91, 92, 93, 91, 92, 93],
             'BBBZ': [91, 92, 93, 91, 92, 93],
             'A': ['a11', 'a22', 'a33', 'a21', 'a22', 'a23'],
             'B': ['b11', 'b12', 'b13', 'b21', 'b22', 'b23'],
             'BB': [1, 2, 3, 4, 5, 6],
             'id': [0, 1, 2, 0, 1, 2],
-            'year': ['11', '11', '11', '12', '12', '12']})
-        exp_frame = exp_frame.set_index(['id', 'year'])[
+            'year': [11, 11, 11, 12, 12, 12]})
+        expected = expected.set_index(['id', 'year'])[
             ['BBBX', 'BBBZ', 'A', 'B', 'BB']]
-        long_frame = wide_to_long(df, ['A', 'B', 'BB'], i='id', j='year')
-        tm.assert_frame_equal(long_frame.sort_index(axis=1),
-                              exp_frame.sort_index(axis=1))
+        result = wide_to_long(df, ['A', 'B', 'BB'], i='id', j='year')
+        tm.assert_frame_equal(result.sort_index(axis=1),
+                              expected.sort_index(axis=1))
 
     def test_invalid_separator(self):
         # if an invalid separator is supplied a empty data frame is returned
@@ -445,13 +466,13 @@ class TestWideToLong(object):
                     'year': [],
                     'A': [],
                     'B': []}
-        exp_frame = pd.DataFrame(exp_data)
-        exp_frame = exp_frame.set_index(['id', 'year'])[[
+        expected = pd.DataFrame(exp_data).astype({'year': 'int'})
+        expected = expected.set_index(['id', 'year'])[[
             'X', 'A2010', 'A2011', 'B2010', 'A', 'B']]
-        exp_frame.index.set_levels([[0, 1], []], inplace=True)
-        long_frame = wide_to_long(df, ['A', 'B'], i='id', j='year', sep=sep)
-        tm.assert_frame_equal(long_frame.sort_index(axis=1),
-                              exp_frame.sort_index(axis=1))
+        expected.index.set_levels([0, 1], level=0, inplace=True)
+        result = wide_to_long(df, ['A', 'B'], i='id', j='year', sep=sep)
+        tm.assert_frame_equal(result.sort_index(axis=1),
+                              expected.sort_index(axis=1))
 
     def test_num_string_disambiguation(self):
         # Test that we can disambiguate number value_vars from
@@ -467,19 +488,19 @@ class TestWideToLong(object):
             'Arating_old': [91, 92, 93]
         })
         df['id'] = df.index
-        exp_frame = pd.DataFrame({
+        expected = pd.DataFrame({
             'Arating': [91, 92, 93, 91, 92, 93],
             'Arating_old': [91, 92, 93, 91, 92, 93],
             'A': ['a11', 'a22', 'a33', 'a21', 'a22', 'a23'],
             'B': ['b11', 'b12', 'b13', 'b21', 'b22', 'b23'],
             'BB': [1, 2, 3, 4, 5, 6],
             'id': [0, 1, 2, 0, 1, 2],
-            'year': ['11', '11', '11', '12', '12', '12']})
-        exp_frame = exp_frame.set_index(['id', 'year'])[
+            'year': [11, 11, 11, 12, 12, 12]})
+        expected = expected.set_index(['id', 'year'])[
             ['Arating', 'Arating_old', 'A', 'B', 'BB']]
-        long_frame = wide_to_long(df, ['A', 'B', 'BB'], i='id', j='year')
-        tm.assert_frame_equal(long_frame.sort_index(axis=1),
-                              exp_frame.sort_index(axis=1))
+        result = wide_to_long(df, ['A', 'B', 'BB'], i='id', j='year')
+        tm.assert_frame_equal(result.sort_index(axis=1),
+                              expected.sort_index(axis=1))
 
     def test_invalid_suffixtype(self):
         # If all stubs names end with a string, but a numeric suffix is
@@ -497,13 +518,13 @@ class TestWideToLong(object):
                     'year': [],
                     'A': [],
                     'B': []}
-        exp_frame = pd.DataFrame(exp_data)
-        exp_frame = exp_frame.set_index(['id', 'year'])[[
-            'X', 'Aone', 'Atwo', 'Bone', 'A', 'B']]
-        exp_frame.index.set_levels([[0, 1], []], inplace=True)
-        long_frame = wide_to_long(df, ['A', 'B'], i='id', j='year')
-        tm.assert_frame_equal(long_frame.sort_index(axis=1),
-                              exp_frame.sort_index(axis=1))
+        expected = pd.DataFrame(exp_data).astype({'year': 'int'})
+
+        expected = expected.set_index(['id', 'year'])
+        expected.index.set_levels([0, 1], level=0, inplace=True)
+        result = wide_to_long(df, ['A', 'B'], i='id', j='year')
+        tm.assert_frame_equal(result.sort_index(axis=1),
+                              expected.sort_index(axis=1))
 
     def test_multiple_id_columns(self):
         # Taken from http://www.ats.ucla.edu/stat/stata/modules/reshapel.htm
@@ -513,17 +534,17 @@ class TestWideToLong(object):
             'ht1': [2.8, 2.9, 2.2, 2, 1.8, 1.9, 2.2, 2.3, 2.1],
             'ht2': [3.4, 3.8, 2.9, 3.2, 2.8, 2.4, 3.3, 3.4, 2.9]
         })
-        exp_frame = pd.DataFrame({
+        expected = pd.DataFrame({
             'ht': [2.8, 3.4, 2.9, 3.8, 2.2, 2.9, 2.0, 3.2, 1.8,
                    2.8, 1.9, 2.4, 2.2, 3.3, 2.3, 3.4, 2.1, 2.9],
             'famid': [1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3],
             'birth': [1, 1, 2, 2, 3, 3, 1, 1, 2, 2, 3, 3, 1, 1, 2, 2, 3, 3],
-            'age': ['1', '2', '1', '2', '1', '2', '1', '2', '1',
-                    '2', '1', '2', '1', '2', '1', '2', '1', '2']
+            'age': [1, 2, 1, 2, 1, 2, 1, 2, 1,
+                    2, 1, 2, 1, 2, 1, 2, 1, 2]
         })
-        exp_frame = exp_frame.set_index(['famid', 'birth', 'age'])[['ht']]
-        long_frame = wide_to_long(df, 'ht', i=['famid', 'birth'], j='age')
-        tm.assert_frame_equal(long_frame, exp_frame)
+        expected = expected.set_index(['famid', 'birth', 'age'])[['ht']]
+        result = wide_to_long(df, 'ht', i=['famid', 'birth'], j='age')
+        tm.assert_frame_equal(result, expected)
 
     def test_non_unique_idvars(self):
         # GH16382
@@ -535,3 +556,87 @@ class TestWideToLong(object):
         })
         with pytest.raises(ValueError):
             wide_to_long(df, ['A_A', 'B_B'], i='x', j='colname')
+
+    def test_cast_j_int(self):
+        df = pd.DataFrame({
+            'actor_1': ['CCH Pounder', 'Johnny Depp', 'Christoph Waltz'],
+            'actor_2': ['Joel David Moore', 'Orlando Bloom', 'Rory Kinnear'],
+            'actor_fb_likes_1': [1000.0, 40000.0, 11000.0],
+            'actor_fb_likes_2': [936.0, 5000.0, 393.0],
+            'title': ['Avatar', "Pirates of the Caribbean", 'Spectre']})
+
+        expected = pd.DataFrame({
+            'actor': ['CCH Pounder',
+                      'Johnny Depp',
+                      'Christoph Waltz',
+                      'Joel David Moore',
+                      'Orlando Bloom',
+                      'Rory Kinnear'],
+            'actor_fb_likes': [1000.0, 40000.0, 11000.0, 936.0, 5000.0, 393.0],
+            'num': [1, 1, 1, 2, 2, 2],
+            'title': ['Avatar',
+                      'Pirates of the Caribbean',
+                      'Spectre',
+                      'Avatar',
+                      'Pirates of the Caribbean',
+                      'Spectre']}).set_index(['title', 'num'])
+        result = wide_to_long(df, ['actor', 'actor_fb_likes'],
+                              i='title', j='num', sep='_')
+
+        tm.assert_frame_equal(result, expected)
+
+    def test_identical_stubnames(self):
+        df = pd.DataFrame({'A2010': [1.0, 2.0],
+                           'A2011': [3.0, 4.0],
+                           'B2010': [5.0, 6.0],
+                           'A': ['X1', 'X2']})
+        with pytest.raises(ValueError):
+            wide_to_long(df, ['A', 'B'], i='A', j='colname')
+
+    def test_nonnumeric_suffix(self):
+        df = pd.DataFrame({'treatment_placebo': [1.0, 2.0],
+                           'treatment_test': [3.0, 4.0],
+                           'result_placebo': [5.0, 6.0],
+                           'A': ['X1', 'X2']})
+        expected = pd.DataFrame({
+            'A': ['X1', 'X1', 'X2', 'X2'],
+            'colname': ['placebo', 'test', 'placebo', 'test'],
+            'result': [5.0, np.nan, 6.0, np.nan],
+            'treatment': [1.0, 3.0, 2.0, 4.0]})
+        expected = expected.set_index(['A', 'colname'])
+        result = wide_to_long(df, ['result', 'treatment'],
+                              i='A', j='colname', suffix='[a-z]+', sep='_')
+        tm.assert_frame_equal(result, expected)
+
+    def test_mixed_type_suffix(self):
+        df = pd.DataFrame({
+            'A': ['X1', 'X2'],
+            'result_1': [0, 9],
+            'result_foo': [5.0, 6.0],
+            'treatment_1': [1.0, 2.0],
+            'treatment_foo': [3.0, 4.0]})
+        expected = pd.DataFrame({
+            'A': ['X1', 'X2', 'X1', 'X2'],
+            'colname': ['1', '1', 'foo', 'foo'],
+            'result': [0.0, 9.0, 5.0, 6.0],
+            'treatment': [1.0, 2.0, 3.0, 4.0]}).set_index(['A', 'colname'])
+        result = wide_to_long(df, ['result', 'treatment'],
+                              i='A', j='colname', suffix='.+', sep='_')
+        tm.assert_frame_equal(result, expected)
+
+    def test_float_suffix(self):
+        df = pd.DataFrame({
+            'treatment_1.1': [1.0, 2.0],
+            'treatment_2.1': [3.0, 4.0],
+            'result_1.2': [5.0, 6.0],
+            'result_1': [0, 9],
+            'A': ['X1', 'X2']})
+        expected = pd.DataFrame({
+            'A': ['X1', 'X1', 'X1', 'X1', 'X2', 'X2', 'X2', 'X2'],
+            'colname': [1, 1.1, 1.2, 2.1, 1, 1.1, 1.2, 2.1],
+            'result': [0.0, np.nan, 5.0, np.nan, 9.0, np.nan, 6.0, np.nan],
+            'treatment': [np.nan, 1.0, np.nan, 3.0, np.nan, 2.0, np.nan, 4.0]})
+        expected = expected.set_index(['A', 'colname'])
+        result = wide_to_long(df, ['result', 'treatment'],
+                              i='A', j='colname', suffix='[0-9.]+', sep='_')
+        tm.assert_frame_equal(result, expected)

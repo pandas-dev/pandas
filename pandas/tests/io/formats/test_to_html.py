@@ -16,7 +16,7 @@ import pandas.io.formats.format as fmt
 div_style = ''
 try:
     import IPython
-    if IPython.__version__ < LooseVersion('3.0.0'):
+    if LooseVersion(IPython.__version__) < LooseVersion('3.0.0'):
         div_style = ' style="max-width:1500px;overflow:auto;"'
 except (ImportError, AttributeError):
     pass
@@ -1411,8 +1411,9 @@ class TestToHTML(object):
         result = df.to_html(border=0)
         assert 'border="0"' in result
 
+    @tm.capture_stdout
     def test_display_option_warning(self):
-        with tm.assert_produces_warning(DeprecationWarning,
+        with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             pd.options.html.border
 
@@ -1863,3 +1864,10 @@ class TestToHTML(object):
                                                         name='myindexname'))
         result = df.to_html(index_names=False)
         assert 'myindexname' not in result
+
+    def test_to_html_with_id(self):
+        # gh-8496
+        df = pd.DataFrame({"A": [1, 2]}, index=pd.Index(['a', 'b'],
+                                                        name='myindexname'))
+        result = df.to_html(index_names=False, table_id="TEST_ID")
+        assert ' id="TEST_ID"' in result

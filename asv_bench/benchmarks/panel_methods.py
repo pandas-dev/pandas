@@ -1,24 +1,24 @@
-from .pandas_vb_common import *
+import warnings
+
+import numpy as np
+
+from .pandas_vb_common import Panel, setup  # noqa
 
 
 class PanelMethods(object):
+
     goal_time = 0.2
+    params = ['items', 'major', 'minor']
+    param_names = ['axis']
 
-    def setup(self):
-        self.index = date_range(start='2000', freq='D', periods=1000)
-        self.panel = Panel(np.random.randn(100, len(self.index), 1000))
+    def setup(self, axis):
+        with warnings.catch_warnings(record=True):
+            self.panel = Panel(np.random.randn(100, 1000, 100))
 
-    def time_pct_change_items(self):
-        self.panel.pct_change(1, axis='items')
+    def time_pct_change(self, axis):
+        with warnings.catch_warnings(record=True):
+            self.panel.pct_change(1, axis=axis)
 
-    def time_pct_change_major(self):
-        self.panel.pct_change(1, axis='major')
-
-    def time_pct_change_minor(self):
-        self.panel.pct_change(1, axis='minor')
-
-    def time_shift(self):
-        self.panel.shift(1)
-
-    def time_shift_minor(self):
-        self.panel.shift(1, axis='minor')
+    def time_shift(self, axis):
+        with warnings.catch_warnings(record=True):
+            self.panel.shift(1, axis=axis)

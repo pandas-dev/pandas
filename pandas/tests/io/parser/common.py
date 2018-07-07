@@ -8,10 +8,11 @@ import codecs
 import re
 import sys
 from datetime import datetime
+from collections import OrderedDict
 
 import pytest
 import numpy as np
-from pandas._libs.lib import Timestamp
+from pandas._libs.tslib import Timestamp
 
 import pandas as pd
 import pandas.util.testing as tm
@@ -53,20 +54,21 @@ bar2,12,13,14,15
         # and C engine will raise UnicodeDecodeError instead of
         # c engine raising ParserError and swallowing exception
         # that caused read to fail.
-        handle = open(self.csv_shiftjs, "rb")
         codec = codecs.lookup("utf-8")
         utf8 = codecs.lookup('utf-8')
-        # stream must be binary UTF8
-        stream = codecs.StreamRecoder(
-            handle, utf8.encode, utf8.decode, codec.streamreader,
-            codec.streamwriter)
+
         if compat.PY3:
             msg = "'utf-8' codec can't decode byte"
         else:
             msg = "'utf8' codec can't decode byte"
-        with tm.assert_raises_regex(UnicodeDecodeError, msg):
-            self.read_csv(stream)
-        stream.close()
+
+        # stream must be binary UTF8
+        with open(self.csv_shiftjs, "rb") as handle, codecs.StreamRecoder(
+                handle, utf8.encode, utf8.decode, codec.streamreader,
+                codec.streamwriter) as stream:
+
+            with tm.assert_raises_regex(UnicodeDecodeError, msg):
+                self.read_csv(stream)
 
     def test_read_csv(self):
         if not compat.PY3:
@@ -75,7 +77,7 @@ bar2,12,13,14,15
             else:
                 prefix = u("file://")
 
-            fname = prefix + compat.text_type(self.csv1)
+            fname = prefix + compat.text_type(os.path.abspath(self.csv1))
             self.read_csv(fname, index_col=0, parse_dates=True)
 
     def test_1000_sep(self):
@@ -234,6 +236,21 @@ c,4,5
                               'B': [1, 3, 4],
                               'C': [2, 4, 5]})
         out = self.read_csv(StringIO(data))
+        tm.assert_frame_equal(out, expected)
+
+    def test_read_csv_low_memory_no_rows_with_index(self):
+        if self.engine == "c" and not self.low_memory:
+            pytest.skip("This is a low-memory specific test")
+
+        # see gh-21141
+        data = """A,B,C
+1,1,1,2
+2,2,3,4
+3,3,4,5
+"""
+        out = self.read_csv(StringIO(data), low_memory=True,
+                            index_col=0, nrows=0)
+        expected = DataFrame(columns=["A", "B", "C"])
         tm.assert_frame_equal(out, expected)
 
     def test_read_csv_dataframe(self):
@@ -634,21 +651,19 @@ bar"""
         tm.assert_frame_equal(df, expected)
 
     @tm.network
-    def test_url(self):
+    def test_url(self, datapath):
         # HTTP(S)
         url = ('https://raw.github.com/pandas-dev/pandas/master/'
                'pandas/tests/io/parser/data/salaries.csv')
         url_table = self.read_table(url)
-        dirpath = tm.get_data_path()
-        localtable = os.path.join(dirpath, 'salaries.csv')
+        localtable = datapath('io', 'parser', 'data', 'salaries.csv')
         local_table = self.read_table(localtable)
         tm.assert_frame_equal(url_table, local_table)
         # TODO: ftp testing
 
     @pytest.mark.slow
-    def test_file(self):
-        dirpath = tm.get_data_path()
-        localtable = os.path.join(dirpath, 'salaries.csv')
+    def test_file(self, datapath):
+        localtable = datapath('io', 'parser', 'data', 'salaries.csv')
         local_table = self.read_table(localtable)
 
         try:
@@ -738,8 +753,8 @@ A,B,C
 
                     tm.assert_frame_equal(result, expected)
 
-    def test_utf16_example(self):
-        path = tm.get_data_path('utf16_ex.txt')
+    def test_utf16_example(self, datapath):
+        path = datapath('io', 'parser', 'data', 'utf16_ex.txt')
 
         # it works! and is the right length
         result = self.read_table(path, encoding='utf-16')
@@ -750,8 +765,8 @@ A,B,C
             result = self.read_table(buf, encoding='utf-16')
             assert len(result) == 50
 
-    def test_unicode_encoding(self):
-        pth = tm.get_data_path('unicode_series.csv')
+    def test_unicode_encoding(self, datapath):
+        pth = datapath('io', 'parser', 'data', 'unicode_series.csv')
 
         result = self.read_csv(pth, header=None, encoding='latin-1')
         result = result.set_index(0)
@@ -924,8 +939,9 @@ A,B,C
 
     def test_scientific_no_exponent(self):
         # see gh-12215
-        df = DataFrame.from_items([('w', ['2e']), ('x', ['3E']),
-                                   ('y', ['42e']), ('z', ['632E'])])
+        df = DataFrame.from_dict(OrderedDict([('w', ['2e']), ('x', ['3E']),
+                                              ('y', ['42e']),
+                                              ('z', ['632E'])]))
         data = df.to_csv(index=False)
         for prec in self.float_precision_choices:
             df_roundtrip = self.read_csv(
@@ -996,23 +1012,6 @@ A,B,C
         result = next(iter(self.read_csv(
             StringIO('foo,bar\n'), chunksize=10)))
         tm.assert_frame_equal(result, expected)
-
-        with tm.assert_produces_warning(
-                FutureWarning, check_stacklevel=False):
-            result = self.read_csv(StringIO('foo,bar\n'),
-                                   nrows=10, as_recarray=True)
-            result = DataFrame(result[2], columns=result[1],
-                               index=result[0])
-            tm.assert_frame_equal(DataFrame.from_records(
-                result), expected, check_index_type=False)
-
-        with tm.assert_produces_warning(
-                FutureWarning, check_stacklevel=False):
-            result = next(iter(self.read_csv(StringIO('foo,bar\n'),
-                                             chunksize=10, as_recarray=True)))
-            result = DataFrame(result[2], columns=result[1], index=result[0])
-            tm.assert_frame_equal(DataFrame.from_records(result), expected,
-                                  check_index_type=False)
 
     def test_eof_states(self):
         # see gh-10728, gh-10548
@@ -1290,10 +1289,8 @@ eight,1,2,3"""
         else:  # Python engine
             assert output == 'Filled 1 NA values in column a\n'
 
+    @pytest.mark.skipif(PY3, reason="won't work in Python 3")
     def test_iteration_open_handle(self):
-        if PY3:
-            pytest.skip(
-                "won't work in Python 3 {0}".format(sys.version_info))
 
         with tm.ensure_clean() as path:
             with open(path, 'wb') as f:
@@ -1387,136 +1384,6 @@ j,-inF"""
         # test with more than a single newline
         data = "\n\n\n"
         pytest.raises(EmptyDataError, self.read_csv, StringIO(data))
-
-    def test_compact_ints_use_unsigned(self):
-        # see gh-13323
-        data = 'a,b,c\n1,9,258'
-
-        # sanity check
-        expected = DataFrame({
-            'a': np.array([1], dtype=np.int64),
-            'b': np.array([9], dtype=np.int64),
-            'c': np.array([258], dtype=np.int64),
-        })
-        out = self.read_csv(StringIO(data))
-        tm.assert_frame_equal(out, expected)
-
-        expected = DataFrame({
-            'a': np.array([1], dtype=np.int8),
-            'b': np.array([9], dtype=np.int8),
-            'c': np.array([258], dtype=np.int16),
-        })
-
-        # default behaviour for 'use_unsigned'
-        with tm.assert_produces_warning(
-                FutureWarning, check_stacklevel=False):
-            out = self.read_csv(StringIO(data), compact_ints=True)
-            tm.assert_frame_equal(out, expected)
-
-        with tm.assert_produces_warning(
-                FutureWarning, check_stacklevel=False):
-            out = self.read_csv(StringIO(data), compact_ints=True,
-                                use_unsigned=False)
-            tm.assert_frame_equal(out, expected)
-
-        expected = DataFrame({
-            'a': np.array([1], dtype=np.uint8),
-            'b': np.array([9], dtype=np.uint8),
-            'c': np.array([258], dtype=np.uint16),
-        })
-
-        with tm.assert_produces_warning(
-                FutureWarning, check_stacklevel=False):
-            out = self.read_csv(StringIO(data), compact_ints=True,
-                                use_unsigned=True)
-            tm.assert_frame_equal(out, expected)
-
-    def test_compact_ints_as_recarray(self):
-        data = ('0,1,0,0\n'
-                '1,1,0,0\n'
-                '0,1,0,1')
-
-        with tm.assert_produces_warning(
-                FutureWarning, check_stacklevel=False):
-            result = self.read_csv(StringIO(data), delimiter=',', header=None,
-                                   compact_ints=True, as_recarray=True)
-            ex_dtype = np.dtype([(str(i), 'i1') for i in range(4)])
-            assert result.dtype == ex_dtype
-
-        with tm.assert_produces_warning(
-                FutureWarning, check_stacklevel=False):
-            result = self.read_csv(StringIO(data), delimiter=',', header=None,
-                                   as_recarray=True, compact_ints=True,
-                                   use_unsigned=True)
-            ex_dtype = np.dtype([(str(i), 'u1') for i in range(4)])
-            assert result.dtype == ex_dtype
-
-    def test_as_recarray(self):
-        # basic test
-        with tm.assert_produces_warning(
-                FutureWarning, check_stacklevel=False):
-            data = 'a,b\n1,a\n2,b'
-            expected = np.array([(1, 'a'), (2, 'b')],
-                                dtype=[('a', '=i8'), ('b', 'O')])
-            out = self.read_csv(StringIO(data), as_recarray=True)
-            tm.assert_numpy_array_equal(out, expected)
-
-        # index_col ignored
-        with tm.assert_produces_warning(
-                FutureWarning, check_stacklevel=False):
-            data = 'a,b\n1,a\n2,b'
-            expected = np.array([(1, 'a'), (2, 'b')],
-                                dtype=[('a', '=i8'), ('b', 'O')])
-            out = self.read_csv(StringIO(data), as_recarray=True, index_col=0)
-            tm.assert_numpy_array_equal(out, expected)
-
-        # respects names
-        with tm.assert_produces_warning(
-                FutureWarning, check_stacklevel=False):
-            data = '1,a\n2,b'
-            expected = np.array([(1, 'a'), (2, 'b')],
-                                dtype=[('a', '=i8'), ('b', 'O')])
-            out = self.read_csv(StringIO(data), names=['a', 'b'],
-                                header=None, as_recarray=True)
-            tm.assert_numpy_array_equal(out, expected)
-
-        # header order is respected even though it conflicts
-        # with the natural ordering of the column names
-        with tm.assert_produces_warning(
-                FutureWarning, check_stacklevel=False):
-            data = 'b,a\n1,a\n2,b'
-            expected = np.array([(1, 'a'), (2, 'b')],
-                                dtype=[('b', '=i8'), ('a', 'O')])
-            out = self.read_csv(StringIO(data), as_recarray=True)
-            tm.assert_numpy_array_equal(out, expected)
-
-        # overrides the squeeze parameter
-        with tm.assert_produces_warning(
-                FutureWarning, check_stacklevel=False):
-            data = 'a\n1'
-            expected = np.array([(1,)], dtype=[('a', '=i8')])
-            out = self.read_csv(StringIO(data), as_recarray=True, squeeze=True)
-            tm.assert_numpy_array_equal(out, expected)
-
-        # does data conversions before doing recarray conversion
-        with tm.assert_produces_warning(
-                FutureWarning, check_stacklevel=False):
-            data = 'a,b\n1,a\n2,b'
-            conv = lambda x: int(x) + 1
-            expected = np.array([(2, 'a'), (3, 'b')],
-                                dtype=[('a', '=i8'), ('b', 'O')])
-            out = self.read_csv(StringIO(data), as_recarray=True,
-                                converters={'a': conv})
-            tm.assert_numpy_array_equal(out, expected)
-
-        # filters by usecols before doing recarray conversion
-        with tm.assert_produces_warning(
-                FutureWarning, check_stacklevel=False):
-            data = 'a,b\n1,a\n2,b'
-            expected = np.array([(1,), (2,)], dtype=[('a', '=i8')])
-            out = self.read_csv(StringIO(data), as_recarray=True,
-                                usecols=['a'])
-            tm.assert_numpy_array_equal(out, expected)
 
     def test_memory_map(self):
         mmap_file = os.path.join(self.dirpath, 'test_mmap.csv')
@@ -1644,10 +1511,9 @@ j,-inF"""
             result = self.read_csv(path)
             tm.assert_frame_equal(result, expected)
 
-    def test_sub_character(self):
+    def test_sub_character(self, datapath):
         # see gh-16893
-        dirpath = tm.get_data_path()
-        filename = os.path.join(dirpath, "sub_char.csv")
+        filename = datapath('io', 'parser', 'data', 'sub_char.csv')
 
         expected = DataFrame([[1, 2, 3]], columns=["a", "\x1ab", "c"])
         result = self.read_csv(filename)
@@ -1677,7 +1543,7 @@ j,-inF"""
                     assert not m.closed
                 m.close()
 
-    def test_invalid_file_buffer(self):
+    def test_invalid_file_buffer(self, mock):
         # see gh-15337
 
         class InvalidBuffer(object):
@@ -1708,11 +1574,8 @@ j,-inF"""
 
         tm.assert_frame_equal(result, expected)
 
-        if PY3:
-            from unittest import mock
-
-            with tm.assert_raises_regex(ValueError, msg):
-                self.read_csv(mock.Mock())
+        with tm.assert_raises_regex(ValueError, msg):
+            self.read_csv(mock.Mock())
 
     @tm.capture_stderr
     def test_skip_bad_lines(self):

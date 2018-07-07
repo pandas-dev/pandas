@@ -22,7 +22,7 @@ def _try_import():
                           "pip install -U feather-format\n")
 
     try:
-        feather.__version__ >= LooseVersion('0.3.1')
+        LooseVersion(feather.__version__) >= LooseVersion('0.3.1')
     except AttributeError:
         raise ImportError("the feather-format library must be >= "
                           "version 0.3.1\n"
@@ -106,7 +106,7 @@ def read_feather(path, nthreads=1):
     feather = _try_import()
     path = _stringify_path(path)
 
-    if feather.__version__ < LooseVersion('0.4.0'):
+    if LooseVersion(feather.__version__) < LooseVersion('0.4.0'):
         return feather.read_dataframe(path)
 
     return feather.read_dataframe(path, nthreads=nthreads)

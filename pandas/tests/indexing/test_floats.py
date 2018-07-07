@@ -4,7 +4,8 @@ import pytest
 
 from warnings import catch_warnings
 import numpy as np
-from pandas import Series, DataFrame, Index, Float64Index
+from pandas import (Series, DataFrame, Index, Float64Index, Int64Index,
+                    RangeIndex)
 from pandas.util.testing import assert_series_equal, assert_almost_equal
 import pandas.util.testing as tm
 
@@ -206,9 +207,8 @@ class TestFloatIndexers(object):
         # test how scalar float indexers work on int indexes
 
         # integer index
-        for index in [tm.makeIntIndex, tm.makeRangeIndex]:
+        for i in [Int64Index(range(5)), RangeIndex(5)]:
 
-            i = index(5)
             for s in [Series(np.arange(len(i))),
                       DataFrame(np.random.randn(len(i), len(i)),
                                 index=i, columns=i)]:
@@ -360,11 +360,11 @@ class TestFloatIndexers(object):
 
         # same as above, but for Integer based indexes
         # these coerce to a like integer
-        # oob indiciates if we are out of bounds
+        # oob indicates if we are out of bounds
         # of positional indexing
-        for index, oob in [(tm.makeIntIndex(5), False),
-                           (tm.makeRangeIndex(5), False),
-                           (tm.makeIntIndex(5) + 10, True)]:
+        for index, oob in [(Int64Index(range(5)), False),
+                           (RangeIndex(5), False),
+                           (Int64Index(range(5)) + 10, True)]:
 
             # s is an in-range index
             s = Series(range(5), index=index)
@@ -486,9 +486,8 @@ class TestFloatIndexers(object):
     def test_slice_integer_frame_getitem(self):
 
         # similar to above, but on the getitem dim (of a DataFrame)
-        for index in [tm.makeIntIndex, tm.makeRangeIndex]:
+        for index in [Int64Index(range(5)), RangeIndex(5)]:
 
-            index = index(5)
             s = DataFrame(np.random.randn(5, 2), index=index)
 
             def f(idxr):
@@ -686,17 +685,23 @@ class TestFloatIndexers(object):
         assert_series_equal(result1, result3)
         assert_series_equal(result1, result4)
 
-        result1 = s[[1.6, 5, 10]]
-        result2 = s.loc[[1.6, 5, 10]]
-        result3 = s.loc[[1.6, 5, 10]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result1 = s[[1.6, 5, 10]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result2 = s.loc[[1.6, 5, 10]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result3 = s.loc[[1.6, 5, 10]]
         assert_series_equal(result1, result2)
         assert_series_equal(result1, result3)
         assert_series_equal(result1, Series(
             [np.nan, 2, 4], index=[1.6, 5, 10]))
 
-        result1 = s[[0, 1, 2]]
-        result2 = s.loc[[0, 1, 2]]
-        result3 = s.loc[[0, 1, 2]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result1 = s[[0, 1, 2]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result2 = s.loc[[0, 1, 2]]
+        with tm.assert_produces_warning(FutureWarning, check_stacklevel=False):
+            result3 = s.loc[[0, 1, 2]]
         assert_series_equal(result1, result2)
         assert_series_equal(result1, result3)
         assert_series_equal(result1, Series(

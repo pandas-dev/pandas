@@ -82,7 +82,7 @@ class TestSorting(object):
         # verify this is testing what it is supposed to test!
         assert is_int64_overflow_possible(gr.grouper.shape)
 
-        # mannually compute groupings
+        # manually compute groupings
         jim, joe = defaultdict(list), defaultdict(list)
         for key, a, b in zip(map(tuple, arr), df['jim'], df['joe']):
             jim[key].append(a)

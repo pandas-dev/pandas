@@ -106,7 +106,7 @@ Now you can do:
 
 .. _whatsnew_0181.enhancements.method_chain:
 
-Method chaininng improvements
+Method chaining improvements
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following methods / indexers now accept a ``callable``. It is intended to make
@@ -226,7 +226,7 @@ Other Enhancements
 ^^^^^^^^^^^^^^^^^^
 
 - ``pd.read_csv()`` now supports ``delim_whitespace=True`` for the Python engine (:issue:`12958`)
-- ``pd.read_csv()`` now supports opening ZIP files that contains a single CSV, via extension inference or explict ``compression='zip'`` (:issue:`12175`)
+- ``pd.read_csv()`` now supports opening ZIP files that contains a single CSV, via extension inference or explicit ``compression='zip'`` (:issue:`12175`)
 - ``pd.read_csv()`` now supports opening files using xz compression, via extension inference or explicit ``compression='xz'`` is specified; ``xz`` compressions is also supported by ``DataFrame.to_csv`` in the same way (:issue:`11852`)
 - ``pd.read_msgpack()`` now always gives writeable ndarrays even when compression is used (:issue:`12359`).
 - ``pd.read_msgpack()`` now supports serializing and de-serializing categoricals with msgpack (:issue:`12573`)
@@ -598,14 +598,14 @@ Bug Fixes
 - Bug in ``.resample(...)`` with a ``PeriodIndex`` when resampling to an existing frequency (:issue:`12770`)
 - Bug in printing data which contains ``Period`` with different ``freq`` raises ``ValueError`` (:issue:`12615`)
 - Bug in ``Series`` construction with ``Categorical`` and ``dtype='category'`` is specified (:issue:`12574`)
-- Bugs in concatenation with a coercable dtype was too aggressive, resulting in different dtypes in outputformatting when an object was longer than ``display.max_rows`` (:issue:`12411`, :issue:`12045`, :issue:`11594`, :issue:`10571`, :issue:`12211`)
+- Bugs in concatenation with a coercible dtype was too aggressive, resulting in different dtypes in output formatting when an object was longer than ``display.max_rows`` (:issue:`12411`, :issue:`12045`, :issue:`11594`, :issue:`10571`, :issue:`12211`)
 - Bug in ``float_format`` option with option not being validated as a callable. (:issue:`12706`)
 - Bug in ``GroupBy.filter`` when ``dropna=False`` and no groups fulfilled the criteria (:issue:`12768`)
 - Bug in ``__name__`` of ``.cum*`` functions (:issue:`12021`)
 - Bug in ``.astype()`` of a ``Float64Inde/Int64Index`` to an ``Int64Index`` (:issue:`12881`)
-- Bug in roundtripping an integer based index in ``.to_json()/.read_json()`` when ``orient='index'`` (the default) (:issue:`12866`)
+- Bug in round tripping an integer based index in ``.to_json()/.read_json()`` when ``orient='index'`` (the default) (:issue:`12866`)
 - Bug in plotting ``Categorical`` dtypes cause error when attempting stacked bar plot (:issue:`13019`)
-- Compat with >= ``numpy`` 1.11 for ``NaT`` comparions (:issue:`12969`)
+- Compat with >= ``numpy`` 1.11 for ``NaT`` comparisons (:issue:`12969`)
 - Bug in ``.drop()`` with a non-unique ``MultiIndex``. (:issue:`12701`)
 - Bug in ``.concat`` of datetime tz-aware and naive DataFrames (:issue:`12467`)
 - Bug in correctly raising a ``ValueError`` in ``.resample(..).fillna(..)`` when passing a non-string (:issue:`12952`)
@@ -673,7 +673,7 @@ Bug Fixes
 - Bug in ``pd.concat`` raises ``AttributeError`` when input data contains tz-aware datetime and timedelta (:issue:`12620`)
 - Bug in ``pd.concat`` did not handle empty ``Series`` properly (:issue:`11082`)
 
-- Bug in ``.plot.bar`` alginment when ``width`` is specified with ``int`` (:issue:`12979`)
+- Bug in ``.plot.bar`` alignment when ``width`` is specified with ``int`` (:issue:`12979`)
 
 
 - Bug in ``fill_value`` is ignored if the argument to a binary operator is a constant (:issue:`12723`)

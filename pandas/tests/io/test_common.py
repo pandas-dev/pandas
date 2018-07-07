@@ -8,6 +8,7 @@ from os.path import isabs
 
 import pandas as pd
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 
 from pandas.io import common
 from pandas.compat import is_platform_windows, StringIO, FileNotFoundError
@@ -39,7 +40,7 @@ try:
 except ImportError:
     pass
 
-HERE = os.path.dirname(__file__)
+HERE = os.path.abspath(os.path.dirname(__file__))
 
 
 class TestCommonIOCapabilities(object):
@@ -67,17 +68,15 @@ bar2,12,13,14,15
         assert expanded_name == filename
         assert os.path.expanduser(filename) == expanded_name
 
+    @td.skip_if_no('pathlib')
     def test_stringify_path_pathlib(self):
-        tm._skip_if_no_pathlib()
-
         rel_path = common._stringify_path(Path('.'))
         assert rel_path == '.'
         redundant_path = common._stringify_path(Path('foo//bar'))
         assert redundant_path == os.path.join('foo', 'bar')
 
+    @td.skip_if_no('py.path')
     def test_stringify_path_localpath(self):
-        tm._skip_if_no_localpath()
-
         path = os.path.join('foo', 'bar')
         abs_path = os.path.abspath(path)
         lpath = LocalPath(path)
@@ -103,15 +102,19 @@ bar2,12,13,14,15
 
     def test_get_filepath_or_buffer_with_path(self):
         filename = '~/sometest'
-        filepath_or_buffer, _, _ = common.get_filepath_or_buffer(filename)
+        filepath_or_buffer, _, _, should_close = common.get_filepath_or_buffer(
+            filename)
         assert filepath_or_buffer != filename
         assert isabs(filepath_or_buffer)
         assert os.path.expanduser(filename) == filepath_or_buffer
+        assert not should_close
 
     def test_get_filepath_or_buffer_with_buffer(self):
         input_buffer = StringIO()
-        filepath_or_buffer, _, _ = common.get_filepath_or_buffer(input_buffer)
+        filepath_or_buffer, _, _, should_close = common.get_filepath_or_buffer(
+            input_buffer)
         assert filepath_or_buffer == input_buffer
+        assert not should_close
 
     def test_iterator(self):
         reader = read_csv(StringIO(self.data1), chunksize=1)
@@ -146,27 +149,22 @@ bar2,12,13,14,15
             reader(path)
 
     @pytest.mark.parametrize('reader, module, path', [
-        (pd.read_csv, 'os', os.path.join(HERE, 'data', 'iris.csv')),
-        (pd.read_table, 'os', os.path.join(HERE, 'data', 'iris.csv')),
-        (pd.read_fwf, 'os', os.path.join(HERE, 'data',
-                                         'fixed_width_format.txt')),
-        (pd.read_excel, 'xlrd', os.path.join(HERE, 'data', 'test1.xlsx')),
-        (pd.read_feather, 'feather', os.path.join(HERE, 'data',
-                                                  'feather-0_3_1.feather')),
-        (pd.read_hdf, 'tables', os.path.join(HERE, 'data', 'legacy_hdf',
-                                             'datetimetz_object.h5')),
-        (pd.read_stata, 'os', os.path.join(HERE, 'data', 'stata10_115.dta')),
-        (pd.read_sas, 'os', os.path.join(HERE, 'sas', 'data',
-                                         'test1.sas7bdat')),
-        (pd.read_json, 'os', os.path.join(HERE, 'json', 'data',
-                                          'tsframe_v012.json')),
-        (pd.read_msgpack, 'os', os.path.join(HERE, 'msgpack', 'data',
-                                             'frame.mp')),
-        (pd.read_pickle, 'os', os.path.join(HERE, 'data',
-                                            'categorical_0_14_1.pickle')),
+        (pd.read_csv, 'os', ('io', 'data', 'iris.csv')),
+        (pd.read_table, 'os', ('io', 'data', 'iris.csv')),
+        (pd.read_fwf, 'os', ('io', 'data', 'fixed_width_format.txt')),
+        (pd.read_excel, 'xlrd', ('io', 'data', 'test1.xlsx')),
+        (pd.read_feather, 'feather', ('io', 'data', 'feather-0_3_1.feather')),
+        (pd.read_hdf, 'tables', ('io', 'data', 'legacy_hdf',
+                                 'datetimetz_object.h5')),
+        (pd.read_stata, 'os', ('io', 'data', 'stata10_115.dta')),
+        (pd.read_sas, 'os', ('io', 'sas', 'data', 'test1.sas7bdat')),
+        (pd.read_json, 'os', ('io', 'json', 'data', 'tsframe_v012.json')),
+        (pd.read_msgpack, 'os', ('io', 'msgpack', 'data', 'frame.mp')),
+        (pd.read_pickle, 'os', ('io', 'data', 'categorical_0_14_1.pickle')),
     ])
-    def test_read_fspath_all(self, reader, module, path):
+    def test_read_fspath_all(self, reader, module, path, datapath):
         pytest.importorskip(module)
+        path = datapath(*path)
 
         mypath = CustomFSPath(path)
         result = reader(mypath)
@@ -229,13 +227,14 @@ bar2,12,13,14,15
         tm.assert_frame_equal(result, expected)
 
 
+@pytest.fixture
+def mmap_file(datapath):
+    return datapath('io', 'data', 'test_mmap.csv')
+
+
 class TestMMapWrapper(object):
 
-    def setup_method(self, method):
-        self.mmap_file = os.path.join(tm.get_data_path(),
-                                      'test_mmap.csv')
-
-    def test_constructor_bad_file(self):
+    def test_constructor_bad_file(self, mmap_file):
         non_file = StringIO('I am not a file')
         non_file.fileno = lambda: -1
 
@@ -249,15 +248,15 @@ class TestMMapWrapper(object):
 
         tm.assert_raises_regex(err, msg, common.MMapWrapper, non_file)
 
-        target = open(self.mmap_file, 'r')
+        target = open(mmap_file, 'r')
         target.close()
 
         msg = "I/O operation on closed file"
         tm.assert_raises_regex(
             ValueError, msg, common.MMapWrapper, target)
 
-    def test_get_attr(self):
-        with open(self.mmap_file, 'r') as target:
+    def test_get_attr(self, mmap_file):
+        with open(mmap_file, 'r') as target:
             wrapper = common.MMapWrapper(target)
 
         attrs = dir(wrapper.mmap)
@@ -270,8 +269,8 @@ class TestMMapWrapper(object):
 
         assert not hasattr(wrapper, 'foo')
 
-    def test_next(self):
-        with open(self.mmap_file, 'r') as target:
+    def test_next(self, mmap_file):
+        with open(mmap_file, 'r') as target:
             wrapper = common.MMapWrapper(target)
             lines = target.readlines()
 

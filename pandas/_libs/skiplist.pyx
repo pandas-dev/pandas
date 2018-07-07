@@ -8,19 +8,19 @@
 
 from libc.math cimport log
 
+import numpy as np
+cimport numpy as cnp
+from numpy cimport double_t
+cnp.import_array()
+
+
 # MSVC does not have log2!
 
 cdef double Log2(double x):
     return log(x) / log(2.)
 
-cimport numpy as np
-import numpy as np
-from numpy cimport double_t
 
 from random import random
-
-# initialize numpy
-np.import_array()
 
 # TODO: optimize this, make less messy
 

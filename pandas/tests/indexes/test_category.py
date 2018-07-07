@@ -33,6 +33,11 @@ class TestCategoricalIndex(Base):
         return CategoricalIndex(
             list('aabbca'), categories=categories, ordered=ordered)
 
+    def test_can_hold_identifiers(self):
+        idx = self.create_index(categories=list('abcd'))
+        key = idx[0]
+        assert idx._can_hold_identifiers_and_holds_name(key) is True
+
     def test_construction(self):
 
         ci = self.create_index(categories=list('abcd'))
@@ -137,18 +142,27 @@ class TestCategoricalIndex(Base):
         data, cats, ordered = 'a a b b'.split(), 'c b a'.split(), True
         dtype = CategoricalDtype(categories=cats, ordered=ordered)
 
-        result = pd.CategoricalIndex(data, dtype=dtype)
-        expected = pd.CategoricalIndex(data, categories=cats,
-                                       ordered=ordered)
+        result = CategoricalIndex(data, dtype=dtype)
+        expected = CategoricalIndex(data, categories=cats, ordered=ordered)
         tm.assert_index_equal(result, expected, exact=True)
 
-        # error to combine categories or ordered and dtype keywords args
-        with pytest.raises(ValueError, match="Cannot specify both `dtype` and "
-                                             "`categories` or `ordered`."):
-            pd.CategoricalIndex(data, categories=cats, dtype=dtype)
-        with pytest.raises(ValueError, match="Cannot specify both `dtype` and "
-                                             "`categories` or `ordered`."):
-            pd.CategoricalIndex(data, ordered=ordered, dtype=dtype)
+        # GH 19032
+        result = Index(data, dtype=dtype)
+        tm.assert_index_equal(result, expected, exact=True)
+
+        # error when combining categories/ordered and dtype kwargs
+        msg = 'Cannot specify both `dtype` and `categories` or `ordered`.'
+        with pytest.raises(ValueError, match=msg):
+            CategoricalIndex(data, categories=cats, dtype=dtype)
+
+        with pytest.raises(ValueError, match=msg):
+            Index(data, categories=cats, dtype=dtype)
+
+        with pytest.raises(ValueError, match=msg):
+            CategoricalIndex(data, ordered=ordered, dtype=dtype)
+
+        with pytest.raises(ValueError, match=msg):
+            Index(data, ordered=ordered, dtype=dtype)
 
     def test_create_categorical(self):
         # https://github.com/pandas-dev/pandas/pull/17513
@@ -184,6 +198,11 @@ class TestCategoricalIndex(Base):
         result = ci.rename_categories(list('efg'))
         tm.assert_index_equal(result, CategoricalIndex(
             list('ffggef'), categories=list('efg')))
+
+        # GH18862 (let rename_categories take callables)
+        result = ci.rename_categories(lambda x: x.upper())
+        tm.assert_index_equal(result, CategoricalIndex(
+            list('AABBCA'), categories=list('CAB')))
 
         ci = CategoricalIndex(list('aabbca'), categories=list('cab'))
         result = ci.add_categories(['d'])
@@ -339,6 +358,14 @@ class TestCategoricalIndex(Base):
         expected = Index(list('caaabbca'))
         tm.assert_index_equal(result, expected, exact=True)
 
+    def test_append_to_another(self):
+        # hits _concat_index_asobject
+        fst = Index(['a', 'b'])
+        snd = CategoricalIndex(['d', 'e'])
+        result = fst.append(snd)
+        expected = Index(['a', 'b', 'd', 'e'])
+        tm.assert_index_equal(result, expected)
+
     def test_insert(self):
 
         ci = self.create_index()
@@ -388,9 +415,6 @@ class TestCategoricalIndex(Base):
     def test_astype(self):
 
         ci = self.create_index()
-        result = ci.astype('category')
-        tm.assert_index_equal(result, ci, exact=True)
-
         result = ci.astype(object)
         tm.assert_index_equal(result, Index(np.array(ci)))
 
@@ -411,8 +435,38 @@ class TestCategoricalIndex(Base):
         expected = ii.take([0, 1, -1])
         tm.assert_index_equal(result, expected)
 
-        result = IntervalIndex.from_intervals(result.values)
+        result = IntervalIndex(result.values)
         tm.assert_index_equal(result, expected)
+
+    @pytest.mark.parametrize('name', [None, 'foo'])
+    @pytest.mark.parametrize('dtype_ordered', [True, False])
+    @pytest.mark.parametrize('index_ordered', [True, False])
+    def test_astype_category(self, name, dtype_ordered, index_ordered):
+        # GH 18630
+        index = self.create_index(ordered=index_ordered)
+        if name:
+            index = index.rename(name)
+
+        # standard categories
+        dtype = CategoricalDtype(ordered=dtype_ordered)
+        result = index.astype(dtype)
+        expected = CategoricalIndex(index.tolist(),
+                                    name=name,
+                                    categories=index.categories,
+                                    ordered=dtype_ordered)
+        tm.assert_index_equal(result, expected)
+
+        # non-standard categories
+        dtype = CategoricalDtype(index.unique().tolist()[:-1], dtype_ordered)
+        result = index.astype(dtype)
+        expected = CategoricalIndex(index.tolist(), name=name, dtype=dtype)
+        tm.assert_index_equal(result, expected)
+
+        if dtype_ordered is False:
+            # dtype='category' can't specify ordered, so only test once
+            result = index.astype('category')
+            expected = index
+            tm.assert_index_equal(result, expected)
 
     def test_reindex_base(self):
         # Determined by cat ordering.
@@ -489,37 +543,52 @@ class TestCategoricalIndex(Base):
         tm.assert_numpy_array_equal(indexer,
                                     np.array([-1, -1], dtype=np.intp))
 
-    def test_is_monotonic(self):
-        c = CategoricalIndex([1, 2, 3])
+    @pytest.mark.parametrize('data, non_lexsorted_data', [
+        [[1, 2, 3], [9, 0, 1, 2, 3]],
+        [list('abc'), list('fabcd')],
+    ])
+    def test_is_monotonic(self, data, non_lexsorted_data):
+        c = CategoricalIndex(data)
         assert c.is_monotonic_increasing
         assert not c.is_monotonic_decreasing
 
-        c = CategoricalIndex([1, 2, 3], ordered=True)
+        c = CategoricalIndex(data, ordered=True)
         assert c.is_monotonic_increasing
         assert not c.is_monotonic_decreasing
 
-        c = CategoricalIndex([1, 2, 3], categories=[3, 2, 1])
+        c = CategoricalIndex(data, categories=reversed(data))
         assert not c.is_monotonic_increasing
         assert c.is_monotonic_decreasing
 
-        c = CategoricalIndex([1, 3, 2], categories=[3, 2, 1])
+        c = CategoricalIndex(data, categories=reversed(data), ordered=True)
+        assert not c.is_monotonic_increasing
+        assert c.is_monotonic_decreasing
+
+        # test when data is neither monotonic increasing nor decreasing
+        reordered_data = [data[0], data[2], data[1]]
+        c = CategoricalIndex(reordered_data, categories=reversed(data))
         assert not c.is_monotonic_increasing
         assert not c.is_monotonic_decreasing
-
-        c = CategoricalIndex([1, 2, 3], categories=[3, 2, 1], ordered=True)
-        assert not c.is_monotonic_increasing
-        assert c.is_monotonic_decreasing
 
         # non lexsorted categories
-        categories = [9, 0, 1, 2, 3]
+        categories = non_lexsorted_data
 
-        c = CategoricalIndex([9, 0], categories=categories)
+        c = CategoricalIndex(categories[:2], categories=categories)
         assert c.is_monotonic_increasing
         assert not c.is_monotonic_decreasing
 
-        c = CategoricalIndex([0, 1], categories=categories)
+        c = CategoricalIndex(categories[1:3], categories=categories)
         assert c.is_monotonic_increasing
         assert not c.is_monotonic_decreasing
+
+    @pytest.mark.parametrize('values, expected', [
+        ([1, 2, 3], True),
+        ([1, 3, 1], False),
+        (list('abc'), True),
+        (list('aba'), False)])
+    def test_is_unique(self, values, expected):
+        ci = CategoricalIndex(values)
+        assert ci.is_unique is expected
 
     def test_duplicates(self):
 
@@ -714,6 +783,15 @@ class TestCategoricalIndex(Base):
         assert not ci.equals(CategoricalIndex(list('aabca') + [np.nan],
                                               ordered=True))
         assert ci.equals(ci.copy())
+
+    def test_equals_categoridcal_unordered(self):
+        # https://github.com/pandas-dev/pandas/issues/16603
+        a = pd.CategoricalIndex(['A'], categories=['A', 'B'])
+        b = pd.CategoricalIndex(['A'], categories=['B', 'A'])
+        c = pd.CategoricalIndex(['C'], categories=['B', 'A'])
+        assert a.equals(b)
+        assert not a.equals(c)
+        assert not b.equals(c)
 
     def test_string_categorical_index_repr(self):
         # short

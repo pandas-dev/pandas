@@ -22,7 +22,7 @@ from .test_numeric import Numeric
 
 class TestRangeIndex(Numeric):
     _holder = RangeIndex
-    _compat_props = ['shape', 'ndim', 'size', 'itemsize']
+    _compat_props = ['shape', 'ndim', 'size']
 
     def setup_method(self, method):
         self.indices = dict(index=RangeIndex(0, 20, 2, name='foo'),
@@ -43,6 +43,11 @@ class TestRangeIndex(Numeric):
                     result = op(idx, scalar)
                     expected = op(Int64Index(idx), scalar)
                     tm.assert_index_equal(result, expected)
+
+    def test_can_hold_identifiers(self):
+        idx = self.create_index()
+        key = idx[0]
+        assert idx._can_hold_identifiers_and_holds_name(key) is False
 
     def test_binops(self):
         ops = [operator.add, operator.sub, operator.mul, operator.floordiv,
@@ -711,7 +716,7 @@ class TestRangeIndex(Numeric):
 
         # memory savings vs int index
         i = RangeIndex(0, 1000)
-        assert i.nbytes < i.astype(int).nbytes / 10
+        assert i.nbytes < i._int64index.nbytes / 10
 
         # constant memory usage
         i2 = RangeIndex(0, 10)
@@ -779,7 +784,7 @@ class TestRangeIndex(Numeric):
     def test_explicit_conversions(self):
 
         # GH 8608
-        # add/sub are overriden explicity for Float/Int Index
+        # add/sub are overridden explicitly for Float/Int Index
         idx = RangeIndex(5)
 
         # float conversions

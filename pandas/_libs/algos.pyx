@@ -1,20 +1,14 @@
 # cython: profile=False
 
-cimport numpy as np
-import numpy as np
-
 cimport cython
 from cython cimport Py_ssize_t
 
-np.import_array()
-
-cdef float64_t FP_ERR = 1e-13
-
-cimport util
-
 from libc.stdlib cimport malloc, free
 from libc.string cimport memmove
+from libc.math cimport fabs, sqrt
 
+import numpy as np
+cimport numpy as cnp
 from numpy cimport (ndarray,
                     NPY_INT64, NPY_UINT64, NPY_INT32, NPY_INT16, NPY_INT8,
                     NPY_FLOAT32, NPY_FLOAT64,
@@ -22,27 +16,20 @@ from numpy cimport (ndarray,
                     int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t,
                     uint32_t, uint64_t, float32_t, float64_t,
                     double_t)
+cnp.import_array()
 
 
-cdef double NaN = <double> np.NaN
-cdef double nan = NaN
-
-from libc.math cimport sqrt, fabs
-
-# this is our util.pxd
+cimport util
 from util cimport numeric, get_nat
 
 import missing
 
-cdef int64_t iNaT = get_nat()
+cdef float64_t FP_ERR = 1e-13
 
-cdef:
-    int TIEBREAK_AVERAGE = 0
-    int TIEBREAK_MIN = 1
-    int TIEBREAK_MAX = 2
-    int TIEBREAK_FIRST = 3
-    int TIEBREAK_FIRST_DESCENDING = 4
-    int TIEBREAK_DENSE = 5
+cdef double NaN = <double> np.NaN
+cdef double nan = NaN
+
+cdef int64_t iNaT = get_nat()
 
 tiebreakers = {
     'average': TIEBREAK_AVERAGE,
@@ -61,25 +48,27 @@ cdef inline are_diff(object left, object right):
 
 
 class Infinity(object):
-    """ provide a positive Infinity comparision method for ranking """
+    """ provide a positive Infinity comparison method for ranking """
 
     __lt__ = lambda self, other: False
-    __le__ = lambda self, other: self is other
-    __eq__ = lambda self, other: self is other
-    __ne__ = lambda self, other: self is not other
-    __gt__ = lambda self, other: self is not other
-    __ge__ = lambda self, other: True
+    __le__ = lambda self, other: isinstance(other, Infinity)
+    __eq__ = lambda self, other: isinstance(other, Infinity)
+    __ne__ = lambda self, other: not isinstance(other, Infinity)
+    __gt__ = lambda self, other: (not isinstance(other, Infinity) and
+                                  not missing.checknull(other))
+    __ge__ = lambda self, other: not missing.checknull(other)
 
 
 class NegInfinity(object):
-    """ provide a negative Infinity comparision method for ranking """
+    """ provide a negative Infinity comparison method for ranking """
 
-    __lt__ = lambda self, other: self is not other
-    __le__ = lambda self, other: True
-    __eq__ = lambda self, other: self is other
-    __ne__ = lambda self, other: self is not other
+    __lt__ = lambda self, other: (not isinstance(other, NegInfinity) and
+                                  not missing.checknull(other))
+    __le__ = lambda self, other: not missing.checknull(other)
+    __eq__ = lambda self, other: isinstance(other, NegInfinity)
+    __ne__ = lambda self, other: not isinstance(other, NegInfinity)
     __gt__ = lambda self, other: False
-    __ge__ = lambda self, other: self is other
+    __ge__ = lambda self, other: isinstance(other, NegInfinity)
 
 
 @cython.wraparound(False)
@@ -192,24 +181,6 @@ cpdef numeric kth_smallest(numeric[:] a, Py_ssize_t k) nogil:
             if j < k: l = i
             if k < i: m = j
     return a[k]
-
-
-cpdef numeric median(numeric[:] arr):
-    """
-    A faster median
-    """
-    cdef Py_ssize_t n = arr.size
-
-    if n == 0:
-        return np.NaN
-
-    arr = arr.copy()
-
-    if n % 2:
-        return kth_smallest(arr, n // 2)
-    else:
-        return (kth_smallest(arr, n // 2) +
-                kth_smallest(arr, n // 2 - 1)) / 2
 
 
 # ----------------------------------------------------------------------

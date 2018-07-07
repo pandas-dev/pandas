@@ -1,5 +1,7 @@
 # TODO: Use the fact that axis can have units to simplify the process
 
+import functools
+
 import numpy as np
 
 from matplotlib import pylab
@@ -21,6 +23,7 @@ from pandas.plotting._converter import (TimeSeries_DateLocator,
 
 
 def tsplot(series, plotf, ax=None, **kwargs):
+    import warnings
     """
     Plots a Series on the given Matplotlib axes or the current axes
 
@@ -33,7 +36,14 @@ def tsplot(series, plotf, ax=None, **kwargs):
     _____
     Supports same kwargs as Axes.plot
 
+
+    .. deprecated:: 0.23.0
+       Use Series.plot() instead
     """
+    warnings.warn("'tsplot' is deprecated and will be removed in a "
+                  "future version. Please use Series.plot() instead.",
+                  FutureWarning, stacklevel=2)
+
     # Used inferred freq is possible, need a test case for inferred
     if ax is None:
         import matplotlib.pyplot as plt
@@ -293,6 +303,10 @@ def format_timedelta_ticks(x, pos, n_decimals):
     return s
 
 
+def _format_coord(freq, t, y):
+    return "t = {0}  y = {1:8f}".format(Period(ordinal=int(t), freq=freq), y)
+
+
 def format_dateaxis(subplot, freq, index):
     """
     Pretty-formats the date axis (x-axis).
@@ -327,8 +341,7 @@ def format_dateaxis(subplot, freq, index):
         subplot.xaxis.set_minor_formatter(minformatter)
 
         # x and y coord info
-        subplot.format_coord = lambda t, y: (
-            "t = {0}  y = {1:8f}".format(Period(ordinal=int(t), freq=freq), y))
+        subplot.format_coord = functools.partial(_format_coord, freq)
 
     elif isinstance(index, TimedeltaIndex):
         subplot.xaxis.set_major_formatter(

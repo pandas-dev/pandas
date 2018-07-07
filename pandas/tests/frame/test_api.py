@@ -6,8 +6,7 @@ import pytest
 
 # pylint: disable-msg=W0612,E1101
 from copy import deepcopy
-import sys
-from distutils.version import LooseVersion
+import pydoc
 
 from pandas.compat import range, lrange, long
 from pandas import compat
@@ -15,7 +14,8 @@ from pandas import compat
 from numpy.random import randn
 import numpy as np
 
-from pandas import DataFrame, Series, date_range, timedelta_range
+from pandas import (DataFrame, Series, date_range, timedelta_range,
+                    Categorical, SparseDataFrame)
 import pandas as pd
 
 from pandas.util.testing import (assert_almost_equal,
@@ -128,6 +128,24 @@ class SharedWithSparse(object):
         except TypeError:
             pass
 
+    def test_tab_completion(self):
+        # DataFrame whose columns are identifiers shall have them in __dir__.
+        df = pd.DataFrame([list('abcd'), list('efgh')], columns=list('ABCD'))
+        for key in list('ABCD'):
+            assert key in dir(df)
+        assert isinstance(df.__getitem__('A'), pd.Series)
+
+        # DataFrame whose first-level columns are identifiers shall have
+        # them in __dir__.
+        df = pd.DataFrame(
+            [list('abcd'), list('efgh')],
+            columns=pd.MultiIndex.from_tuples(list(zip('ABCD', 'EFGH'))))
+        for key in list('ABCD'):
+            assert key in dir(df)
+        for key in list('EFGH'):
+            assert key not in dir(df)
+        assert isinstance(df.__getitem__('A'), pd.DataFrame)
+
     def test_not_hashable(self):
         df = self.klass([1])
         pytest.raises(TypeError, hash, df)
@@ -196,6 +214,18 @@ class SharedWithSparse(object):
             exp = self.mixed_frame.loc[k]
             self._assert_series_equal(v, exp)
 
+    def test_iterrows_iso8601(self):
+        # GH19671
+        if self.klass == SparseDataFrame:
+            pytest.xfail(reason='SparseBlock datetime type not implemented.')
+
+        s = self.klass(
+            {'non_iso8601': ['M1701', 'M1802', 'M1903', 'M2004'],
+             'iso8601': date_range('2000-01-01', periods=4, freq='M')})
+        for k, v in s.iterrows():
+            exp = s.loc[k]
+            self._assert_series_equal(v, exp)
+
     def test_itertuples(self):
         for i, tup in enumerate(self.frame.itertuples()):
             s = self.klass._constructor_sliced(tup[1:])
@@ -221,24 +251,43 @@ class SharedWithSparse(object):
                     '[(0, 1, 4), (1, 2, 5), (2, 3, 6)]')
 
         tup = next(df.itertuples(name='TestName'))
-
-        if sys.version >= LooseVersion('2.7'):
-            assert tup._fields == ('Index', 'a', 'b')
-            assert (tup.Index, tup.a, tup.b) == tup
-            assert type(tup).__name__ == 'TestName'
+        assert tup._fields == ('Index', 'a', 'b')
+        assert (tup.Index, tup.a, tup.b) == tup
+        assert type(tup).__name__ == 'TestName'
 
         df.columns = ['def', 'return']
         tup2 = next(df.itertuples(name='TestName'))
         assert tup2 == (0, 1, 4)
-
-        if sys.version >= LooseVersion('2.7'):
-            assert tup2._fields == ('Index', '_1', '_2')
+        assert tup2._fields == ('Index', '_1', '_2')
 
         df3 = DataFrame({'f' + str(i): [i] for i in range(1024)})
         # will raise SyntaxError if trying to create namedtuple
         tup3 = next(df3.itertuples())
         assert not hasattr(tup3, '_fields')
         assert isinstance(tup3, tuple)
+
+    def test_sequence_like_with_categorical(self):
+
+        # GH 7839
+        # make sure can iterate
+        df = DataFrame({"id": [1, 2, 3, 4, 5, 6],
+                        "raw_grade": ['a', 'b', 'b', 'a', 'a', 'e']})
+        df['grade'] = Categorical(df['raw_grade'])
+
+        # basic sequencing testing
+        result = list(df.grade.values)
+        expected = np.array(df.grade.values).tolist()
+        tm.assert_almost_equal(result, expected)
+
+        # iteration
+        for t in df.itertuples(index=False):
+            str(t)
+
+        for row, s in df.iterrows():
+            str(s)
+
+        for c, col in df.iteritems():
+            str(s)
 
     def test_len(self):
         assert len(self.frame) == len(self.frame.index)
@@ -308,8 +357,9 @@ class SharedWithSparse(object):
 
     def test_class_axis(self):
         # https://github.com/pandas-dev/pandas/issues/18147
-        DataFrame.index  # no exception!
-        DataFrame.columns  # no exception!
+        # no exception and no empty docstring
+        assert pydoc.getdoc(DataFrame.index)
+        assert pydoc.getdoc(DataFrame.columns)
 
     def test_more_values(self):
         values = self.mixed_frame.values

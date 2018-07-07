@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 # cython: profile=False
-import warnings
 
 from cpython cimport (
     PyFloat_Check, PyComplex_Check,
@@ -13,10 +12,11 @@ from cpython.datetime cimport (datetime,
 PyDateTime_IMPORT
 
 import numpy as np
-cimport numpy as np
+cimport numpy as cnp
 from numpy cimport int64_t
-np.import_array()
+cnp.import_array()
 
+cimport util
 from util cimport (get_nat,
                    is_integer_object, is_float_object,
                    is_datetime64_object, is_timedelta64_object)
@@ -39,24 +39,19 @@ _nat_scalar_rules[Py_GE] = False
 # ----------------------------------------------------------------------
 
 
-def _make_nan_func(func_name, cls):
+def _make_nan_func(func_name, doc):
     def f(*args, **kwargs):
         return np.nan
     f.__name__ = func_name
-    f.__doc__ = getattr(cls, func_name).__doc__
+    f.__doc__ = doc
     return f
 
 
-def _make_nat_func(func_name, cls):
+def _make_nat_func(func_name, doc):
     def f(*args, **kwargs):
         return NaT
-
     f.__name__ = func_name
-    if isinstance(cls, str):
-        # passed the literal docstring directly
-        f.__doc__ = cls
-    else:
-        f.__doc__ = getattr(cls, func_name).__doc__
+    f.__doc__ = doc
     return f
 
 
@@ -156,7 +151,7 @@ cdef class _NaT(datetime):
             neg_other = -other
             return self + neg_other
 
-        elif getattr(other, '_typ', None) in ['period',
+        elif getattr(other, '_typ', None) in ['period', 'series',
                                               'periodindex', 'dateoffset']:
             return NotImplemented
 
@@ -318,11 +313,40 @@ class NaTType(_NaT):
     # These are the ones that can get their docstrings from datetime.
 
     # nan methods
-    weekday = _make_nan_func('weekday', datetime)
-    isoweekday = _make_nan_func('isoweekday', datetime)
+    weekday = _make_nan_func('weekday', datetime.weekday.__doc__)
+    isoweekday = _make_nan_func('isoweekday', datetime.isoweekday.__doc__)
+    month_name = _make_nan_func('month_name',  # noqa:E128
+        """
+        Return the month name of the Timestamp with specified locale.
 
+        Parameters
+        ----------
+        locale : string, default None (English locale)
+            locale determining the language in which to return the month name
+
+        Returns
+        -------
+        month_name : string
+
+        .. versionadded:: 0.23.0
+        """)
+    day_name = _make_nan_func('day_name', # noqa:E128
+        """
+        Return the day name of the Timestamp with specified locale.
+
+        Parameters
+        ----------
+        locale : string, default None (English locale)
+            locale determining the language in which to return the day name
+
+        Returns
+        -------
+        day_name : string
+
+        .. versionadded:: 0.23.0
+        """)
     # _nat_methods
-    date = _make_nat_func('date', datetime)
+    date = _make_nat_func('date', datetime.date.__doc__)
 
     utctimetuple = _make_error_func('utctimetuple', datetime)
     timetz = _make_error_func('timetz', datetime)
@@ -381,7 +405,7 @@ class NaTType(_NaT):
 
         Parameters
         ----------
-        tz : string, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will be converted to.
             None will remove timezone holding UTC time.
 
@@ -396,7 +420,7 @@ class NaTType(_NaT):
         """)
     fromordinal = _make_error_func('fromordinal',  # noqa:E128
         """
-        Timestamp.fromordinal(ordinal, freq=None, tz=None, offset=None)
+        Timestamp.fromordinal(ordinal, freq=None, tz=None)
 
         passed an ordinal, translate and convert to a ts
         note: by definition there cannot be any tz info on the ordinal itself
@@ -407,10 +431,8 @@ class NaTType(_NaT):
             date corresponding to a proleptic Gregorian ordinal
         freq : str, DateOffset
             Offset which Timestamp will have
-        tz : string, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will have.
-        offset : str, DateOffset
-            Deprecated, use freq
         """)
 
     # _nat_methods
@@ -430,7 +452,7 @@ class NaTType(_NaT):
 
         Parameters
         ----------
-        tz : string / timezone object, default None
+        tz : str or timezone object, default None
             Timezone to localize to
         """)
     today = _make_nat_func('today',  # noqa:E128
@@ -443,7 +465,7 @@ class NaTType(_NaT):
 
         Parameters
         ----------
-        tz : string / timezone object, default None
+        tz : str or timezone object, default None
             Timezone to localize to
         """)
     round = _make_nat_func('round',  # noqa:E128
@@ -485,7 +507,7 @@ class NaTType(_NaT):
 
         Parameters
         ----------
-        tz : string, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will be converted to.
             None will remove timezone holding UTC time.
 
@@ -505,7 +527,7 @@ class NaTType(_NaT):
 
         Parameters
         ----------
-        tz : string, pytz.timezone, dateutil.tz.tzfile or None
+        tz : str, pytz.timezone, dateutil.tz.tzfile or None
             Time zone for time which Timestamp will be converted to.
             None will remove timezone holding local time.
 
@@ -556,16 +578,6 @@ class NaTType(_NaT):
         Timestamp with fields replaced
         """)
 
-    def to_datetime(self):
-        """
-        DEPRECATED: use :meth:`to_pydatetime` instead.
-
-        Convert a Timestamp object to a native Python datetime object.
-        """
-        warnings.warn("to_datetime is deprecated. Use self.to_pydatetime()",
-                      FutureWarning, stacklevel=2)
-        return self.to_pydatetime(warn=False)
-
 
 NaT = NaTType()
 
@@ -576,3 +588,28 @@ cdef inline bint checknull_with_nat(object val):
     """ utility to check if a value is a nat or not """
     return val is None or (
         PyFloat_Check(val) and val != val) or val is NaT
+
+
+cdef inline bint is_null_datetimelike(object val):
+    """
+    Determine if we have a null for a timedelta/datetime (or integer versions)
+
+    Parameters
+    ----------
+    val : object
+
+    Returns
+    -------
+    null_datetimelike : bool
+    """
+    if util._checknull(val):
+        return True
+    elif val is NaT:
+        return True
+    elif util.is_timedelta64_object(val):
+        return val.view('int64') == NPY_NAT
+    elif util.is_datetime64_object(val):
+        return val.view('int64') == NPY_NAT
+    elif util.is_integer_object(val):
+        return val == NPY_NAT
+    return False

@@ -1,42 +1,40 @@
 # cython: profile=False
 # cython: boundscheck=False, wraparound=False, cdivision=True
 
-from cython cimport Py_ssize_t
-
-cimport numpy as np
-import numpy as np
-
 cimport cython
-
-np.import_array()
-
-cimport util
+from cython cimport Py_ssize_t
+from libcpp.deque cimport deque
 
 from libc.stdlib cimport malloc, free
 
+import numpy as np
+cimport numpy as cnp
 from numpy cimport ndarray, double_t, int64_t, float64_t
+cnp.import_array()
+
+
+cdef extern from "../src/headers/cmath" namespace "std":
+    int signbit(double) nogil
+    double sqrt(double x) nogil
+
+cimport util
+from util cimport numeric
 
 from skiplist cimport (IndexableSkiplist,
                        node_t, skiplist_t,
                        skiplist_init, skiplist_destroy,
                        skiplist_get, skiplist_insert, skiplist_remove)
 
-cdef np.float32_t MINfloat32 = np.NINF
-cdef np.float64_t MINfloat64 = np.NINF
+cdef cnp.float32_t MINfloat32 = np.NINF
+cdef cnp.float64_t MINfloat64 = np.NINF
 
-cdef np.float32_t MAXfloat32 = np.inf
-cdef np.float64_t MAXfloat64 = np.inf
+cdef cnp.float32_t MAXfloat32 = np.inf
+cdef cnp.float64_t MAXfloat64 = np.inf
 
 cdef double NaN = <double> np.NaN
 
 cdef inline int int_max(int a, int b): return a if a >= b else b
 cdef inline int int_min(int a, int b): return a if a <= b else b
-
-from util cimport numeric
-
-cdef extern from "../src/headers/math.h":
-    int signbit(double) nogil
-    double sqrt(double x) nogil
 
 
 # Cython implementations of rolling sum, mean, variance, skewness,
@@ -220,14 +218,16 @@ cdef class VariableWindowIndexer(WindowIndexer):
     right_closed: bint
         right endpoint closedness
         True if the right endpoint is closed, False if open
-
+    floor: optional
+        unit for flooring the unit
     """
     def __init__(self, ndarray input, int64_t win, int64_t minp,
-                 bint left_closed, bint right_closed, ndarray index):
+                 bint left_closed, bint right_closed, ndarray index,
+                 object floor=None):
 
         self.is_variable = 1
         self.N = len(index)
-        self.minp = _check_minp(win, minp, self.N)
+        self.minp = _check_minp(win, minp, self.N, floor=floor)
 
         self.start = np.empty(self.N, dtype='int64')
         self.start.fill(-1)
@@ -342,7 +342,7 @@ def get_window_indexer(input, win, minp, index, closed,
 
     if index is not None:
         indexer = VariableWindowIndexer(input, win, minp, left_closed,
-                                        right_closed, index)
+                                        right_closed, index, floor)
     elif use_mock:
         indexer = MockFixedWindowIndexer(input, win, minp, left_closed,
                                          right_closed, index, floor)
@@ -441,7 +441,7 @@ def roll_sum(ndarray[double_t] input, int64_t win, int64_t minp,
              object index, object closed):
     cdef:
         double val, prev_x, sum_x = 0
-        int64_t s, e
+        int64_t s, e, range_endpoint
         int64_t nobs = 0, i, j, N
         bint is_variable
         ndarray[int64_t] start, end
@@ -449,7 +449,8 @@ def roll_sum(ndarray[double_t] input, int64_t win, int64_t minp,
 
     start, end, N, win, minp, is_variable = get_window_indexer(input, win,
                                                                minp, index,
-                                                               closed)
+                                                               closed,
+                                                               floor=0)
     output = np.empty(N, dtype=float)
 
     # for performance we are going to iterate
@@ -489,13 +490,15 @@ def roll_sum(ndarray[double_t] input, int64_t win, int64_t minp,
 
         # fixed window
 
+        range_endpoint = int_max(minp, 1) - 1
+
         with nogil:
 
-            for i in range(0, minp - 1):
+            for i in range(0, range_endpoint):
                 add_sum(input[i], &nobs, &sum_x)
                 output[i] = NaN
 
-            for i in range(minp - 1, N):
+            for i in range(range_endpoint, N):
                 val = input[i]
                 add_sum(val, &nobs, &sum_x)
 
@@ -1220,8 +1223,9 @@ cdef _roll_min_max(ndarray[numeric] input, int64_t win, int64_t minp,
     cdef:
         numeric ai
         bint is_variable, should_replace
-        int64_t s, e, N, i, j, removed
+        int64_t N, i, removed, window_i
         Py_ssize_t nobs = 0
+        deque Q[int64_t]
         ndarray[int64_t] starti, endi
         ndarray[numeric, ndim=1] output
     cdef:
@@ -1240,32 +1244,48 @@ cdef _roll_min_max(ndarray[numeric] input, int64_t win, int64_t minp,
 
     output = np.empty(N, dtype=input.dtype)
 
+    Q = deque[int64_t]()
+
     if is_variable:
 
         with nogil:
 
-            for i in range(N):
-                s = starti[i]
-                e = endi[i]
+            # This is using a modified version of the C++ code in this
+            # SO post: http://bit.ly/2nOoHlY
+            # The original impl didn't deal with variable window sizes
+            # So the code was optimized for that
 
-                r = input[s]
-                nobs = 0
-                for j in range(s, e):
+            for i from starti[0] <= i < endi[0]:
+                ai = init_mm(input[i], &nobs, is_max)
 
-                    # adds, death at the i offset
-                    ai = init_mm(input[j], &nobs, is_max)
+                if is_max:
+                    while not Q.empty() and ai >= input[Q.back()]:
+                        Q.pop_back()
+                else:
+                    while not Q.empty() and ai <= input[Q.back()]:
+                        Q.pop_back()
+                Q.push_back(i)
 
-                    if is_max:
-                        if ai > r:
-                            r = ai
-                    else:
-                        if ai < r:
-                            r = ai
+            for i from endi[0] <= i < N:
+                output[i-1] = calc_mm(minp, nobs, input[Q.front()])
 
-                output[i] = calc_mm(minp, nobs, r)
+                ai = init_mm(input[i], &nobs, is_max)
+
+                if is_max:
+                    while not Q.empty() and ai >= input[Q.back()]:
+                        Q.pop_back()
+                else:
+                    while not Q.empty() and ai <= input[Q.back()]:
+                        Q.pop_back()
+
+                while not Q.empty() and Q.front() <= i - (endi[i] - starti[i]):
+                    Q.pop_front()
+
+                Q.push_back(i)
+
+            output[N-1] = calc_mm(minp, nobs, input[Q.front()])
 
     else:
-
         # setup the rings of death!
         ring = <numeric *>malloc(win * sizeof(numeric))
         death = <int64_t *>malloc(win * sizeof(int64_t))
@@ -1337,24 +1357,49 @@ cdef _roll_min_max(ndarray[numeric] input, int64_t win, int64_t minp,
     return output
 
 
+cdef enum InterpolationType:
+    LINEAR,
+    LOWER,
+    HIGHER,
+    NEAREST,
+    MIDPOINT
+
+
+interpolation_types = {
+    'linear': LINEAR,
+    'lower': LOWER,
+    'higher': HIGHER,
+    'nearest': NEAREST,
+    'midpoint': MIDPOINT,
+}
+
+
 def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
                   int64_t minp, object index, object closed,
-                  double quantile):
+                  double quantile, str interpolation):
     """
     O(N log(window)) implementation using skip list
     """
     cdef:
-        double val, prev, midpoint
-        IndexableSkiplist skiplist
+        double val, prev, midpoint, idx_with_fraction
+        skiplist_t *skiplist
         int64_t nobs = 0, i, j, s, e, N
         Py_ssize_t idx
         bint is_variable
         ndarray[int64_t] start, end
         ndarray[double_t] output
         double vlow, vhigh
+        InterpolationType interpolation_type
+        int ret = 0
 
     if quantile <= 0.0 or quantile >= 1.0:
         raise ValueError("quantile value {0} not in [0, 1]".format(quantile))
+
+    try:
+        interpolation_type = interpolation_types[interpolation]
+    except KeyError:
+        raise ValueError("Interpolation '{}' is not supported"
+                         .format(interpolation))
 
     # we use the Fixed/Variable Indexer here as the
     # actual skiplist ops outweigh any window computation costs
@@ -1363,79 +1408,112 @@ def roll_quantile(ndarray[float64_t, cast=True] input, int64_t win,
         minp, index, closed,
         use_mock=False)
     output = np.empty(N, dtype=float)
-    skiplist = IndexableSkiplist(win)
+    skiplist = skiplist_init(<int>win)
+    if skiplist == NULL:
+        raise MemoryError("skiplist_init failed")
 
-    for i in range(0, N):
-        s = start[i]
-        e = end[i]
+    with nogil:
+        for i in range(0, N):
+            s = start[i]
+            e = end[i]
 
-        if i == 0:
+            if i == 0:
 
-            # setup
-            val = input[i]
-            if val == val:
-                nobs += 1
-                skiplist.insert(val)
-
-        else:
-
-            # calculate deletes
-            for j in range(start[i - 1], s):
-                val = input[j]
-                if val == val:
-                    skiplist.remove(val)
-                    nobs -= 1
-
-            # calculate adds
-            for j in range(end[i - 1], e):
-                val = input[j]
+                # setup
+                val = input[i]
                 if val == val:
                     nobs += 1
-                    skiplist.insert(val)
+                    skiplist_insert(skiplist, val)
 
-        if nobs >= minp:
-            idx = int(quantile * <double>(nobs - 1))
-
-            # Single value in skip list
-            if nobs == 1:
-                output[i] = skiplist.get(0)
-
-            # Interpolated quantile
             else:
-                vlow = skiplist.get(idx)
-                vhigh = skiplist.get(idx + 1)
-                output[i] = ((vlow + (vhigh - vlow) *
-                             (quantile * (nobs - 1) - idx)))
-        else:
-            output[i] = NaN
+
+                # calculate deletes
+                for j in range(start[i - 1], s):
+                    val = input[j]
+                    if val == val:
+                        skiplist_remove(skiplist, val)
+                        nobs -= 1
+
+                # calculate adds
+                for j in range(end[i - 1], e):
+                    val = input[j]
+                    if val == val:
+                        nobs += 1
+                        skiplist_insert(skiplist, val)
+
+            if nobs >= minp:
+                if nobs == 1:
+                    # Single value in skip list
+                    output[i] = skiplist_get(skiplist, 0, &ret)
+                else:
+                    idx_with_fraction = quantile * (nobs - 1)
+                    idx = <int> idx_with_fraction
+
+                    if idx_with_fraction == idx:
+                        # no need to interpolate
+                        output[i] = skiplist_get(skiplist, idx, &ret)
+                        continue
+
+                    if interpolation_type == LINEAR:
+                        vlow = skiplist_get(skiplist, idx, &ret)
+                        vhigh = skiplist_get(skiplist, idx + 1, &ret)
+                        output[i] = ((vlow + (vhigh - vlow) *
+                                      (idx_with_fraction - idx)))
+                    elif interpolation_type == LOWER:
+                        output[i] = skiplist_get(skiplist, idx, &ret)
+                    elif interpolation_type == HIGHER:
+                        output[i] = skiplist_get(skiplist, idx + 1, &ret)
+                    elif interpolation_type == NEAREST:
+                        # the same behaviour as round()
+                        if idx_with_fraction - idx == 0.5:
+                            if idx % 2 == 0:
+                                output[i] = skiplist_get(skiplist, idx, &ret)
+                            else:
+                                output[i] = skiplist_get(
+                                    skiplist, idx + 1, &ret)
+                        elif idx_with_fraction - idx < 0.5:
+                            output[i] = skiplist_get(skiplist, idx, &ret)
+                        else:
+                            output[i] = skiplist_get(skiplist, idx + 1, &ret)
+                    elif interpolation_type == MIDPOINT:
+                        vlow = skiplist_get(skiplist, idx, &ret)
+                        vhigh = skiplist_get(skiplist, idx + 1, &ret)
+                        output[i] = <double> (vlow + vhigh) / 2
+            else:
+                output[i] = NaN
 
     return output
 
 
-def roll_generic(ndarray[float64_t, cast=True] input,
+def roll_generic(object obj,
                  int64_t win, int64_t minp, object index, object closed,
-                 int offset, object func,
+                 int offset, object func, bint raw,
                  object args, object kwargs):
     cdef:
         ndarray[double_t] output, counts, bufarr
+        ndarray[float64_t, cast=True] arr
         float64_t *buf
         float64_t *oldbuf
         int64_t nobs = 0, i, j, s, e, N
         bint is_variable
         ndarray[int64_t] start, end
 
-    if not input.flags.c_contiguous:
-        input = input.copy('C')
-
-    n = len(input)
+    n = len(obj)
     if n == 0:
-        return input
+        return obj
 
-    counts = roll_sum(np.concatenate([np.isfinite(input).astype(float),
+    arr = np.asarray(obj)
+
+    # ndarray input
+    if raw:
+        if not arr.flags.c_contiguous:
+            arr = arr.copy('C')
+
+    counts = roll_sum(np.concatenate([np.isfinite(arr).astype(float),
                                       np.array([0.] * offset)]),
                       win, minp, index, closed)[offset:]
 
-    start, end, N, win, minp, is_variable = get_window_indexer(input, win,
+    start, end, N, win, minp, is_variable = get_window_indexer(arr, win,
                                                                minp, index,
                                                                closed,
                                                                floor=0)
@@ -1443,8 +1521,8 @@ def roll_generic(ndarray[float64_t, cast=True] input,
     output = np.empty(N, dtype=float)
 
     if is_variable:
+        # variable window arr or series
 
-        # variable window
         if offset != 0:
             raise ValueError("unable to roll_generic with a non-zero offset")
 
@@ -1453,7 +1531,20 @@ def roll_generic(ndarray[float64_t, cast=True] input,
             e = end[i]
 
             if counts[i] >= minp:
-                output[i] = func(input[s:e], *args, **kwargs)
+                if raw:
+                    output[i] = func(arr[s:e], *args, **kwargs)
+                else:
+                    output[i] = func(obj.iloc[s:e], *args, **kwargs)
+            else:
+                output[i] = NaN
+
+    elif not raw:
+        # series
+        for i from 0 <= i < N:
+            if counts[i] >= minp:
+                sl = slice(int_max(i + offset - win + 1, 0),
+                           int_min(i + offset + 1, N))
+                output[i] = func(obj.iloc[sl], *args, **kwargs)
             else:
                 output[i] = NaN
 
@@ -1462,12 +1553,12 @@ def roll_generic(ndarray[float64_t, cast=True] input,
         # truncated windows at the beginning, through first full-length window
         for i from 0 <= i < (int_min(win, N) - offset):
             if counts[i] >= minp:
-                output[i] = func(input[0: (i + offset + 1)], *args, **kwargs)
+                output[i] = func(arr[0: (i + offset + 1)], *args, **kwargs)
             else:
                 output[i] = NaN
 
         # remaining full-length windows
-        buf = <float64_t *> input.data
+        buf = <float64_t *> arr.data
         bufarr = np.empty(win, dtype=float)
         oldbuf = <float64_t *> bufarr.data
         for i from (win - offset) <= i < (N - offset):
@@ -1482,7 +1573,7 @@ def roll_generic(ndarray[float64_t, cast=True] input,
         # truncated windows at the end
         for i from int_max(N - offset, 0) <= i < N:
             if counts[i] >= minp:
-                output[i] = func(input[int_max(i + offset - win + 1, 0): N],
+                output[i] = func(arr[int_max(i + offset - win + 1, 0): N],
                                  *args,
                                  **kwargs)
             else:

@@ -1,10 +1,12 @@
 import string
+import warnings
+
 import numpy as np
 import pandas.util.testing as tm
 from pandas import (DataFrame, Series, MultiIndex, date_range, period_range,
                     isnull, NaT)
 
-from .pandas_vb_common import setup # noqa
+from .pandas_vb_common import setup  # noqa
 
 
 class GetNumericData(object):
@@ -15,7 +17,8 @@ class GetNumericData(object):
         self.df = DataFrame(np.random.randn(10000, 25))
         self.df['foo'] = 'bar'
         self.df['bar'] = 'baz'
-        self.df = self.df.consolidate()
+        with warnings.catch_warnings(record=True):
+            self.df = self.df.consolidate()
 
     def time_frame_get_numeric_data(self):
         self.df._get_numeric_data()
@@ -127,7 +130,7 @@ class ToHTML(object):
     def setup(self):
         nrows = 500
         self.df2 = DataFrame(np.random.randn(nrows, 10))
-        self.df2[0] = period_range('2000', '2010', nrows)
+        self.df2[0] = period_range('2000', periods=nrows)
         self.df2[1] = range(nrows)
 
     def time_to_html_mixed(self):
@@ -141,8 +144,8 @@ class Repr(object):
     def setup(self):
         nrows = 10000
         data = np.random.randn(nrows, 10)
-        idx = MultiIndex.from_arrays(np.tile(np.random.randn(3, nrows / 100),
-                                             100))
+        arrays = np.tile(np.random.randn(3, int(nrows / 100)), 100)
+        idx = MultiIndex.from_arrays(arrays)
         self.df3 = DataFrame(data, index=idx)
         self.df4 = DataFrame(data, index=np.random.randn(nrows))
         self.df_tall = DataFrame(np.random.randn(nrows, 10))
@@ -498,7 +501,7 @@ class GetDtypeCounts(object):
 class NSort(object):
 
     goal_time = 0.2
-    params = ['first', 'last']
+    params = ['first', 'last', 'all']
     param_names = ['keep']
 
     def setup(self, keep):
@@ -509,3 +512,21 @@ class NSort(object):
 
     def time_nsmallest(self, keep):
         self.df.nsmallest(100, 'A', keep=keep)
+
+
+class Describe(object):
+
+    goal_time = 0.2
+
+    def setup(self):
+        self.df = DataFrame({
+            'a': np.random.randint(0, 100, int(1e6)),
+            'b': np.random.randint(0, 100, int(1e6)),
+            'c': np.random.randint(0, 100, int(1e6))
+        })
+
+    def time_series_describe(self):
+        self.df['a'].describe()
+
+    def time_dataframe_describe(self):
+        self.df.describe()

@@ -46,7 +46,7 @@ def df_duplabels(df):
 
 @pytest.fixture
 def panel():
-    with tm.assert_produces_warning(DeprecationWarning,
+    with tm.assert_produces_warning(FutureWarning,
                                     check_stacklevel=False):
         return pd.Panel()
 
@@ -175,8 +175,7 @@ def test_check_label_or_level_ambiguity_df(df_ambig, axis):
     # df_ambig has both an on-axis level and off-axis label named L1
     # Therefore L1 is ambiguous
     with tm.assert_produces_warning(FutureWarning,
-                                    clear=True,
-                                    check_stacklevel=False) as w:
+                                    clear=True) as w:
 
         assert df_ambig._check_label_or_level_ambiguity('L1', axis=axis)
         warning_msg = w[0].message.args[0]
@@ -245,7 +244,8 @@ def assert_label_values(frame, labels, axis):
         else:
             expected = frame.loc[label]._values
 
-        result = frame._get_label_or_level_values(label, axis=axis)
+        result = frame._get_label_or_level_values(label, axis=axis,
+                                                  stacklevel=2)
         assert array_equivalent(expected, result)
 
 
@@ -288,8 +288,7 @@ def test_get_label_or_level_values_df_ambig(df_ambig, axis):
 
     # df has both an on-axis level and off-axis label named L1
     # Therefore L1 is ambiguous but will default to label
-    with tm.assert_produces_warning(FutureWarning,
-                                    check_stacklevel=False):
+    with tm.assert_produces_warning(FutureWarning):
         assert_label_values(df_ambig, ['L1'], axis=axis)
 
     # df has an on-axis level named L2 and it is not ambiguous

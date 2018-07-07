@@ -22,22 +22,22 @@ Frequently Asked Questions (FAQ)
 
 DataFrame memory usage
 ----------------------
-The memory usage of a dataframe (including the index)
-is shown when accessing the ``info`` method of a dataframe. A
-configuration option, ``display.memory_usage`` (see :ref:`options`),
-specifies if the dataframe's memory usage will be displayed when
-invoking the ``df.info()`` method.
+The memory usage of a ``DataFrame`` (including the index) is shown when calling
+the :meth:`~DataFrame.info`. A configuration option, ``display.memory_usage`` 
+(see :ref:`the list of options <options.available>`), specifies if the 
+``DataFrame``'s memory usage will be displayed when invoking the ``df.info()`` 
+method.
 
-For example, the memory usage of the dataframe below is shown
-when calling ``df.info()``:
+For example, the memory usage of the ``DataFrame`` below is shown
+when calling :meth:`~DataFrame.info`:
 
 .. ipython:: python
 
     dtypes = ['int64', 'float64', 'datetime64[ns]', 'timedelta64[ns]',
               'complex128', 'object', 'bool']
     n = 5000
-    data = dict([ (t, np.random.randint(100, size=n).astype(t))
-                    for t in dtypes])
+    data = dict([(t, np.random.randint(100, size=n).astype(t))
+                  for t in dtypes])
     df = pd.DataFrame(data)
     df['categorical'] = df['object'].astype('category')
 
@@ -48,7 +48,7 @@ pandas does not count the memory used by values in columns with
 ``dtype=object``.
 
 Passing ``memory_usage='deep'`` will enable a more accurate memory usage report,
-that accounts for the full usage of the contained objects. This is optional
+accounting for the full usage of the contained objects. This is optional
 as it can be expensive to do this deeper introspection.
 
 .. ipython:: python
@@ -58,11 +58,11 @@ as it can be expensive to do this deeper introspection.
 By default the display option is set to ``True`` but can be explicitly
 overridden by passing the ``memory_usage`` argument when invoking ``df.info()``.
 
-The memory usage of each column can be found by calling the ``memory_usage``
-method. This returns a Series with an index represented by column names
-and memory usage of each column shown in bytes. For the dataframe above,
-the memory usage of each column and the total memory usage of the
-dataframe can be found with the memory_usage method:
+The memory usage of each column can be found by calling the 
+:meth:`~DataFrame.memory_usage` method. This returns a ``Series`` with an index 
+represented by column names and memory usage of each column shown in bytes. For 
+the ``DataFrame`` above, the memory usage of each column and the total memory 
+usage can be found with the ``memory_usage`` method:
 
 .. ipython:: python
 
@@ -71,18 +71,18 @@ dataframe can be found with the memory_usage method:
     # total memory usage of dataframe
     df.memory_usage().sum()
 
-By default the memory usage of the dataframe's index is shown in the
-returned Series, the memory usage of the index can be suppressed by passing
+By default the memory usage of the ``DataFrame``'s index is shown in the
+returned ``Series``, the memory usage of the index can be suppressed by passing
 the ``index=False`` argument:
 
 .. ipython:: python
 
     df.memory_usage(index=False)
 
-The memory usage displayed by the ``info`` method utilizes the
-``memory_usage`` method to determine the memory usage of a dataframe
-while also formatting the output in human-readable units (base-2
-representation; i.e., 1KB = 1024 bytes).
+The memory usage displayed by the :meth:`~DataFrame.info` method utilizes the
+:meth:`~DataFrame.memory_usage` method to determine the memory usage of a 
+``DataFrame`` while also formatting the output in human-readable units (base-2
+representation; i.e. 1KB = 1024 bytes).
 
 See also :ref:`Categorical Memory Usage <categorical.memory>`.
 
@@ -91,17 +91,18 @@ See also :ref:`Categorical Memory Usage <categorical.memory>`.
 Using If/Truth Statements with pandas
 -------------------------------------
 
-pandas follows the numpy convention of raising an error when you try to convert something to a ``bool``.
-This happens in a ``if`` or when using the boolean operations, ``and``, ``or``, or ``not``.  It is not clear
-what the result of
+pandas follows the NumPy convention of raising an error when you try to convert 
+something to a ``bool``. This happens in an ``if``-statement or when using the 
+boolean operations: ``and``, ``or``, and ``not``. It is not clear what the result
+of the following code should be:
 
 .. code-block:: python
 
     >>> if pd.Series([False, True, False]):
          ...
 
-should be. Should it be ``True`` because it's not zero-length? ``False`` because there are ``False`` values?
-It is unclear, so instead, pandas raises a ``ValueError``:
+Should it be ``True`` because it's not zero-length, or ``False`` because there 
+are ``False`` values? It is unclear, so instead, pandas raises a ``ValueError``:
 
 .. code-block:: python
 
@@ -111,9 +112,9 @@ It is unclear, so instead, pandas raises a ``ValueError``:
         ...
     ValueError: The truth value of an array is ambiguous. Use a.empty, a.any() or a.all().
 
-
-If you see that, you need to explicitly choose what you want to do with it (e.g., use `any()`, `all()` or `empty`).
-or, you might want to compare if the pandas object is ``None``
+You need to explicitly choose what you want to do with the ``DataFrame``, e.g.
+use :meth:`~DataFrame.any`, :meth:`~DataFrame.all` or :meth:`~DataFrame.empty`.
+Alternatively, you might want to compare if the pandas object is ``None``:
 
 .. code-block:: python
 
@@ -122,7 +123,7 @@ or, you might want to compare if the pandas object is ``None``
     >>> I was not None
 
 
-or return if ``any`` value is ``True``.
+Below is how to check if any of the values are ``True``:
 
 .. code-block:: python
 
@@ -130,7 +131,8 @@ or return if ``any`` value is ``True``.
            print("I am any")
     >>> I am any
 
-To evaluate single-element pandas objects in a boolean context, use the method ``.bool()``:
+To evaluate single-element pandas objects in a boolean context, use the method 
+:meth:`~DataFrame.bool`:
 
 .. ipython:: python
 
@@ -161,25 +163,25 @@ See :ref:`boolean comparisons<basics.compare>` for more examples.
 Using the ``in`` operator
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Using the Python ``in`` operator on a Series tests for membership in the
+Using the Python ``in`` operator on a ``Series`` tests for membership in the
 index, not membership among the values.
 
-.. ipython::
+.. ipython:: python
 
     s = pd.Series(range(5), index=list('abcde'))
     2 in s
     'b' in s
 
 If this behavior is surprising, keep in mind that using ``in`` on a Python
-dictionary tests keys, not values, and Series are dict-like.
-To test for membership in the values, use the method :func:`~pandas.Series.isin`:
+dictionary tests keys, not values, and ``Series`` are dict-like.
+To test for membership in the values, use the method :meth:`~pandas.Series.isin`:
 
-.. ipython::
+.. ipython:: python
 
     s.isin([2])
     s.isin([2]).any()
 
-For DataFrames, likewise, ``in`` applies to the column axis,
+For ``DataFrames``, likewise, ``in`` applies to the column axis,
 testing for membership in the list of column names.
 
 ``NaN``, Integer ``NA`` values and ``NA`` type promotions
@@ -189,12 +191,12 @@ Choice of ``NA`` representation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 For lack of ``NA`` (missing) support from the ground up in NumPy and Python in
-general, we were given the difficult choice between either
+general, we were given the difficult choice between either:
 
-- A *masked array* solution: an array of data and an array of boolean values
-  indicating whether a value is there or is missing
-- Using a special sentinel value, bit pattern, or set of sentinel values to
-  denote ``NA`` across the dtypes
+* A *masked array* solution: an array of data and an array of boolean values
+  indicating whether a value is there or is missing.
+* Using a special sentinel value, bit pattern, or set of sentinel values to
+  denote ``NA`` across the dtypes.
 
 For many reasons we chose the latter. After years of production use it has
 proven, at least in my opinion, to be the best decision given the state of
@@ -226,15 +228,16 @@ arrays. For example:
    s2.dtype
 
 This trade-off is made largely for memory and performance reasons, and also so
-that the resulting Series continues to be "numeric". One possibility is to use
-``dtype=object`` arrays instead.
+that the resulting ``Series`` continues to be "numeric". One possibility is to 
+use ``dtype=object`` arrays instead.
 
 ``NA`` type promotions
 ~~~~~~~~~~~~~~~~~~~~~~
 
-When introducing NAs into an existing Series or DataFrame via ``reindex`` or
-some other means, boolean and integer types will be promoted to a different
-dtype in order to store the NAs. These are summarized by this table:
+When introducing NAs into an existing ``Series`` or ``DataFrame`` via 
+:meth:`~Series.reindex` or some other means, boolean and integer types will be 
+promoted to a different dtype in order to store the NAs. The promotions are 
+summarized in this table:
 
 .. csv-table::
    :header: "Typeclass","Promotion dtype for storing NAs"
@@ -289,19 +292,19 @@ integer arrays to floating when NAs must be introduced.
 
 Differences with NumPy
 ----------------------
-For Series and DataFrame objects, ``var`` normalizes by ``N-1`` to produce
-unbiased estimates of the sample variance, while NumPy's ``var`` normalizes
-by N, which measures the variance of the sample. Note that ``cov``
-normalizes by ``N-1`` in both pandas and NumPy.
+For ``Series`` and ``DataFrame`` objects, :meth:`~DataFrame.var` normalizes by 
+``N-1`` to produce unbiased estimates of the sample variance, while NumPy's 
+``var`` normalizes by N, which measures the variance of the sample. Note that 
+:meth:`~DataFrame.cov` normalizes by ``N-1`` in both pandas and NumPy.
 
 
 Thread-safety
 -------------
 
 As of pandas 0.11, pandas is not 100% thread safe. The known issues relate to
-the ``DataFrame.copy`` method. If you are doing a lot of copying of DataFrame
-objects shared among threads, we recommend holding locks inside the threads
-where the data copying occurs.
+the :meth:`~DataFrame.copy` method. If you are doing a lot of copying of 
+``DataFrame`` objects shared among threads, we recommend holding locks inside 
+the threads where the data copying occurs.
 
 See `this link <https://stackoverflow.com/questions/13592618/python-pandas-dataframe-thread-safe>`__
 for more information.
@@ -310,7 +313,8 @@ for more information.
 Byte-Ordering Issues
 --------------------
 Occasionally you may have to deal with data that were created on a machine with
-a different byte order than the one on which you are running Python. A common symptom of this issue is an error like
+a different byte order than the one on which you are running Python. A common 
+symptom of this issue is an error like:
 
 .. code-block:: python
 
@@ -320,8 +324,8 @@ a different byte order than the one on which you are running Python. A common sy
 
 To deal
 with this issue you should convert the underlying NumPy array to the native
-system byte order *before* passing it to Series/DataFrame/Panel constructors
-using something similar to the following:
+system byte order *before* passing it to ``Series`` or ``DataFrame`` 
+constructors using something similar to the following:
 
 .. ipython:: python
 

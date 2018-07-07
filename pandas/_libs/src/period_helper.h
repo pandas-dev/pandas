@@ -20,43 +20,7 @@ frequency conversion routines.
 #include "limits.h"
 #include "numpy/ndarraytypes.h"
 
-/*
- * declarations from period here
- */
-
-#define GREGORIAN_CALENDAR 0
-#define JULIAN_CALENDAR 1
-
-#define SECONDS_PER_DAY ((double)86400.0)
-
-#define Py_AssertWithArg(x, errortype, errorstr, a1) \
-    {                                                \
-        if (!(x)) {                                  \
-            PyErr_Format(errortype, errorstr, a1);   \
-            goto onError;                            \
-        }                                            \
-    }
-#define Py_Error(errortype, errorstr)         \
-    {                                         \
-        PyErr_SetString(errortype, errorstr); \
-        goto onError;                         \
-    }
-
 /*** FREQUENCY CONSTANTS ***/
-
-// HIGHFREQ_ORIG is the datetime ordinal from which to begin the second
-// frequency ordinal sequence
-
-// #define HIGHFREQ_ORIG 62135683200LL
-#define BASE_YEAR 1970
-#define ORD_OFFSET 719163LL   // days until 1970-01-01
-#define BDAY_OFFSET 513689LL  // days until 1970-01-01
-#define WEEK_OFFSET 102737LL
-#define BASE_WEEK_TO_DAY_OFFSET \
-    1  // difference between day 0 and end of week in days
-#define DAYS_PER_WEEK 7
-#define BUSINESS_DAYS_PER_WEEK 5
-#define HIGHFREQ_ORIG 0  // ORD_OFFSET * 86400LL // days until 1970-01-01
 
 #define FR_ANN 1000      /* Annual */
 #define FR_ANNDEC FR_ANN /* Annual - December year end*/
@@ -112,80 +76,37 @@ frequency conversion routines.
 
 #define INT_ERR_CODE INT32_MIN
 
-#define MEM_CHECK(item)          \
-    if (item == NULL) {          \
-        return PyErr_NoMemory(); \
-    }
-#define ERR_CHECK(item) \
-    if (item == NULL) { \
-        return NULL;    \
-    }
-
 typedef struct asfreq_info {
-    int from_week_end;  // day the week ends on in the "from" frequency
-    int to_week_end;    // day the week ends on in the "to" frequency
+    int is_end;
+    // char relation == 'S' (for START) --> is_end = 0
+    // char relation == 'E' (for END) --> is_end = 1
 
-    int from_a_year_end;  // month the year ends on in the "from" frequency
-    int to_a_year_end;    // month the year ends on in the "to" frequency
-
-    int from_q_year_end;  // month the year ends on in the "from" frequency
-    int to_q_year_end;    // month the year ends on in the "to" frequency
+    int from_end;
+    int to_end;
+    // weekly:
+    // from_end --> day the week ends on in the "from" frequency
+    // to_end   --> day the week ends on in the "to" frequency
+    //
+    // annual:
+    // from_end --> month the year ends on in the "from" frequency
+    // to_end   --> month the year ends on in the "to" frequency
+    //
+    // quarterly:
+    // from_end --> month the year ends on in the "from" frequency
+    // to_end   --> month the year ends on in the "to" frequency
 
     npy_int64 intraday_conversion_factor;
 } asfreq_info;
 
-typedef struct date_info {
-    npy_int64 absdate;
-    double abstime;
-
-    double second;
-    int minute;
-    int hour;
-    int day;
-    int month;
-    int quarter;
-    int year;
-    int day_of_week;
-    int day_of_year;
-    int calendar;
-} date_info;
-
-typedef npy_int64 (*freq_conv_func)(npy_int64, char, asfreq_info *);
+typedef npy_int64 (*freq_conv_func)(npy_int64, asfreq_info *af_info);
 
 /*
  * new pandas API helper functions here
  */
 
-npy_int64 asfreq(npy_int64 period_ordinal, int freq1, int freq2, char relation);
-
-npy_int64 get_period_ordinal(int year, int month, int day, int hour, int minute,
-                             int second, int microseconds, int picoseconds,
-                             int freq);
-
-npy_int64 get_python_ordinal(npy_int64 period_ordinal, int freq);
-
-int get_date_info(npy_int64 ordinal, int freq, struct date_info *dinfo);
 freq_conv_func get_asfreq_func(int fromFreq, int toFreq);
-void get_asfreq_info(int fromFreq, int toFreq, asfreq_info *af_info);
 
-int pyear(npy_int64 ordinal, int freq);
-int pqyear(npy_int64 ordinal, int freq);
-int pquarter(npy_int64 ordinal, int freq);
-int pmonth(npy_int64 ordinal, int freq);
-int pday(npy_int64 ordinal, int freq);
-int pweekday(npy_int64 ordinal, int freq);
-int pday_of_week(npy_int64 ordinal, int freq);
-int pday_of_year(npy_int64 ordinal, int freq);
-int pweek(npy_int64 ordinal, int freq);
-int phour(npy_int64 ordinal, int freq);
-int pminute(npy_int64 ordinal, int freq);
-int psecond(npy_int64 ordinal, int freq);
-int pdays_in_month(npy_int64 ordinal, int freq);
-
-double getAbsTime(int freq, npy_int64 dailyDate, npy_int64 originalDate);
-char *c_strftime(struct date_info *dinfo, char *fmt);
-int get_yq(npy_int64 ordinal, int freq, int *quarter, int *year);
-
-void initialize_daytime_conversion_factor_matrix(void);
+npy_int64 get_daytime_conversion_factor(int from_index, int to_index);
+int max_value(int a, int b);
 
 #endif  // PANDAS__LIBS_SRC_PERIOD_HELPER_H_

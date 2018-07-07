@@ -4,8 +4,7 @@ from __future__ import print_function
 
 import warnings
 from datetime import timedelta
-from distutils.version import LooseVersion
-import sys
+import operator
 import pytest
 
 from string import ascii_lowercase
@@ -13,15 +12,17 @@ from numpy import nan
 from numpy.random import randn
 import numpy as np
 
-from pandas.compat import lrange, product
+from pandas.compat import lrange, PY35
 from pandas import (compat, isna, notna, DataFrame, Series,
-                    MultiIndex, date_range, Timestamp)
+                    MultiIndex, date_range, Timestamp, Categorical,
+                    _np_version_under1p12,
+                    to_datetime, to_timedelta)
 import pandas as pd
 import pandas.core.nanops as nanops
 import pandas.core.algorithms as algorithms
-import pandas.io.formats.printing as printing
 
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas.tests.frame.common import TestData
 
 
@@ -30,22 +31,22 @@ class TestDataFrameAnalytics(TestData):
     # ---------------------------------------------------------------------=
     # Correlation and covariance
 
+    @td.skip_if_no_scipy
     def test_corr_pearson(self):
-        tm._skip_if_no_scipy()
         self.frame['A'][:5] = nan
         self.frame['B'][5:10] = nan
 
         self._check_method('pearson')
 
+    @td.skip_if_no_scipy
     def test_corr_kendall(self):
-        tm._skip_if_no_scipy()
         self.frame['A'][:5] = nan
         self.frame['B'][5:10] = nan
 
         self._check_method('kendall')
 
+    @td.skip_if_no_scipy
     def test_corr_spearman(self):
-        tm._skip_if_no_scipy()
         self.frame['A'][:5] = nan
         self.frame['B'][5:10] = nan
 
@@ -62,8 +63,8 @@ class TestDataFrameAnalytics(TestData):
             expected.loc['A', 'B'] = expected.loc['B', 'A'] = nan
             tm.assert_frame_equal(result, expected)
 
+    @td.skip_if_no_scipy
     def test_corr_non_numeric(self):
-        tm._skip_if_no_scipy()
         self.frame['A'][:5] = nan
         self.frame['B'][5:10] = nan
 
@@ -72,9 +73,8 @@ class TestDataFrameAnalytics(TestData):
         expected = self.mixed_frame.loc[:, ['A', 'B', 'C', 'D']].corr()
         tm.assert_frame_equal(result, expected)
 
+    @td.skip_if_no_scipy
     def test_corr_nooverlap(self):
-        tm._skip_if_no_scipy()
-
         # nothing in common
         for meth in ['pearson', 'kendall', 'spearman']:
             df = DataFrame({'A': [1, 1.5, 1, np.nan, np.nan, np.nan],
@@ -88,9 +88,8 @@ class TestDataFrameAnalytics(TestData):
             assert rs.loc['B', 'B'] == 1
             assert isna(rs.loc['C', 'C'])
 
+    @td.skip_if_no_scipy
     def test_corr_constant(self):
-        tm._skip_if_no_scipy()
-
         # constant --> all NA
 
         for meth in ['pearson', 'spearman']:
@@ -106,9 +105,8 @@ class TestDataFrameAnalytics(TestData):
         df3.cov()
         df3.corr()
 
+    @td.skip_if_no_scipy
     def test_corr_int_and_boolean(self):
-        tm._skip_if_no_scipy()
-
         # when dtypes of pandas series are different
         # then ndarray will have dtype=object,
         # so it need to be properly handled
@@ -240,6 +238,16 @@ class TestDataFrameAnalytics(TestData):
         tm.assert_almost_equal(c1, c2)
         assert c1 < 1
 
+    def test_corrwith_mixed_dtypes(self):
+        # GH 18570
+        df = pd.DataFrame({'a': [1, 4, 3, 2], 'b': [4, 6, 7, 3],
+                           'c': ['a', 'b', 'c', 'd']})
+        s = pd.Series([0, 6, 7, 3])
+        result = df.corrwith(s)
+        corrs = [df['a'].corr(s), df['b'].corr(s)]
+        expected = pd.Series(data=corrs, index=['a', 'b'])
+        tm.assert_series_equal(result, expected)
+
     def test_bool_describe_in_mixed_frame(self):
         df = DataFrame({
             'string_data': ['a', 'b', 'c', 'd', 'e'],
@@ -295,6 +303,36 @@ class TestDataFrameAnalytics(TestData):
                               'str_data': [4, 3, 'a', 2]},
                              index=['count', 'unique', 'top', 'freq'])
         tm.assert_frame_equal(result, expected)
+
+    def test_describe_categorical(self):
+        df = DataFrame({'value': np.random.randint(0, 10000, 100)})
+        labels = ["{0} - {1}".format(i, i + 499) for i in range(0, 10000, 500)]
+        cat_labels = Categorical(labels, labels)
+
+        df = df.sort_values(by=['value'], ascending=True)
+        df['value_group'] = pd.cut(df.value, range(0, 10500, 500),
+                                   right=False, labels=cat_labels)
+        cat = df
+
+        # Categoricals should not show up together with numerical columns
+        result = cat.describe()
+        assert len(result.columns) == 1
+
+        # In a frame, describe() for the cat should be the same as for string
+        # arrays (count, unique, top, freq)
+
+        cat = Categorical(["a", "b", "b", "b"], categories=['a', 'b', 'c'],
+                          ordered=True)
+        s = Series(cat)
+        result = s.describe()
+        expected = Series([4, 2, "b", 3],
+                          index=['count', 'unique', 'top', 'freq'])
+        tm.assert_series_equal(result, expected)
+
+        cat = Series(Categorical(["a", "b", "c", "c"]))
+        df3 = DataFrame({"cat": cat, "s": ["a", "b", "c", "c"]})
+        res = df3.describe()
+        tm.assert_numpy_array_equal(res["cat"].values, res["s"].values)
 
     def test_describe_categorical_columns(self):
         # GH 11558
@@ -379,6 +417,28 @@ class TestDataFrameAnalytics(TestData):
                     "max           5 days 00:00:00         0 days 05:00:00")
         assert repr(res) == exp_repr
 
+    def test_describe_tz_values(self, tz_naive_fixture):
+        # GH 21332
+        tz = tz_naive_fixture
+        s1 = Series(range(5))
+        start = Timestamp(2018, 1, 1)
+        end = Timestamp(2018, 1, 5)
+        s2 = Series(date_range(start, end, tz=tz))
+        df = pd.DataFrame({'s1': s1, 's2': s2})
+
+        expected = DataFrame({'s1': [5, np.nan, np.nan, np.nan, np.nan, np.nan,
+                                     2, 1.581139, 0, 1, 2, 3, 4],
+                              's2': [5, 5, s2.value_counts().index[0], 1,
+                                     start.tz_localize(tz),
+                                     end.tz_localize(tz), np.nan, np.nan,
+                                     np.nan, np.nan, np.nan, np.nan, np.nan]},
+                             index=['count', 'unique', 'top', 'freq', 'first',
+                                    'last', 'mean', 'std', 'min', '25%', '50%',
+                                    '75%', 'max']
+                             )
+        res = df.describe(include='all')
+        tm.assert_frame_equal(res, expected)
+
     def test_reduce_mixed_frame(self):
         # GH 6806
         df = DataFrame({
@@ -440,7 +500,8 @@ class TestDataFrameAnalytics(TestData):
                                Series({0: 1, 1: 3, 2: 2}))
 
     def test_sum(self):
-        self._check_stat_op('sum', np.sum, has_numeric_only=True)
+        self._check_stat_op('sum', np.sum, has_numeric_only=True,
+                            skipna_alternative=np.nansum)
 
         # mixed types (with upcasting happening)
         self._check_stat_op('sum', np.sum,
@@ -489,7 +550,8 @@ class TestDataFrameAnalytics(TestData):
         self._check_stat_op('median', wrapper, check_dates=True)
 
     def test_min(self):
-        self._check_stat_op('min', np.min, check_dates=True)
+        with warnings.catch_warnings(record=True):
+            self._check_stat_op('min', np.min, check_dates=True)
         self._check_stat_op('min', np.min, frame=self.intframe)
 
     def test_cummin(self):
@@ -539,7 +601,8 @@ class TestDataFrameAnalytics(TestData):
         assert np.shape(cummax_xs) == np.shape(self.tsframe)
 
     def test_max(self):
-        self._check_stat_op('max', np.max, check_dates=True)
+        with warnings.catch_warnings(record=True):
+            self._check_stat_op('max', np.max, check_dates=True)
         self._check_stat_op('max', np.max, frame=self.intframe)
 
     def test_mad(self):
@@ -679,8 +742,8 @@ class TestDataFrameAnalytics(TestData):
             result = nanops.nansem(arr, axis=0)
             assert not (result < 0).any()
 
+    @td.skip_if_no_scipy
     def test_skew(self):
-        tm._skip_if_no_scipy()
         from scipy.stats import skew
 
         def alt(x):
@@ -690,9 +753,8 @@ class TestDataFrameAnalytics(TestData):
 
         self._check_stat_op('skew', alt)
 
+    @td.skip_if_no_scipy
     def test_kurt(self):
-        tm._skip_if_no_scipy()
-
         from scipy.stats import kurtosis
 
         def alt(x):
@@ -716,7 +778,8 @@ class TestDataFrameAnalytics(TestData):
 
     def _check_stat_op(self, name, alternative, frame=None, has_skipna=True,
                        has_numeric_only=False, check_dtype=True,
-                       check_dates=False, check_less_precise=False):
+                       check_dates=False, check_less_precise=False,
+                       skipna_alternative=None):
         if frame is None:
             frame = self.frame
             # set some NAs
@@ -737,15 +800,11 @@ class TestDataFrameAnalytics(TestData):
             assert len(result)
 
         if has_skipna:
-            def skipna_wrapper(x):
-                nona = x.dropna()
-                if len(nona) == 0:
-                    return np.nan
-                return alternative(nona)
-
             def wrapper(x):
                 return alternative(x.values)
 
+            skipna_wrapper = tm._make_skipna_wrapper(alternative,
+                                                     skipna_alternative)
             result0 = f(axis=0, skipna=False)
             result1 = f(axis=1, skipna=False)
             tm.assert_series_equal(result0, frame.apply(wrapper),
@@ -797,57 +856,80 @@ class TestDataFrameAnalytics(TestData):
             r0 = getattr(all_na, name)(axis=0)
             r1 = getattr(all_na, name)(axis=1)
             if name in ['sum', 'prod']:
-                assert np.isnan(r0).all()
-                assert np.isnan(r1).all()
+                unit = int(name == 'prod')
+                expected = pd.Series(unit, index=r0.index, dtype=r0.dtype)
+                tm.assert_series_equal(r0, expected)
+                expected = pd.Series(unit, index=r1.index, dtype=r1.dtype)
+                tm.assert_series_equal(r1, expected)
 
-    def test_mode(self):
-        df = pd.DataFrame({"A": [12, 12, 11, 12, 19, 11],
-                           "B": [10, 10, 10, np.nan, 3, 4],
-                           "C": [8, 8, 8, 9, 9, 9],
-                           "D": np.arange(6, dtype='int64'),
-                           "E": [8, 8, 1, 1, 3, 3]})
-        tm.assert_frame_equal(df[["A"]].mode(),
-                              pd.DataFrame({"A": [12]}))
-        expected = pd.Series([0, 1, 2, 3, 4, 5], dtype='int64', name='D').\
-            to_frame()
-        tm.assert_frame_equal(df[["D"]].mode(), expected)
-        expected = pd.Series([1, 3, 8], dtype='int64', name='E').to_frame()
-        tm.assert_frame_equal(df[["E"]].mode(), expected)
-        tm.assert_frame_equal(df[["A", "B"]].mode(),
-                              pd.DataFrame({"A": [12], "B": [10.]}))
-        tm.assert_frame_equal(df.mode(),
-                              pd.DataFrame({"A": [12, np.nan, np.nan, np.nan,
-                                                  np.nan, np.nan],
-                                            "B": [10, np.nan, np.nan, np.nan,
-                                                  np.nan, np.nan],
-                                            "C": [8, 9, np.nan, np.nan, np.nan,
-                                                  np.nan],
-                                            "D": [0, 1, 2, 3, 4, 5],
-                                            "E": [1, 3, 8, np.nan, np.nan,
-                                                  np.nan]}))
+    @pytest.mark.parametrize("dropna, expected", [
+        (True, {'A': [12],
+                'B': [10.0],
+                'C': [1.0],
+                'D': ['a'],
+                'E': Categorical(['a'], categories=['a']),
+                'F': to_datetime(['2000-1-2']),
+                'G': to_timedelta(['1 days'])}),
+        (False, {'A': [12],
+                 'B': [10.0],
+                 'C': [np.nan],
+                 'D': np.array([np.nan], dtype=object),
+                 'E': Categorical([np.nan], categories=['a']),
+                 'F': [pd.NaT],
+                 'G': to_timedelta([pd.NaT])}),
+        (True, {'H': [8, 9, np.nan, np.nan],
+                'I': [8, 9, np.nan, np.nan],
+                'J': [1, np.nan, np.nan, np.nan],
+                'K': Categorical(['a', np.nan, np.nan, np.nan],
+                                 categories=['a']),
+                'L': to_datetime(['2000-1-2', 'NaT', 'NaT', 'NaT']),
+                'M': to_timedelta(['1 days', 'nan', 'nan', 'nan']),
+                'N': [0, 1, 2, 3]}),
+        (False, {'H': [8, 9, np.nan, np.nan],
+                 'I': [8, 9, np.nan, np.nan],
+                 'J': [1, np.nan, np.nan, np.nan],
+                 'K': Categorical([np.nan, 'a', np.nan, np.nan],
+                                  categories=['a']),
+                 'L': to_datetime(['NaT', '2000-1-2', 'NaT', 'NaT']),
+                 'M': to_timedelta(['nan', '1 days', 'nan', 'nan']),
+                 'N': [0, 1, 2, 3]})
+    ])
+    def test_mode_dropna(self, dropna, expected):
 
-        # outputs in sorted order
-        df["C"] = list(reversed(df["C"]))
-        printing.pprint_thing(df["C"])
-        printing.pprint_thing(df["C"].mode())
-        a, b = (df[["A", "B", "C"]].mode(),
-                pd.DataFrame({"A": [12, np.nan],
-                              "B": [10, np.nan],
-                              "C": [8, 9]}))
-        printing.pprint_thing(a)
-        printing.pprint_thing(b)
-        tm.assert_frame_equal(a, b)
-        # should work with heterogeneous types
-        df = pd.DataFrame({"A": np.arange(6, dtype='int64'),
-                           "B": pd.date_range('2011', periods=6),
-                           "C": list('abcdef')})
-        exp = pd.DataFrame({"A": pd.Series(np.arange(6, dtype='int64'),
-                                           dtype=df["A"].dtype),
-                            "B": pd.Series(pd.date_range('2011', periods=6),
-                                           dtype=df["B"].dtype),
-                            "C": pd.Series(list('abcdef'),
-                                           dtype=df["C"].dtype)})
-        tm.assert_frame_equal(df.mode(), exp)
+        df = DataFrame({"A": [12, 12, 19, 11],
+                        "B": [10, 10, np.nan, 3],
+                        "C": [1, np.nan, np.nan, np.nan],
+                        "D": [np.nan, np.nan, 'a', np.nan],
+                        "E": Categorical([np.nan, np.nan, 'a', np.nan]),
+                        "F": to_datetime(['NaT', '2000-1-2', 'NaT', 'NaT']),
+                        "G": to_timedelta(['1 days', 'nan', 'nan', 'nan']),
+                        "H": [8, 8, 9, 9],
+                        "I": [9, 9, 8, 8],
+                        "J": [1, 1, np.nan, np.nan],
+                        "K": Categorical(['a', np.nan, 'a', np.nan]),
+                        "L": to_datetime(['2000-1-2', '2000-1-2',
+                                          'NaT', 'NaT']),
+                        "M": to_timedelta(['1 days', 'nan',
+                                           '1 days', 'nan']),
+                        "N": np.arange(4, dtype='int64')})
+
+        result = df[sorted(list(expected.keys()))].mode(dropna=dropna)
+        expected = DataFrame(expected)
+        tm.assert_frame_equal(result, expected)
+
+    @pytest.mark.skipif(not compat.PY3, reason="only PY3")
+    def test_mode_sortwarning(self):
+        # Check for the warning that is raised when the mode
+        # results cannot be sorted
+
+        df = DataFrame({"A": [np.nan, np.nan, 'a', 'a']})
+        expected = DataFrame({'A': ['a', np.nan]})
+
+        with tm.assert_produces_warning(UserWarning, check_stacklevel=False):
+            result = df.mode(dropna=False)
+            result = result.sort_values(by='A').reset_index(drop=True)
+
+        tm.assert_frame_equal(result, expected)
 
     def test_operators_timedelta64(self):
         from datetime import timedelta
@@ -935,6 +1017,66 @@ class TestDataFrameAnalytics(TestData):
         assert isinstance(axis1, Series)
         assert len(axis0) == 0
         assert len(axis1) == 0
+
+    @pytest.mark.parametrize('method, unit', [
+        ('sum', 0),
+        ('prod', 1),
+    ])
+    def test_sum_prod_nanops(self, method, unit):
+        idx = ['a', 'b', 'c']
+        df = pd.DataFrame({"a": [unit, unit],
+                           "b": [unit, np.nan],
+                           "c": [np.nan, np.nan]})
+        # The default
+        result = getattr(df, method)
+        expected = pd.Series([unit, unit, unit], index=idx, dtype='float64')
+
+        # min_count=1
+        result = getattr(df, method)(min_count=1)
+        expected = pd.Series([unit, unit, np.nan], index=idx)
+        tm.assert_series_equal(result, expected)
+
+        # min_count=0
+        result = getattr(df, method)(min_count=0)
+        expected = pd.Series([unit, unit, unit], index=idx, dtype='float64')
+        tm.assert_series_equal(result, expected)
+
+        result = getattr(df.iloc[1:], method)(min_count=1)
+        expected = pd.Series([unit, np.nan, np.nan], index=idx)
+        tm.assert_series_equal(result, expected)
+
+        # min_count > 1
+        df = pd.DataFrame({"A": [unit] * 10, "B": [unit] * 5 + [np.nan] * 5})
+        result = getattr(df, method)(min_count=5)
+        expected = pd.Series(result, index=['A', 'B'])
+        tm.assert_series_equal(result, expected)
+
+        result = getattr(df, method)(min_count=6)
+        expected = pd.Series(result, index=['A', 'B'])
+        tm.assert_series_equal(result, expected)
+
+    def test_sum_nanops_timedelta(self):
+        # prod isn't defined on timedeltas
+        idx = ['a', 'b', 'c']
+        df = pd.DataFrame({"a": [0, 0],
+                           "b": [0, np.nan],
+                           "c": [np.nan, np.nan]})
+
+        df2 = df.apply(pd.to_timedelta)
+
+        # 0 by default
+        result = df2.sum()
+        expected = pd.Series([0, 0, 0], dtype='m8[ns]', index=idx)
+        tm.assert_series_equal(result, expected)
+
+        # min_count=0
+        result = df2.sum(min_count=0)
+        tm.assert_series_equal(result, expected)
+
+        # min_count=1
+        result = df2.sum(min_count=1)
+        expected = pd.Series([0, 0, np.nan], dtype='m8[ns]', index=idx)
+        tm.assert_series_equal(result, expected)
 
     def test_sum_object(self):
         values = self.frame.values.astype(int)
@@ -1039,11 +1181,35 @@ class TestDataFrameAnalytics(TestData):
         self._check_bool_op('any', np.any, has_skipna=True, has_bool_only=True)
         self._check_bool_op('all', np.all, has_skipna=True, has_bool_only=True)
 
-        df = DataFrame(randn(10, 4)) > 0
-        df.any(1)
-        df.all(1)
-        df.any(1, bool_only=True)
-        df.all(1, bool_only=True)
+    def test_any_all_extra(self):
+        df = DataFrame({
+            'A': [True, False, False],
+            'B': [True, True, False],
+            'C': [True, True, True],
+        }, index=['a', 'b', 'c'])
+        result = df[['A', 'B']].any(1)
+        expected = Series([True, True, False], index=['a', 'b', 'c'])
+        tm.assert_series_equal(result, expected)
+
+        result = df[['A', 'B']].any(1, bool_only=True)
+        tm.assert_series_equal(result, expected)
+
+        result = df.all(1)
+        expected = Series([True, False, False], index=['a', 'b', 'c'])
+        tm.assert_series_equal(result, expected)
+
+        result = df.all(1, bool_only=True)
+        tm.assert_series_equal(result, expected)
+
+        # Axis is None
+        result = df.all(axis=None).item()
+        assert result is False
+
+        result = df.any(axis=None).item()
+        assert result is True
+
+        result = df[['C']].all(axis=None).item()
+        assert result is True
 
         # skip pathological failure cases
         # class CantNonzero(object):
@@ -1064,6 +1230,86 @@ class TestDataFrameAnalytics(TestData):
         # df.all(1)
         # df.any(1, bool_only=True)
         # df.all(1, bool_only=True)
+
+    @pytest.mark.parametrize('func, data, expected', [
+        (np.any, {}, False),
+        (np.all, {}, True),
+        (np.any, {'A': []}, False),
+        (np.all, {'A': []}, True),
+        (np.any, {'A': [False, False]}, False),
+        (np.all, {'A': [False, False]}, False),
+        (np.any, {'A': [True, False]}, True),
+        (np.all, {'A': [True, False]}, False),
+        (np.any, {'A': [True, True]}, True),
+        (np.all, {'A': [True, True]}, True),
+
+        (np.any, {'A': [False], 'B': [False]}, False),
+        (np.all, {'A': [False], 'B': [False]}, False),
+
+        (np.any, {'A': [False, False], 'B': [False, True]}, True),
+        (np.all, {'A': [False, False], 'B': [False, True]}, False),
+
+        # other types
+        (np.all, {'A': pd.Series([0.0, 1.0], dtype='float')}, False),
+        (np.any, {'A': pd.Series([0.0, 1.0], dtype='float')}, True),
+        (np.all, {'A': pd.Series([0, 1], dtype=int)}, False),
+        (np.any, {'A': pd.Series([0, 1], dtype=int)}, True),
+        pytest.param(np.all, {'A': pd.Series([0, 1], dtype='M8[ns]')}, False,
+                     marks=[td.skip_if_np_lt_115]),
+        pytest.param(np.any, {'A': pd.Series([0, 1], dtype='M8[ns]')}, True,
+                     marks=[td.skip_if_np_lt_115]),
+        pytest.param(np.all, {'A': pd.Series([1, 2], dtype='M8[ns]')}, True,
+                     marks=[td.skip_if_np_lt_115]),
+        pytest.param(np.any, {'A': pd.Series([1, 2], dtype='M8[ns]')}, True,
+                     marks=[td.skip_if_np_lt_115]),
+        pytest.param(np.all, {'A': pd.Series([0, 1], dtype='m8[ns]')}, False,
+                     marks=[td.skip_if_np_lt_115]),
+        pytest.param(np.any, {'A': pd.Series([0, 1], dtype='m8[ns]')}, True,
+                     marks=[td.skip_if_np_lt_115]),
+        pytest.param(np.all, {'A': pd.Series([1, 2], dtype='m8[ns]')}, True,
+                     marks=[td.skip_if_np_lt_115]),
+        pytest.param(np.any, {'A': pd.Series([1, 2], dtype='m8[ns]')}, True,
+                     marks=[td.skip_if_np_lt_115]),
+        (np.all, {'A': pd.Series([0, 1], dtype='category')}, False),
+        (np.any, {'A': pd.Series([0, 1], dtype='category')}, True),
+        (np.all, {'A': pd.Series([1, 2], dtype='category')}, True),
+        (np.any, {'A': pd.Series([1, 2], dtype='category')}, True),
+
+        # # Mix
+        # GH-21484
+        # (np.all, {'A': pd.Series([10, 20], dtype='M8[ns]'),
+        #           'B': pd.Series([10, 20], dtype='m8[ns]')}, True),
+    ])
+    def test_any_all_np_func(self, func, data, expected):
+        # https://github.com/pandas-dev/pandas/issues/19976
+        data = DataFrame(data)
+        result = func(data)
+        assert isinstance(result, np.bool_)
+        assert result.item() is expected
+
+        # method version
+        result = getattr(DataFrame(data), func.__name__)(axis=None)
+        assert isinstance(result, np.bool_)
+        assert result.item() is expected
+
+    def test_any_all_object(self):
+        # https://github.com/pandas-dev/pandas/issues/19976
+        result = np.all(DataFrame(columns=['a', 'b'])).item()
+        assert result is True
+
+        result = np.any(DataFrame(columns=['a', 'b'])).item()
+        assert result is False
+
+    @pytest.mark.parametrize('method', ['any', 'all'])
+    def test_any_all_level_axis_none_raises(self, method):
+        df = DataFrame(
+            {"A": 1},
+            index=MultiIndex.from_product([['A', 'B'], ['a', 'b']],
+                                          names=['out', 'in'])
+        )
+        xpr = "Must specify 'axis' when aggregating by level."
+        with tm.assert_raises_regex(ValueError, xpr):
+            getattr(df, method)(axis=None, level='out')
 
     def _check_bool_op(self, name, alternative, frame=None, has_skipna=True,
                        has_bool_only=False):
@@ -1113,7 +1359,7 @@ class TestDataFrameAnalytics(TestData):
         getattr(mixed, name)(axis=0)
         getattr(mixed, name)(axis=1)
 
-        class NonzeroFail:
+        class NonzeroFail(object):
 
             def __nonzero__(self):
                 raise ValueError
@@ -1393,6 +1639,36 @@ class TestDataFrameAnalytics(TestData):
 
         for keep in ['first', 'last', False]:
             assert df.duplicated(keep=keep).sum() == 0
+
+    @pytest.mark.parametrize('subset', ['a', ['a'], ['a', 'B']])
+    def test_duplicated_with_misspelled_column_name(self, subset):
+        # GH 19730
+        df = pd.DataFrame({'A': [0, 0, 1],
+                           'B': [0, 0, 1],
+                           'C': [0, 0, 1]})
+
+        with pytest.raises(KeyError):
+            df.duplicated(subset)
+
+        with pytest.raises(KeyError):
+            df.drop_duplicates(subset)
+
+    @pytest.mark.slow
+    def test_duplicated_do_not_fail_on_wide_dataframes(self):
+        # gh-21524
+        # Given the wide dataframe with a lot of columns
+        # with different (important!) values
+        data = {'col_{0:02d}'.format(i): np.random.randint(0, 1000, 30000)
+                for i in range(100)}
+        df = pd.DataFrame(data).T
+        result = df.duplicated()
+
+        # Then duplicates produce the bool pd.Series as a result
+        # and don't fail during calculation.
+        # Actual values doesn't matter here, though usually
+        # it's all False in this case
+        assert isinstance(result, pd.Series)
+        assert result.dtype == np.bool
 
     def test_drop_duplicates_with_duplicate_column_names(self):
         # GH17836
@@ -1742,13 +2018,8 @@ class TestDataFrameAnalytics(TestData):
             'col1': [1.123, 2.123, 3.123],
             'col2': [1.2, 2.2, 3.2]})
 
-        if sys.version < LooseVersion('2.7'):
-            # Rounding with decimal is a ValueError in Python < 2.7
-            with pytest.raises(ValueError):
-                df.round(nan_round_Series)
-        else:
-            with pytest.raises(TypeError):
-                df.round(nan_round_Series)
+        with pytest.raises(TypeError):
+            df.round(nan_round_Series)
 
         # Make sure this doesn't break existing Series.round
         tm.assert_series_equal(df['col1'].round(1), expected_rounded['col1'])
@@ -1809,7 +2080,7 @@ class TestDataFrameAnalytics(TestData):
 
     def test_built_in_round(self):
         if not compat.PY3:
-            pytest.skip("build in round cannot be overriden "
+            pytest.skip("build in round cannot be overridden "
                         "prior to Python 3")
 
         # GH11763
@@ -1830,12 +2101,9 @@ class TestDataFrameAnalytics(TestData):
         pnl.iat[1, 1] = np.nan
         pnl.iat[2, 3] = 60
 
-        mask = pnl.isnull()
-
         for axis in range(2):
             expected = pnl.ffill(axis=axis) / pnl.ffill(axis=axis).shift(
                 axis=axis) - 1
-            expected[mask] = np.nan
             result = pnl.pct_change(axis=axis, fill_method='pad')
 
             tm.assert_frame_equal(result, expected)
@@ -1977,7 +2245,6 @@ class TestDataFrameAnalytics(TestData):
                               self.frame)
 
     # Matrix-like
-
     def test_dot(self):
         a = DataFrame(np.random.randn(3, 4), index=['a', 'b', 'c'],
                       columns=['p', 'q', 'r', 's'])
@@ -2030,6 +2297,66 @@ class TestDataFrameAnalytics(TestData):
         with tm.assert_raises_regex(ValueError, 'aligned'):
             df.dot(df2)
 
+    @pytest.mark.skipif(not PY35,
+                        reason='matmul supported for Python>=3.5')
+    @pytest.mark.xfail(
+        _np_version_under1p12,
+        reason="unpredictable return types under numpy < 1.12")
+    def test_matmul(self):
+        # matmul test is for GH #10259
+        a = DataFrame(np.random.randn(3, 4), index=['a', 'b', 'c'],
+                      columns=['p', 'q', 'r', 's'])
+        b = DataFrame(np.random.randn(4, 2), index=['p', 'q', 'r', 's'],
+                      columns=['one', 'two'])
+
+        # DataFrame @ DataFrame
+        result = operator.matmul(a, b)
+        expected = DataFrame(np.dot(a.values, b.values),
+                             index=['a', 'b', 'c'],
+                             columns=['one', 'two'])
+        tm.assert_frame_equal(result, expected)
+
+        # DataFrame @ Series
+        result = operator.matmul(a, b.one)
+        expected = Series(np.dot(a.values, b.one.values),
+                          index=['a', 'b', 'c'])
+        tm.assert_series_equal(result, expected)
+
+        # np.array @ DataFrame
+        result = operator.matmul(a.values, b)
+        expected = np.dot(a.values, b.values)
+        tm.assert_almost_equal(result, expected)
+
+        # nested list @ DataFrame (__rmatmul__)
+        result = operator.matmul(a.values.tolist(), b)
+        expected = DataFrame(np.dot(a.values, b.values),
+                             index=['a', 'b', 'c'],
+                             columns=['one', 'two'])
+        tm.assert_almost_equal(result.values, expected.values)
+
+        # mixed dtype DataFrame @ DataFrame
+        a['q'] = a.q.round().astype(int)
+        result = operator.matmul(a, b)
+        expected = DataFrame(np.dot(a.values, b.values),
+                             index=['a', 'b', 'c'],
+                             columns=['one', 'two'])
+        tm.assert_frame_equal(result, expected)
+
+        # different dtypes DataFrame @ DataFrame
+        a = a.astype(int)
+        result = operator.matmul(a, b)
+        expected = DataFrame(np.dot(a.values, b.values),
+                             index=['a', 'b', 'c'],
+                             columns=['one', 'two'])
+        tm.assert_frame_equal(result, expected)
+
+        # unaligned
+        df = DataFrame(randn(3, 4), index=[1, 2, 3], columns=lrange(4))
+        df2 = DataFrame(randn(5, 3), index=lrange(5), columns=[1, 2, 3])
+
+        with tm.assert_raises_regex(ValueError, 'aligned'):
+            operator.matmul(df, df2)
+
 
 @pytest.fixture
 def df_duplicates():
@@ -2073,54 +2400,49 @@ class TestNLargestNSmallest(object):
 
     # ----------------------------------------------------------------------
     # Top / bottom
-    @pytest.mark.parametrize(
-        'method, n, order',
-        product(['nsmallest', 'nlargest'], range(1, 11),
-                [['a'],
-                 ['c'],
-                 ['a', 'b'],
-                 ['a', 'c'],
-                 ['b', 'a'],
-                 ['b', 'c'],
-                 ['a', 'b', 'c'],
-                 ['c', 'a', 'b'],
-                 ['c', 'b', 'a'],
-                 ['b', 'c', 'a'],
-                 ['b', 'a', 'c'],
+    @pytest.mark.parametrize('order', [
+        ['a'],
+        ['c'],
+        ['a', 'b'],
+        ['a', 'c'],
+        ['b', 'a'],
+        ['b', 'c'],
+        ['a', 'b', 'c'],
+        ['c', 'a', 'b'],
+        ['c', 'b', 'a'],
+        ['b', 'c', 'a'],
+        ['b', 'a', 'c'],
 
-                 # dups!
-                 ['b', 'c', 'c'],
-
-                 ]))
-    def test_n(self, df_strings, method, n, order):
+        # dups!
+        ['b', 'c', 'c']])
+    @pytest.mark.parametrize('n', range(1, 11))
+    def test_n(self, df_strings, nselect_method, n, order):
         # GH10393
         df = df_strings
         if 'b' in order:
 
             error_msg = self.dtype_error_msg_template.format(
-                column='b', method=method, dtype='object')
+                column='b', method=nselect_method, dtype='object')
             with tm.assert_raises_regex(TypeError, error_msg):
-                getattr(df, method)(n, order)
+                getattr(df, nselect_method)(n, order)
         else:
-            ascending = method == 'nsmallest'
-            result = getattr(df, method)(n, order)
+            ascending = nselect_method == 'nsmallest'
+            result = getattr(df, nselect_method)(n, order)
             expected = df.sort_values(order, ascending=ascending).head(n)
             tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        'method, columns',
-        product(['nsmallest', 'nlargest'],
-                product(['group'], ['category_string', 'string'])
-                ))
-    def test_n_error(self, df_main_dtypes, method, columns):
+    @pytest.mark.parametrize('columns', [
+        ('group', 'category_string'), ('group', 'string')])
+    def test_n_error(self, df_main_dtypes, nselect_method, columns):
         df = df_main_dtypes
+        col = columns[1]
         error_msg = self.dtype_error_msg_template.format(
-            column=columns[1], method=method, dtype=df[columns[1]].dtype)
+            column=col, method=nselect_method, dtype=df[col].dtype)
         # escape some characters that may be in the repr
         error_msg = (error_msg.replace('(', '\\(').replace(")", "\\)")
                               .replace("[", "\\[").replace("]", "\\]"))
         with tm.assert_raises_regex(TypeError, error_msg):
-            getattr(df, method)(2, columns)
+            getattr(df, nselect_method)(2, columns)
 
     def test_n_all_dtypes(self, df_main_dtypes):
         df = df_main_dtypes
@@ -2141,15 +2463,14 @@ class TestNLargestNSmallest(object):
         expected = pd.DataFrame({'a': [1] * 3, 'b': [1, 2, 3]})
         tm.assert_frame_equal(result, expected)
 
-    @pytest.mark.parametrize(
-        'n, order',
-        product([1, 2, 3, 4, 5],
-                [['a', 'b', 'c'],
-                 ['c', 'b', 'a'],
-                 ['a'],
-                 ['b'],
-                 ['a', 'b'],
-                 ['c', 'b']]))
+    @pytest.mark.parametrize('order', [
+        ['a', 'b', 'c'],
+        ['c', 'b', 'a'],
+        ['a'],
+        ['b'],
+        ['a', 'b'],
+        ['c', 'b']])
+    @pytest.mark.parametrize('n', range(1, 6))
     def test_n_duplicate_index(self, df_duplicates, n, order):
         # GH 13412
 
@@ -2160,6 +2481,22 @@ class TestNLargestNSmallest(object):
 
         result = df.nlargest(n, order)
         expected = df.sort_values(order, ascending=False).head(n)
+        tm.assert_frame_equal(result, expected)
+
+    def test_duplicate_keep_all_ties(self):
+        # see gh-16818
+        df = pd.DataFrame({'a': [5, 4, 4, 2, 3, 3, 3, 3],
+                           'b': [10, 9, 8, 7, 5, 50, 10, 20]})
+        result = df.nlargest(4, 'a', keep='all')
+        expected = pd.DataFrame({'a': {0: 5, 1: 4, 2: 4, 4: 3,
+                                       5: 3, 6: 3, 7: 3},
+                                 'b': {0: 10, 1: 9, 2: 8, 4: 5,
+                                       5: 50, 6: 10, 7: 20}})
+        tm.assert_frame_equal(result, expected)
+
+        result = df.nsmallest(2, 'a', keep='all')
+        expected = pd.DataFrame({'a': {3: 2, 4: 3, 5: 3, 6: 3, 7: 3},
+                                 'b': {3: 7, 4: 5, 5: 50, 6: 10, 7: 20}})
         tm.assert_frame_equal(result, expected)
 
     def test_series_broadcasting(self):
@@ -2174,3 +2511,12 @@ class TestNLargestNSmallest(object):
             df_nan.clip_lower(s, axis=0)
             for op in ['lt', 'le', 'gt', 'ge', 'eq', 'ne']:
                 getattr(df, op)(s_nan, axis=0)
+
+    def test_series_nat_conversion(self):
+        # GH 18521
+        # Check rank does not mutate DataFrame
+        df = DataFrame(np.random.randn(10, 3), dtype='float64')
+        expected = df.copy()
+        df.rank()
+        result = df
+        tm.assert_frame_equal(result, expected)

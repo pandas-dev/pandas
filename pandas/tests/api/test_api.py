@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import sys
 from warnings import catch_warnings
 
 import pytest
@@ -35,8 +35,7 @@ class TestPDApi(Base):
            'util', 'options', 'io']
 
     # these are already deprecated; awaiting removal
-    deprecated_modules = ['stats', 'datetools', 'parser',
-                          'json', 'lib', 'tslib']
+    deprecated_modules = ['datetools', 'parser', 'json', 'lib', 'tslib']
 
     # misc
     misc = ['IndexSlice', 'NaT']
@@ -51,8 +50,7 @@ class TestPDApi(Base):
                'TimedeltaIndex', 'Timestamp', 'Interval', 'IntervalIndex']
 
     # these are already deprecated; awaiting removal
-    deprecated_classes = ['WidePanel', 'Panel4D', 'TimeGrouper',
-                          'SparseList', 'Expr', 'Term']
+    deprecated_classes = ['TimeGrouper', 'Expr', 'Term']
 
     # these should be deprecated in the future
     deprecated_classes_in_future = ['Panel']
@@ -92,19 +90,7 @@ class TestPDApi(Base):
     deprecated_funcs_in_future = []
 
     # these are already deprecated; awaiting removal
-    deprecated_funcs = ['ewma', 'ewmcorr', 'ewmcov', 'ewmstd', 'ewmvar',
-                        'ewmvol', 'expanding_apply', 'expanding_corr',
-                        'expanding_count', 'expanding_cov', 'expanding_kurt',
-                        'expanding_max', 'expanding_mean', 'expanding_median',
-                        'expanding_min', 'expanding_quantile',
-                        'expanding_skew', 'expanding_std', 'expanding_sum',
-                        'expanding_var', 'rolling_apply',
-                        'rolling_corr', 'rolling_count', 'rolling_cov',
-                        'rolling_kurt', 'rolling_max', 'rolling_mean',
-                        'rolling_median', 'rolling_min', 'rolling_quantile',
-                        'rolling_skew', 'rolling_std', 'rolling_sum',
-                        'rolling_var', 'rolling_window',
-                        'pnow', 'match', 'groupby', 'get_store',
+    deprecated_funcs = ['pnow', 'match', 'groupby', 'get_store',
                         'plot_params', 'scatter_matrix']
 
     def test_api(self):
@@ -123,7 +109,7 @@ class TestPDApi(Base):
 
 class TestApi(Base):
 
-    allowed = ['types']
+    allowed = ['types', 'extensions']
 
     def test_api(self):
 
@@ -250,3 +236,18 @@ class TestCDateRange(object):
         with tm.assert_produces_warning(FutureWarning,
                                         check_stacklevel=False):
             cdate_range('2017-01-01', '2017-12-31')
+
+
+class TestCategoricalMove(object):
+
+    def test_categorical_move(self):
+        # May have been cached by another import, e.g. pickle tests.
+        sys.modules.pop("pandas.core.categorical", None)
+
+        with tm.assert_produces_warning(FutureWarning):
+            from pandas.core.categorical import Categorical  # noqa
+
+        sys.modules.pop("pandas.core.categorical", None)
+
+        with tm.assert_produces_warning(FutureWarning):
+            from pandas.core.categorical import CategoricalDtype  # noqa

@@ -16,28 +16,26 @@ import numpy as np
 
 import pandas as pd
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas import DataFrame
-from pandas import compat
 from pandas.compat import StringIO, range, lrange
 
 
 class CParserTests(object):
 
-    def test_buffer_overflow(self):
+    @pytest.mark.parametrize(
+        'malf',
+        ['1\r1\r1\r 1\r 1\r',
+         '1\r1\r1\r 1\r 1\r11\r',
+         '1\r1\r1\r 1\r 1\r11\r1\r'],
+        ids=['words pointer', 'stream pointer', 'lines pointer'])
+    def test_buffer_overflow(self, malf):
         # see gh-9205: test certain malformed input files that cause
         # buffer overflows in tokenizer.c
-
-        malfw = "1\r1\r1\r 1\r 1\r"         # buffer overflow in words pointer
-        malfs = "1\r1\r1\r 1\r 1\r11\r"     # buffer overflow in stream pointer
-        malfl = "1\r1\r1\r 1\r 1\r11\r1\r"  # buffer overflow in lines pointer
-
         cperr = 'Buffer overflow caught - possible malformed input file.'
-
-        for malf in (malfw, malfs, malfl):
-            try:
-                self.read_table(StringIO(malf))
-            except Exception as err:
-                assert cperr in str(err)
+        with pytest.raises(pd.errors.ParserError) as excinfo:
+            self.read_table(StringIO(malf))
+        assert cperr in str(excinfo.value)
 
     def test_buffer_rd_bytes(self):
         # see gh-12098: src->buffer in the C parser can be freed twice leading
@@ -129,9 +127,8 @@ nan 2
                           dtype={'A': 'U8'},
                           index_col=0)
 
+    @td.skip_if_32bit
     def test_precise_conversion(self):
-        # see gh-8002
-        tm._skip_if_32bit()
         from decimal import Decimal
 
         normal_errors = []
@@ -160,25 +157,6 @@ nan 2
 
         assert sum(precise_errors) <= sum(normal_errors)
         assert max(precise_errors) <= max(normal_errors)
-
-    def test_pass_dtype_as_recarray(self):
-        if compat.is_platform_windows() and self.low_memory:
-            pytest.skip(
-                "segfaults on win-64, only when all tests are run")
-
-        data = """\
-one,two
-1,2.5
-2,3.5
-3,4.5
-4,5.5"""
-
-        with tm.assert_produces_warning(
-                FutureWarning, check_stacklevel=False):
-            result = self.read_csv(StringIO(data), dtype={
-                'one': 'u1', 1: 'S1'}, as_recarray=True)
-            assert result['one'].dtype == 'u1'
-            assert result['two'].dtype == 'S1'
 
     def test_usecols_dtypes(self):
         data = """\

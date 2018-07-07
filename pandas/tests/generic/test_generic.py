@@ -10,8 +10,7 @@ import pandas as pd
 
 from pandas.core.dtypes.common import is_scalar
 from pandas import (Series, DataFrame, Panel,
-                    date_range, Panel4D,
-                    MultiIndex)
+                    date_range, MultiIndex)
 
 import pandas.io.formats.printing as printing
 
@@ -200,11 +199,11 @@ class Generic(object):
         self._compare(result, expected)
 
     def test_constructor_compound_dtypes(self):
-        # GH 5191
-        # compound dtypes should raise not-implementederror
+        # see gh-5191
+        # Compound dtypes should raise NotImplementedError.
 
         def f(dtype):
-            return self._construct(shape=3, dtype=dtype)
+            return self._construct(shape=3, value=1, dtype=dtype)
 
         pytest.raises(NotImplementedError, f, [("A", "datetime64[h]"),
                                                ("B", "str"),
@@ -535,14 +534,14 @@ class Generic(object):
 
         # small
         shape = [int(2e3)] + ([1] * (self._ndim - 1))
-        small = self._construct(shape, dtype='int8')
+        small = self._construct(shape, dtype='int8', value=1)
         self._compare(small.truncate(), small)
         self._compare(small.truncate(before=0, after=3e3), small)
         self._compare(small.truncate(before=-1, after=2e3), small)
 
         # big
         shape = [int(2e6)] + ([1] * (self._ndim - 1))
-        big = self._construct(shape, dtype='int8')
+        big = self._construct(shape, dtype='int8', value=1)
         self._compare(big.truncate(), big)
         self._compare(big.truncate(before=0, after=3e6), big)
         self._compare(big.truncate(before=-1, after=2e6), big)
@@ -592,6 +591,26 @@ class Generic(object):
                 obj_copy = func(obj)
                 assert obj_copy is not obj
                 self._compare(obj_copy, obj)
+
+    @pytest.mark.parametrize("periods,fill_method,limit,exp", [
+        (1, "ffill", None, [np.nan, np.nan, np.nan, 1, 1, 1.5, 0, 0]),
+        (1, "ffill", 1, [np.nan, np.nan, np.nan, 1, 1, 1.5, 0, np.nan]),
+        (1, "bfill", None, [np.nan, 0, 0, 1, 1, 1.5, np.nan, np.nan]),
+        (1, "bfill", 1, [np.nan, np.nan, 0, 1, 1, 1.5, np.nan, np.nan]),
+        (-1, "ffill", None, [np.nan, np.nan, -.5, -.5, -.6, 0, 0, np.nan]),
+        (-1, "ffill", 1, [np.nan, np.nan, -.5, -.5, -.6, 0, np.nan, np.nan]),
+        (-1, "bfill", None, [0, 0, -.5, -.5, -.6, np.nan, np.nan, np.nan]),
+        (-1, "bfill", 1, [np.nan, 0, -.5, -.5, -.6, np.nan, np.nan, np.nan])
+    ])
+    def test_pct_change(self, periods, fill_method, limit, exp):
+        vals = [np.nan, np.nan, 1, 2, 4, 10, np.nan, np.nan]
+        obj = self._typ(vals)
+        func = getattr(obj, 'pct_change')
+        res = func(periods=periods, fill_method=fill_method, limit=limit)
+        if type(obj) is DataFrame:
+            tm.assert_frame_equal(res, DataFrame(exp))
+        else:
+            tm.assert_series_equal(res, Series(exp))
 
 
 class TestNDFrame(object):
@@ -726,9 +745,6 @@ class TestNDFrame(object):
         with catch_warnings(record=True):
             for p in [tm.makePanel()]:
                 tm.assert_panel_equal(p.squeeze(), p)
-        with catch_warnings(record=True):
-            for p4d in [tm.makePanel4D()]:
-                tm.assert_panel4d_equal(p4d.squeeze(), p4d)
 
         # squeezing
         df = tm.makeTimeDataFrame().reindex(columns=['A'])
@@ -740,14 +756,6 @@ class TestNDFrame(object):
 
             p = tm.makePanel().reindex(items=['ItemA'], minor_axis=['A'])
             tm.assert_series_equal(p.squeeze(), p.loc['ItemA', :, 'A'])
-
-        with catch_warnings(record=True):
-            p4d = tm.makePanel4D().reindex(labels=['label1'])
-            tm.assert_panel_equal(p4d.squeeze(), p4d['label1'])
-
-        with catch_warnings(record=True):
-            p4d = tm.makePanel4D().reindex(labels=['label1'], items=['ItemA'])
-            tm.assert_frame_equal(p4d.squeeze(), p4d.loc['label1', 'ItemA'])
 
         # don't fail with 0 length dimensions GH11229 & GH8999
         empty_series = Series([], name='five')
@@ -796,13 +804,6 @@ class TestNDFrame(object):
                 tm.assert_raises_regex(TypeError, msg, p.transpose,
                                        2, 0, 1, axes=(2, 0, 1))
 
-        with catch_warnings(record=True):
-            for p4d in [tm.makePanel4D()]:
-                tm.assert_panel4d_equal(p4d.transpose(2, 0, 3, 1)
-                                        .transpose(1, 3, 0, 2), p4d)
-                tm.assert_raises_regex(TypeError, msg, p4d.transpose,
-                                       2, 0, 3, 1, axes=(2, 0, 3, 1))
-
     def test_numpy_transpose(self):
         msg = "the 'axes' parameter is not supported"
 
@@ -823,12 +824,6 @@ class TestNDFrame(object):
             tm.assert_panel_equal(np.transpose(
                 np.transpose(p, axes=(2, 0, 1)),
                 axes=(1, 2, 0)), p)
-
-        with catch_warnings(record=True):
-            p4d = tm.makePanel4D()
-            tm.assert_panel4d_equal(np.transpose(
-                np.transpose(p4d, axes=(2, 0, 3, 1)),
-                axes=(1, 3, 0, 2)), p4d)
 
     def test_take(self):
         indices = [1, 5, -2, 6, 3, -1]
@@ -855,16 +850,6 @@ class TestNDFrame(object):
                                  minor_axis=p.minor_axis)
                 tm.assert_panel_equal(out, expected)
 
-        with catch_warnings(record=True):
-            for p4d in [tm.makePanel4D()]:
-                out = p4d.take(indices)
-                expected = Panel4D(data=p4d.values.take(indices, axis=0),
-                                   labels=p4d.labels.take(indices),
-                                   major_axis=p4d.major_axis,
-                                   minor_axis=p4d.minor_axis,
-                                   items=p4d.items)
-                tm.assert_panel4d_equal(out, expected)
-
     def test_take_invalid_kwargs(self):
         indices = [-3, 2, 0, 1]
         s = tm.makeFloatSeries()
@@ -872,9 +857,8 @@ class TestNDFrame(object):
 
         with catch_warnings(record=True):
             p = tm.makePanel()
-            p4d = tm.makePanel4D()
 
-        for obj in (s, df, p, p4d):
+        for obj in (s, df, p):
             msg = r"take\(\) got an unexpected keyword argument 'foo'"
             tm.assert_raises_regex(TypeError, msg, obj.take,
                                    indices, foo=2)

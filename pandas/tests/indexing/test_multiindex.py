@@ -230,7 +230,8 @@ class TestMultiIndexBasic(object):
         # corner column
         rs = mi_int.iloc[2, 2]
         with catch_warnings(record=True):
-            xp = mi_int.ix[:, 2].ix[2]
+            # First level is int - so use .loc rather than .ix (GH 21593)
+            xp = mi_int.loc[(8, 12), (4, 10)]
         assert rs == xp
 
         # this is basically regular indexing
@@ -278,6 +279,12 @@ class TestMultiIndexBasic(object):
             xp = mi_int.ix[4]
         tm.assert_frame_equal(rs, xp)
 
+        # missing label
+        pytest.raises(KeyError, lambda: mi_int.loc[2])
+        with catch_warnings(record=True):
+            # GH 21593
+            pytest.raises(KeyError, lambda: mi_int.ix[2])
+
     def test_getitem_partial_int(self):
         # GH 12416
         # with single item
@@ -299,7 +306,7 @@ class TestMultiIndexBasic(object):
         # missing item:
         with tm.assert_raises_regex(KeyError, '1'):
             df[1]
-        with tm.assert_raises_regex(KeyError, "'\[1\] not in index'"):
+        with tm.assert_raises_regex(KeyError, r"'\[1\] not in index'"):
             df[[1]]
 
     def test_loc_multiindex_indexer_none(self):
@@ -704,6 +711,26 @@ class TestMultiIndexBasic(object):
         idx2 = idx.copy().rename(['A', 'B'])
         result = idx ^ idx2
         assert result.names == [None, None]
+
+    def test_multiindex_contains_dropped(self):
+        # GH 19027
+        # test that dropped MultiIndex levels are not in the MultiIndex
+        # despite continuing to be in the MultiIndex's levels
+        idx = MultiIndex.from_product([[1, 2], [3, 4]])
+        assert 2 in idx
+        idx = idx.drop(2)
+
+        # drop implementation keeps 2 in the levels
+        assert 2 in idx.levels[0]
+        # but it should no longer be in the index itself
+        assert 2 not in idx
+
+        # also applies to strings
+        idx = MultiIndex.from_product([['a', 'b'], ['c', 'd']])
+        assert 'a' in idx
+        idx = idx.drop('a')
+        assert 'a' in idx.levels[0]
+        assert 'a' not in idx
 
 
 class TestMultiIndexSlicers(object):

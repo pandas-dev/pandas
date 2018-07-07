@@ -14,7 +14,7 @@ _initial_defencoding = None
 def detect_console_encoding():
     """
     Try to find the most capable encoding supported by the console.
-    slighly modified from the way IPython handles the same issue.
+    slightly modified from the way IPython handles the same issue.
     """
     global _initial_defencoding
 

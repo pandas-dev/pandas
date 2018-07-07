@@ -7,8 +7,8 @@ from uuid import uuid4
 from collections import OrderedDict
 
 import pytest
-from pandas.compat import intern
-from pandas.core.common import _all_none
+from pandas.compat import intern, PY3
+import pandas.core.common as com
 from pandas.util._move import move_into_mutable_buffer, BadMove, stolenbuf
 from pandas.util._decorators import deprecate_kwarg, make_signature
 from pandas.util._validators import (validate_args, validate_kwargs,
@@ -16,7 +16,7 @@ from pandas.util._validators import (validate_args, validate_kwargs,
                                      validate_bool_kwarg)
 
 import pandas.util.testing as tm
-from pandas.util._test_decorators import safe_import
+import pandas.util._test_decorators as td
 
 
 class TestDecorators(object):
@@ -34,9 +34,14 @@ class TestDecorators(object):
         def _f3(new=0):
             return new
 
+        @deprecate_kwarg('old', None)
+        def _f4(old=True, unchanged=True):
+            return old
+
         self.f1 = _f1
         self.f2 = _f2
         self.f3 = _f3
+        self.f4 = _f4
 
     def test_deprecate_kwarg(self):
         x = 78
@@ -71,6 +76,15 @@ class TestDecorators(object):
             @deprecate_kwarg('old', 'new', 0)
             def f4(new=None):
                 pass
+
+    def test_deprecate_keyword(self):
+        x = 9
+        with tm.assert_produces_warning(FutureWarning):
+            result = self.f4(old=x)
+        assert result is x
+        with tm.assert_produces_warning(None):
+            result = self.f4(unchanged=x)
+        assert result is True
 
 
 def test_rands():
@@ -360,10 +374,7 @@ class TestMove(object):
         # materialize as bytearray to show that it is mutable
         assert bytearray(as_stolen_buf) == b'test'
 
-    @pytest.mark.skipif(
-        sys.version_info[0] > 2,
-        reason='bytes objects cannot be interned in py3',
-    )
+    @pytest.mark.skipif(PY3, reason='bytes objects cannot be interned in py3')
     def test_interned(self):
         salt = uuid4().hex
 
@@ -406,6 +417,7 @@ def test_numpy_errstate_is_default():
     assert np.geterr() == expected
 
 
+@td.skip_if_windows
 class TestLocaleUtils(object):
 
     @classmethod
@@ -415,8 +427,6 @@ class TestLocaleUtils(object):
 
         if not cls.locales:
             pytest.skip("No locales found")
-
-        tm._skip_if_windows()
 
     @classmethod
     def teardown_class(cls):
@@ -439,7 +449,7 @@ class TestLocaleUtils(object):
             pytest.skip("Only a single locale found, no point in "
                         "trying to test setting another locale")
 
-        if _all_none(*self.current_locale):
+        if com._all_none(*self.current_locale):
             # Not sure why, but on some travis runs with pytest,
             # getlocale() returned (None, None).
             pytest.skip("Current locale is not set.")
@@ -456,7 +466,7 @@ class TestLocaleUtils(object):
         enc = codecs.lookup(enc).name
         new_locale = lang, enc
 
-        if not tm._can_set_locale(new_locale):
+        if not tm.can_set_locale(new_locale):
             with pytest.raises(locale.Error):
                 with tm.set_locale(new_locale):
                     pass
@@ -486,8 +496,8 @@ def test_make_signature():
 
 
 def test_safe_import(monkeypatch):
-    assert not safe_import("foo")
-    assert not safe_import("pandas", min_version="99.99.99")
+    assert not td.safe_import("foo")
+    assert not td.safe_import("pandas", min_version="99.99.99")
 
     # Create dummy module to be imported
     import types
@@ -496,7 +506,7 @@ def test_safe_import(monkeypatch):
     mod = types.ModuleType(mod_name)
     mod.__version__ = "1.5"
 
-    assert not safe_import(mod_name)
+    assert not td.safe_import(mod_name)
     monkeypatch.setitem(sys.modules, mod_name, mod)
-    assert not safe_import(mod_name, min_version="2.0")
-    assert safe_import(mod_name, min_version="1.0")
+    assert not td.safe_import(mod_name, min_version="2.0")
+    assert td.safe_import(mod_name, min_version="1.0")

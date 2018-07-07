@@ -8,6 +8,11 @@ import pandas.util.testing as tm
 
 class DatetimeLike(Base):
 
+    def test_can_hold_identifiers(self):
+        idx = self.create_index()
+        key = idx[0]
+        assert idx._can_hold_identifiers_and_holds_name(key) is False
+
     def test_shift_identity(self):
 
         idx = self.create_index()
@@ -76,3 +81,10 @@ class DatetimeLike(Base):
         expected = pd.Index([np.nan] * len(self.index))
         result = self.index.map(mapper([], []))
         tm.assert_index_equal(result, expected)
+
+    def test_asobject_deprecated(self):
+        # GH18572
+        d = self.create_index()
+        with tm.assert_produces_warning(FutureWarning):
+            i = d.asobject
+        assert isinstance(i, pd.Index)

@@ -439,7 +439,7 @@ class ExprVisitor(BaseExprVisitor):
                 return self.term_type(getattr(resolved, attr), self.env)
             except AttributeError:
 
-                # something like datetime.datetime where scope is overriden
+                # something like datetime.datetime where scope is overridden
                 if isinstance(value, ast.Name) and value.id == attr:
                     return resolved
 

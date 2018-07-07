@@ -8,8 +8,10 @@ import sys
 import numpy as np
 import pandas as pd
 
-from pandas import (Index, Series, DataFrame, date_range, option_context)
+from pandas import (Index, Series, DataFrame, date_range, option_context,
+                    Categorical, period_range, timedelta_range)
 from pandas.core.index import MultiIndex
+from pandas.core.base import StringMixin
 
 from pandas.compat import lrange, range, u
 from pandas import compat
@@ -139,8 +141,7 @@ class TestSeriesRepr(TestData):
         repr(s)
 
     def test_repr_should_return_str(self):
-        # http://docs.python.org/py3k/reference/datamodel.html#object.__repr__
-        # http://docs.python.org/reference/datamodel.html#object.__repr__
+        # https://docs.python.org/3/reference/datamodel.html#object.__repr__
         # ...The return value must be a string object.
 
         # (str on py2.x, str (unicode) on py3)
@@ -198,3 +199,280 @@ class TestSeriesRepr(TestData):
             assert result == s._repr_latex_()
 
         assert s._repr_latex_() is None
+
+
+class TestCategoricalRepr(object):
+
+    def test_categorical_repr_unicode(self):
+        # GH#21002 if len(index) > 60, sys.getdefaultencoding()=='ascii',
+        # and we are working in PY2, then rendering a Categorical could raise
+        # UnicodeDecodeError by trying to decode when it shouldn't
+
+        class County(StringMixin):
+            name = u'San Sebastián'
+            state = u'PR'
+
+            def __unicode__(self):
+                return self.name + u', ' + self.state
+
+        cat = pd.Categorical([County() for n in range(61)])
+        idx = pd.Index(cat)
+        ser = idx.to_series()
+
+        if compat.PY3:
+            # no reloading of sys, just check that the default (utf8) works
+            # as expected
+            repr(ser)
+            str(ser)
+
+        else:
+            # set sys.defaultencoding to ascii, then change it back after
+            # the test
+            with tm.set_defaultencoding('ascii'):
+                repr(ser)
+                str(ser)
+
+    def test_categorical_repr(self):
+        a = Series(Categorical([1, 2, 3, 4]))
+        exp = u("0    1\n1    2\n2    3\n3    4\n" +
+                "dtype: category\nCategories (4, int64): [1, 2, 3, 4]")
+
+        assert exp == a.__unicode__()
+
+        a = Series(Categorical(["a", "b"] * 25))
+        exp = u("0     a\n1     b\n" + "     ..\n" + "48    a\n49    b\n" +
+                "Length: 50, dtype: category\nCategories (2, object): [a, b]")
+        with option_context("display.max_rows", 5):
+            assert exp == repr(a)
+
+        levs = list("abcdefghijklmnopqrstuvwxyz")
+        a = Series(Categorical(["a", "b"], categories=levs, ordered=True))
+        exp = u("0    a\n1    b\n" + "dtype: category\n"
+                "Categories (26, object): [a < b < c < d ... w < x < y < z]")
+        assert exp == a.__unicode__()
+
+    def test_categorical_series_repr(self):
+        s = Series(Categorical([1, 2, 3]))
+        exp = """0    1
+1    2
+2    3
+dtype: category
+Categories (3, int64): [1, 2, 3]"""
+
+        assert repr(s) == exp
+
+        s = Series(Categorical(np.arange(10)))
+        exp = """0    0
+1    1
+2    2
+3    3
+4    4
+5    5
+6    6
+7    7
+8    8
+9    9
+dtype: category
+Categories (10, int64): [0, 1, 2, 3, ..., 6, 7, 8, 9]"""
+
+        assert repr(s) == exp
+
+    def test_categorical_series_repr_ordered(self):
+        s = Series(Categorical([1, 2, 3], ordered=True))
+        exp = """0    1
+1    2
+2    3
+dtype: category
+Categories (3, int64): [1 < 2 < 3]"""
+
+        assert repr(s) == exp
+
+        s = Series(Categorical(np.arange(10), ordered=True))
+        exp = """0    0
+1    1
+2    2
+3    3
+4    4
+5    5
+6    6
+7    7
+8    8
+9    9
+dtype: category
+Categories (10, int64): [0 < 1 < 2 < 3 ... 6 < 7 < 8 < 9]"""
+
+        assert repr(s) == exp
+
+    def test_categorical_series_repr_datetime(self):
+        idx = date_range('2011-01-01 09:00', freq='H', periods=5)
+        s = Series(Categorical(idx))
+        exp = """0   2011-01-01 09:00:00
+1   2011-01-01 10:00:00
+2   2011-01-01 11:00:00
+3   2011-01-01 12:00:00
+4   2011-01-01 13:00:00
+dtype: category
+Categories (5, datetime64[ns]): [2011-01-01 09:00:00, 2011-01-01 10:00:00, 2011-01-01 11:00:00,
+                                 2011-01-01 12:00:00, 2011-01-01 13:00:00]"""  # noqa
+
+        assert repr(s) == exp
+
+        idx = date_range('2011-01-01 09:00', freq='H', periods=5,
+                         tz='US/Eastern')
+        s = Series(Categorical(idx))
+        exp = """0   2011-01-01 09:00:00-05:00
+1   2011-01-01 10:00:00-05:00
+2   2011-01-01 11:00:00-05:00
+3   2011-01-01 12:00:00-05:00
+4   2011-01-01 13:00:00-05:00
+dtype: category
+Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00, 2011-01-01 10:00:00-05:00,
+                                             2011-01-01 11:00:00-05:00, 2011-01-01 12:00:00-05:00,
+                                             2011-01-01 13:00:00-05:00]"""  # noqa
+
+        assert repr(s) == exp
+
+    def test_categorical_series_repr_datetime_ordered(self):
+        idx = date_range('2011-01-01 09:00', freq='H', periods=5)
+        s = Series(Categorical(idx, ordered=True))
+        exp = """0   2011-01-01 09:00:00
+1   2011-01-01 10:00:00
+2   2011-01-01 11:00:00
+3   2011-01-01 12:00:00
+4   2011-01-01 13:00:00
+dtype: category
+Categories (5, datetime64[ns]): [2011-01-01 09:00:00 < 2011-01-01 10:00:00 < 2011-01-01 11:00:00 <
+                                 2011-01-01 12:00:00 < 2011-01-01 13:00:00]"""  # noqa
+
+        assert repr(s) == exp
+
+        idx = date_range('2011-01-01 09:00', freq='H', periods=5,
+                         tz='US/Eastern')
+        s = Series(Categorical(idx, ordered=True))
+        exp = """0   2011-01-01 09:00:00-05:00
+1   2011-01-01 10:00:00-05:00
+2   2011-01-01 11:00:00-05:00
+3   2011-01-01 12:00:00-05:00
+4   2011-01-01 13:00:00-05:00
+dtype: category
+Categories (5, datetime64[ns, US/Eastern]): [2011-01-01 09:00:00-05:00 < 2011-01-01 10:00:00-05:00 <
+                                             2011-01-01 11:00:00-05:00 < 2011-01-01 12:00:00-05:00 <
+                                             2011-01-01 13:00:00-05:00]"""  # noqa
+
+        assert repr(s) == exp
+
+    def test_categorical_series_repr_period(self):
+        idx = period_range('2011-01-01 09:00', freq='H', periods=5)
+        s = Series(Categorical(idx))
+        exp = """0   2011-01-01 09:00
+1   2011-01-01 10:00
+2   2011-01-01 11:00
+3   2011-01-01 12:00
+4   2011-01-01 13:00
+dtype: category
+Categories (5, period[H]): [2011-01-01 09:00, 2011-01-01 10:00, 2011-01-01 11:00, 2011-01-01 12:00,
+                            2011-01-01 13:00]"""  # noqa
+
+        assert repr(s) == exp
+
+        idx = period_range('2011-01', freq='M', periods=5)
+        s = Series(Categorical(idx))
+        exp = """0   2011-01
+1   2011-02
+2   2011-03
+3   2011-04
+4   2011-05
+dtype: category
+Categories (5, period[M]): [2011-01, 2011-02, 2011-03, 2011-04, 2011-05]"""
+
+        assert repr(s) == exp
+
+    def test_categorical_series_repr_period_ordered(self):
+        idx = period_range('2011-01-01 09:00', freq='H', periods=5)
+        s = Series(Categorical(idx, ordered=True))
+        exp = """0   2011-01-01 09:00
+1   2011-01-01 10:00
+2   2011-01-01 11:00
+3   2011-01-01 12:00
+4   2011-01-01 13:00
+dtype: category
+Categories (5, period[H]): [2011-01-01 09:00 < 2011-01-01 10:00 < 2011-01-01 11:00 < 2011-01-01 12:00 <
+                            2011-01-01 13:00]"""  # noqa
+
+        assert repr(s) == exp
+
+        idx = period_range('2011-01', freq='M', periods=5)
+        s = Series(Categorical(idx, ordered=True))
+        exp = """0   2011-01
+1   2011-02
+2   2011-03
+3   2011-04
+4   2011-05
+dtype: category
+Categories (5, period[M]): [2011-01 < 2011-02 < 2011-03 < 2011-04 < 2011-05]"""
+
+        assert repr(s) == exp
+
+    def test_categorical_series_repr_timedelta(self):
+        idx = timedelta_range('1 days', periods=5)
+        s = Series(Categorical(idx))
+        exp = """0   1 days
+1   2 days
+2   3 days
+3   4 days
+4   5 days
+dtype: category
+Categories (5, timedelta64[ns]): [1 days, 2 days, 3 days, 4 days, 5 days]"""
+
+        assert repr(s) == exp
+
+        idx = timedelta_range('1 hours', periods=10)
+        s = Series(Categorical(idx))
+        exp = """0   0 days 01:00:00
+1   1 days 01:00:00
+2   2 days 01:00:00
+3   3 days 01:00:00
+4   4 days 01:00:00
+5   5 days 01:00:00
+6   6 days 01:00:00
+7   7 days 01:00:00
+8   8 days 01:00:00
+9   9 days 01:00:00
+dtype: category
+Categories (10, timedelta64[ns]): [0 days 01:00:00, 1 days 01:00:00, 2 days 01:00:00,
+                                   3 days 01:00:00, ..., 6 days 01:00:00, 7 days 01:00:00,
+                                   8 days 01:00:00, 9 days 01:00:00]"""  # noqa
+
+        assert repr(s) == exp
+
+    def test_categorical_series_repr_timedelta_ordered(self):
+        idx = timedelta_range('1 days', periods=5)
+        s = Series(Categorical(idx, ordered=True))
+        exp = """0   1 days
+1   2 days
+2   3 days
+3   4 days
+4   5 days
+dtype: category
+Categories (5, timedelta64[ns]): [1 days < 2 days < 3 days < 4 days < 5 days]"""  # noqa
+
+        assert repr(s) == exp
+
+        idx = timedelta_range('1 hours', periods=10)
+        s = Series(Categorical(idx, ordered=True))
+        exp = """0   0 days 01:00:00
+1   1 days 01:00:00
+2   2 days 01:00:00
+3   3 days 01:00:00
+4   4 days 01:00:00
+5   5 days 01:00:00
+6   6 days 01:00:00
+7   7 days 01:00:00
+8   8 days 01:00:00
+9   9 days 01:00:00
+dtype: category
+Categories (10, timedelta64[ns]): [0 days 01:00:00 < 1 days 01:00:00 < 2 days 01:00:00 <
+                                   3 days 01:00:00 ... 6 days 01:00:00 < 7 days 01:00:00 <
+                                   8 days 01:00:00 < 9 days 01:00:00]"""  # noqa
+
+        assert repr(s) == exp

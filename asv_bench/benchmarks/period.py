@@ -1,61 +1,24 @@
-import pandas as pd
-from pandas import Series, Period, PeriodIndex, date_range
+from pandas import (DataFrame, Series, Period, PeriodIndex, date_range,
+                    period_range)
 
 
 class PeriodProperties(object):
-    params = ['M', 'min']
-    param_names = ['freq']
 
-    def setup(self, freq):
+    params = (['M', 'min'],
+              ['year', 'month', 'day', 'hour', 'minute', 'second',
+               'is_leap_year', 'quarter', 'qyear', 'week', 'daysinmonth',
+               'dayofweek', 'dayofyear', 'start_time', 'end_time'])
+    param_names = ['freq', 'attr']
+
+    def setup(self, freq, attr):
         self.per = Period('2012-06-01', freq=freq)
 
-    def time_year(self, freq):
-        self.per.year
-
-    def time_month(self, freq):
-        self.per.month
-
-    def time_day(self, freq):
-        self.per.day
-
-    def time_hour(self, freq):
-        self.per.hour
-
-    def time_minute(self, freq):
-        self.per.minute
-
-    def time_second(self, freq):
-        self.per.second
-
-    def time_is_leap_year(self, freq):
-        self.per.is_leap_year
-
-    def time_quarter(self, freq):
-        self.per.quarter
-
-    def time_qyear(self, freq):
-        self.per.qyear
-
-    def time_week(self, freq):
-        self.per.week
-
-    def time_daysinmonth(self, freq):
-        self.per.daysinmonth
-
-    def time_dayofweek(self, freq):
-        self.per.dayofweek
-
-    def time_dayofyear(self, freq):
-        self.per.dayofyear
-
-    def time_start_time(self, freq):
-        self.per.start_time
-
-    def time_end_time(self, freq):
-        self.per.end_time
+    def time_property(self, freq, attr):
+        getattr(self.per, attr)
 
 
 class PeriodUnaryMethods(object):
+
     params = ['M', 'min']
     param_names = ['freq']
 
@@ -73,6 +36,7 @@ class PeriodUnaryMethods(object):
 
 
 class PeriodIndexConstructor(object):
+
     goal_time = 0.2
 
     params = ['D']
@@ -90,19 +54,24 @@ class PeriodIndexConstructor(object):
 
 
 class DataFramePeriodColumn(object):
+
     goal_time = 0.2
 
-    def setup_cache(self):
-        rng = pd.period_range(start='1/1/1990', freq='S', periods=20000)
-        df = pd.DataFrame(index=range(len(rng)))
-        return rng, df
+    def setup(self):
+        self.rng = period_range(start='1/1/1990', freq='S', periods=20000)
+        self.df = DataFrame(index=range(len(self.rng)))
 
-    def time_setitem_period_column(self, tup):
-        rng, df = tup
-        df['col'] = rng
+    def time_setitem_period_column(self):
+        self.df['col'] = self.rng
+
+    def time_set_index(self):
+        # GH#21582 limited by comparisons of Period objects
+        self.df['col2'] = self.rng
+        self.df.set_index('col2', append=True)
 
 
 class Algorithms(object):
+
     goal_time = 0.2
 
     params = ['index', 'series']
@@ -125,6 +94,7 @@ class Algorithms(object):
 
 
 class Indexing(object):
+
     goal_time = 0.2
 
     def setup(self):
@@ -145,7 +115,7 @@ class Indexing(object):
         self.series.loc[self.period]
 
     def time_align(self):
-        pd.DataFrame({'a': self.series, 'b': self.series[:500]})
+        DataFrame({'a': self.series, 'b': self.series[:500]})
 
     def time_intersection(self):
         self.index[:750].intersection(self.index[250:])

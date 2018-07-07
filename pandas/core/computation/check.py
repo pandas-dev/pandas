@@ -6,7 +6,7 @@ _MIN_NUMEXPR_VERSION = "2.4.6"
 
 try:
     import numexpr as ne
-    ver = ne.__version__
+    ver = LooseVersion(ne.__version__)
     _NUMEXPR_INSTALLED = ver >= LooseVersion(_MIN_NUMEXPR_VERSION)
 
     if not _NUMEXPR_INSTALLED:

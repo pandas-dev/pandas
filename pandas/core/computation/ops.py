@@ -99,7 +99,7 @@ class Term(StringMixin):
         self.value = value
 
     @property
-    def isscalar(self):
+    def is_scalar(self):
         return is_scalar(self._value)
 
     @property
@@ -214,8 +214,8 @@ class Op(StringMixin):
         return frozenset(term.type for term in com.flatten(self))
 
     @property
-    def isscalar(self):
-        return all(operand.isscalar for operand in self.operands)
+    def is_scalar(self):
+        return all(operand.is_scalar for operand in self.operands)
 
     @property
     def is_datetime(self):
@@ -412,7 +412,7 @@ class BinOp(Op):
 
         lhs, rhs = self.lhs, self.rhs
 
-        if is_term(lhs) and lhs.is_datetime and is_term(rhs) and rhs.isscalar:
+        if is_term(lhs) and lhs.is_datetime and is_term(rhs) and rhs.is_scalar:
             v = rhs.value
             if isinstance(v, (int, float)):
                 v = stringify(v)
@@ -421,7 +421,7 @@ class BinOp(Op):
                 v = v.tz_convert('UTC')
             self.rhs.update(v)
 
-        if is_term(rhs) and rhs.is_datetime and is_term(lhs) and lhs.isscalar:
+        if is_term(rhs) and rhs.is_datetime and is_term(lhs) and lhs.is_scalar:
             v = lhs.value
             if isinstance(v, (int, float)):
                 v = stringify(v)
@@ -431,7 +431,7 @@ class BinOp(Op):
             self.lhs.update(v)
 
     def _disallow_scalar_only_bool_ops(self):
-        if ((self.lhs.isscalar or self.rhs.isscalar) and
+        if ((self.lhs.is_scalar or self.rhs.is_scalar) and
             self.op in _bool_ops_dict and
             (not (issubclass(self.rhs.return_type, (bool, np.bool_)) and
                   issubclass(self.lhs.return_type, (bool, np.bool_))))):

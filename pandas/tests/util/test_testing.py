@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
+import os
 import pandas as pd
 import pytest
 import numpy as np
 import sys
 from pandas import Series, DataFrame
 import pandas.util.testing as tm
+import pandas.util._test_decorators as td
 from pandas.util.testing import (assert_almost_equal, raise_with_traceback,
                                  assert_index_equal, assert_series_equal,
                                  assert_frame_equal, assert_numpy_array_equal,
                                  RNGContext)
-from pandas.compat import is_platform_windows
 
 
 class TestAssertAlmostEqual(object):
@@ -48,12 +49,18 @@ class TestAssertAlmostEqual(object):
         self._assert_not_almost_equal_both(1, [1, ])
         self._assert_not_almost_equal_both(1, object())
 
-    def test_assert_almost_equal_edge_case_ndarrays(self):
-        self._assert_almost_equal_both(np.array([], dtype='M8[ns]'),
-                                       np.array([], dtype='float64'),
-                                       check_dtype=False)
-        self._assert_almost_equal_both(np.array([], dtype=str),
-                                       np.array([], dtype='int64'),
+    @pytest.mark.parametrize(
+        "left_dtype",
+        ['M8[ns]', 'm8[ns]', 'float64', 'int64', 'object'])
+    @pytest.mark.parametrize(
+        "right_dtype",
+        ['M8[ns]', 'm8[ns]', 'float64', 'int64', 'object'])
+    def test_assert_almost_equal_edge_case_ndarrays(
+            self, left_dtype, right_dtype):
+
+        # empty compare
+        self._assert_almost_equal_both(np.array([], dtype=left_dtype),
+                                       np.array([], dtype=right_dtype),
                                        check_dtype=False)
 
     def test_assert_almost_equal_dicts(self):
@@ -159,11 +166,8 @@ class TestUtilTesting(object):
 
 class TestAssertNumpyArrayEqual(object):
 
+    @td.skip_if_windows
     def test_numpy_array_equal_message(self):
-
-        if is_platform_windows():
-            pytest.skip("windows has incomparable line-endings "
-                        "and uses L on the shape")
 
         expected = """numpy array are different
 
@@ -287,11 +291,26 @@ Index shapes are different
             assert_almost_equal(np.array([1, 2]), np.array([3, 4, 5]),
                                 obj='Index')
 
-    def test_numpy_array_equal_object_message(self):
+    def test_numpy_array_equal_unicode_message(self):
+        # Test ensures that `assert_numpy_array_equals` raises the right
+        # exception when comparing np.arrays containing differing
+        # unicode objects (#20503)
 
-        if is_platform_windows():
-            pytest.skip("windows has incomparable line-endings "
-                        "and uses L on the shape")
+        expected = """numpy array are different
+
+numpy array values are different \\(33\\.33333 %\\)
+\\[left\\]:  \\[á, à, ä\\]
+\\[right\\]: \\[á, à, å\\]"""
+
+        with tm.assert_raises_regex(AssertionError, expected):
+            assert_numpy_array_equal(np.array([u'á', u'à', u'ä']),
+                                     np.array([u'á', u'à', u'å']))
+        with tm.assert_raises_regex(AssertionError, expected):
+            assert_almost_equal(np.array([u'á', u'à', u'ä']),
+                                np.array([u'á', u'à', u'å']))
+
+    @td.skip_if_windows
+    def test_numpy_array_equal_object_message(self):
 
         a = np.array([pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-01')])
         b = np.array([pd.Timestamp('2011-01-01'), pd.Timestamp('2011-01-02')])
@@ -485,6 +504,25 @@ Attribute "names" are different
         with tm.assert_raises_regex(AssertionError, expected):
             assert_index_equal(idx1, idx2)
 
+    def test_categorical_index_equality(self):
+        expected = """Index are different
+
+Attribute "dtype" are different
+\\[left\\]:  CategoricalDtype\\(categories=\\[u?'a', u?'b'\\], ordered=False\\)
+\\[right\\]: CategoricalDtype\\(categories=\\[u?'a', u?'b', u?'c'\\], \
+ordered=False\\)"""
+
+        with tm.assert_raises_regex(AssertionError, expected):
+            assert_index_equal(pd.Index(pd.Categorical(['a', 'b'])),
+                               pd.Index(pd.Categorical(['a', 'b'],
+                                        categories=['a', 'b', 'c'])))
+
+    def test_categorical_index_equality_relax_categories_check(self):
+        assert_index_equal(pd.Index(pd.Categorical(['a', 'b'])),
+                           pd.Index(pd.Categorical(['a', 'b'],
+                                    categories=['a', 'b', 'c'])),
+                           check_categorical=False)
+
 
 class TestAssertSeriesEqual(object):
 
@@ -499,10 +537,13 @@ class TestAssertSeriesEqual(object):
     def test_equal(self):
         self._assert_equal(Series(range(3)), Series(range(3)))
         self._assert_equal(Series(list('abc')), Series(list('abc')))
+        self._assert_equal(Series(list(u'áàä')), Series(list(u'áàä')))
 
     def test_not_equal(self):
         self._assert_not_equal(Series(range(3)), Series(range(3)) + 1)
         self._assert_not_equal(Series(list('abc')), Series(list('xyz')))
+        self._assert_not_equal(Series(list(u'áàä')), Series(list(u'éèë')))
+        self._assert_not_equal(Series(list(u'áàä')), Series(list(b'aaa')))
         self._assert_not_equal(Series(range(3)), Series(range(4)))
         self._assert_not_equal(
             Series(range(3)), Series(
@@ -578,6 +619,25 @@ Series values are different \\(33\\.33333 %\\)
         with tm.assert_raises_regex(AssertionError, expected):
             assert_series_equal(pd.Series([1, 2, 3]), pd.Series([1, 2, 4]),
                                 check_less_precise=True)
+
+    def test_categorical_series_equality(self):
+        expected = """Attributes are different
+
+Attribute "dtype" are different
+\\[left\\]:  CategoricalDtype\\(categories=\\[u?'a', u?'b'\\], ordered=False\\)
+\\[right\\]: CategoricalDtype\\(categories=\\[u?'a', u?'b', u?'c'\\], \
+ordered=False\\)"""
+
+        with tm.assert_raises_regex(AssertionError, expected):
+            assert_series_equal(pd.Series(pd.Categorical(['a', 'b'])),
+                                pd.Series(pd.Categorical(['a', 'b'],
+                                          categories=['a', 'b', 'c'])))
+
+    def test_categorical_series_equality_relax_categories_check(self):
+        assert_series_equal(pd.Series(pd.Categorical(['a', 'b'])),
+                            pd.Series(pd.Categorical(['a', 'b'],
+                                      categories=['a', 'b', 'c'])),
+                            check_categorical=False)
 
 
 class TestAssertFrameEqual(object):
@@ -678,6 +738,49 @@ DataFrame\\.iloc\\[:, 1\\] values are different \\(33\\.33333 %\\)
                                pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 7]}),
                                by_blocks=True)
 
+    def test_frame_equal_message_unicode(self):
+        # Test ensures that `assert_frame_equals` raises the right
+        # exception when comparing DataFrames containing differing
+        # unicode objects (#20503)
+
+        expected = """DataFrame\\.iloc\\[:, 1\\] are different
+
+DataFrame\\.iloc\\[:, 1\\] values are different \\(33\\.33333 %\\)
+\\[left\\]:  \\[é, è, ë\\]
+\\[right\\]: \\[é, è, e̊\\]"""
+
+        with tm.assert_raises_regex(AssertionError, expected):
+            assert_frame_equal(pd.DataFrame({'A': [u'á', u'à', u'ä'],
+                                             'E': [u'é', u'è', u'ë']}),
+                               pd.DataFrame({'A': [u'á', u'à', u'ä'],
+                                             'E': [u'é', u'è', u'e̊']}))
+
+        with tm.assert_raises_regex(AssertionError, expected):
+            assert_frame_equal(pd.DataFrame({'A': [u'á', u'à', u'ä'],
+                                             'E': [u'é', u'è', u'ë']}),
+                               pd.DataFrame({'A': [u'á', u'à', u'ä'],
+                                             'E': [u'é', u'è', u'e̊']}),
+                               by_blocks=True)
+
+        expected = """DataFrame\\.iloc\\[:, 0\\] are different
+
+DataFrame\\.iloc\\[:, 0\\] values are different \\(100\\.0 %\\)
+\\[left\\]:  \\[á, à, ä\\]
+\\[right\\]: \\[a, a, a\\]"""
+
+        with tm.assert_raises_regex(AssertionError, expected):
+            assert_frame_equal(pd.DataFrame({'A': [u'á', u'à', u'ä'],
+                                             'E': [u'é', u'è', u'ë']}),
+                               pd.DataFrame({'A': ['a', 'a', 'a'],
+                                             'E': ['e', 'e', 'e']}))
+
+        with tm.assert_raises_regex(AssertionError, expected):
+            assert_frame_equal(pd.DataFrame({'A': [u'á', u'à', u'ä'],
+                                             'E': [u'é', u'è', u'ë']}),
+                               pd.DataFrame({'A': ['a', 'a', 'a'],
+                                             'E': ['e', 'e', 'e']}),
+                               by_blocks=True)
+
 
 class TestAssertCategoricalEqual(object):
 
@@ -739,3 +842,20 @@ class TestLocale(object):
         # GH9744
         locales = tm.get_locales()
         assert len(locales) >= 1
+
+
+def test_datapath_missing(datapath, request):
+    if not request.config.getoption("--strict-data-files"):
+        pytest.skip("Need to set '--strict-data-files'")
+
+    with pytest.raises(ValueError):
+        datapath('not_a_file')
+
+    result = datapath('data', 'iris.csv')
+    expected = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)),
+        'data',
+        'iris.csv'
+    )
+
+    assert result == expected

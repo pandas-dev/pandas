@@ -63,10 +63,10 @@ of ``(function, keyword)`` indicating where the DataFrame should flow. For examp
 
    bb = pd.read_csv('data/baseball.csv', index_col='id')
 
-   # sm.poisson takes (formula, data)
+   # sm.ols takes (formula, data)
    (bb.query('h > 0')
       .assign(ln_h = lambda df: np.log(df.h))
-      .pipe((sm.poisson, 'data'), 'hr ~ ln_h + year + g + C(lg)')
+      .pipe((sm.ols, 'data'), 'hr ~ ln_h + year + g + C(lg)')
       .fit()
       .summary()
    )
@@ -125,7 +125,7 @@ Bug Fixes
 - Bug where ``HDFStore.select`` modifies the passed columns list (:issue:`7212`)
 - Bug in ``Categorical`` repr with ``display.width`` of ``None`` in Python 3 (:issue:`10087`)
 - Bug in ``to_json`` with certain orients and a ``CategoricalIndex`` would segfault (:issue:`10317`)
-- Bug where some of the nan funcs do not have consistent return dtypes (:issue:`10251`)
+- Bug where some of the nan functions do not have consistent return dtypes (:issue:`10251`)
 - Bug in ``DataFrame.quantile`` on checking that a valid axis was passed (:issue:`9543`)
 - Bug in ``groupby.apply`` aggregation for ``Categorical`` not preserving categories (:issue:`10138`)
 - Bug in ``to_csv`` where ``date_format`` is ignored if the ``datetime`` is fractional (:issue:`10209`)
@@ -155,7 +155,7 @@ Bug Fixes
 - Bug in ``GroupBy.get_group`` raises ``ValueError`` when group key contains ``NaT`` (:issue:`6992`)
 - Bug in ``SparseSeries`` constructor ignores input data name (:issue:`10258`)
 - Bug in ``Categorical.remove_categories`` causing a ``ValueError`` when removing the ``NaN`` category if underlying dtype is floating-point (:issue:`10156`)
-- Bug where infer_freq infers timerule (WOM-5XXX) unsupported by to_offset (:issue:`9425`)
+- Bug where infer_freq infers time rule (WOM-5XXX) unsupported by to_offset (:issue:`9425`)
 - Bug in ``DataFrame.to_hdf()`` where table format would raise a seemingly unrelated error for invalid (non-string) column names. This is now explicitly forbidden. (:issue:`9057`)
 - Bug to handle masking empty ``DataFrame`` (:issue:`10126`).
 - Bug where MySQL interface could not handle numeric table/column names (:issue:`10255`)
@@ -163,5 +163,5 @@ Bug Fixes
 - Bug in ``Panel.apply`` when the result has ndim=0 (:issue:`10332`)
 - Bug in ``read_hdf`` where ``auto_close`` could not be passed (:issue:`9327`).
 - Bug in ``read_hdf`` where open stores could not be used (:issue:`10330`).
-- Bug in adding empty ``DataFrame``s, now results in a ``DataFrame`` that ``.equals`` an empty ``DataFrame`` (:issue:`10181`).
+- Bug in adding empty ``DataFrames``, now results in a ``DataFrame`` that ``.equals`` an empty ``DataFrame`` (:issue:`10181`).
 - Bug in ``to_hdf`` and ``HDFStore`` which did not check that complib choices were valid (:issue:`4582`, :issue:`8874`).

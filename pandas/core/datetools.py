@@ -1,4 +1,8 @@
-"""A collection of random tools for dealing with dates in Python"""
+"""A collection of random tools for dealing with dates in Python.
+
+.. deprecated:: 0.19.0
+    Use pandas.tseries module instead.
+"""
 
 # flake8: noqa
 

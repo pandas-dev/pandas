@@ -9,7 +9,9 @@ import pytest
 
 import pandas.util.testing as tm
 
-from pandas.tseries.frequencies import get_offset, _INVALID_FREQ_ERROR
+from pandas import Timestamp
+from pandas.tseries.frequencies import get_offset
+from pandas._libs.tslibs.frequencies import INVALID_FREQ_ERR_MSG
 from pandas.tseries.offsets import FY5253Quarter, FY5253
 from pandas._libs.tslibs.offsets import WeekDay
 
@@ -43,9 +45,9 @@ def test_get_offset_name():
 
 
 def test_get_offset():
-    with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
+    with tm.assert_raises_regex(ValueError, INVALID_FREQ_ERR_MSG):
         get_offset('gibberish')
-    with tm.assert_raises_regex(ValueError, _INVALID_FREQ_ERROR):
+    with tm.assert_raises_regex(ValueError, INVALID_FREQ_ERR_MSG):
         get_offset('QS-JAN-B')
 
     pairs = [
@@ -156,17 +158,6 @@ class TestFY5253LastOfMonth(Base):
 
 
 class TestFY5253NearestEndMonth(Base):
-
-    def test_get_target_month_end(self):
-        assert (makeFY5253NearestEndMonth(
-            startingMonth=8, weekday=WeekDay.SAT).get_target_month_end(
-            datetime(2013, 1, 1)) == datetime(2013, 8, 31))
-        assert (makeFY5253NearestEndMonth(
-            startingMonth=12, weekday=WeekDay.SAT).get_target_month_end(
-            datetime(2013, 1, 1)) == datetime(2013, 12, 31))
-        assert (makeFY5253NearestEndMonth(
-            startingMonth=2, weekday=WeekDay.SAT).get_target_month_end(
-            datetime(2013, 1, 1)) == datetime(2013, 2, 28))
 
     def test_get_year_end(self):
         assert (makeFY5253NearestEndMonth(
@@ -604,3 +595,64 @@ class TestFY5253NearestEndMonthQuarter(Base):
         assert_offset_equal(offset2,
                             datetime(2013, 1, 15),
                             datetime(2013, 3, 30))
+
+
+def test_bunched_yearends():
+    # GH#14774 cases with two fiscal year-ends in the same calendar-year
+    fy = FY5253(n=1, weekday=5, startingMonth=12, variation='nearest')
+    dt = Timestamp('2004-01-01')
+    assert fy.rollback(dt) == Timestamp('2002-12-28')
+    assert (-fy).apply(dt) == Timestamp('2002-12-28')
+    assert dt - fy == Timestamp('2002-12-28')
+
+    assert fy.rollforward(dt) == Timestamp('2004-01-03')
+    assert fy.apply(dt) == Timestamp('2004-01-03')
+    assert fy + dt == Timestamp('2004-01-03')
+    assert dt + fy == Timestamp('2004-01-03')
+
+    # Same thing, but starting from a Timestamp in the previous year.
+    dt = Timestamp('2003-12-31')
+    assert fy.rollback(dt) == Timestamp('2002-12-28')
+    assert (-fy).apply(dt) == Timestamp('2002-12-28')
+    assert dt - fy == Timestamp('2002-12-28')
+
+
+def test_fy5253_last_onoffset():
+    # GH#18877 dates on the year-end but not normalized to midnight
+    offset = FY5253(n=-5, startingMonth=5, variation="last", weekday=0)
+    ts = Timestamp('1984-05-28 06:29:43.955911354+0200',
+                   tz='Europe/San_Marino')
+    fast = offset.onOffset(ts)
+    slow = (ts + offset) - offset == ts
+    assert fast == slow
+
+
+def test_fy5253_nearest_onoffset():
+    # GH#18877 dates on the year-end but not normalized to midnight
+    offset = FY5253(n=3, startingMonth=7, variation="nearest", weekday=2)
+    ts = Timestamp('2032-07-28 00:12:59.035729419+0000', tz='Africa/Dakar')
+    fast = offset.onOffset(ts)
+    slow = (ts + offset) - offset == ts
+    assert fast == slow
+
+
+def test_fy5253qtr_onoffset_nearest():
+    # GH#19036
+    ts = Timestamp('1985-09-02 23:57:46.232550356-0300',
+                   tz='Atlantic/Bermuda')
+    offset = FY5253Quarter(n=3, qtr_with_extra_week=1, startingMonth=2,
+                           variation="nearest", weekday=0)
+    fast = offset.onOffset(ts)
+    slow = (ts + offset) - offset == ts
+    assert fast == slow
+
+
+def test_fy5253qtr_onoffset_last():
+    # GH#19036
+    offset = FY5253Quarter(n=-2, qtr_with_extra_week=1,
+                           startingMonth=7, variation="last", weekday=2)
+    ts = Timestamp('2011-01-26 19:03:40.331096129+0200',
+                   tz='Africa/Windhoek')
+    slow = (ts + offset) - offset == ts
+    fast = offset.onOffset(ts)
+    assert fast == slow

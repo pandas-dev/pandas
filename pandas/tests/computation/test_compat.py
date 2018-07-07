@@ -15,7 +15,7 @@ def test_compat():
     try:
         import numexpr as ne
         ver = ne.__version__
-        if ver < LooseVersion(_MIN_NUMEXPR_VERSION):
+        if LooseVersion(ver) < LooseVersion(_MIN_NUMEXPR_VERSION):
             assert not _NUMEXPR_INSTALLED
         else:
             assert _NUMEXPR_INSTALLED
@@ -37,7 +37,8 @@ def test_invalid_numexpr_version(engine, parser):
         except ImportError:
             pytest.skip("no numexpr")
         else:
-            if ne.__version__ < LooseVersion(_MIN_NUMEXPR_VERSION):
+            if (LooseVersion(ne.__version__) <
+                    LooseVersion(_MIN_NUMEXPR_VERSION)):
                 with pytest.raises(ImportError):
                     testit()
             else:

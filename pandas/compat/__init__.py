@@ -26,6 +26,7 @@ Other items:
 # pylint disable=W0611
 # flake8: noqa
 
+import re
 import functools
 import itertools
 from distutils.version import LooseVersion
@@ -39,10 +40,11 @@ import inspect
 from collections import namedtuple
 
 PY2 = sys.version_info[0] == 2
-PY3 = (sys.version_info[0] >= 3)
-PY35 = (sys.version_info >= (3, 5))
-PY36 = (sys.version_info >= (3, 6))
-PYPY = (platform.python_implementation() == 'PyPy')
+PY3 = sys.version_info[0] >= 3
+PY35 = sys.version_info >= (3, 5)
+PY36 = sys.version_info >= (3, 6)
+PY37 = sys.version_info >= (3, 7)
+PYPY = platform.python_implementation() == 'PyPy'
 
 try:
     import __builtin__ as builtins
@@ -131,9 +133,11 @@ if PY3:
     def lfilter(*args, **kwargs):
         return list(filter(*args, **kwargs))
 
+    from importlib import reload
+    reload = reload
+
 else:
     # Python 2
-    import re
     _name_re = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*$")
 
     FileNotFoundError = IOError
@@ -184,6 +188,7 @@ else:
     lmap = builtins.map
     lfilter = builtins.filter
 
+    reload = builtins.reload
 
 if PY2:
     def iteritems(obj, **kw):
@@ -365,6 +370,20 @@ except NameError:
         return any("__call__" in klass.__dict__ for klass in type(obj).__mro__)
 
 
+if PY2:
+    # In PY2 functools.wraps doesn't provide metadata pytest needs to generate
+    # decorated tests using parametrization. See pytest GH issue #2782
+    def wraps(wrapped, assigned=functools.WRAPPER_ASSIGNMENTS,
+              updated=functools.WRAPPER_UPDATES):
+        def wrapper(f):
+            f = functools.wraps(wrapped, assigned, updated)(f)
+            f.__wrapped__ = wrapped
+            return f
+        return wrapper
+else:
+    wraps = functools.wraps
+
+
 def add_metaclass(metaclass):
     """Class decorator for creating a class with a metaclass."""
     def wrapper(cls):
@@ -396,26 +415,22 @@ raise_with_traceback.__doc__ = """Raise exception with existing traceback.
 If traceback is not passed, uses sys.exc_info() to get traceback."""
 
 
-# http://stackoverflow.com/questions/4126348
-# Thanks to @martineau at SO
-
+# dateutil minimum version
 import dateutil
 
-if PY2 and LooseVersion(dateutil.__version__) == '2.0':
-    # dateutil brokenness
-    raise Exception('dateutil 2.0 incompatible with Python 2.x, you must '
-    'install version 1.5 or 2.1+!')
-
+if LooseVersion(dateutil.__version__) < LooseVersion('2.5'):
+    raise ImportError('dateutil 2.5.0 is the minimum required version')
 from dateutil import parser as _date_parser
-if LooseVersion(dateutil.__version__) < '2.0':
+parse_date = _date_parser.parse
 
-    @functools.wraps(_date_parser.parse)
-    def parse_date(timestr, *args, **kwargs):
-        timestr = bytes(timestr)
-        return _date_parser.parse(timestr, *args, **kwargs)
+
+# In Python 3.7, the private re._pattern_type is removed.
+# Python 3.5+ have typing.re.Pattern
+if PY36:
+    import typing
+    re_type = typing.re.Pattern
 else:
-    parse_date = _date_parser.parse
-
+    re_type = type(re.compile(''))
 
 # https://github.com/pandas-dev/pandas/pull/9123
 def is_platform_little_endian():

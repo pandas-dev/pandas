@@ -128,28 +128,11 @@ x   q   30      3    -0.6662 -0.5243 -0.3580  0.89145  2.5838"""
 class TestDeprecatedFeatures(object):
 
     @pytest.mark.parametrize("engine", ["c", "python"])
-    @pytest.mark.parametrize("kwargs", [{"as_recarray": True},
-                                        {"as_recarray": False},
-                                        {"buffer_lines": True},
-                                        {"buffer_lines": False},
-                                        {"compact_ints": True},
-                                        {"compact_ints": False},
-                                        {"use_unsigned": True},
-                                        {"use_unsigned": False},
-                                        {"tupleize_cols": True},
-                                        {"tupleize_cols": False},
-                                        {"skip_footer": 1}])
+    @pytest.mark.parametrize("kwargs", [{"tupleize_cols": True},
+                                        {"tupleize_cols": False}])
     def test_deprecated_args(self, engine, kwargs):
         data = "1,2,3"
         arg, _ = list(kwargs.items())[0]
-
-        if engine == "c" and arg == "skip_footer":
-            # unsupported --> exception is raised
-            return
-
-        if engine == "python" and arg == "buffer_lines":
-            # unsupported --> exception is raised
-            return
 
         with tm.assert_produces_warning(
                 FutureWarning, check_stacklevel=False):

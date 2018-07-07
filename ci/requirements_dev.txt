@@ -2,9 +2,11 @@
 # Do not modify directly
 Cython
 NumPy
+flake8
 moto
-pytest
-python-dateutil
+pytest>=3.1
+python-dateutil>=2.5.0
 pytz
-setuptools
+setuptools>=24.2.0
 sphinx
+sphinxcontrib-spelling

@@ -13,6 +13,7 @@ from pandas import (Series, Index, Float64Index, Int64Index, UInt64Index,
 from pandas.core.indexes.base import InvalidIndexError
 from pandas.core.indexes.datetimelike import DatetimeIndexOpsMixin
 from pandas.core.dtypes.common import needs_i8_conversion
+from pandas.core.dtypes.dtypes import CategoricalDtype
 from pandas._libs.tslib import iNaT
 
 import pandas.util.testing as tm
@@ -23,7 +24,7 @@ import pandas as pd
 class Base(object):
     """ base class for index sub-class tests """
     _holder = None
-    _compat_props = ['shape', 'ndim', 'size', 'itemsize', 'nbytes']
+    _compat_props = ['shape', 'ndim', 'size', 'nbytes']
 
     def setup_indices(self):
         for name, idx in self.indices.items():
@@ -49,6 +50,25 @@ class Base(object):
         assert s.values is not idx.values
         assert s.index is not idx
         assert s.name == idx.name
+
+    def test_to_series_with_arguments(self):
+        # GH18699
+
+        # index kwarg
+        idx = self.create_index()
+        s = idx.to_series(index=idx)
+
+        assert s.values is not idx.values
+        assert s.index is idx
+        assert s.name == idx.name
+
+        # name kwarg
+        idx = self.create_index()
+        s = idx.to_series(name='__test')
+
+        assert s.values is not idx.values
+        assert s.index is not idx
+        assert s.name != idx.name
 
     def test_to_frame(self):
         # see gh-15230
@@ -107,16 +127,17 @@ class Base(object):
         idx = self.create_index()
         tm.assert_raises_regex(TypeError, "cannot perform __mul__",
                                lambda: idx * 1)
-        tm.assert_raises_regex(TypeError, "cannot perform __mul__",
+        tm.assert_raises_regex(TypeError, "cannot perform __rmul__",
                                lambda: 1 * idx)
 
         div_err = "cannot perform __truediv__" if PY3 \
             else "cannot perform __div__"
         tm.assert_raises_regex(TypeError, div_err, lambda: idx / 1)
+        div_err = div_err.replace(' __', ' __r')
         tm.assert_raises_regex(TypeError, div_err, lambda: 1 / idx)
         tm.assert_raises_regex(TypeError, "cannot perform __floordiv__",
                                lambda: idx // 1)
-        tm.assert_raises_regex(TypeError, "cannot perform __floordiv__",
+        tm.assert_raises_regex(TypeError, "cannot perform __rfloordiv__",
                                lambda: 1 // idx)
 
     def test_logical_compat(self):
@@ -294,7 +315,8 @@ class Base(object):
                 # .values an object array of Period, thus copied
                 result = index_type(ordinal=index.asi8, copy=False,
                                     **init_kwargs)
-                tm.assert_numpy_array_equal(index._values, result._values,
+                tm.assert_numpy_array_equal(index._ndarray_values,
+                                            result._ndarray_values,
                                             check_same='same')
             elif isinstance(index, IntervalIndex):
                 # checked in test_interval.py
@@ -303,7 +325,8 @@ class Base(object):
                 result = index_type(index.values, copy=False, **init_kwargs)
                 tm.assert_numpy_array_equal(index.values, result.values,
                                             check_same='same')
-                tm.assert_numpy_array_equal(index._values, result._values,
+                tm.assert_numpy_array_equal(index._ndarray_values,
+                                            result._ndarray_values,
                                             check_same='same')
 
     def test_copy_and_deepcopy(self, indices):
@@ -768,6 +791,7 @@ class Base(object):
         series_d = Series(array_d)
         with tm.assert_raises_regex(ValueError, "Lengths must match"):
             index_a == series_b
+
         tm.assert_numpy_array_equal(index_a == series_a, expected1)
         tm.assert_numpy_array_equal(index_a == series_c, expected2)
 
@@ -954,11 +978,10 @@ class Base(object):
         assert not index.empty
         assert index[:0].empty
 
-    @pytest.mark.parametrize('how', ['outer', 'inner', 'left', 'right'])
-    def test_join_self_unique(self, how):
+    def test_join_self_unique(self, join_type):
         index = self.create_index()
         if index.is_unique:
-            joined = index.join(index, how=how)
+            joined = index.join(index, how=join_type)
             assert (index == joined).all()
 
     def test_searchsorted_monotonic(self, indices):
@@ -1058,3 +1081,30 @@ class Base(object):
 
         with pytest.raises(ValueError):
             index.putmask('foo', 1)
+
+    @pytest.mark.parametrize('copy', [True, False])
+    @pytest.mark.parametrize('name', [None, 'foo'])
+    @pytest.mark.parametrize('ordered', [True, False])
+    def test_astype_category(self, copy, name, ordered):
+        # GH 18630
+        index = self.create_index()
+        if name:
+            index = index.rename(name)
+
+        # standard categories
+        dtype = CategoricalDtype(ordered=ordered)
+        result = index.astype(dtype, copy=copy)
+        expected = CategoricalIndex(index.values, name=name, ordered=ordered)
+        tm.assert_index_equal(result, expected)
+
+        # non-standard categories
+        dtype = CategoricalDtype(index.unique().tolist()[:-1], ordered)
+        result = index.astype(dtype, copy=copy)
+        expected = CategoricalIndex(index.values, name=name, dtype=dtype)
+        tm.assert_index_equal(result, expected)
+
+        if ordered is False:
+            # dtype='category' defaults to ordered=False, so only test once
+            result = index.astype('category', copy=copy)
+            expected = CategoricalIndex(index.values, name=name)
+            tm.assert_index_equal(result, expected)
