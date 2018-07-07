@@ -364,13 +364,11 @@ class SelectionMixin(object):
                      "version"),
                     FutureWarning, stacklevel=level)
 
-            if any(isinstance(x, dict) for x in compat.itervalues(arg)):
+            if any(issubclass(type(x), dict) for x in compat.itervalues(arg)):
                 # deprecation of renaming keys
                 # GH 15931
                 keys = list(compat.iterkeys(arg))
-                if (isinstance(obj, ABCDataFrame) and
-                        len(obj.columns.intersection(keys)) != len(keys)):
-                    nested_renaming_depr()
+                nested_renaming_depr()
             # normalize all non-scalars be list-likes
             else:
                 new_arg = compat.OrderedDict()

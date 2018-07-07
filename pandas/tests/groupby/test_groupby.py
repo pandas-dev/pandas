@@ -552,6 +552,8 @@ def test_groupby_as_index_agg(df):
     result2 = grouped.agg(OrderedDict([['C', np.mean], ['D', np.sum]]))
     expected2 = grouped.mean()
     expected2['D'] = grouped.sum()['D']
+    expected2.columns = pd.MultiIndex.from_arrays([
+        expected2.columns, ['', 'mean', 'sum']])
     assert_frame_equal(result2, expected2)
 
     grouped = df.groupby('A', as_index=True)
@@ -561,6 +563,7 @@ def test_groupby_as_index_agg(df):
     with tm.assert_produces_warning(FutureWarning,
                                     check_stacklevel=False):
         result3 = grouped['C'].agg({'Q': np.sum})
+
     assert_frame_equal(result3, expected3)
 
     # multi-key
@@ -574,10 +577,14 @@ def test_groupby_as_index_agg(df):
     result2 = grouped.agg(OrderedDict([['C', np.mean], ['D', np.sum]]))
     expected2 = grouped.mean()
     expected2['D'] = grouped.sum()['D']
+    expected2.columns = pd.MultiIndex.from_arrays([
+        expected2.columns, ['', '', 'mean', 'sum']])
     assert_frame_equal(result2, expected2)
 
     expected3 = grouped['C'].sum()
     expected3 = DataFrame(expected3).rename(columns={'C': 'Q'})
+    expected3.columns = pd.MultiIndex.from_arrays([
+        expected3.columns, ['', '', 'sum']])
     result3 = grouped['C'].agg({'Q': np.sum})
     assert_frame_equal(result3, expected3)
 
@@ -1340,6 +1347,7 @@ def test_multifunc_sum_bug():
 
     grouped = x.groupby('test')
     result = grouped.agg({'fl': 'sum', 2: 'size'})
+    result.columns = result.columns.droplevel(-1)
     assert result['fl'].dtype == np.float64
 
 
