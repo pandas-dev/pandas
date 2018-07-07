@@ -114,7 +114,7 @@ class PandasObject(StringMixin, DirNamesMixin):
 
     def __sizeof__(self):
         """
-        Generates the total memory usage for a object that returns
+        Generates the total memory usage for an object that returns
         either a value or Series of values
         """
         if hasattr(self, 'memory_usage'):
@@ -507,7 +507,7 @@ class SelectionMixin(object):
                            for r in compat.itervalues(result))
 
             if isinstance(result, list):
-                return concat(result, keys=keys, axis=1), True
+                return concat(result, keys=keys, axis=1, sort=True), True
 
             elif is_any_frame():
                 # we have a dict of DataFrames
@@ -590,9 +590,10 @@ class SelectionMixin(object):
 
         # multiples
         else:
-            for col in obj:
+            for index, col in enumerate(obj):
                 try:
-                    colg = self._gotitem(col, ndim=1, subset=obj[col])
+                    colg = self._gotitem(col, ndim=1,
+                                         subset=obj.iloc[:, index])
                     results.append(colg.aggregate(arg))
                     keys.append(col)
                 except (TypeError, DataError):
@@ -608,7 +609,7 @@ class SelectionMixin(object):
             raise ValueError("no results")
 
         try:
-            return concat(results, keys=keys, axis=1)
+            return concat(results, keys=keys, axis=1, sort=False)
         except TypeError:
 
             # we are concatting non-NDFrame objects,
@@ -675,7 +676,6 @@ class GroupByMixin(object):
         subset : object, default None
             subset to act on
         """
-
         # create a new object to prevent aliasing
         if subset is None:
             subset = self.obj
@@ -758,7 +758,7 @@ class IndexOpsMixin(object):
     @property
     def strides(self):
         """ return the strides of the underlying data """
-        warnings.warn("{obj}.strudes is deprecated and will be removed "
+        warnings.warn("{obj}.strides is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
                       FutureWarning, stacklevel=2)
         return self._ndarray_values.strides
@@ -788,6 +788,7 @@ class IndexOpsMixin(object):
 
     @property
     def _ndarray_values(self):
+        # type: () -> np.ndarray
         """The data as an ndarray, possibly losing information.
 
         The expectation is that this is cheap to compute, and is primarily
@@ -795,7 +796,6 @@ class IndexOpsMixin(object):
 
         - categorical -> codes
         """
-        # type: () -> np.ndarray
         if is_extension_array_dtype(self):
             return self.values._ndarray_values
         return self.values
@@ -1008,7 +1008,7 @@ class IndexOpsMixin(object):
     def value_counts(self, normalize=False, sort=True, ascending=False,
                      bins=None, dropna=True):
         """
-        Returns object containing counts of unique values.
+        Return a Series containing counts of unique values.
 
         The resulting object will be in descending order so that the
         first element is the most frequently-occurring element.
@@ -1020,18 +1020,69 @@ class IndexOpsMixin(object):
             If True then the object returned will contain the relative
             frequencies of the unique values.
         sort : boolean, default True
-            Sort by values
+            Sort by values.
         ascending : boolean, default False
-            Sort in ascending order
+            Sort in ascending order.
         bins : integer, optional
             Rather than count values, group them into half-open bins,
-            a convenience for pd.cut, only works with numeric data
+            a convenience for ``pd.cut``, only works with numeric data.
         dropna : boolean, default True
             Don't include counts of NaN.
 
         Returns
         -------
         counts : Series
+
+        See Also
+        --------
+        Series.count: number of non-NA elements in a Series
+        DataFrame.count: number of non-NA elements in a DataFrame
+
+        Examples
+        --------
+        >>> index = pd.Index([3, 1, 2, 3, 4, np.nan])
+        >>> index.value_counts()
+        3.0    2
+        4.0    1
+        2.0    1
+        1.0    1
+        dtype: int64
+
+        With `normalize` set to `True`, returns the relative frequency by
+        dividing all values by the sum of values.
+
+        >>> s = pd.Series([3, 1, 2, 3, 4, np.nan])
+        >>> s.value_counts(normalize=True)
+        3.0    0.4
+        4.0    0.2
+        2.0    0.2
+        1.0    0.2
+        dtype: float64
+
+        **bins**
+
+        Bins can be useful for going from a continuous variable to a
+        categorical variable; instead of counting unique
+        apparitions of values, divide the index in the specified
+        number of half-open bins.
+
+        >>> s.value_counts(bins=3)
+        (2.0, 3.0]      2
+        (0.996, 2.0]    2
+        (3.0, 4.0]      1
+        dtype: int64
+
+        **dropna**
+
+        With `dropna` set to `False` we can also see NaN index values.
+
+        >>> s.value_counts(dropna=False)
+        3.0    2
+        NaN    1
+        4.0    1
+        2.0    1
+        1.0    1
+        dtype: int64
         """
         from pandas.core.algorithms import value_counts
         result = value_counts(self, sort=sort, ascending=ascending,

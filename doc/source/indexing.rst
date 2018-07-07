@@ -17,10 +17,10 @@ Indexing and Selecting Data
 
 The axis labeling information in pandas objects serves many purposes:
 
-  - Identifies data (i.e. provides *metadata*) using known indicators,
-    important for analysis, visualization, and interactive console display.
-  - Enables automatic and explicit data alignment.
-  - Allows intuitive getting and setting of subsets of the data set.
+* Identifies data (i.e. provides *metadata*) using known indicators,
+  important for analysis, visualization, and interactive console display.
+* Enables automatic and explicit data alignment.
+* Allows intuitive getting and setting of subsets of the data set.
 
 In this section, we will focus on the final point: namely, how to slice, dice,
 and generally get and set subsets of pandas objects. The primary focus will be
@@ -62,45 +62,45 @@ Object selection has had a number of user-requested additions in order to
 support more explicit location based indexing. Pandas now supports three types
 of multi-axis indexing.
 
-- ``.loc`` is primarily label based, but may also be used with a boolean array. ``.loc`` will raise ``KeyError`` when the items are not found. Allowed inputs are:
+* ``.loc`` is primarily label based, but may also be used with a boolean array. ``.loc`` will raise ``KeyError`` when the items are not found. Allowed inputs are:
 
-  - A single label, e.g. ``5`` or ``'a'`` (Note that ``5`` is interpreted as a
-    *label* of the index. This use is **not** an integer position along the
-    index.).
-  - A list or array of labels ``['a', 'b', 'c']``.
-  - A slice object with labels ``'a':'f'`` (Note that contrary to usual python
-    slices, **both** the start and the stop are included, when present in the
-    index! See :ref:`Slicing with labels
-    <indexing.slicing_with_labels>`.).
-  - A boolean array
-  - A ``callable`` function with one argument (the calling Series, DataFrame or Panel) and
-    that returns valid output for indexing (one of the above).
+    * A single label, e.g. ``5`` or ``'a'`` (Note that ``5`` is interpreted as a
+      *label* of the index. This use is **not** an integer position along the
+      index.).
+    * A list or array of labels ``['a', 'b', 'c']``.
+    * A slice object with labels ``'a':'f'`` (Note that contrary to usual python
+      slices, **both** the start and the stop are included, when present in the
+      index! See :ref:`Slicing with labels
+      <indexing.slicing_with_labels>`.).
+    * A boolean array
+    * A ``callable`` function with one argument (the calling Series, DataFrame or Panel) and
+      that returns valid output for indexing (one of the above).
 
       .. versionadded:: 0.18.1
 
   See more at :ref:`Selection by Label <indexing.label>`.
 
-- ``.iloc`` is primarily integer position based (from ``0`` to
+* ``.iloc`` is primarily integer position based (from ``0`` to
   ``length-1`` of the axis), but may also be used with a boolean
   array.  ``.iloc`` will raise ``IndexError`` if a requested
   indexer is out-of-bounds, except *slice* indexers which allow
   out-of-bounds indexing.  (this conforms with Python/NumPy *slice*
   semantics).  Allowed inputs are:
 
-  - An integer e.g. ``5``.
-  - A list or array of integers ``[4, 3, 0]``.
-  - A slice object with ints ``1:7``.
-  - A boolean array.
-  - A ``callable`` function with one argument (the calling Series, DataFrame or Panel) and
-    that returns valid output for indexing (one of the above).
+    * An integer e.g. ``5``.
+    * A list or array of integers ``[4, 3, 0]``.
+    * A slice object with ints ``1:7``.
+    * A boolean array.
+    * A ``callable`` function with one argument (the calling Series, DataFrame or Panel) and
+      that returns valid output for indexing (one of the above).
 
       .. versionadded:: 0.18.1
 
-  See more at :ref:`Selection by Position <indexing.integer>`, 
+  See more at :ref:`Selection by Position <indexing.integer>`,
   :ref:`Advanced Indexing <advanced>` and :ref:`Advanced
   Hierarchical <advanced.advanced_hierarchical>`.
 
-- ``.loc``, ``.iloc``, and also ``[]`` indexing can accept a ``callable`` as indexer. See more at :ref:`Selection By Callable <indexing.callable>`.
+* ``.loc``, ``.iloc``, and also ``[]`` indexing can accept a ``callable`` as indexer. See more at :ref:`Selection By Callable <indexing.callable>`.
 
 Getting values from an object with multi-axes selection uses the following
 notation (using ``.loc`` as an example, but the following applies to ``.iloc`` as
@@ -125,7 +125,7 @@ Basics
 As mentioned when introducing the data structures in the :ref:`last section
 <basics>`, the primary function of indexing with ``[]`` (a.k.a. ``__getitem__``
 for those familiar with implementing class behavior in Python) is selecting out
-lower-dimensional slices. The following table shows return type values when 
+lower-dimensional slices. The following table shows return type values when
 indexing pandas objects with ``[]``:
 
 .. csv-table::
@@ -235,7 +235,7 @@ as an attribute:
    - The attribute will not be available if it conflicts with an existing method name, e.g. ``s.min`` is not allowed.
 
    - Similarly, the attribute will not be available if it conflicts with any of the following list: ``index``,
-     ``major_axis``, ``minor_axis``, ``items``, ``labels``.
+     ``major_axis``, ``minor_axis``, ``items``.
 
    - In any of these cases, standard indexing will still work, e.g. ``s['1']``, ``s['min']``, and ``s['index']`` will
      access the corresponding element or column.
@@ -343,14 +343,14 @@ Integers are valid labels, but they refer to the label **and not the position**.
 
 The ``.loc`` attribute is the primary access method. The following are valid inputs:
 
-- A single label, e.g. ``5`` or ``'a'`` (Note that ``5`` is interpreted as a *label* of the index. This use is **not** an integer position along the index.).
-- A list or array of labels ``['a', 'b', 'c']``.
-- A slice object with labels ``'a':'f'`` (Note that contrary to usual python
+* A single label, e.g. ``5`` or ``'a'`` (Note that ``5`` is interpreted as a *label* of the index. This use is **not** an integer position along the index.).
+* A list or array of labels ``['a', 'b', 'c']``.
+* A slice object with labels ``'a':'f'`` (Note that contrary to usual python
   slices, **both** the start and the stop are included, when present in the
   index! See :ref:`Slicing with labels
   <indexing.slicing_with_labels>`.).
-- A boolean array.
-- A ``callable``, see :ref:`Selection By Callable <indexing.callable>`.
+* A boolean array.
+* A ``callable``, see :ref:`Selection By Callable <indexing.callable>`.
 
 .. ipython:: python
 
@@ -445,11 +445,11 @@ Pandas provides a suite of methods in order to get **purely integer based indexi
 
 The ``.iloc`` attribute is the primary access method. The following are valid inputs:
 
-- An integer e.g. ``5``.
-- A list or array of integers ``[4, 3, 0]``.
-- A slice object with ints ``1:7``.
-- A boolean array.
-- A ``callable``, see :ref:`Selection By Callable <indexing.callable>`.
+* An integer e.g. ``5``.
+* A list or array of integers ``[4, 3, 0]``.
+* A slice object with ints ``1:7``.
+* A boolean array.
+* A ``callable``, see :ref:`Selection By Callable <indexing.callable>`.
 
 .. ipython:: python
 
@@ -599,8 +599,8 @@ bit of user confusion over the years.
 
 The recommended methods of indexing are:
 
-- ``.loc`` if you want to *label* index.
-- ``.iloc`` if you want to *positionally* index.
+* ``.loc`` if you want to *label* index.
+* ``.iloc`` if you want to *positionally* index.
 
 .. ipython:: python
 
@@ -700,7 +700,7 @@ Current Behavior
 Reindexing
 ~~~~~~~~~~
 
-The idiomatic way to achieve selecting potentially not-found elmenents is via ``.reindex()``. See also the section on :ref:`reindexing <basics.reindexing>`.
+The idiomatic way to achieve selecting potentially not-found elements is via ``.reindex()``. See also the section on :ref:`reindexing <basics.reindexing>`.
 
 .. ipython:: python
 
@@ -888,10 +888,10 @@ Boolean indexing
 .. _indexing.boolean:
 
 Another common operation is the use of boolean vectors to filter the data.
-The operators are: ``|`` for ``or``, ``&`` for ``and``, and ``~`` for ``not``. 
+The operators are: ``|`` for ``or``, ``&`` for ``and``, and ``~`` for ``not``.
 These **must** be grouped by using parentheses, since by default Python will
-evaluate an expression such as ``df.A > 2 & df.B < 3`` as 
-``df.A > (2 & df.B) < 3``, while the desired evaluation order is 
+evaluate an expression such as ``df.A > 2 & df.B < 3`` as
+``df.A > (2 & df.B) < 3``, while the desired evaluation order is
 ``(df.A > 2) & (df.B < 3)``.
 
 Using a boolean vector to index a Series works exactly as in a NumPy ndarray:
@@ -944,8 +944,8 @@ and :ref:`Advanced Indexing <advanced>` you may select along more than one axis 
 Indexing with isin
 ------------------
 
-Consider the :meth:`~Series.isin` method of ``Series``, which returns a boolean 
-vector that is true wherever the ``Series`` elements exist in the passed list. 
+Consider the :meth:`~Series.isin` method of ``Series``, which returns a boolean
+vector that is true wherever the ``Series`` elements exist in the passed list.
 This allows you to select rows where one or more columns have values you want:
 
 .. ipython:: python
@@ -1455,15 +1455,15 @@ If you want to identify and remove duplicate rows in a DataFrame,  there are
 two methods that will help: ``duplicated`` and ``drop_duplicates``. Each
 takes as an argument the columns to use to identify duplicated rows.
 
-- ``duplicated`` returns a boolean vector whose length is the number of rows, and which indicates whether a row is duplicated.
-- ``drop_duplicates`` removes duplicate rows.
+* ``duplicated`` returns a boolean vector whose length is the number of rows, and which indicates whether a row is duplicated.
+* ``drop_duplicates`` removes duplicate rows.
 
 By default, the first observed row of a duplicate set is considered unique, but
 each method has a ``keep`` parameter to specify targets to be kept.
 
-- ``keep='first'`` (default): mark / drop duplicates except for the first occurrence.
-- ``keep='last'``: mark / drop duplicates except for the last occurrence.
-- ``keep=False``: mark  / drop all duplicates.
+* ``keep='first'`` (default): mark / drop duplicates except for the first occurrence.
+* ``keep='last'``: mark / drop duplicates except for the last occurrence.
+* ``keep=False``: mark  / drop all duplicates.
 
 .. ipython:: python
 
@@ -1666,7 +1666,7 @@ Set an index
 
 .. _indexing.set_index:
 
-DataFrame has a :meth:`~DataFrame.set_index` method which takes a column name 
+DataFrame has a :meth:`~DataFrame.set_index` method which takes a column name
 (for a regular ``Index``) or a list of column names (for a ``MultiIndex``).
 To create a new, re-indexed DataFrame:
 
@@ -1707,9 +1707,9 @@ the index in-place (without creating a new object):
 Reset the index
 ~~~~~~~~~~~~~~~
 
-As a convenience, there is a new function on DataFrame called 
-:meth:`~DataFrame.reset_index` which transfers the index values into the 
-DataFrame's columns and sets a simple integer index. 
+As a convenience, there is a new function on DataFrame called
+:meth:`~DataFrame.reset_index` which transfers the index values into the
+DataFrame's columns and sets a simple integer index.
 This is the inverse operation of :meth:`~DataFrame.set_index`.
 
 

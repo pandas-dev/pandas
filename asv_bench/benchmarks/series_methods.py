@@ -41,7 +41,7 @@ class IsIn(object):
 class NSort(object):
 
     goal_time = 0.2
-    params = ['last', 'first']
+    params = ['first', 'last', 'all']
     param_names = ['keep']
 
     def setup(self, keep):

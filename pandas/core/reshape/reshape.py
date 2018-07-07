@@ -58,7 +58,6 @@ class _Unstacker(object):
 
     Examples
     --------
-    >>> import pandas as pd
     >>> index = pd.MultiIndex.from_tuples([('one', 'a'), ('one', 'b'),
     ...                                    ('two', 'a'), ('two', 'b')])
     >>> s = pd.Series(np.arange(1, 5, dtype=np.int64), index=index)
@@ -114,6 +113,12 @@ class _Unstacker(object):
             raise ValueError('must pass column labels for multi-column data')
 
         self.index = index.remove_unused_levels()
+
+        if isinstance(self.index, MultiIndex):
+            if index._reference_duplicate_name(level):
+                msg = ("Ambiguous reference to {level}. The index "
+                       "names are not unique.".format(level=level))
+                raise ValueError(msg)
 
         self.level = self.index._get_level_number(level)
 
@@ -528,6 +533,12 @@ def stack(frame, level=-1, dropna=True):
 
     N, K = frame.shape
 
+    if isinstance(frame.columns, MultiIndex):
+        if frame.columns._reference_duplicate_name(level):
+            msg = ("Ambiguous reference to {level}. The column "
+                   "names are not unique.".format(level=level))
+            raise ValueError(msg)
+
     # Will also convert negative level numbers and check if out of bounds.
     level_num = frame.columns._get_level_number(level)
 
@@ -725,7 +736,7 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     ----------
     data : array-like, Series, or DataFrame
     prefix : string, list of strings, or dict of strings, default None
-        String to append DataFrame column names
+        String to append DataFrame column names.
         Pass a list with length equal to the number of columns
         when calling get_dummies on a DataFrame. Alternatively, `prefix`
         can be a dictionary mapping column names to prefixes.
@@ -759,7 +770,6 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
 
     Examples
     --------
-    >>> import pandas as pd
     >>> s = pd.Series(list('abca'))
 
     >>> pd.get_dummies(s)
@@ -821,14 +831,15 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
     from pandas.core.reshape.concat import concat
     from itertools import cycle
 
+    dtypes_to_encode = ['object', 'category']
+
     if isinstance(data, DataFrame):
         # determine columns being encoded
-
         if columns is None:
-            columns_to_encode = data.select_dtypes(
-                include=['object', 'category']).columns
+            data_to_encode = data.select_dtypes(
+                include=dtypes_to_encode)
         else:
-            columns_to_encode = columns
+            data_to_encode = data[columns]
 
         # validate prefixes and separator to avoid silently dropping cols
         def check_len(item, name):
@@ -836,35 +847,45 @@ def get_dummies(data, prefix=None, prefix_sep='_', dummy_na=False,
                        "length of the columns being encoded ({len_enc}).")
 
             if is_list_like(item):
-                if not len(item) == len(columns_to_encode):
-                    len_msg = len_msg.format(name=name, len_item=len(item),
-                                             len_enc=len(columns_to_encode))
+                if not len(item) == data_to_encode.shape[1]:
+                    len_msg = \
+                        len_msg.format(name=name, len_item=len(item),
+                                       len_enc=data_to_encode.shape[1])
                     raise ValueError(len_msg)
 
         check_len(prefix, 'prefix')
         check_len(prefix_sep, 'prefix_sep')
+
         if isinstance(prefix, compat.string_types):
             prefix = cycle([prefix])
         if isinstance(prefix, dict):
-            prefix = [prefix[col] for col in columns_to_encode]
+            prefix = [prefix[col] for col in data_to_encode.columns]
 
         if prefix is None:
-            prefix = columns_to_encode
+            prefix = data_to_encode.columns
 
         # validate separators
         if isinstance(prefix_sep, compat.string_types):
             prefix_sep = cycle([prefix_sep])
         elif isinstance(prefix_sep, dict):
-            prefix_sep = [prefix_sep[col] for col in columns_to_encode]
+            prefix_sep = [prefix_sep[col] for col in data_to_encode.columns]
 
-        if set(columns_to_encode) == set(data.columns):
+        if data_to_encode.shape == data.shape:
+            # Encoding the entire df, do not prepend any dropped columns
             with_dummies = []
+        elif columns is not None:
+            # Encoding only cols specified in columns. Get all cols not in
+            # columns to prepend to result.
+            with_dummies = [data.drop(columns, axis=1)]
         else:
-            with_dummies = [data.drop(columns_to_encode, axis=1)]
+            # Encoding only object and category dtype columns. Get remaining
+            # columns to prepend to result.
+            with_dummies = [data.select_dtypes(exclude=dtypes_to_encode)]
 
-        for (col, pre, sep) in zip(columns_to_encode, prefix, prefix_sep):
-
-            dummy = _get_dummies_1d(data[col], prefix=pre, prefix_sep=sep,
+        for (col, pre, sep) in zip(data_to_encode.iteritems(), prefix,
+                                   prefix_sep):
+            # col is (column_name, column), use just column data here
+            dummy = _get_dummies_1d(col[1], prefix=pre, prefix_sep=sep,
                                     dummy_na=dummy_na, sparse=sparse,
                                     drop_first=drop_first, dtype=dtype)
             with_dummies.append(dummy)

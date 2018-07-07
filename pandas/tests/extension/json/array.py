@@ -33,6 +33,16 @@ class JSONDtype(ExtensionDtype):
         na_value = {}
 
     @classmethod
+    def construct_array_type(cls):
+        """Return the array type associated with this dtype
+
+        Returns
+        -------
+        type
+        """
+        return JSONArray
+
+    @classmethod
     def construct_from_string(cls, string):
         if string == cls.name:
             return cls()
@@ -44,10 +54,11 @@ class JSONDtype(ExtensionDtype):
 class JSONArray(ExtensionArray):
     dtype = JSONDtype()
 
-    def __init__(self, values):
+    def __init__(self, values, copy=False):
         for val in values:
             if not isinstance(val, self.dtype.type):
-                raise TypeError
+                raise TypeError("All values must be of type " +
+                                str(self.dtype.type))
         self.data = values
 
         # Some aliases for common attribute names to ensure pandas supports
@@ -58,7 +69,7 @@ class JSONArray(ExtensionArray):
         # self._values = self.values = self.data
 
     @classmethod
-    def _from_sequence(cls, scalars):
+    def _from_sequence(cls, scalars, copy=False):
         return cls(scalars)
 
     @classmethod
@@ -108,7 +119,8 @@ class JSONArray(ExtensionArray):
         return sys.getsizeof(self.data)
 
     def isna(self):
-        return np.array([x == self.dtype.na_value for x in self.data])
+        return np.array([x == self.dtype.na_value for x in self.data],
+                        dtype=bool)
 
     def take(self, indexer, allow_fill=False, fill_value=None):
         # re-implement here, since NumPy has trouble setting

@@ -118,6 +118,11 @@ class TestIsNA(object):
         exp = np.array([False, False])
         tm.assert_numpy_array_equal(result, exp)
 
+        # GH20675
+        result = isna([np.NaN, 'world'])
+        exp = np.array([True, False])
+        tm.assert_numpy_array_equal(result, exp)
+
     def test_isna_nat(self):
         result = isna([NaT])
         exp = np.array([True])

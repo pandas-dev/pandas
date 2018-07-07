@@ -3,7 +3,7 @@ channels:
   - defaults
   - conda-forge
 dependencies:
-  - Cython
+  - Cython>=0.28.2
   - NumPy
   - flake8
   - moto
@@ -13,3 +13,4 @@ dependencies:
   - pytz
   - setuptools>=24.2.0
   - sphinx
+  - sphinxcontrib-spelling

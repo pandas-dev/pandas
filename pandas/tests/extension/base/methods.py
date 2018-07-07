@@ -19,7 +19,8 @@ class BaseMethodsTests(BaseExtensionTests):
             other = all_data
 
         result = pd.Series(all_data).value_counts(dropna=dropna).sort_index()
-        expected = pd.Series(other).value_counts(dropna=dropna).sort_index()
+        expected = pd.Series(other).value_counts(
+            dropna=dropna).sort_index()
 
         self.assert_series_equal(result, expected)
 
@@ -103,3 +104,37 @@ class BaseMethodsTests(BaseExtensionTests):
 
         tm.assert_numpy_array_equal(l1, l2)
         self.assert_extension_array_equal(u1, u2)
+
+    def test_combine_le(self, data_repeated):
+        # GH 20825
+        # Test that combine works when doing a <= (le) comparison
+        orig_data1, orig_data2 = data_repeated(2)
+        s1 = pd.Series(orig_data1)
+        s2 = pd.Series(orig_data2)
+        result = s1.combine(s2, lambda x1, x2: x1 <= x2)
+        expected = pd.Series([a <= b for (a, b) in
+                              zip(list(orig_data1), list(orig_data2))])
+        self.assert_series_equal(result, expected)
+
+        val = s1.iloc[0]
+        result = s1.combine(val, lambda x1, x2: x1 <= x2)
+        expected = pd.Series([a <= val for a in list(orig_data1)])
+        self.assert_series_equal(result, expected)
+
+    def test_combine_add(self, data_repeated):
+        # GH 20825
+        orig_data1, orig_data2 = data_repeated(2)
+        s1 = pd.Series(orig_data1)
+        s2 = pd.Series(orig_data2)
+        result = s1.combine(s2, lambda x1, x2: x1 + x2)
+        expected = pd.Series(
+            orig_data1._from_sequence([a + b for (a, b) in
+                                       zip(list(orig_data1),
+                                           list(orig_data2))]))
+        self.assert_series_equal(result, expected)
+
+        val = s1.iloc[0]
+        result = s1.combine(val, lambda x1, x2: x1 + x2)
+        expected = pd.Series(
+            orig_data1._from_sequence([a + val for a in list(orig_data1)]))
+        self.assert_series_equal(result, expected)

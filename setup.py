@@ -32,7 +32,7 @@ def is_platform_mac():
     return sys.platform == 'darwin'
 
 
-min_cython_ver = '0.24'
+min_cython_ver = '0.28.2'
 try:
     import Cython
     ver = Cython.__version__
@@ -134,7 +134,7 @@ class build_ext(_build_ext):
         _build_ext.build_extensions(self)
 
 
-DESCRIPTION = ("Powerful data structures for data analysis, time series,"
+DESCRIPTION = ("Powerful data structures for data analysis, time series, "
                "and statistics")
 LONG_DESCRIPTION = """
 **pandas** is a Python package providing fast, flexible, and expressive data
@@ -217,6 +217,7 @@ CLASSIFIERS = [
     'Programming Language :: Python :: 2.7',
     'Programming Language :: Python :: 3.5',
     'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3.7',
     'Programming Language :: Cython',
     'Topic :: Scientific/Engineering']
 
@@ -450,13 +451,13 @@ common_include = ['pandas/_libs/src/klib', 'pandas/_libs/src']
 
 
 def pxd(name):
-    return os.path.abspath(pjoin('pandas', name + '.pxd'))
+    return pjoin('pandas', name + '.pxd')
 
 
-# args to ignore warnings
 if is_platform_windows():
     extra_compile_args = []
 else:
+    # args to ignore warnings
     extra_compile_args = ['-Wno-unused-function']
 
 lib_depends = lib_depends + ['pandas/_libs/src/numpy_helper.h',
@@ -530,16 +531,6 @@ ext_data = {
         'pyxfile': '_libs/ops',
         'pxdfiles': ['_libs/src/util',
                      '_libs/missing']},
-    '_libs.tslibs.period': {
-        'pyxfile': '_libs/tslibs/period',
-        'pxdfiles': ['_libs/src/util',
-                     '_libs/missing',
-                     '_libs/tslibs/ccalendar',
-                     '_libs/tslibs/timedeltas',
-                     '_libs/tslibs/timezones',
-                     '_libs/tslibs/nattype'],
-        'depends': tseries_depends + ['pandas/_libs/src/period_helper.h'],
-        'sources': np_datetime_sources + ['pandas/_libs/src/period_helper.c']},
     '_libs.properties': {
         'pyxfile': '_libs/properties',
         'include': []},
@@ -559,7 +550,8 @@ ext_data = {
                      '_libs/tslibs/timedeltas',
                      '_libs/tslibs/timestamps',
                      '_libs/tslibs/timezones',
-                     '_libs/tslibs/nattype'],
+                     '_libs/tslibs/nattype',
+                     '_libs/tslibs/offsets'],
         'depends': tseries_depends,
         'sources': np_datetime_sources},
     '_libs.tslibs.ccalendar': {
@@ -591,6 +583,7 @@ ext_data = {
     '_libs.tslibs.offsets': {
         'pyxfile': '_libs/tslibs/offsets',
         'pxdfiles': ['_libs/src/util',
+                     '_libs/tslibs/ccalendar',
                      '_libs/tslibs/conversion',
                      '_libs/tslibs/frequencies',
                      '_libs/tslibs/nattype'],
@@ -599,10 +592,21 @@ ext_data = {
     '_libs.tslibs.parsing': {
         'pyxfile': '_libs/tslibs/parsing',
         'pxdfiles': ['_libs/src/util']},
+    '_libs.tslibs.period': {
+        'pyxfile': '_libs/tslibs/period',
+        'pxdfiles': ['_libs/src/util',
+                     '_libs/tslibs/ccalendar',
+                     '_libs/tslibs/timedeltas',
+                     '_libs/tslibs/timezones',
+                     '_libs/tslibs/nattype',
+                     '_libs/tslibs/offsets'],
+        'depends': tseries_depends + ['pandas/_libs/src/period_helper.h'],
+        'sources': np_datetime_sources + ['pandas/_libs/src/period_helper.c']},
     '_libs.tslibs.resolution': {
         'pyxfile': '_libs/tslibs/resolution',
         'pxdfiles': ['_libs/src/util',
                      '_libs/khash',
+                     '_libs/tslibs/ccalendar',
                      '_libs/tslibs/frequencies',
                      '_libs/tslibs/timezones'],
         'depends': tseries_depends,
@@ -616,7 +620,8 @@ ext_data = {
     '_libs.tslibs.timedeltas': {
         'pyxfile': '_libs/tslibs/timedeltas',
         'pxdfiles': ['_libs/src/util',
-                     '_libs/tslibs/nattype'],
+                     '_libs/tslibs/nattype',
+                     '_libs/tslibs/offsets'],
         'depends': np_datetime_headers,
         'sources': np_datetime_sources},
     '_libs.tslibs.timestamps': {
@@ -625,6 +630,7 @@ ext_data = {
                      '_libs/tslibs/ccalendar',
                      '_libs/tslibs/conversion',
                      '_libs/tslibs/nattype',
+                     '_libs/tslibs/offsets',
                      '_libs/tslibs/timedeltas',
                      '_libs/tslibs/timezones'],
         'depends': tseries_depends,
@@ -733,11 +739,7 @@ setup(name=DISTNAME,
       maintainer=AUTHOR,
       version=versioneer.get_version(),
       packages=find_packages(include=['pandas', 'pandas.*']),
-      package_data={'': ['data/*', 'templates/*'],
-                    'pandas.tests.io': ['data/legacy_hdf/*.h5',
-                                        'data/legacy_pickle/*/*.pickle',
-                                        'data/legacy_msgpack/*/*.msgpack',
-                                        'data/html_encoding/*.html']},
+      package_data={'': ['templates/*', '_libs/*.dll']},
       ext_modules=extensions,
       maintainer_email=EMAIL,
       description=DESCRIPTION,

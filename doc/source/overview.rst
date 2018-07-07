@@ -12,19 +12,19 @@ programming language.
 
 :mod:`pandas` consists of the following elements:
 
- * A set of labeled array data structures, the primary of which are
-   Series and DataFrame.
- * Index objects enabling both simple axis indexing and multi-level /
-   hierarchical axis indexing.
- * An integrated group by engine for aggregating and transforming data sets.
- * Date range generation (date_range) and custom date offsets enabling the
-   implementation of customized frequencies.
- * Input/Output tools: loading tabular data from flat files (CSV, delimited,
-   Excel 2003), and saving and loading pandas objects from the fast and
-   efficient PyTables/HDF5 format.
- * Memory-efficient "sparse" versions of the standard data structures for storing
-   data that is mostly missing or mostly constant (some fixed value).
- * Moving window statistics (rolling mean, rolling standard deviation, etc.).
+* A set of labeled array data structures, the primary of which are
+  Series and DataFrame.
+* Index objects enabling both simple axis indexing and multi-level /
+  hierarchical axis indexing.
+* An integrated group by engine for aggregating and transforming data sets.
+* Date range generation (date_range) and custom date offsets enabling the
+  implementation of customized frequencies.
+* Input/Output tools: loading tabular data from flat files (CSV, delimited,
+  Excel 2003), and saving and loading pandas objects from the fast and
+  efficient PyTables/HDF5 format.
+* Memory-efficient "sparse" versions of the standard data structures for storing
+  data that is mostly missing or mostly constant (some fixed value).
+* Moving window statistics (rolling mean, rolling standard deviation, etc.).
 
 Data Structures
 ---------------
