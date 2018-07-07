@@ -1297,41 +1297,48 @@ class GroupBy(_GroupBy):
     @Appender(_doc_template)
     def mean(self, *args, **kwargs):
         """
-        
-        Compute mean of the target column for groups that are defined by the groupby columns.
-        Missing values are excluded in computing the mean.
-        If there is one groupby column, the groups are the unique values in the specified groupby column.
-        If there are multiple groupby columns, the groups are the unique combinations of the specified groupby columns.
+        Compute mean of groups, excluding missing values.
 
         Returns
+        -------
+        pandas.Series or pandas.DataFrame
 
-        pandas.core.series.Series
-            The average of the target column ('B' in the examples below)
-            grouped by the groupby columns ('A' and ['A', 'C'] in the examples below)
-
-        Groubpy by one column. The result index are the group labels.
-
-        >>> df = pd.DataFrame({'A': [1, 1, 2, 1, 2],
-        ...                    'B': [np.nan, 2, 3, 4, 5]}, columns=['A', 'B'])
-        >>> g = df.groupby('A')['B'].mean()
-        >>> g
-        A
-        1    3.0
-        2    4.0
-
-        Groubpy by multiple columns.
-
+        Examples
+        --------
         >>> df = pd.DataFrame({'A': [1, 1, 2, 1, 2],
         ...                    'B': [np.nan, 2, 3, 4, 5],
         ...                    'C': [1, 2, 1, 1, 2]}, columns=['A', 'B', 'C'])
-        >>> g = df.groupby(['A', 'C'])['B'].mean()
-        >>> g
-        A  C
-        1  1    4.0
-           2    2.0
-        2  1    3.0
-           2    5.0
 
+        Groupby one column and return the mean of the remaining columns in
+        each group.
+
+        >>> df.groupby('A').mean()
+        >>>
+             B         C
+        A
+        1  3.0  1.333333
+        2  4.0  1.500000
+
+        Groupby two columns and return the mean of the remaining column.
+
+        >>> df.groupby(['A', 'B']).mean()
+        >>>
+               C
+        A B
+        1 2.0  2
+          4.0  1
+        2 3.0  1
+          5.0  2
+
+        Groupby one column and return the mean of only particular column in
+        the group.
+
+        >>> df.groupby('A')['B'].mean()
+        >>>
+        A
+        1    3.0
+        2    4.0
+        Name: B, dtype: float64
         """
         nv.validate_groupby_func('mean', args, kwargs, ['numeric_only'])
         try:
