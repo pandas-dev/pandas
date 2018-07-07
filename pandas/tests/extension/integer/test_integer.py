@@ -171,7 +171,7 @@ class TestArithmeticOps(BaseInteger, base.BaseArithmeticOpsTests):
 
         # integer result type
         else:
-            rs = pd.Series(s.values.data)
+            rs = pd.Series(s.values._data)
             expected = op(rs, other)
             self._check_op_integer(result, expected, mask, s, op_name, other)
 
@@ -309,10 +309,10 @@ class TestComparisonOps(BaseInteger, base.BaseComparisonOpsTests):
 
         # array
         result = op(s, other)
-        expected = pd.Series(op(data.data, other))
+        expected = pd.Series(op(data._data, other))
 
         # fill the nan locations
-        expected[data.mask] = True if op_name == '__ne__' else False
+        expected[data._mask] = True if op_name == '__ne__' else False
 
         tm.assert_series_equal(result, expected)
 
@@ -320,11 +320,11 @@ class TestComparisonOps(BaseInteger, base.BaseComparisonOpsTests):
         s = pd.Series(data)
         result = op(s, other)
 
-        expected = pd.Series(data.data)
+        expected = pd.Series(data._data)
         expected = op(expected, other)
 
         # fill the nan locations
-        expected[data.mask] = True if op_name == '__ne__' else False
+        expected[data._mask] = True if op_name == '__ne__' else False
 
         tm.assert_series_equal(result, expected)
 

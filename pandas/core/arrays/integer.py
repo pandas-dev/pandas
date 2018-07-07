@@ -117,7 +117,7 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
     """
 
     if isinstance(values, IntegerArray):
-        values, mask = values.data, values.mask
+        values, mask = values._data, values._mask
         if copy:
             values = values.copy()
             mask = mask.copy()
@@ -179,7 +179,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
     @cache_readonly
     def dtype(self):
-        return _dtypes[str(self.data.dtype)]
+        return _dtypes[str(self._data.dtype)]
 
     def __init__(self, values, mask=None, dtype=None, copy=False):
         """
@@ -194,7 +194,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         -------
         IntegerArray
         """
-        self.data, self.mask = coerce_to_array(
+        self._data, self._mask = coerce_to_array(
             values, dtype=dtype, mask=mask, copy=copy)
 
     @classmethod
@@ -207,19 +207,19 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
     def __getitem__(self, item):
         if is_integer(item):
-            if self.mask[item]:
+            if self._mask[item]:
                 return self.dtype.na_value
-            return self.data[item]
-        return type(self)(self.data[item],
-                          mask=self.mask[item],
+            return self._data[item]
+        return type(self)(self._data[item],
+                          mask=self._mask[item],
                           dtype=self.dtype)
 
     def _coerce_to_ndarray(self):
         """ coerce to an ndarary, preserving my scalar types """
 
         # TODO(jreback) make this better
-        data = self.data.astype(object)
-        data[self.mask] = self._na_value
+        data = self._data.astype(object)
+        data[self._mask] = self._na_value
         return data
 
     def __array__(self, dtype=None):
@@ -237,10 +237,10 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         # arrays as list-like. The default implementation makes successive
         # calls to ``__getitem__``, which may be slower than necessary.
         for i in range(len(self)):
-            if self.mask[i]:
+            if self._mask[i]:
                 yield self.dtype.na_value
             else:
-                yield self.data[i]
+                yield self._data[i]
 
     def _formatting_values(self):
         # type: () -> np.ndarray
@@ -252,10 +252,10 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         # we always fill with 1 internally
         # to avoid upcasting
         data_fill_value = 1 if isna(fill_value) else fill_value
-        result = take(self.data, indexer, fill_value=data_fill_value,
+        result = take(self._data, indexer, fill_value=data_fill_value,
                       allow_fill=allow_fill)
 
-        mask = take(self.mask, indexer, fill_value=True,
+        mask = take(self._mask, indexer, fill_value=True,
                     allow_fill=allow_fill)
 
         # if we are filling
@@ -270,7 +270,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         return type(self)(result, mask=mask, dtype=self.dtype)
 
     def copy(self, deep=False):
-        data, mask = self.data, self.mask
+        data, mask = self._data, self._mask
         if deep:
             data = copy.deepcopy(data)
             mask = copy.deepcopy(mask)
@@ -289,11 +289,11 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             value = value[0]
             mask = mask[0]
 
-        self.data[key] = value
-        self.mask[key] = mask
+        self._data[key] = value
+        self._mask[key] = mask
 
     def __len__(self):
-        return len(self.data)
+        return len(self._data)
 
     def __repr__(self):
         """
@@ -316,10 +316,10 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
     @property
     def nbytes(self):
-        return self.data.nbytes + self.mask.nbytes
+        return self._data.nbytes + self._mask.nbytes
 
     def isna(self):
-        return self.mask
+        return self._mask
 
     @property
     def _na_value(self):
@@ -327,8 +327,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
     @classmethod
     def _concat_same_type(cls, to_concat):
-        data = np.concatenate([x.data for x in to_concat])
-        mask = np.concatenate([x.mask for x in to_concat])
+        data = np.concatenate([x._data for x in to_concat])
+        mask = np.concatenate([x._mask for x in to_concat])
         return cls(data, mask=mask, dtype=to_concat[0].dtype)
 
     def astype(self, dtype, copy=True):
@@ -357,9 +357,9 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
         # if we are astyping to an existing IntegerDtype we can fastpath
         if isinstance(dtype, _IntegerDtype):
-            result = self.data.astype(dtype.numpy_dtype,
-                                      casting='same_kind', copy=False)
-            return type(self)(result, mask=self.mask,
+            result = self._data.astype(dtype.numpy_dtype,
+                                       casting='same_kind', copy=False)
+            return type(self)(result, mask=self._mask,
                               dtype=dtype, copy=False)
 
         # coerce
@@ -376,7 +376,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         The expectation is that this is cheap to compute, and is primarily
         used for interacting with our indexers.
         """
-        return self.data
+        return self._data
 
     def value_counts(self, dropna=True):
         """
@@ -402,7 +402,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         from pandas import Index, Series
 
         # compute counts on the data with no nans
-        data = self.data[~self.mask]
+        data = self._data[~self._mask]
         value_counts = Index(data).value_counts()
         array = value_counts.values
 
@@ -417,7 +417,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             # TODO(extension)
             # appending to an Index *always* infers
             # w/o passing the dtype
-            array = np.append(array, [self.mask.sum()])
+            array = np.append(array, [self._mask.sum()])
             index = Index(np.concatenate(
                 [index.values,
                  np.array([np.nan], dtype=object)]), dtype=object)
@@ -438,8 +438,8 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
         --------
         ExtensionArray.argsort
         """
-        data = self.data.copy()
-        data[self.mask] = data.min() - 1
+        data = self._data.copy()
+        data[self._mask] = data.min() - 1
         return data
 
     @classmethod
@@ -449,7 +449,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             op_name = op.__name__
             mask = None
             if isinstance(other, IntegerArray):
-                other, mask = other.data, other.mask
+                other, mask = other._data, other._mask
             elif is_list_like(other):
                 other = np.asarray(other)
                 if other.ndim > 0 and len(self) != len(other):
@@ -459,13 +459,13 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
             # comparisons, this will raise in the future
             with warnings.catch_warnings(record=True):
                 with np.errstate(all='ignore'):
-                    result = op(self.data, other)
+                    result = op(self._data, other)
 
             # nans propagate
             if mask is None:
-                mask = self.mask
+                mask = self._mask
             else:
-                mask = self.mask | mask
+                mask = self._mask | mask
 
             result[mask] = True if op_name == 'ne' else False
             return result
@@ -521,7 +521,7 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
                 other = getattr(other, 'values', other)
 
             if isinstance(other, IntegerArray):
-                other, mask = other.data, other.mask
+                other, mask = other._data, other._mask
             elif getattr(other, 'ndim', 0) > 1:
                 raise NotImplementedError(
                     "can only perform ops with 1-d structures")
@@ -539,12 +539,12 @@ class IntegerArray(ExtensionArray, ExtensionOpsMixin):
 
             # nans propagate
             if mask is None:
-                mask = self.mask
+                mask = self._mask
             else:
-                mask = self.mask | mask
+                mask = self._mask | mask
 
             with np.errstate(all='ignore'):
-                result = op(self.data, other)
+                result = op(self._data, other)
 
             # divmod returns a tuple
             if op_name == 'divmod':
