@@ -500,8 +500,9 @@ def parallel_coordinates(frame, class_column, cols=None, ax=None, color=None,
     >>> from matplotlib import pyplot as plt
     >>> df = pd.read_csv('https://raw.github.com/pandas-dev/pandas/master'
                         '/pandas/tests/data/iris.csv')
-    >>> pd.plotting.parallel_coordinates(df, 'Name',
-                                        color=('#556270', '#4ECDC4', '#C7F464'))
+    >>> pd.plotting.parallel_coordinates(
+            df, 'Name',
+            color=('#556270', '#4ECDC4', '#C7F464'))
     >>> plt.show()
     """
     if axvlines_kwds is None:
