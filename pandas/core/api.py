@@ -21,7 +21,7 @@ from pandas.core.indexes.interval import Interval, interval_range
 
 from pandas.core.series import Series
 from pandas.core.frame import DataFrame
-from pandas.core.panel import Panel, WidePanel
+from pandas.core.panel import Panel
 
 # TODO: Remove import when statsmodels updates #18264
 from pandas.core.reshape.reshape import get_dummies

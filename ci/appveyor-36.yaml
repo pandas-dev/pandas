@@ -9,7 +9,7 @@ dependencies:
   - feather-format
   - matplotlib
   - numexpr
-  - numpy=1.13*
+  - numpy=1.14*
   - openpyxl
   - pyarrow
   - pytables
@@ -22,6 +22,6 @@ dependencies:
   - xlsxwriter
   - xlwt
   # universal
-  - cython
+  - cython>=0.28.2
   - pytest
   - pytest-xdist

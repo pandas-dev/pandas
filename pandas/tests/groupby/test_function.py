@@ -313,14 +313,14 @@ def test_cython_median():
     tm.assert_frame_equal(rs, xp)
 
 
-def test_median_empty_bins():
+def test_median_empty_bins(observed):
     df = pd.DataFrame(np.random.randint(0, 44, 500))
 
     grps = range(0, 55, 5)
     bins = pd.cut(df[0], grps)
 
-    result = df.groupby(bins).median()
-    expected = df.groupby(bins).agg(lambda x: x.median())
+    result = df.groupby(bins, observed=observed).median()
+    expected = df.groupby(bins, observed=observed).agg(lambda x: x.median())
     tm.assert_frame_equal(result, expected)
 
 
@@ -778,9 +778,10 @@ def test_frame_describe_unstacked_format():
 # nunique
 # --------------------------------
 
-@pytest.mark.parametrize("n, m", cart_product(10 ** np.arange(2, 6),
-                                              (10, 100, 1000)))
-@pytest.mark.parametrize("sort, dropna", cart_product((False, True), repeat=2))
+@pytest.mark.parametrize('n', 10 ** np.arange(2, 6))
+@pytest.mark.parametrize('m', [10, 100, 1000])
+@pytest.mark.parametrize('sort', [False, True])
+@pytest.mark.parametrize('dropna', [False, True])
 def test_series_groupby_nunique(n, m, sort, dropna):
 
     def check_nunique(df, keys, as_index=True):

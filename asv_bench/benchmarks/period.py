@@ -64,6 +64,11 @@ class DataFramePeriodColumn(object):
     def time_setitem_period_column(self):
         self.df['col'] = self.rng
 
+    def time_set_index(self):
+        # GH#21582 limited by comparisons of Period objects
+        self.df['col2'] = self.rng
+        self.df.set_index('col2', append=True)
+
 
 class Algorithms(object):
 

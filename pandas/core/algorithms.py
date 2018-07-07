@@ -25,8 +25,8 @@ from pandas.core.dtypes.common import (
     is_bool_dtype, needs_i8_conversion,
     is_datetimetz,
     is_datetime64_any_dtype, is_datetime64tz_dtype,
-    is_timedelta64_dtype, is_interval_dtype,
-    is_scalar, is_list_like,
+    is_timedelta64_dtype, is_datetimelike,
+    is_interval_dtype, is_scalar, is_list_like,
     _ensure_platform_int, _ensure_object,
     _ensure_float64, _ensure_uint64,
     _ensure_int64)
@@ -154,7 +154,7 @@ def _reconstruct_data(values, dtype, original):
     """
     from pandas import Index
     if is_extension_array_dtype(dtype):
-        pass
+        values = dtype.construct_array_type()._from_sequence(values)
     elif is_datetime64tz_dtype(dtype) or is_period_dtype(dtype):
         values = Index(original)._shallow_copy(values, name=None)
     elif is_bool_dtype(dtype):
@@ -513,7 +513,7 @@ _shared_docs['factorize'] = """
     See Also
     --------
     pandas.cut : Discretize continuous-valued array.
-    pandas.unique : Find the unique valuse in an array.
+    pandas.unique : Find the unique value in an array.
 
     Examples
     --------
@@ -558,7 +558,7 @@ _shared_docs['factorize'] = """
     [a, c]
     Categories (3, object): [a, b, c]
 
-    Notice that ``'b'`` is in ``uniques.categories``, desipite not being
+    Notice that ``'b'`` is in ``uniques.categories``, despite not being
     present in ``cat.values``.
 
     For all other pandas objects, an Index of the appropriate type is
@@ -576,8 +576,8 @@ _shared_docs['factorize'] = """
 @Substitution(
     values=dedent("""\
     values : sequence
-        A 1-D seqeunce. Sequences that aren't pandas objects are
-        coereced to ndarrays before factorization.
+        A 1-D sequence. Sequences that aren't pandas objects are
+        coerced to ndarrays before factorization.
     """),
     order=dedent("""\
     order
@@ -705,7 +705,7 @@ def value_counts(values, sort=True, ascending=False, normalize=False,
 
     else:
 
-        if is_categorical_dtype(values) or is_sparse(values):
+        if is_extension_array_dtype(values) or is_sparse(values):
 
             # handle Categorical and sparse,
             result = Series(values)._values.value_counts(dropna=dropna)
@@ -798,7 +798,7 @@ def duplicated(values, keep='first'):
     return f(values, keep=keep)
 
 
-def mode(values):
+def mode(values, dropna=True):
     """
     Returns the mode(s) of an array.
 
@@ -806,6 +806,10 @@ def mode(values):
     ----------
     values : array-like
         Array over which to check for duplicate values.
+    dropna : boolean, default True
+        Don't consider counts of NaN/NaT.
+
+        .. versionadded:: 0.24.0
 
     Returns
     -------
@@ -818,20 +822,18 @@ def mode(values):
 
     # categorical is a fast-path
     if is_categorical_dtype(values):
-
         if isinstance(values, Series):
-            return Series(values.values.mode(), name=values.name)
-        return values.mode()
+            return Series(values.values.mode(dropna=dropna), name=values.name)
+        return values.mode(dropna=dropna)
+
+    if dropna and is_datetimelike(values):
+        mask = values.isnull()
+        values = values[~mask]
 
     values, dtype, ndtype = _ensure_data(values)
 
-    # TODO: this should support float64
-    if ndtype not in ['int64', 'uint64', 'object']:
-        ndtype = 'object'
-        values = _ensure_object(values)
-
     f = getattr(htable, "mode_{dtype}".format(dtype=ndtype))
-    result = f(values)
+    result = f(values, dropna=dropna)
     try:
         result = np.sort(result)
     except TypeError as e:
@@ -1074,8 +1076,8 @@ class SelectN(object):
         self.n = n
         self.keep = keep
 
-        if self.keep not in ('first', 'last'):
-            raise ValueError('keep must be either "first", "last"')
+        if self.keep not in ('first', 'last', 'all'):
+            raise ValueError('keep must be either "first", "last" or "all"')
 
     def nlargest(self):
         return self.compute('nlargest')
@@ -1131,9 +1133,12 @@ class SelectNSeries(SelectN):
             return dropped[slc].sort_values(ascending=ascending).head(n)
 
         # fast method
-        arr, _, _ = _ensure_data(dropped.values)
+        arr, pandas_dtype, _ = _ensure_data(dropped.values)
         if method == 'nlargest':
             arr = -arr
+            if is_integer_dtype(pandas_dtype):
+                # GH 21426: ensure reverse ordering at boundaries
+                arr -= 1
 
         if self.keep == 'last':
             arr = arr[::-1]
@@ -1143,7 +1148,11 @@ class SelectNSeries(SelectN):
 
         kth_val = algos.kth_smallest(arr.copy(), n - 1)
         ns, = np.nonzero(arr <= kth_val)
-        inds = ns[arr[ns].argsort(kind='mergesort')][:n]
+        inds = ns[arr[ns].argsort(kind='mergesort')]
+
+        if self.keep != 'all':
+            inds = inds[:n]
+
         if self.keep == 'last':
             # reverse indices
             inds = narr - 1 - inds
@@ -1448,7 +1457,7 @@ def _get_take_nd_function(ndim, arr_dtype, out_dtype, axis=0, mask_info=None):
     return func
 
 
-def take(arr, indices, allow_fill=False, fill_value=None):
+def take(arr, indices, axis=0, allow_fill=False, fill_value=None):
     """
     Take elements from an array.
 
@@ -1457,10 +1466,12 @@ def take(arr, indices, allow_fill=False, fill_value=None):
     Parameters
     ----------
     arr : sequence
-        Non array-likes (sequences without a dtype) are coereced
+        Non array-likes (sequences without a dtype) are coerced
         to an ndarray.
     indices : sequence of integers
         Indices to be taken.
+    axis : int, default 0
+        The axis over which to select values.
     allow_fill : bool, default False
         How to handle negative values in `indices`.
 
@@ -1475,6 +1486,9 @@ def take(arr, indices, allow_fill=False, fill_value=None):
         Fill value to use for NA-indices when `allow_fill` is True.
         This may be ``None``, in which case the default NA value for
         the type (``self.dtype.na_value``) is used.
+
+        For multi-dimensional `arr`, each *element* is filled with
+        `fill_value`.
 
     Returns
     -------
@@ -1529,10 +1543,11 @@ def take(arr, indices, allow_fill=False, fill_value=None):
     if allow_fill:
         # Pandas style, -1 means NA
         validate_indices(indices, len(arr))
-        result = take_1d(arr, indices, allow_fill=True, fill_value=fill_value)
+        result = take_1d(arr, indices, axis=axis, allow_fill=True,
+                         fill_value=fill_value)
     else:
         # NumPy style
-        result = arr.take(indices)
+        result = arr.take(indices, axis=axis)
     return result
 
 
@@ -1585,6 +1600,8 @@ def take_nd(arr, indexer, axis=0, out=None, fill_value=np.nan, mask_info=None,
 
     if is_sparse(arr):
         arr = arr.get_values()
+    elif isinstance(arr, (ABCIndexClass, ABCSeries)):
+        arr = arr.values
 
     arr = np.asarray(arr)
 
