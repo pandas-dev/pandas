@@ -465,12 +465,16 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
         bint is_ignore = errors=='ignore'
         bint is_coerce = errors=='coerce'
         _TSObject _ts
-        int out_local=0, out_tzoffset=0
+        #int out_local=0, out_tzoffset=0
+        ndarray[int] out_local
+        ndarray[int] out_tzoffset
 
     # specify error conditions
     assert is_raise or is_ignore or is_coerce
 
     try:
+        out_local = np.zeros(n, dtype=np.int64)
+        out_tzoffset = np.empty(n, dtype=int)
         result = np.empty(n, dtype='M8[ns]')
         iresult = result.view('i8')
         for i in range(n):
@@ -562,7 +566,7 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                     val = val.encode('utf-8')
 
                 try:
-                    _string_to_dts(val, &dts, &out_local, &out_tzoffset)
+                    _string_to_dts(val, &dts, &out_local[i], &out_tzoffset[i])
                 except ValueError:
                     # A ValueError at this point is a _parsing_ error
                     # specifically _not_ OutOfBoundsDatetime
@@ -607,8 +611,8 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
                     # No error raised by string_to_dts, pick back up
                     # where we left off
                     value = dtstruct_to_dt64(&dts)
-                    if out_local == 1:
-                        tz = pytz.FixedOffset(out_tzoffset)
+                    if out_local[i] == 1:
+                        tz = pytz.FixedOffset(out_tzoffset[i])
                         value = tz_convert_single(value, tz, 'UTC')
                     iresult[i] = value
                     try:
@@ -651,6 +655,11 @@ cpdef array_to_datetime(ndarray[object] values, errors='raise',
             else:
                 raise TypeError
 
+        if not (out_tzoffset[0] == out_tzoffset).all():
+            # GH 17697
+            # If the user passed datetime strings with different UTC offsets, then force down
+            # the path where we return an array of objects
+            raise ValueError
         return result
     except OutOfBoundsDatetime:
         if is_raise:
