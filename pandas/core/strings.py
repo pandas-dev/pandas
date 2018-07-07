@@ -2557,12 +2557,66 @@ class StringMethods(NoNewAttributesMixin):
         return self._wrap_result(result)
 
     _shared_docs['str_strip'] = ("""
-    Strip whitespace (including newlines) from each string in the
-    Series/Index from %(side)s. Equivalent to :meth:`str.%(method)s`.
+    Remove leading and trailing characters.
+
+    Strip whitespaces (including newlines) or a set of specified characters
+    from each string in the Series/Index from %(side)s.
+    Equivalent to :meth:`str.%(method)s`.
+
+    Parameters
+    ----------
+    to_strip : str or None, default None.
+        Specifying the set of characters to be removed.
+        All combinations of this set of characters will be stripped.
+        If None then whitespaces are removed.
 
     Returns
     -------
-    stripped : Series/Index of objects
+    Series/Index of objects
+
+    See Also
+    --------
+    Series.str.strip : Remove leading and trailing characters in Series/Index
+    Series.str.lstrip : Remove leading characters in Series/Index
+    Series.str.rstrip : Remove trailing characters in Series/Index
+
+    Examples
+    --------
+    >>> s = pd.Series(['1. Ant.  ', '2. Bee!\n', '3. Cat?\t', np.nan])
+    >>> s
+    0    1. Ant.
+    1    2. Bee!\n
+    2    3. Cat?\t
+    3          NaN
+    dtype: object
+
+    >>> s.str.strip()
+    0    1. Ant.
+    1    2. Bee!
+    2    3. Cat?
+    3        NaN
+    dtype: object
+
+    >>> s.str.lstrip('123.')
+    0    Ant.
+    1    Bee!\n
+    2    Cat?\t
+    3       NaN
+    dtype: object
+
+    >>> s.str.rstrip('.!? \n\t')
+    0    1. Ant
+    1    2. Bee
+    2    3. Cat
+    3       NaN
+    dtype: object
+
+    >>> s.str.strip('123.!? \n\t')
+    0    Ant
+    1    Bee
+    2    Cat
+    3    NaN
+    dtype: object
     """)
 
     @Appender(_shared_docs['str_strip'] % dict(side='left and right sides',
