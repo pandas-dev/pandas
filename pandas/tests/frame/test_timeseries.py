@@ -652,7 +652,7 @@ class TestDataFrameTimeSeriesMethods(TestData):
         assert_frame_equal(result, expected)
 
         ts.columns = rng
-        expected = ts.loc[:,indices]
+        expected = ts.loc[:, indices]
         result = ts.at_time('9:30', axis=1)
         assert_frame_equal(result, expected)
 
@@ -724,11 +724,10 @@ class TestDataFrameTimeSeriesMethods(TestData):
 
     def test_between_time_axis(self):
         rng = date_range('1/1/2000', periods=100, freq='10min')
-        blank = np.arange(0,len(rng))
+        blank = np.arange(0, len(rng))
         stime, etime = ('08:00:00', '09:00:00')
         dimn = (len(rng), len(rng))
         exp_len = 7
-        
         for time_index, time_col in product([True, False], [True, False]):
             if time_index:
                 index = rng
@@ -746,15 +745,13 @@ class TestDataFrameTimeSeriesMethods(TestData):
                 assert len(ts.between_time(stime, etime, axis=0)) == exp_len
             else:
                 pytest.raises(TypeError, ts.between_time, stime, etime)
-                pytest.raises(TypeError, ts.between_time, stime, etime, 
-                                                                  axis=0)
+                pytest.raises(TypeError, ts.between_time, stime, etime, axis=0)
 
             if time_col:
                 selected = ts.between_time(stime, etime, axis=1).columns
                 assert len(selected) == exp_len
             else:
-                pytest.raises(TypeError, ts.between_time, stime, etime, 
-                                                                  axis=1)
+                pytest.raises(TypeError, ts.between_time, stime, etime, axis=1)
 
     def test_operation_on_NaT(self):
         # Both NaT and Timestamp are in DataFrame.
