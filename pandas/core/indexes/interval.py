@@ -6,7 +6,8 @@ import warnings
 from pandas.core.dtypes.missing import notna, isna
 from pandas.core.dtypes.generic import ABCDatetimeIndex, ABCPeriodIndex
 from pandas.core.dtypes.dtypes import IntervalDtype
-from pandas.core.dtypes.cast import maybe_convert_platform, find_common_type
+from pandas.core.dtypes.cast import (
+    maybe_convert_platform, find_common_type, maybe_downcast_to_dtype)
 from pandas.core.dtypes.common import (
     _ensure_platform_int,
     is_list_like,
@@ -111,6 +112,10 @@ def maybe_convert_platform_interval(values):
     -------
     array
     """
+    if is_categorical_dtype(values):
+        # GH 21243/21253
+        values = np.array(values)
+
     if isinstance(values, (list, tuple)) and len(values) == 0:
         # GH 19016
         # empty lists/tuples get object dtype by default, but this is not
@@ -155,24 +160,27 @@ class IntervalIndex(IntervalMixin, Index):
     dtype : dtype or None, default None
         If None, dtype will be inferred
 
-        ..versionadded:: 0.23.0
+        .. versionadded:: 0.23.0
 
     Attributes
     ----------
-    left
-    right
     closed
-    mid
-    length
-    values
     is_non_overlapping_monotonic
+    left
+    length
+    mid
+    right
+    values
 
     Methods
     -------
-    from_arrays
-    from_tuples
-    from_breaks
     contains
+    from_arrays
+    from_breaks
+    from_tuples
+    get_indexer
+    get_loc
+    set_closed
 
     Examples
     ---------
@@ -226,7 +234,7 @@ class IntervalIndex(IntervalMixin, Index):
         if isinstance(data, IntervalIndex):
             left = data.left
             right = data.right
-            closed = data.closed
+            closed = closed or data.closed
         else:
 
             # don't allow scalars
@@ -234,16 +242,8 @@ class IntervalIndex(IntervalMixin, Index):
                 cls._scalar_data_error(data)
 
             data = maybe_convert_platform_interval(data)
-            left, right, infer_closed = intervals_to_interval_bounds(data)
-
-            if (com._all_not_none(closed, infer_closed) and
-                    closed != infer_closed):
-                # GH 18421
-                msg = ("conflicting values for closed: constructor got "
-                       "'{closed}', inferred from data '{infer_closed}'"
-                       .format(closed=closed, infer_closed=infer_closed))
-                raise ValueError(msg)
-
+            left, right, infer_closed = intervals_to_interval_bounds(
+                data, validate_closed=closed is None)
             closed = closed or infer_closed
 
         return cls._simple_new(left, right, closed, name, copy=copy,
@@ -431,7 +431,7 @@ class IntervalIndex(IntervalMixin, Index):
         dtype : dtype or None, default None
             If None, dtype will be inferred
 
-            ..versionadded:: 0.23.0
+            .. versionadded:: 0.23.0
 
         Examples
         --------
@@ -561,7 +561,7 @@ class IntervalIndex(IntervalMixin, Index):
         dtype : dtype or None, default None
             If None, dtype will be inferred
 
-            ..versionadded:: 0.23.0
+            .. versionadded:: 0.23.0
 
         Examples
         --------
@@ -612,7 +612,7 @@ class IntervalIndex(IntervalMixin, Index):
         dtype : dtype or None, default None
             If None, dtype will be inferred
 
-            ..versionadded:: 0.23.0
+            .. versionadded:: 0.23.0
 
         Examples
         --------
@@ -664,7 +664,7 @@ class IntervalIndex(IntervalMixin, Index):
             Returns NA as a tuple if True, ``(nan, nan)``, or just as the NA
             value itself if False, ``nan``.
 
-            ..versionadded:: 0.23.0
+            .. versionadded:: 0.23.0
 
         Examples
         --------
@@ -708,6 +708,41 @@ class IntervalIndex(IntervalMixin, Index):
         neither
         """
         return self._closed
+
+    def set_closed(self, closed):
+        """
+        Return an IntervalIndex identical to the current one, but closed on the
+        specified side
+
+        .. versionadded:: 0.24.0
+
+        Parameters
+        ----------
+        closed : {'left', 'right', 'both', 'neither'}
+            Whether the intervals are closed on the left-side, right-side, both
+            or neither.
+
+        Returns
+        -------
+        new_index : IntervalIndex
+
+        Examples
+        --------
+        >>>  index = pd.interval_range(0, 3)
+        >>>  index
+        IntervalIndex([(0, 1], (1, 2], (2, 3]]
+              closed='right',
+              dtype='interval[int64]')
+        >>>  index.set_closed('both')
+        IntervalIndex([[0, 1], [1, 2], [2, 3]]
+              closed='both',
+              dtype='interval[int64]')
+        """
+        if closed not in _VALID_CLOSED:
+            msg = "invalid option for 'closed': {closed}"
+            raise ValueError(msg.format(closed=closed))
+
+        return self._shallow_copy(closed=closed)
 
     @property
     def length(self):
@@ -797,7 +832,7 @@ class IntervalIndex(IntervalMixin, Index):
     @cache_readonly
     def dtype(self):
         """Return the dtype object of the underlying data"""
-        return IntervalDtype.construct_from_string(str(self.left.dtype))
+        return IntervalDtype(self.left.dtype.name)
 
     @property
     def inferred_type(self):
@@ -938,8 +973,11 @@ class IntervalIndex(IntervalMixin, Index):
         if isinstance(label, IntervalMixin):
             raise NotImplementedError
 
+        # GH 20921: "not is_monotonic_increasing" for the second condition
+        # instead of "is_monotonic_decreasing" to account for single element
+        # indexes being both increasing and decreasing
         if ((side == 'left' and self.left.is_monotonic_increasing) or
-                (side == 'right' and self.left.is_monotonic_decreasing)):
+                (side == 'right' and not self.left.is_monotonic_increasing)):
             sub_idx = self.right
             if self.open_right or exclude_label:
                 label = _get_next_label(label)
@@ -1460,8 +1498,13 @@ def interval_range(start=None, end=None, periods=None, freq=None,
 
     Notes
     -----
-    Of the three parameters: ``start``, ``end``, and ``periods``, exactly two
-    must be specified.
+    Of the four parameters ``start``, ``end``, ``periods``, and ``freq``,
+    exactly three must be specified. If ``freq`` is omitted, the resulting
+    ``IntervalIndex`` will have ``periods`` linearly spaced elements between
+    ``start`` and ``end``, inclusively.
+
+    To learn more about datetime-like frequency strings, please see `this link
+    <http://pandas.pydata.org/pandas-docs/stable/timeseries.html#offset-aliases>`__.
 
     Returns
     -------
@@ -1500,6 +1543,14 @@ def interval_range(start=None, end=None, periods=None, freq=None,
                    (2017-03-01, 2017-04-01]]
                   closed='right', dtype='interval[datetime64[ns]]')
 
+    Specify ``start``, ``end``, and ``periods``; the frequency is generated
+    automatically (linearly spaced).
+
+    >>> pd.interval_range(start=0, end=6, periods=4)
+    IntervalIndex([(0.0, 1.5], (1.5, 3.0], (3.0, 4.5], (4.5, 6.0]]
+              closed='right',
+              dtype='interval[float64]')
+
     The ``closed`` parameter specifies which endpoints of the individual
     intervals within the ``IntervalIndex`` are closed.
 
@@ -1511,19 +1562,21 @@ def interval_range(start=None, end=None, periods=None, freq=None,
     --------
     IntervalIndex : an Index of intervals that are all closed on the same side.
     """
-    if com._count_not_none(start, end, periods) != 2:
-        raise ValueError('Of the three parameters: start, end, and periods, '
-                         'exactly two must be specified')
-
     start = com._maybe_box_datetimelike(start)
     end = com._maybe_box_datetimelike(end)
-    endpoint = next(com._not_none(start, end))
+    endpoint = start if start is not None else end
+
+    if freq is None and com._any_none(periods, start, end):
+        freq = 1 if is_number(endpoint) else 'D'
+
+    if com._count_not_none(start, end, periods, freq) != 3:
+        raise ValueError('Of the four parameters: start, end, periods, and '
+                         'freq, exactly three must be specified')
 
     if not _is_valid_endpoint(start):
         msg = 'start must be numeric or datetime-like, got {start}'
         raise ValueError(msg.format(start=start))
-
-    if not _is_valid_endpoint(end):
+    elif not _is_valid_endpoint(end):
         msg = 'end must be numeric or datetime-like, got {end}'
         raise ValueError(msg.format(end=end))
 
@@ -1533,8 +1586,7 @@ def interval_range(start=None, end=None, periods=None, freq=None,
         msg = 'periods must be a number, got {periods}'
         raise TypeError(msg.format(periods=periods))
 
-    freq = freq or (1 if is_number(endpoint) else 'D')
-    if not is_number(freq):
+    if freq is not None and not is_number(freq):
         try:
             freq = to_offset(freq)
         except ValueError:
@@ -1547,28 +1599,34 @@ def interval_range(start=None, end=None, periods=None, freq=None,
                 _is_type_compatible(end, freq)]):
         raise TypeError("start, end, freq need to be type compatible")
 
+    # +1 to convert interval count to breaks count (n breaks = n-1 intervals)
+    if periods is not None:
+        periods += 1
+
     if is_number(endpoint):
+        # force consistency between start/end/freq (lower end if freq skips it)
+        if com._all_not_none(start, end, freq):
+            end -= (end - start) % freq
+
+        # compute the period/start/end if unspecified (at most one)
         if periods is None:
-            periods = int((end - start) // freq)
+            periods = int((end - start) // freq) + 1
+        elif start is None:
+            start = end - (periods - 1) * freq
+        elif end is None:
+            end = start + (periods - 1) * freq
 
-        if start is None:
-            start = end - periods * freq
-
-        # force end to be consistent with freq (lower if freq skips over end)
-        end = start + periods * freq
-
-        # end + freq for inclusive endpoint
-        breaks = np.arange(start, end + freq, freq)
-    elif isinstance(endpoint, Timestamp):
-        # add one to account for interval endpoints (n breaks = n-1 intervals)
-        if periods is not None:
-            periods += 1
-        breaks = date_range(start=start, end=end, periods=periods, freq=freq)
+        breaks = np.linspace(start, end, periods)
+        if all(is_integer(x) for x in com._not_none(start, end, freq)):
+            # np.linspace always produces float output
+            breaks = maybe_downcast_to_dtype(breaks, 'int64')
     else:
-        # add one to account for interval endpoints (n breaks = n-1 intervals)
-        if periods is not None:
-            periods += 1
-        breaks = timedelta_range(start=start, end=end, periods=periods,
-                                 freq=freq)
+        # delegate to the appropriate range function
+        if isinstance(endpoint, Timestamp):
+            range_func = date_range
+        else:
+            range_func = timedelta_range
+
+        breaks = range_func(start=start, end=end, periods=periods, freq=freq)
 
     return IntervalIndex.from_breaks(breaks, name=name, closed=closed)

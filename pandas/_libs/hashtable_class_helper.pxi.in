@@ -4,8 +4,6 @@ Template for each `dtype` helper function for hashtable
 WARNING: DO NOT edit .pxi FILE directly, .pxi is generated from .pxi.in
 """
 
-from missing cimport is_null_datetimelike
-
 
 #----------------------------------------------------------------------
 # VectorData
@@ -870,7 +868,12 @@ cdef class PyObjectHashTable(HashTable):
         for i in range(n):
             val = values[i]
             hash(val)
-            if not checknull(val):
+
+            # `val is None` below is exception to prevent mangling of None and
+            # other NA values; note however that other NA values (ex: pd.NaT
+            # and np.nan) will still get mangled, so many not be a permanent
+            # solution; see GH 20866
+            if not checknull(val) or val is None:
                 k = kh_get_pymap(self.table, <PyObject*>val)
                 if k == self.table.n_buckets:
                     kh_put_pymap(self.table, <PyObject*>val, &ret)

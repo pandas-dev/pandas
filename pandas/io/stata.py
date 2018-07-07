@@ -33,11 +33,7 @@ from pandas.core.frame import DataFrame
 from pandas.core.series import Series
 from pandas.io.common import (get_filepath_or_buffer, BaseIterator,
                               _stringify_path)
-from pandas.util._decorators import Appender
-from pandas.util._decorators import deprecate_kwarg
-
-VALID_ENCODINGS = ('ascii', 'us-ascii', 'latin-1', 'latin_1', 'iso-8859-1',
-                   'iso8859-1', '8859', 'cp819', 'latin', 'latin1', 'L1')
+from pandas.util._decorators import Appender, deprecate_kwarg
 
 _version_error = ("Version of given Stata file is not 104, 105, 108, "
                   "111 (Stata 7SE), 113 (Stata 8/9), 114 (Stata 10/11), "
@@ -169,6 +165,7 @@ path_or_buf : path (string), buffer or path object
 
 
 @Appender(_read_stata_doc)
+@deprecate_kwarg(old_arg_name='encoding', new_arg_name=None)
 @deprecate_kwarg(old_arg_name='index', new_arg_name='index_col')
 def read_stata(filepath_or_buffer, convert_dates=True,
                convert_categoricals=True, encoding=None, index_col=None,
@@ -182,7 +179,7 @@ def read_stata(filepath_or_buffer, convert_dates=True,
                          preserve_dtypes=preserve_dtypes,
                          columns=columns,
                          order_categoricals=order_categoricals,
-                         chunksize=chunksize, encoding=encoding)
+                         chunksize=chunksize)
 
     if iterator or chunksize:
         data = reader
@@ -838,15 +835,8 @@ class StataMissingValue(StringMixin):
 
 
 class StataParser(object):
-    _default_encoding = 'latin-1'
 
-    def __init__(self, encoding):
-        if encoding is not None:
-            if encoding not in VALID_ENCODINGS:
-                raise ValueError('Unknown encoding. Only latin-1 and ascii '
-                                 'supported.')
-
-        self._encoding = encoding
+    def __init__(self):
 
         # type          code.
         # --------------------
@@ -959,13 +949,14 @@ class StataParser(object):
 class StataReader(StataParser, BaseIterator):
     __doc__ = _stata_reader_doc
 
+    @deprecate_kwarg(old_arg_name='encoding', new_arg_name=None)
     @deprecate_kwarg(old_arg_name='index', new_arg_name='index_col')
     def __init__(self, path_or_buf, convert_dates=True,
                  convert_categoricals=True, index_col=None,
                  convert_missing=False, preserve_dtypes=True,
                  columns=None, order_categoricals=True,
-                 encoding='latin-1', chunksize=None):
-        super(StataReader, self).__init__(encoding)
+                 encoding=None, chunksize=None):
+        super(StataReader, self).__init__()
         self.col_sizes = ()
 
         # Arguments to the reader (can be temporarily overridden in
@@ -977,11 +968,7 @@ class StataReader(StataParser, BaseIterator):
         self._preserve_dtypes = preserve_dtypes
         self._columns = columns
         self._order_categoricals = order_categoricals
-        if encoding is not None:
-            if encoding not in VALID_ENCODINGS:
-                raise ValueError('Unknown encoding. Only latin-1 and ascii '
-                                 'supported.')
-        self._encoding = encoding
+        self._encoding = None
         self._chunksize = chunksize
 
         # State variables for the file
@@ -998,18 +985,13 @@ class StataReader(StataParser, BaseIterator):
         path_or_buf = _stringify_path(path_or_buf)
         if isinstance(path_or_buf, str):
             path_or_buf, encoding, _, should_close = get_filepath_or_buffer(
-                path_or_buf, encoding=self._default_encoding
-            )
+                path_or_buf)
 
         if isinstance(path_or_buf, (str, text_type, bytes)):
             self.path_or_buf = open(path_or_buf, 'rb')
         else:
             # Copy to BytesIO, and ensure no encoding
             contents = path_or_buf.read()
-            try:
-                contents = contents.encode(self._default_encoding)
-            except:
-                pass
             self.path_or_buf = BytesIO(contents)
 
         self._read_header()
@@ -1030,6 +1012,15 @@ class StataReader(StataParser, BaseIterator):
         except IOError:
             pass
 
+    def _set_encoding(self):
+        """
+        Set string encoding which depends on file version
+        """
+        if self.format_version < 118:
+            self._encoding = 'latin-1'
+        else:
+            self._encoding = 'utf-8'
+
     def _read_header(self):
         first_char = self.path_or_buf.read(1)
         if struct.unpack('c', first_char)[0] == b'<':
@@ -1049,6 +1040,7 @@ class StataReader(StataParser, BaseIterator):
         self.format_version = int(self.path_or_buf.read(3))
         if self.format_version not in [117, 118]:
             raise ValueError(_version_error)
+        self._set_encoding()
         self.path_or_buf.read(21)  # </release><byteorder>
         self.byteorder = self.path_or_buf.read(3) == b'MSF' and '>' or '<'
         self.path_or_buf.read(15)  # </byteorder><K>
@@ -1235,6 +1227,7 @@ class StataReader(StataParser, BaseIterator):
         self.format_version = struct.unpack('b', first_char)[0]
         if self.format_version not in [104, 105, 108, 111, 113, 114, 115]:
             raise ValueError(_version_error)
+        self._set_encoding()
         self.byteorder = struct.unpack('b', self.path_or_buf.read(1))[
             0] == 0x1 and '>' or '<'
         self.filetype = struct.unpack('b', self.path_or_buf.read(1))[0]
@@ -1338,16 +1331,9 @@ class StataReader(StataParser, BaseIterator):
         return s.decode('utf-8')
 
     def _null_terminate(self, s):
-        if compat.PY3 or self._encoding is not None:
-            # have bytes not strings, so must decode
-            s = s.partition(b"\0")[0]
-            return s.decode(self._encoding or self._default_encoding)
-        else:
-            null_byte = "\0"
-            try:
-                return s.lstrip(null_byte)[:s.index(null_byte)]
-            except:
-                return s
+        # have bytes not strings, so must decode
+        s = s.partition(b"\0")[0]
+        return s.decode(self._encoding)
 
     def _read_value_labels(self):
         if self._value_labels_read:
@@ -1433,10 +1419,7 @@ class StataReader(StataParser, BaseIterator):
                                    self.path_or_buf.read(4))[0]
             va = self.path_or_buf.read(length)
             if typ == 130:
-                encoding = 'utf-8'
-                if self.format_version == 117:
-                    encoding = self._encoding or self._default_encoding
-                va = va[0:-1].decode(encoding)
+                va = va[0:-1].decode(self._encoding)
             # Wrap v_o in a string to allow uint64 values as keys on 32bit OS
             self.GSO[str(v_o)] = va
 
@@ -1758,11 +1741,25 @@ class StataReader(StataParser, BaseIterator):
         return self.value_label_dict
 
 
-def _open_file_binary_write(fname, encoding):
+def _open_file_binary_write(fname):
+    """
+    Open a binary file or no-op if file-like
+
+    Parameters
+    ----------
+    fname : string path, path object or buffer
+
+    Returns
+    -------
+    file : file-like object
+        File object supporting write
+    own : bool
+        True if the file was created, otherwise False
+    """
     if hasattr(fname, 'write'):
         # if 'b' not in fname.mode:
-        return fname
-    return open(fname, "wb")
+        return fname, False
+    return open(fname, "wb"), True
 
 
 def _set_endianness(endianness):
@@ -1899,7 +1896,9 @@ class StataWriter(StataParser):
     ----------
     fname : path (string), buffer or path object
         string, path object (pathlib.Path or py._path.local.LocalPath) or
-        object implementing a binary write() functions.
+        object implementing a binary write() functions. If using a buffer
+        then the buffer will not be automatically closed after the file
+        is written.
 
         .. versionadded:: 0.23.0 support for pathlib, py.path.
 
@@ -1961,15 +1960,18 @@ class StataWriter(StataParser):
 
     _max_string_length = 244
 
+    @deprecate_kwarg(old_arg_name='encoding', new_arg_name=None)
     def __init__(self, fname, data, convert_dates=None, write_index=True,
                  encoding="latin-1", byteorder=None, time_stamp=None,
                  data_label=None, variable_labels=None):
-        super(StataWriter, self).__init__(encoding)
+        super(StataWriter, self).__init__()
         self._convert_dates = {} if convert_dates is None else convert_dates
         self._write_index = write_index
+        self._encoding = 'latin-1'
         self._time_stamp = time_stamp
         self._data_label = data_label
         self._variable_labels = variable_labels
+        self._own_file = True
         # attach nobs, nvars, data, varlist, typlist
         self._prepare_pandas(data)
 
@@ -2183,9 +2185,7 @@ class StataWriter(StataParser):
                 self.fmtlist[key] = self._convert_dates[key]
 
     def write_file(self):
-        self._file = _open_file_binary_write(
-            self._fname, self._encoding or self._default_encoding
-        )
+        self._file, self._own_file = _open_file_binary_write(self._fname)
         try:
             self._write_header(time_stamp=self._time_stamp,
                                data_label=self._data_label)
@@ -2205,6 +2205,23 @@ class StataWriter(StataParser):
             self._write_file_close_tag()
             self._write_map()
         finally:
+            self._close()
+
+    def _close(self):
+        """
+        Close the file if it was created by the writer.
+
+        If a buffer or file-like object was passed in, for example a GzipFile,
+        then leave this file open for the caller to close. In either case,
+        attempt to flush the file contents to ensure they are written to disk
+        (if supported)
+        """
+        # Some file-like objects might not support flush
+        try:
+            self._file.flush()
+        except AttributeError:
+            pass
+        if self._own_file:
             self._file.close()
 
     def _write_map(self):
@@ -2374,7 +2391,7 @@ class StataWriter(StataParser):
 
     def _write_data(self):
         data = self.data
-        data.tofile(self._file)
+        self._file.write(data.tobytes())
 
     def _null_terminate(self, s, as_string=False):
         null_byte = '\x00'
@@ -2641,7 +2658,9 @@ class StataWriter117(StataWriter):
     ----------
     fname : path (string), buffer or path object
         string, path object (pathlib.Path or py._path.local.LocalPath) or
-        object implementing a binary write() functions.
+        object implementing a binary write() functions. If using a buffer
+        then the buffer will not be automatically closed after the file
+        is written.
     data : DataFrame
         Input to save
     convert_dates : dict
@@ -2707,6 +2726,7 @@ class StataWriter117(StataWriter):
 
     _max_string_length = 2045
 
+    @deprecate_kwarg(old_arg_name='encoding', new_arg_name=None)
     def __init__(self, fname, data, convert_dates=None, write_index=True,
                  encoding="latin-1", byteorder=None, time_stamp=None,
                  data_label=None, variable_labels=None, convert_strl=None):
@@ -2714,9 +2734,10 @@ class StataWriter117(StataWriter):
         self._convert_strl = [] if convert_strl is None else convert_strl[:]
 
         super(StataWriter117, self).__init__(fname, data, convert_dates,
-                                             write_index, encoding, byteorder,
-                                             time_stamp, data_label,
-                                             variable_labels)
+                                             write_index, byteorder=byteorder,
+                                             time_stamp=time_stamp,
+                                             data_label=data_label,
+                                             variable_labels=variable_labels)
         self._map = None
         self._strl_blob = None
 
@@ -2879,7 +2900,7 @@ class StataWriter117(StataWriter):
         self._update_map('data')
         data = self.data
         self._file.write(b'<data>')
-        data.tofile(self._file)
+        self._file.write(data.tobytes())
         self._file.write(b'</data>')
 
     def _write_strls(self):

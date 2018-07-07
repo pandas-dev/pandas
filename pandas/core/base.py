@@ -114,7 +114,7 @@ class PandasObject(StringMixin, DirNamesMixin):
 
     def __sizeof__(self):
         """
-        Generates the total memory usage for a object that returns
+        Generates the total memory usage for an object that returns
         either a value or Series of values
         """
         if hasattr(self, 'memory_usage'):
@@ -590,9 +590,10 @@ class SelectionMixin(object):
 
         # multiples
         else:
-            for col in obj:
+            for index, col in enumerate(obj):
                 try:
-                    colg = self._gotitem(col, ndim=1, subset=obj[col])
+                    colg = self._gotitem(col, ndim=1,
+                                         subset=obj.iloc[:, index])
                     results.append(colg.aggregate(arg))
                     keys.append(col)
                 except (TypeError, DataError):
@@ -608,7 +609,7 @@ class SelectionMixin(object):
             raise ValueError("no results")
 
         try:
-            return concat(results, keys=keys, axis=1)
+            return concat(results, keys=keys, axis=1, sort=False)
         except TypeError:
 
             # we are concatting non-NDFrame objects,
@@ -675,7 +676,6 @@ class GroupByMixin(object):
         subset : object, default None
             subset to act on
         """
-
         # create a new object to prevent aliasing
         if subset is None:
             subset = self.obj
@@ -758,7 +758,7 @@ class IndexOpsMixin(object):
     @property
     def strides(self):
         """ return the strides of the underlying data """
-        warnings.warn("{obj}.strudes is deprecated and will be removed "
+        warnings.warn("{obj}.strides is deprecated and will be removed "
                       "in a future version".format(obj=type(self).__name__),
                       FutureWarning, stacklevel=2)
         return self._ndarray_values.strides
@@ -788,6 +788,7 @@ class IndexOpsMixin(object):
 
     @property
     def _ndarray_values(self):
+        # type: () -> np.ndarray
         """The data as an ndarray, possibly losing information.
 
         The expectation is that this is cheap to compute, and is primarily
@@ -795,7 +796,6 @@ class IndexOpsMixin(object):
 
         - categorical -> codes
         """
-        # type: () -> np.ndarray
         if is_extension_array_dtype(self):
             return self.values._ndarray_values
         return self.values

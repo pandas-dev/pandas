@@ -183,10 +183,6 @@ class SafeForLongAndSparse(object):
 
 class SafeForSparse(object):
 
-    @classmethod
-    def assert_panel_equal(cls, x, y):
-        assert_panel_equal(x, y)
-
     def test_get_axis(self):
         assert (self.panel._get_axis(0) is self.panel.items)
         assert (self.panel._get_axis(1) is self.panel.major_axis)
@@ -477,8 +473,6 @@ class CheckIndexing(object):
 
     def test_setitem(self):
         with catch_warnings(record=True):
-
-            # LongPanel with one item
             lp = self.panel.filter(['ItemA', 'ItemB']).to_frame()
             with pytest.raises(ValueError):
                 self.panel['ItemE'] = lp
@@ -904,10 +898,6 @@ class CheckIndexing(object):
 
 class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
                 SafeForSparse):
-
-    @classmethod
-    def assert_panel_equal(cls, x, y):
-        assert_panel_equal(x, y)
 
     def setup_method(self, method):
         self.panel = make_test_panel()
@@ -1534,7 +1524,7 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
             expected = self.panel.reindex(minor=['D', 'A', 'B', 'C'])
             assert_panel_equal(result, expected)
 
-            # neg indicies ok
+            # neg indices ok
             expected = self.panel.reindex(minor=['D', 'D', 'B', 'C'])
             result = self.panel.take([3, -1, 1, 2], axis=2)
             assert_panel_equal(result, expected)
@@ -2154,8 +2144,8 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
             assert (f1.items == [1, 2]).all()
             assert (f2.items == [1, 2]).all()
 
-            ind = MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1)],
-                                         names=['first', 'second'])
+            MultiIndex.from_tuples([('a', 1), ('a', 2), ('b', 1)],
+                                   names=['first', 'second'])
 
     def test_multiindex_blocks(self):
         with catch_warnings(record=True):
@@ -2462,9 +2452,9 @@ class TestPanel(PanelTests, CheckIndexing, SafeForLongAndSparse,
         pytest.raises(NotImplementedError, self.panel.sort_values, 'ItemA')
 
 
-class TestLongPanel(object):
+class TestPanelFrame(object):
     """
-    LongPanel no longer exists, but...
+    Check that conversions to and from Panel to DataFrame work.
     """
 
     def setup_method(self, method):
@@ -2717,3 +2707,10 @@ def test_panel_index():
                                        np.repeat([1, 2, 3], 4)],
                                       names=['time', 'panel'])
     tm.assert_index_equal(index, expected)
+
+
+def test_panel_np_all():
+    with catch_warnings(record=True):
+        wp = Panel({"A": DataFrame({'b': [1, 2]})})
+    result = np.all(wp)
+    assert result == np.bool_(True)
