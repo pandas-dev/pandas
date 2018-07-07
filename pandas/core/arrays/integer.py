@@ -74,11 +74,13 @@ class _IntegerDtype(ExtensionDtype):
                         "'{}'".format(cls, string))
 
 
-def to_integer_array(values):
+def to_integer_array(values, dtype=None):
     """
     Parameters
     ----------
     values : 1D list-like
+    dtype : dtype, optional
+        dtype to coerce
 
     Returns
     -------
@@ -88,14 +90,6 @@ def to_integer_array(values):
     ------
     TypeError if incompatible types
     """
-    values = np.array(values, copy=False)
-    try:
-        dtype = _dtypes[str(values.dtype)]
-    except KeyError:
-        if is_float_dtype(values):
-            return IntegerArray(values)
-
-        raise TypeError("Incompatible dtype for {}".format(values.dtype))
     return IntegerArray(values, dtype=dtype, copy=False)
 
 
@@ -115,9 +109,18 @@ def coerce_to_array(values, dtype, mask=None, copy=False):
     -------
     tuple of (values, mask)
     """
+    if dtype is not None:
+        if not issubclass(type(dtype), _IntegerDtype):
+            try:
+                dtype = _dtypes[str(np.dtype(dtype))]
+            except KeyError:
+                raise ValueError("invalid dtype specified {}".format(dtype))
 
     if isinstance(values, IntegerArray):
         values, mask = values._data, values._mask
+        if dtype is not None:
+            values = values.astype(dtype.numpy_dtype, copy=False)
+
         if copy:
             values = values.copy()
             mask = mask.copy()

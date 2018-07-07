@@ -567,14 +567,15 @@ def test_to_integer_array_error(values):
 
 
 @pytest.mark.parametrize(
-    'values, dtype',
+    'values, to_dtype, result_dtype',
     [
-        (np.array([1], dtype='int64'), Int64Dtype),
-        (np.array([1, np.nan]), Int64Dtype)])
-def test_to_integer_array(values, dtype):
+        (np.array([1], dtype='int64'), None, Int64Dtype),
+        (np.array([1, np.nan]), None, Int64Dtype),
+        (np.array([1, np.nan]), 'int8', Int8Dtype)])
+def test_to_integer_array(values, to_dtype, result_dtype):
     # convert existing arrays to IntegerArrays
-    result = to_integer_array(values)
-    expected = IntegerArray(values, dtype=dtype)
+    result = to_integer_array(values, dtype=to_dtype)
+    expected = IntegerArray(values, dtype=result_dtype())
     tm.assert_extension_array_equal(result, expected)
 
 
