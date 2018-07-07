@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from pandas import Interval, IntervalIndex, date_range, timedelta_range
+from pandas import Index, Interval, IntervalIndex, date_range, timedelta_range
 from pandas.core.arrays import IntervalArray
 from pandas.core.dtypes.dtypes import IntervalDtype
 from pandas.tests.extension import base
@@ -13,6 +13,22 @@ def make_data():
     left = np.random.uniform(size=N).cumsum()
     right = left + np.random.uniform(size=N)
     return [Interval(l, r) for l, r in zip(left, right)]
+
+
+@pytest.fixture(params=[
+    (Index([0, 2, 4]), Index([1, 3, 5])),
+    (Index([0., 1., 2.]), Index([1., 2., 3.])),
+    (timedelta_range('0 days', periods=3),
+     timedelta_range('1 day', periods=3)),
+    (date_range('20170101', periods=3), date_range('20170102', periods=3)),
+    (date_range('20170101', periods=3, tz='US/Eastern'),
+     date_range('20170102', periods=3, tz='US/Eastern'))],
+    ids=lambda x: str(x[0].dtype))
+def left_right_dtypes(request):
+    """
+    Fixture for building an IntervalArray from various dtypes
+    """
+    return request.param
 
 
 @pytest.fixture
@@ -85,25 +101,20 @@ class TestInterface(BaseInterval, base.BaseInterfaceTests):
 
 class TestMethods(BaseInterval, base.BaseMethodsTests):
     @pytest.mark.parametrize('repeats', [0, 1, 5])
-    @pytest.mark.parametrize('left, right', [
-        (np.arange(3.0), np.arange(1.0, 4.0)),
-        ([0, 2, 4], [1, 3, 5]),
-        (timedelta_range('0 days', periods=3),
-         timedelta_range('1 day', periods=3)),
-        (date_range('20170101', periods=3), date_range('20170102', periods=3)),
-        pytest.param(date_range('20170101', periods=3, tz='US/Eastern'),
-                     date_range('20170102', periods=3, tz='US/Eastern'),
-                     marks=pytest.mark.xfail(reason='fixed after rebase?'))])
-    def test_repeats(self, left, right, repeats):
-        array = IntervalArray.from_arrays(left, right)
-        result = array.repeat(repeats)
-
-        left_reps = [x for x in left for _ in range(repeats)]
-        right_reps = [x for x in right for _ in range(repeats)]
+    def test_repeat(self, left_right_dtypes, repeats):
+        left, right = left_right_dtypes
+        result = IntervalArray.from_arrays(left, right).repeat(repeats)
         expected = IntervalArray.from_arrays(
-            left_reps, right_reps, dtype=array.dtype)
-
+            left.repeat(repeats), right.repeat(repeats))
         tm.assert_extension_array_equal(result, expected)
+
+    @pytest.mark.parametrize('bad_repeats, msg', [
+        (-1, 'negative dimensions are not allowed'),
+        ('foo', r'invalid literal for int\(\) with base 10')])
+    def test_repeat_errors(self, bad_repeats, msg):
+        array = IntervalArray.from_breaks(range(4))
+        with tm.assert_raises_regex(ValueError, msg):
+            array.repeat(bad_repeats)
 
 
 class TestMissing(BaseInterval, base.BaseMissingTests):
@@ -139,21 +150,14 @@ class TestReshaping(BaseInterval, base.BaseReshapingTests):
 
 class TestSetitem(BaseInterval, base.BaseSetitemTests):
 
-    @pytest.mark.parametrize('left, right', [
-        (np.arange(3.0), np.arange(1.0, 4.0)),
-        ([0, 2, 4], [1, 3, 5]),
-        (timedelta_range('0 days', periods=3),
-         timedelta_range('1 day', periods=3)),
-        (date_range('20170101', periods=3), date_range('20170102', periods=3)),
-        pytest.param(date_range('20170101', periods=3, tz='US/Eastern'),
-                     date_range('20170102', periods=3, tz='US/Eastern'),
-                     marks=pytest.mark.xfail(reason='fixed after rebase?'))])
-    def test_set_na(self, left, right):
+    def test_set_na(self, left_right_dtypes):
+        left, right = left_right_dtypes
         result = IntervalArray.from_arrays(left, right)
         result[0] = np.nan
 
-        expected = IntervalArray.from_arrays(
-            [np.nan] + list(left[1:]), [np.nan] + list(right[1:]))
+        expected_left = Index([left._na_value] + list(left[1:]))
+        expected_right = Index([right._na_value] + list(right[1:]))
+        expected = IntervalArray.from_arrays(expected_left, expected_right)
 
         self.assert_extension_array_equal(result, expected)
 
