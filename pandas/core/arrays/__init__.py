@@ -1,10 +1,7 @@
-from .base import ExtensionArray
-from .categorical import Categorical
-from .interval import IntervalArray
-
-
-__all__ = [
-    'Categorical',
-    'ExtensionArray',
-    'IntervalArray',
-]
+from .base import (ExtensionArray,    # noqa
+                   ExtensionScalarOpsMixin)
+from .categorical import Categorical  # noqa
+from .datetimes import DatetimeArrayMixin  # noqa
+from .interval import IntervalArray  # noqa
+from .period import PeriodArrayMixin  # noqa
+from .timedelta import TimedeltaArrayMixin  # noqa

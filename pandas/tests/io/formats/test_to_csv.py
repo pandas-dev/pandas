@@ -285,3 +285,34 @@ $1$,$2$
             df.to_csv(path, encoding='utf-8')
             with open(path, 'r') as f:
                 assert f.read() == expected_utf8
+
+    @tm.capture_stdout
+    def test_to_csv_stdout_file(self):
+        # GH 21561
+        df = pd.DataFrame([['foo', 'bar'], ['baz', 'qux']],
+                          columns=['name_1', 'name_2'])
+        expected_ascii = '''\
+,name_1,name_2
+0,foo,bar
+1,baz,qux
+'''
+        df.to_csv(sys.stdout, encoding='ascii')
+        output = sys.stdout.getvalue()
+        assert output == expected_ascii
+        assert not sys.stdout.closed
+
+    def test_to_csv_write_to_open_file(self):
+        # GH 21696
+        df = pd.DataFrame({'a': ['x', 'y', 'z']})
+        expected = '''\
+manual header
+x
+y
+z
+'''
+        with tm.ensure_clean('test.txt') as path:
+            with open(path, 'w') as f:
+                f.write('manual header\n')
+                df.to_csv(f, header=None, index=None)
+            with open(path, 'r') as f:
+                assert f.read() == expected

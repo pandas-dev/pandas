@@ -125,7 +125,8 @@ mangle_dupe_cols : boolean, default True
     are duplicate names in the columns.
 dtype : Type name or dict of column -> type, default None
     Data type for data or columns. E.g. {'a': np.float64, 'b': np.int32}
-    Use `str` or `object` to preserve and not interpret dtype.
+    Use `str` or `object` together with suitable `na_values` settings
+    to preserve and not interpret dtype.
     If converters are specified, they will be applied INSTEAD
     of dtype conversion.
 %s
@@ -3208,12 +3209,22 @@ def _get_empty_meta(columns, index_col, index_names, dtype=None):
             col = columns[k] if is_integer(k) else k
             dtype[col] = v
 
-    if index_col is None or index_col is False:
+    # Even though we have no data, the "index" of the empty DataFrame
+    # could for example still be an empty MultiIndex. Thus, we need to
+    # check whether we have any index columns specified, via either:
+    #
+    # 1) index_col (column indices)
+    # 2) index_names (column names)
+    #
+    # Both must be non-null to ensure a successful construction. Otherwise,
+    # we have to create a generic emtpy Index.
+    if (index_col is None or index_col is False) or index_names is None:
         index = Index([])
     else:
         data = [Series([], dtype=dtype[name]) for name in index_names]
         index = _ensure_index_from_sequences(data, names=index_names)
         index_col.sort()
+
         for i, n in enumerate(index_col):
             columns.pop(n - i)
 

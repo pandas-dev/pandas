@@ -74,6 +74,7 @@ Methods
 from_arrays
 from_tuples
 from_breaks
+set_closed
 %(extra_methods)s\
 
 %(examples)s\
@@ -121,7 +122,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         if isinstance(data, (cls, ABCIntervalIndex)):
             left = data.left
             right = data.right
-            closed = data.closed
+            closed = closed or data.closed
         else:
 
             # don't allow scalars
@@ -132,16 +133,8 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
             # might need to convert empty or purely na data
             data = maybe_convert_platform_interval(data)
-            left, right, infer_closed = intervals_to_interval_bounds(data)
-
-            if (com._all_not_none(closed, infer_closed) and
-                    closed != infer_closed):
-                # GH 18421
-                msg = ("conflicting values for closed: constructor got "
-                       "'{closed}', inferred from data '{infer_closed}'"
-                       .format(closed=closed, infer_closed=infer_closed))
-                raise ValueError(msg)
-
+            left, right, infer_closed = intervals_to_interval_bounds(
+                data, validate_closed=closed is None)
             closed = closed or infer_closed
 
         return cls._simple_new(left, right, closed, copy=copy, dtype=dtype,
@@ -520,7 +513,7 @@ class IntervalArray(IntervalMixin, ExtensionArray):
 
     @property
     def dtype(self):
-        return IntervalDtype.construct_from_string(str(self.left.dtype))
+        return IntervalDtype(self.left.dtype)
 
     def astype(self, dtype, copy=True):
         """
@@ -587,11 +580,10 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         right = np.concatenate([interval.right for interval in to_concat])
         return cls._simple_new(left, right, closed=closed, copy=False)
 
-    def _shallow_copy(self, left=None, right=None):
+    def _shallow_copy(self, left=None, right=None, closed=None):
         if left is None:
 
             # no values passed
-            # XXX: is ^ right? Or does that mean just left wasn't passed?
             left, right = self.left, self.right
 
         elif right is None:
@@ -607,8 +599,9 @@ class IntervalArray(IntervalMixin, ExtensionArray):
             # both left and right are values
             pass
 
-        return self._simple_new(left, right, closed=self.closed,
-                                verify_integrity=False)
+        closed = closed or self.closed
+        return self._simple_new(
+            left, right, closed=closed, verify_integrity=False)
 
     def copy(self, deep=False):
         """
@@ -775,6 +768,43 @@ class IntervalArray(IntervalMixin, ExtensionArray):
         neither
         """
         return self._closed
+
+    _interval_shared_docs['set_closed'] = """
+        Return an %(klass)s identical to the current one, but closed on the
+        specified side
+
+        .. versionadded:: 0.24.0
+
+        Parameters
+        ----------
+        closed : {'left', 'right', 'both', 'neither'}
+            Whether the intervals are closed on the left-side, right-side, both
+            or neither.
+
+        Returns
+        -------
+        new_index : %(klass)s
+
+        Examples
+        --------
+        >>>  index = pd.interval_range(0, 3)
+        >>>  index
+        %(klass)s([(0, 1], (1, 2], (2, 3]]
+              closed='right',
+              dtype='interval[int64]')
+        >>>  index.set_closed('both')
+        %(klass)s([[0, 1], [1, 2], [2, 3]]
+              closed='both',
+              dtype='interval[int64]')
+        """
+
+    @Appender(_interval_shared_docs['set_closed'] % _shared_docs_kwargs)
+    def set_closed(self, closed):
+        if closed not in _VALID_CLOSED:
+            msg = "invalid option for 'closed': {closed}"
+            raise ValueError(msg.format(closed=closed))
+
+        return self._shallow_copy(closed=closed)
 
     @property
     def length(self):
