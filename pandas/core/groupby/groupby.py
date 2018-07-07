@@ -3557,13 +3557,11 @@ class SeriesGroupBy(GroupBy):
                 obj._selection = name
             results[name] = obj.aggregate(func)
 
-        if isinstance(list(compat.itervalues(results))[0],
-                      DataFrame):
-
+        if any(isinstance(x, DataFrame) for x in compat.itervalues(results)):
             # let higher level handle
             if _level:
                 return results
-            return list(compat.itervalues(results))[0]
+
         return DataFrame(results, columns=columns)
 
     def _wrap_output(self, output, index, names=None):

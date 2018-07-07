@@ -1674,3 +1674,22 @@ def test_tuple_correct_keyerror():
                                                           [3, 4]]))
     with tm.assert_raises_regex(KeyError, "(7, 8)"):
         df.groupby((7, 8)).mean()
+
+
+def test_groupby_agg_ohlc_non_first():
+    # GH 21716
+    df = pd.DataFrame([[1], [1]], columns=['foo'],
+                      index=pd.date_range('2018-01-01', periods=2, freq='D'))
+
+    expected = pd.DataFrame([
+        [1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1]
+    ], columns=pd.MultiIndex.from_tuples((
+        ('foo', 'ohlc', 'open'), ('foo', 'ohlc', 'high'),
+        ('foo', 'ohlc', 'low'), ('foo', 'ohlc', 'close'),
+        ('foo', 'sum', 'foo'))), index=pd.date_range(
+            '2018-01-01', periods=2, freq='D'))
+
+    result = df.groupby(pd.Grouper(freq='D')).agg(['sum', 'ohlc'])
+
+    tm.assert_frame_equal(result, expected)
