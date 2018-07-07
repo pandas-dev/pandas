@@ -179,6 +179,27 @@ class DatetimeLikeArrayMixin(AttributesMixin):
             result[self._isnan] = fill_value
         return result
 
+    def _nat_new(self, box=True):
+        """
+        Return Array/Index or ndarray filled with NaT which has the same
+        length as the caller.
+
+        Parameters
+        ----------
+        box : boolean, default True
+            - If True returns a Array/Index as the same as caller.
+            - If False returns ndarray of np.int64.
+        """
+        result = np.zeros(len(self), dtype=np.int64)
+        result.fill(iNaT)
+        if not box:
+            return result
+
+        attribs = self._get_attributes_dict()
+        if not is_period_dtype(self):
+            attribs['freq'] = None
+        return self._simple_new(result, **attribs)
+
     # ------------------------------------------------------------------
     # Frequency Properties/Methods
 
@@ -276,6 +297,17 @@ class DatetimeLikeArrayMixin(AttributesMixin):
             mask = (self._isnan) | (other._isnan)
             new_values[mask] = iNaT
         return new_values.view('i8')
+
+    def _add_nat(self):
+        """Add pd.NaT to self"""
+        if is_period_dtype(self):
+            raise TypeError('Cannot add {cls} and {typ}'
+                            .format(cls=type(self).__name__,
+                                    typ=type(NaT).__name__))
+
+        # GH#19124 pd.NaT is treated like a timedelta for both timedelta
+        # and datetime dtypes
+        return self._nat_new(box=True)
 
     def _sub_nat(self):
         """Subtract pd.NaT from self"""
