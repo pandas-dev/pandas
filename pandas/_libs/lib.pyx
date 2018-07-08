@@ -1,6 +1,4 @@
 # cython: profile=False
-import operator
-
 cimport cython
 from cython cimport Py_ssize_t
 
@@ -29,7 +27,7 @@ from cpython.datetime cimport (PyDateTime_Check, PyDate_Check,
                                PyDateTime_IMPORT)
 PyDateTime_IMPORT
 
-from tslib import NaT, array_to_datetime
+from tslib import array_to_datetime
 from missing cimport checknull
 
 
