@@ -5,17 +5,20 @@ from pandas.compat import (string_types, text_type, binary_type,
                            PY3, PY36)
 from pandas._libs import algos, lib
 from pandas._libs.tslibs import conversion
-from .dtypes import (CategoricalDtype, CategoricalDtypeType,
-                     DatetimeTZDtype, DatetimeTZDtypeType,
-                     PeriodDtype, PeriodDtypeType,
-                     IntervalDtype, IntervalDtypeType,
-                     ExtensionDtype)
-from .generic import (ABCCategorical, ABCPeriodIndex,
-                      ABCDatetimeIndex, ABCSeries,
-                      ABCSparseArray, ABCSparseSeries, ABCCategoricalIndex,
-                      ABCIndexClass, ABCDateOffset)
-from .inference import is_string_like, is_list_like
-from .inference import *  # noqa
+
+from pandas.core.dtypes.dtypes import (
+    registry, CategoricalDtype, CategoricalDtypeType, DatetimeTZDtype,
+    DatetimeTZDtypeType, PeriodDtype, PeriodDtypeType, IntervalDtype,
+    IntervalDtypeType, ExtensionDtype)
+from pandas.core.dtypes.generic import (
+    ABCCategorical, ABCPeriodIndex, ABCDatetimeIndex, ABCSeries,
+    ABCSparseArray, ABCSparseSeries, ABCCategoricalIndex, ABCIndexClass,
+    ABCDateOffset)
+from pandas.core.dtypes.inference import (  # noqa:F401
+    is_bool, is_integer, is_hashable, is_iterator, is_float,
+    is_dict_like, is_scalar, is_string_like, is_list_like, is_number,
+    is_file_like, is_re, is_re_compilable, is_sequence, is_nested_list_like,
+    is_named_tuple, is_array_like, is_decimal, is_complex, is_interval)
 
 
 _POSSIBLY_CAST_DTYPES = set([np.dtype(t).name
@@ -1807,7 +1810,7 @@ def _get_dtype(arr_or_dtype):
         return arr_or_dtype
     elif isinstance(arr_or_dtype, type):
         return np.dtype(arr_or_dtype)
-    elif isinstance(arr_or_dtype, CategoricalDtype):
+    elif isinstance(arr_or_dtype, ExtensionDtype):
         return arr_or_dtype
     elif isinstance(arr_or_dtype, DatetimeTZDtype):
         return arr_or_dtype
@@ -1975,38 +1978,13 @@ def pandas_dtype(dtype):
     np.dtype or a pandas dtype
     """
 
-    if isinstance(dtype, DatetimeTZDtype):
-        return dtype
-    elif isinstance(dtype, PeriodDtype):
-        return dtype
-    elif isinstance(dtype, CategoricalDtype):
-        return dtype
-    elif isinstance(dtype, IntervalDtype):
-        return dtype
-    elif isinstance(dtype, string_types):
-        try:
-            return DatetimeTZDtype.construct_from_string(dtype)
-        except TypeError:
-            pass
+    # registered extension types
+    result = registry.find(dtype)
+    if result is not None:
+        return result
 
-        if dtype.startswith('period[') or dtype.startswith('Period['):
-            # do not parse string like U as period[U]
-            try:
-                return PeriodDtype.construct_from_string(dtype)
-            except TypeError:
-                pass
-
-        elif dtype.startswith('interval') or dtype.startswith('Interval'):
-            try:
-                return IntervalDtype.construct_from_string(dtype)
-            except TypeError:
-                pass
-
-        try:
-            return CategoricalDtype.construct_from_string(dtype)
-        except TypeError:
-            pass
-    elif isinstance(dtype, ExtensionDtype):
+    # un-registered extension types
+    if isinstance(dtype, ExtensionDtype):
         return dtype
 
     try:
