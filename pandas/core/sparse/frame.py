@@ -148,9 +148,10 @@ class SparseDataFrame(DataFrame):
         if index is None:
             index = extract_index(list(data.values()))
 
-        sp_maker = lambda x: SparseArray(x, kind=self._default_kind,
-                                         fill_value=self._default_fill_value,
-                                         copy=True, dtype=dtype)
+        def sp_maker(x):
+            return SparseArray(x, kind=self._default_kind,
+                               fill_value=self._default_fill_value,
+                               copy=True, dtype=dtype)
         sdict = {}
         for k, v in compat.iteritems(data):
             if isinstance(v, Series):
@@ -397,9 +398,10 @@ class SparseDataFrame(DataFrame):
         sanitized_column : SparseArray
 
         """
-        sp_maker = lambda x, index=None: SparseArray(
-            x, index=index, fill_value=self._default_fill_value,
-            kind=self._default_kind)
+        def sp_maker(x, index=None):
+            return SparseArray(x, index=index,
+                               fill_value=self._default_fill_value,
+                               kind=self._default_kind)
         if isinstance(value, SparseSeries):
             clean = value.reindex(self.index).as_sparse_array(
                 fill_value=self._default_fill_value, kind=self._default_kind)
@@ -427,18 +429,6 @@ class SparseDataFrame(DataFrame):
 
         # always return a SparseArray!
         return clean
-
-    def __getitem__(self, key):
-        """
-        Retrieve column or slice from DataFrame
-        """
-        if isinstance(key, slice):
-            date_rng = self.index[key]
-            return self.reindex(date_rng)
-        elif isinstance(key, (np.ndarray, list, Series)):
-            return self._getitem_array(key)
-        else:
-            return self._get_item_cache(key)
 
     def get_value(self, index, col, takeable=False):
         """
@@ -714,6 +704,9 @@ class SparseDataFrame(DataFrame):
 
         if fill_value is None:
             fill_value = np.nan
+
+        reindexers = {self._get_axis_number(a): val
+                      for (a, val) in compat.iteritems(reindexers)}
 
         index, row_indexer = reindexers.get(0, (None, None))
         columns, col_indexer = reindexers.get(1, (None, None))
