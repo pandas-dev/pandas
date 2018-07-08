@@ -24,7 +24,7 @@ import pandas as pd
 class Base(object):
     """ base class for index sub-class tests """
     _holder = None
-    _compat_props = ['shape', 'ndim', 'size', 'itemsize', 'nbytes']
+    _compat_props = ['shape', 'ndim', 'size', 'nbytes']
 
     def setup_indices(self):
         for name, idx in self.indices.items():
@@ -978,11 +978,10 @@ class Base(object):
         assert not index.empty
         assert index[:0].empty
 
-    @pytest.mark.parametrize('how', ['outer', 'inner', 'left', 'right'])
-    def test_join_self_unique(self, how):
+    def test_join_self_unique(self, join_type):
         index = self.create_index()
         if index.is_unique:
-            joined = index.join(index, how=how)
+            joined = index.join(index, how=join_type)
             assert (index == joined).all()
 
     def test_searchsorted_monotonic(self, indices):

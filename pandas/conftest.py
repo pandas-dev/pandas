@@ -1,9 +1,12 @@
+import os
+import importlib
+
 import pytest
 
-from distutils.version import LooseVersion
-import numpy
 import pandas
-import dateutil
+import numpy as np
+import pandas as pd
+from pandas.compat import PY3
 import pandas.util._test_decorators as td
 
 
@@ -16,6 +19,8 @@ def pytest_addoption(parser):
                      help="run high memory tests")
     parser.addoption("--only-slow", action="store_true",
                      help="run only slow tests")
+    parser.addoption("--strict-data-files", action="store_true",
+                     help="Fail if a test is skipped for missing data file.")
 
 
 def pytest_runtest_setup(item):
@@ -38,15 +43,15 @@ def pytest_runtest_setup(item):
 
 @pytest.fixture(autouse=True)
 def configure_tests():
-    pandas.set_option('chained_assignment', 'raise')
+    pd.set_option('chained_assignment', 'raise')
 
 
 # For running doctests: make np and pd names available
 
 @pytest.fixture(autouse=True)
 def add_imports(doctest_namespace):
-    doctest_namespace['np'] = numpy
-    doctest_namespace['pd'] = pandas
+    doctest_namespace['np'] = np
+    doctest_namespace['pd'] = pd
 
 
 @pytest.fixture(params=['bsr', 'coo', 'csc', 'csr', 'dia', 'dok', 'lil'])
@@ -68,12 +73,50 @@ def ip():
     return InteractiveShell()
 
 
-is_dateutil_le_261 = pytest.mark.skipif(
-    LooseVersion(dateutil.__version__) > LooseVersion('2.6.1'),
-    reason="dateutil api change version")
-is_dateutil_gt_261 = pytest.mark.skipif(
-    LooseVersion(dateutil.__version__) <= LooseVersion('2.6.1'),
-    reason="dateutil stable version")
+@pytest.fixture(params=[True, False, None])
+def observed(request):
+    """ pass in the observed keyword to groupby for [True, False]
+    This indicates whether categoricals should return values for
+    values which are not in the grouper [False / None], or only values which
+    appear in the grouper [True]. [None] is supported for future compatiblity
+    if we decide to change the default (and would need to warn if this
+    parameter is not passed)"""
+    return request.param
+
+
+_all_arithmetic_operators = ['__add__', '__radd__',
+                             '__sub__', '__rsub__',
+                             '__mul__', '__rmul__',
+                             '__floordiv__', '__rfloordiv__',
+                             '__truediv__', '__rtruediv__',
+                             '__pow__', '__rpow__',
+                             '__mod__', '__rmod__']
+if not PY3:
+    _all_arithmetic_operators.extend(['__div__', '__rdiv__'])
+
+
+@pytest.fixture(params=_all_arithmetic_operators)
+def all_arithmetic_operators(request):
+    """
+    Fixture for dunder names for common arithmetic operations
+    """
+    return request.param
+
+
+@pytest.fixture(params=['__eq__', '__ne__', '__le__',
+                        '__lt__', '__ge__', '__gt__'])
+def all_compare_operators(request):
+    """
+    Fixture for dunder names for common compare operations
+
+    * >=
+    * >
+    * ==
+    * !=
+    * <
+    * <=
+    """
+    return request.param
 
 
 @pytest.fixture(params=[None, 'gzip', 'bz2', 'zip',
@@ -85,12 +128,20 @@ def compression(request):
     return request.param
 
 
-@pytest.fixture(params=[None, 'gzip', 'bz2',
+@pytest.fixture(params=['gzip', 'bz2', 'zip',
                         pytest.param('xz', marks=td.skip_if_no_lzma)])
-def compression_no_zip(request):
+def compression_only(request):
     """
-    Fixture for trying common compression types in compression tests
-    except zip
+    Fixture for trying common compression types in compression tests excluding
+    uncompressed case
+    """
+    return request.param
+
+
+@pytest.fixture(params=[True, False])
+def writable(request):
+    """
+    Fixture that an array is writable
     """
     return request.param
 
@@ -99,3 +150,198 @@ def compression_no_zip(request):
 def datetime_tz_utc():
     from datetime import timezone
     return timezone.utc
+
+
+@pytest.fixture(params=['inner', 'outer', 'left', 'right'])
+def join_type(request):
+    """
+    Fixture for trying all types of join operations
+    """
+    return request.param
+
+
+@pytest.fixture
+def datapath(request):
+    """Get the path to a data file.
+
+    Parameters
+    ----------
+    path : str
+        Path to the file, relative to ``pandas/tests/``
+
+    Returns
+    -------
+    path : path including ``pandas/tests``.
+
+    Raises
+    ------
+    ValueError
+        If the path doesn't exist and the --strict-data-files option is set.
+    """
+    BASE_PATH = os.path.join(os.path.dirname(__file__), 'tests')
+
+    def deco(*args):
+        path = os.path.join(BASE_PATH, *args)
+        if not os.path.exists(path):
+            if request.config.getoption("--strict-data-files"):
+                msg = "Could not find file {} and --strict-data-files is set."
+                raise ValueError(msg.format(path))
+            else:
+                msg = "Could not find {}."
+                pytest.skip(msg.format(path))
+        return path
+    return deco
+
+
+@pytest.fixture
+def iris(datapath):
+    """The iris dataset as a DataFrame."""
+    return pandas.read_csv(datapath('data', 'iris.csv'))
+
+
+@pytest.fixture(params=['nlargest', 'nsmallest'])
+def nselect_method(request):
+    """
+    Fixture for trying all nselect methods
+    """
+    return request.param
+
+
+@pytest.fixture(params=['left', 'right', 'both', 'neither'])
+def closed(request):
+    """
+    Fixture for trying all interval closed parameters
+    """
+    return request.param
+
+
+@pytest.fixture(params=[None, np.nan, pd.NaT, float('nan'), np.float('NaN')])
+def nulls_fixture(request):
+    """
+    Fixture for each null type in pandas
+    """
+    return request.param
+
+
+nulls_fixture2 = nulls_fixture  # Generate cartesian product of nulls_fixture
+
+
+TIMEZONES = [None, 'UTC', 'US/Eastern', 'Asia/Tokyo', 'dateutil/US/Pacific']
+
+
+@td.parametrize_fixture_doc(str(TIMEZONES))
+@pytest.fixture(params=TIMEZONES)
+def tz_naive_fixture(request):
+    """
+    Fixture for trying timezones including default (None): {0}
+    """
+    return request.param
+
+
+@td.parametrize_fixture_doc(str(TIMEZONES[1:]))
+@pytest.fixture(params=TIMEZONES[1:])
+def tz_aware_fixture(request):
+    """
+    Fixture for trying explicit timezones: {0}
+    """
+    return request.param
+
+
+@pytest.fixture(params=[str, 'str', 'U'])
+def string_dtype(request):
+    """Parametrized fixture for string dtypes.
+
+    * str
+    * 'str'
+    * 'U'
+    """
+    return request.param
+
+
+@pytest.fixture(params=[float, "float32", "float64"])
+def float_dtype(request):
+    """
+    Parameterized fixture for float dtypes.
+
+    * float32
+    * float64
+    """
+
+    return request.param
+
+
+@pytest.fixture(params=[complex, "complex64", "complex128"])
+def complex_dtype(request):
+    """
+    Parameterized fixture for complex dtypes.
+
+    * complex64
+    * complex128
+    """
+
+    return request.param
+
+
+UNSIGNED_INT_DTYPES = ["uint8", "uint16", "uint32", "uint64"]
+SIGNED_INT_DTYPES = [int, "int8", "int16", "int32", "int64"]
+ALL_INT_DTYPES = UNSIGNED_INT_DTYPES + SIGNED_INT_DTYPES
+
+
+@pytest.fixture(params=SIGNED_INT_DTYPES)
+def sint_dtype(request):
+    """
+    Parameterized fixture for signed integer dtypes.
+
+    * int8
+    * int16
+    * int32
+    * int64
+    """
+
+    return request.param
+
+
+@pytest.fixture(params=UNSIGNED_INT_DTYPES)
+def uint_dtype(request):
+    """
+    Parameterized fixture for unsigned integer dtypes.
+
+    * uint8
+    * uint16
+    * uint32
+    * uint64
+    """
+
+    return request.param
+
+
+@pytest.fixture(params=ALL_INT_DTYPES)
+def any_int_dtype(request):
+    """
+    Parameterized fixture for any integer dtypes.
+
+    * int8
+    * uint8
+    * int16
+    * uint16
+    * int32
+    * uint32
+    * int64
+    * uint64
+    """
+
+    return request.param
+
+
+@pytest.fixture
+def mock():
+    """
+    Fixture providing the 'mock' module.
+
+    Uses 'unittest.mock' for Python 3. Attempts to import the 3rd party 'mock'
+    package for Python 2, skipping if not present.
+    """
+    if PY3:
+        return importlib.import_module("unittest.mock")
+    else:
+        return pytest.importorskip("mock")

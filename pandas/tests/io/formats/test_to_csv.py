@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import sys
+
+import pytest
+
 import numpy as np
 import pandas as pd
-import pytest
+
 from pandas import DataFrame
 from pandas.util import testing as tm
 
@@ -285,3 +288,66 @@ $1$,$2$
             df.to_csv(path, encoding='utf-8')
             with open(path, 'r') as f:
                 assert f.read() == expected_utf8
+
+    @tm.capture_stdout
+    def test_to_csv_stdout_file(self):
+        # GH 21561
+        df = pd.DataFrame([['foo', 'bar'], ['baz', 'qux']],
+                          columns=['name_1', 'name_2'])
+        expected_ascii = '''\
+,name_1,name_2
+0,foo,bar
+1,baz,qux
+'''
+        df.to_csv(sys.stdout, encoding='ascii')
+        output = sys.stdout.getvalue()
+        assert output == expected_ascii
+        assert not sys.stdout.closed
+
+    def test_to_csv_write_to_open_file(self):
+        # GH 21696
+        df = pd.DataFrame({'a': ['x', 'y', 'z']})
+        expected = '''\
+manual header
+x
+y
+z
+'''
+        with tm.ensure_clean('test.txt') as path:
+            with open(path, 'w') as f:
+                f.write('manual header\n')
+                df.to_csv(f, header=None, index=None)
+            with open(path, 'r') as f:
+                assert f.read() == expected
+
+    @pytest.mark.parametrize("to_infer", [True, False])
+    @pytest.mark.parametrize("read_infer", [True, False])
+    def test_to_csv_compression(self, compression_only,
+                                read_infer, to_infer):
+        # see gh-15008
+        compression = compression_only
+
+        if compression == "zip":
+            pytest.skip("{compression} is not supported "
+                        "for to_csv".format(compression=compression))
+
+        # We'll complete file extension subsequently.
+        filename = "test."
+
+        if compression == "gzip":
+            filename += "gz"
+        else:
+            # xz --> .xz
+            # bz2 --> .bz2
+            filename += compression
+
+        df = DataFrame({"A": [1]})
+
+        to_compression = "infer" if to_infer else compression
+        read_compression = "infer" if read_infer else compression
+
+        with tm.ensure_clean(filename) as path:
+            df.to_csv(path, compression=to_compression)
+            result = pd.read_csv(path, index_col=0,
+                                 compression=read_compression)
+            tm.assert_frame_equal(result, df)
