@@ -255,5 +255,5 @@ def test_unique_na():
 
 def test_duplicate_level_names_access_raises(idx):
     idx.names = ['foo', 'foo']
-    tm.assert_raises_regex(KeyError, 'Level foo not found',
+    tm.assert_raises_regex(ValueError, 'name foo occurs multiple times',
                            idx._get_level_number, 'foo')
