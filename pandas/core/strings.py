@@ -2556,7 +2556,7 @@ class StringMethods(NoNewAttributesMixin):
         result = str_encode(self._data, encoding, errors)
         return self._wrap_result(result)
 
-    _shared_docs['str_strip'] = ("""
+    _shared_docs['str_strip'] = (r"""
     Remove leading and trailing characters.
 
     Strip whitespaces (including newlines) or a set of specified characters

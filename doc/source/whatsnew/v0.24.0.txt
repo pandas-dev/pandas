@@ -100,27 +100,33 @@ Creating a ``Tick`` object (:class:`Day`, :class:`Hour`, :class:`Minute`,
 `normalize=True` is no longer supported.  This prevents unexpected behavior
 where addition could fail to be monotone or associative.  (:issue:`21427`)
 
-.. ipython:: python
-
-    ts = pd.Timestamp('2018-06-11 18:01:14')
-    ts
-    tic = pd.offsets.Hour(n=2, normalize=True)
-    tic
-
-Previous Behavior:
+*Previous Behavior*:
 
 .. code-block:: ipython
 
-    In [4]: ts + tic
-    Out [4]: Timestamp('2018-06-11 00:00:00')
 
-    In [5]: ts + tic + tic + tic == ts + (tic + tic + tic)
-    Out [5]: False
+   In [2]: ts = pd.Timestamp('2018-06-11 18:01:14')
 
-Current Behavior:
+   In [3]: ts
+   Out[3]: Timestamp('2018-06-11 18:01:14')
+
+   In [4]: tic = pd.offsets.Hour(n=2, normalize=True)
+      ...:
+
+   In [5]: tic
+   Out[5]: <2 * Hours>
+
+   In [6]: ts + tic
+   Out[6]: Timestamp('2018-06-11 00:00:00')
+
+   In [7]: ts + tic + tic + tic == ts + (tic + tic + tic)
+   Out[7]: False
+
+*Current Behavior*:
 
 .. ipython:: python
 
+    ts = pd.Timestamp('2018-06-11 18:01:14')
     tic = pd.offsets.Hour(n=2)
     ts + tic + tic + tic == ts + (tic + tic + tic)
 
